@@ -35,17 +35,17 @@ public class KBFilter3_BB_Test extends ExperimentalSeries {
   @Test
   public void test003() throws Exception {
     String lCFile = "kbfiltr_simpl2.cil.c";
-    
+
     LinkedList<String> lArguments = new LinkedList<String>();
-    
+
     lArguments.add(Main.BASIC_BLOCK_COVERAGE);
     lArguments.add("test/programs/fql/ntdrivers-simplified/" + lCFile);
     lArguments.add("main");
     lArguments.add("4");
-    
+
     String[] lArgs = new String[lArguments.size()];
     lArguments.toArray(lArgs);
-    
+
     MultiprocessFShell3.main(lArgs);
   }
 }

@@ -50,20 +50,20 @@ public class IASTFunctionCallExpression extends IASTRightHandSide {
   public List<IASTExpression> getParameterExpressions() {
     return parameters;
   }
-  
+
   /**
    * Get the declaration of the function.
    * A function may have several declarations in a C file (several forward
    * declarations without a body, and one with it). In this case, it is not
    * defined which declaration is returned.
-   * 
+   *
    * The result may be null if the function was not declared, or if a complex
    * function name expression is used (i.e., a function pointer).
    */
   public IASTSimpleDeclaration getDeclaration() {
     return declaration;
   }
-  
+
   @Override
   public <R, X extends Exception> R accept(RightHandSideVisitor<R, X> v) throws X {
     return v.visit(this);

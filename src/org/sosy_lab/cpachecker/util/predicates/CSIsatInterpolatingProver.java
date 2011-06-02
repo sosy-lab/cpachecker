@@ -59,13 +59,13 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
   private class CSIsatExecutor extends ProcessExecutor<IOException> {
 
     private boolean satisfiable = false;
-    
+
     public CSIsatExecutor() throws IOException {
       super(CSIsatInterpolatingProver.this.logger, IOException.class, CSISAT_CMDLINE);
     }
 
     @Override
-    public void handleErrorOutput(String line) throws IOException {  
+    public void handleErrorOutput(String line) throws IOException {
       if (line.startsWith("Satisfiable: ")) {
         satisfiable = true;
       } else {
@@ -147,19 +147,19 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
       logger.logException(Level.SEVERE, e, "Error during invocation of CSIsat interpolating theorem prover!");
       throw new UnsupportedOperationException(e);
     }
-    
+
     if (csisat.satisfiable) {
       logger.log(Level.FINEST, "CSIsat result: satisfiable");
       assert interpolants.isEmpty();
       return false;
-      
+
     } else {
       if (interpolants.size() != formulas.size()-1) {
         logger.log(Level.SEVERE, "CSIsat failed to generate interpolants");
         throw new UnsupportedOperationException();
       }
       logger.log(Level.FINEST, "CSIsat result: unsatisfiable,", interpolants.size(), " interpolants found.");
-      
+
       return true;
     }
   }
@@ -174,5 +174,5 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
   public Model getModel() {
     return new Model();
   }
-  
+
 }

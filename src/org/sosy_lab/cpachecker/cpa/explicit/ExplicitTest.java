@@ -89,7 +89,7 @@ public class ExplicitTest {
     Configuration config = Configuration.builder()
       .loadFromFile(configFile.getAbsolutePath())
       .setOptions(pProperties).build();
-    
+
     StringHandler stringLogHandler = new LogManager.StringHandler();
     LogManager logger = new LogManager(config, stringLogHandler);
     CPAchecker cpaChecker = new CPAchecker(config, logger);

@@ -17,7 +17,7 @@ class ABMCPAStatistics implements Statistics {
 
     private final ABMCPA cpa;
     private AbstractABMBasedRefiner refiner = null;
-    
+
     public ABMCPAStatistics(ABMCPA cpa) {
       this.cpa = cpa;
     }
@@ -26,7 +26,7 @@ class ABMCPAStatistics implements Statistics {
     public String getName() {
       return "ABMCPA";
     }
-    
+
     public void addRefiner(AbstractABMBasedRefiner pRefiner) {
       checkState(refiner == null);
       refiner = pRefiner;
@@ -34,10 +34,10 @@ class ABMCPAStatistics implements Statistics {
 
     @Override
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-      
+
       ABMTransferRelation transferRelation = cpa.getTransferRelation();
       TimedReducer reducer = cpa.getReducer();
-      
+
       int sumCalls = transferRelation.cacheMisses + transferRelation.partialCacheHits + transferRelation.fullCacheHits;
 
       out.println("Maximum block depth:                                            " + transferRelation.maxRecursiveDepth);
@@ -60,8 +60,8 @@ class ABMCPAStatistics implements Statistics {
         out.println("  Searching path to error location:                             " + refiner.computeCounterexampleTimer);
       }
     }
-    
-    
+
+
     private String toPercent(double val, double full) {
       return String.format("%1.0f", val/full*100) + "%";
     }

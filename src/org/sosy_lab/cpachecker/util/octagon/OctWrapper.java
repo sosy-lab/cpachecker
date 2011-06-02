@@ -29,7 +29,7 @@ public class OctWrapper {
 	public native boolean J_init ();  			//int oct_init()
 
 	/* num handling function*/
-	
+
 	/* allocate new space for num array and init*/
 	public native long J_init_n (int n); // first allocates space with new_n for num_t* and calls void num_init_n (num_t* a, size_t n), returns the pointer to allocated space
 	/* num copy */
@@ -40,23 +40,23 @@ public class OctWrapper {
 	public native void J_num_set_float (long n, int pos, double d); // void num_set_float (num_t* a, double d)
 	/* set infinity */
 	public native void J_num_set_inf (long n, int pos); // void num_set_infty (num_t* a)
-	
+
 	public native long J_num_get_int (long n, int pos); // long num_get_int (const num_t* a)
   public native double J_num_get_float (long n, int pos); // double num_get_float (const num_t* a)
 	public native boolean J_num_infty (long n, int pos); // bool num_infty(const num_t* a)
 
 	public native void J_num_clear_n(long n, int size); // call void num_clear_n (num_t* a, size_t n) and oct_mm_free(c) afterwards
-	
-	
+
+
 	/* Octagon handling functions */
-	
+
 	/* Octagon Creation */
 	public native long J_empty (int n);			//oct_t* oct_empty (var_t n)
 	public native long J_universe (int n);		//oct_t* oct_universe (var_t n)
 	public native void J_free (long oct);		//void oct_free (oct_t* m)
   public native long J_copy (long oct); //oct_t* oct_copy (oct_t* m)
   public native long J_full_copy (long oct); //oct_t* oct_full_copy (oct_t* m)
-	
+
 	/* Query Functions */
 	public native int J_dimension (long oct);			//var_t oct_dimension (oct_t* m)
 	public native int J_nbconstraints (long oct);		//size_t oct_nbconstraints (oct_t* m)

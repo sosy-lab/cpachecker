@@ -77,7 +77,7 @@ class PredicateAbstractionManager {
     public int maxAllSatCount = 0;
     public Timer extractTimer = new Timer();
   }
-  
+
   final Stats stats;
 
   protected final LogManager logger;
@@ -98,16 +98,16 @@ class PredicateAbstractionManager {
       description="where to dump interpolation and abstraction problems (format string)")
   private File formulaDumpFile = new File("%s%04d-%s%03d.msat");
   protected final String formulaDumpFilePattern; // = formulaDumpFile.getAbsolutePath()
-  
+
   @Option(description="try to add some useful static-learning-like axioms for "
     + "bitwise operations (which are encoded as UFs): essentially, "
     + "we simply collect all the numbers used in bitwise operations, "
     + "and add axioms like (0 & n = 0)")
   protected boolean useBitwiseAxioms = false;
-  
+
   @Option(description="use caching where possible")
   private boolean useCache = true;
-  
+
   private final Map<Pair<Formula, Collection<AbstractionPredicate>>, AbstractionFormula> abstractionCache;
   //cache for cartesian abstraction queries. For each predicate, the values
   // are -1: predicate is false, 0: predicate is don't care,
@@ -123,7 +123,7 @@ class PredicateAbstractionManager {
       Configuration config,
       LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this, PredicateAbstractionManager.class);
-    
+
     if (formulaDumpFile != null) {
       formulaDumpFilePattern = formulaDumpFile.getAbsolutePath();
     } else {
@@ -169,11 +169,11 @@ class PredicateAbstractionManager {
     logger.log(Level.ALL, "Old abstraction:", abstractionFormula);
     logger.log(Level.ALL, "Path formula:", pathFormula);
     logger.log(Level.ALL, "Predicates:", predicates);
-    
+
     Formula absFormula = abstractionFormula.asFormula();
     Formula symbFormula = buildFormula(pathFormula.getFormula());
     Formula f = fmgr.makeAnd(absFormula, symbFormula);
-    
+
     // caching
     Pair<Formula, Collection<AbstractionPredicate>> absKey = null;
     if (useCache) {
@@ -188,27 +188,27 @@ class PredicateAbstractionManager {
         return result;
       }
     }
-    
+
     Region abs;
     if (cartesianAbstraction) {
       abs = buildCartesianAbstraction(f, pathFormula.getSsa(), predicates);
     } else {
       abs = buildBooleanAbstraction(f, pathFormula.getSsa(), predicates);
     }
-    
+
     Formula symbolicAbs = fmgr.instantiate(amgr.toConcrete(abs), pathFormula.getSsa());
     AbstractionFormula result = new AbstractionFormula(abs, symbolicAbs, pathFormula.getFormula());
 
     if (useCache) {
       abstractionCache.put(absKey, result);
     }
-    
+
     return result;
   }
 
   private Region buildCartesianAbstraction(final Formula f, final SSAMap ssa,
       Collection<AbstractionPredicate> predicates) {
-    final RegionManager rmgr = amgr.getRegionManager();  
+    final RegionManager rmgr = amgr.getRegionManager();
 
     stats.abstractionTime.startOuter();
 
@@ -225,12 +225,12 @@ class PredicateAbstractionManager {
           feasibilityCache.put(f, feasibility);
         }
       }
-      
+
       if (!feasibility) {
         // abstract post leads to false, we can return immediately
         return rmgr.makeFalse();
       }
-      
+
       thmProver.push(f);
       try {
         Region absbdd = rmgr.makeTrue();
@@ -241,7 +241,7 @@ class PredicateAbstractionManager {
           Pair<Formula, AbstractionPredicate> cacheKey = Pair.of(f, p);
           if (useCache && cartesianAbstractionCache.containsKey(cacheKey)) {
             byte predVal = cartesianAbstractionCache.get(cacheKey);
-              
+
             stats.abstractionTime.getInnerTimer().start();
             Region v = p.getAbstractVariable();
             if (predVal == -1) { // pred is false
@@ -253,8 +253,8 @@ class PredicateAbstractionManager {
               assert predVal == 0 : "predicate value is neither false, true, nor unknown";
             }
             stats.abstractionTime.getInnerTimer().stop();
-            
-          } else {            
+
+          } else {
             logger.log(Level.ALL, "DEBUG_1",
                 "CHECKING VALUE OF PREDICATE: ", p.getSymbolicAtom());
 
@@ -294,8 +294,8 @@ class PredicateAbstractionManager {
               cartesianAbstractionCache.put(cacheKey, predVal);
             }
           }
-        }     
-        
+        }
+
         return absbdd;
 
       } finally {
@@ -319,7 +319,7 @@ class PredicateAbstractionManager {
         logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:", bitwiseAxioms);
       }
     }
-    
+
     return symbFormula;
   }
 
@@ -347,7 +347,7 @@ class PredicateAbstractionManager {
         continue;
       }
       def = fmgr.instantiate(def, ssa);
-      
+
       // build the formula (var <-> def) and add it to the list of definitions
       Formula equiv = fmgr.makeEquivalence(var, def);
       predDef = fmgr.makeAnd(predDef, equiv);
@@ -366,14 +366,14 @@ class PredicateAbstractionManager {
     stats.abstractionTime.startOuter();
     AllSatResult allSatResult = thmProver.allSat(fm, predVars, amgr, stats.abstractionTime.getInnerTimer());
     long solveTime = stats.abstractionTime.stopOuter();
-    
+
     // update statistics
     int numModels = allSatResult.getCount();
     if (numModels < Integer.MAX_VALUE) {
       stats.maxAllSatCount = Math.max(numModels, stats.maxAllSatCount);
       stats.allSatCount += numModels;
     }
-    
+
     // TODO dump hard abst
     if (solveTime > 10000 && dumpHardAbstractions) {
       // we want to dump "hard" problems...
@@ -400,7 +400,7 @@ class PredicateAbstractionManager {
    */
   public boolean checkCoverage(AbstractionFormula a1, PathFormula p1, AbstractionFormula a2) {
     Formula absFormula = a1.asFormula();
-    Formula symbFormula = buildFormula(p1.getFormula()); 
+    Formula symbFormula = buildFormula(p1.getFormula());
     Formula a = fmgr.makeAnd(absFormula, symbFormula);
 
     Formula b = fmgr.instantiate(a2.asFormula(), p1.getSsa());
@@ -414,7 +414,7 @@ class PredicateAbstractionManager {
       thmProver.reset();
     }
   }
-  
+
   /**
    * Checks if an abstraction formula and a pathFormula are unsatisfiable.
    * @param pAbstractionFormula the abstraction formula
@@ -442,7 +442,7 @@ class PredicateAbstractionManager {
     }
     Formula f = pathFormula.getFormula();
     // ignore reachingPathsFormula here because it is just a simple path
-    
+
     thmProver.init();
     try {
       thmProver.push(f);
@@ -477,11 +477,11 @@ class PredicateAbstractionManager {
   }
 
   // delegate methods
-  
+
   public Formula toConcrete(Region pRegion) {
     return amgr.toConcrete(pRegion);
   }
-  
+
   public Collection<AbstractionPredicate> extractPredicates(Region pRegion) {
     stats.extractTimer.start();
     try {
@@ -491,7 +491,7 @@ class PredicateAbstractionManager {
       stats.extractTimer.stop();
     }
   }
-  
+
   public AbstractionPredicate makeFalsePredicate() {
     return amgr.makeFalsePredicate();
   }
@@ -500,7 +500,7 @@ class PredicateAbstractionManager {
       Formula pPreviousBlockFormula) {
     return amgr.makeTrueAbstractionFormula(pPreviousBlockFormula);
   }
-  
+
   public PathFormulaManager getPathFormulaManager() {
     return pmgr;
   }

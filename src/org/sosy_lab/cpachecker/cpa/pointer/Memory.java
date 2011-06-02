@@ -75,7 +75,7 @@ public interface Memory {
     }
 
 
-    /** 
+    /**
      * Check if this memory region is still valid, i.e. save to access
      * @return true, if this memory region is valid - false otherwise
      */

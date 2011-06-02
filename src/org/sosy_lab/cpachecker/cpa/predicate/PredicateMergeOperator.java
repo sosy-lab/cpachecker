@@ -73,7 +73,7 @@ public class PredicateMergeOperator implements MergeOperator {
       // don't merge if the elements are in different blocks (they have different abstractions)
       if (!elem1.getAbstractionFormula().equals(elem2.getAbstractionFormula())) {
         merged = elem2;
-      
+
       } else {
         totalMergeTime.start();
         // create a new element
@@ -83,7 +83,7 @@ public class PredicateMergeOperator implements MergeOperator {
         PathFormula pathFormula = formulaManager.makeOr(elem1.getPathFormula(), elem2.getPathFormula());
 
         logger.log(Level.ALL, "New path formula is", pathFormula);
-                
+
         merged = new PredicateAbstractElement(pathFormula, elem1.getAbstractionFormula());
 
         // now mark elem1 so that coverage check can find out it was merged

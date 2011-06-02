@@ -38,7 +38,7 @@ public class ReachedSetFactory {
   private static enum ReachedSetType {
     NORMAL, LOCATIONMAPPED, PARTITIONED
   }
-    
+
   @Option(name="traversal.order",
       description="which strategy to adopt for visiting states?")
   Waitlist.TraversalMethod traversalMethod = Waitlist.TraversalMethod.DFS;
@@ -48,26 +48,26 @@ public class ReachedSetFactory {
       + "\nThis needs the CallstackCPA to have any effect.")
   boolean useCallstack = false;
 
-  @Option(name = "traversal.useTopsort", 
+  @Option(name = "traversal.useTopsort",
       description = "Use an implementation of topsort strategy that allows to select "
       + "a secondary strategy that is used if there are two elements with the same topsort id. "
       + "The secondary strategy is selected with 'analysis.traversal.order'. "
       + "The secondary strategy may not be TOPSORT.")
   boolean useTopSort = false;
 
-  @Option(name = "reachedSet", 
+  @Option(name = "reachedSet",
       description = "which reached set implementation to use?"
       + "\nNORMAL: just a simple set"
       + "\nLOCATIONMAPPED: a different set per location "
       + "(faster, elements with different locations cannot be merged)"
       + "\nPARTITIONED: partitioning depending on CPAs (e.g Location, Callstack etc.)")
   ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
-    
+
   public ReachedSetFactory(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
   }
-  
-  public ReachedSet create() {  
+
+  public ReachedSet create() {
     WaitlistFactory waitlistFactory = traversalMethod;
     if (useTopSort) {
       waitlistFactory = TopologicallySortedWaitlist.factory(waitlistFactory);
@@ -75,7 +75,7 @@ public class ReachedSetFactory {
     if (useCallstack) {
       waitlistFactory = CallstackSortedWaitlist.factory(waitlistFactory);
     }
-    
+
     switch (reachedSet) {
     case PARTITIONED:
       return new PartitionedReachedSet(waitlistFactory);
@@ -86,6 +86,6 @@ public class ReachedSetFactory {
     case NORMAL:
     default:
       return new ReachedSet(waitlistFactory);
-    } 
+    }
   }
 }

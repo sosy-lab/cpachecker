@@ -140,19 +140,19 @@ public class ProgressObserverElement implements AbstractElement, AvoidanceReport
   @Override
   public Formula getReasonFormula(FormulaManager manager) {
     if (mustDumpAssumptionForAvoidance()) {
-      
+
       Formula result = manager.makeFalse();
       for (StopHeuristicsData d : data) {
         if (d.isBottom()) {
-          Pair<PreventingHeuristicType, Long> preventingCondition = 
+          Pair<PreventingHeuristicType, Long> preventingCondition =
             Pair.of(d.getHeuristicType(), d.getThreshold());
           String preventingHeuristicStringFormula = HeuristicToFormula.getFormulaStringForHeuristic(preventingCondition);
-          
+
           result = manager.makeOr(result, manager.parse(preventingHeuristicStringFormula));
         }
       }
       return result;
-    
+
     } else {
       return manager.makeTrue();
     }

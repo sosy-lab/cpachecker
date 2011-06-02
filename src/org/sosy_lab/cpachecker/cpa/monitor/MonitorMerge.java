@@ -44,7 +44,7 @@ public class MonitorMerge implements MergeOperator{
   throws CPAException {
     MonitorElement monitorElement1= (MonitorElement)pElement1;
     MonitorElement monitorElement2 = (MonitorElement)pElement2;
-    
+
     if (monitorElement1.mustDumpAssumptionForAvoidance() || monitorElement2.mustDumpAssumptionForAvoidance()) {
       return pElement2;
     }
@@ -59,7 +59,7 @@ public class MonitorMerge implements MergeOperator{
 
     long totalTimeOnPath = Math.max(monitorElement1.getTotalTimeOnPath(),
                                     monitorElement2.getTotalTimeOnPath());
-    
+
     MonitorElement mergedElement = new MonitorElement(
         retElement, totalTimeOnPath);
 

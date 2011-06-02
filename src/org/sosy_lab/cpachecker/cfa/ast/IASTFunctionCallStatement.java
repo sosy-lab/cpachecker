@@ -26,24 +26,24 @@ package org.sosy_lab.cpachecker.cfa.ast;
 public final class IASTFunctionCallStatement extends IASTStatement implements IASTFunctionCall {
 
   private final IASTFunctionCallExpression functionCall;
-  
+
   public IASTFunctionCallStatement(String pRawSignature,
       IASTFileLocation pFileLocation,
       IASTFunctionCallExpression pFunctionCall) {
     super(pRawSignature, pFileLocation);
     functionCall = pFunctionCall;
   }
-  
+
   @Override
   public IASTFunctionCallExpression getFunctionCallExpression() {
     return functionCall;
   }
-  
+
   @Override
   public IASTStatement asStatement() {
     return this;
   }
-  
+
   @Override
   public <R, X extends Exception> R accept(StatementVisitor<R, X> v) throws X {
     return v.visit(this);

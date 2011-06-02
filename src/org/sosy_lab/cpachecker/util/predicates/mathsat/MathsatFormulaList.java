@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 public class MathsatFormulaList implements FormulaList {
 
   private final long[] terms;
-  
+
   /**
    * Do not modify the terms array afterwards, for performance reasons it's not copied!
    */
@@ -42,25 +42,25 @@ public class MathsatFormulaList implements FormulaList {
     }
     this.terms = terms;
   }
-  
+
   /**
    * Do not modify the returned array, for performance reasons it's not copied!
    */
   long[] getTerms() {
     return terms;
   }
-  
+
   @Override
   public String toString() {
     return Arrays.toString(terms);
   }
-  
+
   @Override
   public boolean equals(Object pObj) {
     if (!(pObj instanceof MathsatFormulaList)) return false;
     return Arrays.equals(terms, ((MathsatFormulaList)pObj).terms);
   }
-  
+
   @Override
   public int hashCode() {
     return Arrays.hashCode(terms);

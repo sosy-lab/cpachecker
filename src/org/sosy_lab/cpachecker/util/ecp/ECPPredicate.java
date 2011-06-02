@@ -5,40 +5,40 @@ import org.sosy_lab.cpachecker.util.predicates.simpleformulas.Predicate;
 public class ECPPredicate implements ECPGuard {
 
   private Predicate mPredicate;
-  
+
   public ECPPredicate(Predicate pPredicate) {
     mPredicate = pPredicate;
   }
-  
+
   /** copy constructor */
   public ECPPredicate(ECPPredicate pPredicate) {
     this(pPredicate.mPredicate);
   }
-  
+
   @Override
   public int hashCode() {
     return mPredicate.hashCode();
   }
-  
+
   @Override
   public boolean equals(Object pOther) {
     if (this == pOther) {
       return true;
     }
-    
+
     if (pOther == null) {
       return false;
     }
-    
+
     if (pOther.getClass().equals(getClass())) {
       ECPPredicate lOther = (ECPPredicate)pOther;
-      
+
       return mPredicate.equals(lOther.mPredicate);
     }
-    
+
     return false;
   }
-  
+
   @Override
   public String toString() {
     return mPredicate.toString();
@@ -52,5 +52,5 @@ public class ECPPredicate implements ECPGuard {
   public Predicate getPredicate() {
     return mPredicate;
   }
-  
+
 }

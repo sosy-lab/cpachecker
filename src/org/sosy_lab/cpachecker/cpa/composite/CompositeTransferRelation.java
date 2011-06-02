@@ -50,7 +50,7 @@ public class CompositeTransferRelation implements TransferRelation{
   public CompositeTransferRelation(ImmutableList<TransferRelation> transferRelations) {
     this.transferRelations = transferRelations;
     size = transferRelations.size();
-    
+
     // prepare special case handling if both predicates and assumptions are used
     for (int i = 0; i < size; i++) {
       TransferRelation t = transferRelations.get(i);
@@ -105,12 +105,12 @@ public class CompositeTransferRelation implements TransferRelation{
 
       Collection<? extends AbstractElement> componentSuccessors = lCurrentTransfer.getAbstractSuccessors(lCurrentElement, lCurrentPrecision, cfaEdge);
       resultCount *= componentSuccessors.size();
-      
+
       if (resultCount == 0) {
         // shortcut
         break;
       }
-      
+
       allComponentsSuccessors.add(componentSuccessors);
     }
 
@@ -120,57 +120,57 @@ public class CompositeTransferRelation implements TransferRelation{
 
     // second, call strengthen for each result of the cartesian product
     for (List<AbstractElement> lReachedElement : allResultingElements) {
-      
+
       List<Collection<? extends AbstractElement>> lStrengthenResults = new ArrayList<Collection<? extends AbstractElement>>(size);
-      
+
       resultCount = 1;
-      
+
       for (int i = 0; i < size; i++) {
-        
+
         TransferRelation lCurrentTransfer = transferRelations.get(i);
         AbstractElement lCurrentElement = lReachedElement.get(i);
         Precision lCurrentPrecision = compositePrecision.get(i);
-        
+
         Collection<? extends AbstractElement> lResultsList = lCurrentTransfer.strengthen(lCurrentElement, lReachedElement, cfaEdge, lCurrentPrecision);
 
         if (lResultsList == null) {
           lStrengthenResults.add(Collections.singleton(lCurrentElement));
         } else {
           resultCount *= lResultsList.size();
-          
+
           if (resultCount == 0) {
             // shortcut
             break;
           }
-          
+
           lStrengthenResults.add(lResultsList);
         }
       }
-      
+
       // special case handling if we have predicate and assumption cpas
       if (predicatesIndex >= 0 && assumptionIndex >= 0 && resultCount > 0) {
         AbstractElement predElement = Iterables.getOnlyElement(lStrengthenResults.get(predicatesIndex));
         AbstractElement assumptionElement = Iterables.getOnlyElement(lStrengthenResults.get(assumptionIndex));
         Precision predPrecision = compositePrecision.get(predicatesIndex);
         TransferRelation predTransfer = transferRelations.get(predicatesIndex);
-        
+
         Collection<? extends AbstractElement> predResult = predTransfer.strengthen(predElement, Collections.singletonList(assumptionElement), cfaEdge, predPrecision);
         resultCount *= predResult.size();
-        
+
         lStrengthenResults.set(predicatesIndex, predResult);
       }
-      
+
       // create cartesian product again
       Collection<List<AbstractElement>> lResultingElements
           = createCartesianProduct(lStrengthenResults, resultCount);
-      
+
       // finally, create a CompositeElement for each result of the cartesian product
       for (List<AbstractElement> lList : lResultingElements) {
         compositeSuccessors.add(new CompositeElement(lList));
       }
     }
   }
-  
+
   protected static Collection<List<AbstractElement>> createCartesianProduct(
       List<Collection<? extends AbstractElement>> allComponentsSuccessors, int resultCount) {
     Collection<List<AbstractElement>> allResultingElements;

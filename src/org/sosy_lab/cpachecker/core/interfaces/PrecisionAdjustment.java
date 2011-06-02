@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * Interface for the precision adjustment operator.
  */
 public interface PrecisionAdjustment {
-  
+
   /**
    * The precision adjustment operator can tell the CPAAlgorithm whether
    * to continue with the analysis or whether to break immediately.
@@ -45,15 +45,15 @@ public interface PrecisionAdjustment {
     BREAK,
     ;
   }
-  
+
   /**
    * This method may adjust the current element and precision using information
    * from the current set of reached states.
-   * 
+   *
    * If this method doesn't change anything, it is strongly recommended to return
    * the identical objects for element and precision. This makes it easier for
    * wrapper CPAs.
-   * 
+   *
    * @param element The current abstract element.
    * @param precision The current precision.
    * @param elements The current reached set.

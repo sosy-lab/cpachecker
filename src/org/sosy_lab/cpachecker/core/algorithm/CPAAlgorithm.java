@@ -141,7 +141,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       Collection<? extends AbstractElement> successors =
           transferRelation.getAbstractSuccessors(element, precision, null);
       stats.transferTimer.stop();
-      // TODO When we have a nice way to mark the analysis result as incomplete, 
+      // TODO When we have a nice way to mark the analysis result as incomplete,
       // we could continue analysis on a CPATransferException with the next element from waitlist.
 
       int numSuccessors = successors.size();

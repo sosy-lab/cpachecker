@@ -337,8 +337,8 @@ public final class ErrorPathShrinker {
           break;
 
         /* There are several BlankEdgeTypes:
-         * a loopstart ("while" or "goto loopstart") is important, 
-         * a jumpEdge ("goto") is important, iff it contains the word "error", 
+         * a loopstart ("while" or "goto loopstart") is important,
+         * a jumpEdge ("goto") is important, iff it contains the word "error",
          * a labelEdge and a really blank edge are not important.
          * TODO are there more types? */
         case BlankEdge:
@@ -663,7 +663,7 @@ public final class ErrorPathShrinker {
 
     /** This method checks, if the current assumption is part of a
      * switchStatement. Therefore it compares the current assumption with
-     * the expression of the last added CFAEdge. It can also check similar 
+     * the expression of the last added CFAEdge. It can also check similar
      * assumptions like  "if(x>3) {if(x>4){...}}".
      *
      * @param assumeExp the current assumption
@@ -690,16 +690,16 @@ public final class ErrorPathShrinker {
             // only the first variable of the assignment is checked
             final boolean isEqualVarName = currentBinExpOp1.getRawSignature().
             equals(lastBinExpOp1.getRawSignature());
-            
+
             // switchStatement:     !(x==3);(x==4);   -> operator "=="
             // similar assumption:  (x>3);(x>4);      -> operator ">"
             // the operator is stored as 'int'
             final boolean isEqualOperator =
-                ((IASTBinaryExpression) assumeExp).getOperator() 
+                ((IASTBinaryExpression) assumeExp).getOperator()
                 == ((IASTBinaryExpression) lastExp).getOperator();
-                        
+
             return (isEqualVarName && isEqualOperator);
-          }       
+          }
         }
       }
       return false;

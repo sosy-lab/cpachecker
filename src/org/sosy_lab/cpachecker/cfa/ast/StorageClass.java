@@ -34,5 +34,5 @@ public enum StorageClass {
   EXTERN,
   TYPEDEF,
   ;
-  
+
 }

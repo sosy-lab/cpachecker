@@ -45,17 +45,17 @@ public class QuotePredicatesTest {
     FQLParser lParser = new FQLParser(new StringReader(lInput));
 
     Object lResult = lParser.parse().value;
-    
+
     Assert.assertTrue(lResult instanceof FQLSpecification);
-    
+
     FQLSpecification lSpecification = (FQLSpecification)lResult;
 
-    System.out.println("BEFORE: " + lSpecification.toString()); 
+    System.out.println("BEFORE: " + lSpecification.toString());
 
     FQLSpecification lNewSpecification = QuotePredicates.getFQLSpecificationRewriter().rewrite(lSpecification);
-    
+
     System.out.println("AFTER: " + lNewSpecification.toString());
-    
+
     Assert.assertEquals(lNewSpecification.toString(), "COVER EDGES(@BASICBLOCKENTRY) PASSING EDGES(ID)*");
   }
 
@@ -68,17 +68,17 @@ public class QuotePredicatesTest {
     FQLParser lParser = new FQLParser(new StringReader(lInput));
 
     Object lResult = lParser.parse().value;
-    
+
     Assert.assertTrue(lResult instanceof FQLSpecification);
-    
+
     FQLSpecification lSpecification = (FQLSpecification)lResult;
 
-    System.out.println("BEFORE: " + lSpecification.toString()); 
+    System.out.println("BEFORE: " + lSpecification.toString());
 
     FQLSpecification lNewSpecification = QuotePredicates.getFQLSpecificationRewriter().rewrite(lSpecification);
-    
+
     System.out.println("AFTER: " + lNewSpecification.toString());
-    
+
     Assert.assertEquals(lNewSpecification.toString(), "COVER EDGES(@CONDITIONEDGE) PASSING EDGES(ID)*");
   }
 
@@ -91,17 +91,17 @@ public class QuotePredicatesTest {
     FQLParser lParser = new FQLParser(new StringReader(lInput));
 
     Object lResult = lParser.parse().value;
-    
+
     Assert.assertTrue(lResult instanceof FQLSpecification);
-    
+
     FQLSpecification lSpecification = (FQLSpecification)lResult;
 
-    System.out.println("BEFORE: " + lSpecification.toString()); 
+    System.out.println("BEFORE: " + lSpecification.toString());
 
     FQLSpecification lNewSpecification = QuotePredicates.getFQLSpecificationRewriter().rewrite(lSpecification);
-    
+
     System.out.println("AFTER: " + lNewSpecification.toString());
-    
+
     Assert.assertEquals(lNewSpecification.toString(), "COVER EDGES(@DECISIONEDGE) PASSING EDGES(ID)*");
   }
 
@@ -114,17 +114,17 @@ public class QuotePredicatesTest {
     FQLParser lParser = new FQLParser(new StringReader(lInput));
 
     Object lResult = lParser.parse().value;
-    
+
     Assert.assertTrue(lResult instanceof FQLSpecification);
-    
+
     FQLSpecification lSpecification = (FQLSpecification)lResult;
 
-    System.out.println("BEFORE: " + lSpecification.toString()); 
+    System.out.println("BEFORE: " + lSpecification.toString());
 
     FQLSpecification lNewSpecification = QuotePredicates.getFQLSpecificationRewriter().rewrite(lSpecification);
-    
+
     System.out.println("AFTER: " + lNewSpecification.toString());
-    
+
     Assert.assertEquals(lNewSpecification.toString(), "COVER EDGES(@CONDITIONGRAPH) PASSING EDGES(ID)*");
   }
 
@@ -137,17 +137,17 @@ public class QuotePredicatesTest {
     FQLParser lParser = new FQLParser(new StringReader(lInput));
 
     Object lResult = lParser.parse().value;
-    
+
     Assert.assertTrue(lResult instanceof FQLSpecification);
-    
+
     FQLSpecification lSpecification = (FQLSpecification)lResult;
 
-    System.out.println("BEFORE: " + lSpecification.toString()); 
+    System.out.println("BEFORE: " + lSpecification.toString());
 
     FQLSpecification lNewSpecification = QuotePredicates.getFQLSpecificationRewriter().rewrite(lSpecification);
-    
+
     System.out.println("AFTER: " + lNewSpecification.toString());
-    
+
     Assert.assertEquals(lNewSpecification.toString(), "COVER EDGES(ID) PASSING EDGES(ID)*");
   }
 
@@ -160,17 +160,17 @@ public class QuotePredicatesTest {
     FQLParser lParser = new FQLParser(new StringReader(lInput));
 
     Object lResult = lParser.parse().value;
-    
+
     Assert.assertTrue(lResult instanceof FQLSpecification);
-    
+
     FQLSpecification lSpecification = (FQLSpecification)lResult;
 
-    System.out.println("BEFORE: " + lSpecification.toString()); 
+    System.out.println("BEFORE: " + lSpecification.toString());
 
     FQLSpecification lNewSpecification = QuotePredicates.getFQLSpecificationRewriter().rewrite(lSpecification);
-    
+
     System.out.println("AFTER: " + lNewSpecification.toString());
-    
+
     Assert.assertEquals(lNewSpecification.toString(), "COVER EDGES(COMPLEMENT(@BASICBLOCKENTRY)) PASSING EDGES(ID)*");
   }
 
@@ -183,17 +183,17 @@ public class QuotePredicatesTest {
     FQLParser lParser = new FQLParser(new StringReader(lInput));
 
     Object lResult = lParser.parse().value;
-    
+
     Assert.assertTrue(lResult instanceof FQLSpecification);
-    
+
     FQLSpecification lSpecification = (FQLSpecification)lResult;
 
-    System.out.println("BEFORE: " + lSpecification.toString()); 
+    System.out.println("BEFORE: " + lSpecification.toString());
 
     FQLSpecification lNewSpecification = QuotePredicates.getFQLSpecificationRewriter().rewrite(lSpecification);
-    
+
     System.out.println("AFTER: " + lNewSpecification.toString());
-    
+
     Assert.assertEquals(lNewSpecification.toString(), "COVER EDGES(INTERSECT(@BASICBLOCKENTRY, @CONDITIONEDGE)) PASSING EDGES(ID)*");
   }
 
@@ -206,17 +206,17 @@ public class QuotePredicatesTest {
     FQLParser lParser = new FQLParser(new StringReader(lInput));
 
     Object lResult = lParser.parse().value;
-    
+
     Assert.assertTrue(lResult instanceof FQLSpecification);
-    
+
     FQLSpecification lSpecification = (FQLSpecification)lResult;
 
-    System.out.println("BEFORE: " + lSpecification.toString()); 
+    System.out.println("BEFORE: " + lSpecification.toString());
 
     FQLSpecification lNewSpecification = QuotePredicates.getFQLSpecificationRewriter().rewrite(lSpecification);
-    
+
     System.out.println("AFTER: " + lNewSpecification.toString());
-    
+
     Assert.assertEquals(lNewSpecification.toString(), "COVER EDGES(UNION(@BASICBLOCKENTRY, @CONDITIONEDGE)) PASSING EDGES(ID)*");
   }
 
@@ -229,20 +229,20 @@ public class QuotePredicatesTest {
     FQLParser lParser = new FQLParser(new StringReader(lInput));
 
     Object lResult = lParser.parse().value;
-    
+
     Assert.assertTrue(lResult instanceof FQLSpecification);
-    
+
     FQLSpecification lSpecification = (FQLSpecification)lResult;
 
-    System.out.println("BEFORE: " + lSpecification.toString()); 
+    System.out.println("BEFORE: " + lSpecification.toString());
 
     FQLSpecification lNewSpecification = QuotePredicates.getFQLSpecificationRewriter().rewrite(lSpecification);
-    
+
     System.out.println("AFTER: " + lNewSpecification.toString());
-    
+
     Assert.assertEquals(lNewSpecification.toString(), "COVER \"EDGES(ID)*\" PASSING EDGES(ID)*");
   }
-  
+
   @Test
   public void testFQLParserScanner010() throws Exception {
     String lInput = "COVER \"EDGES(ID)*\".EDGES(@CALL(f)).\"EDGES(ID)*\"";
@@ -252,17 +252,17 @@ public class QuotePredicatesTest {
     FQLParser lParser = new FQLParser(new StringReader(lInput));
 
     Object lResult = lParser.parse().value;
-    
+
     Assert.assertTrue(lResult instanceof FQLSpecification);
-    
+
     FQLSpecification lSpecification = (FQLSpecification)lResult;
 
-    System.out.println("BEFORE: " + lSpecification.toString()); 
+    System.out.println("BEFORE: " + lSpecification.toString());
 
     FQLSpecification lNewSpecification = QuotePredicates.getFQLSpecificationRewriter().rewrite(lSpecification);
-    
+
     System.out.println("AFTER: " + lNewSpecification.toString());
-    
+
     Assert.assertEquals(lNewSpecification.toString(), "COVER (\"EDGES(ID)*\".EDGES(@CALL(f))).\"EDGES(ID)*\" PASSING EDGES(ID)*");
   }
 
@@ -275,17 +275,17 @@ public class QuotePredicatesTest {
     FQLParser lParser = new FQLParser(new StringReader(lInput));
 
     Object lResult = lParser.parse().value;
-    
+
     Assert.assertTrue(lResult instanceof FQLSpecification);
-    
+
     FQLSpecification lSpecification = (FQLSpecification)lResult;
 
-    System.out.println("BEFORE: " + lSpecification.toString()); 
+    System.out.println("BEFORE: " + lSpecification.toString());
 
     FQLSpecification lNewSpecification = QuotePredicates.getFQLSpecificationRewriter().rewrite(lSpecification);
-    
+
     System.out.println("AFTER: " + lNewSpecification.toString());
-    
+
     Assert.assertEquals(lNewSpecification.toString(), "COVER (\"EDGES(ID)*\".NODES(@CALL(f))).\"EDGES(ID)*\" PASSING EDGES(ID)*");
   }
 
@@ -296,19 +296,19 @@ public class QuotePredicatesTest {
     System.out.println(lInput);
 
     FQLParser lParser = new FQLParser(new StringReader(lInput));
-    
+
     Object lResult = lParser.parse().value;
 
     Assert.assertTrue(lResult instanceof FQLSpecification);
-    
+
     FQLSpecification lSpecification = (FQLSpecification)lResult;
 
-    System.out.println("BEFORE: " + lSpecification.toString()); 
+    System.out.println("BEFORE: " + lSpecification.toString());
 
     FQLSpecification lNewSpecification = QuotePredicates.getFQLSpecificationRewriter().rewrite(lSpecification);
-    
+
     System.out.println("AFTER: " + lNewSpecification.toString());
-    
+
     Assert.assertEquals(lNewSpecification.toString(), "COVER (\"EDGES(ID)*\".PATHS(@CALL(f), 2)).\"EDGES(ID)*\" PASSING EDGES(ID)*");
   }
 
@@ -321,20 +321,20 @@ public class QuotePredicatesTest {
     FQLParser lParser = new FQLParser(new StringReader(lInput));
 
     Object lResult = lParser.parse().value;
-    
+
     Assert.assertTrue(lResult instanceof FQLSpecification);
-    
+
     FQLSpecification lSpecification = (FQLSpecification)lResult;
 
-    System.out.println("BEFORE: " + lSpecification.toString()); 
+    System.out.println("BEFORE: " + lSpecification.toString());
 
     FQLSpecification lNewSpecification = QuotePredicates.getFQLSpecificationRewriter().rewrite(lSpecification);
-    
+
     System.out.println("AFTER: " + lNewSpecification.toString());
-    
+
     Assert.assertEquals(lNewSpecification.toString(), "COVER ((\"NODES(ID)*\".\"{ x > 10 }\").EDGES(@CALL(f))).\"PATHS(ID, 5)*\" PASSING EDGES(ID)*");
   }
-  
+
   @Test
   public void testFQLParserScanner014() throws Exception {
     String lInput = "IN @FILE('source.c') COVER \"NODES(ID)*\".{ x > 10 }.EDGES(@CALL(f)).\"PATHS(ID, 5)*\"";
@@ -344,20 +344,20 @@ public class QuotePredicatesTest {
     FQLParser lParser = new FQLParser(new StringReader(lInput));
 
     Object lResult = lParser.parse().value;
-    
+
     Assert.assertTrue(lResult instanceof FQLSpecification);
-    
+
     FQLSpecification lSpecification = (FQLSpecification)lResult;
 
-    System.out.println("BEFORE: " + lSpecification.toString()); 
+    System.out.println("BEFORE: " + lSpecification.toString());
 
     FQLSpecification lNewSpecification = QuotePredicates.getFQLSpecificationRewriter().rewrite(lSpecification);
-    
+
     System.out.println("AFTER: " + lNewSpecification.toString());
-    
+
     Assert.assertEquals(lNewSpecification.toString(), "COVER ((\"NODES(COMPOSE(ID, @FILE('source.c')))*\".\"{ x > 10 }\").EDGES(COMPOSE(@CALL(f), @FILE('source.c')))).\"PATHS(COMPOSE(ID, @FILE('source.c')), 5)*\" PASSING EDGES(ID)*");
   }
-  
+
   @Test
   public void testFQLParserScanner015() throws Exception {
     String lInput = "IN @FILE('source.c') COVER \"NODES(ID)**\".{ x > 10 }.EDGES(@CALL(f)).\"PATHS(ID, 5)**\"";
@@ -367,18 +367,18 @@ public class QuotePredicatesTest {
     FQLParser lParser = new FQLParser(new StringReader(lInput));
 
     Object lResult = lParser.parse().value;
-    
+
     Assert.assertTrue(lResult instanceof FQLSpecification);
-    
+
     FQLSpecification lSpecification = (FQLSpecification)lResult;
 
-    System.out.println("BEFORE: " + lSpecification.toString()); 
+    System.out.println("BEFORE: " + lSpecification.toString());
 
     FQLSpecification lNewSpecification = QuotePredicates.getFQLSpecificationRewriter().rewrite(lSpecification);
-    
+
     System.out.println("AFTER: " + lNewSpecification.toString());
-    
+
     Assert.assertEquals(lNewSpecification.toString(), "COVER ((\"(NODES(COMPOSE(ID, @FILE('source.c')))*)*\".\"{ x > 10 }\").EDGES(COMPOSE(@CALL(f), @FILE('source.c')))).\"(PATHS(COMPOSE(ID, @FILE('source.c')), 5)*)*\" PASSING EDGES(ID)*");
   }
-  
+
 }

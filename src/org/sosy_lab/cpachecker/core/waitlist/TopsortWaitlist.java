@@ -38,11 +38,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
  * replaced by TopologiallySortedWaitlist.
  */
 public class TopsortWaitlist extends AbstractWaitlist<LinkedList<AbstractElement>> {
-  
+
   protected TopsortWaitlist() {
     super(new LinkedList<AbstractElement>());
   }
-  
+
   @Override
   public AbstractElement pop() {
     AbstractElement result = null;

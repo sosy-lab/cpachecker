@@ -56,7 +56,7 @@ public class ReportingUtils {
         result = manager.makeAnd(result, repel.getFormulaApproximation(manager));
       }
     }
-    
+
     return result;
   }
 }

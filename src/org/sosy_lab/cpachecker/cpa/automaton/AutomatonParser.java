@@ -40,7 +40,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
   public AutomatonParser(java_cup.runtime.Scanner s, java_cup.runtime.SymbolFactory sf) {super(s,sf);}
 
   /** Production table. */
-  protected static final short _production_table[][] = 
+  protected static final short _production_table[][] =
     unpackFromStrings(new String[] {
     "\000\110\000\002\002\004\000\002\002\004\000\002\002" +
     "\002\000\002\003\003\000\002\003\004\000\002\004\004" +
@@ -70,7 +70,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
   public short[][] production_table() {return _production_table;}
 
   /** Parse-action table. */
-  protected static final short[][] _action_table = 
+  protected static final short[][] _action_table =
     unpackFromStrings(new String[] {
     "\000\236\000\014\002\uffff\015\007\016\012\017\013\027" +
     "\011\001\002\000\014\002\ufffe\015\ufffe\016\ufffe\017\ufffe" +
@@ -316,7 +316,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
   public short[][] action_table() {return _action_table;}
 
   /** <code>reduce_goto</code> table. */
-  protected static final short[][] _reduce_table = 
+  protected static final short[][] _reduce_table =
     unpackFromStrings(new String[] {
     "\000\236\000\014\002\007\003\005\004\003\006\013\022" +
     "\004\001\001\000\002\001\001\000\002\001\001\000\014" +
@@ -438,17 +438,17 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
     }
     logger.log(Level.WARNING, errorString);
   }
-  
+
   Automaton generateSkeletonForAssertion(AutomatonBoolExpr pA) throws InvalidAutomatonException {
     AutomatonTransition trans = new AutomatonTransition(
-        AutomatonBoolExpr.TRUE, 
+        AutomatonBoolExpr.TRUE,
         Collections.singletonList(pA),
         Collections.<AutomatonAction>emptyList(),
         "OK");
-    AutomatonInternalState okState = new AutomatonInternalState("OK", 
+    AutomatonInternalState okState = new AutomatonInternalState("OK",
         Collections.singletonList(trans));
     Automaton ret = new Automaton("AnonymousAutomaton" + anonymousCounter++,
-                                  Collections.<String, AutomatonVariable>emptyMap(), 
+                                  Collections.<String, AutomatonVariable>emptyMap(),
                                   Collections.singletonList(okState), "OK");
     return ret;
   }
@@ -504,730 +504,730 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
       switch (CUP$AutomatonParser$act_num)
         {
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 71: // Expression ::= EVAL OPEN_BRACKETS IDENTIFIER COMMA STRING_LITERAL CLOSE_BRACKETS 
+          case 71: // Expression ::= EVAL OPEN_BRACKETS IDENTIFIER COMMA STRING_LITERAL CLOSE_BRACKETS
             {
               AutomatonExpression RESULT =null;
 		Object cpa = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-3)).value;
 		Object query = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-1)).value;
-		 RESULT = new AutomatonExpression.CPAQuery(cpa.toString(), query.toString()); 
+		 RESULT = new AutomatonExpression.CPAQuery(cpa.toString(), query.toString());
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Expression",23, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 70: // Expression ::= EVAL OPEN_BRACKETS IDENTIFIER OPEN_BRACKETS STRING_LITERAL CLOSE_BRACKETS CLOSE_BRACKETS 
+          case 70: // Expression ::= EVAL OPEN_BRACKETS IDENTIFIER OPEN_BRACKETS STRING_LITERAL CLOSE_BRACKETS CLOSE_BRACKETS
             {
               AutomatonExpression RESULT =null;
 		Object cpa = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-4)).value;
 		Object query = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-2)).value;
-		 RESULT = new AutomatonExpression.CPAQuery(cpa.toString(), query.toString()); 
+		 RESULT = new AutomatonExpression.CPAQuery(cpa.toString(), query.toString());
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Expression",23, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 69: // Expression ::= STRING_LITERAL 
+          case 69: // Expression ::= STRING_LITERAL
             {
               AutomatonExpression RESULT =null;
 		Object lit = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = new AutomatonExpression.StringExpression(lit.toString()); 
+		 RESULT = new AutomatonExpression.StringExpression(lit.toString());
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Expression",23, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 68: // Expression ::= Bool 
+          case 68: // Expression ::= Bool
             {
               AutomatonExpression RESULT =null;
 		AutomatonBoolExpr b = (AutomatonBoolExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = b; 
+		 RESULT = b;
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Expression",23, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 67: // Expression ::= Int 
+          case 67: // Expression ::= Int
             {
               AutomatonExpression RESULT =null;
 		AutomatonIntExpr i = (AutomatonIntExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = i; 
+		 RESULT = i;
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Expression",23, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 66: // Bool ::= CHECK OPEN_BRACKETS STRING_LITERAL CLOSE_BRACKETS 
+          case 66: // Bool ::= CHECK OPEN_BRACKETS STRING_LITERAL CLOSE_BRACKETS
             {
               AutomatonBoolExpr RESULT =null;
 		Object query = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-1)).value;
-		 RESULT = new AutomatonBoolExpr.ALLCPAQuery(query.toString()); 
+		 RESULT = new AutomatonBoolExpr.ALLCPAQuery(query.toString());
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Bool",22, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 65: // Bool ::= CHECK OPEN_BRACKETS IDENTIFIER COMMA STRING_LITERAL CLOSE_BRACKETS 
+          case 65: // Bool ::= CHECK OPEN_BRACKETS IDENTIFIER COMMA STRING_LITERAL CLOSE_BRACKETS
             {
               AutomatonBoolExpr RESULT =null;
 		Object cpa = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-3)).value;
 		Object query = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-1)).value;
-		 RESULT = new AutomatonBoolExpr.CPAQuery(cpa.toString(), query.toString()); 
+		 RESULT = new AutomatonBoolExpr.CPAQuery(cpa.toString(), query.toString());
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Bool",22, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 64: // Bool ::= CHECK OPEN_BRACKETS IDENTIFIER OPEN_BRACKETS STRING_LITERAL CLOSE_BRACKETS CLOSE_BRACKETS 
+          case 64: // Bool ::= CHECK OPEN_BRACKETS IDENTIFIER OPEN_BRACKETS STRING_LITERAL CLOSE_BRACKETS CLOSE_BRACKETS
             {
               AutomatonBoolExpr RESULT =null;
 		Object cpa = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-4)).value;
 		Object query = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-2)).value;
-		 RESULT = new AutomatonBoolExpr.CPAQuery(cpa.toString(), query.toString()); 
+		 RESULT = new AutomatonBoolExpr.CPAQuery(cpa.toString(), query.toString());
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Bool",22, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 63: // Bool ::= MATCH EXIT 
+          case 63: // Bool ::= MATCH EXIT
             {
               AutomatonBoolExpr RESULT =null;
-		 RESULT = new AutomatonBoolExpr.MatchProgramExit(); 
+		 RESULT = new AutomatonBoolExpr.MatchProgramExit();
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Bool",22, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 62: // Bool ::= MATCH LABEL SQUAREEXPR 
-            {
-              AutomatonBoolExpr RESULT =null;
-		Object expr = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = new AutomatonBoolExpr.MatchLabelRegEx(expr.toString()); 
-              CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Bool",22, RESULT);
-            }
-          return CUP$AutomatonParser$result;
-
-          /*. . . . . . . . . . . . . . . . . . . .*/
-          case 61: // Bool ::= MATCH SQUAREEXPR 
+          case 62: // Bool ::= MATCH LABEL SQUAREEXPR
             {
               AutomatonBoolExpr RESULT =null;
 		Object expr = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = new AutomatonBoolExpr.MatchCFAEdgeRegEx(expr.toString()); 
+		 RESULT = new AutomatonBoolExpr.MatchLabelRegEx(expr.toString());
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Bool",22, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 60: // Bool ::= MATCH CURLYEXPR 
+          case 61: // Bool ::= MATCH SQUAREEXPR
             {
               AutomatonBoolExpr RESULT =null;
 		Object expr = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = new AutomatonBoolExpr.MatchCFAEdgeASTComparison(expr.toString()); 
+		 RESULT = new AutomatonBoolExpr.MatchCFAEdgeRegEx(expr.toString());
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Bool",22, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 59: // Bool ::= MATCH STRING_LITERAL 
+          case 60: // Bool ::= MATCH CURLYEXPR
+            {
+              AutomatonBoolExpr RESULT =null;
+		Object expr = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
+		 RESULT = new AutomatonBoolExpr.MatchCFAEdgeASTComparison(expr.toString());
+              CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Bool",22, RESULT);
+            }
+          return CUP$AutomatonParser$result;
+
+          /*. . . . . . . . . . . . . . . . . . . .*/
+          case 59: // Bool ::= MATCH STRING_LITERAL
             {
               AutomatonBoolExpr RESULT =null;
 		Object lit = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = new AutomatonBoolExpr.MatchCFAEdgeExact(lit.toString()); 
+		 RESULT = new AutomatonBoolExpr.MatchCFAEdgeExact(lit.toString());
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Bool",22, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 58: // Bool ::= Bool OR Bool 
+          case 58: // Bool ::= Bool OR Bool
             {
               AutomatonBoolExpr RESULT =null;
 		AutomatonBoolExpr a = (AutomatonBoolExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-2)).value;
 		AutomatonBoolExpr b = (AutomatonBoolExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = new AutomatonBoolExpr.Or(a,b); 
+		 RESULT = new AutomatonBoolExpr.Or(a,b);
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Bool",22, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 57: // Bool ::= Bool AND Bool 
+          case 57: // Bool ::= Bool AND Bool
             {
               AutomatonBoolExpr RESULT =null;
 		AutomatonBoolExpr a = (AutomatonBoolExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-2)).value;
 		AutomatonBoolExpr b = (AutomatonBoolExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = new AutomatonBoolExpr.And(a,b); 
+		 RESULT = new AutomatonBoolExpr.And(a,b);
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Bool",22, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 56: // Bool ::= Bool NEQ Bool 
+          case 56: // Bool ::= Bool NEQ Bool
             {
               AutomatonBoolExpr RESULT =null;
 		AutomatonBoolExpr a = (AutomatonBoolExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-2)).value;
 		AutomatonBoolExpr b = (AutomatonBoolExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = new AutomatonBoolExpr.BoolNotEqTest(a,b); 
+		 RESULT = new AutomatonBoolExpr.BoolNotEqTest(a,b);
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Bool",22, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 55: // Bool ::= Bool EQEQ Bool 
+          case 55: // Bool ::= Bool EQEQ Bool
             {
               AutomatonBoolExpr RESULT =null;
 		AutomatonBoolExpr a = (AutomatonBoolExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-2)).value;
 		AutomatonBoolExpr b = (AutomatonBoolExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = new AutomatonBoolExpr.BoolEqTest(a,b); 
+		 RESULT = new AutomatonBoolExpr.BoolEqTest(a,b);
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Bool",22, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 54: // Bool ::= InnerInt NEQ InnerInt 
+          case 54: // Bool ::= InnerInt NEQ InnerInt
             {
               AutomatonBoolExpr RESULT =null;
 		AutomatonIntExpr a = (AutomatonIntExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-2)).value;
 		AutomatonIntExpr b = (AutomatonIntExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = new AutomatonBoolExpr.IntNotEqTest(a,b); 
+		 RESULT = new AutomatonBoolExpr.IntNotEqTest(a,b);
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Bool",22, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 53: // Bool ::= InnerInt EQEQ InnerInt 
+          case 53: // Bool ::= InnerInt EQEQ InnerInt
             {
               AutomatonBoolExpr RESULT =null;
 		AutomatonIntExpr a = (AutomatonIntExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-2)).value;
 		AutomatonIntExpr b = (AutomatonIntExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = new AutomatonBoolExpr.IntEqTest(a,b); 
+		 RESULT = new AutomatonBoolExpr.IntEqTest(a,b);
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Bool",22, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 52: // Bool ::= OPEN_BRACKETS Bool CLOSE_BRACKETS 
+          case 52: // Bool ::= OPEN_BRACKETS Bool CLOSE_BRACKETS
             {
               AutomatonBoolExpr RESULT =null;
 		AutomatonBoolExpr b = (AutomatonBoolExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-1)).value;
-		 RESULT = b; 
+		 RESULT = b;
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Bool",22, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 51: // Bool ::= EXCLAMATION Bool 
+          case 51: // Bool ::= EXCLAMATION Bool
             {
               AutomatonBoolExpr RESULT =null;
 		AutomatonBoolExpr b = (AutomatonBoolExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = new AutomatonBoolExpr.Negation(b); 
+		 RESULT = new AutomatonBoolExpr.Negation(b);
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Bool",22, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 50: // Bool ::= FALSE 
+          case 50: // Bool ::= FALSE
             {
               AutomatonBoolExpr RESULT =null;
-		 RESULT = AutomatonBoolExpr.FALSE; 
+		 RESULT = AutomatonBoolExpr.FALSE;
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Bool",22, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 49: // Bool ::= TRUE 
+          case 49: // Bool ::= TRUE
             {
               AutomatonBoolExpr RESULT =null;
-		 RESULT = AutomatonBoolExpr.TRUE; 
+		 RESULT = AutomatonBoolExpr.TRUE;
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Bool",22, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 48: // ConstantInt ::= INTEGER_LITERAL 
+          case 48: // ConstantInt ::= INTEGER_LITERAL
             {
               AutomatonIntExpr.Constant RESULT =null;
 		Object c = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = new AutomatonIntExpr.Constant(c.toString()); 
+		 RESULT = new AutomatonIntExpr.Constant(c.toString());
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("ConstantInt",19, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 47: // InnerInt ::= EVAL OPEN_BRACKETS IDENTIFIER COMMA STRING_LITERAL CLOSE_BRACKETS 
+          case 47: // InnerInt ::= EVAL OPEN_BRACKETS IDENTIFIER COMMA STRING_LITERAL CLOSE_BRACKETS
             {
               AutomatonIntExpr RESULT =null;
 		Object cpa = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-3)).value;
 		Object query = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-1)).value;
-		 RESULT = new AutomatonIntExpr.CPAQuery(cpa.toString(), query.toString()); 
+		 RESULT = new AutomatonIntExpr.CPAQuery(cpa.toString(), query.toString());
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("InnerInt",21, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 46: // InnerInt ::= EVAL OPEN_BRACKETS IDENTIFIER OPEN_BRACKETS STRING_LITERAL CLOSE_BRACKETS CLOSE_BRACKETS 
+          case 46: // InnerInt ::= EVAL OPEN_BRACKETS IDENTIFIER OPEN_BRACKETS STRING_LITERAL CLOSE_BRACKETS CLOSE_BRACKETS
             {
               AutomatonIntExpr RESULT =null;
 		Object cpa = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-4)).value;
 		Object query = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-2)).value;
-		 RESULT = new AutomatonIntExpr.CPAQuery(cpa.toString(), query.toString()); 
+		 RESULT = new AutomatonIntExpr.CPAQuery(cpa.toString(), query.toString());
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("InnerInt",21, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 45: // InnerInt ::= Int 
+          case 45: // InnerInt ::= Int
             {
               AutomatonIntExpr RESULT =null;
 		AutomatonIntExpr i = (AutomatonIntExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = i; 
+		 RESULT = i;
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("InnerInt",21, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 44: // Int ::= InnerInt MINUS InnerInt 
+          case 44: // Int ::= InnerInt MINUS InnerInt
             {
               AutomatonIntExpr RESULT =null;
 		AutomatonIntExpr a = (AutomatonIntExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-2)).value;
 		AutomatonIntExpr b = (AutomatonIntExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = new AutomatonIntExpr.Minus(a,b); 
+		 RESULT = new AutomatonIntExpr.Minus(a,b);
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Int",20, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 43: // Int ::= InnerInt PLUS InnerInt 
+          case 43: // Int ::= InnerInt PLUS InnerInt
             {
               AutomatonIntExpr RESULT =null;
 		AutomatonIntExpr a = (AutomatonIntExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-2)).value;
 		AutomatonIntExpr b = (AutomatonIntExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = new AutomatonIntExpr.Plus(a,b); 
+		 RESULT = new AutomatonIntExpr.Plus(a,b);
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Int",20, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 42: // Int ::= IDENTIFIER 
+          case 42: // Int ::= IDENTIFIER
             {
               AutomatonIntExpr RESULT =null;
 		Object x = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = new AutomatonIntExpr.VarAccess(x.toString()); 
+		 RESULT = new AutomatonIntExpr.VarAccess(x.toString());
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Int",20, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 41: // Int ::= OPEN_BRACKETS Int CLOSE_BRACKETS 
+          case 41: // Int ::= OPEN_BRACKETS Int CLOSE_BRACKETS
             {
               AutomatonIntExpr RESULT =null;
 		AutomatonIntExpr i = (AutomatonIntExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-1)).value;
-		 RESULT = i; 
+		 RESULT = i;
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Int",20, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 40: // Int ::= ConstantInt 
+          case 40: // Int ::= ConstantInt
             {
               AutomatonIntExpr RESULT =null;
 		AutomatonIntExpr.Constant c = (AutomatonIntExpr.Constant)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = c; 
+		 RESULT = c;
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Int",20, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 39: // PrintArguments ::= 
+          case 39: // PrintArguments ::=
             {
               List<AutomatonExpression> RESULT =null;
-		 RESULT = new LinkedList<AutomatonExpression>(); 
+		 RESULT = new LinkedList<AutomatonExpression>();
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("PrintArguments",18, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 38: // PrintArguments ::= Expression PrintArguments 
+          case 38: // PrintArguments ::= Expression PrintArguments
             {
               List<AutomatonExpression> RESULT =null;
 		AutomatonExpression a = (AutomatonExpression)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-1)).value;
 		List<AutomatonExpression> lst = (List<AutomatonExpression>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 lst.add(0,a); RESULT = lst; 
+		 lst.add(0,a); RESULT = lst;
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("PrintArguments",18, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 37: // Action ::= MODIFY OPEN_BRACKETS IDENTIFIER COMMA STRING_LITERAL CLOSE_BRACKETS 
+          case 37: // Action ::= MODIFY OPEN_BRACKETS IDENTIFIER COMMA STRING_LITERAL CLOSE_BRACKETS
             {
               AutomatonAction RESULT =null;
 		Object cpa = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-3)).value;
 		Object query = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-1)).value;
-		 RESULT = new AutomatonAction.CPAModification(cpa.toString(), query.toString()); 
+		 RESULT = new AutomatonAction.CPAModification(cpa.toString(), query.toString());
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Action",17, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 36: // Action ::= MODIFY OPEN_BRACKETS IDENTIFIER OPEN_BRACKETS STRING_LITERAL CLOSE_BRACKETS CLOSE_BRACKETS 
+          case 36: // Action ::= MODIFY OPEN_BRACKETS IDENTIFIER OPEN_BRACKETS STRING_LITERAL CLOSE_BRACKETS CLOSE_BRACKETS
             {
               AutomatonAction RESULT =null;
 		Object cpa = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-4)).value;
 		Object query = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-2)).value;
-		 RESULT = new AutomatonAction.CPAModification(cpa.toString(), query.toString()); 
+		 RESULT = new AutomatonAction.CPAModification(cpa.toString(), query.toString());
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Action",17, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 35: // Action ::= PRINT PrintArguments 
+          case 35: // Action ::= PRINT PrintArguments
             {
               AutomatonAction RESULT =null;
 		List<AutomatonExpression> args = (List<AutomatonExpression>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = new AutomatonAction.Print(args); 
+		 RESULT = new AutomatonAction.Print(args);
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Action",17, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 34: // Action ::= DO IDENTIFIER EQ InnerInt 
+          case 34: // Action ::= DO IDENTIFIER EQ InnerInt
             {
               AutomatonAction RESULT =null;
 		Object var = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-2)).value;
 		AutomatonIntExpr i = (AutomatonIntExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = new AutomatonAction.Assignment(var.toString(), i); 
+		 RESULT = new AutomatonAction.Assignment(var.toString(), i);
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Action",17, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 33: // Actions ::= 
+          case 33: // Actions ::=
             {
               List<AutomatonAction> RESULT =null;
-		 RESULT = new LinkedList<AutomatonAction>(); 
+		 RESULT = new LinkedList<AutomatonAction>();
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Actions",10, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 32: // Actions ::= Action Actions 
+          case 32: // Actions ::= Action Actions
             {
               List<AutomatonAction> RESULT =null;
 		AutomatonAction a = (AutomatonAction)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-1)).value;
 		List<AutomatonAction> lst = (List<AutomatonAction>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 lst.add(0,a); RESULT = lst; 
+		 lst.add(0,a); RESULT = lst;
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Actions",10, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 31: // Assume ::= 
+          case 31: // Assume ::=
             {
               String RESULT =null;
-		 RESULT = ""; 
+		 RESULT = "";
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Assume",9, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 30: // Assume ::= ASSUME STRING_LITERAL 
+          case 30: // Assume ::= ASSUME STRING_LITERAL
             {
               String RESULT =null;
 		Object a = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = a.toString(); 
+		 RESULT = a.toString();
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Assume",9, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 29: // Assertion ::= ASSERT Bool 
+          case 29: // Assertion ::= ASSERT Bool
             {
               AutomatonBoolExpr RESULT =null;
 		AutomatonBoolExpr b = (AutomatonBoolExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = b; 
+		 RESULT = b;
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Assertion",16, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 28: // Assertions ::= 
+          case 28: // Assertions ::=
             {
               List<AutomatonBoolExpr> RESULT =null;
-		 RESULT = new LinkedList<AutomatonBoolExpr>(); 
+		 RESULT = new LinkedList<AutomatonBoolExpr>();
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Assertions",8, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 27: // Assertions ::= Assertion Assertions 
+          case 27: // Assertions ::= Assertion Assertions
             {
               List<AutomatonBoolExpr> RESULT =null;
 		AutomatonBoolExpr a = (AutomatonBoolExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-1)).value;
 		List<AutomatonBoolExpr> lst = (List<AutomatonBoolExpr>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 lst.add(0,a); RESULT = lst; 
+		 lst.add(0,a); RESULT = lst;
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Assertions",8, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 26: // Transition ::= Bool ARROW Assertions Assume Actions STOP SEMICOLON 
+          case 26: // Transition ::= Bool ARROW Assertions Assume Actions STOP SEMICOLON
             {
               AutomatonTransition RESULT =null;
 		AutomatonBoolExpr trigger = (AutomatonBoolExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-6)).value;
 		List<AutomatonBoolExpr> ass = (List<AutomatonBoolExpr>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-4)).value;
 		List<AutomatonAction> acts = (List<AutomatonAction>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-2)).value;
-		 RESULT = new AutomatonTransition(trigger, ass, acts, AutomatonInternalState.BOTTOM); 
+		 RESULT = new AutomatonTransition(trigger, ass, acts, AutomatonInternalState.BOTTOM);
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Transition",15, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 25: // Transition ::= Bool ARROW Assertions Assume Actions ERROR SEMICOLON 
+          case 25: // Transition ::= Bool ARROW Assertions Assume Actions ERROR SEMICOLON
             {
               AutomatonTransition RESULT =null;
 		AutomatonBoolExpr trigger = (AutomatonBoolExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-6)).value;
 		List<AutomatonBoolExpr> ass = (List<AutomatonBoolExpr>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-4)).value;
 		List<AutomatonAction> acts = (List<AutomatonAction>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-2)).value;
-		 RESULT = new AutomatonTransition(trigger, ass, acts, AutomatonInternalState.ERROR); 
+		 RESULT = new AutomatonTransition(trigger, ass, acts, AutomatonInternalState.ERROR);
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Transition",15, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 24: // Transition ::= Bool ARROW Assertions Assume Actions GOTO IDENTIFIER SEMICOLON 
+          case 24: // Transition ::= Bool ARROW Assertions Assume Actions GOTO IDENTIFIER SEMICOLON
             {
               AutomatonTransition RESULT =null;
 		AutomatonBoolExpr trigger = (AutomatonBoolExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-7)).value;
 		List<AutomatonBoolExpr> ass = (List<AutomatonBoolExpr>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-5)).value;
 		List<AutomatonAction> acts = (List<AutomatonAction>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-3)).value;
 		Object follow = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-1)).value;
-		 RESULT = new AutomatonTransition(trigger, ass, acts, follow.toString()); 
+		 RESULT = new AutomatonTransition(trigger, ass, acts, follow.toString());
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Transition",15, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 23: // Transitions ::= 
+          case 23: // Transitions ::=
             {
               List<AutomatonTransition> RESULT =null;
-		 RESULT = new LinkedList<AutomatonTransition>(); 
+		 RESULT = new LinkedList<AutomatonTransition>();
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Transitions",7, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 22: // Transitions ::= Transition Transitions 
+          case 22: // Transitions ::= Transition Transitions
             {
               List<AutomatonTransition> RESULT =null;
 		AutomatonTransition t = (AutomatonTransition)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-1)).value;
 		List<AutomatonTransition> lst = (List<AutomatonTransition>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 lst.add(0, t); RESULT = lst; 
+		 lst.add(0, t); RESULT = lst;
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Transitions",7, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 21: // StateNonDetDef ::= 
+          case 21: // StateNonDetDef ::=
             {
               Boolean RESULT =null;
-		 RESULT = true; 
+		 RESULT = true;
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("StateNonDetDef",14, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 20: // StateNonDetDef ::= USEALL 
+          case 20: // StateNonDetDef ::= USEALL
             {
               Boolean RESULT =null;
-		 RESULT = true; 
+		 RESULT = true;
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("StateNonDetDef",14, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 19: // StateNonDetDef ::= USEFIRST 
+          case 19: // StateNonDetDef ::= USEFIRST
             {
               Boolean RESULT =null;
-		 RESULT = false; 
+		 RESULT = false;
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("StateNonDetDef",14, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 18: // StateTypeDef ::= 
+          case 18: // StateTypeDef ::=
             {
               Boolean RESULT =null;
-		 RESULT = false; 
+		 RESULT = false;
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("StateTypeDef",13, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 17: // StateTypeDef ::= TARGET 
+          case 17: // StateTypeDef ::= TARGET
             {
               Boolean RESULT =null;
-		 RESULT = true; 
+		 RESULT = true;
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("StateTypeDef",13, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 16: // StateDef ::= StateTypeDef STATE StateNonDetDef IDENTIFIER COLON Transitions 
+          case 16: // StateDef ::= StateTypeDef STATE StateNonDetDef IDENTIFIER COLON Transitions
             {
               AutomatonInternalState RESULT =null;
 		Boolean type = (Boolean)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-5)).value;
 		Boolean nd = (Boolean)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-3)).value;
 		Object id = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-2)).value;
 		List<AutomatonTransition> ts = (List<AutomatonTransition>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = new AutomatonInternalState(id.toString(), ts, type, nd); 
+		 RESULT = new AutomatonInternalState(id.toString(), ts, type, nd);
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("StateDef",12, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 15: // StateDefs ::= 
+          case 15: // StateDefs ::=
             {
               List<AutomatonInternalState> RESULT =null;
-		 RESULT = new LinkedList<AutomatonInternalState>(); 
+		 RESULT = new LinkedList<AutomatonInternalState>();
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("StateDefs",6, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 14: // StateDefs ::= StateDef StateDefs 
+          case 14: // StateDefs ::= StateDef StateDefs
             {
               List<AutomatonInternalState> RESULT =null;
 		AutomatonInternalState s = (AutomatonInternalState)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-1)).value;
 		List<AutomatonInternalState> lst = (List<AutomatonInternalState>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 lst.add(0, s); RESULT = lst; 
+		 lst.add(0, s); RESULT = lst;
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("StateDefs",6, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 13: // LocalDef ::= LOCAL IDENTIFIER IDENTIFIER EQ ConstantInt SEMICOLON 
+          case 13: // LocalDef ::= LOCAL IDENTIFIER IDENTIFIER EQ ConstantInt SEMICOLON
             {
               AutomatonVariable RESULT =null;
 		Object type = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-4)).value;
 		Object name = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-3)).value;
 		AutomatonIntExpr.Constant ci = (AutomatonIntExpr.Constant)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-1)).value;
-		 RESULT = new AutomatonVariable(type.toString(), name.toString()); RESULT.setValue(ci.getIntValue()); 
+		 RESULT = new AutomatonVariable(type.toString(), name.toString()); RESULT.setValue(ci.getIntValue());
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("LocalDef",11, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 12: // LocalDef ::= LOCAL IDENTIFIER IDENTIFIER SEMICOLON 
+          case 12: // LocalDef ::= LOCAL IDENTIFIER IDENTIFIER SEMICOLON
             {
               AutomatonVariable RESULT =null;
 		Object type = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-2)).value;
 		Object name = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-1)).value;
-		 RESULT = new AutomatonVariable(type.toString(), name.toString()); 
+		 RESULT = new AutomatonVariable(type.toString(), name.toString());
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("LocalDef",11, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 11: // LocalDefs ::= 
+          case 11: // LocalDefs ::=
             {
               Map<String,AutomatonVariable> RESULT =null;
-		 RESULT = new HashMap<String, AutomatonVariable>(); 
+		 RESULT = new HashMap<String, AutomatonVariable>();
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("LocalDefs",5, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 10: // LocalDefs ::= LocalDef LocalDefs 
+          case 10: // LocalDefs ::= LocalDef LocalDefs
             {
               Map<String,AutomatonVariable> RESULT =null;
 		AutomatonVariable d = (AutomatonVariable)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-1)).value;
 		Map<String,AutomatonVariable> lst = (Map<String,AutomatonVariable>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 lst.put(d.getName(), d); RESULT = lst; 
+		 lst.put(d.getName(), d); RESULT = lst;
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("LocalDefs",5, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 9: // InitDef ::= INITIAL STATE IDENTIFIER SEMICOLON 
+          case 9: // InitDef ::= INITIAL STATE IDENTIFIER SEMICOLON
             {
               String RESULT =null;
 		Object id = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-1)).value;
-		 RESULT = id.toString(); 
+		 RESULT = id.toString();
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("InitDef",3, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 8: // Body ::= AUTOMATON IDENTIFIER LocalDefs InitDef StateDefs END AUTOMATON 
+          case 8: // Body ::= AUTOMATON IDENTIFIER LocalDefs InitDef StateDefs END AUTOMATON
             {
               Automaton RESULT =null;
 		Object id = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-5)).value;
 		Map<String,AutomatonVariable> vars = (Map<String,AutomatonVariable>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-4)).value;
 		String init = (String)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-3)).value;
 		List<AutomatonInternalState> states = (List<AutomatonInternalState>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-2)).value;
-		 RESULT = new Automaton(id.toString(), vars, states, init); 
+		 RESULT = new Automaton(id.toString(), vars, states, init);
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Body",4, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 7: // Automaton ::= Body 
+          case 7: // Automaton ::= Body
             {
               Automaton RESULT =null;
 		Automaton b = (Automaton)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = b; 
+		 RESULT = b;
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Automaton",2, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 6: // Automaton ::= CONTROL Body 
+          case 6: // Automaton ::= CONTROL Body
             {
               Automaton RESULT =null;
 		Automaton b = (Automaton)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = b; 
+		 RESULT = b;
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Automaton",2, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 5: // Automaton ::= OBSERVER Body 
+          case 5: // Automaton ::= OBSERVER Body
             {
               Automaton RESULT =null;
 		Automaton b = (Automaton)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = b; b.assertObserverAutomaton(); 
+		 RESULT = b; b.assertObserverAutomaton();
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Automaton",2, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 4: // Specification ::= Assertion SEMICOLON 
+          case 4: // Specification ::= Assertion SEMICOLON
             {
               Automaton RESULT =null;
 		AutomatonBoolExpr a = (AutomatonBoolExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-1)).value;
-		 RESULT = parser.generateSkeletonForAssertion(a); 
+		 RESULT = parser.generateSkeletonForAssertion(a);
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Specification",1, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 3: // Specification ::= Automaton 
+          case 3: // Specification ::= Automaton
             {
               Automaton RESULT =null;
 		Automaton a = (Automaton)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = a; 
+		 RESULT = a;
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Specification",1, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 2: // initial ::= 
+          case 2: // initial ::=
             {
               List<Automaton> RESULT =null;
-		 RESULT = new LinkedList<Automaton>(); 
+		 RESULT = new LinkedList<Automaton>();
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("initial",0, RESULT);
             }
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 1: // $START ::= initial EOF 
+          case 1: // $START ::= initial EOF
             {
               Object RESULT =null;
 		List<Automaton> start_val = (List<Automaton>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-1)).value;
@@ -1239,12 +1239,12 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
           return CUP$AutomatonParser$result;
 
           /*. . . . . . . . . . . . . . . . . . . .*/
-          case 0: // initial ::= Specification initial 
+          case 0: // initial ::= Specification initial
             {
               List<Automaton> RESULT =null;
 		Automaton s = (Automaton)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-1)).value;
 		List<Automaton> lst = (List<Automaton>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 lst.add(0, s); RESULT = lst; 
+		 lst.add(0, s); RESULT = lst;
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("initial",0, RESULT);
             }
           return CUP$AutomatonParser$result;

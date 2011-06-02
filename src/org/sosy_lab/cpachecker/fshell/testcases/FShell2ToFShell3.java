@@ -12,27 +12,27 @@ import java.util.List;
 import java.util.Set;
 
 public class FShell2ToFShell3 {
-  
+
   private final static String USAGE_STRING = "Usage: java [--out=output-file] org.sosy_lab.cpachecker.fshell.testcases.FShell2ToFShell3 <FShell2 result files>";
-  
+
   public static void translateTestsuite(String pSourceFile, String pTargetFile) throws NumberFormatException, FileNotFoundException, IOException {
     translateTestsuite(new PrintStream(new FileOutputStream(pTargetFile)), pSourceFile);
   }
-  
+
   public static void translateTestsuite(PrintStream pOutputStream, String pFile) throws NumberFormatException, IOException {
     BufferedReader lReader = new BufferedReader(new FileReader(pFile));
-      
+
     String lLine = null;
-      
+
     boolean lNextInput = false;
-      
+
     Set<TestCase> lTestCases = new LinkedHashSet<TestCase>();
-      
+
     List<Integer> lValues = new LinkedList<Integer>();
-      
+
     while ((lLine = lReader.readLine()) != null) {
       lLine = lLine.trim();
-        
+
       if (lLine.equals("")) {
         if (lNextInput) {
           lNextInput = false;
@@ -40,10 +40,10 @@ public class FShell2ToFShell3 {
           lValues.clear();
           lTestCases.add(lTestCase);
         }
-          
+
         continue;
       }
-        
+
       if (lNextInput) {
         if (lLine.startsWith("input()=")) {
           String lValue = lLine.substring("input()=".length());
@@ -56,53 +56,53 @@ public class FShell2ToFShell3 {
         }
       }
     }
-      
+
     for (TestCase lTestCase : lTestCases) {
       pOutputStream.println(lTestCase);
     }
   }
-  
+
   public static void main(String[] args) throws IOException {
     if (args.length > 0) {
       PrintStream lOutputStream;
-      
+
       int lStartIndex;
-      
+
       if (args[0].startsWith("--out=")) {
         if (args.length == 1) {
           System.out.println(USAGE_STRING);
           return;
         }
-        
+
         String lFileName = args[0].substring("--out=".length());
-        
+
         lOutputStream = new PrintStream(new FileOutputStream(lFileName));
-        
+
         lStartIndex = 1;
       }
       else {
         lOutputStream = System.out;
         lStartIndex = 0;
       }
-      
+
       for (int lIndex = lStartIndex; lIndex < args.length; lIndex++) {
         String lFileName = args[lIndex];
-        
+
         translateTestsuite(lOutputStream, lFileName);
-        
+
         /*BufferedReader lReader = new BufferedReader(new FileReader(lFileName));
-        
+
         String lLine = null;
-        
+
         boolean lNextInput = false;
-        
+
         Set<TestCase> lTestCases = new LinkedHashSet<TestCase>();
-        
+
         List<Integer> lValues = new LinkedList<Integer>();
-        
+
         while ((lLine = lReader.readLine()) != null) {
           lLine = lLine.trim();
-          
+
           if (lLine.equals("")) {
             if (lNextInput) {
               lNextInput = false;
@@ -110,10 +110,10 @@ public class FShell2ToFShell3 {
               lValues.clear();
               lTestCases.add(lTestCase);
             }
-            
+
             continue;
           }
-          
+
           if (lNextInput) {
             if (lLine.startsWith("input()=")) {
               String lValue = lLine.substring("input()=".length());
@@ -126,7 +126,7 @@ public class FShell2ToFShell3 {
             }
           }
         }
-        
+
         for (TestCase lTestCase : lTestCases) {
           lOutputStream.println(lTestCase);
         }*/
@@ -136,5 +136,5 @@ public class FShell2ToFShell3 {
       System.out.println(USAGE_STRING);
     }
   }
-  
+
 }

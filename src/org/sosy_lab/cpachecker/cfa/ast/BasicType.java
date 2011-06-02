@@ -33,5 +33,5 @@ public enum BasicType {
   FLOAT,
   DOUBLE,
   ;
- 
+
 }

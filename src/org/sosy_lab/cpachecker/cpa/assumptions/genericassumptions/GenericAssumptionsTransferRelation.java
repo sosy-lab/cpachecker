@@ -47,7 +47,7 @@ public class GenericAssumptionsTransferRelation implements TransferRelation {
    * List of interfaces used to build the default
    * assumptions made by the model checker for
    * program operations.
-   * 
+   *
    * Modify this to register new kind of assumptions.
    */
   private final List<GenericAssumptionBuilder> assumptionBuilders =
@@ -73,7 +73,7 @@ public class GenericAssumptionsTransferRelation implements TransferRelation {
     Formula assumptionFormula = manager.makeTrue();
     for (GenericAssumptionBuilder b : assumptionBuilders)
     {
-      assumptionFormula = 
+      assumptionFormula =
         manager.makeAnd(assumptionFormula, b.assumptionsForEdge(edge), function);
     }
     return Collections.singleton(new GenericAssumptionsElement(assumptionFormula));

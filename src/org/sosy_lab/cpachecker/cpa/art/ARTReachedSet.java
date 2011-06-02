@@ -57,7 +57,7 @@ public class ARTReachedSet {
     mReached = pReached;
     mCpa = pCpa;
   }
-  
+
   public UnmodifiableReachedSet asReachedSet() {
     return new UnmodifiableReachedSetWrapper(mReached);
   }
@@ -91,7 +91,7 @@ public class ARTReachedSet {
 
   /**
    * Like {@link #removeSubtree(ARTElement)}, but when re-adding elements to the
-   * waitlist adapts precisions with respect to the supplied precision p (see 
+   * waitlist adapts precisions with respect to the supplied precision p (see
    * {@link #adaptPrecision(ARTElement, Precision)}).
    * @param e The root of the removed subtree, may not be the initial element.
    * @param p The new precision.
@@ -103,10 +103,10 @@ public class ARTReachedSet {
       mReached.add(ae, adaptPrecision(ae, p));
     }
   }
-  
+
   /**
    * Adapts the precision stored in the reached set for lARTElement.
-   * If the stored precision is a wrapper precision, pNewPrecision replaces the 
+   * If the stored precision is a wrapper precision, pNewPrecision replaces the
    * component of the wrapper precision that corresponds to pNewPrecision.
    * Otherwise, pNewPrecision replaces the stored precision.
    * @param pARTElement Reached element for which the precision has to be adapted.
@@ -115,7 +115,7 @@ public class ARTReachedSet {
    */
   private Precision adaptPrecision(ARTElement pARTElement, Precision pNewPrecision) {
     Precision lOldPrecision = getPrecision(pARTElement);
-    
+
     return Precisions.replaceByType(lOldPrecision, pNewPrecision);
   }
 
@@ -288,56 +288,56 @@ public class ARTReachedSet {
 
     return stop;
   }
-  
+
   public static class ForwardingARTReachedSet extends ARTReachedSet {
 
     protected final ARTReachedSet delegate;
-    
+
     public ForwardingARTReachedSet(ARTReachedSet pReached) {
       super(pReached.mReached, pReached.mCpa);
       delegate = pReached;
     }
-    
+
     @Override
     public UnmodifiableReachedSet asReachedSet() {
       return delegate.asReachedSet();
     }
-    
+
     @Override
     public boolean checkForCoveredBy(ARTElement pElement) throws CPAException {
       return delegate.checkForCoveredBy(pElement);
     }
-    
+
     @Override
     public ARTElement getFirstElement() {
       return delegate.getFirstElement();
     }
-    
+
     @Override
     public ARTElement getLastElement() {
       return delegate.getLastElement();
     }
-    
+
     @Override
     public Precision getPrecision(ARTElement pE) {
       return delegate.getPrecision(pE);
     }
-    
+
     @Override
     public void removeCoverage(ARTElement pElement) {
       delegate.removeCoverage(pElement);
     }
-    
+
     @Override
     public void removeSubtree(ARTElement pE) {
       delegate.removeSubtree(pE);
     }
-    
+
     @Override
     public void removeSubtree(ARTElement pE, Precision pP) {
       delegate.removeSubtree(pE, pP);
     }
-    
+
     @Override
     public void replaceWithBottom(ARTElement pE) {
       delegate.replaceWithBottom(pE);

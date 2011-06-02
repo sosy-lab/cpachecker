@@ -45,7 +45,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class AutomatonTest {
   private static final String OUTPUT_FILE = "test/output/AutomatonExport.dot";
-  
+
   // Specification Tests
   @Test
   public void CyclicInclusionTest() throws Exception {
@@ -77,7 +77,7 @@ public class AutomatonTest {
       TestResults results = run(prop, "test/programs/simple/UninitVarsErrors.c");
       Assert.assertTrue(results.logContains("Automaton: Uninitialized return value"));
       Assert.assertTrue(results.logContains("Automaton: Uninitialized variable used"));
-      
+
       results = run(prop, "test/programs/simple/PointerAnalysisErrors.c");
       Assert.assertTrue(results.logContains("Found a DOUBLE_FREE"));
       Assert.assertTrue(results.logContains("Found an INVALID_FREE"));
@@ -109,7 +109,7 @@ public class AutomatonTest {
       Assert.assertTrue(results.logContains("Modification successful"));
       Assert.assertTrue(results.isSafe());
   }
-  
+
   //Automaton Tests
   @Test
   public void MatchEndOfProgramTest() throws Exception {
@@ -123,7 +123,7 @@ public class AutomatonTest {
       TestResults results = run(prop, "test/programs/simple/loop1.c");
       Assert.assertTrue(results.logContains("Last statement is \"return (0);\""));
       Assert.assertTrue(results.logContains("Last statement is \"return (-1);\""));
-      Assert.assertTrue(results.isSafe());      
+      Assert.assertTrue(results.isSafe());
   }
   @Test
   public void failIfNoAutomatonGiven() throws Exception {
@@ -136,7 +136,7 @@ public class AutomatonTest {
       Assert.assertTrue(results.getCheckerResult().getResult().equals(CPAcheckerResult.Result.UNKNOWN));
       Assert.assertTrue(results.logContains("Explicitly specified automaton CPA needs option cpa.automaton.inputFile!"));
   }
-  
+
   @Test
   public void modificationTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
@@ -150,7 +150,7 @@ public class AutomatonTest {
       Assert.assertTrue(results.logContains("Modification successful"));
       Assert.assertTrue(results.isSafe());
   }
-  
+
   @Test
   public void modification_in_Observer_throws_Test() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
@@ -164,7 +164,7 @@ public class AutomatonTest {
       // check for stack trace
       Assert.assertTrue(results.logContains("Invalid configuration: The Transition MATCH "));
   }
-  
+
   @Test
   public void setuidTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
@@ -174,7 +174,7 @@ public class AutomatonTest {
         "analysis.stopAfterError",        "FALSE"
       );
 
-      
+
       TestResults results = run(prop, "test/programs/simple/simple_setuid_test.c");
       Assert.assertTrue(results.logContains("Systemcall in line 10 with userid 2"));
       Assert.assertTrue(results.logContains("going to ErrorState on edge \"system(40);\""));
@@ -358,34 +358,34 @@ public class AutomatonTest {
     //AutomatonASTComparator.printAST("x=10;");
     Assert.assertFalse(testAST("x=5;", "$? =10;"));
     Assert.assertTrue(testAST("x  = 5;", "$?=$?;"));
-  
+
     Assert.assertFalse(testAST("a = 5;", "b    = 5;"));
 
     Assert.assertFalse(testAST("init();", "init($1);"));
-    
+
     Assert.assertTrue(testAST("init(a, b);", "init($?, b);"));
     Assert.assertFalse(testAST("init(a, b);", "init($?, c);"));
-  
+
     Assert.assertTrue(testAST("x = 5;", "x=$?"));
     Assert.assertTrue(testAST("x = 5", "x=$?;"));
-  
-  
+
+
     Assert.assertTrue(testAST("f();", "f($?);"));
     Assert.assertTrue(testAST("f(x);", "f($?);"));
     Assert.assertTrue(testAST("f(x, y);", "f($?);"));
-  
+
     Assert.assertFalse(testAST("f(x);", "f(x, $?);"));
     Assert.assertTrue(testAST("f(x, y);", "f(x, $?);"));
     Assert.assertFalse(testAST("f(x, y, z);", "f(x, $?);"));
-    
-    /* in the automata this is 
-     * not possible at the moment, because the generated pattern 
+
+    /* in the automata this is
+     * not possible at the moment, because the generated pattern
      * AST has one node that is missing in the the sub-AST of the CFA
-     * 
+     *
      */
 //    Assert.assertTrue(testAST("int y;", "int $?;"));
 //    Assert.assertTrue(testAST("int y;", "int y;"));
-    
+
   }
   private boolean testAST(String src, String pattern) throws InvalidAutomatonException {
     AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null);

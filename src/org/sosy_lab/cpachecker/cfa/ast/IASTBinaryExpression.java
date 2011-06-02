@@ -50,17 +50,17 @@ public class IASTBinaryExpression extends IASTExpression {
   public BinaryOperator getOperator() {
     return operator;
   }
-  
+
   @Override
   public <R, X extends Exception> R accept(ExpressionVisitor<R, X> v) throws X {
     return v.visit(this);
   }
-  
+
   @Override
   public <R, X extends Exception> R accept(RightHandSideVisitor<R, X> v) throws X {
     return v.visit(this);
   }
-  
+
   public static enum BinaryOperator {
     MULTIPLY      ("*"),
     DIVIDE        ("/"),
@@ -81,13 +81,13 @@ public class IASTBinaryExpression extends IASTExpression {
     EQUALS        ("=="),
     NOT_EQUALS    ("!="),
     ;
-    
+
     private final String op;
-    
+
     private BinaryOperator(String pOp) {
       op = pOp;
     }
-    
+
     /**
      * Returns the string representation of this operator (e.g. "*", "+").
      */

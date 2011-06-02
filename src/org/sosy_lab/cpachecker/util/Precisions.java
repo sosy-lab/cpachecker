@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 public class Precisions {
 
   private Precisions() { }
-  
+
   /**
    * Retrieve one of the wrapped precisions by type. If the hierarchy of
    * (wrapped) precisions has several levels, this method searches through

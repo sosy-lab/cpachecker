@@ -52,17 +52,17 @@ import org.sosy_lab.cpachecker.util.ecp.translators.InverseGuardedEdgeLabel;
 import org.sosy_lab.cpachecker.util.ecp.translators.ToGuardedAutomatonTranslator;
 
 /*
- * TODO AutomatonBuilder <- integrate State-Pool there to ensure correct time 
+ * TODO AutomatonBuilder <- integrate State-Pool there to ensure correct time
  * measurements when invoking FlleSh several times in a unit test.
- * 
+ *
  * TODO Incremental test goal automaton creation: extending automata (can we reuse
  * parts of the reached set?) This requires a change in the coverage check.
- * -> Handle enormous amounts of test goals. 
- * 
+ * -> Handle enormous amounts of test goals.
+ *
  */
 
 public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
-  
+
   private final Configuration mConfiguration;
   private final LogManager mLogManager;
   private final Wrapper mWrapper;
@@ -75,41 +75,41 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
   private final GuardedEdgeLabel mAlphaLabel;
   private final GuardedEdgeLabel mOmegaLabel;
   private final GuardedEdgeLabel mInverseAlphaLabel;
-  
+
   public StandardFQLCoverageAnalyser(String pSourceFileName, String pEntryFunction) {
     Map<String, CFAFunctionDefinitionNode> lCFAMap;
     CFAFunctionDefinitionNode lMainFunction;
-    
+
     try {
       mConfiguration = FShell3.createConfiguration(pSourceFileName, pEntryFunction);
       mLogManager = new LogManager(mConfiguration);
-      
+
       lCFAMap = FShell3.getCFAMap(pSourceFileName, mConfiguration, mLogManager);
       lMainFunction = lCFAMap.get(pEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     }
-    
+
     /*
      * We have to instantiate mCoverageSpecificationTranslator before the wrapper
-     * changes the underlying CFA. FQL specifications are evaluated against the 
+     * changes the underlying CFA. FQL specifications are evaluated against the
      * target graph generated during initialization of mCoverageSpecificationTranslator.
      */
     mCoverageSpecificationTranslator = new CoverageSpecificationTranslator(lMainFunction);
 
     mWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCFAMap, mLogManager);
-    
+
     try {
       mWrapper.toDot("test/output/wrapper.dot");
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-    
+
     mAlphaLabel = new GuardedEdgeLabel(new ECPEdgeSet(mWrapper.getAlphaEdge()));
     mInverseAlphaLabel = new InverseGuardedEdgeLabel(mAlphaLabel);
     mOmegaLabel = new GuardedEdgeLabel(new ECPEdgeSet(mWrapper.getOmegaEdge()));
-    
-    
+
+
     /*
      * Initialize shared CPAs.
      */
@@ -121,7 +121,7 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
     } catch (CPAException e) {
       throw new RuntimeException(e);
     }
-    
+
     // callstack CPA
     CPAFactory lCallStackCPAFactory = CallstackCPA.factory();
     try {
@@ -131,14 +131,14 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
     } catch (CPAException e) {
       throw new RuntimeException(e);
     }
-    
+
     // assume CPA
     mAssumeCPA = AssumeCPA.getCBMCAssume();
-    
+
     // cfa path CPA
     mCFAPathCPA = CFAPathCPA.getInstance();
   }
-  
+
   @Override
   public void checkCoverage(String pFQLSpecification, Collection<TestCase> pTestSuite, boolean pPedantic) {
     // Parse FQL Specification
@@ -148,34 +148,34 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-    
+
     checkCoverage(lFQLSpecification, pTestSuite, pPedantic);
   }
-  
+
   private void checkCoverage(FQLSpecification pFQLSpecification, Collection<TestCase> pTestSuite, boolean pPedantic) {
-    
+
     GuardedEdgeAutomatonCPA lPassingCPA = null;
-    
+
     if (pFQLSpecification.hasPassingClause()) {
       ElementaryCoveragePattern lPassingClause = mCoverageSpecificationTranslator.mPathPatternTranslator.translate(pFQLSpecification.getPathPattern());
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lPassingClause, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
       lPassingCPA = new GuardedEdgeAutomatonCPA(lAutomaton);
     }
-    
+
     IncrementalCoverageSpecificationTranslator lTranslator = new IncrementalCoverageSpecificationTranslator(mCoverageSpecificationTranslator.mPathPatternTranslator);
-    
+
     int lNumberOfTestGoals = lTranslator.getNumberOfTestGoals(pFQLSpecification.getCoverageSpecification());
-    
+
     System.out.println("Number of test goals: " + lNumberOfTestGoals);
-    
+
     Iterator<ElementaryCoveragePattern> lGoalIterator = lTranslator.translate(pFQLSpecification.getCoverageSpecification());
-    
+
     int lIndex = 0;
-    
+
     int lNumberOfCoveredTestGoals = 0;
-    
+
     Map<TestCase, CFAEdge[]> mPathCache = new HashMap<TestCase, CFAEdge[]>();
-    
+
     FQLSpecification lIdStarFQLSpecification;
     try {
       lIdStarFQLSpecification = FQLSpecification.parse("COVER \"EDGES(ID)*\" PASSING EDGES(ID)*");
@@ -187,28 +187,28 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
     ElementaryCoveragePattern lIdStarPattern = mCoverageSpecificationTranslator.mPathPatternTranslator.translate(lIdStarFQLSpecification.getPathPattern());
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lIdStarPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
     GuardedEdgeAutomatonCPA lIdStarCPA = new GuardedEdgeAutomatonCPA(lAutomaton);
-    
+
     while (lGoalIterator.hasNext()) {
       lIndex++;
-      
+
       ElementaryCoveragePattern lGoalPattern = lGoalIterator.next();
-      
+
       System.out.println("Processing test goal #" + lIndex + " of " + lNumberOfTestGoals + " test goals.");
-      
+
       Goal lGoal = new Goal(lGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
       GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(lGoal.getAutomaton());
-      
+
       boolean lIsCovered = false;
-      
+
       for (TestCase lTestCase : pTestSuite) {
         if (!lTestCase.isPrecise()) {
           throw new RuntimeException();
         }
-        
+
         CFAEdge[] lCFAPath = mPathCache.get(lTestCase);
-        
+
         boolean lIsPrecise = true;
-        
+
         if (lCFAPath == null) {
           try {
             lCFAPath = reconstructPath(lTestCase, mWrapper.getEntry(), lIdStarCPA, null, mWrapper.getOmegaEdge().getSuccessor());
@@ -219,29 +219,29 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
           } catch (ImpreciseExecutionException e) {
             lIsPrecise = false;
             lTestCase = e.getTestCase();
-            
+
             if (pPedantic) {
               throw new RuntimeException(e);
             }
           }
-          
+
           if (lIsPrecise) {
             mPathCache.put(lTestCase, lCFAPath);
           }
         }
-        
-        ThreeValuedAnswer lCoverageAnswer = FShell3.accepts(lGoal.getAutomaton(), lCFAPath); 
-        
+
+        ThreeValuedAnswer lCoverageAnswer = FShell3.accepts(lGoal.getAutomaton(), lCFAPath);
+
         if (lCoverageAnswer.equals(ThreeValuedAnswer.ACCEPT)) {
           lIsCovered = true;
-          
+
           break;
         }
         else if (lCoverageAnswer.equals(ThreeValuedAnswer.UNKNOWN)) {
           try {
             if (checkCoverage(lTestCase, mWrapper.getEntry(), lAutomatonCPA, lPassingCPA, mWrapper.getOmegaEdge().getSuccessor())) {
               lIsCovered = true;
-              
+
               break;
             }
           } catch (InvalidConfigurationException e) {
@@ -259,50 +259,50 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
           }
         }
       }
-      
+
       if (lIsCovered) {
         System.out.println("COVERED");
-        
+
         lNumberOfCoveredTestGoals++;
       }
     }
-    
+
     System.out.println("Coverage: " + ((double)lNumberOfCoveredTestGoals)/((double)lIndex));
   }
-  
+
   private boolean checkCoverage(TestCase pTestCase, CFAFunctionDefinitionNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
     lComponentAnalyses.add(mLocationCPA);
-    
+
     List<ConfigurableProgramAnalysis> lAutomatonCPAs = new ArrayList<ConfigurableProgramAnalysis>(2);
-    
+
     // test goal automata CPAs
     if (pPassingAutomatonCPA != null) {
       lAutomatonCPAs.add(pPassingAutomatonCPA);
     }
-    
+
     lAutomatonCPAs.add(pCoverAutomatonCPA);
 
     int lProductAutomatonCPAIndex = lComponentAnalyses.size();
     lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs, false));
-    
+
     // call stack CPA
     lComponentAnalyses.add(mCallStackCPA);
-    
+
     // explicit CPA
     InterpreterCPA lInterpreterCPA = new InterpreterCPA(pTestCase.getInputs());
     lComponentAnalyses.add(lInterpreterCPA);
-        
+
     // assume CPA
     lComponentAnalyses.add(mAssumeCPA);
-    
-    
+
+
     CPAFactory lCPAFactory = CompositeCPA.factory();
     lCPAFactory.setChildren(lComponentAnalyses);
     lCPAFactory.setConfiguration(mConfiguration);
     lCPAFactory.setLogger(mLogManager);
     ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
-    
+
     CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, mLogManager);
 
     AbstractElement lInitialElement = lCPA.getInitialElement(pEntry);
@@ -319,10 +319,10 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
       // TODO Auto-generated catch block
       throw new RuntimeException(e);
     }
-    
+
     // TODO sanity check by assertion
     CompositeElement lEndNode = (CompositeElement)lReachedSet.getLastElement();
-    
+
     if (lEndNode == null) {
       return false;
     }
@@ -331,57 +331,57 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
         // location of last element is at end node
 
         AbstractElement lProductAutomatonElement = lEndNode.get(lProductAutomatonCPAIndex);
-        
+
         if (lProductAutomatonElement instanceof Targetable) {
           Targetable lTargetable = (Targetable)lProductAutomatonElement;
-          
+
           return lTargetable.isTarget();
         }
-        
+
         return false;
       }
-      
+
       return false;
     }
   }
-  
+
   private CFAEdge[] reconstructPath(TestCase pTestCase, CFAFunctionDefinitionNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
     lComponentAnalyses.add(mLocationCPA);
-    
+
     List<ConfigurableProgramAnalysis> lAutomatonCPAs = new ArrayList<ConfigurableProgramAnalysis>(2);
-    
+
     // test goal automata CPAs
     if (pPassingAutomatonCPA != null) {
       lAutomatonCPAs.add(pPassingAutomatonCPA);
     }
-    
+
     lAutomatonCPAs.add(pCoverAutomatonCPA);
-    
+
     int lProductAutomatonCPAIndex = lComponentAnalyses.size();
     lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs, false));
-    
+
     // call stack CPA
     lComponentAnalyses.add(mCallStackCPA);
-    
+
     // explicit CPA
     InterpreterCPA lInterpreterCPA = new InterpreterCPA(pTestCase.getInputs());
     lComponentAnalyses.add(lInterpreterCPA);
-    
+
     // CFA path CPA
     int lCFAPathCPAIndex = lComponentAnalyses.size();
     lComponentAnalyses.add(mCFAPathCPA);
-    
+
     // assume CPA
     lComponentAnalyses.add(mAssumeCPA);
-    
-    
+
+
     CPAFactory lCPAFactory = CompositeCPA.factory();
     lCPAFactory.setChildren(lComponentAnalyses);
     lCPAFactory.setConfiguration(mConfiguration);
     lCPAFactory.setLogger(mLogManager);
     ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
-    
+
     CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, mLogManager);
 
     AbstractElement lInitialElement = lCPA.getInitialElement(pEntry);
@@ -398,32 +398,32 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
       // TODO Auto-generated catch block
       throw new RuntimeException(e);
     }
-    
+
     // TODO sanity check by assertion
     CompositeElement lEndNode = (CompositeElement)lReachedSet.getLastElement();
-    
+
     if (lEndNode == null) {
       throw new ImpreciseExecutionException(pTestCase, pCoverAutomatonCPA, pPassingAutomatonCPA);
     }
-    
+
     if (!((LocationElement)lEndNode.get(0)).getLocationNode().equals(pEndNode)) {
       throw new ImpreciseExecutionException(pTestCase, pCoverAutomatonCPA, pPassingAutomatonCPA);
     }
-    
+
     AbstractElement lProductAutomatonElement = lEndNode.get(lProductAutomatonCPAIndex);
-    
+
     if (!(lProductAutomatonElement instanceof Targetable)) {
       throw new RuntimeException();
     }
-    
+
     Targetable lTargetable = (Targetable)lProductAutomatonElement;
-    
+
     if (!lTargetable.isTarget()) {
       throw new RuntimeException();
     }
-    
+
     CFAPathStandardElement lPathElement = (CFAPathStandardElement)lEndNode.get(lCFAPathCPAIndex);
-    
+
     return lPathElement.toArray();
   }
 }

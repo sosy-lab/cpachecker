@@ -35,16 +35,16 @@ public class CDAudio1_BB_Test extends ExperimentalSeries {
   @Test
   public void test001() throws Exception {
     String lCFile = "cdaudio_simpl1_BUG.cil.c";
-    
+
     LinkedList<String> lArguments = new LinkedList<String>();
-    
+
     lArguments.add(Main.BASIC_BLOCK_COVERAGE);
     lArguments.add("test/programs/fql/ntdrivers-simplified/" + lCFile);
     lArguments.add("main");
-    
+
     String[] lArgs = new String[lArguments.size()];
     lArguments.toArray(lArgs);
-    
+
     RestartingFShell3.main(lArgs);
   }
 

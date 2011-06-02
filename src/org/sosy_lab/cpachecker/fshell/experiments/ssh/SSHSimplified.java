@@ -31,329 +31,329 @@ import org.sosy_lab.cpachecker.fshell.Main;
 import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 
 public class SSHSimplified extends ExperimentalSeries {
-  
+
   @Test
   public void ssh_001() throws Exception {
     String lCFile = "s3_clnt_1_BUG.2.cil.c";
-    
+
     String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
                                         "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void ssh_002() throws Exception {
     String lCFile = "s3_clnt_1.cil.c";
-    
+
     String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
                                         "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void ssh_003() throws Exception {
     String lCFile = "s3_clnt_2_BUG.cil.c";
-    
+
     String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
                                         "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void ssh_004() throws Exception {
     String lCFile = "s3_clnt_2.cil.c";
-    
+
     String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
                                         "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void ssh_005() throws Exception {
     String lCFile = "s3_clnt_3_BUG.cil.c";
-    
+
     String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
                                         "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void ssh_006() throws Exception {
     String lCFile = "s3_clnt_3.cil_org.c";
-    
+
     String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
                                         "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void ssh_007() throws Exception {
     String lCFile = "s3_clnt_3.cil.c";
-    
+
     String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
                                         "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void ssh_008() throws Exception {
     String lCFile = "s3_clnt_4_BUG.cil.c";
-    
+
     String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
                                         "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void ssh_009() throws Exception {
     String lCFile = "s3_clnt_4.cil.c";
-    
+
     String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
                                         "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void ssh_010() throws Exception {
     String lCFile = "s3_srvr_1_BUG.cil.c";
-    
+
     String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
                                         "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void ssh_011() throws Exception {
     String lCFile = "s3_srvr_1.cil.c";
-    
+
     String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
                                         "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void ssh_012() throws Exception {
     String lCFile = "s3_srvr_2_BUG.cil.c";
-    
+
     String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
                                         "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void ssh_013() throws Exception {
     String lCFile = "s3_srvr_2.cil.c";
-    
+
     String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
                                         "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void ssh_014() throws Exception {
     String lCFile = "s3_srvr_3.cil.c";
-    
+
     String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
                                         "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void ssh_015() throws Exception {
     String lCFile = "s3_srvr_4.cil.c";
-    
+
     String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
                                         "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void ssh_016() throws Exception {
     String lCFile = "s3_srvr_6.cil.c";
-    
+
     String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
                                         "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void ssh_017() throws Exception {
     String lCFile = "s3_srvr_7.cil.c";
-    
+
     String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
                                         "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void ssh_018() throws Exception {
     String lCFile = "s3_srvr_8.cil.c";
-    
+
     String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
                                         "test/programs/fql/ssh-simplified/" + lCFile,
                                         "main",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
 }

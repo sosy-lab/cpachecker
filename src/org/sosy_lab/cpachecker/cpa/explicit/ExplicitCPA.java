@@ -59,13 +59,13 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
   @Option(name="stop", toUppercase=true, values={"SEP", "JOIN", "NEVER"},
       description="which stop operator to use for ExplicitCPA")
   private String stopType = "SEP";
-  
+
   @Option(name="variableBlacklist",
       description="blacklist regex for variables that won't be tracked by ExplicitCPA")
   private String variableBlacklist = "";
-  
+
   private ExplicitPrecision precision;
-  
+
   private AbstractDomain abstractDomain;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
@@ -74,7 +74,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
 
   private ExplicitCPA(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
-    
+
     precision = new ExplicitPrecision(variableBlacklist);
 
     ExplicitDomain explicitDomain = new ExplicitDomain ();
@@ -86,7 +86,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
     }
 
     StopOperator explicitStopOp = null;
-    
+
     if(stopType.equals("SEP")){
       explicitStopOp = new StopSepOperator(explicitDomain);
     }

@@ -62,9 +62,9 @@ public class BDDRegionManager implements RegionManager {
   }
 
   private static RegionManager instance = new BDDRegionManager();
-  
+
   public static RegionManager getInstance() { return instance; }
-  
+
   @Override
   public boolean entails(Region pF1, Region pF2) {
       // check entailment using BDDs: create the BDD representing
@@ -84,7 +84,7 @@ public class BDDRegionManager implements RegionManager {
   public boolean isTrue(Region f) {
     return ((BDDRegion)f).getBDD().isOne();
   }
-  
+
   @Override
   public Region makeTrue() {
     return trueFormula;
@@ -134,21 +134,21 @@ public class BDDRegionManager implements RegionManager {
     BDDRegion fElse = new BDDRegion(f.low());
 
     return new Triple<Region, Region, Region>(predicate, fThen, fElse);
-  }  
-  
+  }
+
   @Override
   public Region makeExists(Region pF1, Region pF2) {
     BDD f1 = ((BDDRegion)pF1).getBDD();
     BDD f2 = ((BDDRegion)pF2).getBDD();
-    
+
     return new BDDRegion(f1.exist(f2));
   }
-  
+
   @Override
   public boolean equalRegions(Region r1, Region r2) {
     BDDRegion f1 = (BDDRegion)r1;
     BDDRegion f2 = (BDDRegion)r2;
 
-    return f1.getBDD().equals(f2.getBDD()); 
+    return f1.getBDD().equals(f2.getBDD());
   }
 }

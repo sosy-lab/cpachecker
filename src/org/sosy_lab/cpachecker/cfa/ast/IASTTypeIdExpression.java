@@ -43,24 +43,24 @@ public final class IASTTypeIdExpression extends IASTExpression {
   public IASTTypeId getTypeId() {
     return type;
   }
-  
+
   @Override
   public <R, X extends Exception> R accept(ExpressionVisitor<R, X> v) throws X {
     return v.visit(this);
   }
-  
+
   @Override
   public <R, X extends Exception> R accept(RightHandSideVisitor<R, X> v) throws X {
     return v.visit(this);
   }
-  
+
   public enum TypeIdOperator {
     SIZEOF,
     TYPEID,
     ALIGNOF,
     TYPEOF,
     ;
-    
+
     /**
      * Returns the string representation of this operator
      */

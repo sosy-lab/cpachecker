@@ -27,32 +27,32 @@ public class ABMPredicateReducer implements Reducer {
 
   static final Timer reduceTimer = new Timer();
   static final Timer expandTimer = new Timer();
-    
+
   private final RegionManager rmgr;
   private final FormulaManager fmgr;
   private final PredicateRefinementManager<?, ?> pmgr;
   private final RelevantPredicatesComputer relevantComputer;
-  
+
   public ABMPredicateReducer(ABMPredicateCPA cpa) {
     this.rmgr = cpa.getRegionManager();
     this.fmgr = cpa.getFormulaManager();
     this.pmgr = cpa.getPredicateManager();
     this.relevantComputer = cpa.getRelevantPredicatesComputer();
-  } 
-  
+  }
+
   @Override
   public AbstractElement getVariableReducedElement(
       AbstractElement pExpandedElement, Block pContext,
       CFANode pLocation) {
-    
+
     PredicateAbstractElement predicateElement = (PredicateAbstractElement)pExpandedElement;
-    
+
     if (!(predicateElement instanceof PredicateAbstractElement.AbstractionElement)) {
       return predicateElement;
-    }    
-    
+    }
+
     reduceTimer.start();
-    try {  
+    try {
       AbstractionFormula abstractionFormula =
           predicateElement.getAbstractionFormula();
 
@@ -92,14 +92,14 @@ public class ABMPredicateReducer implements Reducer {
   public AbstractElement getVariableExpandedElement(
       AbstractElement pRootElement, Block pRootContext,
       AbstractElement pReducedElement) {
-    
+
     PredicateAbstractElement rootElement = (PredicateAbstractElement)pRootElement;
     PredicateAbstractElement reducedElement = (PredicateAbstractElement)pReducedElement;
 
     if (!(reducedElement instanceof PredicateAbstractElement.AbstractionElement)) { return reducedElement; }
-    //Note: FCCP might introduce some additional abstraction if root region is not a cube 
+    //Note: FCCP might introduce some additional abstraction if root region is not a cube
     expandTimer.start();
-    try {      
+    try {
 
       AbstractionFormula rootElementAbstractionFormula =
           rootElement.getAbstractionFormula();
@@ -118,7 +118,7 @@ public class ABMPredicateReducer implements Reducer {
         removedInformationRegion = rmgr.makeExists(removedInformationRegion,
                                                    predicate.getAbstractVariable());
       }
-  
+
       //System.out.println("Removed information region: " + removedInformationRegion);
 
       Region expandedRegion = rmgr.makeAnd(reducedRegion, removedInformationRegion);
@@ -147,7 +147,7 @@ public class ABMPredicateReducer implements Reducer {
 
       AbstractionFormula newAbstractionFormula =
           new AbstractionFormula(expandedRegion, newFormula, blockFormula);
-      
+
       return new PredicateAbstractElement.AbstractionElement(pathFormula,
           newAbstractionFormula);
     } finally {
@@ -161,16 +161,16 @@ public class ABMPredicateReducer implements Reducer {
 
     PredicateAbstractElement reducedTargetElement = (PredicateAbstractElement)pReducedTargetElement;
     PredicateAbstractElement candidateElement = (PredicateAbstractElement)pCandidateElement;
-    
+
     return candidateElement.getAbstractionFormula().asRegion().equals(reducedTargetElement.getAbstractionFormula().asRegion());
   }
 
   @Override
   public Object getHashCodeForElement(AbstractElement pElementKey, Precision pPrecisionKey) {
-    
+
     PredicateAbstractElement element = (PredicateAbstractElement)pElementKey;
     PredicatePrecision precision = (PredicatePrecision)pPrecisionKey;
-    
+
     return Pair.of(element.getAbstractionFormula().asRegion(), precision);
   }
 
@@ -178,17 +178,17 @@ public class ABMPredicateReducer implements Reducer {
   public Precision getVariableReducedPrecision(Precision pPrecision,
       Block pContext) {
     PredicatePrecision precision = (PredicatePrecision)pPrecision;
-        
+
     Collection<AbstractionPredicate> globalPredicates = relevantComputer.getRelevantPredicates(pContext, precision.getGlobalPredicates());
-        
+
     ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
     for(CFANode node : precision.getPredicateMap().keySet()) {
       if(pContext.getNodes().contains(node)) {
-        Collection<AbstractionPredicate> set = relevantComputer.getRelevantPredicates(pContext, precision.getPredicates(node)); 
+        Collection<AbstractionPredicate> set = relevantComputer.getRelevantPredicates(pContext, precision.getPredicates(node));
         pmapBuilder.putAll(node, set);
       }
     }
-    
+
     return new PredicatePrecision(pmapBuilder.build(), globalPredicates);
   }
 }

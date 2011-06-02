@@ -6,23 +6,23 @@ import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeu
 public class PathLengthHeuristicsData implements StopHeuristicsData{
 
   private static long threshold = -1;
-  
+
   private final int noOfNodes;
-  
+
   public PathLengthHeuristicsData(int noOfNodes){
     this.noOfNodes = noOfNodes;
   }
-  
+
   public PathLengthHeuristicsData()
   {
     noOfNodes = 0;
   }
-  
+
   public PathLengthHeuristicsData updateForEdge(StopHeuristicsData pData, int pThreshold){
-    
+
     int newValue = (((PathLengthHeuristicsData)pData).noOfNodes);
     newValue++;
-    
+
     if ((pThreshold > 0) && (newValue > pThreshold)){
       setThreshold(pThreshold);
       return BOTTOM;
@@ -31,7 +31,7 @@ public class PathLengthHeuristicsData implements StopHeuristicsData{
       return new PathLengthHeuristicsData(newValue);
     }
   }
-  
+
   public static final PathLengthHeuristicsData TOP = new PathLengthHeuristicsData() {
     @Override
     public boolean isTop() { return true; }
@@ -49,7 +49,7 @@ public class PathLengthHeuristicsData implements StopHeuristicsData{
     @Override
     public String toString() { return "BOTTOM"; }
   };
-  
+
   public void setThreshold(long newThreshold)
   {
     threshold = newThreshold;
@@ -85,5 +85,5 @@ public class PathLengthHeuristicsData implements StopHeuristicsData{
   public boolean shouldTerminateAnalysis() {
     return false;
   }
-  
+
 }

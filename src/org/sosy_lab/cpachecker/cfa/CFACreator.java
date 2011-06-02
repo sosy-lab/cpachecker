@@ -57,7 +57,7 @@ import com.google.common.collect.SortedSetMultimap;
 
 /**
  * Class that encapsulates the whole CFA creation process.
- * 
+ *
  * It is not thread-safe, but it may be re-used.
  * The get* methods return the result of the last call to {@link #parseFileAndCreateCFA(String)}
  * until this method is called again.
@@ -87,8 +87,8 @@ public class CFACreator {
 
   @Option(name="cfa.exportPerFunction",
       description="export individual CFAs for function as .dot files")
-  private boolean exportCfaPerFunction = true;  
-  
+  private boolean exportCfaPerFunction = true;
+
   @Option(name="cfa.file", type=Option.Type.OUTPUT_FILE,
       description="export CFA as .dot file")
   private File exportCfaFile = new File("cfa.dot");
@@ -96,10 +96,10 @@ public class CFACreator {
   private final LogManager logger;
   private final CParser parser;
   private final CFAReduction cfaReduction;
-  
+
   private Map<String, CFAFunctionDefinitionNode> functions;
   private CFAFunctionDefinitionNode mainFunction;
-  
+
   public static ImmutableMultimap<String, Loop> loops = null;
 
   public final Timer parserInstantiationTime = new Timer();
@@ -110,29 +110,29 @@ public class CFACreator {
   public final Timer processingTime = new Timer();
   public final Timer pruningTime = new Timer();
   public final Timer exportTime = new Timer();
-  
+
   public CFACreator(Dialect dialect, Configuration config, LogManager logger)
           throws InvalidConfigurationException {
     config.inject(this);
-    
+
     this.logger = logger;
-    
+
     parserInstantiationTime.start();
     parser = CParser.Factory.getParser(logger, dialect);
     parsingTime = parser.getParseTime();
     conversionTime = parser.getCFAConstructionTime();
-    
+
     if (removeIrrelevantForErrorLocations) {
       cfaReduction = new CFAReduction(config, logger);
     } else {
       cfaReduction = null;
     }
-    
+
     parserInstantiationTime.stop();
   }
 
   /**
-   * Return an immutable map with all function CFAs that are the result of 
+   * Return an immutable map with all function CFAs that are the result of
    * the last call to  {@link #parseFileAndCreateCFA(String)}.
    * @throws IllegalStateException If called before parsing at least once.
    */
@@ -140,9 +140,9 @@ public class CFACreator {
     Preconditions.checkState(functions != null);
     return functions;
   }
-  
+
   /**
-   * Return the entry node of the CFA that is the result of 
+   * Return the entry node of the CFA that is the result of
    * the last call to  {@link #parseFileAndCreateCFA(String)}.
    * @throws IllegalStateException If called before parsing at least once.
    */
@@ -150,51 +150,51 @@ public class CFACreator {
     Preconditions.checkState(mainFunction != null);
     return mainFunction;
   }
-  
+
   /**
    * Parse a file and create a CFA, including all post-processing etc.
-   * 
+   *
    * @param filename  The file to parse.
-   * @throws InvalidConfigurationException If the main function that was specified in the configuration is not found. 
+   * @throws InvalidConfigurationException If the main function that was specified in the configuration is not found.
    * @throws IOException If an I/O error occurs.
    * @throws ParserException If the parser or the CFA builder cannot handle the C code.
-   * @throws InterruptedException 
+   * @throws InterruptedException
    */
   public void parseFileAndCreateCFA(String filename)
           throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
     totalTime.start();
     try {
-    
+
       logger.log(Level.FINE, "Starting parsing of file");
       CFA c = parser.parseFile(filename);
       logger.log(Level.FINE, "Parser Finished");
-      
+
       final Map<String, CFAFunctionDefinitionNode> cfas = c.getFunctions();
       final SortedSetMultimap<String, CFANode> cfaNodes = c.getCFANodes();
       final CFAFunctionDefinitionNode mainFunction = cfas.get(mainFunctionName);
-      
+
       if (mainFunction == null) {
         throw new InvalidConfigurationException("Function " + mainFunctionName + " not found!");
       }
-  
+
       checkTime.start();
       assert cfas.keySet().equals(cfaNodes.keySet());
-  
+
       // check the CFA of each function
       for (CFAFunctionDefinitionNode cfa : cfas.values()) {
         assert CFACheck.check(cfa, cfaNodes.get(cfa.getFunctionName()));
       }
       checkTime.stop();
-      
+
       processingTime.start();
-      
+
       // annotate CFA nodes with topological information for later use
       for(CFAFunctionDefinitionNode cfa : cfas.values()){
         CFATopologicalSort topSort = new CFATopologicalSort();
         topSort.topologicalSort(cfa);
       }
-      
+
       // get loop information
       try {
         ImmutableMultimap.Builder<String, Loop> loops = ImmutableMultimap.builder();
@@ -207,57 +207,57 @@ public class CFACreator {
         // don't abort here, because if the analysis doesn't need the loop information, we can continue
         logger.log(Level.WARNING, e.getMessage());
       }
-    
+
       // Insert call and return edges and build the supergraph
       if (interprocedural) {
         logger.log(Level.FINE, "Analysis is interprocedural, adding super edges");
-    
+
         CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfas);
         Set<String> calledFunctions = spbuilder.insertCallEdgesRecursively(mainFunctionName);
-    
+
         // remove all functions which are never reached from cfas
         cfas.keySet().retainAll(calledFunctions);
       }
-    
+
       if (useGlobalVars){
         // add global variables at the beginning of main
         insertGlobalDeclarations(mainFunction, c.getGlobalDeclarations(), logger);
       }
-      
+
       processingTime.stop();
-  
+
       // remove irrelevant locations
       if (cfaReduction != null) {
         pruningTime.start();
         cfaReduction.removeIrrelevantForErrorLocations(mainFunction);
         pruningTime.stop();
-    
+
         if (mainFunction.getNumLeavingEdges() == 0) {
           logger.log(Level.INFO, "No error locations reachable from " + mainFunction.getFunctionName()
                 + ", analysis not necessary. "
                 + "If the code contains no error location named ERROR, set the option cfa.removeIrrelevantForErrorLocations to false.");
-          
+
           this.functions = ImmutableMap.of();
           this.mainFunction = null;
           return;
         }
       }
-    
+
       // check the super CFA starting at the main function
       checkTime.start();
       assert CFACheck.check(mainFunction, null);
       checkTime.stop();
-   
+
       if ((exportCfaFile != null) && (exportCfa || exportCfaPerFunction)) {
         exportTime.start();
-     
+
         // execute asynchronously, this may take several seconds for large programs on slow disks
         new Thread(new Runnable() {
           @Override
           public void run() {
             // running the following in parallel is thread-safe
             // because we don't modify the CFA from this point on
-            
+
             // write CFA to file
             if (exportCfa) {
               try {
@@ -270,13 +270,13 @@ public class CFACreator {
                 // continue with analysis
               }
             }
-            
+
             // write the CFA to files (one file per function + some metainfo)
             if (exportCfaPerFunction) {
               try {
-                File outdir = exportCfaFile.getParentFile();        
+                File outdir = exportCfaFile.getParentFile();
                 DOTBuilder2.writeReport(mainFunction, outdir);
-              } catch (IOException e) {        
+              } catch (IOException e) {
                 logger.log(Level.WARNING,
                   "Could not write CFA to dot and json files, check configuration option cfa.file! (",
                   e.getMessage() + ")");
@@ -285,15 +285,15 @@ public class CFACreator {
             }
           }
         }).start();
-        
+
         exportTime.stop();
       }
-  
+
       logger.log(Level.FINE, "DONE, CFA for", cfas.size(), "functions created");
-      
+
       this.functions = ImmutableMap.copyOf(cfas);
       this.mainFunction = mainFunction;
-    
+
     } finally {
       totalTime.stop();
     }
@@ -316,7 +316,7 @@ public class CFACreator {
 
     cfa.removeLeavingEdge(firstEdge);
     secondNode.removeEnteringEdge(firstEdge);
-    
+
     // insert one node to start the series of declarations
     CFANode cur = new CFANode(0, cfa.getFunctionName());
     BlankEdge be = new BlankEdge("INIT GLOBAL VARS", 0, cfa, cur);
@@ -325,7 +325,7 @@ public class CFACreator {
     // create a series of GlobalDeclarationEdges, one for each declaration
     for (IASTDeclaration d : globalVars) {
       assert d.isGlobal();
-      
+
       CFANode n = new CFANode(d.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
       GlobalDeclarationEdge e = new GlobalDeclarationEdge(d,
           d.getFileLocation().getStartingLineNumber(), cur, n);
@@ -337,7 +337,7 @@ public class CFACreator {
     be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode);
     addToCFA(be);
   }
-  
+
   private static void addToCFA(CFAEdge edge) {
     edge.getPredecessor().addLeavingEdge(edge);
     edge.getSuccessor().addEnteringEdge(edge);

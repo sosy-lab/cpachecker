@@ -38,20 +38,20 @@ public class InvariantsCPA extends AbstractCPA {
 
   @Options(prefix="cpa.invariants")
   public static class InvariantsOptions {
-    
+
     @Option(values={"JOIN", "SEP"}, toUppercase=true,
         description="which merge operator to use for InvariantCPA")
     private String merge = "JOIN";
   }
-  
+
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(InvariantsCPA.class).withOptions(InvariantsOptions.class);
   }
-  
+
   public InvariantsCPA(InvariantsOptions options) {
     super(options.merge, "sep", InvariantsDomain.INSTANCE, InvariantsTransferRelation.INSTANCE);
   }
-  
+
   @Override
   public AbstractElement getInitialElement(CFANode pNode) {
     return new InvariantsElement();

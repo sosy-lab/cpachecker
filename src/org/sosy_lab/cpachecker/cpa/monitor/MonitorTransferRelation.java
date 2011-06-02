@@ -55,7 +55,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 @Options(prefix="cpa.monitor")
 public class MonitorTransferRelation implements TransferRelation {
-  
+
   long maxTotalTimeForPath = 0;
   final Timer totalTimeOfTransfer = new Timer();
 
@@ -66,15 +66,15 @@ public class MonitorTransferRelation implements TransferRelation {
   private long timeLimitForPath = 0;
 
   private final TransferRelation transferRelation;
-  
-  private final ExecutorService executor; 
+
+  private final ExecutorService executor;
 
   public MonitorTransferRelation(ConfigurableProgramAnalysis pWrappedCPA,
       Configuration config) throws InvalidConfigurationException {
     config.inject(this);
 
     transferRelation = pWrappedCPA.getTransferRelation();
-    
+
     if (timeLimit == 0) {
       executor = null;
     } else {
@@ -93,7 +93,7 @@ public class MonitorTransferRelation implements TransferRelation {
       // cannot compute a successor
       return Collections.emptySet();
     }
-    
+
     totalTimeOfTransfer.start();
 
     TransferCallable tc = new TransferCallable() {
@@ -186,7 +186,7 @@ public class MonitorTransferRelation implements TransferRelation {
     };
 
     Pair<PreventingHeuristicType, Long> preventingCondition = null;
-    
+
     Collection<? extends AbstractElement> successors;
     if (timeLimit == 0) {
       successors = sc.call();
@@ -201,7 +201,7 @@ public class MonitorTransferRelation implements TransferRelation {
 
         // add dummy successor
         successors = Collections.singleton(TimeoutElement.INSTANCE);
-                
+
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         // TODO handle InterruptedException better
@@ -230,7 +230,7 @@ public class MonitorTransferRelation implements TransferRelation {
       // wrapped strengthen didn't do anything, but we need to update totalTimeOnPath
       successors = Collections.singleton(element.getWrappedElement());
     }
-    
+
     // return if there are no successors
     if (successors.isEmpty()) {
       return Collections.emptySet();

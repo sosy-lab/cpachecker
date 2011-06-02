@@ -178,7 +178,7 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
       long val = constantsMap.get(key);
       int refCount = noOfReferences.get(key);
       s = s  + " <" +key + " = " + val +
-      " :: " + refCount + 
+      " :: " + refCount +
       "> ";
     }
     return s + "] size->  " + constantsMap.size();
@@ -247,7 +247,7 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
     // either "deletevalues(methodname::varname)" or "setvalue(methodname::varname:=1929)"
     String[] statements = pModification.split(";");
     for (int i = 0; i < statements.length; i++) {
-      String statement = statements[i].trim().toLowerCase(); 
+      String statement = statements[i].trim().toLowerCase();
       if (statement.startsWith("deletevalues(")) {
         if (!statement.endsWith(")")) throw new InvalidQueryException(statement +" should end with \")\"");
         String varName = statement.substring("deletevalues(".length(), statement.length()-1);
@@ -292,7 +292,7 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
       Formula val = manager.makeNumber(entry.getValue().toString());
       formula = manager.makeAnd(formula, manager.makeEqual(var, val));
     }
-    
+
     return formula;
   }
 }

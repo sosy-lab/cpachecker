@@ -17,28 +17,28 @@ import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.ecp.translators.GuardedEdgeLabel;
 
 public class ProgressCPA implements ConfigurableProgramAnalysis {
-  
+
   private final GuardedEdgeAutomatonDomain mDomain;
   private final GuardedEdgeAutomatonStandardElement mInitialElement;
   private final StopSepOperator mStopOperator;
   private final ProgressTransferRelation mTransferRelation;
   private final ProgressPrecisionAdjustment mPrecisionAdjustment;
   private final ProgressPrecision mInitialPrecision;
-  
+
   public ProgressCPA(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
     mDomain = GuardedEdgeAutomatonDomain.getInstance();
     mStopOperator = new StopSepOperator(mDomain);
     mTransferRelation = new ProgressTransferRelation(mDomain, pAutomaton);
-    
+
     NondeterministicFiniteAutomaton.State lInitialState = pAutomaton.getInitialState();
     boolean lIsFinal = pAutomaton.getFinalStates().contains(lInitialState);
     mInitialElement = new GuardedEdgeAutomatonStandardElement(lInitialState, lIsFinal);
-    
+
     mInitialPrecision = new ProgressPrecision(pAutomaton);
-    
+
     mPrecisionAdjustment = new ProgressPrecisionAdjustment();
   }
-  
+
   @Override
   public AbstractDomain getAbstractDomain() {
     return mDomain;

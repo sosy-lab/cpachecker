@@ -83,7 +83,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
     public final Timer cexAnalysisSolverTimer = new Timer();
     public final Timer cexAnalysisGetUsefulBlocksTimer = new Timer();
   }
-  
+
   final Stats refStats;
 
   private final InterpolatingTheoremProver<T1> firstItpProver;
@@ -139,7 +139,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
   @Option(description="skip refinement if input formula is larger than "
     + "this amount of bytes (ignored if 0)")
   private int maxRefinementSize = 0;
-  
+
   private final ExecutorService executor;
 
   public PredicateRefinementManager(
@@ -164,7 +164,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
       // important to use daemon threads here, because we never have the chance to stop the executor
       executor = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setDaemon(true).build());
     }
-    
+
     if (wellScopedPredicates) {
       throw new InvalidConfigurationException("wellScopePredicates are currently disabled");
     }
@@ -183,7 +183,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
    */
   private <T> CounterexampleTraceInfo buildCounterexampleTraceWithSpecifiedItp(
       List<PredicateAbstractElement> pAbstractTrace, InterpolatingTheoremProver<T> pItpProver) throws CPAException, InterruptedException {
-    
+
     refStats.cexAnalysisTimer.start();
 
     logger.log(Level.FINEST, "Building counterexample trace");
@@ -192,14 +192,14 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
 
     if (useBitwiseAxioms) {
       Formula bitwiseAxioms = fmgr.makeTrue();
-  
+
       for (Formula fm : f) {
         Formula a = fmgr.getBitwiseAxioms(fm);
         if (!a.isTrue()) {
-          bitwiseAxioms = fmgr.makeAnd(bitwiseAxioms, a);  
+          bitwiseAxioms = fmgr.makeAnd(bitwiseAxioms, a);
         }
       }
-  
+
       if (!bitwiseAxioms.isTrue()) {
         logger.log(Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE",
             "LAST GROUP: ", bitwiseAxioms);
@@ -223,7 +223,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
         throw new RefinementFailedException(Reason.TooMuchUnrolling, null);
       }
     }
-    
+
     logger.log(Level.FINEST, "Checking feasibility of counterexample trace");
 
     // now f is the DAG formula which is satisfiable iff there is a
@@ -305,7 +305,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
         refStats.cexAnalysisSolverTimer.start();
         Formula itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_a, i+1));
         refStats.cexAnalysisSolverTimer.stop();
-        
+
         if (dumpInterpolationProblems) {
           String dumpFile = String.format(formulaDumpFilePattern,
                   "interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "interpolant", i);
@@ -318,7 +318,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
         } else {
           foundPredicates = true;
           Collection<AbstractionPredicate> preds;
-          
+
           if (itp.isFalse()) {
             preds = ImmutableSet.of(amgr.makeFalsePredicate());
           } else {
@@ -346,7 +346,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
         }
 
         // TODO wellScopedPredicates have been disabled
-        
+
         // TODO the following code relies on the fact that there is always an abstraction on function call and return
 
         // If we are entering or exiting a function, update the stack
@@ -423,7 +423,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
     return info;
 
   }
-  
+
   public void dumpCounterexampleToFile(CounterexampleTraceInfo cex, File file) {
     Formula f = fmgr.makeTrue();
     for (Formula part : cex.getCounterExampleFormulas()) {
@@ -431,31 +431,31 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
     }
     dumpFormulaToFile(f, file);
   }
-  
+
   /**
    * Counterexample analysis and predicate discovery.
    * This method is just an helper to delegate the actual work
    * This is used to detect timeouts for interpolation
    * @throws CPAException
-   * @throws InterruptedException 
+   * @throws InterruptedException
    */
   public CounterexampleTraceInfo buildCounterexampleTrace(
       final List<PredicateAbstractElement> pAbstractTrace) throws CPAException, InterruptedException {
-    
+
     // if we don't want to limit the time given to the solver
     if (itpTimeLimit == 0) {
       return buildCounterexampleTraceWithSpecifiedItp(pAbstractTrace, firstItpProver);
     }
-    
+
     assert executor != null;
-    
+
     // how many times is the problem tried to be solved so far?
     int noOfTries = 0;
-    
+
     while (true) {
       final InterpolatingTheoremProver<?> currentItpProver =
         (noOfTries == 0) ? firstItpProver : secondItpProver;
-      
+
       Callable<CounterexampleTraceInfo> tc = new Callable<CounterexampleTraceInfo>() {
         @Override
         public CounterexampleTraceInfo call() throws CPAException, InterruptedException {
@@ -469,7 +469,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
         // here we get the result of the post computation but there is a time limit
         // given to complete the task specified by timeLimit
         return future.get(itpTimeLimit, TimeUnit.MILLISECONDS);
-        
+
       } catch (TimeoutException e){
         // if first try failed and changeItpSolveOTF enabled try the alternative solver
         if (changeItpSolveOTF && noOfTries == 0) {
@@ -480,11 +480,11 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
           logger.log(Level.SEVERE, "SMT-solver timed out during interpolation process");
           throw new RefinementFailedException(Reason.TIMEOUT, null);
         }
-      
+
       } catch (ExecutionException e) {
         Throwable t = e.getCause();
         Throwables.propagateIfPossible(t, CPAException.class, InterruptedException.class);
-        
+
         logger.logException(Level.SEVERE, t, "Unexpected exception during interpolation!");
         throw new AssertionError(t);
       }
@@ -564,7 +564,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
 
   private List<Formula> getUsefulBlocks(List<Formula> f,
       boolean suffixTrace, boolean zigZag) {
-    
+
     refStats.cexAnalysisGetUsefulBlocksTimer.start();
 
     // try to find a minimal-unsatisfiable-core of the trace (as Blast does)
@@ -689,7 +689,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
     for (Formula atom : atoms) {
       preds.add(amgr.makePredicate(atom));
     }
-    return preds;    
+    return preds;
   }
 
   private NavigableMap<Integer, Map<Integer, Boolean>> getPredicateValuesFromModel(Model model) {
@@ -697,7 +697,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
     NavigableMap<Integer, Map<Integer, Boolean>> preds = Maps.newTreeMap();
     for (AssignableTerm a : model.keySet()) {
       if (a instanceof Variable && a.getType() == TermType.Boolean) {
-        
+
         String name = PREDICATE_NAME_PATTERN.matcher(a.getName()).replaceFirst("");
         if (!name.equals(a.getName())) {
           // pattern matched, so it's a variable with __pc__ in it
@@ -705,17 +705,17 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
           Variable v = (Variable)a;
           // no NumberFormatException because of RegExp match earlier
           Integer edgeId = Integer.parseInt(name);
-          Integer idx = v.getSSAIndex();          
-          
+          Integer idx = v.getSSAIndex();
+
           Map<Integer, Boolean> p = preds.get(idx);
           if (p == null) {
             p = new HashMap<Integer, Boolean>(2);
             preds.put(idx, p);
           }
-          
+
           Boolean value = (Boolean)model.get(a);
           p.put(edgeId, value);
-        }             
+        }
       }
     }
     return preds;

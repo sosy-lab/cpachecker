@@ -55,7 +55,7 @@ class AutomatonInternalTests {
     try {
       File f = new File("test/config/automata/defaultSpecification.spc");
       //File f = new File("test/config/automata/TestAutomaton.txt");
-      
+
       Configuration emptyConfig = Configuration.defaultConfiguration();
       LogManager logger = new LogManager(emptyConfig);
       ComplexSymbolFactory sf1 = new ComplexSymbolFactory();
@@ -66,7 +66,7 @@ class AutomatonInternalTests {
         symb = s.next_token();
       }
       System.out.println(s.next_token());
-      
+
 /*
       SymbolFactory sf = new ComplexSymbolFactory();
       //change back if you have problems:
@@ -82,7 +82,7 @@ class AutomatonInternalTests {
     }
 
     //testExpressionEvaluator();
-    
+
     //testASTcomparison();
 
     testAndOr();

@@ -12,13 +12,13 @@ public class CallstackReducer implements Reducer {
   @Override
   public AbstractElement getVariableReducedElement(
       AbstractElement pExpandedElement, Block pContext, CFANode callNode) {
-    
+
     CallstackElement element = (CallstackElement)pExpandedElement;
-        
+
     return copyCallstackUpToCallNode(element, callNode);
 //    return new CallstackElement(null, element.getCurrentFunction(), location);
   }
-  
+
   private CallstackElement copyCallstackUpToCallNode(CallstackElement element, CFANode callNode) {
     if (element.getCurrentFunction().equals(callNode.getFunctionName())) {
       return new CallstackElement(null, element.getCurrentFunction(), callNode);
@@ -28,21 +28,21 @@ public class CallstackReducer implements Reducer {
       return new CallstackElement(recursiveResult, element.getCurrentFunction(), element.getCallNode());
     }
   }
-  
+
   @Override
   public AbstractElement getVariableExpandedElement(
       AbstractElement pRootElement, Block pRootContext,
       AbstractElement pReducedElement) {
-    
+
     CallstackElement rootElement = (CallstackElement)pRootElement;
     CallstackElement reducedElement = (CallstackElement)pReducedElement;
-    
+
     // the stackframe on top of rootElement and the stackframe on bottom of reducedElement are the same function
     // now glue both stacks together at this element
-    
+
     return copyCallstackExceptLast(rootElement, reducedElement);
   }
-  
+
   private CallstackElement copyCallstackExceptLast(CallstackElement target, CallstackElement source) {
     if (source.getDepth() == 1) {
       assert source.getPreviousElement() == null;
@@ -57,10 +57,10 @@ public class CallstackReducer implements Reducer {
   @Override
   public boolean isEqual(AbstractElement pReducedTargetElement,
       AbstractElement pCandidateElement) {
-    
+
     CallstackElement reducedTargetElement = (CallstackElement)pReducedTargetElement;
     CallstackElement candidateElement = (CallstackElement)pCandidateElement;
-    
+
     return isEqual(reducedTargetElement, candidateElement);
   }
 
@@ -69,7 +69,7 @@ public class CallstackReducer implements Reducer {
     if (reducedTargetElement.getDepth() != candidateElement.getDepth()) {
       return false;
     }
-    
+
     while (reducedTargetElement != null) {
       if ( !reducedTargetElement.getCallNode().equals(candidateElement.getCallNode())
         || !reducedTargetElement.getCurrentFunction().equals(candidateElement.getCurrentFunction())) {
@@ -78,18 +78,18 @@ public class CallstackReducer implements Reducer {
       reducedTargetElement = reducedTargetElement.getPreviousElement();
       candidateElement = candidateElement.getPreviousElement();
     }
-    
+
     return true;
   }
 
   @Override
-  public Object getHashCodeForElement(AbstractElement pElementKey, Precision pPrecisionKey) {    
+  public Object getHashCodeForElement(AbstractElement pElementKey, Precision pPrecisionKey) {
     return new CallstackElementWithEquals((CallstackElement)pElementKey);
   }
 
   private static class CallstackElementWithEquals {
     private final CallstackElement element;
-    
+
     public CallstackElementWithEquals(CallstackElement pElement) {
       element = pElement;
     }
@@ -102,7 +102,7 @@ public class CallstackReducer implements Reducer {
 
       return isEqual(element, ((CallstackElementWithEquals)other).element);
     }
-    
+
     @Override
     public int hashCode() {
       return (element.getDepth() * 17 + element.getCurrentFunction().hashCode()) * 31 + element.getCallNode().hashCode();

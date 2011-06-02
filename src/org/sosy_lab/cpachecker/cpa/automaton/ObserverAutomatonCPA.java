@@ -8,7 +8,7 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.Optional;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 
 public class ObserverAutomatonCPA extends ControlAutomatonCPA {
-  
+
   private ObserverAutomatonCPA(@Optional Automaton pAutomaton, Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     super(pAutomaton, pConfig, pLogger);

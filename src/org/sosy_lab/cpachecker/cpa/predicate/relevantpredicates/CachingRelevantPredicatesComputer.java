@@ -13,12 +13,12 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 
 public class CachingRelevantPredicatesComputer implements RelevantPredicatesComputer {
-  
+
   private final Map<Pair<Block, ImmutableSet<AbstractionPredicate>>, ImmutableSet<AbstractionPredicate>> irrelevantCache = Maps.newHashMap();
   private final Map<Pair<Block, ImmutableSet<AbstractionPredicate>>, ImmutableSet<AbstractionPredicate>> relevantCache = Maps.newHashMap();
-  
+
   private final RelevantPredicatesComputer delegate;
-  
+
   public CachingRelevantPredicatesComputer(RelevantPredicatesComputer pDelegate) {
     delegate = checkNotNull(pDelegate);
   }
@@ -30,19 +30,19 @@ public class CachingRelevantPredicatesComputer implements RelevantPredicatesComp
     if (pPredicates.isEmpty()) {
       return pPredicates;
     }
-    
+
     ImmutableSet<AbstractionPredicate> predicates = ImmutableSet.copyOf(pPredicates);
     Pair<Block, ImmutableSet<AbstractionPredicate>> key = Pair.of(pContext, predicates);
-    
+
     ImmutableSet<AbstractionPredicate> result = irrelevantCache.get(key);
     if (result == null) {
       result = ImmutableSet.copyOf(delegate.getIrrelevantPredicates(pContext, predicates));
       irrelevantCache.put(key, result);
-    } 
-    
+    }
+
     return result;
   }
-  
+
   @Override
   public Collection<AbstractionPredicate> getRelevantPredicates(Block pContext,
       Collection<AbstractionPredicate> pPredicates) {
@@ -50,16 +50,16 @@ public class CachingRelevantPredicatesComputer implements RelevantPredicatesComp
     if (pPredicates.isEmpty()) {
       return pPredicates;
     }
-    
+
     ImmutableSet<AbstractionPredicate> predicates = ImmutableSet.copyOf(pPredicates);
     Pair<Block, ImmutableSet<AbstractionPredicate>> key = Pair.of(pContext, predicates);
-    
+
     ImmutableSet<AbstractionPredicate> result = relevantCache.get(key);
     if (result == null) {
       result = ImmutableSet.copyOf(delegate.getRelevantPredicates(pContext, predicates));
       relevantCache.put(key, result);
-    } 
-    
+    }
+
     return result;
   }
 }

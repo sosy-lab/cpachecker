@@ -14,25 +14,25 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 /*
  * CPA that stores parameter of a prespecified external function.
  * Used for modeling assumptions. PredicateTransferRelation strengthens
- * its abstract element with respect to the given parameter. 
- * 
+ * its abstract element with respect to the given parameter.
+ *
  */
 public class AssumeCPA implements ConfigurableProgramAnalysis {
 
   private AssumeDomain mDomain;
   private StopOperator mStopOperator;
   private AssumeTransferRelation mTransferRelation;
-  
+
   public static AssumeCPA getCBMCAssume() {
     return new AssumeCPA("__CPROVER_assume");
   }
-  
+
   public AssumeCPA(String pAssumeFunctionName) {
     mDomain = new AssumeDomain();
     mStopOperator = new StopSepOperator(mDomain);
     mTransferRelation = new AssumeTransferRelation(pAssumeFunctionName);
   }
-  
+
   @Override
   public AssumeDomain getAbstractDomain() {
     return mDomain;

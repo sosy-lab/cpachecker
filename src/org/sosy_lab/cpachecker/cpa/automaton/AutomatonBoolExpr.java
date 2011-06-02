@@ -47,7 +47,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
   abstract ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs);
 
   public class MatchProgramExit implements AutomatonBoolExpr {
-  
+
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       if (pArgs.getCfaEdge().getSuccessor().getNumLeavingEdges() == 0) {
@@ -56,7 +56,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
         return CONST_FALSE;
       }
     }
-  
+
   }
 
   /**
@@ -105,7 +105,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
   static class MatchCFAEdgeASTComparison implements AutomatonBoolExpr {
 
     private final ASTMatcher patternAST;
-    
+
     public MatchCFAEdgeASTComparison(String pPattern) throws InvalidAutomatonException {
       this.patternAST = AutomatonASTComparator.generatePatternAST(pPattern);
     }
@@ -187,7 +187,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
    */
   public static class ALLCPAQuery implements AutomatonBoolExpr {
     private final String queryString;
-    
+
     public ALLCPAQuery(String pString) {
       queryString = pString;
     }
@@ -209,7 +209,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
               Object result = aqe.evaluateProperty(modifiedQueryString);
               if (result instanceof Boolean) {
                 if (((Boolean)result).booleanValue()) {
-                  String message = "CPA-Check succeeded: ModifiedCheckString: \"" + 
+                  String message = "CPA-Check succeeded: ModifiedCheckString: \"" +
                   modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
                   aqe.toString() + "\"";
                   pArgs.getLogger().log(Level.FINER, message);
@@ -254,13 +254,13 @@ interface AutomatonBoolExpr extends AutomatonExpression {
               Object result = aqe.evaluateProperty(modifiedQueryString);
               if (result instanceof Boolean) {
                 if (((Boolean)result).booleanValue()) {
-                  String message = "CPA-Check succeeded: ModifiedCheckString: \"" + 
+                  String message = "CPA-Check succeeded: ModifiedCheckString: \"" +
                   modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
                   aqe.toString() + "\"";
                   pArgs.getLogger().log(Level.FINER, message);
                   return CONST_TRUE;
                 } else {
-                  String message = "CPA-Check failed: ModifiedCheckString: \"" + 
+                  String message = "CPA-Check failed: ModifiedCheckString: \"" +
                   modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
                   aqe.toString() + "\"";
                   pArgs.getLogger().log(Level.FINER, message);
@@ -269,7 +269,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
               } else {
                 pArgs.getLogger().log(Level.WARNING,
                     "Automaton got a non-Boolean value during Query of the "
-                    + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement() + 
+                    + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement() +
                     ". Assuming FALSE.");
                 return CONST_FALSE;
               }
@@ -284,13 +284,13 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       }
       return new ResultValue<Boolean>("No State of CPA \"" + cpaName + "\" was found!", "AutomatonBoolExpr.CPAQuery");
     }
-    
+
     @Override
     public String toString() {
       return "CHECK(" + cpaName + "(\"" + queryString + "\"))";
     }
   }
-  
+
   /** Constant for true.
    * @author rhein
    */
@@ -334,7 +334,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       this.a = pA;
       this.b = pB;
     }
-    
+
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       ResultValue<Integer> resA = a.eval(pArgs);
@@ -534,10 +534,10 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       ResultValue<Boolean> resA = a.eval(pArgs);
-      if (resA.canNotEvaluate()) 
+      if (resA.canNotEvaluate())
         return resA;
       ResultValue<Boolean> resB = b.eval(pArgs);
-      if (resB.canNotEvaluate()) 
+      if (resB.canNotEvaluate())
         return resB;
       if (resA.getValue().equals(resB.getValue())) {
         return CONST_TRUE;
@@ -570,10 +570,10 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       ResultValue<Boolean> resA = a.eval(pArgs);
-      if (resA.canNotEvaluate()) 
+      if (resA.canNotEvaluate())
         return resA;
       ResultValue<Boolean> resB = b.eval(pArgs);
-      if (resB.canNotEvaluate()) 
+      if (resB.canNotEvaluate())
         return resB;
       if (! resA.getValue().equals(resB.getValue())) {
         return CONST_TRUE;

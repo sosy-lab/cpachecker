@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
 public class PathPatternTranslatorTest {
 
   private Cilly lCilly;
-  
+
   @Before
   public void setup() throws InvalidConfigurationException {
     Configuration config = Configuration.defaultConfiguration();
@@ -71,26 +71,26 @@ public class PathPatternTranslatorTest {
     }
 
     String lEntryFunction = "main";
-    
+
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
     CFAFunctionDefinitionNode lMainFunction = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
-    
+
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
-    
+
     Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lMainFunction);
-    
+
     /** do translation */
     PathPatternTranslator lTranslator = new PathPatternTranslator(lTargetGraph, lBasicBlockEntries);
     ElementaryCoveragePattern lPattern = lTranslator.translate(lSpecification.getPathPattern());
-    
+
     ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
-    
+
     System.out.println(lPrettyPrinter.printPretty(lPattern));
   }
-  
+
   @Test
   public void testMain002() throws Exception {
     /** process FQL query */
@@ -110,7 +110,7 @@ public class PathPatternTranslatorTest {
     }
 
     String lEntryFunction = "main";
-    
+
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -118,18 +118,18 @@ public class PathPatternTranslatorTest {
     CFAFunctionDefinitionNode lMainFunction = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
-    
+
     Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lMainFunction);
-    
+
     /** do translation */
     PathPatternTranslator lTranslator = new PathPatternTranslator(lTargetGraph, lBasicBlockEntries);
     ElementaryCoveragePattern lPattern = lTranslator.translate(lSpecification.getPathPattern());
-    
+
     ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
-    
+
     System.out.println(lPrettyPrinter.printPretty(lPattern));
   }
-  
+
   @Test
   public void testMain003() throws Exception {
     /** process FQL query */
@@ -149,7 +149,7 @@ public class PathPatternTranslatorTest {
     }
 
     String lEntryFunction = "main";
-    
+
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -157,18 +157,18 @@ public class PathPatternTranslatorTest {
     CFAFunctionDefinitionNode lMainFunction = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
-    
+
     Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lMainFunction);
-    
+
     /** do translation */
     PathPatternTranslator lTranslator = new PathPatternTranslator(lTargetGraph, lBasicBlockEntries);
     ElementaryCoveragePattern lPattern = lTranslator.translate(lSpecification.getPathPattern());
-    
+
     ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
-    
+
     System.out.println(lPrettyPrinter.printPretty(lPattern));
   }
-  
+
   @Test
   public void testMain004() throws Exception {
     /** process FQL query */
@@ -188,7 +188,7 @@ public class PathPatternTranslatorTest {
     }
 
     String lEntryFunction = "main";
-    
+
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -196,15 +196,15 @@ public class PathPatternTranslatorTest {
     CFAFunctionDefinitionNode lMainFunction = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
-    
+
     Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lMainFunction);
-    
+
     /** do translation */
     PathPatternTranslator lTranslator = new PathPatternTranslator(lTargetGraph, lBasicBlockEntries);
     ElementaryCoveragePattern lPattern = lTranslator.translate(lSpecification.getPathPattern());
-    
+
     ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
-    
+
     System.out.println(lPrettyPrinter.printPretty(lPattern));
   }
 

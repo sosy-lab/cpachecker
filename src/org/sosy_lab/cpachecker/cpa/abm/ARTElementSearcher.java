@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
  */
 public class ARTElementSearcher {
   final static Timer searchForARTElementTimer = new Timer();
-  
+
   public static ARTElement searchForARTElement(UnmodifiableReachedSet reached, ARTElement targetElement, Reducer reducer, BlockPartitioning manager) {
     CFANode targetNode = targetElement.retrieveLocationElement().getLocationNode();
     searchForARTElementTimer.start();
@@ -32,16 +32,16 @@ public class ARTElementSearcher {
       }
       CFANode callNode = ((ARTElement)reached.getFirstElement()).retrieveLocationElement().getLocationNode();
       Block context = manager.getBlockForCallNode(callNode);
-      AbstractElement reducedTarget = reducer.getVariableReducedElement(targetElement, context, callNode);    
-            
+      AbstractElement reducedTarget = reducer.getVariableReducedElement(targetElement, context, callNode);
+
       Iterable<AbstractElement> localReached = filterLocation(reached, targetNode);
-      
+
       for(AbstractElement element : localReached) {
         if (reducer.isEqual(reducedTarget, element)) {
           return (ARTElement)element;
         }
       }
-      
+
       return null;
     }
     finally {

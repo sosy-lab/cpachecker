@@ -20,37 +20,37 @@ public class UnnecessaryRepetitionRemover implements PathPatternRewriter {
   private static CoverageSpecificationRewriter mRewriter = new PatternRewriter(new UnnecessaryRepetitionRemover());
   private static UnnecessaryRepetitionRemover mRemover = new UnnecessaryRepetitionRemover();
   private static FQLSpecificationRewriter mSpecRewriter = new CompositeFQLSpecificationRewriter(mRewriter, mRemover);
-  
+
   public UnnecessaryRepetitionRemover() {
     mVisitor = new Visitor();
   }
-  
+
   @Override
   public PathPattern rewrite(PathPattern pPattern) {
     return pPattern.accept(mVisitor);
   }
-  
+
   public static FQLSpecificationRewriter getFQLSpecificationRewriter() {
     return mSpecRewriter;
   }
-  
+
   public static CoverageSpecificationRewriter getSpecificationRewriter() {
     return mRewriter;
   }
-  
+
   public static UnnecessaryRepetitionRemover getInstance() {
-    return mRemover; 
+    return mRemover;
   }
-  
+
   private static class Visitor implements PathPatternVisitor<PathPattern> {
     @Override
     public Concatenation visit(Concatenation pConcatenation) {
       PathPattern lFirstSubpattern = pConcatenation.getFirstSubpattern();
       PathPattern lSecondSubpattern = pConcatenation.getSecondSubpattern();
-      
+
       PathPattern lNewFirstSubpattern = lFirstSubpattern.accept(this);
       PathPattern lNewSecondSubpattern = lSecondSubpattern.accept(this);
-      
+
       if (lFirstSubpattern.equals(lNewFirstSubpattern) && lSecondSubpattern.equals(lNewSecondSubpattern)) {
         return pConcatenation;
       }
@@ -62,9 +62,9 @@ public class UnnecessaryRepetitionRemover implements PathPatternRewriter {
     @Override
     public PathPattern visit(Repetition pRepetition) {
       PathPattern lSubpattern = pRepetition.getSubpattern();
-      
+
       PathPattern lNewSubpattern = lSubpattern.accept(this);
-      
+
       if (lNewSubpattern instanceof Repetition) {
         return lNewSubpattern;
       }
@@ -77,10 +77,10 @@ public class UnnecessaryRepetitionRemover implements PathPatternRewriter {
     public Union visit(Union pUnion) {
       PathPattern lFirstSubpattern = pUnion.getFirstSubpattern();
       PathPattern lSecondSubpattern = pUnion.getSecondSubpattern();
-      
+
       PathPattern lNewFirstSubpattern = lFirstSubpattern.accept(this);
       PathPattern lNewSecondSubpattern = lSecondSubpattern.accept(this);
-      
+
       if (lFirstSubpattern.equals(lNewFirstSubpattern) && lSecondSubpattern.equals(lNewSecondSubpattern)) {
         return pUnion;
       }
@@ -110,5 +110,5 @@ public class UnnecessaryRepetitionRemover implements PathPatternRewriter {
     }
 
   }
-      
+
 }

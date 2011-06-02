@@ -39,13 +39,13 @@ public class RefinementFailedException extends CPAException {
     TooMuchUnrolling("Too much unrolling"),
     InfeasibleCounterexample("External tool verified counterexample as infeasible"),
     TIMEOUT("SMT-solver timed out");
-    
+
     private final String humanReableReason;
-    
+
     private Reason(String pHumanReableReason) {
       humanReableReason = pHumanReableReason;
     }
-    
+
     @Override
     public String toString() {
       return humanReableReason;
@@ -85,7 +85,7 @@ public class RefinementFailedException extends CPAException {
   public void setErrorPath(Path pPath) {
     path = pPath;
   }
-  
+
   /**
    * Returns the position of the node in the past where
    * the failure occurred (or -1 if the failure cannot

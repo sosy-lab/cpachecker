@@ -17,9 +17,9 @@ public abstract class AbstractRelevantPredicatesComputer<T> implements RelevantP
   @Override
   public Collection<AbstractionPredicate> getRelevantPredicates(Block context, Collection<AbstractionPredicate> predicates) {
     Collection<AbstractionPredicate> result = new HashSet<AbstractionPredicate>(predicates.size());
-    
+
     T precomputeResult = precompute(context, predicates);
-    
+
     for(AbstractionPredicate predicate : predicates) {
       if (isRelevant0(precomputeResult, predicate)) {
         result.add(predicate);
@@ -27,16 +27,16 @@ public abstract class AbstractRelevantPredicatesComputer<T> implements RelevantP
     }
     return result;
   }
-  
+
   private boolean isRelevant0(T pPrecomputeResult, AbstractionPredicate pPredicate) {
-    
+
     // lookup in cache
     Pair<T, AbstractionPredicate> key = Pair.of(pPrecomputeResult, pPredicate);
     Boolean cacheResult = relevantPredicates.get(key);
     if (cacheResult != null) {
       return cacheResult;
     }
-    
+
     boolean result;
     String predicateString = pPredicate.getSymbolicAtom().toString();
     if (predicateString.contains("false") || predicateString.contains("retval")  || predicateString.contains("nondet")) {
@@ -44,7 +44,7 @@ public abstract class AbstractRelevantPredicatesComputer<T> implements RelevantP
     } else {
       result = isRelevant(pPrecomputeResult, pPredicate);
     }
-    
+
     relevantPredicates.put(key, result);
     return result;
   }
@@ -55,10 +55,10 @@ public abstract class AbstractRelevantPredicatesComputer<T> implements RelevantP
 
   @Override
   public Collection<AbstractionPredicate> getIrrelevantPredicates(Block context, Collection<AbstractionPredicate> predicates) {
-   
+
     Collection<AbstractionPredicate> result = new HashSet<AbstractionPredicate>(predicates);
     result.removeAll(getRelevantPredicates(context, predicates));
-    
+
     return result;
   }
 }

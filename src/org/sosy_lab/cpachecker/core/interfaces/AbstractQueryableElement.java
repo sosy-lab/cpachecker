@@ -43,7 +43,7 @@ public interface AbstractQueryableElement extends AbstractElement {
    * @throws InvalidSyntaxException if the property is not given in the (CPA-specific) syntax
    */
   public boolean checkProperty(String property) throws InvalidQueryException;
-  
+
   public Object evaluateProperty(String property) throws InvalidQueryException;
 
   /**

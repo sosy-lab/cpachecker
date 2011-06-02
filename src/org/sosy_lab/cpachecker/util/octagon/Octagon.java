@@ -24,22 +24,22 @@
 package org.sosy_lab.cpachecker.util.octagon;
 
 public class Octagon {
-  
+
   private final long octId;
-  
+
   public Octagon(long l) {
     octId = l;
   }
-  
+
   public long getOctId() {
     return octId;
   }
-  
+
   @Override
   public int hashCode() {
     return (int)octId;
   }
-  
+
   @Override
   public boolean equals(Object pObj) {
     if(!(pObj instanceof Octagon))
@@ -47,10 +47,10 @@ public class Octagon {
     Octagon otherOct = (Octagon) pObj;
     return this.octId == otherOct.octId;
   }
-  
+
   @Override
   public String toString() {
     return "octagon with id: " + octId;
   }
-  
+
 }

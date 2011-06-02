@@ -26,5 +26,5 @@ package org.sosy_lab.cpachecker.util.predicates.simpleformulas;
 public interface Term {
 
   public <T> T accept(TermVisitor<T> pVisitor);
-  
+
 }

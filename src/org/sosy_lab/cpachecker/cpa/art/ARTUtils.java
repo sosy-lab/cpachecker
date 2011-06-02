@@ -39,10 +39,10 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 public class ARTUtils {
 
   private ARTUtils() { }
-  
+
   /**
    * Get all elements on all paths from the ART root to a given element.
-   * 
+   *
    * @param pLastElement The last element in the paths.
    * @return A set of elements, all of which have pLastElement as their (transitive) child.
    */
@@ -65,11 +65,11 @@ public class ARTUtils {
 
     return result;
   }
-  
+
   /**
    * Create a path in the ART from root to the given element.
    * If there are several such paths, one is chosen randomly.
-   * 
+   *
    * @param pLastElement The last element in the path.
    * @return A path from root to lastElement.
    */

@@ -49,29 +49,29 @@ public class SSAMap {
    * Builder for SSAMaps. Its state starts with an existing SSAMap, but may be
    * changed later. It supports read access, but it is not recommended to use
    * instances of this class except for the short period of time
-   * while creating a new SSAMap. 
-   * 
+   * while creating a new SSAMap.
+   *
    * This class is not thread-safe.
    */
   public static class SSAMapBuilder {
-    
+
     private SSAMap ssa;
     private Multiset<String> varsBuilder = null;
     private Multiset<Pair<String, FormulaList>> funcsBuilder = null;
-        
+
     protected SSAMapBuilder(SSAMap ssa) {
       this.ssa = ssa;
     }
-    
+
     public int getIndex(String variable) {
       return SSAMap.getIndex(variable, Objects.firstNonNull(varsBuilder, ssa.vars));
     }
-    
+
     public int getIndex(String func, FormulaList args) {
       return SSAMap.getIndex(Pair.of(func, args),
                              Objects.firstNonNull(funcsBuilder, ssa.funcs));
     }
-    
+
     public void setIndex(String var, int idx) {
       Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation!");
 
@@ -82,19 +82,19 @@ public class SSAMap {
       Preconditions.checkArgument(idx >= varsBuilder.count(var), "SSAMap updates need to be strictly monotone!");
       varsBuilder.setCount(var, idx);
     }
-    
+
     public void setIndex(String func, FormulaList args, int idx) {
       Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation!");
 
       if (funcsBuilder == null) {
         funcsBuilder = LinkedHashMultiset.create(ssa.funcs);
       }
-      
+
       Pair<String, FormulaList> key = Pair.of(func, args);
       Preconditions.checkArgument(idx >= funcsBuilder.count(key), "SSAMap updates need to be strictly monotone!");
       funcsBuilder.setCount(key, idx);
     }
-    
+
     /**
      * Returns an immutable SSAMap with all the changes made to the builder.
      */
@@ -102,7 +102,7 @@ public class SSAMap {
       if (varsBuilder == null && funcsBuilder == null) {
         return ssa;
       }
-      
+
       ssa = new SSAMap(Objects.firstNonNull(varsBuilder, ssa.vars),
                        Objects.firstNonNull(funcsBuilder, ssa.funcs));
       varsBuilder  = null;
@@ -110,18 +110,18 @@ public class SSAMap {
       return ssa;
     }
   }
-  
+
   private static final SSAMap EMPTY_SSA_MAP = new SSAMap(
       ImmutableMultiset.<String>of(),
       ImmutableMultiset.<Pair<String, FormulaList>>of());
-  
+
   /**
    * Returns an empty immutable SSAMap.
    */
   public static SSAMap emptySSAMap() {
     return EMPTY_SSA_MAP;
   }
-  
+
   public static SSAMap emptyWithDefault(final int defaultValue) {
     return new SSAMap(ImmutableMultiset.<String>of(),
                       ImmutableMultiset.<Pair<String, FormulaList>>of()) {
@@ -129,17 +129,17 @@ public class SSAMap {
       @Override
       public int getIndex(String pVariable) {
         int result = super.getIndex(pVariable);
-        
+
         return (result < 0) ? defaultValue : result;
       }
-      
+
       @Override
       public int getIndex(String pName, FormulaList pArgs) {
         int result = super.getIndex(pName, pArgs);
-        
+
         return (result < 0) ? defaultValue : result;
       }
-      
+
       @Override
       protected int getIndex(Pair<String, FormulaList> pKey) {
         int result = super.getIndex(pKey);
@@ -160,7 +160,7 @@ public class SSAMap {
     // probably not equal, too).
     // We don't bother checking the vars set for emptiness, because this will
     // probably never be the case on a merge.
-    
+
     Multiset<String> vars;
     if (s1.vars == s2.vars) {
       if (s1.funcs == s2.funcs) {
@@ -168,11 +168,11 @@ public class SSAMap {
         return s1;
       }
       vars = s1.vars;
-      
+
     } else {
       vars = merge(s1.vars, s2.vars);
     }
-    
+
     Multiset<Pair<String, FormulaList>> funcs;
     if ((s1.funcs == s2.funcs) || s2.funcs.isEmpty()) {
       funcs = s1.funcs;
@@ -181,10 +181,10 @@ public class SSAMap {
     } else {
       funcs = merge(s1.funcs, s2.funcs);
     }
-    
+
     return new SSAMap(vars, funcs);
   }
-  
+
   private static <T> Multiset<T> merge(Multiset<T> s1, Multiset<T> s2) {
     Multiset<T> result = LinkedHashMultiset.create(Math.max(s1.size(), s2.size()));
     for (Entry<T> entry : s1.entrySet()) {
@@ -201,7 +201,7 @@ public class SSAMap {
     }
     return result;
   }
-  
+
   /*
    * Use Multiset<String> instead of Map<String, Integer> because it is more
    * efficient. The integer value is stored as the number of instances of any
@@ -211,20 +211,20 @@ public class SSAMap {
    */
   private final Multiset<String> vars;
   private final Multiset<Pair<String, FormulaList>> funcs;
-  
+
   private SSAMap(Multiset<String> vars,
                  Multiset<Pair<String, FormulaList>> funcs) {
     this.vars = vars;
     this.funcs = funcs;
   }
-  
+
   /**
    * Returns a SSAMapBuilder that is initialized with the current SSAMap.
    */
   public SSAMapBuilder builder() {
     return new SSAMapBuilder(this);
   }
-  
+
   private static <T> int getIndex(T key, Multiset<T> map) {
     int i = map.count(key);
     if (i != 0) {
@@ -234,7 +234,7 @@ public class SSAMap {
       return -1;
     }
   }
-  
+
   /**
    * returns the index of the variable in the map
    */
@@ -245,7 +245,7 @@ public class SSAMap {
   public int getIndex(String name, FormulaList args) {
     return getIndex(Pair.of(name, args), funcs);
   }
-  
+
   protected int getIndex(Pair<String, FormulaList> key) {
     return getIndex(key, funcs);
   }
@@ -259,12 +259,12 @@ public class SSAMap {
   }
 
   private static final Joiner joiner = Joiner.on(" ");
-  
+
   @Override
   public String toString() {
     return joiner.join(vars.entrySet()) + " " + joiner.join(funcs.entrySet());
   }
-  
+
   @Override
   public int hashCode() {
     return (31 + funcs.hashCode()) * 31 + vars.hashCode();

@@ -11,7 +11,7 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 public class ABMPredicateTransferRelation extends PredicateTransferRelation {
 
   private BlockPartitioning partitioning = null;
-  
+
   public ABMPredicateTransferRelation(PredicateCPA pCpa)
       throws InvalidConfigurationException {
     super(pCpa);
@@ -21,9 +21,9 @@ public class ABMPredicateTransferRelation extends PredicateTransferRelation {
     checkState(partitioning == null);
     partitioning = pPartitioning;
   }
-  
+
   @Override
   protected boolean isBlockEnd(CFANode pSuccLoc, PathFormula pPf) {
-    return super.isBlockEnd(pSuccLoc, pPf) || partitioning.isCallNode(pSuccLoc) || partitioning.isReturnNode(pSuccLoc);    
+    return super.isBlockEnd(pSuccLoc, pPf) || partitioning.isCallNode(pSuccLoc) || partitioning.isReturnNode(pSuccLoc);
   }
 }

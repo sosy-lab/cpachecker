@@ -28,7 +28,7 @@ public final class IASTFunctionCallAssignmentStatement extends IASTStatement
 
   private final IASTExpression leftHandSide;
   private final IASTFunctionCallExpression rightHandSide;
-  
+
   public IASTFunctionCallAssignmentStatement(String pRawSignature,
       IASTFileLocation pFileLocation, IASTExpression pLeftHandSide,
       IASTFunctionCallExpression pRightHandSide) {
@@ -36,27 +36,27 @@ public final class IASTFunctionCallAssignmentStatement extends IASTStatement
     leftHandSide = pLeftHandSide;
     rightHandSide = pRightHandSide;
   }
-  
+
   @Override
   public IASTExpression getLeftHandSide() {
     return leftHandSide;
   }
-  
+
   @Override
   public IASTFunctionCallExpression getRightHandSide() {
     return rightHandSide;
   }
-  
+
   @Override
   public IASTFunctionCallExpression getFunctionCallExpression() {
     return rightHandSide;
   }
-  
+
   @Override
   public IASTStatement asStatement() {
     return this;
   }
-  
+
   @Override
   public <R, X extends Exception> R accept(StatementVisitor<R, X> v) throws X {
     return v.visit(this);

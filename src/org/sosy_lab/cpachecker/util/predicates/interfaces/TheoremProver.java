@@ -39,14 +39,14 @@ public interface TheoremProver {
 
   AllSatResult allSat(Formula f, Collection<Formula> important,
                       AbstractionManager mgr, Timer timer);
-    
+
   interface AllSatResult {
-      
+
     /**
      * The result of an allSat call as an abstract formula.
      */
     public Region getResult();
-    
+
     /**
      * The number of satisfying assignments contained in the result, of
      * {@link Integer#MAX_VALUE} if this number is infinite.

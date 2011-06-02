@@ -34,7 +34,7 @@ public class NumArray {
   public long getArray() {
     return array;
   }
-  
+
   @Override
   public String toString() {
     // TODO

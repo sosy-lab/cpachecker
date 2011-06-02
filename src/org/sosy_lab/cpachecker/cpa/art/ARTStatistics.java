@@ -70,7 +70,7 @@ public class ARTStatistics implements Statistics {
   @Option(name="errorPath.core", type=Option.Type.OUTPUT_FILE,
       description="export error path to file, if one is found")
   private File errorPathCoreFile = new File("ErrorPathCore.txt");
-  
+
   @Option(name="errorPath.source", type=Option.Type.OUTPUT_FILE,
       description="export error path to file, if one is found")
   private File errorPathSourceFile = new File("ErrorPath.c");
@@ -97,11 +97,11 @@ public class ARTStatistics implements Statistics {
 
     if (   (!exportErrorPath || (errorPathFile == null))
         && (!exportART       || (artFile == null))) {
-      
+
       // shortcut, avoid unnecessary creation of path etc.
       return;
     }
-    
+
     Path targetPath = null;
     ARTElement lastElement = (ARTElement)pReached.getLastElement();
     if (lastElement != null && lastElement.isTarget()) {
@@ -115,15 +115,15 @@ public class ARTStatistics implements Statistics {
         // otherwise create one
         targetPath = ARTUtils.getOnePathTo(lastElement);
       }
-      
+
       if (exportErrorPath && errorPathFile != null) {
-        
+
         // the shrinked errorPath only includes the nodes,
-        // that are important for the error, it is not a complete path, 
-        // only some nodes of the targetPath are part of it 
+        // that are important for the error, it is not a complete path,
+        // only some nodes of the targetPath are part of it
         ErrorPathShrinker pathShrinker = new ErrorPathShrinker();
         Path shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath);
-        
+
         try {
           Files.writeFile(errorPathFile, targetPath);
           Files.writeFile(errorPathCoreFile, shrinkedErrorPath);

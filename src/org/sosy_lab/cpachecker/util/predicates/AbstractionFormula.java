@@ -29,10 +29,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 /**
  * Instances of this class should hold the same formula in two representations:
  * as a Region and as a Formula
- * 
+ *
  * The former one has no SSA indices, while the latter DOES have SSA indices added.
- * 
- * Abstractions are not considered equal even if they have the same formula. 
+ *
+ * Abstractions are not considered equal even if they have the same formula.
  */
 public class AbstractionFormula {
 
@@ -44,10 +44,10 @@ public class AbstractionFormula {
    * (This formula was used to create this abstraction).
    */
   private final Formula blockFormula;
-  
+
   private static int nextId = 0;
   private final int id = nextId++;
-  
+
   public AbstractionFormula(Region pFirst, Formula pSecond,
       Formula pBlockFormula) {
     this.region = pFirst;
@@ -58,27 +58,27 @@ public class AbstractionFormula {
   public boolean isTrue() {
     return asFormula().isTrue();
   }
-  
+
   public boolean isFalse() {
     return asFormula().isFalse();
   }
-  
+
   public Region asRegion() {
     return region;
   }
-  
+
   public Formula asFormula() {
     return formula;
   }
-  
+
   public Formula getBlockFormula() {
     return blockFormula;
   }
-  
+
   public int getId() {
     return id;
   }
-  
+
   @Override
   public String toString() {
     return "ABS" + id + ": " + formula;

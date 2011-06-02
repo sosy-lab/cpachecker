@@ -40,11 +40,11 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 abstract class AutomatonAction {
   private AutomatonAction() {};
   private static ResultValue<String> defaultResultValue = new ResultValue<String>("");
-  
+
   // in this method the Value inside the resultValueObject is not important (most ActionClasses will return "" as inner value)
   // more important is if the action was evaluated (ResultValue.canNotEvaluate())
   abstract ResultValue<? extends Object> eval(AutomatonExpressionArguments pArgs);
-  
+
   /**
    * Returns if the action can execute on the given AutomatonExpressionArguments.
    * If it cannot execute this is probably because of missing AbstractElements (from other CPAs).
@@ -62,9 +62,9 @@ abstract class AutomatonAction {
    */
   static class Print extends AutomatonAction {
     private List<AutomatonExpression> toPrint;
-    
+
     public Print(List<AutomatonExpression> pArgs) { toPrint = pArgs; }
-    
+
     @Override
     boolean canExecuteOn(AutomatonExpressionArguments pArgs) {
       // TODO: every action is computed twice (once here, once in eval)
@@ -77,7 +77,7 @@ abstract class AutomatonAction {
       return true;
     }
     @Override ResultValue<? extends Object> eval(AutomatonExpressionArguments pArgs) {
-      StringBuilder sb = new StringBuilder();  
+      StringBuilder sb = new StringBuilder();
       for (AutomatonExpression expr : toPrint) {
         ResultValue<?> res = expr.eval(pArgs);
         if (res.canNotEvaluate()) {
@@ -91,7 +91,7 @@ abstract class AutomatonAction {
     }
   }
 
-  
+
 
   /** Assigns the value of a AutomatonIntExpr to a AutomatonVariable determined by its name.
    * @author rhein
@@ -114,7 +114,7 @@ abstract class AutomatonAction {
       }
       Map<String, AutomatonVariable> vars = pArgs.getAutomatonVariables();
       if (vars.containsKey(varId)) {
-        vars.get(varId).setValue(res.getValue());     
+        vars.get(varId).setValue(res.getValue());
       } else {
         AutomatonVariable newVar = new AutomatonVariable("int", varId);
         newVar.setValue(res.getValue());
@@ -175,7 +175,7 @@ abstract class AutomatonAction {
           }
         }
       }
-      return new ResultValue<Boolean>("Did not find an element of the CPA \"" + cpaName + "\" to be modified.", "AutomatonActionExpr.CPAModification"); 
+      return new ResultValue<Boolean>("Did not find an element of the CPA \"" + cpaName + "\" to be modified.", "AutomatonActionExpr.CPAModification");
     }
 
     @Override

@@ -36,13 +36,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 public class LoopstackElement implements AbstractElement, Partitionable, AvoidanceReportingElement {
-  
+
   private final LoopstackElement previousElement;
   private final Loop loop;
   private final int depth;
   private final int iteration;
   private final boolean stop;
-  
+
   public LoopstackElement(LoopstackElement previousElement, Loop loop, int iteration, boolean stop) {
     this.previousElement = checkNotNull(previousElement);
     this.loop = checkNotNull(loop);
@@ -51,7 +51,7 @@ public class LoopstackElement implements AbstractElement, Partitionable, Avoidan
     this.iteration = iteration;
     this.stop = stop;
   }
-  
+
   public LoopstackElement() {
     previousElement = null;
     loop = null;
@@ -59,33 +59,33 @@ public class LoopstackElement implements AbstractElement, Partitionable, Avoidan
     iteration = 0;
     stop = false;
   }
-  
+
   public LoopstackElement getPreviousElement() {
     return previousElement;
   }
-  
+
   public Loop getLoop() {
     return loop;
   }
-  
+
   public int getDepth() {
     return depth;
   }
-  
+
   public int getIteration() {
     return iteration;
   }
-  
+
   @Override
   public Object getPartitionKey() {
     return this;
   }
-  
+
   @Override
   public boolean mustDumpAssumptionForAvoidance() {
     return stop;
   }
-  
+
   @Override
   public String toString() {
     if (loop == null) {
@@ -96,7 +96,7 @@ public class LoopstackElement implements AbstractElement, Partitionable, Avoidan
            + " [" + Integer.toHexString(super.hashCode()) + "]";
     }
   }
-  
+
   @Override
   public boolean equals(Object obj) {
     if (obj == this) {
@@ -126,5 +126,5 @@ public class LoopstackElement implements AbstractElement, Partitionable, Avoidan
     } else {
       return manager.makeTrue();
     }
-  }  
+  }
 }

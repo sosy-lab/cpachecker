@@ -33,21 +33,21 @@ import org.sosy_lab.common.LogManager;
  * Wrapper for Eclipse CDT 7 (internal version number 5.2.*)
  */
 public class EclipseCDT7Parser extends AbstractEclipseCParser<FileContent> {
-    
+
   public EclipseCDT7Parser(LogManager pLogger, Dialect dialect) {
     super(pLogger, dialect);
   }
-  
+
   @Override
   protected FileContent wrapCode(String pCode) {
     return FileContent.create("", pCode.toCharArray());
   }
-  
+
   @Override
   protected FileContent wrapFile(String pFilename) {
     return FileContent.createForExternalFileLocation(pFilename);
   }
-  
+
   @Override
   protected IASTTranslationUnit getASTTranslationUnit(FileContent pCode) throws CFAGenerationRuntimeException, CoreException {
     return language.getASTTranslationUnit(pCode,

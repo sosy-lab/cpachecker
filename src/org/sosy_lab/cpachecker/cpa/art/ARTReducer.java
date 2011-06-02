@@ -10,7 +10,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 public class ARTReducer implements Reducer {
 
   private final Reducer wrappedReducer;
-  
+
   public ARTReducer(Reducer pWrappedReducer) {
     wrappedReducer = pWrappedReducer;
   }
@@ -19,7 +19,7 @@ public class ARTReducer implements Reducer {
   public AbstractElement getVariableReducedElement(
       AbstractElement pExpandedElement, Block pContext,
       CFANode pLocation) {
-    
+
     return new ARTElement(wrappedReducer.getVariableReducedElement(((ARTElement)pExpandedElement).getWrappedElement(), pContext, pLocation), null);
   }
 
@@ -34,13 +34,13 @@ public class ARTReducer implements Reducer {
   @Override
   public boolean isEqual(AbstractElement pReducedTargetElement,
       AbstractElement pCandidateElement) {
-    
+
     return wrappedReducer.isEqual(((ARTElement)pReducedTargetElement).getWrappedElement(), ((ARTElement)pCandidateElement).getWrappedElement());
   }
 
   @Override
   public Object getHashCodeForElement(AbstractElement pElementKey, Precision pPrecisionKey) {
-    
+
     return wrappedReducer.getHashCodeForElement(((ARTElement)pElementKey).getWrappedElement(), pPrecisionKey);
   }
 

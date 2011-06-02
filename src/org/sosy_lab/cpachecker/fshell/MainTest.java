@@ -40,11 +40,11 @@ public class MainTest extends ExperimentalSeries {
     );
 
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(1, lResult.getNumberOfTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(1, lResult.getNumberOfTestCases());   
+    Assert.assertEquals(1, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
 
@@ -56,9 +56,9 @@ public class MainTest extends ExperimentalSeries {
         "negate",
         true
     );
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(1, lResult.getNumberOfTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
@@ -74,16 +74,16 @@ public class MainTest extends ExperimentalSeries {
         "foo",
         true
     );
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(1, lResult.getNumberOfTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void testMain003() throws Exception {
     String[] lArguments = Main.getParameters(
@@ -92,9 +92,9 @@ public class MainTest extends ExperimentalSeries {
         "negate",
         true
     );
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(1, lResult.getNumberOfTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
@@ -110,22 +110,22 @@ public class MainTest extends ExperimentalSeries {
         "foo",
         true
     );
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(20, lResult.getNumberOfTestGoals());
     Assert.assertEquals(15, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(2, lResult.getNumberOfTestCases());
     // TODO resolve imprecise test cases
     Assert.assertEquals(5, lResult.getNumberOfImpreciseTestCases());
-    
+
     /*
      * Discussion: Creates a real valued assignment (3.5) to integer variable x!
-     * 
+     *
      */
   }
-  
+
   @Test
   public void testMain005() throws Exception {
     String[] lArguments = Main.getParameters(
@@ -134,9 +134,9 @@ public class MainTest extends ExperimentalSeries {
         "foo",
         true
     );
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(18, lResult.getNumberOfTestGoals());
     Assert.assertEquals(15, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
@@ -144,7 +144,7 @@ public class MainTest extends ExperimentalSeries {
     // TODO resolve imprecise test cases
     Assert.assertEquals(3, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void testMain006() throws Exception {
     String[] lArguments = Main.getParameters(
@@ -153,9 +153,9 @@ public class MainTest extends ExperimentalSeries {
         "foo",
         false
     );
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(18, lResult.getNumberOfTestGoals());
     Assert.assertEquals(15, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
@@ -163,7 +163,7 @@ public class MainTest extends ExperimentalSeries {
     // TODO resolve imprecise test cases
     Assert.assertEquals(3, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void testMain007() throws Exception {
     String[] lArguments = Main.getParameters(
@@ -172,9 +172,9 @@ public class MainTest extends ExperimentalSeries {
         "foo",
         false
     );
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(8, lResult.getNumberOfTestGoals());
     Assert.assertEquals(6, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
@@ -182,7 +182,7 @@ public class MainTest extends ExperimentalSeries {
     // TODO resolve imprecise test cases
     Assert.assertEquals(2, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void testMain008() throws Exception {
     String[] lArguments = Main.getParameters(
@@ -191,16 +191,16 @@ public class MainTest extends ExperimentalSeries {
         "foo",
         false
     );
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(5, lResult.getNumberOfTestGoals());
     Assert.assertEquals(5, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(3, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void testMain009() throws Exception {
     String[] lArguments = Main.getParameters(
@@ -209,18 +209,18 @@ public class MainTest extends ExperimentalSeries {
         "foo",
         false
         );
-        
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(3, lResult.getNumberOfTestGoals());
     Assert.assertEquals(3, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(2, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   /** beginning FShell test cases (but cil preprocessed) */
-  
+
   @Test
   public void testMain010() throws Exception {
     String[] lArguments = Main.getParameters(
@@ -229,20 +229,20 @@ public class MainTest extends ExperimentalSeries {
         "main",
         true
         );
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(5, lResult.getNumberOfTestGoals());
     Assert.assertEquals(5, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
-    
+
     /**
      * Discussion: ok.
      */
   }
-  
+
   @Test
   public void testMain011() throws Exception {
     String[] lArguments = Main.getParameters(
@@ -251,20 +251,20 @@ public class MainTest extends ExperimentalSeries {
         "foo",
         true
         );
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(9, lResult.getNumberOfTestGoals());
     Assert.assertEquals(9, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
-    
+
     /**
      * Discussion: ok.
      */
   }
-  
+
   @Test
   public void testMain012() throws Exception {
     String[] lArguments = Main.getParameters(
@@ -273,20 +273,20 @@ public class MainTest extends ExperimentalSeries {
         "main",
         true
         );
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(9, lResult.getNumberOfTestGoals());
     Assert.assertEquals(7, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(2, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
-    
+
     /**
      * Discussion: ok.
      */
   }
-  
+
   @Test
   public void testMain013() throws Exception {
     String[] lArguments = Main.getParameters(
@@ -295,21 +295,21 @@ public class MainTest extends ExperimentalSeries {
         "main",
         true
         );
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(18, lResult.getNumberOfTestGoals());
     Assert.assertEquals(15, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(2, lResult.getNumberOfTestCases());
     // TODO resolve imprecise test cases
     Assert.assertEquals(3, lResult.getNumberOfImpreciseTestCases());
-    
+
     /**
      * Discussion: Not integers, but reals are calculated as test inputs.
      */
   }
-  
+
   @Test
   public void testMain014() throws Exception {
     String[] lArguments = Main.getParameters(
@@ -318,21 +318,21 @@ public class MainTest extends ExperimentalSeries {
         "main",
         true
         );
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(9, lResult.getNumberOfTestGoals());
     Assert.assertEquals(8, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(2, lResult.getNumberOfTestCases());
     // TODO resolve imprecise test cases
     Assert.assertEquals(1, lResult.getNumberOfImpreciseTestCases());
-    
+
     /**
      * Discussion: Not integers, but reals are calculated as test inputs.
      */
   }
-  
+
   @Test
   public void testMain015() throws Exception {
     String[] lArguments = Main.getParameters(
@@ -340,21 +340,21 @@ public class MainTest extends ExperimentalSeries {
         "test/programs/fql/basic/cov-union.cil.c",
         "main",
         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(26, lResult.getNumberOfTestGoals());
     Assert.assertEquals(23, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(4, lResult.getNumberOfTestCases());
     Assert.assertEquals(3, lResult.getNumberOfImpreciseTestCases());
-    
+
     /**
      * Discussion: Not integers, but reals are calculated as test inputs.
      * TODO: This is a problem when replaying the test input!
      */
   }
-  
+
   @Test
   public void testMain017() throws Exception {
     String[] lArguments = Main.getParameters(
@@ -364,16 +364,16 @@ public class MainTest extends ExperimentalSeries {
         "foo",
         true
         );
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(15, lResult.getNumberOfTestGoals());
     Assert.assertEquals(15, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void testMain018() throws Exception {
     String[] lArguments = Main.getParameters(
@@ -382,21 +382,21 @@ public class MainTest extends ExperimentalSeries {
         "main",
         true
         );
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(17, lResult.getNumberOfTestGoals());
     Assert.assertEquals(15, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(2, lResult.getNumberOfTestCases());
     // TODO resolve imprecise test cases
     Assert.assertEquals(2, lResult.getNumberOfImpreciseTestCases());
-    
+
     /**
      * Discussion: Not integers, but reals are calculated as test inputs.
      */
   }
-  
+
   @Test
   public void testMain019() throws Exception {
     String[] lArguments = Main.getParameters(
@@ -405,37 +405,37 @@ public class MainTest extends ExperimentalSeries {
         "main",
         true
         );
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(17, lResult.getNumberOfTestGoals());
     Assert.assertEquals(15, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(2, lResult.getNumberOfTestCases());
     // TODO resolve imprecise test cases
     Assert.assertEquals(2, lResult.getNumberOfImpreciseTestCases());
-    
+
     /**
      * Discussion: Not integers, but reals are calculated as test inputs.
      */
   }
-  
+
   @Test
   public void testMain020() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE, 
-                                        "test/programs/fql/test_locks_2.c", 
-                                        "main", 
+    String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
+                                        "test/programs/fql/test_locks_2.c",
+                                        "main",
                                         false);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(43, lResult.getNumberOfTestGoals());
     Assert.assertEquals(40, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(3, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(4, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void testMain022() throws Exception {
     String[] lArguments = Main.getParameters(
@@ -446,14 +446,14 @@ public class MainTest extends ExperimentalSeries {
         );
 
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(6, lResult.getNumberOfTestGoals());
     Assert.assertEquals(4, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(2, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void testMain022b() throws Exception {
     String[] lArguments = Main.getParameters(
@@ -464,59 +464,59 @@ public class MainTest extends ExperimentalSeries {
         );
 
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(4, lResult.getNumberOfTestGoals());
     Assert.assertEquals(3, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void testMain023() throws Exception {
     String[] lArguments = Main.getParameters(
-        Main.BASIC_BLOCK_COVERAGE, 
-        "test/programs/fql/basic/globals.cil.c", 
-        "main", 
+        Main.BASIC_BLOCK_COVERAGE,
+        "test/programs/fql/basic/globals.cil.c",
+        "main",
         false);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(4, lResult.getNumberOfTestGoals());
     Assert.assertEquals(3, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
-    
+
     /**
      * Discussion: ok. We get one more test goal than FShell 2 does.
      * x is preinitialized to 0!
      */
   }
-  
+
   @Test
   public void testMain024() throws Exception {
     String[] lArguments = Main.getParameters(
-        Main.BASIC_BLOCK_COVERAGE, 
-        "test/programs/fql/conditioncoverage.cil.c", 
-        "foo", 
+        Main.BASIC_BLOCK_COVERAGE,
+        "test/programs/fql/conditioncoverage.cil.c",
+        "foo",
         true); // disable CIL preprocessing
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(9, lResult.getNumberOfTestGoals());
     Assert.assertEquals(7, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(2, lResult.getNumberOfTestCases());
     // TODO resolve imprecise test cases
     Assert.assertEquals(2, lResult.getNumberOfImpreciseTestCases());
-    
+
     /*
      * Discussion: Creates a real valued assignment (3.5) to integer variable x!
-     * 
+     *
      */
   }
-  
+
   @Test
   public void testMain031() throws Exception {
     String[] lArguments = Main.getParameters(
@@ -527,11 +527,11 @@ public class MainTest extends ExperimentalSeries {
     );
 
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(1, lResult.getNumberOfTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
-    Assert.assertEquals(1, lResult.getNumberOfTestCases());   
+    Assert.assertEquals(1, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
 
@@ -541,16 +541,16 @@ public class MainTest extends ExperimentalSeries {
                                         "test/programs/fql/arrays/infeasible_label.1.c",
                                         "main",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(1, lResult.getNumberOfTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void testMain016() throws Exception {
     String[] lArguments = Main.getParameters(
@@ -559,140 +559,140 @@ public class MainTest extends ExperimentalSeries {
         "main",
         true
         );
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(-1, lResult.getNumberOfTestGoals());
     Assert.assertEquals(7, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(2, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
-    
+
     /**
      * Discussion: Pointer argv is not initialized correctly (and, argv is used in the program)
      */
     Assert.assertTrue(false);
   }
-  
+
   @Test
   public void testMain021() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE, 
-                                        "test/programs/fql/ntdrivers/kbfiltr.i.cil.c", 
-                                        "main", 
+    String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
+                                        "test/programs/fql/ntdrivers/kbfiltr.i.cil.c",
+                                        "main",
                                         false);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(690, lResult.getNumberOfTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
-    
+
     /**
      * Discussion: get_exit_nondet() in its original implementation is faulty
      */
     Assert.assertTrue(false);
   }
-  
+
   @Test
   public void testMain025() throws Exception {
-    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE, 
-                                        "test/programs/fql/ntdrivers/kbfiltr.i.cil.c", 
-                                        "main", 
+    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE,
+                                        "test/programs/fql/ntdrivers/kbfiltr.i.cil.c",
+                                        "main",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(690, lResult.getNumberOfTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
-    
+
     /**
      * Discussion: get_exit_nondet() in its original implementation is faulty
      */
     Assert.assertTrue(false);
   }
-  
+
   @Test
   public void testMain026() throws Exception {
-    String[] lArguments = Main.getParameters(Main.CONDITION_COVERAGE, 
+    String[] lArguments = Main.getParameters(Main.CONDITION_COVERAGE,
                                         "test/programs/fql/ntdrivers/kbfiltr.i.cil.c",
                                         //"/home/andreas/ase-experimente/kbfiltr.c",
-                                        "main", 
+                                        "main",
                                         //false);
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(690, lResult.getNumberOfTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
-    
+
     /**
      * Discussion: get_exit_nondet() in its original implementation is faulty
      */
     Assert.assertTrue(false);
   }
-  
+
   @Test
   public void testMain027() throws Exception {
-    String[] lArguments = Main.getParameters("COVER \"EDGES(ID)*\".EDGES(@CONDITIONEDGE).\"EDGES(ID)*\".EDGES(@CONDITIONEDGE).\"EDGES(ID)*\"", 
-                                        "test/programs/fql/ntdrivers/kbfiltr.i.cil.c", 
-                                        "main", 
+    String[] lArguments = Main.getParameters("COVER \"EDGES(ID)*\".EDGES(@CONDITIONEDGE).\"EDGES(ID)*\".EDGES(@CONDITIONEDGE).\"EDGES(ID)*\"",
+                                        "test/programs/fql/ntdrivers/kbfiltr.i.cil.c",
+                                        "main",
                                         false);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(690, lResult.getNumberOfTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
-    
+
     Assert.assertTrue(false);
   }
-  
+
   @Test
   public void testMain029() throws Exception {
     String[] lArguments = Main.getParameters("COVER \"EDGES(ID)*\".EDGES(@LABEL(L)).\"EDGES(ID)*\"",
                                         "test/programs/fql/arrays/assignment.1.c",
                                         "main",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(1, lResult.getNumberOfTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
-    
+
     /**
      * Discussion: This unit test fails because assignment to arrays are not handled correctly.
      */
   }
-  
+
   @Test
   public void testMain030() throws Exception {
     String[] lArguments = Main.getParameters("COVER \"EDGES(ID)*\".EDGES(@LABEL(L)).\"EDGES(ID)*\"",
                                         "test/programs/fql/arrays/assignment.2.c",
                                         "main",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(-1, lResult.getNumberOfTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
-    
+
     Assert.assertTrue(false);
   }
-  
+
 }

@@ -115,7 +115,7 @@ public class CFANode implements Comparable<CFANode> {
 
     throw new IllegalArgumentException();
   }
-  
+
   public boolean hasEdgeTo(CFANode other) {
     boolean hasEdge = false;
     for (CFAEdge edge : leavingEdges) {

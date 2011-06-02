@@ -31,21 +31,21 @@ import org.sosy_lab.cpachecker.fshell.Main;
 import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 
 public class TestLocks1_Path5_Test extends ExperimentalSeries {
-  
+
   @Test
   public void testlocks() throws Exception {
     String[] lArguments = Main.getParameters(Main.BOUNDED_PATH_5_COVERAGE,
                                         "test/programs/fql/locks/test_locks_1.c",
                                         "main",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(121, lResult.getNumberOfTestGoals());
     Assert.assertEquals(73, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(48, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(7, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
 }

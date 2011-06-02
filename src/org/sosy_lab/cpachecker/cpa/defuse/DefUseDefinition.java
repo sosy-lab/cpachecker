@@ -63,7 +63,7 @@ public class DefUseDefinition implements AbstractElement
             return false;
 
         DefUseDefinition otherDef = (DefUseDefinition) other;
-        return otherDef.variableName.equals(this.variableName) 
+        return otherDef.variableName.equals(this.variableName)
             && Objects.equal(otherDef.assigningEdge, this.assigningEdge);
     }
 

@@ -11,27 +11,27 @@ public class HeuristicToFormula {
 
   public enum PreventingHeuristicType {
     PATHLENGTH("PL"),
-    SUCCESSORCOMPTIME("SCT"), 
+    SUCCESSORCOMPTIME("SCT"),
     PATHCOMPTIME("PCT"),
     ASSUMEEDGESINPATH("AEIP"),
     REPETITIONSINPATH("RIP"),
     MEMORYUSED("MU"),
-    MEMORYOUT("MO"), 
+    MEMORYOUT("MO"),
     TIMEOUT("TO"),
     LOOPITERATIONS("LI"),
     EDGECOUNT("EC");
-  
+
   private final String predicateString;
-    
+
     private PreventingHeuristicType(String predicateStr) {
       predicateString = predicateStr;
     }
-    
+
     private String getPredicateString(){
       return predicateString;
     }
   }
-  
+
   public static String getFormulaStringForHeuristic(Pair<PreventingHeuristicType, Long> preventingCondition){
     PreventingHeuristicType type = preventingCondition.getFirst();
     Long thresholdValue = preventingCondition.getSecond();

@@ -28,35 +28,35 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 /**
  * An interface for a waitlist of AbstractElements.
  * Implementations differ in the strategy they use for pop().
- * 
+ *
  * All methods of this interface should be fast (O(1) or O(log n) preferably),
  * except contains() and remove().
- * 
+ *
  * The iterators provided by implementations may be unmodifiable.
  */
 public interface Waitlist extends Iterable<AbstractElement> {
-  
+
   /**
    * Add an abstract element to the waitlist.
    */
   void add(AbstractElement element);
-  
+
   /**
    * Remove all abstract elements from the waitlist.
    */
   void clear();
-  
+
   /**
    * Checks whether an abstract element is contained in the waitlist.
    * This method uses equals().
    */
   boolean contains(AbstractElement element);
-  
+
   /**
    * Whether the waitlist contains no elements.
    */
   boolean isEmpty();
-  
+
   /**
    * Returns and removes the next abstract element that should be handled.
    * This decision is made by an implementation-specific strategy.
@@ -64,24 +64,24 @@ public interface Waitlist extends Iterable<AbstractElement> {
    * return null.
    */
   AbstractElement pop();
-  
+
   /**
    * Removes an abstract element, if it is contained.
    * This method uses equals() for containment checks.
    * Implementations need not to optimize their data structure for this method.
    */
   boolean remove(AbstractElement element);
-  
+
   /**
    * Returns the number of elements in the waitlist.
    */
   int size();
-  
+
   /**
    * Simple factory interface for waitlist implementations.
    */
   public static interface WaitlistFactory {
-    
+
     /**
      * Create a fresh new empty instance of a waitlist.
      * The factory should keep no references to the new instance,
@@ -90,7 +90,7 @@ public interface Waitlist extends Iterable<AbstractElement> {
      */
     Waitlist createWaitlistInstance();
   }
-  
+
   /**
    * Enum containing standard waitlist strategies.
    * Instances of this enum can also be used as a factory for implementations

@@ -50,13 +50,13 @@ import org.sosy_lab.cpachecker.util.predicates.simpleformulas.Constant;
 import org.sosy_lab.cpachecker.util.predicates.simpleformulas.Variable;
 
 public class TargetGraphTest {
-  
+
   @Test
   public void test_01() throws IOException, InvalidConfigurationException, CPAException {
     String lSourceFileName = "test/programs/simple/functionCall.c";
-    
+
     String lEntryFunction = "main";
-    
+
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -73,7 +73,7 @@ public class TargetGraphTest {
     String lSourceFileName = "test/programs/simple/loop1.c";
 
     String lEntryFunction = "main";
-    
+
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -96,7 +96,7 @@ public class TargetGraphTest {
      */
 
     String lEntryFunction = "main";
-    
+
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -119,7 +119,7 @@ public class TargetGraphTest {
      */
 
     String lEntryFunction = "main";
-    
+
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -144,7 +144,7 @@ public class TargetGraphTest {
      */
 
     String lEntryFunction = "main";
-    
+
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -172,7 +172,7 @@ public class TargetGraphTest {
      */
 
     String lEntryFunction = "main";
-    
+
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -193,7 +193,7 @@ public class TargetGraphTest {
     String lSourceFileName = "test/programs/simple/functionCall.c";
 
     String lEntryFunction = "main";
-    
+
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -214,7 +214,7 @@ public class TargetGraphTest {
     String lSourceFileName = "test/programs/simple/functionCall.c";
 
     String lEntryFunction = "main";
-    
+
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -228,7 +228,7 @@ public class TargetGraphTest {
     Variable lX = new Variable("x");
     Constant l100 = new Constant(100);
     Predicate lPredicate = new Predicate(new org.sosy_lab.cpachecker.util.predicates.simpleformulas.Predicate(lX, org.sosy_lab.cpachecker.util.predicates.simpleformulas.Predicate.Comparison.LESS, l100));
-    
+
     TargetGraph lPredicatedGraph = TargetGraphUtil.predicate(lFuncTargetGraph, lPredicate);
 
     System.out.println(lPredicatedGraph);
@@ -239,7 +239,7 @@ public class TargetGraphTest {
     String lSourceFileName = "test/programs/simple/functionCall.c";
 
     String lEntryFunction = "main";
-    
+
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -249,10 +249,10 @@ public class TargetGraphTest {
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
     Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lInitialNode);
-    
+
     FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph, lBasicBlockEntries);
     TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(Identity.getInstance());
-    
+
     // identity returns the (physically) same target graph
     assertTrue(lFilteredTargetGraph == lTargetGraph);
   }
@@ -262,7 +262,7 @@ public class TargetGraphTest {
     String lSourceFileName = "test/programs/simple/functionCall.c";
 
     String lEntryFunction = "main";
-    
+
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -274,7 +274,7 @@ public class TargetGraphTest {
     Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lInitialNode);
 
     Function lFunctionFilter = new Function("f");
-    
+
     FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph, lBasicBlockEntries);
 
     TargetGraph lFilteredTargetGraph1 = lFilterEvaluator.evaluate(lFunctionFilter);
@@ -304,7 +304,7 @@ public class TargetGraphTest {
     String lSourceFileName = "test/programs/simple/functionCall.c";
 
     String lEntryFunction = "main";
-    
+
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -314,11 +314,11 @@ public class TargetGraphTest {
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
 
     Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lInitialNode);
-    
+
     FunctionCall lFunctionCallFilter = new FunctionCall("f");
 
     FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph, lBasicBlockEntries);
-    
+
     TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(lFunctionCallFilter);
 
     System.out.println(lFilteredTargetGraph);
@@ -332,7 +332,7 @@ public class TargetGraphTest {
     String lSourceFileName = "test/programs/simple/uninitVars.cil.c";
 
     String lEntryFunction = "main";
-    
+
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -346,7 +346,7 @@ public class TargetGraphTest {
     FunctionCall lFunctionCallFilter = new FunctionCall("func");
 
     FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph, lBasicBlockEntries);
-    
+
     TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(lFunctionCallFilter);
 
     System.out.println(lFilteredTargetGraph);
@@ -365,7 +365,7 @@ public class TargetGraphTest {
     String lSourceFileName = "test/programs/simple/uninitVars.cil.c";
 
     String lEntryFunction = "main";
-    
+
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -379,7 +379,7 @@ public class TargetGraphTest {
     Filter lFunctionCallsFilter = FunctionCalls.getInstance();
 
     FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph, lBasicBlockEntries);
-    
+
     TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(lFunctionCallsFilter);
 
     System.out.println(lFilteredTargetGraph);
@@ -393,7 +393,7 @@ public class TargetGraphTest {
     String lSourceFileName = "test/programs/simple/uninitVars.cil.c";
 
     String lEntryFunction = "main";
-    
+
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -407,7 +407,7 @@ public class TargetGraphTest {
     Filter lFunctionEntryFilter = new FunctionEntry("func");
 
     FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph, lBasicBlockEntries);
-    
+
     TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(lFunctionEntryFilter);
 
     System.out.println(lFilteredTargetGraph);
@@ -426,7 +426,7 @@ public class TargetGraphTest {
     String lSourceFileName = "test/programs/simple/uninitVars.cil.c";
 
     String lEntryFunction = "main";
-    
+
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -438,7 +438,7 @@ public class TargetGraphTest {
     Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lInitialNode);
 
     Filter lLineFilter = new Line(102);
-    
+
     FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph, lBasicBlockEntries);
 
     TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(lLineFilter);
@@ -453,13 +453,13 @@ public class TargetGraphTest {
     // caching should also work with logically equal filters
     assertTrue(lFilteredTargetGraph == lFilterEvaluator.evaluate(lLineFilter2));
   }
-  
+
   @Test
   public void test_21() throws IOException, InvalidConfigurationException, CPAException {
     String lSourceFileName = "test/programs/simple/functionCall.c";
 
     String lEntryFunction = "main";
-    
+
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -471,7 +471,7 @@ public class TargetGraphTest {
     Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lInitialNode);
 
     Filter lLabelFilter = new Label("ERROR");
-    
+
     FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph, lBasicBlockEntries);
 
     TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(lLabelFilter);
@@ -486,13 +486,13 @@ public class TargetGraphTest {
     // caching should also work with logically equal filters
     assertTrue(lFilteredTargetGraph == lFilterEvaluator.evaluate(lLabelFilter2));
   }
-  
+
   @Test
   public void test_22() throws IOException, InvalidConfigurationException, CPAException {
     String lSourceFileName = "test/programs/simple/functionCall.c";
 
     String lEntryFunction = "main";
-    
+
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -504,7 +504,7 @@ public class TargetGraphTest {
     Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lInitialNode);
 
     Filter lLabelFilter = new Label("ERROR");
-    
+
     FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph, lBasicBlockEntries);
 
     TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(lLabelFilter);
@@ -518,16 +518,16 @@ public class TargetGraphTest {
 
     // caching should also work with logically equal filters
     assertTrue(lFilteredTargetGraph == lFilterEvaluator.evaluate(lLabelFilter2));
-    
+
     System.out.println(lFilteredTargetGraph.getBoundedPaths(1));
   }
-  
+
   @Test
   public void test_23() throws IOException, InvalidConfigurationException, CPAException {
     String lSourceFileName = "test/programs/simple/functionCall.c";
 
     String lEntryFunction = "main";
-    
+
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -535,16 +535,16 @@ public class TargetGraphTest {
     CFAFunctionDefinitionNode lInitialNode = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lInitialNode);
-    
+
     System.out.println(lTargetGraph.getBoundedPaths(1));
   }
-  
+
   @Test
   public void test_24() throws IOException, InvalidConfigurationException, CPAException {
     String lSourceFileName = "test/programs/simple/functionCall.c";
 
     String lEntryFunction = "main";
-    
+
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -556,7 +556,7 @@ public class TargetGraphTest {
     Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lInitialNode);
 
     Filter lFilter = ConditionEdge.getInstance();
-    
+
     FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph, lBasicBlockEntries);
 
     TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(lFilter);
@@ -566,13 +566,13 @@ public class TargetGraphTest {
     // check caching
     assertTrue(lFilteredTargetGraph == lFilterEvaluator.evaluate(lFilter));
   }
-  
+
   @Test
   public void test_25() throws IOException, InvalidConfigurationException, CPAException {
     String lSourceFileName = "test/programs/fql/conditioncoverage.cil.c";
-    
+
     String lEntryFunction = "foo";
-    
+
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -584,7 +584,7 @@ public class TargetGraphTest {
     Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lInitialNode);
 
     Filter lFilter = ConditionEdge.getInstance();
-    
+
     FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph, lBasicBlockEntries);
 
     TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(lFilter);
@@ -593,5 +593,5 @@ public class TargetGraphTest {
 
     // check caching
     assertTrue(lFilteredTargetGraph == lFilterEvaluator.evaluate(lFilter));
-  }  
+  }
 }

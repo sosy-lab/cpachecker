@@ -14,7 +14,7 @@ public class ProgressPrecisionAdjustment implements PrecisionAdjustment {
   /*
    * (non-Javadoc)
    * @see org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment#prec(org.sosy_lab.cpachecker.core.interfaces.AbstractElement, org.sosy_lab.cpachecker.core.interfaces.Precision, org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet)
-   * 
+   *
    * This method does not depend on pElements.
    */
   @Override
@@ -23,18 +23,18 @@ public class ProgressPrecisionAdjustment implements PrecisionAdjustment {
       UnmodifiableReachedSet pElements) throws CPAException {
     ProgressElement lElement = (ProgressElement)pElement;
     ProgressPrecision lPrecision = (ProgressPrecision)pPrecision;
-    
+
     if (lPrecision.isProgress(lElement.getTransition())) {
       GuardedEdgeAutomatonElement lWrappedElement = lElement.getWrappedElement();
-      
+
       if (!(lWrappedElement instanceof GuardedEdgeAutomatonStateElement)) {
         throw new RuntimeException();
       }
-      
+
       GuardedEdgeAutomatonStateElement lStateElement = (GuardedEdgeAutomatonStateElement)lWrappedElement;
-      
+
       Precision lAdjustedPrecision = lPrecision.remove(lElement.getTransition());
-      
+
       return new Triple<AbstractElement, Precision, Action>(new AlternationElement(lStateElement), lAdjustedPrecision, Action.BREAK);
     }
     else {

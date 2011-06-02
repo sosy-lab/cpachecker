@@ -49,28 +49,28 @@ public class FeatureVarsCPA implements ConfigurableProgramAnalysis {
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(FeatureVarsCPA.class);
   }
-  
+
   @Option(name="variableWhitelist",
           description="whitelist regex for variables that will be tracked by FeatureVarsCPA")
   private String variableWhitelist = "";
-  
+
   private final FeatureVarsElement initialElement;
   private final FeatureVarsPrecision initialPrecision;
-  
+
   private final AbstractDomain abstractDomain;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
   private final PrecisionAdjustment precisionAdjustment;
-  
+
   public static LogManager logger;
 
   private FeatureVarsCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
     FeatureVarsCPA.logger = logger;
-    
+
     FeatureVarsManager manager = new FeatureVarsManager();
-    
+
     initialElement = new FeatureVarsElement(manager.getRegionManager().makeTrue(), manager);
     initialPrecision = new FeatureVarsPrecision(variableWhitelist);
 

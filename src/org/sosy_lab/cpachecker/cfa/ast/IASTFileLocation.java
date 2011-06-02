@@ -30,7 +30,7 @@ public final class IASTFileLocation {
   private final int length;
   private final int offset;
   private final int startingLine;
-  
+
   public IASTFileLocation(int pEndineLine, String pFileName, int pLength,
       int pOffset, int pStartingLine) {
     endineLine = pEndineLine;

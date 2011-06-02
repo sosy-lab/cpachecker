@@ -37,21 +37,21 @@ import com.google.common.collect.Iterables;
  * Default implementation of a sorted waitlist.
  * The key that is used for sorting is defined by sub-classes (it's type is
  * the type parameter of this class).
- * 
+ *
  * There may be several abstract elements with the same key, so this class
  * delegates the decision which of those should be chosen to a second waitlist
  * implementation. A factory for this implementation needs to be given to the
  * constructor.
- * 
+ *
  * The iterators created by this class are unmodifiable.
  */
 public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements Waitlist {
-  
+
   private final WaitlistFactory wrappedWaitlist;
-  
+
   // invariant: all entries in this map are non-empty
   private final NavigableMap<K, Waitlist> waitlist = new TreeMap<K, Waitlist>();
-  
+
   private int size = 0;
 
   /**
@@ -61,7 +61,7 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
   protected AbstractSortedWaitlist(WaitlistFactory pSecondaryStrategy) {
     wrappedWaitlist = Preconditions.checkNotNull(pSecondaryStrategy);
   }
-  
+
   /**
    * Method that generates the sorting key for any abstract element.
    * This method may not return null.
@@ -69,7 +69,7 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
    * current instance of this class are made.
    */
   protected abstract K getSortKey(AbstractElement pElement);
-  
+
   @Override
   public void add(AbstractElement pElement) {
     K key = getSortKey(pElement);
@@ -94,24 +94,24 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
     assert !localWaitlist.isEmpty();
     return localWaitlist.contains(pElement);
   }
-  
+
   @Override
   public void clear() {
     waitlist.clear();
     size = 0;
   }
-  
+
   @Override
   public boolean isEmpty() {
     assert waitlist.isEmpty() == (size == 0);
     return waitlist.isEmpty();
   }
-  
+
   @Override
   public Iterator<AbstractElement> iterator() {
     return Iterables.concat(waitlist.values()).iterator();
   }
-  
+
   @Override
   public AbstractElement pop() {
     Entry<K, Waitlist> highestEntry = waitlist.lastEntry();
@@ -142,7 +142,7 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
     }
     return result;
   }
-  
+
   @Override
   public int size() {
     return size;

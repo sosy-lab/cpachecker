@@ -41,33 +41,33 @@ import com.google.common.base.Joiner;
 public class InvariantsElement implements AbstractElement, FormulaReportingElement {
 
   private final Map<String, SimpleInterval> vars;
-  
+
   InvariantsElement() {
     vars = new HashMap<String, SimpleInterval>();
   }
-  
+
   InvariantsElement(Map<String, SimpleInterval> pVars) {
     vars = new HashMap<String, SimpleInterval>(pVars);
   }
-  
+
   public SimpleInterval get(String var) {
     return firstNonNull(vars.get(var), SimpleInterval.infinite());
   }
-  
+
   public Map<String, SimpleInterval> getIntervals() {
     return Collections.unmodifiableMap(vars);
   }
-  
+
   InvariantsElement copyAndSet(String var, SimpleInterval value) {
     SimpleInterval oldValue = vars.get(var);
-    
+
     if (value.equals(oldValue)) {
       return this;
     }
-    
+
     if (!value.hasLowerBound() && !value.hasLowerBound()) {
       // new value is (-INF, INF)
-      
+
       if (oldValue != null) {
         InvariantsElement result = new InvariantsElement(vars);
         result.vars.remove(var);
@@ -76,20 +76,20 @@ public class InvariantsElement implements AbstractElement, FormulaReportingEleme
         return this;
       }
     }
-    
+
     InvariantsElement result = new InvariantsElement(vars);
     result.vars.put(checkNotNull(var), checkNotNull(value));
     return result;
   }
-  
+
   @Override
   public Formula getFormulaApproximation(FormulaManager pManager) {
     Formula result = pManager.makeTrue();
-    
+
     for (Entry<String, SimpleInterval> entry : vars.entrySet()) {
       Formula var = pManager.makeVariable(entry.getKey());
       SimpleInterval value = entry.getValue();
-      
+
       if (value.hasLowerBound()) {
         Formula bound = pManager.makeNumber(value.getLowerBound().toString());
         Formula f = pManager.makeGeq(var, bound);
@@ -103,7 +103,7 @@ public class InvariantsElement implements AbstractElement, FormulaReportingEleme
     }
     return result;
   }
-  
+
   @Override
   public boolean equals(Object pObj) {
     if (pObj == this) {
@@ -114,12 +114,12 @@ public class InvariantsElement implements AbstractElement, FormulaReportingEleme
 
     return vars.equals(((InvariantsElement)pObj).vars);
   }
-  
+
   @Override
   public int hashCode() {
     return vars.hashCode();
   }
-  
+
   @Override
   public String toString() {
     return Joiner.on(", ").withKeyValueSeparator("=").join(vars);

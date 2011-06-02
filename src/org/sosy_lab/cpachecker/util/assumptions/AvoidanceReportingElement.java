@@ -40,7 +40,7 @@ public interface AvoidanceReportingElement {
    * the given state in the future.
    */
   public boolean mustDumpAssumptionForAvoidance();
-  
+
   /**
    * If {@link #mustDumpAssumptionForAvoidance()} returned true, this method
    * returns a formula that provides an explanation. This formula may not be TRUE.

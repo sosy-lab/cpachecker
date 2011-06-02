@@ -23,11 +23,11 @@ public class AssumeEdgesInPathHeuristicsData implements StopHeuristicsData {
   public AssumeEdgesInPathHeuristicsData updateForEdge(StopHeuristicsData pData, int pThreshold, CFAEdge pEdge){
 
     int newValue = (((AssumeEdgesInPathHeuristicsData)pData).noOfAssumeEdges);
-    
+
     if(pEdge.getEdgeType() == CFAEdgeType.AssumeEdge){
 
       newValue++;
-      
+
       if ((pThreshold > 0) && (newValue > pThreshold)){
         setThreshold(pThreshold);
         return BOTTOM;
@@ -54,7 +54,7 @@ public class AssumeEdgesInPathHeuristicsData implements StopHeuristicsData {
     @Override
     public String toString() { return "BOTTOM"; }
   };
-  
+
   @Override
   public PreventingHeuristicType getHeuristicType() {
     return PreventingHeuristicType.ASSUMEEDGESINPATH;

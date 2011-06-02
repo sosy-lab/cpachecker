@@ -76,7 +76,7 @@ public class InterpreterDomain implements AbstractDomain {
         }
       }
       return new InterpreterElement(newConstantsMap, explicitAnalysisElement2.getPreviousElement());*/
-      
+
       throw new UnsupportedOperationException();
   }
 }

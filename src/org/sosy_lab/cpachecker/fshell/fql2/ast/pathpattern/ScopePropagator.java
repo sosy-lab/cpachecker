@@ -10,23 +10,23 @@ import org.sosy_lab.cpachecker.fshell.fql2.ast.filter.Filter;
 public class ScopePropagator implements PathPatternVisitor<PathPattern> {
 
   Filter mFilter;
-  
+
   public ScopePropagator(Filter pFilter) {
     mFilter = pFilter;
   }
-  
+
   public Filter getFilter() {
     return mFilter;
   }
-  
+
   @Override
   public Concatenation visit(Concatenation pConcatenation) {
     PathPattern lFirstSubpattern = pConcatenation.getFirstSubpattern();
     PathPattern lSecondSubpattern = pConcatenation.getSecondSubpattern();
-    
+
     PathPattern lNewFirstSubpattern = lFirstSubpattern.accept(this);
     PathPattern lNewSecondSubpattern = lSecondSubpattern.accept(this);
-    
+
     if (lFirstSubpattern.equals(lNewFirstSubpattern) && lSecondSubpattern.equals(lNewSecondSubpattern)) {
       return pConcatenation;
     }
@@ -38,9 +38,9 @@ public class ScopePropagator implements PathPatternVisitor<PathPattern> {
   @Override
   public Repetition visit(Repetition pRepetition) {
     PathPattern lSubpattern = pRepetition.getSubpattern();
-    
+
     PathPattern lNewSubpattern = lSubpattern.accept(this);
-    
+
     if (lSubpattern.equals(lNewSubpattern)) {
       return pRepetition;
     }
@@ -53,10 +53,10 @@ public class ScopePropagator implements PathPatternVisitor<PathPattern> {
   public Union visit(Union pUnion) {
     PathPattern lFirstSubpattern = pUnion.getFirstSubpattern();
     PathPattern lSecondSubpattern = pUnion.getSecondSubpattern();
-    
+
     PathPattern lNewFirstSubpattern = lFirstSubpattern.accept(this);
     PathPattern lNewSecondSubpattern = lSecondSubpattern.accept(this);
-    
+
     if (lFirstSubpattern.equals(lNewFirstSubpattern) && lSecondSubpattern.equals(lNewSecondSubpattern)) {
       return pUnion;
     }
@@ -68,14 +68,14 @@ public class ScopePropagator implements PathPatternVisitor<PathPattern> {
   @Override
   public Edges visit(Edges pEdges) {
     Filter lFilter = pEdges.getFilter();
-    
+
     return new Edges(new Compose(lFilter, getFilter()));
   }
 
   @Override
   public Nodes visit(Nodes pNodes) {
     Filter lFilter = pNodes.getFilter();
-    
+
     return new Nodes(new Compose(lFilter, getFilter()));
   }
 
@@ -83,7 +83,7 @@ public class ScopePropagator implements PathPatternVisitor<PathPattern> {
   public Paths visit(Paths pPaths) {
     Filter lFilter = pPaths.getFilter();
     int lBound = pPaths.getBound();
-    
+
     return new Paths(new Compose(lFilter, getFilter()), lBound);
   }
 

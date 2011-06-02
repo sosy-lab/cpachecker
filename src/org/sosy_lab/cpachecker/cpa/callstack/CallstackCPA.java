@@ -32,22 +32,22 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithAB
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
 public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithABM {
-  
+
   private final Reducer reducer = new CallstackReducer();
-  
+
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(CallstackCPA.class);
   }
-  
+
   public CallstackCPA() {
     super("sep", "sep", new CallstackTransferRelation());
   }
-  
+
   @Override
   public Reducer getReducer() {
     return reducer;
   }
-  
+
   @Override
   public AbstractElement getInitialElement(CFANode pNode) {
     return new CallstackElement(null, pNode.getFunctionName(), pNode);

@@ -35,21 +35,21 @@ import com.google.common.collect.Iterables;
 enum AlwaysTopStopOperator implements StopOperator {
 
   INSTANCE;
-  
+
   @Override
   public boolean stop(AbstractElement pElement,
       Collection<AbstractElement> pReached, Precision pPrecision) {
-    
+
     assert pElement == AlwaysTopElement.INSTANCE;
     assert pPrecision == AlwaysTopPrecision.INSTANCE;
     assert Iterables.all(pReached, Predicates.<AbstractElement>equalTo(AlwaysTopElement.INSTANCE));
-    
+
     return !pReached.isEmpty();
   }
 
   @Override
   public boolean stop(AbstractElement pElement, AbstractElement pReachedElement) {
-    
+
     assert pElement == AlwaysTopElement.INSTANCE;
     assert pReachedElement == AlwaysTopElement.INSTANCE;
     return true;

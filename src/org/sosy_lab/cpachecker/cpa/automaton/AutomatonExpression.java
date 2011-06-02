@@ -7,10 +7,10 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 interface AutomatonExpression {
-  
+
   ResultValue<?> eval(AutomatonExpressionArguments pArgs);
-  
-  
+
+
   static class StringExpression implements AutomatonExpression {
     private String toPrint;
     public StringExpression(String pString) {
@@ -72,7 +72,7 @@ interface AutomatonExpression {
       }
       return new ResultValue<String>("No State of CPA \"" + cpaName + "\" was found!", "AutomatonExpression.CPAQuery");
     }
-    
+
     @Override
     public String toString() {
       return "EVAL(" + cpaName + "(\"" + queryString + "\"))";
@@ -81,7 +81,7 @@ interface AutomatonExpression {
 
 
   // TODO: lift CPA Query here
-  
+
   public static class ResultValue<resultType> {
     private boolean canNotEvaluate = false;
     private String failureMessage = null; // only set if cannotEvaluate == true

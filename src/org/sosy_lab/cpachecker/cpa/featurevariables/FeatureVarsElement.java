@@ -31,21 +31,21 @@ public class FeatureVarsElement implements AbstractQueryableElement, Cloneable {
 
   private final Region currentState;
   private final FeatureVarsManager manager;
-  
+
   public FeatureVarsElement(Region currentState, FeatureVarsManager manager) {
     this.currentState = currentState;
     this.manager = manager;
   }
-  
+
   public Region getRegion() {
     return currentState;
   }
-  
+
   @Override
   public String toString() {
     return manager.regionToString(currentState);
   }
-  
+
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
     throw new InvalidQueryException("Feature Vars Element cannot check anything");

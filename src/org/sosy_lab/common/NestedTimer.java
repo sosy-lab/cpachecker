@@ -29,7 +29,7 @@ public class NestedTimer {
 
   /**
    * The time of starting the timer.
-   * Volatile to make {@link #isRunning()} thread-safe. 
+   * Volatile to make {@link #isRunning()} thread-safe.
    */
   private volatile long outerStartTime = 0;
 
@@ -37,34 +37,34 @@ public class NestedTimer {
   private long innerSumTime           = 0;
   private long outerSumTime           = 0;
 //private long totalSumTime           = 0; // not necessary, is equal to sum of inner and outer
-  
+
   /** Volatile to make {@link #isRunning()} thread-safe. */
   private volatile Timer innerTimer = null;
-    
+
   /** The maximal time of all intervals. */
   private long innerMaxTime           = 0;
   private long outerMaxTime           = 0;
   private long totalMaxTime           = 0;
-  
+
   /** The number of intervals. */
   private int  totalNumberOfIntervals = 0;
-  
+
   /** Start the timer. If it was running before, the timer is stopped and then
    * started again. */
   public final void startOuter() {
     checkState(!isRunning());
     assert innerTimer == null;
-    
+
     outerStartTime = System.currentTimeMillis();
-    
+
     innerTimer = new Timer();
-    
+
     totalNumberOfIntervals++;
   }
-  
+
   public final void startBoth() {
     startOuter();
-    
+
     innerTimer = new Timer(outerStartTime);
   }
 
@@ -78,14 +78,14 @@ public class NestedTimer {
 
     return stopOuter0(System.currentTimeMillis());
   }
-  
+
   private long stopOuter0(long endTime) {
     // calculate total time
     long totalIntervallTime = endTime - outerStartTime;
     totalMaxTime = Math.max(totalIntervallTime, totalMaxTime);
 
     long currentInnerSumTime = innerTimer.getSumTime();
-    
+
     // calculate outer time
     long outerIntervallTime = totalIntervallTime - currentInnerSumTime;
     outerSumTime += outerIntervallTime;
@@ -98,25 +98,25 @@ public class NestedTimer {
     // reset
     outerStartTime = 0;
     innerTimer = null;
-    
+
     return outerIntervallTime;
   }
-  
+
   public final long stopBoth() {
     checkState(innerTimer.isRunning());
     assert isRunning();
-    
+
     long endTime = System.currentTimeMillis();
 
     // calculate total time
     long totalIntervallTime = endTime - outerStartTime;
-    
+
     innerTimer.stop(endTime);
     stopOuter0(endTime);
-    
+
     return totalIntervallTime;
   }
-  
+
   private long getCurrentOuterIntervalTime() {
     if (!isRunning()) {
       return 0;
@@ -127,20 +127,20 @@ public class NestedTimer {
   private long getCurrentTotalIntervalTime() {
     if (!isRunning()) {
       return 0;
-    
+
     } else {
       long currentTime = System.currentTimeMillis();
       long currentTotal = currentTime - outerStartTime;
-      
+
       return currentTotal;
     }
   }
-  
+
   public Timer getInnerTimer() {
     checkState(isRunning());
     return innerTimer;
   }
-  
+
   /** Return the sum of all intervals. If timer is running, return the sum
    * of the intervals plus the time since the timer has been started.
    *
@@ -156,11 +156,11 @@ public class NestedTimer {
     }
     return result;
   }
-  
+
   public final long getTotalSumTime() {
     return outerSumTime + innerSumTime + getCurrentTotalIntervalTime();
   }
-  
+
   /** Return the maximal time of all intervals. If timer is running,
    * the currently running interval will be ignored.
    *
@@ -168,11 +168,11 @@ public class NestedTimer {
   public final long getOuterMaxTime() {
     return outerMaxTime;
   }
-  
+
   public final long getInnerMaxTime() {
     return innerMaxTime;
   }
-  
+
   public final long getTotalMaxTime() {
     return totalMaxTime;
   }
@@ -193,11 +193,11 @@ public class NestedTimer {
   public final long getOuterAvgTime() {
     return getOuterSumTime() / totalNumberOfIntervals;
   }
-  
+
   public final long getInnerAvgTime() {
     return getInnerSumTime() / totalNumberOfIntervals;
   }
-  
+
   public final long getTotalAvgTime() {
     return getTotalSumTime() / totalNumberOfIntervals;
   }
@@ -208,26 +208,26 @@ public class NestedTimer {
   public final String printOuterSumTime() {
     return formatTime(getOuterSumTime());
   }
-  
+
   public final String printInnerSumTime() {
     return formatTime(getInnerSumTime());
   }
-  
+
   public final String printTotalSumTime() {
     return formatTime(getTotalSumTime());
   }
-  
+
   /** Return a String with the maximal time of the intervals.
    *
    * @return formated String */
   public final String printOuterMaxTime() {
     return formatTime(getOuterMaxTime());
   }
-  
+
   public final String printInnerMaxTime() {
     return formatTime(getInnerMaxTime());
   }
-  
+
   public final String printTotalMaxTime() {
     return formatTime(getTotalMaxTime());
   }
@@ -242,11 +242,11 @@ public class NestedTimer {
   public final String printInnerAvgTime() {
     return formatTime(getInnerAvgTime());
   }
-  
+
   public final String printTotalAvgTime() {
     return formatTime(getTotalAvgTime());
   }
-  
+
   /** Return a String with the sum of the times of all intervals.
    *
    * @return formated String */
@@ -264,17 +264,17 @@ public class NestedTimer {
     return String.format("%5d.%03ds", time / 1000, time % 1000);
   }
 
-  /** 
+  /**
    * Return if the timer is running.
    * This method is thread-safe, it is guaranteed to return true if another
    * thread has called {@link #start()} and not yet called {@link #stop()}.
-   *  
+   *
    * @return is the timer running?
-   */ 
+   */
   public boolean isOuterRunning() {
     return isRunning() && !innerTimer.isRunning();
   }
-  
+
   public boolean isRunning() {
     return (outerStartTime != 0);
   }

@@ -35,7 +35,7 @@ public class DefUseDomain implements AbstractDomain
   public boolean isLessOrEqual(AbstractElement element1, AbstractElement element2) {
             DefUseElement defUseElement1 = (DefUseElement) element1;
             DefUseElement defUseElement2 = (DefUseElement) element2;
-            
+
             return defUseElement2.containsAllOf(defUseElement1);
     }
 

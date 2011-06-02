@@ -43,7 +43,7 @@ public class EdgeCountHeuristicsData
   private boolean untouched;
 
   private static int threshold = -1;
-  
+
   public void setThreshold(int newThreshold)
   {
     threshold = newThreshold;

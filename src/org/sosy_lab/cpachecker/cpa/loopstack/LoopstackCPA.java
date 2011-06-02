@@ -36,15 +36,15 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFA.Loop;
 
 public class LoopstackCPA extends AbstractCPA {
-  
+
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(LoopstackCPA.class);
   }
-  
+
   public LoopstackCPA(Configuration config) throws InvalidConfigurationException, CPAException {
     super("sep", "sep", new LoopstackTransferRelation(config));
   }
-  
+
   @Override
   public AbstractElement getInitialElement(CFANode pNode) {
     if (pNode instanceof CFAFunctionDefinitionNode) {
@@ -52,7 +52,7 @@ public class LoopstackCPA extends AbstractCPA {
       // (loops don't span across functions)
       return new LoopstackElement();
     }
-      
+
     Loop loop = null;
     for (Loop l : CFACreator.loops.get(pNode.getFunctionName())) {
       if (l.getLoopNodes().contains(pNode)) {
@@ -60,9 +60,9 @@ public class LoopstackCPA extends AbstractCPA {
       }
       loop = l;
     }
-    
+
     LoopstackElement e = new LoopstackElement(); // the bottom element of the stack
-    
+
     if (loop != null) {
       // if loop is present, push one element on the stack for it
       e = new LoopstackElement(e, loop, 0, false);

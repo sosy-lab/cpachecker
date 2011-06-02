@@ -35,7 +35,7 @@ public class Predicate implements Atom {
 
     mPredicate = pPredicate;
   }
-  
+
   public org.sosy_lab.cpachecker.util.predicates.simpleformulas.Predicate getPredicate() {
     return mPredicate;
   }

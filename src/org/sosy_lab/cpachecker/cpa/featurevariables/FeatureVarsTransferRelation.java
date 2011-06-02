@@ -58,7 +58,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
 
   private final FeatureVarsManager fmgr;
   private final RegionManager rmgr;
-  
+
   public FeatureVarsTransferRelation(FeatureVarsManager manager)
       throws InvalidConfigurationException {
     this.fmgr = manager;
@@ -71,7 +71,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
    * Only assume edges (conditions of if-statements) and only the operators && and || are considered.
    * Statement edges can be handled if the tracked variables are assigned only once and if they are assigned constant values (e.g. ____SELECTED_FEATURE_Verify = 1;)
    * All other operators (e.g. ==, !=, &, |, ...) are ignored.
-   * Only global variables (we don't make a difference between a variable that is defined globally and 
+   * Only global variables (we don't make a difference between a variable that is defined globally and
    * a local variable with the same name)
    */
   @Override
@@ -107,8 +107,8 @@ public class FeatureVarsTransferRelation implements TransferRelation {
           handleAssumption(fvElement, assumeEdge.getExpression(), cfaEdge,
               assumeEdge.getTruthAssumption(), precision);
       /*if (successor != null && successor != element) {
-        System.out.println("FV new state: " + successor.toString() 
-            + " after edge " + cfaEdge.getRawStatement() 
+        System.out.println("FV new state: " + successor.toString()
+            + " after edge " + cfaEdge.getRawStatement()
             + " in line" + cfaEdge.getLineNumber());
       }*/
       break;
@@ -137,12 +137,12 @@ public class FeatureVarsTransferRelation implements TransferRelation {
   private AbstractElement handleStatementEdge(FeatureVarsElement element,
       IASTStatement pIastStatement, StatementEdge cfaEdge,
       FeatureVarsPrecision pPrecision) {
-    
+
     if (!(pIastStatement instanceof IASTAssignment)) {
       return element;
     }
     IASTAssignment assignment = (IASTAssignment)pIastStatement;
-    
+
     IASTExpression lhs = assignment.getLeftHandSide();
     FeatureVarsElement result = element;
     if (lhs instanceof IASTIdExpression || lhs instanceof IASTFieldReference
@@ -157,7 +157,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
            * If the variable gets a second assignment we would have to delete the current value from the bdd first.
            * I do not know how to do this yet.
            */
-          
+
           if (value.trim().equals("0")) {
             Region operand = rmgr.makeNot(fmgr.getVariableRegion(varName));
             result = new FeatureVarsElement(rmgr.makeAnd(element.getRegion(), operand), fmgr);
@@ -206,7 +206,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
       return new FeatureVarsElement(newRegion, fmgr);
     }
   }
-  
+
   private Region propagateBooleanExpression(FeatureVarsElement element,
       IASTExpression op, String functionName, FeatureVarsPrecision precision)
     throws UnrecognizedCFAEdgeException {

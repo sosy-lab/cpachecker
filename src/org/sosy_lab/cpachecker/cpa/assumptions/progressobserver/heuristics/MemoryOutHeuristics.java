@@ -69,7 +69,7 @@ implements StopHeuristics<TrivialStopHeuristicsData>
 
       for (String line: processExecutor.getOutput())
       {
-        if(line.contains("VIRT")){ 
+        if(line.contains("VIRT")){
           String lines[] = line.split("\\s+");
           for(int i=0; i<lines.length; i++){
             if(lines[i].contains("VIRT")){
@@ -79,7 +79,7 @@ implements StopHeuristics<TrivialStopHeuristicsData>
           break;
         }
       }
-      
+
     } catch (Exception e) {
       e.printStackTrace();
     }
@@ -95,7 +95,7 @@ implements StopHeuristics<TrivialStopHeuristicsData>
   public TrivialStopHeuristicsData processEdge(StopHeuristicsData pData, CFAEdge pEdge)
   {
     //TODO consider moving these into a thread later
-    // does com.sun.management.OperatingSystemMXBean give us 
+    // does com.sun.management.OperatingSystemMXBean give us
     // info same with "top"?
 
     if(noOfIterations != freq){
@@ -124,7 +124,7 @@ implements StopHeuristics<TrivialStopHeuristicsData>
 
       for (String line: processExecutor.getOutput())
       {
-        if(line.contains("java")){ 
+        if(line.contains("java")){
           memUsed = Long.valueOf(line.split("\\s+")[idxOfVirt-1].replace("m", ""));
           break;
         }

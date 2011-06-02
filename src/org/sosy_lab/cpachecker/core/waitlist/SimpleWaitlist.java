@@ -35,15 +35,15 @@ import com.google.common.base.Preconditions;
  * depth-first (DFS) strategy for pop().
  */
 public class SimpleWaitlist extends AbstractWaitlist<Deque<AbstractElement>> {
-  
+
   private final TraversalMethod traversal;
-  
+
   protected SimpleWaitlist(TraversalMethod pTraversal) {
     super(new ArrayDeque<AbstractElement>());
     Preconditions.checkArgument(pTraversal == TraversalMethod.BFS || pTraversal == TraversalMethod.DFS);
     traversal = pTraversal;
   }
-  
+
   @Override
   public AbstractElement pop() {
     switch(traversal) {

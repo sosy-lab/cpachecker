@@ -22,7 +22,7 @@ import com.google.common.collect.Iterables;
 /**
  * This is an extension of {@link AbstractARTBasedRefiner} that takes care of
  * flattening the ART before calling {@link #performRefinement0(ReachedSet)}.
- * 
+ *
  * Warning: Although the ART is flattened at this point, the elements in it have
  * not been expanded due to performance reasons.
  */
@@ -59,7 +59,7 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
       return performRefinement0(new ABMReachedSet(pReached, pPath), pPath);
     }
   }
- 
+
   @Override
   protected final Path computePath(ARTElement pLastElement, UnmodifiableReachedSet pReachedSet) throws InterruptedException, CPATransferException {
     assert pLastElement.isTarget();
@@ -76,7 +76,7 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
       } finally {
         computeSubtreeTimer.stop();
       }
-      
+
       computeCounterexampleTimer.start();
       try {
         return computeCounterexample(subgraph);
@@ -87,76 +87,76 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
       computePathTimer.stop();
     }
   }
-  
+
   protected final BlockPartitioning getBlockPartitioning() {
     return transfer.getBlockPartitioning();
   }
-  
+
   private void removeSubtree(ARTReachedSet reachSet, Path pPath, ARTElement element, Precision newPrecision) {
     Precision oldPrecision = Precisions.extractPrecisionByType(reachSet.getPrecision(reachSet.getLastElement()), newPrecision.getClass());
 
     if (newPrecision.equals(oldPrecision)) {
       //Strategy 2
       //restart the analysis
-      //TODO: this can be implemented less drastic -> only remove lazy caches (on path)      
+      //TODO: this can be implemented less drastic -> only remove lazy caches (on path)
       restartAnalysis(reachSet);
-      return;     
+      return;
     }
 
     transfer.removeSubtree(reachSet, pPath, element, newPrecision);
   }
-  
-  
+
+
   private void restartAnalysis(ARTReachedSet reachSet) {
-   
+
     Precision precision = reachSet.getPrecision(reachSet.getLastElement());
     ARTElement child = Iterables.getOnlyElement(reachSet.getFirstElement().getChildren());
     reachSet.removeSubtree(child, precision);
-    
+
     transfer.clearCaches();
   }
-   
-  
-  private Path computeCounterexample(ARTElement root) {    
+
+
+  private Path computeCounterexample(ARTElement root) {
     Path path = new Path();
     ARTElement currentElement = root;
     while(currentElement.getChildren().size() > 0) {
       ARTElement child = currentElement.getChildren().iterator().next();
-      
+
       CFAEdge edge = currentElement.getEdgeToChild(child);
       path.add(Pair.of(currentElement, edge));
-      
+
       currentElement = child;
     }
     path.add(Pair.of(currentElement, currentElement.retrieveLocationElement().getLocationNode().getLeavingEdge(0)));
     return path;
   }
-  
+
   private class ABMReachedSet extends ARTReachedSet.ForwardingARTReachedSet {
 
     private final Path path;
-    
+
     public ABMReachedSet(ARTReachedSet pReached, Path pPath) {
       super(pReached);
       this.path = pPath;
     }
-    
+
     @Override
     public void removeSubtree(ARTElement element, Precision newPrecision) {
- 
+
       AbstractABMBasedRefiner.this.removeSubtree(delegate, path, element, newPrecision);
     }
-    
+
     @Override
     public void removeCoverage(ARTElement pElement) {
       throw new UnsupportedOperationException();
     }
-    
+
     @Override
     public void removeSubtree(ARTElement pE) {
       throw new UnsupportedOperationException();
     }
-    
+
     @Override
     public void replaceWithBottom(ARTElement pE) {
       throw new UnsupportedOperationException();

@@ -276,10 +276,10 @@ public class PointerElement implements AbstractQueryableElement, Memory,
     }
   }
 
-  /** 
-   * Tracks pointer values that are stored in non pointer variables. For the 
-   * time of the tracking, the variable is treated like a regular pointer. 
-   * 
+  /**
+   * Tracks pointer values that are stored in non pointer variables. For the
+   * time of the tracking, the variable is treated like a regular pointer.
+   *
    * @param var The variable name temporarily storing a pointer.
    * @param content The pointer value being stored in the variable.
    */
@@ -1059,13 +1059,13 @@ public class PointerElement implements AbstractQueryableElement, Memory,
 
     }
   }
-  
+
   @Override
   public void modifyProperty(String pModification)
       throws InvalidQueryException {
     throw new InvalidQueryException("The Pointer CPA does not support modification.");
   }
-  
+
   @Override
   public Boolean evaluateProperty(
       String pProperty) throws InvalidQueryException {

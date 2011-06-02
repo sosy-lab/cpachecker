@@ -86,17 +86,17 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Option(name="abstraction.initialPredicates", type=Option.Type.OPTIONAL_INPUT_FILE,
       description="get an initial set of predicates from a file in MSAT format")
   private File predicatesFile = null;
-  
+
   @Option(description="always check satisfiability at end of block, even if precision is empty")
   private boolean checkBlockFeasibility = false;
-  
+
   @Option(name="interpolation.changesolverontimeout",
           description="try second interpolating solver if the first takes too long")
   private boolean changeItpSolveOTF = false;
-  
+
   @Option(name="blk.useCache", description="use caching where possible")
   private boolean useCache = true;
-  
+
   private final Configuration config;
   private final LogManager logger;
 
@@ -123,10 +123,10 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     regionManager = BDDRegionManager.getInstance();
     MathsatFormulaManager mathsatFormulaManager = new MathsatFormulaManager(config, logger);
     formulaManager = mathsatFormulaManager;
-    
+
     PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger);
     if (useCache) {
-      pfMgr = new CachingPathFormulaManager(pfMgr); 
+      pfMgr = new CachingPathFormulaManager(pfMgr);
     }
     pathFormulaManager = pfMgr;
 
@@ -155,14 +155,14 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     predicateManager = new PredicateRefinementManager<Integer, Integer>(regionManager, formulaManager, pathFormulaManager, theoremProver, itpProver, alternativeItpProver, config, logger);
     transfer = new PredicateTransferRelation(this);
-    
-    topElement = new PredicateAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null));    
+
+    topElement = new PredicateAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null));
     domain = new PredicateAbstractDomain(this);
-    
+
     merge = new PredicateMergeOperator(this);
     prec = new PredicatePrecisionAdjustment(this);
     stop = new StopSepOperator(domain);
-    
+
     Collection<AbstractionPredicate> predicates = null;
     if (predicatesFile != null) {
       try {
@@ -177,7 +177,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
             "(" + e.getMessage() + ")");
       }
     }
-    
+
     if (checkBlockFeasibility) {
       AbstractionPredicate p = predicateManager.makeFalsePredicate();
       if (predicates == null) {
@@ -190,7 +190,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     stats = createStatistics();
   }
-  
+
   protected PredicateCPAStatistics createStatistics() throws InvalidConfigurationException {
     return new PredicateCPAStatistics(this);
   }
@@ -226,15 +226,15 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   public FormulaManager getFormulaManager() {
     return formulaManager;
   }
-  
+
   public PathFormulaManager getPathFormulaManager() {
     return pathFormulaManager;
   }
-  
+
   public TheoremProver getTheoremProver() {
     return theoremProver;
   }
-  
+
   protected Configuration getConfiguration() {
     return config;
   }
@@ -262,7 +262,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
   }
-  
+
   PredicateCPAStatistics getStats() {
     return stats;
   }

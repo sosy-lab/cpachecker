@@ -54,7 +54,7 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
         pElements,  ARTElement.getUnwrapFunction(), Functions.<Precision>identity());
 
     AbstractElement oldElement = element.getWrappedElement();
-    
+
     Triple<AbstractElement, Precision, Action> unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
 
     AbstractElement newElement = unwrappedResult.getFirst();
@@ -65,7 +65,7 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
       // nothing has changed
       return new Triple<AbstractElement, Precision, Action>(pElement, oldPrecision, action);
     }
-      
+
     ARTElement resultElement = new ARTElement(newElement, null);
 
     for (ARTElement parent : element.getParents()) {

@@ -84,7 +84,7 @@ public abstract class AbstractSingleWrapperElement implements AbstractWrapperEle
       return null;
     }
   }
-  
+
   @Override
   public String toString() {
     return wrappedElement.toString();

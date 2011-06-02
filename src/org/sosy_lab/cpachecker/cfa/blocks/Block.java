@@ -13,13 +13,13 @@ import com.google.common.collect.ImmutableSet;
  *
  */
 public class Block {
-  
+
   private final ImmutableSet<ReferencedVariable> referencedVariables;
   private final ImmutableSet<CFANode> callNodes;
   private final ImmutableSet<CFANode> returnNodes;
   private final ImmutableSet<CFANode> uniqueNodes;
-  private final ImmutableSet<CFANode> nodes;  
-  
+  private final ImmutableSet<CFANode> nodes;
+
   public Block(Set<ReferencedVariable> pReferencedVariables,
       Set<CFANode> pCallNodes, Set<CFANode> pReturnNodes, Set<CFANode> pUniqueNodeSet, Set<CFANode> allNodes) {
 
@@ -32,13 +32,13 @@ public class Block {
 
   public Set<CFANode> getCallNodes() {
     return Collections.unmodifiableSet(callNodes);
-  } 
-  
+  }
+
   public CFANode getCallNode() {
     assert callNodes.size() == 1;
-    return callNodes.iterator().next();    
-  } 
-  
+    return callNodes.iterator().next();
+  }
+
   public Set<ReferencedVariable> getReferencedVariables() {
     return referencedVariables;
   }
@@ -54,7 +54,7 @@ public class Block {
   public Set<CFANode> getReturnNodes() {
     return returnNodes;
   }
-  
+
   public Set<CFANode> getUniqueNodes() {
     return uniqueNodes;
   }
@@ -62,7 +62,7 @@ public class Block {
   public boolean isCallNode(CFANode pNode) {
     return callNodes.contains(pNode);
   }
-  
+
   @Override
   public String toString() {
     return "Block (CallNodes: " + callNodes + ")";

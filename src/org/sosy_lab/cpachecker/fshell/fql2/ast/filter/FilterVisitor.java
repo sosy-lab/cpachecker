@@ -25,5 +25,5 @@ public interface FilterVisitor<T> {
   public T visit(SetMinus pSetMinus);
   public T visit(EnclosingScopes pEnclosingScopes);
   public T visit(Predication pPredication);
-  
+
 }

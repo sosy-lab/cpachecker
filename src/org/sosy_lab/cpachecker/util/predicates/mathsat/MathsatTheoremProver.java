@@ -59,11 +59,11 @@ public class MathsatTheoremProver implements TheoremProver {
     assert(res != MSAT_UNKNOWN);
     return res == MSAT_UNSAT;
   }
-  
+
   @Override
   public Model getModel() {
     Preconditions.checkState(curEnv != 0);
-    
+
     return MathsatModel.createMathsatModel(curEnv);
   }
 
@@ -87,23 +87,23 @@ public class MathsatTheoremProver implements TheoremProver {
 
     curEnv = mgr.createEnvironment(true, true);
   }
-  
+
   @Override
   public void reset() {
     Preconditions.checkState(curEnv != 0);
     msat_destroy_env(curEnv);
     curEnv = 0;
   }
-  
+
   @Override
-  public AllSatResult allSat(Formula f, Collection<Formula> important, 
+  public AllSatResult allSat(Formula f, Collection<Formula> important,
                              AbstractionManager amgr, Timer timer) {
     checkNotNull(amgr);
     checkNotNull(timer);
     long formula = getTerm(f);
-    
+
     long allsatEnv = mgr.createEnvironment(true, true);
-    
+
     long[] imp = new long[important.size()];
     int i = 0;
     for (Formula impF : important) {
@@ -112,10 +112,10 @@ public class MathsatTheoremProver implements TheoremProver {
     MathsatAllSatCallback callback = new MathsatAllSatCallback(amgr, timer);
     msat_assert_formula(allsatEnv, formula);
     int numModels = msat_all_sat(allsatEnv, imp, callback);
-    
+
     if (numModels == -1) {
       throw new RuntimeException("Error occurred during Mathsat allsat");
-    
+
     } else if (numModels == -2) {
       // infinite models
       callback.setInfiniteNumberOfModels();
@@ -128,7 +128,7 @@ public class MathsatTheoremProver implements TheoremProver {
 
     return callback;
   }
-    
+
   /**
    * callback used to build the predicate abstraction of a formula
    * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
@@ -136,7 +136,7 @@ public class MathsatTheoremProver implements TheoremProver {
   static class MathsatAllSatCallback implements mathsat.AllSatModelCallback, TheoremProver.AllSatResult {
     private final AbstractionManager amgr;
     private final RegionManager rmgr;
-    
+
     private final Timer totalTime;
 
     private int count = 0;

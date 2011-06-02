@@ -38,10 +38,10 @@ import com.google.common.collect.ImmutableList;
  * If any of those CPAs returns an element that does not cover both its input
  * elements, this implementation returns its second input element
  * (i.e., it behaves like MergeSep).
- * 
+ *
  * This operator is good for the combination of CPAs where some CPAs never merge
  * and some may merge.
- * 
+ *
  * Note that the definition of MergeOperator already requires that the returned
  * element covers the second input element. This implementation relies on that
  * guarantee and always assumes this is true.
@@ -79,7 +79,7 @@ public class CompositeMergeAgreeOperator implements MergeOperator {
       AbstractElement absElem1 = iter1.next();
       AbstractElement absElem2 = iter2.next();
       StopOperator stopOp = stopIter.next();
-      
+
       AbstractElement merged = mergeOp.merge(absElem1, absElem2, precIter.next());
 
       // check whether merged covers absElem1

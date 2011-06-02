@@ -60,27 +60,27 @@ import com.google.common.collect.ImmutableSet;
  */
 @Options(prefix="cfa.pruning")
 public class CFAReduction {
-  
+
   private final Configuration config;
   private final LogManager logger;
-  
+
   public CFAReduction(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
-    
+
     if (config.getProperty("specification") == null) {
       throw new InvalidConfigurationException("Option cfa.removeIrrelevantForErrorLocations is only valid if a specification is given!");
     }
-    
+
     this.config = config;
     this.logger = logger;
   }
 
-  
+
   public void removeIrrelevantForErrorLocations(final CFAFunctionDefinitionNode cfa) throws InterruptedException {
     Set<CFANode> allNodes = CFA.allNodes(cfa, true);
 
     Set<CFANode> errorNodes = getErrorNodesWithCPA(cfa, allNodes);
-    
+
     if (errorNodes.isEmpty()) {
       // shortcut, all nodes are irrelevant
 
@@ -91,22 +91,22 @@ public class CFAReduction {
       cfa.addLeavingSummaryEdge(null);
       return;
     }
-    
+
     if (errorNodes.size() == allNodes.size()) {
       // shortcut, no node is irrelevant
       return;
     }
-    
+
     // backwards search to determine all relevant nodes
     Set<CFANode> relevantNodes = new HashSet<CFANode>();
     for (CFANode n : errorNodes) {
       CFA.dfs(n, relevantNodes, true, true);
     }
-    
+
     assert allNodes.containsAll(relevantNodes) : "Inconsistent CFA";
-    
+
     logger.log(Level.INFO, "Detected", allNodes.size()-relevantNodes.size(), "irrelevant CFA nodes.");
-    
+
     if (relevantNodes.size() == allNodes.size()) {
       // shortcut, no node is irrelevant
       return;
@@ -116,7 +116,7 @@ public class CFAReduction {
     pruneIrrelevantNodes(allNodes, relevantNodes, errorNodes);
   }
 
-  private Set<CFANode> getErrorNodesWithCPA(CFAFunctionDefinitionNode cfa, Set<CFANode> allNodes) throws InterruptedException {      
+  private Set<CFANode> getErrorNodesWithCPA(CFAFunctionDefinitionNode cfa, Set<CFANode> allNodes) throws InterruptedException {
     try {
       // create new configuration based on existing config but with default set of CPAs
       Configuration lConfig = Configuration.builder()
@@ -131,7 +131,7 @@ public class CFAReduction {
       Algorithm lAlgorithm = new CPAAlgorithm(lCpas, logger);
       PartitionedReachedSet lReached = new PartitionedReachedSet(TraversalMethod.DFS);
       lReached.add(lCpas.getInitialElement(cfa), lCpas.getInitialPrecision(cfa));
-      
+
       lAlgorithm.run(lReached);
 
       return ImmutableSet.copyOf(extractLocations(filterTargetElements(lReached)));
@@ -146,17 +146,17 @@ public class CFAReduction {
     return allNodes;
   }
 
-    
+
   private void pruneIrrelevantNodes(Set<CFANode> allNodes,
       Set<CFANode> relevantNodes, Set<CFANode> errorNodes) {
     for (CFANode n : allNodes) {
       if (!relevantNodes.contains(n)) {
-        
+
         // check if node is successor of error node and remove incoming edges
         for (int edgeIndex = n.getNumEnteringEdges() - 1; edgeIndex >= 0; edgeIndex--) {
           CFAEdge removedEdge = n.getEnteringEdge(edgeIndex);
           CFANode prevNode = removedEdge.getPredecessor();
-          
+
           if (!errorNodes.contains(prevNode)) {
             // do not remove the direct successors of error nodes
 
@@ -164,7 +164,7 @@ public class CFAReduction {
             n.removeEnteringEdge(removedEdge);
           }
         }
-        
+
         // remove all outgoing edges
         while (n.getNumLeavingEdges() > 0) {
           CFAEdge removedEdge = n.getLeavingEdge(0);

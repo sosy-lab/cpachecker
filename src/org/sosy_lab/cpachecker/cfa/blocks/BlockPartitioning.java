@@ -18,17 +18,17 @@ import com.google.common.collect.ImmutableSet;
  *
  */
 public class BlockPartitioning {
-  private final Block mainBlock; 
+  private final Block mainBlock;
   private final Map<CFANode, Block> callNodeToBlock;
   private final Map<CFANode, Block> nodeToBlock;
   private final Set<CFANode> returnNodes;
-  
+
   public BlockPartitioning(Collection<Block> subtrees) {
     Block mainBlock = null;
     Map<CFANode, Block> callNodeToSubtree = new HashMap<CFANode, Block>();
-    Map<CFANode, Block> nodeToSubtree = new HashMap<CFANode, Block>(); 
+    Map<CFANode, Block> nodeToSubtree = new HashMap<CFANode, Block>();
     Set<CFANode> returnNodes = new HashSet<CFANode>();
-    
+
     for(Block subtree : subtrees) {
       for(CFANode callNode : subtree.getCallNodes()) {
         if(callNode instanceof CFAFunctionDefinitionNode && callNode.getFunctionName().equalsIgnoreCase("main")) {
@@ -40,18 +40,18 @@ public class BlockPartitioning {
       for(CFANode uniqueNode : subtree.getUniqueNodes()) {
         nodeToSubtree.put(uniqueNode, subtree);
       }
-      
-      returnNodes.addAll(subtree.getReturnNodes());      
+
+      returnNodes.addAll(subtree.getReturnNodes());
     }
-    
+
     assert mainBlock != null;
     this.mainBlock = mainBlock;
-    
+
     this.callNodeToBlock = ImmutableMap.copyOf(callNodeToSubtree);
     this.nodeToBlock = ImmutableMap.copyOf(nodeToSubtree);
     this.returnNodes = ImmutableSet.copyOf(returnNodes);
   }
-  
+
   /**
    * @param node
    * @return true, if there is a <code>Block</code> such that <code>node</node> is a callnode of the subtree.
@@ -59,7 +59,7 @@ public class BlockPartitioning {
   public boolean isCallNode(CFANode node) {
     return callNodeToBlock.containsKey(node);
   }
-  
+
   /**
    * Requires <code>isCallNode(node)</code> to be <code>true</code>.
    * @param node call node of some cached subtree
@@ -68,7 +68,7 @@ public class BlockPartitioning {
   public Block getBlockForCallNode(CFANode node) {
     return callNodeToBlock.get(node);
   }
-  
+
   public Block getBlockForNode(CFANode node) {
     return nodeToBlock.get(node);
   }

@@ -54,7 +54,7 @@ public class InterpreterCPATest {
   public void test001() throws Exception {
     ConfigurableProgramAnalysis lLocationCPA;
     ConfigurableProgramAnalysis lCallStackCPA;
-    
+
     /*
      * Initialize shared CPAs.
      */
@@ -66,7 +66,7 @@ public class InterpreterCPATest {
     } catch (CPAException e) {
       throw new RuntimeException(e);
     }
-    
+
     // callstack CPA
     CPAFactory lCallStackCPAFactory = CallstackCPA.factory();
     try {
@@ -76,56 +76,56 @@ public class InterpreterCPATest {
     } catch (CPAException e) {
       throw new RuntimeException(e);
     }
-    
-    
+
+
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
     lComponentAnalyses.add(lLocationCPA);
-    
+
     // call stack CPA
     lComponentAnalyses.add(lCallStackCPA);
-    
+
     int[] lInputs = new int[0];
-    
+
     // explicit CPA
     InterpreterCPA lInterpreterCPA = new InterpreterCPA(lInputs);
     lComponentAnalyses.add(lInterpreterCPA);
-    
+
 
     Configuration lConfiguration;
     LogManager lLogManager;
-    
+
     String lSourceFileName = "test/programs/fql/locks/test_locks_1.c";
     String lEntryFunction = "main";
-    
+
     Map<String, CFAFunctionDefinitionNode> lCFAMap;
     CFAFunctionDefinitionNode lMainFunction;
-    
+
     try {
       lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
       lLogManager = new LogManager(lConfiguration);
-      
+
       lCFAMap = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager);
       lMainFunction = lCFAMap.get(lEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     }
-    
-    
+
+
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCFAMap, lLogManager);
-    
+
     try {
       lWrapper.toDot("test/output/wrapper.dot");
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-    
-    
+
+
     CPAFactory lCPAFactory = CompositeCPA.factory();
     lCPAFactory.setChildren(lComponentAnalyses);
     lCPAFactory.setConfiguration(lConfiguration);
     lCPAFactory.setLogger(lLogManager);
     ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
-    
+
     CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, lLogManager);
 
     AbstractElement lInitialElement = lCPA.getInitialElement(lWrapper.getEntry());
@@ -140,12 +140,12 @@ public class InterpreterCPATest {
       throw new RuntimeException(e);
     }
   }
-  
+
   @Test
   public void test002() throws Exception {
     ConfigurableProgramAnalysis lLocationCPA;
     ConfigurableProgramAnalysis lCallStackCPA;
-    
+
     /*
      * Initialize shared CPAs.
      */
@@ -157,7 +157,7 @@ public class InterpreterCPATest {
     } catch (CPAException e) {
       throw new RuntimeException(e);
     }
-    
+
     // callstack CPA
     CPAFactory lCallStackCPAFactory = CallstackCPA.factory();
     try {
@@ -167,56 +167,56 @@ public class InterpreterCPATest {
     } catch (CPAException e) {
       throw new RuntimeException(e);
     }
-    
-    
+
+
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
     lComponentAnalyses.add(lLocationCPA);
-    
+
     // call stack CPA
     lComponentAnalyses.add(lCallStackCPA);
-    
+
     int[] lInputs = { 1, 0, 0 };
-    
+
     // explicit CPA
     InterpreterCPA lInterpreterCPA = new InterpreterCPA(lInputs);
     lComponentAnalyses.add(lInterpreterCPA);
-    
+
 
     Configuration lConfiguration;
     LogManager lLogManager;
-    
+
     String lSourceFileName = "test/programs/fql/locks/test_locks_1.c";
     String lEntryFunction = "main";
-    
+
     Map<String, CFAFunctionDefinitionNode> lCFAMap;
     CFAFunctionDefinitionNode lMainFunction;
-    
+
     try {
       lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
       lLogManager = new LogManager(lConfiguration);
-      
+
       lCFAMap = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager);
       lMainFunction = lCFAMap.get(lEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     }
-    
-    
+
+
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCFAMap, lLogManager);
-    
+
     try {
       lWrapper.toDot("test/output/wrapper.dot");
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-    
-    
+
+
     CPAFactory lCPAFactory = CompositeCPA.factory();
     lCPAFactory.setChildren(lComponentAnalyses);
     lCPAFactory.setConfiguration(lConfiguration);
     lCPAFactory.setLogger(lLogManager);
     ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
-    
+
     CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, lLogManager);
 
     AbstractElement lInitialElement = lCPA.getInitialElement(lWrapper.getEntry());
@@ -231,12 +231,12 @@ public class InterpreterCPATest {
       throw new RuntimeException(e);
     }
   }
-  
+
   @Test
   public void test003() throws Exception {
     ConfigurableProgramAnalysis lLocationCPA;
     ConfigurableProgramAnalysis lCallStackCPA;
-    
+
     /*
      * Initialize shared CPAs.
      */
@@ -248,7 +248,7 @@ public class InterpreterCPATest {
     } catch (CPAException e) {
       throw new RuntimeException(e);
     }
-    
+
     // callstack CPA
     CPAFactory lCallStackCPAFactory = CallstackCPA.factory();
     try {
@@ -258,56 +258,56 @@ public class InterpreterCPATest {
     } catch (CPAException e) {
       throw new RuntimeException(e);
     }
-    
-    
+
+
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
     lComponentAnalyses.add(lLocationCPA);
-    
+
     // call stack CPA
     lComponentAnalyses.add(lCallStackCPA);
-    
+
     int[] lInputs = new int[0];
-    
+
     // explicit CPA
     InterpreterCPA lInterpreterCPA = new InterpreterCPA(lInputs, true);
     lComponentAnalyses.add(lInterpreterCPA);
-    
+
 
     Configuration lConfiguration;
     LogManager lLogManager;
-    
+
     String lSourceFileName = "test/programs/fql/locks/test_locks_1.c";
     String lEntryFunction = "main";
-    
+
     Map<String, CFAFunctionDefinitionNode> lCFAMap;
     CFAFunctionDefinitionNode lMainFunction;
-    
+
     try {
       lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
       lLogManager = new LogManager(lConfiguration);
-      
+
       lCFAMap = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager);
       lMainFunction = lCFAMap.get(lEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     }
-    
-    
+
+
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCFAMap, lLogManager);
-    
+
     try {
       lWrapper.toDot("test/output/wrapper.dot");
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-    
-    
+
+
     CPAFactory lCPAFactory = CompositeCPA.factory();
     lCPAFactory.setChildren(lComponentAnalyses);
     lCPAFactory.setConfiguration(lConfiguration);
     lCPAFactory.setLogger(lLogManager);
     ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
-    
+
     CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, lLogManager);
 
     AbstractElement lInitialElement = lCPA.getInitialElement(lWrapper.getEntry());
@@ -327,7 +327,7 @@ public class InterpreterCPATest {
   public void test004() throws Exception {
     ConfigurableProgramAnalysis lLocationCPA;
     ConfigurableProgramAnalysis lCallStackCPA;
-    
+
     /*
      * Initialize shared CPAs.
      */
@@ -339,7 +339,7 @@ public class InterpreterCPATest {
     } catch (CPAException e) {
       throw new RuntimeException(e);
     }
-    
+
     // callstack CPA
     CPAFactory lCallStackCPAFactory = CallstackCPA.factory();
     try {
@@ -349,56 +349,56 @@ public class InterpreterCPATest {
     } catch (CPAException e) {
       throw new RuntimeException(e);
     }
-    
-    
+
+
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
     lComponentAnalyses.add(lLocationCPA);
-    
+
     // call stack CPA
     lComponentAnalyses.add(lCallStackCPA);
-    
+
     int[] lInputs = new int[0];
-    
+
     // explicit CPA
     InterpreterCPA lInterpreterCPA = new InterpreterCPA(lInputs, true);
     lComponentAnalyses.add(lInterpreterCPA);
-    
+
 
     Configuration lConfiguration;
     LogManager lLogManager;
-    
+
     String lSourceFileName = "test/programs/fql/ntdrivers-simplified/cdaudio_simpl1_BUG.cil.c";
     String lEntryFunction = "main";
-    
+
     Map<String, CFAFunctionDefinitionNode> lCFAMap;
     CFAFunctionDefinitionNode lMainFunction;
-    
+
     try {
       lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
       lLogManager = new LogManager(lConfiguration);
-      
+
       lCFAMap = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager);
       lMainFunction = lCFAMap.get(lEntryFunction);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     }
-    
-    
+
+
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCFAMap, lLogManager);
-    
+
     try {
       lWrapper.toDot("test/output/wrapper.dot");
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-    
-    
+
+
     CPAFactory lCPAFactory = CompositeCPA.factory();
     lCPAFactory.setChildren(lComponentAnalyses);
     lCPAFactory.setConfiguration(lConfiguration);
     lCPAFactory.setLogger(lLogManager);
     ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
-    
+
     CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, lLogManager);
 
     AbstractElement lInitialElement = lCPA.getInitialElement(lWrapper.getEntry());
@@ -413,5 +413,5 @@ public class InterpreterCPATest {
       throw new RuntimeException(e);
     }
   }
-  
+
 }

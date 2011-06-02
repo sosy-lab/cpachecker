@@ -10,21 +10,21 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 
 /**
- * Computes set of irrelevant predicates of a block by identifying the variables that a auxiliary to the block. 
+ * Computes set of irrelevant predicates of a block by identifying the variables that a auxiliary to the block.
  * @author dwonisch
  *
  */
 public class AuxiliaryComputer extends AbstractRelevantPredicatesComputer<Collection<String>> {
- 
+
   @Override
   protected Collection<String> precompute(Block pContext, Collection<AbstractionPredicate> pPredicates) {
     // compute relevant variables
     Collection<String> relevantVars = new HashSet<String>();
     Collection<ReferencedVariable> unknownVars = new ArrayList<ReferencedVariable>();
-    
+
     for(ReferencedVariable var : pContext.getReferencedVariables()) {
       if(var.occursInCondition()) {
-        relevantVars.add(var.getName());        
+        relevantVars.add(var.getName());
       }
       else if(var.occursOnLhs()) {
         if(occursInPredicate(var, pPredicates)) {
@@ -35,12 +35,12 @@ public class AuxiliaryComputer extends AbstractRelevantPredicatesComputer<Collec
         unknownVars.add(var);
       }
     }
-    
+
     boolean changed = true;
     while(changed) {
       changed = false;
       Collection<ReferencedVariable> yetUnknownVars = new ArrayList<ReferencedVariable>();
-      
+
       for(ReferencedVariable var : unknownVars) {
         if(relevantVars.contains(var.getLhsVariable().getName())) {
           relevantVars.add(var.getName());
@@ -49,10 +49,10 @@ public class AuxiliaryComputer extends AbstractRelevantPredicatesComputer<Collec
         else {
           yetUnknownVars.add(var);
         }
-      }      
+      }
       unknownVars = yetUnknownVars;
-    }   
-    
+    }
+
     return relevantVars;
   }
 
@@ -75,7 +75,7 @@ public class AuxiliaryComputer extends AbstractRelevantPredicatesComputer<Collec
         //TODO: contains is a quite rough approximation; for example "foo <= 5" also contains "f", although the variable f does in fact not occur in the predicate.
         return true;
       }
-    }      
-    return false;    
+    }
+    return false;
   }
 }

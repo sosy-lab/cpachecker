@@ -36,7 +36,7 @@ public abstract class IASTLiteralExpression extends IASTExpression {
   public int getKind() {
     return kind;
   }
-  
+
   public static final int lk_integer_constant = 0;
   public static final int lk_float_constant = 1;
   public static final int lk_char_constant = 2;

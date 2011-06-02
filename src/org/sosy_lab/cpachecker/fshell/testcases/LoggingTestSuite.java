@@ -11,11 +11,11 @@ public class LoggingTestSuite extends TestSuite {
 
   private final TestSuite mTestSuite;
   private final PrintWriter mWriter;
-  
+
   public LoggingTestSuite(TestSuite pTestSuite, String pTestSuiteFilename, boolean pAppend) throws FileNotFoundException {
     this(pTestSuite, new File(pTestSuiteFilename), pAppend);
   }
-  
+
   @Override
   public void write(String pTestSuiteOutputFilename)
       throws FileNotFoundException {
@@ -34,28 +34,28 @@ public class LoggingTestSuite extends TestSuite {
 
   public LoggingTestSuite(TestSuite pTestSuite, File pTestSuiteFile, boolean pAppend) throws FileNotFoundException {
     mTestSuite = pTestSuite;
-    
+
     if (!pAppend) {
       mTestSuite.write(pTestSuiteFile);
     }
-    
+
     mWriter = new PrintWriter(new FileOutputStream(pTestSuiteFile, true));
   }
-  
+
   @Override
   public boolean add(TestCase pTestCase) {
     if (mTestSuite.add(pTestCase)) {
       mWriter.println(pTestCase);
       mWriter.flush();
-      
+
       return true;
     }
-    
+
     return false;
   }
 
   public void close() {
     mWriter.close();
   }
-  
+
 }

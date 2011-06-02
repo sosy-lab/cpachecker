@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 import com.google.common.base.Preconditions;
 
 public class TopologicallySortedWaitlist extends AbstractSortedWaitlist<Integer> {
-  
+
   protected TopologicallySortedWaitlist(WaitlistFactory pSecondaryStrategy) {
     super(pSecondaryStrategy);
     Preconditions.checkArgument(pSecondaryStrategy != TraversalMethod.TOPSORT);
@@ -40,7 +40,7 @@ public class TopologicallySortedWaitlist extends AbstractSortedWaitlist<Integer>
     assert AbstractElements.extractLocation(pElement) != null;
     super.add(pElement);
   }
-  
+
   @Override
   protected Integer getSortKey(AbstractElement pElement) {
     return AbstractElements.extractLocation(pElement).getTopologicalSortId();
@@ -48,7 +48,7 @@ public class TopologicallySortedWaitlist extends AbstractSortedWaitlist<Integer>
 
   public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy) {
     return new WaitlistFactory() {
-      
+
       @Override
       public Waitlist createWaitlistInstance() {
         return new TopologicallySortedWaitlist(pSecondaryStrategy);

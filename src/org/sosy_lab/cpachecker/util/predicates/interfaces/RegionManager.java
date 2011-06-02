@@ -53,7 +53,7 @@ public interface RegionManager {
    * @return true if f represents logical truth, false otherwise
    */
   public boolean isTrue(Region pF);
-  
+
   /**
    * @return a representation of logical truth
    */
@@ -86,7 +86,7 @@ public interface RegionManager {
    * @return (f1 | f2)
    */
   public Region makeOr(Region f1, Region f2);
-  
+
   /**
    * Creates a region representing an existential quantification of the two argument
    * @param f1 an AbstractFormula

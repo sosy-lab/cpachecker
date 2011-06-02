@@ -69,11 +69,11 @@ public class CPAMain {
 
     @Option(name="export", description="write some statistics to disk")
     private boolean exportStatistics = true;
-    
+
     @Option(name="file", type=Option.Type.OUTPUT_FILE,
         description="write some statistics to disk")
     private File exportStatisticsFile = new File("Statistics.txt");
-    
+
     private final LogManager logManager;
     private final Thread mainThread;
 
@@ -113,7 +113,7 @@ public class CPAMain {
       System.out.flush();
       System.err.flush();
       if (mResult != null) {
-        PrintStream stream = System.out; 
+        PrintStream stream = System.out;
         if (exportStatistics && exportStatisticsFile != null) {
           try {
             com.google.common.io.Files.createParentDirs(exportStatisticsFile);
@@ -145,7 +145,7 @@ public class CPAMain {
         System.err.println("Could not read config file " + e.getMessage());
         System.exit(1);
       }
-  
+
       logManager = new LogManager(cpaConfig);
 
     } catch (InvalidConfigurationException e) {
@@ -190,17 +190,17 @@ public class CPAMain {
     if (!cFile.isAbsolute()) {
       cFile = new File(cpaConfig.getRootDirectory(), cFile.getPath());
     }
-    
+
     try {
       Files.checkReadableFile(cFile);
     } catch (FileNotFoundException e) {
       logManager.log(Level.SEVERE, e.getMessage());
       System.exit(1);
     }
-    
+
     return cFile.getPath();
   }
-  
+
   static Configuration createConfiguration(String[] args)
           throws InvalidCmdlineArgumentException, IOException, InvalidConfigurationException {
     if (args == null || args.length < 1) {

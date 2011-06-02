@@ -100,7 +100,7 @@ implements GenericAssumptionBuilder
           //            return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
           //          (DummyASTNumericalLiteralExpression.CHAR_MIN, DummyASTNumericalLiteralExpression.CHAR_MAX);
       }
-    } 
+    }
     return Pair.of(null, null);
   }
 
@@ -192,7 +192,7 @@ implements GenericAssumptionBuilder
   @Override
   public IASTNode assumptionsForEdge(CFAEdge pEdge) {
     IASTNode result = NumericTypes.TRUE;
-    
+
     switch (pEdge.getEdgeType()) {
     case DeclarationEdge:
       DeclarationEdge declarationEdge = (DeclarationEdge) pEdge;

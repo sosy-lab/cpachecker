@@ -49,18 +49,18 @@ public class InterpreterCPA implements ConfigurableProgramAnalysis {
   public InterpreterCPA(int[] pInitialValuesForNondeterministicAssignments) {
     this(pInitialValuesForNondeterministicAssignments, false);
   }
-  
+
   public InterpreterCPA(int[] pInitialValuesForNondeterministicAssignments, boolean pExtendInputs) {
     if (pInitialValuesForNondeterministicAssignments == null) {
       throw new IllegalArgumentException();
     }
-    
+
     InterpreterDomain lDomain = new InterpreterDomain ();
     MergeOperator lMergeOp = MergeSepOperator.getInstance();
     StopOperator lStopOp = StopNeverOperator.getInstance();
-    
+
     TransferRelation lTransferRelation;
-    
+
     if (pExtendInputs) {
       lTransferRelation = new InterpreterInputExtendingTransferRelation();
     }
@@ -73,7 +73,7 @@ public class InterpreterCPA implements ConfigurableProgramAnalysis {
     this.stopOperator = lStopOp;
     this.transferRelation = lTransferRelation;
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
-    
+
     this.mInitialValuesForNondeterministicAssignments = pInitialValuesForNondeterministicAssignments;
   }
 

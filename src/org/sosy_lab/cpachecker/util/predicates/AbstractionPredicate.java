@@ -53,15 +53,15 @@ public class AbstractionPredicate {
   public Region getAbstractVariable() {
     return abstractVariable;
   }
-  
+
   public Formula getSymbolicVariable() {
     return symbolicVariable;
   }
-  
+
   public Formula getSymbolicAtom() {
     return symbolicAtom;
   }
-  
+
   @Override
   public boolean equals(Object pObj) {
     if (pObj == this) {
@@ -73,12 +73,12 @@ public class AbstractionPredicate {
       return this.abstractVariable.equals(other.abstractVariable);
     }
   }
-  
+
   @Override
   public int hashCode() {
     return abstractVariable.hashCode();
   }
-  
+
   @Override
   public String toString() {
     return abstractVariable + " <-> " + symbolicVariable + " <-> " + symbolicAtom;

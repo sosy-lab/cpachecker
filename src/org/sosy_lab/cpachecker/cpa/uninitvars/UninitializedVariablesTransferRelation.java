@@ -116,7 +116,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     case StatementEdge:
       handleStatement(successor, ((StatementEdge)cfaEdge).getStatement(), cfaEdge);
       break;
-      
+
     case ReturnStatementEdge:
       //this is the return-statement of a function
       //set a local variable tracking the return statement's initialization status
@@ -303,7 +303,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
 
       // a = b
       handleAssign(element, assignExpression, cfaEdge);
-      
+
     } else {
       throw new UnrecognizedCCodeException(cfaEdge, expression);
     }
@@ -473,7 +473,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   public Collection<? extends AbstractElement> strengthen(AbstractElement element,
                           List<AbstractElement> otherElements, CFAEdge cfaEdge,
                           Precision precision) {
-    
+
     //only call for declarations. check for lastAdded prevents unnecessary repeated executions for the same statement
     boolean typesCPAPresent = false;
 
@@ -498,7 +498,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
                 !(declEdge.getStorageClass() == StorageClass.EXTERN)) {
 
               handleStructDeclaration((UninitializedVariablesElement)element, typeElem,
-                                      (Type.CompositeType)t, lastAdded, lastAdded, 
+                                      (Type.CompositeType)t, lastAdded, lastAdded,
                                       declEdge.isGlobal());
             }
           }
@@ -601,7 +601,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
                                        String varName,
                                        String recursiveVarName,
                                        boolean isGlobalDeclaration) {
-    
+
     //structs themselves are always considered initialized
     setInitialized(element, recursiveVarName);
 

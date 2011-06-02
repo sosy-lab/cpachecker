@@ -49,23 +49,23 @@ public class Union implements CoverageSpecification {
   @Override
   public String toString() {
     String lFirstSubspecificationString;
-    
+
     if (mFirstSubspecification instanceof Concatenation || mFirstSubspecification instanceof Union) {
       lFirstSubspecificationString = "(" + mFirstSubspecification.toString() + ")";
     }
     else {
       lFirstSubspecificationString = mFirstSubspecification.toString();
     }
-    
+
     String lSecondSubspecificationString;
-    
+
     if (mSecondSubspecification instanceof Concatenation || mSecondSubspecification instanceof Union) {
       lSecondSubspecificationString = "(" + mSecondSubspecification.toString() + ")";
     }
     else {
       lSecondSubspecificationString = mSecondSubspecification.toString();
     }
-    
+
     return lFirstSubspecificationString + " + " + lSecondSubspecificationString;
   }
 

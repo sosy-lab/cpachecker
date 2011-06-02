@@ -16,34 +16,34 @@ import org.sosy_lab.cpachecker.fshell.fql2.normalization.pathpattern.IdentityRew
 public class QuotePredicates implements CoverageSpecificationRewriter {
 
   public static FQLSpecificationRewriter mFQLRewriter = new CompositeFQLSpecificationRewriter(new QuotePredicates(), IdentityRewriter.getInstance());
-  
+
   public static FQLSpecificationRewriter getFQLSpecificationRewriter() {
     return mFQLRewriter;
   }
-  
+
   public static QuotePredicates mInstance = new QuotePredicates();
-  
+
   public static QuotePredicates getRewriter() {
     return mInstance;
   }
-  
+
   private Visitor mVisitor = new Visitor();
-  
+
   @Override
   public CoverageSpecification rewrite(CoverageSpecification pSpecification) {
     return pSpecification.accept(mVisitor);
   }
-  
+
   private static class Visitor implements CoverageSpecificationVisitor<CoverageSpecification> {
 
     @Override
     public Concatenation visit(Concatenation pConcatenation) {
       CoverageSpecification lFirstSubspecification = pConcatenation.getFirstSubspecification();
       CoverageSpecification lSecondSubspecification = pConcatenation.getSecondSubspecification();
-      
+
       CoverageSpecification lNewFirstSubspecification = lFirstSubspecification.accept(this);
       CoverageSpecification lNewSecondSubspecification = lSecondSubspecification.accept(this);
-      
+
       if (lNewFirstSubspecification.equals(lFirstSubspecification) && lNewSecondSubspecification.equals(lSecondSubspecification)) {
         return pConcatenation;
       }
@@ -61,10 +61,10 @@ public class QuotePredicates implements CoverageSpecificationRewriter {
     public Union visit(Union pUnion) {
       CoverageSpecification lFirstSubspecification = pUnion.getFirstSubspecification();
       CoverageSpecification lSecondSubspecification = pUnion.getSecondSubspecification();
-      
+
       CoverageSpecification lNewFirstSubspecification = lFirstSubspecification.accept(this);
       CoverageSpecification lNewSecondSubspecification = lSecondSubspecification.accept(this);
-      
+
       if (lNewFirstSubspecification.equals(lFirstSubspecification) && lNewSecondSubspecification.equals(lSecondSubspecification)) {
         return pUnion;
       }
@@ -92,7 +92,7 @@ public class QuotePredicates implements CoverageSpecificationRewriter {
     public Quotation visit(Predicate pPredicate) {
       return new Quotation(pPredicate);
     }
-    
+
   }
 
 }

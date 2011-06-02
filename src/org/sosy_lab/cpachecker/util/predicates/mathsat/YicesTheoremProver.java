@@ -284,7 +284,7 @@ public class YicesTheoremProver implements TheoremProver {
     public AllSatResult allSat(Formula f, Collection<Formula> important,
             AbstractionManager amgr, Timer timer) {
         MathsatAllSatCallback callback = new MathsatAllSatCallback(amgr, timer);
-        
+
         // build the yices representation of the formula...
         Pair<Collection<String>, String> yicesFormula = toYices(f);
         // ...and of the important symbols

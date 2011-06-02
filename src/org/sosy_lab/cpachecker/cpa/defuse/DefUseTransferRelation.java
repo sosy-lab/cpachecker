@@ -73,7 +73,7 @@ public class DefUseTransferRelation implements TransferRelation
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException {
     DefUseElement defUseElement = (DefUseElement) element;
-    
+
     switch (cfaEdge.getEdgeType ())
     {
     case StatementEdge:

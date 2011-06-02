@@ -39,5 +39,5 @@ public interface FormulaReportingElement {
    * Returns a formula over-approximating the element
    */
   public Formula getFormulaApproximation(FormulaManager manager);
-  
+
 }

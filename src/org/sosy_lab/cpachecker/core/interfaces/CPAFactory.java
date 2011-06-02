@@ -101,7 +101,7 @@ public interface CPAFactory {
    * @throws UnsupportedOperationException if this factory does not support storing objects of this type
    */
   public <T> CPAFactory set(T object, Class<T> cls) throws UnsupportedOperationException;
-  
+
   /**
    * Returns a new instance of the CPA belonging to this CPAFactory, using the
    * objects passed to the other methods of this CPAFactory before. If this is not

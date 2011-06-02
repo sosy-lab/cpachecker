@@ -53,7 +53,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 public class CFASecondPassBuilder {
 
   private final Map<String, CFAFunctionDefinitionNode> cfas;
-  
+
   /**
    * Class constructor.
    * @param map List of all CFA's in the program.
@@ -61,7 +61,7 @@ public class CFASecondPassBuilder {
   public CFASecondPassBuilder(Map<String, CFAFunctionDefinitionNode> cfas) {
     this.cfas = cfas;
   }
-  
+
   /**
    * Traverses a CFA and inserts call edges and return edges (@see {@link #insertCallEdges(CFANode)}.
    * This method starts with a function and recursively acts on all functions
@@ -110,7 +110,7 @@ public class CFASecondPassBuilder {
         // already handled
         continue;
       }
-      
+
       int numLeavingEdges = node.getNumLeavingEdges();
 
       for (int edgeIdx = 0; edgeIdx < numLeavingEdges; edgeIdx++) {
@@ -161,16 +161,16 @@ public class CFASecondPassBuilder {
     int lineNumber = edge.getLineNumber();
     CFAFunctionDefinitionNode fDefNode = cfas.get(functionName);
     CFAFunctionExitNode fExitNode = fDefNode.getExitNode();
-    
+
     assert fDefNode instanceof FunctionDefinitionNode : "This code creates edges from package cfa.objectmodel.c, so the nodes need to be from this package, too.";
-    
+
     //get the parameter expression
     List<IASTExpression> parameters = functionCallExpression.getParameterExpressions();
 
     // delete old edge
     predecessorNode.removeLeavingEdge(edge);
     successorNode.removeEnteringEdge(edge);
-    
+
     // create new edges
     FunctionCallEdge callEdge = new FunctionCallEdge(functionCallExpression.getRawSignature(), edge.getStatement(), lineNumber, predecessorNode, (FunctionDefinitionNode)fDefNode, parameters);
     predecessorNode.addLeavingEdge(callEdge);
@@ -179,20 +179,20 @@ public class CFASecondPassBuilder {
     CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(functionCall.asStatement().getRawSignature(), lineNumber, predecessorNode, successorNode, functionCall);
     predecessorNode.addLeavingSummaryEdge(calltoReturnEdge);
     successorNode.addEnteringSummaryEdge(calltoReturnEdge);
-    
+
     if (fExitNode.getNumEnteringEdges() == 0) {
       // exit node of called functions is not reachable, i.e. this function never returns
       // no need to add return edges, instead we can remove the part after this function call
-      
+
       CFACreationUtils.removeChainOfNodesFromCFA(successorNode);
-      
+
     } else {
-  
+
       FunctionReturnEdge returnEdge = new FunctionReturnEdge("Return Edge to " + successorNode.getNodeNumber(), lineNumber, fExitNode, successorNode);
       fExitNode.addLeavingEdge(returnEdge);
       successorNode.addEnteringEdge(returnEdge);
     }
-    
+
     return functionName;
   }
 }

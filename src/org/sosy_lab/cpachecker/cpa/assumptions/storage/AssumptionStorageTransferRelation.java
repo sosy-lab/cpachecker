@@ -72,7 +72,7 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
     AssumptionStorageElement asmptStorageElem = (AssumptionStorageElement)el;
     assert asmptStorageElem.getAssumption().isTrue();
     assert asmptStorageElem.getStopFormula().isTrue();
-    
+
     Formula assumption = formulaManager.makeTrue();
     Formula stopFormula = formulaManager.makeFalse(); // initialize with false because we create a disjunction
 
@@ -99,10 +99,10 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
     if (!stop) {
       stopFormula = formulaManager.makeTrue();
     }
-    
+
     if (assumption.isTrue() && stopFormula.isTrue()) {
       return null; // nothing has changed
-      
+
     } else {
       return Collections.singleton(new AssumptionStorageElement(assumption, stopFormula));
     }

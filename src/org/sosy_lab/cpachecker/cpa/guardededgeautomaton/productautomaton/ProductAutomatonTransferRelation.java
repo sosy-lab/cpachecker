@@ -29,7 +29,7 @@ public class ProductAutomatonTransferRelation extends CompositeTransferRelation 
   /*
    * (non-Javadoc)
    * @see org.sosy_lab.cpachecker.cpa.composite.CompositeTransferRelation#getAbstractSuccessors(org.sosy_lab.cpachecker.core.interfaces.AbstractElement, org.sosy_lab.cpachecker.core.interfaces.Precision, org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge)
-   * 
+   *
    * We do not strengthen!
    */
   @Override
@@ -38,7 +38,7 @@ public class ProductAutomatonTransferRelation extends CompositeTransferRelation 
       throws CPATransferException, InterruptedException {
     CompositeElement lCompositeElement = (CompositeElement)pElement;
     CompositePrecision lCompositePrecision = (CompositePrecision)pPrecision;
-    
+
     int resultCount = 1;
     List<AbstractElement> componentElements = lCompositeElement.getElements();
     List<Collection<? extends AbstractElement>> allComponentsSuccessors = new ArrayList<Collection<? extends AbstractElement>>(size);
@@ -50,27 +50,27 @@ public class ProductAutomatonTransferRelation extends CompositeTransferRelation 
 
       Collection<? extends AbstractElement> componentSuccessors = lCurrentTransfer.getAbstractSuccessors(lCurrentElement, lCurrentPrecision, pCfaEdge);
       resultCount *= componentSuccessors.size();
-      
+
       if (resultCount == 0) {
         // shortcut
         break;
       }
-      
+
       allComponentsSuccessors.add(componentSuccessors);
     }
 
     // create cartesian product of all elements we got
     Collection<List<AbstractElement>> allResultingElements
         = createCartesianProduct(allComponentsSuccessors, resultCount);
-    
+
     Collection<CompositeElement> lSuccessors = new LinkedHashSet<CompositeElement>();
-    
+
     for (List<AbstractElement> lSuccessor : allResultingElements) {
       ProductAutomatonElement lNewSuccessor = ProductAutomatonElement.createElement(lSuccessor);
-      
+
       lSuccessors.add(lNewSuccessor);
     }
-    
+
     return lSuccessors;
   }
 
@@ -78,11 +78,11 @@ public class ProductAutomatonTransferRelation extends CompositeTransferRelation 
   public Collection<? extends AbstractElement> strengthen(
       AbstractElement pElement, List<AbstractElement> pOtherElements,
       CFAEdge pCfaEdge, Precision pPrecision) {
-    
+
     if (pElement instanceof ProductAutomatonElement.PredicateElement) {
       ProductAutomatonElement.PredicateElement lElement = (ProductAutomatonElement.PredicateElement)pElement;
       List<AbstractElement> lSubelements = new ArrayList<AbstractElement>(lElement.getNumberofElements());
-      
+
       for (AbstractElement lSubelement : lElement.getElements()) {
         if (lSubelement instanceof GuardedEdgeAutomatonPredicateElement) {
           GuardedEdgeAutomatonPredicateElement lPredicateElement = (GuardedEdgeAutomatonPredicateElement)lSubelement;
@@ -95,10 +95,10 @@ public class ProductAutomatonTransferRelation extends CompositeTransferRelation 
           throw new RuntimeException("Unsupported element type!");
         }
       }
-      
+
       return Collections.singleton(new ProductAutomatonElement.StateElement(lSubelements));
     }
-    
+
     return null;
   }
 

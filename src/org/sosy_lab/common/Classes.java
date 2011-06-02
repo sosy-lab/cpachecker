@@ -39,12 +39,12 @@ public final class Classes {
   public static class ClassInstantiationException extends Exception {
 
     private static final long serialVersionUID = 7862065219560550275L;
-    
+
     public ClassInstantiationException(String className, String msg) {
       super("Cannot instantiate class " + className + ":" + msg);
     }
   }
-  
+
   /**
    * Creates an instance of class className, passing the objects from argumentList
    * to the constructor and casting the object to class type.
@@ -55,15 +55,15 @@ public final class Classes {
    * @param argumentValues Array with the values that will be passed to the constructor.
    * @param type The return type (has to be a super type of the class, of course).
    * @throws ClassInstantiationException If something goes wrong (like class cannot be found or has no constructor).
-   * @throws InvocationTargetException If the constructor throws an exception.  
+   * @throws InvocationTargetException If the constructor throws an exception.
    */
   public static <T> T createInstance(String className, String prefix,
       Class<?>[] argumentTypes, Object[] argumentValues, Class<T> type)
       throws ClassInstantiationException, InvocationTargetException {
-    
+
     return createInstance(className, prefix, argumentTypes, argumentValues, type, null);
   }
-  
+
   /**
    * Creates an instance of class className, passing the objects from argumentList
    * to the constructor and casting the object to class type.
@@ -75,7 +75,7 @@ public final class Classes {
    * @param type The return type (has to be a super type of the class, of course).
    * @param cl An optional class loader to load the class (may be null).
    * @throws ClassInstantiationException If something goes wrong (like class cannot be found or has no constructor).
-   * @throws InvocationTargetException If the constructor throws an exception.  
+   * @throws InvocationTargetException If the constructor throws an exception.
    */
   public static <T> T createInstance(String className, String prefix,
       Class<?>[] argumentTypes, Object[] argumentValues, Class<T> type,
@@ -84,15 +84,15 @@ public final class Classes {
     try {
       Class<?> cls = forName(className, prefix, cl);
       return createInstance(cls, argumentTypes, argumentValues, type);
-      
+
     } catch (ClassNotFoundException e) {
       throw new ClassInstantiationException(className, "Class not found!");
     } catch (SecurityException e) {
       throw new ClassInstantiationException(className, e.getMessage());
     }
   }
-  
-  
+
+
   /**
    * Creates an instance of class cls, passing the objects from argumentList
    * to the constructor and casting the object to class type.
@@ -103,7 +103,7 @@ public final class Classes {
    * @param type The return type (has to be a super type of the class, of course).
    * @param cl An optional class loader to load the class (may be null).
    * @throws ClassInstantiationException If something goes wrong (like class cannot be found or has no constructor).
-   * @throws InvocationTargetException If the constructor throws an exception.  
+   * @throws InvocationTargetException If the constructor throws an exception.
    */
   public static <T> T createInstance(Class<?> cls,
       Class<?>[] argumentTypes, Object[] argumentValues, Class<T> type)
@@ -125,29 +125,29 @@ public final class Classes {
       throw new ClassInstantiationException(cls.getCanonicalName(), "Not an instance of " + type.getCanonicalName());
     }
   }
-  
+
   /**
    * Similar to {@link Class#forName(String)}, but if the class is not found this
    * method re-tries with a package name prefixed.
-   * 
+   *
    * @param name The class name.
    * @param prefix An optional package name as prefix.
-   * @return The class object for  name  or  prefix + "." + name  
+   * @return The class object for  name  or  prefix + "." + name
    * @throws ClassNotFoundException If none of the two classes can be found.
    */
   public static Class<?> forName(String name, String prefix) throws ClassNotFoundException, SecurityException {
     return forName(name, prefix, null);
   }
-  
+
   /**
    * Similar to {@link Class#forName(String)} and {@link ClassLoader#loadClass(String)},
    * but if the class is not found this
    * method re-tries with a package name prefixed.
-   * 
+   *
    * @param name The class name.
    * @param prefix An optional package name as prefix.
    * @param cl An optional class loader to load the class (may be null).
-   * @return The class object for  name  or  prefix + "." + name  
+   * @return The class object for  name  or  prefix + "." + name
    * @throws ClassNotFoundException If none of the two classes can be found.
    */
   private static Class<?> forName(String name, String prefix, ClassLoader cl) throws ClassNotFoundException, SecurityException {
@@ -159,10 +159,10 @@ public final class Classes {
     if (prefix == null || prefix.isEmpty()) {
       return cl.loadClass(name);
     }
-    
+
     try {
       return cl.loadClass(name);
-      
+
     } catch (ClassNotFoundException e) {
       try {
         return cl.loadClass(prefix + "." + name); // try with prefix added

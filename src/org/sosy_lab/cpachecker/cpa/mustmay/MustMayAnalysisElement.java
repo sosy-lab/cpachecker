@@ -35,8 +35,8 @@ public class MustMayAnalysisElement implements AbstractElement, AbstractWrapperE
   /**
    * This object is used when the MustCPA produced no successors.
    */
-  static final AbstractElement DONT_KNOW_ELEMENT = new AbstractElement() { }; 
-  
+  static final AbstractElement DONT_KNOW_ELEMENT = new AbstractElement() { };
+
   private final AbstractElement mMustElement;
   private final AbstractElement mMayElement;
 

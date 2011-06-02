@@ -46,7 +46,7 @@ public class Automaton {
     this.name = pName;
     this.initVars = pVars;
     this.states = pStates;
-    
+
     AutomatonInternalState lInitState = null;
     for (AutomatonInternalState s : pStates) {
       if (s.getName().equals(pInit)) {
@@ -78,17 +78,17 @@ public class Automaton {
   public int getNumberOfStates() {
     return states.size();
   }
-  
+
   /**
    * Prints the contents of a DOT file representing this automaton to the PrintStream.
    * @param pOut
    */
   void writeDotFile(PrintStream pOut) {
     pOut.println("digraph " + name + "{");
-    
+
     pOut.println(AutomatonInternalState.ERROR.getStateId() + " [shape=\"circle\" color=\"red\" label=\"" +  AutomatonInternalState.ERROR.getName() + "\"]");
     pOut.println(AutomatonInternalState.BOTTOM.getStateId() + " [shape=\"circle\" color=\"red\" label=\"" +  AutomatonInternalState.BOTTOM.getName() + "\"]");
-    
+
     for (AutomatonInternalState s : states) {
       if (initState.equals(s)) {
         pOut.println(s.getStateId() + " [shape=\"circle\" color=\"green\" label=\"" +  s.getName() + "\"]");

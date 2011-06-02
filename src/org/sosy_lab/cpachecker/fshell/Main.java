@@ -34,7 +34,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.Cilly;
 
 public class Main {
-  
+
   public static final String STATEMENT_COVERAGE = "COVER \"EDGES(ID)*\".NODES(ID).\"EDGES(ID)*\"";
   public static final String STATEMENT_2_COVERAGE = STATEMENT_COVERAGE + ".NODES(ID).\"EDGES(ID)*\"";
   public static final String STATEMENT_3_COVERAGE = STATEMENT_2_COVERAGE + ".NODES(ID).\"EDGES(ID)*\"";
@@ -55,10 +55,10 @@ public class Main {
   public static final String BOUNDED_PATH_6_COVERAGE = "COVER \"EDGES(ID)*\".PATHS(ID, 6).\"EDGES(ID)*\"";
   public static final String BOUNDED_PATH_7_COVERAGE = "COVER \"EDGES(ID)*\".PATHS(ID, 7).\"EDGES(ID)*\"";
   public static final String BOUNDED_PATH_8_COVERAGE = "COVER \"EDGES(ID)*\".PATHS(ID, 8).\"EDGES(ID)*\"";
-  
+
   public static void main(String[] pArguments) throws IOException, InvalidConfigurationException {
     FShell3Result lResult = run(pArguments);
-    
+
     if (lResult.hasFinished()) {
       // signal that test generation has finished
       System.exit(0);
@@ -68,22 +68,22 @@ public class Main {
       System.exit(-1);
     }
   }
-  
+
   public static FShell3Result run(String[] pArguments) throws IOException, InvalidConfigurationException {
     assert(pArguments != null);
     assert(pArguments.length > 1);
-    
+
     System.out.println(pArguments[0]);
-    
+
     String lFQLSpecificationString = pArguments[0];
     String lSourceFileName = pArguments[1];
-    
+
     String lEntryFunction = "main";
-    
+
     if (pArguments.length > 2) {
       lEntryFunction = pArguments[2];
     }
-    
+
     boolean lCilPreprocessing = true;
     int lMinIndex = 0;
     int lMaxIndex = Integer.MAX_VALUE;
@@ -97,7 +97,7 @@ public class Main {
 
     for (int lIndex = 3; lIndex < pArguments.length; lIndex++) {
       String lOption = pArguments[lIndex].trim();
-      
+
       if (lOption.equals("--withoutCilPreprocessing")) {
         lCilPreprocessing = false;
       }
@@ -132,78 +132,78 @@ public class Main {
         lRestartBound = Long.valueOf(lTmp);
       }
     }
-    
+
     if (lCilPreprocessing) {
       // check cilly invariance of source file, i.e., is it changed when preprocessed by cilly?
       Configuration lConfig = Configuration.defaultConfiguration();
       LogManager lLogger = new LogManager(lConfig);
       Cilly lCilly = new Cilly(lLogger);
-  
+
       if (!lCilly.isCillyInvariant(lSourceFileName)) {
         File lCillyProcessedFile = lCilly.cillyfy(lSourceFileName);
         //lCillyProcessedFile.deleteOnExit();
-  
+
         lSourceFileName = lCillyProcessedFile.getAbsolutePath();
-  
+
         System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
       }
     }
-    
+
     FShell3 lFShell = new FShell3(lSourceFileName, lEntryFunction);
-    
+
     lFShell.setGoalIndices(lMinIndex, lMaxIndex);
-    
+
     if (lFeasibilityInformationInputFile != null) {
       lFShell.setFeasibilityInformationInputFile(lFeasibilityInformationInputFile);
     }
-    
+
     if (lFeasibilityInformationOutputFile != null) {
       lFShell.setFeasibilityInformationOutputFile(lFeasibilityInformationOutputFile);
     }
-    
+
     if (lTestSuiteOutputFile != null) {
       lFShell.setTestSuiteOutputFile(lTestSuiteOutputFile);
     }
-    
+
     if (lDoLogging) {
       lFShell.doLogging();
-      
+
       if (lDoAppendingLogging) {
         lFShell.doAppendingLogging();
       }
     }
-    
+
     if (lDoRestart) {
       lFShell.doRestart();
       lFShell.setRestartBound(lRestartBound);
     }
-    
+
     FShell3Result lResult = lFShell.run(lFQLSpecificationString);
-    
+
     System.out.println("#Goals: " + lResult.getNumberOfTestGoals() + ", #Feasible: " + lResult.getNumberOfFeasibleTestGoals() + ", #Infeasible: " + lResult.getNumberOfInfeasibleTestGoals() + ", #Imprecise: " + lResult.getNumberOfImpreciseTestCases());
-    
+
     return lResult;
   }
-  
+
   public static String[] getParameters(String pQuery, String pSource, String pEntryFunction, boolean pDisablePreprocessing) {
     List<String> lArguments = new LinkedList<String>();
     lArguments.add(pQuery);
     lArguments.add(pSource);
     lArguments.add(pEntryFunction);
-    
+
     String[] lResult;
-    
+
     if (pDisablePreprocessing) {
       lArguments.add("--withoutCilPreprocessing");
-      
+
       lResult = new String[4];
     }
     else {
       lResult = new String[3];
     }
-    
+
     return lArguments.toArray(lResult);
   }
-  
+
 }
 

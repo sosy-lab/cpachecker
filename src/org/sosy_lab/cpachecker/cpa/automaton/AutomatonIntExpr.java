@@ -50,7 +50,7 @@ interface AutomatonIntExpr extends AutomatonExpression {
     public int getIntValue() {
       return constantResult.getValue().intValue();
     }
-    @Override 
+    @Override
     public ResultValue<Integer> eval(AutomatonExpressionArguments pArgs) {return constantResult;}
   }
 
@@ -71,7 +71,7 @@ interface AutomatonIntExpr extends AutomatonExpression {
       }
       this.varId = pId;
     }
-      
+
     @Override
     public ResultValue<Integer> eval(AutomatonExpressionArguments pArgs) {
       if (TRANSITION_VARS_PATTERN.matcher(varId).matches()) { // $1  AutomatonTransitionVariables
@@ -135,13 +135,13 @@ interface AutomatonIntExpr extends AutomatonExpression {
             try {
               Object result = aqe.evaluateProperty(modifiedQueryString);
               if (result instanceof Integer) {
-                  String message = "CPA-Check succeeded: ModifiedCheckString: \"" + 
+                  String message = "CPA-Check succeeded: ModifiedCheckString: \"" +
                   modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
                   aqe.toString() + "\"";
                   pArgs.getLogger().log(Level.FINER, message);
                   return new ResultValue<Integer>((Integer)result);
               } else if (result instanceof Long) {
-                String message = "CPA-Check succeeded: ModifiedCheckString: \"" + 
+                String message = "CPA-Check succeeded: ModifiedCheckString: \"" +
                 modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
                 aqe.toString() + "\"";
                 pArgs.getLogger().log(Level.FINER, message);
@@ -149,19 +149,19 @@ interface AutomatonIntExpr extends AutomatonExpression {
               } else {
                 pArgs.getLogger().log(Level.WARNING,
                     "Automaton got a non-Numeric value during Query of the "
-                    + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement() + 
+                    + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement() +
                     ".");
                 return new ResultValue<Integer>("Automaton got a non-Numeric value during Query of the "
-                    + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement() + 
+                    + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement() +
                     ".", "AutomatonIntExpr.CPAQuery");
               }
             } catch (InvalidQueryException e) {
               pArgs.getLogger().logException(Level.WARNING, e,
                   "Automaton encountered an Exception during Query of the "
-                  + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement() + 
+                  + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement() +
                 ".");
               return new ResultValue<Integer>("Automaton encountered an Exception during Query of the "
-                  + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement() + 
+                  + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement() +
                   ".", "AutomatonIntExpr.CPAQuery");
             }
           }
@@ -169,10 +169,10 @@ interface AutomatonIntExpr extends AutomatonExpression {
       }
       pArgs.getLogger().log(Level.WARNING,
           "Did not find the CPA to be queried "
-          + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement() + 
+          + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement() +
         ".");
       return new ResultValue<Integer>("Did not find the CPA to be queried "
-          + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement() + 
+          + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement() +
           ".", "AutomatonIntExpr.CPAQuery");
     }
   }

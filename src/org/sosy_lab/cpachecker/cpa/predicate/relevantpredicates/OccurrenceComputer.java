@@ -8,7 +8,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 
 /**
- * Computes set of irrelevant predicates of a block by identifying the variables that do not occur in the block. 
+ * Computes set of irrelevant predicates of a block by identifying the variables that do not occur in the block.
  * @author dwonisch
  *
  */
@@ -19,7 +19,7 @@ public class OccurrenceComputer extends AbstractRelevantPredicatesComputer<Block
   protected Block precompute(Block pContext, Collection<AbstractionPredicate> pPredicates) {
     return pContext;
   }
-  
+
   @Override
   protected boolean isRelevant(Block context, AbstractionPredicate predicate) {
     String predicateString = predicate.getSymbolicAtom().toString();

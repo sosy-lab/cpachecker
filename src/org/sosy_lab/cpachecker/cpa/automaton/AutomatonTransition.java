@@ -65,19 +65,19 @@ class AutomatonTransition {
   public AutomatonTransition(AutomatonBoolExpr pTrigger,
       List<AutomatonBoolExpr> pAssertions, List<AutomatonAction> pActions,
       AutomatonInternalState pFollowState) {
-    
+
     this(pTrigger, pAssertions, pActions, pFollowState.getName(), pFollowState);
   }
-    
+
   private AutomatonTransition(AutomatonBoolExpr pTrigger,
       List<AutomatonBoolExpr> pAssertions, List<AutomatonAction> pActions,
       String pFollowStateName, AutomatonInternalState pFollowState) {
-    
+
     this.trigger = checkNotNull(pTrigger);
     this.actions = ImmutableList.copyOf(pActions);
     this.followStateName = checkNotNull(pFollowStateName);
     this.followState = pFollowState;
-    
+
     if (pAssertions.isEmpty()) {
       this.assertion = AutomatonBoolExpr.TRUE;
     } else {
@@ -147,7 +147,7 @@ class AutomatonTransition {
       pArgs.clearLogMessage();
     }
   }
-  
+
   /** Returns if the actions of this transiton can be executed on these AutomatonExpressionArguments.
    * If false is returned more Information is needed (probably more AbstractElements from other CPAs).
    * @param pArgs
@@ -168,7 +168,7 @@ class AutomatonTransition {
   public AutomatonInternalState getFollowState() {
     return followState;
   }
-  
+
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();

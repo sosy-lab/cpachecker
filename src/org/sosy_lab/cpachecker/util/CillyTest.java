@@ -37,13 +37,13 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 public class CillyTest {
 
   private static LogManager logger;
-  
+
   @BeforeClass
   public static void setup() throws IOException, InvalidConfigurationException {
     Configuration config = Configuration.defaultConfiguration();
     logger = new LogManager(config);
   }
-  
+
   @Test
   public void test001() throws IOException {
     Cilly lCilly = new Cilly(logger);

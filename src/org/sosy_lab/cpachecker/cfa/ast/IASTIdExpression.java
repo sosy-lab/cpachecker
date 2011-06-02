@@ -39,14 +39,14 @@ public class IASTIdExpression extends IASTExpression {
   public String getName() {
     return name;
   }
-  
+
   @Deprecated
   @Override
   public String getRawSignature() {
     // TODO Auto-generated method stub
     return super.getRawSignature();
   }
-  
+
   /**
    * Get the declaration of the variable.
    * The result may be null if the variable was not declared.
@@ -54,12 +54,12 @@ public class IASTIdExpression extends IASTExpression {
   public IASTSimpleDeclaration getDeclaration() {
     return declaration;
   }
-  
+
   @Override
   public <R, X extends Exception> R accept(ExpressionVisitor<R, X> v) throws X {
     return v.visit(this);
   }
-  
+
   @Override
   public <R, X extends Exception> R accept(RightHandSideVisitor<R, X> v) throws X {
     return v.visit(this);

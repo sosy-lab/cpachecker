@@ -30,7 +30,7 @@ public class IASTExpressionAssignmentStatement extends IASTStatement implements 
 
   private final IASTExpression leftHandSide;
   private final IASTExpression rightHandSide;
-  
+
   public IASTExpressionAssignmentStatement(String pRawSignature,
       IASTFileLocation pFileLocation,
       IASTExpression pLeftHandSide, IASTExpression pRightHandSide) {
@@ -43,17 +43,17 @@ public class IASTExpressionAssignmentStatement extends IASTStatement implements 
   public IASTExpression getLeftHandSide() {
     return leftHandSide;
   }
-  
+
   @Override
   public IASTExpression getRightHandSide() {
     return rightHandSide;
   }
-  
+
   @Override
   public IASTStatement asStatement() {
     return this;
   }
-  
+
   @Override
   public <R, X extends Exception> R accept(StatementVisitor<R, X> v) throws X {
     return v.visit(this);

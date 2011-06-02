@@ -38,7 +38,7 @@ public class RandomWaitlist extends AbstractWaitlist<LinkedList<AbstractElement>
   protected RandomWaitlist() {
     super(new LinkedList<AbstractElement>());
   }
-  
+
   @Override
   public AbstractElement pop() {
     int r = rand.nextInt(waitlist.size());

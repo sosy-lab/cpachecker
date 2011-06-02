@@ -50,7 +50,7 @@ public class CBMCMergeNode {
     Stack<CBMCStackElement> addedStackElement = pNextCBMCEdge.getStack().peek();
     incomingElements.add(addedStackElement);
     Set<Integer> processedConditions = new HashSet<Integer>();
-    
+
     for(CBMCStackElement elementInStack: addedStackElement){
       int idOfElementInStack = elementInStack.getElementId();
       boolean nextConditionValue = elementInStack.isCondition();
@@ -63,7 +63,7 @@ public class CBMCMergeNode {
         boolean firstConditionValue = conditionPair.getFirst();
         boolean secondConditionValue = conditionPair.getSecond();
         // if this is the end of the branch
-        if(isClosedBefore || secondConditionValue || 
+        if(isClosedBefore || secondConditionValue ||
             (firstConditionValue ^ nextConditionValue)){
 //          elementInStack.setClosedBefore(true);
           processedConditions.add(idOfElementInStack);
@@ -75,12 +75,12 @@ public class CBMCMergeNode {
         branchesMap.put(idOfElementInStack, Pair.of(nextConditionValue, isClosedBefore));
       }
     }
-    
+
     setProcessedElements(processedConditions);
-    
+
     return incomingElements.size();
   }
-  
+
   private void setProcessedElements(Set<Integer> pProcessedConditions) {
     for(Stack<CBMCStackElement> stack: incomingElements){
       for(CBMCStackElement elem: stack){

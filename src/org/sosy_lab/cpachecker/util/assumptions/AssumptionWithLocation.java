@@ -39,7 +39,7 @@ import com.google.common.collect.Collections2;
 
 /**
  * Representation of an assumption of the form \land_i. pc = l_i ==> \phi_i
- * 
+ *
  * @author g.theoduloz
  */
 public class AssumptionWithLocation {
@@ -52,28 +52,28 @@ public class AssumptionWithLocation {
   public AssumptionWithLocation(FormulaManager pManager) {
     manager = pManager;
   }
-  
+
   public static AssumptionWithLocation copyOf(AssumptionWithLocation a) {
     AssumptionWithLocation result = new AssumptionWithLocation(a.manager);
     result.map.putAll(a.map);
     return result;
   }
-  
+
   /**
    * Return the number of locations for which we have an assumption.
    */
   public int getNumberOfLocations() {
     return map.size();
   }
-  
+
   @Override
   public String toString() {
     return Joiner.on('\n').join(Collections2.transform(map.entrySet(), assumptionFormatter));
   }
-  
+
   private static final Function<Entry<CFANode, Formula>, String> assumptionFormatter
       = new Function<Entry<CFANode, Formula>, String>() {
-    
+
     @Override
     public String apply(Map.Entry<CFANode, Formula> entry) {
       int nodeId = entry.getKey().getNodeNumber();
@@ -85,7 +85,7 @@ public class AssumptionWithLocation {
   public void add(CFANode node, Formula assumption) {
     checkNotNull(node);
     checkNotNull(assumption);
-    
+
     if (!assumption.isTrue()) {
       Formula oldInvariant = map.get(node);
       if (oldInvariant == null) {

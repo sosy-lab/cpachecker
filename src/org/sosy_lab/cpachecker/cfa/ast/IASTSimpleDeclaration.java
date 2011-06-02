@@ -28,11 +28,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /**
  * This class represents the core components that occur in each declaration:
  * a type an an (optional) name.
- * 
+ *
  * It is part of the declaration of types and variables (see {@link IASTDeclaration})
  * and functions (see {@link IASTFunctionDefinition}).
  * It is also used stand-alone for the declaration of members of composite types
- * (e.g. structs) and for the declaration of function parameters. 
+ * (e.g. structs) and for the declaration of function parameters.
  */
 public abstract class IASTSimpleDeclaration extends IASTNode {
 
@@ -43,7 +43,7 @@ public abstract class IASTSimpleDeclaration extends IASTNode {
       final IASTFileLocation pFileLocation, final IType pSpecifier,
       final String pName) {
     super(pRawSignature, pFileLocation);
-    
+
     specifier = checkNotNull(pSpecifier);
     name = pName;
   }
@@ -51,7 +51,7 @@ public abstract class IASTSimpleDeclaration extends IASTNode {
   public IType getDeclSpecifier() {
     return specifier;
   }
-  
+
   public String getName() {
     return name;
   }

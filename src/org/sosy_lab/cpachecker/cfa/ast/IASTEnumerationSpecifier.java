@@ -52,14 +52,14 @@ public final class IASTEnumerationSpecifier extends IType {
   public static final class IASTEnumerator extends IASTSimpleDeclaration {
 
     private static final IType INT_TYPE = new IASTSimpleDeclSpecifier(true, false, BasicType.INT, false, false, true, false, false, false, false);
-    
+
     private final long           value;
 
     public IASTEnumerator(final String pRawSignature,
         final IASTFileLocation pFileLocation, final String pName,
         final long pValue) {
       super(pRawSignature, pFileLocation, INT_TYPE, pName);
-      
+
       checkNotNull(pName);
       value = pValue;
     }

@@ -6,5 +6,5 @@ public interface IGuardedEdgeAutomatonStateElement {
 
   public boolean isFinalState();
   public NondeterministicFiniteAutomaton.State getAutomatonState();
-  
+
 }

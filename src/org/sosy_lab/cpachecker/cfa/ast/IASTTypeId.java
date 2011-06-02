@@ -40,7 +40,7 @@ public final class IASTTypeId extends IASTNode {
   public IType getDeclSpecifier() {
     return specifier;
   }
-  
+
   public String getName() {
     return name;
   }

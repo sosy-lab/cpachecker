@@ -34,57 +34,57 @@ public class KBFilterTest extends ExperimentalSeries {
 
   @Test
   public void testMain021() throws Exception {
-    String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE, 
-                                        "test/programs/fql/ntdrivers/kbfiltr.i.cil.c", 
-                                        "main", 
+    String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
+                                        "test/programs/fql/ntdrivers/kbfiltr.i.cil.c",
+                                        "main",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(690, lResult.getNumberOfTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
-    
+
     /**
      * Discussion: get_exit_nondet() in its original implementation is faulty
      */
     Assert.assertTrue(false);
   }
-  
+
 /*  @Test
   public void testMain025() throws Exception {
-    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE, 
-                                        "test/programs/fql/ntdrivers/kbfiltr.i.cil.c", 
-                                        "main", 
+    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE,
+                                        "test/programs/fql/ntdrivers/kbfiltr.i.cil.c",
+                                        "main",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(690, lResult.getNumberOfTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
-  */  
+  */
     /**
      * Discussion: get_exit_nondet() in its original implementation is faulty
      */
     /*Assert.assertTrue(false);
   }
-  
+
   @Test
   public void testMain026() throws Exception {
-    String[] lArguments = Main.getParameters(Main.CONDITION_COVERAGE, 
+    String[] lArguments = Main.getParameters(Main.CONDITION_COVERAGE,
                                         "test/programs/fql/ntdrivers/kbfiltr.i.cil.c",
                                         //"/home/andreas/ase-experimente/kbfiltr.c",
-                                        "main", 
+                                        "main",
                                         //false);
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(690, lResult.getNumberOfTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfInfeasibleTestGoals());
@@ -96,22 +96,22 @@ public class KBFilterTest extends ExperimentalSeries {
      */
     /*Assert.assertTrue(false);
   }
-  
+
   @Test
   public void testMain027() throws Exception {
-    String[] lArguments = Main.getParameters("COVER \"EDGES(ID)*\".EDGES(@CONDITIONEDGE).\"EDGES(ID)*\".EDGES(@CONDITIONEDGE).\"EDGES(ID)*\"", 
-                                        "test/programs/fql/ntdrivers/kbfiltr.i.cil.c", 
-                                        "main", 
+    String[] lArguments = Main.getParameters("COVER \"EDGES(ID)*\".EDGES(@CONDITIONEDGE).\"EDGES(ID)*\".EDGES(@CONDITIONEDGE).\"EDGES(ID)*\"",
+                                        "test/programs/fql/ntdrivers/kbfiltr.i.cil.c",
+                                        "main",
                                         false);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(690, lResult.getNumberOfTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
-    
+
     Assert.assertTrue(false);
   }
   */

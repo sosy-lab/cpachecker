@@ -165,7 +165,7 @@ public class TypesTransferRelation implements TransferRelation {
     if (cfaEdge != null && cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
       assert function.getName().equals(cfaEdge.getSuccessor().getFunctionName());
     }
-    
+
     element.addFunction(function.getName(), function);
   }
 
@@ -258,7 +258,7 @@ public class TypesTransferRelation implements TransferRelation {
 
         if (subDeclaration.getName() != null) {
           String thisSubName = subDeclaration.getName();
-          
+
           // anonymous struct fields may occur, ignore them
           // TODO they should be added so that the struct has the correct size
           if (!thisSubName.isEmpty()) {
@@ -355,9 +355,9 @@ public class TypesTransferRelation implements TransferRelation {
     } else if (declSpecifier instanceof IASTArrayTypeSpecifier) {
       // array
       IASTArrayTypeSpecifier arraySpecifier = (IASTArrayTypeSpecifier)declSpecifier;
-      
+
       type = getType(element, cfaEdge, arraySpecifier.getType());
-      
+
       int length = 0;
 
       IASTExpression lengthExpression = arraySpecifier.getLength();
@@ -375,20 +375,20 @@ public class TypesTransferRelation implements TransferRelation {
         }
       }
       type = new ArrayType(type, length);
-      
+
     } else if (declSpecifier instanceof IASTFunctionTypeSpecifier) {
       // function type, e.g. in a function pointer
       IASTFunctionTypeSpecifier funcDeclSpecifier = (IASTFunctionTypeSpecifier)declSpecifier;
-      
+
       type = getType(element, cfaEdge, funcDeclSpecifier);
-      
+
     } else if (declSpecifier instanceof IASTPointerTypeSpecifier) {
       // pointer
       IASTPointerTypeSpecifier pointerSpecifier = (IASTPointerTypeSpecifier)declSpecifier;
-      
+
       type = getType(element, cfaEdge, pointerSpecifier.getType());
       type = new PointerType(type, pointerSpecifier.isConst());
-      
+
     } else {
       throw new UnrecognizedCCodeException("Unknown type class " + declSpecifier.getClass().getSimpleName(), cfaEdge);
     }
@@ -398,7 +398,7 @@ public class TypesTransferRelation implements TransferRelation {
 
   private FunctionType getType(TypesElement element, CFAEdge cfaEdge, IASTFunctionTypeSpecifier funcDeclSpecifier)
                       throws UnrecognizedCCodeException {
-    
+
     Type returnType = getType(element, cfaEdge, funcDeclSpecifier.getReturnType());
 
     FunctionType function = new FunctionType(funcDeclSpecifier.getName(), returnType, funcDeclSpecifier.takesVarArgs());
@@ -416,7 +416,7 @@ public class TypesTransferRelation implements TransferRelation {
     }
     return function;
   }
-  
+
   private Long parseLiteral(IASTExpression expression) throws NumberFormatException {
     if (expression instanceof IASTLiteralExpression) {
 

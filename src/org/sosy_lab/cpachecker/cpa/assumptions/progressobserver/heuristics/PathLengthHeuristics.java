@@ -16,11 +16,11 @@ import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsDa
 public class PathLengthHeuristics implements StopHeuristics<PathLengthHeuristicsData>{
 
   private final int threshold;
-  
+
   public PathLengthHeuristics(Configuration config, LogManager logger){
     threshold = Integer.parseInt(config.getProperty("threshold", "-1").trim());
   }
-  
+
   @Override
   public PathLengthHeuristicsData collectData(StopHeuristicsData pData,
       ReachedHeuristicsDataSetView pReached) {

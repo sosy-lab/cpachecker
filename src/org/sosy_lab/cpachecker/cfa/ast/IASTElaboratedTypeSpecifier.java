@@ -46,5 +46,5 @@ public final class IASTElaboratedTypeSpecifier extends IType {
   public static final int k_enum = 0;
   public static final int k_struct = 1;
   public static final int k_union = 2;
-  
+
 }

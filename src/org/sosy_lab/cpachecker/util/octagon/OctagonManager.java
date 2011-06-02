@@ -72,12 +72,12 @@ public class OctagonManager {
     long l = wrapper.J_copy(oct.getOctId());
     return new Octagon(l);
   }
-  
+
   public static Octagon full_copy (Octagon oct){
     long l = wrapper.J_full_copy(oct.getOctId());
     return new Octagon(l);
   }
-  
+
   /* Query Functions */
   public static int dimension (Octagon oct){
     return wrapper.J_dimension(oct.getOctId());
@@ -136,12 +136,12 @@ public class OctagonManager {
    * int widening = 2 -> OCT_WIDENING_UNIT*/
   public Octagon widening (Octagon oct1, Octagon oct2){
     long l = wrapper.J_widening (oct1.getOctId(), oct2.getOctId(), false, 1);
-    return new Octagon(l);  
+    return new Octagon(l);
   }
 
   public static Octagon narrowing (Octagon oct1, Octagon oct2){
     long l = wrapper.J_narrowing (oct1.getOctId(), oct2.getOctId(), false);
-    return new Octagon(l); 
+    return new Octagon(l);
   }
 
   /* Transfer Functions */
@@ -149,17 +149,17 @@ public class OctagonManager {
     long l = wrapper.J_forget (oct.getOctId(), k, false);
     return new Octagon(l);
   }
-  
+
   public static Octagon assingVar (Octagon oct, int k, NumArray array){
     long l = wrapper.J_assingVar(oct.getOctId(), k, array.getArray(), false);
     return new Octagon(l);
   }
-  
+
   public static Octagon addBinConstraint(Octagon oct, int noOfConstraints, NumArray array){
     long  l = wrapper.J_addBinConstraints(oct.getOctId(), noOfConstraints, array.getArray(), false);
     return new Octagon(l);
   }
-  
+
   public static Octagon substituteVar (Octagon oct, int x, NumArray array){
     long l = wrapper.J_substituteVar(oct.getOctId(), x, array.getArray(), false);
     return new Octagon(l);

@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeu
 public class TrivialStopHeuristicsData implements StopHeuristicsData {
 
   private final boolean bottom;
-  
+
   private static long threshold = -1;
   private static PreventingHeuristicType preventingHeuristicType = null;
 
@@ -46,7 +46,7 @@ public class TrivialStopHeuristicsData implements StopHeuristicsData {
   {
     return threshold;
   }
-  
+
   /** Instances are only accessible via TOP/BOTTOM */
   private TrivialStopHeuristicsData(boolean isBottom) {
     bottom = isBottom;
@@ -89,7 +89,7 @@ public class TrivialStopHeuristicsData implements StopHeuristicsData {
       PreventingHeuristicType pPreventingHeuristicType) {
     preventingHeuristicType = pPreventingHeuristicType;
   }
-  
+
   @Override
   public PreventingHeuristicType getHeuristicType() {
     return preventingHeuristicType;

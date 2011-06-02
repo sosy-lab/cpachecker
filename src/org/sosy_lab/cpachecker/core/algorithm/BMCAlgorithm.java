@@ -90,12 +90,12 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     private final Timer satCheck = new Timer();
     private final Timer assertionsCheck = new Timer();
-    
+
     private final Timer inductionPreparation = new Timer();
     private final Timer invariantGeneration = new Timer();
     private final Timer inductionCheck = new Timer();
     private int inductionCutPoints = 0;
-    
+
     @Override
     public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
       if (satCheck.getNumberOfIntervals() > 0) {
@@ -117,27 +117,27 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       return "BMC algorithm";
     }
   }
-  
+
   @Option(description = "If BMC did not find a bug, check whether "
       + "the bounding did actually remove parts of the state space "
       + "(this is similar to CBMC's unwinding assertions).")
   private boolean boundingAssertions = true;
-  
+
   @Option(description="Check reachability of target states after analysis "
       + "(classical BMC). The alternative is to check the reachability "
       + "as soon as the target states are discovered, which is done if "
       + "cpa.predicate.targetStateSatCheck=true.")
   private boolean checkTargetStates = true;
-  
+
   @Option(description="try using induction to verify programs with loops")
   private boolean induction = true;
-  
+
   private final BMCStatistics stats = new BMCStatistics();
   private final Algorithm algorithm;
   private final PredicateCPA predCpa;
   private final LogManager logger;
   private final ReachedSetFactory reachedSetFactory;
-  
+
   public BMCAlgorithm(Algorithm algorithm, Configuration config, LogManager logger,
                       ReachedSetFactory pReachedSetFactory)
                       throws InvalidConfigurationException, CPAException {
@@ -145,7 +145,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     this.algorithm = algorithm;
     this.logger = logger;
     reachedSetFactory = pReachedSetFactory;
-    
+
     predCpa = ((WrapperCPA)getCPA()).retrieveWrappedCpa(PredicateCPA.class);
     if (predCpa == null) {
       throw new InvalidConfigurationException("PredicateCPA needed for BMCAlgorithm");
@@ -155,13 +155,13 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   @Override
   public boolean run(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
     final boolean soundInner = algorithm.run(pReachedSet);
-    
+
     if (any(transform(skip(pReachedSet, 1), EXTRACT_PREDICATE_ELEMENT), FILTER_ABSTRACTION_ELEMENTS)) {
       // first element of reached is always an abstraction element, so skip it
       logger.log(Level.WARNING, "BMC algorithm does not work with abstractions. Could not check for satisfiability!");
       return soundInner;
     }
-    
+
     FormulaManager fmgr = predCpa.getFormulaManager();
     List<AbstractElement> targetElements = Lists.newArrayList(AbstractElements.filterTargetElements(pReachedSet));
     logger.log(Level.FINER, "Found", targetElements.size(), "potential target elements");
@@ -176,7 +176,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         assert e != null : "PredicateCPA exists but did not produce elements!";
         program = fmgr.makeOr(program, e.getPathFormula().getFormula());
       }
-      
+
       logger.log(Level.INFO, "Starting satisfiability check...");
       stats.satCheck.start();
       safe = prover.isUnsat(program);
@@ -185,20 +185,20 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     } else {
       safe = targetElements.isEmpty();
     }
-    
+
     logger.log(Level.FINER, "Program is safe?:", safe);
-    
+
     if (safe) {
       pReachedSet.removeAll(targetElements);
     }
-    
+
     boolean sound;
-    
+
     // check loop unwinding assertions, but don't bother if we are unsound anyway
     // or we have found a bug
     if (soundInner && safe && boundingAssertions) {
       Formula assertions = fmgr.makeFalse();
-      
+
       // create formula for unwinding assertions
       for (AbstractElement e : pReachedSet) {
         AssumptionStorageElement asmpt = extractElementByType(e, AssumptionStorageElement.class);
@@ -207,7 +207,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           assertions = fmgr.makeOr(assertions, pred.getPathFormula().getFormula());
         }
       }
-      
+
       logger.log(Level.INFO, "Starting assertions check...");
 
       stats.assertionsCheck.start();
@@ -219,11 +219,11 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     } else {
       sound = false; // signal that this is unsound
     }
-    
+
     // try to prove program safety via induction, but don't bother if we are unsound anyway,
     // we have found a bug or we have already proved program safety
     if (soundInner && safe && !sound && induction) {
- 
+
       // Induction is currently only possible if there is a single loop.
       // This check can be weakend in the future,
       // e.g. it is ok if there is only a single loop on each path.
@@ -232,14 +232,14 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         logger.log(Level.WARNING, "Could not use induction for proving program safety, program has too many loops");
         return sound;
       }
-      
+
       if (loops.isEmpty()) {
         // induction is unnecessary, program has no loops
         return sound;
       }
-      
+
       stats.inductionPreparation.start();
-      
+
       Loop loop = Iterables.getOnlyElement(loops.values());
 
       // function edges do not count as incoming/outgoing edges
@@ -247,28 +247,28 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
                                                          Predicates.not(instanceOf(FunctionReturnEdge.class)));
       Iterable<CFAEdge> outgoingEdges = Iterables.filter(loop.getOutgoingEdges(),
                                                          Predicates.not(instanceOf(FunctionCallEdge.class)));
-      
+
       if (Iterables.size(incomingEdges) > 1) {
         logger.log(Level.WARNING, "Could not use induction for proving program safety, loop has too many incoming edges", incomingEdges);
         return sound;
       }
-      
+
       if (loop.getLoopHeads().size() > 1) {
         logger.log(Level.WARNING, "Could not use induction for proving program safety, loop has too many loop heads");
         return sound;
       }
-      
+
       CFANode loopHead = Iterables.getOnlyElement(loop.getLoopHeads());
-      
+
       // check that the loop head is unambigious
       assert loopHead.equals(Iterables.getOnlyElement(incomingEdges).getSuccessor());
-      
+
       // Proving program safety with induction consists of two parts:
       // 1) Prove all paths safe that go only one iteration through the loop.
       //    This is part of the classic bounded model checking done above,
       //    so we don't care about this here.
       // 2) Assume that one loop iteration is safe and prove that the next one is safe, too.
-      
+
       // Suppose that the loop has a single outgoing edge,
       // which leads to the error location. This edge is always an AssumeEdge,
       // and it has a "sibling" which is an inner edge of the loop and leads to
@@ -278,7 +278,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       // the outgoing edge, if it didn't take it in the iteration before.
       // We create three formulas:
       // A is the assumption from the continuation edge in the previous iteration
-      // B is the formula for the loop body in the current iteration up to the cut point 
+      // B is the formula for the loop body in the current iteration up to the cut point
       // C is the assumption from the continuation edge in the current iteration
       //   Note that this is the negation of the assumption from the exit edge.
       // Then we try to prove that the formula (A & B) => C holds.
@@ -291,7 +291,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       // and take its path formula, which is exactly (A & B).
       // C is created manually. It is important to re-use the SSAMap from (A & B)
       // in order to get the indices right.
-      
+
       // Everything above is easily extended to k-induction with k >= 1
       // and to loops that have several outgoing edges (and therefore several
       // cut points).
@@ -303,8 +303,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       // For several exiting edges, we add each cut-point to the initial reached
       // set, so that A will contain the assumptions from all continuation edges,
       // and we'll create several (A & B) and C formulas, one for each cut point.
-      
-      
+
+
       // Create initial reached set
       ConfigurableProgramAnalysis cpa = getCPA();
       ReachedSet reached = reachedSetFactory.create();
@@ -325,7 +325,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           return loopElement.getLoop() != null;
         }
       });
-      
+
       assert !Iterables.isEmpty(loopStates);
       if (Iterables.any(loopStates, IS_TARGET_ELEMENT)) {
         logger.log(Level.WARNING, "Could not use induction for proving program safety, target state is contained in the loop");
@@ -337,18 +337,18 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       CFANode initialLocation = extractLocation(reached.getFirstElement());
       Formula invariants = findInvariantsAt(loopHead, fmgr, initialLocation);
       invariants = fmgr.instantiate(invariants, SSAMap.emptyWithDefault(1));
-      
+
       // Create formulas
       PathFormulaManager pmgr = predCpa.getPathFormulaManager();
       Formula inductions = fmgr.makeTrue();
-      
+
       for (CFAEdge outgoingEdge : outgoingEdges) {
         // filter out exit edges that do not lead to a target state, we don't care about them
         {
           CFANode exitLocation = outgoingEdge.getSuccessor();
           Iterable<AbstractElement> exitStates = reachedPerLocation.get(exitLocation);
           ARTElement lastExitState = (ARTElement)Iterables.getLast(exitStates);
-          
+
           // the states reachable from the exit edge
           Set<ARTElement> outOfLoopStates = lastExitState.getSubtree();
           if (Iterables.isEmpty(filterTargetElements(outOfLoopStates))) {
@@ -362,7 +362,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         CFANode cutPoint = outgoingEdge.getPredecessor();
         Iterable<AbstractElement> cutPointStates = reachedPerLocation.get(cutPoint);
         AbstractElement lastcutPointState = Iterables.getLast(cutPointStates);
-        
+
         // Create (A & B)
         PathFormula pathFormulaAB = extractElementByType(lastcutPointState, PredicateAbstractElement.class).getPathFormula();
         Formula formulaAB = fmgr.makeAnd(invariants, pathFormulaAB.getFormula());
@@ -373,32 +373,32 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         PathFormula pathFormulaC = pmgr.makeAnd(empty, outgoingEdge);
         // we need to negate it, because we used the outgoing edge, not the continuation edge
         Formula formulaC = fmgr.makeNot(pathFormulaC.getFormula());
-        
+
         // Crate (A & B) => C
         Formula f = fmgr.makeOr(fmgr.makeNot(formulaAB), formulaC);
-        
+
         inductions = fmgr.makeAnd(inductions, f);
       }
-      
+
       // now prove that (A & B) => C is a tautology by checking if the negation is unsatisfiable
-      
+
       inductions = fmgr.makeNot(inductions);
-      
+
       stats.inductionPreparation.stop();
-      
+
       logger.log(Level.INFO, "Starting induction check...");
 
       stats.inductionCheck.start();
       sound = prover.isUnsat(inductions);
       stats.inductionCheck.stop();
-      
+
       if (!sound && logger.wouldBeLogged(Level.ALL)) {
         logger.log(Level.ALL, "Model returned for induction check:", prover.getModel());
       }
-     
+
       logger.log(Level.FINER, "Soundness after induction check:", sound);
     }
-    
+
     prover.reset();
     return sound;
   }
@@ -406,7 +406,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   private Formula findInvariantsAt(CFANode loc, FormulaManager fmgr, CFANode initialLocation) throws CPAException, InterruptedException {
     stats.invariantGeneration.start();
     try {
-      
+
       ConfigurableProgramAnalysis invariantCPAs;
       try {
         Configuration config = Configuration
@@ -417,18 +417,18 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       } catch (InvalidConfigurationException e) {
         throw new AssertionError(e);
       }
-      
+
       ReachedSet reached = reachedSetFactory.create();
       reached.add(invariantCPAs.getInitialElement(initialLocation), invariantCPAs.getInitialPrecision(initialLocation));
-      
+
       Algorithm invariantAlgorithm = new CPAAlgorithm(invariantCPAs, logger);
-      
+
       invariantAlgorithm.run(reached);
-      
+
       Formula invariant = fmgr.makeFalse();
-      
+
       for (AbstractElement locState : AbstractElements.filterLocation(reached, loc)) {
-      
+
         InvariantsElement intervalElement = extractElementByType(locState, InvariantsElement.class);
         logger.log(Level.ALL, "Invariant:", intervalElement);
 
@@ -436,12 +436,12 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       }
       return invariant;
 
-    
+
     } finally {
       stats.invariantGeneration.start();
     }
   }
-  
+
   @Override
   public ConfigurableProgramAnalysis getCPA() {
     return algorithm.getCPA();
@@ -453,5 +453,5 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       ((StatisticsProvider)algorithm).collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(stats);
-  }  
+  }
 }

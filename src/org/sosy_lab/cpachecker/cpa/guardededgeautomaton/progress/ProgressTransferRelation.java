@@ -21,39 +21,39 @@ import org.sosy_lab.cpachecker.util.ecp.translators.GuardedEdgeLabel;
 public class ProgressTransferRelation implements TransferRelation {
 
 private final NondeterministicFiniteAutomaton<GuardedEdgeLabel> mAutomaton;
-  
+
   private final HashMap<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge, GuardedEdgeAutomatonStateElement> mCache;
-  
+
   private final HashSet<ProgressElement> mSuccessors;
-  
+
   public ProgressTransferRelation(GuardedEdgeAutomatonDomain pDomain, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
     mAutomaton = pAutomaton;
-    
+
     // create cache
     mCache = new HashMap<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge, GuardedEdgeAutomatonStateElement>();
-    
-    HashMap<GuardedEdgeAutomatonStateElement, NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> lTmpCache = new HashMap<GuardedEdgeAutomatonStateElement, NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>(); 
-    
+
+    HashMap<GuardedEdgeAutomatonStateElement, NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> lTmpCache = new HashMap<GuardedEdgeAutomatonStateElement, NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>();
+
     for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lAutomatonEdge : pAutomaton.getEdges()) {
       GuardedEdgeAutomatonStateElement lElement = GuardedEdgeAutomatonStateElement.create(lAutomatonEdge, pAutomaton);
-      
+
       if (lTmpCache.containsKey(lElement)) {
         lElement = mCache.get(lTmpCache.get(lElement));
       }
       else {
         lTmpCache.put(lElement, lAutomatonEdge);
       }
-      
+
       mCache.put(lAutomatonEdge, lElement);
     }
-    
+
     mSuccessors = new HashSet<ProgressElement>();
   }
-  
+
   protected NondeterministicFiniteAutomaton<GuardedEdgeLabel> getAutomaton() {
     return mAutomaton;
   }
-  
+
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
@@ -62,11 +62,11 @@ private final NondeterministicFiniteAutomaton<GuardedEdgeLabel> mAutomaton;
     if (pElement instanceof GuardedEdgeAutomatonPredicateElement) {
       throw new IllegalArgumentException();
     }
-    
+
     GuardedEdgeAutomatonStandardElement lCurrentElement = (GuardedEdgeAutomatonStandardElement)pElement;
-    
+
     mSuccessors.clear();
-    
+
     for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge : mAutomaton.getOutgoingEdges(lCurrentElement.getAutomatonState())) {
       GuardedEdgeLabel lLabel = lOutgoingEdge.getLabel();
       if (lLabel.contains(pCfaEdge)) {
@@ -74,7 +74,7 @@ private final NondeterministicFiniteAutomaton<GuardedEdgeLabel> mAutomaton;
         mSuccessors.add(lWrappedSuccessor);
       }
     }
-    
+
     return mSuccessors;
   }
 
@@ -82,13 +82,13 @@ private final NondeterministicFiniteAutomaton<GuardedEdgeLabel> mAutomaton;
   public Collection<? extends AbstractElement> strengthen(
       AbstractElement pElement, List<AbstractElement> pOtherElements,
       CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException {
-    
+
     ProgressElement lWrapperElement = (ProgressElement)pElement;
-    
+
     if (lWrapperElement.getWrappedElement() instanceof GuardedEdgeAutomatonPredicateElement) {
       return Collections.singleton(((GuardedEdgeAutomatonPredicateElement)lWrapperElement.getWrappedElement()).getStandardElement());
     }
-    
+
     return null;
   }
 

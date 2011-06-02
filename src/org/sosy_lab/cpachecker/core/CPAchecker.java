@@ -101,11 +101,11 @@ public class CPAchecker {
 
     // algorithm options
 
-    @Option(name="analysis.useAssumptionCollector", 
+    @Option(name="analysis.useAssumptionCollector",
         description="use assumption collecting algorithm")
         boolean useAssumptionCollector = false;
 
-    @Option(name = "analysis.useRefinement", 
+    @Option(name = "analysis.useRefinement",
         description = "use CEGAR algorithm for lazy counter-example guided analysis"
           + "\nYou need to specify a refiner with the cegar.refiner option."
           + "\nCurrently all refiner require the use of the ARTCPA.")
@@ -411,11 +411,11 @@ public class CPAchecker {
         singleConfig.loadFromFile(configFileName);
         ConfigurableProgramAnalysis cpa = createCPA(stats);
         algorithm = createAlgorithm(cpa, stats);
-        
+
         ReachedSet reached = createInitialReachedSet(cpa, cfaCreator.getMainFunction());
 
         stopIfNecessary();
-        
+
       } catch (IOException e) {
         e.printStackTrace();
       } catch (InvalidConfigurationException e) {

@@ -35,7 +35,7 @@ import com.google.common.collect.Iterables;
 enum AlwaysTopPrecisionAdjustment implements PrecisionAdjustment {
 
   INSTANCE;
-  
+
   @Override
   public Triple<AbstractElement, Precision, Action> prec(
       AbstractElement pElement, Precision pPrecision,

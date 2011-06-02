@@ -39,7 +39,7 @@ enum AlwaysTopTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge) {
-    
+
     assert pElement == AlwaysTopElement.INSTANCE;
     assert pPrecision == AlwaysTopPrecision.INSTANCE;
 

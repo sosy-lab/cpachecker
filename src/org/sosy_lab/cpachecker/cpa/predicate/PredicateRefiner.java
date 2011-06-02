@@ -76,11 +76,11 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
       description="refinement will add all discovered predicates "
         + "to all the locations in the abstract trace")
   private boolean addPredicatesGlobally = false;
-  
+
   @Option(name="errorPath.export",
       description="export one satisfying assignment for the error path")
   private boolean exportErrorPath = true;
-  
+
   @Option(name="errorPath.file", type=Option.Type.OUTPUT_FILE,
       description="export one satisfying assignment for the error path")
   private File exportFile = new File("ErrorPathAssignment.txt");
@@ -122,7 +122,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     // create path with all abstraction location elements (excluding the initial element)
     // the last element is the element corresponding to the error location
     List<Triple<ARTElement, CFANode, PredicateAbstractElement>> path = transformPath(pPath);
-    
+
     Precision oldPrecision = pReached.getPrecision(pReached.getLastElement());
     PredicatePrecision oldPredicatePrecision = Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
     if (oldPredicatePrecision == null) {
@@ -144,8 +144,8 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
       precisionUpdate.stop();
 
       artUpdate.start();
-      
-      pReached.removeSubtree(refinementResult.getFirst(), refinementResult.getSecond());    
+
+      pReached.removeSubtree(refinementResult.getFirst(), refinementResult.getSecond());
 
       artUpdate.stop();
       totalRefinement.stop();
@@ -154,14 +154,14 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
       // we have a real error
       logger.log(Level.FINEST, "Error trace is not spurious");
       errorPathProcessing.start();
-      
+
       boolean preciseInfo = false;
       NavigableMap<Integer, Map<Integer, Boolean>> preds = mCounterexampleTraceInfo.getBranchingPredicates();
       if (preds.isEmpty()) {
         logger.log(Level.WARNING, "No information about ART branches available!");
       } else {
         targetPath = createPathFromPredicateValues(pPath, preds);
-        
+
         if (targetPath != null) {
           // try to create a better satisfying assignment by replaying this single path
           try {
@@ -173,13 +173,13 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
               preciseInfo = true;
             }
           } catch (CPATransferException e) {
-            // path is now suddenly a problem 
+            // path is now suddenly a problem
             logger.log(Level.WARNING, "Could not replay error path (" + e.getMessage() + ")!");
           }
         }
       }
       errorPathProcessing.stop();
-      
+
       if (exportErrorPath && exportFile != null) {
         if (!preciseInfo) {
           logger.log(Level.WARNING, "The produced satisfying assignment is imprecise!");
@@ -197,10 +197,10 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
       return false;
     }
   }
-  
+
   protected List<Triple<ARTElement, CFANode, PredicateAbstractElement>> transformPath(Path pPath) throws CPATransferException {
     List<Triple<ARTElement, CFANode, PredicateAbstractElement>> result = Lists.newArrayList();
-    
+
     for (ARTElement ae : skip(transform(pPath, Pair.<ARTElement>getProjectionToFirst()), 1)) {
       PredicateAbstractElement pe = extractElementByType(ae, PredicateAbstractElement.class);
       if (pe instanceof AbstractionElement) {
@@ -208,14 +208,14 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
         result.add(Triple.of(ae, loc, pe));
       }
     }
-    
+
     assert pPath.getLast().getFirst() == result.get(result.size()-1).getFirst();
     return result;
   }
 
   /**
    * pPath and pArtPath need to fit together such that
-   * pPath.get(i) == pArtPath.get(i).retrieveWrappedElement(PredicateAbstractElement) 
+   * pPath.get(i) == pArtPath.get(i).retrieveWrappedElement(PredicateAbstractElement)
    */
   private Pair<ARTElement, PredicatePrecision> performRefinement(PredicatePrecision oldPrecision,
       List<Triple<ARTElement, CFANode, PredicateAbstractElement>> pPath,
@@ -223,10 +223,10 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
 
     Multimap<CFANode, AbstractionPredicate> oldPredicateMap = oldPrecision.getPredicateMap();
     Set<AbstractionPredicate> globalPredicates = oldPrecision.getGlobalPredicates();
-    
+
     Triple<ARTElement, CFANode, PredicateAbstractElement> firstInterpolationPoint = null;
     boolean newPredicatesFound = false;
-    
+
     ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
 
     pmapBuilder.putAll(oldPredicateMap);
@@ -234,8 +234,8 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     // iterate through pPath and find first point with new predicates, from there we have to cut the ART
     for (Triple<ARTElement, CFANode, PredicateAbstractElement> interpolationPoint : pPath) {
       CFANode loc = interpolationPoint.getSecond();
-      Collection<AbstractionPredicate> newpreds = getPredicatesForARTElement(pInfo, interpolationPoint);     
-      
+      Collection<AbstractionPredicate> newpreds = getPredicatesForARTElement(pInfo, interpolationPoint);
+
       if (firstInterpolationPoint == null && newpreds.size() > 0) {
         firstInterpolationPoint = interpolationPoint;
       }
@@ -279,7 +279,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
       if (absLocations.equals(lastErrorPath)) {
         throw new RefinementFailedException(RefinementFailedException.Reason.NoNewPredicates, null);
       }
-      
+
       CFANode loc = firstInterpolationPoint.getSecond();
 
       logger.log(Level.FINEST, "Found spurious counterexample,",
@@ -322,20 +322,20 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     Integer currentIdx = -1;
     while (!currentElement.isTarget()) {
       Set<ARTElement> children = currentElement.getChildren();
-      
+
       ARTElement child;
       CFAEdge edge;
       switch (children.size()) {
-      
+
       case 0:
         logger.log(Level.WARNING, "ART target path terminates without reaching target element!");
         return null;
-        
+
       case 1: // only one successor, easy
         child = Iterables.getOnlyElement(children);
         edge = currentElement.getEdgeToChild(child);
         break;
-        
+
       case 2: // branch
         // first, find out the edges and the children
         CFAEdge trueEdge = null;
@@ -364,7 +364,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
         }
         assert trueChild != null;
         assert falseChild != null;
-        
+
         // search first idx where we have a predicate for the current branching
         Integer branchingId = currentElement.retrieveLocationElement().getLocationNode().getNodeNumber();
         Boolean predValue;
@@ -374,11 +374,11 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
             logger.log(Level.WARNING, "ART branches without direction information from solver!");
             return null;
           }
-          
+
           currentIdx = nextEntry.getKey();
           predValue = nextEntry.getValue().get(branchingId);
         } while (predValue == null);
-        
+
         // now select the right edge
         if (predValue) {
           edge = trueEdge;
@@ -388,7 +388,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
           child = falseChild;
         }
         break;
-        
+
       default:
         logger.log(Level.WARNING, "ART splits with more than two branches!");
         return null;
@@ -397,7 +397,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
       result.add(Pair.of(currentElement, edge));
       currentElement = child;
     }
-    
+
     // need to add another pair with target element and outgoing edge
     Pair<ARTElement, CFAEdge> lastPair = pPath.getLast();
     if (currentElement != lastPair.getFirst()) {
@@ -405,12 +405,12 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
       return null;
     }
     result.add(lastPair);
-    
+
     return result;
   }
-  
+
   public CounterexampleTraceInfo getCounterexampleTraceInfo() {
     return mCounterexampleTraceInfo;
   }
-  
+
 }

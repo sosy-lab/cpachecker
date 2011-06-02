@@ -42,7 +42,7 @@ public class CallstackTransferRelation implements TransferRelation {
   public Collection<? extends AbstractElement> getAbstractSuccessors(
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
-    
+
     switch (pCfaEdge.getEdgeType()) {
     case FunctionCallEdge:
       {
@@ -56,17 +56,17 @@ public class CallstackTransferRelation implements TransferRelation {
     case FunctionReturnEdge:
       {
         FunctionReturnEdge cfaEdge = (FunctionReturnEdge)pCfaEdge;
-        
+
         CallstackElement element = (CallstackElement)pElement;
-        
+
         String calledFunction = cfaEdge.getPredecessor().getFunctionName();
         String callerFunction = cfaEdge.getSuccessor().getFunctionName();
-        
+
         CFANode returnNode = cfaEdge.getSuccessor();
         CFANode callNode = returnNode.getEnteringSummaryEdge().getPredecessor();
 
         assert calledFunction.equals(element.getCurrentFunction());
-        
+
         if (!callNode.equals(element.getCallNode())) {
           // this is not the right return edge
           return Collections.emptySet();
@@ -75,12 +75,12 @@ public class CallstackTransferRelation implements TransferRelation {
         CallstackElement returnElement = element.getPreviousElement();
 
         assert callerFunction.equals(returnElement.getCurrentFunction());
-        
+
         return Collections.singleton(returnElement);
       }
     }
-    
-    return Collections.singleton(pElement); 
+
+    return Collections.singleton(pElement);
   }
 
   @Override

@@ -50,19 +50,19 @@ public class CFACheck {
     waitingNodeList.add(cfa);
     while (!waitingNodeList.isEmpty()) {
       CFANode node = waitingNodeList.poll();
-      
+
       if (visitedNodes.add(node)) {
         for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges(); edgeIdx++) {
           CFAEdge edge = node.getLeavingEdge(edgeIdx);
           waitingNodeList.add(edge.getSuccessor());
         }
-  
+
         // The actual checks
         isConsistent(node);
         checkEdgeCount(node);
       }
     }
-    
+
     if (nodes != null) {
       assert visitedNodes.equals(nodes);
     }
@@ -74,19 +74,19 @@ public class CFACheck {
    * @param pNode Node to be checked
    */
   private static void checkEdgeCount(CFANode pNode) {
-    
+
     // check entering edges
-    int entering = pNode.getNumEnteringEdges(); 
+    int entering = pNode.getNumEnteringEdges();
     if (entering == 0) {
       assert (pNode instanceof CFAFunctionDefinitionNode) : "Dead code: node " + pNode + " has no incoming edges";
-    
+
     } else if (entering > 2) {
       assert (pNode instanceof CFAFunctionDefinitionNode)
           || (pNode instanceof CFAFunctionExitNode)
           || (pNode instanceof CFALabelNode)
           : "Too many incoming edges at node " + pNode.getLineNumber();
     }
-    
+
     // check leaving edges
     if (!(pNode instanceof CFAFunctionExitNode)) {
       switch (pNode.getNumLeavingEdges()) {
@@ -94,25 +94,25 @@ public class CFACheck {
         // not possible to check this, this case occurs when CFA pruning is enabled
 //        assert false : "Dead end at node " + pNode;
         break;
-  
+
       case 1: break;
-        
+
       case 2:
         CFAEdge edge1 = pNode.getLeavingEdge(0);
         CFAEdge edge2 = pNode.getLeavingEdge(1);
         assert (edge1 instanceof AssumeEdge) && (edge2 instanceof AssumeEdge) : "Branching without conditions at node " + pNode;
-        
+
         AssumeEdge ae1 = (AssumeEdge)edge1;
         AssumeEdge ae2 = (AssumeEdge)edge2;
         assert ae1.getTruthAssumption() != ae2.getTruthAssumption() : "Inconsistent branching at node " + pNode;
         break;
-        
+
       default:
         assert false : "Too much branching at node " + pNode;
       }
     }
   }
-  
+
   /**
    * Check all entering and leaving edges for corresponding leaving/entering edges
    * at predecessor/successor nodes, and that there are no duplicates
@@ -127,12 +127,12 @@ public class CFACheck {
       if (!seenEdges.add(edge)) {
         assert false : "Duplicate leaving edge " + edge + " on node " + pNode;
       }
-      
+
       CFANode successor = edge.getSuccessor();
       if (!seenNodes.add(successor)) {
         assert false : "Duplicate successor " + successor + " for node " + pNode;
       }
-      
+
       boolean hasEdge = false;
       for (int succEdgeIdx = 0; succEdgeIdx < successor.getNumEnteringEdges(); ++succEdgeIdx) {
         if (successor.getEnteringEdge(succEdgeIdx) == edge) {
@@ -146,18 +146,18 @@ public class CFACheck {
 
     seenEdges.clear();
     seenNodes.clear();
-    
+
     for (int edgeIdx = 0; edgeIdx < pNode.getNumEnteringEdges(); ++edgeIdx) {
       CFAEdge edge = pNode.getEnteringEdge(edgeIdx);
       if (!seenEdges.add(edge)) {
         assert false : "Duplicate entering edge " + edge + " on node " + pNode;
       }
-      
+
       CFANode predecessor = edge.getPredecessor();
       if (!seenNodes.add(predecessor)) {
         assert false : "Duplicate predecessor " + predecessor + " for node " + pNode;
       }
-      
+
       boolean hasEdge = false;
       for (int predEdgeIdx = 0; predEdgeIdx < predecessor.getNumLeavingEdges(); ++predEdgeIdx) {
         if (predecessor.getLeavingEdge(predEdgeIdx) == edge) {

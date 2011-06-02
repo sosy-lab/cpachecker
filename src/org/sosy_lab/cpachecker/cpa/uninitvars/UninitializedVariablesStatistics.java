@@ -63,12 +63,12 @@ public class UninitializedVariablesStatistics implements Statistics {
   public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
 
     int noOfWarnings = 0;
-    
+
     if (printWarnings) {
 
       Set<Pair<Integer, String>> warningsDisplayed = new HashSet<Pair<Integer, String>>();
       Iterable<UninitializedVariablesElement> projectedReached = transform(pReached, extractElementByTypeFunction(UninitializedVariablesElement.class));
-      
+
       //find all UninitializedVariablesElements and get their warnings
       for (UninitializedVariablesElement uninitElement : filter(projectedReached, Predicates.notNull())) {
 

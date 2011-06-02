@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
 class AutomatonExpressionArguments {
-  
+
   private Map<String, AutomatonVariable> automatonVariables;
   // Variables that are only valid for one transition ($1,$2,...)
   // these will be set in a MATCH statement, and are erased when the transitions actions are executed.
@@ -49,13 +49,13 @@ class AutomatonExpressionArguments {
    * They are logged (INFO-level) together at the end of the transition actions.
    */
   private String transitionLogMessages = "";
-  
+
   // the pattern \$\$\d+ matches Expressions like $$x $$y23rinnksd $$AutomatonVar (all terminated by a non-word-character)
   static Pattern AUTOMATON_VARS_PATTERN = Pattern.compile("\\$\\$[a-zA-Z]\\w*");
   // the pattern \$\d+ matches Expressions like $1 $2 $3 $201
   // If this pattern is changed the pattern in AutomatonASTcomparison should be changed too!
   static Pattern TRANSITION_VARS_PATTERN = Pattern.compile("\\$\\d+");
-  
+
   AutomatonExpressionArguments(Map<String, AutomatonVariable> pAutomatonVariables,
       List<AbstractElement> pAbstractElements, CFAEdge pCfaEdge, LogManager pLogger) {
     super();
@@ -125,7 +125,7 @@ class AutomatonExpressionArguments {
    * @return
    */
   String replaceVariables (String pSourceString) {
-  
+
     // replace references to Transition Variables
     Matcher matcher = AutomatonExpressionArguments.TRANSITION_VARS_PATTERN.matcher(pSourceString);
     StringBuffer result = new StringBuffer();
@@ -148,7 +148,7 @@ class AutomatonExpressionArguments {
       }
     }
     matcher.appendTail(result);
-  
+
     // replace references to automaton Variables
     matcher = AutomatonExpressionArguments.AUTOMATON_VARS_PATTERN.matcher(result.toString());
     result = new StringBuffer();

@@ -35,13 +35,13 @@ class FeatureVarsManager {
 
   private final BiMap<String, Region> regionMap = HashBiMap.create();
   private final RegionManager manager = BDDRegionManager.getInstance();
-  
+
   public Region getVariableRegion(String pVarName) {
     Region ret = regionMap.get(pVarName);
     if (ret == null) {
       //FeatureVarsCPA.logger.log(Level.INFO, "FeatureVars tracks: " + pVarName);
       ret = manager.createPredicate();
-      regionMap.put(pVarName, ret);      
+      regionMap.put(pVarName, ret);
     }
     return ret;
   }
@@ -49,7 +49,7 @@ class FeatureVarsManager {
   public RegionManager getRegionManager() {
     return manager;
   }
-  
+
   /**
    * Returns a String representation of the parameter.
    * It is important that every predicate in the region is contained in the regionMap.

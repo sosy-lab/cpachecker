@@ -68,15 +68,15 @@ import com.google.common.primitives.Primitives;
  */
 @Options
 public class Configuration {
-  
+
   public static class Builder {
-    
+
     private Map<String, String> properties = null;
     private Configuration oldConfig = null;
     private String prefix = null;
-    
+
     private Builder() { }
-    
+
     private void setupProperties() {
       if (properties == null) {
         properties = new HashMap<String, String>();
@@ -85,7 +85,7 @@ public class Configuration {
         properties.putAll(oldConfig.properties);
       }
     }
-    
+
     /**
      * Set a single option.
      */
@@ -93,9 +93,9 @@ public class Configuration {
       Preconditions.checkNotNull(name);
       Preconditions.checkNotNull(value);
       setupProperties();
-      
+
       properties.put(name, value);
-      
+
       return this;
     }
 
@@ -105,41 +105,41 @@ public class Configuration {
     public Builder clearOption(String name) {
       Preconditions.checkNotNull(name);
       setupProperties();
-      
+
       properties.remove(name);
-      
+
       return this;
     }
-    
+
     /**
      * Add all options from a map.
      */
     public Builder setOptions(Map<String, String> options) {
       Preconditions.checkNotNull(options);
       setupProperties();
-      
+
       properties.putAll(options);
-      
+
       return this;
     }
-    
+
     /**
      * Set the optional prefix for new configuration.
      */
     public Builder setPrefix(String prefix) {
       Preconditions.checkNotNull(prefix);
-      
+
       this.prefix = prefix;
-      
+
       return this;
     }
-    
+
     /**
      * Copy everything from an existing Configuration instance. This also means
      * that the new configuration object created by this builder will share the
      * set of unused properties with the configuration instance passed to this
      * class.
-     * 
+     *
      * If this method is called, it has to be the first method call on this
      * builder instance.
      */
@@ -147,16 +147,16 @@ public class Configuration {
       Preconditions.checkNotNull(oldConfig);
       Preconditions.checkState(this.properties == null);
       Preconditions.checkState(this.oldConfig == null);
-      
+
       this.oldConfig = oldConfig;
-      
+
       return this;
     }
-    
+
     /**
      * Load options from an InputStream with a "key = value" format.
      * @see Properties#load(InputStream)
-     * 
+     *
      * If this method is called, it has to be the first method call on this
      * builder instance.
      * @throws IOException If the stream cannot be read.
@@ -165,29 +165,29 @@ public class Configuration {
       Preconditions.checkNotNull(stream);
       Preconditions.checkState(properties == null);
       Preconditions.checkState(oldConfig == null);
-      
+
       Properties p = new Properties();
       p.load(stream);
-      
+
       properties = new HashMap<String, String>(p.size());
       for (Map.Entry<Object, Object> e : p.entrySet()) {
         properties.put((String)e.getKey(), (String)e.getValue());
       }
-      
+
       return this;
     }
-    
+
     /**
      * Load options from a file with a "key = value" format.
      * @see Properties#load(InputStream)
-     * 
+     *
      * If this method is called, it has to be the first method call on this
      * builder instance.
      * @throws IOException If the file cannot be read.
      */
     public Builder loadFromFile(String filename) throws IOException {
       Preconditions.checkNotNull(filename);
-      
+
       InputStream stream = null;
       try {
         stream = new FileInputStream(filename);
@@ -201,10 +201,10 @@ public class Configuration {
     /**
      * Create a Configuration instance with the settings specified by method
      * calls on this builder instance.
-     * 
+     *
      * This method resets the builder instance, so that after this method has
      * returned it is exactly in the same state as directly after instantiation.
-     * 
+     *
      * @throws InvalidConfigurationException if the settings contained invalid values for the configuration options of the Configuration class
      */
     public Configuration build() throws InvalidConfigurationException {
@@ -217,7 +217,7 @@ public class Configuration {
           newProperties = ImmutableMap.of();
         }
       } else {
-        newProperties = ImmutableMap.copyOf(properties); 
+        newProperties = ImmutableMap.copyOf(properties);
       }
 
       String newPrefix;
@@ -228,9 +228,9 @@ public class Configuration {
           newPrefix = "";
         }
       } else {
-        newPrefix = prefix;   
+        newPrefix = prefix;
       }
-      
+
       Set<String> newUnusedProperties;
       if (oldConfig != null) {
         // share the same set of unused properties
@@ -241,7 +241,7 @@ public class Configuration {
           newUnusedProperties.add((String)key);
         }
       }
-      
+
       Configuration newConfig = new Configuration(newProperties, newPrefix, newUnusedProperties);
       newConfig.inject(newConfig);
 
@@ -249,51 +249,51 @@ public class Configuration {
       properties = null;
       prefix = null;
       oldConfig = null;
-      
+
       return newConfig;
     }
   }
-  
+
   /**
    * Create a new Builder instance.
    */
   public static Builder builder() {
     return new Builder();
   }
-  
+
   /**
    * Creates a configuration with all values set to default.
    */
   public static Configuration defaultConfiguration() {
     return new Configuration(ImmutableMap.<String, String>of(), "", new HashSet<String>(0));
   }
-  
+
   /**
    * Creates a copy of a configuration with just the prefix set to a new value.
    */
   public static Configuration copyWithNewPrefix(Configuration oldConfig, String newPrefix) {
     Configuration newConfig = new Configuration(oldConfig.properties, newPrefix, oldConfig.unusedProperties);
-    
+
     // instead of calling inject() set options manually
     // this avoids the "throws InvalidConfigurationException" in the signature
     newConfig.disableOutput = oldConfig.disableOutput;
     newConfig.outputDirectory = oldConfig.outputDirectory;
     newConfig.rootDirectory = oldConfig.rootDirectory;
-    
+
     return newConfig;
   }
-    
+
   @Option(name="output.path", description="directory to put all output files in")
   private String outputDirectory = "test/output/";
-  
+
   @Option(name="output.disable", description="disable all default output files"
     + "\n(any explicitly given file will still be written)")
   private boolean disableOutput = false;
-  
+
   @Option (description="base directory for all input & output files"
     + "\n(except for the configuration file itself)")
   private String rootDirectory = ".";
-  
+
   @Option (name="log.usedOptions.export",
       description="all used options are printed")
   private boolean exportUsedOptions = false;
@@ -302,19 +302,19 @@ public class Configuration {
 
   /** Splitter to create string arrays */
   private static final Splitter ARRAY_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings();
-  
+
   /** Map that stores which implementation we use for the collection classes */
   private static final Map<Class<? extends Iterable<?>>, Class<? extends Iterable<?>>> COLLECTIONS;
   static {
     ImmutableMap.Builder<Class<? extends Iterable<?>>, Class<? extends Iterable<?>>> builder = ImmutableMap.builder();
-    
+
     putSafely(builder, Iterable.class,   ImmutableList.class);
     putSafely(builder, Collection.class, ImmutableList.class);
     putSafely(builder, List.class,       ImmutableList.class);
     putSafely(builder, Set.class,        ImmutableSet.class);
     putSafely(builder, SortedSet.class,  ImmutableSortedSet.class);
     putSafely(builder, Multiset.class,   ImmutableMultiset.class);
-    
+
     putSafely(builder, ImmutableCollection.class, ImmutableList.class);
     putSafely(builder, ImmutableList.class,       ImmutableList.class);
     putSafely(builder, ImmutableSet.class,        ImmutableSet.class);
@@ -332,13 +332,13 @@ public class Configuration {
     assert !impl.isInterface();
     builder.put(iface, impl);
   }
-  
+
   private final ImmutableMap<String, String> properties;
 
   private final String prefix;
 
   private final Set<String> unusedProperties;
-  
+
   /*
    * This constructor does not set the fields annotated with @Option!
    */
@@ -392,18 +392,18 @@ public class Configuration {
    * Inject the values of configuration options into an object.
    * The class of the object has to have a {@link Options} annotation, and each
    * field to set / method to call has to have a {@link Option} annotation.
-   * 
+   *
    * Supported types for configuration options:
    * - all primitive types
    * - all enum types
    * - {@link String} and arrays of it
    * - {@link File} (the field {@link Option#type()} is required in this case!)
    * - collection types {@link Iterable}, {@link Collection}, {@link List}, {@link Set}, {@link SortedSet} and {@link Multiset}
-   *   
+   *
    * For the collection types an immutable instance will be created and injected.
    * Their type parameter has to be String or something that allows assignments of Strings.
    * For collection types and arrays the values of the configuration option are
-   * assumed to be comma separated. 
+   * assumed to be comma separated.
    *
    * @param obj The object in which the configuration options should be injected.
    * @throws InvalidConfigurationException If the user specified configuration is wrong.
@@ -452,10 +452,10 @@ public class Configuration {
     }
   }
 
-  /** This method sets a new value to a field with an {@link Options}-annotation. 
+  /** This method sets a new value to a field with an {@link Options}-annotation.
    * It takes the name and the new value of an option,
    * checks it for allowed values and injects it into the object.
-   * 
+   *
    * @param obj the object to be injected
    * @param field the field of the value to be injected
    * @param options options-annotation of the class of the object */
@@ -489,7 +489,7 @@ public class Configuration {
     if (value == null && (option.type() != Option.Type.OUTPUT_FILE)) { return; }
 
     checkRange(option, name, value);
-    
+
     // set value to field
     try {
       field.set(obj, value);
@@ -502,7 +502,7 @@ public class Configuration {
 
   private void printOptionInfos(final Field field, final Option option,
       final String name, final String valueStr, final Object defaultValue) {
-    
+
     // create optionInfo for file
     final StringBuilder optionInfo =
         new StringBuilder(OptionCollector.formatText(option.description()));
@@ -522,10 +522,10 @@ public class Configuration {
     System.out.println(optionInfo.toString());
   }
 
-  /** This method sets a new value to a method with an {@link Options}-annotation. 
+  /** This method sets a new value to a method with an {@link Options}-annotation.
    * It takes the name and the new value of an option,
    * checks it for allowed values and injects it into the object.
-   * 
+   *
    * @param obj the object to be injected
    * @param method the method of the value to be injected
    * @param options options-annotation of the class of the object */
@@ -544,13 +544,13 @@ public class Configuration {
     final Type genericType = method.getGenericParameterTypes()[0];
     final String valueStr = getOptionValue(name, option, type.isEnum());
     final Object value = convertValue(name, valueStr, null, type, genericType, option.type());
-    
+
     // options which were not specified need not to be set
     // but do set OUTPUT_FILE options for disableOutput to work
     if (value == null && (option.type() != Option.Type.OUTPUT_FILE)) { return; }
 
     checkRange(option, name, value);
-    
+
     // set value to field
     try {
       method.invoke(obj, value);
@@ -580,9 +580,9 @@ public class Configuration {
     }
   }
 
-  /** This function return the name of an {@link Option}. 
+  /** This function return the name of an {@link Option}.
    * If no optionname is defined, the name of the field is returned.
-   * If a prefix is defined, it is added in front of the name. 
+   * If a prefix is defined, it is added in front of the name.
    *
    * @param options the options-annotation of the class, that contains the field
    * @param field field with option-annotation
@@ -644,9 +644,9 @@ public class Configuration {
     return valueStr;
   }
 
-  /** This function takes a value (String) and a type and 
+  /** This function takes a value (String) and a type and
    * returns an Object of this type with the value as content.
-   * 
+   *
    * @param optionName name of option, only for error handling
    * @param valueStr new value of the option
    * @param defaultValue old value of the option
@@ -665,43 +665,43 @@ public class Configuration {
         throw new UnsupportedOperationException(
             "Type File and type=NOT_APPLICABLE do not match for option " + optionName);
       }
-      
+
       result = handleFileOption(optionName, valueStr, (File) defaultValue, typeInfo);
-      
+
     } else {
       if (typeInfo != Option.Type.NOT_APPLICABLE) {
         throw new UnsupportedOperationException("Type " + type.getSimpleName()
             + " and type=" + typeInfo + " do not match for option " + optionName);
       }
-      
+
       if (valueStr == null) {
         result = null;
-      
+
       } else if (type.isArray()) {
         if (!type.equals(String[].class)) {
           throw new UnsupportedOperationException(
               "Currently only arrays of type String are supported for configuration options");
         }
         result = Iterables.toArray(ARRAY_SPLITTER.split(valueStr), String.class);
-  
+
       } else if (type.isPrimitive()) {
         // get wrapper type in order to use valueOf method
-        final Class<?> wrapperType = Primitives.wrap(type); 
+        final Class<?> wrapperType = Primitives.wrap(type);
         result = valueOf(wrapperType, optionName, valueStr);
-  
+
       } else if (type.isEnum()) {
         // all enums have valueOf method
         result = valueOf(type, optionName, valueStr);
-  
+
       } else if (type.equals(String.class)) {
         result = valueStr;
-        
+
       } else if (type.equals(Files.class)) {
         result = handleFileOption(optionName, valueStr, (File) defaultValue, typeInfo);
-        
+
       } else if (COLLECTIONS.containsKey(type)) {
         result = handleCollectionOption(optionName, valueStr, type, genericType);
-        
+
       } else {
         throw new UnsupportedOperationException(
             "Unimplemented type for option: " + type.getSimpleName());
@@ -740,12 +740,12 @@ public class Configuration {
     }
   }
 
-  /** This function returns a file. It sets the path of the file to 
-   * the given outputDirectory in the given rootDirectory. 
-   * 
+  /** This function returns a file. It sets the path of the file to
+   * the given outputDirectory in the given rootDirectory.
+   *
    * @param optionName name of option only for error handling
    * @param valueStr new value
-   * @param defaultValue default filename 
+   * @param defaultValue default filename
    * @param typeInfo info about the type of the file (outputfile, inputfile) */
   private File handleFileOption(final String optionName, final String valueStr,
       final File defaultValue, final Option.Type typeInfo)
@@ -763,16 +763,16 @@ public class Configuration {
       if (disableOutput) {
         return null;
       }
-      
+
       if (!file.isAbsolute()) {
         file = new File(outputDirectory, file.getPath());
       }
     }
-    
+
     if (!file.isAbsolute()) {
-      file = new File(rootDirectory, file.getPath());    
+      file = new File(rootDirectory, file.getPath());
     }
-    
+
     if (typeInfo == Option.Type.REQUIRED_INPUT_FILE) {
       try {
         Files.checkReadableFile(file);
@@ -781,36 +781,36 @@ public class Configuration {
             + " specifies an invalid input file: " + e.getMessage());
       }
     }
-    
+
     return file;
   }
-  
+
   private Object handleCollectionOption(String optionName, String valueStr,
       Class<?> type, Type genericType) throws UnsupportedOperationException,
       InvalidConfigurationException {
-    
+
     // it's a collections class, get value of type parameter
     assert genericType instanceof ParameterizedType : "Collections type that is not a ParameterizedType";
     ParameterizedType pType = (ParameterizedType)genericType;
     Type[] parameterTypes = pType.getActualTypeArguments();
     assert parameterTypes.length == 1 : "Collections type with more than one type parameter";
     Type paramType = parameterTypes[0];
-    
+
     Class<?> paramClass = extractUpperBoundFromType(paramType);
     if (!paramClass.isAssignableFrom(String.class)) {
       throw new UnsupportedOperationException("Currently only collections of type String are supported for configuration options, not of type \"" + paramType + "\"");
     }
     // now we now that it's a Collection<String> / Set<? extends String> etc., so we can safely assign to it
-    
+
     Class<?> implementationClass = COLLECTIONS.get(type);
     assert implementationClass != null : "Only call this method with a class that has a mapping in COLLECTIONS";
-    
+
     Iterable<String> values = ARRAY_SPLITTER.split(valueStr);
 
     // invoke ImmutableSet.copyOf(Object[]) etc.
     return invokeMethod(implementationClass, "copyOf", Iterable.class, values, optionName);
   }
-  
+
   private static Class<?> extractUpperBoundFromType(Type type) {
     if (type instanceof WildcardType) {
       WildcardType wcType = (WildcardType)type;
@@ -823,14 +823,14 @@ public class Configuration {
       }
       type = upperBounds[0];
     }
-    
+
     if (type instanceof Class<?>) {
       return (Class<?>)type;
     } else {
       throw new UnsupportedOperationException("Currently types like \"" + type + "\" are not supported");
     }
   }
-  
+
   private static void checkRange(Option option, String name, Object value) throws InvalidConfigurationException {
     if (value instanceof Integer || value instanceof Long) {
       long n = ((Number)value).longValue();
@@ -845,5 +845,5 @@ public class Configuration {
   public String getRootDirectory() {
     return this.rootDirectory;
   }
-  
+
 }

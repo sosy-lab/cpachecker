@@ -36,12 +36,12 @@ public class DummyType extends IType {
   public String toString() {
     return typeName;
   }
-  
+
   @Override
   public boolean isConst() {
     throw new UnsupportedOperationException();
   }
-  
+
   @Override
   public boolean isVolatile() {
     throw new UnsupportedOperationException();

@@ -97,7 +97,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
     Preconditions.checkState(isCovered());
     return mCoveredBy;
   }
-  
+
   public Set<ARTElement> getCoveredByThis() {
     assert !destroyed;
     if (mCoveredByThis == null) {

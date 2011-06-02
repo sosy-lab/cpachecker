@@ -15,9 +15,9 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 
 /*
- * CAUTION: The cache for precision adjustment is only correct for CPAs that do 
+ * CAUTION: The cache for precision adjustment is only correct for CPAs that do
  * _NOT_ depend on the reached set when performing prec.
- * 
+ *
  */
 public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
 
@@ -27,7 +27,7 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
   private final CacheTransferRelation mCacheTransferRelation;
   private final CachePrecisionAdjustment mCachePrecisionAdjustment;
   private final CacheMergeOperator mCacheMergeOperator;
-  
+
   public CacheCPA(ConfigurableProgramAnalysis pCachedCPA) {
     mCachedCPA = pCachedCPA;
     mInitialElementsCache = new HashMap<CFANode, AbstractElement>();
@@ -36,7 +36,7 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
     mCachePrecisionAdjustment = new CachePrecisionAdjustment(mCachedCPA.getPrecisionAdjustment());
     mCacheMergeOperator = new CacheMergeOperator(mCachedCPA.getMergeOperator());
   }
-  
+
   @Override
   public AbstractDomain getAbstractDomain() {
     return mCachedCPA.getAbstractDomain();
@@ -65,24 +65,24 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
   @Override
   public AbstractElement getInitialElement(CFANode pNode) {
     AbstractElement lInitialElement = mInitialElementsCache.get(pNode);
-    
+
     if (lInitialElement == null) {
       lInitialElement = mCachedCPA.getInitialElement(pNode);
       mInitialElementsCache.put(pNode, lInitialElement);
     }
-    
+
     return lInitialElement;
   }
 
   @Override
   public Precision getInitialPrecision(CFANode pNode) {
     Precision lInitialPrecision = mInitialPrecisionsCache.get(pNode);
-    
+
     if (lInitialPrecision == null) {
       lInitialPrecision = mCachedCPA.getInitialPrecision(pNode);
       mInitialPrecisionsCache.put(pNode, lInitialPrecision);
     }
-    
+
     return lInitialPrecision;
   }
 
@@ -92,14 +92,14 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
     if (pType.isAssignableFrom(getClass())) {
       return pType.cast(this);
     }
-    
+
     if (pType.isAssignableFrom(mCachedCPA.getClass())) {
       return pType.cast(mCachedCPA);
     }
     else if (mCachedCPA instanceof WrapperCPA) {
       return ((WrapperCPA)mCachedCPA).retrieveWrappedCpa(pType);
     }
-    
+
     return null;
   }
 

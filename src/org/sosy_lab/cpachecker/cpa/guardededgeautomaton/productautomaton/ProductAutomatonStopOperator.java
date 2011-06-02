@@ -14,7 +14,7 @@ public class ProductAutomatonStopOperator extends CompositeStopOperator {
   public ProductAutomatonStopOperator(ImmutableList<StopOperator> pStopOperators) {
     super(pStopOperators);
   }
-  
+
   @Override
   public boolean stop(AbstractElement element, AbstractElement reachedElement)
   throws CPAException {
@@ -26,15 +26,15 @@ public class ProductAutomatonStopOperator extends CompositeStopOperator {
 
     for (int idx = 0; idx < compositeElements1.size(); idx++) {
       StopOperator stopOp = stopOperators.get(idx);
-      
+
       AbstractElement absElem1 = compositeElements1.get(idx);
       AbstractElement absElem2 = compositeElements2.get(idx);
-      
+
       if (!stopOp.stop(absElem1, absElem2)){
         return false;
       }
     }
-    
+
     return true;
   }
 

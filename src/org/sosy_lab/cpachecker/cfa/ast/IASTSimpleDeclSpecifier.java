@@ -69,15 +69,15 @@ public final class IASTSimpleDeclSpecifier extends IType {
   public boolean isUnsigned() {
     return isUnsigned;
   }
-  
+
   public boolean isComplex() {
     return isComplex;
   }
-  
+
   public boolean isImaginary() {
     return isImaginary;
   }
-  
+
   public boolean isLongLong() {
     return isLongLong;
   }

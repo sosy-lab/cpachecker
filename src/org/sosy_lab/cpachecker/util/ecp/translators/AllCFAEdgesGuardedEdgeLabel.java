@@ -8,15 +8,15 @@ import org.sosy_lab.cpachecker.util.ecp.ECPEdgeSet;
 public class AllCFAEdgesGuardedEdgeLabel extends GuardedEdgeLabel {
 
   private static AllCFAEdgesGuardedEdgeLabel sInstance = new AllCFAEdgesGuardedEdgeLabel();
-  
+
   public static AllCFAEdgesGuardedEdgeLabel getInstance() {
     return sInstance;
   }
-  
+
   private AllCFAEdgesGuardedEdgeLabel() {
     super(new ECPEdgeSet(Collections.<CFAEdge>emptySet()));
   }
-  
+
   @Override
   public ECPEdgeSet getEdgeSet() {
     throw new UnsupportedOperationException();
@@ -31,5 +31,5 @@ public class AllCFAEdgesGuardedEdgeLabel extends GuardedEdgeLabel {
   public boolean equals(Object pOther) {
     return (this == sInstance);
   }
-  
+
 }

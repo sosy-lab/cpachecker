@@ -66,7 +66,7 @@ class PredicateCPAStatistics implements Statistics {
       this.cpa = cpa;
       cpa.getConfiguration().inject(this, PredicateCPAStatistics.class);
     }
-    
+
     void addRefiner(PredicateRefiner ref) {
       refiner = ref;
     }
@@ -94,7 +94,7 @@ class PredicateCPAStatistics implements Statistics {
         TreeMap<CFANode, Collection<AbstractionPredicate>> sortedPredicates
               = new TreeMap<CFANode, Collection<AbstractionPredicate>>(predicates.asMap());
         StringBuilder sb = new StringBuilder();
-        
+
         for (Entry<CFANode, Collection<AbstractionPredicate>> e : sortedPredicates.entrySet()) {
           sb.append("LOCATION: ");
           sb.append(e.getKey());
@@ -102,7 +102,7 @@ class PredicateCPAStatistics implements Statistics {
           Joiner.on('\n').appendTo(sb, e.getValue());
           sb.append("\n\n");
         }
-        
+
         try {
           Files.writeFile(file, sb);
         } catch (IOException e) {
@@ -182,7 +182,7 @@ class PredicateCPAStatistics implements Statistics {
         out.println("  Time for satisfiability checks:    " + trans.satCheckTimer);
       }
       out.println("Time for strengthen operator:        " + trans.strengthenTimer);
-      out.println("  Time for satisfiability checks:    " + trans.strengthenCheckTimer);        
+      out.println("  Time for satisfiability checks:    " + trans.strengthenCheckTimer);
       out.println("Time for prec operator:             " + prec.totalPrecTime);
       out.println("  Time for abstraction:              " + prec.computingAbstractionTime + " (Max: " + prec.computingAbstractionTime.printMaxTime() + ", Count: " + prec.computingAbstractionTime.getNumberOfIntervals() + ")");
       out.println("    Solving time:                    " + as.abstractionTime.printOuterSumTime() + " (Max: " + as.abstractionTime.printOuterMaxTime() + ")");
@@ -207,7 +207,7 @@ class PredicateCPAStatistics implements Statistics {
         out.println("  Error path post-processing:        " + refiner.errorPathProcessing);
       }
     }
-    
+
     private String toPercent(double val, double full) {
       return String.format("%1.0f", val/full*100) + "%";
     }

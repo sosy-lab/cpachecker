@@ -84,7 +84,7 @@ public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
     Function<Pair<?, ? extends CFAEdge>, CFAEdge> projectionToSecond = Pair.getProjectionToSecond();
     return Lists.transform(this, projectionToSecond);
   }
-  
+
   /**
    * This method returns the path as C source code, intended to be used with CBMC.
    *

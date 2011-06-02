@@ -67,7 +67,7 @@ public class CompositeElement implements AbstractWrapperElement, Targetable, Par
   public Object getPartitionKey() {
     if (partitionKey == null) {
       List<Object> keys = new ArrayList<Object>(elements.size());
-      
+
       for (int i = 0; i < elements.size(); i++) {
         AbstractElement element = elements.get(i);
         if (element instanceof Partitionable) {
@@ -76,13 +76,13 @@ public class CompositeElement implements AbstractWrapperElement, Targetable, Par
           keys.add(null);
         }
       }
-      
+
       partitionKey = keys;
     }
-    
+
     return partitionKey;
   }
-  
+
   @Override
   public boolean equals(Object other) {
     if (other == this) {

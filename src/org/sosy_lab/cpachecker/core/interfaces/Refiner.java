@@ -34,7 +34,7 @@ public interface Refiner {
    * @param pReached The reached set.
    * @return Whether the refinement was successful.
    * @throws CPAException If an error occured during refinement.
-   * @throws InterruptedException 
+   * @throws InterruptedException
    */
   public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException;
 

@@ -94,7 +94,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     assert ((ARTElement)lastElement).isTarget();
 
     Path path = computePath((ARTElement)lastElement, new UnmodifiableReachedSetWrapper(pReached));
-    
+
     if (logger.wouldBeLogged(Level.ALL) && path != null) {
       logger.log(Level.ALL, "Error path:\n", path);
       logger.log(Level.ALL, "Function calls on Error path:\n",
@@ -108,7 +108,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
       if (e.getErrorPath() == null) {
         e.setErrorPath(path);
       }
-      
+
       // set the path from the exception as the target path
       // so it can be used for debugging
       mArtCpa.setTargetPath(e.getErrorPath());
@@ -123,10 +123,10 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
       // new targetPath must contain root and error node
       assert targetPath.getFirst().getFirst() == path.getFirst().getFirst();
       assert targetPath.getLast().getFirst()  == path.getLast().getFirst();
-      
+
       mArtCpa.setTargetPath(targetPath);
     }
-    
+
     logger.log(Level.FINEST, "ART based refinement finished, result is", result);
 
     return result;
@@ -138,7 +138,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
    * @param pReached
    * @param pPath
    * @return whether the refinement was successful
-   * @throws InterruptedException 
+   * @throws InterruptedException
    */
   protected abstract boolean performRefinement(ARTReachedSet pReached, Path pPath)
             throws CPAException, InterruptedException;
@@ -147,32 +147,32 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
    * This method is intended to be overwritten if the implementation is able to
    * provide a better target path than ARTCPA. This is probably the case when the
    * ART is a DAG and not a tree.
-   * 
+   *
    * This method is called after {@link #performRefinement(ARTReachedSet, Path)}
    * and only if the former method returned false. This method should then return
    * the error path belonging to the latest call to performRefinement.
-   * 
+   *
    * @param pPath The target path.
    * @return A path from the root node to the target node.
    */
   protected Path getTargetPath(Path pPath) {
     return pPath;
   }
-  
+
   /**
-   * This method may be overwritten if the standard behavior of <code>ARTUtils.getOnePathTo()</code> is not 
+   * This method may be overwritten if the standard behavior of <code>ARTUtils.getOnePathTo()</code> is not
    * appropriate in the implementations context.
-   * 
+   *
    * TODO: Currently this function may return null.
-   * 
+   *
    * @param pLastElement Last ARTElement of the given reached set
    * @param pReached ReachedSet
    * @see org.sosy_lab.cpachecker.cpa.art.ARTUtils
    * @return
-   * @throws InterruptedException 
-   */  
+   * @throws InterruptedException
+   */
   protected Path computePath(ARTElement pLastElement, UnmodifiableReachedSet pReached) throws InterruptedException, CPAException {
-    return ARTUtils.getOnePathTo(pLastElement);    
+    return ARTUtils.getOnePathTo(pLastElement);
   }
 
   private static boolean checkART(ReachedSet pReached) {

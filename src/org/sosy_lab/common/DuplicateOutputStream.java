@@ -31,16 +31,16 @@ import com.google.common.base.Preconditions;
 /**
  * This class is an OutputStream implementation that sends everything to two
  * other OutputStreams.
- * 
+ *
  * Exceptions thrown by any of the streams will be relayed to the caller.
- * 
+ *
  * @author Philipp Wendler
  */
 public class DuplicateOutputStream extends OutputStream {
 
   private final OutputStream stream1;
-  private final OutputStream stream2;    
-  
+  private final OutputStream stream2;
+
   public DuplicateOutputStream(OutputStream pStream1, OutputStream pStream2) {
     stream1 = Preconditions.checkNotNull(pStream1);
     stream2 = Preconditions.checkNotNull(pStream2);

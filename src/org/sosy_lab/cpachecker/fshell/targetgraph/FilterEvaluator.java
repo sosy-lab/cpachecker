@@ -38,28 +38,28 @@ import org.sosy_lab.cpachecker.fshell.targetgraph.mask.LabelMaskFunctor;
 import org.sosy_lab.cpachecker.fshell.targetgraph.mask.LineNumberMaskFunctor;
 
 public class FilterEvaluator {
-  
+
   private final FilterEvaluationCache mCache = new FilterEvaluationCache();
   private final Visitor mVisitor;
   private final BasicBlockEntryMaskFunctor mBasicBlockEntryMaskFunctor;
-  
+
   public FilterEvaluator(TargetGraph pTargetGraph, Set<CFAEdge> pBasicBlockEntries) {
     mVisitor = new Visitor(pTargetGraph);
     mBasicBlockEntryMaskFunctor = new BasicBlockEntryMaskFunctor(pBasicBlockEntries);
   }
-  
+
   public TargetGraph evaluate(Filter pFilter) {
     return pFilter.accept(mVisitor);
   }
-  
+
   private class Visitor implements FilterVisitor<TargetGraph> {
-    
+
     private TargetGraph mTargetGraph;
-    
+
     public Visitor(TargetGraph pTargetGraph) {
       mTargetGraph = pTargetGraph;
     }
-    
+
     @Override
     public TargetGraph visit(Identity pIdentity) {
       return mTargetGraph;
@@ -70,7 +70,7 @@ public class FilterEvaluator {
       if (mCache.isCached(mTargetGraph, pFileFilter)) {
         return mCache.get(mTargetGraph, pFileFilter);
       }
-      
+
       throw new UnsupportedOperationException();
     }
 
@@ -79,7 +79,7 @@ public class FilterEvaluator {
       if (mCache.isCached(mTargetGraph, pBasicBlockEntry)) {
         return mCache.get(mTargetGraph, pBasicBlockEntry);
       }
-      
+
       TargetGraph lResultGraph = TargetGraphUtil.applyStandardEdgeBasedFilter(mTargetGraph, mBasicBlockEntryMaskFunctor);
 
       mCache.add(mTargetGraph, pBasicBlockEntry, lResultGraph);
@@ -92,7 +92,7 @@ public class FilterEvaluator {
       if (mCache.isCached(mTargetGraph, pConditionEdge)) {
         return mCache.get(mTargetGraph, pConditionEdge);
       }
-     
+
       MaskFunctor<Node, Edge> lMaskFunctor = AssumeEdgeMaskFunctor.getInstance();
 
       TargetGraph lResultGraph = TargetGraphUtil.applyStandardEdgeBasedFilter(mTargetGraph, lMaskFunctor);
@@ -107,7 +107,7 @@ public class FilterEvaluator {
       if (mCache.isCached(mTargetGraph, pConditionGraph)) {
         return mCache.get(mTargetGraph, pConditionGraph);
       }
-      
+
       throw new UnsupportedOperationException();
     }
 
@@ -116,7 +116,7 @@ public class FilterEvaluator {
       if (mCache.isCached(mTargetGraph, pDecisionEdge)) {
         return mCache.get(mTargetGraph, pDecisionEdge);
       }
-      
+
       throw new UnsupportedOperationException();
     }
 
@@ -125,7 +125,7 @@ public class FilterEvaluator {
       if (mCache.isCached(mTargetGraph, pLine)) {
         return mCache.get(mTargetGraph, pLine);
       }
-      
+
       MaskFunctor<Node, Edge> lMaskFunctor = new LineNumberMaskFunctor(pLine.getLine());
 
       TargetGraph lResultGraph = TargetGraphUtil.applyStandardEdgeBasedFilter(mTargetGraph, lMaskFunctor);
@@ -140,7 +140,7 @@ public class FilterEvaluator {
       if (mCache.isCached(mTargetGraph, pCalls)) {
         return mCache.get(mTargetGraph, pCalls);
       }
-      
+
       TargetGraph lResultGraph = TargetGraphUtil.applyStandardEdgeBasedFilter(mTargetGraph, FunctionCallsMaskFunctor.getInstance());
 
       mCache.add(mTargetGraph, pCalls, lResultGraph);
@@ -153,7 +153,7 @@ public class FilterEvaluator {
       if (mCache.isCached(mTargetGraph, pColumn)) {
         return mCache.get(mTargetGraph, pColumn);
       }
-      
+
       throw new UnsupportedOperationException();
     }
 
@@ -162,11 +162,11 @@ public class FilterEvaluator {
       if (mCache.isCached(mTargetGraph, pFunc)) {
         return mCache.get(mTargetGraph, pFunc);
       }
-      
+
       TargetGraph lResultGraph = TargetGraphUtil.applyFunctionNameFilter(mTargetGraph, pFunc.getFunctionName());
 
       mCache.add(mTargetGraph, pFunc, lResultGraph);
-      
+
       return lResultGraph;
     }
 
@@ -175,13 +175,13 @@ public class FilterEvaluator {
       if (mCache.isCached(mTargetGraph, pCall)) {
         return mCache.get(mTargetGraph, pCall);
       }
-      
+
       MaskFunctor<Node, Edge> lMaskFunctor = new FunctionCallMaskFunctor(pCall.getFunctionName());
 
       TargetGraph lResultGraph = TargetGraphUtil.applyStandardEdgeBasedFilter(mTargetGraph, lMaskFunctor);
 
       mCache.add(mTargetGraph, pCall, lResultGraph);
-      
+
       return lResultGraph;
     }
 
@@ -190,7 +190,7 @@ public class FilterEvaluator {
       if (mCache.isCached(mTargetGraph, pEntry)) {
         return mCache.get(mTargetGraph, pEntry);
       }
-      
+
       MaskFunctor<Node, Edge> lMaskFunctor = new FunctionEntryMaskFunctor(pEntry.getFunctionName());
 
       TargetGraph lResultGraph = TargetGraphUtil.applyStandardEdgeBasedFilter(mTargetGraph, lMaskFunctor);
@@ -205,7 +205,7 @@ public class FilterEvaluator {
       if (mCache.isCached(mTargetGraph, pExit)) {
         return mCache.get(mTargetGraph, pExit);
       }
-      
+
       throw new UnsupportedOperationException();
     }
 
@@ -214,7 +214,7 @@ public class FilterEvaluator {
       if (mCache.isCached(mTargetGraph, pLabel)) {
         return mCache.get(mTargetGraph, pLabel);
       }
-      
+
       MaskFunctor<Node, Edge> lMaskFunctor = new LabelMaskFunctor(pLabel.getLabel());
 
       TargetGraph lResultGraph = TargetGraphUtil.applyStandardEdgeBasedFilter(mTargetGraph, lMaskFunctor);
@@ -229,7 +229,7 @@ public class FilterEvaluator {
       if (mCache.isCached(mTargetGraph, pExpression)) {
         return mCache.get(mTargetGraph, pExpression);
       }
-      
+
       throw new UnsupportedOperationException();
     }
 
@@ -238,7 +238,7 @@ public class FilterEvaluator {
       if (mCache.isCached(mTargetGraph, pRegularExpression)) {
         return mCache.get(mTargetGraph, pRegularExpression);
       }
-      
+
       throw new UnsupportedOperationException();
     }
 
@@ -247,12 +247,12 @@ public class FilterEvaluator {
       if (mCache.isCached(mTargetGraph, pComplement)) {
         return mCache.get(mTargetGraph, pComplement);
       }
-      
+
       TargetGraph lFilteredGraph = pComplement.getFilter().accept(this);
       TargetGraph lResultGraph = TargetGraphUtil.minus(mTargetGraph, lFilteredGraph);
 
       mCache.add(mTargetGraph, pComplement, lResultGraph);
-      
+
       return lResultGraph;
     }
 
@@ -261,14 +261,14 @@ public class FilterEvaluator {
       if (mCache.isCached(mTargetGraph, pUnion)) {
         return mCache.get(mTargetGraph, pUnion);
       }
-      
+
       TargetGraph lFirstGraph = pUnion.getFirstFilter().accept(this);
       TargetGraph lSecondGraph = pUnion.getSecondFilter().accept(this);
-      
+
       TargetGraph lResultGraph = TargetGraphUtil.union(lFirstGraph, lSecondGraph);
-      
+
       mCache.add(mTargetGraph, pUnion, lResultGraph);
-      
+
       return lResultGraph;
     }
 
@@ -277,13 +277,13 @@ public class FilterEvaluator {
       if (mCache.isCached(mTargetGraph, pCompose)) {
         return mCache.get(mTargetGraph, pCompose);
       }
-      
+
       TargetGraph lFirstGraph = pCompose.getFilterAppliedFirst().accept(this);
       Visitor lTmpVisitor = new Visitor(lFirstGraph);
       TargetGraph lResultGraph = pCompose.getFilterAppliedSecond().accept(lTmpVisitor);
-      
+
       mCache.add(mTargetGraph, pCompose, lResultGraph);
-      
+
       return lResultGraph;
     }
 
@@ -292,10 +292,10 @@ public class FilterEvaluator {
       if (mCache.isCached(mTargetGraph, pIntersection)) {
         return mCache.get(mTargetGraph, pIntersection);
       }
-      
+
       TargetGraph lFirstGraph = pIntersection.getFirstFilter().accept(this);
       TargetGraph lSecondGraph = pIntersection.getSecondFilter().accept(this);
-      
+
       TargetGraph lResultGraph = TargetGraphUtil.intersect(lFirstGraph, lSecondGraph);
 
       mCache.add(mTargetGraph, pIntersection, lResultGraph);
@@ -312,7 +312,7 @@ public class FilterEvaluator {
       TargetGraph lFirstGraph = pSetMinus.getFirstFilter().accept(this);
       TargetGraph lSecondGraph = pSetMinus.getSecondFilter().accept(this);
       TargetGraph lResultGraph = TargetGraphUtil.minus(lFirstGraph, lSecondGraph);
-      
+
       mCache.add(mTargetGraph, pSetMinus, lResultGraph);
 
       return lResultGraph;
@@ -323,7 +323,7 @@ public class FilterEvaluator {
       if (mCache.isCached(mTargetGraph, pEnclosingScopes)) {
         return mCache.get(mTargetGraph, pEnclosingScopes);
       }
-      
+
       throw new UnsupportedOperationException();
     }
 
@@ -332,15 +332,15 @@ public class FilterEvaluator {
       if (mCache.isCached(mTargetGraph, pPredication)) {
         return mCache.get(mTargetGraph, pPredication);
       }
-      
+
       TargetGraph lTargetGraph = pPredication.getFilter().accept(this);
       TargetGraph lPredicatedTargetGraph = TargetGraphUtil.predicate(lTargetGraph, pPredication.getPredicate());
 
       mCache.add(mTargetGraph, pPredication, lPredicatedTargetGraph);
-      
+
       return lPredicatedTargetGraph;
     }
-    
+
   }
-  
+
 }

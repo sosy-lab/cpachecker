@@ -35,9 +35,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 /**
  * Class implementing the FormulaManager interface,
  * providing some commonly used stuff which is independent from specific libraries.
- * 
+ *
  * This class inherits from CtoFormulaConverter to import the stuff there.
- * 
+ *
  * @author Philipp Wendler
  */
 public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathFormulaManager {
@@ -57,7 +57,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     return new PathFormula(fmgr.makeTrue(), oldFormula.getSsa(), 0,
         oldFormula.getReachingPathsFormula(), oldFormula.getBranchingCounter());
   }
-  
+
   @Override
   public PathFormula makeNewPathFormula(PathFormula oldFormula, SSAMap m) {
     return new PathFormula(oldFormula.getFormula(), m, oldFormula.getLength(), oldFormula.getReachingPathsFormula(), oldFormula.getBranchingCounter());
@@ -86,7 +86,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
     return new PathFormula(newFormula, newSsa, newLength,
         newReachingPathsFormula, newBranchingCounter);
-  }  
+  }
 
   @Override
   public PathFormula makeAnd(PathFormula pPathFormula, Formula pOtherFormula) {
@@ -126,29 +126,29 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
         // i2:smaller, i1:bigger
         // => need correction term for i2
         Formula t;
-        
+
         if (useNondetFlags && var.equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
           t = makeNondetFlagMerger(Math.max(i2, 1), i1);
         }
         else {
           t = makeSSAMerger(var, Math.max(i2, 1), i1);
         }
-        
+
         mt2 = fmgr.makeAnd(mt2, t);
 
       } else if (i1 < i2 && i2 > 1) {
         // i1:smaller, i2:bigger
         // => need correction term for i1
         Formula t;
-        
+
         if (useNondetFlags && var.equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
           t = makeNondetFlagMerger(Math.max(i1, 1), i2);
         }
         else {
-          t = makeSSAMerger(var, Math.max(i1, 1), i2); 
+          t = makeSSAMerger(var, Math.max(i1, 1), i2);
         }
-        
-        mt1 = fmgr.makeAnd(mt1, t); 
+
+        mt1 = fmgr.makeAnd(mt1, t);
       }
     }
 
@@ -167,21 +167,21 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
       } else if (i1 < i2 && i2 > 1) {
         // i1:smaller, i2:bigger
         // => need correction term for i1
-        Formula t = makeSSAMerger(name, args, Math.max(i1, 1), i2); 
-        mt1 = fmgr.makeAnd(mt1, t); 
+        Formula t = makeSSAMerger(name, args, Math.max(i1, 1), i2);
+        mt1 = fmgr.makeAnd(mt1, t);
       }
     }
 
     return Pair.of(Pair.of(mt1, mt2), result);
   }
-  
+
   private Formula makeNondetFlagMerger(int iSmaller, int iBigger) {
     return makeMerger(CtoFormulaConverter.NONDET_FLAG_VARIABLE, iSmaller, iBigger, fmgr.makeNumber(0));
   }
-  
+
   private Formula makeMerger(String var, int iSmaller, int iBigger, Formula pInitialValue) {
     assert iSmaller < iBigger;
-    
+
     Formula lResult = fmgr.makeTrue();
 
     for (int i = iSmaller+1; i <= iBigger; ++i) {
@@ -189,7 +189,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
       Formula e = fmgr.makeEqual(currentVar, pInitialValue);
       lResult = fmgr.makeAnd(lResult, e);
     }
-    
+
     return lResult;
   }
 

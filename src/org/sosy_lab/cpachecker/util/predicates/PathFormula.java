@@ -30,18 +30,18 @@ public class PathFormula {
   private final Formula formula;
   private final SSAMap ssa;
   private final int length;
-  
+
   // this formula contains information about the branches we took so we can
   // single out feasible paths
   private final Formula reachingPathsFormula;
-  
+
   // number of branching locations we saw on the paths (used for reachingPathsFormula)
-  private final int branchingCounter; 
-  
+  private final int branchingCounter;
+
   protected PathFormula(Formula pf, SSAMap ssa, int pLength,
         Formula pReachingPathsFormula, int pBranchingCounter) {
     this.formula = pf;
-    this.ssa = ssa;    
+    this.ssa = ssa;
     this.length = pLength;
     this.reachingPathsFormula = pReachingPathsFormula;
     this.branchingCounter = pBranchingCounter;
@@ -54,7 +54,7 @@ public class PathFormula {
   public SSAMap getSsa() {
     return ssa;
   }
-  
+
   public int getLength() {
     return length;
   }
@@ -62,11 +62,11 @@ public class PathFormula {
   public Formula getReachingPathsFormula() {
     return reachingPathsFormula;
   }
-  
+
   public int getBranchingCounter() {
     return branchingCounter;
   }
-  
+
   @Override
   public String toString(){
     return getFormula().toString();
@@ -80,14 +80,14 @@ public class PathFormula {
     if (!(obj instanceof PathFormula)) {
       return false;
     }
-    
+
     PathFormula other = (PathFormula)obj;
     return formula.equals(other.formula)
         && ssa.equals(other.ssa)
         && reachingPathsFormula.equals(other.reachingPathsFormula)
         && branchingCounter == (other).branchingCounter;
   }
-  
+
   @Override
   public int hashCode() {
     return (formula.hashCode() * 17 + ssa.hashCode()) * 17 + branchingCounter;

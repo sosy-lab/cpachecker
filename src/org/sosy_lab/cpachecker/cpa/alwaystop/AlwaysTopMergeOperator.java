@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 enum AlwaysTopMergeOperator implements MergeOperator {
 
   INSTANCE;
-  
+
   @Override
   public AbstractElement merge(AbstractElement pElement1,
       AbstractElement pElement2, Precision pPrecision) {

@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.objectmodel;
 
 public abstract class CFAFunctionDefinitionNode extends CFANode {
-  
+
   // Check if call edges are added in the second pass
   private final CFAFunctionExitNode exitNode;
 

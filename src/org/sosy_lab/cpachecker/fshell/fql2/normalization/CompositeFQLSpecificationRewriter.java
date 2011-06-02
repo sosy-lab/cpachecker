@@ -10,20 +10,20 @@ public class CompositeFQLSpecificationRewriter implements FQLSpecificationRewrit
 
   private CoverageSpecificationRewriter mCoverRewriter;
   private PathPatternRewriter mPassingRewriter;
-  
+
   public CompositeFQLSpecificationRewriter(CoverageSpecificationRewriter pCoverRewriter, PathPatternRewriter pPassingRewriter) {
     mCoverRewriter = pCoverRewriter;
     mPassingRewriter = pPassingRewriter;
   }
-  
+
   @Override
   public FQLSpecification rewrite(FQLSpecification pSpecification) {
     CoverageSpecification lCover = pSpecification.getCoverageSpecification();
     PathPattern lPassing = pSpecification.getPathPattern();
-    
+
     CoverageSpecification lNewCover = mCoverRewriter.rewrite(lCover);
     PathPattern lNewPassing = mPassingRewriter.rewrite(lPassing);
-    
+
     if (lNewCover.equals(lCover) && lNewPassing.equals(lPassing)) {
       return pSpecification;
     }

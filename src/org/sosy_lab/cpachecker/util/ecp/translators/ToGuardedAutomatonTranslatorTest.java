@@ -48,14 +48,14 @@ import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
 public class ToGuardedAutomatonTranslatorTest {
 
   private Cilly lCilly;
-  
+
   @Before
   public void setup() throws InvalidConfigurationException {
     Configuration config = Configuration.defaultConfiguration();
     LogManager logger = new LogManager(config);
     lCilly = new Cilly(logger);
   }
-  
+
   @Test
   public void testMain001() throws Exception {
     /** process FQL query */
@@ -73,32 +73,32 @@ public class ToGuardedAutomatonTranslatorTest {
 
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
-    
+
     String lEntryFunction = "main";
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
     LogManager lLogManager = new LogManager(lConfiguration);
     CFAFunctionDefinitionNode lMainFunction = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
-        
+
     /** do translation */
     PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lMainFunction);
     CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(lPatternTranslator);
     Collection<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lSpecification.getCoverageSpecification());
     ElementaryCoveragePattern lPassing = lPatternTranslator.translate(lSpecification.getPathPattern());
-    
+
     ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
-    
+
     System.out.println("TEST GOALS:");
-    
+
     int lIndex = 0;
-    
+
     for (ElementaryCoveragePattern lGoal : lGoals) {
       System.out.println("Goal #" + (++lIndex));
       System.out.println(lPrettyPrinter.printPretty(lGoal));
     }
-    
+
     System.out.println("PASSING:");
     System.out.println(lPrettyPrinter.printPretty(lPassing));
-    
+
     System.out.println(ToGuardedAutomatonTranslator.translate(lPassing));
   }
 
@@ -124,30 +124,30 @@ public class ToGuardedAutomatonTranslatorTest {
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
     LogManager lLogManager = new LogManager(lConfiguration);
     CFAFunctionDefinitionNode lMainFunction = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
-    
+
     /** do translation */
     PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lMainFunction);
     CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(lPatternTranslator);
     Collection<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lSpecification.getCoverageSpecification());
     ElementaryCoveragePattern lPassing = lPatternTranslator.translate(lSpecification.getPathPattern());
-    
+
     ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
-    
+
     System.out.println("TEST GOALS:");
-    
+
     int lIndex = 0;
-    
+
     for (ElementaryCoveragePattern lGoal : lGoals) {
       System.out.println("Goal #" + (++lIndex));
       System.out.println(lPrettyPrinter.printPretty(lGoal));
     }
-    
+
     System.out.println("PASSING:");
     System.out.println(lPrettyPrinter.printPretty(lPassing));
-    
+
     System.out.println(ToGuardedAutomatonTranslator.translate(lPassing));
   }
-  
+
   @Test
   public void testMain003() throws Exception {
     /** process FQL query */
@@ -170,30 +170,30 @@ public class ToGuardedAutomatonTranslatorTest {
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
     LogManager lLogManager = new LogManager(lConfiguration);
     CFAFunctionDefinitionNode lMainFunction = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
-    
+
     /** do translation */
     PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lMainFunction);
     CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(lPatternTranslator);
     Collection<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lSpecification.getCoverageSpecification());
     ElementaryCoveragePattern lPassing = lPatternTranslator.translate(lSpecification.getPathPattern());
-    
+
     ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
-    
+
     System.out.println("TEST GOALS:");
-    
+
     int lIndex = 0;
-    
+
     for (ElementaryCoveragePattern lGoal : lGoals) {
       System.out.println("Goal #" + (++lIndex));
       System.out.println(lPrettyPrinter.printPretty(lGoal));
     }
-    
+
     System.out.println("PASSING:");
     System.out.println(lPrettyPrinter.printPretty(lPassing));
-    
+
     System.out.println(ToGuardedAutomatonTranslator.translate(lPassing));
   }
-  
+
   @Test
   public void testMain004() throws Exception {
     /** process FQL query */
@@ -216,30 +216,30 @@ public class ToGuardedAutomatonTranslatorTest {
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
     LogManager lLogManager = new LogManager(lConfiguration);
     CFAFunctionDefinitionNode lMainFunction = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
-    
+
     /** do translation */
     PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lMainFunction);
     CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(lPatternTranslator);
     Collection<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lSpecification.getCoverageSpecification());
     ElementaryCoveragePattern lPassing = lPatternTranslator.translate(lSpecification.getPathPattern());
-    
+
     ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
-    
+
     System.out.println("TEST GOALS:");
-    
+
     int lIndex = 0;
-    
+
     for (ElementaryCoveragePattern lGoal : lGoals) {
       System.out.println("Goal #" + (++lIndex));
       System.out.println(lPrettyPrinter.printPretty(lGoal));
     }
-    
+
     System.out.println("PASSING:");
     System.out.println(lPrettyPrinter.printPretty(lPassing));
-    
+
     System.out.println(ToGuardedAutomatonTranslator.translate(lPassing));
   }
-  
+
   @Test
   public void testMain005() throws Exception {
     /** process FQL query */
@@ -261,45 +261,45 @@ public class ToGuardedAutomatonTranslatorTest {
     String lEntryFunction = "main";
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
     LogManager lLogManager = new LogManager(lConfiguration);
-    Map<String, CFAFunctionDefinitionNode> lCFAMap = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager); 
+    Map<String, CFAFunctionDefinitionNode> lCFAMap = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager);
     CFAFunctionDefinitionNode lMainFunction = lCFAMap.get(lEntryFunction);
-    
+
     /** do translation */
     PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lMainFunction);
     CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(lPatternTranslator);
     Collection<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lSpecification.getCoverageSpecification());
     ElementaryCoveragePattern lPassing = lPatternTranslator.translate(lSpecification.getPathPattern());
-    
+
     ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
-    
+
     System.out.println("TEST GOALS:");
-    
+
     int lIndex = 0;
-    
+
     for (ElementaryCoveragePattern lGoal : lGoals) {
       System.out.println("Goal #" + (++lIndex));
       System.out.println(lPrettyPrinter.printPretty(lGoal));
     }
-    
+
     System.out.println("PASSING:");
     System.out.println(lPrettyPrinter.printPretty(lPassing));
-    
+
     NondeterministicFiniteAutomaton<GuardedLabel> lInitialAutomaton = ToGuardedAutomatonTranslator.translate(lPassing);
-    
+
     System.out.println(lInitialAutomaton);
-    
+
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCFAMap, lLogManager);
-    
+
     GuardedEdgeLabel lAlphaLabel = new GuardedEdgeLabel(new ECPEdgeSet(lWrapper.getAlphaEdge()));
     GuardedEdgeLabel lOmegaLabel = new GuardedEdgeLabel(new ECPEdgeSet(lWrapper.getOmegaEdge()));
-    
+
     NondeterministicFiniteAutomaton<GuardedLabel> lLambdaFreeAutomaton = ToGuardedAutomatonTranslator.removeLambdaEdges(lInitialAutomaton, lAlphaLabel, lOmegaLabel);
     System.out.println(AutomatonPrettyPrinter.print(lLambdaFreeAutomaton));
-    
+
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> lNodeSetFreeAutomaton = ToGuardedAutomatonTranslator.removeNodeSetGuards(lLambdaFreeAutomaton);
     System.out.println(AutomatonPrettyPrinter.print(lNodeSetFreeAutomaton));
   }
-  
+
   @Test
   public void testMain006() throws Exception {
     /** process FQL query */
@@ -321,44 +321,44 @@ public class ToGuardedAutomatonTranslatorTest {
     String lEntryFunction = "main";
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
     LogManager lLogManager = new LogManager(lConfiguration);
-    Map<String, CFAFunctionDefinitionNode> lCFAMap = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager); 
+    Map<String, CFAFunctionDefinitionNode> lCFAMap = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager);
     CFAFunctionDefinitionNode lMainFunction = lCFAMap.get(lEntryFunction);
-    
+
     /** do translation */
     PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lMainFunction);
     CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(lPatternTranslator);
     Collection<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lSpecification.getCoverageSpecification());
     ElementaryCoveragePattern lPassing = lPatternTranslator.translate(lSpecification.getPathPattern());
-    
+
     ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
-    
+
     System.out.println("TEST GOALS:");
-    
+
     int lIndex = 0;
-    
+
     for (ElementaryCoveragePattern lGoal : lGoals) {
       System.out.println("Goal #" + (++lIndex));
       System.out.println(lPrettyPrinter.printPretty(lGoal));
     }
-    
+
     System.out.println("PASSING:");
     System.out.println(lPrettyPrinter.printPretty(lPassing));
-    
+
     NondeterministicFiniteAutomaton<GuardedLabel> lInitialAutomaton = ToGuardedAutomatonTranslator.translate(lPassing);
-    
+
     System.out.println(lInitialAutomaton);
     System.out.println(AutomatonPrettyPrinter.print(lInitialAutomaton));
-    
+
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCFAMap, lLogManager);
-    
+
     GuardedEdgeLabel lAlphaLabel = new GuardedEdgeLabel(new ECPEdgeSet(lWrapper.getAlphaEdge()));
     GuardedEdgeLabel lOmegaLabel = new GuardedEdgeLabel(new ECPEdgeSet(lWrapper.getOmegaEdge()));
-    
+
     NondeterministicFiniteAutomaton<GuardedLabel> lLambdaFreeAutomaton = ToGuardedAutomatonTranslator.removeLambdaEdges(lInitialAutomaton, lAlphaLabel, lOmegaLabel);
     System.out.println(AutomatonPrettyPrinter.print(lLambdaFreeAutomaton));
-    
+
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> lNodeSetFreeAutomaton = ToGuardedAutomatonTranslator.removeNodeSetGuards(lLambdaFreeAutomaton);
     System.out.println(AutomatonPrettyPrinter.print(lNodeSetFreeAutomaton));
   }
-  
+
 }

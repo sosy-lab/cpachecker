@@ -251,7 +251,7 @@ public class PointerTransferRelation implements TransferRelation {
         handleStatement(successor, ((StatementEdge)cfaEdge).getStatement(),
                                                       (StatementEdge)cfaEdge);
         break;
-        
+
       case ReturnStatementEdge:
         // this is the return-statement of a function
 
@@ -314,7 +314,7 @@ public class PointerTransferRelation implements TransferRelation {
       addError(e.getMessage(), cfaEdge);
       // removed because the cpas should not declare errors any more
       //successor.setError(true);
-      
+
       //assert that at least one flag is set
       if (successor.getProperties().isEmpty()) {
         logger.log(Level.WARNING, "InvalidPointerException thrown but no Flag set");
@@ -346,24 +346,24 @@ public class PointerTransferRelation implements TransferRelation {
       // ignore, this is a type definition, not a variable declaration
       return;
     }
-    
+
     if (specifier instanceof IASTElaboratedTypeSpecifier && name == null) {
       // ignore struct prototypes
       return;
     }
-    
+
     if (name == null) {
       throw new UnrecognizedCCodeException("not expected in CIL", edge);
     }
-    
+
     if (specifier instanceof IASTFunctionTypeSpecifier) {
       return;
     }
-    
+
     if (specifier instanceof IASTCompositeTypeSpecifier
         || specifier instanceof IASTElaboratedTypeSpecifier
         || specifier instanceof IASTEnumerationSpecifier) {
-      
+
       // structs on stack etc.
       return;
     }
@@ -409,24 +409,24 @@ public class PointerTransferRelation implements TransferRelation {
       do {
         nestedSpecifier = ((IASTPointerTypeSpecifier)nestedSpecifier).getType();
         depth++;
-      } while (specifier instanceof IASTPointerTypeSpecifier);          
-        
-      
+      } while (specifier instanceof IASTPointerTypeSpecifier);
+
+
       if (nestedSpecifier instanceof IASTElaboratedTypeSpecifier) {
         // declaration of pointer to struct
-        
+
         Pointer ptr = new Pointer(depth);
-        
+
         if (edge instanceof GlobalDeclarationEdge) {
           element.addNewGlobalPointer(varName, ptr);
           element.pointerOp(new Pointer.Assign(Memory.UNINITIALIZED_POINTER),
               ptr);
-          
+
         } else {
           // edge is instance of LocalDeclarationEdge
-          
+
           element.addNewLocalPointer(varName, ptr);
-          
+
           if (entryFunctionProcessed) {
             element.pointerOp(
                 new Pointer.Assign(Memory.UNINITIALIZED_POINTER), ptr);
@@ -436,13 +436,13 @@ public class PointerTransferRelation implements TransferRelation {
                 new Pointer.Assign(Memory.UNKNOWN_POINTER), ptr);
           }
         }
-      
+
         missing = new MissingInformation();
         missing.typeInformationPointer = ptr;
         missing.typeInformationEdge = edge;
         missing.typeInformationName = name;
-        
-      } else {            
+
+      } else {
         Pointer p = new Pointer(depth);
         if (edge instanceof GlobalDeclarationEdge) {
           element.addNewGlobalPointer(varName, p);
@@ -454,7 +454,7 @@ public class PointerTransferRelation implements TransferRelation {
           PointerTarget pTarg =
             (!entryFunctionProcessed ? Memory.UNKNOWN_POINTER : Memory.UNINITIALIZED_POINTER);
           element.pointerOp(new Pointer.Assign(pTarg), p);
-  
+
         }
         // store the pointer so the type analysis CPA can update its
         // type information
@@ -462,12 +462,12 @@ public class PointerTransferRelation implements TransferRelation {
         missing.typeInformationPointer = p;
         missing.typeInformationEdge = edge;
         missing.typeInformationName = name;
-  
+
         // initializers do not need to be considered, because they have to be
         // constant and constant pointers are considered null
         // local variables do not have initializers in CIL
       }
-      
+
     } else {
       if (edge instanceof GlobalDeclarationEdge) {
         element.addNewGlobalPointer(varName, null);
@@ -826,7 +826,7 @@ public class PointerTransferRelation implements TransferRelation {
       throw new UnrecognizedCCodeException("Wrong number of arguments for free", cfaEdge, expression);
     }
     IASTExpression parameter = parameters.get(0);
-    
+
     if (parameter instanceof IASTIdExpression) {
       Pointer p = element.lookupPointer(parameter.getRawSignature());
 
@@ -888,7 +888,7 @@ public class PointerTransferRelation implements TransferRelation {
       // free only if there is exactly one target and it is the beginning
       // of a memory region or the pointer has two targets and one of them
       // is the NULL-pointer (because malloc leaves us with at least one NULL-pointer. if the malloc result is unchecked)
-      if ((p.getNumberOfTargets() == 1 
+      if ((p.getNumberOfTargets() == 1
             || (p.getNumberOfTargets() == 2 && p.contains(Memory.NULL_POINTER)))
           && (freeMem != null)) {
 
@@ -1091,9 +1091,9 @@ public class PointerTransferRelation implements TransferRelation {
             assert leftPointer != null;
           }
 
-          if (!(typeOfOperator == BinaryOperator.PLUS 
+          if (!(typeOfOperator == BinaryOperator.PLUS
               || typeOfOperator == BinaryOperator.MINUS)) {
-            throw new UnrecognizedCCodeException(cfaEdge, binExpression); 
+            throw new UnrecognizedCCodeException(cfaEdge, binExpression);
           }
 
           if (op2 instanceof IASTLiteralExpression) {
@@ -1311,7 +1311,7 @@ public class PointerTransferRelation implements TransferRelation {
 
   /**
    * Does a malloc and allocates the result to the given pointer.
-   * 
+   *
    * @param element the abstract element
    * @param pointer the pointer for the result (may be null)
    * @param expression the parameter to the malloc call in the AST
@@ -1328,7 +1328,7 @@ public class PointerTransferRelation implements TransferRelation {
       throw new UnrecognizedCCodeException("Wrong number of arguments for malloc", cfaEdge, expression);
     }
     IASTExpression parameter = parameters.get(0);
-    
+
     Pointer.MallocAndAssign op = new Pointer.MallocAndAssign();
     element.pointerOp(op, pointer, leftDereference);
     MemoryAddress memAddress = op.getMallocResult();
@@ -1515,11 +1515,11 @@ public class PointerTransferRelation implements TransferRelation {
       }
 
     } else {
-      
+
       if (missing.typeInformationPointer == null) {
         return;
       }
-      
+
       // pointer variable declaration
       String functionName = cfaEdge.getSuccessor().getFunctionName();
       if (missing.typeInformationEdge instanceof GlobalDeclarationEdge) {
@@ -1588,7 +1588,7 @@ public class PointerTransferRelation implements TransferRelation {
    * if yes, find the type of the referenced field, if no, try to determine the type of the variable
    */
   @SuppressWarnings("unused")
-  private Type checkForFieldReferenceType(IASTExpression exp, TypesElement typeElem, 
+  private Type checkForFieldReferenceType(IASTExpression exp, TypesElement typeElem,
                                           CFAEdge cfaEdge) {
 
     String name = exp.getRawSignature();
@@ -1628,12 +1628,12 @@ public class PointerTransferRelation implements TransferRelation {
     //check all members
     for (String member : members) {
       Type t = structType.getMemberType(member);
-      
+
       //for a field that is itself a struct, repeat the whole process
       if (t != null && t.getTypeClass() == TypeClass.STRUCT) {
         checkFields(element, cfaEdge, exp, typeElem, (Type.CompositeType)t, member, member,
                          recursiveLeftName + "." + member, recursiveRightName + "." + member);
-        
+
       //else, check the assigned variable and set the assignee accordingly
       } else {
         //TODO handle copying of pointers

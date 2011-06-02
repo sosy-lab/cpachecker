@@ -28,7 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * This is a function definition. It contains a type and a name.
- * The storage class should assumed to be "auto" (i.e., the default). 
+ * The storage class should assumed to be "auto" (i.e., the default).
  * It is only used for functions that are actually defined in the code, although
  * it stores no information about the function body.
  */

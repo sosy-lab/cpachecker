@@ -32,24 +32,24 @@ import org.sosy_lab.cpachecker.util.ecp.translators.GuardedEdgeLabel;
 import com.google.common.base.Joiner;
 
 /*
- * TODO AutomatonBuilder <- integrate State-Pool there to ensure correct time 
+ * TODO AutomatonBuilder <- integrate State-Pool there to ensure correct time
  * measurements when invoking FlleSh several times in a unit test.
- * 
+ *
  * TODO Incremental test goal automaton creation: extending automata (can we reuse
  * parts of the reached set?) This requires a change in the coverage check.
- * -> Handle enormous amounts of test goals. 
- * 
+ * -> Handle enormous amounts of test goals.
+ *
  */
 
 public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
-  
+
   private final NonincrementalFQLTestGenerator mNonincrementalTestGenerator;
   private final IncrementalFQLTestGenerator mIncrementalTestGenerator;
   private final IncrementalAndAlternatingFQLTestGenerator mIncrementalAndAlternatingTestGenerator;
   private final StandardFQLCoverageAnalyser mCoverageAnalyser;
-  
+
   private final IncrementalARTReusingFQLTestGenerator mIncrementalARTReusingTestGenerator;
-  
+
   private String mFeasibilityInformationOutputFile = null;
   private String mFeasibilityInformationInputFile = null;
   private String mTestSuiteOutputFile = null;
@@ -59,46 +59,46 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
   private boolean mDoAppendingLogging = false;
   private boolean mDoRestart = false;
   private long mRestartBound = 100000000; // 100 MB
-  
+
   public FShell3(String pSourceFileName, String pEntryFunction) {
     mNonincrementalTestGenerator = new NonincrementalFQLTestGenerator(pSourceFileName, pEntryFunction);
     mIncrementalTestGenerator = new IncrementalFQLTestGenerator(pSourceFileName, pEntryFunction);
     mIncrementalAndAlternatingTestGenerator = new IncrementalAndAlternatingFQLTestGenerator(pSourceFileName, pEntryFunction);
-    
+
     mCoverageAnalyser = new StandardFQLCoverageAnalyser(pSourceFileName, pEntryFunction);
-    
+
     mIncrementalARTReusingTestGenerator = new IncrementalARTReusingFQLTestGenerator(pSourceFileName, pEntryFunction);
   }
-  
+
   public void doRestart() {
     mDoRestart = true;
   }
-  
+
   public void setRestartBound(long pRestartBound) {
     mRestartBound = pRestartBound;
   }
-  
+
   public void setFeasibilityInformationOutputFile(String pFile) {
     mFeasibilityInformationOutputFile = pFile;
   }
-  
+
   public void setFeasibilityInformationInputFile(String pFile) {
     mFeasibilityInformationInputFile = pFile;
   }
-  
+
   public void setTestSuiteOutputFile(String pFile) {
     mTestSuiteOutputFile = pFile;
   }
-  
+
   public void setGoalIndices(int pMinIndex, int pMaxIndex) {
     setMinIndex(pMinIndex);
     setMaxIndex(pMaxIndex);
   }
-  
+
   public void setMinIndex(int pIndex) {
     mMinIndex = pIndex;
   }
-  
+
   public void setMaxIndex(int pIndex) {
     mMaxIndex = pIndex;
   }
@@ -106,19 +106,19 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
   public void doLogging() {
     mDoLogging = true;
   }
-  
+
   public void doAppendingLogging() {
     mDoAppendingLogging = true;
   }
-  
+
   public void seed(Collection<TestCase> pTestSuite) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
     mIncrementalARTReusingTestGenerator.seed(pTestSuite);
   }
-  
+
   public FShell3Result run(String pFQLSpecification) {
     return run(pFQLSpecification, true, false, false, false, true, false);
   }
-  
+
   @Override
   public FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating) {
     if (pGenerateTestGoalAutomataInAdvance) {
@@ -131,22 +131,22 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
       else {
         // TODO make configurable
         if (!pAlternating) {
-          
+
           mIncrementalARTReusingTestGenerator.setGoalIndices(mMinIndex, mMaxIndex);
-          
+
           FeasibilityInformation lFeasibilityInformation;
           TestSuite lTestSuite;
-          
+
           if (mFeasibilityInformationInputFile != null) {
             try {
               lFeasibilityInformation = FeasibilityInformation.load(mFeasibilityInformationInputFile);
-              
+
               if (!lFeasibilityInformation.hasTestsuiteFilename()) {
                 throw new RuntimeException();
               }
-              
+
               lTestSuite = TestSuite.load(lFeasibilityInformation.getTestsuiteFilename());
-              
+
               mIncrementalARTReusingTestGenerator.setTestSuite(lTestSuite);
             } catch (Exception e) {
               throw new RuntimeException(e);
@@ -156,30 +156,30 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
             lFeasibilityInformation = new FeasibilityInformation();
             lTestSuite = new TestSuite();
           }
-          
+
           if (mDoLogging) {
             if (mFeasibilityInformationOutputFile != null) {
               try {
                 if (mTestSuiteOutputFile != null) {
                   lTestSuite = new LoggingTestSuite(lTestSuite, mTestSuiteOutputFile, mDoAppendingLogging);
-                  
+
                   lFeasibilityInformation.setTestsuiteFilename(mTestSuiteOutputFile);
                 }
                 else {
                   File lCWD = new java.io.File( "." );
                   File lTestSuiteFile = File.createTempFile("testsuite", ".tst", lCWD);
                   lTestSuite = new LoggingTestSuite(lTestSuite, lTestSuiteFile.getCanonicalPath(), mDoAppendingLogging);
-                  
-                  lFeasibilityInformation.setTestsuiteFilename(lTestSuiteFile.getCanonicalPath());  
+
+                  lFeasibilityInformation.setTestsuiteFilename(lTestSuiteFile.getCanonicalPath());
                 }
-                
+
                 lFeasibilityInformation = new LoggingFeasibilityInformation(lFeasibilityInformation, mFeasibilityInformationOutputFile, mDoAppendingLogging);
               } catch (IOException e) {
                 throw new RuntimeException(e);
               }
             }
           }
-          
+
           mIncrementalARTReusingTestGenerator.setFeasibilityInformation(lFeasibilityInformation);
           try {
             mIncrementalARTReusingTestGenerator.setTestSuite(lTestSuite);
@@ -187,14 +187,14 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
           catch (Exception e) {
             throw new RuntimeException(e);
           }
-          
+
           if (mDoRestart) {
             mIncrementalARTReusingTestGenerator.doRestart();
             mIncrementalARTReusingTestGenerator.setRestartBound(mRestartBound);
           }
-          
-          FShell3Result lResult = mIncrementalARTReusingTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating); 
-          
+
+          FShell3Result lResult = mIncrementalARTReusingTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
+
           if (mDoLogging) {
             ((LoggingTestSuite)lTestSuite).close();
             ((LoggingFeasibilityInformation)lFeasibilityInformation).close();
@@ -210,16 +210,16 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
                   File lCWD = new java.io.File( "." );
                   File lTestSuiteFile = File.createTempFile("testsuite", ".tst", lCWD);
                   lTestSuite.write(lTestSuiteFile);
-                  lFeasibilityInformation.setTestsuiteFilename(lTestSuiteFile.getCanonicalPath());  
+                  lFeasibilityInformation.setTestsuiteFilename(lTestSuiteFile.getCanonicalPath());
                 }
-                
+
                 lFeasibilityInformation.write(mFeasibilityInformationOutputFile);
               } catch (IOException e) {
                 throw new RuntimeException(e);
               }
             }
           }
-          
+
           return lResult;
         }
         else {
@@ -228,45 +228,45 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
       }
     }
   }
-  
+
   @Override
   public void checkCoverage(String pFQLSpecification, Collection<TestCase> pTestSuite, boolean pPedantic) {
     mCoverageAnalyser.checkCoverage(pFQLSpecification, pTestSuite, pPedantic);
   }
-  
+
   public static Map<String, CFAFunctionDefinitionNode> getCFAMap(String pSourceFileName, Configuration pConfiguration, LogManager pLogManager) throws InvalidConfigurationException {
     CFACreator lCFACreator = new CFACreator(Dialect.GNUC, pConfiguration, pLogManager);
-    
+
     // parse code file
     try {
       lCFACreator.parseFileAndCreateCFA(pSourceFileName);
     } catch (Exception e) {
       e.printStackTrace();
-      
+
       throw new RuntimeException(e);
     }
-    
+
     return lCFACreator.getFunctions();
   }
-  
+
   public static ThreeValuedAnswer accepts(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, CFAEdge[] pCFAPath) {
     Set<NondeterministicFiniteAutomaton.State> lCurrentStates = new HashSet<NondeterministicFiniteAutomaton.State>();
     Set<NondeterministicFiniteAutomaton.State> lNextStates = new HashSet<NondeterministicFiniteAutomaton.State>();
-    
+
     lCurrentStates.add(pAutomaton.getInitialState());
-    
+
     boolean lHasPredicates = false;
-    
+
     for (CFAEdge lCFAEdge : pCFAPath) {
       for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
         // Automaton accepts as soon as it sees a final state (implicit self-loop)
         if (pAutomaton.getFinalStates().contains(lCurrentState)) {
           return ThreeValuedAnswer.ACCEPT;
         }
-        
+
         for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pAutomaton.getOutgoingEdges(lCurrentState)) {
           GuardedEdgeLabel lLabel = lOutgoingEdge.getLabel();
-          
+
           if (lLabel.hasGuards()) {
             lHasPredicates = true;
           }
@@ -277,21 +277,21 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
           }
         }
       }
-      
+
       lCurrentStates.clear();
-      
+
       Set<NondeterministicFiniteAutomaton.State> lTmp = lCurrentStates;
       lCurrentStates = lNextStates;
       lNextStates = lTmp;
     }
-    
+
     for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
       // Automaton accepts as soon as it sees a final state (implicit self-loop)
       if (pAutomaton.getFinalStates().contains(lCurrentState)) {
         return ThreeValuedAnswer.ACCEPT;
       }
     }
-    
+
     if (lHasPredicates) {
       return ThreeValuedAnswer.UNKNOWN;
     }
@@ -299,12 +299,12 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
       return ThreeValuedAnswer.REJECT;
     }
   }
-  
+
   public static Configuration createConfiguration(String pSourceFile, String pEntryFunction) throws InvalidConfigurationException {
     File lPropertiesFile = FShell3.createPropertiesFile(pEntryFunction);
     return createConfiguration(Collections.singletonList(pSourceFile), lPropertiesFile.getAbsolutePath());
   }
-  
+
   private static Configuration createConfiguration(List<String> pSourceFiles, String pPropertiesFile) throws InvalidConfigurationException {
     Map<String, String> lCommandLineOptions = new HashMap<String, String>();
 
@@ -329,7 +329,7 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
     if (pEntryFunction == null) {
       throw new IllegalArgumentException("Parameter pEntryFunction is null!");
     }
-    
+
     File lPropertiesFile = null;
 
     try {
@@ -362,7 +362,7 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
       //lWriter.println("cpa.predicate.mathsat.useDtc = true");
 
       lWriter.println("cpa.interval.merge = JOIN");
-      
+
       lWriter.close();
 
     } catch (IOException e) {

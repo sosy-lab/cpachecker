@@ -59,24 +59,24 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
 
   private final Timer checkTime = new Timer();
   private int numberOfInfeasiblePaths = 0;
-  
+
   @Option(name="checker", toUppercase=true, values={"CBMC", "EXPLICIT"},
           description="which model checker to use for verifying counterexamples as a second check\n"
                     + "Currently CBMC or CPAchecker with explicit analysis can be used.")
   private String checkerName = "CBMC";
-  
+
   @Option(description="continue analysis after an counterexample was found that was denied by the second check")
   private boolean continueAfterInfeasibleError = true;
-  
+
   public CounterexampleCheckAlgorithm(Algorithm algorithm, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
     this.algorithm = algorithm;
     this.logger = logger;
     config.inject(this);
-    
+
     if (!(algorithm.getCPA() instanceof ARTCPA)) {
       throw new InvalidConfigurationException("ART CPA needed for counterexample check");
     }
-    
+
     if (checkerName.equals("CBMC")) {
       checker = new CBMCChecker(config, logger);
     } else if (checkerName.equals("EXPLICIT")) {
@@ -89,59 +89,59 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
   @Override
   public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
     boolean sound = true;
-    
+
     while (reached.hasWaitingElement()) {
       sound &= algorithm.run(reached);
-  
+
       AbstractElement lastElement = reached.getLastElement();
       if (!(lastElement instanceof ARTElement)) {
         // no analysis possible
         break;
       }
-      
+
       ARTElement errorElement = (ARTElement)lastElement;
       if (!errorElement.isTarget()) {
         // no analysis necessary
         break;
       }
-      
+
       ARTElement rootElement = (ARTElement)reached.getFirstElement();
-      
+
       checkTime.start();
-      try {      
+      try {
         Set<ARTElement> elementsOnErrorPath = ARTUtils.getAllElementsOnPathsTo(errorElement);
-        
+
         boolean feasibility = checker.checkCounterexample(rootElement, errorElement, elementsOnErrorPath);
-        
+
         if (feasibility) {
           logger.log(Level.INFO, "Bug found which was confirmed by counterexample check.");
           break;
-  
+
         } else {
           numberOfInfeasiblePaths++;
-          
+
           if (continueAfterInfeasibleError) {
             Set<ARTElement> parents = errorElement.getParents();
-            
+
             // remove re-added parents to prevent computing
             // the same error element over and over
             for(ARTElement parent: parents){
               reached.remove(parent);
               parent.removeFromART();
             }
-            
+
             // remove the error element
             reached.remove(errorElement);
             errorElement.removeFromART();
-    
+
             // WARNING: continuing analysis is unsound, because the elements of this
             // infeasible path may cover another path that is actually feasible
             // We would need to find the first element of this path that is
             // not reachable and cut the path there.
             sound = false;
-    
+
             logger.log(Level.WARNING, "Bug found which was denied by counterexample check. Analysis will continue, but the result may be unsound.");
-          
+
           } else {
             Path path = ARTUtils.getOnePathTo(errorElement);
             throw new RefinementFailedException(Reason.InfeasibleCounterexample, path);
@@ -170,7 +170,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
   @Override
   public void printStatistics(PrintStream out, Result pResult,
       ReachedSet pReached) {
-    
+
     out.println("Number of counterexample checks:    " + checkTime.getNumberOfIntervals());
     if (checkTime.getNumberOfIntervals() > 0) {
       out.println("Number of infeasible paths:         " + numberOfInfeasiblePaths + " (" + toPercent(numberOfInfeasiblePaths, checkTime.getNumberOfIntervals()) +")" );
@@ -180,7 +180,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
       ((Statistics)checker).printStatistics(out, pResult, pReached);
     }
   }
-  
+
   private static String toPercent(double val, double full) {
     return String.format("%1.0f", val/full*100) + "%";
   }

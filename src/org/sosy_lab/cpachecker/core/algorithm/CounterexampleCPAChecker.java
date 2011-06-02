@@ -54,29 +54,29 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 public class CounterexampleCPAChecker implements CounterexampleChecker {
 
   private final LogManager logger;
-  
+
   public CounterexampleCPAChecker(Configuration config, LogManager logger) throws InvalidConfigurationException {
     this.logger = logger;
     config.inject(this);
   }
-  
+
   @Override
   public boolean checkCounterexample(ARTElement pRootElement,
       ARTElement pErrorElement, Set<ARTElement> pErrorPathElements)
       throws CPAException, InterruptedException {
-    
+
     String automaton =
         produceGuidingAutomaton(pRootElement, pErrorPathElements);
-    
+
     File automatonFile;
     try {
       automatonFile = Files.createTempFile("automaton", ".txt", automaton);
     } catch (IOException e) {
       throw new CPAException("Could not write automaton for explicit analysis check (" + e.getMessage() + ")");
     }
-    
+
     CFAFunctionDefinitionNode cfa = (CFAFunctionDefinitionNode)extractLocation(pRootElement);
-    
+
     try {
       Configuration lConfig = Configuration.builder()
                 .setOption("output.disable", "true")
@@ -86,21 +86,21 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
                                         + "," + ExplicitCPA.class.getName())
                 .setOption("cpa.explicit.threshold", Integer.toString(Integer.MAX_VALUE))
                 .build();
-      
+
       CPABuilder lBuilder = new CPABuilder(lConfig, logger);
       ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs();
       Algorithm lAlgorithm = new CPAAlgorithm(lCpas, logger);
       PartitionedReachedSet lReached = new PartitionedReachedSet(TraversalMethod.DFS);
       lReached.add(lCpas.getInitialElement(cfa), lCpas.getInitialPrecision(cfa));
-      
+
       lAlgorithm.run(lReached);
-      
+
       if (isEmpty(filterTargetElements(lReached))) {
-        return false; // target state is not reachable, counterexample is infeasible 
+        return false; // target state is not reachable, counterexample is infeasible
       } else {
         return true;
       }
-      
+
     } catch (InvalidConfigurationException e) {
       throw new AssertionError("Hard-coded configuration is invalid!");
     }
@@ -113,7 +113,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
     sb.append("INITIAL STATE ART" + pRootElement.getElementId() + ";\n\n");
 
     for (ARTElement e : pPathElements) {
-      
+
       CFANode loc = AbstractElements.extractLocation(e);
       sb.append("STATE USEFIRST ART" + e.getElementId() + " :\n");
 
@@ -122,14 +122,14 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
           child = child.getCoveringElement();
           assert !child.isCovered();
         }
-        
+
         if (pPathElements.contains(child)) {
           CFANode childLoc = AbstractElements.extractLocation(child);
           CFAEdge edge = loc.getEdgeTo(childLoc);
           sb.append("    MATCH \"");
           escape(edge.getRawStatement(), sb);
           sb.append("\" -> ");
-          
+
           if (child.isTarget()) {
             sb.append("ERROR");
           } else {
@@ -141,7 +141,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       sb.append("    TRUE -> STOP;\n\n");
     }
     sb.append("END AUTOMATON\n");
-    
+
     return sb.toString();
   }
 

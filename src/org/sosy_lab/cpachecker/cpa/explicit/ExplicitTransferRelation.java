@@ -112,7 +112,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       throw new IllegalArgumentException("precision is no ExplicitPrecision");
     }
     ExplicitPrecision precision = (ExplicitPrecision) pPrecision;
-    
+
     AbstractElement successor;
     ExplicitElement explicitElement = (ExplicitElement)element;
     // check the type of the edge
@@ -135,7 +135,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       successor = handleExitFromFunction(explicitElement, returnEdge.getExpression(), returnEdge);
       break;
     }
-    
+
     // edge is a declaration edge, e.g. int a;
     case DeclarationEdge: {
       DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
@@ -179,7 +179,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       ExplicitElement tempEl = ((ExplicitElement)successor);
       if(tempEl.getConstantsMap().size() > maxSize){
         maxSize = tempEl.getConstantsMap().size();
-        maxElem = Pair.of(successor, 
+        maxElem = Pair.of(successor,
             cfaEdge.getRawStatement() + "@" + cfaEdge.getLineNumber());
       }
       return Collections.singleton(successor);
@@ -225,16 +225,16 @@ public class ExplicitTransferRelation implements TransferRelation {
 
     if (exprOnSummary instanceof IASTFunctionCallAssignmentStatement) {
       //expression is an assignment operation, e.g. a = g(b);
-  
+
       IASTFunctionCallAssignmentStatement assignExp = ((IASTFunctionCallAssignmentStatement)exprOnSummary);
       IASTExpression op1 = assignExp.getLeftHandSide();
-  
+
       //we expect left hand side of the expression to be a variable
       if((op1 instanceof IASTIdExpression) || (op1 instanceof IASTFieldReference)) {
         String returnVarName = getvarName("___cpa_temp_result_var_", calledFunctionName);
-  
+
         String assignedVarName = getvarName(op1.getRawSignature(), callerFunctionName);
-  
+
         if (element.contains(returnVarName)) {
           newElement.assignConstant(assignedVarName, element.getValueFor(returnVarName), this.threshold);
         } else {
@@ -244,7 +244,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         throw new UnrecognizedCCodeException("on function return", summaryEdge, op1);
       }
     }
-      
+
     return newElement;
   }
 
@@ -269,14 +269,14 @@ public class ExplicitTransferRelation implements TransferRelation {
     List<IASTExpression> arguments = callEdge.getArguments();
 
     assert (paramNames.size() == arguments.size());
-    
+
     // visitor for getting the values of the actual parameters in caller function context
     ExpressionValueVisitor v = new ExpressionValueVisitor(element, callerFunctionName);
 
     for (int i=0; i < arguments.size(); i++) {
       // get value of actual parameter in caller function context
       Long value = arguments.get(i).accept(v);
-      
+
       String formalParamName = getvarName(paramNames.get(i), calledFunctionName);
 
       if (value == null) {
@@ -327,7 +327,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       case NOT:
         // ! exp
         return handleAssumption(element, unaryExp.getOperand(), cfaEdge, !truthValue, precision);
-      
+
       case STAR:
         // *exp
         // don't know anything
@@ -337,11 +337,11 @@ public class ExplicitTransferRelation implements TransferRelation {
         throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
       }
     }
-    
+
     else if(expression instanceof IASTCastExpression){
       return handleAssumption(element, ((IASTCastExpression)expression).getOperand(), cfaEdge, truthValue, precision);
     }
-    
+
     else if(expression instanceof IASTIdExpression
         || expression instanceof IASTFieldReference){
       return propagateBooleanExpression(element, null, expression, null, functionName, truthValue, precision);
@@ -353,15 +353,15 @@ public class ExplicitTransferRelation implements TransferRelation {
 
   }
 
-  private AbstractElement propagateBooleanExpression(AbstractElement element, 
-      BinaryOperator opType,IASTExpression op1, 
-      IASTExpression op2, String functionName, boolean truthValue, ExplicitPrecision precision) 
+  private AbstractElement propagateBooleanExpression(AbstractElement element,
+      BinaryOperator opType,IASTExpression op1,
+      IASTExpression op2, String functionName, boolean truthValue, ExplicitPrecision precision)
   throws UnrecognizedCFAEdgeException {
 
     ExplicitElement newElement = ((ExplicitElement)element).clone();
 
     // a (bop) ?
-    if(op1 instanceof IASTIdExpression || 
+    if(op1 instanceof IASTIdExpression ||
         op1 instanceof IASTFieldReference ||
         op1 instanceof IASTArraySubscriptExpression)
     {
@@ -399,7 +399,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         if (precision.isOnBlacklist(varName))
           return element;
         int typeOfLiteral = lop2.getKind();
-        if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant 
+        if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant
             || typeOfLiteral == IASTLiteralExpression.lk_float_constant
             || typeOfLiteral == IASTLiteralExpression.lk_char_constant
         )
@@ -571,7 +571,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       // a (bop) b
       else if(op2 instanceof IASTIdExpression ||
           (op2 instanceof IASTUnaryExpression && (
-              (((IASTUnaryExpression)op2).getOperator() == UnaryOperator.AMPER) || 
+              (((IASTUnaryExpression)op2).getOperator() == UnaryOperator.AMPER) ||
               (((IASTUnaryExpression)op2).getOperator() == UnaryOperator.STAR))))
       {
         String leftVarName = op1.getRawSignature();
@@ -582,19 +582,19 @@ public class ExplicitTransferRelation implements TransferRelation {
         if(opType == BinaryOperator.EQUALS)
         {
           if(truthValue){
-            if(newElement.contains(getvarName(leftVarName, functionName)) && 
+            if(newElement.contains(getvarName(leftVarName, functionName)) &&
                 !newElement.contains(getvarName(rightVarName, functionName))){
               newElement.assignConstant(getvarName(rightVarName, functionName),
                   newElement.getValueFor(getvarName(leftVarName, functionName)), this.threshold);
             }
-            else if(newElement.contains(getvarName(rightVarName, functionName)) && 
+            else if(newElement.contains(getvarName(rightVarName, functionName)) &&
                 !newElement.contains(getvarName(leftVarName, functionName))){
               newElement.assignConstant(getvarName(leftVarName, functionName),
                   newElement.getValueFor(getvarName(rightVarName, functionName)), this.threshold);
             }
-            else if(newElement.contains(getvarName(rightVarName, functionName)) && 
+            else if(newElement.contains(getvarName(rightVarName, functionName)) &&
                 newElement.contains(getvarName(leftVarName, functionName))){
-              if(newElement.getValueFor(getvarName(rightVarName, functionName)) != 
+              if(newElement.getValueFor(getvarName(rightVarName, functionName)) !=
                 newElement.getValueFor(getvarName(leftVarName, functionName))){
                 return null;
               }
@@ -608,9 +608,9 @@ public class ExplicitTransferRelation implements TransferRelation {
         else if(opType == BinaryOperator.NOT_EQUALS)
         {
           if(truthValue){
-            if(newElement.contains(getvarName(rightVarName, functionName)) && 
+            if(newElement.contains(getvarName(rightVarName, functionName)) &&
                 newElement.contains(getvarName(leftVarName, functionName))){
-              if(newElement.getValueFor(getvarName(rightVarName, functionName)) == 
+              if(newElement.getValueFor(getvarName(rightVarName, functionName)) ==
                 newElement.getValueFor(getvarName(leftVarName, functionName))){
                 return null;
               }
@@ -627,9 +627,9 @@ public class ExplicitTransferRelation implements TransferRelation {
         else if(opType == BinaryOperator.GREATER_THAN)
         {
           if(truthValue){
-            if(newElement.contains(getvarName(leftVarName, functionName)) && 
+            if(newElement.contains(getvarName(leftVarName, functionName)) &&
                 newElement.contains(getvarName(rightVarName, functionName))){
-              if(newElement.getValueFor(getvarName(leftVarName, functionName)) <= 
+              if(newElement.getValueFor(getvarName(leftVarName, functionName)) <=
                 newElement.getValueFor(getvarName(rightVarName, functionName))){
                 return null;
               }
@@ -646,9 +646,9 @@ public class ExplicitTransferRelation implements TransferRelation {
         else if(opType == BinaryOperator.GREATER_EQUAL)
         {
           if(truthValue){
-            if(newElement.contains(getvarName(leftVarName, functionName)) && 
+            if(newElement.contains(getvarName(leftVarName, functionName)) &&
                 newElement.contains(getvarName(rightVarName, functionName))){
-              if(newElement.getValueFor(getvarName(leftVarName, functionName)) < 
+              if(newElement.getValueFor(getvarName(leftVarName, functionName)) <
                   newElement.getValueFor(getvarName(rightVarName, functionName))){
                 return null;
               }
@@ -665,9 +665,9 @@ public class ExplicitTransferRelation implements TransferRelation {
         else if(opType == BinaryOperator.LESS_THAN)
         {
           if(truthValue){
-            if(newElement.contains(getvarName(leftVarName, functionName)) && 
+            if(newElement.contains(getvarName(leftVarName, functionName)) &&
                 newElement.contains(getvarName(rightVarName, functionName))){
-              if(newElement.getValueFor(getvarName(leftVarName, functionName)) >= 
+              if(newElement.getValueFor(getvarName(leftVarName, functionName)) >=
                 newElement.getValueFor(getvarName(rightVarName, functionName))){
                 return null;
               }
@@ -684,9 +684,9 @@ public class ExplicitTransferRelation implements TransferRelation {
         else if(opType == BinaryOperator.LESS_EQUAL)
         {
           if(truthValue){
-            if(newElement.contains(getvarName(leftVarName, functionName)) && 
+            if(newElement.contains(getvarName(leftVarName, functionName)) &&
                 newElement.contains(getvarName(rightVarName, functionName))){
-              if(newElement.getValueFor(getvarName(leftVarName, functionName)) > 
+              if(newElement.getValueFor(getvarName(leftVarName, functionName)) >
               newElement.getValueFor(getvarName(rightVarName, functionName))){
                 return null;
               }
@@ -718,7 +718,7 @@ public class ExplicitTransferRelation implements TransferRelation {
           if(unaryExpOp instanceof IASTLiteralExpression){
             IASTLiteralExpression literalExp = (IASTLiteralExpression)unaryExpOp;
             int typeOfLiteral = literalExp.getKind();
-            if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant 
+            if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant
                 || typeOfLiteral == IASTLiteralExpression.lk_float_constant
                 || typeOfLiteral == IASTLiteralExpression.lk_char_constant
             )
@@ -730,7 +730,7 @@ public class ExplicitTransferRelation implements TransferRelation {
                 if(truthValue){
                   if(newElement.contains(getvarName(varName, functionName))){
                     if(newElement.getValueFor(getvarName(varName, functionName)) != valueOfLiteral){
-                      return null;  
+                      return null;
                     }
                   }
                   else{
@@ -748,7 +748,7 @@ public class ExplicitTransferRelation implements TransferRelation {
                 if(truthValue){
                   if(newElement.contains(getvarName(varName, functionName))){
                     if(newElement.getValueFor(getvarName(varName, functionName)) == valueOfLiteral){
-                      return null;  
+                      return null;
                     }
                   }
                   else{
@@ -766,7 +766,7 @@ public class ExplicitTransferRelation implements TransferRelation {
                 if(truthValue){
                   if(newElement.contains(getvarName(varName, functionName))){
                     if(newElement.getValueFor(getvarName(varName, functionName)) <= valueOfLiteral){
-                      return null;  
+                      return null;
                     }
                   }
                   else{
@@ -782,7 +782,7 @@ public class ExplicitTransferRelation implements TransferRelation {
                 if(truthValue){
                   if(newElement.contains(getvarName(varName, functionName))){
                     if(newElement.getValueFor(getvarName(varName, functionName)) < valueOfLiteral){
-                      return null;  
+                      return null;
                     }
                   }
                   else{
@@ -798,7 +798,7 @@ public class ExplicitTransferRelation implements TransferRelation {
                 if(truthValue){
                   if(newElement.contains(getvarName(varName, functionName))){
                     if(newElement.getValueFor(getvarName(varName, functionName)) >= valueOfLiteral){
-                      return null;  
+                      return null;
                     }
                   }
                   else{
@@ -814,7 +814,7 @@ public class ExplicitTransferRelation implements TransferRelation {
                 if(truthValue){
                   if(newElement.contains(getvarName(varName, functionName))){
                     if(newElement.getValueFor(getvarName(varName, functionName)) > valueOfLiteral){
-                      return null;  
+                      return null;
                     }
                   }
                   else{
@@ -981,7 +981,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       // nothing interesting to see here, please move along
       return newElement;
     }
-        
+
         // get the variable name in the declarator
         String varName = declarationEdge.getName().toString();
         String functionName = declarationEdge.getPredecessor().getFunctionName();
@@ -996,7 +996,7 @@ public class ExplicitTransferRelation implements TransferRelation {
           // global variables without initializer are set to 0 in C
           initialValue = 0L;
         }
-        
+
         // get initial value
         IASTInitializer init = declarationEdge.getInitializer();
         if (init != null) {
@@ -1008,10 +1008,10 @@ public class ExplicitTransferRelation implements TransferRelation {
             throw new UnrecognizedCCodeException("Unknown initalizer", declarationEdge, init);
           }
         }
-        
+
         // assign initial value if necessary
         String scopedVarName = getvarName(varName, functionName);
-        
+
         if (initialValue != null && !precision.isOnBlacklist(scopedVarName)) {
           newElement.assignConstant(scopedVarName, initialValue, this.threshold);
         } else {
@@ -1051,7 +1051,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
     if(op1 instanceof IASTIdExpression) {
       // a = ...
-      if (precision.isOnBlacklist(getvarName(op1.getRawSignature(),cfaEdge.getPredecessor().getFunctionName()))) 
+      if (precision.isOnBlacklist(getvarName(op1.getRawSignature(),cfaEdge.getPredecessor().getFunctionName())))
         return element;
       else {
         String functionName = cfaEdge.getPredecessor().getFunctionName();
@@ -1098,12 +1098,12 @@ public class ExplicitTransferRelation implements TransferRelation {
       IASTRightHandSide exp, ExpressionValueVisitor v) throws UnrecognizedCCodeException {
 
     Long value = exp.accept(v);
-    
+
     if (v.missingPointer) {
       missingInformationRightExpression = exp;
       assert value == null;
     }
-    
+
     ExplicitElement newElement = v.element.clone();
     String assignedVar = getvarName(lParam, v.functionName);
 
@@ -1121,10 +1121,10 @@ public class ExplicitTransferRelation implements TransferRelation {
    */
   private class ExpressionValueVisitor extends DefaultExpressionVisitor<Long, UnrecognizedCCodeException>
                                        implements RightHandSideVisitor<Long, UnrecognizedCCodeException> {
-    
+
     protected final ExplicitElement element;
     protected final String functionName;
-    
+
     private boolean missingPointer = false;
 
     public ExpressionValueVisitor(ExplicitElement pElement, String pFunctionName) {
@@ -1138,13 +1138,13 @@ public class ExplicitTransferRelation implements TransferRelation {
     protected Long visitDefault(IASTExpression pExp) {
       return null;
     }
-    
+
     @Override
     public Long visit(IASTBinaryExpression pE) throws UnrecognizedCCodeException {
       BinaryOperator binaryOperator = pE.getOperator();
       IASTExpression lVarInBinaryExp = pE.getOperand1();
       IASTExpression rVarInBinaryExp = pE.getOperand2();
-      
+
       switch (binaryOperator) {
       case DIVIDE:
       case MODULO:
@@ -1161,7 +1161,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         if (lVal == null) {
           return null;
         }
-        
+
         Long rVal = rVarInBinaryExp.accept(this);
         if (rVal == null) {
           return null;
@@ -1182,7 +1182,7 @@ public class ExplicitTransferRelation implements TransferRelation {
           throw new AssertionError();
         }
       }
-      
+
       case EQUALS:
       case NOT_EQUALS:
       case GREATER_THAN:
@@ -1194,7 +1194,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         if (lVal == null) {
           return null;
         }
-        
+
         Long rVal = rVarInBinaryExp.accept(this);
         if (rVal == null) {
           return null;
@@ -1202,7 +1202,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
         long l = lVal;
         long r = rVal;
-        
+
         boolean result;
         switch (binaryOperator) {
         case EQUALS:
@@ -1223,57 +1223,57 @@ public class ExplicitTransferRelation implements TransferRelation {
         case LESS_EQUAL:
           result = (l <= r);
           break;
-          
+
         default:
           throw new AssertionError();
         }
-        
+
         // return 1 if expression holds, 0 otherwise
         return (result ? 1L : 0L);
-      }       
-        
+      }
+
       default:
         return null;
       }
     }
-    
+
     @Override
     public Long visit(IASTCastExpression pE) throws UnrecognizedCCodeException {
       return pE.getOperand().accept(this);
     }
-    
+
     @Override
     public Long visit(IASTFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException {
       return null;
     }
-    
+
     @Override
     public Long visit(IASTCharLiteralExpression pE) throws UnrecognizedCCodeException {
       return parseCharLiteral(pE);
     }
-    
+
     @Override
     public Long visit(IASTFloatLiteralExpression pE) throws UnrecognizedCCodeException {
       return null;
     }
-    
+
     @Override
     public Long visit(IASTIntegerLiteralExpression pE) throws UnrecognizedCCodeException {
       return parseIntegerLiteral(pE);
     }
-    
+
     @Override
     public Long visit(IASTStringLiteralExpression pE) throws UnrecognizedCCodeException {
       return null;
     }
-    
+
     @Override
     public Long visit(IASTIdExpression idExp) throws UnrecognizedCCodeException {
 
       if (idExp.getDeclaration() instanceof IASTEnumerator) {
         return ((IASTEnumerator)idExp.getDeclaration()).getValue();
       }
-      
+
       String varName = getvarName(idExp.getName(), functionName);
       if (element.contains(varName)) {
         return element.getValueFor(varName);
@@ -1281,34 +1281,34 @@ public class ExplicitTransferRelation implements TransferRelation {
         return null;
       }
     }
-    
+
     @Override
     public Long visit(IASTUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
       UnaryOperator unaryOperator = unaryExpression.getOperator();
       IASTExpression unaryOperand = unaryExpression.getOperand();
-      
+
       switch (unaryOperator) {
 
       case MINUS:
         Long val = unaryOperand.accept(this);
         return (val != null) ? -val : null;
-      
+
       case AMPER:
         return null; // valid expression, but it's a pointer value
 
       case STAR: {
         missingPointer = true;
         return null;
-      } 
-        
+      }
+
       default:
         throw new UnrecognizedCCodeException("unknown unary operator", null, unaryExpression);
       }
     }
   }
-  
+
   private class PointerExpressionValueVisitor extends ExpressionValueVisitor {
-    
+
     private final PointerElement pointerElement;
 
     public PointerExpressionValueVisitor(ExplicitElement pElement,
@@ -1316,14 +1316,14 @@ public class ExplicitTransferRelation implements TransferRelation {
       super(pElement, pFunctionName);
       pointerElement = pPointerElement;
     }
-    
+
     @Override
     public Long visit(IASTUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
-      
-      if (unaryExpression.getOperator() != UnaryOperator.STAR) {      
+
+      if (unaryExpression.getOperator() != UnaryOperator.STAR) {
         return super.visit(unaryExpression);
       }
-      
+
       // Cil produces code like
       // __cil_tmp8 = *((int *)__cil_tmp7);
       // so remove cast
@@ -1331,9 +1331,9 @@ public class ExplicitTransferRelation implements TransferRelation {
       if (unaryOperand instanceof IASTCastExpression) {
         unaryOperand = ((IASTCastExpression)unaryOperand).getOperand();
       }
-      
+
       if (unaryOperand instanceof IASTIdExpression) {
-        
+
         String rightVar = derefPointerToVariable(pointerElement, unaryOperand.getRawSignature());
         if (rightVar != null) {
           rightVar = getvarName(rightVar, functionName);
@@ -1341,14 +1341,14 @@ public class ExplicitTransferRelation implements TransferRelation {
             return element.getValueFor(rightVar);
           }
         }
-        
+
       } else {
         throw new UnrecognizedCCodeException("Pointer dereference of something that is not a variable", null, unaryExpression);
       }
       return null;
     }
   }
-  
+
   private Long getExpressionValue(ExplicitElement element, IASTExpression expression,
       String functionName) throws UnrecognizedCCodeException {
 
@@ -1372,7 +1372,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     }
     return (long)n;
   }
-  
+
   private static Long parseIntegerLiteral(IASTIntegerLiteralExpression lexp) {
 //  String s = expression.getRawSignature();
 //        if(s.endsWith("L") || s.endsWith("U") || s.endsWith("UL")){
@@ -1385,14 +1385,14 @@ public class ExplicitTransferRelation implements TransferRelation {
 //        } catch (NumberFormatException e) {
 //          throw new UnrecognizedCCodeException("invalid integer literal", null, expression);
 //        }
-    
+
     // TODO don't parse raw signature, but rely on lexp.getValue()
 
     String num = lexp.getRawSignature();
     if (num.equals("NULL")) {
       return 0L;
     }
-    
+
     Long retVal = null;
     if (num.startsWith("0x")) {
       // this should be in hex format
@@ -1409,7 +1409,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       num = num.substring(0, pos+1);
 //      System.out.println("num is " + num);
     }
-    
+
     // TODO here we assume 32 bit integers!!! This is because CIL
     // seems to do so as well...
     try {
@@ -1428,13 +1428,13 @@ public class ExplicitTransferRelation implements TransferRelation {
     }
     return retVal;
   }
-  
+
   private static Long parseLiteral(IASTLiteralExpression lexp) {
       // this should be a number...
       switch (lexp.getKind()) {
       case IASTLiteralExpression.lk_integer_constant:
         return parseIntegerLiteral((IASTIntegerLiteralExpression)lexp);
-              
+
       case IASTLiteralExpression.lk_char_constant:
         return parseCharLiteral((IASTCharLiteralExpression)lexp);
 
@@ -1457,7 +1457,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         String num = lexp.getRawSignature();
         Long retVal = null;
         boolean isUnsigned = false;
-        
+
         if (num.startsWith("0x")) {
           // this should be in hex format
           // we use Long instead of Integer to avoid getting negative
@@ -1475,7 +1475,7 @@ public class ExplicitTransferRelation implements TransferRelation {
           }
           num = num.substring(0, pos+1);
         }
-        
+
         // TODO here we assume 32 bit integers!!! This is because CIL
         // seems to do so as well...
         try {
@@ -1500,7 +1500,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         }
         return retVal;
       }
-      
+
       case IASTLiteralExpression.lk_char_constant: {
         return 0 - parseCharLiteral((IASTCharLiteralExpression)lexp);
       }
@@ -1546,7 +1546,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       ExplicitElement pExplicitElement, AssumptionStorageElement pAe,
       CFAEdge pCfaEdge, Precision pPrecision) {
 
-    
+
     return null;
   }
 
@@ -1561,9 +1561,9 @@ public class ExplicitTransferRelation implements TransferRelation {
         if (missingInformationLeftVariable != null) {
           ExplicitElement newElement = handleAssignmentToVariable(missingInformationLeftVariable, missingInformationRightExpression, v);
           return Collections.singleton(newElement);
-    
+
         } else if (missingInformationLeftPointer != null) {
-  
+
           String leftVar = derefPointerToVariable(pointerElement, missingInformationLeftPointer);
           if (leftVar != null) {
             leftVar = getvarName(leftVar, functionName);

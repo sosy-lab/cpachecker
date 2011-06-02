@@ -55,12 +55,12 @@ public class FunctionCallEdge extends AbstractCFAEdge
   public List<IASTExpression> getArguments() {
     return arguments;
   }
-    
+
   @Override
   public IASTStatement getRawAST() {
     return rawAST;
   }
-  
+
   @Override
   public FunctionDefinitionNode getSuccessor() {
     // the constructor enforces that the successor is always a CFAFunctionDefinitionNode

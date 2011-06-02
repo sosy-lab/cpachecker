@@ -26,5 +26,5 @@ package org.sosy_lab.cpachecker.cpa.interpreter;
 public class InterpreterElementTest {
 
   // TODO implement tests
-  
+
 }

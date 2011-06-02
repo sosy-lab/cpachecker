@@ -66,7 +66,7 @@ public class CPABuilder {
       description="file with a specification that should be checked"
         + "\n(see test/config/automata/ for examples)")
   private File specificationFile = null;
-  
+
   private final Configuration config;
   private final LogManager logger;
   private final ReachedSetFactory reachedSetFactory;
@@ -77,26 +77,26 @@ public class CPABuilder {
     this.reachedSetFactory = pReachedSetFactory;
     config.inject(this);
   }
-  
+
   public CPABuilder(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
     this(pConfig, pLogger, null);
   }
 
   public ConfigurableProgramAnalysis buildCPAs() throws InvalidConfigurationException, CPAException {
     Set<String> usedAliases = new HashSet<String>();
-    
+
     // create automata cpas for specification given in specification file
     List<ConfigurableProgramAnalysis> cpas = null;
     if (specificationFile != null) {
       List<Automaton> automata = AutomatonParser.parseAutomatonFile(specificationFile, config, logger);
       cpas = new ArrayList<ConfigurableProgramAnalysis>(automata.size());
-      
+
       for (Automaton automaton : automata) {
         String cpaAlias = automaton.getName();
         if (!usedAliases.add(cpaAlias)) {
           throw new InvalidConfigurationException("Name " + cpaAlias + " used twice for an automaton.");
         }
-        
+
         CPAFactory factory = ControlAutomatonCPA.factory();
         factory.setConfiguration(Configuration.copyWithNewPrefix(config, cpaAlias));
         factory.setLogger(logger);
@@ -133,9 +133,9 @@ public class CPABuilder {
     if (reachedSetFactory != null) {
       factory.set(reachedSetFactory, ReachedSetFactory.class);
     }
-    
+
     createAndSetChildrenCPAs(cpaName, cpaAlias, factory, usedAliases, cpas);
-    
+
     if (cpas != null && !cpas.isEmpty()) {
       throw new InvalidConfigurationException("Option specification gave specification automata, but no CompositeCPA was used");
     }
@@ -186,17 +186,17 @@ public class CPABuilder {
     try {
       Method factoryMethod = cpaClass.getMethod("factory", (Class<?>[]) null);
       factoryObj = factoryMethod.invoke(null, (Object[])null);
-    
+
     } catch (NullPointerException e) {
       throw new CPAException("The factory method of the CPA " + cpaName + " is not static!");
-      
+
     } catch (NoSuchMethodException e) {
       throw new CPAException("Each CPA class has to offer a public static method factory with zero parameters, but " + cpaName + " does not!");
-    
+
     } catch (IllegalArgumentException e) {
       // method is not static
       throw new CPAException("Each CPA class has to offer a public static method factory with zero parameters, but " + cpaName + " does not!");
-    
+
     } catch (IllegalAccessException e) {
       // method is not public
       throw new CPAException("Each CPA class has to offer a public static method factory with zero parameters, but " + cpaName + " does not!");
@@ -204,7 +204,7 @@ public class CPABuilder {
     } catch (InvocationTargetException e) {
       Throwable cause = e.getCause();
       Throwables.propagateIfPossible(cause, CPAException.class);
-      
+
       logger.logException(Level.FINE, cause, "CPA factory methods should never throw an exception!");
       throw new CPAException("Cannot create CPA because of unexpected exception: " + cause.getMessage());
     }

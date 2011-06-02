@@ -49,7 +49,7 @@ public interface FormulaManager {
    * @return a Formula representing logical falsity
    */
   public Formula makeFalse();
-  
+
   /**
    * Creates a formula representing a negation of the argument.
    * @param f a Formula
@@ -92,11 +92,11 @@ public interface FormulaManager {
   public Formula makeIfThenElse(Formula cond,
       Formula f1, Formula f2);
 
-  
+
   // ----------------- Numeric formulas -----------------
 
   public Formula makeNumber(int pI);
-  
+
   public Formula makeNumber(String pI);
 
   public Formula makeNegate(Formula pF);
@@ -110,9 +110,9 @@ public interface FormulaManager {
   public Formula makeModulo(Formula pF1, Formula pF2);
 
   public Formula makeMultiply(Formula pF1, Formula pF2);
-  
+
   // ----------------- Numeric relations -----------------
-  
+
   public Formula makeEqual(Formula pF1, Formula pF2);
 
   public Formula makeGt(Formula pF1, Formula pF2);
@@ -122,7 +122,7 @@ public interface FormulaManager {
   public Formula makeLt(Formula pF1, Formula pF2);
 
   public Formula makeLeq(Formula pF1, Formula pF2);
- 
+
   // ----------------- Bit-manipulation functions -----------------
 
   public Formula makeBitwiseNot(Formula pF);
@@ -138,7 +138,7 @@ public interface FormulaManager {
   public Formula makeShiftRight(Formula pF1, Formula pF2);
 
   // ----------------- Uninterpreted functions -----------------
-  
+
   public Formula makeUIF(String pName, FormulaList pArgs);
 
   public Formula makeUIF(String pName, FormulaList pArgs, int pIdx);
@@ -148,24 +148,24 @@ public interface FormulaManager {
   public Formula makeString(int pI);
 
   public Formula makeVariable(String pVar, int pIdx);
-  
+
   public Formula makeVariable(String pVar);
-  
+
   public Formula makePredicateVariable(String pVar, int pIdx);
-  
+
   public Formula makeAssignment(Formula pF1, Formula pF2);
 
   // ----------------- Convert to list -----------------
-  
+
   public FormulaList makeList(Formula pF);
-  
+
   public FormulaList makeList(Formula pF1, Formula pF2);
-  
+
   public FormulaList makeList(Formula... pF);
 
 
   // ----------------- Complex formula manipulation -----------------
-  
+
     /**
      * Parse a formula given as a String in the common infix notation.
      * @return The same formula in the internal representation.
@@ -179,11 +179,11 @@ public interface FormulaManager {
      * @throws IllegalArgumentException If the string cannot be parsed.
      */
     public Formula parse(String s) throws IllegalArgumentException;
-    
+
     /**
      * Given a formula that uses "generic" variables, returns the corresponding
      * one that "instantiates" such variables according to the given SSA map.
-     * 
+     *
      * @param f the generic Formula to instantiate
      * @param ssa the SSAMap to use
      * @return a copy of f in which every "generic" variable is replaced by the

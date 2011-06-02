@@ -114,7 +114,7 @@ public class UnmodifiableReachedSetView
   public Collection<Pair<AbstractElement, Precision>> getReachedWithPrecision() {
     return Collections2.transform(underlying.getReachedWithPrecision(), mapElementAndPrecisionFunction);
   }
-  
+
   @Override
   public Collection<Precision> getPrecisions() {
     return Collections2.transform(underlying.getPrecisions(), mapPrecisionFunction);

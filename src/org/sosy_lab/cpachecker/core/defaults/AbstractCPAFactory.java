@@ -76,7 +76,7 @@ public abstract class AbstractCPAFactory implements CPAFactory {
     Preconditions.checkState(configuration != null, "Configuration object needed to create CPA");
     return configuration;
   }
-  
+
   @Override
   public <T> CPAFactory set(T pObject, Class<T> pClass) throws UnsupportedOperationException {
     // ignore other objects

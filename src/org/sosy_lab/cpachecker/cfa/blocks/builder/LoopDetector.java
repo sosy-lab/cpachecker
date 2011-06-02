@@ -17,31 +17,31 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 public class LoopDetector {
   public Set<CFANode> detectLoopBody(CFANode loopHead) {
     assert loopHead.isLoopStart() : "Illegal argument for LoopDector::computeCachedSubtree: Given node has to be the start of a loop.";
-    
+
     Set<CFANode> loopBody = new HashSet<CFANode>();
     loopBody.add(loopHead);
-    
+
     for(int i = 0; i < loopHead.getNumEnteringEdges(); i++) {
       CFAEdge edge = loopHead.getEnteringEdge(i);
       if(isBackedge(edge, loopHead) && edge.getSuccessor() != edge.getPredecessor()) {
         addLoopBodyForEdge(edge, loopBody);
       }
     }
-    
+
     return loopBody;
   }
 
   private void addLoopBodyForEdge(CFAEdge pEdge, Set<CFANode> pLoopBody) {
     CFANode startNode = pEdge.getPredecessor();
     Deque<CFANode> stack = new ArrayDeque<CFANode>();
-    
+
     pLoopBody.add(startNode);
-    stack.push(startNode);      
-   
+    stack.push(startNode);
+
     while(!stack.isEmpty()) {
       CFANode node = stack.pop();
       for(int i = 0; i < node.getNumEnteringEdges(); i++) {
-        CFANode nextNode = node.getEnteringEdge(i).getPredecessor();    
+        CFANode nextNode = node.getEnteringEdge(i).getPredecessor();
         if(node.getEnteringSummaryEdge() != null) {
           nextNode = node.getEnteringSummaryEdge().getPredecessor();
         }
@@ -50,7 +50,7 @@ public class LoopDetector {
           pLoopBody.add(nextNode);
         }
       }
-    }    
+    }
   }
 
   private boolean isBackedge(CFAEdge pEdge, CFANode pNode) {

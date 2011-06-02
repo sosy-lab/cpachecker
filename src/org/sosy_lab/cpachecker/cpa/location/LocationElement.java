@@ -39,7 +39,7 @@ import com.google.common.base.Preconditions;
 
 public class LocationElement implements AbstractElementWithLocation, AbstractQueryableElement, Partitionable
 {
-  
+
   public static class LocationElementFactory {
     private LocationElement[] elements = null;
 
@@ -54,10 +54,10 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
       Deque<CFANode> waitlist = new ArrayDeque<CFANode>();
       seenNodes.add(initialNode);
       waitlist.add(initialNode);
-      
+
       while (!waitlist.isEmpty()) {
         CFANode n = waitlist.pop();
-        
+
         CFAEdge edge = n.getLeavingSummaryEdge();
         if (edge != null) {
           CFANode succ = edge.getSuccessor();
@@ -65,7 +65,7 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
             waitlist.push(succ);
           }
         }
-        
+
         for (int i = 0; i < n.getNumLeavingEdges(); i++) {
           edge = n.getLeavingEdge(i);
           CFANode succ = edge.getSuccessor();
@@ -74,19 +74,19 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
           }
         }
       }
-      
+
       int maxNodeNumber = seenNodes.last().getNodeNumber();
       elements = new LocationElement[maxNodeNumber+1];
       for (CFANode n : seenNodes) {
         elements[n.getNodeNumber()] = new LocationElement(n);
       }
     }
-        
+
     public LocationElement getElement(CFANode node) {
       return Preconditions.checkNotNull(elements[node.getNodeNumber()]);
     }
   }
-  
+
     private final CFANode locationNode;
 
     private LocationElement (CFANode locationNode)
@@ -125,7 +125,7 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
         }
       }
     }
-    
+
     @Override
     public void modifyProperty(String pModification)
         throws InvalidQueryException {
@@ -142,11 +142,11 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
         String pProperty) throws InvalidQueryException {
       return Boolean.valueOf(checkProperty(pProperty));
     }
-    
+
     @Override
     public Object getPartitionKey() {
       return this;
     }
-    
+
     // no equals and hashCode because there is always only one element per CFANode
 }

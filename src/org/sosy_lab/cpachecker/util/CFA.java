@@ -51,11 +51,11 @@ public class CFA {
 
   /**
    * Find all nodes of the CFA that are reachable from the given entry point.
-   * 
+   *
    * Same as {@link #transitiveSuccessors(CFANode, boolean)}.
-   * 
+   *
    * @param rootNode  The start node of the search.
-   * @param interprocedural Whether interprocedural edges (function call/return) should be followed. 
+   * @param interprocedural Whether interprocedural edges (function call/return) should be followed.
    * @return A set of nodes.
    */
   public static Set<CFANode> allNodes(CFAFunctionDefinitionNode rootNode, boolean interprocedural) {
@@ -65,7 +65,7 @@ public class CFA {
   /**
    * Find all nodes of the CFA that are reachable from the given entry point.
    * @param node  The start node of the search.
-   * @param interprocedural Whether interprocedural edges (function call/return) should be followed. 
+   * @param interprocedural Whether interprocedural edges (function call/return) should be followed.
    * @return A set of nodes.
    */
   public static Set<CFANode> transitiveSuccessors(CFANode node, boolean interprocedural) {
@@ -73,11 +73,11 @@ public class CFA {
     dfs(node, allNodes, false, interprocedural);
     return allNodes;
   }
-  
+
   /**
    * Find all nodes of the CFA from which a given node is reachable.
    * @param node  The start node of the backwards search.
-   * @param interprocedural Whether interprocedural edges (function call/return) should be followed. 
+   * @param interprocedural Whether interprocedural edges (function call/return) should be followed.
    * @return A set of nodes.
    */
   public static Set<CFANode> transitivePredecessors(CFANode node, boolean interprocedural) {
@@ -85,21 +85,21 @@ public class CFA {
     dfs(node, allNodes, true, interprocedural);
     return allNodes;
   }
-  
+
   /**
    * Perform a DFS search on the CFA. All visited nodes are added to a given set.
    * If this set is non-empty at the beginning, the search does not traverse
    * beyond the nodes of this set (the part of the CFA reachable from these nodes
    * is considered to be know already).
-   * 
+   *
    * @param start The start node of the search.
    * @param seen A set of nodes that have already been visited.
    * @param reverse Whether to go backwards or forward.
-   * @param interprocedural Whether interprocedural edges (function call/return) should be followed. 
+   * @param interprocedural Whether interprocedural edges (function call/return) should be followed.
    * @return The highest node id encountered.
    */
   public static int dfs(CFANode start, Set<CFANode> seen, boolean reverse, boolean interprocedural) {
-    int maxNodeId = -1; 
+    int maxNodeId = -1;
 
     Deque<CFANode> toProcess = new ArrayDeque<CFANode>();
     toProcess.push(start);
@@ -113,7 +113,7 @@ public class CFA {
           if (!interprocedural && (e instanceof FunctionCallEdge || e instanceof FunctionReturnEdge)) {
             continue;
           }
-          
+
           CFANode s = e.getPredecessor();
           if (!seen.contains(s)) {
             toProcess.push(s);
@@ -147,18 +147,18 @@ public class CFA {
     }
     return maxNodeId;
   }
-  
+
   /**
    * Find all nodes below a startNode, but do not traverse a certain endNode.
    */
   public static Set<CFANode> exploreSubgraph(CFANode startNode, CFANode endNode) {
     Set<CFANode> seen = new HashSet<CFANode>();
     Deque<CFANode> stack = new ArrayDeque<CFANode>();
-    
+
     seen.add(startNode);
     if(endNode != null)
       seen.add(endNode);
-    
+
     for(int i = 0; i < startNode.getNumLeavingEdges(); i++) {
       CFANode nextNode = startNode.getLeavingEdge(i).getSuccessor();
       if(startNode.getLeavingEdge(i) instanceof FunctionCallEdge) {
@@ -169,14 +169,14 @@ public class CFA {
         seen.add(nextNode);
       }
     }
-    
+
     while(!stack.isEmpty()) {
       CFANode node = stack.pop();
       if(node instanceof CFAFunctionExitNode) {
         continue;
       }
       for(int i = 0; i < node.getNumLeavingEdges(); i++) {
-        CFANode nextNode = node.getLeavingEdge(i).getSuccessor();        
+        CFANode nextNode = node.getLeavingEdge(i).getSuccessor();
         if(node.getLeavingEdge(i) instanceof FunctionCallEdge) {
           nextNode = node.getLeavingSummaryEdge().getSuccessor();
         }
@@ -199,43 +199,43 @@ public class CFA {
           stack.add(prevNode);
           seen.add(prevNode);
         }
-      }   
-    }    
-    
+      }
+    }
+
     return seen;
   }
-  
+
   // wrapper class for Set<CFANode> because Java arrays don't like generics
   private static class Edge {
     private final Set<CFANode> nodes = new HashSet<CFANode>(1);
-    
+
     private void add(Edge n) {
       nodes.addAll(n.nodes);
     }
-    
+
     private void add(CFANode n) {
       nodes.add(n);
     }
-    
+
     private Set<CFANode> asNodeSet() {
       return nodes;
     }
   }
-  
+
   public static class Loop {
-    
+
     // loopHeads is a sub-set of nodes such that all infinite paths through
     // the set nodes will pass through at least one node in loopHeads infinitively often
     // i.e. you will have to pass through at least one loop head in every iteration
     private ImmutableSet<CFANode> loopHeads;
-    
+
     private ImmutableSortedSet<CFANode> nodes;
-    
+
     // the following sets are computed lazily by calling {@link #computeSets()}
     private ImmutableSet<CFAEdge> innerLoopEdges;
     private ImmutableSet<CFAEdge> incomingEdges;
     private ImmutableSet<CFAEdge> outgoingEdges;
-    
+
     public Loop(CFANode loopHead, Set<CFANode> pNodes) {
       loopHeads = ImmutableSet.of(loopHead);
       nodes = ImmutableSortedSet.<CFANode>naturalOrder()
@@ -243,16 +243,16 @@ public class CFA {
                                 .add(loopHead)
                                 .build();
     }
-    
+
     private void computeSets() {
       if (innerLoopEdges != null) {
         assert incomingEdges != null;
         assert outgoingEdges != null;
       }
-      
+
       Set<CFAEdge> incomingEdges = new HashSet<CFAEdge>();
       Set<CFAEdge> outgoingEdges = new HashSet<CFAEdge>();
-      
+
       for (CFANode n : nodes) {
         for (int i = 0; i < n.getNumEnteringEdges(); i++) {
           incomingEdges.add(n.getEnteringEdge(i));
@@ -261,56 +261,56 @@ public class CFA {
           outgoingEdges.add(n.getLeavingEdge(i));
         }
       }
-      
+
       innerLoopEdges = Sets.intersection(incomingEdges, outgoingEdges).immutableCopy();
       incomingEdges.removeAll(innerLoopEdges);
       outgoingEdges.removeAll(innerLoopEdges);
-      
+
       assert !incomingEdges.isEmpty() : "Unreachable loop?";
-      
+
       this.incomingEdges = ImmutableSet.copyOf(incomingEdges);
       this.outgoingEdges = ImmutableSet.copyOf(outgoingEdges);
     }
-    
+
     void addNodes(Loop l) {
       nodes = ImmutableSortedSet.<CFANode>naturalOrder()
                                 .addAll(nodes)
                                 .addAll(l.nodes)
                                 .build();
-      
+
       innerLoopEdges = null;
       incomingEdges = null;
       outgoingEdges = null;
     }
-    
+
     void mergeWith(Loop l) {
       loopHeads = Sets.union(loopHeads, l.loopHeads).immutableCopy();
       addNodes(l);
     }
-   
+
     public boolean intersectsWith(Loop l) {
       return !Sets.intersection(nodes, l.nodes).isEmpty();
     }
-    
+
     /**
      * Check if this loop is an outer loop of another, given one.
      */
     public boolean isOuterLoopOf(Loop other) {
       this.computeSets();
       other.computeSets();
-      
+
       return this.innerLoopEdges.containsAll(other.incomingEdges)
           && this.innerLoopEdges.containsAll(other.outgoingEdges);
     }
-    
+
     public ImmutableSortedSet<CFANode> getLoopNodes() {
       return nodes;
     }
-    
+
     public ImmutableSet<CFANode> getLoopHeads() {
       return loopHeads;
     }
-    
+
     public ImmutableSet<CFAEdge> getIncomingEdges() {
       computeSets();
       return incomingEdges;
@@ -320,7 +320,7 @@ public class CFA {
       computeSets();
       return outgoingEdges;
     }
-    
+
     @Override
     public String toString() {
       computeSets();
@@ -330,24 +330,24 @@ public class CFA {
            + "  nodes:    " + nodes;
     }
   }
-  
+
   public static Collection<Loop> findLoops(SortedSet<CFANode> nodes) throws ParserException {
     final int min = nodes.first().getNodeNumber();
     final int max = nodes.last().getNodeNumber();
     final int size = max + 1 - min;
-    
+
     nodes = new TreeSet<CFANode>(nodes); // copy nodes because we change it
-    
+
     // all nodes of the graph
     // Fields may be null, iff there is no node with this number.
     // forall i : nodes[i].getNodeNumber() == i + min
     final CFANode[] nodesArray = new CFANode[size];
-    
+
     // all edges of the graph
     // Iff there is an edge from nodes[i] to nodes[j], edges[i][j] is not null.
-    // The set edges[i][j].nodes contains all nodes that were eliminated and merged into this edge. 
+    // The set edges[i][j].nodes contains all nodes that were eliminated and merged into this edge.
     final Edge[][] edges =  new Edge[size][size];
-    
+
     // FIRST step: initialize arrays
     for (CFANode n : nodes) {
       int i = n.getNodeNumber() - min;
@@ -371,48 +371,48 @@ public class CFA {
       // algorithm would propose another node of the loop has loop head
       // (which is counter-intuitive to the user)
       changed = identifyLoops(false, nodes, min, nodesArray, edges, loops);
-      
+
       if (!changed && !nodes.isEmpty()) {
         // but if we have to, try and use this strategy
         changed = identifyLoops(true, nodes, min, nodesArray, edges, loops);
       }
-      
+
     } while (changed && !nodes.isEmpty()); // stop if nothing has changed or nodes is empty
 
-    
+
     // check that the complete graph has collapsed
     if (!nodes.isEmpty()) {
       throw new ParserException("Code structure is too complex, could not detect all loops!");
     }
-   
+
     // THIRD step:
     // check all pairs of loops if one is an inner loop of the other
     // the check is symmetric, so we need to check only (i1, i2) with i1 < i2
-    
+
     NavigableSet<Integer> toRemove = new TreeSet<Integer>();
     for (int i1 = 0; i1 < loops.size(); i1++) {
       Loop l1 = loops.get(i1);
-      
+
       for (int i2 = i1+1; i2 < loops.size(); i2++) {
         Loop l2 = loops.get(i2);
-        
+
         if (!l1.intersectsWith(l2)) {
           // loops have nothing in common
           continue;
         }
-        
+
         if (l1.isOuterLoopOf(l2)) {
-          
+
           // l2 is an inner loop
           // add it's nodes to l1
           l1.addNodes(l2);
-          
+
         } else if (l2.isOuterLoopOf(l1)) {
 
           // l1 is an inner loop
           // add it's nodes to l2
           l2.addNodes(l1);
-          
+
         } else {
           // strange goto loop, merge the two together
 
@@ -425,17 +425,17 @@ public class CFA {
     for (int i : toRemove.descendingSet()) { // need to iterate in reverse order!
       loops.remove(i);
     }
- 
+
     return loops;
   }
 
   private static boolean identifyLoops(boolean reverseMerge, SortedSet<CFANode> nodes, final int offset,
       final CFANode[] nodesArray, final Edge[][] edges, List<Loop> loops) {
-    
+
     final int size = edges.length;
 
     boolean changed = false;
-      
+
       // merge nodes with their neighbors, if possible
       Iterator<CFANode> it = nodes.iterator();
       while (it.hasNext()) {
@@ -445,11 +445,11 @@ public class CFA {
         // find edges of current
         final int predecessor = findSingleIncomingEdgeOfNode(current, edges);
         final int successor   = findSingleOutgoingEdgeOfNode(current, edges);
-        
+
         if ((predecessor == -1) && (successor == -1)) {
           // no edges, eliminate node
           it.remove(); // delete currentNode
-        
+
         } else if ((predecessor == -1) && (successor > -1)) {
           // no incoming edges, one outgoing edge
           final int successor2 = findSingleOutgoingEdgeOfNode(successor, edges);
@@ -469,11 +469,11 @@ public class CFA {
             edges[predecessor][current] =  null;
             it.remove(); // delete currentNode
           }
-          
+
         } else if ((predecessor > -1) && (successor != -1)) {
           // current has a single incoming edge from predecessor and is no sink, eliminate current
           changed = true;
-          
+
           // copy all outgoing edges (current,j) to (predecessor,j)
           for (int j = 0; j < size; j++) {
             if (edges[current][j] != null) {
@@ -486,7 +486,7 @@ public class CFA {
               edges[current][j] = null;
             }
           }
-          
+
           // delete from graph
           edges[predecessor][current] = null;
           it.remove(); // delete currentNode
@@ -496,12 +496,12 @@ public class CFA {
             CFANode pred = nodesArray[predecessor];
             handleLoop(pred, predecessor, edges, loops);
           }
-        
-          
+
+
         } else if (reverseMerge && (successor > -1) && (predecessor != -1)) {
           // current has a single outgoing edge to successor and is no source, eliminate current
           changed = true;
-          
+
           // copy all incoming edges (j,current) to (j,successor)
           for (int j = 0; j < size; j++) {
             if (edges[j][current] != null) {
@@ -514,7 +514,7 @@ public class CFA {
               edges[j][current] = null;
             }
           }
-                    
+
           // delete from graph
           edges[current][successor] = null;
           it.remove(); // delete currentNode
@@ -526,7 +526,7 @@ public class CFA {
           }
         }
       }
-      
+
       return changed;
   }
 
@@ -539,16 +539,16 @@ public class CFA {
     }
     return result;
   }
-  
+
   // create a loop from a node with a self-edge
   private static void handleLoop(final CFANode loopHead, int loopHeadIndex,
       final Edge[][] edges, Collection<Loop> loops) {
     assert loopHead != null;
-    
+
     // store loop
     Loop loop = new Loop(loopHead, edges[loopHeadIndex][loopHeadIndex].asNodeSet());
     loops.add(loop);
-    
+
     // remove this loop from the graph
     edges[loopHeadIndex][loopHeadIndex] = null;
   }
@@ -558,12 +558,12 @@ public class CFA {
   // if there are several successor, -2 is returned
   private static int findSingleIncomingEdgeOfNode(int i, Edge[][] edges) {
     final int size = edges.length;
-    
+
     int predecessor = -1;
     for (int j = 0; j < size; j++) {
       if (edges[j][i] != null) {
         // i has incoming edge from j
-        
+
         if (predecessor > -1) {
           // not the only incoming edge
           return -2;
@@ -574,18 +574,18 @@ public class CFA {
     }
     return predecessor;
   }
-  
+
   // find index of single successor of node i
   // if there is no successor, -1 is returned
   // if there are several successors, -2 is returned
   private static int findSingleOutgoingEdgeOfNode(int i, Edge[][] edges) {
     final int size = edges.length;
-    
+
     int successor = -1;
     for (int j = 0; j < size; j++) {
       if (edges[i][j] != null) {
         // i has outgoing edge to j
-        
+
         if (successor > -1) {
           // not the only outgoing edge
           return -2;

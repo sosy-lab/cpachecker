@@ -31,14 +31,14 @@ import static com.google.common.base.Preconditions.checkState;
  * the number of those intervals.
  *
  * This class is not thread-safe.
- * 
+ *
  * @author Karlheinz Friedberger
  */
 public class Timer {
 
   /**
    * The time of starting the timer.
-   * Volatile to make {@link #isRunning()} thread-safe. 
+   * Volatile to make {@link #isRunning()} thread-safe.
    */
   private volatile long startTime         = 0;
 
@@ -56,7 +56,7 @@ public class Timer {
    */
   public Timer() {
   }
-  
+
   /**
    * Create a timer in the running state, with a given start time.
    */
@@ -64,7 +64,7 @@ public class Timer {
     checkState(startTime > 0);
     this.startTime = startTime;
   }
-  
+
   /** Start the timer. If it was running before, the timer is stopped and then
    * started again. */
   public final void start() {
@@ -85,7 +85,7 @@ public class Timer {
   public final long stop() {
     return stop(System.currentTimeMillis());
   }
-  
+
   final long stop(long endTime) {
     if (isRunning()) {
       long intervallTime = endTime - startTime;
@@ -167,11 +167,11 @@ public class Timer {
     return String.format("%5d.%03ds", time / 1000, time % 1000);
   }
 
-  /** 
+  /**
    * Return if the timer is running.
    * This method is thread-safe, it is guaranteed to return true if another
    * thread has called {@link #start()} and not yet called {@link #stop()}.
-   *  
+   *
    * @return is the timer running?
    */
   public boolean isRunning() {

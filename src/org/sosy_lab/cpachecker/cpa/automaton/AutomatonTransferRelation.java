@@ -52,7 +52,7 @@ import com.google.common.collect.ImmutableMap;
  * @author rhein
  */
 class AutomatonTransferRelation implements TransferRelation {
-  
+
   private final ControlAutomatonCPA cpa;
   private final LogManager logger;
 
@@ -74,7 +74,7 @@ class AutomatonTransferRelation implements TransferRelation {
   public Collection<? extends AbstractElement> getAbstractSuccessors(
                       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
                       throws CPATransferException {
-    
+
     Preconditions.checkArgument(pElement instanceof AutomatonState);
     totalPostTime.start();
     try {
@@ -88,21 +88,21 @@ class AutomatonTransferRelation implements TransferRelation {
       if (! (pElement instanceof AutomatonState)) {
         throw new IllegalArgumentException("Cannot getAbstractSuccessor for non-AutomatonState AbstractElements.");
       }
-      
+
       AutomatonState lCurrentAutomatonState = (AutomatonState)pElement;
       return getFollowStates(lCurrentAutomatonState, null, pCfaEdge, false);
-    
+
     } finally {
       totalPostTime.stop();
     }
   }
-  
+
   /**
    * Returns the <code>AutomatonStates</code> that follow this State in the ControlAutomatonCPA.
    * If the passed <code>AutomatonExpressionArguments</code> are not sufficient to determine the following state
    * this method returns a <code>AutomatonUnknownState</code> that contains this as previous State.
    * The strengthen method of the <code>AutomatonUnknownState</code> should be used once enough Information is available to determine the correct following State.
-   * 
+   *
    * If the state is a NonDet-State multiple following states may be returned.
    * If the only following state is BOTTOM an empty set is returned.
    */
@@ -111,27 +111,27 @@ class AutomatonTransferRelation implements TransferRelation {
     if (state == cpa.getBottomState()) {
       return Collections.emptySet();
     }
-    
+
     if (state.getInternalState().getTransitions().isEmpty()) {
       // shortcut
       return Collections.singleton(state);
     }
-    
-    Collection<AbstractElement> lSuccessors = new HashSet<AbstractElement>(2);    
+
+    Collection<AbstractElement> lSuccessors = new HashSet<AbstractElement>(2);
     AutomatonExpressionArguments exprArgs = new AutomatonExpressionArguments(state.getVars(), otherElements, edge, logger);
     boolean edgeMatched = false;
     boolean nonDetState = state.getInternalState().isNonDetState();
-  
+
     // these transitions cannot be evaluated until last, because they might have sideeffects on other CPAs (dont want to execute them twice)
     // the transitionVariables have to be cached (produced during the match operation)
     // the list holds a Transition and the TransitionVariables generated during its match
     List<Pair<AutomatonTransition, Map<Integer, String>>> transitionsToBeTaken = new ArrayList<Pair<AutomatonTransition, Map<Integer, String>>>(2);
-    
+
     for (AutomatonTransition t : state.getInternalState().getTransitions()) {
       exprArgs.clearTransitionVariables();
 
       matchTime.start();
-      ResultValue<Boolean> match = t.match(exprArgs);      
+      ResultValue<Boolean> match = t.match(exprArgs);
       matchTime.stop();
       if (match.canNotEvaluate()) {
         if (strengthen) {
@@ -152,16 +152,16 @@ class AutomatonTransferRelation implements TransferRelation {
             }
             // cannot yet be evaluated
             return Collections.singleton(new AutomatonUnknownState(state));
-          
+
           } else if (assertionsHold.getValue()) {
             if (!t.canExecuteActionsOn(exprArgs)) {
               // cannot yet execute, goto UnknownState
               return Collections.singleton(new AutomatonUnknownState(state));
             }
-            
+
             // delay execution as described above
-            Map<Integer, String> transitionVariables = ImmutableMap.copyOf(exprArgs.getTransitionVariables()); 
-            transitionsToBeTaken.add(Pair.of(t, transitionVariables)); 
+            Map<Integer, String> transitionVariables = ImmutableMap.copyOf(exprArgs.getTransitionVariables());
+            transitionsToBeTaken.add(Pair.of(t, transitionVariables));
 
           } else {
             // matching transitions, but unfulfilled assertions: goto error state

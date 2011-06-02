@@ -40,14 +40,14 @@ public class LocationMappedReachedSet extends PartitionedReachedSet {
   public Set<AbstractElement> getReached(CFANode location) {
     return getReachedForKey(location);
   }
-  
+
   @Override
   protected Object getPartitionKey(AbstractElement pElement) {
     CFANode location = AbstractElements.extractLocation(pElement);
     assert location != null : "Location information necessary for LocationMappedReachedSet";
     return location;
   }
-  
+
   @SuppressWarnings("unchecked")
   public Set<CFANode> getLocations() {
     // generic cast is safe because we only put CFANodes into it

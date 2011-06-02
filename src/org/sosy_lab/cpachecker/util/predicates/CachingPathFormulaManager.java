@@ -41,20 +41,20 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
   public final Timer pathFormulaComputationTimer = new Timer();
   public int pathFormulaCacheHits = 0;
-  
+
   private final PathFormulaManager delegate;
-  
+
   private final Map<Pair<PathFormula, CFAEdge>, PathFormula> pathFormulaCache
             = new HashMap<Pair<PathFormula, CFAEdge>, PathFormula>();
 
   private final Map<Pair<PathFormula, PathFormula>, PathFormula> mergeCache
             = new HashMap<Pair<PathFormula, PathFormula>, PathFormula>();
-  
+
   private final Map<PathFormula, PathFormula> emptyFormulaCache
             = new HashMap<PathFormula, PathFormula>();
-  
+
   private final PathFormula emptyFormula;
-  
+
   public CachingPathFormulaManager(PathFormulaManager pDelegate) {
     delegate = pDelegate;
     emptyFormula = delegate.makeEmptyPathFormula();
@@ -62,7 +62,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
   @Override
   public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException {
-  
+
     final Pair<PathFormula, CFAEdge> formulaCacheKey = Pair.of(pOldFormula, pEdge);
     PathFormula result = pathFormulaCache.get(formulaCacheKey);
     if (result == null) {
@@ -71,13 +71,13 @@ public class CachingPathFormulaManager implements PathFormulaManager {
       result = delegate.makeAnd(pOldFormula, pEdge);
       pathFormulaComputationTimer.stop();
       pathFormulaCache.put(formulaCacheKey, result);
-      
+
     } else {
       pathFormulaCacheHits++;
     }
     return result;
   }
-  
+
   @Override
   public PathFormula makeOr(PathFormula pF1, PathFormula pF2) {
     final Pair<PathFormula, PathFormula> formulaCacheKey = Pair.of(pF1, pF2);
@@ -87,7 +87,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
       // try again with other order
       result = mergeCache.get(Pair.of(pF2, pF1));
     }
-      
+
     if (result == null) {
       result = delegate.makeOr(pF1, pF2);
       mergeCache.put(formulaCacheKey, result);
@@ -117,7 +117,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   @Override
   public PathFormula makeAnd(PathFormula pPathFormula, Formula pOtherFormula) {
     return delegate.makeAnd(pPathFormula, pOtherFormula);
-  } 
+  }
 
   @Override
   public PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM) {

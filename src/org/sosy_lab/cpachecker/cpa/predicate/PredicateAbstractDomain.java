@@ -35,31 +35,31 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
 @Options(prefix="cpa.predicate")
 public class PredicateAbstractDomain implements AbstractDomain {
-  
+
   @Option(description="whether to include the symbolic path formula in the "
     + "coverage checks or do only the fast abstract checks")
-  private boolean symbolicCoverageCheck = false; 
-  
+  private boolean symbolicCoverageCheck = false;
+
   // statistics
   public final Timer coverageCheckTimer = new Timer();
   public final Timer bddCoverageCheckTimer = new Timer();
   public final Timer symbolicCoverageCheckTimer = new Timer();
-  
+
   private final RegionManager mRegionManager;
   private final PredicateAbstractionManager mgr;
-    
+
   public PredicateAbstractDomain(PredicateCPA pCpa) throws InvalidConfigurationException {
     pCpa.getConfiguration().inject(this, PredicateAbstractDomain.class);
     mRegionManager = pCpa.getRegionManager();
     mgr = pCpa.getPredicateManager();
   }
-  
+
   @Override
   public boolean isLessOrEqual(AbstractElement element1,
                                        AbstractElement element2) throws CPAException {
     coverageCheckTimer.start();
     try {
-    
+
     PredicateAbstractElement e1 = (PredicateAbstractElement)element1;
     PredicateAbstractElement e2 = (PredicateAbstractElement)element2;
 
@@ -76,34 +76,34 @@ public class PredicateAbstractDomain implements AbstractDomain {
 
     if (e1 instanceof AbstractionElement && e2 instanceof AbstractionElement) {
       bddCoverageCheckTimer.start();
-      
+
       // if e1's predicate abstraction entails e2's pred. abst.
       boolean result = mRegionManager.entails(e1.getAbstractionFormula().asRegion(), e2.getAbstractionFormula().asRegion());
-      
+
       bddCoverageCheckTimer.stop();
       return result;
 
     } else if (e2 instanceof AbstractionElement) {
       if (symbolicCoverageCheck) {
         symbolicCoverageCheckTimer.start();
-        
+
         boolean result = mgr.checkCoverage(e1.getAbstractionFormula(), e1.getPathFormula(), e2.getAbstractionFormula());
-      
+
         symbolicCoverageCheckTimer.stop();
         return result;
-        
+
       } else {
-        return false; 
+        return false;
       }
-      
+
     } else if (e1 instanceof AbstractionElement) {
       return false;
-      
+
     } else {
       // only the fast check which returns true if a merge occurred for this element
       return e1.getMergedInto() == e2;
     }
-    
+
     } finally {
       coverageCheckTimer.stop();
     }

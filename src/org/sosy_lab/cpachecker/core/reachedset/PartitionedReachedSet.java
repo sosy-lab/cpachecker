@@ -52,50 +52,50 @@ import com.google.common.collect.SetMultimap;
 public class PartitionedReachedSet extends ReachedSet {
 
   private final SetMultimap<Object, AbstractElement> partitionedReached = LinkedHashMultimap.create();
-  
+
   public PartitionedReachedSet(WaitlistFactory waitlistFactory) {
     super(waitlistFactory);
   }
-  
+
   @Override
   public void add(AbstractElement pElement, Precision pPrecision) {
     super.add(pElement, pPrecision);
-    
+
     partitionedReached.put(getPartitionKey(pElement), pElement);
   }
-  
+
   @Override
   public void remove(AbstractElement pElement) {
     super.remove(pElement);
-    
+
     partitionedReached.remove(getPartitionKey(pElement), pElement);
   }
-  
+
   @Override
   public void clear() {
     super.clear();
-    
+
     partitionedReached.clear();
   }
-  
+
   @Override
   public Set<AbstractElement> getReached(AbstractElement pElement) {
     return getReachedForKey(getPartitionKey(pElement));
   }
-  
+
   public int getNumberOfPartitions() {
     return partitionedReached.keySet().size();
   }
-  
+
   protected Object getPartitionKey(AbstractElement pElement) {
     assert pElement instanceof Partitionable : "Partitionable elements necessary for PartitionedReachedSet";
     return ((Partitionable)pElement).getPartitionKey();
   }
-  
+
   protected Set<AbstractElement> getReachedForKey(Object key) {
     return Collections.unmodifiableSet(partitionedReached.get(key));
   }
-  
+
   protected Set<?> getKeySet() {
     return Collections.unmodifiableSet(partitionedReached.keySet());
   }

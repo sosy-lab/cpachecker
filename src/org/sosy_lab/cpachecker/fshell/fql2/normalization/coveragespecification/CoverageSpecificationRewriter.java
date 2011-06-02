@@ -5,5 +5,5 @@ import org.sosy_lab.cpachecker.fshell.fql2.ast.coveragespecification.CoverageSpe
 public interface CoverageSpecificationRewriter {
 
   public CoverageSpecification rewrite(CoverageSpecification pSpecification);
-  
+
 }

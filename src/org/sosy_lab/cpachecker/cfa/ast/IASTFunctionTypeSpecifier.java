@@ -35,7 +35,7 @@ public class IASTFunctionTypeSpecifier extends IType {
   private       String                         name = null;
   private final List<IASTParameterDeclaration> parameters;
   private final boolean                        takesVarArgs;
-  
+
   public IASTFunctionTypeSpecifier(
       boolean pConst,
       boolean pVolatile,
@@ -47,24 +47,24 @@ public class IASTFunctionTypeSpecifier extends IType {
     parameters = ImmutableList.copyOf(pParameters);
     takesVarArgs = pTakesVarArgs;
   }
-  
+
   public IType getReturnType() {
     return returnType;
   }
-  
+
   public String getName() {
     return name;
   }
-  
+
   public void setName(String pName) {
     checkState(name == null);
     name = pName;
   }
-  
+
   public List<IASTParameterDeclaration> getParameters() {
     return parameters;
   }
-  
+
   public boolean takesVarArgs() {
     return takesVarArgs;
   }

@@ -48,37 +48,37 @@ public class Wrapper {
   private CFAFunctionDefinitionNode mEntry;
   private CFAEdge mAlphaEdge;
   private CFAEdge mOmegaEdge;
-  
+
   private TranslationUnit mTranslationUnit;
 
   public Wrapper(FunctionDefinitionNode pMainFunction, Map<String, CFAFunctionDefinitionNode> pCFAs, LogManager pLogManager) {
     this(pMainFunction, pCFAs, pLogManager, getWrapperCFunction(pMainFunction));
   }
-  
+
   public Wrapper(FunctionDefinitionNode pMainFunction, Map<String, CFAFunctionDefinitionNode> pCFAs, LogManager pLogManager, String pWrapperSource) {
     this(pMainFunction, pCFAs, pLogManager, pWrapperSource, "__FLLESH__main");
   }
-  
+
   public Wrapper(FunctionDefinitionNode pMainFunction, Map<String, CFAFunctionDefinitionNode> pCFAs, LogManager pLogManager, String pWrapperSource, String pEntryFunction) {
     mLogManager = pLogManager;
-    
+
     TranslationUnit lWrapper = getWrapper(pWrapperSource);
-    
+
     mTranslationUnit = new TranslationUnit();
     mTranslationUnit.add(lWrapper);
     mTranslationUnit.add(pCFAs);
-    
+
     for (String lFunctionName : mTranslationUnit.functionNames()) {
       mTranslationUnit.insertCallEdgesRecursively(lFunctionName);
     }
-    
+
     mEntry = mTranslationUnit.getFunction(pEntryFunction);
-    
+
     CFACreator.insertGlobalDeclarations(mEntry, lWrapper.getGlobalDeclarations(), mLogManager);
-    
+
     determineAlphaAndOmegaEdges(mEntry, pMainFunction);
   }
-  
+
   private void determineAlphaAndOmegaEdges(CFANode pInitialNode, CFANode pOriginalInitialNode) {
     assert(pInitialNode != null);
 
@@ -105,34 +105,34 @@ public class Wrapper {
         if (lCFANode.getNumLeavingEdges() != 1) {
           throw new IllegalArgumentException();
         }
-        
+
         CFAEdge lEdge = lCFANode.getLeavingEdge(0);
-        
+
         CFANode lPredecessor = lEdge.getPredecessor();
         CFANode lSuccessor = lEdge.getSuccessor();
-        
+
         if (lSuccessor.equals(pOriginalInitialNode)) {
           if (!lEdge.getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
             throw new RuntimeException();
           }
-          
+
           mAlphaEdge = lEdge;
-          
+
           CFAEdge lSummaryEdge = lPredecessor.getLeavingSummaryEdge();
-          
+
           if (lSummaryEdge == null) {
             throw new RuntimeException();
           }
-          
+
           CFANode lSummarySuccessor = lSummaryEdge.getSuccessor();
-          
+
           if (lSummarySuccessor.getNumEnteringEdges() != 1) {
             throw new RuntimeException("Summary successor has " + lSummarySuccessor.getNumEnteringEdges() + " entering CFA edges!");
           }
-          
+
           mOmegaEdge = lSummarySuccessor.getEnteringEdge(0);
         }
-        
+
         lWorklist.add(lCallToReturnEdge.getSuccessor());
       }
       else {
@@ -155,15 +155,15 @@ public class Wrapper {
   public CFAEdge getOmegaEdge() {
     return mOmegaEdge;
   }
-  
+
   public CFAFunctionDefinitionNode getCFA(String pFunctionName) {
     return mTranslationUnit.getFunction(pFunctionName);
   }
-  
+
   public void toDot(String pFileName) throws IOException {
     toDot(new File(pFileName));
   }
-  
+
   public void toDot(File pFile) throws IOException {
     mTranslationUnit.toDot(mEntry.getFunctionName(), pFile);
   }
@@ -177,20 +177,20 @@ public class Wrapper {
     PrintWriter lWriter = new PrintWriter(lWrapperFunction);
 
     // TODO interpreter is not capable of handling initialization of global declarations
-    
+
     lWriter.println("void __FLLESH__main()");
     lWriter.println("{");
     lWriter.println("  int __BLAST_NONDET;");
-    
+
     for (IASTSimpleDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
       lWriter.println("  " + lDeclaration.getRawSignature() + ";");
     }
-        
+
     for (IASTSimpleDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
       // TODO do we need to handle lDeclaration more specifically?
       lWriter.println("  " + lDeclaration.getName() + " = __BLAST_NONDET;");
     }
-    
+
     lWriter.println();
     lWriter.print("  " + pMainFunction.getFunctionName() + "(");
 
@@ -213,7 +213,7 @@ public class Wrapper {
 
     return lWrapperFunction.toString();
   }
-  
+
   private TranslationUnit getWrapper(String pWrapperFunction) {
     return TranslationUnit.parseString(pWrapperFunction, mLogManager);
   }

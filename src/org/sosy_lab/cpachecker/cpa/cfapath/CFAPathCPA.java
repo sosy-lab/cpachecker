@@ -22,13 +22,13 @@ public class CFAPathCPA implements ConfigurableProgramAnalysis {
   private final CFAPathStandardElement mInitialElement;
   private final StopOperator mStopOperator;
   private final MergeOperator mMergeOperator;
-  
+
   private static final CFAPathCPA sInstance = new CFAPathCPA();
-  
+
   public static CFAPathCPA getInstance() {
     return sInstance;
   }
-  
+
   public CFAPathCPA() {
     mDomain = CFAPathDomain.getInstance();
     mTransferRelation = new CFAPathTransferRelation();
@@ -38,7 +38,7 @@ public class CFAPathCPA implements ConfigurableProgramAnalysis {
     mStopOperator = StopNeverOperator.getInstance();
     mMergeOperator = MergeSepOperator.getInstance();
   }
-  
+
   @Override
   public AbstractDomain getAbstractDomain() {
     return mDomain;

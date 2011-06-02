@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
 public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
-  
+
   // statistics
   final Timer totalPrecTime = new Timer();
   final Timer computingAbstractionTime = new Timer();
@@ -54,32 +54,32 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   private final LogManager logger;
   private final PredicateAbstractionManager formulaManager;
   private final PathFormulaManager pathFormulaManager;
-  
+
   public PredicatePrecisionAdjustment(PredicateCPA pCpa) {
     logger = pCpa.getLogger();
     formulaManager = pCpa.getPredicateManager();
     pathFormulaManager = pCpa.getPathFormulaManager();
   }
-  
+
   @Override
   public Triple<AbstractElement, Precision, Action> prec(
       AbstractElement pElement, Precision pPrecision,
       UnmodifiableReachedSet pElements) {
 
     totalPrecTime.start();
-    
+
     if (pElement instanceof ComputeAbstractionElement) {
       ComputeAbstractionElement element = (ComputeAbstractionElement)pElement;
       PredicatePrecision precision = (PredicatePrecision)pPrecision;
-      
+
       pElement = computeAbstraction(element, precision);
     }
-    
+
     totalPrecTime.stop();
     return new Triple<AbstractElement, Precision, Action>(
         pElement, pPrecision, Action.CONTINUE);
   }
-  
+
   /**
    * Compute an abstraction.
    */
@@ -90,7 +90,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     AbstractionFormula abstractionFormula = element.getAbstractionFormula();
     PathFormula pathFormula = element.getPathFormula();
     CFANode loc = element.getLocation();
-    
+
     numAbstractions++;
     logger.log(Level.FINEST, "Computing abstraction on node", loc);
 
@@ -118,11 +118,11 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     return new PredicateAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula);
   }
-  
+
   protected AbstractionFormula computeAbstraction(AbstractionFormula pAbstractionFormula, PathFormula pPathFormula, Collection<AbstractionPredicate> pPreds, CFANode node) {
     return formulaManager.buildAbstraction(pAbstractionFormula, pPathFormula, pPreds);
   }
-  
+
   protected LogManager getLogger() {
     return logger;
   }

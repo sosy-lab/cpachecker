@@ -49,7 +49,7 @@ import com.google.common.collect.Iterables;
  *
  * In all its operations it preserves the order in which the elements were added.
  * All the collections returned from methods of this class ensure this ordering, too.
- * 
+ *
  * This class does not allow null values for elements and precisions.
  * All methods do not return null except when stated explicitly.
  */
@@ -124,7 +124,7 @@ public class ReachedSet implements UnmodifiableReachedSet {
     checkNotNull(element);
     waitlist.remove(element);
   }
-  
+
   public void clear() {
     firstElement = null;
     lastElement = null;
@@ -153,7 +153,7 @@ public class ReachedSet implements UnmodifiableReachedSet {
   public Collection<Precision> getPrecisions() {
     return Collections.unmodifiableCollection(reached.values());
   }
-  
+
   /**
    * Returns a subset of the reached set, which contains at least all abstract
    * elements belonging to the same location as a given element. It may even
@@ -191,7 +191,7 @@ public class ReachedSet implements UnmodifiableReachedSet {
 
   /**
    * Returns the last element that was added to the reached set.
-   * May be null if it is unknown, which element was added last. 
+   * May be null if it is unknown, which element was added last.
    */
   @Override
   public AbstractElement getLastElement() {

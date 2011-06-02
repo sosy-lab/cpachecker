@@ -38,18 +38,18 @@ public class MonitorElement extends AbstractSingleWrapperElement implements Avoi
 
   static enum TimeoutElement implements AbstractElement {
     INSTANCE;
-    
+
     @Override
     public String toString() {
       return "Dummy element because computation timed out";
     }
   }
-  
+
   private final long totalTimeOnPath;
 
   // stores what caused the element to go further (may be null)
-  private final Pair<PreventingHeuristicType, Long> preventingCondition; 
-  
+  private final Pair<PreventingHeuristicType, Long> preventingCondition;
+
   protected MonitorElement(AbstractElement pWrappedElement, long totalTimeOnPath) {
     this(pWrappedElement, totalTimeOnPath, null);
   }
@@ -62,7 +62,7 @@ public class MonitorElement extends AbstractSingleWrapperElement implements Avoi
     this.totalTimeOnPath = totalTimeOnPath;
     this.preventingCondition = preventingCondition; // may be null
   }
-  
+
   public long getTotalTimeOnPath() {
     return totalTimeOnPath;
   }
@@ -89,14 +89,14 @@ public class MonitorElement extends AbstractSingleWrapperElement implements Avoi
     // returns true if the current element is the same as bottom
     return preventingCondition != null;
   }
-  
+
   Pair<PreventingHeuristicType, Long> getPreventingCondition() {
     return preventingCondition;
   }
-  
+
   @Override
   public String toString() {
-    return "Total time: " + this.totalTimeOnPath 
+    return "Total time: " + this.totalTimeOnPath
     + " Wrapped elem: " + getWrappedElements();
   }
 
@@ -107,10 +107,10 @@ public class MonitorElement extends AbstractSingleWrapperElement implements Avoi
     if (mustDumpAssumptionForAvoidance()) {
       String preventingHeuristicStringFormula = HeuristicToFormula.getFormulaStringForHeuristic(preventingCondition);
       return manager.parse(preventingHeuristicStringFormula);
-    
+
     } else {
       return manager.makeTrue();
     }
   }
-  
+
 }

@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 public class AssumptionStorageDomain implements AbstractDomain {
 
   private final FormulaManager formulaManager;
-  
+
   public AssumptionStorageDomain(
       FormulaManager pFormulaManager) {
     formulaManager = pFormulaManager;
@@ -56,7 +56,7 @@ public class AssumptionStorageDomain implements AbstractDomain {
     } else {
       newStopFormula = formulaManager.makeOr(stopFormula1, stopFormula2);
     }
-    
+
     return new AssumptionStorageElement(
         formulaManager.makeAnd(storageElement1.getAssumption(),
                                storageElement2.getAssumption()),

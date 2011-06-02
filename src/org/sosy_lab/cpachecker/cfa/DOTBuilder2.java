@@ -49,34 +49,34 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 /**
- * 
+ *
  * Generates one DOT file per function for the report.
- * For large programs the traditional method with one single DOT file 
+ * For large programs the traditional method with one single DOT file
  * crashed graphviz with "error in init rank" (quite popular in the graphviz bugtracker).
- * 
+ *
  * Additionally, information about the CFA is exported in JSON format (also needed for the report).
- * 
+ *
  * Linear sequences of "normal" edges(StatementEdges, DeclarationEdges, and BlankEdges)
  * are displayed as a node containing a table. The left column contains the node number
  * of the predecessor of an edge. The right column contains the edge label.
  * The successor can be found in the left column of the next row.
- * 
+ *
  * reuses some code from DOTBuilder
- * 
+ *
  * @author Hendrik Speidel
  */
 public final class DOTBuilder2 {
-  
+
   private DOTBuilder2() { /* utility class */ }
-  
+
   /**
    * output the CFA as DOT and JSON files
-   * 
+   *
    * @param cfa
    * @param outdir
-   * @throws IOException 
+   * @throws IOException
    */
-  public static void writeReport(CFAFunctionDefinitionNode cfa, File outdir) throws IOException {    
+  public static void writeReport(CFAFunctionDefinitionNode cfa, File outdir) throws IOException {
     CFAJSONBuilder jsoner = new CFAJSONBuilder();
     DOTViewBuilder dotter = new DOTViewBuilder();
     CFAVisitor vis = new CompositeCFAVisitor(jsoner, dotter);
@@ -84,18 +84,18 @@ public final class DOTBuilder2 {
     dotter.writeFiles(outdir);
     Files.writeFile(new File(outdir, "cfainfo.json"), jsoner.getJSON().toJSONString());
   }
- 
+
   private static void addLeavingEdges(CFANode node, Deque<CFAEdge> waitingEdgeList) {
-    
+
     for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges (); edgeIdx++) {
-      CFAEdge edge = node.getLeavingEdge (edgeIdx);      
+      CFAEdge edge = node.getLeavingEdge (edgeIdx);
       waitingEdgeList.add(edge);
     }
     if (node.getLeavingSummaryEdge() != null) {
       waitingEdgeList.add(node.getLeavingSummaryEdge());
     }
   }
-  
+
   private static String getEdgeText(CFAEdge edge) {
     //the first call to replaceAll replaces \" with \ " to prevent a bug in dotty.
     //future updates of dotty may make this obsolete.
@@ -106,10 +106,10 @@ public final class DOTBuilder2 {
       .replaceAll("\\s+", " ")
       .replaceAll(" ;", ";");
   }
-  
+
   /**
-   * traverse the CFA depth first 
-   * 
+   * traverse the CFA depth first
+   *
    * @param cfa
    * @param visitor
    */
@@ -119,58 +119,58 @@ public final class DOTBuilder2 {
 
     visitedNodes.add(cfa);
     addLeavingEdges(cfa, waitingEdgeList);
-       
+
     while (!waitingEdgeList.isEmpty ()) {
-      
+
       CFAEdge edge = waitingEdgeList.removeLast();
       visitor.visitEdge(edge);
       if (!visitedNodes.contains(edge.getSuccessor())) {
         visitedNodes.add(edge.getSuccessor());
-        addLeavingEdges(edge.getSuccessor(), waitingEdgeList);        
+        addLeavingEdges(edge.getSuccessor(), waitingEdgeList);
       }
     }
   }
-  
+
   private static class CFAVisitor {
     void visitEdge(CFAEdge edge) {}
   }
-  
+
   private static class CompositeCFAVisitor extends CFAVisitor {
-    
+
     CFAVisitor[] visitors;
-    
-    public CompositeCFAVisitor(CFAVisitor... visitors) {      
+
+    public CompositeCFAVisitor(CFAVisitor... visitors) {
       this.visitors = visitors;
     }
-    
+
     @Override
     void visitEdge(CFAEdge edge) {
       for (CFAVisitor visitor: visitors) {
         visitor.visitEdge(edge);
       }
-    }        
+    }
   }
-  
+
   /**
    * output DOT files and meta information about virtual and combined edges
    */
   private static class DOTViewBuilder extends CFAVisitor {
-    
+
     private final ListMultimap<String, CFANode> func2nodes = ArrayListMultimap.create();
     private final ListMultimap<String, CFAEdge> func2edges = ArrayListMultimap.create();
     private final ListMultimap<String, List<CFAEdge>> func2comboedge = ArrayListMultimap.create();
     private final JSONObject node2combo = new JSONObject();
-    private final JSONObject virtFuncCallEdges = new JSONObject();    
+    private final JSONObject virtFuncCallEdges = new JSONObject();
     private int virtFuncCallNodeIdCounter = 100000;
-    
+
     private List<CFAEdge> currentComboEdge = null;
-    
+
     @Override
     void visitEdge(CFAEdge edge) {
       CFANode predecessor = edge.getPredecessor();
 
       // check if it qualifies for a comboEdge
-      if (    predecessor.isLoopStart() 
+      if (    predecessor.isLoopStart()
           || (predecessor.getNumEnteringEdges() != 1)
           || (predecessor.getNumLeavingEdges() != 1)
           || (predecessor.getLeavingSummaryEdge() != null)
@@ -178,7 +178,7 @@ public final class DOTBuilder2 {
           || (edge instanceof AssumeEdge)
           || (edge instanceof FunctionCallEdge)) {
         // no, it does not
-        
+
         func2nodes.put(predecessor.getFunctionName(), predecessor);
         func2edges.put(predecessor.getFunctionName(), edge);
         currentComboEdge = null;
@@ -199,13 +199,13 @@ public final class DOTBuilder2 {
         currentComboEdge = null;
       }
     }
-    
+
     void writeFiles(File outdir) throws IOException {
-      
+
       for (String funcname: func2nodes.keySet()) {
         List<CFANode> nodes = func2nodes.get(funcname);
         List<CFAEdge> edges = func2edges.get(funcname);
-        
+
         Writer out = new OutputStreamWriter(new FileOutputStream(new File(outdir, "cfa__" + funcname + ".dot")), "UTF-8");
         try {
           out.write("digraph " + funcname + " {\n");
@@ -226,13 +226,13 @@ public final class DOTBuilder2 {
             }
           }
 
-          //write nodes          
+          //write nodes
           for (CFANode node: nodes) {
             out.write(nodeToDot(node));
           }
-          
+
           out.write(outb.toString());
-          
+
           //write edges
           for (CFAEdge edge: edges) {
             out.write(edgeToDot(edge));
@@ -242,24 +242,24 @@ public final class DOTBuilder2 {
           out.close();
         }
       }
-      
+
       Files.writeFile(new File(outdir, "combinednodes.json"), node2combo.toJSONString());
-      Files.writeFile(new File(outdir, "fcalledges.json"),    virtFuncCallEdges.toJSONString()); 
+      Files.writeFile(new File(outdir, "fcalledges.json"),    virtFuncCallEdges.toJSONString());
     }
-    
+
     private static String nodeToDot(CFANode node) {
       String shape = "circle";
-    
+
       if(node.isLoopStart()){
         shape = "doublecircle";
       } else if (node.getNumLeavingEdges() > 0 &&
           node.getLeavingEdge(0) instanceof AssumeEdge) {
-        shape = "diamond";        
+        shape = "diamond";
       }
 
       return "node [shape = " + shape + "]; " + node.getNodeNumber() + ";\n";
     }
-    
+
     @SuppressWarnings("unchecked")
     private String edgeToDot(CFAEdge edge) {
       if (edge instanceof FunctionReturnEdge) {
@@ -275,7 +275,7 @@ public final class DOTBuilder2 {
             getEdgeText(edge));
         CFAEdge summaryEdge = edge.getPredecessor().getLeavingSummaryEdge();
         if (summaryEdge != null) {
-          int to = summaryEdge.getSuccessor().getNodeNumber(); 
+          int to = summaryEdge.getSuccessor().getNodeNumber();
           ret += String.format("%d -> %d [label=\"\" fontname=\"Courier New\"];\n",
               virtFuncCallNodeIdCounter,
               to);
@@ -296,7 +296,7 @@ public final class DOTBuilder2 {
 
     @SuppressWarnings("unchecked")
     private String comboToDot(List<CFAEdge> combo) {
-      CFAEdge first = combo.get(0);      
+      CFAEdge first = combo.get(0);
       StringBuilder sb = new StringBuilder();
       int firstNo = first.getPredecessor().getNodeNumber();
       sb.append(firstNo);
@@ -307,7 +307,7 @@ public final class DOTBuilder2 {
         // 20 is just a guess
         CFAEdge last = combo.get(combo.size()-1);
         int lastNo = last.getPredecessor().getNodeNumber();
-        
+
         sb.append("\"Long linear chain of edges between nodes ");
         sb.append(firstNo);
         sb.append(" and ");
@@ -315,10 +315,10 @@ public final class DOTBuilder2 {
         sb.append('"');
 
       } else {
-        sb.append("<<table border=\"0\" cellborder=\"0\" cellpadding=\"3\" bgcolor=\"white\">");      
-  
+        sb.append("<<table border=\"0\" cellborder=\"0\" cellpadding=\"3\" bgcolor=\"white\">");
+
         for (CFAEdge edge: combo) {
-          sb.append("<tr><td align=\"right\">");      
+          sb.append("<tr><td align=\"right\">");
           sb.append("" + edge.getPredecessor().getNodeNumber());
           sb.append("</td><td align=\"left\">");
           sb.append("" + getEdgeText(edge)
@@ -327,18 +327,18 @@ public final class DOTBuilder2 {
                             .replaceAll("<", "&lt;")
                             .replaceAll(">", "&gt;"));
           sb.append("</td></tr>");
-          
+
           node2combo.put(edge.getPredecessor().getNodeNumber(), firstNo);
-        }    
+        }
         sb.append("</table>>");
       }
-      
+
       sb.append("];\n");
-      return sb.toString();      
+      return sb.toString();
     }
 
   }
-  
+
   /**
    * output information about CFA nodes and edges as JSON
    *
@@ -347,7 +347,7 @@ public final class DOTBuilder2 {
     private final JSONObject nodes = new JSONObject();
     private final JSONObject edges = new JSONObject();
     private final Set<CFANode> visited = Sets.newHashSet();
-    
+
     @SuppressWarnings("unchecked")
     void visitNode(CFANode node) {
       if (!visited.contains(node)) {
@@ -359,7 +359,7 @@ public final class DOTBuilder2 {
         visited.add(node);
       }
     }
-    
+
     @Override
     @SuppressWarnings("unchecked")
     void visitEdge(CFAEdge edge) {
@@ -374,9 +374,9 @@ public final class DOTBuilder2 {
       jedge.put("stmt", getEdgeText(edge));
       jedge.put("type", edge.getEdgeType().toString());
 
-      edges.put("" + src + "->" + target, jedge);    
+      edges.put("" + src + "->" + target, jedge);
     }
-    
+
     @SuppressWarnings("unchecked")
     JSONObject getJSON() {
       JSONObject obj = new JSONObject();

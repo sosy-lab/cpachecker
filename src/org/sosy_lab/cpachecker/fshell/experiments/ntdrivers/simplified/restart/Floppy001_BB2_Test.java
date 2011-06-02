@@ -35,16 +35,16 @@ public class Floppy001_BB2_Test extends ExperimentalSeries {
   @Test
   public void test001() throws Exception {
 String lCFile = "floppy_simpl3_BUG.cil.c";
-    
+
     LinkedList<String> lArguments = new LinkedList<String>();
-    
+
     lArguments.add(Main.BASIC_BLOCK_2_COVERAGE);
     lArguments.add("test/programs/fql/ntdrivers-simplified/" + lCFile);
     lArguments.add("main");
-    
+
     String[] lArgs = new String[lArguments.size()];
     lArguments.toArray(lArgs);
-    
+
     RestartingFShell3.main(lArgs);
   }
 

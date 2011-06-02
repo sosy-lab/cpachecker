@@ -22,12 +22,12 @@ public class IncrementalCoverageSpecificationTranslator {
 
   private final PathPatternTranslator mPathPatternTranslator;
   private final CoverageSpecificationTranslator mCoverageSpecificationTranslator;
-  
+
   public IncrementalCoverageSpecificationTranslator(PathPatternTranslator pPathPatternTranslator) {
     mPathPatternTranslator = pPathPatternTranslator;
     mCoverageSpecificationTranslator = new CoverageSpecificationTranslator(mPathPatternTranslator);
   }
-  
+
   public int getNumberOfTestGoals(CoverageSpecification pSpecification) {
     if (pSpecification instanceof Atom || pSpecification instanceof Quotation) {
       // TODO special treatement of PATHS-atom (in quotations?)
@@ -35,24 +35,24 @@ public class IncrementalCoverageSpecificationTranslator {
     }
     else if (pSpecification instanceof Union) {
       Union lUnion = (Union)pSpecification;
-      
+
       return getNumberOfTestGoals(lUnion.getFirstSubspecification()) + getNumberOfTestGoals(lUnion.getSecondSubspecification());
     }
     else if (pSpecification instanceof Concatenation) {
       Concatenation lConcatenation = (Concatenation)pSpecification;
-      
+
       return getNumberOfTestGoals(lConcatenation.getFirstSubspecification()) * getNumberOfTestGoals(lConcatenation.getSecondSubspecification());
     }
-    
+
     throw new RuntimeException();
   }
-  
+
   public Iterator<ElementaryCoveragePattern> translate(CoverageSpecification pSpecification) {
     if (pSpecification instanceof Paths) {
       Paths lPaths = (Paths)pSpecification;
-      
+
       TargetGraph lTargetGraph = mPathPatternTranslator.getFilterEvaluator().evaluate(lPaths.getFilter());
-      
+
       return new PathIterator(lTargetGraph, lPaths.getBound());
     }
     if (pSpecification instanceof Atom || pSpecification instanceof Quotation) {
@@ -60,36 +60,36 @@ public class IncrementalCoverageSpecificationTranslator {
     }
     else if (pSpecification instanceof Union) {
       Union lUnion = (Union)pSpecification;
-      
+
       return new UnionIterator(lUnion.getFirstSubspecification(), lUnion.getSecondSubspecification());
     }
     else if (pSpecification instanceof Concatenation) {
       Concatenation lConcatenation = (Concatenation)pSpecification;
-      
+
       return new ConcatenationIterator(lConcatenation.getFirstSubspecification(), lConcatenation.getSecondSubspecification());
     }
-    
+
     throw new RuntimeException();
   }
-  
+
   private class PathIterator implements Iterator<ElementaryCoveragePattern> {
 
     /*
-     * A single path iterator enumerates all paths starting at the given 
+     * A single path iterator enumerates all paths starting at the given
      * initial node.
      */
     private class SinglePathIterator implements Iterator<ElementaryCoveragePattern> {
-      
-      
+
+
       private LinkedList<Edge> mEdgeSequence;
       private LinkedList<Iterator<Edge>> mIteratorSequence;
       private LinkedList<ElementaryCoveragePattern> mPatternSequence;
       private ElementaryCoveragePattern mCurrentPattern;
-      
+
       private final Node mInitialNode;
-      
+
       private final Occurrences mOccurrences;
-      
+
       public SinglePathIterator(Node pInitialNode) {
         mInitialNode = pInitialNode;
         mCurrentPattern = null;
@@ -100,10 +100,10 @@ public class IncrementalCoverageSpecificationTranslator {
         if (mTargetGraph.isFinalNode(pInitialNode)) {
           mCurrentPattern = mPathPatternTranslator.translate(new Path(pInitialNode, mEdgeSequence));
         }
-        
+
         // the iterator sequence is always one longer than the edge sequence
         mIteratorSequence.add(mTargetGraph.getOutgoingEdges(mInitialNode).iterator());
-        
+
         mOccurrences = new Occurrences();
       }
 
@@ -111,24 +111,24 @@ public class IncrementalCoverageSpecificationTranslator {
       public boolean hasNext() {
         if (mCurrentPattern == null) {
           // we have to determine the next path
-          
+
           Iterator<Edge> lFrontierIterator = mIteratorSequence.getLast();
-          
+
           if (lFrontierIterator.hasNext()) {
             Edge lNextEdge = lFrontierIterator.next();
-            
+
             int lOccurrences = mOccurrences.increment(lNextEdge);
-            
+
             if (lOccurrences > mBound) {
               mOccurrences.decrement(lNextEdge);
-              
+
               Edge lLastEdge = mEdgeSequence.getLast();
-              
+
               if (lLastEdge == null) {
                 if (mTargetGraph.isFinalNode(mInitialNode)) {
-                  // we initially generated this pattern, so 
-                  // we do not have to generate it once again 
-                  
+                  // we initially generated this pattern, so
+                  // we do not have to generate it once again
+
                   return false;
                 }
               }
@@ -136,52 +136,52 @@ public class IncrementalCoverageSpecificationTranslator {
                 if (mTargetGraph.isFinalNode(lLastEdge.getTarget())) {
                   // we have generated this pattern before as
                   // we entered lLastEdge (see below)
-                  
+
                   return hasNext();
                 }
               }
-              
+
               mCurrentPattern = new ECPConcatenation(mPatternSequence);
-              
+
               return true;
             }
-            
+
             Node lTarget = lNextEdge.getTarget();
-            
+
             mEdgeSequence.add(lNextEdge);
             mPatternSequence.add(mPathPatternTranslator.translate(lNextEdge));
             mIteratorSequence.add(mTargetGraph.getOutgoingEdges(lTarget).iterator());
-            
+
             if (mTargetGraph.isFinalNode(lTarget)) {
               mCurrentPattern = new ECPConcatenation(mPatternSequence);
-              
+
               return true;
             }
-            
+
             return hasNext();
           }
           else {
             // backtrack
-            
+
             mIteratorSequence.removeLast();
-            
+
             if (mIteratorSequence.isEmpty()) {
               if (!mEdgeSequence.isEmpty()) {
                 throw new RuntimeException();
               }
-              
+
               return false;
             }
-            
+
             Edge lEdge = mEdgeSequence.removeLast();
             mPatternSequence.removeLast();
-            
+
             mOccurrences.decrement(lEdge);
-            
+
             return hasNext();
           }
         }
-        
+
         return true;
       }
 
@@ -192,7 +192,7 @@ public class IncrementalCoverageSpecificationTranslator {
           mCurrentPattern = null;
           return lPattern;
         }
-        
+
         throw new NoSuchElementException();
       }
 
@@ -200,42 +200,42 @@ public class IncrementalCoverageSpecificationTranslator {
       public void remove() {
         throw new UnsupportedOperationException();
       }
-      
-      
+
+
     }
-    
+
     private TargetGraph mTargetGraph;
     private int mBound;
     private Iterator<Node> mInitialNodes;
     private SinglePathIterator mCurrentSinglePathIterator;
-    
+
     public PathIterator(TargetGraph pTargetGraph, int pBound) {
       mTargetGraph = pTargetGraph;
       mBound = pBound;
-      
+
       mInitialNodes = mTargetGraph.initialNodes().iterator();
-      
+
       /* for each initial node, we will generate a SinglePathIterator object */
       if (mInitialNodes.hasNext()) {
         Node lCurrentInitialNode = mInitialNodes.next();
-        
+
         mCurrentSinglePathIterator = new SinglePathIterator(lCurrentInitialNode);
       }
       else {
         mCurrentSinglePathIterator = null;
       }
     }
-    
+
     @Override
     public boolean hasNext() {
       if (mCurrentSinglePathIterator == null) {
         return false;
       }
-      
+
       if (mCurrentSinglePathIterator.hasNext()) {
         return true;
       }
-      
+
       if (mInitialNodes.hasNext()) {
         Node lCurrentInitialNode = mInitialNodes.next();
         mCurrentSinglePathIterator = new SinglePathIterator(lCurrentInitialNode);
@@ -243,7 +243,7 @@ public class IncrementalCoverageSpecificationTranslator {
       else {
         mCurrentSinglePathIterator = null;
       }
-      
+
       return hasNext();
     }
 
@@ -252,7 +252,7 @@ public class IncrementalCoverageSpecificationTranslator {
       if (hasNext()) {
         return mCurrentSinglePathIterator.next();
       }
-      
+
       throw new NoSuchElementException();
     }
 
@@ -260,19 +260,19 @@ public class IncrementalCoverageSpecificationTranslator {
     public void remove() {
       throw new RuntimeException();
     }
-    
+
   }
-  
+
   private class UnionIterator implements Iterator<ElementaryCoveragePattern> {
 
     private final Iterator<ElementaryCoveragePattern> mIterator1;
     private final Iterator<ElementaryCoveragePattern> mIterator2;
-    
+
     private UnionIterator(CoverageSpecification pSpecification1, CoverageSpecification pSpecification2) {
       mIterator1 = translate(pSpecification1);
       mIterator2 = translate(pSpecification2);
     }
-    
+
     @Override
     public boolean hasNext() {
       return (mIterator1.hasNext() || mIterator2.hasNext());
@@ -283,7 +283,7 @@ public class IncrementalCoverageSpecificationTranslator {
       if (mIterator1.hasNext()) {
         return mIterator1.next();
       }
-      
+
       return mIterator2.next();
     }
 
@@ -291,29 +291,29 @@ public class IncrementalCoverageSpecificationTranslator {
     public void remove() {
       throw new UnsupportedOperationException();
     }
-    
+
   }
-  
+
   private class ConcatenationIterator implements Iterator<ElementaryCoveragePattern> {
 
     private final Iterator<ElementaryCoveragePattern> mIterator1;
     private final CoverageSpecification mSpecification2;
     private Iterator<ElementaryCoveragePattern> mIterator2;
-    
+
     private ElementaryCoveragePattern mPrefix;
-    
+
     private ConcatenationIterator(CoverageSpecification pSpecification1, CoverageSpecification pSpecification2) {
       mIterator1 = translate(pSpecification1);
       mIterator2 = translate(pSpecification2);
       mSpecification2 = pSpecification2;
-      
+
       mPrefix = null;
-      
+
       if (mIterator1.hasNext() && mIterator2.hasNext()) {
         mPrefix = mIterator1.next();
       }
     }
-    
+
     @Override
     public boolean hasNext() {
       return (mPrefix != null);
@@ -322,7 +322,7 @@ public class IncrementalCoverageSpecificationTranslator {
     @Override
     public ElementaryCoveragePattern next() {
       ECPConcatenation lResult = new ECPConcatenation(mPrefix, mIterator2.next());
-      
+
       if (!mIterator2.hasNext()) {
         if (mIterator1.hasNext()) {
           mPrefix = mIterator1.next();
@@ -332,7 +332,7 @@ public class IncrementalCoverageSpecificationTranslator {
           mPrefix = null;
         }
       }
-      
+
       return lResult;
     }
 
@@ -340,7 +340,7 @@ public class IncrementalCoverageSpecificationTranslator {
     public void remove() {
       throw new UnsupportedOperationException();
     }
-    
+
   }
-  
+
 }

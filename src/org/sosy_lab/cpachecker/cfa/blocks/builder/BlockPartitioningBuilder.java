@@ -27,26 +27,26 @@ import com.google.common.collect.SetMultimap;
  *
  */
 public class BlockPartitioningBuilder {
-  
+
   private final ReferencedVariablesCollector referenceCollector;
-  
+
   private final Map<CFANode, Set<ReferencedVariable>> referencedVariablesMap = new HashMap<CFANode, Set<ReferencedVariable>>();
   private final Map<CFANode, Set<CFANode>> callNodesMap = new HashMap<CFANode, Set<CFANode>>();
   private final Map<CFANode, Set<CFANode>> returnNodesMap = new HashMap<CFANode, Set<CFANode>>();
   private final Map<CFANode, Set<CFAFunctionDefinitionNode>> innerFunctionCallsMap = new HashMap<CFANode, Set<CFAFunctionDefinitionNode>>();
   private final Map<CFANode, Set<CFANode>> blockNodesMap = new HashMap<CFANode, Set<CFANode>>();
-  
-  public BlockPartitioningBuilder(Set<CFANode> mainFunctionBody) {        
-    referenceCollector = new ReferencedVariablesCollector(mainFunctionBody);    
+
+  public BlockPartitioningBuilder(Set<CFANode> mainFunctionBody) {
+    referenceCollector = new ReferencedVariablesCollector(mainFunctionBody);
   }
-  
+
   public BlockPartitioning build() {
     //fixpoint iteration to take inner function calls into account for referencedVariables and callNodesMap
-    boolean changed = true;   
+    boolean changed = true;
     outer: while(changed) {
       changed = false;
       for(CFANode node : referencedVariablesMap.keySet()) {
-        for(CFANode calledFun : innerFunctionCallsMap.get(node)) { 
+        for(CFANode calledFun : innerFunctionCallsMap.get(node)) {
           Set<ReferencedVariable> functionVars = referencedVariablesMap.get(calledFun);
           Set<CFANode> functionBody = blockNodesMap.get(calledFun);
           if(functionVars == null || functionBody == null) {
@@ -56,28 +56,28 @@ public class BlockPartitioningBuilder {
             functionVars = collectReferencedVariables(functionBody);
             //and save it
             blockNodesMap.put(calledFun, functionBody);
-            referencedVariablesMap.put(calledFun, functionVars); 
-            innerFunctionCallsMap.put(calledFun, collectInnerFunctionCalls(functionBody));            
+            referencedVariablesMap.put(calledFun, functionVars);
+            innerFunctionCallsMap.put(calledFun, collectInnerFunctionCalls(functionBody));
             changed = true;
             continue outer;
           }
-          
+
           if(referencedVariablesMap.get(node).addAll(functionVars)) {
             changed = true;
-          } 
+          }
           if(blockNodesMap.get(node).addAll(functionBody)) {
             changed = true;
-          } 
+          }
         }
       }
     }
-    
+
     //copy block nodes
     SetMultimap<CFANode, CFANode> uniqueNodesMap = HashMultimap.create();
     for(CFANode key : blockNodesMap.keySet()) {
       uniqueNodesMap.putAll(key, blockNodesMap.get(key));
     }
-    
+
     //fix unique nodes set by removing interleavings
     for(CFANode key : returnNodesMap.keySet()) {
       Set<CFANode> outerNodes = uniqueNodesMap.get(key);
@@ -90,9 +90,9 @@ public class BlockPartitioningBuilder {
           outerNodes.removeAll(innerNodes);
         }
       }
-    }  
-    
-    
+    }
+
+
     //now we can create the Blocks   for the BlockPartitioning
     Collection<Block> blocks = new ArrayList<Block>(returnNodesMap.keySet().size());
     for(CFANode key : returnNodesMap.keySet()) {
@@ -100,15 +100,15 @@ public class BlockPartitioningBuilder {
     }
     return new BlockPartitioning(blocks);
   }
-  
+
   /**
    * @param nodes Nodes from which Block should be created; if the set of nodes contains inner function calls, the called function body should NOT be included
    */
-  
+
   public void addBlock(Set<CFANode> nodes) {
     Set<ReferencedVariable> referencedVariables = collectReferencedVariables(nodes);
     Set<CFANode> callNodes = collectCallNodes(nodes);
-    Set<CFANode> returnNodes = collectReturnNodes(nodes);    
+    Set<CFANode> returnNodes = collectReturnNodes(nodes);
     Set<CFAFunctionDefinitionNode> innerFunctionCalls = collectInnerFunctionCalls(nodes);
 
     CFANode registerNode = null;
@@ -118,14 +118,14 @@ public class BlockPartitioningBuilder {
         break;
       }
     }
-    
+
     referencedVariablesMap.put(registerNode, referencedVariables);
     callNodesMap.put(registerNode, callNodes);
     returnNodesMap.put(registerNode, returnNodes);
-    innerFunctionCallsMap.put(registerNode, innerFunctionCalls);   
+    innerFunctionCallsMap.put(registerNode, innerFunctionCalls);
     blockNodesMap.put(registerNode, nodes);
   }
- 
+
   private Set<CFAFunctionDefinitionNode> collectInnerFunctionCalls(Set<CFANode> pNodes) {
     Set<CFAFunctionDefinitionNode> result = new HashSet<CFAFunctionDefinitionNode>();
     for(CFANode node : pNodes) {
@@ -133,12 +133,12 @@ public class BlockPartitioningBuilder {
         CFAEdge e = node.getLeavingEdge(i);
         if (e instanceof FunctionCallEdge) {
           result.add(((FunctionCallEdge)e).getSuccessor());
-        }        
+        }
       }
-    }    
+    }
     return result;
   }
-  
+
   private Set<CFANode> collectCallNodes(Set<CFANode> pNodes) {
     Set<CFANode> result = new HashSet<CFANode>();
     for(CFANode node : pNodes) {
@@ -166,7 +166,7 @@ public class BlockPartitioningBuilder {
     }
     return result;
   }
-  
+
   private Set<CFANode> collectReturnNodes(Set<CFANode> pNodes) {
     Set<CFANode> result = new HashSet<CFANode>();
     for(CFANode node : pNodes) {
@@ -175,7 +175,7 @@ public class BlockPartitioningBuilder {
         result.add(node);
         continue;
       }
-      
+
       for(int i = 0; i < node.getNumLeavingEdges(); i++) {
         CFANode succ = node.getLeavingEdge(i).getSuccessor();
         if(!pNodes.contains(succ)) {
@@ -188,9 +188,9 @@ public class BlockPartitioningBuilder {
           }
         }
       }
-    }    
+    }
     return result;
-  } 
+  }
 
   private Set<ReferencedVariable> collectReferencedVariables(Set<CFANode> nodes) {
     return referenceCollector.collectVars(nodes);

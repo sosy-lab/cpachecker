@@ -23,7 +23,7 @@ public class ProductAutomatonCPA extends CompositeCPA {
   public static ProductAutomatonCPA create(Collection<ConfigurableProgramAnalysis> pAutomatonCPAs, boolean pUseProgressPrecisionAdjustment) {
     Preconditions.checkNotNull(pAutomatonCPAs);
     Preconditions.checkArgument(pAutomatonCPAs.size() > 0);
-    
+
     ImmutableList.Builder<AbstractDomain> domains = ImmutableList.builder();
     ImmutableList.Builder<TransferRelation> transferRelations = ImmutableList.builder();
     ImmutableList.Builder<StopOperator> stopOperators = ImmutableList.builder();
@@ -39,10 +39,10 @@ public class ProductAutomatonCPA extends CompositeCPA {
     CompositeDomain compositeDomain = new CompositeDomain(domains.build());
     ProductAutomatonTransferRelation compositeTransfer = new ProductAutomatonTransferRelation(transferRelations.build());
     ProductAutomatonStopOperator compositeStop = new ProductAutomatonStopOperator(stopOperators.build());
-    
+
     return new ProductAutomatonCPA(compositeDomain, compositeTransfer, compositeStop, lCPAs.build(), pUseProgressPrecisionAdjustment);
   }
-  
+
   public ProductAutomatonCPA(AbstractDomain abstractDomain,
       TransferRelation transferRelation,
       StopOperator stopOperator,
@@ -50,11 +50,11 @@ public class ProductAutomatonCPA extends CompositeCPA {
     super(abstractDomain, transferRelation, new MergeSepOperator(), stopOperator,
         pUseProgressPrecisionAdjustment?ProgressProductAutomatonPrecisionAdjustment.INSTANCE:ProductAutomatonPrecisionAdjustment.getInstance(), cpas);
   }
-  
+
   @Override
   public AbstractElement getInitialElement (CFANode node) {
     CompositeElement lInitialElement = (CompositeElement)super.getInitialElement(node);
-    
+
     return ProductAutomatonElement.createElement(lInitialElement.getElements());
   }
 

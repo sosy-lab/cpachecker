@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 public class ReturnStatementEdge extends AbstractCFAEdge {
-  
+
   private final IASTReturnStatement rawAST;
 
   public ReturnStatementEdge(IASTReturnStatement rawAST, int lineNumber, CFANode predecessor, CFAFunctionExitNode successor) {
@@ -57,7 +57,7 @@ public class ReturnStatementEdge extends AbstractCFAEdge {
   public IASTReturnStatement getRawAST() {
     return rawAST;
   }
-  
+
   @Override
   public CFAFunctionExitNode getSuccessor() {
     // the constructor enforces that the successor is always a CFAFunctionExitNode

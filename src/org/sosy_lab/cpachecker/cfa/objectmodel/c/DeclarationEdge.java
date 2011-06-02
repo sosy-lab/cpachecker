@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 public class DeclarationEdge extends AbstractCFAEdge {
 
   private final IASTDeclaration declaration;
-  
+
   public DeclarationEdge(final IASTDeclaration declaration,
       final int lineNumber,
       final CFANode predecessor,final CFANode successor) {
@@ -46,7 +46,7 @@ public class DeclarationEdge extends AbstractCFAEdge {
   public CFAEdgeType getEdgeType() {
     return CFAEdgeType.DeclarationEdge;
   }
-  
+
   public StorageClass getStorageClass() {
     return declaration.getStorageClass();
   }
@@ -58,16 +58,16 @@ public class DeclarationEdge extends AbstractCFAEdge {
   public String getName() {
     return declaration.getName();
   }
-  
+
   public IASTInitializer getInitializer() {
     return declaration.getInitializer();
   }
-  
+
   @Override
   public IASTDeclaration getRawAST() {
     return declaration;
   }
-  
+
   public boolean isGlobal() {
     return false;
   }

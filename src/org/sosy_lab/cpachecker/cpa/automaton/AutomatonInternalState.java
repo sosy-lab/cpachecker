@@ -47,9 +47,9 @@ class AutomatonInternalState {
   private final String name;
   /** Outgoing transitions of this state.  */
   private final List<AutomatonTransition> transitions;
-  
+
   private final boolean mIsTarget;
-  
+
   /**
    * determines if all transitions of the state are considered or only the first that matches
    */
@@ -61,11 +61,11 @@ class AutomatonInternalState {
     this.mIsTarget = pIsTarget;
     this.mAllTransitions = pAllTransitions;
   }
-  
+
   public AutomatonInternalState(String pName, List<AutomatonTransition> pTransitions) {
     this(pName, pTransitions, false, false);
   }
-  
+
   public boolean isNonDetState() {
     return mAllTransitions;
   }

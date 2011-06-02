@@ -25,16 +25,16 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment{
   private final PrecisionAdjustment wrappedPrecAdjustment;
 
   final Timer totalTimeOfPrecAdj = new Timer();
-  
+
   public MonitorPrecisionAdjustment(PrecisionAdjustment pWrappedPrecAdjustment) {
     wrappedPrecAdjustment = pWrappedPrecAdjustment;
   }
-  
+
   @Override
   public Triple<AbstractElement, Precision, Action> prec(
       AbstractElement pElement, Precision oldPrecision,
       UnmodifiableReachedSet pElements) throws CPAException {
-    
+
     Preconditions.checkArgument(pElement instanceof MonitorElement);
     MonitorElement element = (MonitorElement)pElement;
 
@@ -42,19 +42,19 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment{
       // we can't call prec() in this case because we don't have an element of the CPA
       return Triple.of(pElement, oldPrecision, Action.CONTINUE);
     }
-    
+
     UnmodifiableReachedSet elements = new UnmodifiableReachedSetView(
         pElements,  MonitorElement.getUnwrapFunction(), Functions.<Precision>identity());
     // TODO we really would have to filter out all TimeoutElements in this view
-    
+
     AbstractElement oldElement = element.getWrappedElement();
-    
+
     totalTimeOfPrecAdj.start();
     Triple<AbstractElement, Precision, Action> unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
     long totalTimeOfExecution = totalTimeOfPrecAdj.stop();
     // add total execution time to the total time of the previous element
     long updatedTotalTime = totalTimeOfExecution + element.getTotalTimeOnPath();
-    
+
     Pair<PreventingHeuristicType, Long> preventingCondition = element.getPreventingCondition();
     // TODO we should check for timeLimitForPath here
 //    if (preventingCondition != null) {
@@ -62,14 +62,14 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment{
 //        preventingCondition = Pair.of(PreventingHeuristicType.PATHCOMPTIME, timeLimitForPath);
 //      }
 //    }
-    
+
     AbstractElement newElement = unwrappedResult.getFirst();
     Precision newPrecision = unwrappedResult.getSecond();
     Action action = unwrappedResult.getThird();
 
       // no. of nodes and no. of branches on the path does not change, just update the
       // set the adjusted wrapped element and update the time
-    MonitorElement resultElement = 
+    MonitorElement resultElement =
       new MonitorElement(newElement, updatedTotalTime, preventingCondition);
 
     return Triple.<AbstractElement, Precision, Action>of(resultElement, newPrecision, action);

@@ -52,7 +52,7 @@ import com.google.common.collect.ImmutableList;
 
 public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithABM
 {
-  
+
   @Options(prefix="cpa.composite")
   private static class CompositeOptions {
     @Option(toUppercase=true, values={"PLAIN", "AGREE"},
@@ -61,7 +61,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
           + "merging if all cpas agree on this. This is probably what you want.")
     private String merge = "AGREE";
   }
-  
+
   private static class CompositeCPAFactory extends AbstractCPAFactory {
 
     private ImmutableList<ConfigurableProgramAnalysis> cpas = null;
@@ -72,7 +72,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
       CompositeOptions options = new CompositeOptions();
       getConfiguration().inject(options);
-      
+
       ImmutableList.Builder<AbstractDomain> domains = ImmutableList.builder();
       ImmutableList.Builder<TransferRelation> transferRelations = ImmutableList.builder();
       ImmutableList.Builder<MergeOperator> mergeOperators = ImmutableList.builder();
@@ -88,7 +88,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       }
 
       ImmutableList<StopOperator> stopOps = stopOperators.build();
-      
+
       MergeOperator compositeMerge;
       if (options.merge.equals("AGREE")) {
         compositeMerge = new CompositeMergeAgreeOperator(mergeOperators.build(), stopOps);
@@ -97,7 +97,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       } else {
         throw new AssertionError();
       }
-      
+
       CompositeDomain compositeDomain = new CompositeDomain(domains.build());
       CompositeTransferRelation compositeTransfer = new CompositeTransferRelation(transferRelations.build());
       CompositeStopOperator compositeStop = new CompositeStopOperator(stopOps);
@@ -150,7 +150,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
     this.stopOperator = stopOperator;
     this.precisionAdjustment = precisionAdjustment;
     this.cpas = cpas;
-    
+
     List<Reducer> wrappedReducers = new ArrayList<Reducer>();
     for (ConfigurableProgramAnalysis cpa : cpas) {
       if (cpa instanceof ConfigurableProgramAnalysisWithABM) {
@@ -191,12 +191,12 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   public PrecisionAdjustment getPrecisionAdjustment () {
     return precisionAdjustment;
   }
-  
+
   @Override
   public Reducer getReducer() {
     return reducer;
   }
-  
+
   @Override
   public AbstractElement getInitialElement (CFANode node) {
     Preconditions.checkNotNull(node);

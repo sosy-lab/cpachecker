@@ -47,7 +47,7 @@ public class TargetGraph {
     mFinalNodes = Collections.emptySet();
     mGraph = new DefaultDirectedGraph<Node, Edge>(Edge.class);
   }
-  
+
   private TargetGraph(Set<Node> pInitialNodes, Set<Node> pFinalNodes, DirectedGraph<Node, Edge> pGraph) {
     assert(pInitialNodes != null);
     assert(pFinalNodes != null);
@@ -77,21 +77,21 @@ public class TargetGraph {
       mGraph.addEdge(lSourceNode, lTargetNode, lEdge);
     }
   }
-  
+
   public TargetGraph(Edge pEdge) {
     assert(pEdge != null);
-    
+
     Node lSourceNode = new Node(pEdge.getSource());
     Node lTargetNode = new Node(pEdge.getTarget());
-    
+
     mInitialNodes = Collections.singleton(lSourceNode);
     mFinalNodes = Collections.singleton(lTargetNode);
-    
+
     mGraph = new DefaultDirectedGraph<Node, Edge>(Edge.class);
-    
+
     new Edge(lSourceNode, lTargetNode, pEdge.getCFAEdge(), mGraph);
   }
-  
+
   public Set<Node> getNodes() {
     return mGraph.vertexSet();
   }
@@ -99,75 +99,75 @@ public class TargetGraph {
   public Set<Edge> getEdges() {
     return mGraph.edgeSet();
   }
-    
+
   public Set<Path> getBoundedPaths(int pBound) {
     if (pBound <= 0) {
       throw new IllegalArgumentException();
     }
-    
+
     Set<Path> lPaths = new HashSet<Path>();
-    
+
     LinkedList<Edge> lPrefix = new LinkedList<Edge>();
-    
+
     Occurrences lOccurrences = new Occurrences();
-    
+
     for (Node lNode : mInitialNodes) {
       dfs(lNode, lPrefix, lPaths, lOccurrences, pBound);
     }
-    
+
     return lPaths;
   }
-  
+
   private void dfs(Node pCurrentNode, LinkedList<Edge> pPrefix, Set<Path> pPaths, Occurrences pOccurrences, int pBound) {
     if (mFinalNodes.contains(pCurrentNode)) {
       pPaths.add(new Path(pCurrentNode, pPrefix));
     }
-    
+
     for (Edge lOutgoingEdge : getOutgoingEdges(pCurrentNode)) {
       int lOccurrences = pOccurrences.increment(lOutgoingEdge);
-      
+
       if (lOccurrences <= pBound) {
         pPrefix.addLast(lOutgoingEdge);
-        
+
         dfs(lOutgoingEdge.getTarget(), pPrefix, pPaths, pOccurrences, pBound);
-        
+
         pPrefix.pollLast();
       }
       else {
         // TODO change again
         Path lPath = new Path(pCurrentNode, pPrefix);
-        
+
         pPaths.add(lPath);
       }
-      
+
       pOccurrences.decrement(lOutgoingEdge);
     }
   }
-  
+
   public Set<Edge> getOutgoingEdges(Node pNode) {
     return mGraph.outgoingEdgesOf(pNode);
   }
-  
+
   public int getNumberOfOutgoingEdges(Node pNode) {
     return mGraph.outDegreeOf(pNode);
   }
-  
+
   public Set<Edge> getIncomingEdges(Node pNode) {
     return mGraph.incomingEdgesOf(pNode);
   }
-  
+
   public int getNumberOfIncomingEdges(Node pNode) {
     return mGraph.inDegreeOf(pNode);
   }
-  
+
   public Iterable<Node> initialNodes() {
     return mInitialNodes;
   }
-  
+
   public Iterable<Node> finalNodes() {
     return mFinalNodes;
   }
-  
+
   public Iterator<Node> getInitialNodes() {
     return mInitialNodes.iterator();
   }
@@ -175,23 +175,23 @@ public class TargetGraph {
   public Iterator<Node> getFinalNodes() {
     return mFinalNodes.iterator();
   }
-  
+
   public boolean contains(Node pNode) {
     return mGraph.vertexSet().contains(pNode);
   }
-  
+
   public boolean contains(Edge pEdge) {
     return mGraph.edgeSet().contains(pEdge);
   }
-  
+
   public boolean isInitialNode(Node pNode) {
     return mInitialNodes.contains(pNode);
   }
-  
+
   public boolean isFinalNode(Node pNode) {
     return mFinalNodes.contains(pNode);
   }
-  
+
   @Override
   public String toString() {
     String lInitialNodes = "INITIAL NODES: " + mInitialNodes.toString() + "\n";
@@ -209,104 +209,104 @@ public class TargetGraph {
 
     return lBuffer.toString();
   }
-   
+
   public static class Builder {
-    
+
     private static TargetGraph mEmptyGraph = new TargetGraph();
     private boolean mIsCopy = false;
     private TargetGraph mTargetGraph;
-    
+
     public Builder() {
       mTargetGraph = mEmptyGraph;
     }
-    
+
     public Builder(TargetGraph pTargetGraph) {
       mTargetGraph = pTargetGraph;
     }
-    
+
     public Builder(TargetGraph pTargetGraph, MaskFunctor<Node, Edge> pMaskFunctor) {
       DirectedGraph<Node, Edge> lMaskedGraph = new DirectedMaskSubgraph<Node, Edge>(pTargetGraph.mGraph, pMaskFunctor);
       mTargetGraph = new TargetGraph(new LinkedHashSet<Node>(), new LinkedHashSet<Node>(), lMaskedGraph);
     }
-    
+
     public Set<Edge> edges() {
       return Collections.unmodifiableSet(mTargetGraph.getEdges());
     }
-    
+
     public Set<Node> nodes() {
       return Collections.unmodifiableSet(mTargetGraph.getNodes());
     }
-    
+
     public Set<Node> initialNodes() {
       return Collections.unmodifiableSet(mTargetGraph.mInitialNodes);
     }
-    
+
     public Set<Node> finalNodes() {
       return Collections.unmodifiableSet(mTargetGraph.mFinalNodes);
     }
-    
+
     public Edge addEdge(Node pSource, Node pTarget, CFAEdge pCFAEdge) {
       if (!mIsCopy) {
         mIsCopy = true;
-        mTargetGraph = new TargetGraph(mTargetGraph);        
+        mTargetGraph = new TargetGraph(mTargetGraph);
       }
-      
+
       return new Edge(pSource, pTarget, pCFAEdge, mTargetGraph.mGraph);
     }
-    
+
     public Edge addEdge(Edge pEdge) {
       return addEdge(pEdge.getSource(), pEdge.getTarget(), pEdge.getCFAEdge());
     }
-    
+
     public void addEdges(Iterable<Edge> pEdges) {
       for (Edge lEdge : pEdges) {
         addEdge(lEdge);
       }
     }
-    
+
     public void addNode(Node pNode) {
       if (!mIsCopy) {
         mIsCopy = true;
-        mTargetGraph = new TargetGraph(mTargetGraph);        
+        mTargetGraph = new TargetGraph(mTargetGraph);
       }
-      
+
       mTargetGraph.mGraph.addVertex(pNode);
     }
-    
+
     public void addNodes(Iterable<Node> pNodes) {
       for (Node lNode : pNodes) {
         addNode(lNode);
       }
     }
-    
+
     public void addInitialNode(Node pNode) {
       addNode(pNode);
       mTargetGraph.mInitialNodes.add(pNode);
     }
-    
+
     public void addInitialNodes(Iterable<Node> pInitialNodes) {
       for (Node lInitialNode : pInitialNodes) {
         addInitialNode(lInitialNode);
       }
     }
-    
+
     public void addFinalNode(Node pNode) {
       addNode(pNode);
       mTargetGraph.mFinalNodes.add(pNode);
     }
-    
+
     public void addFinalNodes(Iterable<Node> pFinalNodes) {
       for (Node lFinalNode : pFinalNodes) {
         addFinalNode(lFinalNode);
       }
     }
-    
+
     public TargetGraph build() {
       mIsCopy = false;
-      
+
       return mTargetGraph;
     }
-    
+
   }
 
 }

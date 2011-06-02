@@ -61,18 +61,18 @@ public class CounterexampleTraceInfo {
       pmap = ArrayListMultimap.create();
       branchingPreds = Maps.newTreeMap();
     }
-    
+
     public CounterexampleTraceInfo(List<Formula> pCounterexampleFormula, Model pModel, NavigableMap<Integer, Map<Integer, Boolean>> preds) {
       Preconditions.checkNotNull(pCounterexampleFormula);
       Preconditions.checkNotNull(pModel);
-      
+
       mCounterexampleFormula = pCounterexampleFormula;
       mCounterexampleModel = pModel;
       spurious = false;
       pmap = ImmutableMultimap.of();
       branchingPreds = preds;
     }
-    
+
     /**
      * checks whether this trace is a real bug or a spurious counterexample
      * @return true if this trace is spurious, false otherwise
@@ -106,21 +106,21 @@ public class CounterexampleTraceInfo {
       return "Spurious: " + isSpurious() +
         (isSpurious() ? ", new predicates: " + pmap : "");
     }
-    
+
     public boolean hasCounterexample() {
       return (mCounterexampleModel != null);
     }
-    
+
     public List<Formula> getCounterExampleFormulas() {
       return mCounterexampleFormula;
     }
-    
+
     public Model getCounterexample() {
       Preconditions.checkState(hasCounterexample());
-      
+
       return mCounterexampleModel;
     }
-    
+
     public NavigableMap<Integer, Map<Integer, Boolean>> getBranchingPredicates() {
       return branchingPreds;
     }

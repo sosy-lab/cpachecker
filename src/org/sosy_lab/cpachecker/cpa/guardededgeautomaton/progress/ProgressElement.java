@@ -13,16 +13,16 @@ public class ProgressElement implements Targetable, AbstractElement, IGuardedEdg
 
   private final GuardedEdgeAutomatonStateElement mAutomatonElement;
   private final NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge mTransition;
-  
+
   public ProgressElement(GuardedEdgeAutomatonStateElement pAutomatonElement, NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge pTransition) {
     mAutomatonElement = pAutomatonElement;
     mTransition = pTransition;
   }
-  
+
   public GuardedEdgeAutomatonElement getWrappedElement() {
     return mAutomatonElement;
   }
-  
+
   public NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge getTransition() {
     return mTransition;
   }
@@ -36,7 +36,7 @@ public class ProgressElement implements Targetable, AbstractElement, IGuardedEdg
   public State getAutomatonState() {
     return mAutomatonElement.getAutomatonState();
   }
-  
+
   @Override
   public String toString() {
     return "ProgressElement[" + mAutomatonElement.toString() + "]";
@@ -46,5 +46,5 @@ public class ProgressElement implements Targetable, AbstractElement, IGuardedEdg
   public boolean isTarget() {
     return isFinalState();
   }
-  
+
 }

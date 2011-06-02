@@ -13,15 +13,15 @@ import org.sosy_lab.cpachecker.fshell.fql2.ast.pathpattern.PathPattern;
 import org.sosy_lab.cpachecker.fshell.fql2.normalization.pathpattern.PathPatternRewriter;
 
 public class PatternRewriter implements CoverageSpecificationRewriter {
-  
+
   private PathPatternRewriter mRewriter;
   private Visitor mVisitor;
-  
+
   public PatternRewriter(PathPatternRewriter pRewriter) {
     mRewriter = pRewriter;
     mVisitor = new Visitor();
   }
-  
+
   @Override
   public CoverageSpecification rewrite(CoverageSpecification pSpecification) {
     return pSpecification.accept(mVisitor);
@@ -33,10 +33,10 @@ public class PatternRewriter implements CoverageSpecificationRewriter {
     public Concatenation visit(Concatenation pConcatenation) {
       CoverageSpecification lFirstSubspecification = pConcatenation.getFirstSubspecification();
       CoverageSpecification lSecondSubspecification = pConcatenation.getSecondSubspecification();
-      
+
       CoverageSpecification lNewFirstSubspecification = lFirstSubspecification.accept(this);
       CoverageSpecification lNewSecondSubspecification = lSecondSubspecification.accept(this);
-      
+
       if (lFirstSubspecification.equals(lNewFirstSubspecification) && lSecondSubspecification.equals(lNewSecondSubspecification)) {
         return pConcatenation;
       }
@@ -48,9 +48,9 @@ public class PatternRewriter implements CoverageSpecificationRewriter {
     @Override
     public Quotation visit(Quotation pQuotation) {
       PathPattern lPattern = pQuotation.getPathPattern();
-      
+
       PathPattern lNewPattern = mRewriter.rewrite(lPattern);
-      
+
       if (lPattern.equals(lNewPattern)) {
         return pQuotation;
       }
@@ -63,10 +63,10 @@ public class PatternRewriter implements CoverageSpecificationRewriter {
     public Union visit(Union pUnion) {
       CoverageSpecification lFirstSubspecification = pUnion.getFirstSubspecification();
       CoverageSpecification lSecondSubspecification = pUnion.getSecondSubspecification();
-      
+
       CoverageSpecification lNewFirstSubspecification = lFirstSubspecification.accept(this);
       CoverageSpecification lNewSecondSubspecification = lSecondSubspecification.accept(this);
-      
+
       if (lFirstSubspecification.equals(lNewFirstSubspecification) && lSecondSubspecification.equals(lNewSecondSubspecification)) {
         return pUnion;
       }
@@ -96,6 +96,6 @@ public class PatternRewriter implements CoverageSpecificationRewriter {
     }
 
   }
-  
+
 }
 

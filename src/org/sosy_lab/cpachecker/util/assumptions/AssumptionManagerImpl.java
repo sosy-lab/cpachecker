@@ -84,7 +84,7 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
 
   @Override
   public Formula makeAnd(Formula f, IASTNode p, String function) throws UnrecognizedCCodeException {
-    
+
     if(p instanceof IASTExpression){
       DummySSAMap mapBuilder = new DummySSAMap();
 
@@ -110,7 +110,7 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
     }
     return f;
   }
-  
+
   @Override
   public Formula makeTrue() {
     return fmgr.makeTrue();

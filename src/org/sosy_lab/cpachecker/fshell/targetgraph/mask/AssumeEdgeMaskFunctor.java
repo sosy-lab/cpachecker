@@ -33,23 +33,23 @@ import org.sosy_lab.cpachecker.fshell.targetgraph.Node;
 public class AssumeEdgeMaskFunctor implements MaskFunctor<Node, Edge> {
 
   private static AssumeEdgeMaskFunctor mInstance = new AssumeEdgeMaskFunctor();
-  
+
   public static AssumeEdgeMaskFunctor getInstance() {
     return mInstance;
   }
-  
+
   private AssumeEdgeMaskFunctor() {
-    
+
   }
-  
+
   @Override
   public boolean isEdgeMasked(Edge pEdge) {
     if (pEdge == null) {
       throw new IllegalArgumentException();
     }
-    
+
     boolean lIsAssumeEdge = isAssumeEdge(pEdge.getCFAEdge());
-    
+
     return !lIsAssumeEdge;
   }
 
@@ -58,7 +58,7 @@ public class AssumeEdgeMaskFunctor implements MaskFunctor<Node, Edge> {
     assert(pNode != null);
 
     CFANode lCFANode = pNode.getCFANode();
-    
+
     for (int lIndex = 0; lIndex < lCFANode.getNumEnteringEdges(); lIndex++) {
       if (isAssumeEdge(lCFANode.getEnteringEdge(lIndex))) {
         return false;
@@ -73,9 +73,9 @@ public class AssumeEdgeMaskFunctor implements MaskFunctor<Node, Edge> {
 
     return true;
   }
-  
+
   private boolean isAssumeEdge(CFAEdge pCFAEdge) {
     return pCFAEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge);
   }
-  
+
 }

@@ -40,7 +40,7 @@ public class Paths implements Atom {
   public Filter getFilter() {
     return mFilter;
   }
-  
+
   public int getBound() {
     return mBound;
   }
@@ -49,26 +49,26 @@ public class Paths implements Atom {
   public String toString() {
     return "PATHS(" + mFilter.toString() + ", " + mBound + ")";
   }
-  
+
   @Override
   public boolean equals(Object pOther) {
     if (this == pOther) {
       return true;
     }
-    
+
     if (pOther == null) {
       return false;
     }
-    
+
     if (!pOther.getClass().equals(getClass())) {
       return false;
     }
-    
+
     Paths lPaths = (Paths)pOther;
-    
+
     return mFilter.equals(lPaths.mFilter);
   }
-  
+
   @Override
   public int hashCode() {
     return mFilter.hashCode() + 3047;

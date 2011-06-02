@@ -37,13 +37,13 @@ import javax.management.ObjectName;
  * Abstract class that encapsulates the registration of an MBean with the
  * {@link MBeanServer}.
  * Exceptions that occur are swallowed and logged.
- * 
+ *
  * This class is not thread-safe.
  */
 public class AbstractMBean {
-  
+
   private static final MBeanServer mbs = getMBeanServer();
-  
+
   private static MBeanServer getMBeanServer() {
     try {
       // wrap this call in method so that an exception does not prevent the
@@ -54,13 +54,13 @@ public class AbstractMBean {
       return null;
     }
   }
-  
+
   private ObjectName oname = null;
   private final LogManager logger;
 
   public AbstractMBean(String name, LogManager logger) {
     this.logger = checkNotNull(logger);
-    
+
     if (mbs != null) {
       try {
         oname = new ObjectName(checkNotNull(name));
@@ -69,7 +69,7 @@ public class AbstractMBean {
       }
     }
   }
-    
+
   /**
    * Register this instance at the platform MBeanServer.
    * Swallows all checked exceptions that might occur and logs them.
@@ -84,7 +84,7 @@ public class AbstractMBean {
 
           assert !mbs.isRegistered(oname);
         }
-        
+
         // now register our instance
         mbs.registerMBean(this, oname);
 
@@ -100,7 +100,7 @@ public class AbstractMBean {
       logger.log(Level.WARNING, "Cannot register management interface");
     }
   }
-  
+
   /**
    * Unregister this instance.
    * May be called even if registration was not successful (does nothing in this case).

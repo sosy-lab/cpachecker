@@ -29,22 +29,22 @@ public final class IASTFloatLiteralExpression extends IASTLiteralExpression {
 
   // use a BigDecimal here because C code might have floating point types with bigger precision than double
   private final BigDecimal value;
-  
+
   public IASTFloatLiteralExpression(String pRawSignature,
       IASTFileLocation pFileLocation, IType pType, BigDecimal pValue) {
     super(pRawSignature, pFileLocation, pType, IASTLiteralExpression.lk_float_constant);
     value = pValue;
   }
-  
+
   public BigDecimal getValue() {
     return value;
   }
-  
+
   @Override
   public <R, X extends Exception> R accept(ExpressionVisitor<R, X> v) throws X {
     return v.visit(this);
   }
-  
+
   @Override
   public <R, X extends Exception> R accept(RightHandSideVisitor<R, X> v) throws X {
     return v.visit(this);

@@ -59,7 +59,7 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
   @Option(name="merge", values={"sep", "join"},
       description="which merge operator to use for DefUseCPA")
   private String mergeType = "sep";
-  
+
   private AbstractDomain abstractDomain;
   private TransferRelation transferRelation;
   private MergeOperator mergeOperator;

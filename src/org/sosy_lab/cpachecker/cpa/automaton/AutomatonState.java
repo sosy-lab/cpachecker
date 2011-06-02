@@ -108,7 +108,7 @@ class AutomatonState implements AbstractQueryableElement, Targetable {
       return false;
     }
     AutomatonState otherState = (AutomatonState) pObj;
-    
+
     return this.internalState.equals(otherState.internalState)
         && this.vars.equals(otherState.vars);
   }
@@ -192,7 +192,7 @@ class AutomatonState implements AbstractQueryableElement, Targetable {
       }
     }
   }
-  
+
   @Override
   public void modifyProperty(String pModification) throws InvalidQueryException {
     // allows to set values of Automaton variables like "x:=6"

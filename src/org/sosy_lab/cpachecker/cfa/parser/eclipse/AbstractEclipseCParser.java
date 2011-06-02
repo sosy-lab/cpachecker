@@ -51,19 +51,19 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
  * @param <T> The type that the CDT version uses to encapsulate the source code access.
  */
 public abstract class AbstractEclipseCParser<T> implements CParser {
-  
+
   protected final ILanguage language;
-  
+
   protected final IParserLogService parserLog = ParserFactory.createDefaultLogService();
 
   private final LogManager logger;
-  
+
   private final Timer parseTimer = new Timer();
   private final Timer cfaTimer = new Timer();
-  
+
   protected AbstractEclipseCParser(LogManager pLogger, Dialect dialect) {
     logger = pLogger;
-    
+
     switch (dialect) {
     case C99:
       language = new CLanguage(new ANSICParserExtensionConfiguration());
@@ -75,14 +75,14 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
       throw new IllegalArgumentException("Unknown C dialect");
     }
   }
-  
+
   protected abstract T wrapCode(String pCode);
 
   protected abstract T wrapFile(String pFilename) throws IOException;
 
   @Override
   public CFA parseFile(String pFilename) throws ParserException, IOException {
-    
+
     return buildCFA(parse(wrapFile(pFilename)));
   }
 
@@ -94,10 +94,10 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
 
   @Override
   public org.sosy_lab.cpachecker.cfa.ast.IASTNode parseSingleStatement(String pCode) throws ParserException {
-    
+
     // parse
     IASTTranslationUnit ast = parse(wrapCode(pCode));
-    
+
     // strip wrapping function header
     IASTDeclaration[] declarations = ast.getDeclarations();
     if (   declarations == null
@@ -124,7 +124,7 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
             ILanguage.OPTION_IS_SOURCE_UNIT     // our code files are always source files, not header files
           | ILanguage.OPTION_NO_IMAGE_LOCATIONS // we don't use IASTName#getImageLocation(), so the parse doesn't need to create them
           ;
-  
+
   private IASTTranslationUnit parse(T codeReader) throws ParserException {
     parseTimer.start();
     try {
@@ -138,9 +138,9 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
       parseTimer.stop();
     }
   }
-  
+
   protected abstract IASTTranslationUnit getASTTranslationUnit(T code) throws CFAGenerationRuntimeException, CoreException;
-  
+
   private CFA buildCFA(IASTTranslationUnit ast) throws ParserException {
     cfaTimer.start();
     try {
@@ -150,14 +150,14 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
       } catch (CFAGenerationRuntimeException e) {
         throw new ParserException(e);
       }
-    
+
       return new CFA(builder.getCFAs(), builder.getCFANodes(), builder.getGlobalDeclarations());
     } finally {
       cfaTimer.stop();
     }
   }
 
-  
+
   @Override
   public Timer getParseTime() {
     return parseTimer;
@@ -168,7 +168,7 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
     return cfaTimer;
   }
 
-  
+
   /**
    * Private class extending the Eclipse CDT class that is the starting point
    * for using the parser.

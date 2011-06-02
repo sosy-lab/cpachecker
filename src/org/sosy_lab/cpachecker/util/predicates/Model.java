@@ -43,159 +43,159 @@ public class Model extends ForwardingMap<AssignableTerm, Object> {
     Real,
     Bitvector;
   }
-  
+
   public static interface AssignableTerm {
-    
+
     public TermType getType();
     public String getName();
-    
+
   }
- 
+
   public static class Variable implements AssignableTerm {
-    
+
     private final String mName;
     private final int mSSAIndex;
     private final TermType mType;
-    
+
     public Variable(String pName, int pSSAIndex, TermType pType) {
       mName = pName;
       mSSAIndex = pSSAIndex;
       mType = pType;
     }
-    
+
     @Override
     public String getName() {
       return mName;
     }
-    
+
     @Override
     public TermType getType() {
       return mType;
     }
-    
+
     public int getSSAIndex() {
       return mSSAIndex;
     }
-    
+
     @Override
     public String toString() {
       return mName + "@" + mSSAIndex + " : " + mType;
     }
-    
-    @Override 
+
+    @Override
     public int hashCode() {
       return 324 + mName.hashCode() + mSSAIndex + mType.hashCode();
     }
-    
+
     @Override
     public boolean equals(Object pOther) {
       if (this == pOther) {
         return true;
       }
-      
+
       if (pOther == null) {
         return false;
       }
-      
+
       if (!getClass().equals(pOther.getClass())) {
         return false;
       }
-      
+
       Variable lVariable = (Variable)pOther;
-      
+
       return mName.equals(lVariable.mName)
           && (mSSAIndex == lVariable.mSSAIndex)
           && mType.equals(lVariable.mType);
     }
   }
-  
+
   public static class Function implements AssignableTerm {
-    
+
     private final String mName;
     private final TermType mReturnType;
     private final List<Object> mArguments;
-    
+
     private int mHashCode;
-    
+
     public Function(String pName, TermType pReturnType, Object[] pArguments) {
       mName = pName;
       mReturnType = pReturnType;
       mArguments = ImmutableList.copyOf(pArguments);
-      
+
       mHashCode = 32453 + mName.hashCode() + mReturnType.hashCode();
-      
+
       for (Object lValue : mArguments) {
         mHashCode += lValue.hashCode();
       }
     }
-    
+
     @Override
     public String getName() {
       return mName;
     }
-    
+
     @Override
     public TermType getType() {
       return mReturnType;
     }
-    
+
     public int getArity() {
       return mArguments.size();
     }
-    
+
     public Object getArgument(int lArgumentIndex) {
       return mArguments.get(lArgumentIndex);
     }
-    
+
     @Override
     public String toString() {
       return mName + "(" + Joiner.on(',').join(mArguments) + ") : " + mReturnType;
     }
-    
+
     @Override
     public int hashCode() {
       return mHashCode;
     }
-    
+
     @Override
     public boolean equals(Object pOther) {
       if (this == pOther) {
         return true;
       }
-      
+
       if (pOther == null) {
         return false;
       }
-      
+
       if (!getClass().equals(pOther.getClass())) {
         return false;
       }
-      
+
       Function lFunction = (Function)pOther;
-      
+
       return (lFunction.mName.equals(mName)
           && lFunction.mReturnType.equals(mReturnType)
           && lFunction.mArguments.equals(mArguments));
     }
   }
-  
+
   private final Map<AssignableTerm, Object> mModel;
-  
+
   @Override
   protected Map<AssignableTerm, Object> delegate() {
     return mModel;
   }
-  
+
   public Model() {
     mModel = ImmutableMap.of();
   }
-  
+
   public Model(Map<AssignableTerm, Object> content) {
     mModel = ImmutableMap.copyOf(content);
   }
-  
+
   private static final MapJoiner joiner = Joiner.on('\n').withKeyValueSeparator(": ");
-  
+
   @Override
   public String toString() {
     return joiner.join(mModel);

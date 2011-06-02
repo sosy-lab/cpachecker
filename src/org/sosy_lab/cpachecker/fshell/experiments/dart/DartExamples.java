@@ -31,89 +31,89 @@ import org.sosy_lab.cpachecker.fshell.Main;
 import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 
 public class DartExamples extends ExperimentalSeries {
-  
+
   @Test
   public void test_page2_bb() throws Exception {
     String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE,
                                         "test/programs/fql/DART/page2.c",
                                         "h",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(5, lResult.getNumberOfTestGoals());
     Assert.assertEquals(5, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(3, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void test_page5_1_bb() throws Exception {
     String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE,
                                         "test/programs/fql/DART/page5-1.c",
                                         "f",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(4, lResult.getNumberOfTestGoals());
     Assert.assertEquals(3, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void test_page5_2_bb() throws Exception {
     String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE,
                                         "test/programs/fql/DART/page5-2.c",
                                         "bar",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     // TODO we do not support data structures yet
-    
+
     Assert.assertEquals(4, lResult.getNumberOfTestGoals());
     Assert.assertEquals(3, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(1, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void test_page5_3_bb() throws Exception {
     String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE,
                                         "test/programs/fql/DART/page5-3.c",
                                         "foobar",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     // TODO nonlinearity seams to be a problem
-    
+
     Assert.assertEquals(8, lResult.getNumberOfTestGoals());
     Assert.assertEquals(8, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(0, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(4, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
   @Test
   public void test_page6_bb() throws Exception {
     String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_COVERAGE,
                                         "test/programs/fql/DART/page6.c",
                                         "ac_controller",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(13, lResult.getNumberOfTestGoals());
     Assert.assertEquals(9, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(4, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(4, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
 }

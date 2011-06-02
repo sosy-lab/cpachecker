@@ -36,33 +36,33 @@ public class PathPatternTranslator {
   private final TargetGraph mTargetGraph;
   private final Visitor mVisitor;
   private final FilterEvaluator mFilterEvaluator;
-  
+
   public PathPatternTranslator(CFANode pInitialNode) {
     this(TargetGraphUtil.cfa(pInitialNode), TargetGraphUtil.getBasicBlockEntries(pInitialNode));
   }
-  
+
   public PathPatternTranslator(TargetGraph pTargetGraph, Set<CFAEdge> pBasicBlockEntries) {
     mTargetGraph = pTargetGraph;
     mVisitor = new Visitor();
     mFilterEvaluator = new FilterEvaluator(mTargetGraph, pBasicBlockEntries);
   }
-  
+
   public int getCacheHits() {
     return mVisitor.mCacheHits;
   }
-  
+
   public int getCacheMisses() {
     return mVisitor.mCacheMisses;
   }
-  
+
   public FilterEvaluator getFilterEvaluator() {
     return mFilterEvaluator;
   }
-  
+
   public ElementaryCoveragePattern translate(PathPattern pPattern) {
     return pPattern.accept(mVisitor);
   }
-  
+
   public ElementaryCoveragePattern translate(Node pNode) {
     if (!pNode.getPredicates().isEmpty()) {
       return new ECPConcatenation(new ECPNodeSet(pNode.getCFANode()), translate(pNode.getPredicates()));
@@ -71,44 +71,44 @@ public class PathPatternTranslator {
       return new ECPNodeSet(pNode.getCFANode());
     }
   }
-  
+
   public ElementaryCoveragePattern translate(Edge pEdge) {
     Node lSource = pEdge.getSource();
     Node lTarget = pEdge.getTarget();
-    
+
     List<Predicate> lSourcePredicates = lSource.getPredicates();
     List<Predicate> lTargetPredicates = lTarget.getPredicates();
-    
+
     ElementaryCoveragePattern lPattern = new ECPEdgeSet(pEdge.getCFAEdge());
-    
+
     if (!lSourcePredicates.isEmpty()) {
       lPattern = new ECPConcatenation(translate(lSourcePredicates), lPattern);
     }
-      
+
     if (!lTargetPredicates.isEmpty()) {
       lPattern = new ECPConcatenation(lPattern, translate(lTargetPredicates));
     }
-    
+
     return lPattern;
   }
-  
+
   public ElementaryCoveragePattern translate(Path pPath) {
     if (pPath.length() == 0) {
       return translate(pPath.getStartNode());
     }
     else {
       ElementaryCoveragePattern lPathPattern = null;
-      
+
       for (Edge lEdge : pPath) {
         Node lSource = lEdge.getSource();
         List<Predicate> lSourcePredicates = lSource.getPredicates();
-        
+
         ElementaryCoveragePattern lPattern = new ECPEdgeSet(lEdge.getCFAEdge());
-        
+
         if (!lSource.getPredicates().isEmpty()) {
           lPattern = new ECPConcatenation(translate(lSourcePredicates), lPattern);
         }
-        
+
         if (lPathPattern == null) {
           lPathPattern = lPattern;
         }
@@ -116,110 +116,110 @@ public class PathPatternTranslator {
           lPathPattern = new ECPConcatenation(lPathPattern, lPattern);
         }
       }
-      
+
       Node lEndNode = pPath.getEndNode();
       List<Predicate> lEndPredicates = lEndNode.getPredicates();
-      
+
       if (!lEndPredicates.isEmpty()) {
-        lPathPattern = new ECPConcatenation(lPathPattern, translate(lEndPredicates));          
+        lPathPattern = new ECPConcatenation(lPathPattern, translate(lEndPredicates));
       }
-      
+
       return lPathPattern;
     }
-    
+
   }
-  
+
   public ElementaryCoveragePattern translate(List<Predicate> pPredicates) {
     if (pPredicates.size() == 0) {
       throw new IllegalArgumentException();
     }
-    
+
     ElementaryCoveragePattern lPredicatePattern = new ECPPredicate(pPredicates.get(0).getPredicate());
-    
+
     for (int lIndex = 1; lIndex < pPredicates.size(); lIndex++) {
       lPredicatePattern = new ECPConcatenation(new ECPPredicate(pPredicates.get(lIndex).getPredicate()), lPredicatePattern);
     }
-    
+
     return lPredicatePattern;
   }
-  
+
   private class Visitor implements PathPatternVisitor<ElementaryCoveragePattern> {
 
     private final HashMap<PathPattern, ElementaryCoveragePattern> mResultCache = new HashMap<PathPattern, ElementaryCoveragePattern>();
-    
+
     public int mCacheHits = 0;
     public int mCacheMisses = 0;
-    
+
     @Override
     public ElementaryCoveragePattern visit(Concatenation pConcatenation) {
       ElementaryCoveragePattern lPattern = mResultCache.get(pConcatenation);
-      
+
       if (lPattern == null) {
         ElementaryCoveragePattern lFirstSubpattern = pConcatenation.getFirstSubpattern().accept(this);
         ElementaryCoveragePattern lSecondSubpattern = pConcatenation.getSecondSubpattern().accept(this);
-        
+
         lPattern = new ECPConcatenation(lFirstSubpattern, lSecondSubpattern);
-        
+
         mResultCache.put(pConcatenation, lPattern);
         mCacheMisses++;
       }
       else {
         mCacheHits++;
       }
-      
+
       return lPattern;
     }
 
     @Override
     public ElementaryCoveragePattern visit(Repetition pRepetition) {
       ElementaryCoveragePattern lPattern = mResultCache.get(pRepetition);
-      
+
       if (lPattern == null) {
         ElementaryCoveragePattern lSubpattern = pRepetition.getSubpattern().accept(this);
-        
+
         lPattern = new ECPRepetition(lSubpattern);
-        
+
         mResultCache.put(pRepetition, lPattern);
         mCacheMisses++;
       }
       else {
         mCacheHits++;
       }
-      
+
       return lPattern;
     }
 
     @Override
     public ElementaryCoveragePattern visit(Union pUnion) {
       ElementaryCoveragePattern lPattern = mResultCache.get(pUnion);
-      
+
       if (lPattern == null) {
         ElementaryCoveragePattern lFirstSubpattern = pUnion.getFirstSubpattern().accept(this);
         ElementaryCoveragePattern lSecondSubpattern = pUnion.getSecondSubpattern().accept(this);
-        
+
         lPattern = new ECPUnion(lFirstSubpattern, lSecondSubpattern);
-        
+
         mResultCache.put(pUnion, lPattern);
         mCacheMisses++;
       }
       else {
         mCacheHits++;
       }
-      
+
       return lPattern;
     }
 
     @Override
     public ElementaryCoveragePattern visit(Edges pEdges) {
       ElementaryCoveragePattern lPattern = mResultCache.get(pEdges);
-      
+
       if (lPattern == null) {
         TargetGraph lFilteredTargetGraph = mFilterEvaluator.evaluate(pEdges.getFilter());
 
         Set<CFAEdge> lCFAEdges = new HashSet<CFAEdge>();
-        
+
         Set<ElementaryCoveragePattern> lToBeUnited = new HashSet<ElementaryCoveragePattern>();
-        
+
         for (Edge lEdge : lFilteredTargetGraph.getEdges()) {
           if (!lEdge.getSource().getPredicates().isEmpty() || !lEdge.getTarget().getPredicates().isEmpty()) {
             lToBeUnited.add(translate(lEdge));
@@ -228,35 +228,35 @@ public class PathPatternTranslator {
             lCFAEdges.add(lEdge.getCFAEdge());
           }
         }
-        
+
         lPattern = new ECPEdgeSet(lCFAEdges);
-        
+
         for (ElementaryCoveragePattern lSubpattern : lToBeUnited) {
           lPattern = new ECPUnion(lPattern, lSubpattern);
         }
-        
+
         mResultCache.put(pEdges, lPattern);
         mCacheMisses++;
       }
       else {
         mCacheHits++;
       }
-      
+
       return lPattern;
     }
 
     @Override
     public ElementaryCoveragePattern visit(Nodes pNodes) {
       ElementaryCoveragePattern lPattern = mResultCache.get(pNodes);
-      
+
       if (lPattern == null) {
         TargetGraph lFilteredTargetGraph = mFilterEvaluator.evaluate(pNodes.getFilter());
 
         Set<CFANode> lCFANodes = new HashSet<CFANode>();
-        
+
         Set<ElementaryCoveragePattern> lToBeUnited = new HashSet<ElementaryCoveragePattern>();
-        
-        for (Node lNode : lFilteredTargetGraph.getNodes()) {        
+
+        for (Node lNode : lFilteredTargetGraph.getNodes()) {
           if (!lNode.getPredicates().isEmpty()) {
             lToBeUnited.add(translate(lNode));
           }
@@ -264,76 +264,76 @@ public class PathPatternTranslator {
             lCFANodes.add(lNode.getCFANode());
           }
         }
-        
+
         lPattern = new ECPNodeSet(lCFANodes);
-          
+
         for (ElementaryCoveragePattern lSubpattern : lToBeUnited) {
           lPattern = new ECPUnion(lPattern, lSubpattern);
         }
-        
+
         mResultCache.put(pNodes, lPattern);
         mCacheMisses++;
       }
       else {
         mCacheHits++;
       }
-      
+
       return lPattern;
     }
 
     @Override
     public ElementaryCoveragePattern visit(Paths pPaths) {
       ElementaryCoveragePattern lPattern = mResultCache.get(pPaths);
-      
+
       if (lPattern == null) {
         TargetGraph lFilteredTargetGraph = mFilterEvaluator.evaluate(pPaths.getFilter());
-        
+
         Set<Path> lPaths = lFilteredTargetGraph.getBoundedPaths(pPaths.getBound());
-        
+
         if (lPaths.size() == 0) {
           return ECPNodeSet.EMPTY_NODE_SET;
         }
-        
+
         ArrayList<ElementaryCoveragePattern> lToBeUnited = new ArrayList<ElementaryCoveragePattern>(lPaths.size());
-        
+
         for (Path lPath : lFilteredTargetGraph.getBoundedPaths(pPaths.getBound())) {
           lToBeUnited.add(translate(lPath));
         }
-        
+
         lPattern = lToBeUnited.get(0);
-          
+
         for (int lIndex = 1; lIndex < lToBeUnited.size(); lIndex++) {
           ElementaryCoveragePattern lSubpattern = lToBeUnited.get(lIndex);
           lPattern = new ECPUnion(lPattern, lSubpattern);
         }
-        
+
         mResultCache.put(pPaths, lPattern);
         mCacheMisses++;
       }
       else {
         mCacheHits++;
       }
-      
+
       return lPattern;
     }
 
     @Override
     public ElementaryCoveragePattern visit(Predicate pPredicate) {
       ElementaryCoveragePattern lPattern = mResultCache.get(pPredicate);
-      
+
       if (lPattern == null) {
         lPattern = new ECPPredicate(pPredicate.getPredicate());
-        
+
         mResultCache.put(pPredicate, lPattern);
         mCacheMisses++;
       }
       else {
         mCacheHits++;
       }
-      
+
       return lPattern;
     }
-    
+
   }
-  
+
 }

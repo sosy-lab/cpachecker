@@ -47,7 +47,7 @@ import com.google.common.base.Joiner;
 public final class DOTBuilder {
 
   private DOTBuilder() { /* utility class */ }
-  
+
 	private static final String MAIN_GRAPH = "____Main____Diagram__";
   private static final Joiner JOINER_ON_NEWLINE = Joiner.on('\n');
 

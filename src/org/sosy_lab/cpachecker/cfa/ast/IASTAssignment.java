@@ -32,7 +32,7 @@ public interface IASTAssignment {
   IASTExpression getLeftHandSide();
 
   IASTRightHandSide getRightHandSide();
-  
+
   /**
    * Return "this" casted to IASTStatement, i.e., this methods performs an upcast.
    */

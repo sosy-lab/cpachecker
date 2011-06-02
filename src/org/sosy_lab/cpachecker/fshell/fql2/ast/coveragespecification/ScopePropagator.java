@@ -10,23 +10,23 @@ import org.sosy_lab.cpachecker.fshell.fql2.ast.pathpattern.PathPattern;
 public class ScopePropagator implements CoverageSpecificationVisitor<CoverageSpecification> {
 
   private org.sosy_lab.cpachecker.fshell.fql2.ast.pathpattern.ScopePropagator mPatternScopePropagator;
-  
+
   public ScopePropagator(Filter pFilter) {
     mPatternScopePropagator = new org.sosy_lab.cpachecker.fshell.fql2.ast.pathpattern.ScopePropagator(pFilter);
   }
-  
+
   public Filter getFilter() {
     return mPatternScopePropagator.getFilter();
   }
-  
+
   @Override
   public Concatenation visit(Concatenation pConcatenation) {
     CoverageSpecification lFirstSubspecification = pConcatenation.getFirstSubspecification();
     CoverageSpecification lSecondSubspecification = pConcatenation.getSecondSubspecification();
-    
+
     CoverageSpecification lNewFirstSubspecification = lFirstSubspecification.accept(this);
     CoverageSpecification lNewSecondSubspecification = lSecondSubspecification.accept(this);
-    
+
     if (lFirstSubspecification.equals(lNewFirstSubspecification) && lSecondSubspecification.equals(lNewSecondSubspecification)) {
       return pConcatenation;
     }
@@ -39,7 +39,7 @@ public class ScopePropagator implements CoverageSpecificationVisitor<CoverageSpe
   public Quotation visit(Quotation pQuotation) {
     PathPattern lPattern = pQuotation.getPathPattern();
     PathPattern lNewPattern = lPattern.accept(mPatternScopePropagator);
-    
+
     if (lPattern.equals(lNewPattern)) {
       return pQuotation;
     }
@@ -52,10 +52,10 @@ public class ScopePropagator implements CoverageSpecificationVisitor<CoverageSpe
   public Union visit(Union pUnion) {
     CoverageSpecification lFirstSubspecification = pUnion.getFirstSubspecification();
     CoverageSpecification lSecondSubspecification = pUnion.getSecondSubspecification();
-    
+
     CoverageSpecification lNewFirstSubspecification = lFirstSubspecification.accept(this);
     CoverageSpecification lNewSecondSubspecification = lSecondSubspecification.accept(this);
-    
+
     if (lFirstSubspecification.equals(lNewFirstSubspecification) && lSecondSubspecification.equals(lNewSecondSubspecification)) {
       return pUnion;
     }

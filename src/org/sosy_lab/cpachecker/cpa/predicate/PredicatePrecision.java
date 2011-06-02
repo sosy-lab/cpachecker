@@ -57,7 +57,7 @@ public class PredicatePrecision implements Precision {
   public Set<AbstractionPredicate> getGlobalPredicates() {
     return globalPredicates;
   }
-  
+
   public Set<AbstractionPredicate> getPredicates(CFANode loc) {
     Set<AbstractionPredicate> result = predicateMap.get(loc);
     if (result.isEmpty()) {

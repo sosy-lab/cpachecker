@@ -10,21 +10,21 @@ public class LoggingFeasibilityInformation extends FeasibilityInformation {
 
   private final FeasibilityInformation mFeasibilityInformation;
   private final PrintWriter mWriter;
-  
+
   public LoggingFeasibilityInformation(FeasibilityInformation pFeasibilityInformation, String pFeasibilityFilename, boolean pAppend) throws FileNotFoundException {
     this(pFeasibilityInformation, new File(pFeasibilityFilename), pAppend);
   }
-  
+
   public LoggingFeasibilityInformation(FeasibilityInformation pFeasibilityInformation, File pFeasibilityFile, boolean pAppend) throws FileNotFoundException {
     mFeasibilityInformation = pFeasibilityInformation;
-    
+
     if (!pAppend) {
       mFeasibilityInformation.write(pFeasibilityFile);
     }
-    
+
     mWriter = new PrintWriter(new FileOutputStream(pFeasibilityFile, true));
   }
-  
+
   @Override
   public boolean hasTestsuiteFilename() {
     return mFeasibilityInformation.hasTestsuiteFilename();
@@ -81,12 +81,12 @@ public class LoggingFeasibilityInformation extends FeasibilityInformation {
       mWriter.flush();
       break;
     }
-    
+
     mFeasibilityInformation.setStatus(pGoalIndex, pStatus);
   }
 
   public void close() {
     mWriter.close();
   }
-  
+
 }

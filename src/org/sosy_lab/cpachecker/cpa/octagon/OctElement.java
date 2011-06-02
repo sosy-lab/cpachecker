@@ -77,7 +77,7 @@ public class OctElement implements AbstractElement{
   public int hashCode() {
     return octagon.hashCode();
   }
-  
+
   public void printOctagon() {
     OctagonManager.print(octagon);
   }
@@ -224,7 +224,7 @@ public class OctElement implements AbstractElement{
     int leftVarCoef;
     int rightVarCoef;
 
-    if(pAssignedVar.contains("NONDET") || 
+    if(pAssignedVar.contains("NONDET") ||
         (pLeftVarName != null && pLeftVarName.contains("NONDET")) ||
         (pRightVarName != null && pRightVarName.contains("NONDET"))){
       forget(pAssignedVar);

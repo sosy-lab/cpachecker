@@ -45,17 +45,17 @@ public class Cilly {
 
     Configuration config = Configuration.defaultConfiguration();
     LogManager logger = new LogManager(config);
-    
+
     if (pArguments.length != 1) {
       logger.log(Level.SEVERE, "You have to specify a source file!");
-    
+
     } else {
       String lNiceCILName = Cilly.getNiceCILName(pArguments[0]);
-  
+
       Cilly lCilly = new Cilly(logger);
-  
+
       lCilly.cillyfy(pArguments[0], lNiceCILName);
-      
+
       logger.log(Level.INFO, "Wrote output to", lNiceCILName);
     }
   }
@@ -108,15 +108,15 @@ public class Cilly {
     if (pSourceFile == null) {
       throw new IllegalArgumentException();
     }
-    
+
     if (!pSourceFile.exists()) {
       throw new IllegalArgumentException("File " + pSourceFile.getAbsolutePath() + " does not exist!");
     }
-    
+
     if (!pSourceFile.canRead()) {
       throw new IllegalArgumentException();
     }
-    
+
     File lCillyfiedFile = cillyfy(pSourceFile);
 
     BufferedReader lSourceReader = new BufferedReader(new FileReader(pSourceFile));
@@ -130,7 +130,7 @@ public class Cilly {
       if (lSourceLine == null) {
         lSourceReader.close();
         lCillyfiedReader.close();
-        
+
         return (lCillyfiedLine == null);
       }
       else if (!lSourceLine.trim().equals(lCillyfiedLine.trim())) {
@@ -195,7 +195,7 @@ public class Cilly {
     }
 
     File lTargetFile = File.createTempFile(lPrefix + ".cil.", "." + lPostfix);
-    
+
     cillyfy(pSourceFile, lTargetFile);
 
     return lTargetFile;
@@ -216,19 +216,19 @@ public class Cilly {
     if (pSourceFile == null) {
       throw new IllegalArgumentException();
     }
-    
+
     if (!pSourceFile.exists()) {
       throw new IllegalArgumentException();
     }
-    
+
     if (!pSourceFile.canRead()) {
       throw new IllegalArgumentException();
     }
-    
+
     if (pTargetFile == null) {
       throw new IllegalArgumentException();
     }
-    
+
     StringBuffer lOptionsString = new StringBuffer();
 
     if (mDoSimplify) {

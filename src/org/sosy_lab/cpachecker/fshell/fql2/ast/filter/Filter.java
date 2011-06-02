@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.fshell.fql2.ast.filter;
 
 public interface Filter {
-  
+
   public <T> T accept(FilterVisitor<T> pVisitor);
 
 }

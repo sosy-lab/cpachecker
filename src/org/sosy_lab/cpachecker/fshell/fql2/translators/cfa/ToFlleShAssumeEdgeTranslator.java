@@ -16,12 +16,12 @@ import org.sosy_lab.cpachecker.util.predicates.simpleformulas.translators.c.Pred
 public class ToFlleShAssumeEdgeTranslator {
 
   private static Map<String, IASTExpression> mExpressionCache = new HashMap<String, IASTExpression>();
-  
+
   public static AssumeEdge translate(CFANode pNode, ECPPredicate pPredicate) {
     String lPredicateFunction = PredicateTranslator.translate(pPredicate.getPredicate());
 
     IASTExpression lPredicateExpression;
-    
+
     if (mExpressionCache.containsKey(lPredicateFunction)) {
       lPredicateExpression = mExpressionCache.get(lPredicateFunction);
     }
@@ -34,7 +34,7 @@ public class ToFlleShAssumeEdgeTranslator {
         throw new RuntimeException("Error during parsing C code \""
             + lPredicateFunction + "\": " + e.getMessage());
       }
-      
+
       if (!(statement instanceof IASTExpressionStatement)) {
         throw new RuntimeException("Error: AST does not match the expectations");
       }
@@ -43,7 +43,7 @@ public class ToFlleShAssumeEdgeTranslator {
 
       mExpressionCache.put(lPredicateFunction, lPredicateExpression);
     }
-    
+
     return new AssumeEdge(lPredicateExpression.getRawSignature(), pNode.getLineNumber(), pNode, pNode, lPredicateExpression, true);
   }
 }

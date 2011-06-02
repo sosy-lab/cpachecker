@@ -31,12 +31,12 @@ public class FeatureVarsDomain implements AbstractDomain {
 
   private final FeatureVarsManager fmgr;
   private final RegionManager rmgr;
-  
+
   public FeatureVarsDomain(FeatureVarsManager manager) {
     this.fmgr = manager;
     this.rmgr = manager.getRegionManager();
   }
-  
+
   @Override
   public boolean isLessOrEqual(AbstractElement newElement, AbstractElement reachedElement) {
       // returns true if element1 < element2 on lattice
@@ -56,9 +56,9 @@ public class FeatureVarsDomain implements AbstractDomain {
       FeatureVarsElement fv1 = (FeatureVarsElement)element1;
       FeatureVarsElement fv2 = (FeatureVarsElement)element2;
       // TODO: check if this implementation is efficient
-      if (rmgr.equalRegions(fv1.getRegion(), fv2.getRegion())) 
+      if (rmgr.equalRegions(fv1.getRegion(), fv2.getRegion()))
         return fv2;
-      else 
+      else
         return new FeatureVarsElement(rmgr.makeOr(fv1.getRegion(), fv2.getRegion()), fmgr);
 
     } else {

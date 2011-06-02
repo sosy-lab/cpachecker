@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
  *
  */
 public class SingletonPrecision implements Precision {
-  
+
   private final static SingletonPrecision mInstance = new SingletonPrecision();
 
   public static SingletonPrecision getInstance() {
@@ -43,7 +43,7 @@ public class SingletonPrecision implements Precision {
   private SingletonPrecision() {
 
   }
-  
+
   @Override
   public String toString() {
     return "no precision";

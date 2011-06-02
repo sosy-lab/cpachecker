@@ -82,7 +82,7 @@ public class Pointer implements Cloneable {
     assert p != null;
     // this adds all targets from p to this pointer
     targets.addAll(p.targets);
-    
+
     // update target size
     if (targets.size() <= 1) {
       sizeOfTarget = p.getSizeOfTarget();
@@ -323,7 +323,7 @@ public class Pointer implements Cloneable {
   }
 
   /**
-   * Assigns either a Pointer or a PointerTarget to the given Pointer. 
+   * Assigns either a Pointer or a PointerTarget to the given Pointer.
    */
   public static class Assign implements PointerOperation {
 
@@ -349,7 +349,7 @@ public class Pointer implements Cloneable {
 
       if (assignValueTarget != null) {
         pointer.targets.add(assignValueTarget);
-        
+
       } else {
         pointer.join(assignValuePointer);
 

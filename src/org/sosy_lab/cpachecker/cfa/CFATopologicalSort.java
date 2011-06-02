@@ -41,10 +41,10 @@ public class CFATopologicalSort {
 
     for (int i = 0; i < node.getNumLeavingEdges(); i++) {
       CFANode successor = node.getLeavingEdge(i).getSuccessor();
-     
+
       topologicalSort(successor);
     }
-    
+
     node.setTopologicalSortId(topSortId++);
   }
 }

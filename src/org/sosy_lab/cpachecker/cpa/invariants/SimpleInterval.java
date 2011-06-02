@@ -35,20 +35,20 @@ import com.google.common.base.Predicate;
  * It has an lower bound and an upper bound, both of which may either be a
  * concrete value or infinity. In case of a concrete value, the bound is assumed
  * to be included in the range.
- * 
+ *
  * All instances of this class are immutable.
  */
 class SimpleInterval {
 
   private final BigInteger lowerBound; // null means negative infinity
   private final BigInteger upperBound; // null means positive infinity
-  
+
   private SimpleInterval(BigInteger pLowerBound, BigInteger pUpperBound) {
     checkArgument((pLowerBound == null)
                || (pUpperBound == null)
                || (pLowerBound.compareTo(pUpperBound) <= 0)
                , "lower endpoint greater than upper end point");
-    
+
     lowerBound = pLowerBound;
     upperBound = pUpperBound;
   }
@@ -60,7 +60,7 @@ class SimpleInterval {
     checkState(lowerBound != null);
     return lowerBound;
   }
-  
+
   /**
    * Return upper bound (may only be called if {@link #hasUpperBound()} returns true.
    */
@@ -68,7 +68,7 @@ class SimpleInterval {
     checkState(upperBound != null);
     return upperBound;
   }
-  
+
   /**
    * Return whether this interval has a concrete lower bound
    * (otherwise it's positive infinity).
@@ -76,7 +76,7 @@ class SimpleInterval {
   public boolean hasLowerBound() {
     return lowerBound != null;
   }
-  
+
   /**
    * Return whether this interval has a concrete upper bound
    * (otherwise it's positive infinity).
@@ -84,31 +84,31 @@ class SimpleInterval {
   public boolean hasUpperBound() {
     return upperBound != null;
   }
-  
+
   public boolean containsPositive() {
     return (upperBound == null || upperBound.signum() == 1);
   }
-  
+
   public boolean containsZero() {
     return (upperBound == null || upperBound.signum() >= 0)
         && (lowerBound == null || lowerBound.signum() <= 0);
   }
-  
+
   public boolean containsNegative() {
     return (lowerBound == null || upperBound.signum() == -1);
   }
-  
+
   public SimpleInterval negate() {
     BigInteger newUpperBound = (lowerBound == null ? null : lowerBound.negate());
     BigInteger newLowerBound = (upperBound == null ? null : upperBound.negate());
-    
+
     if (newLowerBound == null && newUpperBound == null) {
       return infinite();
     } else {
       return new SimpleInterval(newLowerBound, newUpperBound);
     }
   }
-  
+
   public SimpleInterval extendToPositiveInfinity() {
     if (lowerBound == null) {
       return infinite();
@@ -118,7 +118,7 @@ class SimpleInterval {
       return new SimpleInterval(lowerBound, null);
     }
   }
-  
+
   public SimpleInterval extendToNegativeInfinity() {
     if (upperBound == null) {
       return infinite();
@@ -128,7 +128,7 @@ class SimpleInterval {
       return new SimpleInterval(null, upperBound);
     }
   }
-  
+
   @Override
   public boolean equals(Object pObj) {
     if (pObj == this) {
@@ -136,17 +136,17 @@ class SimpleInterval {
     } else if (!(pObj instanceof SimpleInterval)) {
       return false;
     }
-    
+
     SimpleInterval other = (SimpleInterval)pObj;
     return Objects.equal(this.lowerBound, other.lowerBound)
         && Objects.equal(this.upperBound, other.upperBound);
   }
-  
+
   @Override
   public int hashCode() {
     return Objects.hashCode(lowerBound, upperBound);
   }
-  
+
   @Override
   public String toString() {
     String result;
@@ -155,38 +155,38 @@ class SimpleInterval {
     } else {
       result = "[" + lowerBound + ", ";
     }
-    
+
     if (upperBound == null) {
       result += "INF)";
     } else {
       result += upperBound + "]";
     }
-    
+
     return result;
   }
-  
+
   public boolean contains(SimpleInterval other) {
     if (this == other) {
       return true;
     }
-    
+
     if (this.lowerBound != null && other.lowerBound == null) {
       return false;
     }
-    
+
     if (this.upperBound != null && other.upperBound == null) {
       return false;
     }
-    
+
     return (this.lowerBound == null || this.lowerBound.compareTo(other.lowerBound) <= 0)
         && (this.upperBound == null || this.upperBound.compareTo(other.upperBound) >= 0);
   }
-  
+
   public boolean intersectsWith(SimpleInterval other) {
     if (this == other) {
       return true;
     }
-    
+
     if (this.lowerBound == null) {
       if (this.upperBound == null || other.lowerBound == null)  {
         return true;
@@ -204,7 +204,7 @@ class SimpleInterval {
         // result is true if a <= b
         return this.lowerBound.compareTo(other.upperBound) <= 0;
       }
-      
+
     } else {
       if (other.lowerBound == null && other.upperBound == null) {
         // this is [a, b]; other is (-INF, INF)
@@ -225,16 +225,16 @@ class SimpleInterval {
       }
     }
   }
-  
+
   static Predicate<SimpleInterval> HAS_BOUNDS = new Predicate<SimpleInterval>() {
     @Override
     public boolean apply(SimpleInterval pArg0) {
       return pArg0.hasLowerBound() || pArg0.hasUpperBound();
     }
   };
-  
+
   private static SimpleInterval INFINITE = new SimpleInterval(null, null);
-  
+
   public static SimpleInterval infinite() {
     return INFINITE;
   }
@@ -246,7 +246,7 @@ class SimpleInterval {
   public static SimpleInterval greaterOrEqual(BigInteger i) {
     return new SimpleInterval(checkNotNull(i), null);
   }
-  
+
   public static SimpleInterval lessOrEqual(BigInteger i) {
     return new SimpleInterval(null, checkNotNull(i));
   }
@@ -254,7 +254,7 @@ class SimpleInterval {
   public static SimpleInterval of(BigInteger lowerBound, BigInteger upperBound) {
     return new SimpleInterval(checkNotNull(lowerBound), checkNotNull(upperBound));
   }
-  
+
   /**
    * Create the smallest interval that contains two given intervals;
    */
@@ -265,14 +265,14 @@ class SimpleInterval {
     } else {
       lower = a.lowerBound.min(b.lowerBound);
     }
-    
+
     BigInteger upper;
     if (a.upperBound == null || b.upperBound == null) {
       upper = null;
     } else {
       upper = a.upperBound.max(b.upperBound);
     }
-    
+
     if (lower == a.lowerBound && upper == a.upperBound) {
       return a;
     } else if (lower == b.lowerBound && upper == b.upperBound) {

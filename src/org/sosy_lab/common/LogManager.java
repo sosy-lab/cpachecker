@@ -61,7 +61,7 @@ import com.google.common.io.Files;
  * The main advantage of this class is that the arguments to the log methods
  * are only converted to strings, if the message is really logged.
  */
-@Options(prefix = "log", 
+@Options(prefix = "log",
     description = "Possible log levels in descending order "
     + "\n(lower levels include higher ones):"
     + "\nOFF:      no logs published"
@@ -76,12 +76,12 @@ import com.google.common.io.Files;
     + "become quite large and memory usage might become an issue.")
 public class LogManager {
 
-  @Option(name="level", toUppercase=true, 
+  @Option(name="level", toUppercase=true,
       description="log level of file output",
       values={"OFF", "SEVERE", "WARNING", "INFO", "FINE", "FINER", "FINEST", "ALL"})
   private String logLevelStr = "OFF";
 
-  @Option(name="consoleLevel", toUppercase=true, 
+  @Option(name="consoleLevel", toUppercase=true,
       description="log level of console output",
       values={"OFF", "SEVERE", "WARNING", "INFO", "FINE", "FINER", "FINEST", "ALL"})
   private String consoleLevelStr = "INFO";
@@ -94,13 +94,13 @@ public class LogManager {
       description="single levels to be excluded from being logged")
   private String[] excludeLevelsConsoleStr = {};
 
-  @Option(name="file", type=Option.Type.OUTPUT_FILE, 
+  @Option(name="file", type=Option.Type.OUTPUT_FILE,
       description="name of the log file")
   private File outputFile = new File("CPALog.txt");
 
   @Option(description="maximum size of log output strings before they will be truncated")
   private int truncateSize = 10000;
-  
+
   private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");
   private static final Joiner messageFormat = Joiner.on(' ').useForNull("null");
   private final Logger logger;
@@ -244,7 +244,7 @@ public class LogManager {
         Files.createParentDirs(outputFile);
 
         Handler outfileHandler = new FileHandler(outputFile.getAbsolutePath(), false);
-        
+
         setupHandler(outfileHandler, new FileLogFormatter(), logFileLevel, excludeLevelsFileStr);
 
       } catch (IOException e) {

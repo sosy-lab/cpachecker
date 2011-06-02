@@ -13,30 +13,30 @@ public class BasicBlockEntryMaskFunctor implements MaskFunctor<Node, Edge> {
 
   private final Set<CFAEdge> mBasicBlockEntries;
   private final Set<CFANode> mCFANodes;
-  
+
   public BasicBlockEntryMaskFunctor(Set<CFAEdge> pBasicBlockEntries) {
     mBasicBlockEntries = pBasicBlockEntries;
-    
+
     mCFANodes = new HashSet<CFANode>();
-    
+
     for (CFAEdge lCFAEdge : mBasicBlockEntries) {
       mCFANodes.add(lCFAEdge.getPredecessor());
       mCFANodes.add(lCFAEdge.getSuccessor());
     }
   }
-  
+
   @Override
   public boolean isEdgeMasked(Edge pEdge) {
     CFAEdge lCFAEdge = pEdge.getCFAEdge();
-    
+
     return !mBasicBlockEntries.contains(lCFAEdge);
   }
 
   @Override
   public boolean isVertexMasked(Node pNode) {
     CFANode lCFANode = pNode.getCFANode();
-    
+
     return !mCFANodes.contains(lCFANode);
   }
-  
+
 }

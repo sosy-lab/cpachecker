@@ -31,11 +31,11 @@ public interface Algorithm {
 
   /**
    * Run the algorithm on the given set of abstract elements and the given waitlist.
-   * 
+   *
    * @param reachedSet Input.
    * @return False if the analysis was unsound (this is not the analysis result!).
    * @throws CPAException
-   * @throws InterruptedException 
+   * @throws InterruptedException
    */
   public boolean run(ReachedSet reachedSet) throws CPAException, InterruptedException;
 

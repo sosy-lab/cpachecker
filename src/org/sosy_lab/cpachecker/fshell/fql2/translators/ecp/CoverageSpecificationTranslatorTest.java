@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
 public class CoverageSpecificationTranslatorTest {
 
   private Cilly lCilly;
-  
+
   @Before
   public void setup() throws InvalidConfigurationException {
     Configuration config = Configuration.defaultConfiguration();
@@ -70,7 +70,7 @@ public class CoverageSpecificationTranslatorTest {
 
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
-    
+
     String lEntryFunction = "main";
 
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
@@ -78,28 +78,28 @@ public class CoverageSpecificationTranslatorTest {
     LogManager lLogManager = new LogManager(lConfiguration);
 
     CFAFunctionDefinitionNode lMainFunction = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
-    
+
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
-    
+
     Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lMainFunction);
-    
+
     /** do translation */
     PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lTargetGraph, lBasicBlockEntries);
     CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(lPatternTranslator);
     Collection<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lSpecification.getCoverageSpecification());
     ElementaryCoveragePattern lPassing = lPatternTranslator.translate(lSpecification.getPathPattern());
-    
+
     ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
-    
+
     System.out.println("TEST GOALS:");
-    
+
     int lIndex = 0;
-    
+
     for (ElementaryCoveragePattern lGoal : lGoals) {
       System.out.println("Goal #" + (++lIndex));
       System.out.println(lPrettyPrinter.printPretty(lGoal));
     }
-    
+
     System.out.println("PASSING:");
     System.out.println(lPrettyPrinter.printPretty(lPassing));
   }
@@ -123,38 +123,38 @@ public class CoverageSpecificationTranslatorTest {
     }
 
     String lEntryFunction = "main";
-    
+
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
     CFAFunctionDefinitionNode lMainFunction = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
-    
+
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
-    
+
     Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lMainFunction);
-    
+
     /** do translation */
     PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lTargetGraph, lBasicBlockEntries);
     CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(lPatternTranslator);
     Collection<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lSpecification.getCoverageSpecification());
     ElementaryCoveragePattern lPassing = lPatternTranslator.translate(lSpecification.getPathPattern());
-    
+
     ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
-    
+
     System.out.println("TEST GOALS:");
-    
+
     int lIndex = 0;
-    
+
     for (ElementaryCoveragePattern lGoal : lGoals) {
       System.out.println("Goal #" + (++lIndex));
       System.out.println(lPrettyPrinter.printPretty(lGoal));
     }
-    
+
     System.out.println("PASSING:");
     System.out.println(lPrettyPrinter.printPretty(lPassing));
   }
-  
+
   @Test
   public void testMain003() throws Exception {
     /** process FQL query */
@@ -174,38 +174,38 @@ public class CoverageSpecificationTranslatorTest {
     }
 
     String lEntryFunction = "main";
-    
+
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
     CFAFunctionDefinitionNode lMainFunction = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
-    
+
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
-    
+
     Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lMainFunction);
-    
+
     /** do translation */
     PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lTargetGraph, lBasicBlockEntries);
     CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(lPatternTranslator);
     Collection<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lSpecification.getCoverageSpecification());
     ElementaryCoveragePattern lPassing = lPatternTranslator.translate(lSpecification.getPathPattern());
-    
+
     ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
-    
+
     System.out.println("TEST GOALS:");
-    
+
     int lIndex = 0;
-    
+
     for (ElementaryCoveragePattern lGoal : lGoals) {
       System.out.println("Goal #" + (++lIndex));
       System.out.println(lPrettyPrinter.printPretty(lGoal));
     }
-    
+
     System.out.println("PASSING:");
     System.out.println(lPrettyPrinter.printPretty(lPassing));
   }
-  
+
   @Test
   public void testMain004() throws Exception {
     /** process FQL query */
@@ -225,36 +225,36 @@ public class CoverageSpecificationTranslatorTest {
     }
 
     String lEntryFunction = "main";
-    
+
     Configuration lConfiguration = FShell3.createConfiguration(lSourceFileName, lEntryFunction);
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
     CFAFunctionDefinitionNode lMainFunction = FShell3.getCFAMap(lSourceFileName, lConfiguration, lLogManager).get(lEntryFunction);
-    
+
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
-    
+
     Set<CFAEdge> lBasicBlockEntries = TargetGraphUtil.getBasicBlockEntries(lMainFunction);
-    
+
     /** do translation */
     PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lTargetGraph, lBasicBlockEntries);
     CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(lPatternTranslator);
     Collection<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lSpecification.getCoverageSpecification());
     ElementaryCoveragePattern lPassing = lPatternTranslator.translate(lSpecification.getPathPattern());
-    
+
     ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
-    
+
     System.out.println("TEST GOALS:");
-    
+
     int lIndex = 0;
-    
+
     for (ElementaryCoveragePattern lGoal : lGoals) {
       System.out.println("Goal #" + (++lIndex));
       System.out.println(lPrettyPrinter.printPretty(lGoal));
     }
-    
+
     System.out.println("PASSING:");
     System.out.println(lPrettyPrinter.printPretty(lPassing));
   }
-  
+
 }

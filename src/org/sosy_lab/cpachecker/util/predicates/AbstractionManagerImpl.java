@@ -49,9 +49,9 @@ import com.google.common.base.Joiner;
 /**
  * Class implementing the FormulaManager interface,
  * providing some commonly used stuff which is independent from specific libraries.
- * 
+ *
  * This class inherits from CtoFormulaConverter to import the stuff there.
- * 
+ *
  * @author Philipp Wendler
  */
 @Options(prefix="cpa.predicate")
@@ -61,7 +61,7 @@ public class AbstractionManagerImpl implements AbstractionManager {
     int getNumberOfPredicates();
     String getPredicates();
   }
-  
+
   private class AbstractionPredicatesMBean extends AbstractMBean implements AbstractionPredicatesMXBean {
     public AbstractionPredicatesMBean() {
       super("org.sosy_lab.cpachecker:type=predicate,name=AbstractionPredicates", logger);
@@ -77,9 +77,9 @@ public class AbstractionManagerImpl implements AbstractionManager {
       return Joiner.on('\n').join(absVarToPredicate.values());
     }
   }
-  
+
   private volatile int numberOfPredicates = 0;
-  
+
   private final LogManager logger;
   private final RegionManager rmgr;
   private final FormulaManager fmgr;
@@ -109,10 +109,10 @@ public class AbstractionManagerImpl implements AbstractionManager {
     } else {
       toConcreteCache = null;
     }
-    
+
     new AbstractionPredicatesMBean(); // don't store it, we wouldn't know when to unregister anyway
   }
-  
+
   @Override
   public AbstractionPredicate makePredicate(Formula atom) {
     Formula var = fmgr.createPredicateVariable(atom);
@@ -130,7 +130,7 @@ public class AbstractionManagerImpl implements AbstractionManager {
     }
     return result;
   }
-  
+
   @Override
   public AbstractionPredicate makeFalsePredicate() {
     return makePredicate(fmgr.makeFalse());
@@ -205,35 +205,35 @@ public class AbstractionManagerImpl implements AbstractionManager {
 
     return result;
   }
-  
+
   @Override
   public Collection<AbstractionPredicate> extractPredicates(Region af) {
     Collection<AbstractionPredicate> vars = new HashSet<AbstractionPredicate>();
-    
+
     Deque<Region> toProcess = new ArrayDeque<Region>();
     toProcess.push(af);
     while (!toProcess.isEmpty()) {
       Region n = toProcess.pop();
-      
+
       if(n.equals(rmgr.makeTrue()) || n.equals(rmgr.makeFalse())) {
         vars.add(this.makeFalsePredicate());
         continue;
       }
-      
+
       if(absVarToPredicate.containsKey(n)) {
         vars.add(absVarToPredicate.get(n));
         continue;
       }
-      
+
       Triple<Region, Region, Region> parts = rmgr.getIfThenElse(n);
       Region c1 = parts.getSecond();
       Region c2 = parts.getThird();
-     
+
       if(c1 != null)
         toProcess.push(c1);
       if(c2 != null)
         toProcess.push(c2);
-     
+
       Region var = parts.getFirst();
       assert(absVarToPredicate.containsKey(var));
       vars.add(absVarToPredicate.get(var));

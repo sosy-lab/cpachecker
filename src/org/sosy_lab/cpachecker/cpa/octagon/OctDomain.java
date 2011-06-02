@@ -58,7 +58,7 @@ public class OctDomain implements AbstractDomain{
 //    OctagonManager.print(octElement2.getOctagon());
 //    octElement1.printOctagon();
 //    octElement2.printOctagon();
-    
+
     int result = OctagonManager.isIncludedInLazy(octElement1.getOctagon(), octElement2.getOctagon());
     if(result == 1) {
       totaltime = totaltime + (System.currentTimeMillis() - start);
@@ -91,7 +91,7 @@ public class OctDomain implements AbstractDomain{
     OctElement octEl1 = (OctElement) element1;
     OctElement octEl2 = (OctElement) element2;
     Octagon newOctagon = OctagonManager.union(octEl1.getOctagon(), octEl2.getOctagon());
-    BiMap<String, Integer> newMap = 
+    BiMap<String, Integer> newMap =
       octEl1.sizeOfVariables() > octEl2.sizeOfVariables()? octEl1.getVariableToIndexMap() : octEl2.getVariableToIndexMap();
 
       // TODO should it be null

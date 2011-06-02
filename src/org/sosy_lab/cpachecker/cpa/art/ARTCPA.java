@@ -73,7 +73,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   private final Statistics stats;
 
   private Path targetPath = null;
-  
+
   private ARTCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger) throws InvalidConfigurationException {
     super(cpa);
     config.inject(this);
@@ -92,7 +92,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     } else {
       reducer = null;
     }
-    
+
     if (mergeType.equals("SEP")){
       mergeOperator = MergeSepOperator.getInstance();
     } else if (mergeType.equals("JOIN")){
@@ -137,7 +137,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   public Reducer getReducer() {
     return reducer;
   }
-  
+
   @Override
   public AbstractElement getInitialElement (CFANode pNode) {
     // TODO some code relies on the fact that this method is called only one and the result is the root of the ART

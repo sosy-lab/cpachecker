@@ -20,38 +20,38 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 public class AssumeTransferRelation implements TransferRelation {
 
   private static Collection<? extends AbstractElement> sUnconstrainedSingleton = Collections.singleton(UnconstrainedAssumeElement.getInstance());
-  
+
   private String mFunctionName;
-  
+
   public AssumeTransferRelation(String pFunctionName) {
     mFunctionName = pFunctionName;
   }
-  
+
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
     if (pCfaEdge.getEdgeType().equals(CFAEdgeType.StatementEdge)) {
       StatementEdge lEdge = (StatementEdge)pCfaEdge;
-      
+
       IASTStatement lExpression = lEdge.getStatement();
-      
+
       if (lExpression instanceof IASTFunctionCallStatement) {
         IASTFunctionCallExpression lCallExpression = ((IASTFunctionCallStatement)lExpression).getFunctionCallExpression();
-        
+
         if (lCallExpression.getFunctionNameExpression().getRawSignature().equals(mFunctionName)) {
           List<IASTExpression> lParameterExpressions = lCallExpression.getParameterExpressions();
           if (lParameterExpressions.size() != 1) {
             throw new UnrecognizedCCodeException("Function " + mFunctionName + " called with wrong number of arguments",
                                                  pCfaEdge, lCallExpression);
           }
-          AssumeElement lElement = new ConstrainedAssumeElement(lParameterExpressions.get(0)); 
-          
+          AssumeElement lElement = new ConstrainedAssumeElement(lParameterExpressions.get(0));
+
           return Collections.singleton(lElement);
         }
       }
     }
-    
+
     return sUnconstrainedSingleton;
   }
 

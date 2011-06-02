@@ -30,12 +30,12 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 
 public class CallstackElement implements AbstractElement, Partitionable {
-  
+
   private final CallstackElement previousElement;
   private final String currentFunction;
   private final CFANode callerNode;
   private final int depth;
-  
+
   public CallstackElement(CallstackElement previousElement, String function, CFANode callerNode) {
     this.previousElement = previousElement;
     this.currentFunction = checkNotNull(function);
@@ -46,28 +46,28 @@ public class CallstackElement implements AbstractElement, Partitionable {
       depth = previousElement.getDepth() + 1;
     }
   }
-  
+
   public CallstackElement getPreviousElement() {
     return previousElement;
   }
-  
+
   public String getCurrentFunction() {
     return currentFunction;
   }
-  
+
   public CFANode getCallNode() {
     return callerNode;
   }
-  
+
   public int getDepth() {
     return depth;
   }
-  
+
   @Override
   public Object getPartitionKey() {
     return this;
   }
-  
+
   @Override
   public String toString() {
     return "Function " + getCurrentFunction()
@@ -75,7 +75,7 @@ public class CallstackElement implements AbstractElement, Partitionable {
          + ", stack depth " + getDepth()
          + " [" + Integer.toHexString(super.hashCode()) + "]";
   }
-  
+
   @Override
   public boolean equals(Object obj) {
     if (obj == this) {
@@ -94,5 +94,5 @@ public class CallstackElement implements AbstractElement, Partitionable {
   @Override
   public int hashCode() {
     return callerNode.hashCode();
-  }  
+  }
 }

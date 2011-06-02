@@ -27,11 +27,11 @@ public abstract class ForwardingExpressionVisitor<R, X extends Exception>
     implements ExpressionVisitor<R, X> {
 
   protected final ExpressionVisitor<R, X> delegate;
-  
+
   public ForwardingExpressionVisitor(ExpressionVisitor<R, X> pDelegate) {
     delegate = pDelegate;
   }
-  
+
   @Override
   public R visit(IASTArraySubscriptExpression e) throws X {
     return delegate.visit(e);

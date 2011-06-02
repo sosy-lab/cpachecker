@@ -109,7 +109,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
 
     boolean modified = false;
     Action action = Action.CONTINUE;
-    
+
     for (int i = 0; i < dim; ++i) {
       UnmodifiableReachedSet slice =
         new UnmodifiableReachedSetView(pElements, elementProjectionFunctions.get(i), precisionProjectionFunctions.get(i));
@@ -137,13 +137,13 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     if (action == Action.BREAK) {
       // it would be nice if we could just check the elements with the same
       // location and not need to check the whole reached set,
-      // but this is not possible due to the projected reached set 
+      // but this is not possible due to the projected reached set
       if (stopOperator.stop(outElement, pElements.getReached(), outPrecision)) {
         // don't signal BREAK for covered elements
         action = Action.CONTINUE;
       }
     }
-    
+
     return new Triple<AbstractElement, Precision, Action>(outElement, outPrecision, action);
   }
 

@@ -13,9 +13,9 @@ class TimedReducer implements Reducer {
   final Timer reduceTime = new Timer();
   final Timer expandTime = new Timer();
   final Timer reducePrecisionTime = new Timer();
-  
+
   private final Reducer wrappedReducer;
-  
+
   public TimedReducer(Reducer pWrappedReducer) {
     wrappedReducer = pWrappedReducer;
   }
@@ -37,7 +37,7 @@ class TimedReducer implements Reducer {
   public AbstractElement getVariableExpandedElement(
       AbstractElement pRootElement, Block pRootContext,
       AbstractElement pReducedElement) {
-    
+
     expandTime.start();
     try {
       return wrappedReducer.getVariableExpandedElement(pRootElement, pRootContext, pReducedElement);

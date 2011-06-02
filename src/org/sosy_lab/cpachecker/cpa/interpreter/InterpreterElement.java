@@ -40,11 +40,11 @@ public class InterpreterElement implements AbstractElement {
   // element from the previous context
   // used for return edges
   private final InterpreterElement mPreviousElement;
-  
+
   // TODO make final
   private int mInputIndex;
   private int[] mInputs;
-  
+
   @Option(description="variables whose name contains this will be seen by InterpreterCPA as having non-deterministic values")
   // TODO this is completely broken, name doesn't match, the option is never read from file etc.
   private String noAutoInitPrefix = "__BLAST_NONDET";
@@ -52,11 +52,11 @@ public class InterpreterElement implements AbstractElement {
   public InterpreterElement() {
     this(new int[0]);
   }
-  
+
   public InterpreterElement(int[] pInputs) {
     this(new HashMap<String, Long>(), null, 0, pInputs);
   }
-  
+
   public InterpreterElement(InterpreterElement pPreviousContextElement, int pInputIndex, int[] pInputs) {
     this(new HashMap<String, Long>(), pPreviousContextElement, pInputIndex, pInputs);
   }
@@ -65,43 +65,43 @@ public class InterpreterElement implements AbstractElement {
     if (pInputs == null) {
       throw new IllegalArgumentException();
     }
-    
+
     mConstantsMap = pConstantsMap;
     mPreviousElement = pPreviousContextElement;
     mInputIndex = pInputIndex;
-    
+
     mInputs = pInputs;
   }
-  
+
   public int getInputIndex() {
     return mInputIndex;
   }
-  
+
   public int[] getInputs() {
     return mInputs;
   }
-  
+
   private void setInputIndex(int pIndex) {
     mInputIndex = pIndex;
   }
-  
+
   // TODO change
   private void incIndex() {
     mInputIndex = mInputIndex + 1;
   }
-  
+
   public int getCurrentInput() throws MissingInputException {
     if (mInputIndex < 0) {
       throw new RuntimeException("Input index is 0");
     }
-    
+
     if (mInputIndex >= mInputs.length) {
       throw new MissingInputException("__BLAST_NONDET");
     }
-    
+
     return mInputs[mInputIndex];
   }
-  
+
   /**
    * Assigns a value to the variable and puts it in the map
    * @param nameOfVar name of the variable.
@@ -113,7 +113,7 @@ public class InterpreterElement implements AbstractElement {
         mConstantsMap.get(nameOfVar).intValue() == value) {
       return;
     }
-    
+
     if(nameOfVar.contains(noAutoInitPrefix)){
       throw new RuntimeException(nameOfVar);
     }
@@ -125,11 +125,11 @@ public class InterpreterElement implements AbstractElement {
     if (pVariableName.endsWith("::__BLAST_NONDET")) {
       throw new ReadingFromNondetVariableException();
     }
-    
+
     if (!mConstantsMap.containsKey(pVariableName)) {
       throw new AccessToUninitializedVariableException(pVariableName);
     }
-    
+
     return mConstantsMap.get(pVariableName).longValue();
   }
 
@@ -140,37 +140,37 @@ public class InterpreterElement implements AbstractElement {
   public InterpreterElement getPreviousElement() {
     return mPreviousElement;
   }
-  
+
   public InterpreterElement nextInputElement() {
     InterpreterElement lTmpElement = clone();
-    
+
     lTmpElement.incIndex();
-    
+
     return lTmpElement;
   }
-  
+
   public InterpreterElement getUpdatedPreviousElement() {
     InterpreterElement previousElem = getPreviousElement();
     InterpreterElement newElement = previousElem.clone();
-    
+
     newElement.mInputs = mInputs;
-    
+
     newElement.setInputIndex(getInputIndex());
-    
+
     return newElement;
   }
-  
+
   @Override
   public InterpreterElement clone() {
     // TODO change this
-    
+
     InterpreterElement newElement = new InterpreterElement(mPreviousElement, mInputIndex, mInputs);
-    
+
     for (String s: mConstantsMap.keySet()){
       long val = mConstantsMap.get(s).longValue();
       newElement.mConstantsMap.put(s, val);
     }
-    
+
     return newElement;
   }
 
@@ -178,11 +178,11 @@ public class InterpreterElement implements AbstractElement {
   public boolean equals (Object other) {
     if (this == other)
       return true;
-    
+
     if (other == null) {
       return false;
     }
-    
+
     if (!getClass().equals(other.getClass())) {
       return false;
     }
@@ -191,15 +191,15 @@ public class InterpreterElement implements AbstractElement {
     if (otherElement.mConstantsMap.size() != mConstantsMap.size()){
       return false;
     }
-    
+
     if (mInputIndex != otherElement.mInputIndex) {
       return false;
     }
-    
+
     if (mInputs.length != otherElement.mInputs.length) {
       return false;
     }
-    
+
     for (int lIndex = 0; lIndex < mInputs.length; lIndex++) {
       if (mInputs[lIndex] != otherElement.mInputs[lIndex]) {
         return false;
@@ -226,13 +226,13 @@ public class InterpreterElement implements AbstractElement {
   @Override
   public String toString() {
     String s = "{";
-    
+
     for (int lIndex = 0; lIndex < mInputs.length; lIndex++) {
       s += mInputs[lIndex] + ", ";
     }
-    
+
     s += "}[" + mInputIndex + "]";
-    
+
     s += " [";
     for (String key: mConstantsMap.keySet()){
       long val = mConstantsMap.get(key);
@@ -249,8 +249,8 @@ public class InterpreterElement implements AbstractElement {
     if(mConstantsMap.containsKey(assignedVar)){
       mConstantsMap.remove(assignedVar);
     }
-    
+
     throw new RuntimeException();
   }
- 
+
 }

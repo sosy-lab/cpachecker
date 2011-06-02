@@ -12,7 +12,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.ABMPredicateRefiner.ExtendedPredica
 public class ABMPredicateCPAStatistics extends PredicateCPAStatistics {
 
   private ExtendedPredicateRefiner refiner = null;
-  
+
   public ABMPredicateCPAStatistics(ABMPredicateCPA pCpa) throws InvalidConfigurationException {
     super(pCpa);
   }
@@ -21,15 +21,15 @@ public class ABMPredicateCPAStatistics extends PredicateCPAStatistics {
   void addRefiner(PredicateRefiner pRef) {
     checkState(refiner == null);
     if (pRef instanceof ExtendedPredicateRefiner) {
-      refiner = (ExtendedPredicateRefiner)pRef;  
+      refiner = (ExtendedPredicateRefiner)pRef;
     }
     super.addRefiner(pRef);
   }
-  
+
   @Override
   public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
     super.printStatistics(out, pResult, pReached);
-    
+
     if (refiner != null) {
       out.println("SSA renaming:                        " + refiner.ssaRenamingTimer);
     }

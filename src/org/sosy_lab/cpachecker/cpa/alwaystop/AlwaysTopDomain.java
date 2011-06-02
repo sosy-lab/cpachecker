@@ -29,15 +29,15 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 enum AlwaysTopDomain implements AbstractDomain {
 
   INSTANCE;
-  
+
   @Override
   public boolean isLessOrEqual(AbstractElement pElement1, AbstractElement pElement2) {
-    
+
     assert pElement1 == AlwaysTopElement.INSTANCE;
     assert pElement2 == AlwaysTopElement.INSTANCE;
     return true;
   }
-  
+
   @Override
   public AbstractElement join(AbstractElement pElement1, AbstractElement pElement2) {
 

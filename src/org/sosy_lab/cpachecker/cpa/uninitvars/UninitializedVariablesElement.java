@@ -142,7 +142,7 @@ public class UninitializedVariablesElement implements AbstractQueryableElement {
 
   @Override
   protected UninitializedVariablesElement clone() {
-    LinkedList<Pair<String, Collection<String>>> newLocalVars = 
+    LinkedList<Pair<String, Collection<String>>> newLocalVars =
                                     new LinkedList<Pair<String, Collection<String>>>();
 
     for (Pair<String, Collection<String>> localContext : localVars) {

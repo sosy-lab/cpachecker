@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 public class CompositeReducer implements Reducer {
 
   private final List<Reducer> wrappedReducers;
-  
+
   public CompositeReducer(List<Reducer> pWrappedReducers) {
     wrappedReducers = pWrappedReducers;
   }
@@ -23,7 +23,7 @@ public class CompositeReducer implements Reducer {
   public AbstractElement getVariableReducedElement(
       AbstractElement pExpandedElement, Block pContext,
       CFANode pLocation) {
-    
+
     List<AbstractElement> result = new ArrayList<AbstractElement>();
     int i = 0;
     for (AbstractElement expandedElement : ((CompositeElement)pExpandedElement).getWrappedElements()) {
@@ -39,7 +39,7 @@ public class CompositeReducer implements Reducer {
 
     List<AbstractElement> rootElements = ((CompositeElement)pRootElement).getWrappedElements();
     List<AbstractElement> reducedElements = ((CompositeElement)pReducedElement).getWrappedElements();
-    
+
     List<AbstractElement> result = new ArrayList<AbstractElement>();
     int i = 0;
     for (Pair<AbstractElement, AbstractElement> p : Pair.zipList(rootElements, reducedElements)) {
@@ -51,10 +51,10 @@ public class CompositeReducer implements Reducer {
   @Override
   public boolean isEqual(AbstractElement pReducedTargetElement,
       AbstractElement pCandidateElement) {
-    
+
     List<AbstractElement> reducedTargetElements = ((CompositeElement)pReducedTargetElement).getWrappedElements();
     List<AbstractElement> candidateElements = ((CompositeElement)pCandidateElement).getWrappedElements();
-    
+
     int i = 0;
     for (Pair<AbstractElement, AbstractElement> p : Pair.zipList(reducedTargetElements, candidateElements)) {
       if (!wrappedReducers.get(i++).isEqual(p.getFirst(), p.getSecond())) {
@@ -66,10 +66,10 @@ public class CompositeReducer implements Reducer {
 
   @Override
   public Object getHashCodeForElement(AbstractElement pElementKey, Precision pPrecisionKey) {
-    
+
     List<AbstractElement> elements = ((CompositeElement)pElementKey).getWrappedElements();
     List<Precision> precisions = ((CompositePrecision)pPrecisionKey).getPrecisions();
-    
+
     List<Object> result = new ArrayList<Object>(elements.size());
     int i = 0;
     for (Pair<AbstractElement, Precision> p : Pair.zipList(elements, precisions)) {
@@ -83,12 +83,12 @@ public class CompositeReducer implements Reducer {
       Block pContext) {
     List<Precision> precisions = ((CompositePrecision)pPrecision).getPrecisions();
     List<Precision> result = new ArrayList<Precision>(precisions.size());
-    
+
     int i = 0;
     for (Precision precision : precisions) {
       result.add(wrappedReducers.get(i++).getVariableReducedPrecision(precision, pContext));
     }
-    
-    return new CompositePrecision(result);    
+
+    return new CompositePrecision(result);
   }
 }

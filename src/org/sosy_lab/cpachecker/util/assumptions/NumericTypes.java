@@ -34,10 +34,10 @@ public class NumericTypes {
   private static IASTIntegerLiteralExpression create(long l) {
     return new IASTIntegerLiteralExpression(Long.toString(l), null, null, BigInteger.valueOf(l));
   }
-  
+
   public static final IASTIntegerLiteralExpression ZERO = create(0L);
   public static final IASTIntegerLiteralExpression ONE = create(1L);
-  
+
   public static final IASTIntegerLiteralExpression FALSE = ZERO;
   public static final IASTIntegerLiteralExpression TRUE = ONE;
 

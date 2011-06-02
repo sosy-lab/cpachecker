@@ -27,18 +27,18 @@ public class IASTArrayTypeSpecifier extends IType {
 
   private final IType type;
   private final IASTExpression    length;
-  
+
   public IASTArrayTypeSpecifier(boolean pConst, boolean pVolatile,
       IType pType, IASTExpression pLength) {
     super(pConst, pVolatile);
     type = pType;
     length = pLength;
   }
-  
+
   public IType getType() {
     return type;
   }
-  
+
   public IASTExpression getLength() {
     return length;
   }

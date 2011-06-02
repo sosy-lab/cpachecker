@@ -54,12 +54,12 @@ public class FeatureVarsTest {
       prop.put("analysis.traversal.useTopsort", "true");
       prop.put("analysis.traversal.useCallstack", "true");
       prop.put("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.featurevariables.FeatureVarsCPA, cpa.explicit.ExplicitCPA");
-      
+
       File sourceFile = new File("test/programs/simple/tmpProgram.c");
       sourceFile.deleteOnExit();
-      Files.writeFile(sourceFile, 
+      Files.writeFile(sourceFile,
         "int main() {\n"+
-        "  __SELECTED_FEATURE_Verify = 1;" + 
+        "  __SELECTED_FEATURE_Verify = 1;" +
         "  int tmp;\n"+
         "    if (__SELECTED_FEATURE_Verify)\n"+
         "              tmp = 1;\n"+
@@ -84,12 +84,12 @@ public class FeatureVarsTest {
       prop.put("analysis.traversal.useTopsort", "true");
       prop.put("analysis.traversal.useCallstack", "true");
       prop.put("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.featurevariables.FeatureVarsCPA, cpa.explicit.ExplicitCPA");
-      
+
       File sourceFile = new File("test/programs/simple/tmpProgram.c");
       sourceFile.deleteOnExit();
-      Files.writeFile(sourceFile, 
+      Files.writeFile(sourceFile,
         "int main() {\n"+
-        "  __SELECTED_FEATURE_Verify = 0;" + 
+        "  __SELECTED_FEATURE_Verify = 0;" +
         "  int tmp;\n"+
         "    if (!__SELECTED_FEATURE_Verify)\n"+
         "              tmp = 0;\n"+
@@ -117,7 +117,7 @@ public class FeatureVarsTest {
       prop.put("cpa","cpa.art.ARTCPA");
       prop.put("ARTCPA.cpa","cpa.composite.CompositeCPA");
       prop.put("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.featurevariables.FeatureVarsCPA, cpa.explicit.ExplicitCPA");
-      
+
       TestResults results = run(prop, "test/programs/simple/featureVarsTest.c");
       //results.getCheckerResult().printStatistics(System.out); // to get an error path
       //System.out.println(results.getLog());
@@ -146,10 +146,10 @@ public class FeatureVarsTest {
       prop.put("analysis.traversal.useCallstack", "true");
       prop.put("ARTCPA.cpa","cpa.composite.CompositeCPA");
       prop.put("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.featurevariables.FeatureVarsCPA, cpa.explicit.ExplicitCPA");
-      
+
       File sourceFile = new File("test/programs/simple/tmpProgram.c");
       sourceFile.deleteOnExit();
-      Files.writeFile(sourceFile, 
+      Files.writeFile(sourceFile,
         "int main() {\n"+
         "  int tmp = 0;\n"+
         "    if (! __SELECTED_FEATURE_Verify)\n"+
@@ -183,7 +183,7 @@ public class FeatureVarsTest {
       prop.put("cpa","cpa.art.ARTCPA");
       prop.put("ARTCPA.cpa","cpa.composite.CompositeCPA");
       prop.put("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.featurevariables.FeatureVarsCPA, cpa.explicit.ExplicitCPA");
-      
+
       File sourceFile = new File("test/programs/simple/tmpProgram.c");
       sourceFile.deleteOnExit();
       Files.writeFile(sourceFile, "int main() {\n"+
@@ -375,7 +375,7 @@ public class FeatureVarsTest {
     Configuration config = Configuration.builder()
       .loadFromFile(configFile.getAbsolutePath())
       .setOptions(pProperties).build();
-    
+
     StringHandler stringLogHandler = new LogManager.StringHandler();
     LogManager logger = new LogManager(config, stringLogHandler);
     CPAchecker cpaChecker = new CPAchecker(config, logger);

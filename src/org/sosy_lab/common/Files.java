@@ -14,7 +14,7 @@ import com.google.common.base.Strings;
 public final class Files {
 
   private Files() { /* utility class */ }
-  
+
   /**
    * Creates a temporary file with an optional content. The file is marked for
    * deletion when the Java VM exits.
@@ -33,19 +33,19 @@ public final class Files {
   public static File createTempFile(String prefix, String suffix, String content) throws IOException {
     File file = File.createTempFile(prefix, suffix);
     file.deleteOnExit();
-    
+
     if (!Strings.isNullOrEmpty(content)) {
       try {
         com.google.common.io.Files.write(content, file, Charset.defaultCharset());
       } catch (IOException e) {
         file.delete();
- 
+
         throw e;
       }
     }
     return file;
   }
-  
+
   /**
    * Writes content to a file.
    * @param file The file.
@@ -56,17 +56,17 @@ public final class Files {
     com.google.common.io.Files.createParentDirs(file);
     com.google.common.io.Files.write(content.toString(), file, Charset.defaultCharset());
   }
-    
+
   /**
    * Verifies if a file exists, is a normal file and is readable. If this is not
    * the case, a FileNotFoundException with a nice message is thrown.
-   * 
+   *
    * @param file The file to check.
    * @throws FileNotFoundException If one of the conditions is not true.
    */
   public static void checkReadableFile(File file) throws FileNotFoundException {
     Preconditions.checkNotNull(file);
-    
+
     if (!file.exists()) {
       throw new FileNotFoundException("File " + file.getAbsolutePath() + " does not exist!");
     }

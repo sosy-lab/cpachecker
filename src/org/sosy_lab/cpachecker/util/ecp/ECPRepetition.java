@@ -3,39 +3,39 @@ package org.sosy_lab.cpachecker.util.ecp;
 public class ECPRepetition implements ElementaryCoveragePattern {
 
   private ElementaryCoveragePattern mSubpattern;
-  
+
   public ECPRepetition(ElementaryCoveragePattern pSubpattern) {
     mSubpattern = pSubpattern;
   }
-  
+
   public ElementaryCoveragePattern getSubpattern() {
     return mSubpattern;
   }
-  
+
   @Override
   public boolean equals(Object pOther) {
     if (this == pOther) {
       return true;
     }
-    
+
     if (pOther == null) {
       return false;
     }
-    
+
     if (pOther.getClass().equals(getClass())) {
       ECPRepetition lOther = (ECPRepetition)pOther;
-      
+
       return mSubpattern.equals(lOther.mSubpattern);
     }
-    
+
     return false;
   }
-  
+
   @Override
   public int hashCode() {
     return mSubpattern.hashCode() + 7879;
   }
-  
+
   @Override
   public String toString() {
     if (mSubpattern instanceof ECPAtom) {
@@ -50,5 +50,5 @@ public class ECPRepetition implements ElementaryCoveragePattern {
   public <T> T accept(ECPVisitor<T> pVisitor) {
     return pVisitor.visit(this);
   }
-  
+
 }

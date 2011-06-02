@@ -42,7 +42,7 @@ public class CFACreationUtils {
   /**
    * This method adds this edge to the leaving and entering edges
    * of its predecessor and successor respectively, but it does so only
-   * if the edge does not contain dead code 
+   * if the edge does not contain dead code
    */
   public static void addEdgeToCFA(CFAEdge edge, LogManager logger) {
     CFANode predecessor = edge.getPredecessor();
@@ -54,37 +54,37 @@ public class CFACreationUtils {
       if (predecessor.getNumLeavingEdges() > 0) {
         assert predecessor.getLeavingEdge(0) instanceof AssumeEdge;
       }
-      
+
     } else {
       assert predecessor.getNumLeavingEdges() == 0;
     }
-    
+
     // check control flow merging at successor
     if (   !(successor instanceof CFAFunctionExitNode)
         && !(successor instanceof CFALabelNode)) {
       // these two node types may have unlimited incoming edges
       // all other may have at most two of them
-      
+
       assert successor.getNumEnteringEdges() <= 1;
     }
-    
+
     // check if predecessor is reachable
     if (isReachableNode(predecessor)) {
-    
+
       // all checks passed, add it to the CFA
       edge.getPredecessor().addLeavingEdge(edge);
       edge.getSuccessor().addEnteringEdge(edge);
-      
+
     } else {
       // unreachable edge, don't add it to the CFA
-    
+
       if (!edge.getRawStatement().isEmpty()) {
         // warn user
         logger.log(Level.INFO, "Dead code detected at line", edge.getLineNumber() + ":", edge.getRawStatement());
       }
     }
   }
-  
+
   /**
    * Returns true if a node is reachable, that is if it contains an incoming edge.
    * Label nodes and function start nodes are always considered to be reachable.
@@ -104,11 +104,11 @@ public class CFACreationUtils {
     if (n.getNumEnteringEdges() > 0) {
       return;
     }
-    
+
     for (int i = n.getNumLeavingEdges()-1; i >= 0; i--) {
       CFAEdge e = n.getLeavingEdge(i);
       CFANode succ = e.getSuccessor();
-      
+
       n.removeLeavingEdge(e);
       succ.removeEnteringEdge(e);
       removeChainOfNodesFromCFA(succ);

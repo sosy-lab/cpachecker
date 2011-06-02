@@ -31,18 +31,18 @@ import org.sosy_lab.cpachecker.fshell.Main;
 import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 
 public class Loops006 extends ExperimentalSeries {
-  
+
   @Test
   public void systemc_001() throws Exception {
     String lCFile = "loops6.c";
-    
+
     String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
                                         "test/programs/fql/loops/" + lCFile,
                                         "main",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     // Summary successor has 0 entering CFA edges ... we can not determine an omega edge, but, all test goals are infeasible anyways!
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
@@ -50,5 +50,5 @@ public class Loops006 extends ExperimentalSeries {
     Assert.assertEquals(12, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
 }

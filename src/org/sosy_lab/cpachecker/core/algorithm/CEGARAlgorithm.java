@@ -59,7 +59,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     private final Timer totalTimer = new Timer();
     private final Timer refinementTimer = new Timer();
     private final Timer gcTimer = new Timer();
-    
+
     private volatile int countRefinements = 0;
     private int countSuccessfulRefinements = 0;
     private int countFailedRefinements = 0;
@@ -95,32 +95,32 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     int getSizeOfReachedSetBeforeLastRefinement();
     boolean isRefinementActive();
   }
-  
+
   private class CEGARMBean extends AbstractMBean implements CEGARMXBean {
     public CEGARMBean() {
       super("org.sosy_lab.cpachecker:type=CEGAR", logger);
       register();
     }
-    
+
     @Override
     public int getNumberOfRefinements() {
       return stats.countRefinements;
     }
-    
+
     @Override
     public int getSizeOfReachedSetBeforeLastRefinement() {
       return sizeOfReachedSetBeforeRefinement;
     }
-    
+
     @Override
     public boolean isRefinementActive() {
       return stats.refinementTimer.isRunning();
     }
   }
-  
+
   private static final int GC_PERIOD = 100;
   private int gcCounter = 0;
-  
+
   private volatile int sizeOfReachedSetBeforeRefinement = 0;
 
   private static final String PACKAGE_NAME_PREFIX = "org.sosy_lab.cpachecker";
@@ -140,17 +140,17 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   private <T> T createInstance(String className, Object[] argumentList, Class<T> type) throws CPAException, InvalidConfigurationException {
     Class<?> argumentTypes[] = {ConfigurableProgramAnalysis.class};
-    
+
     try {
       return Classes.createInstance(className, PACKAGE_NAME_PREFIX, argumentTypes, argumentList, type);
-    
+
     } catch (ClassInstantiationException e) {
       throw new InvalidConfigurationException("Invalid refiner specified (" + e.getMessage() + ")!");
 
     } catch (InvocationTargetException e) {
       Throwable t = e.getCause();
       Throwables.propagateIfPossible(t, CPAException.class, InvalidConfigurationException.class);
-      
+
       logger.logException(Level.FINE, t, "Unexpected exception during refiner instantiation!");
       throw new CPAException("Unexpected exception " + t.getClass().getSimpleName() + " during refiner instantiation (" + t.getMessage() + ")!");
     }
@@ -166,11 +166,11 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     mRefiner = createInstance(refiner, refinerArguments, Refiner.class);
     new CEGARMBean(); // don't store it because we wouldn't know when to unregister anyway
   }
-  
+
   /**
    * This constructor gets a Refiner object instead of generating it
    * from the refiner parameter.
-   * 
+   *
    * @param algorithm
    * @param pRefiner
    * @param config
@@ -188,7 +188,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   @Override
   public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
     boolean sound = true;
-    
+
     stats.totalTimer.start();
 
     boolean continueAnalysis;
@@ -211,14 +211,14 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         boolean refinementResult;
         try {
           refinementResult = mRefiner.performRefinement(reached);
-          
+
         } catch (RefinementFailedException e) {
           stats.countFailedRefinements++;
           throw e;
         } finally {
           stats.refinementTimer.stop();
         }
-        
+
         if (refinementResult) {
           // successful refinement
 
@@ -237,8 +237,8 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
           // no refinement found, because the counterexample is not spurious
           logger.log(Level.FINER, "Refinement unsuccessful");
         }
-      } // if lastElement is target element 
-      
+      } // if lastElement is target element
+
     } while (continueAnalysis);
 
     stats.totalTimer.stop();

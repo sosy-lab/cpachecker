@@ -36,11 +36,11 @@ public interface ExpressionVisitor<R, X extends Exception> {
   R visit(IASTIdExpression pIastIdExpression) throws X;
 
   R visit(IASTCharLiteralExpression pIastCharLiteralExpression) throws X;
-  
+
   R visit(IASTFloatLiteralExpression pIastFloatLiteralExpression) throws X;
-  
+
   R visit(IASTIntegerLiteralExpression pIastIntegerLiteralExpression) throws X;
-  
+
   R visit(IASTStringLiteralExpression pIastStringLiteralExpression) throws X;
 
   R visit(IASTTypeIdExpression pIastTypeIdExpression) throws X;

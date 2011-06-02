@@ -51,7 +51,7 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
   private final PredicateRefinementManager<?,?> formulaManager;
 
   private final LogManager logger;
-  
+
   public McMillanRefiner(final ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
     super(pCpa);
 

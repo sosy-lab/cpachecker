@@ -68,7 +68,7 @@ public class CBMCStackElement {
   public void setCondition(boolean pCondition) {
     condition = pCondition;
   }
-  
+
   public boolean isClosedBefore() {
     return isClosedBefore;
   }

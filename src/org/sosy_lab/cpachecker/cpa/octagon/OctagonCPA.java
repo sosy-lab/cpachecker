@@ -55,7 +55,7 @@ public class OctagonCPA implements ConfigurableProgramAnalysis{
   @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for OctagonCPA?")
   private String mergeType = "SEP";
-  
+
   private final AbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
@@ -85,7 +85,7 @@ public class OctagonCPA implements ConfigurableProgramAnalysis{
     this.mergeOperator = octagonMergeOp;
     this.stopOperator = octagonStopOp;
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
-    
+
     assert(OctagonManager.init());
   }
 

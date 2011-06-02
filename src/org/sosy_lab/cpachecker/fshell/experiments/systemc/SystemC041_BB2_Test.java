@@ -31,23 +31,23 @@ import org.sosy_lab.cpachecker.fshell.Main;
 import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 
 public class SystemC041_BB2_Test extends ExperimentalSeries {
-  
+
   @Test
   public void systemc_001() throws Exception {
     String lCFile = "transmitter.13.BUG.cil.c";
-    
+
     String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_2_COVERAGE,
                                         "test/programs/fql/systemc/" + lCFile,
                                         "main",
                                         true);
-    
+
     FShell3Result lResult = execute(lArguments);
-    
+
     Assert.assertEquals(80, lResult.getNumberOfTestGoals());
     Assert.assertEquals(74, lResult.getNumberOfFeasibleTestGoals());
     Assert.assertEquals(6, lResult.getNumberOfInfeasibleTestGoals());
     Assert.assertEquals(12, lResult.getNumberOfTestCases());
     Assert.assertEquals(0, lResult.getNumberOfImpreciseTestCases());
   }
-  
+
 }

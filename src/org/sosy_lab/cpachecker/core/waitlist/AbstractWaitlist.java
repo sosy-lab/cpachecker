@@ -32,12 +32,12 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
  * Default implementation for a waitlist that uses any collection as the backing
  * data structure. All methods except pop() are implemented by delegating them
  * to the correspondent Collection method.
- * 
+ *
  * Sub-classes may choose their own collection implementation (e.g. a LinkedList
  * or an ArrayDeque) depending on their needs for pop().
  */
 public abstract class AbstractWaitlist<T extends Collection<AbstractElement>> implements Waitlist {
-  
+
   protected final T waitlist;
 
   protected AbstractWaitlist(T pWaitlist) {
@@ -48,32 +48,32 @@ public abstract class AbstractWaitlist<T extends Collection<AbstractElement>> im
   public void add(AbstractElement pElement) {
     waitlist.add(pElement);
   }
-  
+
   @Override
   public void clear() {
     waitlist.clear();
   }
-  
+
   @Override
   public boolean contains(AbstractElement pElement) {
     return waitlist.contains(pElement);
   }
-  
+
   @Override
   public boolean isEmpty() {
     return waitlist.isEmpty();
   }
-  
+
   @Override
   public Iterator<AbstractElement> iterator() {
     return waitlist.iterator();
   }
-  
+
   @Override
   public boolean remove(AbstractElement pElement) {
     return waitlist.remove(pElement);
   }
-  
+
   @Override
   public int size() {
     return waitlist.size();

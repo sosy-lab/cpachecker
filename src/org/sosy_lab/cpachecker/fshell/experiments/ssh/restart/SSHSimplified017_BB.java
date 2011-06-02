@@ -31,21 +31,21 @@ import org.sosy_lab.cpachecker.fshell.RestartingFShell3;
 import org.sosy_lab.cpachecker.fshell.experiments.ExperimentalSeries;
 
 public class SSHSimplified017_BB extends ExperimentalSeries {
-  
+
   @Test
   public void ssh_017() throws Exception {
     String lCFile = "s3_srvr_7.cil.c";
-    
+
     LinkedList<String> lArguments = new LinkedList<String>();
-    
+
     lArguments.add(Main.BASIC_BLOCK_COVERAGE);
     lArguments.add("test/programs/fql/ssh-simplified/" + lCFile);
     lArguments.add("main");
-    
+
     String[] lArgs = new String[lArguments.size()];
     lArguments.toArray(lArgs);
-    
+
     RestartingFShell3.main(lArgs);
   }
-  
+
 }

@@ -63,7 +63,7 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
   @Option(name="heuristics", required=true,
       description="which heuristics should be used to track progress?")
   private String[] heuristicsNames = {};
-  
+
   private final ProgressObserverDomain abstractDomain;
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
@@ -82,7 +82,7 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
               throws InvalidConfigurationException {
     ImmutableList.Builder<StopHeuristics<?>> builder = ImmutableList.builder();
 
-    Class<?>[] argsTypes = {Configuration.class, LogManager.class}; 
+    Class<?>[] argsTypes = {Configuration.class, LogManager.class};
     for (String heuristicsName : heuristicsNames) {
       if (!heuristicsName.contains(".")) {
         heuristicsName = "org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.heuristics." + heuristicsName;

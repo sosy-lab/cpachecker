@@ -35,28 +35,28 @@ import com.google.common.base.Preconditions;
  * @author g.theoduloz
  */
 public class AssumptionStorageElement implements AbstractElement {
-  
+
   // this formula provides the assumption generated from other sources than heuristics,
   // e.g. assumptions for arithmetic overflow
   private final Formula assumption;
-  
+
   // if a heuristic told us to stop the analysis, this formula provides the reason
   // if it is TRUE, there is no reason -> don't stop
   private final Formula stopFormula;
 
   // the assumption represented by this class is always the conjunction of "assumption" and "stopFormula"
-  
+
   public AssumptionStorageElement(Formula pAssumption, Formula pStopFormula) {
     assumption = Preconditions.checkNotNull(pAssumption);
     stopFormula = Preconditions.checkNotNull(pStopFormula);
-    
+
     assert !assumption.isFalse(); // FALSE would mean "stop the analysis", but this should be signaled by stopFormula
   }
 
   public Formula getAssumption() {
     return assumption;
   }
-  
+
   public Formula getStopFormula() {
     return stopFormula;
   }

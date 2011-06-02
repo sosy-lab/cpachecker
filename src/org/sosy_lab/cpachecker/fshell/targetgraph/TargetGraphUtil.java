@@ -23,38 +23,38 @@ public class TargetGraphUtil {
 
   public static Set<CFAEdge> getBasicBlockEntries(CFANode pInitialNode) {
     LinkedHashSet<CFAEdge> lBasicBlockEntries = new LinkedHashSet<CFAEdge>();
-    
+
     HashSet<CFAEdge> lVisitedEdges = new HashSet<CFAEdge>();
-    
+
     LinkedList<CFAEdge> lWorklist = new LinkedList<CFAEdge>();
-    
+
     addLeavingEdgesToWorklist(pInitialNode, lWorklist);
-    
+
     while (!lWorklist.isEmpty()) {
       CFAEdge lCurrentEdge = lWorklist.removeFirst();
-      
+
       if (lVisitedEdges.contains(lCurrentEdge)) {
         continue;
       }
-      
+
       lVisitedEdges.add(lCurrentEdge);
-      
-      
+
+
       LinkedList<CFAEdge> lTrace = new LinkedList<CFAEdge>();
-      
+
       CFAEdge lCurrentTraceEdge = lCurrentEdge;
-      
+
       lTrace.add(lCurrentTraceEdge);
-      
+
       while (!isLastEdge(lCurrentTraceEdge)) {
         CFANode lSuccessor = lCurrentTraceEdge.getSuccessor();
-        
+
         if (lSuccessor.getNumLeavingEdges() != 1) {
           throw new RuntimeException();
         }
-        
+
         lCurrentTraceEdge = lSuccessor.getLeavingEdge(0);
-        
+
         lTrace.add(lCurrentTraceEdge);
       }
 
@@ -62,69 +62,69 @@ public class TargetGraphUtil {
       while (!lTrace.isEmpty() && lTrace.getFirst().getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
         lTrace.removeFirst();
       }
-            
+
       if (!lTrace.isEmpty()) {
         lCurrentEdge = lTrace.getFirst();
-        
+
         for (CFAEdge lCFAEdge : lTrace) {
           CFAEdgeType lEdgeType = lCFAEdge.getEdgeType();
-          
+
           if (lEdgeType.equals(CFAEdgeType.FunctionCallEdge) ||
               lEdgeType.equals(CFAEdgeType.FunctionReturnEdge)) {
-            
+
             lCurrentTraceEdge = lCFAEdge;
-            
+
             break;
           }
         }
-        
+
         CFAEdgeType lEdgeType = lCurrentEdge.getEdgeType();
-        
-        if (!lEdgeType.equals(CFAEdgeType.FunctionCallEdge) && 
+
+        if (!lEdgeType.equals(CFAEdgeType.FunctionCallEdge) &&
             !lEdgeType.equals(CFAEdgeType.FunctionReturnEdge)) {
           // basic block consists not only of an interprocedural cfa edge (function call edge or return edge)
           lBasicBlockEntries.add(lCurrentEdge);
         }
       }
-      
+
       addLeavingEdgesToWorklist(lCurrentTraceEdge.getSuccessor(), lWorklist);
     }
-    
+
     return lBasicBlockEntries;
   }
-  
+
   private static void addLeavingEdgesToWorklist(CFANode pCFANode, Collection<CFAEdge> pWorklist) {
     for (int lIndex = 0; lIndex < pCFANode.getNumLeavingEdges(); lIndex++) {
       CFAEdge lSuccessorEdge = pCFANode.getLeavingEdge(lIndex);
       pWorklist.add(lSuccessorEdge);
     }
   }
-  
+
   private static boolean isLastEdge(CFAEdge pCFAEdge) {
     CFANode lSuccessor = pCFAEdge.getSuccessor();
-    
+
     if (lSuccessor.getNumLeavingEdges() != 1) {
       return true;
     }
-    
+
     if (lSuccessor.getNumEnteringEdges() != 1) {
       return true;
     }
-    
+
     if (pCFAEdge.getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
       return true;
     }
-    
+
     return false;
   }
-  
+
   public static TargetGraph cfa(CFANode pInitialNode) {
     if (pInitialNode == null) {
       throw new IllegalArgumentException();
     }
-    
+
     Builder lBuilder = new Builder();
-    
+
     HashMap<CFANode, Node> lNodeMapping = new HashMap<CFANode, Node>();
 
     Set<CFANode> lWorklist = new LinkedHashSet<CFANode>();
@@ -135,7 +135,7 @@ public class TargetGraphUtil {
     Node lInitialNode = new Node(pInitialNode);
     lBuilder.addInitialNode(lInitialNode);
     lBuilder.addNode(lInitialNode);
-    
+
     lNodeMapping.put(pInitialNode, lInitialNode);
 
     while (!lWorklist.isEmpty()) {
@@ -199,97 +199,97 @@ public class TargetGraphUtil {
         }
       }
     }
-    
+
     return lBuilder.build();
   }
-  
+
   public static TargetGraph union(TargetGraph pTargetGraph1, TargetGraph pTargetGraph2) {
     if (pTargetGraph1 == null || pTargetGraph2 == null) {
       throw new IllegalArgumentException();
     }
 
     Builder lBuilder = new Builder(pTargetGraph1);
-    
+
     lBuilder.addInitialNodes(pTargetGraph2.initialNodes());
     lBuilder.addFinalNodes(pTargetGraph2.finalNodes());
     lBuilder.addNodes(pTargetGraph2.getNodes());
     lBuilder.addEdges(pTargetGraph2.getEdges());
-    
+
     return lBuilder.build();
   }
-  
+
   public static TargetGraph intersect(TargetGraph pTargetGraph1, TargetGraph pTargetGraph2) {
     if (pTargetGraph1 == null || pTargetGraph2 == null) {
       throw new IllegalArgumentException();
     }
-    
+
     Builder lBuilder = new Builder();
-    
+
     for (Node lNode : pTargetGraph1.getNodes()) {
       if (pTargetGraph2.contains(lNode)) {
         lBuilder.addNode(lNode);
       }
     }
-    
+
     for (Edge lEdge : pTargetGraph1.getEdges()) {
       if (pTargetGraph2.contains(lEdge)) {
         lBuilder.addEdge(lEdge);
       }
     }
-    
+
     for (Node lInitialNode : pTargetGraph1.initialNodes()) {
       if (pTargetGraph2.isInitialNode(lInitialNode)) {
         lBuilder.addInitialNode(lInitialNode);
       }
     }
-    
+
     for (Node lFinalNode : pTargetGraph1.finalNodes()) {
       if (pTargetGraph2.isFinalNode(lFinalNode)) {
         lBuilder.addFinalNode(lFinalNode);
       }
     }
-    
+
     return lBuilder.build();
   }
-  
+
   public static TargetGraph minus(TargetGraph pTargetGraph1, TargetGraph pTargetGraph2) {
     if (pTargetGraph1 == null || pTargetGraph2 == null) {
       throw new IllegalArgumentException();
     }
 
     Builder lBuilder = new Builder();
-    
+
     for (Edge lEdge : pTargetGraph1.getEdges()) {
       if (!pTargetGraph2.contains(lEdge)) {
         lBuilder.addEdge(lEdge);
       }
     }
-    
+
     for (Node lNode : pTargetGraph1.getNodes()) {
       if (!pTargetGraph2.contains(lNode) || pTargetGraph1.getNumberOfOutgoingEdges(lNode) != 0 || pTargetGraph1.getNumberOfIncomingEdges(lNode) != 0) {
         lBuilder.addNode(lNode);
-          
+
         if (pTargetGraph1.isInitialNode(lNode)) {
           lBuilder.addInitialNode(lNode);
         }
-        
+
         if (pTargetGraph1.isFinalNode(lNode)) {
           lBuilder.addFinalNode(lNode);
         }
       }
     }
-    
+
     return lBuilder.build();
   }
-  
+
   public static TargetGraph predicate(TargetGraph pTargetGraph, Predicate pPredicate) {
     if (pTargetGraph == null || pPredicate == null) {
       throw new IllegalArgumentException();
     }
-    
+
     Predicate lNegatedPredicate = new Predicate(pPredicate.getPredicate().negate());
     Builder lBuilder = new Builder();
-    
+
     // 1) duplicate vertices
 
     HashMap<Node, Pair<Node, Node>> lMap = new HashMap<Node, Pair<Node, Node>>();
@@ -310,7 +310,7 @@ public class TargetGraphUtil {
 
     for (Node lNode : pTargetGraph.initialNodes()) {
       Pair<Node, Node> lPair = lMap.get(lNode);
-      
+
       lBuilder.addInitialNode(lPair.getFirst());
       lBuilder.addInitialNode(lPair.getSecond());
     }
@@ -342,10 +342,10 @@ public class TargetGraphUtil {
       lBuilder.addEdge(lSourceFalseNode, lTargetTrueNode, lEdge.getCFAEdge());
       lBuilder.addEdge(lSourceFalseNode, lTargetFalseNode, lEdge.getCFAEdge());
     }
-    
+
     return lBuilder.build();
   }
-  
+
   /*
    * Returns a target graph that retains all nodes and edges in pTargetGraph that
    * belong the the function given by pFunctionName. The set of initial nodes is
@@ -357,11 +357,11 @@ public class TargetGraphUtil {
     if (pTargetGraph == null || pFunctionName == null) {
       throw new IllegalArgumentException();
     }
-    
+
     MaskFunctor<Node, Edge> lMaskFunctor = new FunctionNameMaskFunctor(pFunctionName);
-    
+
     Builder lBuilder = new Builder(pTargetGraph, lMaskFunctor);
-    
+
     for (Node lNode : lBuilder.nodes()) {
       CFANode lCFANode = lNode.getCFANode();
 
@@ -373,23 +373,23 @@ public class TargetGraphUtil {
         lBuilder.addFinalNode(lNode);
       }
     }
-    
+
     return lBuilder.build();
   }
-  
+
   public static TargetGraph applyStandardEdgeBasedFilter(TargetGraph pTargetGraph, MaskFunctor<Node, Edge> pMaskFunctor) {
     if (pTargetGraph == null || pMaskFunctor == null) {
       throw new IllegalArgumentException();
     }
 
     Builder lBuilder = new Builder(pTargetGraph, pMaskFunctor);
-    
+
     for (Edge lEdge : lBuilder.edges()) {
       lBuilder.addInitialNode(lEdge.getSource());
       lBuilder.addFinalNode(lEdge.getTarget());
     }
-    
+
     return lBuilder.build();
   }
-  
+
 }

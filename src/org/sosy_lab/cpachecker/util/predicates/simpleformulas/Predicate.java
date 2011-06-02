@@ -35,13 +35,13 @@ public class Predicate {
     LESS            ("<"),
     NOT_EQUAL       ("!="),
     ;
-    
+
     private final String symbol;
-    
+
     private Comparison(String pSymbol) {
       symbol = pSymbol;
     }
-    
+
     public String operatorSymbol() {
       return symbol;
     }
@@ -62,7 +62,7 @@ public class Predicate {
 
   public Predicate negate() {
     Comparison lComparison = null;
-    
+
     switch (mComparison) {
     case GREATER_OR_EQUAL:
       lComparison = Comparison.LESS;
@@ -83,12 +83,12 @@ public class Predicate {
       lComparison = Comparison.EQUAL;
       break;
     default:
-      throw new AssertionError();  
+      throw new AssertionError();
     }
-    
+
     return new Predicate(mLeftTerm, lComparison, mRightTerm);
   }
-  
+
   public Comparison getComparison() {
     return mComparison;
   }

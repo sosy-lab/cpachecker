@@ -50,7 +50,7 @@ import com.google.common.collect.Iterators;
 public final class AbstractElements {
 
   private AbstractElements() { }
-  
+
   /**
    * Retrieve one of the wrapped abstract elements by type. If the hierarchy of
    * (wrapped) abstract elements has several levels, this method searches through
@@ -67,11 +67,11 @@ public final class AbstractElements {
   public static <T extends AbstractElement> T extractElementByType(AbstractElement pElement, Class<T> pType) {
     if (pType.isInstance(pElement)) {
       return pType.cast(pElement);
-    
+
     } else if (pElement instanceof AbstractSingleWrapperElement) {
       AbstractElement wrapped = ((AbstractSingleWrapperElement)pElement).getWrappedElement();
       return extractElementByType(wrapped, pType);
-    
+
     } else if (pElement instanceof AbstractWrapperElement) {
       for (AbstractElement wrapped : ((AbstractWrapperElement)pElement).getWrappedElements()) {
         T result = extractElementByType(wrapped, pType);
@@ -83,39 +83,39 @@ public final class AbstractElements {
 
     return null;
   }
-  
+
   public static CFANode extractLocation(AbstractElement pElement) {
     AbstractElementWithLocation e = extractElementByType(pElement, AbstractElementWithLocation.class);
     return e == null ? null : e.getLocationNode();
   }
-  
+
   public static final Function<AbstractElement, CFANode> EXTRACT_LOCATION = new Function<AbstractElement, CFANode>() {
     @Override
     public CFANode apply(AbstractElement pArg0) {
       return extractLocation(pArg0);
     }
-  }; 
-  
+  };
+
   public static Iterable<CFANode> extractLocations(Iterable<? extends AbstractElement> pElements) {
     if (pElements instanceof LocationMappedReachedSet) {
       return ((LocationMappedReachedSet)pElements).getLocations();
     }
-    
+
     return filter(transform(pElements, EXTRACT_LOCATION),
                   Predicates.notNull());
   }
-  
+
   public static Iterable<AbstractElement> filterLocation(Iterable<AbstractElement> pElements, CFANode pLoc) {
     if (pElements instanceof LocationMappedReachedSet) {
       // only do this for LocationMappedReachedSet, not for all ReachedSet,
       // because this method is imprecise for the rest
       return ((LocationMappedReachedSet)pElements).getReached(pLoc);
     }
-    
+
     return filter(pElements, Predicates.compose(Predicates.equalTo(pLoc),
                                                 EXTRACT_LOCATION));
   }
-  
+
   public static boolean isTargetElement(AbstractElement e) {
     return (e instanceof Targetable) && ((Targetable)e).isTarget();
   }
@@ -130,13 +130,13 @@ public final class AbstractElements {
   public static <T extends AbstractElement> Iterable<T> filterTargetElements(Iterable<T> pElements) {
     return filter(pElements, IS_TARGET_ELEMENT);
   }
-  
+
   /**
    * Function object for {@link #extractElementByType(AbstractElement, Class)}.
    */
   public static <T extends AbstractElement>
                 Function<AbstractElement, T> extractElementByTypeFunction(final Class<T> pType) {
-    
+
     return new Function<AbstractElement, T>() {
       @Override
       public T apply(AbstractElement ae) {
@@ -144,25 +144,25 @@ public final class AbstractElements {
       }
     };
   }
-  
+
   /**
    * Creates an iterable that enumerates all the AbstractElements contained in
    * a single element, including the root element itself.
    * The tree of elements is traversed in pre-order.
    */
   public static Iterable<AbstractElement> asIterable(final AbstractElement ae) {
-    
+
     return new Iterable<AbstractElement>() {
       @Override
       public Iterator<AbstractElement> iterator() {
-        
+
         return new Iterator<AbstractElement>() {
 
           private final Deque<Iterator<? extends AbstractElement>> stack = new ArrayDeque<Iterator<? extends AbstractElement>>();
           {
             stack.push(Iterators.singletonIterator(ae));
           }
-          
+
           @Override
           public boolean hasNext() {
             return !stack.isEmpty();
@@ -173,7 +173,7 @@ public final class AbstractElements {
             Iterator<? extends AbstractElement> currentIterator = stack.peek();
             Preconditions.checkState(currentIterator.hasNext());
             AbstractElement current = currentIterator.next();
-            
+
             if (!currentIterator.hasNext()) {
               stack.pop();
             }
@@ -181,11 +181,11 @@ public final class AbstractElements {
             if (current instanceof AbstractSingleWrapperElement) {
               AbstractElement wrapped = ((AbstractSingleWrapperElement)current).getWrappedElement();
               stack.push(Iterators.singletonIterator(wrapped));
-            
+
             } else if (current instanceof AbstractWrapperElement) {
               stack.push(((AbstractWrapperElement)current).getWrappedElements().iterator());
             }
-            
+
             return current;
           }
 
@@ -195,9 +195,9 @@ public final class AbstractElements {
           }
         };
       }
-    };    
+    };
   }
-  
+
   private static final Function<AbstractElement, Iterable<AbstractElement>> AS_ITERABLE
     = new Function<AbstractElement, Iterable<AbstractElement>>() {
       @Override
@@ -205,7 +205,7 @@ public final class AbstractElements {
         return asIterable(pElement);
       }
     };
-  
+
   public static Iterable<AbstractElement> asIterable(final Iterable<AbstractElement> pElements) {
     return Iterables.concat(transform(pElements, AS_ITERABLE));
   }

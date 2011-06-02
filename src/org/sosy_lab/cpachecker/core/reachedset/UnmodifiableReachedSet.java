@@ -44,7 +44,7 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractElement> {
   public Iterator<AbstractElement> iterator();
 
   public Collection<Pair<AbstractElement, Precision>> getReachedWithPrecision();
-  
+
   public Collection<Precision> getPrecisions();
 
   /**

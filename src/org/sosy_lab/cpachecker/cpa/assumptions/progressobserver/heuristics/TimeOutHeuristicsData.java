@@ -79,5 +79,5 @@ public class TimeOutHeuristicsData implements StopHeuristicsData {
   public long getThreshold() {
     return threshold;
   }
-  
+
 }

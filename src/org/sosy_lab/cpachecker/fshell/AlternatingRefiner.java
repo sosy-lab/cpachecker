@@ -51,10 +51,10 @@ import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 public class AlternatingRefiner implements Refiner {
 
   private final PredicateRefiner mPredicateRefiner;
-  
+
   private final Configuration mConfiguration;
   private final LogManager mLogManager;
-  
+
   private final GuardedEdgeAutomatonCPA mCoverAutomatonCPA;
   private final GuardedEdgeAutomatonCPA mPassingAutomatonCPA;
   private final ProductAutomatonCPA mProductAutomatonCPA;
@@ -63,15 +63,15 @@ public class AlternatingRefiner implements Refiner {
   private final AssumeCPA mAssumeCPA;
   private final CFAPathCPA mCFAPathCPA;
   private final ARTCPA mARTCPA;
-  
+
   private final CFAFunctionDefinitionNode mEntryNode;
   private final CFANode mEndNode;
-  
+
   private TestCase mCoveringTestCase = null;
   // set of non-covering test cases
   private Set<TestCase> mIntermediateTestSuite;
   private CFAEdge[] mExecutionPath = null;
-  
+
   public AlternatingRefiner(GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, LocationCPA pLocationCPA, CallstackCPA pCallStackCPA, AssumeCPA pAssumeCPA, CFAPathCPA pCFAPathCPA, ARTCPA pARTCPA, CFAFunctionDefinitionNode pEntryNode, CFANode pEndNode, PredicateRefiner pPredicateRefiner, Configuration pConfiguration, LogManager pLogManager) {
     mCoverAutomatonCPA = pCoverAutomatonCPA;
     mPassingAutomatonCPA = pPassingAutomatonCPA;
@@ -80,98 +80,98 @@ public class AlternatingRefiner implements Refiner {
     mAssumeCPA = pAssumeCPA;
     mCFAPathCPA = pCFAPathCPA;
     mARTCPA = pARTCPA;
-    
+
     mPredicateRefiner = pPredicateRefiner;
-    
+
     mConfiguration = pConfiguration;
     mLogManager = pLogManager;
-    
+
     mEntryNode = pEntryNode;
     mEndNode = pEndNode;
-    
+
     // create product automaton CPA
     List<ConfigurableProgramAnalysis> lAutomatonCPAs = new ArrayList<ConfigurableProgramAnalysis>(2);
-    
+
     // test goal automata CPAs
     if (mPassingAutomatonCPA != null) {
       lAutomatonCPAs.add(mPassingAutomatonCPA);
     }
-    
+
     lAutomatonCPAs.add(mCoverAutomatonCPA);
-    
+
     mProductAutomatonCPA = ProductAutomatonCPA.create(lAutomatonCPAs, false);
-    
-    
+
+
     mIntermediateTestSuite = new HashSet<TestCase>();
   }
-  
+
   public boolean hasCoveringTestCase() {
     return (mCoveringTestCase != null);
   }
-  
+
   public TestCase getCoveringTestCase() {
     return mCoveringTestCase;
   }
-  
+
   public CFAEdge[] getExecutionPath() {
     return mExecutionPath;
   }
-  
+
   public Set<TestCase> getIntermediateTestSuite() {
     return mIntermediateTestSuite;
   }
-  
+
   @Override
   public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
-    
+
     if (mPredicateRefiner.performRefinement(pReached)) {
-      // symbolic path is infeasible, we continue symbolic 
+      // symbolic path is infeasible, we continue symbolic
       // exploration after the refinement
-      
+
       return true;
     }
-    
+
     // symbolic path is feasible
-    
+
     CounterexampleTraceInfo lTraceInfo = mPredicateRefiner.getCounterexampleTraceInfo();
-    
+
     if (lTraceInfo == null || lTraceInfo.isSpurious()) {
       throw new RuntimeException();
     }
-    
+
     // construct (partial) test case
     TestCase lTestCase = TestCase.fromCounterexample(lTraceInfo, mLogManager);
-    
+
     if (!lTestCase.isPrecise()) {
       // test case is imprecise
       // TODO implement proper logging mechanism
       System.err.println("TEST CASE IS IMPRECISE!");
     }
-    
-    
+
+
     // reconstruct path
-    
+
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
     lComponentAnalyses.add(mLocationCPA);
-    
+
     // call stack CPA
     lComponentAnalyses.add(mCallStackCPA);
-    
+
     InterpreterCPA lInterpreterCPA = new InterpreterCPA(lTestCase.getInputs(), true);
     int lInterpreterCPAIndex = lComponentAnalyses.size();
     lComponentAnalyses.add(lInterpreterCPA);
 
     int lProductAutomatonCPAIndex = lComponentAnalyses.size();
     lComponentAnalyses.add(mProductAutomatonCPA);
-    
+
     // CFA path CPA
     int lCFAPathCPAIndex = lComponentAnalyses.size();
     lComponentAnalyses.add(mCFAPathCPA);
-    
+
     // assume CPA
     lComponentAnalyses.add(mAssumeCPA);
-    
-    
+
+
     CPAFactory lCPAFactory = CompositeCPA.factory();
     lCPAFactory.setChildren(lComponentAnalyses);
     lCPAFactory.setConfiguration(mConfiguration);
@@ -182,7 +182,7 @@ public class AlternatingRefiner implements Refiner {
     } catch (InvalidConfigurationException e1) {
       throw new RuntimeException(e1);
     }
-    
+
     CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, mLogManager);
 
     AbstractElement lInitialElement = lCPA.getInitialElement(mEntryNode);
@@ -192,7 +192,7 @@ public class AlternatingRefiner implements Refiner {
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     boolean lMissesInput = false;
-    
+
     try {
       lAlgorithm.run(lReachedSet);
     } catch (MissingInputException e) {
@@ -201,30 +201,30 @@ public class AlternatingRefiner implements Refiner {
     } catch (CPAException e) {
       throw new RuntimeException(e);
     }
-    
+
     CompositeElement lEndNode = (CompositeElement)lReachedSet.getLastElement();
-    
+
     // TODO generalize index position of Location CPA (new variable)
     if (!lMissesInput && lEndNode != null) {
       if (((LocationElement)lEndNode.get(0)).getLocationNode().equals(mEndNode)) {
         if (((ProductAutomatonElement)lEndNode.get(lProductAutomatonCPAIndex)).isFinalState()) {
           InterpreterElement lInterpreterElement = (InterpreterElement)lEndNode.get(lInterpreterCPAIndex);
-          
-          // get inputs 
-          
+
+          // get inputs
+
           int[] lInputs = lInterpreterElement.getInputs();
-          
+
           if (lTestCase.getInputs() == lInputs) {
             mCoveringTestCase = lTestCase;
           }
           else {
             mCoveringTestCase = new PreciseInputsTestCase(lInputs);
           }
-          
+
           CFAPathStandardElement lPathElement = (CFAPathStandardElement)lEndNode.get(lCFAPathCPAIndex);
-          
+
           mExecutionPath = lPathElement.toArray();
-          
+
           // no refinement necessary, since test case covers
           return false;
         }
@@ -234,27 +234,27 @@ public class AlternatingRefiner implements Refiner {
       }
       else {
       /*  // reconstruct CFA path without automata
-        
+
         LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses_b = new LinkedList<ConfigurableProgramAnalysis>();
         lComponentAnalyses_b.add(mLocationCPA);
-        
+
         // call stack CPA
         lComponentAnalyses_b.add(mCallStackCPA);
-        
+
         // a) test goal is satisfied, i.e., product automaton accepts program execution
-        
+
         InterpreterCPA lInterpreterCPA = new InterpreterCPA(lTestCase.getInputs(), true);
         int lInterpreterCPAIndex = lComponentAnalyses.size();
         lComponentAnalyses.add(lInterpreterCPA);
-        
+
         // CFA path CPA
         int lCFAPathCPAIndex = lComponentAnalyses.size();
         lComponentAnalyses.add(mCFAPathCPA);
-        
+
         // assume CPA
         lComponentAnalyses.add(mAssumeCPA);
-        
-        
+
+
         CPAFactory lCPAFactory = CompositeCPA.factory();
         lCPAFactory.setChildren(lComponentAnalyses);
         lCPAFactory.setConfiguration(mConfiguration);
@@ -265,7 +265,7 @@ public class AlternatingRefiner implements Refiner {
         } catch (InvalidConfigurationException e1) {
           throw new RuntimeException(e1);
         }
-        
+
         CPAAlgorithm lAlgorithm = new CPAAlgorithm(lCPA, mLogManager);
 
         AbstractElement lInitialElement = lCPA.getInitialElement(mEntryNode);
@@ -279,74 +279,74 @@ public class AlternatingRefiner implements Refiner {
         } catch (CPAException e) {
           throw new RuntimeException(e);
         }
-        
+
         CompositeElement lEndNode = (CompositeElement)lReachedSet.getLastElement();*/
       }
     }
-    
-    
+
+
     // test case does not cover
-    
+
     mIntermediateTestSuite.add(lTestCase);
-    
+
     /* refine precision in ART; CAUTION use ART indices!!! */
-    
+
     AbstractElement lLastElement = pReached.getLastElement();
-    
+
     CompositePrecision lPrecision = (CompositePrecision)pReached.getPrecision(lLastElement);
-    
+
     ARTElement lLastARTElement = (ARTElement)lLastElement;
-    
+
     CompositeElement lWrappedElement = (CompositeElement)lLastARTElement.getWrappedElement();
-    
+
     // TODO generalize index
     CompositePrecision lProductAutomatonPrecision = (CompositePrecision)lPrecision.get(2);
-    
+
     // TODO generalize to other indices
     ProgressPrecision lProgressPrecision = (ProgressPrecision)lProductAutomatonPrecision.get(0);
-    
+
     Map<ARTElement, Precision> lRemoveElements = new HashMap<ARTElement, Precision>();
-    
+
     for (ARTElement lParent : lLastARTElement.getParents()) {
       CompositePrecision lParentPrecision = (CompositePrecision)pReached.getPrecision(lParent);
-      
+
       CompositePrecision lAutomatonPrecision = (CompositePrecision)lParentPrecision.get(2);
-      
+
       List<Precision> lNewPrecisions = new ArrayList<Precision>(lProductAutomatonPrecision.getPrecisions().size());
-      
+
       // TODO generalize to all indices
       lNewPrecisions.add(lProgressPrecision);
-      
+
       for (int lIndex = 1; lIndex < lProductAutomatonPrecision.getPrecisions().size(); lIndex++) {
         lNewPrecisions.add(lAutomatonPrecision.get(lIndex));
       }
-      
+
       CompositePrecision lNewAutomatonPrecision = new CompositePrecision(lNewPrecisions);
-      
+
       List<Precision> lNewPrecisions2 = new ArrayList<Precision>(lParentPrecision.getPrecisions().size());
-      
+
       for (int lIndex = 0; lIndex < 2; lIndex++) {
         lNewPrecisions2.add(lParentPrecision.get(lIndex));
       }
-      
+
       lNewPrecisions2.add(lNewAutomatonPrecision);
-      
+
       for (int lIndex = 2 + 1; lIndex < lWrappedElement.getNumberofElements(); lIndex++) {
         lNewPrecisions2.add(lParentPrecision.get(lIndex));
       }
-      
+
       CompositePrecision lNewPrecision = new CompositePrecision(lNewPrecisions2);
-      
+
       lRemoveElements.put(lParent, lNewPrecision);
     }
-    
+
     ARTReachedSet lARTReached = new ARTReachedSet(pReached, mARTCPA);
-    
+
     for (Map.Entry<ARTElement, Precision> lEntry : lRemoveElements.entrySet()) {
       // TODO parents wieder zur Waitlist hinzufuegen?
       lARTReached.removeSubtree(lEntry.getKey(), lEntry.getValue());
     }
-    
+
     // continue with symbolic exploration
     return true;
   }

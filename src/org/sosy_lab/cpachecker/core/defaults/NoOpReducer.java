@@ -9,11 +9,11 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 public class NoOpReducer implements Reducer {
 
   private static final NoOpReducer instance = new NoOpReducer();
-  
+
   public static Reducer getInstance() {
     return instance;
   }
-  
+
   @Override
   public AbstractElement getVariableReducedElement(AbstractElement pExpandedElement, Block pContext, CFANode pCallNode) {
     return pExpandedElement;

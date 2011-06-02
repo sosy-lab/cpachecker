@@ -16,11 +16,11 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   private final List<Algorithm> algorithms;
   private Algorithm currentAlgorithm;
-  
+
   public RestartAlgorithm(List<Algorithm> algorithms, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
     this.algorithms = algorithms;
   }
-  
+
   @Override
   public ConfigurableProgramAnalysis getCPA() {
     return currentAlgorithm.getCPA();
@@ -31,25 +31,25 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       InterruptedException {
 
     boolean sound = true;
-    
+
     int idx = 0;
-    
+
     boolean continueAnalysis;
     do {
       continueAnalysis = false;
 
       currentAlgorithm = algorithms.get(idx++);
-      
+
       // run algorithm
       sound &= currentAlgorithm.run(reached);
 
       if(!sound){
         // TODO we need to create a new reached set here
         // or modify the reached set
-                
+
         continueAnalysis = true;
       }
-      
+
     } while (continueAnalysis);
 
     return sound;

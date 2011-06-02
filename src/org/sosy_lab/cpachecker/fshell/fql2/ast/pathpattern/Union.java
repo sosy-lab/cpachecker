@@ -49,23 +49,23 @@ public class Union implements PathPattern {
   @Override
   public String toString() {
     String lFirstSubpatternString;
-    
+
     if (mFirstSubpattern instanceof Concatenation || mFirstSubpattern instanceof Union) {
       lFirstSubpatternString = "(" + mFirstSubpattern.toString() + ")";
     }
     else {
       lFirstSubpatternString = mFirstSubpattern.toString();
     }
-    
+
     String lSecondSubpatternString;
-    
+
     if (mSecondSubpattern instanceof Concatenation || mSecondSubpattern instanceof Union) {
       lSecondSubpatternString = "(" + mSecondSubpattern.toString() + ")";
     }
     else {
       lSecondSubpatternString = mSecondSubpattern.toString();
     }
-    
+
     return lFirstSubpatternString + " + " + lSecondSubpatternString;
   }
 

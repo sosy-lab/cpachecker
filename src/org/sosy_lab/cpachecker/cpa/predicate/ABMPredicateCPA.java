@@ -22,38 +22,38 @@ import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicat
  */
 @Options(prefix="cpa.predicate.abm")
 public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgramAnalysisWithABM {
-  
+
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ABMPredicateCPA.class);
   }
-  
+
   private final RelevantPredicatesComputer relevantPredicatesComputer;
   private final ABMPredicateReducer reducer;
   private final ABMPredicateTransferRelation transfer;
 
   @Option(description="whether to use auxiliary predidates for reduction")
   private boolean auxiliaryPredicateComputer = true;
-   
+
   private ABMPredicateCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     super(config, logger);
-    
+
     config.inject(this, ABMPredicateCPA.class);
-    
+
     if (auxiliaryPredicateComputer) {
       relevantPredicatesComputer = new CachingRelevantPredicatesComputer(new AuxiliaryComputer());
     } else {
-      relevantPredicatesComputer = new CachingRelevantPredicatesComputer(new OccurrenceComputer()); 
+      relevantPredicatesComputer = new CachingRelevantPredicatesComputer(new OccurrenceComputer());
     }
-    
+
     reducer = new ABMPredicateReducer(this);
     transfer = new ABMPredicateTransferRelation(this);
   }
-  
+
   @Override
   protected PredicateCPAStatistics createStatistics() throws InvalidConfigurationException {
     return new ABMPredicateCPAStatistics(this);
   }
-  
+
   @Override
   protected Configuration getConfiguration() {
     return super.getConfiguration();
@@ -63,12 +63,12 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
   public LogManager getLogger() {
     return super.getLogger();
   }
-  
+
   @Override
   public Reducer getReducer() {
     return reducer;
-  } 
-  
+  }
+
   public RelevantPredicatesComputer getRelevantPredicatesComputer() {
     return relevantPredicatesComputer;
   }

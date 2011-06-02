@@ -38,7 +38,7 @@ import com.google.common.collect.Iterators;
 public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
 
   private final UnmodifiableReachedSet delegate;
-  
+
   public UnmodifiableReachedSetWrapper(UnmodifiableReachedSet pDelegate) {
     delegate = pDelegate;
   }

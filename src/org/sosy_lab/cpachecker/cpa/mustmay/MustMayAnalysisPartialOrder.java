@@ -59,8 +59,8 @@ public class MustMayAnalysisPartialOrder {
     } else {
       mustSatisfies = mMustDomain.isLessOrEqual(lElement1.getMustElement(), lElement2.getMustElement());
     }
-    
-    boolean maySatisfies = mMayDomain.isLessOrEqual(lElement1.getMayElement(), lElement2.getMayElement()); 
+
+    boolean maySatisfies = mMayDomain.isLessOrEqual(lElement1.getMayElement(), lElement2.getMayElement());
     return (mustSatisfies && maySatisfies);
   }
 

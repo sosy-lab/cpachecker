@@ -119,18 +119,18 @@ public class Tester {
 //    ow.J_print(oct1);
 //    System.out.println("===================");
 //    long oct2 = ow.J_full_copy(oct1);
-    
+
 //    ow.J_num_set_int(array, 0, 0);
 //    ow.J_num_set_int(array, 1, 0);
 //    ow.J_num_set_int(array, 2, 4);
 //    ow.J_assingVar(oct1, 1, array, true);
-    
+
 //    System.out.println("oct1 >> " + oct1);
 //    ow.J_print(oct1);
 //    System.out.println("..............................");
 //    System.out.println("oct2 >> " + oct2);
 //    ow.J_print(oct2);
-    
+
 //    System.out.println("oct2 >> " + oct2);
 //    ow.J_print(oct2);
 //	  long oct = ow.J_intersection(oct1, oct2, false);
@@ -142,9 +142,9 @@ public class Tester {
 //    ow.J_print(oct2);
 //	  System.out.println("oct >> " + oct);
 //	  ow.J_print(oct);
-	  
-	  
-	  
+
+
+
 //		OctElement octelem = new OctElement();
 //		octelem.addVar("a", "main");
 //		octelem.addVar("b", "main");

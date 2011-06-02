@@ -140,7 +140,7 @@ public class CPASelfCheck {
 "  return (a);\n" +
 "}\n"
     		;
-    
+
     CParser parser = CParser.Factory.getParser(logManager, CParser.Dialect.C99);
     Map<String, CFAFunctionDefinitionNode> cfas
       = parser.parseString(code).getFunctions();
@@ -221,17 +221,17 @@ public class CPASelfCheck {
     List<Class<ConfigurableProgramAnalysis>> cpas = new ArrayList<Class<ConfigurableProgramAnalysis>>();
 
     Class<ConfigurableProgramAnalysis> targetType = null;
-    
+
     for (Class<?> candidate : cpaCandidates) {
       if (   !Modifier.isAbstract(candidate.getModifiers())
           && !Modifier.isInterface(candidate.getModifiers())
           && ConfigurableProgramAnalysis.class.isAssignableFrom(candidate)) {
-       
+
         // candidate is non-abstract implementation of CPA interface
         cpas.add(uncheckedGenericCast(candidate, targetType));
       }
     }
-    
+
     return cpas;
   }
 
@@ -239,7 +239,7 @@ public class CPASelfCheck {
   private static <T> Class<T> uncheckedGenericCast(Class<?> classObj, Class<T> targetType) {
     return (Class<T>)classObj;
   }
-  
+
   /**
    * Scans all classes accessible from the context class loader which belong to the given package and subpackages.
    *
@@ -255,7 +255,7 @@ public class CPASelfCheck {
     assert classLoader != null;
     String path = packageName.replace('.', '/');
     Enumeration<URL> resources = classLoader.getResources(path);
-    
+
     ArrayList<Class<?>> classes = new ArrayList<Class<?>>();
     while (resources.hasMoreElements()) {
       URL resource = resources.nextElement();

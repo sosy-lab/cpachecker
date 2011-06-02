@@ -67,7 +67,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   @Option(name="dotExport",
       description="export automaton to file")
   private boolean export = false;
-  
+
   @Option(name="dotExportFile", type=Option.Type.OUTPUT_FILE,
       description="file for saving the automaton in DOT format")
   private File exportFile = new File("automaton.dot");
@@ -79,7 +79,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   @Option(required=false, type=Option.Type.OPTIONAL_INPUT_FILE,
       description="file with automaton specification for ObserverAutomatonCPA and ControlAutomatonCPA")
   private File inputFile = null;
-  
+
   @Option(description="signal the analysis to break in case of reached error state")
   private boolean breakOnTargetState = true;
 
@@ -95,16 +95,16 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
   protected ControlAutomatonCPA(@Optional Automaton pAutomaton, Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, ControlAutomatonCPA.class);
-    
+
     transferRelation = new AutomatonTransferRelation(this, logger);
     precisionAdjustment = breakOnTargetState ? new AutomatonPrecisionAdjustment() : StaticPrecisionAdjustment.getInstance();
-  
+
     if (pAutomaton != null) {
       this.automaton = pAutomaton;
-    
+
     } else if (inputFile == null) {
       throw new InvalidConfigurationException("Explicitly specified automaton CPA needs option cpa.automaton.inputFile!");
-    
+
     } else {
       List<Automaton> lst = AutomatonParser.parseAutomatonFile(inputFile, config, logger);
       if (lst.isEmpty()) {
@@ -112,11 +112,11 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
       } else if (lst.size() > 1) {
         throw new InvalidConfigurationException("Found " + lst.size() + " automata in the File " + inputFile.getAbsolutePath() + " The CPA can only handle ONE Automaton!");
       }
-      
+
       this.automaton = lst.get(0);
     }
     logger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
-    
+
     if (export && exportFile != null) {
       try {
         this.automaton.writeDotFile(new PrintStream(exportFile));
@@ -169,7 +169,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   public Reducer getReducer() {
     return NoOpReducer.getInstance();
   }
-  
+
   public AutomatonState getBottomState() {
     return this.bottomState;
   }
@@ -177,7 +177,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   public AutomatonState getTopState() {
     return this.topState;
   }
-  
+
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);

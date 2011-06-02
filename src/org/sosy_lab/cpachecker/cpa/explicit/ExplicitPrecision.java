@@ -10,7 +10,7 @@ public class ExplicitPrecision implements Precision {
   public ExplicitPrecision(String variableBlacklist) {
     blackListPattern = Pattern.compile(variableBlacklist);
   }
-  
+
   boolean isOnBlacklist(String variable) {
     return this.blackListPattern.matcher(variable).matches();
   }

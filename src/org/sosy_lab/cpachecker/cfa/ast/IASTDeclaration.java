@@ -28,7 +28,7 @@ import static com.google.common.base.Preconditions.*;
 /**
  * This class represents declaration of types and variables. It contains a
  * storage class, a type, a name and an initializer.
- * 
+ *
  * If the storage class is TYPEDEF, then the given name is aliased to the
  * given type (as typedef does in C).
  * Otherwise the name may be null, then it is a struct prototype.
@@ -39,7 +39,7 @@ public final class IASTDeclaration extends IASTSimpleDeclaration {
   private final boolean               isGlobal;
   private final StorageClass          storageClass;
   private final IASTInitializer       initializer;
-  
+
   public IASTDeclaration(String pRawSignature,
       IASTFileLocation pFileLocation,
       boolean pIsGlobal,
@@ -50,7 +50,7 @@ public final class IASTDeclaration extends IASTSimpleDeclaration {
     isGlobal = pIsGlobal;
     storageClass = checkNotNull(pStorageClass);
     initializer = pInitializer;
-    
+
     checkArgument(!(storageClass == StorageClass.TYPEDEF && getName() == null), "Typedefs require a name");
     checkArgument(!(storageClass == StorageClass.EXTERN && initializer != null), "Extern declarations cannot have an initializer");
   }
@@ -58,7 +58,7 @@ public final class IASTDeclaration extends IASTSimpleDeclaration {
   public boolean isGlobal() {
     return isGlobal;
   }
-  
+
   public StorageClass getStorageClass() {
     return storageClass;
   }

@@ -39,7 +39,7 @@ public class DefUseElement implements AbstractElement, Iterable<DefUseDefinition
     {
       this.definitions = ImmutableSet.copyOf(definitions);
     }
-    
+
     public DefUseElement(DefUseElement definitions, DefUseDefinition newDefinition) {
       ImmutableSet.Builder<DefUseDefinition> builder = ImmutableSet.builder();
       builder.add(newDefinition);
@@ -56,7 +56,7 @@ public class DefUseElement implements AbstractElement, Iterable<DefUseDefinition
     {
         return definitions.iterator ();
     }
-    
+
     public boolean containsAllOf(DefUseElement other) {
       return definitions.containsAll(other.definitions);
     }
@@ -73,7 +73,7 @@ public class DefUseElement implements AbstractElement, Iterable<DefUseDefinition
         DefUseElement otherDefUse = (DefUseElement) other;
         return otherDefUse.definitions.equals(this.definitions);
     }
-    
+
     @Override
     public int hashCode() {
       return definitions.hashCode();

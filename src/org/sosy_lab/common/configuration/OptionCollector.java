@@ -389,17 +389,17 @@ public class OptionCollector {
         if (defaultValue.startsWith("new File(")) {
           defaultValue = defaultValue.substring("new File(".length(), defaultValue.length() - 1);
         }
-        
+
         if (defaultValue.startsWith("ImmutableSet.of(")) {
           defaultValue = "{" + defaultValue.substring(
               "ImmutableSet.of(".length(), defaultValue.length() - 1) + "}";
         }
       }
     } else {
-      
+
       // special handling for generics
       final String stringSetFieldString = fieldString.replace(" Set ", " Set<String> ");
-      if (content.contains(stringSetFieldString)) { 
+      if (content.contains(stringSetFieldString)) {
         return getDefaultValueFromContent(content, stringSetFieldString);
       }
       // TODO: other types of generics?
@@ -504,9 +504,9 @@ public class OptionCollector {
               classes.add(foundClass);
             }
           } catch (ClassNotFoundException e) {
-            // ignore, there is no class available for this file} 
+            // ignore, there is no class available for this file}
           } catch (UnsatisfiedLinkError e) {
-            // if classpath is not set manually in Eclipse, 
+            // if classpath is not set manually in Eclipse,
             // OctWrapper throws this error,
             // running cpa.sh in terminal does not throw this error
             errorMessages.add("INFO: Could not load '" + fileName

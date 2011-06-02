@@ -78,7 +78,7 @@ public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurablePro
   public PrecisionAdjustment getPrecisionAdjustment () {
     return StaticPrecisionAdjustment.getInstance();
   }
-  
+
   @Override
   public Reducer getReducer() {
     return NoOpReducer.getInstance();

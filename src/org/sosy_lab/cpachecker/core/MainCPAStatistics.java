@@ -60,21 +60,21 @@ import com.google.common.collect.Iterables;
 
 @Options
 class MainCPAStatistics implements Statistics {
-  
+
   private static class MemoryStatistics extends Thread {
-    
+
     private static final long MEMORY_CHECK_INTERVAL = 100; // milliseconds
-    
+
     private long maxHeap = 0;
     private long sumHeap = 0;
     private long maxNonHeap = 0;
     private long sumNonHeap = 0;
     private long count = 0;
-    
+
     private MemoryStatistics() {
       super("CPAchecker memory statistics collector");
     }
-    
+
     @Override
     public void run() {
       MemoryMXBean mxBean = ManagementFactory.getMemoryMXBean();
@@ -83,11 +83,11 @@ class MainCPAStatistics implements Statistics {
         long currentHeapUsed = mxBean.getHeapMemoryUsage().getUsed();
         maxHeap = Math.max(maxHeap, currentHeapUsed);
         sumHeap += currentHeapUsed;
-        
+
         long currentNonHeapUsed = mxBean.getNonHeapMemoryUsage().getUsed();
         maxNonHeap = Math.max(maxNonHeap, currentNonHeapUsed);
         sumNonHeap += currentNonHeapUsed;
-        
+
         try {
           sleep(MEMORY_CHECK_INTERVAL);
         } catch (InterruptedException e) {
@@ -95,17 +95,17 @@ class MainCPAStatistics implements Statistics {
         }
       }
     }
-    
+
   }
 
-    @Option(name="reachedSet.export", 
+    @Option(name="reachedSet.export",
         description="print reached set to text file")
     private boolean exportReachedSet = true;
 
     @Option(name="reachedSet.file", type=Option.Type.OUTPUT_FILE,
         description="print reached set to text file")
     private File outputFile = new File("reached.txt");
-    
+
     @Option(name="statistics.memory",
       description="track memory usage of JVM during runtime")
     private boolean monitorMemoryUsage = true;
@@ -113,7 +113,7 @@ class MainCPAStatistics implements Statistics {
     private final LogManager logger;
     private final Collection<Statistics> subStats;
     private final MemoryStatistics memStats;
-    
+
     final Timer programTime = new Timer();
     final Timer creationTime = new Timer();
     final Timer analysisTime = new Timer();
@@ -125,7 +125,7 @@ class MainCPAStatistics implements Statistics {
 
         this.logger = logger;
         subStats = new ArrayList<Statistics>();
-        
+
         if (monitorMemoryUsage) {
           memStats = new MemoryStatistics();
           memStats.setDaemon(true);
@@ -133,7 +133,7 @@ class MainCPAStatistics implements Statistics {
         } else {
           memStats = null;
         }
-        
+
         programTime.start();
     }
 
@@ -180,7 +180,7 @@ class MainCPAStatistics implements Statistics {
 
         Set<CFANode> allLocations = ImmutableSet.copyOf(AbstractElements.extractLocations(reached));
         Iterable<AbstractElement> allTargetElements = AbstractElements.filterTargetElements(reached);
-        
+
         out.println("\nCPAchecker general statistics");
         out.println("-----------------------------");
         out.println("Size of reached set:          " + reached.size());
@@ -207,7 +207,7 @@ class MainCPAStatistics implements Statistics {
         }
         out.println("Time for Analysis:            " + analysisTime);
         out.println("Total time for CPAchecker:    " + programTime);
-        
+
         out.println("");
         List<GarbageCollectorMXBean> gcBeans = ManagementFactory.getGarbageCollectorMXBeans();
         Set<String> gcNames = new HashSet<String>();
@@ -220,7 +220,7 @@ class MainCPAStatistics implements Statistics {
         }
         out.println("Time for Garbage Collector:   " + Timer.formatTime(gcTime) + " (in " + gcCount + " runs)");
         out.println("Garbage Collector(s) used:    " + Joiner.on(", ").join(gcNames));
-        
+
         if (memStats != null) {
           try {
             memStats.join(); // thread should have terminated already,
@@ -231,7 +231,7 @@ class MainCPAStatistics implements Statistics {
           out.println("Heap memory usage:            " + formatMem(memStats.maxHeap) + " max (" + formatMem(memStats.sumHeap/memStats.count) + " avg)");
           out.println("Non-Heap memory usage:        " + formatMem(memStats.maxNonHeap) + " max (" + formatMem(memStats.sumNonHeap/memStats.count) + " avg)");
         }
-          
+
         out.println("");
         out.print("Given specification violated? ");
         switch (result) {
@@ -253,7 +253,7 @@ class MainCPAStatistics implements Statistics {
         }
         out.flush();
     }
-    
+
     private static String formatMem(long mem) {
       return String.format("%,9dMB", mem >> 20);
     }

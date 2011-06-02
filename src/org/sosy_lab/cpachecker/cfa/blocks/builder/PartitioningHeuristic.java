@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.util.CFA;
  */
 public abstract class PartitioningHeuristic {
   /**
-   * Creates a <code>BlockPartitioning</code> using the represented heuristic.  
+   * Creates a <code>BlockPartitioning</code> using the represented heuristic.
    * @param mainFunction CFANode at which the main-function is defined
    * @return BlockPartitioning
    * @see org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning
@@ -25,24 +25,24 @@ public abstract class PartitioningHeuristic {
   public final BlockPartitioning buildPartitioning(CFANode mainFunction) {
     Set<CFANode> mainFunctionBody = CFA.exploreSubgraph(mainFunction, null);
     BlockPartitioningBuilder builder = new BlockPartitioningBuilder(mainFunctionBody);
-    
+
     //traverse CFG
     Set<CFANode> seen = new HashSet<CFANode>();
     Deque<CFANode> stack = new ArrayDeque<CFANode>();
-    
+
     seen.add(mainFunction);
-    stack.push(mainFunction);    
-   
+    stack.push(mainFunction);
+
     while(!stack.isEmpty()) {
-      CFANode node = stack.pop();    
-      
+      CFANode node = stack.pop();
+
       if(shouldBeCached(node)) {
         Set<CFANode> subtree = getCachedSubtree(node);
         if(subtree != null) {
           builder.addBlock(subtree);
         }
       }
-      
+
       for(int i = 0; i < node.getNumLeavingEdges(); i++) {
         CFANode nextNode = node.getLeavingEdge(i).getSuccessor();
         if(!seen.contains(nextNode)) {
@@ -50,22 +50,22 @@ public abstract class PartitioningHeuristic {
           seen.add(nextNode);
         }
       }
-    }      
-    
+    }
+
     return builder.build();
   }
-  
+
   /**
-   * 
+   *
    * @param pNode
    * @return <code>true</code>, if for the given node a new <code>Block</code> should be created; <code>false</code> otherwise
    */
   protected abstract boolean shouldBeCached(CFANode pNode);
-  
+
   /**
-   * 
+   *
    * @param pNode CFANode that should be cached.
    * @return set of nodes that represent a <code>Block</code>.
    */
-  protected abstract Set<CFANode> getCachedSubtree(CFANode pNode); 
+  protected abstract Set<CFANode> getCachedSubtree(CFANode pNode);
 }

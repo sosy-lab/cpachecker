@@ -43,7 +43,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ABMCPA.class);
   }
-  
+
   private BlockPartitioning blockPartitioning;
 
   private final LogManager logger;
@@ -51,37 +51,37 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   private final ABMTransferRelation transfer;
   private final ABMCPAStatistics stats;
   private final PartitioningHeuristic heuristic;
-  
+
   @Option(description="Type of partitioning (FunctionAndLoopPartitioning or DelayedFunctionAndLoopPartitioning)\n"
   		              + "or any class that implements a PartitioningHeuristic")
-  private String blockHeuristic = "FunctionAndLoopPartitioning";  
+  private String blockHeuristic = "FunctionAndLoopPartitioning";
 
   private static final String PACKAGE_NAME_PREFIX = "org.sosy_lab.cpachecker.cfa.blocks.builder";
-  
+
   private <T> T createInstance(String className, Object[] argumentList, Class<T> type) throws CPAException, InvalidConfigurationException {
     Class<?> argumentTypes[] = {LogManager.class};
-    
+
     try {
       return Classes.createInstance(className, PACKAGE_NAME_PREFIX, argumentTypes, argumentList, type);
-    
+
     } catch (ClassInstantiationException e) {
       throw new InvalidConfigurationException("Invalid block heuristic specified (" + e.getMessage() + ")!");
-  
+
     } catch (InvocationTargetException e) {
       Throwable t = e.getCause();
       Throwables.propagateIfPossible(t, CPAException.class, InvalidConfigurationException.class);
-      
+
       logger.logException(Level.FINE, t, "Unexpected exception during CPA instantiation!");
       throw new CPAException("Unexpected exception " + t.getClass().getSimpleName() + " during CPA instantiation (" + t.getMessage() + ")!");
     }
   }
-  
+
   public ABMCPA(ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger, ReachedSetFactory pReachedSetFactory) throws InvalidConfigurationException, CPAException {
     super(pCpa);
     config.inject(this);
 
     logger = pLogger;
-    
+
     if (!(pCpa instanceof ConfigurableProgramAnalysisWithABM)) {
       throw new InvalidConfigurationException("ABM needs CPAs that are capable for ABM");
     }
@@ -91,11 +91,11 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     }
     reducer = new TimedReducer(wrappedReducer);
     transfer = new ABMTransferRelation(config, logger, this, pReachedSetFactory);
-    
+
     stats = new ABMCPAStatistics(this);
     heuristic = getPartitioningHeuristic();
   }
-  
+
   @Override
   public AbstractElement getInitialElement(CFANode node)  {
     if (blockPartitioning == null) {
@@ -107,36 +107,36 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     }
     return getWrappedCpa().getInitialElement(node);
   }
-  
+
   @Override
   public Precision getInitialPrecision(CFANode pNode) {
     return getWrappedCpa().getInitialPrecision(pNode);
   }
-  
+
   private PartitioningHeuristic getPartitioningHeuristic() throws CPAException, InvalidConfigurationException {
     return createInstance(blockHeuristic, new Object[]{logger}, PartitioningHeuristic.class);
   }
-  
+
   @Override
   public AbstractDomain getAbstractDomain() {
     return getWrappedCpa().getAbstractDomain();
   }
-  
+
   @Override
   public MergeOperator getMergeOperator() {
     return getWrappedCpa().getMergeOperator();
   }
-  
+
   @Override
   public StopOperator getStopOperator() {
     return getWrappedCpa().getStopOperator();
   }
-  
+
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
     return getWrappedCpa().getPrecisionAdjustment();
   }
-  
+
   @Override
   public ABMTransferRelation getTransferRelation() {
     return transfer;
@@ -145,18 +145,18 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   TimedReducer getReducer() {
     return reducer;
   }
-  
+
   public BlockPartitioning getBlockPartitioning() {
     checkState(blockPartitioning != null);
     return blockPartitioning;
   }
-  
+
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
     super.collectStatistics(pStatsCollection);
   }
-  
+
   ABMCPAStatistics getStatistics() {
     return stats;
   }

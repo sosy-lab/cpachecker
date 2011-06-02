@@ -8,5 +8,5 @@ public interface ECPVisitor<T> {
   public T visit(ECPConcatenation pConcatenation);
   public T visit(ECPUnion pUnion);
   public T visit(ECPRepetition pRepetition);
-  
+
 }
