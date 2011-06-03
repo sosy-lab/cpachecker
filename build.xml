@@ -46,9 +46,13 @@
         </javac>
     </target>
 
-    <target name="build-documentation" depends="build-project">
+    <property name="outputfile" value="doc/ConfigurationOptions.txt"/>
+    <uptodate property="documentation.uptodate" targetfile="${outputfile}">
+      <srcfiles dir="src" includes="**/*.java"/>
+    </uptodate>
+
+    <target name="build-documentation" depends="build-project" unless="documentation.uptodate">
         <echo message="running OptionCollector..." level="info"/>
-        <property name="outputfile" value="doc/ConfigurationOptions.txt"/>
 
         <echo output="${outputfile}" append="false" message="# This is an auto-generated file, DO NOT EDIT!${line.separator}# Run ant to generate it.${line.separator}"/>
         <!-- the output of OptionCollector is written into "doc/ConfigurationOptions.txt" -->
