@@ -169,14 +169,12 @@ public class OptionCollector {
               + "\n");
 
           if (!defaultValue.isEmpty()) {
-            optionInfo.append("  default value: " + defaultValue + "\n");
+            optionInfo.append("  default value: " + defaultValue);
           }
         } else {
-          if (!defaultValue.isEmpty()) {
-            optionInfo.append(" = " + defaultValue);
-          }
-          optionInfo.append("\n");
+          optionInfo.append(" = " + defaultValue);
         }
+        optionInfo.append("\n");
         optionInfo.append(getAllowedValues(field, verbose));
 
         // check if a option was found before, some options are used twice
@@ -335,6 +333,9 @@ public class OptionCollector {
       }
     }
 
+    if (defaultValue.equals("null")) {
+      defaultValue = "";
+    }
     return defaultValue;
   }
 
