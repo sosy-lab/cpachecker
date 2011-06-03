@@ -40,7 +40,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.CParser.Dialect;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -111,14 +110,14 @@ public class CFACreator {
   public final Timer pruningTime = new Timer();
   public final Timer exportTime = new Timer();
 
-  public CFACreator(Dialect dialect, Configuration config, LogManager logger)
+  public CFACreator(Configuration config, LogManager logger)
           throws InvalidConfigurationException {
     config.inject(this);
 
     this.logger = logger;
 
     parserInstantiationTime.start();
-    parser = CParser.Factory.getParser(logger, dialect);
+    parser = CParser.Factory.getParser(logger, CParser.Factory.getOptions(config));
     parsingTime = parser.getParseTime();
     conversionTime = parser.getCFAConstructionTime();
 

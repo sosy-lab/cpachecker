@@ -51,7 +51,7 @@ public class ToFlleShAssumeEdgeTranslator {
     else {
       IASTNode statement;
       try {
-        CParser parser = CParser.Factory.getParser(null, CParser.Dialect.C99);
+        CParser parser = CParser.Factory.getParser(null, CParser.Factory.getDefaultOptions());
         statement = parser.parseSingleStatement(lPredicateFunction);
       } catch (ParserException e) {
         throw new RuntimeException("Error during parsing C code \""

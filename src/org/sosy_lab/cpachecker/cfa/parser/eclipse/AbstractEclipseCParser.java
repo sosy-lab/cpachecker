@@ -52,6 +52,8 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
  */
 public abstract class AbstractEclipseCParser<T> implements CParser {
 
+  private boolean ignoreCasts;
+
   protected final ILanguage language;
 
   protected final IParserLogService parserLog = ParserFactory.createDefaultLogService();
@@ -117,7 +119,7 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
       throw new ParserException("Not exactly one statement in function body: " + body);
     }
 
-    return new ASTConverter(new Scope()).convert(statements[0]);
+    return new ASTConverter(new Scope(), ignoreCasts).convert(statements[0]);
   }
 
   protected static final int PARSER_OPTIONS =
@@ -144,7 +146,7 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
   private CFA buildCFA(IASTTranslationUnit ast) throws ParserException {
     cfaTimer.start();
     try {
-      CFABuilder builder = new CFABuilder(logger);
+      CFABuilder builder = new CFABuilder(logger, ignoreCasts);
       try {
         ast.accept(builder);
       } catch (CFAGenerationRuntimeException e) {
@@ -206,5 +208,9 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
     public String[] getIncludePaths() {
       return new String[0];
     }
+  }
+
+  public void setIgnoreCasts(boolean pIgnoreCasts) {
+    ignoreCasts = pIgnoreCasts;
   }
 }

@@ -87,10 +87,13 @@ import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 @SuppressWarnings("deprecation") // several methods are deprecated in CDT 7 but still working
 class ASTConverter {
 
+  private final boolean ignoreCasts;
+
   private Scope scope;
 
-  public ASTConverter(Scope pScope) {
+  public ASTConverter(Scope pScope, boolean pIgnoreCasts) {
     scope = pScope;
+    ignoreCasts = pIgnoreCasts;
   }
 
   private static void check(boolean assertion, String msg, org.eclipse.cdt.core.dom.ast.IASTNode astNode) throws CFAGenerationRuntimeException {
@@ -306,8 +309,12 @@ class ASTConverter {
     return Pair.of(operator, isAssign);
   }
 
-  private IASTCastExpression convert(org.eclipse.cdt.core.dom.ast.IASTCastExpression e) {
-    return new IASTCastExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), convertExpressionWithoutSideEffects(e.getOperand()), convert(e.getTypeId()));
+  private IASTNode convert(org.eclipse.cdt.core.dom.ast.IASTCastExpression e) {
+    if (ignoreCasts) {
+      return convertExpressionWithSideEffects(e.getOperand());
+    } else {
+      return new IASTCastExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), convertExpressionWithoutSideEffects(e.getOperand()), convert(e.getTypeId()));
+    }
   }
 
   private IASTFieldReference convert(org.eclipse.cdt.core.dom.ast.IASTFieldReference e) {

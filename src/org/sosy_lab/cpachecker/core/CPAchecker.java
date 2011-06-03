@@ -37,7 +37,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.cfa.CParser.Dialect;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -96,11 +95,6 @@ public class CPAchecker {
 
   @Options
   private static class CPAcheckerOptions {
-
-    @Option(name="parser.dialect", description="C dialect for parser")
-    Dialect parserDialect = Dialect.GNUC;
-
-    // algorithm options
 
     @Option(name="analysis.useAssumptionCollector",
         description="use assumption collecting algorithm")
@@ -172,7 +166,7 @@ public class CPAchecker {
         // create parser, cpa, algorithm
         stats.creationTime.start();
 
-        CFACreator cfaCreator = new CFACreator(options.parserDialect, config, logger);
+        CFACreator cfaCreator = new CFACreator(config, logger);
         stats.setCFACreator(cfaCreator);
 
         // create CFA
@@ -247,7 +241,7 @@ public class CPAchecker {
         // create parser, cpa, algorithm
         stats.creationTime.start();
 
-        CFACreator cfaCreator = new CFACreator(options.parserDialect, config, logger);
+        CFACreator cfaCreator = new CFACreator(config, logger);
         stats.setCFACreator(cfaCreator);
 
         ConfigurableProgramAnalysis cpa = createCPA(stats);

@@ -6,22 +6,23 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Scanner;
 import java_cup.runtime.Symbol;
 import java_cup.runtime.SymbolFactory;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.List;
-import java.util.LinkedList;
-import java.util.HashMap;
-import java.util.Map;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Configuration;
-import java.util.logging.Level;
-import java.util.Collections;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.CParser;
 
 /** CUP v0.11a beta 20060608 generated parser.
   * @version [date omitted]
@@ -454,6 +455,8 @@ import java.util.Collections;
   * Parses a Specification File and returns the Automata found in the file.
   */
   public static List<Automaton> parseAutomatonFile(File pInputFile, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+    AutomatonASTComparator.parser = CParser.Factory.getParser(pLogger, CParser.Factory.getOptions(config));
+    
     ComplexSymbolFactory sf = new ComplexSymbolFactory();
     FileInputStream input = null;
     try {

@@ -39,7 +39,6 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.cfa.CParser.Dialect;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -257,7 +256,7 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
   }
 
   public static Map<String, CFAFunctionDefinitionNode> getCFAMap(String pSourceFileName, Configuration pConfiguration, LogManager pLogManager) throws InvalidConfigurationException {
-    CFACreator lCFACreator = new CFACreator(Dialect.GNUC, pConfiguration, pLogManager);
+    CFACreator lCFACreator = new CFACreator(pConfiguration, pLogManager);
 
     // parse code file
     try {

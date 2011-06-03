@@ -442,6 +442,9 @@ output.path = "test/output/"
 parser.dialect = GNUC
   enum:     [C99, GNUC]
 
+# Ignore all casts that appear in the source code.
+parser.ignoreCasts = false
+
 # print reached set to text file
 reachedSet.export = true
 reachedSet.file = "reached.txt"

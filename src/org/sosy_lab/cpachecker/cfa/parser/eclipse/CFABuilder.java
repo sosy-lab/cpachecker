@@ -110,12 +110,16 @@ class CFABuilder extends ASTVisitor
   private final List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> globalDeclarations = Lists.newArrayList();
 
   private final Scope scope = new Scope();
-  private final ASTConverter astCreator = new ASTConverter(scope);
+  private final ASTConverter astCreator;
 
   private final LogManager logger;
 
-  public CFABuilder (LogManager logger) {
+  public CFABuilder(LogManager logger, boolean pIgnoreCasts) {
     this.logger = logger;
+    astCreator = new ASTConverter(scope, pIgnoreCasts);
+    if (pIgnoreCasts) {
+      logger.log(Level.WARNING, "Ignoring all casts in the program because of user request!");
+    }
 
     //shouldVisitComments = false;
     shouldVisitDeclarations = true;

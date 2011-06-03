@@ -97,7 +97,7 @@ class TranslationUnit {
   public static TranslationUnit parseString(String pSource, LogManager pLogManager) {
     CFA c;
     try {
-      CParser parser = CParser.Factory.getParser(pLogManager, CParser.Dialect.C99);
+      CParser parser = CParser.Factory.getParser(pLogManager, CParser.Factory.getDefaultOptions());
       c = parser.parseString(pSource);
     } catch (ParserException e) {
       throw new RuntimeException("Error during parsing C code \""

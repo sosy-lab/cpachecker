@@ -27,7 +27,12 @@ import java.io.IOException;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.AbstractEclipseCParser;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseCDT6Parser;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseCDT7Parser;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -102,6 +107,18 @@ public interface CParser {
     ;
   }
 
+  @Options(prefix="parser")
+  public final static class ParserOptions {
+
+    @Option(description="C dialect for parser")
+    private Dialect dialect = Dialect.GNUC;
+
+    @Option(description="Ignore all casts that appear in the source code.")
+    private boolean ignoreCasts = false;
+
+    private ParserOptions() { }
+  }
+
   /**
    * Factory that tries to create a parser based on available libraries
    * (e.g. Eclipse CDT).
@@ -110,12 +127,25 @@ public interface CParser {
 
     private static boolean IS_CDT_7 = isCDT7();
 
-    public static CParser getParser(LogManager logger, Dialect dialect) {
+    public static ParserOptions getOptions(Configuration config) throws InvalidConfigurationException {
+      ParserOptions result = new ParserOptions();
+      config.inject(result);
+      return result;
+    }
+
+    public static ParserOptions getDefaultOptions() {
+      return new ParserOptions();
+    }
+
+    public static CParser getParser(LogManager logger, ParserOptions options) {
+      AbstractEclipseCParser<?> result;
       if (IS_CDT_7) {
-        return new EclipseCDT7Parser(logger, dialect);
+        result = new EclipseCDT7Parser(logger, options.dialect);
       } else {
-        return new EclipseCDT6Parser(logger, dialect);
+        result = new EclipseCDT6Parser(logger, options.dialect);
       }
+      result.setIgnoreCasts(options.ignoreCasts);
+      return result;
     }
 
     private static boolean isCDT7() {

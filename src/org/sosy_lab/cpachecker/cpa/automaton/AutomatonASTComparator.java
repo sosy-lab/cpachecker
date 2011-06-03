@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Objects.equal;
+import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.common.Pair.zipList;
 
 import java.math.BigInteger;
@@ -67,6 +68,9 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
  * Provides methods for generating, comparing and printing the ASTs generated from String.
  */
 class AutomatonASTComparator {
+
+  // TODO refactor
+  static CParser parser = null;
 
   /**
    * Every occurrence of the joker expression $? in the pattern is substituted by JOKER_EXPR.
@@ -132,8 +136,8 @@ class AutomatonASTComparator {
    * @throws InvalidAutomatonException
    */
   private static IASTStatement parse(String code) throws InvalidAutomatonException {
+    checkState(parser != null);
     try {
-      CParser parser = CParser.Factory.getParser(null, CParser.Dialect.C99);
       IASTNode statement = parser.parseSingleStatement(code);
       if (!(statement instanceof IASTStatement)) {
         throw new InvalidAutomatonException("Not a valid statement: " + statement.getRawSignature());

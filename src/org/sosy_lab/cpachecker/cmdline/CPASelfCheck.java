@@ -137,7 +137,7 @@ public class CPASelfCheck {
 "}\n"
     		;
 
-    CParser parser = CParser.Factory.getParser(logManager, CParser.Dialect.C99);
+    CParser parser = CParser.Factory.getParser(logManager, CParser.Factory.getDefaultOptions());
     Map<String, CFAFunctionDefinitionNode> cfas
       = parser.parseString(code).getFunctions();
     return cfas.get("main");
