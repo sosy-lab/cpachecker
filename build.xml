@@ -8,6 +8,15 @@
         <pathelement location="bin"/>
         <fileset dir="lib" includes="**/*.jar"/>
     </path>
+    <condition property="architecture" value="x86_64" else="x86">
+        <os arch="amd64"/>
+    </condition>
+    <condition property="os" value="linux">
+        <os name="Linux"/>
+    </condition>
+    <condition property="os" value="win32">
+        <os family="windows"/>
+    </condition>
     <target name="init">
         <mkdir dir="bin"/>
 	<!-- seems not to be necessary
@@ -20,7 +29,7 @@
         <delete dir="bin"/>
     </target>
     <target depends="clean" name="cleanall"/>
-    <target depends="build-subprojects,build-project" name="build"/>
+    <target depends="build-subprojects,build-project,build-documentation" name="build"/>
     <target name="build-subprojects">
 	    <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" inheritAll="false"/>
 	    <ant antfile="src/org/sosy_lab/cpachecker/fshell/fql2/parser/build.xml" inheritAll="false"/>
@@ -33,6 +42,26 @@
 	    <exclude name="org/sosy_lab/cpachecker/cpaplugin/**"/>
             <classpath refid="CPAchecker.classpath"/>
         </javac>
+    </target>
+
+    <target name="build-documentation" depends="build-project">
+        <echo message="running OptionCollector..." level="info"/>
+        <property name="outputfile" value="doc/ConfigurationOptions.txt"/>
+
+        <echo output="${outputfile}" append="false" message="# This is an auto-generated file, DO NOT EDIT!${line.separator}# Run ant to generate it.${line.separator}"/>
+        <!-- the output of OptionCollector is written into "doc/ConfigurationOptions.txt" -->
+        <java classname="org.sosy_lab.common.configuration.OptionCollector"
+            fork="true"
+            output="${outputfile}" append="true"
+            logError="true">
+
+            <classpath refid="CPAchecker.classpath"/>
+            <jvmarg value="-Djava.library.path=lib/native/${architecture}-${os}/"/>
+
+            <!-- "-v" is a optional param for verbose output of OptionCollector -->
+            <!-- <arg value="-v"/> -->
+        </java>
+        <echo message="Options collected." level="info"/>
     </target>
 
     <target description="Run all JUnit tests" depends="build" name="tests">
