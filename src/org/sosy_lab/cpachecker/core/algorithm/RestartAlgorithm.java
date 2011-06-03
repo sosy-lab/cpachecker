@@ -67,7 +67,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
       // run algorithm
       Preconditions.checkNotNull(reached);
-
       sound &= currentAlgorithm.run(reached);
 
       // if there are no more algorithms to proceed with,

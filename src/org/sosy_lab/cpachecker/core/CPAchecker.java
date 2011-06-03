@@ -411,6 +411,35 @@ public class CPAchecker {
     return algorithm;
   }
 
+  private Algorithm createAlgorithm(
+      final ConfigurableProgramAnalysis cpa, Configuration pConfig, final MainCPAStatistics stats)
+  throws InvalidConfigurationException, CPAException {
+    logger.log(Level.FINE, "Creating algorithms");
+
+    Algorithm algorithm = new CPAAlgorithm(cpa, logger);
+
+    if (options.useRefinement) {
+      algorithm = new CEGARAlgorithm(algorithm, pConfig, logger);
+    }
+
+    if (options.useBMC) {
+      algorithm = new BMCAlgorithm(algorithm, pConfig, logger, reachedSetFactory);
+    }
+
+    if (options.useCBMC) {
+      algorithm = new CounterexampleCheckAlgorithm(algorithm, pConfig, logger);
+    }
+
+    if (options.useAssumptionCollector) {
+      algorithm = new AssumptionCollectorAlgorithm(algorithm, pConfig, logger);
+    }
+
+    if (algorithm instanceof StatisticsProvider) {
+      ((StatisticsProvider)algorithm).collectStatistics(stats.getSubStatistics());
+    }
+    return algorithm;
+  }
+
   private Pair<Algorithm, ReachedSet> createRestartAlgorithm(Configuration config, MainCPAStatistics stats, CFACreator cfaCreator) {
     List<Algorithm> algorithmsList = new ArrayList<Algorithm>();
 
@@ -426,8 +455,9 @@ public class CPAchecker {
         singleConfigBuilder.loadFromFile(configFileName);
         Configuration singleConfig = singleConfigBuilder.build();
         singleConfig.inject(options);
+        System.out.println(singleConfig.getProperty("cegar.refiner"));
         ConfigurableProgramAnalysis cpa = createCPA(singleConfig, stats);
-        algorithm = createAlgorithm(cpa, stats);
+        algorithm = createAlgorithm(cpa, singleConfig, stats);
 
         reached = createInitialReachedSet(cpa, cfaCreator.getMainFunction());
 
