@@ -31,7 +31,9 @@
     <target depends="clean" name="cleanall"/>
     <target depends="build-subprojects,build-project,build-documentation" name="build"/>
     <target name="build-subprojects">
+	    <echo message="Generate automaton parser if necessary" level="info"/>
 	    <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" inheritAll="false"/>
+	    <echo message="Generate FQL parser if necessary" level="info"/>
 	    <ant antfile="src/org/sosy_lab/cpachecker/fshell/fql2/parser/build.xml" inheritAll="false"/>
     </target>
 

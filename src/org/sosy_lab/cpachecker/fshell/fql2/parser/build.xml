@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE project> <!-- generic AcceptAllDTD to make the Eclipse Warning go away -->
-<project name="FQLParserGeneration" default="generate" basedir="./../../../../../../../">
+<project name="FQLParserGeneration" default="generate-parser" basedir="./../../../../../../../">
   <!-- basedir should be the "CPAchecker" directory -->
   <property name="parserDir" location="src/org/sosy_lab/cpachecker/fshell/fql2/parser/" />
   <property name="src"       location="src" />
@@ -23,7 +23,27 @@
   	<echo>${basedir}</echo>
   </target>
 
-  <target name="generate">
+  <uptodate property="scanner.uptodate" srcfile="${parserDir}/FQL.lex" targetfile="${parserDir}/FQLLexer.java"/>
+
+  <condition property="parser.uptodate">
+    <and>
+      <isset property="scanner.uptodate"/>
+      <uptodate srcfile="${parserDir}/FQL.cup" targetfile="${parserDir}/FQLParser.java"/>
+    </and>
+  </condition>
+
+  <target name="generate-scanner" unless="scanner.uptodate" description="Generate FQL scanner">
+    <echo message="Generate scanner..." level="info"/>
+    <jflex file="${parserDir}/FQL.lex" destdir="${src}" skel="${parserDir}/skeleton.nested"/>
+
+    <!-- remove generation date to not interfere with SVN -->
+    <replaceregexp file="${parserDir}/FQLLexer.java" match="\d\d\.\d\d.\d\d \d\d:\d\d" replace="[date omitted]" flags="g" />
+    <replaceregexp file="${parserDir}/FQLLexer.java" match="(.tt>).*/(src/org/sosy_lab/cpachecker/fshell/fql2/parser/FQL.lex./tt>)" replace="\1\2" />
+  </target>
+
+
+  <target name="generate-parser" depends="generate-scanner" unless="parser.uptodate" description="Generate FQL parser">
+    <echo message="Generate parser..." level="info"/>
     <cup srcfile="${parserDir}/FQL.cup"
          destdir="${src}"
          interface="true"
@@ -32,8 +52,6 @@
     	 nopositions="true"
     />
 
-    <jflex file="${parserDir}/FQL.lex" destdir="${src}" skel="src/org/sosy_lab/cpachecker/fshell/fql2/parser/skeleton.nested"/>
-
     <!-- remove generation date to not interfere with SVN -->
     <replaceregexp match="(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \w\w\w \d\d \d\d:\d\d:\d\d \w+ \d\d\d\d" replace="[date omitted]" flags="g">
 	<fileset dir="${parserDir}">
@@ -41,8 +59,6 @@
 	    <include name="FQLSym.java"/>
 	</fileset>
     </replaceregexp>
-    <replaceregexp file="${parserDir}/FQLLexer.java" match="\d\d\.\d\d.\d\d \d\d:\d\d" replace="[date omitted]" flags="g" />
-    <replaceregexp file="${parserDir}/FQLLexer.java" match="(.tt>).*/(src/org/sosy_lab/cpachecker/fshell/fql2/parser/FQL.lex./tt>)" replace="\1\2" />
 
     <!-- places the suppressWarnings-tag in front of the outer class -->
     <replace file="${parserDir}/FQLParser.java" token="public class " value="@SuppressWarnings(value = { &quot;all&quot; }) public  class "/>
