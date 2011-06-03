@@ -70,15 +70,19 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
       sound &= currentAlgorithm.run(reached);
 
+      // if there are no more algorithms to proceed with,
+      // return the result
+      if(idx == algorithms.size()){
+        return sound;
+      }
+
+      // if the analysis is not sound and we can proceed with
+      // another algorithm, continue with the next algorithm
       if(!sound){
         // TODO we need to create a new reached set here
         // or modify the reached set
 
         continueAnalysis = true;
-      }
-
-      if(idx == algorithms.size()){
-        continueAnalysis = false;
       }
 
     } while (continueAnalysis);
