@@ -449,7 +449,6 @@ public class CPAchecker {
         singleConfigBuilder.loadFromFile(configFileName);
         Configuration singleConfig = singleConfigBuilder.build();
         singleConfig.inject(options);
-        System.out.println(singleConfig.getProperty("cegar.refiner"));
         ConfigurableProgramAnalysis cpa = createCPA(singleConfig, stats);
         algorithm = createAlgorithm(cpa, singleConfig, stats);
 
