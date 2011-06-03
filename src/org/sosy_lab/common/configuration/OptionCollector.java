@@ -31,6 +31,7 @@ import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -493,7 +494,9 @@ public class OptionCollector {
   private static void collectClasses(final File directory,
       final String packageName, final List<Class<?>> classes) {
     if (directory.exists()) {
-      for (final File file : directory.listFiles()) {
+      final File[] files = directory.listFiles();
+      Arrays.sort(files);
+      for (final File file : files) {
         final String fileName = file.getName();
 
         // recursive call for folders, exclude svn-folders
