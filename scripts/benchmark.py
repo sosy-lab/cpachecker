@@ -903,7 +903,7 @@ def run_cpachecker(options, sourcefile, columns, rlimits):
     else:
         limit = float('inf')
 
-    if returncode == 137 and (cpuTimeDelta + 0.5) > limit:
+    if returncode == 137 and cpuTimeDelta > (limit*0.99):
         # if return code is "KILLED BY SIGNAL 9" and
         # used CPU time is larger than the time limit (approximately at least)
         status = 'TIMEOUT'
