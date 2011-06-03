@@ -92,7 +92,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
           description="try second interpolating solver if the first takes too long")
   private boolean changeItpSolveOTF = false;
 
-  @Option(name="blk.useCache", description="use caching where possible")
+  @Option(name="blk.useCache", description="use caching of path formulas")
   private boolean useCache = true;
 
   private final Configuration config;

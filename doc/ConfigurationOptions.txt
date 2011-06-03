@@ -140,8 +140,6 @@ cpa.art.merge = "JOIN"
 cpa.assumptions.progressobserver.heuristics = {}
 
 # threshold for heuristics of progressobserver
-cpa.assumptions.progressobserver.heuristics.threshold = -1
-cpa.assumptions.progressobserver.heuristics.threshold = -1
 cpa.assumptions.progressobserver.heuristics.threshold = 0
 cpa.assumptions.progressobserver.heuristics.threshold = -1
 
@@ -222,6 +220,10 @@ cpa.pointer.printWarnings = true
 # whether to use auxiliary predidates for reduction
 cpa.predicate.abm.auxiliaryPredicateComputer = true
 
+# use caching of region to formula conversions
+# use caching of abstractions
+cpa.predicate.abs.useCache = true
+
 # whether to use Boolean (false) or Cartesian (true) abstraction
 cpa.predicate.abstraction.cartesian = false
 
@@ -253,7 +255,7 @@ cpa.predicate.blk.requireThresholdAndLBE = false
 # (non-negative number, special values: 0 = don't check threshold, 1 = SBE)
 cpa.predicate.blk.threshold = 0
 
-# use caching where possible
+# use caching of path formulas
 cpa.predicate.blk.useCache = true
 
 # always check satisfiability at end of block, even if precision is empty
@@ -372,10 +374,6 @@ cpa.predicate.targetStateSatCheck = true
 # (which are encoded as UFs): essentially, we simply collect all the numbers
 # used in bitwise operations, and add axioms like (0 & n = 0)
 cpa.predicate.useBitwiseAxioms = false
-
-# use caching of region to formula conversions
-# use caching where possible
-cpa.predicate.useCache = true
 
 # add special information to formulas about non-deterministic functions
 cpa.predicate.useNondetFlags = false

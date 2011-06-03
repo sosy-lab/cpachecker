@@ -105,7 +105,7 @@ class PredicateAbstractionManager {
     + "and add axioms like (0 & n = 0)")
   protected boolean useBitwiseAxioms = false;
 
-  @Option(description="use caching where possible")
+  @Option(name="abs.useCache", description="use caching of abstractions")
   private boolean useCache = true;
 
   private final Map<Pair<Formula, Collection<AbstractionPredicate>>, AbstractionFormula> abstractionCache;
