@@ -25,6 +25,7 @@ package org.sosy_lab.common.configuration;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.net.URL;
@@ -74,15 +75,23 @@ public class OptionCollector {
     final SortedMap<String, Pair<String, String>> map =
         new TreeMap<String, Pair<String, String>>();
 
+    // redirect stdout to stderr so that error messages that are printed
+    // when classes are loaded appear in stderr
+    PrintStream originalStdOut = System.out;
+    System.setOut(System.err);
+
     for (Class<?> c : getClasses()) {
       collectOptions(c, map, verbose);
     }
 
-    final StringBuilder content = new StringBuilder();
+    // reset stdout redirection
+    System.setOut(originalStdOut);
 
     for (String error : errorMessages) {
-      content.append(error).append("\n");
+      System.err.println(error);
     }
+
+    final StringBuilder content = new StringBuilder();
 
     String description = "";
     for (Pair<String, String> descriptionAndInfo : map.values()) {
