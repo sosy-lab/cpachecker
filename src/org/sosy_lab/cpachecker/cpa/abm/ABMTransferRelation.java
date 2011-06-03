@@ -24,7 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.abm;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.cpachecker.util.AbstractElements.*;
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractElements.isTargetElement;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -435,9 +436,9 @@ public class ABMTransferRelation implements TransferRelation {
       ReachedSet reachedSet = subgraphReachCache.get(reducedRootElement, reducedRootPrecision, rootSubtree);
       ARTElement reducedRemoveElement = ARTElementSearcher.searchForARTElement(reachedSet, removeElement, wrappedReducer, partitioning);
 
-      Precision newRootPrecision = Precisions.replaceByType(rootPrecision, newPrecision);
+      Precision newRootPrecision = Precisions.replaceByType(rootPrecision, newPrecision, newPrecision.getClass());
       Precision newReducedRootPrecision = wrappedReducer.getVariableReducedPrecision(newRootPrecision, rootSubtree);
-      Precision newReducedRemovePrecision = wrappedReducer.getVariableReducedPrecision(Precisions.replaceByType(reachedSet.getPrecision(reducedRemoveElement), newPrecision), rootSubtree);
+      Precision newReducedRemovePrecision = wrappedReducer.getVariableReducedPrecision(Precisions.replaceByType(reachedSet.getPrecision(reducedRemoveElement), newPrecision, newPrecision.getClass()), rootSubtree);
 
       if(reducedRemoveElement.getParents().isEmpty()) {
         //this is actually the root of the subgraph;

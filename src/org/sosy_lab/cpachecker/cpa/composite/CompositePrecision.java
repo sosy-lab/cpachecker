@@ -86,22 +86,22 @@ public class CompositePrecision implements WrapperPrecision {
   }
 
   @Override
-  public Precision replaceWrappedPrecision(Precision newPrecision) {
-    Class<? extends Precision> newPrecClass = newPrecision.getClass();
+  public Precision replaceWrappedPrecision(Precision newPrecision, Class<? extends Precision> replaceType) {
+    assert replaceType.isAssignableFrom(newPrecision.getClass());
 
-    if (newPrecClass.equals(CompositePrecision.class)) {
+    if (replaceType.equals(CompositePrecision.class)) {
       return newPrecision;
     }
 
     ImmutableList.Builder<Precision> newPrecisions = ImmutableList.builder();
     boolean changed = false;
     for (Precision precision : precisions) {
-      if (newPrecClass.equals(precision.getClass())) {
+      if (replaceType.isAssignableFrom(precision.getClass())) {
         newPrecisions.add(newPrecision);
         changed = true;
 
       } else if (precision instanceof WrapperPrecision) {
-        Precision newWrappedPrecision = ((WrapperPrecision)precision).replaceWrappedPrecision(newPrecision);
+        Precision newWrappedPrecision = ((WrapperPrecision)precision).replaceWrappedPrecision(newPrecision, replaceType);
         if (newWrappedPrecision != null) {
           newPrecisions.add(newWrappedPrecision);
           changed = true;

@@ -116,7 +116,7 @@ public class ARTReachedSet {
   private Precision adaptPrecision(ARTElement pARTElement, Precision pNewPrecision) {
     Precision lOldPrecision = getPrecision(pARTElement);
 
-    return Precisions.replaceByType(lOldPrecision, pNewPrecision);
+    return Precisions.replaceByType(lOldPrecision, pNewPrecision, pNewPrecision.getClass());
   }
 
   private Set<ARTElement> removeSubtree0(ARTElement e) {
