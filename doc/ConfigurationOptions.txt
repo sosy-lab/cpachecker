@@ -140,8 +140,14 @@ cpa.art.merge = "JOIN"
 cpa.assumptions.progressobserver.heuristics = {}
 
 # threshold for heuristics of progressobserver
-cpa.assumptions.progressobserver.heuristics.threshold = 0
-cpa.assumptions.progressobserver.heuristics.threshold = -1
+cpa.assumptions.progressobserver.heuristics.assumeEdgesInPathHeuristics.threshold = -1
+cpa.assumptions.progressobserver.heuristics.edgeCountHeuristics.threshold = -1
+cpa.assumptions.progressobserver.heuristics.memoryOutHeuristics.threshold = -1
+cpa.assumptions.progressobserver.heuristics.pathLengthHeuristics.threshold = -1
+cpa.assumptions.progressobserver.heuristics.reachedSizeHeuristics.threshold = -1
+cpa.assumptions.progressobserver.heuristics.repetitionsInPathHeuristics.threshold = -1
+cpa.assumptions.progressobserver.heuristics.timeOutHeuristics.threshold = -1
+cpa.assumptions.progressobserver.heuristics.usedMemoryOutHeuristics.threshold = 0
 
 # signal the analysis to break in case of reached error state
 cpa.automaton.breakOnTargetState = true

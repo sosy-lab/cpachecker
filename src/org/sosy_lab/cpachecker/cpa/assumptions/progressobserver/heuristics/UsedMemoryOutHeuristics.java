@@ -46,7 +46,7 @@ public class UsedMemoryOutHeuristics
   private final MemoryMXBean mxBean;
 
   @Option(description = "threshold for heuristics of progressobserver")
-  private final long threshold = 0;
+  private long threshold = 0;
 
 
   public UsedMemoryOutHeuristics(Configuration config, LogManager logger)

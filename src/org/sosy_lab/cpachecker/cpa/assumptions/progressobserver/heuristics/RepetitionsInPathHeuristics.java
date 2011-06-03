@@ -42,7 +42,7 @@ public class RepetitionsInPathHeuristics
   implements StopHeuristics<RepetitionsInPathHeuristicsData>
 {
   @Option(description = "threshold for heuristics of progressobserver")
-  private final int threshold = -1;
+  private int threshold = -1;
   private final Function<? super CFAEdge, Integer> thresholdFunction;
 
   public RepetitionsInPathHeuristics(Configuration config, LogManager logger)

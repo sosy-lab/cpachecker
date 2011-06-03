@@ -52,7 +52,7 @@ public class MemoryOutHeuristics
 implements StopHeuristics<TrivialStopHeuristicsData>
 {
   @Option(description = "threshold for heuristics of progressobserver")
-  private final int threshold = -1;
+  private int threshold = -1;
 
   private final LogManager logger;
   private int freq = 50000; //TODO read from file

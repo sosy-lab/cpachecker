@@ -43,15 +43,13 @@ public class EdgeCountHeuristics implements StopHeuristics<EdgeCountHeuristicsDa
   private final Function<? super CFAEdge, Integer> thresholdFunction;
 
   @Option(description = "threshold for heuristics of progressobserver")
-  private final int threshold = -1;
+  private int threshold = -1;
 
   public EdgeCountHeuristics(Configuration config, LogManager logger)
       throws InvalidConfigurationException
   {
     config.inject(this);
     // Initialise the threshold function
-    // there is no dead code in the next line,
-    // because config.inject(this) can change the value of threshold
     thresholdFunction = Functions.constant((threshold <= 0) ? null : threshold);
   }
 

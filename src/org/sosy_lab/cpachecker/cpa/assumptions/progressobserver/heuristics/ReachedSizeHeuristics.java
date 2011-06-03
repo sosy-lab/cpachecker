@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeu
 public class ReachedSizeHeuristics implements StopHeuristics<TrivialStopHeuristicsData> {
 
   @Option(description = "threshold for heuristics of progressobserver")
-  private final int threshold = -1;
+  private int threshold = -1;
 
   public ReachedSizeHeuristics(Configuration config, LogManager logger)
       throws InvalidConfigurationException
