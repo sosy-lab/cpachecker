@@ -67,6 +67,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
       // run algorithm
       Preconditions.checkNotNull(reached);
+
       sound &= currentAlgorithm.run(reached);
 
       if(!sound){
@@ -74,6 +75,10 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
         // or modify the reached set
 
         continueAnalysis = true;
+      }
+
+      if(idx == algorithms.size()){
+        continueAnalysis = false;
       }
 
     } while (continueAnalysis);

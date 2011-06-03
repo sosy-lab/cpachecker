@@ -420,11 +420,13 @@ public class CPAchecker {
 
     for(String configFileName: configFiles){
       Algorithm algorithm = null;
-      Configuration.Builder singleConfig = Configuration.builder();
+      Configuration.Builder singleConfigBuilder = Configuration.builder();
       Preconditions.checkNotNull(configFileName);
       try {
-        singleConfig.loadFromFile(configFileName);
-        ConfigurableProgramAnalysis cpa = createCPA(singleConfig.build(), stats);
+        singleConfigBuilder.loadFromFile(configFileName);
+        Configuration singleConfig = singleConfigBuilder.build();
+        singleConfig.inject(options);
+        ConfigurableProgramAnalysis cpa = createCPA(singleConfig, stats);
         algorithm = createAlgorithm(cpa, stats);
 
         reached = createInitialReachedSet(cpa, cfaCreator.getMainFunction());
