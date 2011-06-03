@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ReachedHeuristic
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristics;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsData;
 
-@Options(prefix="cpa.assumptions.progressobserver.heuristics")
+@Options(prefix="cpa.assumptions.progressobserver.heuristics.timeOutHeuristics")
 public class TimeOutHeuristics implements StopHeuristics<TimeOutHeuristicsData> {
 
   @Option(description = "threshold for heuristics of progressobserver")

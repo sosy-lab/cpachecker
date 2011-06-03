@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsDa
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 
-@Options(prefix="cpa.assumptions.progressobserver.heuristics")
+@Options(prefix="cpa.assumptions.progressobserver.heuristics.edgeCountHeuristics")
 public class EdgeCountHeuristics implements StopHeuristics<EdgeCountHeuristicsData> {
 
   private final Function<? super CFAEdge, Integer> thresholdFunction;

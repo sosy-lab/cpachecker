@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeu
  * (tested in Ubuntu 10.10)
  * Check that information before using this heuristic.
  */
-@Options(prefix="cpa.assumptions.progressobserver.heuristics")
+@Options(prefix="cpa.assumptions.progressobserver.heuristics.memoryOutHeuristics")
 public class MemoryOutHeuristics
 implements StopHeuristics<TrivialStopHeuristicsData>
 {

@@ -85,8 +85,7 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
       }
       try {
         Class<?> cls = Class.forName(heuristicsName);
-        Configuration localConfig = Configuration.copyWithNewPrefix(config, cls.getSimpleName());
-        Object[] localArgs = {localConfig, logger};
+        Object[] localArgs = {config, logger};
         StopHeuristics<?> newHeuristics = Classes.createInstance(cls, argsTypes, localArgs, StopHeuristics.class);
         builder.add(newHeuristics);
       } catch (ClassNotFoundException e) {

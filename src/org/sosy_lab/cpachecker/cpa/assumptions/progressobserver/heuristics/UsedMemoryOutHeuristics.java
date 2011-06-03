@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsDa
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.TrivialStopHeuristicsData;
 import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
 
-@Options(prefix="cpa.assumptions.progressobserver.heuristics")
+@Options(prefix="cpa.assumptions.progressobserver.heuristics.usedMemoryOutHeuristics")
 public class UsedMemoryOutHeuristics
   implements StopHeuristics<TrivialStopHeuristicsData>
 {

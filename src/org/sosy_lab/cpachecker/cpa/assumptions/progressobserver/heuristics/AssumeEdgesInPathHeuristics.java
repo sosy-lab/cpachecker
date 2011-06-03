@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsDa
  * If the given threshold is exceed, it returns bottom and the assumption
  * collector algorithm is notified.
  */
-@Options(prefix="cpa.assumptions.progressobserver.heuristics")
+@Options(prefix="cpa.assumptions.progressobserver.heuristics.assumeEdgesInPathHeuristics")
 public class AssumeEdgesInPathHeuristics implements StopHeuristics<AssumeEdgesInPathHeuristicsData>{
 
   @Option(description = "threshold for heuristics of progressobserver")
