@@ -84,6 +84,7 @@ public class CFACheck {
       assert (pNode instanceof CFAFunctionDefinitionNode)
           || (pNode instanceof CFAFunctionExitNode)
           || (pNode instanceof CFALabelNode)
+          || (pNode.isLoopStart())
           : "Too many incoming edges at node " + pNode.getLineNumber();
     }
 

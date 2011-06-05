@@ -61,10 +61,11 @@ public class CFACreationUtils {
 
     // check control flow merging at successor
     if (   !(successor instanceof CFAFunctionExitNode)
-        && !(successor instanceof CFALabelNode)) {
-      // these two node types may have unlimited incoming edges
+        && !(successor instanceof CFALabelNode)
+        && !(successor.isLoopStart())) {
+      // these two node types may have unlimited incoming edges,
+      // a loopStart can be reachable through 'continue' several times,
       // all other may have at most two of them
-
       assert successor.getNumEnteringEdges() <= 1;
     }
 
