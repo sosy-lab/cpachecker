@@ -513,16 +513,33 @@ class CFABuilder extends ASTVisitor
     loopStart.setLoopStart();
     loopStartStack.push(loopStart);
 
+    CFANode firstLoopNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
+    currentCFANodes.add(firstLoopNode);
+
     CFANode postLoopNode = new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName());
     currentCFANodes.add(postLoopNode);
     loopNextStack.push(postLoopNode);
 
     // inverse order here!
     locStack.push(postLoopNode);
-    locStack.push(loopStart);
+    locStack.push(firstLoopNode);
 
     BlankEdge blankEdge = new BlankEdge("while", fileloc.getStartingLineNumber(), prevNode, loopStart);
     addToCFA(blankEdge);
+
+    // edge connecting loopStart with firstLoopNode
+    AssumeEdge assumeEdgeTrue = new AssumeEdge(whileStatement.getCondition().getRawSignature(),
+            fileloc.getStartingLineNumber(), loopStart, firstLoopNode,
+            astCreator.convertExpressionWithoutSideEffects(whileStatement.getCondition()),
+            true);
+    addToCFA(assumeEdgeTrue);
+
+    // edge connecting loopStart with postLoopNode
+    AssumeEdge assumeEdgeFalse = new AssumeEdge("!(" + whileStatement.getCondition().getRawSignature() + ")",
+            fileloc.getStartingLineNumber(), loopStart, postLoopNode,
+            astCreator.convertExpressionWithoutSideEffects(whileStatement.getCondition()),
+            false);
+    addToCFA(assumeEdgeFalse);
   }
 
   private void handleBreakStatement (IASTBreakStatement breakStatement, IASTFileLocation fileloc)
