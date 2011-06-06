@@ -65,7 +65,6 @@ import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.Path;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -225,12 +224,6 @@ public class ABMTransferRelation implements TransferRelation {
       if (isHeadOfMainFunction(currentNode)) {
         //skip main function
         return wrappedTransfer.getAbstractSuccessors(pElement, pPrecision, edge);
-      }
-
-      if(AbstractElements.extractElementByType(pElement, PredicateAbstractElement.class) != null && AbstractElements.extractElementByType(pElement, PredicateAbstractElement.class).getAbstractionFormula().isFalse()) {
-        //TODO: avoid reference to PredicateAbstractElement
-        //avoid recursive analysis if abstraction is false anyway
-        return Collections.emptySet();
       }
 
       //Create ReachSet with node as initial element (+ add corresponding Location+CallStackElement)
