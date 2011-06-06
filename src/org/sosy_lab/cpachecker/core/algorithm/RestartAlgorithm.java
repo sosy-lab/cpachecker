@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -42,9 +43,11 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   private final List<Pair<Algorithm, ReachedSet>> algorithms;
   private Algorithm currentAlgorithm;
+  private final LogManager logger;
 
   public RestartAlgorithm(List<Pair<Algorithm, ReachedSet>> algorithms, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
     this.algorithms = algorithms;
+    this.logger = logger;
   }
 
   @Override
@@ -54,7 +57,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public boolean run(ReachedSet reached) throws CPAException,
-      InterruptedException {
+  InterruptedException {
 
     boolean sound = true;
 
@@ -73,19 +76,19 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       Preconditions.checkNotNull(currentReached);
       sound &= currentAlgorithm.run(currentReached);
 
-      // if there are no more algorithms to proceed with,
-      // return the result
-      if(idx == algorithms.size()){
-        return sound;
-      }
-
       // if the analysis is not sound and we can proceed with
       // another algorithm, continue with the next algorithm
       if(!sound){
-        // TODO we need to create a new reached set here
-        // or modify the reached set
+        // if there are no more algorithms to proceed with,
+        // return the result
+        if(idx == algorithms.size()){
+          logger.log(Level.INFO, "RestartAlgorithm result is unsound.");
+        }
 
-        continueAnalysis = true;
+        else{
+          logger.log(Level.INFO, "RestartAlgorithm switches to the next algorithm ...");
+          continueAnalysis = true;
+        }
       }
       reached = currentReached;
     } while (continueAnalysis);
@@ -95,6 +98,8 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    // TODO user wrapper statictics
+    System.out.println("collect statictics from restart");
+    if(currentAlgorithm instanceof StatisticsProvider)
+      ((StatisticsProvider)currentAlgorithm).collectStatistics(pStatsCollection);
   }
 }
