@@ -436,7 +436,7 @@ public class CPAchecker {
   }
 
   private Pair<Algorithm, ReachedSet> createRestartAlgorithm(Configuration config, MainCPAStatistics stats, CFACreator cfaCreator) {
-    List<Algorithm> algorithmsList = new ArrayList<Algorithm>();
+    List<Pair<Algorithm, ReachedSet>> algorithmsList = new ArrayList<Pair<Algorithm, ReachedSet>>();
 
     String[] configFiles = config.getPropertiesArray("restartAlgorithm.configFiles");
 
@@ -470,7 +470,7 @@ public class CPAchecker {
       }
 
       Preconditions.checkNotNull(algorithm);
-      algorithmsList.add(algorithm);
+      algorithmsList.add(Pair.of(algorithm, reached));
     }
 
     Algorithm restartAlgorithm = null;

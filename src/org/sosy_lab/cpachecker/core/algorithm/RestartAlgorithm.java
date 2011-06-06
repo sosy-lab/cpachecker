@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -39,10 +40,10 @@ import com.google.common.base.Preconditions;
 
 public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
-  private final List<Algorithm> algorithms;
+  private final List<Pair<Algorithm, ReachedSet>> algorithms;
   private Algorithm currentAlgorithm;
 
-  public RestartAlgorithm(List<Algorithm> algorithms, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
+  public RestartAlgorithm(List<Pair<Algorithm, ReachedSet>> algorithms, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
     this.algorithms = algorithms;
   }
 
@@ -63,11 +64,14 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     do {
       continueAnalysis = false;
 
-      currentAlgorithm = algorithms.get(idx++);
+      Pair<Algorithm, ReachedSet> currentPair = algorithms.get(idx++);
+
+      currentAlgorithm = currentPair.getFirst();
+      ReachedSet currentReached = currentPair.getSecond();
 
       // run algorithm
-      Preconditions.checkNotNull(reached);
-      sound &= currentAlgorithm.run(reached);
+      Preconditions.checkNotNull(currentReached);
+      sound &= currentAlgorithm.run(currentReached);
 
       // if there are no more algorithms to proceed with,
       // return the result
@@ -83,7 +87,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
         continueAnalysis = true;
       }
-
+      reached = currentReached;
     } while (continueAnalysis);
 
     return sound;
