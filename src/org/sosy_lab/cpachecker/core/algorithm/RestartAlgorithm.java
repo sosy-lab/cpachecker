@@ -98,7 +98,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    System.out.println("collect statictics from restart");
     if(currentAlgorithm instanceof StatisticsProvider)
       ((StatisticsProvider)currentAlgorithm).collectStatistics(pStatsCollection);
   }
