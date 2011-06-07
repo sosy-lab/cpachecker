@@ -306,7 +306,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
   private AbstractElement handleAssumption(ExplicitElement element,
       IASTExpression expression, CFAEdge cfaEdge, boolean truthValue, ExplicitPrecision precision)
-  throws UnrecognizedCFAEdgeException {
+  throws UnrecognizedCFAEdgeException, UnrecognizedCCodeException {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
     // Binary operation
@@ -334,7 +334,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         return element.clone();
 
       default:
-        throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
+        throw new UnrecognizedCCodeException("Unhandled case", cfaEdge, unaryExp);
       }
     }
 
@@ -348,7 +348,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     }
 
     else{
-      throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
+      throw new UnrecognizedCCodeException("Unhandled case", cfaEdge, expression);
     }
 
   }
