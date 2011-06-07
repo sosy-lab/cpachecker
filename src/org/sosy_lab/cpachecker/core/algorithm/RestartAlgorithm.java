@@ -43,6 +43,8 @@ import com.google.common.base.Preconditions;
 
 public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
+  private int idx = 0;
+
   private static class RestartAlgorithmStatistics implements Statistics {
 
     @Override
@@ -79,8 +81,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     boolean sound = true;
 
-    int idx = 0;
-
     boolean continueAnalysis;
     do {
       continueAnalysis = false;
@@ -90,8 +90,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       currentAlgorithm = currentPair.getFirst();
       ReachedSet currentReached = currentPair.getSecond();
 
-      copyToReachedSet(reached, currentReached);
-
+      reached = currentReached;
       // run algorithm
       Preconditions.checkNotNull(reached);
       sound = currentAlgorithm.run(reached);
@@ -115,9 +114,8 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     return sound;
   }
 
-  private void copyToReachedSet(ReachedSet pReached, ReachedSet pCurrentReached) {
-    pReached.clear();
-    pReached.addAll(pCurrentReached.getReachedWithPrecision());
+  public ReachedSet getUsedReachedSet(){
+    return algorithms.get(idx).getSecond();
   }
 
   @Override

@@ -177,7 +177,7 @@ public class CPAchecker {
           return new CPAcheckerResult(Result.UNKNOWN, null, null);
         }
 
-        Pair<Algorithm, ReachedSet> algorithmReachedPair = createRestartAlgorithm(config, stats, cfaCreator);
+        Algorithm restartAlgorithm = createRestartAlgorithm(config, stats, cfaCreator);
 
         Set<String> unusedProperties = config.getUnusedProperties();
         if (!unusedProperties.isEmpty()) {
@@ -192,8 +192,8 @@ public class CPAchecker {
         // register management interface for CPAchecker
         CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
         try {
-
-          result = runAlgorithm(algorithmReachedPair.getFirst(), algorithmReachedPair.getSecond(), stats);
+          reached = ((RestartAlgorithm)restartAlgorithm).getUsedReachedSet();
+          result = runAlgorithm(restartAlgorithm, reached, stats);
 
         } finally {
           // unregister management interface for CPAchecker
@@ -266,7 +266,6 @@ public class CPAchecker {
           return new CPAcheckerResult(Result.UNKNOWN, null, null);
         }
 
-        reached = createInitialReachedSet(cpa, cfaCreator.getMainFunction());
 
         stopIfNecessary();
 
@@ -313,6 +312,7 @@ public class CPAchecker {
         logger.logException(Level.SEVERE, e, null);
       }
     }
+
     return new CPAcheckerResult(result, reached, stats);
   }
 
@@ -435,7 +435,7 @@ public class CPAchecker {
     return algorithm;
   }
 
-  private Pair<Algorithm, ReachedSet> createRestartAlgorithm(Configuration config, MainCPAStatistics stats, CFACreator cfaCreator) {
+  private Algorithm createRestartAlgorithm(Configuration config, MainCPAStatistics stats, CFACreator cfaCreator) {
     List<Pair<Algorithm, ReachedSet>> algorithmsList = new ArrayList<Pair<Algorithm, ReachedSet>>();
 
     String[] configFiles = config.getPropertiesArray("restartAlgorithm.configFiles");
@@ -484,7 +484,7 @@ public class CPAchecker {
     }
 
     Preconditions.checkNotNull(restartAlgorithm);
-    return Pair.of(restartAlgorithm, reached);
+    return restartAlgorithm;
   }
 
   private ReachedSet createInitialReachedSetForRestart(
@@ -497,19 +497,6 @@ public class CPAchecker {
     Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
 
     ReachedSet reached = pReachedSetFactory.create();
-    reached.add(initialElement, initialPrecision);
-    return reached;
-  }
-
-  private ReachedSet createInitialReachedSet(
-      final ConfigurableProgramAnalysis cpa,
-      final CFAFunctionDefinitionNode mainFunction) {
-    logger.log(Level.FINE, "Creating initial reached set");
-
-    AbstractElement initialElement = cpa.getInitialElement(mainFunction);
-    Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
-
-    ReachedSet reached = reachedSetFactory.create();
     reached.add(initialElement, initialPrecision);
     return reached;
   }
