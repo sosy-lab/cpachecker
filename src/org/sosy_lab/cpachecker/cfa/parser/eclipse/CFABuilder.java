@@ -543,16 +543,25 @@ class CFABuilder extends ASTVisitor
 
     final CONDITION kind = getConditionKind(whileStatement.getCondition());
 
-    if (kind == CONDITION.ALWAYS_FALSE || kind == CONDITION.NORMAL) {
+    switch (kind) {
+    case ALWAYS_FALSE:
+      BlankEdge falseEdge = new BlankEdge("", fileloc.getStartingLineNumber(), loopStart, postLoopNode);
+      addToCFA(falseEdge);
+      break;
+
+    case ALWAYS_TRUE:
+      BlankEdge trueEdge = new BlankEdge("", fileloc.getStartingLineNumber(), loopStart, firstLoopNode);
+      addToCFA(trueEdge);
+      break;
+
+    case NORMAL:
       // edge connecting loopStart with postLoopNode
       AssumeEdge assumeEdgeFalse = new AssumeEdge("!(" + whileStatement.getCondition().getRawSignature() + ")",
           fileloc.getStartingLineNumber(), loopStart, postLoopNode,
           astCreator.convertExpressionWithoutSideEffects(whileStatement.getCondition()),
           false);
       addToCFA(assumeEdgeFalse);
-    }
 
-    if (kind == CONDITION.ALWAYS_TRUE || kind == CONDITION.NORMAL) {
       // edge connecting loopStart with firstLoopNode
       AssumeEdge assumeEdgeTrue = new AssumeEdge(whileStatement.getCondition().getRawSignature(),
               fileloc.getStartingLineNumber(), loopStart, firstLoopNode,
