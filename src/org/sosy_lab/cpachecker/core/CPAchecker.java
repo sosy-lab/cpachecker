@@ -477,6 +477,7 @@ public class CPAchecker {
 
     try {
       restartAlgorithm = new RestartAlgorithm(algorithmsList, config, logger);
+      ((StatisticsProvider)restartAlgorithm).collectStatistics(stats.getSubStatistics());
     } catch (InvalidConfigurationException e) {
       e.printStackTrace();
     } catch (CPAException e) {

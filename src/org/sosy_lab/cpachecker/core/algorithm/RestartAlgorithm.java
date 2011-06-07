@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
@@ -31,6 +32,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -41,6 +43,22 @@ import com.google.common.base.Preconditions;
 
 public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
+  private static class RestartAlgorithmStatistics implements Statistics {
+
+    @Override
+    public String getName() {
+      return "Restart Algorithm";
+    }
+
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult,
+        ReachedSet pReached) {
+      pOut.println("Restart Algorithm ended");
+    }
+
+  }
+
+  private final RestartAlgorithmStatistics stats = new RestartAlgorithmStatistics();
   private final List<Pair<Algorithm, ReachedSet>> algorithms;
   private Algorithm currentAlgorithm;
   private final LogManager logger;
@@ -72,9 +90,11 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       currentAlgorithm = currentPair.getFirst();
       ReachedSet currentReached = currentPair.getSecond();
 
+      copyToReachedSet(reached, currentReached);
+
       // run algorithm
-      Preconditions.checkNotNull(currentReached);
-      sound = currentAlgorithm.run(currentReached);
+      Preconditions.checkNotNull(reached);
+      sound = currentAlgorithm.run(reached);
 
       // if the analysis is not sound and we can proceed with
       // another algorithm, continue with the next algorithm
@@ -90,15 +110,19 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
           continueAnalysis = true;
         }
       }
-      reached = currentReached;
     } while (continueAnalysis);
 
     return sound;
+  }
+
+  private void copyToReachedSet(ReachedSet pReached, ReachedSet pCurrentReached) {
+    pReached.add(pCurrentReached.getFirstElement(), pCurrentReached.getPrecision(pCurrentReached.getFirstElement()));
   }
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     if(currentAlgorithm instanceof StatisticsProvider)
       ((StatisticsProvider)currentAlgorithm).collectStatistics(pStatsCollection);
+    pStatsCollection.add(stats);
   }
 }
