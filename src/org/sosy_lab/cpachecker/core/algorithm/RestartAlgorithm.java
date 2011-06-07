@@ -116,7 +116,8 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private void copyToReachedSet(ReachedSet pReached, ReachedSet pCurrentReached) {
-    pReached.add(pCurrentReached.getFirstElement(), pCurrentReached.getPrecision(pCurrentReached.getFirstElement()));
+    pReached.clear();
+    pReached.addAll(pCurrentReached.getReachedWithPrecision());
   }
 
   @Override
