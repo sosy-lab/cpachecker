@@ -394,6 +394,8 @@ class CFABuilder extends ASTVisitor
       handleIfStatement ((IASTIfStatement)statement, fileloc);
     else if (statement instanceof IASTWhileStatement)
       handleWhileStatement ((IASTWhileStatement)statement, fileloc);
+    //else if (statement instanceof IASTForStatement)
+      //handleForStatement ((IASTForStatement)statement, fileloc);
     else if (statement instanceof IASTBreakStatement)
       handleBreakStatement ((IASTBreakStatement)statement, fileloc);
     else if (statement instanceof IASTContinueStatement)
@@ -441,19 +443,18 @@ class CFABuilder extends ASTVisitor
     addToCFA(edge);
   }
 
-  private static enum IF_CONDITION {  NORMAL, ALWAYS_FALSE, ALWAYS_TRUE };
+  private static enum CONDITION {  NORMAL, ALWAYS_FALSE, ALWAYS_TRUE };
 
-  private IF_CONDITION getIfConditionKind(IASTIfStatement ifStatement) {
-      IASTExpression cond = ifStatement.getConditionExpression();
+  private CONDITION getConditionKind(final IASTExpression cond) {
       if (cond instanceof IASTLiteralExpression) {
           if (((IASTLiteralExpression)cond).getKind() ==
               IASTLiteralExpression.lk_integer_constant) {
               int c = Integer.parseInt(cond.getRawSignature());
-              if (c == 0) return IF_CONDITION.ALWAYS_FALSE;
-              else return IF_CONDITION.ALWAYS_TRUE;
+              if (c == 0) return CONDITION.ALWAYS_FALSE;
+              else return CONDITION.ALWAYS_TRUE;
           }
       }
-      return IF_CONDITION.NORMAL;
+      return CONDITION.NORMAL;
   }
 
   private void handleIfStatement(IASTIfStatement ifStatement, IASTFileLocation fileloc) {
@@ -477,7 +478,7 @@ class CFABuilder extends ASTVisitor
       elseStack.push(elseNode);
     }
 
-    IF_CONDITION kind = getIfConditionKind(ifStatement);
+    CONDITION kind = getConditionKind(ifStatement.getConditionExpression());
 
     switch (kind) {
     case ALWAYS_FALSE: {
@@ -540,19 +541,25 @@ class CFABuilder extends ASTVisitor
     BlankEdge blankEdge = new BlankEdge("while", fileloc.getStartingLineNumber(), prevNode, loopStart);
     addToCFA(blankEdge);
 
-    // edge connecting loopStart with firstLoopNode
-    AssumeEdge assumeEdgeTrue = new AssumeEdge(whileStatement.getCondition().getRawSignature(),
-            fileloc.getStartingLineNumber(), loopStart, firstLoopNode,
-            astCreator.convertExpressionWithoutSideEffects(whileStatement.getCondition()),
-            true);
-    addToCFA(assumeEdgeTrue);
+    final CONDITION kind = getConditionKind(whileStatement.getCondition());
 
-    // edge connecting loopStart with postLoopNode
-    AssumeEdge assumeEdgeFalse = new AssumeEdge("!(" + whileStatement.getCondition().getRawSignature() + ")",
-            fileloc.getStartingLineNumber(), loopStart, postLoopNode,
-            astCreator.convertExpressionWithoutSideEffects(whileStatement.getCondition()),
-            false);
-    addToCFA(assumeEdgeFalse);
+    if (kind == CONDITION.ALWAYS_FALSE || kind == CONDITION.NORMAL) {
+      // edge connecting loopStart with postLoopNode
+      AssumeEdge assumeEdgeFalse = new AssumeEdge("!(" + whileStatement.getCondition().getRawSignature() + ")",
+          fileloc.getStartingLineNumber(), loopStart, postLoopNode,
+          astCreator.convertExpressionWithoutSideEffects(whileStatement.getCondition()),
+          false);
+      addToCFA(assumeEdgeFalse);
+    }
+
+    if (kind == CONDITION.ALWAYS_TRUE || kind == CONDITION.NORMAL) {
+      // edge connecting loopStart with firstLoopNode
+      AssumeEdge assumeEdgeTrue = new AssumeEdge(whileStatement.getCondition().getRawSignature(),
+              fileloc.getStartingLineNumber(), loopStart, firstLoopNode,
+              astCreator.convertExpressionWithoutSideEffects(whileStatement.getCondition()),
+              true);
+      addToCFA(assumeEdgeTrue);
+    }
   }
 
   private void handleBreakStatement (IASTBreakStatement breakStatement, IASTFileLocation fileloc)
