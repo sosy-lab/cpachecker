@@ -370,9 +370,9 @@ public class CPAchecker {
     CPABuilder builder = new CPABuilder(pConfig, logger, pReachedSetFactory);
     ConfigurableProgramAnalysis cpa = builder.buildCPAs();
 
-    if (cpa instanceof StatisticsProvider) {
-      ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
-    }
+//    if (cpa instanceof StatisticsProvider) {
+//      ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
+//    }
     return cpa;
   }
 
@@ -429,9 +429,9 @@ public class CPAchecker {
       algorithm = new AssumptionCollectorAlgorithm(algorithm, pConfig, logger);
     }
 
-    if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider)algorithm).collectStatistics(stats.getSubStatistics());
-    }
+//    if (algorithm instanceof StatisticsProvider) {
+//      ((StatisticsProvider)algorithm).collectStatistics(stats.getSubStatistics());
+//    }
     return algorithm;
   }
 
@@ -451,8 +451,8 @@ public class CPAchecker {
         Configuration singleConfig = singleConfigBuilder.build();
         singleConfig.inject(options);
         ReachedSetFactory singleReachedSetFactory = new ReachedSetFactory(singleConfig);
-        ConfigurableProgramAnalysis cpa = createCPA(singleReachedSetFactory, singleConfig, stats);
-        algorithm = createAlgorithm(cpa, singleConfig, stats, singleReachedSetFactory);
+        ConfigurableProgramAnalysis cpa = createCPA(singleReachedSetFactory, singleConfig, null);
+        algorithm = createAlgorithm(cpa, singleConfig, null, singleReachedSetFactory);
 
         reached = createInitialReachedSetForRestart(cpa, cfaCreator.getMainFunction(), singleReachedSetFactory);
 
@@ -476,7 +476,7 @@ public class CPAchecker {
 
     try {
       restartAlgorithm = new RestartAlgorithm(algorithmsList, config, logger);
-      ((StatisticsProvider)restartAlgorithm).collectStatistics(stats.getSubStatistics());
+      //((StatisticsProvider)restartAlgorithm).collectStatistics(stats.getSubStatistics());
     } catch (InvalidConfigurationException e) {
       e.printStackTrace();
     } catch (CPAException e) {
