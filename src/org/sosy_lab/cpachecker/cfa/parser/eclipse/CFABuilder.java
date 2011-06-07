@@ -169,102 +169,11 @@ class CFABuilder extends ASTVisitor
   {
     IASTFileLocation fileloc = declaration.getFileLocation ();
 
-    if (declaration instanceof IASTSimpleDeclaration)
-    {
-      IASTSimpleDeclaration sd = (IASTSimpleDeclaration)declaration;
+    if (declaration instanceof IASTSimpleDeclaration) {
+      return handleSimpleDeclaration((IASTSimpleDeclaration)declaration, fileloc);
 
-      List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> newDs = astCreator.convert(sd);
-      assert !newDs.isEmpty();
-
-      for (org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD : newDs) {
-        if (newD.getStorageClass() != StorageClass.TYPEDEF
-            && newD.getName() != null) {
-          // this is neither a typedef nor a struct prototype nor a function declaration,
-          // so it's a variable declaration
-
-          scope.registerDeclaration(newD);
-        }
-      }
-
-      if (locStack.size () > 0) {// i.e. we're in a function
-
-        CFANode prevNode = locStack.pop();
-
-        CFANode nextNode = null;
-
-        for (org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD : newDs) {
-          assert !newD.isGlobal();
-
-          nextNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
-          currentCFANodes.add(nextNode);
-
-          DeclarationEdge edge = new DeclarationEdge(newD, fileloc.getStartingLineNumber(), prevNode, nextNode);
-          addToCFA(edge);
-
-          prevNode = nextNode;
-        }
-
-        assert nextNode != null;
-        locStack.push(nextNode);
-
-      } else {
-        assert declaration.getParent() instanceof IASTTranslationUnit : "not a real global declaration";
-
-        // else we're in the global scope
-        globalDeclarations.addAll(newDs);
-      }
-
-      return PROCESS_SKIP; // important to skip here, otherwise we would visit nested declarations
-    }
-    else if (declaration instanceof IASTFunctionDefinition)
-    {
-      if (locStack.size () != 0) {
-        throw new CFAGenerationRuntimeException("Nested function declarations?");
-      }
-
-      assert labelMap.isEmpty();
-      assert gotoLabelNeeded.isEmpty();
-      assert currentCFA == null;
-      assert currentCFANodes == null;
-
-      org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDefinition fdef = astCreator.convert((IASTFunctionDefinition)declaration);
-      String nameOfFunction = fdef.getName();
-      assert !nameOfFunction.isEmpty();
-
-      if (cfas.containsKey(nameOfFunction)) {
-        throw new CFAGenerationRuntimeException("Duplicate function " + nameOfFunction, declaration);
-      }
-
-      scope.registerDeclaration(fdef);
-      scope.enterFunction();
-
-      List<org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration> parameters = fdef.getDeclSpecifier().getParameters();
-      List<String> parameterNames = new ArrayList<String>(parameters.size());
-
-      for (org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration param : parameters) {
-        scope.registerDeclaration(param); // declare parameter as local variable
-        parameterNames.add(param.getName());
-      }
-
-      currentCFANodes = cfaNodes.get(nameOfFunction);
-
-      CFAFunctionExitNode returnNode = new CFAFunctionExitNode(fileloc.getEndingLineNumber(), nameOfFunction);
-      currentCFANodes.add(returnNode);
-
-      CFAFunctionDefinitionNode startNode = new FunctionDefinitionNode(fileloc.getStartingLineNumber(), nameOfFunction, fdef, returnNode, parameters, parameterNames);
-      currentCFANodes.add(startNode);
-      cfas.put(nameOfFunction, startNode);
-      currentCFA = startNode;
-
-      CFANode nextNode = new CFANode(fileloc.getStartingLineNumber(), nameOfFunction);
-      currentCFANodes.add(nextNode);
-      locStack.add(nextNode);
-
-      BlankEdge dummyEdge = new BlankEdge("Function start dummy edge", fileloc.getStartingLineNumber(), startNode, nextNode);
-      addToCFA(dummyEdge);
-
-      return PROCESS_CONTINUE;
-
+    } else if (declaration instanceof IASTFunctionDefinition) {
+      return handleFunctionDefinition((IASTFunctionDefinition)declaration, fileloc);
 
     } else if (declaration instanceof IASTProblemDeclaration) {
       // CDT parser struggles on GCC's __attribute__((something)) constructs because we use C99 as default
@@ -276,25 +185,129 @@ class CFABuilder extends ASTVisitor
 
     } else if (declaration instanceof IASTASMDeclaration) {
       // TODO Assembler code is ignored here
-      logger.log(Level.WARNING, "Ignoring inline assembler code at line " + fileloc.getStartingLineNumber() + ", analysis is probably unsound!");
-
-      // locStack may be empty here, which happens when there is assembler code
-      // outside of a function
-      if (!locStack.isEmpty()) {
-        CFANode prevNode = locStack.pop();
-
-        CFANode nextNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
-        currentCFANodes.add(nextNode);
-        locStack.push(nextNode);
-
-        BlankEdge edge = new BlankEdge("Ignored inline assembler code", fileloc.getStartingLineNumber(), prevNode, nextNode);
-        addToCFA(edge);
-      }
-      return PROCESS_SKIP;
+      return ignoreASMDeclaration(fileloc);
 
     } else {
       throw new CFAGenerationRuntimeException("Unknown declaration type " + declaration.getClass().getSimpleName(),  declaration);
     }
+  }
+
+  private int handleSimpleDeclaration(final IASTSimpleDeclaration sd, final IASTFileLocation fileloc){
+    final List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> newDs = astCreator.convert(sd);
+    assert !newDs.isEmpty();
+
+    for (org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD : newDs) {
+      if (newD.getStorageClass() != StorageClass.TYPEDEF
+          && newD.getName() != null) {
+        // this is neither a typedef nor a struct prototype nor a function declaration,
+        // so it's a variable declaration
+
+        scope.registerDeclaration(newD);
+      }
+    }
+
+    if (locStack.size () > 0) {// i.e. we're in a function
+
+      CFANode prevNode = locStack.pop();
+      CFANode nextNode = null;
+
+      for (org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD : newDs) {
+        assert !newD.isGlobal();
+
+        nextNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
+        currentCFANodes.add(nextNode);
+
+        final DeclarationEdge edge = new DeclarationEdge(newD, fileloc.getStartingLineNumber(), prevNode, nextNode);
+        addToCFA(edge);
+
+        prevNode = nextNode;
+      }
+
+      assert nextNode != null;
+      locStack.push(nextNode);
+
+    } else {
+      assert sd.getParent() instanceof IASTTranslationUnit : "not a real global declaration";
+
+      // else we're in the global scope
+      globalDeclarations.addAll(newDs);
+    }
+
+    return PROCESS_SKIP; // important to skip here, otherwise we would visit nested declarations
+  }
+
+  private int handleFunctionDefinition(final IASTFunctionDefinition declaration,
+      final IASTFileLocation fileloc) {
+
+    if (locStack.size () != 0) {
+      throw new CFAGenerationRuntimeException("Nested function declarations?");
+    }
+
+    assert labelMap.isEmpty();
+    assert gotoLabelNeeded.isEmpty();
+    assert currentCFA == null;
+    assert currentCFANodes == null;
+
+    final org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDefinition fdef = astCreator.convert(declaration);
+    final String nameOfFunction = fdef.getName();
+    assert !nameOfFunction.isEmpty();
+
+    if (cfas.containsKey(nameOfFunction)) {
+      throw new CFAGenerationRuntimeException("Duplicate function " + nameOfFunction, declaration);
+    }
+
+    scope.registerDeclaration(fdef);
+    scope.enterFunction();
+
+    final List<org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration> parameters = fdef.getDeclSpecifier().getParameters();
+    final List<String> parameterNames = new ArrayList<String>(parameters.size());
+
+    for (org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration param : parameters) {
+      scope.registerDeclaration(param); // declare parameter as local variable
+      parameterNames.add(param.getName());
+    }
+
+    currentCFANodes = cfaNodes.get(nameOfFunction);
+
+    final CFAFunctionExitNode returnNode = new CFAFunctionExitNode(fileloc.getEndingLineNumber(), nameOfFunction);
+    currentCFANodes.add(returnNode);
+
+    final CFAFunctionDefinitionNode startNode = new FunctionDefinitionNode(
+        fileloc.getStartingLineNumber(), nameOfFunction, fdef, returnNode, parameters, parameterNames);
+    currentCFANodes.add(startNode);
+    cfas.put(nameOfFunction, startNode);
+    currentCFA = startNode;
+
+    final CFANode nextNode = new CFANode(fileloc.getStartingLineNumber(), nameOfFunction);
+    currentCFANodes.add(nextNode);
+    locStack.add(nextNode);
+
+    final BlankEdge dummyEdge = new BlankEdge("Function start dummy edge",
+        fileloc.getStartingLineNumber(), startNode, nextNode);
+    addToCFA(dummyEdge);
+
+    return PROCESS_CONTINUE;
+  }
+
+  private int ignoreASMDeclaration(final IASTFileLocation fileloc){
+    // TODO Assembler code is ignored here
+    logger.log(Level.WARNING, "Ignoring inline assembler code at line "
+        + fileloc.getStartingLineNumber() + ", analysis is probably unsound!");
+
+    // locStack may be empty here, which happens when there is assembler code
+    // outside of a function
+    if (!locStack.isEmpty()) {
+      final CFANode prevNode = locStack.pop();
+
+      final CFANode nextNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
+      currentCFANodes.add(nextNode);
+      locStack.push(nextNode);
+
+      final BlankEdge edge = new BlankEdge("Ignored inline assembler code",
+          fileloc.getStartingLineNumber(), prevNode, nextNode);
+      addToCFA(edge);
+    }
+    return PROCESS_SKIP;
   }
 
   @Override
