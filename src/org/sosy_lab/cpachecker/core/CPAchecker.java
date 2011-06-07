@@ -266,6 +266,7 @@ public class CPAchecker {
           return new CPAcheckerResult(Result.UNKNOWN, null, null);
         }
 
+        reached = createInitialReachedSet(cpa, cfaCreator.getMainFunction());
 
         stopIfNecessary();
 
@@ -312,7 +313,6 @@ public class CPAchecker {
         logger.logException(Level.SEVERE, e, null);
       }
     }
-
     return new CPAcheckerResult(result, reached, stats);
   }
 
@@ -497,6 +497,19 @@ public class CPAchecker {
     Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
 
     ReachedSet reached = pReachedSetFactory.create();
+    reached.add(initialElement, initialPrecision);
+    return reached;
+  }
+
+  private ReachedSet createInitialReachedSet(
+      final ConfigurableProgramAnalysis cpa,
+      final CFAFunctionDefinitionNode mainFunction) {
+    logger.log(Level.FINE, "Creating initial reached set");
+
+    AbstractElement initialElement = cpa.getInitialElement(mainFunction);
+    Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
+
+    ReachedSet reached = reachedSetFactory.create();
     reached.add(initialElement, initialPrecision);
     return reached;
   }
