@@ -93,6 +93,7 @@ public class CFACreationUtils {
   public static boolean isReachableNode(CFANode node) {
     return (node.getNumEnteringEdges() > 0)
         || (node instanceof CFAFunctionDefinitionNode)
+        || (node.isLoopStart())
         || (node instanceof CFALabelNode);
   }
 
