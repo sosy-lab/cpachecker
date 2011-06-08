@@ -54,7 +54,7 @@
     <target name="build-documentation" depends="build-project" unless="documentation.uptodate">
         <echo message="running OptionCollector..." level="info"/>
 
-        <echo output="${outputfile}" append="false" message="# This is an auto-generated file, DO NOT EDIT!${line.separator}# Run ant to generate it.${line.separator}"/>
+        <echo file="${outputfile}" append="false" message="# This is an auto-generated file, DO NOT EDIT!${line.separator}# Run ant to generate it.${line.separator}"/>
         <!-- the output of OptionCollector is written into "doc/ConfigurationOptions.txt" -->
         <java classname="org.sosy_lab.common.configuration.OptionCollector"
             fork="true"
