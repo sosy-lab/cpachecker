@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 import java.util.List;
 
@@ -53,11 +54,11 @@ public final class IASTEnumerationSpecifier extends IType {
 
     private static final IType INT_TYPE = new IASTSimpleDeclSpecifier(true, false, BasicType.INT, false, false, true, false, false, false, false);
 
-    private final long           value;
+    private final Long           value;
 
     public IASTEnumerator(final String pRawSignature,
         final IASTFileLocation pFileLocation, final String pName,
-        final long pValue) {
+        final Long pValue) {
       super(pRawSignature, pFileLocation, INT_TYPE, pName);
 
       checkNotNull(pName);
@@ -65,7 +66,12 @@ public final class IASTEnumerationSpecifier extends IType {
     }
 
     public long getValue() {
+      checkState(value != null, "Need to check hasValue() before calling getValue()");
       return value;
+    }
+
+    public boolean hasValue() {
+      return value != null;
     }
   }
 }

@@ -1271,7 +1271,12 @@ public class ExplicitTransferRelation implements TransferRelation {
     public Long visit(IASTIdExpression idExp) throws UnrecognizedCCodeException {
 
       if (idExp.getDeclaration() instanceof IASTEnumerator) {
-        return ((IASTEnumerator)idExp.getDeclaration()).getValue();
+        IASTEnumerator enumerator = (IASTEnumerator)idExp.getDeclaration();
+        if (enumerator.hasValue()) {
+          return enumerator.getValue();
+        } else {
+          return null;
+        }
       }
 
       String varName = getvarName(idExp.getName(), functionName);

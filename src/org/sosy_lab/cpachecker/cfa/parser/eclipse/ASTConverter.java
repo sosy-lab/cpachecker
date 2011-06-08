@@ -958,11 +958,15 @@ class ASTConverter {
 
   private IASTEnumerationSpecifier convert(org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier d) {
     List<IASTEnumerator> list = new ArrayList<IASTEnumerator>(d.getEnumerators().length);
-    long lastValue = -1; // initialize with -1, so the first one gets value 0
+    Long lastValue = -1L; // initialize with -1, so the first one gets value 0
     for (org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier.IASTEnumerator c : d.getEnumerators()) {
       IASTEnumerator newC = convert(c, lastValue);
       list.add(newC);
-      lastValue = newC.getValue();
+      if (newC.hasValue()) {
+        lastValue = newC.getValue();
+      } else {
+        lastValue = null;
+      }
     }
     return new IASTEnumerationSpecifier(d.isConst(), d.isVolatile(), list, convert(d.getName()));
   }
@@ -1010,10 +1014,10 @@ class ASTConverter {
   }
 
 
-  private IASTEnumerator convert(org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier.IASTEnumerator e, long lastValue) {
-    long value;
+  private IASTEnumerator convert(org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier.IASTEnumerator e, Long lastValue) {
+    Long value = null;
 
-    if (e.getValue() == null) {
+    if (e.getValue() == null && lastValue != null) {
       value = lastValue + 1;
     } else {
       IASTExpression v = convertExpressionWithoutSideEffects(e.getValue());
@@ -1026,11 +1030,14 @@ class ASTConverter {
         v = u.getOperand();
       }
 
-      assert v instanceof IASTIntegerLiteralExpression : v;
-
-      value = ((IASTIntegerLiteralExpression)v).getValue().longValue();
-      if (negate) {
-        value = -value;
+      if (v instanceof IASTIntegerLiteralExpression) {
+        value = ((IASTIntegerLiteralExpression)v).getValue().longValue();
+        if (negate) {
+          value = -value;
+        }
+      } else {
+        // ignoring unsupported enum value
+        // TODO Warning
       }
     }
 

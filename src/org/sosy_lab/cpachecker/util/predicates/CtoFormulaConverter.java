@@ -743,7 +743,19 @@ public class CtoFormulaConverter {
 
       if (idExp.getDeclaration() instanceof IASTEnumerator) {
         IASTEnumerator enumerator = (IASTEnumerator)idExp.getDeclaration();
-        return fmgr.makeNumber(Long.toString(enumerator.getValue()));
+        if (enumerator.hasValue()) {
+          return fmgr.makeNumber(Long.toString(enumerator.getValue()));
+        } else {
+          // We don't know the value here, but we know it is constant.
+          // We create a fresh global variable for it
+          // (instantiated at 1 because we need an index but it never increases).
+          // TODO better use variables without index (this piece of code prevents
+          // SSAMapBuilder from checking for strict monotony)
+          String name = enumerator.getName();
+          globalVars.add(name);
+          ssa.setIndex(name, 1); // set index so that predicates will be instantiated correctly
+          return fmgr.makeVariable(name, 1);
+        }
       }
 
       IASTSimpleDeclaration decl = idExp.getDeclaration();
