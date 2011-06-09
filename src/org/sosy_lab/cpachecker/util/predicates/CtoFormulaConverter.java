@@ -149,9 +149,6 @@ public class CtoFormulaConverter {
   public static final String NONDET_FLAG_VARIABLE = NONDET_VARIABLE + "flag__";
   public static final String PROGRAM_COUNTER_PREDICATE = "__pc__";
 
-  // global variables (do not live in any namespace)
-  private final Set<String> globalVars = new HashSet<String>();
-
   private final Set<String> printedWarnings = new HashSet<String>();
 
   private final Map<String, Formula> stringLitToFormula = new HashMap<String, Formula>();
@@ -192,11 +189,17 @@ public class CtoFormulaConverter {
   }
 
   // looks up the variable in the current namespace
-  private String scopedIfNecessary(String var, String function) {
-    if (globalVars.contains(var)) {
-      return var;
+  private String scopedIfNecessary(IASTIdExpression var, String function) {
+    IASTSimpleDeclaration decl = var.getDeclaration();
+    boolean isGlobal = false;
+    if (decl instanceof IASTDeclaration) {
+      isGlobal = ((IASTDeclaration)decl).isGlobal();
+    }
+
+    if (isGlobal) {
+      return var.getName();
     } else {
-      return scoped(var, function);
+      return scoped(var.getName(), function);
     }
   }
 
@@ -442,7 +445,6 @@ public class CtoFormulaConverter {
         String varNameWithoutFunction = edge.getName();
         String var;
         if (isGlobal) {
-          globalVars.add(varNameWithoutFunction);
           var = varNameWithoutFunction;
         } else {
           var = scoped(varNameWithoutFunction, function);
@@ -752,24 +754,12 @@ public class CtoFormulaConverter {
           // TODO better use variables without index (this piece of code prevents
           // SSAMapBuilder from checking for strict monotony)
           String name = enumerator.getName();
-          globalVars.add(name);
           ssa.setIndex(name, 1); // set index so that predicates will be instantiated correctly
           return fmgr.makeVariable(name, 1);
         }
       }
 
-      IASTSimpleDeclaration decl = idExp.getDeclaration();
       String var = idExp.getName();
-
-      // some checks to determine whether our set of global variables
-      // and the AST concord
-      if (decl == null) {
-        assert !globalVars.contains(var) : "Undeclared global variables cannot exist";
-      } else {
-        if (decl instanceof IASTDeclaration) {
-          assert globalVars.contains(var) == ((IASTDeclaration)decl).isGlobal();
-        }
-      }
 
       if (isNondetVariable(var)) {
         // on every read access to special non-determininism variable, increase index
@@ -778,7 +768,7 @@ public class CtoFormulaConverter {
         return fmgr.makeVariable(var, idx);
 
       } else {
-        return makeVariable(scopedIfNecessary(var, function), ssa);
+        return makeVariable(scopedIfNecessary(idExp, function), ssa);
       }
 
     }
@@ -931,7 +921,6 @@ public class CtoFormulaConverter {
         if (nondetFunctions.contains(func)) {
           // function call like "random()"
           // ignore parameters and just create a fresh variable for it
-          globalVars.add(func);
           int idx = makeLvalIndex(func, ssa);
           return fmgr.makeVariable(func, idx);
 
@@ -954,7 +943,6 @@ public class CtoFormulaConverter {
         // increases)
         // TODO better use variables without index (this piece of code prevents
         // SSAMapBuilder from checking for strict monotony)
-        globalVars.add(func);
         ssa.setIndex(func, 1); // set index so that predicates will be instantiated correctly
         return fmgr.makeVariable(func, 1);
       } else {
@@ -1012,24 +1000,13 @@ public class CtoFormulaConverter {
 
     if (exp instanceof IASTIdExpression) {
       IASTIdExpression idExp = (IASTIdExpression)exp;
-      IASTSimpleDeclaration decl = idExp.getDeclaration();
       String var = idExp.getName();
-
-      // some checks to determine whether our set of global variables
-      // and the AST concord
-      if (decl == null) {
-        assert !globalVars.contains(var) : "Undeclared global variables cannot exist";
-      } else {
-        if (decl instanceof IASTDeclaration) {
-          assert globalVars.contains(var) == ((IASTDeclaration)decl).isGlobal();
-        }
-      }
 
       if (isNondetVariable(var)) {
         logger.log(Level.WARNING, "Assignment to special non-determinism variable",
             exp.getRawSignature(), "will be ignored.");
       }
-      var = scopedIfNecessary(var, function);
+      var = scopedIfNecessary(idExp, function);
       int idx = makeLvalIndex(var, ssa);
 
       Formula mvar = fmgr.makeVariable(var, idx);
@@ -1103,9 +1080,5 @@ public class CtoFormulaConverter {
     } else {
       throw new UnrecognizedCCodeException("Unknown lvalue", null, exp);
     }
-  }
-
-  protected void addToGlobalVars(String pVar){
-    globalVars.add(pVar);
   }
 }

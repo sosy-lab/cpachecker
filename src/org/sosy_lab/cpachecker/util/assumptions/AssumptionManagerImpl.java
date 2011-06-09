@@ -26,11 +26,8 @@ package org.sosy_lab.cpachecker.util.assumptions;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
-import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
-import org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions.ArithmeticOverflowAssumptionBuilder;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
@@ -93,20 +90,6 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
       // (!(a && b)) into (!a && !b)
       // I don't see a point in doing this, so I removed it.
       return fmgr.makeAnd(f, makePredicate((IASTExpression)p, true, function, mapBuilder));
-    }
-    else if(p instanceof IASTSimpleDeclaration){
-      IASTSimpleDeclaration decl = (IASTSimpleDeclaration)p;
-
-      boolean isGlobal = ArithmeticOverflowAssumptionBuilder.isDeclGlobal;
-      if (isGlobal) {
-        assert decl instanceof IASTDeclaration;
-        assert ((IASTDeclaration)decl).isGlobal();
-      }
-
-      String var = decl.getName();
-      if (isGlobal) {
-        super.addToGlobalVars(var);
-      }
     }
     return f;
   }

@@ -56,8 +56,6 @@ public class ArithmeticOverflowAssumptionBuilder
 implements GenericAssumptionBuilder
 {
 
-  public static boolean isDeclGlobal = false;
-
   private static Pair<IASTIntegerLiteralExpression, IASTIntegerLiteralExpression> boundsForType(IType typ)
   {
     if (typ instanceof IASTSimpleDeclSpecifier) {
@@ -195,7 +193,6 @@ implements GenericAssumptionBuilder
     case DeclarationEdge:
       DeclarationEdge declarationEdge = (DeclarationEdge) pEdge;
       result = declarationEdge.getRawAST();
-      isDeclGlobal = declarationEdge.isGlobal();
       break;
     case AssumeEdge:
       AssumeEdge assumeEdge = (AssumeEdge) pEdge;
