@@ -45,6 +45,7 @@ import org.eclipse.cdt.core.dom.ast.IASTDeclarationStatement;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpressionStatement;
 import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
+import org.eclipse.cdt.core.dom.ast.IASTForStatement;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTGotoStatement;
 import org.eclipse.cdt.core.dom.ast.IASTIfStatement;
@@ -61,6 +62,7 @@ import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -394,8 +396,8 @@ class CFABuilder extends ASTVisitor
       handleIfStatement ((IASTIfStatement)statement, fileloc);
     else if (statement instanceof IASTWhileStatement)
       handleWhileStatement ((IASTWhileStatement)statement, fileloc);
-    //else if (statement instanceof IASTForStatement)
-      //handleForStatement ((IASTForStatement)statement, fileloc);
+    else if (statement instanceof IASTForStatement)
+      handleForStatement ((IASTForStatement)statement, fileloc);
     else if (statement instanceof IASTBreakStatement)
       handleBreakStatement ((IASTBreakStatement)statement, fileloc);
     else if (statement instanceof IASTContinueStatement)
@@ -433,6 +435,13 @@ class CFABuilder extends ASTVisitor
 
   private void handleExpressionStatement (IASTExpressionStatement exprStatement, IASTFileLocation fileloc)
   {
+    // check, if the exprStatement is the initializer of a forLoop, i.e. "counter=0;"
+    // then we can ignore it, because it is handled with the loopstart
+    if (exprStatement.getParent() instanceof IASTForStatement
+        && exprStatement == ((IASTForStatement) exprStatement.getParent()).getInitializerStatement()) {
+      return;
+    }
+
     CFANode prevNode = locStack.pop ();
 
     CFANode nextNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
@@ -569,6 +578,78 @@ class CFABuilder extends ASTVisitor
               true);
       addToCFA(assumeEdgeTrue);
     }
+  }
+
+  private void handleForStatement (IASTForStatement forStatement, IASTFileLocation fileloc)
+  {
+    final CFANode prevNode = locStack.pop();
+
+    // loopInit is Node before "counter = 0;"
+    final CFANode loopInit = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
+    currentCFANodes.add(loopInit);
+    final BlankEdge blankEdge = new BlankEdge("for", fileloc.getStartingLineNumber(),
+        prevNode, loopInit);
+    addToCFA(blankEdge);
+
+    // loopStart is Node before the loop itself
+    final CFANode loopStart = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
+    currentCFANodes.add(loopStart);
+    loopStart.setLoopStart();
+
+    // edge with "counter = 0;"
+    final StatementEdge initEdge = new StatementEdge(
+        (org.sosy_lab.cpachecker.cfa.ast.IASTStatement)
+            astCreator.convert(forStatement.getInitializerStatement()),
+        fileloc.getStartingLineNumber(), loopInit, loopStart);
+    addToCFA(initEdge);
+
+    // loopEnd is Node before "counter++;"
+    final CFANode loopEnd =
+        new CFANode(fileloc.getStartingLineNumber(),
+            currentCFA.getFunctionName());
+    currentCFANodes.add(loopEnd);
+    loopStartStack.push(loopEnd);
+
+    // set to loopStart, because only a loopStart is allowed to have more than 1 incoming edges
+    loopEnd.setLoopStart();
+
+    // this edge connects loopEnd with loopStart and contains the statement "counter++;"
+    final StatementEdge lastEdge = new StatementEdge(
+        (IASTExpressionAssignmentStatement) astCreator.
+            convertExpressionWithSideEffects(forStatement.getIterationExpression()),
+        fileloc.getStartingLineNumber(), loopEnd, loopStart);
+    addToCFA(lastEdge);
+
+    // firstLoopNode is Node after "counter < 5"
+    final CFANode firstLoopNode = new CFANode(
+        fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
+    currentCFANodes.add(firstLoopNode);
+
+    // firstLoopNode is Node after "!(counter < 5)"
+    final CFANode postLoopNode = new CFANode(
+        fileloc.getEndingLineNumber(), currentCFA.getFunctionName());
+    currentCFANodes.add(postLoopNode);
+    loopNextStack.push(postLoopNode);
+
+    // inverse order here!
+    locStack.push(postLoopNode);
+    locStack.push(firstLoopNode);
+
+    // edge connecting loopStart with postLoopNode, with "!(counter < 5)"
+    final AssumeEdge assumeEdgeFalse = new AssumeEdge(
+            "!(" + forStatement.getConditionExpression().getRawSignature() + ")",
+            fileloc.getStartingLineNumber(), loopStart, postLoopNode,
+            astCreator.convertExpressionWithoutSideEffects(forStatement.getConditionExpression()),
+            false);
+    addToCFA(assumeEdgeFalse);
+
+    // edge connecting loopStart with firstLoopNode, with "counter < 5"
+    final AssumeEdge assumeEdgeTrue = new AssumeEdge(
+        forStatement.getConditionExpression().getRawSignature(),
+            fileloc.getStartingLineNumber(), loopStart, firstLoopNode,
+            astCreator.convertExpressionWithoutSideEffects(forStatement.getConditionExpression()),
+            true);
+    addToCFA(assumeEdgeTrue);
   }
 
   private void handleBreakStatement (IASTBreakStatement breakStatement, IASTFileLocation fileloc)
@@ -722,7 +803,9 @@ class CFABuilder extends ASTVisitor
         addToCFA(blankEdge);
       }
     }
-    else if ((statement instanceof IASTCompoundStatement) && (statement.getPropertyInParent () == IASTWhileStatement.BODY))
+    else if ((statement instanceof IASTCompoundStatement)
+        && ((statement.getPropertyInParent () == IASTWhileStatement.BODY)
+         || (statement.getPropertyInParent () == IASTForStatement.BODY)))
     {
       CFANode prevNode = locStack.pop ();
       CFANode startNode = loopStartStack.pop();
