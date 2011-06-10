@@ -63,6 +63,15 @@ class Scope {
     varsStack.removeLast();
   }
 
+  public void enterBlock() {
+    varsStack.addLast(new HashMap<String, IASTSimpleDeclaration>());
+  }
+
+  public void leaveBlock() {
+    checkState(varsStack.size() > 2);
+    varsStack.removeLast();
+  }
+
   public IASTSimpleDeclaration lookupVariable(String name) {
     checkNotNull(name);
 

@@ -388,6 +388,7 @@ class CFABuilder extends ASTVisitor
     // Handle each kind of expression
     if (statement instanceof IASTCompoundStatement)
     {
+      scope.enterBlock();
       // Do nothing, just continue visiting
     }
     else if (statement instanceof IASTExpressionStatement)
@@ -803,20 +804,23 @@ class CFABuilder extends ASTVisitor
         addToCFA(blankEdge);
       }
     }
-    else if ((statement instanceof IASTCompoundStatement)
-        && ((statement.getPropertyInParent () == IASTWhileStatement.BODY)
-         || (statement.getPropertyInParent () == IASTForStatement.BODY)))
+    else if (statement instanceof IASTCompoundStatement)
     {
-      CFANode prevNode = locStack.pop ();
-      CFANode startNode = loopStartStack.pop();
+      scope.leaveBlock();
+      if ((statement.getPropertyInParent () == IASTWhileStatement.BODY)
+         || (statement.getPropertyInParent () == IASTForStatement.BODY))
+      {
+        CFANode prevNode = locStack.pop ();
+        CFANode startNode = loopStartStack.pop();
 
-      if (isReachableNode(prevNode)) {
-        BlankEdge blankEdge = new BlankEdge("", prevNode.getLineNumber(), prevNode, startNode);
-        addToCFA(blankEdge);
+        if (isReachableNode(prevNode)) {
+          BlankEdge blankEdge = new BlankEdge("", prevNode.getLineNumber(), prevNode, startNode);
+          addToCFA(blankEdge);
+        }
+
+        CFANode nextNode = loopNextStack.pop();
+        assert nextNode == locStack.peek();
       }
-
-      CFANode nextNode = loopNextStack.pop();
-      assert nextNode == locStack.peek();
     }
     else if (statement instanceof IASTWhileStatement) // Code never hit due to bug in Eclipse CDT
     {
