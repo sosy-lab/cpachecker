@@ -118,7 +118,7 @@ class Scope {
   }
 
   public void registerDeclaration(IASTSimpleDeclaration declaration) {
-    String name = declaration.getName();
+    String name = declaration.getOrigName();
 
     if (declaration.getDeclSpecifier() instanceof IASTFunctionTypeSpecifier) {
       // function

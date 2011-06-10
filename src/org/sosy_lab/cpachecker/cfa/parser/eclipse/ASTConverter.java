@@ -712,6 +712,7 @@ class ASTConverter {
   private IASTDeclaration createDeclaration(String rawSignature, IASTFileLocation fileLoc, StorageClass storageClass, IType type, org.eclipse.cdt.core.dom.ast.IASTDeclarator d) {
     IASTInitializer initializer = null;
     String name = null;
+    String origName = null;
 
     if (d != null) {
       Triple<IType, IASTInitializer, String> declarator = convert(d, type);
@@ -734,7 +735,17 @@ class ASTConverter {
       }
     }
 
-    return new IASTDeclaration(rawSignature, fileLoc, scope.isGlobalScope(), storageClass, type, name, initializer);
+    origName = name;
+    if (scope.variableNameInUse(name, name)) {
+      String sep = "__";
+      int index = 1;
+      while (scope.variableNameInUse(name + sep + index, origName)) {
+        ++index;
+      }
+      name = name + sep + index;
+    }
+
+    return new IASTDeclaration(rawSignature, fileLoc, scope.isGlobalScope(), storageClass, type, name, origName, initializer);
   }
 
   private List<IASTCompositeTypeMemberDeclaration> convertDeclarationInCompositeType(final org.eclipse.cdt.core.dom.ast.IASTDeclaration d) {
