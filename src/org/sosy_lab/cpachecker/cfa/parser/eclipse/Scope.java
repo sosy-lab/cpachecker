@@ -43,6 +43,7 @@ import com.google.common.collect.Lists;
 class Scope {
 
   private final LinkedList<Map<String, IASTSimpleDeclaration>> varsStack = Lists.newLinkedList();
+  private final LinkedList<Map<String, IASTSimpleDeclaration>> varsList = Lists.newLinkedList();
 
   private final Map<String, IASTSimpleDeclaration> functions = new HashMap<String, IASTSimpleDeclaration>();
 
@@ -56,15 +57,20 @@ class Scope {
 
   public void enterFunction() {
     varsStack.addLast(new HashMap<String, IASTSimpleDeclaration>());
+    varsList.addLast(varsStack.getLast());
   }
 
   public void leaveFunction() {
     checkState(!isGlobalScope());
     varsStack.removeLast();
+    while (varsList.size() > varsStack.size()) {
+      varsList.removeLast();
+    }
   }
 
   public void enterBlock() {
     varsStack.addLast(new HashMap<String, IASTSimpleDeclaration>());
+    varsList.addLast(varsStack.getLast());
   }
 
   public void leaveBlock() {
