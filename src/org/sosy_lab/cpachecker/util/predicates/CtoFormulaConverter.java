@@ -214,7 +214,12 @@ public class CtoFormulaConverter {
   }
 
   private static String exprToVarName(IASTExpression e, String function) {
-    return scoped(e.getRawSignature().replaceAll("[ \n\t]", ""), function);
+    String exp = e.getRawSignature().replaceAll("[ \n\t]", "");
+    if (function != null) {
+      return scoped(exp, function);
+    } else {
+      return exp;
+    }
   }
 
   private String getTypeName(final IType tp) {
@@ -774,6 +779,24 @@ public class CtoFormulaConverter {
     }
 
     @Override
+    public Formula visit(IASTFieldReference fExp) throws UnrecognizedCCodeException {
+      IASTExpression fieldRef = fExp.getFieldOwner();
+      if (fieldRef instanceof IASTIdExpression) {
+        IASTSimpleDeclaration decl = ((IASTIdExpression) fieldRef).getDeclaration();
+        if (decl instanceof IASTDeclaration && ((IASTDeclaration)decl).isGlobal()) {
+          // this is the reference to a global field variable
+
+          // we can omit the warning (no pointers involved),
+          // and we don't need to scope the variable reference (so pass null as the function)
+          return makeVariable(exprToVarName(fExp, null), ssa);
+        }
+      }
+
+      // else do the default
+      return super.visit(fExp);
+    }
+
+    @Override
     public Formula visit(IASTCharLiteralExpression cExp) throws UnrecognizedCCodeException {
       // we just take the byte value
       return fmgr.makeNumber(cExp.getCharacter());
@@ -1014,6 +1037,20 @@ public class CtoFormulaConverter {
 
     } else if (!lvalsAsUif) {
       String var = exprToVarName(exp, function);
+
+      if (exp instanceof IASTFieldReference) {
+        IASTExpression fieldRef = ((IASTFieldReference)exp).getFieldOwner();
+        if (fieldRef instanceof IASTIdExpression) {
+          IASTSimpleDeclaration decl = ((IASTIdExpression) fieldRef).getDeclaration();
+          if (decl instanceof IASTDeclaration && ((IASTDeclaration)decl).isGlobal()) {
+            // this is the reference to a global field variable
+
+            // we don't need to scope the variable reference (so pass null as the function)
+            var = exprToVarName(exp, null);
+          }
+        }
+      }
+
       int idx = makeLvalIndex(var, ssa);
 
       Formula mvar = fmgr.makeVariable(var, idx);
