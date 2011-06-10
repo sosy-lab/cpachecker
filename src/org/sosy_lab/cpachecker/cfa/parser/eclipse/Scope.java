@@ -78,6 +78,26 @@ class Scope {
     varsStack.removeLast();
   }
 
+  public boolean variableNameInUse(String name, String origName) {
+      checkNotNull(name);
+      checkNotNull(origName);
+
+      Iterator<Map<String, IASTSimpleDeclaration>> it = varsList.descendingIterator();
+      while (it.hasNext()) {
+        Map<String, IASTSimpleDeclaration> vars = it.next();
+
+        IASTSimpleDeclaration binding = vars.get(origName);
+        if (binding != null && binding.getName().equals(name)) {
+          return true;
+        }
+        binding = vars.get(name);
+        if (binding != null && binding.getName().equals(name)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
   public IASTSimpleDeclaration lookupVariable(String name) {
     checkNotNull(name);
 
