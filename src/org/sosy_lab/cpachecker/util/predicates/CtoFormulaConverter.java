@@ -289,13 +289,22 @@ public class CtoFormulaConverter {
     return fmgr.makeVariable(var, idx);
   }
 
+  /**
+   * Create a formula for a given variable with a fresh index for the left-hand
+   * side of an assignment.
+   * This method does not handle scoping and the NON_DET_VARIABLE!
+   */
+  private Formula makeFreshVariable(String var, SSAMapBuilder ssa) {
+    int idx = makeLvalIndex(var, ssa);
+    return fmgr.makeVariable(var, idx);
+  }
+
   // name has to be scoped already
   private Formula makeAssignment(String name,
           Formula rightHandSide, SSAMapBuilder ssa) {
 
-    int idx = makeLvalIndex(name, ssa);
-    Formula f = fmgr.makeVariable(name, idx);
-    return fmgr.makeAssignment(f, rightHandSide);
+    Formula lhs = makeFreshVariable(name, ssa);
+    return fmgr.makeAssignment(lhs, rightHandSide);
   }
 
 //  @Override
@@ -763,10 +772,8 @@ public class CtoFormulaConverter {
       String var = idExp.getName();
 
       if (isNondetVariable(var)) {
-        // on every read access to special non-determininism variable, increase index
-        var = NONDET_VARIABLE;
-        int idx = makeLvalIndex(var, ssa);
-        return fmgr.makeVariable(var, idx);
+        // on every read access to special non-determininism variable use a fresh instance
+        return makeFreshVariable(NONDET_VARIABLE, ssa);
 
       } else {
         return makeVariable(scopedIfNecessary(idExp, function), ssa);
@@ -951,8 +958,7 @@ public class CtoFormulaConverter {
         if (nondetFunctions.contains(func)) {
           // function call like "random()"
           // ignore parameters and just create a fresh variable for it
-          int idx = makeLvalIndex(func, ssa);
-          return fmgr.makeVariable(func, idx);
+          return makeFreshVariable(func, ssa);
 
         } else if (!PURE_EXTERNAL_FUNCTIONS.contains(func)) {
           if (pexps.isEmpty()) {
@@ -1049,18 +1055,12 @@ public class CtoFormulaConverter {
             var, "will be ignored.");
       }
       var = scopedIfNecessary(idExp, function);
-      int idx = makeLvalIndex(var, ssa);
-
-      Formula mvar = fmgr.makeVariable(var, idx);
-      return mvar;
+      return makeFreshVariable(var, ssa);
     }
 
     private Formula makeUIF(IASTExpression exp) {
       String var = scoped(exprToVarName(exp), function);
-      int idx = makeLvalIndex(var, ssa);
-
-      Formula mvar = fmgr.makeVariable(var, idx);
-      return mvar;
+      return makeFreshVariable(var, ssa);
     }
 
     @Override
@@ -1079,11 +1079,7 @@ public class CtoFormulaConverter {
 
           // we don't need to scope the variable reference
           String var = exprToVarName(fExp);
-
-          int idx = makeLvalIndex(var, ssa);
-
-          Formula mvar = fmgr.makeVariable(var, idx);
-          return mvar;
+          return makeFreshVariable(var, ssa);
         }
       }
 
