@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -982,12 +983,13 @@ public class CtoFormulaConverter {
 
       } else {
         func += "{" + pexps.size() + "}"; // add #arguments to function name to cope with varargs functions
-        Formula[] mArgs = new Formula[pexps.size()];
-        for (int i = 0; i < pexps.size(); ++i) {
-          mArgs[i] = toNumericFormula(pexps.get(i).accept(this));
+
+        List<Formula> args = new ArrayList<Formula>(pexps.size());
+        for (IASTExpression pexp : pexps) {
+          args.add(toNumericFormula(pexp.accept(this)));
         }
 
-        return fmgr.makeUIF(func, fmgr.makeList(mArgs));
+        return fmgr.makeUIF(func, fmgr.makeList(args));
       }
     }
   }
