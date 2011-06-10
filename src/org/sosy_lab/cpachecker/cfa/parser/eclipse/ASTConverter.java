@@ -366,6 +366,9 @@ class ASTConverter {
   private IASTIdExpression convert(org.eclipse.cdt.core.dom.ast.IASTIdExpression e) {
     String name = convert(e.getName());
     IASTSimpleDeclaration declaration = scope.lookupVariable(name);
+    if (declaration != null) {
+      name = declaration.getName();
+    }
     return new IASTIdExpression(e.getRawSignature(), convert(e.getFileLocation()), convert(e.getExpressionType()), name, declaration);
   }
 
