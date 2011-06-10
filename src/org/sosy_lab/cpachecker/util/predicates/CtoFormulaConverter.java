@@ -242,9 +242,7 @@ public class CtoFormulaConverter {
     } else {
       idx = 2; // AG - IMPORTANT!!! We must start from 2 and
       // not from 1, because this is an assignment,
-      // so the SSA index must be fresh. If we use 1
-      // here, we will have troubles later when
-      // shifting indices
+      // so the SSA index must be fresh.
     }
     ssa.setIndex(name, idx);
     return idx;
@@ -278,6 +276,21 @@ public class CtoFormulaConverter {
     }
     ssa.setIndex(name, args, idx);
     return idx;
+  }
+
+  /**
+   * Create a formula for a given variable, which is assumed to be constant.
+   * This method does not handle scoping!
+   */
+  private Formula makeConstant(String var, SSAMapBuilder ssa) {
+    // TODO better use variables without index (this piece of code prevents
+    // SSAMapBuilder from checking for strict monotony)
+    int idx = ssa.getIndex(var);
+    assert idx <= 1 : var + " is assumed to be constant there was an assignment to it";
+    if (idx != 1) {
+      ssa.setIndex(var, 1); // set index so that predicates will be instantiated correctly
+    }
+    return fmgr.makeVariable(var, 1);
   }
 
   /**
@@ -435,8 +448,6 @@ public class CtoFormulaConverter {
         return fmgr.makeTrue();
       }
 
-      Formula result = fmgr.makeTrue();
-
       // ignore type prototypes here
       if (edge.getName() != null) {
 
@@ -448,11 +459,6 @@ public class CtoFormulaConverter {
           var = scoped(varNameWithoutFunction, function);
         }
 
-        // assign new index to variable
-        // (a declaration contains an implicit assignment, even without initializer)
-        int idx = makeLvalIndex(var, ssa);
-
-        logger.log(Level.ALL, "Declared variable:", var, "index:", idx);
         // TODO get the type of the variable, and act accordingly
 
         // if the var is unsigned, add the constraint that it should
@@ -492,13 +498,16 @@ public class CtoFormulaConverter {
 
           } else {
             Formula minit = buildTerm(init, function, ssa);
-            Formula mvar = fmgr.makeVariable(var, idx);
-            Formula t = fmgr.makeAssignment(mvar, minit);
-            result = fmgr.makeAnd(result, t);
+            Formula mvar = makeFreshVariable(var, ssa);
+            return fmgr.makeAssignment(mvar, minit);
           }
+        } else {
+          // just increment index of variable in SSAMap
+          // (a declaration contains an implicit assignment, even without initializer)
+          makeLvalIndex(var, ssa);
         }
       }
-      return result;
+      return fmgr.makeTrue();
 
     } else {
       throw new UnrecognizedCFAEdgeException(edge);
@@ -759,13 +768,7 @@ public class CtoFormulaConverter {
           return fmgr.makeNumber(Long.toString(enumerator.getValue()));
         } else {
           // We don't know the value here, but we know it is constant.
-          // We create a fresh global variable for it
-          // (instantiated at 1 because we need an index but it never increases).
-          // TODO better use variables without index (this piece of code prevents
-          // SSAMapBuilder from checking for strict monotony)
-          String name = enumerator.getName();
-          ssa.setIndex(name, 1); // set index so that predicates will be instantiated correctly
-          return fmgr.makeVariable(name, 1);
+          return makeConstant(enumerator.getName(), ssa);
         }
       }
 
@@ -974,17 +977,12 @@ public class CtoFormulaConverter {
       }
 
       if (pexps.isEmpty()) {
-        // this is a function of arity 0. We create a fresh global variable
-        // for it (instantiated at 1 because we need an index but it never
-        // increases)
-        // TODO better use variables without index (this piece of code prevents
-        // SSAMapBuilder from checking for strict monotony)
-        ssa.setIndex(func, 1); // set index so that predicates will be instantiated correctly
-        return fmgr.makeVariable(func, 1);
+        // This is a function of arity 0 and we assume its constant.
+        return makeConstant(func, ssa);
+
       } else {
-        IASTExpression[] args = pexps.toArray(new IASTExpression[pexps.size()]);
         func += "{" + pexps.size() + "}"; // add #arguments to function name to cope with varargs functions
-        Formula[] mArgs = new Formula[args.length];
+        Formula[] mArgs = new Formula[pexps.size()];
         for (int i = 0; i < pexps.size(); ++i) {
           mArgs[i] = toNumericFormula(pexps.get(i).accept(this));
         }
