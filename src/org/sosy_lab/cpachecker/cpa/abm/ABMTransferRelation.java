@@ -494,27 +494,35 @@ public class ABMTransferRelation implements TransferRelation {
   }
 
   private Set<ARTElement> getRelevantDefinitionNodes(List<ARTElement> path) {
-    ARTElement lastElement = path.get(path.size()-1);
     Deque<ARTElement> openCallElements = new ArrayDeque<ARTElement>();
     Deque<Block> openSubtrees = new ArrayDeque<Block>();
 
-    for (ARTElement currentElement : Iterables.skip(path, 1)) {
-      CFANode node = currentElement.retrieveLocationElement().getLocationNode();
-      if (partitioning.isCallNode(node)) {
-        if (!(isHeadOfMainFunction(node))) {
-          openCallElements.push(currentElement);
-          openSubtrees.push(partitioning.getBlockForCallNode(node));
+    ARTElement prevElement = path.get(1);
+    for (ARTElement currentElement : Iterables.skip(path, 2)) {
+      CFANode currNode = currentElement.retrieveLocationElement().getLocationNode();
+      CFANode prevNode = prevElement.retrieveLocationElement().getLocationNode();
+      if (partitioning.isCallNode(prevNode)
+          && !partitioning.getBlockForCallNode(prevNode).equals(openSubtrees.peek())) {
+        if (!(isHeadOfMainFunction(prevNode))) {
+          openCallElements.push(prevElement);
+          openSubtrees.push(partitioning.getBlockForCallNode(prevNode));
         }
 
-      } else {
-        while (!openSubtrees.isEmpty()
-             && openSubtrees.peek().isReturnNode(node)
-             && !currentElement.equals(lastElement)) {
-          openCallElements.pop();
-          openSubtrees.pop();
-        }
       }
+      while (!openSubtrees.isEmpty()
+           && openSubtrees.peek().isReturnNode(prevNode)
+           && !openSubtrees.peek().getNodes().contains(currNode)) {
+        openCallElements.pop();
+        openSubtrees.pop();
+      }
+      prevElement = currentElement;
     }
+
+    ARTElement lastElement = path.get(path.size()-1);
+    if(partitioning.isCallNode(lastElement.retrieveLocationElement().getLocationNode())) {
+      openCallElements.push(lastElement);
+    }
+
     return new HashSet<ARTElement>(openCallElements);
   }
 
