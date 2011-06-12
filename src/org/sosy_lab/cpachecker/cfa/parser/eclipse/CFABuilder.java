@@ -63,6 +63,8 @@ import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -397,7 +399,7 @@ class CFABuilder extends ASTVisitor
     else if (statement instanceof IASTWhileStatement)
       handleWhileStatement ((IASTWhileStatement)statement, fileloc);
     else if (statement instanceof IASTForStatement)
-      handleForStatement ((IASTForStatement)statement, fileloc);
+      return visitForStatement ((IASTForStatement)statement, fileloc);
     else if (statement instanceof IASTBreakStatement)
       handleBreakStatement ((IASTBreakStatement)statement, fileloc);
     else if (statement instanceof IASTContinueStatement)
@@ -487,59 +489,23 @@ class CFABuilder extends ASTVisitor
       elseStack.push(elseNode);
     }
 
-    CONDITION kind = getConditionKind(ifStatement.getConditionExpression());
-
-    switch (kind) {
-    case ALWAYS_FALSE: {
-      // no edge connecting prevNode with thenNode, so that the "then" branch won't be connected to the rest of the CFA
-
-      // edge connecting prevNode with elseNode
-      BlankEdge edge = new BlankEdge("", fileloc.getStartingLineNumber(), prevNode, elseNode);
-      addToCFA(edge);
-      break;
-    }
-    case ALWAYS_TRUE: {
-      // edge connecting prevNode with thenNode
-      BlankEdge edge = new BlankEdge("", fileloc.getStartingLineNumber(), prevNode, thenNode);
-      addToCFA(edge);
-
-      // no edge connecting prevNode with elseNode, so that the "else" branch won't be connected to the rest of the CFA
-      break;
-    }
-    case NORMAL: {
-      // edge connecting prevNode with thenNode
-      AssumeEdge assumeEdgeTrue = new AssumeEdge(ifStatement.getConditionExpression().getRawSignature(),
-              fileloc.getStartingLineNumber(), prevNode, thenNode,
-              astCreator.convertExpressionWithoutSideEffects(ifStatement.getConditionExpression()),
-              true);
-      addToCFA(assumeEdgeTrue);
-
-      // edge connecting prevNode with elseNode
-      AssumeEdge assumeEdgeFalse = new AssumeEdge("!(" + ifStatement.getConditionExpression().getRawSignature() + ")",
-              fileloc.getStartingLineNumber(), prevNode, elseNode,
-              astCreator.convertExpressionWithoutSideEffects(ifStatement.getConditionExpression()),
-              false);
-      addToCFA(assumeEdgeFalse);
-      break;
-    }
-    default:
-      throw new InternalError("Missing switch clause");
-    } // end of switch statement
+    createConditionEdges(ifStatement.getConditionExpression(), fileloc.getStartingLineNumber(),
+        prevNode, thenNode, elseNode);
   }
 
   private void handleWhileStatement (IASTWhileStatement whileStatement, IASTFileLocation fileloc)
   {
-    CFANode prevNode = locStack.pop ();
+    final CFANode prevNode = locStack.pop ();
 
-    CFANode loopStart = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
+    final CFANode loopStart = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
     currentCFANodes.add(loopStart);
     loopStart.setLoopStart();
     loopStartStack.push(loopStart);
 
-    CFANode firstLoopNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
+    final CFANode firstLoopNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
     currentCFANodes.add(firstLoopNode);
 
-    CFANode postLoopNode = new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName());
+    final CFANode postLoopNode = new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName());
     currentCFANodes.add(postLoopNode);
     loopNextStack.push(postLoopNode);
 
@@ -547,82 +513,89 @@ class CFABuilder extends ASTVisitor
     locStack.push(postLoopNode);
     locStack.push(firstLoopNode);
 
-    BlankEdge blankEdge = new BlankEdge("while", fileloc.getStartingLineNumber(), prevNode, loopStart);
+    final BlankEdge blankEdge = new BlankEdge("while", fileloc.getStartingLineNumber(), prevNode, loopStart);
     addToCFA(blankEdge);
 
-    final CONDITION kind = getConditionKind(whileStatement.getCondition());
+    createConditionEdges(whileStatement.getCondition(), fileloc.getStartingLineNumber(),
+        loopStart, firstLoopNode, postLoopNode);
+  }
+
+  /** This function creates the edges of a condition:
+   * if ALWAYS_TRUE or ALWAYS_FALSE only one blankEdge is created.
+   * if NORMAL two edges are created: one 'then'-edge and one 'else'-edge. */
+  private void createConditionEdges(final IASTExpression condition, final int filelocStart,
+      final CFANode rootNode, final CFANode thenNode, final CFANode elseNode) {
+
+    assert condition != null;
+
+    final CONDITION kind = getConditionKind(condition);
 
     switch (kind) {
     case ALWAYS_FALSE:
-      BlankEdge falseEdge = new BlankEdge("", fileloc.getStartingLineNumber(), loopStart, postLoopNode);
+      // no edge connecting rootNode with thenNode,
+      // so the "then" branch won't be connected to the rest of the CFA
+
+      final BlankEdge falseEdge = new BlankEdge("", filelocStart, rootNode, elseNode);
       addToCFA(falseEdge);
       break;
 
     case ALWAYS_TRUE:
-      BlankEdge trueEdge = new BlankEdge("", fileloc.getStartingLineNumber(), loopStart, firstLoopNode);
+      final BlankEdge trueEdge = new BlankEdge("", filelocStart, rootNode, thenNode);
       addToCFA(trueEdge);
+
+      // no edge connecting prevNode with elseNode,
+      // so the "else" branch won't be connected to the rest of the CFA
       break;
 
     case NORMAL:
-      // edge connecting loopStart with postLoopNode
-      AssumeEdge assumeEdgeFalse = new AssumeEdge("!(" + whileStatement.getCondition().getRawSignature() + ")",
-          fileloc.getStartingLineNumber(), loopStart, postLoopNode,
-          astCreator.convertExpressionWithoutSideEffects(whileStatement.getCondition()),
-          false);
+      final org.sosy_lab.cpachecker.cfa.ast.IASTExpression exp =
+        astCreator.convertExpressionWithoutSideEffects(condition);
+
+      // edge connecting rootNode with elseNode
+      final AssumeEdge assumeEdgeFalse = new AssumeEdge("!(" + condition.getRawSignature() + ")",
+          filelocStart, rootNode, elseNode, exp, false);
       addToCFA(assumeEdgeFalse);
 
-      // edge connecting loopStart with firstLoopNode
-      AssumeEdge assumeEdgeTrue = new AssumeEdge(whileStatement.getCondition().getRawSignature(),
-              fileloc.getStartingLineNumber(), loopStart, firstLoopNode,
-              astCreator.convertExpressionWithoutSideEffects(whileStatement.getCondition()),
-              true);
+      // edge connecting rootNode with thenNode
+      final AssumeEdge assumeEdgeTrue = new AssumeEdge(condition.getRawSignature(),
+          filelocStart, rootNode, thenNode, exp, true);
       addToCFA(assumeEdgeTrue);
+      break;
+
+    default:
+      throw new InternalError("Missing switch clause");
     }
   }
 
-  private void handleForStatement (IASTForStatement forStatement, IASTFileLocation fileloc)
+  private int visitForStatement (final IASTForStatement forStatement, final IASTFileLocation fileloc)
   {
+    final int filelocStart = fileloc.getStartingLineNumber();
     final CFANode prevNode = locStack.pop();
 
     // loopInit is Node before "counter = 0;"
-    final CFANode loopInit = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
+    final CFANode loopInit = new CFANode(filelocStart, currentCFA.getFunctionName());
     currentCFANodes.add(loopInit);
-    final BlankEdge blankEdge = new BlankEdge("for", fileloc.getStartingLineNumber(),
-        prevNode, loopInit);
-    addToCFA(blankEdge);
+    addToCFA(new BlankEdge("for", filelocStart, prevNode, loopInit));
 
-    // loopStart is Node before the loop itself
-    final CFANode loopStart = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
+    // loopStart is the Node before the loop itself
+    final CFANode loopStart = new CFANode(filelocStart, currentCFA.getFunctionName());
     currentCFANodes.add(loopStart);
     loopStart.setLoopStart();
 
-    // edge with "counter = 0;"
-    final StatementEdge initEdge = new StatementEdge(
-        (org.sosy_lab.cpachecker.cfa.ast.IASTStatement)
-            astCreator.convert(forStatement.getInitializerStatement()),
-        fileloc.getStartingLineNumber(), loopInit, loopStart);
-    addToCFA(initEdge);
+    // init-edge from loopinit to loopstart
+    createInitEdgeForForLoop(forStatement.getInitializerStatement(), filelocStart, loopInit, loopStart);
 
     // loopEnd is Node before "counter++;"
-    final CFANode loopEnd =
-        new CFANode(fileloc.getStartingLineNumber(),
-            currentCFA.getFunctionName());
+    final CFANode loopEnd = new CFALabelNode(filelocStart, currentCFA.getFunctionName(), "");
     currentCFANodes.add(loopEnd);
     loopStartStack.push(loopEnd);
 
-    // set to loopStart, because only a loopStart is allowed to have more than 1 incoming edges
-    loopEnd.setLoopStart();
-
     // this edge connects loopEnd with loopStart and contains the statement "counter++;"
-    final StatementEdge lastEdge = new StatementEdge(
-        (IASTExpressionAssignmentStatement) astCreator.
-            convertExpressionWithSideEffects(forStatement.getIterationExpression()),
-        fileloc.getStartingLineNumber(), loopEnd, loopStart);
-    addToCFA(lastEdge);
+    createLastEdgeForForLoop(forStatement.getIterationExpression(), filelocStart, loopEnd, loopStart);
 
     // firstLoopNode is Node after "counter < 5"
     final CFANode firstLoopNode = new CFANode(
-        fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
+        filelocStart, currentCFA.getFunctionName());
     currentCFANodes.add(firstLoopNode);
 
     // firstLoopNode is Node after "!(counter < 5)"
@@ -635,21 +608,142 @@ class CFABuilder extends ASTVisitor
     locStack.push(postLoopNode);
     locStack.push(firstLoopNode);
 
-    // edge connecting loopStart with postLoopNode, with "!(counter < 5)"
-    final AssumeEdge assumeEdgeFalse = new AssumeEdge(
-            "!(" + forStatement.getConditionExpression().getRawSignature() + ")",
-            fileloc.getStartingLineNumber(), loopStart, postLoopNode,
-            astCreator.convertExpressionWithoutSideEffects(forStatement.getConditionExpression()),
-            false);
-    addToCFA(assumeEdgeFalse);
+    createConditionEdgesForForLoop(forStatement.getConditionExpression(),
+        filelocStart, loopStart, postLoopNode, firstLoopNode);
 
-    // edge connecting loopStart with firstLoopNode, with "counter < 5"
-    final AssumeEdge assumeEdgeTrue = new AssumeEdge(
-        forStatement.getConditionExpression().getRawSignature(),
-            fileloc.getStartingLineNumber(), loopStart, firstLoopNode,
-            astCreator.convertExpressionWithoutSideEffects(forStatement.getConditionExpression()),
-            true);
-    addToCFA(assumeEdgeTrue);
+    // visit only loopbody, not children, loop.getBody() != loop.getChildren()
+    forStatement.getBody().accept(this);
+
+    // leave loop
+    final CFANode lastNodeInLoop = locStack.pop();
+
+    // loopEnd is the Node before "counter++;"
+    assert loopEnd == loopStartStack.pop();
+    assert postLoopNode == loopNextStack.pop();
+    assert postLoopNode == locStack.peek();
+
+    if (isReachableNode(lastNodeInLoop)) {
+      BlankEdge blankEdge2 = new BlankEdge("", lastNodeInLoop.getLineNumber(), lastNodeInLoop, loopEnd);
+      addToCFA(blankEdge2);
+    }
+
+    // skip visiting children of loop, because loopbody was handled before
+    return PROCESS_SKIP;
+  }
+
+  /** This function creates the edge for the init-statement of a for-loop.
+   * The edge is inserted between the loopInit-Node and loopStart-Node.
+   * If there are more than one declarations, more edges are inserted. */
+  private void createInitEdgeForForLoop(final IASTStatement statement,
+      final int filelocStart, CFANode loopInit, final CFANode loopStart) {
+
+    // "int counter = 0;"
+    if (statement instanceof IASTDeclarationStatement &&
+        ((IASTDeclarationStatement)statement).getDeclaration() instanceof IASTSimpleDeclaration) {
+
+      // convert
+      final IASTDeclaration eclipseDecl = ((IASTDeclarationStatement)statement).getDeclaration();
+      final List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> declList =
+          astCreator.convert((IASTSimpleDeclaration)eclipseDecl);
+
+      // add to CFA
+      addDeclarationsToCFA(declList, filelocStart, loopInit, loopStart);
+
+    // "counter = 0;"
+    } else if (statement instanceof IASTExpressionStatement) {
+      final StatementEdge initEdge = new StatementEdge(
+              astCreator.convert((IASTExpressionStatement) statement),
+              filelocStart, loopInit, loopStart);
+      addToCFA(initEdge);
+
+    //";"
+    } else if (statement instanceof IASTNullStatement) {
+      addToCFA(new BlankEdge("", filelocStart, loopInit, loopStart));
+
+    } else { // TODO: are there other init-statements in a for-loop?
+      throw new AssertionError("CFABuilder: unknown init-statement in for-statement:\n"
+          + statement.getClass());
+    }
+  }
+
+  /** This method takes a list of Declarations and adds them to the CFA.
+   * The edges are inserted between startNode and endNode. */
+  private void addDeclarationsToCFA(final List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> declList,
+      final int filelocStart, CFANode startNode, final CFANode endNode) {
+
+    // create one edge for every declaration
+    // (if there is only one declaration, this loop is skipped)
+    for (int i = 0; i < declList.size() - 1; i++) {
+      final CFANode nextNode = new CFANode(filelocStart, currentCFA.getFunctionName());
+      currentCFANodes.add(nextNode);
+
+      final org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration decl = declList.get(i);
+      final DeclarationEdge initEdge = new DeclarationEdge(decl, filelocStart, startNode, nextNode);
+      addToCFA(initEdge);
+
+      startNode = nextNode;
+
+      // storageClass must not be typedef, struct prototype or function declaration
+      if (decl.getStorageClass() != StorageClass.TYPEDEF && decl.getName() != null) {
+        scope.registerDeclaration(decl);
+      }
+    }
+
+    // create the last declaration-edge (if only one declaration, this is the only edge)
+    final org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration decl = declList.get(declList.size() - 1);
+    final DeclarationEdge initEdge = new DeclarationEdge(decl, filelocStart, startNode, endNode);
+    addToCFA(initEdge);
+
+    // storageClass must not be typedef, struct prototype or function declaration
+    if (decl.getStorageClass() != StorageClass.TYPEDEF && decl.getName() != null) {
+      scope.registerDeclaration(decl);
+    }
+
+  }
+
+  /** This function creates the last edge in a loop (= iteration-edge).
+   * The edge contains the statement "counter++" or something similar
+   * and is inserted between the loopEnd-Node and the loopStart-Node. */
+  private void createLastEdgeForForLoop(final IASTExpression exp, final int filelocStart,
+      final CFANode loopEnd, final CFANode loopStart) {
+    final IASTNode node = astCreator.convertExpressionWithSideEffects(exp);
+
+    if (exp == null) {
+      // ignore, only add blankEdge
+      final BlankEdge blankEdge = new BlankEdge("", filelocStart, loopEnd, loopStart);
+      addToCFA(blankEdge);
+
+      // "counter;"
+    } else if (node instanceof IASTIdExpression) {
+      final BlankEdge blankEdge = new BlankEdge(
+          node.getRawSignature(), filelocStart, loopEnd, loopStart);
+      addToCFA(blankEdge);
+
+      // "counter++;"
+    } else if (node instanceof IASTExpressionAssignmentStatement) {
+      final StatementEdge lastEdge = new StatementEdge(
+          (IASTExpressionAssignmentStatement) node, filelocStart, loopEnd, loopStart);
+      addToCFA(lastEdge);
+
+    } else { // TODO: are there other iteration-expressions in a for-loop?
+      throw new AssertionError("CFABuilder: unknown iteration-expressions in for-statement:\n"
+          + exp.getClass());
+    }
+  }
+
+  /** This function creates the condition-edges of a for-loop.
+   * Normally there are 2 edges: one 'then'-edge and one 'else'-edge.
+   * If the condition is ALWAYS_TRUE or ALWAYS_FALSE or 'null' only one edge is created. */
+  private void createConditionEdgesForForLoop(final IASTExpression condition, final int filelocStart,
+      final CFANode loopStart, final CFANode postLoopNode, final CFANode firstLoopNode) {
+    if (condition == null) {
+      // no condition -> only a blankEdge from loopStart to firstLoopNode
+      final BlankEdge blankEdge = new BlankEdge("", filelocStart, loopStart, firstLoopNode);
+      addToCFA(blankEdge);
+
+    } else {
+      createConditionEdges(condition, filelocStart, loopStart, firstLoopNode, postLoopNode);
+    }
   }
 
   private void handleBreakStatement (IASTBreakStatement breakStatement, IASTFileLocation fileloc)
@@ -804,8 +898,7 @@ class CFABuilder extends ASTVisitor
       }
     }
     else if ((statement instanceof IASTCompoundStatement)
-        && ((statement.getPropertyInParent () == IASTWhileStatement.BODY)
-         || (statement.getPropertyInParent () == IASTForStatement.BODY)))
+        && (statement.getPropertyInParent () == IASTWhileStatement.BODY))
     {
       CFANode prevNode = locStack.pop ();
       CFANode startNode = loopStartStack.pop();
