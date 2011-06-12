@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
@@ -96,9 +98,9 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     CBMCExecutor cbmc;
     int exitCode;
     try {
-      String CBMCArgs[]  = {"cbmc", "--function", mainFunctionName, "--" + intWidth,
-          "--unwind", Integer.toString(unwind), "--error-label", errorLabel,
-          noUnwindingAssertions ? "--no-unwinding-assertions" : ""};
+
+      String CBMCArgs[] = buildCBMCArguments();
+
       cbmc = new CBMCExecutor(logger, new File(fileName), CBMCArgs);
       exitCode = cbmc.join(timelimit);
 
@@ -134,6 +136,26 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     return true;
+  }
+
+  private String[] buildCBMCArguments() {
+    List<String> paramsList = new ArrayList<String>();
+
+    paramsList.add("cbmc");
+    paramsList.add("--function");
+    paramsList.add(mainFunctionName);
+    paramsList.add("--"+intWidth);
+    paramsList.add("--unwind");
+    paramsList.add(Integer.toString(unwind));
+    paramsList.add("--error-label");
+    paramsList.add(errorLabel);
+
+    if(noUnwindingAssertions){
+      paramsList.add("--no-unwinding-assertions");
+    }
+
+    String s[] = new String[paramsList.size()];
+    return paramsList.toArray(s);
   }
 
   @Override
