@@ -182,7 +182,7 @@ public class CPAchecker {
           return new CPAcheckerResult(Result.UNKNOWN, null, null);
         }
 
-        Algorithm restartAlgorithm = createRestartAlgorithm(config, stats, cfaCreator);
+        Algorithm restartAlgorithm = createRestartAlgorithm(config, stats, cfaCreator, filename);
 
         Set<String> unusedProperties = config.getUnusedProperties();
         if (!unusedProperties.isEmpty()) {
@@ -250,7 +250,7 @@ public class CPAchecker {
         stats.setCFACreator(cfaCreator);
 
         if(options.runCBMCasExternalTool){
-          Algorithm algorithm = createExternalCBMCAlgorithm(filename);
+          Algorithm algorithm = createExternalCBMCAlgorithm(filename, config);
           reached = new ReachedSetFactory(config).create();
           result = runAlgorithm(algorithm, reached, stats);
           return new CPAcheckerResult(result, reached, stats);
@@ -328,10 +328,10 @@ public class CPAchecker {
     return new CPAcheckerResult(result, reached, stats);
   }
 
-  private Algorithm createExternalCBMCAlgorithm(String fileName) {
+  private Algorithm createExternalCBMCAlgorithm(String fileName, Configuration pConfig) {
     ExternalCBMCAlgorithm cbmcAlgorithm = null;
     try {
-      cbmcAlgorithm = new ExternalCBMCAlgorithm(fileName, config, logger);
+      cbmcAlgorithm = new ExternalCBMCAlgorithm(fileName, pConfig, logger);
     } catch (InvalidConfigurationException e) {
       e.printStackTrace();
     } catch (CPAException e) {
@@ -394,9 +394,9 @@ public class CPAchecker {
     CPABuilder builder = new CPABuilder(pConfig, logger, pReachedSetFactory);
     ConfigurableProgramAnalysis cpa = builder.buildCPAs();
 
-//    if (cpa instanceof StatisticsProvider) {
-//      ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
-//    }
+    //    if (cpa instanceof StatisticsProvider) {
+    //      ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
+    //    }
     return cpa;
   }
 
@@ -453,13 +453,13 @@ public class CPAchecker {
       algorithm = new AssumptionCollectorAlgorithm(algorithm, pConfig, logger);
     }
 
-//    if (algorithm instanceof StatisticsProvider) {
-//      ((StatisticsProvider)algorithm).collectStatistics(stats.getSubStatistics());
-//    }
+    //    if (algorithm instanceof StatisticsProvider) {
+    //      ((StatisticsProvider)algorithm).collectStatistics(stats.getSubStatistics());
+    //    }
     return algorithm;
   }
 
-  private Algorithm createRestartAlgorithm(Configuration config, MainCPAStatistics stats, CFACreator cfaCreator) {
+  private Algorithm createRestartAlgorithm(Configuration config, MainCPAStatistics stats, CFACreator cfaCreator, String filename) {
     List<Pair<Algorithm, ReachedSet>> algorithmsList = new ArrayList<Pair<Algorithm, ReachedSet>>();
 
     String[] configFiles = config.getPropertiesArray("restartAlgorithm.configFiles");
@@ -474,12 +474,18 @@ public class CPAchecker {
         singleConfigBuilder.loadFromFile(configFileName);
         Configuration singleConfig = singleConfigBuilder.build();
         singleConfig.inject(options);
-        ReachedSetFactory singleReachedSetFactory = new ReachedSetFactory(singleConfig);
-        ConfigurableProgramAnalysis cpa = createCPA(singleReachedSetFactory, singleConfig, null);
-        algorithm = createAlgorithm(cpa, singleConfig, null, singleReachedSetFactory);
 
-        reached = createInitialReachedSetForRestart(cpa, cfaCreator.getMainFunction(), singleReachedSetFactory);
-
+        if(options.runCBMCasExternalTool){
+          algorithm = createExternalCBMCAlgorithm(filename, singleConfig);
+          reached = new ReachedSetFactory(config).create();
+          options.runCBMCasExternalTool = false;
+        }
+        else{
+          ReachedSetFactory singleReachedSetFactory = new ReachedSetFactory(singleConfig);
+          ConfigurableProgramAnalysis cpa = createCPA(singleReachedSetFactory, singleConfig, null);
+          algorithm = createAlgorithm(cpa, singleConfig, null, singleReachedSetFactory);
+          reached = createInitialReachedSetForRestart(cpa, cfaCreator.getMainFunction(), singleReachedSetFactory);
+        }
         stopIfNecessary();
 
       } catch (IOException e) {
