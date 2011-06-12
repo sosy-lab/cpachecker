@@ -74,7 +74,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
       private int unwind = 0;
 
   @Option(name="cbmc.options.nuaf",
-      description="disable unwinding assertions failure")
+      description="disable unwinding assertions violation error")
       private boolean noUnwindingAssertions = false;
 
   public ExternalCBMCAlgorithm(String fileName, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
@@ -93,7 +93,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
   InterruptedException {
 
     // run CBMC
-    logger.log(Level.FINE, "Starting CBMC verification.");
+    logger.log(Level.INFO, "Starting CBMC algorithm.");
     cbmcTime.start();
     CBMCExecutor cbmc;
     int exitCode;
@@ -108,25 +108,26 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
       throw new CPAException("Could not verify program with CBMC (" + e.getMessage() + ")");
 
     } catch (TimeoutException e) {
-//      throw new CPAException("CBMC took too long to verify the counterexample");
+      logger.log(Level.INFO, "CBMC Algorithm timed out.");
       return false;
 
     } finally {
       cbmcTime.stop();
-      logger.log(Level.FINER, "CBMC finished.");
+      logger.log(Level.INFO, "CBMC Algorithm finished.");
     }
 
     if (cbmc.getResult() == null) {
       // exit code and stderr are already logged with level WARNING
       // throw new CPAException("CBMC could not verify the program (CBMC exit code was " + exitCode + ")!");
-      logger.log(Level.FINE, "CBMC could not verify the program (CBMC exit code was " + exitCode + ")!");
+      logger.log(Level.INFO, "CBMC could not verify the program (CBMC exit code was " + exitCode + ")!");
       return false;
     }
 
     // ERROR is REACHED
     if(cbmc.getResult()){
-      // if this is unwinding assertions failure the analysis result is UNKNOWN
+      // if this is unwinding assertions violation the analysis result is UNKNOWN
       if(cbmc.didUnwindingAssertionFailed()){
+        logger.log(Level.INFO, "CBMC terminated with unwinding assertions violation");
         return false;
       }
       else{
