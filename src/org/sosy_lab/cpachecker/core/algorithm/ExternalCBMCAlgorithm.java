@@ -23,35 +23,100 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Collection;
+import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CBMCExecutor;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+@Options()
 public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
+
+  private final String fileName;
+  private final LogManager logger;
+  private final Timer cbmcTime = new Timer();
+
+  @Option(name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$",
+      description="entry function")
+  private String mainFunctionName = "main";
+
+  @Option(name="cbmc.timelimit",
+      description="maximum time limit for CBMC (0 is infinite)")
+  private int timelimit = 0; // milliseconds
+
+  @Option(name="cbmc.options.intWidth",
+      description="set width of int (16, 32 or 64)")
+  private int intWidth = 32;
+
+  @Option(name="cbmc.options.errorLabel",
+      description="specify the name of the error label")
+  private String errorLabel = "ERROR";
+
+  @Option(name="cbmc.options.unwindings",
+      description="specify the limit for unwindings (0 is infinite)")
+  private int unwind = 0;
+
+  public ExternalCBMCAlgorithm(String fileName, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
+    this.fileName = fileName;
+    this.logger = logger;
+    config.inject(this);
+  }
 
   @Override
   public ConfigurableProgramAnalysis getCPA() {
-    // TODO Auto-generated method stub
     return null;
   }
 
   @Override
   public boolean run(ReachedSet pReachedSet) throws CPAException,
       InterruptedException {
-    // TODO Auto-generated method stub
-    return false;
+
+    // run CBMC
+    logger.log(Level.FINE, "Starting CBMC verification.");
+    cbmcTime.start();
+    CBMCExecutor cbmc;
+    int exitCode;
+    try {
+      String CBMCArgs[]  = {"cbmc", "--function", mainFunctionName, "--" + intWidth,
+          "--unwind", Integer.toString(unwind), "--error-label", errorLabel};
+      cbmc = new CBMCExecutor(logger, new File(fileName), CBMCArgs);
+      exitCode = cbmc.join(timelimit);
+
+    } catch (IOException e) {
+      throw new CPAException("Could not verify program with CBMC (" + e.getMessage() + ")");
+
+    } catch (TimeoutException e) {
+      throw new CPAException("CBMC took too long to verify the counterexample");
+
+    } finally {
+      cbmcTime.stop();
+      logger.log(Level.FINER, "CBMC finished.");
+    }
+
+    if (cbmc.getResult() == null) {
+      // exit code and stderr are already logged with level WARNING
+      throw new CPAException("CBMC could not verify the program (CBMC exit code was " + exitCode + ")!");
+    }
+
+    return cbmc.getResult();
   }
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     // TODO Auto-generated method stub
-
   }
-
-
 
 }

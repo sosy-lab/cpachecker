@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.algorithm.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -122,6 +123,10 @@ public class CPAchecker {
     @Option(name="analysis.restartAfterUnknown",
         description="restart the algorithm using a different CPA after unknown result")
         boolean useRestartingAlgorithm = false;
+
+    @Option(name="analysis.externalCBMC",
+        description="use CBMC as an external tool from CPAchecker")
+        boolean runCBMCasExternalTool = false;
 
   }
 
@@ -244,6 +249,13 @@ public class CPAchecker {
         CFACreator cfaCreator = new CFACreator(config, logger);
         stats.setCFACreator(cfaCreator);
 
+        if(options.runCBMCasExternalTool){
+          Algorithm algorithm = createExternalCBMCAlgorithm(filename);
+          reached = reachedSetFactory.create();
+          result = runAlgorithm(algorithm, reached, stats);
+          return new CPAcheckerResult(result, reached, stats);
+        }
+
         ConfigurableProgramAnalysis cpa = createCPA(stats);
 
         Algorithm algorithm = createAlgorithm(cpa, stats);
@@ -314,6 +326,18 @@ public class CPAchecker {
       }
     }
     return new CPAcheckerResult(result, reached, stats);
+  }
+
+  private Algorithm createExternalCBMCAlgorithm(String fileName) {
+    ExternalCBMCAlgorithm cbmcAlgorithm = null;
+    try {
+      cbmcAlgorithm = new ExternalCBMCAlgorithm(fileName, config, logger);
+    } catch (InvalidConfigurationException e) {
+      e.printStackTrace();
+    } catch (CPAException e) {
+      // TODO Auto-generated catch block
+    }
+    return cbmcAlgorithm;
   }
 
   private Result runAlgorithm(final Algorithm algorithm,

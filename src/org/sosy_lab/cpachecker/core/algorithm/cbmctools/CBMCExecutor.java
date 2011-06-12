@@ -34,21 +34,19 @@ import org.sosy_lab.common.ProcessExecutor;
 
 import com.google.common.base.Preconditions;
 
-class CBMCExecutor extends ProcessExecutor<RuntimeException> {
+public class CBMCExecutor extends ProcessExecutor<RuntimeException> {
 
-  // TODO function name
-  private static final String[] CBMC_ARGS = {"cbmc", "--function", "main_0", "--32"};
+  private static String[] CBMC_ARGS;
 
   private Boolean result = null;
 
-  public CBMCExecutor(LogManager logger, File file, String mainFunctionName) throws IOException {
-    super(logger, RuntimeException.class, getCmdline(file, mainFunctionName));
+  public CBMCExecutor(LogManager logger, File file, String[] args) throws IOException {
+    super(logger, RuntimeException.class, getCmdline(file, args));
   }
 
-  private static String[] getCmdline(File file, String mainFunctionName) {
+  private static String[] getCmdline(File file, String[] args) {
+    CBMC_ARGS = args;
     Preconditions.checkArgument(file.canRead());
-
-    CBMC_ARGS[2] = mainFunctionName + "_0";
 
     String[] result = Arrays.copyOf(CBMC_ARGS, CBMC_ARGS.length + 1);
     result[result.length-1] = file.getAbsolutePath();

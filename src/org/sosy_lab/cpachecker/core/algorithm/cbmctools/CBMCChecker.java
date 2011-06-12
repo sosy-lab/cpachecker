@@ -98,7 +98,8 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
     CBMCExecutor cbmc;
     int exitCode;
     try {
-      cbmc = new CBMCExecutor(logger, cFile, mainFunctionName);
+      String CBMCArgs[] = {"cbmc", "--function", mainFunctionName + "_0", "--32"};
+      cbmc = new CBMCExecutor(logger, cFile, CBMCArgs);
       exitCode = cbmc.join(timelimit);
 
     } catch (IOException e) {
