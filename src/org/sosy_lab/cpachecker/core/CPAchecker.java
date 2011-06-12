@@ -431,25 +431,26 @@ public class CPAchecker {
 
   private Algorithm createAlgorithm(
       final ConfigurableProgramAnalysis cpa, Configuration pConfig,
-      final MainCPAStatistics stats, ReachedSetFactory singleReachedSetFactory)
+      final MainCPAStatistics stats, ReachedSetFactory singleReachedSetFactory,
+      CPAcheckerOptions pOptions)
   throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating algorithms");
 
     Algorithm algorithm = new CPAAlgorithm(cpa, logger);
 
-    if (options.useRefinement) {
+    if (pOptions.useRefinement) {
       algorithm = new CEGARAlgorithm(algorithm, pConfig, logger);
     }
 
-    if (options.useBMC) {
+    if (pOptions.useBMC) {
       algorithm = new BMCAlgorithm(algorithm, pConfig, logger, singleReachedSetFactory);
     }
 
-    if (options.useCBMC) {
+    if (pOptions.useCBMC) {
       algorithm = new CounterexampleCheckAlgorithm(algorithm, pConfig, logger);
     }
 
-    if (options.useAssumptionCollector) {
+    if (pOptions.useAssumptionCollector) {
       algorithm = new AssumptionCollectorAlgorithm(algorithm, pConfig, logger);
     }
 
@@ -471,21 +472,22 @@ public class CPAchecker {
       Configuration.Builder singleConfigBuilder = Configuration.builder();
       Preconditions.checkNotNull(configFileName);
       try {
+        CPAcheckerOptions singleOptions = new CPAcheckerOptions();
         singleConfigBuilder.loadFromFile(configFileName);
         Configuration singleConfig = singleConfigBuilder.build();
-        singleConfig.inject(options);
+        singleConfig.inject(singleOptions);
 
-        if(options.runCBMCasExternalTool){
+        if(singleOptions.runCBMCasExternalTool){
           algorithm = createExternalCBMCAlgorithm(filename, singleConfig);
           reached = new ReachedSetFactory(config).create();
-          options.runCBMCasExternalTool = false;
         }
         else{
           ReachedSetFactory singleReachedSetFactory = new ReachedSetFactory(singleConfig);
           ConfigurableProgramAnalysis cpa = createCPA(singleReachedSetFactory, singleConfig, null);
-          algorithm = createAlgorithm(cpa, singleConfig, null, singleReachedSetFactory);
+          algorithm = createAlgorithm(cpa, singleConfig, null, singleReachedSetFactory, singleOptions);
           reached = createInitialReachedSetForRestart(cpa, cfaCreator.getMainFunction(), singleReachedSetFactory);
         }
+
         stopIfNecessary();
 
       } catch (IOException e) {
