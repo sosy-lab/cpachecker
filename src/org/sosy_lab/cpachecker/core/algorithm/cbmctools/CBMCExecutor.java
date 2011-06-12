@@ -39,6 +39,7 @@ public class CBMCExecutor extends ProcessExecutor<RuntimeException> {
   private static String[] CBMC_ARGS;
 
   private Boolean result = null;
+  private boolean unwindingAssertionFailed = false;
 
   public CBMCExecutor(LogManager logger, File file, String[] args) throws IOException {
     super(logger, RuntimeException.class, getCmdline(file, args));
@@ -75,6 +76,18 @@ public class CBMCExecutor extends ProcessExecutor<RuntimeException> {
       // exclude the normal status output of CBMC
       super.handleErrorOutput(pLine);
     }
+  }
+
+  @Override
+  protected void handleOutput(String pLine) throws RuntimeException {
+    if(pLine.contains("unwinding assertion")){
+      unwindingAssertionFailed = true;
+    }
+    super.handleOutput(pLine);
+  }
+
+  public boolean didUnwindingAssertionFailed(){
+    return unwindingAssertionFailed;
   }
 
   public Boolean getResult() {

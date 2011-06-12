@@ -35,8 +35,10 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CBMCDummyErrorElement;
 import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CBMCExecutor;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -51,23 +53,27 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$",
       description="entry function")
-  private String mainFunctionName = "main";
+      private String mainFunctionName = "main";
 
   @Option(name="cbmc.timelimit",
       description="maximum time limit for CBMC (0 is infinite)")
-  private int timelimit = 0; // milliseconds
+      private int timelimit = 0; // milliseconds
 
   @Option(name="cbmc.options.intWidth",
       description="set width of int (16, 32 or 64)")
-  private int intWidth = 32;
+      private int intWidth = 32;
 
   @Option(name="cbmc.options.errorLabel",
       description="specify the name of the error label")
-  private String errorLabel = "ERROR";
+      private String errorLabel = "ERROR";
 
   @Option(name="cbmc.options.unwindings",
       description="specify the limit for unwindings (0 is infinite)")
-  private int unwind = 0;
+      private int unwind = 0;
+
+  @Option(name="cbmc.options.nuaf",
+      description="disable unwinding assertions failure")
+      private boolean noUnwindingAssertions = false;
 
   public ExternalCBMCAlgorithm(String fileName, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
     this.fileName = fileName;
@@ -82,7 +88,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public boolean run(ReachedSet pReachedSet) throws CPAException,
-      InterruptedException {
+  InterruptedException {
 
     // run CBMC
     logger.log(Level.FINE, "Starting CBMC verification.");
@@ -91,7 +97,8 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     int exitCode;
     try {
       String CBMCArgs[]  = {"cbmc", "--function", mainFunctionName, "--" + intWidth,
-          "--unwind", Integer.toString(unwind), "--error-label", errorLabel};
+          "--unwind", Integer.toString(unwind), "--error-label", errorLabel,
+          noUnwindingAssertions ? "--no-unwinding-assertions" : ""};
       cbmc = new CBMCExecutor(logger, new File(fileName), CBMCArgs);
       exitCode = cbmc.join(timelimit);
 
@@ -99,7 +106,8 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
       throw new CPAException("Could not verify program with CBMC (" + e.getMessage() + ")");
 
     } catch (TimeoutException e) {
-      throw new CPAException("CBMC took too long to verify the counterexample");
+//      throw new CPAException("CBMC took too long to verify the counterexample");
+      return false;
 
     } finally {
       cbmcTime.stop();
@@ -108,10 +116,24 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
 
     if (cbmc.getResult() == null) {
       // exit code and stderr are already logged with level WARNING
-      throw new CPAException("CBMC could not verify the program (CBMC exit code was " + exitCode + ")!");
+      // throw new CPAException("CBMC could not verify the program (CBMC exit code was " + exitCode + ")!");
+      logger.log(Level.FINE, "CBMC could not verify the program (CBMC exit code was " + exitCode + ")!");
+      return false;
     }
 
-    return cbmc.getResult();
+    // ERROR is REACHED
+    if(cbmc.getResult()){
+      // if this is unwinding assertions failure the analysis result is UNKNOWN
+      if(cbmc.didUnwindingAssertionFailed()){
+        return false;
+      }
+      else{
+        pReachedSet.add(new CBMCDummyErrorElement(), new Precision() {
+        });
+      }
+    }
+
+    return true;
   }
 
   @Override

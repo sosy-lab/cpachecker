@@ -251,7 +251,7 @@ public class CPAchecker {
 
         if(options.runCBMCasExternalTool){
           Algorithm algorithm = createExternalCBMCAlgorithm(filename);
-          reached = reachedSetFactory.create();
+          reached = new ReachedSetFactory(config).create();
           result = runAlgorithm(algorithm, reached, stats);
           return new CPAcheckerResult(result, reached, stats);
         }
@@ -335,7 +335,7 @@ public class CPAchecker {
     } catch (InvalidConfigurationException e) {
       e.printStackTrace();
     } catch (CPAException e) {
-      // TODO Auto-generated catch block
+      e.printStackTrace();
     }
     return cbmcAlgorithm;
   }
