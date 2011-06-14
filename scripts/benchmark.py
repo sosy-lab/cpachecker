@@ -903,7 +903,7 @@ def run_cpachecker(options, sourcefile, columns, rlimits):
     else:
         limit = float('inf')
 
-    if returncode == 137 and cpuTimeDelta > (limit*0.99):
+    if returncode == -9 and cpuTimeDelta > (limit*0.99):
         # if return code is "KILLED BY SIGNAL 9" and
         # used CPU time is larger than the time limit (approximately at least)
         status = 'TIMEOUT'
@@ -921,23 +921,30 @@ def getCPAcheckerStatus(returncode, output):
     @param output: the output of CPAchecker
     @return: status of CPAchecker after running a testfile
     """
+    
+    def isOutOfMemory(line):
+        return ((line.find('java.lang.OutOfMemoryError') != -1)
+             or (line.find('std::bad_alloc')             != -1) # C++ out of memory exception
+             or (line.find('Cannot allocate memory')     != -1)
+             or line.startswith('out of memory')
+             )
 
     if returncode == 0:
         status = None
-    elif returncode == 134:
+    elif returncode == -6:
         status = "ABORTED (probably by Mathsat)"
-    elif returncode == 137:
+    elif returncode == -9:
         status = "KILLED BY SIGNAL 9"
-    elif returncode == 143:
+    elif returncode == (128+15):
         status = "KILLED"
     else:
         status = "ERROR ({0})".format(returncode)
     for line in output.splitlines():
-        if (line.find('java.lang.OutOfMemoryError') != -1) or line.startswith('out of memory'):
+        if isOutOfMemory(line):
             status = 'OUT OF MEMORY'
         elif (line.find('SIGSEGV') != -1):
             status = 'SEGMENTATION FAULT'
-        elif (status is None or status == "ERROR (1)") and (line.find('Exception') != -1):
+        elif (returncode == 0 or returncode == 1) and (line.find('Exception') != -1):
             status = 'EXCEPTION'
         elif (status is None) and line.startswith('Given specification violated?'):
             line = line[30:].strip()
@@ -947,8 +954,6 @@ def getCPAcheckerStatus(returncode, output):
                 status = 'UNSAFE'
             else:
                 status = 'UNKNOWN'
-        elif (line.find('std::bad_alloc') != -1):
-            status = 'OUT OF MEMORY'
         if (status is None) and line.startswith('#Test cases computed:'):
             status = 'OK'
     if status is None:
