@@ -201,78 +201,86 @@ public class ABMTransferRelation implements TransferRelation {
       throws CPATransferException, InterruptedException {
 
     if (edge == null) {
-      List<AbstractElement> result = new ArrayList<AbstractElement>();
       CFANode node = extractLocation(pElement);
-      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-        CFAEdge e = node.getLeavingEdge(i);
-        result.addAll(getAbstractSuccessors(pElement, pPrecision, e));
+
+      if (partitioning.isCallNode(node)) {
+        //we have to start a recursive analysis
+        if(partitioning.getBlockForCallNode(node).equals(currentBlock)) {
+          //we are already in same context
+          //thus we already did the recursive call or we a recursion in the cachedSubtrees
+          //the latter isnt supported yet, but in the the former case we can classicaly do the post operation
+          return wrappedTransfer.getAbstractSuccessors(pElement, pPrecision, edge);
+        }
+
+        if (isHeadOfMainFunction(node)) {
+          //skip main function
+          return wrappedTransfer.getAbstractSuccessors(pElement, pPrecision, edge);
+        }
+
+        //Create ReachSet with node as initial element (+ add corresponding Location+CallStackElement)
+        //do an CPA analysis to get the complete reachset
+        //if lastElement is error State
+        // -> return lastElement and break at precision adjustment
+        //else
+        // -> compute which states refer to return nodes
+        // -> return these states as successor
+        // -> cache the result
+
+        logger.log(Level.FINER, "Starting recursive analysis of depth", ++depth, "at edge", edge);
+        logger.log(Level.ALL, "Starting element:", pElement);
+        maxRecursiveDepth = Math.max(depth, maxRecursiveDepth);
+
+        Block outerSubtree = currentBlock;
+        currentBlock = partitioning.getBlockForCallNode(node);
+        Collection<AbstractElement> reducedResult = performCompositeAnalysis(pElement, pPrecision, node);
+
+        logger.log(Level.FINER, "Recursive analysis of depth", depth--, "finished");
+        logger.log(Level.ALL, "Resulting elements:", reducedResult);
+
+        List<AbstractElement> expandedResult = new ArrayList<AbstractElement>(reducedResult.size());
+        for (AbstractElement reducedElement : reducedResult) {
+          ARTElement expandedElement = (ARTElement)wrappedReducer.getVariableExpandedElement(pElement, currentBlock, reducedElement);
+          expandedElement.addParent((ARTElement)pElement);
+          expandedResult.add(expandedElement);
+        }
+
+        logger.log(Level.ALL, "Expanded results:", expandedResult);
+
+        currentBlock = outerSubtree;
+
+        return expandedResult;
       }
-      return result;
+      else {
+        List<AbstractElement> result = new ArrayList<AbstractElement>();
+        for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+          CFAEdge e = node.getLeavingEdge(i);
+          result.addAll(getAbstractSuccessors0(pElement, pPrecision, e));
+        }
+        return result;
+      }
+    } else {
+      return getAbstractSuccessors0(pElement, pPrecision, edge);
     }
+  }
+
+  private Collection<? extends AbstractElement> getAbstractSuccessors0(AbstractElement pElement, Precision pPrecision, CFAEdge edge) throws CPATransferException, InterruptedException {
+    assert edge != null;
 
     CFANode currentNode = edge.getPredecessor();
 
-    if (partitioning.isCallNode(currentNode)) {
-      //we have to start a recursive analysis
-      if(partitioning.getBlockForCallNode(currentNode).equals(currentBlock)) {
-        //we are already in same context
-        //thus we already did the recursive call or we a recursion in the cachedSubtrees
-        //the latter isnt supported yet, but in the the former case we can classicaly do the post operation
-        return wrappedTransfer.getAbstractSuccessors(pElement, pPrecision, edge);
-      }
-
-      if (isHeadOfMainFunction(currentNode)) {
-        //skip main function
-        return wrappedTransfer.getAbstractSuccessors(pElement, pPrecision, edge);
-      }
-
-      //Create ReachSet with node as initial element (+ add corresponding Location+CallStackElement)
-      //do an CPA analysis to get the complete reachset
-      //if lastElement is error State
-      // -> return lastElement and break at precision adjustment
-      //else
-      // -> compute which states refer to return nodes
-      // -> return these states as successor
-      // -> cache the result
-
-      logger.log(Level.FINER, "Starting recursive analysis of depth", ++depth, "at edge", edge);
-      logger.log(Level.ALL, "Starting element:", pElement);
-      maxRecursiveDepth = Math.max(depth, maxRecursiveDepth);
-
-      Block outerSubtree = currentBlock;
-      currentBlock = partitioning.getBlockForCallNode(currentNode);
-      Collection<AbstractElement> reducedResult = performCompositeAnalysis(pElement, pPrecision, currentNode, edge);
-
-      logger.log(Level.FINER, "Recursive analysis of depth", depth--, "finished");
-      logger.log(Level.ALL, "Resulting elements:", reducedResult);
-
-      List<AbstractElement> expandedResult = new ArrayList<AbstractElement>(reducedResult.size());
-      for (AbstractElement reducedElement : reducedResult) {
-        ARTElement expandedElement = (ARTElement)wrappedReducer.getVariableExpandedElement(pElement, currentBlock, reducedElement);
-        expandedElement.addParent((ARTElement)pElement);
-        expandedResult.add(expandedElement);
-      }
-
-      logger.log(Level.ALL, "Expanded results:", expandedResult);
-
-      currentBlock = outerSubtree;
-
-      return expandedResult;
-
-    } else if (currentBlock != null && currentBlock.isReturnNode(currentNode)) {
-      // do not perform analysis beyond return states
-
-      if (currentBlock.getNodes().contains(edge.getSuccessor())) {
-        // but this is an edge that stays in this block, so perform analysis anyway
-        return wrappedTransfer.getAbstractSuccessors(pElement, pPrecision, edge);
-
-      } else {
-        return Collections.emptySet();
-      }
-
-    } else {
-      return wrappedTransfer.getAbstractSuccessors(pElement, pPrecision, edge);
+    if(!currentBlock.equals(partitioning.getBlockForNode(currentNode)) && partitioning.getBlockForNode(currentNode).getNodes().contains(edge.getSuccessor())) {
+      // we are not analyzing the block corresponding to currentNode but the given is inside of this block
+      // avoid a reanalysis
+      assert partitioning.getBlockForNode(currentNode).isReturnNode(currentNode);
+      return Collections.emptySet();
     }
+
+    if (currentBlock.isReturnNode(currentNode) && !currentBlock.getNodes().contains(edge.getSuccessor())) {
+      // do not perform analysis beyond the current block
+      return Collections.emptySet();
+    }
+
+    return wrappedTransfer.getAbstractSuccessors(pElement, pPrecision, edge);
   }
 
 
@@ -281,7 +289,7 @@ public class ABMTransferRelation implements TransferRelation {
   }
 
 
-  private Collection<AbstractElement> performCompositeAnalysis(AbstractElement initialElement, Precision initialPrecision, CFANode node, CFAEdge edge) throws InterruptedException, RecursiveAnalysisFailedException {
+  private Collection<AbstractElement> performCompositeAnalysis(AbstractElement initialElement, Precision initialPrecision, CFANode node) throws InterruptedException, RecursiveAnalysisFailedException {
     try {
       AbstractElement reducedInitialElement = wrappedReducer.getVariableReducedElement(initialElement, currentBlock, node);
       Precision reducedInitialPrecision = wrappedReducer.getVariableReducedPrecision(initialPrecision, currentBlock);
@@ -303,7 +311,7 @@ public class ABMTransferRelation implements TransferRelation {
       } else {
         //compute the subgraph specification from scratch
         cacheMisses++;
-        reached = createInitialReachedSet(reducedInitialElement, reducedInitialPrecision, node, edge);
+        reached = createInitialReachedSet(reducedInitialElement, reducedInitialPrecision);
         subgraphReachCache.put(reducedInitialElement, reducedInitialPrecision, currentBlock, reached);
       }
 
@@ -333,7 +341,7 @@ public class ABMTransferRelation implements TransferRelation {
     }
   }
 
-  private ReachedSet createInitialReachedSet(AbstractElement reducedInitialElement, Precision initialPredicatePrecision, CFANode node, CFAEdge edge) {
+  private ReachedSet createInitialReachedSet(AbstractElement reducedInitialElement, Precision initialPredicatePrecision) {
     ReachedSet reached = reachedSetFactory.create();
     reached.add(reducedInitialElement, initialPredicatePrecision);
     return reached;
@@ -618,9 +626,9 @@ public class ABMTransferRelation implements TransferRelation {
 
     Block oldSubtree = currentBlock;
     currentBlock = rootSubtree;
-    for(int i = 0; i < pRootNode.getNumLeavingEdges(); i++) {
-      performCompositeAnalysis(pRoot, pRootPrecision, pRootNode, pRootNode.getLeavingEdge(i));
-    }
+
+    performCompositeAnalysis(pRoot, pRootPrecision, pRootNode);
+
     currentBlock = oldSubtree;
     recomputeARTTimer.stop();
   }
