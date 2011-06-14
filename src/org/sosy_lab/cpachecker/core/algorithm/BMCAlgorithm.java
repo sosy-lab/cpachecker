@@ -27,6 +27,7 @@ import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.collect.Iterables.*;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.FILTER_ABSTRACTION_ELEMENTS;
 import static org.sosy_lab.cpachecker.util.AbstractElements.*;
+import static org.sosy_lab.cpachecker.util.assumptions.ReportingUtils.extractReportedFormulas;
 
 import java.io.PrintStream;
 import java.util.Collection;
@@ -57,7 +58,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
-import org.sosy_lab.cpachecker.cpa.invariants.InvariantsElement;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
@@ -428,11 +428,10 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       Formula invariant = fmgr.makeFalse();
 
       for (AbstractElement locState : AbstractElements.filterLocation(reached, loc)) {
+        Formula f = extractReportedFormulas(fmgr, locState);
+        logger.log(Level.ALL, "Invariant:", f);
 
-        InvariantsElement intervalElement = extractElementByType(locState, InvariantsElement.class);
-        logger.log(Level.ALL, "Invariant:", intervalElement);
-
-        invariant = fmgr.makeOr(invariant, intervalElement.getFormulaApproximation(fmgr));
+        invariant = fmgr.makeOr(invariant, f);
       }
       return invariant;
 
