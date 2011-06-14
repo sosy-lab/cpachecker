@@ -24,16 +24,23 @@
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.util.CFA;
+import org.sosy_lab.cpachecker.util.CFA.Loop;
+
+import com.google.common.collect.Iterables;
 
 
 /**
@@ -41,9 +48,23 @@ import org.sosy_lab.cpachecker.util.CFA;
  */
 public class LoopPartitioning extends PartitioningHeuristic {
   protected final LogManager logger;
+  private Map<CFANode, Set<CFANode>> loopHeaderToLoopBody;
 
   public LoopPartitioning(LogManager pLogger) {
     this.logger = pLogger;
+    this.loopHeaderToLoopBody = null;
+  }
+
+  private void initLoopMap() {
+    loopHeaderToLoopBody = new HashMap<CFANode, Set<CFANode>>();
+    for(String functionName : CFACreator.loops.keySet()) {
+      for(Loop loop : CFACreator.loops.get(functionName)) {
+        if(loop.getLoopHeads().size() == 1) {
+          //currently only loops with single loop heads supported
+          loopHeaderToLoopBody.put(Iterables.getOnlyElement(loop.getLoopHeads()), loop.getLoopNodes());
+        }
+      }
+    }
   }
 
   @Override
@@ -82,8 +103,11 @@ public class LoopPartitioning extends PartitioningHeuristic {
       return CFA.exploreSubgraph(functionNode, functionNode.getExitNode());
     }
     if(pNode.isLoopStart()) {
-      LoopDetector detector = new LoopDetector();
-      Set<CFANode> loopBody = detector.detectLoopBody(pNode);
+      Set<CFANode> loopBody = new HashSet<CFANode>();
+      if(loopHeaderToLoopBody == null) {
+        initLoopMap();
+      }
+      loopBody.addAll(loopHeaderToLoopBody.get(pNode));
       insertLoopStartState(loopBody, pNode);
       insertLoopReturnStates(loopBody);
       return loopBody;
