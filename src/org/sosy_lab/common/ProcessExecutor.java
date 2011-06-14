@@ -33,6 +33,7 @@ import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -228,14 +229,32 @@ public class ProcessExecutor<E extends Exception> {
    */
   public int join(final long timelimit) throws IOException, E, TimeoutException, InterruptedException {
     try {
-      int exitCode;
-      if (timelimit > 0) {
-        exitCode = processFuture.get(timelimit, TimeUnit.MILLISECONDS);
-      } else {
-        exitCode = processFuture.get();
+      Integer exitCode = null;
+      try {
+        if (timelimit > 0) {
+          exitCode = processFuture.get(timelimit, TimeUnit.MILLISECONDS);
+        } else {
+          exitCode = processFuture.get();
+        }
+      } catch (CancellationException e) {
+        // the processFuture has been cancelled, probably because the outFuture or
+        // the errFuture threw an exception
+        // ignore exception here and call get() on the other futures to get their
+        // exceptions
       }
-      outFuture.get(); // wait for reading tasks to finish and to get exceptions
+
+      // wait for reading tasks to finish and to get exceptions
+      outFuture.get();
       errFuture.get();
+
+      if (exitCode == null) {
+        // the processFuture threw a CancellationException,
+        // but the reading futures threw no exception
+        // Shouldn't happen, this probably means that our processFuture
+        // was interrupted from some outsider.
+        // Assume this as an interrupt.
+        throw new InterruptedException();
+      }
 
       return exitCode;
 
