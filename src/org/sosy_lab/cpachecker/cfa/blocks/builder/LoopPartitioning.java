@@ -106,7 +106,6 @@ public class LoopPartitioning extends PartitioningHeuristic {
       for(int i = 0; i < node.getNumLeavingEdges(); i++) {
         CFAEdge edge = node.getLeavingEdge(i);
         if(!pLoopBody.contains(edge.getSuccessor()) && !(node.getLeavingEdge(i) instanceof FunctionCallEdge))  {
-          System.out.println("ADDING " + edge.getSuccessor());
           addNodes.add(edge.getSuccessor());
         }
       }
