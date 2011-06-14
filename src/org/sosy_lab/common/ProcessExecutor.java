@@ -44,7 +44,6 @@ import java.util.logging.Level;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.io.Closeables;
-import com.google.common.util.concurrent.Futures;
 
 /**
  * This class can be used to execute a separate process and read it's output in
@@ -242,20 +241,15 @@ public class ProcessExecutor<E extends Exception> {
 
     } catch (TimeoutException e) {
       logger.log(Level.WARNING, "Killing", name, "due to timeout");
-      cancelQuietly();
-      if (Thread.interrupted()) {
-        // interrupt() was called during cancel(), this is more important than the timeout
-        throw new InterruptedException();
-      }
+      processFuture.cancel(true);
       throw e;
 
     } catch (InterruptedException e) {
       logger.log(Level.WARNING, "Killing", name, "due to user interrupt");
-      cancelQuietly();
+      processFuture.cancel(true);
       throw e;
 
     } catch (ExecutionException e) {
-      cancelQuietly();
       Throwable t = e.getCause();
       Throwables.propagateIfPossible(t, IOException.class, exceptionClass);
       logger.logException(Level.SEVERE, t, "Unexpected checked exception");
@@ -264,7 +258,10 @@ public class ProcessExecutor<E extends Exception> {
     } finally {
       // cleanup
 
-      executor.shutdownNow();
+      assert processFuture.isDone();
+
+      waitForTermination(); // needed for memory visibility of the Callables
+
       Closeables.closeQuietly(in);
 
       finished = true;
@@ -299,36 +296,27 @@ public class ProcessExecutor<E extends Exception> {
    * Interrupting the thread will have no effect, but this method
    * will set the thread's interrupted flag in this case.
    *
-   * This method swallows all exceptions from the futures!
+   * This method doesn't care about the exceptions from the futures!
    */
-  private void cancelQuietly() {
+  private void waitForTermination() {
+    executor.shutdown();
 
-    processFuture.cancel(true);
+    boolean interrupted = Thread.interrupted();
 
-    // wait for all three futures to terminate
-    waitQuietlyFor(processFuture);
-    waitQuietlyFor(outFuture);
-    waitQuietlyFor(errFuture);
-
-
-  }
-
-  /**
-   * Wait until a future terminates.
-   *
-   * Interrupting the thread will have no effect, but this method
-   * will set the thread's interrupted flag in this case.
-   *
-   * This method swallows all exceptions from the future!
-   */
-  private static void waitQuietlyFor(Future<?> future) {
-    try {
-      Futures.makeUninterruptible(future).get();
-    } catch (ExecutionException ignored) {
-      // ignore, we are just interested in the fact that the future terminated
+    while (!executor.isTerminated()) {
+      try {
+        executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+      } catch (InterruptedException _) {
+        interrupted = true;
+      }
     }
 
-    // The threads interrupted flag is already restored by the UninterruptibleFuture.
+    // now all futures have terminated
+
+    // restore interrupted flag
+    if (interrupted) {
+      Thread.currentThread().interrupt();
+    }
   }
 
   /**
