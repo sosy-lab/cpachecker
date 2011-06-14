@@ -44,13 +44,13 @@ public class DelayedFunctionAndLoopPartitioning extends FunctionAndLoopPartition
   }
 
   @Override
-  protected Set<CFANode> getCachedSubtree(CFANode pNode) {
+  protected Set<CFANode> getBlockForNode(CFANode pNode) {
     if(pNode instanceof CFAFunctionDefinitionNode) {
       CFAFunctionDefinitionNode functionNode = (CFAFunctionDefinitionNode) pNode;
       return removeInitialDeclarations(functionNode, CFA.exploreSubgraph(functionNode, functionNode.getExitNode()));
     }
 
-    return super.getCachedSubtree(pNode);
+    return super.getBlockForNode(pNode);
   }
 
   private Set<CFANode> removeInitialDeclarations(CFAFunctionDefinitionNode functionNode, Set<CFANode> functionBody) {

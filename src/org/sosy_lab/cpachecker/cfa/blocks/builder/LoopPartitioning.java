@@ -97,7 +97,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
   }
 
   @Override
-  protected Set<CFANode> getCachedSubtree(CFANode pNode) {
+  protected Set<CFANode> getBlockForNode(CFANode pNode) {
     if(pNode instanceof CFAFunctionDefinitionNode) {
       CFAFunctionDefinitionNode functionNode = (CFAFunctionDefinitionNode) pNode;
       return CFA.exploreSubgraph(functionNode, functionNode.getExitNode());
