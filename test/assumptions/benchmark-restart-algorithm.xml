@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="3600" memlimit="2000">
+<benchmark tool="cpachecker" timelimit="3600" memlimit="12000">
   <test name="restart-test">
     <sourcefiles>
       <include>test/programs/nondet_init_programs/ntdrivers-simplified/*.cil.c</include>
