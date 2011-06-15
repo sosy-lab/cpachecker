@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsDa
 public class PathLengthHeuristics implements StopHeuristics<PathLengthHeuristicsData>{
 
   @Option(description = "threshold for heuristics of progressobserver")
-  private final int threshold = -1;
+  private int threshold = -1;
 
   public PathLengthHeuristics(Configuration config, LogManager logger)
       throws InvalidConfigurationException{
