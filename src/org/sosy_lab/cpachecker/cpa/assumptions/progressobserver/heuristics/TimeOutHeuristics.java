@@ -62,9 +62,6 @@ public class TimeOutHeuristics implements StopHeuristics<TimeOutHeuristicsData> 
       return d;
     else
       if (System.currentTimeMillis() > d.getTime() + threshold) {
-        System.out.println("Current: " + System.currentTimeMillis());
-        System.out.println("d.gettime: " + d.getTime());
-        System.out.println("threshold: " + threshold);
         d.setThreshold(threshold);
         return TimeOutHeuristicsData.BOTTOM;
       }
