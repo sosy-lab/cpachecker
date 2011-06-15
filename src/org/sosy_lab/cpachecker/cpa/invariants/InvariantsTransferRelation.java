@@ -119,12 +119,30 @@ enum InvariantsTransferRelation implements TransferRelation {
           SimpleInterval varValue = element.get(var);
 
           SimpleInterval value = binExp.getOperand2().accept(SimpleRightHandSideValueVisitor.VISITOR_INSTANCE);
+          // value may be either a single value or (-INF, +INF)
 
-          if (!varValue.intersectsWith(value)) {
-            // not a possible edge
-            return null;
+          if (value.isSingleton()) {
+
+            if (edge.getTruthAssumption()) {
+              if (!varValue.intersectsWith(value)) {
+                // not a possible edge
+                return null;
+              } else {
+                element = element.copyAndSet(var, value);
+              }
+
+            } else {
+              // negated edge
+              if (varValue.equals(value)) {
+                // not a possible edge
+                return null;
+              } else {
+                // don't change interval
+              }
+            }
+
           } else {
-            element = element.copyAndSet(var, value);
+            assert !value.hasLowerBound() && !value.hasUpperBound();
           }
         }
       }
