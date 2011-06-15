@@ -29,6 +29,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
  * An interface for a waitlist of AbstractElements.
  * Implementations differ in the strategy they use for pop().
  *
+ * Implementations do not need to guarantee the semantics of a set
+ * (i.e., preventing duplicate elements).
+ * This needs to be guaranteed by the caller (see
+ * {@link org.sosy_lab.cpachecker.core.reachedset.ReachedSet#add(AbstractElement, org.sosy_lab.cpachecker.core.interfaces.Precision))}).
+ *
  * All methods of this interface should be fast (O(1) or O(log n) preferably),
  * except contains() and remove().
  *

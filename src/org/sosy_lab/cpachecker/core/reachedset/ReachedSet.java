@@ -69,6 +69,8 @@ public class ReachedSet implements UnmodifiableReachedSet {
 
   /**
    * Add an element with a precision to the reached set and to the waitlist.
+   * If the element is already in the reached set and the precisions are equal,
+   * nothing is done.
    *
    * @param element An AbstractElement.
    * @param precision The Precision for the AbstractElement
@@ -84,17 +86,36 @@ public class ReachedSet implements UnmodifiableReachedSet {
 
     Precision previousPrecision = reached.put(element, precision);
 
-    if (previousPrecision != null && !previousPrecision.equals(precision)) {
-      // Element already contained and precisions do not match!
-      // Restore previous state of reached set
-      // (a method shouldn't change state if it throws an IAE).
-      reached.put(element, previousPrecision);
+    if (previousPrecision == null) {
+      // Element wasn't already in the reached set.
+      waitlist.add(element);
+      lastElement = element;
 
-      throw new IllegalArgumentException("Element added to reached set which is already contained, but with a different precision");
+    } else {
+      // Element was already in the reached set.
+      // This happens only if the MergeOperator produces an element that is already there.
+
+      // The element may or may not be currently in the waitlist.
+      // In the first case, we are not allowed to add it to the waitlist,
+      // otherwise it would be in there twice (this method is responsible for
+      // enforcing the set semantics of the waitlist).
+      // In the second case, we do not need
+      // to add it to the waitlist, because it was already handled
+      // (we assume that the CPA would always produce the same successors if we
+      // give it the same element twice).
+
+      // So do nothing here.
+
+      // But check if the new and the old precisions are equal.
+      if (!precision.equals(previousPrecision)) {
+
+        // Restore previous state of reached set
+        // (a method shouldn't change state if it throws an IAE).
+        reached.put(element, previousPrecision);
+
+        throw new IllegalArgumentException("Element added to reached set which is already contained, but with a different precision");
+      }
     }
-
-    waitlist.add(element);
-    lastElement = element;
   }
 
 
