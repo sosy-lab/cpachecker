@@ -5,12 +5,10 @@
     <sourcefiles>
       <includesfile>test/assumptions/assumptions.set</includesfile>
     </sourcefiles>
-    <options>
-      <option name="-setprop">output.disable=true</option>
-      <option name="-config">test/config/symbpredabsCPA-lbe.properties</option>
-      <option name="-setprop">analysis.useCBMC=true</option>
-      <option name="-setprop">counterexample.continueAfterInfeasibleError=true</option>
-    </options>
+    <option name="-setprop">output.disable=true</option>
+    <option name="-config">test/config/symbpredabsCPA-lbe.properties</option>
+    <option name="-setprop">analysis.useCBMC=true</option>
+    <option name="-setprop">counterexample.continueAfterInfeasibleError=true</option>
   </test>
   <columns>
     <column title="total">time for CPAchecker</column>
