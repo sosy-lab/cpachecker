@@ -149,7 +149,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
           }
 
           else{
-            logger.log(Level.INFO, "RestartAlgorithm switches to the next algorithm [Reason: There are more elements in the waitlist]...");
+            logger.log(Level.INFO, "RestartAlgorithm switches to the next algorithm [Reason: There are still elements in the waitlist]...");
             continueAnalysis = true;
           }
         }

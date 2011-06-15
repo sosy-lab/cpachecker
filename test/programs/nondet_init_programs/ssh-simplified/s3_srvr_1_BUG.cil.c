@@ -576,7 +576,7 @@ int ssl3_accept(int initial_state )
                                                                             goto switch_1_break;
                                                                             switch_1_8448: 
 #line 428
-                                                                            num1 = (long )nondet_int();
+                                                                            num1 = nondet_int();
 #line 429
                                                                             if (num1 > 0L) {
 #line 430
