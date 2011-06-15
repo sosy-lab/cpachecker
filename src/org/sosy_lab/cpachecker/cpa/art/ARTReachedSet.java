@@ -101,6 +101,7 @@ public class ARTReachedSet {
 
     for (ARTElement ae : toWaitlist) {
       mReached.updatePrecision(ae, adaptPrecision(ae, p));
+      mReached.reAddToWaitlist(ae);
     }
   }
 
