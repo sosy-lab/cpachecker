@@ -98,6 +98,18 @@ class SimpleInterval {
     return (lowerBound == null || upperBound.signum() == -1);
   }
 
+  public BigInteger size() {
+    if (hasLowerBound() && hasUpperBound()) {
+      return upperBound.subtract(lowerBound).add(BigInteger.ONE);
+    } else {
+      return null;
+    }
+  }
+
+  public boolean isSingleton() {
+    return hasLowerBound() && lowerBound.equals(upperBound);
+  }
+
   public SimpleInterval negate() {
     BigInteger newUpperBound = (lowerBound == null ? null : lowerBound.negate());
     BigInteger newLowerBound = (upperBound == null ? null : upperBound.negate());
