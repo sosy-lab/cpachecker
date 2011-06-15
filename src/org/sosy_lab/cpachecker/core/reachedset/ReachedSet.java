@@ -67,7 +67,14 @@ public class ReachedSet implements UnmodifiableReachedSet {
     waitlist = waitlistFactory.createWaitlistInstance();
   }
 
-  public void add(AbstractElement element, Precision precision) {
+  /**
+   * Add an element with a precision to the reached set and to the waitlist.
+   *
+   * @param element An AbstractElement.
+   * @param precision The Precision for the AbstractElement
+   * @throws IllegalArgumentException If the element is already in the reached set, but with a different precision.
+   */
+  public void add(AbstractElement element, Precision precision) throws IllegalArgumentException {
     Preconditions.checkNotNull(element);
     Preconditions.checkNotNull(precision);
 
@@ -75,7 +82,17 @@ public class ReachedSet implements UnmodifiableReachedSet {
       firstElement = element;
     }
 
-    reached.put(element, precision);
+    Precision previousPrecision = reached.put(element, precision);
+
+    if (previousPrecision != null && !previousPrecision.equals(precision)) {
+      // Element already contained and precisions do not match!
+      // Restore previous state of reached set
+      // (a method shouldn't change state if it throws an IAE).
+      reached.put(element, previousPrecision);
+
+      throw new IllegalArgumentException("Element added to reached set which is already contained, but with a different precision");
+    }
+
     waitlist.add(element);
     lastElement = element;
   }
@@ -96,6 +113,22 @@ public class ReachedSet implements UnmodifiableReachedSet {
 
     if (!waitlist.contains(e)) {
       waitlist.add(e);
+    }
+  }
+
+  /**
+   * Change the precision of an element that is already in the reached set.
+   */
+  public void updatePrecision(AbstractElement e, Precision newPrecision) {
+    Preconditions.checkNotNull(e);
+    Preconditions.checkNotNull(newPrecision);
+
+    Precision oldPrecision = reached.put(e, newPrecision);
+    if (oldPrecision == null) {
+      // Element was not contained in the reached set.
+      // Restore previous state and throw exception.
+      reached.remove(e);
+      throw new IllegalArgumentException("Element needs to be in the reached set in order to change the precision.");
     }
   }
 
