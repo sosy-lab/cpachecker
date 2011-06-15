@@ -40,9 +40,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.util.CFA;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.SetMultimap;
-
 
 /**
  * Helper class can build a <code>BlockPartitioning</code> from a partition of a program's CFA into blocks.
@@ -93,31 +90,10 @@ public class BlockPartitioningBuilder {
       }
     }
 
-    //copy block nodes
-    SetMultimap<CFANode, CFANode> uniqueNodesMap = HashMultimap.create();
-    for(CFANode key : blockNodesMap.keySet()) {
-      uniqueNodesMap.putAll(key, blockNodesMap.get(key));
-    }
-
-    //fix unique nodes set by removing interleavings
-    for(CFANode key : returnNodesMap.keySet()) {
-      Set<CFANode> outerNodes = uniqueNodesMap.get(key);
-      for(CFANode innerKey : returnNodesMap.keySet()) {
-        if(innerKey.equals(key)) {
-          continue;
-        }
-        if(outerNodes.containsAll(callNodesMap.get(innerKey))) {
-          Set<CFANode> innerNodes = uniqueNodesMap.get(innerKey);
-          outerNodes.removeAll(innerNodes);
-        }
-      }
-    }
-
-
     //now we can create the Blocks   for the BlockPartitioning
     Collection<Block> blocks = new ArrayList<Block>(returnNodesMap.keySet().size());
     for(CFANode key : returnNodesMap.keySet()) {
-      blocks.add(new Block(referencedVariablesMap.get(key), callNodesMap.get(key), returnNodesMap.get(key), uniqueNodesMap.get(key), blockNodesMap.get(key)));
+      blocks.add(new Block(referencedVariablesMap.get(key), callNodesMap.get(key), returnNodesMap.get(key), blockNodesMap.get(key)));
     }
     return new BlockPartitioning(blocks);
   }

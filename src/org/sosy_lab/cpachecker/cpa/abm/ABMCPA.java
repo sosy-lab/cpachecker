@@ -125,8 +125,6 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       blockPartitioning = heuristic.buildPartitioning(node);
       transfer.setBlockPartitioning(blockPartitioning);
       ((AbstractSingleWrapperCPA) getWrappedCpa()).retrieveWrappedCpa(ABMPredicateCPA.class).getTransferRelation().setPartitioning(blockPartitioning);
-    } else {
-      assert blockPartitioning.getBlockForNode(node) != null : "CPA re-used for other CFA, this is currently not supported.";
     }
     return getWrappedCpa().getInitialElement(node);
   }

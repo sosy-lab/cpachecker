@@ -39,12 +39,10 @@ public class BlockPartitioning {
   private final Block mainBlock;
   private final Map<CFANode, Block> callNodeToBlock;
   private final Map<CFANode, Block> returnNodeToBlock;
-  private final Map<CFANode, Block> nodeToBlock;
 
   public BlockPartitioning(Collection<Block> subtrees) {
     Block mainBlock = null;
     Map<CFANode, Block> callNodeToSubtree = new HashMap<CFANode, Block>();
-    Map<CFANode, Block> nodeToSubtree = new HashMap<CFANode, Block>();
     Map<CFANode, Block> returnNodeToBlock = new HashMap<CFANode, Block>();
 
     for(Block subtree : subtrees) {
@@ -56,10 +54,6 @@ public class BlockPartitioning {
         callNodeToSubtree.put(callNode, subtree);
       }
 
-      for(CFANode uniqueNode : subtree.getUniqueNodes()) {
-        nodeToSubtree.put(uniqueNode, subtree);
-      }
-
       for(CFANode returnNode : subtree.getReturnNodes()) {
         returnNodeToBlock.put(returnNode, subtree);
       }
@@ -69,7 +63,6 @@ public class BlockPartitioning {
     this.mainBlock = mainBlock;
 
     this.callNodeToBlock = ImmutableMap.copyOf(callNodeToSubtree);
-    this.nodeToBlock = ImmutableMap.copyOf(nodeToSubtree);
     this.returnNodeToBlock = ImmutableMap.copyOf(returnNodeToBlock);
   }
 
@@ -88,10 +81,6 @@ public class BlockPartitioning {
    */
   public Block getBlockForCallNode(CFANode node) {
     return callNodeToBlock.get(node);
-  }
-
-  public Block getBlockForNode(CFANode node) {
-    return nodeToBlock.get(node);
   }
 
   public Block getMainBlock() {
