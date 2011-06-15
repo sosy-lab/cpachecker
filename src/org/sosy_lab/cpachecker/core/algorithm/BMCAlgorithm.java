@@ -333,8 +333,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       // get global invariants
-      logger.log(Level.INFO, "Finding invariants");
-      CFANode initialLocation = extractLocation(reached.getFirstElement());
+      CFANode initialLocation = extractLocation(pReachedSet.getFirstElement());
       Formula invariants = findInvariantsAt(loopHead, fmgr, initialLocation);
       invariants = fmgr.instantiate(invariants, SSAMap.emptyWithDefault(1));
 
@@ -405,6 +404,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   private Formula findInvariantsAt(CFANode loc, FormulaManager fmgr, CFANode initialLocation) throws CPAException, InterruptedException {
     stats.invariantGeneration.start();
+    logger.log(Level.INFO, "Finding invariants");
+
     try {
 
       ConfigurableProgramAnalysis invariantCPAs;
