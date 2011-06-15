@@ -57,11 +57,13 @@ public class LoopPartitioning extends PartitioningHeuristic {
 
   private void initLoopMap() {
     loopHeaderToLoopBody = new HashMap<CFANode, Set<CFANode>>();
-    for(String functionName : CFACreator.loops.keySet()) {
-      for(Loop loop : CFACreator.loops.get(functionName)) {
-        if(loop.getLoopHeads().size() == 1) {
-          //currently only loops with single loop heads supported
-          loopHeaderToLoopBody.put(Iterables.getOnlyElement(loop.getLoopHeads()), loop.getLoopNodes());
+    if(CFACreator.loops != null) {
+      for(String functionName : CFACreator.loops.keySet()) {
+        for(Loop loop : CFACreator.loops.get(functionName)) {
+          if(loop.getLoopHeads().size() == 1) {
+            //currently only loops with single loop heads supported
+            loopHeaderToLoopBody.put(Iterables.getOnlyElement(loop.getLoopHeads()), loop.getLoopNodes());
+          }
         }
       }
     }
