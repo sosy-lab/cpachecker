@@ -7,10 +7,8 @@
       <include>test/programs/nondet_init_programs/ssh-simplified/*.cil.c</include>
       <include>test/programs/nondet_init_programs/systemc/*.cil.c</include>
     </sourcefiles>
-    <options>
-      <option name="-config">restartAlgorithm.properties</option>
-      <option name="-setprop">output.disable=true</option>
-    </options>
+    <option name="-config">test/config/restartAlgorithm.properties</option>
+    <option name="-setprop">output.disable=true</option>
   </test>
   <columns>
     <column title="total">time for CPAchecker</column>
