@@ -25,15 +25,12 @@ package org.sosy_lab.cpachecker.cfa.blocks;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 
 /**
  * Manages a given partition of a program's CFA into a set of blocks.
@@ -41,14 +38,14 @@ import com.google.common.collect.ImmutableSet;
 public class BlockPartitioning {
   private final Block mainBlock;
   private final Map<CFANode, Block> callNodeToBlock;
+  private final Map<CFANode, Block> returnNodeToBlock;
   private final Map<CFANode, Block> nodeToBlock;
-  private final Set<CFANode> returnNodes;
 
   public BlockPartitioning(Collection<Block> subtrees) {
     Block mainBlock = null;
     Map<CFANode, Block> callNodeToSubtree = new HashMap<CFANode, Block>();
     Map<CFANode, Block> nodeToSubtree = new HashMap<CFANode, Block>();
-    Set<CFANode> returnNodes = new HashSet<CFANode>();
+    Map<CFANode, Block> returnNodeToBlock = new HashMap<CFANode, Block>();
 
     for(Block subtree : subtrees) {
       for(CFANode callNode : subtree.getCallNodes()) {
@@ -58,11 +55,14 @@ public class BlockPartitioning {
         }
         callNodeToSubtree.put(callNode, subtree);
       }
+
       for(CFANode uniqueNode : subtree.getUniqueNodes()) {
         nodeToSubtree.put(uniqueNode, subtree);
       }
 
-      returnNodes.addAll(subtree.getReturnNodes());
+      for(CFANode returnNode : subtree.getReturnNodes()) {
+        returnNodeToBlock.put(returnNode, subtree);
+      }
     }
 
     assert mainBlock != null;
@@ -70,7 +70,7 @@ public class BlockPartitioning {
 
     this.callNodeToBlock = ImmutableMap.copyOf(callNodeToSubtree);
     this.nodeToBlock = ImmutableMap.copyOf(nodeToSubtree);
-    this.returnNodes = ImmutableSet.copyOf(returnNodes);
+    this.returnNodeToBlock = ImmutableMap.copyOf(returnNodeToBlock);
   }
 
   /**
@@ -99,6 +99,10 @@ public class BlockPartitioning {
   }
 
   public boolean isReturnNode(CFANode node) {
-   return returnNodes.contains(node);
+   return returnNodeToBlock.keySet().contains(node);
+  }
+
+  public Block getBlockForReturnNode(CFANode pCurrentNode) {
+    return returnNodeToBlock.get(pCurrentNode);
   }
 }

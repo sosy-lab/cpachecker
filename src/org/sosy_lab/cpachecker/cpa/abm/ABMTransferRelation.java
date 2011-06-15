@@ -268,10 +268,10 @@ public class ABMTransferRelation implements TransferRelation {
 
     CFANode currentNode = edge.getPredecessor();
 
-    if(!currentBlock.equals(partitioning.getBlockForNode(currentNode)) && partitioning.getBlockForNode(currentNode).getNodes().contains(edge.getSuccessor())) {
-      // we are not analyzing the block corresponding to currentNode but the given is inside of this block
+    Block currentNodeBlock = partitioning.getBlockForReturnNode(currentNode);
+    if(currentNodeBlock != null && !currentBlock.equals(currentNodeBlock) && currentNodeBlock.getNodes().contains(edge.getSuccessor())) {
+      // we are not analyzing the block corresponding to currentNode (currentNodeBlock) but the currentNodeBlock is inside of this block
       // avoid a reanalysis
-      assert partitioning.getBlockForNode(currentNode).isReturnNode(currentNode);
       return Collections.emptySet();
     }
 
