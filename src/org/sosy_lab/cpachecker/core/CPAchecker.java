@@ -514,7 +514,7 @@ public class CPAchecker {
 
         if(singleOptions.runCBMCasExternalTool){
           algorithm = createExternalCBMCAlgorithm(filename, singleConfig);
-          reached = new ReachedSetFactory(config).create();
+          reached = new ReachedSetFactory(singleConfig).create();
         }
         else{
           ReachedSetFactory singleReachedSetFactory = new ReachedSetFactory(singleConfig);
