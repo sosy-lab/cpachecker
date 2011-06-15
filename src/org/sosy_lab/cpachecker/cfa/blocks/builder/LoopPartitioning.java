@@ -107,7 +107,11 @@ public class LoopPartitioning extends PartitioningHeuristic {
       if(loopHeaderToLoopBody == null) {
         initLoopMap();
       }
-      loopBody.addAll(loopHeaderToLoopBody.get(pNode));
+      Set<CFANode> immutableLoopBody = loopHeaderToLoopBody.get(pNode);
+      if(immutableLoopBody == null) {
+        return null;
+      }
+      loopBody.addAll(immutableLoopBody);
       insertLoopStartState(loopBody, pNode);
       insertLoopReturnStates(loopBody);
       return loopBody;
