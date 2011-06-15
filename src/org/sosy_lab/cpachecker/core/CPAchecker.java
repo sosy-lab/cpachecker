@@ -388,27 +388,11 @@ public class CPAchecker {
       // either run only once (if stopAfterError == true)
     } while (!options.stopAfterError);
 
-    ReachedSet reached = restartAlgorithm.getUsedReachedSet();
-
     logger.log(Level.INFO, "Stopping analysis ...");
     stats.analysisTime.stop();
     stats.programTime.stop();
 
-    if (Iterables.any(reached, AbstractElements.IS_TARGET_ELEMENT)) {
-      return Result.UNSAFE;
-    }
-
-    if (reached.hasWaitingElement()) {
-      logger.log(Level.WARNING, "Analysis not completed: there are still elements to be processed.");
-      return Result.UNKNOWN;
-    }
-
-    if (!sound) {
-      logger.log(Level.WARNING, "Analysis incomplete: no errors found, but not everything could be checked.");
-      return Result.UNKNOWN;
-    }
-
-    return Result.SAFE;
+    return restartAlgorithm.getResult();
   }
 
   private ConfigurableProgramAnalysis createCPA(MainCPAStatistics stats) throws InvalidConfigurationException, CPAException {

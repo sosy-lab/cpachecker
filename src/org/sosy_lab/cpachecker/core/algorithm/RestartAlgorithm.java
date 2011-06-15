@@ -38,8 +38,10 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 
 public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
@@ -65,6 +67,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   private Algorithm currentAlgorithm;
   private ReachedSet currentReached;
   private final LogManager logger;
+  private Result analysisResult;
 
   public RestartAlgorithm(List<Pair<Algorithm, ReachedSet>> algorithms, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
     this.algorithms = algorithms;
@@ -77,7 +80,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public boolean run(ReachedSet reached) throws CPAException,
+  public boolean run(ReachedSet pReached) throws CPAException,
   InterruptedException {
 
     boolean sound = true;
@@ -91,7 +94,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       currentAlgorithm = currentPair.getFirst();
       currentReached = currentPair.getSecond();
 
-      //reached = currentReached;
       // run algorithm
       Preconditions.checkNotNull(currentReached);
       sound = currentAlgorithm.run(currentReached);
@@ -111,21 +113,50 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
         }
       }
 
-      else if (currentReached.hasWaitingElement()) {
-        // if there are no more algorithms to proceed with,
-        // return the result
-        if(idx == algorithms.size()){
-          logger.log(Level.INFO, "Analysis not completed: There are still elements to be processed.");
+      else {
+        if (Iterables.any(currentReached, AbstractElements.IS_TARGET_ELEMENT)) {
+          analysisResult = Result.UNSAFE;
+          return true;
         }
 
-        else{
-          logger.log(Level.INFO, "RestartAlgorithm switches to the next algorithm [Reason: There are more elements in the waitlist]...");
-          continueAnalysis = true;
+        // if the analysis is not sound and we can proceed with
+        // another algorithm, continue with the next algorithm
+        if (!sound) {
+          // if there are no more algorithms to proceed with,
+          // return the result
+          if(idx == algorithms.size()){
+            logger.log(Level.INFO, "RestartAlgorithm result is unsound.");
+            analysisResult = Result.UNKNOWN;
+            return false;
+          }
+
+          else{
+            logger.log(Level.INFO, "RestartAlgorithm switches to the next algorithm [Reason: Unsound result]...");
+            continueAnalysis = true;
+          }
+
+        }
+
+        // if there are still elements in the waitlist, the result is unknown
+        // continue with the next algorithm
+        if (currentReached.hasWaitingElement()) {
+          // if there are no more algorithms to proceed with,
+          // return the result
+          if(idx == algorithms.size()){
+            logger.log(Level.INFO, "Analysis not completed: There are still elements to be processed.");
+            analysisResult = Result.UNKNOWN;
+            return true;
+          }
+
+          else{
+            logger.log(Level.INFO, "RestartAlgorithm switches to the next algorithm [Reason: There are more elements in the waitlist]...");
+            continueAnalysis = true;
+          }
         }
       }
 
     } while (continueAnalysis);
-
+    analysisResult = Result.SAFE;
     return sound;
   }
 
@@ -138,5 +169,9 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     if(currentAlgorithm instanceof StatisticsProvider)
       ((StatisticsProvider)currentAlgorithm).collectStatistics(pStatsCollection);
     pStatsCollection.add(stats);
+  }
+
+  public Result getResult() {
+    return analysisResult;
   }
 }
