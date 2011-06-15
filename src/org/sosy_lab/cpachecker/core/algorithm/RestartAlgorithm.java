@@ -63,6 +63,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   private final RestartAlgorithmStatistics stats = new RestartAlgorithmStatistics();
   private final List<Pair<Algorithm, ReachedSet>> algorithms;
   private Algorithm currentAlgorithm;
+  private ReachedSet currentReached;
   private final LogManager logger;
 
   public RestartAlgorithm(List<Pair<Algorithm, ReachedSet>> algorithms, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
@@ -88,12 +89,12 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       Pair<Algorithm, ReachedSet> currentPair = algorithms.get(idx++);
 
       currentAlgorithm = currentPair.getFirst();
-      ReachedSet currentReached = currentPair.getSecond();
+      currentReached = currentPair.getSecond();
 
-      reached = currentReached;
+      //reached = currentReached;
       // run algorithm
-      Preconditions.checkNotNull(reached);
-      sound = currentAlgorithm.run(reached);
+      Preconditions.checkNotNull(currentReached);
+      sound = currentAlgorithm.run(currentReached);
 
       // if the analysis is not sound and we can proceed with
       // another algorithm, continue with the next algorithm
@@ -105,23 +106,37 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
         }
 
         else{
-          logger.log(Level.INFO, "RestartAlgorithm switches to the next algorithm ...");
+          logger.log(Level.INFO, "RestartAlgorithm switches to the next algorithm [Reason: Unsound result]...");
           continueAnalysis = true;
         }
       }
+
+      else if (currentReached.hasWaitingElement()) {
+        // if there are no more algorithms to proceed with,
+        // return the result
+        if(idx == algorithms.size()){
+          logger.log(Level.INFO, "Analysis not completed: There are still elements to be processed.");
+        }
+
+        else{
+          logger.log(Level.INFO, "RestartAlgorithm switches to the next algorithm [Reason: There are more elements in the waitlist]...");
+          continueAnalysis = true;
+        }
+      }
+
     } while (continueAnalysis);
 
     return sound;
   }
 
   public ReachedSet getUsedReachedSet(){
-    return algorithms.get(idx).getSecond();
+    return currentReached;
   }
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-//    if(currentAlgorithm instanceof StatisticsProvider)
-//      ((StatisticsProvider)currentAlgorithm).collectStatistics(pStatsCollection);
-//    pStatsCollection.add(stats);
+    if(currentAlgorithm instanceof StatisticsProvider)
+      ((StatisticsProvider)currentAlgorithm).collectStatistics(pStatsCollection);
+    pStatsCollection.add(stats);
   }
 }

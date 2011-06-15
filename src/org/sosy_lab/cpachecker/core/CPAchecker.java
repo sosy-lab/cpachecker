@@ -197,9 +197,8 @@ public class CPAchecker {
         // register management interface for CPAchecker
         CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
         try {
+          result = runRestartAlgorithm((RestartAlgorithm)restartAlgorithm, stats);
           reached = ((RestartAlgorithm)restartAlgorithm).getUsedReachedSet();
-          result = runAlgorithm(restartAlgorithm, reached, stats);
-
         } finally {
           // unregister management interface for CPAchecker
           mxbean.unregister();
@@ -354,6 +353,42 @@ public class CPAchecker {
       // either run only once (if stopAfterError == true)
       // or until the waitlist is empty
     } while (!options.stopAfterError && reached.hasWaitingElement());
+
+    logger.log(Level.INFO, "Stopping analysis ...");
+    stats.analysisTime.stop();
+    stats.programTime.stop();
+
+    if (Iterables.any(reached, AbstractElements.IS_TARGET_ELEMENT)) {
+      return Result.UNSAFE;
+    }
+
+    if (reached.hasWaitingElement()) {
+      logger.log(Level.WARNING, "Analysis not completed: there are still elements to be processed.");
+      return Result.UNKNOWN;
+    }
+
+    if (!sound) {
+      logger.log(Level.WARNING, "Analysis incomplete: no errors found, but not everything could be checked.");
+      return Result.UNKNOWN;
+    }
+
+    return Result.SAFE;
+  }
+
+  private Result runRestartAlgorithm(final RestartAlgorithm restartAlgorithm,
+      final MainCPAStatistics stats) throws CPAException, InterruptedException {
+
+    logger.log(Level.INFO, "Starting analysis ...");
+    stats.analysisTime.start();
+
+    boolean sound = true;
+    do {
+      sound &= restartAlgorithm.run(null);
+
+      // either run only once (if stopAfterError == true)
+    } while (!options.stopAfterError);
+
+    ReachedSet reached = restartAlgorithm.getUsedReachedSet();
 
     logger.log(Level.INFO, "Stopping analysis ...");
     stats.analysisTime.stop();
