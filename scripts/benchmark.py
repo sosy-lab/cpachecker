@@ -887,7 +887,9 @@ def run_satabs(options, sourcefile, columns, rlimits):
     args = [exe] + options + [sourcefile]
     (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
     if "VERIFICATION SUCCESSFUL" in output:
-        status = "SUCCESS"
+        status = "SAFE"
+    elif "VERIFICATION FAILED" in output:
+        status = "UNSAFE"
     else:
         status = "FAILURE"
     return (status, cpuTimeDelta, wallTimeDelta, output)
