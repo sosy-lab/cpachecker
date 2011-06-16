@@ -999,14 +999,10 @@ public class ExplicitTransferRelation implements TransferRelation {
 
         // get initial value
         IASTInitializer init = declarationEdge.getInitializer();
-        if (init != null) {
-          if (init instanceof IASTInitializerExpression) {
-            IASTExpression exp = ((IASTInitializerExpression)init).getExpression();
+        if (init instanceof IASTInitializerExpression) {
+          IASTExpression exp = ((IASTInitializerExpression)init).getExpression();
 
-            initialValue = getExpressionValue(element, exp, functionName);
-          } else {
-            throw new UnrecognizedCCodeException("Unknown initalizer", declarationEdge, init);
-          }
+          initialValue = getExpressionValue(element, exp, functionName);
         }
 
         // assign initial value if necessary
