@@ -150,11 +150,6 @@ cpa.art.errorPath.source = "ErrorPath.c"
 cpa.art.export = true
 cpa.art.file = "ART.dot"
 
-# which merge operator to use for ARTCPA? only use sep here if all other CPAs
-# also use sep
-cpa.art.merge = "JOIN"
-  allowed values: [SEP, JOIN]
-
 # which heuristics should be used to track progress?
 cpa.assumptions.progressobserver.heuristics = {}
 
