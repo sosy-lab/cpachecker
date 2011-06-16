@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.collect.Iterables.*;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.FILTER_ABSTRACTION_ELEMENTS;
 import static org.sosy_lab.cpachecker.util.AbstractElements.*;
 import static org.sosy_lab.cpachecker.util.assumptions.ReportingUtils.extractReportedFormulas;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.List;
@@ -46,6 +49,7 @@ import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Option.Type;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -63,8 +67,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
-import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
-import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -106,13 +108,12 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     return !any(iterable, predicate);
   }
 
-  private static class BMCStatistics implements Statistics {
+  private class BMCStatistics implements Statistics {
 
     private final Timer satCheck = new Timer();
     private final Timer assertionsCheck = new Timer();
 
     private final Timer inductionPreparation = new Timer();
-    private final Timer invariantGeneration = new Timer();
     private final Timer inductionCheck = new Timer();
     private int inductionCutPoints = 0;
 
@@ -127,7 +128,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       if (inductionCheck.getNumberOfIntervals() > 0) {
         out.println("Number of cut points for induction:  " + inductionCutPoints);
         out.println("Time for induction formula creation: " + inductionPreparation);
-        out.println("  Time for invariant generation:     " + invariantGeneration);
+        out.println("  Time for invariant generation:     " + invariantGenerator.invariantGeneration);
         out.println("Time for induction check:            " + inductionCheck);
       }
     }
@@ -152,11 +153,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   @Option(description="try using induction to verify programs with loops")
   private boolean induction = true;
 
-  @Option(description="generate invariants for induction in parallel to the analysis")
-  private boolean parallelInvariantGeneration = false;
-
   private final BMCStatistics stats = new BMCStatistics();
   private final Algorithm algorithm;
+  private final InvariantGenerator invariantGenerator;
 
   private final FormulaManager fmgr;
   private final PathFormulaManager pmgr;
@@ -173,6 +172,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     this.logger = logger;
     reachedSetFactory = pReachedSetFactory;
 
+    invariantGenerator = new InvariantGenerator(config, logger);
+
     PredicateCPA predCpa = ((WrapperCPA)getCPA()).retrieveWrappedCpa(PredicateCPA.class);
     if (predCpa == null) {
       throw new InvalidConfigurationException("PredicateCPA needed for BMCAlgorithm");
@@ -184,19 +185,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public boolean run(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    Future<ReachedSet> invariantGenerationReached = null;
-    ExecutorService executor = null;
-    if (induction && parallelInvariantGeneration) {
-
-      executor = Executors.newSingleThreadExecutor();
-      invariantGenerationReached = executor.submit(new Callable<ReachedSet>() {
-            @Override
-            public ReachedSet call() throws Exception {
-              CFANode initialLocation = extractLocation(pReachedSet.getFirstElement());
-              return findInvariants(initialLocation);
-            }
-          });
-      executor.shutdown();
+    if (induction) {
+      CFANode initialLocation = extractLocation(pReachedSet.getFirstElement());
+      invariantGenerator.start(initialLocation);
     }
 
     try {
@@ -228,7 +219,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
           // try to prove program safety via induction
           if (induction) {
-            sound = sound || checkWithInduction(pReachedSet, invariantGenerationReached);
+            sound = sound || checkWithInduction(pReachedSet);
           }
         }
 
@@ -239,10 +230,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       }
 
     } finally {
-      if (invariantGenerationReached != null) {
-        invariantGenerationReached.cancel(true);
-        Concurrency.waitForTermination(executor);
-      }
+      invariantGenerator.cancelAndWait();
     }
   }
 
@@ -307,7 +295,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     return f;
   }
 
-  private boolean checkWithInduction(final ReachedSet pReachedSet, Future<ReachedSet> invariantGenerationFuture) throws CPAException, InterruptedException {
+  private boolean checkWithInduction(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
     // Induction is currently only possible if there is a single loop.
     // This check can be weakend in the future,
     // e.g. it is ok if there is only a single loop on each path.
@@ -417,20 +405,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     // get global invariants
-    ReachedSet invariantGenerationReached;
-    if (invariantGenerationFuture == null) {
-      CFANode initialLocation = extractLocation(pReachedSet.getFirstElement());
-      invariantGenerationReached = findInvariants(initialLocation);
-    } else {
-      try {
-        invariantGenerationReached = invariantGenerationFuture.get();
-      } catch (ExecutionException e) {
-        Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
-        throw new RuntimeException("unexpected checked exception", e.getCause());
-      }
-    }
-
-    Formula invariants = extractInvariantsAt(loopHead, fmgr, invariantGenerationReached);
+    Formula invariants = extractInvariantsAt(loopHead, invariantGenerator.get());
     invariants = fmgr.instantiate(invariants, SSAMap.emptyWithDefault(1));
 
     // Create formulas
@@ -494,39 +469,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     return sound;
   }
 
-
-  private ReachedSet findInvariants(CFANode initialLocation) throws CPAException, InterruptedException {
-    stats.invariantGeneration.start();
-    logger.log(Level.INFO, "Finding invariants");
-
-    try {
-
-      ConfigurableProgramAnalysis invariantCPAs;
-      try {
-        Configuration config = Configuration
-                               .builder()
-                               .setOption("CompositeCPA.cpas", LocationCPA.class.getCanonicalName() + ", " + InvariantsCPA.class.getCanonicalName())
-                               .build();
-        invariantCPAs = new CPABuilder(config, logger).buildCPAs();
-      } catch (InvalidConfigurationException e) {
-        throw new AssertionError(e);
-      }
-
-      ReachedSet reached = reachedSetFactory.create();
-      reached.add(invariantCPAs.getInitialElement(initialLocation), invariantCPAs.getInitialPrecision(initialLocation));
-
-      Algorithm invariantAlgorithm = new CPAAlgorithm(invariantCPAs, logger);
-
-      invariantAlgorithm.run(reached);
-
-      return reached;
-
-    } finally {
-      stats.invariantGeneration.start();
-    }
-  }
-
-  private Formula extractInvariantsAt(CFANode loc, FormulaManager fmgr, ReachedSet reached) throws CPAException, InterruptedException {
+  private Formula extractInvariantsAt(CFANode loc, ReachedSet reached) {
     Formula invariant = fmgr.makeFalse();
 
     for (AbstractElement locState : AbstractElements.filterLocation(reached, loc)) {
@@ -536,6 +479,110 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       invariant = fmgr.makeOr(invariant, f);
     }
     return invariant;
+  }
+
+
+  /**
+   * Class that encapsulates invariant generation.
+   * Supports synchronous and asynchronous execution.
+   */
+  @Options(prefix="bmc")
+  private static class InvariantGenerator {
+
+    @Option(name="invariantGenerationConfigFile",
+            type=Type.REQUIRED_INPUT_FILE,
+            description="configuration file for invariant generation")
+    private File configFile = new File("test/config/invariantAnalysis.properties");
+
+    @Option(description="generate invariants for induction in parallel to the analysis")
+    private boolean parallelInvariantGeneration = false;
+
+    private final Timer invariantGeneration = new Timer();
+
+    private final LogManager logger;
+    private final ConfigurableProgramAnalysis invariantCPAs;
+    private final ReachedSet reached;
+
+    private CFANode initialLocation = null;
+
+    private ExecutorService executor = null;
+    private Future<ReachedSet> invariantGenerationFuture = null;
+
+    public InvariantGenerator(Configuration config, LogManager pLogger) throws InvalidConfigurationException, CPAException {
+      config.inject(this);
+      logger = pLogger;
+
+      Configuration invariantConfig;
+      try {
+        invariantConfig = Configuration.builder()
+                              .loadFromFile(configFile)
+                              .build();
+      } catch (IOException e) {
+        throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage());
+      }
+
+      invariantCPAs = new CPABuilder(invariantConfig, logger).buildCPAs();
+      reached = new ReachedSetFactory(invariantConfig).create();
+    }
+
+    public void start(CFANode pInitialLocation) {
+      checkState(initialLocation == null);
+      initialLocation = pInitialLocation;
+
+      if (parallelInvariantGeneration) {
+
+        executor = Executors.newSingleThreadExecutor();
+        invariantGenerationFuture = executor.submit(new Callable<ReachedSet>() {
+              @Override
+              public ReachedSet call() throws Exception {
+                return findInvariants();
+              }
+            });
+        executor.shutdown();
+      }
+    }
+
+    public void cancelAndWait() {
+      if (invariantGenerationFuture != null) {
+        invariantGenerationFuture.cancel(true);
+        Concurrency.waitForTermination(executor);
+      }
+    }
+
+    public ReachedSet get() throws CPAException, InterruptedException {
+      if (invariantGenerationFuture == null) {
+        return findInvariants();
+
+      } else {
+        try {
+          return invariantGenerationFuture.get();
+
+        } catch (ExecutionException e) {
+          Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
+          throw new RuntimeException("unexpected checked exception", e.getCause());
+        }
+      }
+    }
+
+    private ReachedSet findInvariants() throws CPAException, InterruptedException {
+      checkState(initialLocation != null);
+
+      invariantGeneration.start();
+      logger.log(Level.INFO, "Finding invariants");
+
+      try {
+        reached.add(invariantCPAs.getInitialElement(initialLocation), invariantCPAs.getInitialPrecision(initialLocation));
+
+        Algorithm invariantAlgorithm = new CPAAlgorithm(invariantCPAs, logger);
+
+        invariantAlgorithm.run(reached);
+
+        return reached;
+
+      } finally {
+        invariantGeneration.start();
+      }
+    }
   }
 
   @Override
