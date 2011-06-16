@@ -77,7 +77,7 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
    * @param value value to be assigned.
    * @param pThreshold threshold from property explicitAnalysis.threshold
    */
-  public void assignConstant(String nameOfVar, long value, int pThreshold){
+  void assignConstant(String nameOfVar, long value, int pThreshold){
 
     if(constantsMap.containsKey(nameOfVar) &&
         constantsMap.get(nameOfVar).longValue() == value){
@@ -116,7 +116,7 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
     return constantsMap.containsKey(variableName);
   }
 
-  public ExplicitElement getPreviousElement() {
+  ExplicitElement getPreviousElement() {
     return previousElement;
   }
 
@@ -184,17 +184,17 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
     return s + "] size->  " + constantsMap.size();
   }
 
-  public Map<String, Long> getConstantsMap(){
+  Map<String, Long> getConstantsMap(){
     return constantsMap;
   }
 
-  public void forget(String assignedVar) {
+  void forget(String assignedVar) {
     if(constantsMap.containsKey(assignedVar)){
       constantsMap.remove(assignedVar);
     }
   }
 
-  public Map<String, Integer> getNoOfReferences() {
+  Map<String, Integer> getNoOfReferences() {
     return noOfReferences;
   }
 
