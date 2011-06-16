@@ -33,8 +33,14 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
@@ -75,6 +81,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -145,6 +152,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   @Option(description="try using induction to verify programs with loops")
   private boolean induction = true;
 
+  @Option(description="generate invariants for induction in parallel to the analysis")
+  private boolean parallelInvariantGeneration = false;
+
   private final BMCStatistics stats = new BMCStatistics();
   private final Algorithm algorithm;
 
@@ -174,41 +184,65 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public boolean run(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    final boolean soundInner = algorithm.run(pReachedSet);
+    Future<ReachedSet> invariantGenerationReached = null;
+    ExecutorService executor = null;
+    if (induction && parallelInvariantGeneration) {
 
-    if (any(transform(skip(pReachedSet, 1), EXTRACT_PREDICATE_ELEMENT), FILTER_ABSTRACTION_ELEMENTS)) {
-      // first element of reached is always an abstraction element, so skip it
-      logger.log(Level.WARNING, "BMC algorithm does not work with abstractions. Could not check for satisfiability!");
-      return soundInner;
+      executor = Executors.newSingleThreadExecutor();
+      invariantGenerationReached = executor.submit(new Callable<ReachedSet>() {
+            @Override
+            public ReachedSet call() throws Exception {
+              CFANode initialLocation = extractLocation(pReachedSet.getFirstElement());
+              return findInvariants(initialLocation);
+            }
+          });
+      executor.shutdown();
     }
 
-    prover.init();
     try {
+      logger.log(Level.INFO, "Creating formula for program");
+      final boolean soundInner = algorithm.run(pReachedSet);
 
-      // first check safety
-      boolean safe = checkTargetStates(pReachedSet);
-      logger.log(Level.FINER, "Program is safe?:", safe);
-
-
-      // second check soundness
-      boolean sound = false;
-
-      // verify soundness, but don't bother if we are unsound anyway or we have found a bug
-      if (soundInner && safe) {
-
-        // check bounding assertions
-        sound = checkBoundingAssertions(pReachedSet);
-
-        // try to prove program safety via induction
-        if (induction) {
-          sound = sound || checkWithInduction(pReachedSet);
-        }
+      if (any(transform(skip(pReachedSet, 1), EXTRACT_PREDICATE_ELEMENT), FILTER_ABSTRACTION_ELEMENTS)) {
+        // first element of reached is always an abstraction element, so skip it
+        logger.log(Level.WARNING, "BMC algorithm does not work with abstractions. Could not check for satisfiability!");
+        return soundInner;
       }
 
-      return sound && soundInner;
+      prover.init();
+      try {
+
+        // first check safety
+        boolean safe = checkTargetStates(pReachedSet);
+        logger.log(Level.FINER, "Program is safe?:", safe);
+
+
+        // second check soundness
+        boolean sound = false;
+
+        // verify soundness, but don't bother if we are unsound anyway or we have found a bug
+        if (soundInner && safe) {
+
+          // check bounding assertions
+          sound = checkBoundingAssertions(pReachedSet);
+
+          // try to prove program safety via induction
+          if (induction) {
+            sound = sound || checkWithInduction(pReachedSet, invariantGenerationReached);
+          }
+        }
+
+        return sound && soundInner;
+
+      } finally {
+        prover.reset();
+      }
 
     } finally {
-      prover.reset();
+      if (invariantGenerationReached != null) {
+        invariantGenerationReached.cancel(true);
+        Concurrency.waitForTermination(executor);
+      }
     }
   }
 
@@ -273,7 +307,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     return f;
   }
 
-  private boolean checkWithInduction(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
+  private boolean checkWithInduction(final ReachedSet pReachedSet, Future<ReachedSet> invariantGenerationFuture) throws CPAException, InterruptedException {
     // Induction is currently only possible if there is a single loop.
     // This check can be weakend in the future,
     // e.g. it is ok if there is only a single loop on each path.
@@ -383,8 +417,20 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     // get global invariants
-    CFANode initialLocation = extractLocation(pReachedSet.getFirstElement());
-    Formula invariants = findInvariantsAt(loopHead, fmgr, initialLocation);
+    ReachedSet invariantGenerationReached;
+    if (invariantGenerationFuture == null) {
+      CFANode initialLocation = extractLocation(pReachedSet.getFirstElement());
+      invariantGenerationReached = findInvariants(initialLocation);
+    } else {
+      try {
+        invariantGenerationReached = invariantGenerationFuture.get();
+      } catch (ExecutionException e) {
+        Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
+        throw new RuntimeException("unexpected checked exception", e.getCause());
+      }
+    }
+
+    Formula invariants = extractInvariantsAt(loopHead, fmgr, invariantGenerationReached);
     invariants = fmgr.instantiate(invariants, SSAMap.emptyWithDefault(1));
 
     // Create formulas
@@ -448,7 +494,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     return sound;
   }
 
-  private Formula findInvariantsAt(CFANode loc, FormulaManager fmgr, CFANode initialLocation) throws CPAException, InterruptedException {
+
+  private ReachedSet findInvariants(CFANode initialLocation) throws CPAException, InterruptedException {
     stats.invariantGeneration.start();
     logger.log(Level.INFO, "Finding invariants");
 
@@ -472,20 +519,23 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
       invariantAlgorithm.run(reached);
 
-      Formula invariant = fmgr.makeFalse();
-
-      for (AbstractElement locState : AbstractElements.filterLocation(reached, loc)) {
-        Formula f = extractReportedFormulas(fmgr, locState);
-        logger.log(Level.ALL, "Invariant:", f);
-
-        invariant = fmgr.makeOr(invariant, f);
-      }
-      return invariant;
-
+      return reached;
 
     } finally {
       stats.invariantGeneration.start();
     }
+  }
+
+  private Formula extractInvariantsAt(CFANode loc, FormulaManager fmgr, ReachedSet reached) throws CPAException, InterruptedException {
+    Formula invariant = fmgr.makeFalse();
+
+    for (AbstractElement locState : AbstractElements.filterLocation(reached, loc)) {
+      Formula f = extractReportedFormulas(fmgr, locState);
+      logger.log(Level.ALL, "Invariant:", f);
+
+      invariant = fmgr.makeOr(invariant, f);
+    }
+    return invariant;
   }
 
   @Override
