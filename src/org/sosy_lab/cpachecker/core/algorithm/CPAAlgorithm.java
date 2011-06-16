@@ -35,6 +35,7 @@ import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -177,9 +178,9 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
         Collection<AbstractElement> reached = reachedSet.getReached(successor);
 
-        // AG as an optimization, we allow the mergeOperator to be null,
-        // as a synonym of a trivial operator that never merges
-        if (mergeOperator != null && !reached.isEmpty()) {
+        // An optimization, we don't bother merging if we know that the
+        // merge operator won't do anything (i.e., it is merge-sep).
+        if (mergeOperator != MergeSepOperator.getInstance() && !reached.isEmpty()) {
           stats.mergeTimer.start();
 
           List<AbstractElement> toRemove = new ArrayList<AbstractElement>();
