@@ -4,6 +4,9 @@
 # entry function
 analysis.entryFunction = "main"
 
+# use CBMC as an external tool from CPAchecker
+analysis.externalCBMC = false
+
 # run interprocedural analysis
 analysis.interprocedural = true
 
@@ -28,6 +31,10 @@ analysis.traversal.order = DFS
 # handle states with a deeper callstack first?
 # This needs the CallstackCPA to have any effect.
 analysis.traversal.useCallstack = false
+
+# handle more abstract states (with less information) first? (only for
+# ExplicitCPA)
+analysis.traversal.useExplicitInformation = false
 
 # Use an implementation of topsort strategy that allows to select a secondary
 # strategy that is used if there are two elements with the same topsort id.
@@ -75,6 +82,18 @@ bmc.induction = true
 # file name where to put the path program that is generated as input for
 # CBMC. A temporary file is used if this is unspecified.
 cbmc.dumpCBMCfile = 
+
+# specify the name of the error label
+cbmc.options.errorLabel = "ERROR"
+
+# set width of int (16, 32 or 64)
+cbmc.options.intWidth = 32
+
+# disable unwinding assertions violation error
+cbmc.options.nuaf = false
+
+# specify the limit for unwindings (0 is infinite)
+cbmc.options.unwindings = 0
 
 # maximum time limit for CBMC (0 is infinite)
 cbmc.timelimit = 0
@@ -193,6 +212,10 @@ cpa.featurevars.variableWhitelist = ""
 # which type of merge operator to use for IntervalAnalysisCPA
 cpa.interval.merge = "SEP"
   allowed values: [SEP, JOIN]
+
+# threshold for amount of different values that are tracked for one variable
+# in ExplicitCPA (0 means infinitely)
+cpa.interval.splitIntervals = false
 
 # at most that many intervals will be tracked per variable
 cpa.interval.threshold = 0
