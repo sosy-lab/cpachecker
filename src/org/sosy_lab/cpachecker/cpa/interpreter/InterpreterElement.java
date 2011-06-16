@@ -110,7 +110,7 @@ public class InterpreterElement implements AbstractElement {
   public void assignConstant(String nameOfVar, long value) {
 
     if(mConstantsMap.containsKey(nameOfVar) &&
-        mConstantsMap.get(nameOfVar).intValue() == value) {
+        mConstantsMap.get(nameOfVar).longValue() == value) {
       return;
     }
 

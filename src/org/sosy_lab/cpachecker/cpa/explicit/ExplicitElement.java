@@ -80,7 +80,7 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
   public void assignConstant(String nameOfVar, long value, int pThreshold){
 
     if(constantsMap.containsKey(nameOfVar) &&
-        constantsMap.get(nameOfVar).intValue() == value){
+        constantsMap.get(nameOfVar).longValue() == value){
       return;
     }
 
