@@ -184,6 +184,8 @@ public class ProcessExecutor<E extends Exception> {
             }
           }
         }, processFuture));
+
+    executor.shutdown(); // don't accept further tasks
   }
 
   /**
@@ -279,7 +281,7 @@ public class ProcessExecutor<E extends Exception> {
 
       assert processFuture.isDone();
 
-      waitForTermination(); // needed for memory visibility of the Callables
+      Concurrency.waitForTermination(executor); // needed for memory visibility of the Callables
 
       Closeables.closeQuietly(in);
 
@@ -303,38 +305,6 @@ public class ProcessExecutor<E extends Exception> {
     } catch (TimeoutException e) {
       // cannot occur with timeout==0
       throw new AssertionError(e);
-    }
-  }
-
-  /**
-   * Cancel the running task and wait until it has shutdown. This method
-   * guarantees that the process has finished and was waited for when it returns.
-   * It also ensures full memory visibility of everything that was done in
-   * the callables.
-   *
-   * Interrupting the thread will have no effect, but this method
-   * will set the thread's interrupted flag in this case.
-   *
-   * This method doesn't care about the exceptions from the futures!
-   */
-  private void waitForTermination() {
-    executor.shutdown();
-
-    boolean interrupted = Thread.interrupted();
-
-    while (!executor.isTerminated()) {
-      try {
-        executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-      } catch (InterruptedException _) {
-        interrupted = true;
-      }
-    }
-
-    // now all futures have terminated
-
-    // restore interrupted flag
-    if (interrupted) {
-      Thread.currentThread().interrupt();
     }
   }
 
