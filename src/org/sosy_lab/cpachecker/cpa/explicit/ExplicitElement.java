@@ -184,7 +184,7 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
     return s + "] size->  " + constantsMap.size();
   }
 
-  Map<String, Long> getConstantsMap(){
+  public Map<String, Long> getConstantsMap(){
     return constantsMap;
   }
 
