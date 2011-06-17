@@ -38,10 +38,8 @@ import org.sosy_lab.cpachecker.cfa.ast.DefaultExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
@@ -60,9 +58,11 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
@@ -425,13 +425,9 @@ public class ExplicitTransferRelation implements TransferRelation {
           // a != 9
           else if(opType == BinaryOperator.NOT_EQUALS)
           {
-//            System.out.println(" >>>>> " + varName + " op2 " + op2.getRawSignature());
             if(truthValue){
               if(newElement.contains(getvarName(varName, functionName))){
-//                System.out.println("here 17: " + newElement.getValueFor(getvarName(varName, functionName)));
-//                System.out.println("lit val: " + valueOfLiteral);
                 if(newElement.getValueFor(getvarName(varName, functionName)) == valueOfLiteral){
-//                  System.out.println("here 18");
                   return null;
                 }
               }
@@ -857,10 +853,6 @@ public class ExplicitTransferRelation implements TransferRelation {
         String varName = op1.getRawSignature();
         // TODO forgetting
         newElement.forget(varName);
-        //        System.out.println(op2);
-        //        System.out.println(op2.getRawSignature());
-        //        System.exit(0);
-        //        throw new UnrecognizedCFAEdgeException("Unhandled case ");
       }
     }
     else if(op1 instanceof IASTCastExpression){
@@ -1078,8 +1070,17 @@ public class ExplicitTransferRelation implements TransferRelation {
       return element.clone();
 
     } else if (op1 instanceof IASTFieldReference) {
-      // TODO assignment to field
-      return element.clone();
+
+      // a->b = ...
+      if (precision.isOnBlacklist(getvarName(op1.getRawSignature(),cfaEdge.getPredecessor().getFunctionName())))
+        return element.clone();
+      else {
+        String functionName = cfaEdge.getPredecessor().getFunctionName();
+        ExpressionValueVisitor v = new ExpressionValueVisitor(element, functionName);
+        return handleAssignmentToVariable(op1.getRawSignature(), op2, v);
+      }
+
+     // return element.clone();
 
     } else if (op1 instanceof IASTArraySubscriptExpression) {
       // TODO assignment to array cell
@@ -1408,7 +1409,6 @@ public class ExplicitTransferRelation implements TransferRelation {
         --pos;
       }
       num = num.substring(0, pos+1);
-//      System.out.println("num is " + num);
     }
 
     // TODO here we assume 32 bit integers!!! This is because CIL
@@ -1419,7 +1419,6 @@ public class ExplicitTransferRelation implements TransferRelation {
     } catch (NumberFormatException nfe) {
 //      System.out.print("catching ");
       long l = Long.parseLong(num);
-//      System.out.println(l);
       if (l < 0) {
         retVal = Integer.MAX_VALUE + l;
       } else {
