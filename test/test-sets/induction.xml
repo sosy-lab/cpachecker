@@ -4,6 +4,7 @@
   
   <test>
     <sourcefiles>
+      <include>test/programs/induction/*.c</include>
       <include>test/programs/ssh-simplified/s3_srvr*.cil.c</include>
       <include>test/programs/ssh/s3_srvr*.cil.c</include>
     </sourcefiles>
