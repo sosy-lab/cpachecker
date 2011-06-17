@@ -470,6 +470,10 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private Formula extractInvariantsAt(CFANode loc, ReachedSet reached) {
+    if (reached.isEmpty()) {
+      return fmgr.makeTrue(); // invariant generation was disabled
+    }
+
     Formula invariant = fmgr.makeFalse();
 
     for (AbstractElement locState : AbstractElements.filterLocation(reached, loc)) {
@@ -490,9 +494,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   private static class InvariantGenerator {
 
     @Option(name="invariantGenerationConfigFile",
-            type=Type.REQUIRED_INPUT_FILE,
+            type=Type.OPTIONAL_INPUT_FILE,
             description="configuration file for invariant generation")
-    private File configFile = new File("test/config/invariantAnalysis.properties");
+    private File configFile;
 
     @Option(description="generate invariants for induction in parallel to the analysis")
     private boolean parallelInvariantGeneration = false;
@@ -512,22 +516,34 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       config.inject(this);
       logger = pLogger;
 
-      Configuration invariantConfig;
-      try {
-        invariantConfig = Configuration.builder()
-                              .loadFromFile(configFile)
-                              .build();
-      } catch (IOException e) {
-        throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage());
-      }
+      if (configFile != null) {
+        Configuration invariantConfig;
+        try {
+          invariantConfig = Configuration.builder()
+                                .loadFromFile(configFile)
+                                .build();
+        } catch (IOException e) {
+          throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage());
+        }
 
-      invariantCPAs = new CPABuilder(invariantConfig, logger).buildCPAs();
-      reached = new ReachedSetFactory(invariantConfig).create();
+        invariantCPAs = new CPABuilder(invariantConfig, logger).buildCPAs();
+        reached = new ReachedSetFactory(invariantConfig).create();
+
+      } else {
+        // invariant generation is disabled
+        invariantCPAs = null;
+        reached = new ReachedSetFactory(config).create(); // create reached set that will stay empty
+      }
     }
 
     public void start(CFANode pInitialLocation) {
       checkState(initialLocation == null);
       initialLocation = pInitialLocation;
+
+      if (invariantCPAs == null) {
+        // invariant generation disabled
+        return;
+      }
 
       if (parallelInvariantGeneration) {
 
@@ -566,6 +582,11 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     private ReachedSet findInvariants() throws CPAException, InterruptedException {
       checkState(initialLocation != null);
+
+      if (invariantCPAs == null) {
+        // invariant generation disabled
+        return reached;
+      }
 
       invariantGeneration.start();
       logger.log(Level.INFO, "Finding invariants");
