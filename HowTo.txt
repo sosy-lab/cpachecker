@@ -82,6 +82,13 @@ Building and running CPAchecker from within Eclipse:
    Replace <ENVIRONMENT> with one of the following depending on your system:
    		ppc-macosx, x86_64-linux, x86-linux, x86-macosx,  x86-win32
 
+5. Optional, only for CPAchecker developers:
+   If you want to work with the source of Eclipse CDT, check out the source code from CVS
+   as an Eclipse project with the exact name "Eclipse CDT core".
+   Repository URL: pserver://anonymous@dev.exlipse.org/cvsroot/tools
+   Module: org.eclipse.cdt/all/org.eclipse.cdt.core
+   Tag: CDT_7_0_2
+
 Using CPAchecker as an Eclipse plugin for your C projects
 ---------------------------------------------------------
 1. You need Eclipse 3.5 with CDT 6 or Eclipse 3.6 with CDT 7.
