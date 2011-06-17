@@ -570,7 +570,7 @@ class OutputHandler:
         # store filename, status, times, columns in XML
         fileElem = ET.Element("sourcefile", {"name": sourcefile})
         if len(fileOptions) != 0:
-            fileElem.set("options", " ".join(toSimpleList(fileOptions)))
+            fileElem.set("options", " ".join(toSimpleList(mergeOptions(fileOptions))))
         fileElem.append(ET.Element("column", {"title": "status", "value": status}))
         fileElem.append(ET.Element("column", {"title": "cputime", "value": cpuTimeDelta}))
         fileElem.append(ET.Element("column", {"title": "walltime", "value": wallTimeDelta}))
@@ -696,40 +696,41 @@ def getOptions(optionsTag):
                for option in optionsTag.findall("option")])
 
 
-def mergeOptions(benchmarkOptions, testOptions, fileOptions=dict()):
+def mergeOptions(benchmarkOptions, testOptions=dict(), fileOptions=dict()):
     '''
-    This function merges dicts of options.
-    If a option is part of several dicts, the last value is taken.
+    This function merges dicts of options into one list of pairs.
+    If a option is part of several dicts,
+    the option appears in the list several times.
     '''
 
-    currentOptions = dict()
+    currentOptions = []
 
     # copy global options
     for opt in benchmarkOptions:
-        currentOptions[opt] = benchmarkOptions[opt]
+        currentOptions.append((opt, benchmarkOptions[opt]))
 
     # insert testOptions, override existing options
     for opt in testOptions:
-        currentOptions[opt] = testOptions[opt]
+        currentOptions.append((opt, testOptions[opt]))
 
     # insert fileOptions, override existing options
     for opt in fileOptions:
-        currentOptions[opt] = fileOptions[opt]
+        currentOptions.append((opt, fileOptions[opt]))
 
     return currentOptions
 
 
-def toSimpleList(dict):
+def toSimpleList(listOfPairs):
     '''
-    This function converts a dictionary to a list. 
+    This function converts a list of pairs to a list. 
     Each pair of key and value is divided into 2 listelements.
     All "None"-values are removed.
     '''
     simpleList = []
-    for key in dict:
+    for (key, value) in listOfPairs:
         simpleList.append(key)
-        if dict[key] is not None:
-            simpleList.append(dict[key])
+        if value is not None:
+            simpleList.append(value)
     return simpleList
 
 
