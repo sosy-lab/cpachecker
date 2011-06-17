@@ -151,7 +151,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   private boolean checkTargetStates = true;
 
   @Option(description="try using induction to verify programs with loops")
-  private boolean induction = true;
+  private boolean induction = false;
 
   private final BMCStatistics stats = new BMCStatistics();
   private final Algorithm algorithm;

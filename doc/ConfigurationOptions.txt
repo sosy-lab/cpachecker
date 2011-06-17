@@ -77,7 +77,13 @@ bmc.boundingAssertions = true
 bmc.checkTargetStates = true
 
 # try using induction to verify programs with loops
-bmc.induction = true
+bmc.induction = false
+
+# configuration file for invariant generation
+bmc.invariantGenerationConfigFile = 
+
+# generate invariants for induction in parallel to the analysis
+bmc.parallelInvariantGeneration = false
 
 # file name where to put the path program that is generated as input for
 # CBMC. A temporary file is used if this is unspecified.
