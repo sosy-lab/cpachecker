@@ -150,6 +150,10 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
     }
 
     ExplicitElement otherElement = (ExplicitElement) other;
+    if (otherElement.previousElement != previousElement) {
+      return false;
+    }
+
     if (otherElement.constantsMap.size() != constantsMap.size()){
       return false;
     }
