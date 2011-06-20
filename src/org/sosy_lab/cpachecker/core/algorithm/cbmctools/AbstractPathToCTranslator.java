@@ -88,7 +88,10 @@ public class AbstractPathToCTranslator {
 
     List<StringBuffer> lTranslation = translator.translatePath(artRoot, elementsOnErrorPath);
 
-    String ret = Joiner.on('\n').join(concat(translator.mGlobalDefinitionsList, translator.mFunctionDecls, lTranslation));
+    List<String> includeList = new ArrayList<String>();
+    includeList.add("#include<stdlib.h>");
+    includeList.add("#include<stdio.h>");
+    String ret = Joiner.on('\n').join(concat(includeList, translator.mGlobalDefinitionsList, translator.mFunctionDecls, lTranslation));
 
     // replace nondet keyword with cbmc nondet keyword
     ret = ret.replaceAll("__BLAST_NONDET___0", "nondet_int()");
@@ -361,7 +364,7 @@ public class AbstractPathToCTranslator {
       }
 
       return ("__CPROVER_assume(" + lAssumptionString + ");");
-      //      return ("if(! (" + lAssumptionString + ")) { return (0); }");
+//    return ("if(! (" + lAssumptionString + ")) { return (0); }");
     }
     case StatementEdge: {
       StatementEdge lStatementEdge = (StatementEdge)pCFAEdge;
