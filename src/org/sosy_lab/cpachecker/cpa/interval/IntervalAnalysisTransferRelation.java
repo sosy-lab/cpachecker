@@ -227,6 +227,13 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
         }
       }
 
+      // a* = b();
+      else if(operand1 instanceof IASTUnaryExpression
+          && ((IASTUnaryExpression)operand1).getOperator() == UnaryOperator.STAR)
+      {
+          return element.clone();
+      }
+
       else
         throw new UnrecognizedCCodeException("on function return", summaryEdge, operand1);
     }
@@ -972,6 +979,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
         case MODULO:
         case BINARY_AND:
         case BINARY_OR:
+        case BINARY_XOR:
           // can these be handled?
           return Interval.createUnboundInterval();
 
@@ -1036,6 +1044,10 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       case MINUS:
         Interval val = unaryOperand.accept(this);
         return (val != null) ? val.negate() : Interval.createUnboundInterval();
+
+      // TODO: we can actually do something here!
+      case NOT:
+        return Interval.createUnboundInterval();
 
       case AMPER:
         return Interval.createUnboundInterval(); // valid expression, but it's a pointer value

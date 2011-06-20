@@ -446,12 +446,12 @@ public class Interval
   /**
    * This method subtracts an interval from this interval, overflow is handled by setting the bound to Long.MIN_VALUE or Long.MAX_VALUE respectively.
    *
-   * @param interval the interval to subtract
+   * @param other interval to subtract
    * @return a new interval with the respective bounds
    */
-  public Interval minus(Interval interval)
+  public Interval minus(Interval other)
   {
-    return plus(new Interval(interval.low * (-1), interval.high * (-1)));
+    return plus(other.negate());
   }
 
   /**
@@ -519,7 +519,15 @@ public class Interval
       return createUnboundInterval();
 
     else
-      return new Interval(low << offset.low, high << offset.high);
+    {
+      // primitive overflow checking - just so that new benchmarks don't error out
+      // TODO: improve this!
+      if(high == Long.MAX_VALUE)
+        return new Interval(low << offset.low, Long.MAX_VALUE);
+
+      else
+        return new Interval(low << offset.low, high << offset.high);
+    }
   }
 
  /**
@@ -544,7 +552,7 @@ public class Interval
    */
   public Interval negate()
   {
-    return new Interval(high.longValue() * (-1), low.longValue() * (-1));
+    return new Interval(scalarTimes(high, -1L), scalarTimes(low, -1L));
   }
 
   /**
@@ -652,7 +660,7 @@ public class Interval
     Long bound = (Long.signum(x) == Long.signum(y)) ? Long.MAX_VALUE : Long.MIN_VALUE;
 
     // if overflow occurs, return the respective bound
-    if (x != 0 && (y > 0 && y > bound / x || y < 0 && y < bound / x))
+    if (x != 0 && (y > 0 && y > (bound / x) || y < 0 && y < (bound / x)))
       return bound;
 
     else
