@@ -77,10 +77,10 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
    * @param value value to be assigned.
    * @param pThreshold threshold from property explicitAnalysis.threshold
    */
-  void assignConstant(String nameOfVar, long value, int pThreshold){
+  void assignConstant(String nameOfVar, Long value, int pThreshold){
 
     if(constantsMap.containsKey(nameOfVar) &&
-        constantsMap.get(nameOfVar).longValue() == value){
+        constantsMap.get(nameOfVar).equals(value)) {
       return;
     }
 
@@ -108,7 +108,7 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
     constantsMap.put(nameOfVar, value);
   }
 
-  public long getValueFor(String variableName){
+  public Long getValueFor(String variableName){
     return constantsMap.get(variableName).longValue();
   }
 
