@@ -168,7 +168,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
           stats.countBreak++;
           // re-add the old element to the waitlist, there may be unhandled
           // successors left that otherwise would be forgotten
-          reachedSet.add(element, precision);
+          reachedSet.reAddToWaitlist(element);
           reachedSet.add(successor, successorPrecision);
 
           stats.totalTimer.stop();
