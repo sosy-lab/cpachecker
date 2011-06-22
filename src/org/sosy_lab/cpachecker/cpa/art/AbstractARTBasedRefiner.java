@@ -174,7 +174,6 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
   }
 
   private static boolean checkART(ReachedSet pReached) {
-    Set<? extends AbstractElement> reached = pReached.getReached();
 
     Deque<AbstractElement> workList = new ArrayDeque<AbstractElement>();
     Set<ARTElement> art = new HashSet<ARTElement>();
@@ -190,7 +189,12 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
       }
 
       // check if (e \in ART) => (e \in Reached ^ e.isCovered())
-      assert reached.contains(currentElement) ^ currentElement.isCovered();
+      // There is a special case here:
+      // If the element is the sibling of the target element, it might have not
+      // been added to the reached set if CPAAlgorithm stopped before.
+      // But in this case its parent is in the waitlist.
+      assert (pReached.contains(currentElement) || pReached.getWaitlist().containsAll(currentElement.getParents()))
+            ^ currentElement.isCovered();
 
       if (art.add(currentElement)) {
         workList.addAll(currentElement.getChildren());
@@ -198,7 +202,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     }
 
     // check if (e \in Reached) => (e \in ART)
-    assert art.containsAll(reached) : "Element in reached but not in ART";
+    assert art.containsAll(pReached.getReached()) : "Element in reached but not in ART";
 
     return true;
   }
