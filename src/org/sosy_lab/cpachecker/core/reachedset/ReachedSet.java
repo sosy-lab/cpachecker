@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.reachedset;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.AbstractCollection;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -40,7 +41,7 @@ import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 
 /**
  * This class implements a set of reached elements, including storing a
@@ -258,8 +259,37 @@ public class ReachedSet implements UnmodifiableReachedSet {
   }
 
   @Override
-  public Iterable<AbstractElement> getWaitlist() {
-    return Iterables.unmodifiableIterable(waitlist);
+  public Collection<AbstractElement> getWaitlist() {
+    return new AbstractCollection<AbstractElement>() {
+
+      @Override
+      public Iterator<AbstractElement> iterator() {
+        return Iterators.unmodifiableIterator(waitlist.iterator());
+      }
+
+      @Override
+      public boolean contains(Object obj) {
+        if (!(obj instanceof AbstractElement)) {
+          return false;
+        }
+        return waitlist.contains((AbstractElement)obj);
+      }
+
+      @Override
+      public boolean isEmpty() {
+        return waitlist.isEmpty();
+      }
+
+      @Override
+      public int size() {
+        return waitlist.size();
+      }
+
+      @Override
+      public String toString() {
+        return waitlist.toString();
+      }
+    };
   }
 
   public AbstractElement popFromWaitlist() {
