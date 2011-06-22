@@ -43,7 +43,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -60,7 +59,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
@@ -376,17 +374,7 @@ public class ABMTransferRelation implements TransferRelation {
     return reached;
   }
 
-  private ReachedSet getReachedSet(ARTElement element, Precision precision) {
-    CFANode loc = element.retrieveLocationElement().getLocationNode();
-    Block context = partitioning.getBlockForCallNode(loc);
-    AbstractElement reducedElement = wrappedReducer.getVariableReducedElement(element, context, loc);
-    Precision reducedPrecision = wrappedReducer.getVariableReducedPrecision(precision, context);
-    ReachedSet result =  subgraphReachCache.get(reducedElement, reducedPrecision, context);
-    assert result != null;
-    return result;
-  }
-
-  void removeSubtree(ARTReachedSet reachSet, Path pPath, ARTElement element, Precision newPrecision) {
+  void removeSubtree(ARTReachedSet mainReachedSet, Path pPath, ARTElement element, Precision newPrecision) {
     removeSubtreeTimer.start();
 
     List<ARTElement> path = trimPath(pPath, element);
@@ -394,55 +382,45 @@ public class ABMTransferRelation implements TransferRelation {
 
     Set<ARTElement> relevantCallNodes = getRelevantDefinitionNodes(path);
 
-    Triple<UnmodifiableReachedSet, Pair<ARTElement, Precision>, CFANode> lastReachSet = null;
+    ARTElement lastElement = null;
+    Precision lastPrecision = null;
     //iterate from root to element and remove all subtrees for subgraph calls
     for(ARTElement pathElement : Iterables.skip(path, 1)) {
-      ARTElement currentElement = pathElementToReachedElement.get(pathElement);
-      assert currentElement != null;
+      if(pathElement.equals(element)) {
+        break;
+      }
 
-      CFANode node = currentElement.retrieveLocationElement().getLocationNode();
-
-      boolean relevantCall = false;
       if(relevantCallNodes.contains(pathElement)) {
-       relevantCall = true;
-      }
+        ARTElement currentElement = pathElementToReachedElement.get(pathElement);
 
-      if(pathElement.equals(element) || relevantCall) {
-        Precision currentPrecision;
-        if (lastReachSet == null) {
-          // first iteration, update main reached set
-          currentPrecision = reachSet.asReachedSet().getPrecision(currentElement);
-          removeSubtree(reachSet, currentElement, pathElement.equals(element)?newPrecision:null);
+        if (lastElement == null) {
+          lastPrecision = mainReachedSet.asReachedSet().getPrecision(currentElement);
+          removeSubtree(mainReachedSet, currentElement);
         } else {
-          currentPrecision = lastReachSet.getFirst().getPrecision(currentElement);
-          removeCachedSubtree(lastReachSet, currentElement, newPrecision, pathElement.equals(element));
+          lastPrecision = removeCachedSubtree(lastElement, lastPrecision, currentElement, null);
         }
 
-        if(relevantCall) {
-          lastReachSet = new Triple<UnmodifiableReachedSet, Pair<ARTElement, Precision>, CFANode>(getReachedSet(currentElement, currentPrecision), Pair.of(currentElement, currentPrecision), node);
-        }
+        lastElement = currentElement;
       }
+    }
+
+    if(lastElement == null) {
+      removeSubtree(mainReachedSet, pathElementToReachedElement.get(element), newPrecision);
+    } else {
+      removeCachedSubtree(lastElement, lastPrecision, pathElementToReachedElement.get(element), newPrecision);
     }
 
     removeSubtreeTimer.stop();
   }
 
-  private void removeCachedSubtree(Triple<UnmodifiableReachedSet, Pair<ARTElement, Precision>, CFANode> lastTriple, ARTElement currentElement, Precision newPrecision, boolean isLastElement) {
-    //called in a subgraphs ART; in this case we need to tell the transfer function to update its cached
-    //specifications such that the subtree is removed in the subgraphs ART
-    ARTElement lastCallNode = lastTriple.getSecond().getFirst();
-    Precision lastDefinitionNodePrecision = lastTriple.getSecond().getSecond();
-    CFANode lastDefinitionCFANode = lastTriple.getThird();
-
-    removeCachedSubtree(lastCallNode, lastDefinitionNodePrecision, lastDefinitionCFANode, currentElement, newPrecision, isLastElement);
-  }
-
-  private void removeCachedSubtree(ARTElement rootElement, Precision rootPrecision, CFANode rootNode, ARTElement removeElement, Precision newPrecision, boolean isLastElement) {
-    logger.log(Level.FINER, "Remove cached subtree for ", removeElement, " (rootNode: ", rootNode, ") issued");
-
+  private Precision removeCachedSubtree(ARTElement rootElement, Precision rootPrecision, ARTElement removeElement, Precision newPrecision) {
     removeCachedSubtreeTimer.start();
 
     try {
+      CFANode rootNode = rootElement.retrieveLocationElement().getLocationNode();
+
+      logger.log(Level.FINER, "Remove cached subtree for ", removeElement, " (rootNode: ", rootNode, ") issued");
+
       Block rootSubtree = partitioning.getBlockForCallNode(rootNode);
 
       AbstractElement reducedRootElement = wrappedReducer.getVariableReducedElement(rootElement, rootSubtree, rootNode);
@@ -450,14 +428,20 @@ public class ABMTransferRelation implements TransferRelation {
 
       ReachedSet reachedSet = subgraphReachCache.get(reducedRootElement, reducedRootPrecision, rootSubtree);
 
-      Precision newReducedRemovePrecision = wrappedReducer.getVariableReducedPrecision(Precisions.replaceByType(reachedSet.getPrecision(removeElement), newPrecision, newPrecision.getClass()), rootSubtree);
+      Precision removePrecision = reachedSet.getPrecision(removeElement);
+      Precision newReducedRemovePrecision = null;
+      if(newPrecision != null) {
+        newReducedRemovePrecision = wrappedReducer.getVariableReducedPrecision(Precisions.replaceByType(removePrecision, newPrecision, newPrecision.getClass()), rootSubtree);
+      }
 
       assert !removeElement.getParents().isEmpty();
 
       logger.log(Level.FINEST, "Removing subtree, adding a new cached entry, and removing the former cached entries");
-      removeSubtree(reachedSet, removeElement, isLastElement?newReducedRemovePrecision:null);
+      removeSubtree(reachedSet, removeElement, newReducedRemovePrecision);
 
       subgraphReturnCache.remove(reducedRootElement, reducedRootPrecision, rootSubtree);
+
+      return removePrecision;
     }
     finally {
       removeCachedSubtreeTimer.stop();
