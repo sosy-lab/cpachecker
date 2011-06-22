@@ -310,8 +310,6 @@ public class Configuration {
       description="all used options are printed")
   private boolean exportUsedOptions = false;
 
-  private static final long serialVersionUID = -5910186668866464153L;
-
   /** Splitter to create string arrays */
   private static final Splitter ARRAY_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings();
 
