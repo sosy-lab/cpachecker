@@ -48,11 +48,6 @@ public class NoOpReducer implements Reducer {
   }
 
   @Override
-  public boolean isEqual(AbstractElement pReducedTargetElement, AbstractElement pCandidateElement) {
-    return pReducedTargetElement.equals(pCandidateElement);
-  }
-
-  @Override
   public Object getHashCodeForElement(AbstractElement pElementKey, Precision pPrecisionKey) {
     return pElementKey;
   }

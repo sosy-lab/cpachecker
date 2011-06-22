@@ -37,7 +37,5 @@ public interface Reducer {
 
   Precision getVariableExpandedPrecision(Precision rootPrecision, Block rootContext, Precision reducedPrecision);
 
-  boolean isEqual(AbstractElement reducedTargetElement, AbstractElement candidateElement);
-
   Object getHashCodeForElement(AbstractElement elementKey, Precision precisionKey);
 }

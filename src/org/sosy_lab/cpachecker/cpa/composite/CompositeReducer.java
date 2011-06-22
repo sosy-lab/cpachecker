@@ -72,22 +72,6 @@ public class CompositeReducer implements Reducer {
   }
 
   @Override
-  public boolean isEqual(AbstractElement pReducedTargetElement,
-      AbstractElement pCandidateElement) {
-
-    List<AbstractElement> reducedTargetElements = ((CompositeElement)pReducedTargetElement).getWrappedElements();
-    List<AbstractElement> candidateElements = ((CompositeElement)pCandidateElement).getWrappedElements();
-
-    int i = 0;
-    for (Pair<AbstractElement, AbstractElement> p : Pair.zipList(reducedTargetElements, candidateElements)) {
-      if (!wrappedReducers.get(i++).isEqual(p.getFirst(), p.getSecond())) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  @Override
   public Object getHashCodeForElement(AbstractElement pElementKey, Precision pPrecisionKey) {
 
     List<AbstractElement> elements = ((CompositeElement)pElementKey).getWrappedElements();

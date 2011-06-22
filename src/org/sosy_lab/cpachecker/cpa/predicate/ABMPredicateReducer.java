@@ -181,16 +181,6 @@ public class ABMPredicateReducer implements Reducer {
   }
 
   @Override
-  public boolean isEqual(AbstractElement pReducedTargetElement,
-      AbstractElement pCandidateElement) {
-
-    PredicateAbstractElement reducedTargetElement = (PredicateAbstractElement)pReducedTargetElement;
-    PredicateAbstractElement candidateElement = (PredicateAbstractElement)pCandidateElement;
-
-    return candidateElement.getAbstractionFormula().asRegion().equals(reducedTargetElement.getAbstractionFormula().asRegion());
-  }
-
-  @Override
   public Object getHashCodeForElement(AbstractElement pElementKey, Precision pPrecisionKey) {
 
     PredicateAbstractElement element = (PredicateAbstractElement)pElementKey;

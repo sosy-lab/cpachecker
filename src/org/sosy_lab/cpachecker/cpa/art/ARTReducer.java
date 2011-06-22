@@ -72,13 +72,6 @@ public class ARTReducer implements Reducer {
   }
 
   @Override
-  public boolean isEqual(AbstractElement pReducedTargetElement,
-      AbstractElement pCandidateElement) {
-
-    return wrappedReducer.isEqual(((ARTElement)pReducedTargetElement).getWrappedElement(), ((ARTElement)pCandidateElement).getWrappedElement());
-  }
-
-  @Override
   public Object getHashCodeForElement(AbstractElement pElementKey, Precision pPrecisionKey) {
 
     return wrappedReducer.getHashCodeForElement(((ARTElement)pElementKey).getWrappedElement(), pPrecisionKey);

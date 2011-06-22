@@ -77,17 +77,7 @@ public class CallstackReducer implements Reducer {
     }
   }
 
-  @Override
-  public boolean isEqual(AbstractElement pReducedTargetElement,
-      AbstractElement pCandidateElement) {
-
-    CallstackElement reducedTargetElement = (CallstackElement)pReducedTargetElement;
-    CallstackElement candidateElement = (CallstackElement)pCandidateElement;
-
-    return isEqual(reducedTargetElement, candidateElement);
-  }
-
-  private static boolean isEqual(CallstackElement reducedTargetElement,
+ private static boolean isEqual(CallstackElement reducedTargetElement,
       CallstackElement candidateElement) {
     if (reducedTargetElement.getDepth() != candidateElement.getDepth()) {
       return false;

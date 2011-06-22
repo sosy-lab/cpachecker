@@ -71,12 +71,6 @@ class TimedReducer implements Reducer {
   }
 
   @Override
-  public boolean isEqual(AbstractElement pReducedTargetElement,
-      AbstractElement pCandidateElement) {
-    return wrappedReducer.isEqual(pReducedTargetElement, pCandidateElement);
-  }
-
-  @Override
   public Object getHashCodeForElement(AbstractElement pElementKey, Precision pPrecisionKey) {
     return wrappedReducer.getHashCodeForElement(pElementKey, pPrecisionKey);
   }
