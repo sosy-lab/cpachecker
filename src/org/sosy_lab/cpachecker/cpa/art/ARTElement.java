@@ -221,4 +221,8 @@ public class ARTElement extends AbstractSingleWrapperElement {
 
     return currentLoc.getEdgeTo(childNode);
   }
+
+  public boolean isDestroyed() {
+    return destroyed;
+  }
 }

@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
@@ -113,14 +115,14 @@ public class ABMPredicateReducer implements Reducer {
 
   @Override
   public AbstractElement getVariableExpandedElement(
-      AbstractElement pRootElement, Block pRootContext,
+      AbstractElement pRootElement, Block pReducedContext,
       AbstractElement pReducedElement) {
 
     PredicateAbstractElement rootElement = (PredicateAbstractElement)pRootElement;
     PredicateAbstractElement reducedElement = (PredicateAbstractElement)pReducedElement;
 
     if (!(reducedElement instanceof PredicateAbstractElement.AbstractionElement)) { return reducedElement; }
-    //Note: FCCP might introduce some additional abstraction if root region is not a cube
+    //Note: ABM might introduce some additional abstraction if root region is not a cube
     expandTimer.start();
     try {
 
@@ -130,7 +132,7 @@ public class ABMPredicateReducer implements Reducer {
       Collection<AbstractionPredicate> rootPredicates =
           pmgr.extractPredicates(rootElementAbstractionFormula.asRegion());
       Collection<AbstractionPredicate> relevantRootPredicates =
-          relevantComputer.getRelevantPredicates(pRootContext, rootPredicates);
+          relevantComputer.getRelevantPredicates(pReducedContext, rootPredicates);
       //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedElements region
 
       Region reducedRegion = reducedElement.getAbstractionFormula().asRegion();
@@ -212,6 +214,60 @@ public class ABMPredicateReducer implements Reducer {
       }
     }
 
+    return new ReducedPredicatePrecision(pmapBuilder.build(), globalPredicates, precision);
+  }
+
+  @Override
+  public Precision getVariableExpandedPrecision(Precision pRootPrecision, Block pRootContext, Precision pReducedPrecision) {
+    PredicatePrecision derivedToplevelPrecision = ((ReducedPredicatePrecision)pReducedPrecision).getRootPredicatePrecision();
+    PredicatePrecision derivedRootPrecision = (PredicatePrecision)getVariableReducedPrecision(derivedToplevelPrecision, pRootContext);
+
+    PredicatePrecision rootPrecision = (PredicatePrecision)pRootPrecision;
+    PredicatePrecision toplevelPrecision = rootPrecision;
+    if(rootPrecision instanceof ReducedPredicatePrecision) {
+      toplevelPrecision = ((ReducedPredicatePrecision)rootPrecision).getRootPredicatePrecision();
+    }
+
+    Set<AbstractionPredicate> globalPredicates = new HashSet<AbstractionPredicate>();
+    globalPredicates.addAll(derivedRootPrecision.getGlobalPredicates());
+    globalPredicates.addAll(rootPrecision.getGlobalPredicates());
+
+    ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
+    pmapBuilder.putAll(derivedRootPrecision.getPredicateMap());
+    pmapBuilder.putAll(rootPrecision.getPredicateMap());
+
+    return new ReducedPredicatePrecision(pmapBuilder.build(), globalPredicates, mergePrecisions(toplevelPrecision, derivedToplevelPrecision));
+  }
+
+  private PredicatePrecision mergePrecisions(PredicatePrecision lhs, PredicatePrecision rhs) {
+    Set<AbstractionPredicate> globalPredicates = new HashSet<AbstractionPredicate>();
+    globalPredicates.addAll(lhs.getGlobalPredicates());
+    globalPredicates.addAll(rhs.getGlobalPredicates());
+
+    ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
+    pmapBuilder.putAll(lhs.getPredicateMap());
+    pmapBuilder.putAll(rhs.getPredicateMap());
+
     return new PredicatePrecision(pmapBuilder.build(), globalPredicates);
+  }
+
+  private static class ReducedPredicatePrecision extends PredicatePrecision {
+    private final PredicatePrecision rootPredicatePrecision;
+
+    public ReducedPredicatePrecision(ImmutableSetMultimap<CFANode, AbstractionPredicate> pPredicateMap, Collection<AbstractionPredicate> pGlobalPredicates, PredicatePrecision expandedPredicatePrecision) {
+      super(pPredicateMap, pGlobalPredicates);
+      if(expandedPredicatePrecision instanceof ReducedPredicatePrecision) {
+        this.rootPredicatePrecision = ((ReducedPredicatePrecision) expandedPredicatePrecision).getRootPredicatePrecision();
+      }
+      else {
+        this.rootPredicatePrecision = expandedPredicatePrecision;
+      }
+      assert !(rootPredicatePrecision instanceof ReducedPredicatePrecision);
+    }
+
+    public PredicatePrecision getRootPredicatePrecision() {
+      return rootPredicatePrecision;
+    }
+
   }
 }

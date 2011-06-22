@@ -36,6 +36,7 @@ class TimedReducer implements Reducer {
   final Timer reduceTime = new Timer();
   final Timer expandTime = new Timer();
   final Timer reducePrecisionTime = new Timer();
+  final Timer expandPrecisionTime = new Timer();
 
   private final Reducer wrappedReducer;
 
@@ -58,12 +59,12 @@ class TimedReducer implements Reducer {
 
   @Override
   public AbstractElement getVariableExpandedElement(
-      AbstractElement pRootElement, Block pRootContext,
+      AbstractElement pRootElement, Block pReducedContext,
       AbstractElement pReducedElement) {
 
     expandTime.start();
     try {
-      return wrappedReducer.getVariableExpandedElement(pRootElement, pRootContext, pReducedElement);
+      return wrappedReducer.getVariableExpandedElement(pRootElement, pReducedContext, pReducedElement);
     } finally {
       expandTime.stop();
     }
@@ -89,6 +90,17 @@ class TimedReducer implements Reducer {
     } finally {
       reducePrecisionTime.stop();
     }
+  }
+
+  @Override
+  public Precision getVariableExpandedPrecision(Precision rootPrecision, Block rootContext, Precision reducedPrecision) {
+    expandPrecisionTime.start();
+    try{
+      return wrappedReducer.getVariableExpandedPrecision(rootPrecision, rootContext, reducedPrecision);
+    } finally {
+      expandPrecisionTime.stop();
+    }
+
   }
 
 }

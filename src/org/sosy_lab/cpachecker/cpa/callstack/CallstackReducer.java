@@ -54,7 +54,7 @@ public class CallstackReducer implements Reducer {
 
   @Override
   public AbstractElement getVariableExpandedElement(
-      AbstractElement pRootElement, Block pRootContext,
+      AbstractElement pRootElement, Block pReducedContext,
       AbstractElement pReducedElement) {
 
     CallstackElement rootElement = (CallstackElement)pRootElement;
@@ -136,5 +136,10 @@ public class CallstackReducer implements Reducer {
   public Precision getVariableReducedPrecision(Precision pPrecision,
       Block pContext) {
     return pPrecision;
+  }
+
+  @Override
+  public Precision getVariableExpandedPrecision(Precision rootPrecision, Block rootContext, Precision reducedPrecision) {
+    return reducedPrecision;
   }
 }

@@ -72,6 +72,7 @@ class ABMCPAStatistics implements Statistics {
       out.println("Time for computing the hashCode of abstract elements:           " + transferRelation.hashingTimer + " (Calls: " + transferRelation.hashingTimer.getNumberOfIntervals() + ")");
       out.println("Time for searching ARTElements in ReachedSets:                  " + ARTElementSearcher.searchForARTElementTimer+ " (Calls: " + ARTElementSearcher.searchForARTElementTimer.getNumberOfIntervals() + ")");
       out.println("Time for reducing precisions:                                   " + reducer.reducePrecisionTime + " (Calls: " + reducer.reducePrecisionTime.getNumberOfIntervals() + ")");
+      out.println("Time for expanding precisions:                                  " + reducer.expandPrecisionTime + " (Calls: " + reducer.expandPrecisionTime.getNumberOfIntervals() + ")");
 
       out.println("Time for removing cached subtrees for refinement:               " + transferRelation.removeCachedSubtreeTimer);
       out.println("Time for recomputing ARTs during counterexample analysis:       " + transferRelation.recomputeARTTimer);

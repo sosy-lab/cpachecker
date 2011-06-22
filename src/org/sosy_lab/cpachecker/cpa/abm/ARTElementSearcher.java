@@ -42,6 +42,7 @@ public class ARTElementSearcher {
   final static Timer searchForARTElementTimer = new Timer();
 
   public static ARTElement searchForARTElement(UnmodifiableReachedSet reached, ARTElement targetElement, Reducer reducer, BlockPartitioning manager) {
+    assert reached != null;
     CFANode targetNode = targetElement.retrieveLocationElement().getLocationNode();
     searchForARTElementTimer.start();
     try {
