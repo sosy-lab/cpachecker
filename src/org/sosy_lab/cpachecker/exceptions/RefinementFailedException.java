@@ -72,7 +72,7 @@ public class RefinementFailedException extends CPAException {
   public RefinementFailedException(Reason r, Path p, boolean pHurtSoundness)
   {
     this(r, p, -1);
-    hurtSoundness = true;
+    hurtSoundness = pHurtSoundness;
   }
 
   /** Return the reason for the failure */
