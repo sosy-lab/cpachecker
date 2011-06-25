@@ -55,7 +55,7 @@ public class RefinementFailedException extends CPAException {
   private final Reason reason;
   private Path path;
   private final int failurePoint;
-  private boolean hurtSoundness = true;
+  private boolean hurtSoundness = false;
 
   public RefinementFailedException(Reason r, Path p, int pFailurePoint)
   {
