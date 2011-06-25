@@ -197,6 +197,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
         restartCPA = true;
 
+        if(failedRefinement.doesItHurtSoundness()) sound = false;
+
       } catch (CPAException e) {
         // TODO is it really wise to swallow exceptions here?
         logger.log(Level.FINER, "Dumping assumptions due to: " + e.toString());
