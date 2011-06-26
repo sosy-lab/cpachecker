@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -38,8 +39,8 @@ public abstract class AbstractRelevantPredicatesComputer<T> implements RelevantP
   private final Map<Pair<T, AbstractionPredicate>, Boolean> relevantPredicates = Maps.newHashMap();
 
   @Override
-  public Collection<AbstractionPredicate> getRelevantPredicates(Block context, Collection<AbstractionPredicate> predicates) {
-    Collection<AbstractionPredicate> result = new HashSet<AbstractionPredicate>(predicates.size());
+  public Set<AbstractionPredicate> getRelevantPredicates(Block context, Collection<AbstractionPredicate> predicates) {
+    Set<AbstractionPredicate> result = new HashSet<AbstractionPredicate>(predicates.size());
 
     T precomputeResult = precompute(context, predicates);
 
@@ -77,9 +78,9 @@ public abstract class AbstractRelevantPredicatesComputer<T> implements RelevantP
   protected abstract T precompute(Block pContext, Collection<AbstractionPredicate> pPredicates);
 
   @Override
-  public Collection<AbstractionPredicate> getIrrelevantPredicates(Block context, Collection<AbstractionPredicate> predicates) {
+  public Set<AbstractionPredicate> getIrrelevantPredicates(Block context, Collection<AbstractionPredicate> predicates) {
 
-    Collection<AbstractionPredicate> result = new HashSet<AbstractionPredicate>(predicates);
+    Set<AbstractionPredicate> result = new HashSet<AbstractionPredicate>(predicates);
     result.removeAll(getRelevantPredicates(context, predicates));
 
     return result;

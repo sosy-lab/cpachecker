@@ -162,7 +162,7 @@ public class ABMTransferRelation implements TransferRelation {
   private final ReachedSetFactory reachedSetFactory;
   private final Reducer wrappedReducer;
 
-  private Map<Pair<AbstractElement, Precision>, Precision> forwardPrecisionToExpandedPrecision;
+  private Map<AbstractElement, Precision> forwardPrecisionToExpandedPrecision;
 
   //Stats
   int cacheMisses = 0;
@@ -188,7 +188,7 @@ public class ABMTransferRelation implements TransferRelation {
 
 
   void setForwardPrecisionToExpandedPrecision(
-      Map<Pair<AbstractElement, Precision>, Precision> pForwardPrecisionToExpandedPrecision) {
+      Map<AbstractElement, Precision> pForwardPrecisionToExpandedPrecision) {
     forwardPrecisionToExpandedPrecision = pForwardPrecisionToExpandedPrecision;
   }
 
@@ -257,7 +257,7 @@ public class ABMTransferRelation implements TransferRelation {
           expandedElement.addParent((ARTElement)pElement);
           expandedResult.add(expandedElement);
 
-          forwardPrecisionToExpandedPrecision.put(Pair.of((AbstractElement)expandedElement, pPrecision), expandedPrecision);
+          forwardPrecisionToExpandedPrecision.put(expandedElement, expandedPrecision);
         }
 
         logger.log(Level.ALL, "Expanded results:", expandedResult);

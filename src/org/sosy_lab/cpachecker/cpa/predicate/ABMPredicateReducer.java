@@ -24,7 +24,9 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
@@ -45,7 +47,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.SetMultimap;
 
 
 public class ABMPredicateReducer implements Reducer {
@@ -189,63 +193,71 @@ public class ABMPredicateReducer implements Reducer {
     return Pair.of(element.getAbstractionFormula().asRegion(), precision);
   }
 
+  private Map<Pair<Integer, Block>, Precision> reduceCache = new HashMap<Pair<Integer, Block>, Precision>();
+
   @Override
   public Precision getVariableReducedPrecision(Precision pPrecision,
       Block pContext) {
     PredicatePrecision precision = (PredicatePrecision)pPrecision;
-
-    Collection<AbstractionPredicate> globalPredicates = relevantComputer.getRelevantPredicates(pContext, precision.getGlobalPredicates());
-
-    ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
-    for(CFANode node : precision.getPredicateMap().keySet()) {
-      if(pContext.getNodes().contains(node)) {
-        Collection<AbstractionPredicate> set = relevantComputer.getRelevantPredicates(pContext, precision.getPredicates(node));
-        pmapBuilder.putAll(node, set);
-      }
+    Pair<Integer, Block> key = Pair.of(precision.getId(), pContext);
+    Precision result = reduceCache.get(key);
+    if(result != null) {
+      return result;
     }
 
-    return new ReducedPredicatePrecision(pmapBuilder.build(), globalPredicates, precision);
+    result = new ReducedPredicatePrecision(precision, pContext);
+    reduceCache.put(key, result);
+    return result;
   }
 
   @Override
   public Precision getVariableExpandedPrecision(Precision pRootPrecision, Block pRootContext, Precision pReducedPrecision) {
-    PredicatePrecision derivedToplevelPrecision = ((ReducedPredicatePrecision)pReducedPrecision).getRootPredicatePrecision();
-    PredicatePrecision derivedRootPrecision = (PredicatePrecision)getVariableReducedPrecision(derivedToplevelPrecision, pRootContext);
-
     PredicatePrecision rootPrecision = (PredicatePrecision)pRootPrecision;
     PredicatePrecision toplevelPrecision = rootPrecision;
     if(rootPrecision instanceof ReducedPredicatePrecision) {
       toplevelPrecision = ((ReducedPredicatePrecision)rootPrecision).getRootPredicatePrecision();
     }
 
-    Set<AbstractionPredicate> globalPredicates = new HashSet<AbstractionPredicate>();
-    globalPredicates.addAll(derivedRootPrecision.getGlobalPredicates());
-    globalPredicates.addAll(rootPrecision.getGlobalPredicates());
+    PredicatePrecision derivedToplevelPrecision = ((ReducedPredicatePrecision)pReducedPrecision).getRootPredicatePrecision();
 
-    ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
-    pmapBuilder.putAll(derivedRootPrecision.getPredicateMap());
-    pmapBuilder.putAll(rootPrecision.getPredicateMap());
+    if(derivedToplevelPrecision == toplevelPrecision) {
+      return pRootPrecision;
+    }
 
-    return new ReducedPredicatePrecision(pmapBuilder.build(), globalPredicates, mergePrecisions(toplevelPrecision, derivedToplevelPrecision));
+    PredicatePrecision mergedToplevelPrecision = mergePrecisions(toplevelPrecision, derivedToplevelPrecision);
+
+    return getVariableReducedPrecision(mergedToplevelPrecision, pRootContext);
   }
+
 
   private PredicatePrecision mergePrecisions(PredicatePrecision lhs, PredicatePrecision rhs) {
     Set<AbstractionPredicate> globalPredicates = new HashSet<AbstractionPredicate>();
-    globalPredicates.addAll(lhs.getGlobalPredicates());
     globalPredicates.addAll(rhs.getGlobalPredicates());
+    globalPredicates.addAll(lhs.getGlobalPredicates());
 
     ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
-    pmapBuilder.putAll(lhs.getPredicateMap());
     pmapBuilder.putAll(rhs.getPredicateMap());
+    pmapBuilder.putAll(lhs.getPredicateMap());
 
     return new PredicatePrecision(pmapBuilder.build(), globalPredicates);
   }
 
-  private static class ReducedPredicatePrecision extends PredicatePrecision {
+  private class ReducedPredicatePrecision extends PredicatePrecision {
     private final PredicatePrecision rootPredicatePrecision;
 
-    public ReducedPredicatePrecision(ImmutableSetMultimap<CFANode, AbstractionPredicate> pPredicateMap, Collection<AbstractionPredicate> pGlobalPredicates, PredicatePrecision expandedPredicatePrecision) {
-      super(pPredicateMap, pGlobalPredicates);
+    private final PredicatePrecision expandedPredicatePrecision;
+    private final Block context;
+
+    private ImmutableSetMultimap<CFANode, AbstractionPredicate> evaluatedPredicateMap;
+    private ImmutableSet<AbstractionPredicate> evaluatedGlobalPredicates;
+
+
+    public ReducedPredicatePrecision(PredicatePrecision expandedPredicatePrecision, Block context) {
+      super(null);
+
+      this.expandedPredicatePrecision = expandedPredicatePrecision;
+      this.context = context;
+
       if(expandedPredicatePrecision instanceof ReducedPredicatePrecision) {
         this.rootPredicatePrecision = ((ReducedPredicatePrecision) expandedPredicatePrecision).getRootPredicatePrecision();
       }
@@ -253,10 +265,96 @@ public class ABMPredicateReducer implements Reducer {
         this.rootPredicatePrecision = expandedPredicatePrecision;
       }
       assert !(rootPredicatePrecision instanceof ReducedPredicatePrecision);
+
+      this.evaluatedPredicateMap = null;
+      this.evaluatedGlobalPredicates = null;
     }
 
     public PredicatePrecision getRootPredicatePrecision() {
       return rootPredicatePrecision;
+    }
+
+    private void computeView() {
+      if(evaluatedPredicateMap == null) {
+        ReducedPredicatePrecision lExpandedPredicatePrecision = null;
+        if(expandedPredicatePrecision instanceof ReducedPredicatePrecision) {
+          lExpandedPredicatePrecision = (ReducedPredicatePrecision)expandedPredicatePrecision;
+        }
+
+        evaluatedGlobalPredicates = ImmutableSet.copyOf(relevantComputer.getRelevantPredicates(context, rootPredicatePrecision.getGlobalPredicates()));
+
+        ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
+        Set<CFANode> keySet = lExpandedPredicatePrecision==null?rootPredicatePrecision.getPredicateMap().keySet():lExpandedPredicatePrecision.approximatePredicateMap().keySet();
+        for(CFANode node : keySet) {
+          if(context.getNodes().contains(node)) {
+            Collection<AbstractionPredicate> set = relevantComputer.getRelevantPredicates(context, rootPredicatePrecision.getPredicates(node));
+            pmapBuilder.putAll(node, set);
+          }
+        }
+
+        evaluatedPredicateMap = pmapBuilder.build();
+      }
+    }
+
+    private SetMultimap<CFANode, AbstractionPredicate> approximatePredicateMap() {
+      if(evaluatedPredicateMap == null) {
+        return rootPredicatePrecision.getPredicateMap();
+      } else {
+        return evaluatedPredicateMap;
+      }
+    }
+
+    @Override
+    public SetMultimap<CFANode, AbstractionPredicate> getPredicateMap() {
+      computeView();
+      return evaluatedPredicateMap;
+    }
+
+    @Override
+    public Set<AbstractionPredicate> getGlobalPredicates() {
+      if(evaluatedGlobalPredicates != null) {
+        return evaluatedGlobalPredicates;
+      } else {
+        return relevantComputer.getRelevantPredicates(context, rootPredicatePrecision.getGlobalPredicates());
+      }
+    }
+
+    @Override
+    public Set<AbstractionPredicate> getPredicates(CFANode loc) {
+      assert context.getNodes().contains(loc);
+
+      if(evaluatedPredicateMap != null) {
+        Set<AbstractionPredicate> result = evaluatedPredicateMap.get(loc);
+        if (result.isEmpty()) {
+          result = evaluatedGlobalPredicates;
+        }
+        return result;
+      }
+      else {
+        Set<AbstractionPredicate> result = relevantComputer.getRelevantPredicates(context, rootPredicatePrecision.getPredicates(loc));
+        if (result.isEmpty()) {
+          result = relevantComputer.getRelevantPredicates(context, rootPredicatePrecision.getGlobalPredicates());
+        }
+        return result;
+      }
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      if (pObj == this) {
+        return true;
+      } else if (!(pObj instanceof ReducedPredicatePrecision)) {
+        return false;
+      } else {
+        computeView();
+        return evaluatedPredicateMap.equals(((ReducedPredicatePrecision)pObj).evaluatedPredicateMap);
+      }
+    }
+
+    @Override
+    public int hashCode() {
+      computeView();
+      return evaluatedPredicateMap.hashCode();
     }
 
   }

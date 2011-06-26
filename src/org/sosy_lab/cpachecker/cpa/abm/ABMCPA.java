@@ -34,7 +34,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.ClassInstantiationException;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -131,7 +130,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       transfer.setBlockPartitioning(blockPartitioning);
       ((AbstractSingleWrapperCPA) getWrappedCpa()).retrieveWrappedCpa(ABMPredicateCPA.class).getTransferRelation().setPartitioning(blockPartitioning);
 
-      Map<Pair<AbstractElement, Precision>, Precision> forwardPrecisionToExpandedPrecision = new HashMap<Pair<AbstractElement,Precision>, Precision>();
+      Map<AbstractElement, Precision> forwardPrecisionToExpandedPrecision = new HashMap<AbstractElement, Precision>();
       transfer.setForwardPrecisionToExpandedPrecision(forwardPrecisionToExpandedPrecision);
       prec.setForwardPrecisionToExpandedPrecision(forwardPrecisionToExpandedPrecision);
     }
