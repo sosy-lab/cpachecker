@@ -30,6 +30,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
 
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 
@@ -46,18 +47,22 @@ class Scope {
   private final LinkedList<Map<String, IASTSimpleDeclaration>> varsList = Lists.newLinkedList();
 
   private final Map<String, IASTSimpleDeclaration> functions = new HashMap<String, IASTSimpleDeclaration>();
+  private String currentFunctionName = null;
 
   public Scope() {
-    enterFunction(); // enter global scope
+    enterBlock(); // enter global scope
   }
 
   public boolean isGlobalScope() {
     return varsStack.size() == 1;
   }
 
-  public void enterFunction() {
+  public void enterFunction(IASTFunctionDefinition pFuncDef) {
     varsStack.addLast(new HashMap<String, IASTSimpleDeclaration>());
     varsList.addLast(varsStack.getLast());
+
+    currentFunctionName = pFuncDef.getOrigName();
+    registerDeclaration(pFuncDef);
   }
 
   public void leaveFunction() {
@@ -66,6 +71,7 @@ class Scope {
     while (varsList.size() > varsStack.size()) {
       varsList.removeLast();
     }
+    currentFunctionName = null;
   }
 
   public void enterBlock() {
@@ -143,6 +149,10 @@ class Scope {
 
       vars.put(name, declaration);
     }
+  }
+
+  public String getCurrentFunctionName() {
+    return currentFunctionName;
   }
 
   @Override

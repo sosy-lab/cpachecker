@@ -258,8 +258,7 @@ class CFABuilder extends ASTVisitor
       throw new CFAGenerationRuntimeException("Duplicate function " + nameOfFunction, declaration);
     }
 
-    scope.registerDeclaration(fdef);
-    scope.enterFunction();
+    scope.enterFunction(fdef);
 
     final List<org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration> parameters = fdef.getDeclSpecifier().getParameters();
     final List<String> parameterNames = new ArrayList<String>(parameters.size());
