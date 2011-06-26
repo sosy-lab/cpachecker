@@ -690,32 +690,29 @@ class OutputHandler:
 def getOptions(optionsTag):
     '''
     This function searches for options in a tag 
-    and returns a dictionary with the names and values.
+    and returns a list with tuples of (name, value).
     '''
-    return dict([(option.get("name"), option.text) 
-               for option in optionsTag.findall("option")])
+    return [(option.get("name"), option.text) 
+               for option in optionsTag.findall("option")]
 
 
-def mergeOptions(benchmarkOptions, testOptions=dict(), fileOptions=dict()):
+def mergeOptions(benchmarkOptions, testOptions=[], fileOptions=[]):
     '''
-    This function merges dicts of options into one list of pairs.
-    If a option is part of several dicts,
+    This function merges lists of optionpairs into one list of pairs.
+    If a option is part of several lists,
     the option appears in the list several times.
     '''
 
     currentOptions = []
 
     # copy global options
-    for opt in benchmarkOptions:
-        currentOptions.append((opt, benchmarkOptions[opt]))
+    currentOptions.extend(benchmarkOptions)
 
-    # insert testOptions, override existing options
-    for opt in testOptions:
-        currentOptions.append((opt, testOptions[opt]))
+    # insert testOptions
+    currentOptions.extend(testOptions)
 
-    # insert fileOptions, override existing options
-    for opt in fileOptions:
-        currentOptions.append((opt, fileOptions[opt]))
+    # insert fileOptions
+    currentOptions.extend(fileOptions)
 
     return currentOptions
 
