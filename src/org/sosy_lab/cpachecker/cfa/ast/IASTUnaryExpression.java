@@ -64,4 +64,9 @@ public class IASTUnaryExpression extends IASTExpression {
     SIZEOF,
     ;
   }
+
+  @Override
+  public String toASTString() {
+    return operator + operand.toASTString();
+  }
 }

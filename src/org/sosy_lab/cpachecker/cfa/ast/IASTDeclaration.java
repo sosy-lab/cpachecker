@@ -76,4 +76,22 @@ public final class IASTDeclaration extends IASTSimpleDeclaration {
   public IASTInitializer getInitializer() {
     return initializer;
   }
+
+  @Override
+  public String toASTString() {
+    StringBuilder lASTString = new StringBuilder();
+    lASTString.append(storageClass.toString().toLowerCase());
+    lASTString.append(" ");
+    lASTString.append(getDeclSpecifier());
+    if (getName() != null) {
+      lASTString.append(" ");
+      lASTString.append(getName());
+    }
+    if (initializer != null) {
+      lASTString.append(" = ");
+      lASTString.append(initializer.toASTString());
+    }
+    lASTString.append(";");
+    return lASTString.toString();
+  }
 }
