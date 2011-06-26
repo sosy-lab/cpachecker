@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import java.util.Iterator;
 import java.util.List;
 
 import com.google.common.collect.ImmutableList;
@@ -67,5 +68,34 @@ public class IASTFunctionTypeSpecifier extends IType {
 
   public boolean takesVarArgs() {
     return takesVarArgs;
+  }
+
+  @Override
+  public String toASTString() {
+    StringBuilder lASTString = new StringBuilder();
+    if (isConst()) {
+      lASTString.append("const ");
+    }
+    lASTString.append(returnType.toASTString());
+    lASTString.append(" ");
+    if (name != null) {
+      lASTString.append(name);
+      lASTString.append(" ");
+    }
+    lASTString.append("(");
+
+    Iterator<IASTParameterDeclaration> lIt = parameters.iterator();
+    boolean isFirst = true;
+    while (lIt.hasNext()) {
+      if (isFirst) {
+        isFirst = false;
+      } else {
+        lASTString.append(", ");
+      }
+      lASTString.append(lIt.next().toASTString());
+    }
+
+    lASTString.append(")");
+    return lASTString.toString();
   }
 }

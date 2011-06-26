@@ -40,4 +40,6 @@ public abstract class IType {
   public boolean isVolatile() {
     return isVolatile;
   }
+
+  public abstract String toASTString();
 }

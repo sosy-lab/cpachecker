@@ -38,7 +38,6 @@ public final class IASTParameterDeclaration extends IASTSimpleDeclaration {
 
   @Override
   public String toASTString() {
-    return getDeclSpecifier() + " " + getName();
+    return getDeclSpecifier().toASTString() + " " + getName();
   }
-
 }

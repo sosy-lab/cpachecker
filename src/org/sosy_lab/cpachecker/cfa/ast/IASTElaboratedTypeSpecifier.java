@@ -47,4 +47,16 @@ public final class IASTElaboratedTypeSpecifier extends IType {
   public static final int k_struct = 1;
   public static final int k_union = 2;
 
+  @Override
+  public String toASTString() {
+    if (kind == k_enum) {
+      return (isConst() ? "const " : "") + "enum " + name;
+    } else if (kind == k_struct) {
+      return (isConst() ? "const " : "") + "struct " + name;
+    } else if (kind == k_union) {
+      return (isConst() ? "const " : "") + "union " + name;
+    } else {
+      return "IASTElaboratedTypeSpecifier: kind unknown;";
+    }
+  }
 }

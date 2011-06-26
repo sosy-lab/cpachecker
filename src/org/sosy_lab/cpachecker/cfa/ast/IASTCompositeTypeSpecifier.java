@@ -55,4 +55,33 @@ public final class IASTCompositeTypeSpecifier extends IType {
 
   public static final int k_struct = 1;
   public static final int k_union  = 2;
+
+  @Override
+  public String toASTString() {
+    StringBuilder lASTString = new StringBuilder();
+
+    if (isConst()) {
+      lASTString.append("const ");
+    }
+
+    if (key == k_struct) {
+      lASTString.append("struct ");
+    } else if (key == k_union) {
+      lASTString.append("union ");
+    } else {
+      lASTString.append("unknown ");
+    }
+
+    lASTString.append(name);
+
+    lASTString.append(" {\n");
+    for (IASTCompositeTypeMemberDeclaration lMember : members) {
+      lASTString.append("  ");
+      lASTString.append(lMember.toASTString());
+      lASTString.append("\n");
+    }
+    lASTString.append("}");
+
+    return lASTString.toString();
+  }
 }

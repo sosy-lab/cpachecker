@@ -42,4 +42,9 @@ public class IASTArrayTypeSpecifier extends IType {
   public IASTExpression getLength() {
     return length;
   }
+
+  @Override
+  public String toASTString() {
+    return (isConst() ? "const " : "") + type.toASTString() + "[" + length.toASTString() + "]";
+  }
 }

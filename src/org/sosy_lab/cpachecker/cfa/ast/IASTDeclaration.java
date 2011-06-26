@@ -82,7 +82,7 @@ public final class IASTDeclaration extends IASTSimpleDeclaration {
     StringBuilder lASTString = new StringBuilder();
     lASTString.append(storageClass.toString().toLowerCase());
     lASTString.append(" ");
-    lASTString.append(getDeclSpecifier());
+    lASTString.append(getDeclSpecifier().toASTString());
     if (getName() != null) {
       lASTString.append(" ");
       lASTString.append(getName());
