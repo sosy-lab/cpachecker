@@ -77,9 +77,9 @@ public final class IASTEnumerationSpecifier extends IType {
     @Override
     public String toASTString() {
       if (hasValue()) {
-        return String.valueOf(value);
+        return ((getName() != null) ? (getName() + " = ") : "") + String.valueOf(value);
       } else {
-        return "";
+        return ((getName() != null) ? getName() : "");
       }
     }
   }
