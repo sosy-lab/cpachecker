@@ -716,6 +716,7 @@ class ASTConverter {
     IASTInitializer initializer = null;
     String name = null;
     String origName = null;
+    boolean isGlobal = scope.isGlobalScope();
 
     if (d != null) {
       Triple<IType, IASTInitializer, String> declarator = convert(d, type);
@@ -739,6 +740,13 @@ class ASTConverter {
     }
 
     origName = name;
+
+    if (!isGlobal && storageClass == StorageClass.STATIC) {
+      isGlobal = true;
+      storageClass = StorageClass.AUTO;
+      name = "static__" + scope.getCurrentFunctionName() + "__" + name;
+    }
+
     if (scope.variableNameInUse(name, name)) {
       String sep = "__";
       int index = 1;
@@ -748,7 +756,7 @@ class ASTConverter {
       name = name + sep + index;
     }
 
-    return new IASTDeclaration(rawSignature, fileLoc, scope.isGlobalScope(), storageClass, type, name, origName, initializer);
+    return new IASTDeclaration(rawSignature, fileLoc, isGlobal, storageClass, type, name, origName, initializer);
   }
 
   private List<IASTCompositeTypeMemberDeclaration> convertDeclarationInCompositeType(final org.eclipse.cdt.core.dom.ast.IASTDeclaration d) {
