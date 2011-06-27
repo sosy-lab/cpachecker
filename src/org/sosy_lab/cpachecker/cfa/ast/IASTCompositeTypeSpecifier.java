@@ -63,6 +63,9 @@ public final class IASTCompositeTypeSpecifier extends IType {
     if (isConst()) {
       lASTString.append("const ");
     }
+    if (isVolatile()) {
+      lASTString.append("volatile ");
+    }
 
     if (key == k_struct) {
       lASTString.append("struct ");

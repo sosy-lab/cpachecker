@@ -73,9 +73,14 @@ public class IASTFunctionTypeSpecifier extends IType {
   @Override
   public String toASTString() {
     StringBuilder lASTString = new StringBuilder();
+
     if (isConst()) {
       lASTString.append("const ");
     }
+    if (isVolatile()) {
+      lASTString.append("volatile ");
+    }
+
     lASTString.append(returnType.toASTString());
     lASTString.append(" ");
     if (name != null) {

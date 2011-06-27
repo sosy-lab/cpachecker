@@ -92,8 +92,12 @@ public final class IASTSimpleDeclSpecifier extends IType {
   @Override
   public String toASTString() {
     StringBuilder lASTString = new StringBuilder();
+
     if (isConst()) {
       lASTString.append("const ");
+    }
+    if (isVolatile()) {
+      lASTString.append("volatile ");
     }
 
     if (isUnsigned) {

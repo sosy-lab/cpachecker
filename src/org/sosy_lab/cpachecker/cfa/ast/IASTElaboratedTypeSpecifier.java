@@ -49,14 +49,26 @@ public final class IASTElaboratedTypeSpecifier extends IType {
 
   @Override
   public String toASTString() {
-    if (kind == k_enum) {
-      return (isConst() ? "const " : "") + "enum " + name;
-    } else if (kind == k_struct) {
-      return (isConst() ? "const " : "") + "struct " + name;
-    } else if (kind == k_union) {
-      return (isConst() ? "const " : "") + "union " + name;
-    } else {
-      return "IASTElaboratedTypeSpecifier: kind unknown;";
+    StringBuilder lASTString = new StringBuilder();
+
+    if (isConst()) {
+      lASTString.append("const ");
     }
+    if (isVolatile()) {
+      lASTString.append("volatile ");
+    }
+
+    if (kind == k_enum) {
+      lASTString.append("enum ");
+    } else if (kind == k_struct) {
+      lASTString.append("struct ");
+    } else if (kind == k_union) {
+      lASTString.append("union ");
+    } else {
+      throw new RuntimeException("kind of IASTElaboratedTypeSpecifier is unknown");
+    }
+
+    lASTString.append(name);
+    return lASTString.toString();
   }
 }

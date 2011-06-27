@@ -54,9 +54,14 @@ public final class IASTEnumerationSpecifier extends IType {
   @Override
   public String toASTString() {
     StringBuilder lASTString = new StringBuilder();
+
     if (isConst()) {
       lASTString.append("const ");
     }
+    if (isVolatile()) {
+      lASTString.append("volatile ");
+    }
+
     lASTString.append("enum ");
     lASTString.append(name);
     lASTString.append(" {");

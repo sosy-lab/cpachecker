@@ -45,6 +45,9 @@ public class IASTArrayTypeSpecifier extends IType {
 
   @Override
   public String toASTString() {
-    return (isConst() ? "const " : "") + type.toASTString() + "[" + length.toASTString() + "]";
+    return (isConst() ? "const " : "")
+      + (isVolatile() ? "volatile " : "")
+      + type.toASTString()
+      + "[" + length.toASTString() + "]";
   }
 }

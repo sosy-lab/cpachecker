@@ -39,6 +39,6 @@ public final class IASTNamedTypeSpecifier extends IType {
 
   @Override
   public String toASTString() {
-    return (isConst() ? "const " : "") + name;
+    return (isConst() ? "const " : "") + (isVolatile() ? "volatile " : "") + name;
   }
 }
