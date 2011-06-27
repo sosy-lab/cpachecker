@@ -771,7 +771,8 @@ public class Configuration {
     }
 
     if (typeInfo == Option.Type.OUTPUT_FILE) {
-      if (disableOutput) {
+      if (disableOutput && (valueStr == null)) {
+        // if output is disabled and option was not specified explicitly
         return null;
       }
 
