@@ -42,6 +42,6 @@ public final class IASTStringLiteralExpression extends IASTLiteralExpression {
 
   @Override
   public String toASTString() {
-    return "\"string\""; // TODO
+    return getRawSignature();
   }
 }
