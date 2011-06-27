@@ -23,6 +23,10 @@ int main(){
   else {
     if(b > 5) {
       c = 100;
+      if(nondet < -10){
+      }
+      else if(nondet < -20){
+      }
     }
     else {
       c = 0;
