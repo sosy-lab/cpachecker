@@ -322,7 +322,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
             sb.append(";\n");
           }
         }
-        sb.append("    TRUE -> ERROR;\n\n");
+        sb.append("   TRUE -> GOTO __TRUE;\n\n");
       }
     }
     sb.append("END AUTOMATON\n");
