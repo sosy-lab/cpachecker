@@ -58,11 +58,10 @@ class Scope {
   }
 
   public void enterFunction(IASTFunctionDefinition pFuncDef) {
-    varsStack.addLast(new HashMap<String, IASTSimpleDeclaration>());
-    varsList.addLast(varsStack.getLast());
-
     currentFunctionName = pFuncDef.getOrigName();
     registerDeclaration(pFuncDef);
+
+    enterBlock();
   }
 
   public void leaveFunction() {
