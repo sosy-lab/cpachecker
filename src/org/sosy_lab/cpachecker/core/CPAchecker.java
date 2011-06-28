@@ -24,14 +24,11 @@
 package org.sosy_lab.cpachecker.core;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -407,18 +404,6 @@ public class CPAchecker {
     return cpa;
   }
 
-  private ConfigurableProgramAnalysis createCPA(ReachedSetFactory pReachedSetFactory, Configuration pConfig, MainCPAStatistics stats) throws InvalidConfigurationException, CPAException {
-    logger.log(Level.FINE, "Creating CPAs");
-
-    CPABuilder builder = new CPABuilder(pConfig, logger, pReachedSetFactory);
-    ConfigurableProgramAnalysis cpa = builder.buildCPAs();
-
-    //    if (cpa instanceof StatisticsProvider) {
-    //      ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
-    //    }
-    return cpa;
-  }
-
   private Algorithm createAlgorithm(
       final ConfigurableProgramAnalysis cpa, final MainCPAStatistics stats)
   throws InvalidConfigurationException, CPAException {
@@ -448,86 +433,11 @@ public class CPAchecker {
     return algorithm;
   }
 
-  private Algorithm createAlgorithm(
-      final ConfigurableProgramAnalysis cpa, Configuration pConfig,
-      final MainCPAStatistics stats, ReachedSetFactory singleReachedSetFactory,
-      CPAcheckerOptions pOptions)
-  throws InvalidConfigurationException, CPAException {
-    logger.log(Level.FINE, "Creating algorithms");
-
-    Algorithm algorithm = new CPAAlgorithm(cpa, logger);
-
-    if (pOptions.useRefinement) {
-      algorithm = new CEGARAlgorithm(algorithm, pConfig, logger);
-    }
-
-    if (pOptions.useBMC) {
-      algorithm = new BMCAlgorithm(algorithm, pConfig, logger, singleReachedSetFactory);
-    }
-
-    if (pOptions.useCBMC) {
-      algorithm = new CounterexampleCheckAlgorithm(algorithm, pConfig, logger);
-    }
-
-    if (pOptions.useAssumptionCollector) {
-      algorithm = new AssumptionCollectorAlgorithm(algorithm, pConfig, logger);
-    }
-
-    //    if (algorithm instanceof StatisticsProvider) {
-    //      ((StatisticsProvider)algorithm).collectStatistics(stats.getSubStatistics());
-    //    }
-    return algorithm;
-  }
-
   private Algorithm createRestartAlgorithm(Configuration config, MainCPAStatistics stats, CFACreator cfaCreator, String filename) {
-    List<Pair<Algorithm, ReachedSet>> algorithmsList = new ArrayList<Pair<Algorithm, ReachedSet>>();
-
-    String[] configFiles = config.getPropertiesArray("restartAlgorithm.configFiles");
-
-    ReachedSet reached = null;
-
-    for(String configFileName: configFiles){
-      Algorithm algorithm = null;
-      Configuration.Builder singleConfigBuilder = Configuration.builder();
-      Preconditions.checkNotNull(configFileName);
-      try {
-        CPAcheckerOptions singleOptions = new CPAcheckerOptions();
-        singleConfigBuilder.loadFromFile(configFileName);
-        Configuration singleConfig = singleConfigBuilder.build();
-        singleConfig.inject(singleOptions);
-
-        if(singleOptions.runCBMCasExternalTool){
-          algorithm = createExternalCBMCAlgorithm(filename, singleConfig);
-          reached = new ReachedSetFactory(singleConfig).create();
-        }
-        else{
-          ReachedSetFactory singleReachedSetFactory = new ReachedSetFactory(singleConfig);
-          ConfigurableProgramAnalysis cpa = createCPA(singleReachedSetFactory, singleConfig, null);
-          algorithm = createAlgorithm(cpa, singleConfig, null, singleReachedSetFactory, singleOptions);
-          reached = createInitialReachedSetForRestart(cpa, cfaCreator.getMainFunction(), singleReachedSetFactory);
-        }
-
-        stopIfNecessary();
-
-      } catch (IOException e) {
-        e.printStackTrace();
-      } catch (InvalidConfigurationException e) {
-        e.printStackTrace();
-      } catch (CPAException e) {
-        e.printStackTrace();
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }
-
-      Preconditions.checkNotNull(algorithm);
-      algorithmsList.add(Pair.of(algorithm, reached));
-    }
-
     Algorithm restartAlgorithm = null;
 
     try {
-      restartAlgorithm = new RestartAlgorithm(algorithmsList, config, logger);
-      //((StatisticsProvider)restartAlgorithm).collectStatistics(stats.getSubStatistics());
+      restartAlgorithm = new RestartAlgorithm(config, logger, cfaCreator, filename);
     } catch (InvalidConfigurationException e) {
       e.printStackTrace();
     } catch (CPAException e) {
@@ -536,20 +446,6 @@ public class CPAchecker {
 
     Preconditions.checkNotNull(restartAlgorithm);
     return restartAlgorithm;
-  }
-
-  private ReachedSet createInitialReachedSetForRestart(
-      ConfigurableProgramAnalysis cpa,
-      CFAFunctionDefinitionNode mainFunction,
-      ReachedSetFactory pReachedSetFactory) {
-    logger.log(Level.FINE, "Creating initial reached set");
-
-    AbstractElement initialElement = cpa.getInitialElement(mainFunction);
-    Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
-
-    ReachedSet reached = pReachedSetFactory.create();
-    reached.add(initialElement, initialPrecision);
-    return reached;
   }
 
   private ReachedSet createInitialReachedSet(
