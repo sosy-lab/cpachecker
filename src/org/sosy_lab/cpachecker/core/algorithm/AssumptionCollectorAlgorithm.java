@@ -374,7 +374,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     }
 
     if (asmptElement.getAssumption().isTrue()
-        && !asmptElement.getStopFormula().isTrue()
+        && asmptElement.getStopFormula().isTrue()
         && !falseAssumptions.contains(e)
         && trueAssumptions.containsAll(tempChildrenAndCoveredList)){
       trueAssumptions.add(e);
