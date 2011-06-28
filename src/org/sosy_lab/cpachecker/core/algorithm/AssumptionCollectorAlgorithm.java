@@ -285,7 +285,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     sb.append("    TRUE -> ASSUME \"false\" GOTO __FALSE;\n\n");
 
     for (ARTElement e : artNodes) {
-      if (falseAssumptions.contains(e) || (!e.getParents().isEmpty() && trueAssumptions.containsAll(e.getParents()))){
+      if (e.isCovered() || falseAssumptions.contains(e) ||
+          (!e.getParents().isEmpty() && trueAssumptions.containsAll(e.getParents()))){
         continue;
       }
 
