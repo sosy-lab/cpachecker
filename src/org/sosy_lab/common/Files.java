@@ -81,6 +81,16 @@ public final class Files {
   }
 
   /**
+   * Writes content to a file.
+   * @param file The file.
+   * @param content The content which will be written to the end of the file.
+   * @throws IOException
+   */
+  public static void appendToFile(File file, Object content) throws IOException {
+    com.google.common.io.Files.append(content.toString(), file, Charset.defaultCharset());
+  }
+
+  /**
    * Verifies if a file exists, is a normal file and is readable. If this is not
    * the case, a FileNotFoundException with a nice message is thrown.
    *
