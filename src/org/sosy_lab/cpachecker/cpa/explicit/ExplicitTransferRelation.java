@@ -38,10 +38,8 @@ import org.sosy_lab.cpachecker.cfa.ast.DefaultExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
@@ -60,9 +58,11 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
@@ -223,7 +223,8 @@ public class ExplicitTransferRelation implements TransferRelation {
       }
     }
 
-    if (exprOnSummary instanceof IASTFunctionCallAssignmentStatement) {
+    if (exprOnSummary instanceof IASTFunctionCallAssignmentStatement)
+    {
       //expression is an assignment operation, e.g. a = g(b);
 
       IASTFunctionCallAssignmentStatement assignExp = ((IASTFunctionCallAssignmentStatement)exprOnSummary);
@@ -240,7 +241,14 @@ public class ExplicitTransferRelation implements TransferRelation {
         } else {
           newElement.forget(assignedVarName);
         }
-      } else {
+      }
+
+      // a* = b(); TODO: for now, nothing is done here, but cloning the current element
+      else if(op1 instanceof IASTUnaryExpression && ((IASTUnaryExpression)op1).getOperator() == UnaryOperator.STAR)
+          return element.clone();
+
+      else
+      {
         throw new UnrecognizedCCodeException("on function return", summaryEdge, op1);
       }
     }
@@ -1289,11 +1297,23 @@ public class ExplicitTransferRelation implements TransferRelation {
       UnaryOperator unaryOperator = unaryExpression.getOperator();
       IASTExpression unaryOperand = unaryExpression.getOperand();
 
+      Long value = null;
+
       switch (unaryOperator) {
 
       case MINUS:
-        Long val = unaryOperand.accept(this);
-        return (val != null) ? -val : null;
+        value = unaryOperand.accept(this);
+        return (value != null) ? -value : null;
+
+      case NOT:
+        value = unaryOperand.accept(this);
+
+        if (value == null)
+          return null;
+
+        // if the value is 0, return 1, if it is anything other than 0, return 0
+        else
+          return (value == 0L) ? 1L : 0L;
 
       case AMPER:
         return null; // valid expression, but it's a pointer value
@@ -1360,19 +1380,32 @@ public class ExplicitTransferRelation implements TransferRelation {
 
   private static Long parseCharLiteral(IASTCharLiteralExpression cExp) {
     // we convert to a byte, and take the integer value
-    String s = cExp.getRawSignature();
-    int length = s.length();
-    assert(s.charAt(0) == '\'');
-    assert(s.charAt(length-1) == '\'');
-    int n;
+    String literal = cExp.getRawSignature();
 
-    if (s.charAt(1) == '\\') {
-      n = Integer.parseInt(s.substring(2, length-1));
+    int length = literal.length();
+
+    assert(literal.charAt(0) == '\'');
+    assert(literal.charAt(length - 1) == '\'');
+
+    int value;
+
+    if (literal.charAt(1) == '\\') {
+      // unicode value, e.g. \377 which is 255 in decimal/ASCII, so convert from octal to decimal
+      if(Character.isDigit(literal.charAt(2)))
+        value = Integer.parseInt(literal.substring(2, length - 1), 8);
+
+      // backslash as escape character, e.g. '\\' or '\"'
+      else
+      {
+        assert (length == 4);
+        value = literal.charAt(2);
+      }
     } else {
-      assert (cExp.getRawSignature().length() == 3);
-      n = cExp.getRawSignature().charAt(1);
+      assert (length == 3);
+      value = literal.charAt(1);
     }
-    return (long)n;
+
+    return (long)value;
   }
 
   private static Long parseIntegerLiteral(IASTIntegerLiteralExpression lexp) {
