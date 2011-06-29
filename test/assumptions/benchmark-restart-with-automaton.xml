@@ -1,7 +1,27 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="900" memlimit="12000">
-  <test name="restart-test">
+  <test name="lbe-tests">
+    <sourcefiles>
+      <include>test/programs/nondet_init_programs/systemc/token_ring*.cil.c</include>
+      <include>test/programs/nondet_init_programs/systemc/mem_slave_tlm.*.cil.c</include>
+      <include>test/programs/nondet_init_programs/systemc/toy.cil.c</include>
+    </sourcefiles>
+    <option name="-config">test/config/symbpredabsCPA-lbe.properties</option>
+    <option name="-setprop">output.disable=true</option>
+  </test>
+  
+  <test name="explicit-tests">
+    <sourcefiles>
+      <include>test/programs/nondet_init_programs/systemc/token_ring*.cil.c</include>
+      <include>test/programs/nondet_init_programs/systemc/mem_slave_tlm.*.cil.c</include>
+      <include>test/programs/nondet_init_programs/systemc/toy.cil.c</include>
+    </sourcefiles>
+    <option name="-config">test/config/explicitAnalysis.properties</option>
+    <option name="-setprop">output.disable=true</option>
+  </test>
+
+  <test name="restart-with-automaton-tests">
     <sourcefiles>
       <include>test/programs/nondet_init_programs/systemc/token_ring*.cil.c</include>
       <include>test/programs/nondet_init_programs/systemc/mem_slave_tlm.*.cil.c</include>
