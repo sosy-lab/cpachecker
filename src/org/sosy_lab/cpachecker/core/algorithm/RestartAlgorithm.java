@@ -60,6 +60,8 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   private static class RestartAlgorithmStatistics implements Statistics {
 
     private final Collection<Statistics> subStats;
+    private int noOfAlgorithmsProvided = 0;
+    private int noOfAlgorithmsUsed = 0;
 
     public RestartAlgorithmStatistics() {
       subStats = new ArrayList<Statistics>();
@@ -67,6 +69,10 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     public Collection<Statistics> getSubStatistics() {
       return subStats;
+    }
+
+    public void resetSubStatistics(){
+      subStats.clear();
     }
 
     @Override
@@ -77,6 +83,10 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     @Override
     public void printStatistics(PrintStream out, Result result,
         ReachedSet reached) {
+
+      out.println("Number of algorithms provided:    " + noOfAlgorithmsProvided);
+      out.println("Number of algorithms used:        " + noOfAlgorithmsUsed);
+
       for (Statistics s : subStats) {
         String name = s.getName();
         if (name != null && !name.isEmpty()) {
@@ -108,6 +118,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     this.cfaCreator = pCfaCreator;
     this.filename = pFilename;
     this.configFiles = config.getPropertiesArray("restartAlgorithm.configFiles");
+    stats.noOfAlgorithmsProvided = configFiles.length;
   }
 
   @Override
@@ -139,6 +150,8 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
         ((StatisticsProvider)currentAlgorithm).collectStatistics(stats.getSubStatistics());
       }
 
+      stats.noOfAlgorithmsUsed = idx;
+
       // if the analysis is not sound and we can proceed with
       // another algorithm, continue with the next algorithm
       if(!sound){
@@ -151,6 +164,8 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
         }
 
         else{
+          stats.printStatistics(System.out, Result.UNKNOWN, currentReached);
+          stats.resetSubStatistics();
           logger.log(Level.INFO, "RestartAlgorithm switches to the next algorithm [Reason: Unsound result]...");
           continueAnalysis = true;
         }
@@ -238,8 +253,8 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   private Pair<Algorithm, ReachedSet> createNextAlgorithm(Configuration config, String singleConfigFileName, CFACreator cfaCreator, String filename) {
 
     ReachedSet reached = null;
-
     Algorithm algorithm = null;
+
     Configuration.Builder singleConfigBuilder = Configuration.builder();
     Preconditions.checkNotNull(singleConfigFileName);
     try {
@@ -339,9 +354,10 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       algorithm = new AssumptionCollectorAlgorithm(algorithm, pConfig, logger);
     }
 
-    //    if (algorithm instanceof StatisticsProvider) {
-    //      ((StatisticsProvider)algorithm).collectStatistics(stats.getSubStatistics());
-    //    }
+    if (algorithm instanceof StatisticsProvider) {
+      ((StatisticsProvider)algorithm).collectStatistics(stats.getSubStatistics());
+    }
+
     return algorithm;
   }
 
