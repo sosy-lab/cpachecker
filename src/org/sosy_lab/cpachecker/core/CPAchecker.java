@@ -191,6 +191,8 @@ public class CPAchecker {
 
         stopIfNecessary();
 
+        ((StatisticsProvider)restartAlgorithm).collectStatistics(stats.getSubStatistics());
+
         // register management interface for CPAchecker
         CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
         try {
