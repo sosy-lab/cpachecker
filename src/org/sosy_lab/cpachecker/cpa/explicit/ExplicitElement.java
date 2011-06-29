@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -109,7 +111,7 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
   }
 
   public Long getValueFor(String variableName){
-    return constantsMap.get(variableName).longValue();
+    return checkNotNull(constantsMap.get(variableName));
   }
 
   public boolean contains(String variableName){
