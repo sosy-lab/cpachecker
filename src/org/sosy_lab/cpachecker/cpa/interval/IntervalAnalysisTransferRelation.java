@@ -84,8 +84,8 @@ import org.sosy_lab.cpachecker.util.assumptions.NumericTypes;
 @Options(prefix="cpa.interval")
 public class IntervalAnalysisTransferRelation implements TransferRelation
 {
-  @Option(description="threshold for amount of different values that "
-    + "are tracked for one variable in ExplicitCPA (0 means infinitely)")
+  @Option(description="decides whether one (false) or two (true) successors should be created "
+    + "when an inequality-check is encountered")
   private boolean splitIntervals = false;
   /**
    * base name of the variable that is introduced to pass results from returning function calls
@@ -227,12 +227,9 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
         }
       }
 
-      // a* = b();
-      else if(operand1 instanceof IASTUnaryExpression
-          && ((IASTUnaryExpression)operand1).getOperator() == UnaryOperator.STAR)
-      {
+      // a* = b(); TODO: for now, nothing is done here, but cloning the current element
+      else if(operand1 instanceof IASTUnaryExpression && ((IASTUnaryExpression)operand1).getOperator() == UnaryOperator.STAR)
           return element.clone();
-      }
 
       else
         throw new UnrecognizedCCodeException("on function return", summaryEdge, operand1);
@@ -441,8 +438,8 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       // a may be less than b, so there can be a successor
       if(tmpInterval1.mayBeLessThan(tmpInterval2))
       {
-        if(isIdOp1) element.addInterval(variableName1, orgInterval1.limitUpperBoundBy(tmpInterval2.minus(1)), threshold);
-        if(isIdOp2) element.addInterval(variableName2, orgInterval2.limitLowerBoundBy(tmpInterval1.plus(1)), threshold);
+        if(isIdOp1) element.addInterval(variableName1, orgInterval1.limitUpperBoundBy(tmpInterval2.minus(1L)), threshold);
+        if(isIdOp2) element.addInterval(variableName2, orgInterval2.limitLowerBoundBy(tmpInterval1.plus(1L)), threshold);
       }
 
       // a is always greater than b, so a can't be less than b, so there can't be a successor
@@ -471,8 +468,8 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       // a may be greater than b, so there can be a successor
       if(tmpInterval1.mayBeGreaterThan(tmpInterval2))
       {
-        if(isIdOp1) element.addInterval(variableName1, orgInterval1.limitLowerBoundBy(tmpInterval2.plus(1)), threshold);
-        if(isIdOp2) element.addInterval(variableName2, orgInterval2.limitUpperBoundBy(tmpInterval1.minus(1)), threshold);
+        if(isIdOp1) element.addInterval(variableName1, orgInterval1.limitLowerBoundBy(tmpInterval2.plus(1L)), threshold);
+        if(isIdOp2) element.addInterval(variableName2, orgInterval2.limitUpperBoundBy(tmpInterval1.minus(1L)), threshold);
       }
 
       // a is always less than b, so a can't be greater than b, so there can't be a successor
@@ -526,7 +523,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
         Interval result = null;
 
-        if(!(result = orgInterval1.intersect(Interval.createUpperBoundedInterval(orgInterval2.getLow() - 1))).isEmpty())
+        if(!(result = orgInterval1.intersect(Interval.createUpperBoundedInterval(orgInterval2.getLow() - 1L))).isEmpty())
         {
           newElement = element.clone();
 
@@ -535,7 +532,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
           successors.add(newElement);
         }
 
-        if(!(result = orgInterval1.intersect(Interval.createLowerBoundedInterval(orgInterval2.getLow() + 1))).isEmpty())
+        if(!(result = orgInterval1.intersect(Interval.createLowerBoundedInterval(orgInterval2.getLow() + 1L))).isEmpty())
         {
           newElement = element.clone();
 
@@ -925,20 +922,20 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     // TODO fields, arrays
 
     @Override
-    protected Interval visitDefault(IASTExpression pExp) {
+    protected Interval visitDefault(IASTExpression expression) {
       return Interval.createUnboundInterval();
     }
 
     @Override
-    public Interval visit(IASTBinaryExpression pE) throws UnrecognizedCCodeException
+    public Interval visit(IASTBinaryExpression binaryExpression) throws UnrecognizedCCodeException
     {
-      Interval interval1 = pE.getOperand1().accept(this);
-      Interval interval2 = pE.getOperand2().accept(this);
+      Interval interval1 = binaryExpression.getOperand1().accept(this);
+      Interval interval2 = binaryExpression.getOperand2().accept(this);
 
       if(interval1 == null || interval2 == null)
         return Interval.createUnboundInterval();
 
-      switch (pE.getOperator())
+      switch (binaryExpression.getOperator())
       {
         case PLUS:
           return interval1.plus(interval2);
@@ -950,7 +947,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
           return interval1.times(interval2);
 
         case DIVIDE:
-          return interval1.divde(interval2);
+          return interval1.divide(interval2);
 
         case SHIFT_LEFT:
           return interval1.shiftLeft(interval2);
@@ -984,49 +981,48 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
           return Interval.createUnboundInterval();
 
         default:
-          throw new UnrecognizedCCodeException("unkown binary operator", null, pE);
+          throw new UnrecognizedCCodeException("unkown binary operator", null, binaryExpression);
       }
     }
 
     @Override
-    public Interval visit(IASTCastExpression pE) throws UnrecognizedCCodeException {
-      return pE.getOperand().accept(this);
+    public Interval visit(IASTCastExpression cast) throws UnrecognizedCCodeException {
+      return cast.getOperand().accept(this);
     }
 
     @Override
-    public Interval visit(IASTFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException {
+    public Interval visit(IASTFunctionCallExpression functionCall) throws UnrecognizedCCodeException {
       return Interval.createUnboundInterval();
     }
 
     @Override
-    public Interval visit(IASTCharLiteralExpression pE) throws UnrecognizedCCodeException {
-      Long l = parseLiteral(pE);
+    public Interval visit(IASTCharLiteralExpression charLiteral) throws UnrecognizedCCodeException {
+      Long l = parseLiteral(charLiteral);
       return l == null ? Interval.createUnboundInterval() : new Interval(l);
     }
 
     @Override
-    public Interval visit(IASTFloatLiteralExpression pE) throws UnrecognizedCCodeException {
+    public Interval visit(IASTFloatLiteralExpression floatLiteral) throws UnrecognizedCCodeException {
       return Interval.createUnboundInterval();
     }
 
     @Override
-    public Interval visit(IASTIntegerLiteralExpression pE) throws UnrecognizedCCodeException {
-      return new Interval(parseLiteral(pE));
+    public Interval visit(IASTIntegerLiteralExpression integerLiteral) throws UnrecognizedCCodeException {
+      return new Interval(parseLiteral(integerLiteral));
     }
 
     @Override
-    public Interval visit(IASTStringLiteralExpression pE) throws UnrecognizedCCodeException {
+    public Interval visit(IASTStringLiteralExpression stringLiteral) throws UnrecognizedCCodeException {
       return Interval.createUnboundInterval();
     }
 
     @Override
-    public Interval visit(IASTIdExpression idExp) throws UnrecognizedCCodeException
+    public Interval visit(IASTIdExpression identifier) throws UnrecognizedCCodeException
     {
-      // TODO: what exactly is this?
-      if(idExp.getDeclaration() instanceof IASTEnumerator)
-        return new Interval(((IASTEnumerator)idExp.getDeclaration()).getValue());
+      if(identifier.getDeclaration() instanceof IASTEnumerator)
+        return new Interval(((IASTEnumerator)identifier.getDeclaration()).getValue());
 
-      String variableName = constructVariableName(idExp.getName(), functionName);
+      String variableName = constructVariableName(identifier.getName(), functionName);
       if (element.contains(variableName))
         return element.getInterval(variableName);
 
@@ -1039,15 +1035,22 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       UnaryOperator unaryOperator = unaryExpression.getOperator();
       IASTExpression unaryOperand = unaryExpression.getOperand();
 
+      Interval interval = unaryOperand.accept(this);
+
       switch (unaryOperator) {
 
       case MINUS:
-        Interval val = unaryOperand.accept(this);
-        return (val != null) ? val.negate() : Interval.createUnboundInterval();
+        return (interval != null) ? interval.negate() : Interval.createUnboundInterval();
 
-      // TODO: we can actually do something here!
       case NOT:
-        return Interval.createUnboundInterval();
+        if(interval.isFalse())
+          return Interval.createTrueInterval();
+
+        else if(interval.isTrue())
+          return Interval.createFalseInterval();
+
+        else
+          return new Interval(0L, 1L);
 
       case AMPER:
         return Interval.createUnboundInterval(); // valid expression, but it's a pointer value
