@@ -7,7 +7,7 @@
     </sourcefiles>
     <option name="-config">test/config/restartAlgorithm-comb-a.properties</option>
     <option name="-setprop">output.disable=true</option>
-    <option name="-heap">12000m</option>
+    <option name="-heap">4000m</option>
   </test>
   <test name="combinations-b">
     <sourcefiles>
@@ -15,7 +15,7 @@
     </sourcefiles>
     <option name="-config">test/config/restartAlgorithm-comb-b.properties</option>
     <option name="-setprop">output.disable=true</option>
-    <option name="-heap">12000m</option>
+    <option name="-heap">4000m</option>
   </test>
   <test name="combinations-c">
     <sourcefiles>
@@ -23,7 +23,7 @@
     </sourcefiles>
     <option name="-config">test/config/restartAlgorithm-comb-c.properties</option>
     <option name="-setprop">output.disable=true</option>
-    <option name="-heap">12000m</option>
+    <option name="-heap">4000m</option>
   </test>
   <columns>
     <column title="total">time for CPAchecker</column>

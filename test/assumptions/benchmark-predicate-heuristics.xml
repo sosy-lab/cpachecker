@@ -7,7 +7,7 @@
     <option name="-config">test/config/symbpredabsCPA-sbe-heuristics.properties</option>
     <option name="-setprop">ProgressObserverCPA.cpa.assumptions.progressobserver.heuristics=RepetitionsInPathHeuristics</option>
     <option name="-setprop">RepetitionsInPathHeuristics.threshold=3</option>
-    <option name="-heap">12000m</option>
+    <option name="-heap">4000m</option>
   </test>
   <test name="sbe-heuristic">
     <sourcefiles><include>test/programs/nondet_init_programs/systemc/transmitter.03.BUG.cil.c</include></sourcefiles>
@@ -15,7 +15,7 @@
     <option name="-config">test/config/symbpredabsCPA-sbe-heuristics.properties</option>
     <option name="-setprop">ProgressObserverCPA.cpa.assumptions.progressobserver.heuristics=RepetitionsInPathHeuristics</option>
     <option name="-setprop">RepetitionsInPathHeuristics.threshold=4</option>
-    <option name="-heap">12000m</option>
+    <option name="-heap">4000m</option>
   </test>
   <test name="sbe">
     <sourcefiles>
@@ -24,7 +24,7 @@
     </sourcefiles>
     <option name="-setprop">output.disable=true</option>
     <option name="-config">test/config/symbpredabsCPA-sbe.properties</option>
-    <option name="-heap">12000m</option>
+    <option name="-heap">4000m</option>
   </test>
   <columns>
     <column title="total">time for CPAchecker</column>

@@ -9,7 +9,7 @@
     <option name="-config">test/config/symbpredabsCPA-lbe.properties</option>
     <option name="-setprop">analysis.useCBMC=true</option>
     <option name="-setprop">counterexample.continueAfterInfeasibleError=true</option>
-    <option name="-heap">12000m</option>
+    <option name="-heap">4000m</option>
   </test>
   <columns>
     <column title="total">time for CPAchecker</column>
