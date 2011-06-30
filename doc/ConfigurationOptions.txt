@@ -126,9 +126,12 @@ cfa.file = "cfa.dot"
 cfa.removeIrrelevantForErrorLocations = false
 
 # which model checker to use for verifying counterexamples as a second check
-# Currently CBMC or CPAchecker with explicit analysis can be used.
+# Currently CBMC or CPAchecker with a different config can be used.
 counterexample.checker = "CBMC"
-  allowed values: [CBMC, EXPLICIT]
+  allowed values: [CBMC, CPACHECKER]
+
+# configuration file for counterexample checks with CPAchecker
+counterexample.checker.config = "test/config/explicitAnalysisInf.properties"
 
 # continue analysis after an counterexample was found that was denied by the
 # second check
@@ -214,8 +217,8 @@ cpa.featurevars.variableWhitelist = ""
 cpa.interval.merge = "SEP"
   allowed values: [SEP, JOIN]
 
-# threshold for amount of different values that are tracked for one variable
-# in ExplicitCPA (0 means infinitely)
+# decides whether one (false) or two (true) successors should be created when
+# an inequality-check is encountered
 cpa.interval.splitIntervals = false
 
 # at most that many intervals will be tracked per variable
