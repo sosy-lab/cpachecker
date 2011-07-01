@@ -368,25 +368,26 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
     } else {
       // this is a real bug, notify the user
 
+      // get the model and add it to the solver environment
+      // this guarantees that we will get the same model again
+      Model model = pItpProver.getModel();
+      pItpProver.addFormula(model.getFormulaRepresentation());
+
       // get the reachingPathsFormula and add it to the solver environment
       // this formula contains predicates for all branches we took
       // this way we can figure out which branches make a feasible path
       PredicateAbstractElement lastElement = pAbstractTrace.get(pAbstractTrace.size()-1);
       pItpProver.addFormula(lastElement.getPathFormula().getReachingPathsFormula());
-      Model model;
       NavigableMap<Integer, Map<Integer, Boolean>> preds;
 
       // need to ask solver for satisfiability again,
       // otherwise model doesn't contain new predicates
       boolean stillSatisfiable = !pItpProver.isUnsat();
       if (!stillSatisfiable) {
-        pItpProver.reset();
-        pItpProver.init();
         logger.log(Level.WARNING, "Could not get precise error path information because of inconsistent reachingPathsFormula!");
 
         int k = 0;
         for (Formula formula : f) {
-          pItpProver.addFormula(formula);
           String dumpFile =
               String.format(formulaDumpFilePattern, "interpolation",
                       refStats.cexAnalysisTimer.getNumberOfIntervals(), "formula", k++);
@@ -395,13 +396,13 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
         String dumpFile =
             String.format(formulaDumpFilePattern, "interpolation",
                 refStats.cexAnalysisTimer.getNumberOfIntervals(), "formula", k++);
-        dumpFormulaToFile(lastElement.getPathFormula()
-            .getReachingPathsFormula(), new File(dumpFile));
-        pItpProver.isUnsat();
-        model = pItpProver.getModel();
-  preds = Maps.newTreeMap();
+        dumpFormulaToFile(lastElement.getPathFormula().getReachingPathsFormula(), new File(dumpFile));
+
+        preds = Maps.newTreeMap();
+
       } else {
         model = pItpProver.getModel();
+
         if (model.isEmpty()) {
           logger.log(Level.WARNING, "No satisfying assignment given by solver!");
           preds = Maps.newTreeMap();
@@ -410,7 +411,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
         }
       }
 
-      info = new CounterexampleTraceInfo(f, pItpProver.getModel(), preds);
+      info = new CounterexampleTraceInfo(f, model, preds);
     }
 
     pItpProver.reset();
