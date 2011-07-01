@@ -118,60 +118,52 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
       // check counterexample
       checkTime.start();
       try {
-        sound &= handleCounterexample(reached, errorElement);
+        ARTElement rootElement = (ARTElement)reached.getFirstElement();
+
+        Set<ARTElement> elementsOnErrorPath = ARTUtils.getAllElementsOnPathsTo(errorElement);
+
+        boolean feasibility = checker.checkCounterexample(rootElement, errorElement, elementsOnErrorPath);
+
+        if (feasibility) {
+          logger.log(Level.INFO, "Bug found which was confirmed by counterexample check with " + checkerName);
+          return sound;
+
+        } else {
+          numberOfInfeasiblePaths++;
+          logger.log(Level.INFO, "Bug found which was denied by counterexample check.");
+
+          if (continueAfterInfeasibleError) {
+            // This counterexample is infeasible, so usually we would remove it
+            // from the reached set. This is not possible, because the
+            // counterexample of course contains the root element and we don't
+            // know up to which point we have to remove the path from the reached set.
+            // However, we also cannot let it stay in the reached set, because
+            // then the states on the path might cover other, actually feasible,
+            // paths, so this would prevent other real counterexamples to be found (unsound!).
+
+            // So there are two options: either let them stay in the reached set
+            // and mark analysis as unsound, or let them stay in the reached set
+            // and prevent them from covering new paths.
+
+            if (removeInfeasibleErrors) {
+              sound &= handleInfeasibleCounterexample(reached, elementsOnErrorPath);
+
+            } else {
+              logger.log(Level.WARNING, "Analysis unsound because infeasible counterexample was not removed from the reached set.");
+              sound = false;
+            }
+
+            sound &= removeErrorElement(reached, errorElement);
+
+          } else {
+            Path path = ARTUtils.getOnePathTo(errorElement);
+            throw new RefinementFailedException(Reason.InfeasibleCounterexample, path, true);
+          }
+        }
       } finally {
         checkTime.stop();
       }
     }
-    return sound;
-  }
-
-  private boolean handleCounterexample(ReachedSet reached, ARTElement errorElement) throws CPAException, InterruptedException  {
-    boolean sound = true;
-
-    ARTElement rootElement = (ARTElement)reached.getFirstElement();
-
-    Set<ARTElement> elementsOnErrorPath = ARTUtils.getAllElementsOnPathsTo(errorElement);
-
-    boolean feasibility = checker.checkCounterexample(rootElement, errorElement, elementsOnErrorPath);
-
-    if (feasibility) {
-      logger.log(Level.INFO, "Bug found which was confirmed by counterexample check with " + checkerName);
-      return sound;
-
-    } else {
-      numberOfInfeasiblePaths++;
-      logger.log(Level.INFO, "Bug found which was denied by counterexample check.");
-
-      if (continueAfterInfeasibleError) {
-        // This counterexample is infeasible, so usually we would remove it
-        // from the reached set. This is not possible, because the
-        // counterexample of course contains the root element and we don't
-        // know up to which point we have to remove the path from the reached set.
-        // However, we also cannot let it stay in the reached set, because
-        // then the states on the path might cover other, actually feasible,
-        // paths, so this would prevent other real counterexamples to be found (unsound!).
-
-        // So there are two options: either let them stay in the reached set
-        // and mark analysis as unsound, or let them stay in the reached set
-        // and prevent them from covering new paths.
-
-        if (removeInfeasibleErrors) {
-          sound &= handleInfeasibleCounterexample(reached, elementsOnErrorPath);
-
-        } else {
-          logger.log(Level.WARNING, "Analysis unsound because infeasible counterexample was not removed from the reached set.");
-          sound = false;
-        }
-
-        sound &= removeErrorElement(reached, errorElement);
-
-      } else {
-        Path path = ARTUtils.getOnePathTo(errorElement);
-        throw new RefinementFailedException(Reason.InfeasibleCounterexample, path, true);
-      }
-    }
-
     return sound;
   }
 
