@@ -308,7 +308,6 @@ public class LogManager {
     if (wouldBeLogged(priority))  {
 
       String[] argsStr = new String[args.length];
-      int size = args.length;
       for (int i = 0; i < args.length; i++) {
         String arg = args[i].toString();
         if ((truncateSize > 0) && (arg.length() > truncateSize)) {
@@ -316,7 +315,6 @@ public class LogManager {
         } else {
           argsStr[i] = arg;
         }
-        size += argsStr[i].length();
       }
 
       LogRecord record = new LogRecord(priority, messageFormat.join(argsStr));

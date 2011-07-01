@@ -1,17 +1,13 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="900" memlimit="12000">
+<benchmark tool="cpachecker" timelimit="900" memlimit="14000">
   <test>
     <sourcefiles>
       <includesfile>test/assumptions/assumptions.set</includesfile>
     </sourcefiles>
-    <options>
-      <option name="-setprop">output.disable=true</option>
-      <option name="-config">test/config/explicitAnalysis-heuristics.properties</option>
-      <option name="-setprop">ProgressObserverCPA.cpa.assumptions.progressobserver.heuristics=ReachedSizeHeuristics</option>
-      <option name="-setprop">ReachedSizeHeuristics.threshold=5000</option>
-      <option name="-heap">10000m</option>
-    </options>
+    <option name="-setprop">output.disable=true</option>
+    <option name="-config">test/config/explicitAnalysis-R5000_limit.properties</option>
+    <option name="-heap">12000m</option>
   </test>
   <columns>
     <column title="time">time for CPAchecker</column>

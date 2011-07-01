@@ -292,22 +292,13 @@ public class CPAMain {
         Thread.currentThread().interrupt();
 
       } else if (arg.equals("-help")) {
-        System.out.println("OPTIONS:");
-        System.out.println(" -config");
-        System.out.println(" -cpas");
-        System.out.println(" -spec");
-        System.out.println(" -outputpath");
-        System.out.println(" -logfile");
-        System.out.println(" -entryfunction");
-        System.out.println(" -dfs");
-        System.out.println(" -bfs");
-        System.out.println(" -cbmc");
-        System.out.println(" -nolog");
-        System.out.println(" -setprop");
-        System.out.println(" -printOptions [-v|-verbose]");
-        System.out.println(" -printUsedOptions");
-        System.out.println(" -help");
-        System.exit(0);
+        printHelp();
+
+      } else if (arg.startsWith("-") && !(new File(arg).exists())) {
+        System.out.println("Invalid option " + arg);
+        System.out.println("");
+        printHelp();
+
       } else {
         programs.add(arg);
       }
@@ -318,6 +309,25 @@ public class CPAMain {
       properties.put("analysis.programNames", Joiner.on(", ").join(programs));
     }
     return properties;
+  }
+
+  private static void printHelp() {
+    System.out.println("OPTIONS:");
+    System.out.println(" -config");
+    System.out.println(" -cpas");
+    System.out.println(" -spec");
+    System.out.println(" -outputpath");
+    System.out.println(" -logfile");
+    System.out.println(" -entryfunction");
+    System.out.println(" -dfs");
+    System.out.println(" -bfs");
+    System.out.println(" -cbmc");
+    System.out.println(" -nolog");
+    System.out.println(" -setprop");
+    System.out.println(" -printOptions [-v|-verbose]");
+    System.out.println(" -printUsedOptions");
+    System.out.println(" -help");
+    System.exit(0);
   }
 
   /**

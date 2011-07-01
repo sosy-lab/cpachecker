@@ -23,13 +23,16 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import static org.sosy_lab.cpachecker.util.AbstractElements.*;
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractElements.filterTargetElements;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -113,11 +116,11 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
   @Option(name="file", type=Option.Type.OUTPUT_FILE,
       description="write collected assumptions to file")
-  private File assumptionsFile = new File("assumptions.txt");
+      private File assumptionsFile = new File("assumptions.txt");
 
   @Option(name="automatonFile", type=Option.Type.OUTPUT_FILE,
-          description="write collected assumptions as automaton to file")
-  private File assumptionAutomatonFile = new File("AssumptionAutomaton.txt");
+      description="write collected assumptions as automaton to file")
+      private File assumptionAutomatonFile = new File("AssumptionAutomaton.txt");
 
   private final LogManager logger;
   private final Algorithm innerAlgorithm;
@@ -167,14 +170,14 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         assert errorElement == reached.getLastElement();
 
         // old code, perhaps we can use the information from getFailurePoint()
-//        int pos = failedRefinement.getFailurePoint();
-//
-//        if (pos == -1)
-//          pos = path.size() - 2; // the node before the error node
-//
-//        ARTElement element = path.get(pos).getFirst();
-//        addAvoidingAssumptions(exceptionAssumptions, element);
-//        exceptionElements.add(element.getElementId());
+        //        int pos = failedRefinement.getFailurePoint();
+        //
+        //        if (pos == -1)
+        //          pos = path.size() - 2; // the node before the error node
+        //
+        //        ARTElement element = path.get(pos).getFirst();
+        //        addAvoidingAssumptions(exceptionAssumptions, element);
+        //        exceptionElements.add(element.getElementId());
 
         // remove element
         // remove it's parents from waitlist (CPAAlgorithm re-added them)
@@ -193,6 +196,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         errorElement.removeFromART();
 
         restartCPA = true;
+
+        if(failedRefinement.doesItHurtSoundness()) sound = false;
 
       } catch (CPAException e) {
         // TODO is it really wise to swallow exceptions here?
@@ -280,8 +285,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     sb.append("    TRUE -> ASSUME \"false\" GOTO __FALSE;\n\n");
 
     for (ARTElement e : artNodes) {
-      if (falseAssumptions.contains(e)
-        || (!e.getParents().isEmpty() && trueAssumptions.containsAll(e.getParents()))) {
+      if (e.isCovered() || falseAssumptions.contains(e) ||
+          (!e.getParents().isEmpty() && trueAssumptions.containsAll(e.getParents()))){
         continue;
       }
 
@@ -318,7 +323,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
             sb.append(";\n");
           }
         }
-        sb.append("    TRUE -> ERROR;\n\n");
+        sb.append("   TRUE -> GOTO __TRUE;\n\n");
       }
     }
     sb.append("END AUTOMATON\n");
@@ -350,16 +355,28 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       return;
     }
 
-    for (ARTElement child : e.getChildren()) {
+    List<ARTElement> childrenAndCoveredList = new ArrayList<ARTElement>();
+    childrenAndCoveredList.addAll(e.getChildren());
+    if(e.isCovered()){
+      childrenAndCoveredList.add(e.getCoveringElement());
+    }
+
+    for (ARTElement child : childrenAndCoveredList) {
       getTrueAssumptionElements(child, visited, trueAssumptions, falseAssumptions);
     }
 
     AssumptionStorageElement asmptElement = AbstractElements.extractElementByType(e, AssumptionStorageElement.class);
-    if (asmptElement.getAssumption().isTrue()
-        && asmptElement.getAssumption().isTrue()
-        && !falseAssumptions.contains(e)
-        && trueAssumptions.containsAll(e.getChildren())) {
 
+    List<ARTElement> tempChildrenAndCoveredList = new ArrayList<ARTElement>();
+    tempChildrenAndCoveredList.addAll(e.getChildren());
+    if(e.isCovered()){
+      tempChildrenAndCoveredList.add(e.getCoveringElement());
+    }
+
+    if (asmptElement.getAssumption().isTrue()
+        && asmptElement.getStopFormula().isTrue()
+        && !falseAssumptions.contains(e)
+        && trueAssumptions.containsAll(tempChildrenAndCoveredList)){
       trueAssumptions.add(e);
     }
   }

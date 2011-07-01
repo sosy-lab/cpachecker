@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import java.util.Collection;
+import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 
@@ -159,8 +160,7 @@ public interface FormulaManager {
 
   public FormulaList makeList(Formula pF1, Formula pF2);
 
-  public FormulaList makeList(Formula... pF);
-
+  public FormulaList makeList(List<Formula> pFs);
 
   // ----------------- Complex formula manipulation -----------------
 

@@ -58,6 +58,10 @@ public class ARTStopSep implements StopOperator {
   private boolean stop(ARTElement pElement, ARTElement pReachedElement)
                                                       throws CPAException {
 
+    if (!pReachedElement.mayCover()) {
+      return false;
+    }
+
     AbstractElement wrappedElement = pElement.getWrappedElement();
     AbstractElement wrappedReachedElement = pReachedElement.getWrappedElement();
 

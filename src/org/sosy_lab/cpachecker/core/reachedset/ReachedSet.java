@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.reachedset;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.AbstractCollection;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -40,7 +41,7 @@ import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 
 /**
  * This class implements a set of reached elements, including storing a
@@ -67,7 +68,16 @@ public class ReachedSet implements UnmodifiableReachedSet {
     waitlist = waitlistFactory.createWaitlistInstance();
   }
 
-  public void add(AbstractElement element, Precision precision) {
+  /**
+   * Add an element with a precision to the reached set and to the waitlist.
+   * If the element is already in the reached set and the precisions are equal,
+   * nothing is done.
+   *
+   * @param element An AbstractElement.
+   * @param precision The Precision for the AbstractElement
+   * @throws IllegalArgumentException If the element is already in the reached set, but with a different precision.
+   */
+  public void add(AbstractElement element, Precision precision) throws IllegalArgumentException {
     Preconditions.checkNotNull(element);
     Preconditions.checkNotNull(precision);
 
@@ -75,9 +85,38 @@ public class ReachedSet implements UnmodifiableReachedSet {
       firstElement = element;
     }
 
-    reached.put(element, precision);
-    waitlist.add(element);
-    lastElement = element;
+    Precision previousPrecision = reached.put(element, precision);
+
+    if (previousPrecision == null) {
+      // Element wasn't already in the reached set.
+      waitlist.add(element);
+      lastElement = element;
+
+    } else {
+      // Element was already in the reached set.
+      // This happens only if the MergeOperator produces an element that is already there.
+
+      // The element may or may not be currently in the waitlist.
+      // In the first case, we are not allowed to add it to the waitlist,
+      // otherwise it would be in there twice (this method is responsible for
+      // enforcing the set semantics of the waitlist).
+      // In the second case, we do not need
+      // to add it to the waitlist, because it was already handled
+      // (we assume that the CPA would always produce the same successors if we
+      // give it the same element twice).
+
+      // So do nothing here.
+
+      // But check if the new and the old precisions are equal.
+      if (!precision.equals(previousPrecision)) {
+
+        // Restore previous state of reached set
+        // (a method shouldn't change state if it throws an IAE).
+        reached.put(element, previousPrecision);
+
+        throw new IllegalArgumentException("Element added to reached set which is already contained, but with a different precision");
+      }
+    }
   }
 
 
@@ -96,6 +135,22 @@ public class ReachedSet implements UnmodifiableReachedSet {
 
     if (!waitlist.contains(e)) {
       waitlist.add(e);
+    }
+  }
+
+  /**
+   * Change the precision of an element that is already in the reached set.
+   */
+  public void updatePrecision(AbstractElement e, Precision newPrecision) {
+    Preconditions.checkNotNull(e);
+    Preconditions.checkNotNull(newPrecision);
+
+    Precision oldPrecision = reached.put(e, newPrecision);
+    if (oldPrecision == null) {
+      // Element was not contained in the reached set.
+      // Restore previous state and throw exception.
+      reached.remove(e);
+      throw new IllegalArgumentException("Element needs to be in the reached set in order to change the precision.");
     }
   }
 
@@ -204,8 +259,37 @@ public class ReachedSet implements UnmodifiableReachedSet {
   }
 
   @Override
-  public Iterable<AbstractElement> getWaitlist() {
-    return Iterables.unmodifiableIterable(waitlist);
+  public Collection<AbstractElement> getWaitlist() {
+    return new AbstractCollection<AbstractElement>() {
+
+      @Override
+      public Iterator<AbstractElement> iterator() {
+        return Iterators.unmodifiableIterator(waitlist.iterator());
+      }
+
+      @Override
+      public boolean contains(Object obj) {
+        if (!(obj instanceof AbstractElement)) {
+          return false;
+        }
+        return waitlist.contains((AbstractElement)obj);
+      }
+
+      @Override
+      public boolean isEmpty() {
+        return waitlist.isEmpty();
+      }
+
+      @Override
+      public int size() {
+        return waitlist.size();
+      }
+
+      @Override
+      public String toString() {
+        return waitlist.toString();
+      }
+    };
   }
 
   public AbstractElement popFromWaitlist() {

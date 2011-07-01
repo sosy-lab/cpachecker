@@ -100,7 +100,8 @@ public class ARTReachedSet {
     Set<ARTElement> toWaitlist = removeSubtree0(e);
 
     for (ARTElement ae : toWaitlist) {
-      mReached.add(ae, adaptPrecision(ae, p));
+      mReached.updatePrecision(ae, adaptPrecision(ae, p));
+      mReached.reAddToWaitlist(ae);
     }
   }
 

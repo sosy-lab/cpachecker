@@ -58,7 +58,7 @@ public abstract class PartitioningHeuristic {
       CFANode node = stack.pop();
 
       if(shouldBeCached(node)) {
-        Set<CFANode> subtree = getCachedSubtree(node);
+        Set<CFANode> subtree = getBlockForNode(node);
         if(subtree != null) {
           builder.addBlock(subtree);
         }
@@ -86,5 +86,5 @@ public abstract class PartitioningHeuristic {
    * @param pNode CFANode that should be cached.
    * @return set of nodes that represent a <code>Block</code>.
    */
-  protected abstract Set<CFANode> getCachedSubtree(CFANode pNode);
+  protected abstract Set<CFANode> getBlockForNode(CFANode pNode);
 }

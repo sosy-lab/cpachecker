@@ -28,6 +28,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.ExplicitSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.TopologicallySortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
@@ -55,6 +56,10 @@ public class ReachedSetFactory {
       + "The secondary strategy may not be TOPSORT.")
   boolean useTopSort = false;
 
+  @Option(name = "traversal.useExplicitInformation",
+      description = "handle more abstract states (with less information) first? (only for ExplicitCPA)")
+  boolean useExplicitInformation = false;
+
   @Option(name = "reachedSet",
       description = "which reached set implementation to use?"
       + "\nNORMAL: just a simple set"
@@ -74,6 +79,9 @@ public class ReachedSetFactory {
     }
     if (useCallstack) {
       waitlistFactory = CallstackSortedWaitlist.factory(waitlistFactory);
+    }
+    if (useExplicitInformation) {
+      waitlistFactory = ExplicitSortedWaitlist.factory(waitlistFactory);
     }
 
     switch (reachedSet) {

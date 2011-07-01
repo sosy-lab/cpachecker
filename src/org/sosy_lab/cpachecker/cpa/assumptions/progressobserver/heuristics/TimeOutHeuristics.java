@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsDa
 public class TimeOutHeuristics implements StopHeuristics<TimeOutHeuristicsData> {
 
   @Option(description = "threshold for heuristics of progressobserver")
-  private final int threshold = -1;
+  private int threshold = -1;
 
   public TimeOutHeuristics(Configuration config, LogManager pLogger)
       throws InvalidConfigurationException {

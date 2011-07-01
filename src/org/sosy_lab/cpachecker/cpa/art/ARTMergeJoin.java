@@ -24,17 +24,16 @@
 package org.sosy_lab.cpachecker.cpa.art;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class ARTMergeJoin implements MergeOperator {
 
-  private ConfigurableProgramAnalysis wrappedCpa;
+  private final MergeOperator wrappedMerge;
 
-  public ARTMergeJoin(ConfigurableProgramAnalysis pWrappedCPA) {
-    wrappedCpa = pWrappedCPA;
+  public ARTMergeJoin(MergeOperator pWrappedMerge) {
+    wrappedMerge = pWrappedMerge;
   }
 
   @Override
@@ -48,10 +47,14 @@ public class ARTMergeJoin implements MergeOperator {
     assert !artElement1.isCovered();
     assert !artElement2.isCovered();
 
-    MergeOperator mergeOperator = wrappedCpa.getMergeOperator();
+    if (!artElement2.mayCover()) {
+      // elements that may not cover should also not be used for merge
+      return pElement2;
+    }
+
     AbstractElement wrappedElement1 = artElement1.getWrappedElement();
     AbstractElement wrappedElement2 = artElement2.getWrappedElement();
-    AbstractElement retElement = mergeOperator.merge(wrappedElement1, wrappedElement2, pPrecision);
+    AbstractElement retElement = wrappedMerge.merge(wrappedElement1, wrappedElement2, pPrecision);
     if(retElement.equals(wrappedElement2)){
       return pElement2;
     }

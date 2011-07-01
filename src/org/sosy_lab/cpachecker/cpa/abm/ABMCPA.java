@@ -27,6 +27,8 @@ import static com.google.common.base.Preconditions.checkState;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Classes;
@@ -72,6 +74,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   private final LogManager logger;
   private final TimedReducer reducer;
   private final ABMTransferRelation transfer;
+  private final ABMPrecisionAdjustment prec;
   private final ABMCPAStatistics stats;
   private final PartitioningHeuristic heuristic;
 
@@ -114,6 +117,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     }
     reducer = new TimedReducer(wrappedReducer);
     transfer = new ABMTransferRelation(config, logger, this, pReachedSetFactory);
+    prec = new ABMPrecisionAdjustment(getWrappedCpa().getPrecisionAdjustment());
 
     stats = new ABMCPAStatistics(this);
     heuristic = getPartitioningHeuristic();
@@ -125,8 +129,10 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       blockPartitioning = heuristic.buildPartitioning(node);
       transfer.setBlockPartitioning(blockPartitioning);
       ((AbstractSingleWrapperCPA) getWrappedCpa()).retrieveWrappedCpa(ABMPredicateCPA.class).getTransferRelation().setPartitioning(blockPartitioning);
-    } else {
-      assert blockPartitioning.getBlockForNode(node) != null : "CPA re-used for other CFA, this is currently not supported.";
+
+      Map<AbstractElement, Precision> forwardPrecisionToExpandedPrecision = new HashMap<AbstractElement, Precision>();
+      transfer.setForwardPrecisionToExpandedPrecision(forwardPrecisionToExpandedPrecision);
+      prec.setForwardPrecisionToExpandedPrecision(forwardPrecisionToExpandedPrecision);
     }
     return getWrappedCpa().getInitialElement(node);
   }
@@ -157,7 +163,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return getWrappedCpa().getPrecisionAdjustment();
+    return prec;
   }
 
   @Override

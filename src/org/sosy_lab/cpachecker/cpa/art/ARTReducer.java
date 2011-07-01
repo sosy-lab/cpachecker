@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.art;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -33,6 +36,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 public class ARTReducer implements Reducer {
 
   private final Reducer wrappedReducer;
+  private final Map<AbstractElement, AbstractElement> expandedToReducedCache = new HashMap<AbstractElement, AbstractElement>();
 
   public ARTReducer(Reducer pWrappedReducer) {
     wrappedReducer = pWrappedReducer;
@@ -43,22 +47,28 @@ public class ARTReducer implements Reducer {
       AbstractElement pExpandedElement, Block pContext,
       CFANode pLocation) {
 
-    return new ARTElement(wrappedReducer.getVariableReducedElement(((ARTElement)pExpandedElement).getWrappedElement(), pContext, pLocation), null);
+    AbstractElement reducedElement = expandedToReducedCache.get(pExpandedElement);
+    if(reducedElement != null) {
+      return reducedElement;
+    }
+
+    reducedElement = new ARTElement(wrappedReducer.getVariableReducedElement(((ARTElement)pExpandedElement).getWrappedElement(), pContext, pLocation), null);
+
+    expandedToReducedCache.put(pExpandedElement, reducedElement);
+
+    return reducedElement;
   }
 
   @Override
   public AbstractElement getVariableExpandedElement(
-      AbstractElement pRootElement, Block pRootContext,
+      AbstractElement pRootElement, Block pReducedContext,
       AbstractElement pReducedElement) {
 
-    return new ARTElement(wrappedReducer.getVariableExpandedElement(((ARTElement)pRootElement).getWrappedElement(), pRootContext, ((ARTElement)pReducedElement).getWrappedElement()), null);
-  }
+    AbstractElement expandedElement = new ARTElement(wrappedReducer.getVariableExpandedElement(((ARTElement)pRootElement).getWrappedElement(), pReducedContext, ((ARTElement)pReducedElement).getWrappedElement()), null);
 
-  @Override
-  public boolean isEqual(AbstractElement pReducedTargetElement,
-      AbstractElement pCandidateElement) {
+    expandedToReducedCache.put(expandedElement, pReducedElement);
 
-    return wrappedReducer.isEqual(((ARTElement)pReducedTargetElement).getWrappedElement(), ((ARTElement)pCandidateElement).getWrappedElement());
+    return expandedElement;
   }
 
   @Override
@@ -71,6 +81,11 @@ public class ARTReducer implements Reducer {
   public Precision getVariableReducedPrecision(Precision pPrecision,
       Block pContext) {
     return wrappedReducer.getVariableReducedPrecision(pPrecision, pContext);
+  }
+
+  @Override
+  public Precision getVariableExpandedPrecision(Precision rootPrecision, Block rootContext, Precision reducedPrecision) {
+    return wrappedReducer.getVariableExpandedPrecision(rootPrecision, rootContext, reducedPrecision);
   }
 
 }

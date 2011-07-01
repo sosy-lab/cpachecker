@@ -170,7 +170,7 @@ public class MathsatFormulaManager implements FormulaManager  {
     return new MathsatFormula(t);
   }
 
-  static FormulaList encapsulate(long[] t) {
+  private static FormulaList encapsulate(long[] t) {
     return new MathsatFormulaList(t);
   }
 
@@ -447,14 +447,13 @@ public class MathsatFormulaManager implements FormulaManager  {
   }
 
   @Override
-  public FormulaList makeList(Formula... pF) {
-    long[] t = new long[pF.length];
-    for (int i = 0; i < pF.length; i++) {
-      t[i] = getTerm(pF[i]);
+  public FormulaList makeList(List<Formula> pFs) {
+    long[] t = new long[pFs.size()];
+    for (int i = 0; i < t.length; i++) {
+      t[i] = getTerm(pFs.get(i));
     }
     return encapsulate(t);
   }
-
   // ----------------- Complex formula manipulation -----------------
 
   @Override

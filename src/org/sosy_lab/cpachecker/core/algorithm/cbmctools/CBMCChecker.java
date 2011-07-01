@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.cbmctools;
 
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -55,10 +57,6 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
 
   private final Timer cbmcTime = new Timer();
 
-  @Option(name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$",
-      description="entry function")
-  private String mainFunctionName = "main";
-
   @Option(name = "cbmc.dumpCBMCfile", type = Option.Type.OUTPUT_FILE,
       description = "file name where to put the path program that is generated "
       + "as input for CBMC. A temporary file is used if this is unspecified.")
@@ -76,6 +74,8 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
   @Override
   public boolean checkCounterexample(ARTElement pRootElement, ARTElement pErrorElement,
       Set<ARTElement> pErrorPathElements) throws CPAException, InterruptedException {
+
+    String mainFunctionName = extractLocation(pRootElement).getFunctionName();
 
     String pathProgram = AbstractPathToCTranslator.translatePaths(pRootElement, pErrorPathElements);
 
@@ -98,7 +98,8 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
     CBMCExecutor cbmc;
     int exitCode;
     try {
-      cbmc = new CBMCExecutor(logger, cFile, mainFunctionName);
+      String CBMCArgs[] = {"cbmc", "--function", mainFunctionName + "_0", "--32"};
+      cbmc = new CBMCExecutor(logger, cFile, CBMCArgs);
       exitCode = cbmc.join(timelimit);
 
     } catch (IOException e) {

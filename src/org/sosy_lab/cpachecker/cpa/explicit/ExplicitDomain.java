@@ -37,6 +37,10 @@ public class ExplicitDomain implements AbstractDomain {
       ExplicitElement ExplicitElementNew = (ExplicitElement) newElement;
       ExplicitElement ExplicitElementReached = (ExplicitElement) reachedElement;
 
+      if (ExplicitElementNew.getPreviousElement() != ExplicitElementReached.getPreviousElement()) {
+        return false;
+      }
+
 //      ("===============");
 //      System.out.println(ExplicitElementNew);
 //      System.out.println("---------------");

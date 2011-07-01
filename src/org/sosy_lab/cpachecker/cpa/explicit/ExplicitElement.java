@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -77,10 +79,10 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
    * @param value value to be assigned.
    * @param pThreshold threshold from property explicitAnalysis.threshold
    */
-  public void assignConstant(String nameOfVar, long value, int pThreshold){
+  void assignConstant(String nameOfVar, Long value, int pThreshold){
 
     if(constantsMap.containsKey(nameOfVar) &&
-        constantsMap.get(nameOfVar).intValue() == value){
+        constantsMap.get(nameOfVar).equals(value)) {
       return;
     }
 
@@ -108,15 +110,15 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
     constantsMap.put(nameOfVar, value);
   }
 
-  public long getValueFor(String variableName){
-    return constantsMap.get(variableName).longValue();
+  public Long getValueFor(String variableName){
+    return checkNotNull(constantsMap.get(variableName));
   }
 
   public boolean contains(String variableName){
     return constantsMap.containsKey(variableName);
   }
 
-  public ExplicitElement getPreviousElement() {
+  ExplicitElement getPreviousElement() {
     return previousElement;
   }
 
@@ -150,6 +152,10 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
     }
 
     ExplicitElement otherElement = (ExplicitElement) other;
+    if (otherElement.previousElement != previousElement) {
+      return false;
+    }
+
     if (otherElement.constantsMap.size() != constantsMap.size()){
       return false;
     }
@@ -188,13 +194,13 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
     return constantsMap;
   }
 
-  public void forget(String assignedVar) {
+  void forget(String assignedVar) {
     if(constantsMap.containsKey(assignedVar)){
       constantsMap.remove(assignedVar);
     }
   }
 
-  public Map<String, Integer> getNoOfReferences() {
+  Map<String, Integer> getNoOfReferences() {
     return noOfReferences;
   }
 

@@ -186,11 +186,23 @@ public class Configuration {
      * @throws IOException If the file cannot be read.
      */
     public Builder loadFromFile(String filename) throws IOException {
-      Preconditions.checkNotNull(filename);
+      return loadFromFile(new File(filename));
+    }
+
+    /**
+     * Load options from a file with a "key = value" format.
+     * @see Properties#load(InputStream)
+     *
+     * If this method is called, it has to be the first method call on this
+     * builder instance.
+     * @throws IOException If the file cannot be read.
+     */
+    public Builder loadFromFile(File file) throws IOException {
+      Preconditions.checkNotNull(file);
 
       InputStream stream = null;
       try {
-        stream = new FileInputStream(filename);
+        stream = new FileInputStream(file);
         loadFromStream(stream);
       } finally {
         Closeables.closeQuietly(stream);
@@ -297,8 +309,6 @@ public class Configuration {
   @Option (name="log.usedOptions.export",
       description="all used options are printed")
   private boolean exportUsedOptions = false;
-
-  private static final long serialVersionUID = -5910186668866464153L;
 
   /** Splitter to create string arrays */
   private static final Splitter ARRAY_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings();
@@ -761,7 +771,8 @@ public class Configuration {
     }
 
     if (typeInfo == Option.Type.OUTPUT_FILE) {
-      if (disableOutput) {
+      if (disableOutput && (valueStr == null)) {
+        // if output is disabled and option was not specified explicitly
         return null;
       }
 

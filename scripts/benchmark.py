@@ -570,7 +570,7 @@ class OutputHandler:
         # store filename, status, times, columns in XML
         fileElem = ET.Element("sourcefile", {"name": sourcefile})
         if len(fileOptions) != 0:
-            fileElem.set("options", " ".join(toSimpleList(fileOptions)))
+            fileElem.set("options", " ".join(toSimpleList(mergeOptions(fileOptions))))
         fileElem.append(ET.Element("column", {"title": "status", "value": status}))
         fileElem.append(ET.Element("column", {"title": "cputime", "value": cpuTimeDelta}))
         fileElem.append(ET.Element("column", {"title": "walltime", "value": wallTimeDelta}))
@@ -690,46 +690,44 @@ class OutputHandler:
 def getOptions(optionsTag):
     '''
     This function searches for options in a tag 
-    and returns a dictionary with the names and values.
+    and returns a list with tuples of (name, value).
     '''
-    return dict([(option.get("name"), option.text) 
-               for option in optionsTag.findall("option")])
+    return [(option.get("name"), option.text) 
+               for option in optionsTag.findall("option")]
 
 
-def mergeOptions(benchmarkOptions, testOptions, fileOptions=dict()):
+def mergeOptions(benchmarkOptions, testOptions=[], fileOptions=[]):
     '''
-    This function merges dicts of options.
-    If a option is part of several dicts, the last value is taken.
+    This function merges lists of optionpairs into one list of pairs.
+    If a option is part of several lists,
+    the option appears in the list several times.
     '''
 
-    currentOptions = dict()
+    currentOptions = []
 
     # copy global options
-    for opt in benchmarkOptions:
-        currentOptions[opt] = benchmarkOptions[opt]
+    currentOptions.extend(benchmarkOptions)
 
-    # insert testOptions, override existing options
-    for opt in testOptions:
-        currentOptions[opt] = testOptions[opt]
+    # insert testOptions
+    currentOptions.extend(testOptions)
 
-    # insert fileOptions, override existing options
-    for opt in fileOptions:
-        currentOptions[opt] = fileOptions[opt]
+    # insert fileOptions
+    currentOptions.extend(fileOptions)
 
     return currentOptions
 
 
-def toSimpleList(dict):
+def toSimpleList(listOfPairs):
     '''
-    This function converts a dictionary to a list. 
+    This function converts a list of pairs to a list. 
     Each pair of key and value is divided into 2 listelements.
     All "None"-values are removed.
     '''
     simpleList = []
-    for key in dict:
+    for (key, value) in listOfPairs:
         simpleList.append(key)
-        if dict[key] is not None:
-            simpleList.append(dict[key])
+        if value is not None:
+            simpleList.append(value)
     return simpleList
 
 
@@ -887,7 +885,9 @@ def run_satabs(options, sourcefile, columns, rlimits):
     args = [exe] + options + [sourcefile]
     (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
     if "VERIFICATION SUCCESSFUL" in output:
-        status = "SUCCESS"
+        status = "SAFE"
+    elif "VERIFICATION FAILED" in output:
+        status = "UNSAFE"
     else:
         status = "FAILURE"
     return (status, cpuTimeDelta, wallTimeDelta, output)
@@ -903,7 +903,7 @@ def run_cpachecker(options, sourcefile, columns, rlimits):
     else:
         limit = float('inf')
 
-    if returncode == 137 and cpuTimeDelta > (limit*0.99):
+    if returncode == -9 and cpuTimeDelta > (limit*0.99):
         # if return code is "KILLED BY SIGNAL 9" and
         # used CPU time is larger than the time limit (approximately at least)
         status = 'TIMEOUT'
@@ -921,23 +921,30 @@ def getCPAcheckerStatus(returncode, output):
     @param output: the output of CPAchecker
     @return: status of CPAchecker after running a testfile
     """
+    
+    def isOutOfMemory(line):
+        return ((line.find('java.lang.OutOfMemoryError') != -1)
+             or (line.find('std::bad_alloc')             != -1) # C++ out of memory exception
+             or (line.find('Cannot allocate memory')     != -1)
+             or line.startswith('out of memory')
+             )
 
     if returncode == 0:
         status = None
-    elif returncode == 134:
+    elif returncode == -6:
         status = "ABORTED (probably by Mathsat)"
-    elif returncode == 137:
+    elif returncode == -9:
         status = "KILLED BY SIGNAL 9"
-    elif returncode == 143:
+    elif returncode == (128+15):
         status = "KILLED"
     else:
         status = "ERROR ({0})".format(returncode)
     for line in output.splitlines():
-        if (line.find('java.lang.OutOfMemoryError') != -1) or line.startswith('out of memory'):
+        if isOutOfMemory(line):
             status = 'OUT OF MEMORY'
         elif (line.find('SIGSEGV') != -1):
             status = 'SEGMENTATION FAULT'
-        elif (status is None or status == "ERROR (1)") and (line.find('Exception') != -1):
+        elif (returncode == 0 or returncode == 1) and (line.find('Exception') != -1):
             status = 'EXCEPTION'
         elif (status is None) and line.startswith('Given specification violated?'):
             line = line[30:].strip()
@@ -947,8 +954,6 @@ def getCPAcheckerStatus(returncode, output):
                 status = 'UNSAFE'
             else:
                 status = 'UNKNOWN'
-        elif (line.find('std::bad_alloc') != -1):
-            status = 'OUT OF MEMORY'
         if (status is None) and line.startswith('#Test cases computed:'):
             status = 'OK'
     if status is None:

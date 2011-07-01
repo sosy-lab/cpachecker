@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -213,8 +214,8 @@ public class CtoFormulaConverter {
     return (!noAutoInitPrefix.isEmpty()) && var.startsWith(noAutoInitPrefix);
   }
 
-  private static String exprToVarName(IASTExpression e, String function) {
-    return scoped(e.getRawSignature().replaceAll("[ \n\t]", ""), function);
+  private static String exprToVarName(IASTExpression e) {
+    return e.getRawSignature().replaceAll("[ \n\t]", "");
   }
 
   private String getTypeName(final IType tp) {
@@ -242,9 +243,7 @@ public class CtoFormulaConverter {
     } else {
       idx = 2; // AG - IMPORTANT!!! We must start from 2 and
       // not from 1, because this is an assignment,
-      // so the SSA index must be fresh. If we use 1
-      // here, we will have troubles later when
-      // shifting indices
+      // so the SSA index must be fresh.
     }
     ssa.setIndex(name, idx);
     return idx;
@@ -281,6 +280,21 @@ public class CtoFormulaConverter {
   }
 
   /**
+   * Create a formula for a given variable, which is assumed to be constant.
+   * This method does not handle scoping!
+   */
+  private Formula makeConstant(String var, SSAMapBuilder ssa) {
+    // TODO better use variables without index (this piece of code prevents
+    // SSAMapBuilder from checking for strict monotony)
+    int idx = ssa.getIndex(var);
+    assert idx <= 1 : var + " is assumed to be constant there was an assignment to it";
+    if (idx != 1) {
+      ssa.setIndex(var, 1); // set index so that predicates will be instantiated correctly
+    }
+    return fmgr.makeVariable(var, 1);
+  }
+
+  /**
    * Create a formula for a given variable.
    * This method does not handle scoping and the NON_DET_VARIABLE!
    */
@@ -289,24 +303,22 @@ public class CtoFormulaConverter {
     return fmgr.makeVariable(var, idx);
   }
 
+  /**
+   * Create a formula for a given variable with a fresh index for the left-hand
+   * side of an assignment.
+   * This method does not handle scoping and the NON_DET_VARIABLE!
+   */
+  private Formula makeFreshVariable(String var, SSAMapBuilder ssa) {
+    int idx = makeLvalIndex(var, ssa);
+    return fmgr.makeVariable(var, idx);
+  }
+
   // name has to be scoped already
   private Formula makeAssignment(String name,
           Formula rightHandSide, SSAMapBuilder ssa) {
 
-    int idx = makeLvalIndex(name, ssa);
-    Formula f = fmgr.makeVariable(name, idx);
-    return fmgr.makeAssignment(f, rightHandSide);
-  }
-
-  private Formula makeUIF(String name, FormulaList args, SSAMapBuilder ssa) {
-    int idx = ssa.getIndex(name, args);
-    if (idx <= 0) {
-      logger.log(Level.ALL, "DEBUG_3",
-          "WARNING: Auto-instantiating lval: ", name, "(", args, ")");
-      idx = 1;
-      ssa.setIndex(name, args, idx);
-    }
-    return fmgr.makeUIF(name, args, idx);
+    Formula lhs = makeFreshVariable(name, ssa);
+    return fmgr.makeAssignment(lhs, rightHandSide);
   }
 
 //  @Override
@@ -437,8 +449,6 @@ public class CtoFormulaConverter {
         return fmgr.makeTrue();
       }
 
-      Formula result = fmgr.makeTrue();
-
       // ignore type prototypes here
       if (edge.getName() != null) {
 
@@ -450,11 +460,6 @@ public class CtoFormulaConverter {
           var = scoped(varNameWithoutFunction, function);
         }
 
-        // assign new index to variable
-        // (a declaration contains an implicit assignment, even without initializer)
-        int idx = makeLvalIndex(var, ssa);
-
-        logger.log(Level.ALL, "Declared variable:", var, "index:", idx);
         // TODO get the type of the variable, and act accordingly
 
         // if the var is unsigned, add the constraint that it should
@@ -483,7 +488,7 @@ public class CtoFormulaConverter {
           init = ((IASTInitializerExpression)initializer).getExpression();
 
         } else {
-          log(Level.WARNING, "Ignoring unsupported initializer", initializer);
+          log(Level.ALL, "Ignoring unsupported initializer", initializer);
         }
 
         if (init != null) {
@@ -494,13 +499,16 @@ public class CtoFormulaConverter {
 
           } else {
             Formula minit = buildTerm(init, function, ssa);
-            Formula mvar = fmgr.makeVariable(var, idx);
-            Formula t = fmgr.makeAssignment(mvar, minit);
-            result = fmgr.makeAnd(result, t);
+            Formula mvar = makeFreshVariable(var, ssa);
+            return fmgr.makeAssignment(mvar, minit);
           }
+        } else {
+          // just increment index of variable in SSAMap
+          // (a declaration contains an implicit assignment, even without initializer)
+          makeLvalIndex(var, ssa);
         }
       }
-      return result;
+      return fmgr.makeTrue();
 
     } else {
       throw new UnrecognizedCFAEdgeException(edge);
@@ -610,6 +618,10 @@ public class CtoFormulaConverter {
     return toNumericFormula(exp.accept(getExpressionVisitor(function, ssa)));
   }
 
+  private Formula buildLvalueTerm(IASTExpression exp, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
+    return exp.accept(getLvalueVisitor(function, ssa));
+  }
+
   protected Formula makePredicate(IASTExpression exp, boolean isTrue,
       String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
 
@@ -626,6 +638,14 @@ public class CtoFormulaConverter {
       return new ExpressionToFormulaVisitorUIF(pFunction, pSsa);
     } else {
       return new ExpressionToFormulaVisitor(pFunction, pSsa);
+    }
+  }
+
+  private LvalueVisitor getLvalueVisitor(String pFunction, SSAMapBuilder pSsa) {
+    if (lvalsAsUif) {
+      return new LvalueVisitorUIF(pFunction, pSsa);
+    } else {
+      return new LvalueVisitor(pFunction, pSsa);
     }
   }
 
@@ -659,7 +679,7 @@ public class CtoFormulaConverter {
     protected Formula visitDefault(IASTExpression exp)
         throws UnrecognizedCCodeException {
       warnUnsafeVar(exp);
-      return makeVariable(exprToVarName(exp, function), ssa);
+      return makeVariable(scoped(exprToVarName(exp), function), ssa);
     }
 
     @Override
@@ -749,28 +769,38 @@ public class CtoFormulaConverter {
           return fmgr.makeNumber(Long.toString(enumerator.getValue()));
         } else {
           // We don't know the value here, but we know it is constant.
-          // We create a fresh global variable for it
-          // (instantiated at 1 because we need an index but it never increases).
-          // TODO better use variables without index (this piece of code prevents
-          // SSAMapBuilder from checking for strict monotony)
-          String name = enumerator.getName();
-          ssa.setIndex(name, 1); // set index so that predicates will be instantiated correctly
-          return fmgr.makeVariable(name, 1);
+          return makeConstant(enumerator.getName(), ssa);
         }
       }
 
       String var = idExp.getName();
 
       if (isNondetVariable(var)) {
-        // on every read access to special non-determininism variable, increase index
-        var = NONDET_VARIABLE;
-        int idx = makeLvalIndex(var, ssa);
-        return fmgr.makeVariable(var, idx);
+        // on every read access to special non-determininism variable use a fresh instance
+        return makeFreshVariable(NONDET_VARIABLE, ssa);
 
       } else {
         return makeVariable(scopedIfNecessary(idExp, function), ssa);
       }
 
+    }
+
+    @Override
+    public Formula visit(IASTFieldReference fExp) throws UnrecognizedCCodeException {
+      IASTExpression fieldRef = fExp.getFieldOwner();
+      if (fieldRef instanceof IASTIdExpression) {
+        IASTSimpleDeclaration decl = ((IASTIdExpression) fieldRef).getDeclaration();
+        if (decl instanceof IASTDeclaration && ((IASTDeclaration)decl).isGlobal()) {
+          // this is the reference to a global field variable
+
+          // we can omit the warning (no pointers involved),
+          // and we don't need to scope the variable reference
+          return makeVariable(exprToVarName(fExp), ssa);
+        }
+      }
+
+      // else do the default
+      return super.visit(fExp);
     }
 
     @Override
@@ -842,6 +872,17 @@ public class CtoFormulaConverter {
 
     public ExpressionToFormulaVisitorUIF(String pFunction, SSAMapBuilder pSsa) {
       super(pFunction, pSsa);
+    }
+
+    private Formula makeUIF(String name, FormulaList args, SSAMapBuilder ssa) {
+      int idx = ssa.getIndex(name, args);
+      if (idx <= 0) {
+        logger.log(Level.ALL, "DEBUG_3",
+            "WARNING: Auto-instantiating lval: ", name, "(", args, ")");
+        idx = 1;
+        ssa.setIndex(name, args, idx);
+      }
+      return fmgr.makeUIF(name, args, idx);
     }
 
     @Override
@@ -921,8 +962,7 @@ public class CtoFormulaConverter {
         if (nondetFunctions.contains(func)) {
           // function call like "random()"
           // ignore parameters and just create a fresh variable for it
-          int idx = makeLvalIndex(func, ssa);
-          return fmgr.makeVariable(func, idx);
+          return makeFreshVariable(func, ssa);
 
         } else if (!PURE_EXTERNAL_FUNCTIONS.contains(func)) {
           if (pexps.isEmpty()) {
@@ -938,22 +978,18 @@ public class CtoFormulaConverter {
       }
 
       if (pexps.isEmpty()) {
-        // this is a function of arity 0. We create a fresh global variable
-        // for it (instantiated at 1 because we need an index but it never
-        // increases)
-        // TODO better use variables without index (this piece of code prevents
-        // SSAMapBuilder from checking for strict monotony)
-        ssa.setIndex(func, 1); // set index so that predicates will be instantiated correctly
-        return fmgr.makeVariable(func, 1);
+        // This is a function of arity 0 and we assume its constant.
+        return makeConstant(func, ssa);
+
       } else {
-        IASTExpression[] args = pexps.toArray(new IASTExpression[pexps.size()]);
         func += "{" + pexps.size() + "}"; // add #arguments to function name to cope with varargs functions
-        Formula[] mArgs = new Formula[args.length];
-        for (int i = 0; i < pexps.size(); ++i) {
-          mArgs[i] = toNumericFormula(pexps.get(i).accept(this));
+
+        List<Formula> args = new ArrayList<Formula>(pexps.size());
+        for (IASTExpression pexp : pexps) {
+          args.add(toNumericFormula(pexp.accept(this)));
         }
 
-        return fmgr.makeUIF(func, fmgr.makeList(mArgs));
+        return fmgr.makeUIF(func, fmgr.makeList(args));
       }
     }
   }
@@ -995,33 +1031,78 @@ public class CtoFormulaConverter {
     }
   }
 
-  private Formula buildLvalueTerm(IASTExpression exp,
-        String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
+  private class LvalueVisitor extends DefaultExpressionVisitor<Formula, UnrecognizedCCodeException> {
 
-    if (exp instanceof IASTIdExpression) {
-      IASTIdExpression idExp = (IASTIdExpression)exp;
+    protected final String function;
+    protected final SSAMapBuilder ssa;
+
+    public LvalueVisitor(String pFunction, SSAMapBuilder pSsa) {
+      function = pFunction;
+      ssa = pSsa;
+    }
+
+    @Override
+    protected Formula visitDefault(IASTExpression exp) throws UnrecognizedCCodeException {
+      throw new UnrecognizedCCodeException("Unknown lvalue", null, exp);
+    }
+
+    @Override
+    public Formula visit(IASTIdExpression idExp) {
       String var = idExp.getName();
 
       if (isNondetVariable(var)) {
         logger.log(Level.WARNING, "Assignment to special non-determinism variable",
-            exp.getRawSignature(), "will be ignored.");
+            var, "will be ignored.");
       }
       var = scopedIfNecessary(idExp, function);
-      int idx = makeLvalIndex(var, ssa);
+      return makeFreshVariable(var, ssa);
+    }
 
-      Formula mvar = fmgr.makeVariable(var, idx);
-      return mvar;
+    private Formula makeUIF(IASTExpression exp) {
+      String var = scoped(exprToVarName(exp), function);
+      return makeFreshVariable(var, ssa);
+    }
 
-    } else if (!lvalsAsUif) {
-      String var = exprToVarName(exp, function);
-      int idx = makeLvalIndex(var, ssa);
+    @Override
+    public Formula visit(IASTUnaryExpression pE) throws UnrecognizedCCodeException {
+      return makeUIF(pE);
+    }
 
-      Formula mvar = fmgr.makeVariable(var, idx);
-      return mvar;
+    @Override
+    public Formula visit(IASTFieldReference fExp) throws UnrecognizedCCodeException {
 
-    } else if (exp instanceof IASTUnaryExpression) {
-      UnaryOperator op = ((IASTUnaryExpression)exp).getOperator();
-      IASTExpression operand = ((IASTUnaryExpression)exp).getOperand();
+      IASTExpression fieldRef = fExp.getFieldOwner();
+      if (fieldRef instanceof IASTIdExpression) {
+        IASTSimpleDeclaration decl = ((IASTIdExpression) fieldRef).getDeclaration();
+        if (decl instanceof IASTDeclaration && ((IASTDeclaration)decl).isGlobal()) {
+          // this is the reference to a global field variable
+
+          // we don't need to scope the variable reference
+          String var = exprToVarName(fExp);
+          return makeFreshVariable(var, ssa);
+        }
+      }
+
+      // else do the default
+      return makeUIF(fExp);
+    }
+
+    @Override
+    public Formula visit(IASTArraySubscriptExpression pE) throws UnrecognizedCCodeException {
+      return makeUIF(pE);
+    }
+  }
+
+  private class LvalueVisitorUIF extends LvalueVisitor {
+
+    public LvalueVisitorUIF(String pFunction, SSAMapBuilder pSsa) {
+      super(pFunction, pSsa);
+    }
+
+    @Override
+    public Formula visit(IASTUnaryExpression uExp) throws UnrecognizedCCodeException {
+      UnaryOperator op = uExp.getOperator();
+      IASTExpression operand = uExp.getOperand();
       String opname;
       switch (op) {
       case AMPER:
@@ -1031,7 +1112,7 @@ public class CtoFormulaConverter {
         opname = OP_STAR_NAME;
         break;
       default:
-        throw new UnrecognizedCCodeException("Invalid unary operator for lvalue", null, exp);
+        throw new UnrecognizedCCodeException("Invalid unary operator for lvalue", null, uExp);
       }
       Formula term = buildTerm(operand, function, ssa);
 
@@ -1046,9 +1127,10 @@ public class CtoFormulaConverter {
       // ...
       // &(*x) = 2    |     <ptr_&>::2(<ptr_*>::1(x)) = 2
       return fmgr.makeUIF(opname, fmgr.makeList(term), idx);
+    }
 
-    } else if (exp instanceof IASTFieldReference) {
-      IASTFieldReference fexp = (IASTFieldReference)exp;
+    @Override
+    public Formula visit(IASTFieldReference fexp) throws UnrecognizedCCodeException {
       String field = fexp.getFieldName();
       IASTExpression owner = fexp.getFieldOwner();
       Formula term = buildTerm(owner, function, ssa);
@@ -1062,10 +1144,10 @@ public class CtoFormulaConverter {
 
       // see above for the case of &x and *x
       return fmgr.makeUIF(ufname, args, idx);
+    }
 
-    } else if (exp instanceof IASTArraySubscriptExpression) {
-      IASTArraySubscriptExpression aexp =
-        (IASTArraySubscriptExpression)exp;
+    @Override
+    public Formula visit(IASTArraySubscriptExpression aexp) throws UnrecognizedCCodeException {
       IASTExpression arrexp = aexp.getArrayExpression();
       IASTExpression subexp = aexp.getSubscriptExpression();
       Formula aterm = buildTerm(arrexp, function, ssa);
@@ -1077,8 +1159,6 @@ public class CtoFormulaConverter {
 
       return fmgr.makeUIF(ufname, args, idx);
 
-    } else {
-      throw new UnrecognizedCCodeException("Unknown lvalue", null, exp);
     }
   }
 }

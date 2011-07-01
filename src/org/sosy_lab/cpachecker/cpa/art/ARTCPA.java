@@ -28,8 +28,6 @@ import java.util.Collection;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -47,20 +45,11 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-@Options(prefix="cpa.art")
 public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProgramAnalysisWithABM {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ARTCPA.class);
   }
-
-  /**
-   * Use join as default merge, because sep is only safe if all other cpas also use sep.
-   */
-  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
-      description="which merge operator to use for ARTCPA? "
-        + "only use sep here if all other CPAs also use sep")
-  private String mergeType = "JOIN";
 
   private final LogManager logger;
 
@@ -76,7 +65,6 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
 
   private ARTCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger) throws InvalidConfigurationException {
     super(cpa);
-    config.inject(this);
 
     this.logger = logger;
     abstractDomain = new FlatLatticeDomain();
@@ -93,12 +81,11 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
       reducer = null;
     }
 
-    if (mergeType.equals("SEP")){
+    MergeOperator wrappedMerge = getWrappedCpa().getMergeOperator();
+    if (wrappedMerge == MergeSepOperator.getInstance()) {
       mergeOperator = MergeSepOperator.getInstance();
-    } else if (mergeType.equals("JOIN")){
-      mergeOperator = new ARTMergeJoin(getWrappedCpa());
     } else {
-      throw new InternalError("Update list of allowed merge operators!");
+      mergeOperator = new ARTMergeJoin(wrappedMerge);
     }
     stopOperator = new ARTStopSep(getWrappedCpa());
     stats = new ARTStatistics(config, this);

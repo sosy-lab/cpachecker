@@ -34,6 +34,8 @@ import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Option.Type;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -44,16 +46,18 @@ import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.TraversalMethod;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitCPA;
-import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 
-@Options
+@Options(prefix="counterexample.checker")
 public class CounterexampleCPAChecker implements CounterexampleChecker {
 
   private final LogManager logger;
+
+  @Option(name="config",
+      type=Type.REQUIRED_INPUT_FILE,
+      description="configuration file for counterexample checks with CPAchecker")
+  private File configFile = new File("test/config/explicitAnalysisInf.properties");
 
   public CounterexampleCPAChecker(Configuration config, LogManager logger) throws InvalidConfigurationException {
     this.logger = logger;
@@ -79,13 +83,9 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
 
     try {
       Configuration lConfig = Configuration.builder()
-                .setOption("output.disable", "true")
-                .setOption("specification", automatonFile.getAbsolutePath())
-                .setOption("CompositeCPA.cpas", LocationCPA.class.getName()
-                                        + "," + CallstackCPA.class.getName()
-                                        + "," + ExplicitCPA.class.getName())
-                .setOption("cpa.explicit.threshold", Integer.toString(Integer.MAX_VALUE))
-                .build();
+              .loadFromFile(configFile)
+              .setOption("specification", automatonFile.getAbsolutePath())
+              .build();
 
       CPABuilder lBuilder = new CPABuilder(lConfig, logger);
       ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs();
@@ -102,7 +102,9 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       }
 
     } catch (InvalidConfigurationException e) {
-      throw new AssertionError("Hard-coded configuration is invalid!");
+      throw new CPAException("Invalid configuration for counterexample check: " + e.getMessage());
+    } catch (IOException e) {
+      throw new CPAException("Error during counterexample check: " + e.getMessage());
     }
   }
 

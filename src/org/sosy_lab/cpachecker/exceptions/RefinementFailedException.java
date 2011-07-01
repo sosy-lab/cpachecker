@@ -55,6 +55,7 @@ public class RefinementFailedException extends CPAException {
   private final Reason reason;
   private Path path;
   private final int failurePoint;
+  private boolean hurtSoundness = false;
 
   public RefinementFailedException(Reason r, Path p, int pFailurePoint)
   {
@@ -66,6 +67,12 @@ public class RefinementFailedException extends CPAException {
   public RefinementFailedException(Reason r, Path p)
   {
     this(r, p, -1);
+  }
+
+  public RefinementFailedException(Reason r, Path p, boolean pHurtSoundness)
+  {
+    this(r, p, -1);
+    hurtSoundness = pHurtSoundness;
   }
 
   /** Return the reason for the failure */
@@ -82,6 +89,10 @@ public class RefinementFailedException extends CPAException {
 
   public void setErrorPath(Path pPath) {
     path = pPath;
+  }
+
+  public boolean doesItHurtSoundness() {
+    return hurtSoundness;
   }
 
   /**

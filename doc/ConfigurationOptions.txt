@@ -4,6 +4,9 @@
 # entry function
 analysis.entryFunction = "main"
 
+# use CBMC as an external tool from CPAchecker
+analysis.externalCBMC = false
+
 # run interprocedural analysis
 analysis.interprocedural = true
 
@@ -28,6 +31,10 @@ analysis.traversal.order = DFS
 # handle states with a deeper callstack first?
 # This needs the CallstackCPA to have any effect.
 analysis.traversal.useCallstack = false
+
+# handle more abstract states (with less information) first? (only for
+# ExplicitCPA)
+analysis.traversal.useExplicitInformation = false
 
 # Use an implementation of topsort strategy that allows to select a secondary
 # strategy that is used if there are two elements with the same topsort id.
@@ -70,11 +77,29 @@ bmc.boundingAssertions = true
 bmc.checkTargetStates = true
 
 # try using induction to verify programs with loops
-bmc.induction = true
+bmc.induction = false
+
+# configuration file for invariant generation
+bmc.invariantGenerationConfigFile = 
+
+# generate invariants for induction in parallel to the analysis
+bmc.parallelInvariantGeneration = false
 
 # file name where to put the path program that is generated as input for
 # CBMC. A temporary file is used if this is unspecified.
 cbmc.dumpCBMCfile = 
+
+# specify the name of the error label
+cbmc.options.errorLabel = "ERROR"
+
+# set width of int (16, 32 or 64)
+cbmc.options.intWidth = 32
+
+# disable unwinding assertions violation error
+cbmc.options.nuaf = false
+
+# specify the limit for unwindings (0 is infinite)
+cbmc.options.unwindings = 0
 
 # maximum time limit for CBMC (0 is infinite)
 cbmc.timelimit = 0
@@ -101,9 +126,12 @@ cfa.file = "cfa.dot"
 cfa.removeIrrelevantForErrorLocations = false
 
 # which model checker to use for verifying counterexamples as a second check
-# Currently CBMC or CPAchecker with explicit analysis can be used.
+# Currently CBMC or CPAchecker with a different config can be used.
 counterexample.checker = "CBMC"
-  allowed values: [CBMC, EXPLICIT]
+  allowed values: [CBMC, CPACHECKER]
+
+# configuration file for counterexample checks with CPAchecker
+counterexample.checker.config = "test/config/explicitAnalysisInf.properties"
 
 # continue analysis after an counterexample was found that was denied by the
 # second check
@@ -130,11 +158,6 @@ cpa.art.errorPath.source = "ErrorPath.c"
 # export final ART as .dot file
 cpa.art.export = true
 cpa.art.file = "ART.dot"
-
-# which merge operator to use for ARTCPA? only use sep here if all other CPAs
-# also use sep
-cpa.art.merge = "JOIN"
-  allowed values: [SEP, JOIN]
 
 # which heuristics should be used to track progress?
 cpa.assumptions.progressobserver.heuristics = {}
@@ -193,6 +216,10 @@ cpa.featurevars.variableWhitelist = ""
 # which type of merge operator to use for IntervalAnalysisCPA
 cpa.interval.merge = "SEP"
   allowed values: [SEP, JOIN]
+
+# decides whether one (false) or two (true) successors should be created when
+# an inequality-check is encountered
+cpa.interval.splitIntervals = false
 
 # at most that many intervals will be tracked per variable
 cpa.interval.threshold = 0

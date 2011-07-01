@@ -26,7 +26,9 @@ package org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -47,11 +49,11 @@ public class CachingRelevantPredicatesComputer implements RelevantPredicatesComp
   }
 
   @Override
-  public Collection<AbstractionPredicate> getIrrelevantPredicates(
+  public Set<AbstractionPredicate> getIrrelevantPredicates(
       Block pContext, Collection<AbstractionPredicate> pPredicates) {
 
     if (pPredicates.isEmpty()) {
-      return pPredicates;
+      return Collections.emptySet();
     }
 
     ImmutableSet<AbstractionPredicate> predicates = ImmutableSet.copyOf(pPredicates);
@@ -67,11 +69,11 @@ public class CachingRelevantPredicatesComputer implements RelevantPredicatesComp
   }
 
   @Override
-  public Collection<AbstractionPredicate> getRelevantPredicates(Block pContext,
+  public Set<AbstractionPredicate> getRelevantPredicates(Block pContext,
       Collection<AbstractionPredicate> pPredicates) {
 
     if (pPredicates.isEmpty()) {
-      return pPredicates;
+      return Collections.emptySet();
     }
 
     ImmutableSet<AbstractionPredicate> predicates = ImmutableSet.copyOf(pPredicates);

@@ -60,9 +60,9 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
   private final Timer checkTime = new Timer();
   private int numberOfInfeasiblePaths = 0;
 
-  @Option(name="checker", toUppercase=true, values={"CBMC", "EXPLICIT"},
+  @Option(name="checker", toUppercase=true, values={"CBMC", "CPACHECKER"},
           description="which model checker to use for verifying counterexamples as a second check\n"
-                    + "Currently CBMC or CPAchecker with explicit analysis can be used.")
+                    + "Currently CBMC or CPAchecker with a different config can be used.")
   private String checkerName = "CBMC";
 
   @Option(description="continue analysis after an counterexample was found that was denied by the second check")
@@ -79,7 +79,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
 
     if (checkerName.equals("CBMC")) {
       checker = new CBMCChecker(config, logger);
-    } else if (checkerName.equals("EXPLICIT")) {
+    } else if (checkerName.equals("CPACHECKER")) {
       checker = new CounterexampleCPAChecker(config, logger);
     } else {
       throw new AssertionError();
@@ -114,7 +114,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
         boolean feasibility = checker.checkCounterexample(rootElement, errorElement, elementsOnErrorPath);
 
         if (feasibility) {
-          logger.log(Level.INFO, "Bug found which was confirmed by counterexample check.");
+          logger.log(Level.INFO, "Bug found which was confirmed by counterexample check with " + checkerName);
           break;
 
         } else {
@@ -144,7 +144,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
 
           } else {
             Path path = ARTUtils.getOnePathTo(errorElement);
-            throw new RefinementFailedException(Reason.InfeasibleCounterexample, path);
+            throw new RefinementFailedException(Reason.InfeasibleCounterexample, path, true);
           }
         }
       } finally {

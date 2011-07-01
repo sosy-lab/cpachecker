@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
@@ -75,8 +74,6 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
   @Override
   protected final boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
     if (pPath == null) {
-      //TODO:  this can be implemented less drastic -> only remove calls on counterexample
-      restartAnalysis(pReached);
       return true;
     } else {
       return performRefinement0(new ABMReachedSet(pReached, pPath), pPath);
@@ -84,7 +81,7 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
   }
 
   @Override
-  protected final Path computePath(ARTElement pLastElement, UnmodifiableReachedSet pReachedSet) throws InterruptedException, CPATransferException {
+  protected final Path computePath(ARTElement pLastElement, ReachedSet pReachedSet) throws InterruptedException, CPATransferException {
     assert pLastElement.isTarget();
 
     computePathTimer.start();
@@ -122,6 +119,7 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
       //Strategy 2
       //restart the analysis
       //TODO: this can be implemented less drastic -> only remove lazy caches (on path)
+      System.err.println("Warning: restarting analysis");
       restartAnalysis(reachSet);
       return;
     }
