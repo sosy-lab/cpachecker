@@ -6,7 +6,7 @@
     <option name="-setprop">output.disable=true</option>
     <option name="-config">test/config/symbpredabsCPA-sbe-heuristics.properties</option>
     <option name="-setprop">ProgressObserverCPA.cpa.assumptions.progressobserver.heuristics=RepetitionsInPathHeuristics</option>
-    <option name="-setprop">RepetitionsInPathHeuristics.threshold=3</option>
+    <option name="-setprop">cpa.assumptions.progressobserver.heuristics.repetitionsInPathHeuristics.threshold=3</option>
     <option name="-heap">4000m</option>
   </test>
   <test name="sbe-heuristic">
@@ -14,7 +14,7 @@
     <option name="-setprop">output.disable=true</option>
     <option name="-config">test/config/symbpredabsCPA-sbe-heuristics.properties</option>
     <option name="-setprop">ProgressObserverCPA.cpa.assumptions.progressobserver.heuristics=RepetitionsInPathHeuristics</option>
-    <option name="-setprop">RepetitionsInPathHeuristics.threshold=4</option>
+    <option name="-setprop">cpa.assumptions.progressobserver.heuristics.repetitionsInPathHeuristics.threshold=4</option>
     <option name="-heap">4000m</option>
   </test>
   <test name="sbe">
