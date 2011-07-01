@@ -47,6 +47,11 @@ public class ARTMergeJoin implements MergeOperator {
     assert !artElement1.isCovered();
     assert !artElement2.isCovered();
 
+    if (!artElement2.mayCover()) {
+      // elements that may not cover should also not be used for merge
+      return pElement2;
+    }
+
     AbstractElement wrappedElement1 = artElement1.getWrappedElement();
     AbstractElement wrappedElement2 = artElement2.getWrappedElement();
     AbstractElement retElement = wrappedMerge.merge(wrappedElement1, wrappedElement2, pPrecision);

@@ -43,9 +43,13 @@ public class ARTElement extends AbstractSingleWrapperElement {
 
   private final Set<ARTElement> children;
   private final Set<ARTElement> parents; // more than one parent if joining elements
+
   private ARTElement mCoveredBy = null;
   private Set<ARTElement> mCoveredByThis = null; // lazy initialization because rarely needed
+
+  private boolean mayCover = true;
   private boolean destroyed = false;
+
   private ARTElement mergedWith = null;
 
   private final int elementId;
@@ -80,6 +84,8 @@ public class ARTElement extends AbstractSingleWrapperElement {
 
   protected void setCovered(ARTElement pCoveredBy) {
     assert pCoveredBy != null;
+    assert pCoveredBy.mayCover;
+
     mCoveredBy = pCoveredBy;
     if (pCoveredBy.mCoveredByThis == null) {
       // lazy initialization because rarely needed
@@ -116,6 +122,16 @@ public class ARTElement extends AbstractSingleWrapperElement {
 
   public ARTElement getMergedWith() {
     return mergedWith;
+  }
+
+  boolean mayCover() {
+    return mayCover;
+  }
+
+  public void setNotCovering() {
+    assert !isCovered();
+    assert mCoveredByThis == null;
+    mayCover = false;
   }
 
   @Override
@@ -204,6 +220,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
         covered.mCoveredBy = null;
       }
       mCoveredByThis.clear();
+      mCoveredByThis = null;
     }
 
     destroyed = true;
