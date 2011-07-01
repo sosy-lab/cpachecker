@@ -130,7 +130,6 @@ public class ARTElement extends AbstractSingleWrapperElement {
 
   public void setNotCovering() {
     assert !isCovered();
-    assert mCoveredByThis == null;
     mayCover = false;
   }
 
