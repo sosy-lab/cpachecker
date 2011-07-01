@@ -172,7 +172,7 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
 
   @Override
   public Model getModel() {
-    return new Model();
+    return new Model(smgr);
   }
 
 }

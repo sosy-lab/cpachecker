@@ -418,7 +418,7 @@ public class YicesTheoremProver implements TheoremProver {
 
     @Override
     public Model getModel() {
-      return new Model();
+      return new Model(smgr);
     }
 
 }
