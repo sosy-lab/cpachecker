@@ -177,36 +177,21 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
           return true;
         }
 
-        // if the analysis is not sound and we can proceed with
-        // another algorithm, continue with the next algorithm
-        if (!sound) {
-          // if there are no more algorithms to proceed with,
-          // return the result
-          if(idx == configFiles.length){
-            logger.log(Level.INFO, "RestartAlgorithm result is unsound.");
-            analysisResult = Result.UNKNOWN;
-            return false;
-          }
-
-          else{
-            logger.log(Level.INFO, "RestartAlgorithm switches to the next algorithm [Reason: Unsound result]...");
-            continueAnalysis = true;
-          }
-
-        }
-
         // if there are still elements in the waitlist, the result is unknown
         // continue with the next algorithm
         if (currentReached.hasWaitingElement()) {
           // if there are no more algorithms to proceed with,
           // return the result
           if(idx == configFiles.length){
+
             logger.log(Level.INFO, "Analysis not completed: There are still elements to be processed.");
             analysisResult = Result.UNKNOWN;
-            return true;
+            return false;
           }
 
           else{
+            stats.printStatistics(System.out, Result.UNKNOWN, currentReached);
+            stats.resetSubStatistics();
             logger.log(Level.INFO, "RestartAlgorithm switches to the next algorithm [Reason: There are still elements in the waitlist]...");
             continueAnalysis = true;
           }
