@@ -6,9 +6,7 @@
       <includesfile>test/assumptions/assumptions.set</includesfile>
     </sourcefiles>
     <option name="-setprop">output.disable=true</option>
-    <option name="-config">test/config/explicitAnalysis-heuristics.properties</option>
-    <option name="-setprop">ProgressObserverCPA.cpa.assumptions.progressobserver.heuristics=ReachedSizeHeuristics</option>
-    <option name="-setprop">ReachedSizeHeuristics.threshold=5000</option>
+    <option name="-config">test/config/explicitAnalysis-R5000_limit.properties</option>
     <option name="-heap">12000m</option>
   </test>
   <columns>
