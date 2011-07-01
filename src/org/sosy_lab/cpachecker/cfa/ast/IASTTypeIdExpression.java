@@ -68,4 +68,9 @@ public final class IASTTypeIdExpression extends IASTExpression {
       return toString().toLowerCase();
     }
   }
+
+  @Override
+  public String toASTString() {
+    return operator.getOperator() + "(" + type.toASTString() + ")";
+  }
 }

@@ -48,4 +48,9 @@ public final class IASTFunctionCallStatement extends IASTStatement implements IA
   public <R, X extends Exception> R accept(StatementVisitor<R, X> v) throws X {
     return v.visit(this);
   }
+
+  @Override
+  public String toASTString() {
+    return functionCall.toASTString() + ";";
+  }
 }

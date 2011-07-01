@@ -46,7 +46,17 @@ public final class IASTDeclaration extends IASTSimpleDeclaration {
       StorageClass pStorageClass,
       IType pSpecifier, String pName,
       IASTInitializer pInitializer) {
-    super(pRawSignature, pFileLocation, pSpecifier, pName);
+    this(pRawSignature, pFileLocation, pIsGlobal, pStorageClass, pSpecifier, pName, pName, pInitializer);
+  }
+
+  public IASTDeclaration(String pRawSignature,
+      IASTFileLocation pFileLocation,
+      boolean pIsGlobal,
+      StorageClass pStorageClass,
+      IType pSpecifier, String pName,
+      String pOrigName,
+      IASTInitializer pInitializer) {
+    super(pRawSignature, pFileLocation, pSpecifier, pName, pOrigName);
     isGlobal = pIsGlobal;
     storageClass = checkNotNull(pStorageClass);
     initializer = pInitializer;
@@ -65,5 +75,23 @@ public final class IASTDeclaration extends IASTSimpleDeclaration {
 
   public IASTInitializer getInitializer() {
     return initializer;
+  }
+
+  @Override
+  public String toASTString() {
+    StringBuilder lASTString = new StringBuilder();
+    lASTString.append(storageClass.toString().toLowerCase());
+    lASTString.append(" ");
+    lASTString.append(getDeclSpecifier().toASTString());
+    if (getName() != null) {
+      lASTString.append(" ");
+      lASTString.append(getName());
+    }
+    if (initializer != null) {
+      lASTString.append(" = ");
+      lASTString.append(initializer.toASTString());
+    }
+    lASTString.append(";");
+    return lASTString.toString();
   }
 }

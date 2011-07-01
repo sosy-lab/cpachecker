@@ -42,4 +42,12 @@ public class IASTArrayTypeSpecifier extends IType {
   public IASTExpression getLength() {
     return length;
   }
+
+  @Override
+  public String toASTString() {
+    return (isConst() ? "const " : "")
+      + (isVolatile() ? "volatile " : "")
+      + type.toASTString()
+      + "[" + length.toASTString() + "]";
+  }
 }

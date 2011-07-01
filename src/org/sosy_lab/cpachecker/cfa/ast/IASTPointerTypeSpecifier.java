@@ -36,4 +36,9 @@ public final class IASTPointerTypeSpecifier extends IType {
   public IType getType() {
     return type;
   }
+
+  @Override
+  public String toASTString() {
+    return (isConst() ? "const " : "") + (isVolatile() ? "volatile " : "") + type.toASTString() + " *";
+  }
 }

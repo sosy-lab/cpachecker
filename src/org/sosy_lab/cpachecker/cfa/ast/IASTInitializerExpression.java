@@ -36,4 +36,9 @@ public final class IASTInitializerExpression extends IASTInitializer {
   public IASTExpression getExpression() {
     return expression;
   }
+
+  @Override
+  public String toASTString() {
+    return expression.toASTString();
+  }
 }

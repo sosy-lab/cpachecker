@@ -53,4 +53,9 @@ public final class IASTCastExpression extends IASTExpression {
   public <R, X extends Exception> R accept(RightHandSideVisitor<R, X> v) throws X {
     return v.visit(this);
   }
+
+  @Override
+  public String toASTString() {
+    return "(" + type.toASTString() + ")" + operand.toASTString();
+  }
 }

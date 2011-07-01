@@ -36,4 +36,9 @@ public class IASTReturnStatement extends IASTNode {
   public IASTExpression getReturnValue() {
     return expression;
   }
+
+  @Override
+  public String toASTString() {
+    return "return " + expression.toASTString() + ";";
+  }
 }

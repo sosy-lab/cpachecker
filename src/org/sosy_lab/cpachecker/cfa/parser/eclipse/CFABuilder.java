@@ -260,8 +260,7 @@ class CFABuilder extends ASTVisitor
       throw new CFAGenerationRuntimeException("Duplicate function " + nameOfFunction, declaration);
     }
 
-    scope.registerDeclaration(fdef);
-    scope.enterFunction();
+    scope.enterFunction(fdef);
 
     final List<org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration> parameters = fdef.getDeclSpecifier().getParameters();
     final List<String> parameterNames = new ArrayList<String>(parameters.size());
@@ -390,6 +389,7 @@ class CFABuilder extends ASTVisitor
     // Handle each kind of expression
     if (statement instanceof IASTCompoundStatement)
     {
+      scope.enterBlock();
       // Do nothing, just continue visiting
     }
     else if (statement instanceof IASTExpressionStatement)
@@ -897,19 +897,22 @@ class CFABuilder extends ASTVisitor
         addToCFA(blankEdge);
       }
     }
-    else if ((statement instanceof IASTCompoundStatement)
-        && (statement.getPropertyInParent () == IASTWhileStatement.BODY))
+    else if (statement instanceof IASTCompoundStatement)
     {
-      CFANode prevNode = locStack.pop ();
-      CFANode startNode = loopStartStack.pop();
+      scope.leaveBlock();
+      if (statement.getPropertyInParent () == IASTWhileStatement.BODY)
+      {
+        CFANode prevNode = locStack.pop ();
+        CFANode startNode = loopStartStack.pop();
 
-      if (isReachableNode(prevNode)) {
-        BlankEdge blankEdge = new BlankEdge("", prevNode.getLineNumber(), prevNode, startNode);
-        addToCFA(blankEdge);
+        if (isReachableNode(prevNode)) {
+          BlankEdge blankEdge = new BlankEdge("", prevNode.getLineNumber(), prevNode, startNode);
+          addToCFA(blankEdge);
+        }
+
+        CFANode nextNode = loopNextStack.pop();
+        assert nextNode == locStack.peek();
       }
-
-      CFANode nextNode = loopNextStack.pop();
-      assert nextNode == locStack.peek();
     }
     else if (statement instanceof IASTWhileStatement) // Code never hit due to bug in Eclipse CDT
     {

@@ -41,4 +41,6 @@ public abstract class IASTNode {
   public String getRawSignature() {
     return rawSignature;
   }
+
+  public abstract String toASTString();
 }

@@ -47,4 +47,28 @@ public final class IASTElaboratedTypeSpecifier extends IType {
   public static final int k_struct = 1;
   public static final int k_union = 2;
 
+  @Override
+  public String toASTString() {
+    StringBuilder lASTString = new StringBuilder();
+
+    if (isConst()) {
+      lASTString.append("const ");
+    }
+    if (isVolatile()) {
+      lASTString.append("volatile ");
+    }
+
+    if (kind == k_enum) {
+      lASTString.append("enum ");
+    } else if (kind == k_struct) {
+      lASTString.append("struct ");
+    } else if (kind == k_union) {
+      lASTString.append("union ");
+    } else {
+      throw new RuntimeException("kind of IASTElaboratedTypeSpecifier is unknown");
+    }
+
+    lASTString.append(name);
+    return lASTString.toString();
+  }
 }

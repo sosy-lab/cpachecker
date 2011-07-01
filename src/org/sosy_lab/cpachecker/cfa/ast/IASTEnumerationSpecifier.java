@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import java.util.Iterator;
 import java.util.List;
 
 import com.google.common.collect.ImmutableList;
@@ -50,6 +51,36 @@ public final class IASTEnumerationSpecifier extends IType {
     return name;
   }
 
+  @Override
+  public String toASTString() {
+    StringBuilder lASTString = new StringBuilder();
+
+    if (isConst()) {
+      lASTString.append("const ");
+    }
+    if (isVolatile()) {
+      lASTString.append("volatile ");
+    }
+
+    lASTString.append("enum ");
+    lASTString.append(name);
+    lASTString.append(" {");
+
+    Iterator<IASTEnumerator> lIt = enumerators.iterator();
+    boolean lFirst = true;
+    while (lIt.hasNext()) {
+      if (lFirst) {
+        lFirst = false;
+      } else {
+        lASTString.append(", ");
+      }
+      lASTString.append(lIt.next().toASTString());
+    }
+
+    lASTString.append("}");
+    return lASTString.toString();
+  }
+
   public static final class IASTEnumerator extends IASTSimpleDeclaration {
 
     private static final IType INT_TYPE = new IASTSimpleDeclSpecifier(true, false, BasicType.INT, false, false, true, false, false, false, false);
@@ -72,6 +103,15 @@ public final class IASTEnumerationSpecifier extends IType {
 
     public boolean hasValue() {
       return value != null;
+    }
+
+    @Override
+    public String toASTString() {
+      if (hasValue()) {
+        return getName() + " = " + String.valueOf(value);
+      } else {
+        return getName();
+      }
     }
   }
 }

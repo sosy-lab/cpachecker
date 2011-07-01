@@ -44,4 +44,9 @@ public final class IASTTypeId extends IASTNode {
   public String getName() {
     return name;
   }
+
+  @Override
+  public String toASTString() {
+    return name;
+  }
 }
