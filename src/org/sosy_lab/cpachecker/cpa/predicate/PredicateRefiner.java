@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
+import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
 import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.AbstractionElement;
@@ -317,6 +318,10 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
 
   private Path createPathFromPredicateValues(Path pPath,
                           NavigableMap<Integer, Map<Integer, Boolean>> preds) {
+
+    ARTElement errorElement = pPath.getLast().getFirst();
+    Set<ARTElement> errorPathElements = ARTUtils.getAllElementsOnPathsTo(errorElement);
+
     Path result = new Path();
     ARTElement currentElement = pPath.getFirst().getFirst();
     Integer currentIdx = -1;
@@ -391,6 +396,11 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
 
       default:
         logger.log(Level.WARNING, "ART splits with more than two branches!");
+        return null;
+      }
+
+      if (!errorPathElements.contains(child)) {
+        logger.log(Level.WARNING, "ART and direction information from solver disagree!");
         return null;
       }
 
