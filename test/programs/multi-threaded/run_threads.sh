@@ -1,5 +1,5 @@
 #!/bin/bash
 for (( ; ; ))
 do
-   ./non-modular-unsafe
+   ./$1
 done
