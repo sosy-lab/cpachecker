@@ -49,3 +49,4 @@ Coding:
 - Prefer iterators over List.get(int).
 - Before implementing equals() for an AbstractElement,
   think if you can cache and reuse such objects.
+

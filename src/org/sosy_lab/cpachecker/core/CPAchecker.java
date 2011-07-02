@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.RelyGuaranteeCEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -98,6 +99,10 @@ public class CPAchecker {
         description="use assumption collecting algorithm")
         boolean useAssumptionCollector = false;
 
+    @Option(name = "analysis.useRelyGuaranteeRefinement",
+        description = "use experimental rely-guarantee CEGAR loop")
+        boolean useRelyGuaranteeRefinement = false;
+
     @Option(name = "analysis.useRefinement",
         description = "use CEGAR algorithm for lazy counter-example guided analysis"
           + "\nYou need to specify a refiner with the cegar.refiner option."
@@ -149,6 +154,12 @@ public class CPAchecker {
     options = new CPAcheckerOptions();
     config.inject(options);
     reachedSetFactory = new ReachedSetFactory(pConfiguration);
+  }
+
+
+  // run method for multiple threads
+  public CPAcheckerResult run(String[] filenames) {
+    return run(filenames[0]);
   }
 
   public CPAcheckerResult run(String filename) {
@@ -413,6 +424,9 @@ public class CPAchecker {
 
     Algorithm algorithm = new CPAAlgorithm(cpa, logger);
 
+    if (options.useRelyGuaranteeRefinement) {
+      algorithm = new RelyGuaranteeCEGARAlgorithm(algorithm, config, logger);
+    }
     if (options.useRefinement) {
       algorithm = new CEGARAlgorithm(algorithm, config, logger);
     }

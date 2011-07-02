@@ -133,6 +133,9 @@ public class CPAMain {
 
   public static void main(String[] args) {
     // initialize various components
+    //for(String s: args){
+    //  System.out.println(s);
+    //}
     Configuration cpaConfig = null;
     LogManager logManager = null;
     try {
@@ -153,7 +156,7 @@ public class CPAMain {
       System.exit(1);
     }
 
-    final String cFilePath = getCodeFilePath(cpaConfig, logManager);
+    final String[] cFilePaths = getCodeFilePaths(cpaConfig, logManager);
 
     // create everything
     CPAchecker cpachecker = null;
@@ -172,33 +175,47 @@ public class CPAMain {
     Runtime.getRuntime().addShutdownHook(shutdownHook);
 
     // run analysis
-    CPAcheckerResult result = cpachecker.run(cFilePath);
+    CPAcheckerResult result = cpachecker.run(cFilePaths);
 
     shutdownHook.setResult(result);
 
     // statistics are displayed by shutdown hook
   }
 
-  static String getCodeFilePath(final Configuration cpaConfig, final LogManager logManager){
+  static String[] getCodeFilePaths(final Configuration cpaConfig, final LogManager logManager){
     String[] names = cpaConfig.getPropertiesArray("analysis.programNames");
-    if (names.length != 1) {
+    String[] concurrentOption = cpaConfig.getPropertiesArray("analysis.concurrent");
+    String paths[] = new String[names.length];
+    boolean isConcurrent = false;
+
+    // with option "-concurrent" multiple input files are allowed
+    if (concurrentOption.length>0  && concurrentOption[0].equals("true")){
+      isConcurrent = true;
+    }
+
+    if (!isConcurrent & names.length != 1) {
       logManager.log(Level.SEVERE, "Exactly one code file has to be given!");
       System.exit(1);
     }
 
-    File cFile = new File(names[0]);
-    if (!cFile.isAbsolute()) {
-      cFile = new File(cpaConfig.getRootDirectory(), cFile.getPath());
+    for(int i=0; i<names.length; i++){
+      String name = names[i];
+      File cFile = new File(name);
+      if (!cFile.isAbsolute()) {
+        cFile = new File(cpaConfig.getRootDirectory(), cFile.getPath());
+      }
+
+      try {
+        Files.checkReadableFile(cFile);
+      } catch (FileNotFoundException e) {
+        logManager.log(Level.SEVERE, e.getMessage());
+        System.exit(1);
+      }
+
+      paths[i] = cFile.getPath();
     }
 
-    try {
-      Files.checkReadableFile(cFile);
-    } catch (FileNotFoundException e) {
-      logManager.log(Level.SEVERE, e.getMessage());
-      System.exit(1);
-    }
-
-    return cFile.getPath();
+    return paths;
   }
 
   static Configuration createConfiguration(String[] args)
@@ -219,6 +236,7 @@ public class CPAMain {
       config.loadFromFile(configFile);
     }
     config.setOptions(cmdLineOptions);
+
 
     //normalizeValues();
     return config.build();
@@ -264,12 +282,16 @@ public class CPAMain {
       } else if (arg.equals("-nolog")) {
         properties.put("log.level", "off");
         properties.put("log.consoleLevel", "off");
+      }
+      // option  "-concurrent" means that there are several program files, one per thread
+      else if (arg.equals("-concurrent")) {
+        properties.put("analysis.concurrent", "true");
       } else if (arg.equals("-setprop")) {
         if (argsIt.hasNext()) {
           String[] bits = argsIt.next().split("=");
           if (bits.length != 2) {
             throw new InvalidCmdlineArgumentException(
-                "-setprop argument must be a key=value pair!");
+            "-setprop argument must be a key=value pair!");
           }
           properties.put(bits[0], bits[1]);
         } else {
@@ -308,6 +330,7 @@ public class CPAMain {
     if (!programs.isEmpty()) {
       properties.put("analysis.programNames", Joiner.on(", ").join(programs));
     }
+    System.out.println(properties.toString());
     return properties;
   }
 
@@ -326,6 +349,7 @@ public class CPAMain {
     System.out.println(" -setprop");
     System.out.println(" -printOptions [-v|-verbose]");
     System.out.println(" -printUsedOptions");
+    System.out.println(" -concurrent");
     System.out.println(" -help");
     System.exit(0);
   }
