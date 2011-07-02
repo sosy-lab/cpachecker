@@ -132,10 +132,6 @@ public class CPAMain {
 
 
   public static void main(String[] args) {
-    // initialize various components
-    //for(String s: args){
-    //  System.out.println(s);
-    //}
     Configuration cpaConfig = null;
     LogManager logManager = null;
     try {
@@ -330,7 +326,6 @@ public class CPAMain {
     if (!programs.isEmpty()) {
       properties.put("analysis.programNames", Joiner.on(", ").join(programs));
     }
-    System.out.println(properties.toString());
     return properties;
   }
 
