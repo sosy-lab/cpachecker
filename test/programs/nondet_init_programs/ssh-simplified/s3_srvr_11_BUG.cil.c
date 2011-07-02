@@ -55,7 +55,6 @@ int ssl3_accept(int initial_state )
   int tmp___9 ;
   int tmp___10 ;
   int blastFlag ;
-  int nondet_int() ;
   int __cil_tmp55 ;
   unsigned long __cil_tmp56 ;
   unsigned long __cil_tmp57 ;
