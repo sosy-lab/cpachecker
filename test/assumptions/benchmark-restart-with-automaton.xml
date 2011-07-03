@@ -8,6 +8,8 @@
       <include>test/programs/nondet_init_programs/systemc/toy.cil.c</include>
     </sourcefiles>
     <option name="-config">test/config/symbpredabsCPA-lbe.properties</option>
+    <option name="-setprop">analysis.useCBMC=true</option>
+    <option name="-setprop">counterexample.continueAfterInfeasibleError=true</option>
     <option name="-setprop">output.disable=true</option>
     <option name="-heap">4000m</option>
   </test>
