@@ -183,7 +183,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
           // if there are no more algorithms to proceed with,
           // return the result
           if(idx == configFiles.length){
-
             logger.log(Level.INFO, "Analysis not completed: There are still elements to be processed.");
             analysisResult = Result.UNKNOWN;
             return false;
@@ -337,10 +336,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     if (pOptions.useAssumptionCollector) {
       algorithm = new AssumptionCollectorAlgorithm(algorithm, pConfig, logger);
-    }
-
-    if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider)algorithm).collectStatistics(stats.getSubStatistics());
     }
 
     return algorithm;
