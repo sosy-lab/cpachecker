@@ -152,6 +152,11 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
       stats.noOfAlgorithmsUsed = idx;
 
+      if (Iterables.any(currentReached, AbstractElements.IS_TARGET_ELEMENT)) {
+        analysisResult = Result.UNSAFE;
+        return true;
+      }
+
       // if the analysis is not sound and we can proceed with
       // another algorithm, continue with the next algorithm
       if(!sound){
@@ -172,11 +177,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       else {
-        if (Iterables.any(currentReached, AbstractElements.IS_TARGET_ELEMENT)) {
-          analysisResult = Result.UNSAFE;
-          return true;
-        }
-
         // if there are still elements in the waitlist, the result is unknown
         // continue with the next algorithm
         if (currentReached.hasWaitingElement()) {
