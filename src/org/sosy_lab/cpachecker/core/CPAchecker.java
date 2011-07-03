@@ -29,10 +29,12 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.EmptyCFAException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -42,10 +44,11 @@ import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ConcurrentAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.RelyGuaranteeCEGARAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.RelyGuaranteeCPAAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.RelyGuaranteeAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ConcurrentCEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -179,9 +182,12 @@ public class CPAchecker {
   // analysis for multiple threads
   private CPAcheckerResult runRelyGuarantee(String[] filenames) {
     int threadNo = filenames.length;
+    CFACreator[] cfaCreators = new CFACreator[threadNo];
+    CFA cfas[] = new CFA[threadNo];
+    CFAFunctionDefinitionNode mainFunctions[] = new CFAFunctionDefinitionNode[threadNo];
     ConfigurableProgramAnalysis cpas[] = new ConfigurableProgramAnalysis[threadNo];
-    MainCPAStatistics stats = null;
     ReachedSet initalReachedSets[] = new ReachedSet[threadNo];
+    MainCPAStatistics stats = null;
     Result result=null;
 
     try {
@@ -189,15 +195,24 @@ public class CPAchecker {
 
       stats.creationTime.start();
 
-      CFACreator cfaCreator = new CFACreator(config, logger);
-      stats.setCFACreator(cfaCreator);
-
       // create a cpa for each thread
       for(int i=0; i<threadNo; i++){
         cpas[i] = createCPA(stats);
       }
+      // get main functions and CFA
+      Pair<CFAFunctionDefinitionNode[], CFA[]> tuple = getMainFunctionsAndCFAS(filenames);
+      mainFunctions = tuple.getFirst();
+      cfas = tuple.getSecond();
+      // get the initial reached sets
+      for(int i=0; i<threadNo; i++){
+        initalReachedSets[i] = createInitialReachedSet(cpas[i], mainFunctions[i]);
+      }
 
-      RelyGuaranteeCPAAlgorithm algorithm = new RelyGuaranteeCPAAlgorithm(cpas, logger);
+      ConcurrentAlgorithm algorithm = new RelyGuaranteeAlgorithm(cfas, mainFunctions, cpas, logger);
+
+      if (options.useRelyGuaranteeRefinement) {
+        algorithm = new ConcurrentCEGARAlgorithm(algorithm, config, logger);
+      }
 
       Set<String> unusedProperties = config.getUnusedProperties();
       if (!unusedProperties.isEmpty()) {
@@ -205,11 +220,8 @@ public class CPAchecker {
             Joiner.on("\n ").join(unusedProperties), "\n");
       }
 
+      // TODO is the right place for this function?
       stats.creationTime.stop();
-
-      stopIfNecessary();
-
-      initalReachedSets = createInitialReachedSets(filenames, cpas);
 
       stopIfNecessary();
 
@@ -218,7 +230,7 @@ public class CPAchecker {
       try {
 
         // TODO change to multiple
-        result = runRealyGuaranteeAlgorithm(algorithm, initalReachedSets, stats);
+        result = runRelyGuaranteeAlgorithm(algorithm, initalReachedSets, stats);
 
       } finally {
         // unregister management interface for CPAchecker
@@ -261,7 +273,6 @@ public class CPAchecker {
     }
     return new CPAcheckerResult(result, initalReachedSets[0], stats);
   }
-
 
 
 
@@ -491,7 +502,7 @@ public class CPAchecker {
     return Result.SAFE;
   }
 
-  private Result runRealyGuaranteeAlgorithm(final RelyGuaranteeCPAAlgorithm algorithm,
+  private Result runRelyGuaranteeAlgorithm(final ConcurrentAlgorithm pAlgorithm,
       final ReachedSet[] reached,
       final MainCPAStatistics stats) throws CPAException, InterruptedException {
 
@@ -500,7 +511,7 @@ public class CPAchecker {
 
     boolean sound = true;
     do {
-      sound &= algorithm.run(reached);
+      sound &= pAlgorithm.run(reached);
 
       // either run only once (if stopAfterError == true)
     } while (!options.stopAfterError);
@@ -509,7 +520,7 @@ public class CPAchecker {
     stats.analysisTime.stop();
     stats.programTime.stop();
 
-    return algorithm.getResult();
+    return pAlgorithm.getResult();
   }
 
   private Result runRestartAlgorithm(final RestartAlgorithm restartAlgorithm,
@@ -553,9 +564,6 @@ public class CPAchecker {
 
     Algorithm algorithm = new CPAAlgorithm(cpa, logger);
 
-    if (options.useRelyGuaranteeRefinement) {
-      algorithm = new RelyGuaranteeCEGARAlgorithm(algorithm, config, logger);
-    }
     if (options.useRefinement) {
       algorithm = new CEGARAlgorithm(algorithm, config, logger);
     }
@@ -607,25 +615,28 @@ public class CPAchecker {
     return reached;
   }
 
-  private ReachedSet[] createInitialReachedSets(String[] filenames, ConfigurableProgramAnalysis[] cpas) throws EmptyCFAException, InvalidConfigurationException, IOException, ParserException, InterruptedException{
-    CFACreator cfaCreator;
-    ReachedSet[] reachedSets = new ReachedSet[filenames.length];
+  // returns main functions and CFA from the given file names
+  private Pair<CFAFunctionDefinitionNode[], CFA[]> getMainFunctionsAndCFAS(String[] pFilenames) throws InvalidConfigurationException, IOException, ParserException, InterruptedException, EmptyCFAException{
+    int threadNo = pFilenames.length;
+    CFACreator[] cfaCreators = new CFACreator[threadNo];
+    CFA cfas[] = new CFA[threadNo];
+    CFAFunctionDefinitionNode mainFunctions[] = new CFAFunctionDefinitionNode[threadNo];
 
-    for(int i=0; i<filenames.length; i++){
-      String filename = filenames[i];
-      cfaCreator = new CFACreator(config, logger);
-      // create CFA
-      cfaCreator.parseFileAndCreateCFA(filename);
-
-      if (cfaCreator.getFunctions().isEmpty()) {
+    CFACreator creator;
+    for(int i=0; i<threadNo; i++){
+      String filename = pFilenames[i];
+      creator = new CFACreator(config, logger);
+      creator.parseFileAndCreateCFA(filename);
+      if (creator.getFunctions().isEmpty()) {
         // empty program, do nothing
         throw new EmptyCFAException();
       }
-
-      reachedSets[i] = createInitialReachedSet(cpas[i], cfaCreator.getMainFunction());
+      mainFunctions[i] = creator.getMainFunction();
+      cfas[i] = creator.getCFA();
     }
 
-    return reachedSets;
+    return new Pair<CFAFunctionDefinitionNode[], CFA[]>(mainFunctions, cfas);
   }
+
 
 }

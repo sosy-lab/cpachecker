@@ -95,6 +95,7 @@ public class CFACreator {
   private final LogManager logger;
   private final CParser parser;
   private final CFAReduction cfaReduction;
+  private       CFA cfa;
 
   private Map<String, CFAFunctionDefinitionNode> functions;
   private CFAFunctionDefinitionNode mainFunction;
@@ -167,6 +168,9 @@ public class CFACreator {
 
       logger.log(Level.FINE, "Starting parsing of file");
       CFA c = parser.parseFile(filename);
+      // remember the cfa
+      cfa = c;
+
       logger.log(Level.FINE, "Parser Finished");
 
       final Map<String, CFAFunctionDefinitionNode> cfas = c.getFunctions();
@@ -298,6 +302,9 @@ public class CFACreator {
     }
   }
 
+  public CFA getCFA(){
+    return cfa;
+  }
 
   /**
    * Insert nodes for global declarations after first node of CFA.
@@ -341,4 +348,6 @@ public class CFACreator {
     edge.getPredecessor().addLeavingEdge(edge);
     edge.getSuccessor().addEnteringEdge(edge);
   }
+
+
 }
