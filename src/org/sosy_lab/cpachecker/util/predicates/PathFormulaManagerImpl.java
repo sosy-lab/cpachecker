@@ -47,18 +47,17 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
   @Override
   public PathFormula makeEmptyPathFormula() {
-    return new PathFormula(fmgr.makeTrue(), SSAMap.emptySSAMap(), 0, fmgr.makeTrue(), 0);
+    return new PathFormula(fmgr.makeTrue(), SSAMap.emptySSAMap(), 0);
   }
 
   @Override
   public PathFormula makeEmptyPathFormula(PathFormula oldFormula) {
-    return new PathFormula(fmgr.makeTrue(), oldFormula.getSsa(), 0,
-        oldFormula.getReachingPathsFormula(), oldFormula.getBranchingCounter());
+    return new PathFormula(fmgr.makeTrue(), oldFormula.getSsa(), 0);
   }
 
   @Override
   public PathFormula makeNewPathFormula(PathFormula oldFormula, SSAMap m) {
-    return new PathFormula(oldFormula.getFormula(), m, oldFormula.getLength(), oldFormula.getReachingPathsFormula(), oldFormula.getBranchingCounter());
+    return new PathFormula(oldFormula.getFormula(), m, oldFormula.getLength());
   }
 
   @Override
@@ -78,12 +77,8 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     SSAMap newSsa = pm.getSecond();
 
     int newLength = Math.max(pF1.getLength(), pF2.getLength());
-    Formula newReachingPathsFormula
-    = fmgr.makeOr(pF1.getReachingPathsFormula(), pF2.getReachingPathsFormula());
-    int newBranchingCounter = Math.max(pF1.getBranchingCounter(), pF2.getBranchingCounter());
 
-    return new PathFormula(newFormula, newSsa, newLength,
-        newReachingPathsFormula, newBranchingCounter);
+    return new PathFormula(newFormula, newSsa, newLength);
   }
 
   @Override
@@ -91,8 +86,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     SSAMap ssa = pPathFormula.getSsa();
     Formula otherFormula =  fmgr.instantiate(pOtherFormula, ssa);
     Formula resultFormula = fmgr.makeAnd(pPathFormula.getFormula(), otherFormula);
-    return new PathFormula(resultFormula, ssa, pPathFormula.getLength(),
-        pPathFormula.getReachingPathsFormula(), pPathFormula.getBranchingCounter());
+    return new PathFormula(resultFormula, ssa, pPathFormula.getLength());
   }
 
   /**

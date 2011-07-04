@@ -137,6 +137,11 @@ counterexample.checker.config = "test/config/explicitAnalysisInf.properties"
 # second check
 counterexample.continueAfterInfeasibleError = true
 
+# If continueAfterInfeasibleError is true, remove the infeasible
+# counterexample before continuing.Setting this to false may prevent a lot of
+# similar infeasible counterexamples to get discovered, but is unsound
+counterexample.removeInfeasibleErrors = false
+
 # CPA to use (see HowToConfiguration.txt for more documentation on this)
 cpa = CompositeCPA.class.getCanonicalName()
 
@@ -269,10 +274,6 @@ cpa.predicate.abstraction.initialPredicates =
 # which solver to use?
 cpa.predicate.abstraction.solver = "MATHSAT"
   allowed values: [MATHSAT, YICES]
-
-# when transforming code to formula, add predicates that help producing more
-# precise error paths (not necessary for SBE)
-cpa.predicate.addBranchingInformation = true
 
 # force abstractions on function call/return
 cpa.predicate.blk.functions = true
