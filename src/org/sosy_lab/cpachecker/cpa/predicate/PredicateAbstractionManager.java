@@ -64,7 +64,7 @@ import com.google.common.collect.Maps;
 
 
 @Options(prefix="cpa.predicate")
-class PredicateAbstractionManager {
+public class PredicateAbstractionManager {
 
   static class Stats {
     public int numCallsAbstraction = 0;

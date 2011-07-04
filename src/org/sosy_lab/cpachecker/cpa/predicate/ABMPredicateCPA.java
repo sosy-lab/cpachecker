@@ -76,7 +76,7 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
   }
 
   @Override
-  protected Configuration getConfiguration() {
+  public Configuration getConfiguration() {
     return super.getConfiguration();
   }
 

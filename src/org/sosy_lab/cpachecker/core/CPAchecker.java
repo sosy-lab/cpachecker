@@ -208,6 +208,8 @@ public class CPAchecker {
         initalReachedSets[i] = createInitialReachedSet(cpas[i], mainFunctions[i]);
       }
 
+
+
       ConcurrentAlgorithm algorithm = new RelyGuaranteeAlgorithm(cfas, mainFunctions, cpas, logger);
 
       if (options.useRelyGuaranteeRefinement) {

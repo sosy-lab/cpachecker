@@ -799,4 +799,44 @@ public class MathsatFormulaManager implements FormulaManager  {
     arithCache.put(f, res);
     return res;
   }
+
+  public Formula shiftFormula(Formula f, int offset){
+    return encapsulate(shift(getTerm(f), offset));
+  }
+
+  private long shift(long lTerm, int offset) {
+    if (msat_term_is_variable(lTerm) != 0) {
+      Pair<String, Integer> lVariable = parseName(msat_term_repr(lTerm));
+      long decl = msat_declare_variable(msatEnv, makeName(lVariable.getFirst(), lVariable.getSecond() + offset), msat_term_get_type(lTerm));
+      return msat_make_variable(msatEnv, decl);
+    }
+    else {
+      long[] newargs = new long[msat_term_arity(lTerm)];
+
+      for (int i = 0; i < newargs.length; ++i) {
+        newargs[i] = shift(msat_term_get_arg(lTerm, i), offset);
+      }
+
+      long newt;
+
+      if (msat_term_is_uif(lTerm) != 0) {
+        String name = msat_decl_get_name(msat_term_get_decl(lTerm));
+        assert name != null;
+
+        if (ufCanBeLvalue(name)) {
+          // shift ????? TODO think about
+
+          name = parseName(name).getFirst();
+
+          newt = buildMsatUF(name, newargs);
+        } else {
+          newt = msat_replace_args(msatEnv, lTerm, newargs);
+        }
+      } else {
+        newt = msat_replace_args(msatEnv, lTerm, newargs);
+      }
+
+      return newt;
+    }
+  }
 }
