@@ -382,11 +382,8 @@ public class CPAchecker {
           result = runAlgorithm(algorithm, reached, stats);
           return new CPAcheckerResult(result, reached, stats);
         }
-        System.out.println("### 1 ###");
         ConfigurableProgramAnalysis cpa = createCPA(stats);
-        System.out.println("### 2 ###");
         Algorithm algorithm = createAlgorithm(cpa, stats);
-        System.out.println("### 3 ###");
         Set<String> unusedProperties = config.getUnusedProperties();
         if (!unusedProperties.isEmpty()) {
           logger.log(Level.WARNING, "The following configuration options were specified but are not used:\n",
