@@ -32,8 +32,6 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.NavigableMap;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -118,13 +116,18 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
   @Override
   protected boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
     totalRefinement.start();
+
+    ARTElement targetElement = pReached.getLastElement();
+    assert targetElement.equals(pPath.getLast().getFirst());
+    Set<ARTElement> elementsOnPath = ARTUtils.getAllElementsOnPathsTo(targetElement); // TODO: make this lazy?
+
     logger.log(Level.FINEST, "Starting refinement for PredicateCPA");
 
     // create path with all abstraction location elements (excluding the initial element)
     // the last element is the element corresponding to the error location
     List<Triple<ARTElement, CFANode, PredicateAbstractElement>> path = transformPath(pPath);
 
-    Precision oldPrecision = pReached.getPrecision(pReached.getLastElement());
+    Precision oldPrecision = pReached.getPrecision(targetElement);
     PredicatePrecision oldPredicatePrecision = Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
     if (oldPredicatePrecision == null) {
       throw new IllegalStateException("Could not find the PredicatePrecision for the error element");
@@ -133,7 +136,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     logger.log(Level.ALL, "Abstraction trace is", path);
 
     // build the counterexample
-    mCounterexampleTraceInfo = formulaManager.buildCounterexampleTrace(transform(path, Triple.<PredicateAbstractElement>getProjectionToThird()));
+    mCounterexampleTraceInfo = formulaManager.buildCounterexampleTrace(transform(path, Triple.<PredicateAbstractElement>getProjectionToThird()), elementsOnPath);
     targetPath = null;
 
     // if error is spurious refine
@@ -157,7 +160,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
       errorPathProcessing.start();
 
       boolean preciseInfo = false;
-      NavigableMap<Integer, Map<Integer, Boolean>> preds = mCounterexampleTraceInfo.getBranchingPredicates();
+      Map<Integer, Boolean> preds = mCounterexampleTraceInfo.getBranchingPredicates();
       if (preds.isEmpty()) {
         logger.log(Level.WARNING, "No information about ART branches available!");
       } else {
@@ -316,15 +319,13 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     return targetPath;
   }
 
-  private Path createPathFromPredicateValues(Path pPath,
-                          NavigableMap<Integer, Map<Integer, Boolean>> preds) {
+  private Path createPathFromPredicateValues(Path pPath, Map<Integer, Boolean> preds) {
 
     ARTElement errorElement = pPath.getLast().getFirst();
     Set<ARTElement> errorPathElements = ARTUtils.getAllElementsOnPathsTo(errorElement);
 
     Path result = new Path();
     ARTElement currentElement = pPath.getFirst().getFirst();
-    Integer currentIdx = -1;
     while (!currentElement.isTarget()) {
       Set<ARTElement> children = currentElement.getChildren();
 
@@ -371,18 +372,11 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
         assert falseChild != null;
 
         // search first idx where we have a predicate for the current branching
-        Integer branchingId = currentElement.retrieveLocationElement().getLocationNode().getNodeNumber();
-        Boolean predValue;
-        do {
-          Entry<Integer, Map<Integer, Boolean>> nextEntry = preds.higherEntry(currentIdx);
-          if (nextEntry == null) {
-            logger.log(Level.WARNING, "ART branches without direction information from solver!");
-            return null;
-          }
-
-          currentIdx = nextEntry.getKey();
-          predValue = nextEntry.getValue().get(branchingId);
-        } while (predValue == null);
+        Boolean predValue = preds.get(currentElement.getElementId());
+        if (predValue == null) {
+          logger.log(Level.WARNING, "ART branches without direction information from solver!");
+          return null;
+        }
 
         // now select the right edge
         if (predValue) {

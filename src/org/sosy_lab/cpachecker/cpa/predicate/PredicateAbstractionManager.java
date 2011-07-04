@@ -60,7 +60,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver.AllSatResult;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.Maps;
+import com.google.common.collect.ImmutableMap;
 
 
 @Options(prefix="cpa.predicate")
@@ -449,7 +449,7 @@ class PredicateAbstractionManager {
       if (thmProver.isUnsat(fmgr.makeTrue())) {
         return new CounterexampleTraceInfo();
       } else {
-        return new CounterexampleTraceInfo(Collections.singletonList(f), thmProver.getModel(), Maps.<Integer, Map<Integer, Boolean>>newTreeMap());
+        return new CounterexampleTraceInfo(Collections.singletonList(f), thmProver.getModel(), ImmutableMap.<Integer, Boolean>of());
       }
     } finally {
       thmProver.reset();

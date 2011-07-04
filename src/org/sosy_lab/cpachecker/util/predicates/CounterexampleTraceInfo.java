@@ -27,15 +27,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.NavigableMap;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
 
@@ -50,17 +49,17 @@ public class CounterexampleTraceInfo {
     private final Multimap<AbstractElement, AbstractionPredicate> pmap;
     private final Model mCounterexampleModel;
     private final List<Formula> mCounterexampleFormula;
-    private final NavigableMap<Integer, Map<Integer, Boolean>> branchingPreds;
+    private final Map<Integer, Boolean> branchingPreds;
 
     public CounterexampleTraceInfo() {
       mCounterexampleFormula = Collections.emptyList();
       mCounterexampleModel = null;
       spurious = true;
       pmap = ArrayListMultimap.create();
-      branchingPreds = Maps.newTreeMap();
+      branchingPreds = ImmutableMap.of();
     }
 
-    public CounterexampleTraceInfo(List<Formula> pCounterexampleFormula, Model pModel, NavigableMap<Integer, Map<Integer, Boolean>> preds) {
+    public CounterexampleTraceInfo(List<Formula> pCounterexampleFormula, Model pModel, Map<Integer, Boolean> preds) {
       Preconditions.checkNotNull(pCounterexampleFormula);
       Preconditions.checkNotNull(pModel);
 
@@ -68,7 +67,7 @@ public class CounterexampleTraceInfo {
       mCounterexampleModel = pModel;
       spurious = false;
       pmap = ImmutableMultimap.of();
-      branchingPreds = preds;
+      branchingPreds = ImmutableMap.copyOf(preds);
     }
 
     /**
@@ -119,7 +118,7 @@ public class CounterexampleTraceInfo {
       return mCounterexampleModel;
     }
 
-    public NavigableMap<Integer, Map<Integer, Boolean>> getBranchingPredicates() {
+    public Map<Integer, Boolean> getBranchingPredicates() {
       return branchingPreds;
     }
 }
