@@ -546,7 +546,9 @@ public class CtoFormulaConverter {
       FunctionDefinitionNode fn = edge.getSuccessor();
       List<IASTParameterDeclaration> formalParams = fn.getFunctionParameters();
 
-      assert formalParams.size() == actualParams.size();
+      if (formalParams.size() != actualParams.size()) {
+        throw new UnrecognizedCCodeException("Number of parameters on function call does not match function definition", edge);
+      }
 
       String calledFunction = fn.getFunctionName();
 
