@@ -63,6 +63,7 @@ import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
@@ -623,8 +624,8 @@ class CFABuilder extends ASTVisitor
     assert postLoopNode == locStack.peek();
 
     if (isReachableNode(lastNodeInLoop)) {
-      BlankEdge blankEdge2 = new BlankEdge("", lastNodeInLoop.getLineNumber(), lastNodeInLoop, loopEnd);
-      addToCFA(blankEdge2);
+      final BlankEdge blankEdge = new BlankEdge("", lastNodeInLoop.getLineNumber(), lastNodeInLoop, loopEnd);
+      addToCFA(blankEdge);
     }
 
     // skip visiting children of loop, because loopbody was handled before
@@ -724,6 +725,11 @@ class CFABuilder extends ASTVisitor
       final StatementEdge lastEdge = new StatementEdge(
           (IASTExpressionAssignmentStatement) node, filelocStart, loopEnd, loopStart);
       addToCFA(lastEdge);
+
+    } else if (node instanceof IASTFunctionCallAssignmentStatement) {
+      final StatementEdge edge = new StatementEdge((IASTFunctionCallAssignmentStatement)node,
+          filelocStart, loopEnd, loopStart);
+      addToCFA(edge);
 
     } else { // TODO: are there other iteration-expressions in a for-loop?
       throw new AssertionError("CFABuilder: unknown iteration-expressions in for-statement:\n"
