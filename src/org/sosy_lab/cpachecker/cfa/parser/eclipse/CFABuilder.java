@@ -514,7 +514,7 @@ class CFABuilder extends ASTVisitor
     final CFANode firstLoopNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
     currentCFANodes.add(firstLoopNode);
 
-    final CFANode postLoopNode = new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName());
+    final CFANode postLoopNode = new CFALabelNode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName(), "");
     currentCFANodes.add(postLoopNode);
     loopNextStack.push(postLoopNode);
 
@@ -608,8 +608,8 @@ class CFABuilder extends ASTVisitor
     currentCFANodes.add(firstLoopNode);
 
     // firstLoopNode is Node after "!(counter < 5)"
-    final CFANode postLoopNode = new CFANode(
-        fileloc.getEndingLineNumber(), currentCFA.getFunctionName());
+    final CFANode postLoopNode = new CFALabelNode(
+        fileloc.getEndingLineNumber(), currentCFA.getFunctionName(), "");
     currentCFANodes.add(postLoopNode);
     loopNextStack.push(postLoopNode);
 
