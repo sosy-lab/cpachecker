@@ -615,8 +615,7 @@ class ASTConverter {
       return convert((org.eclipse.cdt.core.dom.ast.IASTReturnStatement) s);
 
     } else if (s instanceof org.eclipse.cdt.core.dom.ast.IASTProblemStatement) {
-      org.eclipse.cdt.core.dom.ast.IASTProblemStatement p = (org.eclipse.cdt.core.dom.ast.IASTProblemStatement)s;
-      throw new CFAGenerationRuntimeException(p.getProblem().getMessage(), p);
+      throw new CFAGenerationRuntimeException((org.eclipse.cdt.core.dom.ast.IASTProblemStatement)s);
 
     } else {
       throw new CFAGenerationRuntimeException("unknown statement: " + s.getClass(), s);
@@ -764,8 +763,12 @@ class ASTConverter {
   }
 
   private List<IASTCompositeTypeMemberDeclaration> convertDeclarationInCompositeType(final org.eclipse.cdt.core.dom.ast.IASTDeclaration d) {
+    if (d instanceof org.eclipse.cdt.core.dom.ast.IASTProblemDeclaration) {
+      throw new CFAGenerationRuntimeException((org.eclipse.cdt.core.dom.ast.IASTProblemDeclaration)d);
+    }
+
     if (!(d instanceof org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration)) {
-      throw new CFAGenerationRuntimeException("unknown declaration type", d);
+      throw new CFAGenerationRuntimeException("unknown declaration type " + d.getClass().getSimpleName(), d);
     }
     org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration sd = (org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration)d;
 
