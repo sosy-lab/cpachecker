@@ -38,10 +38,12 @@ import java.util.logging.Level;
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
 import org.eclipse.cdt.core.dom.ast.IASTASMDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTBreakStatement;
+import org.eclipse.cdt.core.dom.ast.IASTCaseStatement;
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
 import org.eclipse.cdt.core.dom.ast.IASTContinueStatement;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarationStatement;
+import org.eclipse.cdt.core.dom.ast.IASTDefaultStatement;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpressionStatement;
 import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
@@ -58,10 +60,12 @@ import org.eclipse.cdt.core.dom.ast.IASTProblemStatement;
 import org.eclipse.cdt.core.dom.ast.IASTReturnStatement;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTStatement;
+import org.eclipse.cdt.core.dom.ast.IASTSwitchStatement;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
@@ -100,6 +104,11 @@ class CFABuilder extends ASTVisitor
   private final Deque<CFANode> loopStartStack = new ArrayDeque<CFANode>();
   private final Deque<CFANode> loopNextStack  = new ArrayDeque<CFANode>(); // For the node following the current if / while block
   private final Deque<CFANode> elseStack      = new ArrayDeque<CFANode>();
+
+  // Data structure for handling switch-statements
+  private Deque<org.sosy_lab.cpachecker.cfa.ast.IASTExpression> switchExprStack =
+    new ArrayDeque<org.sosy_lab.cpachecker.cfa.ast.IASTExpression>();
+  private Deque<CFANode> switchCaseStack = new ArrayDeque<CFANode>();
 
   // Data structures for handling goto
   private final Map<String, CFALabelNode> labelMap = new HashMap<String, CFALabelNode>();
@@ -411,14 +420,13 @@ class CFABuilder extends ASTVisitor
       handleGotoStatement ((IASTGotoStatement)statement, fileloc);
     else if (statement instanceof IASTReturnStatement)
       handleReturnStatement ((IASTReturnStatement)statement, fileloc);
-/* switch statements are removed by CIL
     else if (statement instanceof IASTSwitchStatement)
-      handleSwitchStatement ((IASTSwitchStatement)statement, fileloc);
+      return handleSwitchStatement ((IASTSwitchStatement)statement, fileloc);
     else if (statement instanceof IASTCaseStatement)
       handleCaseStatement ((IASTCaseStatement)statement, fileloc);
     else if (statement instanceof IASTDefaultStatement)
       handleDefaultStatement ((IASTDefaultStatement)statement, fileloc);
-*/
+
     else if (statement instanceof IASTNullStatement)
     {
       // We really don't care about blank statements
@@ -885,6 +893,146 @@ class CFABuilder extends ASTVisitor
     CFANode nextNode = new CFANode(fileloc.getEndingLineNumber(), currentCFA.getFunctionName());
     currentCFANodes.add(nextNode);
     locStack.push(nextNode);
+  }
+
+  private int handleSwitchStatement(final IASTSwitchStatement statement,
+      IASTFileLocation fileloc) {
+    final CFANode prevNode = locStack.pop();
+
+    // firstSwitchNode is first Node of switch-Statement.
+    // TODO useful or unnecessary? it can be replaced through prevNode.
+    final CFANode firstSwitchNode =
+        new CFANode(fileloc.getStartingLineNumber(),
+            currentCFA.getFunctionName());
+    currentCFANodes.add(firstSwitchNode);
+    addToCFA(new BlankEdge("switch ("
+        + statement.getControllerExpression().getRawSignature() + ")",
+        fileloc.getStartingLineNumber(), prevNode, firstSwitchNode));
+
+    switchExprStack.push(astCreator
+        .convertExpressionWithoutSideEffects(statement
+            .getControllerExpression()));
+    switchCaseStack.push(firstSwitchNode);
+
+    // postSwitchNode is Node after the switch-statement
+    final CFANode postSwitchNode =
+        new CFALabelNode(fileloc.getEndingLineNumber(),
+            currentCFA.getFunctionName(), "");
+    currentCFANodes.add(postSwitchNode);
+    loopNextStack.push(postSwitchNode);
+    locStack.push(postSwitchNode);
+
+    locStack.push(new CFANode(fileloc.getStartingLineNumber(), currentCFA
+        .getFunctionName()));
+
+    // visit only body, getBody() != getChildren()
+    statement.getBody().accept(this);
+
+    // leave switch
+    final CFANode lastNodeInSwitch = locStack.pop();
+    final CFANode lastNotCaseNode = switchCaseStack.pop();
+    switchExprStack.pop(); // switchExpr is not needed after this point
+
+    assert postSwitchNode == loopNextStack.pop();
+    assert postSwitchNode == locStack.peek();
+    assert switchExprStack.size() == switchCaseStack.size();
+
+    System.out.println("xxx" + lastNodeInSwitch.getNodeNumber());
+
+    final BlankEdge blankEdge =
+        new BlankEdge("", lastNotCaseNode.getLineNumber(), lastNotCaseNode,
+            postSwitchNode);
+    addToCFA(blankEdge);
+
+    final BlankEdge blankEdge2 =
+        new BlankEdge("", lastNodeInSwitch.getLineNumber(), lastNodeInSwitch,
+            postSwitchNode);
+    addToCFA(blankEdge2);
+
+    // skip visiting children of loop, because loopbody was handled before
+    return PROCESS_SKIP;
+  }
+
+  private void handleCaseStatement(final IASTCaseStatement statement,
+      IASTFileLocation fileloc) {
+    final int filelocStart = fileloc.getStartingLineNumber();
+
+    // build condition, left part, "a"
+    final org.sosy_lab.cpachecker.cfa.ast.IASTExpression switchExpr =
+        switchExprStack.peek();
+
+    // build condition, right part, "2"
+    final org.sosy_lab.cpachecker.cfa.ast.IASTExpression caseExpr =
+        astCreator.convertExpressionWithoutSideEffects(statement
+            .getExpression());
+
+    // build condition, "a==2", TODO correct type?
+    final IASTBinaryExpression binExp =
+        new IASTBinaryExpression(switchExpr.getRawSignature()
+            + IASTBinaryExpression.BinaryOperator.EQUALS.getOperator()
+            + caseExpr.getRawSignature(), astCreator.convert(fileloc),
+            switchExpr.getExpressionType(), switchExpr, caseExpr,
+            IASTBinaryExpression.BinaryOperator.EQUALS);
+
+    // build condition edges, to caseNode with "a==2", to notCaseNode with "!(a==2)"
+    final CFANode rootNode = switchCaseStack.pop();
+    final CFANode caseNode =
+        new CFANode(filelocStart, currentCFA.getFunctionName());
+    final CFANode notCaseNode =
+        new CFANode(filelocStart, currentCFA.getFunctionName());
+    currentCFANodes.add(caseNode);
+    currentCFANodes.add(notCaseNode);
+
+    // fall-through (case before has no "break")
+    final CFANode oldNode = locStack.pop();
+    final BlankEdge blankEdge =
+        new BlankEdge("", filelocStart, oldNode, caseNode);
+    addToCFA(blankEdge);
+
+    switchCaseStack.push(notCaseNode);
+    locStack.push(caseNode);
+
+    // edge connecting rootNode with notCaseNode, "!(a==2)"
+    final AssumeEdge assumeEdgeFalse =
+        new AssumeEdge("!(" + binExp.getRawSignature() + ")", filelocStart,
+            rootNode, notCaseNode, binExp, false);
+    addToCFA(assumeEdgeFalse);
+
+    // edge connecting rootNode with caseNode, "a==2"
+    final AssumeEdge assumeEdgeTrue =
+        new AssumeEdge(binExp.getRawSignature(), filelocStart, rootNode,
+            caseNode, binExp, true);
+    addToCFA(assumeEdgeTrue);
+  }
+
+  private void handleDefaultStatement(final IASTDefaultStatement statement,
+      IASTFileLocation fileloc) {
+    System.out.println(statement.getRawSignature());
+
+    final int filelocStart = fileloc.getStartingLineNumber();
+
+    // build blank edge to caseNode with "default", no edge to notCaseNode
+    final CFANode rootNode = switchCaseStack.pop();
+    final CFANode caseNode =
+        new CFANode(filelocStart, currentCFA.getFunctionName());
+    final CFANode notCaseNode =
+        new CFANode(filelocStart, currentCFA.getFunctionName());
+    currentCFANodes.add(caseNode);
+    currentCFANodes.add(notCaseNode);
+
+    // fall-through (case before has no "break")
+    final CFANode oldNode = locStack.pop();
+    final BlankEdge blankEdge =
+        new BlankEdge("", filelocStart, oldNode, caseNode);
+    addToCFA(blankEdge);
+
+    switchCaseStack.push(notCaseNode); // for later cases, only reachable through jumps
+    locStack.push(caseNode);
+
+    // edge connecting rootNode with caseNode, "a==2"
+    final BlankEdge trueEdge =
+        new BlankEdge("default", filelocStart, rootNode, caseNode);
+    addToCFA(trueEdge);
   }
 
   /* (non-Javadoc)

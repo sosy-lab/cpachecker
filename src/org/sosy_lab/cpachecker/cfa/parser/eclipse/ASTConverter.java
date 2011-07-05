@@ -1139,7 +1139,7 @@ class ASTConverter {
     return new IASTParameterDeclaration(p.getRawSignature(), convert(p.getFileLocation()), declarator.getFirst(), declarator.getThird());
   }
 
-  private IASTFileLocation convert(org.eclipse.cdt.core.dom.ast.IASTFileLocation l) {
+  public IASTFileLocation convert(org.eclipse.cdt.core.dom.ast.IASTFileLocation l) {
     if (l == null) {
       return null;
     }
