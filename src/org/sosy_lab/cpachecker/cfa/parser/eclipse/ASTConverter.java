@@ -737,23 +737,27 @@ class ASTConverter {
           initializer = new IASTInitializerExpression(init.getRawSignature(), fileLoc, init);
         }
       }
-    }
 
-    origName = name;
-
-    if (!isGlobal && storageClass == StorageClass.STATIC) {
-      isGlobal = true;
-      storageClass = StorageClass.AUTO;
-      name = "static__" + scope.getCurrentFunctionName() + "__" + name;
-    }
-
-    if (scope.variableNameInUse(name, name)) {
-      String sep = "__";
-      int index = 1;
-      while (scope.variableNameInUse(name + sep + index, origName)) {
-        ++index;
+      if (name == null) {
+        throw new CFAGenerationRuntimeException("Declaration without name", d);
       }
-      name = name + sep + index;
+
+      origName = name;
+
+      if (!isGlobal && storageClass == StorageClass.STATIC) {
+        isGlobal = true;
+        storageClass = StorageClass.AUTO;
+        name = "static__" + scope.getCurrentFunctionName() + "__" + name;
+      }
+
+      if (scope.variableNameInUse(name, name)) {
+        String sep = "__";
+        int index = 1;
+        while (scope.variableNameInUse(name + sep + index, origName)) {
+          ++index;
+        }
+        name = name + sep + index;
+      }
     }
 
     return new IASTDeclaration(rawSignature, fileLoc, isGlobal, storageClass, type, name, origName, initializer);
