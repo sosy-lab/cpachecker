@@ -412,7 +412,7 @@ public class PredicateTransferRelation implements TransferRelation {
   /**
    * Returns a new element with a given pathFormula. All other fields stay equal.
    */
-  private PredicateAbstractElement replacePathFormula(PredicateAbstractElement oldElement, PathFormula newPathFormula) {
+  protected PredicateAbstractElement replacePathFormula(PredicateAbstractElement oldElement, PathFormula newPathFormula) {
     if (oldElement instanceof ComputeAbstractionElement) {
       CFANode loc = ((ComputeAbstractionElement) oldElement).getLocation();
       return new ComputeAbstractionElement(newPathFormula, oldElement.getAbstractionFormula(), loc);

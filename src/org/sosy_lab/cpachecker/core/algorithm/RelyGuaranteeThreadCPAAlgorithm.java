@@ -27,6 +27,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.Vector;
 import java.util.logging.Level;
 
@@ -54,7 +55,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment.Action;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvEdge;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -107,14 +108,18 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
   }
 
   private final CPAStatistics               stats = new CPAStatistics();
-  private final ConfigurableProgramAnalysis cpa;
+  private final ConfigurableProgramAnalysis            cpa;
   private final LogManager                  logger;
   private Vector<RelyGuaranteeEnvEdge> envTransitions;
+  private int tid;
 
-  public RelyGuaranteeThreadCPAAlgorithm(ConfigurableProgramAnalysis cpa, Vector<RelyGuaranteeEnvEdge> envTransitions, LogManager logger) {
+  public RelyGuaranteeThreadCPAAlgorithm(ConfigurableProgramAnalysis cpa, Vector<RelyGuaranteeEnvEdge> envTransitions, LogManager logger, Set<String> pGlobalVariables, int tid) {
     this.cpa = cpa;
     this.envTransitions = envTransitions;
     this.logger = logger;
+    this.tid = tid;
+    //this.cpa.setGlobalVariables(pGlobalVariables);
+    //this.cpa.setThreadId(tid);
   }
 
   @Override
@@ -260,7 +265,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     CompositeElement cElement = (CompositeElement)  aElement.getWrappedElement();
     CFANode node = cElement.retrieveLocationElement().getLocationNode();
     // find the predicate CPA
-    PredicateAbstractElement predElement = AbstractElements.extractElementByType(cElement, PredicateAbstractElement.class);
+    RelyGuaranteeAbstractElement predElement = AbstractElements.extractElementByType(cElement, RelyGuaranteeAbstractElement.class);
 
     // create an environmental edge for every outgoing assigment
     CFAEdge edge;

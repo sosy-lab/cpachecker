@@ -27,6 +27,8 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.Vector;
 import java.util.Map.Entry;
 
@@ -55,6 +57,8 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
   private Vector<RelyGuaranteeEnvEdge>[] envTransitionsFromThread;
   // CPA for each thread
   private RelyGuaranteeThreadCPAAlgorithm[] threadCPA;
+  //
+  public Set<String> globalVariables;
 
 
 
@@ -64,6 +68,8 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     this.mainFunctions = pMainFunctions;
     this.cpas = pCpas;
     this.logger = logger;
+    globalVariables = new HashSet<String>();
+    globalVariables.add("g");
 
     envTransitionsFromThread = new Vector[this.threadNo];
     threadCPA = new RelyGuaranteeThreadCPAAlgorithm[this.threadNo];
@@ -73,7 +79,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     }
     // create RelyGuaranteeThreadCPAAlgorithms for each thread
     for (int i=0; i< this.threadNo; i++){
-      threadCPA[i] = new RelyGuaranteeThreadCPAAlgorithm(cpas[i],envTransitionsFromThread[i],logger);
+      threadCPA[i] = new RelyGuaranteeThreadCPAAlgorithm(cpas[i],envTransitionsFromThread[i],logger, globalVariables, i);
     }
     // create DOT file for the original CFA
     for (int i=0; i< this.threadNo; i++){

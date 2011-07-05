@@ -54,8 +54,10 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -197,7 +199,11 @@ public class CPAchecker {
 
       // create a cpa for each thread
       for(int i=0; i<threadNo; i++){
-        cpas[i] = createCPA(stats);
+        ConfigurableProgramAnalysis cpa = createCPA(stats);
+        WrapperCPA wCPA = (WrapperCPA) cpa;
+        RelyGuaranteeCPA rgCPA = wCPA.retrieveWrappedCpa(RelyGuaranteeCPA.class);
+        rgCPA.setThreadId(i);
+        cpas[i] = cpa;
       }
       // get main functions and CFA
       Pair<CFAFunctionDefinitionNode[], CFA[]> tuple = getMainFunctionsAndCFAS(filenames);
@@ -207,6 +213,7 @@ public class CPAchecker {
       for(int i=0; i<threadNo; i++){
         initalReachedSets[i] = createInitialReachedSet(cpas[i], mainFunctions[i]);
       }
+
 
 
 

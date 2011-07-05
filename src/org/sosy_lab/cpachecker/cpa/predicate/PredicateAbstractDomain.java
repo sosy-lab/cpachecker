@@ -38,15 +38,15 @@ public class PredicateAbstractDomain implements AbstractDomain {
 
   @Option(description="whether to include the symbolic path formula in the "
     + "coverage checks or do only the fast abstract checks")
-  private boolean symbolicCoverageCheck = false;
+  protected boolean symbolicCoverageCheck = false;
 
   // statistics
   public final Timer coverageCheckTimer = new Timer();
   public final Timer bddCoverageCheckTimer = new Timer();
   public final Timer symbolicCoverageCheckTimer = new Timer();
 
-  private final RegionManager mRegionManager;
-  private final PredicateAbstractionManager mgr;
+  protected final RegionManager mRegionManager;
+  protected final PredicateAbstractionManager mgr;
 
   public PredicateAbstractDomain(PredicateCPA pCpa) throws InvalidConfigurationException {
     pCpa.getConfiguration().inject(this, PredicateAbstractDomain.class);

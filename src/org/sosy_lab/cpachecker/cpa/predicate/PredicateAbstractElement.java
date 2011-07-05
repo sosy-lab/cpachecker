@@ -125,7 +125,7 @@ public class PredicateAbstractElement implements AbstractElement, Partitionable,
     return abstractionFormula;
   }
 
-  PredicateAbstractElement getMergedInto() {
+  public PredicateAbstractElement getMergedInto() {
     return mergedInto;
   }
 

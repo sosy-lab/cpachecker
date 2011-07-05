@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Collection;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -34,8 +35,10 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
@@ -92,6 +95,11 @@ public class RelyGuaranteeCPA extends PredicateCPA{
     private static PathFormulaManager pfManager;
     private static MathsatFormulaManager    fManager;
     private static TheoremProver  tProver;
+
+    // a set of global variables
+    private Set<String> globalVariabes;
+
+    private int tid;
 
     private static  MathsatFormulaManager getFormulaManager(Configuration config, LogManager logger) throws InvalidConfigurationException{
       if (fManager == null){
@@ -204,6 +212,25 @@ public class RelyGuaranteeCPA extends PredicateCPA{
 
     this.stats = createStatistics();
 
+  }
+
+  public void setGlobalVariables(Set<String> pGlobalVariables) {
+    this.globalVariabes = pGlobalVariables;
+  }
+
+  public void setThreadId(int tid){
+    this.tid = tid;
+  }
+
+  public int getThreadId(){
+    return this.tid;
+  }
+
+
+
+  @Override
+  public AbstractElement getInitialElement(CFANode node) {
+    return topElement;
   }
 
 }
