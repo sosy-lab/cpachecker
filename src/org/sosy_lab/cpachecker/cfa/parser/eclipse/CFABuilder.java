@@ -937,8 +937,6 @@ class CFABuilder extends ASTVisitor
     assert postSwitchNode == locStack.peek();
     assert switchExprStack.size() == switchCaseStack.size();
 
-    System.out.println("xxx" + lastNodeInSwitch.getNodeNumber());
-
     final BlankEdge blankEdge =
         new BlankEdge("", lastNotCaseNode.getLineNumber(), lastNotCaseNode,
             postSwitchNode);
@@ -1007,8 +1005,6 @@ class CFABuilder extends ASTVisitor
 
   private void handleDefaultStatement(final IASTDefaultStatement statement,
       IASTFileLocation fileloc) {
-    System.out.println(statement.getRawSignature());
-
     final int filelocStart = fileloc.getStartingLineNumber();
 
     // build blank edge to caseNode with "default", no edge to notCaseNode
@@ -1029,7 +1025,7 @@ class CFABuilder extends ASTVisitor
     switchCaseStack.push(notCaseNode); // for later cases, only reachable through jumps
     locStack.push(caseNode);
 
-    // edge connecting rootNode with caseNode, "a==2"
+    // blank edge connecting rootNode with caseNode
     final BlankEdge trueEdge =
         new BlankEdge("default", filelocStart, rootNode, caseNode);
     addToCFA(trueEdge);
