@@ -79,8 +79,6 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     for (int i=0; i< this.threadNo; i++){
       this.dumpDot(i, "test/output/oldCFA"+i+".dot");
     }
-
-
   }
 
 

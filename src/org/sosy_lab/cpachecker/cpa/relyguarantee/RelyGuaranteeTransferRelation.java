@@ -147,7 +147,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
 
       // check whether to do abstraction
       boolean doAbstraction = isBlockEnd(loc, pathFormula);
-      doAbstraction = false;
+      doAbstraction = true;
 
       if (doAbstraction) {
         return Collections.singleton(

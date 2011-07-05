@@ -241,6 +241,8 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
     for (String lVariable : ssa1.allVariables()) {
       if (ssa2.allVariables().contains(lVariable)) {
+     //   if (pFormula1.
+
         // set variables equal
         Formula lVar1 = fmgr.makeVariable(lVariable, ssa1.getIndex(lVariable));
         Formula lVar2 = fmgr.makeVariable(lVariable, ssa2.getIndex(lVariable));
@@ -253,10 +255,6 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
         }
       }
     }
-
-    System.out.println("&Formula1> " + pFormula1);
-    System.out.println("&Formula2> " + pFormula2);
-    System.out.println("&Equality> " + mt);
 
     return new PathFormula(fmgr.makeAnd(mergedFormula, mt), mergedSSA, pFormula1.getLength()+pFormula2.getLength());
   }
