@@ -30,10 +30,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.NavigableMap;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -50,16 +49,21 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
+import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
-import org.sosy_lab.cpachecker.util.predicates.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.util.predicates.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.Model.Variable;
+import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
@@ -68,9 +72,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -89,8 +95,9 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
   private final InterpolatingTheoremProver<T1> firstItpProver;
   private final InterpolatingTheoremProver<T2> secondItpProver;
 
-  private static final Pattern PREDICATE_NAME_PATTERN = Pattern.compile(
-      "^.*" + CtoFormulaConverter.PROGRAM_COUNTER_PREDICATE + "(?=\\d+$)");
+  private static final String BRANCHING_PREDICATE_NAME = "__ART__";
+  private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
+      "^.*" + BRANCHING_PREDICATE_NAME + "(?=\\d+$)");
 
   @Option(description="apply deletion-filter to the abstract counterexample, to get "
     + "a minimal set of blocks, before applying interpolation-based refinement")
@@ -182,7 +189,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
    * @throws CPAException
    */
   private <T> CounterexampleTraceInfo buildCounterexampleTraceWithSpecifiedItp(
-      List<PredicateAbstractElement> pAbstractTrace, InterpolatingTheoremProver<T> pItpProver) throws CPAException, InterruptedException {
+      List<PredicateAbstractElement> pAbstractTrace, Set<ARTElement> elementsOnPath, InterpolatingTheoremProver<T> pItpProver) throws CPAException, InterruptedException {
 
     refStats.cexAnalysisTimer.start();
 
@@ -368,25 +375,23 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
     } else {
       // this is a real bug, notify the user
 
-      // get the reachingPathsFormula and add it to the solver environment
+      // get the branchingFormula and add it to the solver environment
       // this formula contains predicates for all branches we took
       // this way we can figure out which branches make a feasible path
-      PredicateAbstractElement lastElement = pAbstractTrace.get(pAbstractTrace.size()-1);
-      pItpProver.addFormula(lastElement.getPathFormula().getReachingPathsFormula());
+      Formula branchingFormula = buildBranchingFormula(elementsOnPath);
+      pItpProver.addFormula(branchingFormula);
+
+      Map<Integer, Boolean> preds;
       Model model;
-      NavigableMap<Integer, Map<Integer, Boolean>> preds;
 
       // need to ask solver for satisfiability again,
       // otherwise model doesn't contain new predicates
       boolean stillSatisfiable = !pItpProver.isUnsat();
       if (!stillSatisfiable) {
-        pItpProver.reset();
-        pItpProver.init();
         logger.log(Level.WARNING, "Could not get precise error path information because of inconsistent reachingPathsFormula!");
 
         int k = 0;
         for (Formula formula : f) {
-          pItpProver.addFormula(formula);
           String dumpFile =
               String.format(formulaDumpFilePattern, "interpolation",
                       refStats.cexAnalysisTimer.getNumberOfIntervals(), "formula", k++);
@@ -395,13 +400,14 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
         String dumpFile =
             String.format(formulaDumpFilePattern, "interpolation",
                 refStats.cexAnalysisTimer.getNumberOfIntervals(), "formula", k++);
-        dumpFormulaToFile(lastElement.getPathFormula()
-            .getReachingPathsFormula(), new File(dumpFile));
-        pItpProver.isUnsat();
-        model = pItpProver.getModel();
-  preds = Maps.newTreeMap();
+        dumpFormulaToFile(branchingFormula, new File(dumpFile));
+
+        preds = Maps.newTreeMap();
+        model = new Model(fmgr);
+
       } else {
         model = pItpProver.getModel();
+
         if (model.isEmpty()) {
           logger.log(Level.WARNING, "No satisfying assignment given by solver!");
           preds = Maps.newTreeMap();
@@ -410,7 +416,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
         }
       }
 
-      info = new CounterexampleTraceInfo(f, pItpProver.getModel(), preds);
+      info = new CounterexampleTraceInfo(f, model, preds);
     }
 
     pItpProver.reset();
@@ -440,11 +446,12 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
    * @throws InterruptedException
    */
   public CounterexampleTraceInfo buildCounterexampleTrace(
-      final List<PredicateAbstractElement> pAbstractTrace) throws CPAException, InterruptedException {
+      final List<PredicateAbstractElement> pAbstractTrace,
+      final Set<ARTElement> elementsOnPath) throws CPAException, InterruptedException {
 
     // if we don't want to limit the time given to the solver
     if (itpTimeLimit == 0) {
-      return buildCounterexampleTraceWithSpecifiedItp(pAbstractTrace, firstItpProver);
+      return buildCounterexampleTraceWithSpecifiedItp(pAbstractTrace, elementsOnPath, firstItpProver);
     }
 
     assert executor != null;
@@ -459,7 +466,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
       Callable<CounterexampleTraceInfo> tc = new Callable<CounterexampleTraceInfo>() {
         @Override
         public CounterexampleTraceInfo call() throws CPAException, InterruptedException {
-          return buildCounterexampleTraceWithSpecifiedItp(pAbstractTrace, currentItpProver);
+          return buildCounterexampleTraceWithSpecifiedItp(pAbstractTrace, elementsOnPath, currentItpProver);
         }
       };
 
@@ -692,29 +699,72 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
     return preds;
   }
 
-  private NavigableMap<Integer, Map<Integer, Boolean>> getPredicateValuesFromModel(Model model) {
+  private Formula buildBranchingFormula(Set<ARTElement> elementsOnPath) throws CPATransferException {
+    // build the branching formula that will help us find the real error path
+    Formula branchingFormula = fmgr.makeTrue();
+    for (final ARTElement pathElement : elementsOnPath) {
 
-    NavigableMap<Integer, Map<Integer, Boolean>> preds = Maps.newTreeMap();
+      if (pathElement.getChildren().size() > 1) {
+        if (pathElement.getChildren().size() > 2) {
+          // can't create branching formula
+          logger.log(Level.WARNING, "ART branching with more than two outgoing edges");
+          return fmgr.makeTrue();
+        }
+
+        Iterable<CFAEdge> outgoingEdges = Iterables.transform(pathElement.getChildren(),
+            new Function<ARTElement, CFAEdge>() {
+              @Override
+              public CFAEdge apply(ARTElement child) {
+                return pathElement.getEdgeToChild(child);
+              }
+        });
+        if (!Iterables.all(outgoingEdges, Predicates.instanceOf(AssumeEdge.class))) {
+          logger.log(Level.WARNING, "ART branching without AssumeEdge");
+          return fmgr.makeTrue();
+        }
+
+        AssumeEdge edge = null;
+        for (CFAEdge currentEdge : outgoingEdges) {
+          if (((AssumeEdge)currentEdge).getTruthAssumption()) {
+            edge = (AssumeEdge)currentEdge;
+            break;
+          }
+        }
+        assert edge != null;
+
+        Formula pred = fmgr.makePredicateVariable(BRANCHING_PREDICATE_NAME + pathElement.getElementId(), 0);
+
+        // create formula by edge, be sure to use the correct SSA indices!
+        PredicateAbstractElement pe = AbstractElements.extractElementByType(pathElement, PredicateAbstractElement.class);
+        PathFormula pf = pe.getPathFormula();
+        pf = pmgr.makeEmptyPathFormula(pf); // reset everything except SSAMap
+        pf = pmgr.makeAnd(pf, edge);        // conjunct with edge
+
+        Formula equiv = fmgr.makeEquivalence(pred, pf.getFormula());
+        branchingFormula = fmgr.makeAnd(branchingFormula, equiv);
+      }
+    }
+    return branchingFormula;
+  }
+
+  private Map<Integer, Boolean> getPredicateValuesFromModel(Model model) {
+
+    Map<Integer, Boolean> preds = Maps.newTreeMap();
     for (AssignableTerm a : model.keySet()) {
       if (a instanceof Variable && a.getType() == TermType.Boolean) {
 
-        String name = PREDICATE_NAME_PATTERN.matcher(a.getName()).replaceFirst("");
+        String name = BRANCHING_PREDICATE_NAME_PATTERN.matcher(a.getName()).replaceFirst("");
         if (!name.equals(a.getName())) {
-          // pattern matched, so it's a variable with __pc__ in it
+          // pattern matched, so it's a variable with __ART__ in it
 
-          Variable v = (Variable)a;
           // no NumberFormatException because of RegExp match earlier
-          Integer edgeId = Integer.parseInt(name);
-          Integer idx = v.getSSAIndex();
+          Integer nodeId = Integer.parseInt(name);
 
-          Map<Integer, Boolean> p = preds.get(idx);
-          if (p == null) {
-            p = new HashMap<Integer, Boolean>(2);
-            preds.put(idx, p);
-          }
+          assert !preds.containsKey(nodeId);
+
 
           Boolean value = (Boolean)model.get(a);
-          p.put(edgeId, value);
+          preds.put(nodeId, value);
         }
       }
     }

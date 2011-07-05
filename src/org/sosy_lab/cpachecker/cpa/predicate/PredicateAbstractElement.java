@@ -78,7 +78,7 @@ public class PredicateAbstractElement implements AbstractElement, Partitionable,
   }
 
 
-  public static class ComputeAbstractionElement extends PredicateAbstractElement {
+  static class ComputeAbstractionElement extends PredicateAbstractElement {
 
     private final CFANode location;
 

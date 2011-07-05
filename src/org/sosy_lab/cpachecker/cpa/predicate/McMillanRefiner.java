@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
+import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
 import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.AbstractionElement;
@@ -88,7 +89,7 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
 
 
     // build the counterexample
-    CounterexampleTraceInfo info = formulaManager.buildCounterexampleTrace(path);
+    CounterexampleTraceInfo info = formulaManager.buildCounterexampleTrace(path, ARTUtils.getAllElementsOnPathsTo(pReached.getLastElement()));
 
     // if error is spurious refine
     if (info.isSpurious()) {

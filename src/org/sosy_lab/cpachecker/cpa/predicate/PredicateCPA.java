@@ -217,7 +217,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return regionManager;
   }
 
-  public PredicateRefinementManager<?, ?> getPredicateManager() {
+  protected PredicateRefinementManager<?, ?> getPredicateManager() {
     return predicateManager;
   }
 
@@ -233,11 +233,11 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return theoremProver;
   }
 
-  public Configuration getConfiguration() {
+  protected Configuration getConfiguration() {
     return config;
   }
 
-  public LogManager getLogger() {
+  protected LogManager getLogger() {
     return logger;
   }
 
