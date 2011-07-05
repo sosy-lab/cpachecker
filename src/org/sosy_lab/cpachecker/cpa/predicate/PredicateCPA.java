@@ -95,22 +95,63 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Option(name="blk.useCache", description="use caching of path formulas")
   private boolean useCache = true;
 
-  private final Configuration config;
-  private final LogManager logger;
+  protected   Configuration config;
+  protected   LogManager logger;
 
-  private final PredicateAbstractDomain domain;
-  private final PredicateTransferRelation transfer;
-  private final PredicateMergeOperator merge;
-  private final PredicatePrecisionAdjustment prec;
-  private final StopOperator stop;
-  private final PredicatePrecision initialPrecision;
-  private final RegionManager regionManager;
-  private final FormulaManager formulaManager;
-  private final PathFormulaManager pathFormulaManager;
-  private final TheoremProver theoremProver;
-  private final PredicateRefinementManager<?, ?> predicateManager;
-  private final PredicateCPAStatistics stats;
-  private final AbstractElement topElement;
+  protected   PredicateAbstractDomain domain;
+  protected   PredicateTransferRelation transfer;
+  protected   PredicateMergeOperator merge;
+  protected   PredicatePrecisionAdjustment prec;
+  protected   StopOperator stop;
+  protected   PredicatePrecision initialPrecision;
+  protected   RegionManager regionManager;
+  protected   FormulaManager formulaManager;
+  protected   PathFormulaManager pathFormulaManager;
+  protected   TheoremProver theoremProver;
+  protected   PredicateRefinementManager<?, ?> predicateManager;
+  protected   PredicateCPAStatistics stats;
+  protected   AbstractElement topElement;
+
+
+  protected PredicateCPA(){
+    this.config = null;
+    this.logger = null;
+    this.domain = null;
+    this.transfer = null;
+    this.merge = null;
+    this.prec = null;
+    this.stop = null;
+    this.initialPrecision = null;
+    this.regionManager = null;
+    this.formulaManager = null;
+    this.pathFormulaManager = null;
+    this.theoremProver = null;
+    this.predicateManager = null;
+    this.stats = null;
+    this.topElement = null;
+  }
+  // TODO to be deleted when RelyGuarantee CPA is finished
+  protected PredicateCPA(Configuration config, LogManager logger,PredicateAbstractDomain domain,PredicateTransferRelation transfer,PredicateMergeOperator merge, PredicatePrecisionAdjustment prec,
+      StopOperator stop,PredicatePrecision initialPrecision,   RegionManager regionManager, FormulaManager formulaManager, PathFormulaManager pathFormulaManager, TheoremProver theoremProver,
+      PredicateRefinementManager<?, ?> predicateManager, PredicateCPAStatistics stats, AbstractElement topElement){
+    this.config = config;
+    this.logger = logger;
+    this.domain = domain;
+    this.transfer = transfer;
+    this.merge = merge;
+    this.prec = prec;
+    this.stop = stop;
+    this.initialPrecision = initialPrecision;
+    this.regionManager = regionManager;
+    this.formulaManager = formulaManager;
+    this.pathFormulaManager = pathFormulaManager;
+    this.theoremProver = theoremProver;
+    this.predicateManager = predicateManager;
+    this.stats = stats;
+    this.topElement = topElement;
+
+  }
+
 
   protected PredicateCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, PredicateCPA.class);
@@ -217,7 +258,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return regionManager;
   }
 
-  protected PredicateRefinementManager<?, ?> getPredicateManager() {
+  public PredicateRefinementManager<?, ?> getPredicateManager() {
     return predicateManager;
   }
 
@@ -233,11 +274,11 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return theoremProver;
   }
 
-  protected Configuration getConfiguration() {
+  public Configuration getConfiguration() {
     return config;
   }
 
-  protected LogManager getLogger() {
+  public LogManager getLogger() {
     return logger;
   }
 

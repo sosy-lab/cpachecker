@@ -32,7 +32,6 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -119,10 +118,6 @@ public class CtoFormulaConverter {
   // TODO this is not only about missing initialization, it should be renamed to nondetVariables
   private String noAutoInitPrefix = "__BLAST_NONDET";
 
-  @Option(description="when transforming code to formula, add predicates "
-    + "that help producing more precise error paths (not necessary for SBE)")
-  private boolean addBranchingInformation = true;
-
   // if true, handle lvalues as *x, &x, s.x, etc. using UIFs. If false, just
   // use variables
   @Option(name="mathsat.lvalsAsUIFs",
@@ -148,7 +143,6 @@ public class CtoFormulaConverter {
   private static final String OP_ARRAY_SUBSCRIPT = "__array__";
   public static final String NONDET_VARIABLE = "__nondet__";
   public static final String NONDET_FLAG_VARIABLE = NONDET_VARIABLE + "flag__";
-  public static final String PROGRAM_COUNTER_PREDICATE = "__pc__";
 
   private final Set<String> printedWarnings = new HashSet<String>();
 
@@ -333,9 +327,6 @@ public class CtoFormulaConverter {
       return oldFormula;
     }
 
-    Formula reachingPathsFormula = oldFormula.getReachingPathsFormula();
-    int branchingCounter = oldFormula.getBranchingCounter();
-
     String function = (edge.getPredecessor() != null)
                           ? edge.getPredecessor().getFunctionName() : null;
 
@@ -363,11 +354,7 @@ public class CtoFormulaConverter {
     }
 
     case AssumeEdge: {
-      branchingCounter++;
-      Pair<Formula, Formula> pair
-          = makeAssume((AssumeEdge)edge, function, ssa, branchingCounter);
-      edgeFormula = pair.getFirst();
-      reachingPathsFormula = fmgr.makeAnd(reachingPathsFormula, pair.getSecond());
+      edgeFormula = makeAssume((AssumeEdge)edge, function, ssa);
       break;
     }
 
@@ -422,7 +409,7 @@ public class CtoFormulaConverter {
 
     Formula newFormula = fmgr.makeAnd(oldFormula.getFormula(), edgeFormula);
     int newLength = oldFormula.getLength() + 1;
-    return new PathFormula(newFormula, newSsa, newLength, reachingPathsFormula, branchingCounter);
+    return new PathFormula(newFormula, newSsa, newLength);
   }
 
   private Formula makeDeclaration(IType spec,
@@ -546,7 +533,9 @@ public class CtoFormulaConverter {
       FunctionDefinitionNode fn = edge.getSuccessor();
       List<IASTParameterDeclaration> formalParams = fn.getFunctionParameters();
 
-      assert formalParams.size() == actualParams.size();
+      if (formalParams.size() != actualParams.size()) {
+        throw new UnrecognizedCCodeException("Number of parameters on function call does not match function definition", edge);
+      }
 
       String calledFunction = fn.getFunctionName();
 
@@ -589,29 +578,10 @@ public class CtoFormulaConverter {
     }
   }
 
-  private Pair<Formula, Formula> makeAssume(AssumeEdge assume,
-      String function, SSAMapBuilder ssa, int branchingIdx) throws CPATransferException {
+  private Formula makeAssume(AssumeEdge assume,
+      String function, SSAMapBuilder ssa) throws CPATransferException {
 
-    Formula edgeFormula = makePredicate(assume.getExpression(),
-        assume.getTruthAssumption(), function, ssa);
-
-    Formula branchingInformation;
-    if (addBranchingInformation) {
-      // add a unique predicate for each branching decision
-      String var = PROGRAM_COUNTER_PREDICATE + assume.getPredecessor().getNodeNumber();
-
-      Formula predFormula = fmgr.makePredicateVariable(var, branchingIdx);
-      if (assume.getTruthAssumption() == false) {
-        predFormula = fmgr.makeNot(predFormula);
-      }
-
-      branchingInformation = fmgr.makeEquivalence(edgeFormula, predFormula);
-      branchingInformation = fmgr.makeAnd(branchingInformation, predFormula);
-    } else {
-      branchingInformation = fmgr.makeTrue();
-    }
-
-    return Pair.of(edgeFormula, branchingInformation);
+    return makePredicate(assume.getExpression(), assume.getTruthAssumption(), function, ssa);
   }
 
   private Formula buildTerm(IASTExpression exp, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {

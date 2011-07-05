@@ -111,4 +111,8 @@ public class RelyGuaranteeEnvEdge implements CFAEdge{
     return "RelyGuaranteeEnvEdge: "+localEdge.getRawStatement()+", "+this.abstractionFormula.toString()+", "+this.pathFormula.toString();
   }
 
+  public CFAEdge getLocalEdge() {
+    return this.localEdge;
+  }
+
 }

@@ -28,8 +28,8 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Map.Entry;
 import java.util.TreeMap;
+import java.util.Map.Entry;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
@@ -50,7 +50,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.predicate.predmap")
-class PredicateCPAStatistics implements Statistics {
+public class  PredicateCPAStatistics implements Statistics {
 
     @Option(description="export final predicate map, if the error location is not reached")
     private boolean export = true;

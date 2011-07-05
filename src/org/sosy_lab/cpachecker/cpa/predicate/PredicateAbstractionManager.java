@@ -64,6 +64,7 @@ import com.google.common.collect.ImmutableMap;
 
 
 @Options(prefix="cpa.predicate")
+public
 class PredicateAbstractionManager {
 
   static class Stats {

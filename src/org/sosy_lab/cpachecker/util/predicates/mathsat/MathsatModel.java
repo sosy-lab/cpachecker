@@ -128,6 +128,7 @@ public class MathsatModel {
 
   static Model createMathsatModel(long lMathsatEnvironmentID) {
     ImmutableMap.Builder<AssignableTerm, Object> model = ImmutableMap.builder();
+    long modelFormula = mathsat.api.msat_make_true(lMathsatEnvironmentID);
 
     long lModelIterator = mathsat.api.msat_create_model_iterator(lMathsatEnvironmentID);
 
@@ -140,6 +141,9 @@ public class MathsatModel {
 
       long lKeyTerm = lModelElement[0];
       long lValueTerm = lModelElement[1];
+
+      long equivalence = mathsat.api.msat_make_equal(lMathsatEnvironmentID, lKeyTerm, lValueTerm);
+      modelFormula = mathsat.api.msat_make_and(lMathsatEnvironmentID, modelFormula, equivalence);
 
       AssignableTerm lAssignable = toAssignable(lKeyTerm);
 
@@ -188,7 +192,7 @@ public class MathsatModel {
     }
 
     mathsat.api.msat_destroy_model_iterator(lModelIterator);
-    return new Model(model.build());
+    return new Model(model.build(), MathsatFormulaManager.encapsulate(modelFormula));
   }
 
 }

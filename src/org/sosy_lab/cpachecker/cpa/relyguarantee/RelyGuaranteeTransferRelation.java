@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -35,19 +34,19 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.assume.ConstrainedAssumeElement;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonPredicateElement;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.ComputeAbstractionElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -57,16 +56,18 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 
 /**
  * Transfer relation for symbolic predicate abstraction. First it computes
  * the strongest post for the given CFA edge. Afterwards it optionally
  * computes an abstraction.
  */
-@Options(prefix="cpa.predicate")
-public class RelyGuaranteeTransferRelation implements TransferRelation {
+@Options(prefix="cpa.relyguarantee")
+public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
 
   @Option(name="blk.threshold",
       description="maximum blocksize before abstraction is forced\n"
@@ -111,12 +112,16 @@ public class RelyGuaranteeTransferRelation implements TransferRelation {
   private final PredicateAbstractionManager formulaManager;
   private final PathFormulaManager pathFormulaManager;
 
-  public RelyGuaranteeTransferRelation(PredicateCPA pCpa) throws InvalidConfigurationException {
+  private final MathsatFormulaManager manager;
+
+  public RelyGuaranteeTransferRelation(RelyGuaranteeCPA pCpa) throws InvalidConfigurationException {
     pCpa.getConfiguration().inject(this, RelyGuaranteeTransferRelation.class);
 
     logger = pCpa.getLogger();
     formulaManager = pCpa.getPredicateManager();
     pathFormulaManager = pCpa.getPathFormulaManager();
+
+    manager = (MathsatFormulaManager)pCpa.getFormulaManager();
   }
 
   @Override
@@ -139,8 +144,10 @@ public class RelyGuaranteeTransferRelation implements TransferRelation {
       PathFormula pathFormula = convertEdgeToPathFormula(element.getPathFormula(), edge);
       logger.log(Level.ALL, "New path formula is", pathFormula);
 
+
       // check whether to do abstraction
       boolean doAbstraction = isBlockEnd(loc, pathFormula);
+      doAbstraction = false;
 
       if (doAbstraction) {
         return Collections.singleton(
@@ -197,12 +204,53 @@ public class RelyGuaranteeTransferRelation implements TransferRelation {
    */
   public PathFormula convertEdgeToPathFormula(PathFormula pathFormula, CFAEdge edge) throws CPATransferException {
     pathFormulaTimer.start();
+    PathFormula newPathFormula = null;
     try {
-      // compute new pathFormula with the operation on the edge
-      return  pathFormulaManager.makeAnd(pathFormula, edge);
+      if(edge.getEdgeType() == CFAEdgeType.EnvironmentalEdge){
+        newPathFormula = matchFormula(pathFormula,edge);
+      }
+      else {
+        newPathFormula = pathFormulaManager.makeAnd(pathFormula, edge);
+      }
     } finally {
       pathFormulaTimer.stop();
     }
+    return newPathFormula;
+  }
+
+
+  // Create a path formula from an env. edge and an abstract state
+  private PathFormula matchFormula(PathFormula pathFormula, CFAEdge edge) throws CPATransferException {
+    RelyGuaranteeEnvEdge envEdge = (RelyGuaranteeEnvEdge) edge;
+
+    PathFormula lEnvironmentPathFormula = envEdge.getPathFormula();
+    Formula lEnvironmentAbstractionFormula = envEdge.getAbstractionFormula().asFormula();
+    PathFormula lEnvironmentFormula = pathFormulaManager.makeAnd(envEdge.getPathFormula(), envEdge.getAbstractionFormula().asFormula());
+    // determine the last index of the pathFormula
+    int max_index = -1;
+    SSAMap ssaMap =  pathFormula.getSsa();
+    for (String key : ssaMap.allVariables()){
+      if (ssaMap.getIndex(key)>max_index){
+        max_index = ssaMap.getIndex(key);
+      }
+    }
+    System.out.println("# Abstraction I "+lEnvironmentAbstractionFormula);
+    System.out.println("# Path I "+lEnvironmentPathFormula);
+    System.out.println("# Env "+lEnvironmentFormula);
+    // shift the environmental path by the index
+    Formula shiftedEnvFormula = manager.shiftFormula(lEnvironmentFormula.getFormula(), max_index+1);
+    System.out.println("# Shiftend Env "+shiftedEnvFormula);
+    // merge the formulas
+    PathFormula mergedPathFormula = pathFormulaManager.makeAnd(pathFormula, shiftedEnvFormula);
+    System.out.println("# Path II "+pathFormula);
+    System.out.println("# Merged "+mergedPathFormula);
+    // apply the strongest post operator
+    PathFormula newPathFormula = pathFormulaManager.makeAnd(mergedPathFormula, envEdge.getLocalEdge());
+    System.out.println("# Op "+envEdge.getLocalEdge().getRawStatement());
+    System.out.println("# Final "+newPathFormula);
+    System.out.println();
+
+    return newPathFormula;
   }
 
   /**
