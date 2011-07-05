@@ -45,8 +45,10 @@ import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
@@ -66,27 +68,59 @@ public class RelyGuaranteeCPA extends PredicateCPA{
 
   @Option(name="abstraction.solver", toUppercase=true, values={"MATHSAT", "YICES"},
       description="which solver to use?")
-  private String whichProver = "MATHSAT";
+      private String whichProver = "MATHSAT";
 
   @Option(name="interpolatingProver", toUppercase=true, values={"MATHSAT", "CSISAT"},
       description="which interpolating solver to use for interpolant generation?")
-  private String whichItpProver = "MATHSAT";
+      private String whichItpProver = "MATHSAT";
 
   @Option(name="abstraction.initialPredicates", type=Option.Type.OPTIONAL_INPUT_FILE,
       description="get an initial set of predicates from a file in MSAT format")
-  private File predicatesFile = null;
+      private File predicatesFile = null;
 
   @Option(description="always check satisfiability at end of block, even if precision is empty")
   private boolean checkBlockFeasibility = false;
 
   @Option(name="interpolation.changesolverontimeout",
-          description="try second interpolating solver if the first takes too long")
-  private boolean changeItpSolveOTF = false;
+      description="try second interpolating solver if the first takes too long")
+      private boolean changeItpSolveOTF = false;
 
   @Option(name="blk.useCache", description="use caching of path formulas")
   private boolean useCache = true;
 
 
+    private static PathFormulaManager pfManager;
+    private static MathsatFormulaManager    fManager;
+    private static TheoremProver  tProver;
+
+    private static  MathsatFormulaManager getFormulaManager(Configuration config, LogManager logger) throws InvalidConfigurationException{
+      if (fManager == null){
+        fManager = new MathsatFormulaManager(config, logger);
+      }
+      return fManager;
+    }
+
+    private static PathFormulaManager getPathFormulaManager(Configuration config, LogManager logger) throws InvalidConfigurationException{
+      if (pfManager == null){
+        FormulaManager formulaManager = getFormulaManager(config, logger);
+        pfManager = new PathFormulaManagerImpl(formulaManager, config, logger);
+      }
+      return pfManager;
+    }
+
+    private static TheoremProver getTheoremProver(Configuration config, LogManager logger,String type) throws InvalidConfigurationException{
+      if (tProver == null){
+        MathsatFormulaManager msatFormulaManager = getFormulaManager(config, logger);
+        if (type.equals("MATHSAT")) {
+          tProver = new MathsatTheoremProver(msatFormulaManager);
+        } else if (type.equals("YICES")) {
+          tProver = new YicesTheoremProver(msatFormulaManager);
+        } else {
+          throw new InternalError("Update list of allowed solvers!");
+        }
+      }
+      return tProver;
+    }
 
 
   public RelyGuaranteeCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
@@ -97,22 +131,26 @@ public class RelyGuaranteeCPA extends PredicateCPA{
     config.inject(this, RelyGuaranteeCPA.class);
 
     this.regionManager = BDDRegionManager.getInstance();
-    MathsatFormulaManager mathsatFormulaManager = new MathsatFormulaManager(config, logger);
+    // MathsatFormulaManager mathsatFormulaManager = new MathsatFormulaManager(config, logger);
+    MathsatFormulaManager mathsatFormulaManager = getFormulaManager(config, logger);
+
     this.formulaManager = mathsatFormulaManager;
 
-    PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger);
+    //PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger);
+    PathFormulaManager pfMgr = getPathFormulaManager(config, logger);
     if (useCache) {
       pfMgr = new CachingPathFormulaManager(pfMgr);
     }
     this.pathFormulaManager = pfMgr;
 
-    if (whichProver.equals("MATHSAT")) {
+    /*if (whichProver.equals("MATHSAT")) {
       this.theoremProver = new MathsatTheoremProver(mathsatFormulaManager);
     } else if (whichProver.equals("YICES")) {
       this.theoremProver = new YicesTheoremProver(mathsatFormulaManager);
     } else {
       throw new InternalError("Update list of allowed solvers!");
-    }
+    }*/
+    this.theoremProver = getTheoremProver(config, logger,whichProver);
 
     InterpolatingTheoremProver<Integer> itpProver;
     InterpolatingTheoremProver<Integer> alternativeItpProver = null;
@@ -166,7 +204,6 @@ public class RelyGuaranteeCPA extends PredicateCPA{
 
     this.stats = createStatistics();
 
-
-}
+  }
 
 }

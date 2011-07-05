@@ -123,4 +123,14 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   public PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM) {
     return delegate.makeNewPathFormula(pOldFormula, pM);
   }
+
+  @Override
+  public PathFormula makeAnd(PathFormula pPathFormula,  PathFormula pShiftedEnvPathFormula) {
+    return delegate.makeAnd(pPathFormula, pShiftedEnvPathFormula);
+  }
+
+  @Override
+  public PathFormula shiftFormula(PathFormula pFormula, int pOffset) {
+    return delegate.shiftFormula(pFormula, pOffset);
+  }
 }

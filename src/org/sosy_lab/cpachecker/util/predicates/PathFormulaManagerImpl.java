@@ -40,8 +40,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
  */
 public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathFormulaManager {
 
-  public PathFormulaManagerImpl(FormulaManager pFmgr,
-      Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+  public PathFormulaManagerImpl(FormulaManager pFmgr, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     super(config, pFmgr, pLogger);
   }
 
@@ -101,7 +100,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
    * @param ssa2 an SSAMap
    * @return A pair (Formula, SSAMap)
    */
-  private Pair<Pair<Formula, Formula>, SSAMap> mergeSSAMaps(
+  public Pair<Pair<Formula, Formula>, SSAMap> mergeSSAMaps(
       SSAMap ssa1, SSAMap ssa2) {
     SSAMap result = SSAMap.merge(ssa1, ssa2);
     Formula mt1 = fmgr.makeTrue();
@@ -204,5 +203,61 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
       result = fmgr.makeAnd(result, e);
     }
     return result;
+  }
+
+  @Override
+  public PathFormula shiftFormula(PathFormula pathFormula, int offset) {
+    Formula shiftedFormula = fmgr.shiftFormula(pathFormula.getFormula(), offset);
+    SSAMap ssamap = pathFormula.getSsa();
+    SSAMap.SSAMapBuilder builder = SSAMap.emptySSAMap().builder();
+
+    for (String lVariable : ssamap.allVariables()) {
+      builder.setIndex(lVariable, offset + ssamap.getIndex(lVariable));
+    }
+
+    // TODO functions
+
+    SSAMap newmap = builder.build();
+
+    PathFormula lShiftedFormula = new PathFormula(shiftedFormula, newmap, pathFormula.getLength());
+
+    return lShiftedFormula;
+  }
+
+  @Override
+  public PathFormula makeAnd(PathFormula pFormula1, PathFormula pFormula2) {
+    SSAMap ssa1 = pFormula1.getSsa();
+    SSAMap ssa2 = pFormula2.getSsa();
+    SSAMap mergedSSA = SSAMap.merge(ssa1, ssa2);
+    Formula f1 = pFormula1.getFormula();
+    Formula f2 = pFormula2.getFormula();
+    Formula mergedFormula = fmgr.makeAnd(f1, f2);
+
+    Formula mt = fmgr.makeTrue();
+
+    if (!f2.isTrue()){
+      System.out.println();
+    }
+
+    for (String lVariable : ssa1.allVariables()) {
+      if (ssa2.allVariables().contains(lVariable)) {
+        // set variables equal
+        Formula lVar1 = fmgr.makeVariable(lVariable, ssa1.getIndex(lVariable));
+        Formula lVar2 = fmgr.makeVariable(lVariable, ssa2.getIndex(lVariable));
+        Formula e = fmgr.makeEqual(lVar1, lVar2);
+        mt = fmgr.makeAnd(mt, e);
+
+        // TODO what about nondet?
+        if (useNondetFlags && lVariable.equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
+          throw new RuntimeException();
+        }
+      }
+    }
+
+    System.out.println("&Formula1> " + pFormula1);
+    System.out.println("&Formula2> " + pFormula2);
+    System.out.println("&Equality> " + mt);
+
+    return new PathFormula(fmgr.makeAnd(mergedFormula, mt), mergedSSA, pFormula1.getLength()+pFormula2.getLength());
   }
 }

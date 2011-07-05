@@ -230,4 +230,7 @@ public interface FormulaManager {
      * if it is not done by the caller of this method.
      */
     public Formula createPredicateVariable(Formula pAtom);
+
+
+    public Formula shiftFormula(Formula formula, int offset);
 }

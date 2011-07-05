@@ -800,6 +800,7 @@ public class MathsatFormulaManager implements FormulaManager  {
     return res;
   }
 
+
   public Formula shiftFormula(Formula f, int offset){
     return encapsulate(shift(getTerm(f), offset));
   }

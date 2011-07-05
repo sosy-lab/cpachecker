@@ -238,10 +238,15 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
     System.out.println("# Path I "+lEnvironmentPathFormula);
     System.out.println("# Env "+lEnvironmentFormula);
     // shift the environmental path by the index
-    Formula shiftedEnvFormula = manager.shiftFormula(lEnvironmentFormula.getFormula(), max_index+1);
-    System.out.println("# Shiftend Env "+shiftedEnvFormula);
+   // Formula shiftedEnvFormula = manager.shiftFormula(lEnvironmentFormula.getFormula(), max_index+1);
+
+    PathFormula shiftedEnvPathFormula = pathFormulaManager.shiftFormula(lEnvironmentFormula, max_index+1);
+
+    System.out.println("# Shiftend Env "+shiftedEnvPathFormula);
     // merge the formulas
-    PathFormula mergedPathFormula = pathFormulaManager.makeAnd(pathFormula, shiftedEnvFormula);
+    //
+    PathFormula mergedPathFormula = pathFormulaManager.makeAnd(pathFormula, shiftedEnvPathFormula);
+    //pathFormulaManager
     System.out.println("# Path II "+pathFormula);
     System.out.println("# Merged "+mergedPathFormula);
     // apply the strongest post operator
