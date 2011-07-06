@@ -29,6 +29,8 @@ import java.util.Map;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
+import com.google.common.collect.Maps;
+
 public class Automaton {
   private final String name;
   /* The internal variables used by the actions/ assignments of this automaton.
@@ -44,23 +46,21 @@ public class Automaton {
     this.initVars = pVars;
     this.states = pStates;
 
-    AutomatonInternalState lInitState = null;
+    Map<String, AutomatonInternalState> statesMap = Maps.newHashMapWithExpectedSize(pStates.size());
     for (AutomatonInternalState s : pStates) {
-      if (s.getName().equals(pInit)) {
-        lInitState = s;
+      if (statesMap.put(s.getName(), s) != null) {
+        throw new InvalidAutomatonException("State " + s.getName() + " exists twice in automaton " + pName);
       }
     }
-    if (lInitState == null) {
+
+    initState = statesMap.get(pInit);
+    if (initState == null) {
       throw new InvalidAutomatonException("Inital state " + pInit + " not found in automaton " + pName);
     }
-    initState = lInitState;
-
-    // implicit error State (might be followState of Transitions)
-    // pStates.add(AutomatonInternalState.ERROR);
 
     // set the FollowStates of all Transitions
     for (AutomatonInternalState s : pStates) {
-      s.setFollowStates(pStates);
+      s.setFollowStates(statesMap);
     }
   }
 

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -96,15 +97,13 @@ class AutomatonTransition {
   /**
    * Resolves the follow-state relation for this transition.
    */
-  void setFollowState(List<AutomatonInternalState> pAllStates) throws InvalidAutomatonException {
-    if (this.followState == null) {
-      for (AutomatonInternalState s : pAllStates) {
-        if (s.getName().equals(followStateName)) {
-          this.followState = s;
-          return;
-        }
+  void setFollowState(Map<String, AutomatonInternalState> pAllStates) throws InvalidAutomatonException {
+    if (followState == null) {
+      followState = pAllStates.get(followStateName);
+
+      if (followState == null) {
+        throw new InvalidAutomatonException("No Follow-State with name " + followStateName + " found.");
       }
-      throw new InvalidAutomatonException("No Follow-State with name " + followStateName + " found.");
     }
   }
 
