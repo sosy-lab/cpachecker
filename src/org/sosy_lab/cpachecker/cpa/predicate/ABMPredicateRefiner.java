@@ -27,7 +27,6 @@ import static com.google.common.collect.Iterables.getOnlyElement;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
 
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -96,7 +95,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
 
   /**
    * This is a small extension of PredicateRefiner that overrides
-   * {@link #transformPath(Path)} so that it respects ABM.
+   * {@link #getFormulasForPath(List, ARTElement)} so that it respects ABM.
    */
   static final class ExtendedPredicateRefiner extends PredicateRefiner {
 
@@ -134,25 +133,20 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
 
       ssaRenamingTimer.start();
       try {
-        Map<ARTElement, Formula> renamedBlockFormulas = computeBlockFormulas(pPath, initialElement);
-
-        return replaceFormulasInPath(pPath, renamedBlockFormulas);
+        return computeBlockFormulas(initialElement);
 
       } finally {
         ssaRenamingTimer.stop();
       }
     }
 
-    // TODO return List<Formula> instead of Map
-    // The assertion in the loop shows that the formulas are actually created in the order in which we need them
-    private Map<ARTElement, Formula> computeBlockFormulas(List<Pair<ARTElement, CFANode>> pPath, ARTElement pRoot) throws CPATransferException {
+    private List<Formula> computeBlockFormulas(ARTElement pRoot) throws CPATransferException {
 
       Map<ARTElement, PathFormula> formulas = new HashMap<ARTElement, PathFormula>();
-      Map<ARTElement, Formula> abstractionFormulas = new HashMap<ARTElement, Formula>();
+      List<Formula> abstractionFormulas = Lists.newArrayList();
       Deque<ARTElement> todo = new ArrayDeque<ARTElement>();
 
       // initialize
-      int i = 0;
       assert pRoot.getParents().isEmpty();
       formulas.put(pRoot, pfmgr.makeEmptyPathFormula());
       todo.addAll(pRoot.getChildren());
@@ -165,7 +159,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
         }
 
         // collect formulas for current location
-        List<PathFormula> currentFormulas = new ArrayList<PathFormula>(currentElement.getParents().size());
+        List<PathFormula> currentFormulas = Lists.newArrayListWithExpectedSize(currentElement.getParents().size());
         for (ARTElement parentElement : currentElement.getParents()) {
           PathFormula parentFormula = formulas.get(parentElement);
           if (parentFormula == null) {
@@ -185,8 +179,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
         if (predicateElement instanceof PredicateAbstractElement.AbstractionElement) {
           // abstraction element
           PathFormula currentFormula = getOnlyElement(currentFormulas);
-          abstractionFormulas.put(currentElement, currentFormula.getFormula());
-          assert currentElement == pPath.get(i++).getFirst() : "Formulas not created in order";
+          abstractionFormulas.add(currentFormula.getFormula());
 
           // start new block with empty formula
           assert todo.isEmpty() : "todo should be empty because of the special ART structure";
@@ -208,25 +201,6 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
         todo.addAll(currentElement.getChildren());
       }
       return abstractionFormulas;
-    }
-
-    private List<Formula> replaceFormulasInPath(
-        List<Pair<ARTElement, CFANode>> notRenamedPath,
-        Map<ARTElement, Formula> blockFormulas) {
-
-      List<Formula> result = Lists.newArrayListWithExpectedSize(notRenamedPath.size());
-
-      assert notRenamedPath.size() == blockFormulas.size();
-
-      for (Pair<ARTElement, CFANode> abstractionPoint : notRenamedPath) {
-        ARTElement oldARTElement = abstractionPoint.getFirst();
-
-        Formula blockFormula = blockFormulas.get(oldARTElement);
-        assert blockFormula != null;
-
-        result.add(blockFormula);
-      }
-      return result;
     }
   }
 }
