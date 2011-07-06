@@ -238,7 +238,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     // iterate through pPath and find first point with new predicates, from there we have to cut the ART
     for (Triple<ARTElement, CFANode, PredicateAbstractElement> interpolationPoint : pPath) {
       CFANode loc = interpolationPoint.getSecond();
-      Collection<AbstractionPredicate> newpreds = getPredicatesForARTElement(pInfo, interpolationPoint);
+      Collection<AbstractionPredicate> newpreds = pInfo.getPredicatesForRefinement(interpolationPoint.getThird());
 
       if (firstInterpolationPoint == null && newpreds.size() > 0) {
         firstInterpolationPoint = interpolationPoint;
@@ -303,11 +303,6 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     }
     lastErrorPath = absLocations;
     return Pair.of(root, newPrecision);
-  }
-
-  protected Collection<AbstractionPredicate> getPredicatesForARTElement(
-      CounterexampleTraceInfo pInfo, Triple<ARTElement, CFANode, PredicateAbstractElement> pInterpolationPoint) {
-    return pInfo.getPredicatesForRefinement(pInterpolationPoint.getThird());
   }
 
   @Override
