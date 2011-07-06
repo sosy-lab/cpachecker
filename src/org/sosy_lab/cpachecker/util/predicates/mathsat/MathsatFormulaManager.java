@@ -840,4 +840,59 @@ public class MathsatFormulaManager implements FormulaManager  {
       return newt;
     }
   }
+
+  public Formula addThreadId(Formula f, int tid){
+    return encapsulate(addThreadId(getTerm(f), tid));
+  }
+
+  private long addThreadId(long lTerm, int tid) {
+    if (msat_term_is_variable(lTerm) != 0) {
+      Pair<String, Integer> lVariable = parseName(msat_term_repr(lTerm));
+      String newName = addThreadIdToVar(lVariable.getFirst(),tid);
+      long decl = msat_declare_variable(msatEnv, makeName(newName, lVariable.getSecond()), msat_term_get_type(lTerm));
+      return msat_make_variable(msatEnv, decl);
+    }
+    else {
+      long[] newargs = new long[msat_term_arity(lTerm)];
+
+      for (int i = 0; i < newargs.length; ++i) {
+        newargs[i] = addThreadId(msat_term_get_arg(lTerm, i), tid);
+      }
+
+      long newt;
+
+      if (msat_term_is_uif(lTerm) != 0) {
+        String name = msat_decl_get_name(msat_term_get_decl(lTerm));
+        assert name != null;
+
+        if (ufCanBeLvalue(name)) {
+          // shift ????? TODO think about
+
+          name = parseName(name).getFirst();
+
+          newt = buildMsatUF(name, newargs);
+        } else {
+          newt = msat_replace_args(msatEnv, lTerm, newargs);
+        }
+      } else {
+        newt = msat_replace_args(msatEnv, lTerm, newargs);
+      }
+
+      return newt;
+    }
+  }
+
+  // add an id to a variable, unless it already has one
+  private String addThreadIdToVar(String var, int tid){
+    String result = null;
+    if(var.contains("_")){
+      result = var;
+    }
+    else{
+      result = var+"_"+tid;
+    }
+    return result;
+  }
+
+
 }

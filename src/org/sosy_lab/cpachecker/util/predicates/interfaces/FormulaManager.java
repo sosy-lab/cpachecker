@@ -233,4 +233,7 @@ public interface FormulaManager {
 
 
     public Formula shiftFormula(Formula formula, int offset);
+
+    // new
+    public Formula addThreadId(Formula f, int tid);
 }

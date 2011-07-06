@@ -210,7 +210,8 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
         newPathFormula = matchFormula(pathFormula,edge);
       }
       else {
-        newPathFormula = pathFormulaManager.makeAnd(pathFormula, edge);
+        //newPathFormula = pathFormulaManager.makeAnd(pathFormula, edge);
+        newPathFormula = pathFormulaManager.makeAnd(pathFormula, edge, this.cpa.getThreadId());
       }
     } finally {
       pathFormulaTimer.stop();
@@ -234,6 +235,8 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
         max_index = ssaMap.getIndex(key);
       }
     }
+
+
 
     System.out.println("My id: "+this.cpa.getThreadId());
     System.out.println("# Abstraction I "+lEnvironmentAbstractionFormula);

@@ -43,14 +43,12 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
@@ -73,13 +71,15 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IComplexType;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.ITypedef;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.StatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -411,6 +411,105 @@ public class CtoFormulaConverter {
     int newLength = oldFormula.getLength() + 1;
     return new PathFormula(newFormula, newSsa, newLength);
   }
+
+  public PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge, int tid) throws CPATransferException {
+      // this is where the "meat" is... We have to parse the statement
+      // attached to the edge, and convert it to the appropriate formula
+
+      if (edge.getEdgeType() == CFAEdgeType.BlankEdge) {
+
+        // in this case there's absolutely nothing to do, so take a shortcut
+        return oldFormula;
+      }
+
+      String function = (edge.getPredecessor() != null)
+                            ? edge.getPredecessor().getFunctionName() : null;
+
+      SSAMapBuilder ssa = oldFormula.getSsa().builder();
+
+      Formula edgeFormula;
+      switch (edge.getEdgeType()) {
+      case StatementEdge: {
+        StatementEdge statementEdge = (StatementEdge)edge;
+        StatementToFormulaVisitor v = new StatementToFormulaVisitor(function, ssa);
+        edgeFormula = statementEdge.getStatement().accept(v);
+        break;
+      }
+
+      case ReturnStatementEdge: {
+        ReturnStatementEdge returnEdge = (ReturnStatementEdge)edge;
+        edgeFormula = makeReturn(returnEdge.getExpression(), function, ssa);
+        break;
+      }
+
+      case DeclarationEdge: {
+        DeclarationEdge d = (DeclarationEdge)edge;
+        edgeFormula = makeDeclaration(d.getDeclSpecifier(), d.isGlobal(), d, function, ssa);
+        break;
+      }
+
+      case AssumeEdge: {
+        edgeFormula = makeAssume((AssumeEdge)edge, function, ssa);
+        break;
+      }
+
+      case BlankEdge: {
+        assert false : "Handled above";
+        edgeFormula = fmgr.makeTrue();
+        break;
+      }
+
+      case FunctionCallEdge: {
+        edgeFormula = makeFunctionCall((FunctionCallEdge)edge, function, ssa);
+        break;
+      }
+
+      case FunctionReturnEdge: {
+        // get the expression from the summary edge
+        CFANode succ = edge.getSuccessor();
+        CallToReturnEdge ce = succ.getEnteringSummaryEdge();
+        edgeFormula = makeExitFunction(ce, function, ssa);
+        break;
+      }
+
+      default:
+        throw new UnrecognizedCFAEdgeException(edge);
+      }
+
+      if (useNondetFlags) {
+        int lNondetIndex = ssa.getIndex(NONDET_VARIABLE);
+        int lFlagIndex = ssa.getIndex(NONDET_FLAG_VARIABLE);
+
+        if (lNondetIndex != lFlagIndex) {
+          if (lFlagIndex < 0) {
+            lFlagIndex = 1; // ssa indices start with 2, so next flag that is generated also uses index 2
+          }
+
+          for (int lIndex = lFlagIndex + 1; lIndex <= lNondetIndex; lIndex++) {
+            Formula lAssignment = fmgr.makeAssignment(fmgr.makeVariable(NONDET_FLAG_VARIABLE, lIndex), fmgr.makeNumber(1));
+            edgeFormula = fmgr.makeAnd(edgeFormula, lAssignment);
+          }
+
+          // update ssa index of nondet flag
+          ssa.setIndex(NONDET_FLAG_VARIABLE, lNondetIndex);
+        }
+      }
+
+      SSAMap newSsa = ssa.build();
+      if (edgeFormula.isTrue() && (newSsa == oldFormula.getSsa())) {
+        // formula is just "true" and SSAMap is identical
+        // i.e. no writes to SSAMap, no branching and length should stay the same
+        return oldFormula;
+      }
+
+      Formula renamedFormula = fmgr.addThreadId(edgeFormula, tid);
+      Formula newFormula = fmgr.makeAnd(oldFormula.getFormula(), renamedFormula);
+      int newLength = oldFormula.getLength() + 1;
+      return new PathFormula(newFormula, newSsa, newLength);
+  }
+
+
+    /*******************/
 
   private Formula makeDeclaration(IType spec,
       boolean isGlobal, DeclarationEdge edge,
