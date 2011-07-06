@@ -183,8 +183,9 @@ cpa.automaton.breakOnTargetState = true
 # export automaton to file
 cpa.automaton.dotExport = false
 
-# file for saving the automaton in DOT format
-cpa.automaton.dotExportFile = "automaton.dot"
+# file for saving the automaton in DOT format (%s will be replaced with
+# automaton name)
+cpa.automaton.dotExportFile = "%s.dot"
 
 # file with automaton specification for ObserverAutomatonCPA and
 # ControlAutomatonCPA

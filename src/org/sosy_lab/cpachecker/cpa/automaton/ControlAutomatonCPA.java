@@ -68,8 +68,8 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   private boolean export = false;
 
   @Option(name="dotExportFile", type=Option.Type.OUTPUT_FILE,
-      description="file for saving the automaton in DOT format")
-  private File exportFile = new File("automaton.dot");
+      description="file for saving the automaton in DOT format (%s will be replaced with automaton name)")
+  private File exportFile = new File("%s.dot");
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ControlAutomatonCPA.class);
@@ -118,7 +118,8 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
     if (export && exportFile != null) {
       try {
-        this.automaton.writeDotFile(new PrintStream(exportFile));
+        String fileName = String.format(exportFile.getAbsolutePath(), automaton.getName());
+        automaton.writeDotFile(new PrintStream(fileName));
       } catch (FileNotFoundException e) {
         logger.log(Level.WARNING, "Could not create/write to the Automaton DOT file \"" + exportFile + "\"");
       }
