@@ -404,7 +404,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
                 refStats.cexAnalysisTimer.getNumberOfIntervals(), "formula", k++);
         dumpFormulaToFile(branchingFormula, new File(dumpFile));
 
-        preds = Maps.newTreeMap();
+        preds = Collections.emptyMap();
         model = new Model(fmgr);
 
       } else {
@@ -412,7 +412,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
 
         if (model.isEmpty()) {
           logger.log(Level.WARNING, "No satisfying assignment given by solver!");
-          preds = Maps.newTreeMap();
+          preds = Collections.emptyMap();
         } else {
           preds = getPredicateValuesFromModel(model);
         }
@@ -741,7 +741,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
 
   private Map<Integer, Boolean> getPredicateValuesFromModel(Model model) {
 
-    Map<Integer, Boolean> preds = Maps.newTreeMap();
+    Map<Integer, Boolean> preds = Maps.newHashMap();
     for (AssignableTerm a : model.keySet()) {
       if (a instanceof Variable && a.getType() == TermType.Boolean) {
 

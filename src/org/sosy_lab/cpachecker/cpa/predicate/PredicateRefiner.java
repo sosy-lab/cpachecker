@@ -29,6 +29,7 @@ import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -251,7 +252,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
       List<Pair<ARTElement, CFANode>> pPath,
       CounterexampleTraceInfo pInfo) throws CPAException {
 
-    List<Set<AbstractionPredicate>> newPreds = pInfo.getPredicatesForRefinement();
+    List<Collection<AbstractionPredicate>> newPreds = pInfo.getPredicatesForRefinement();
 
     // target element is not really an interpolation point, exclude it
     List<Pair<ARTElement, CFANode>> interpolationPoints = pPath.subList(0, pPath.size()-1);
@@ -270,7 +271,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     // also build new precision
     int i = 0;
     for (Pair<ARTElement, CFANode> interpolationPoint : interpolationPoints) {
-      Set<AbstractionPredicate> localPreds = newPreds.get(i++);
+      Collection<AbstractionPredicate> localPreds = newPreds.get(i++);
 
       if (localPreds.size() > 0) {
         // found predicates

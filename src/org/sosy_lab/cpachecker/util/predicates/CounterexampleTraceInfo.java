@@ -23,17 +23,16 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 
@@ -45,7 +44,7 @@ import com.google.common.collect.Lists;
  */
 public class CounterexampleTraceInfo {
     private final boolean spurious;
-    private final List<Set<AbstractionPredicate>> pmap;
+    private final List<Collection<AbstractionPredicate>> pmap;
     private final Model mCounterexampleModel;
     private final List<Formula> mCounterexampleFormula;
     private final Map<Integer, Boolean> branchingPreds;
@@ -66,7 +65,7 @@ public class CounterexampleTraceInfo {
       mCounterexampleModel = pModel;
       spurious = false;
       pmap = ImmutableList.of();
-      branchingPreds = ImmutableMap.copyOf(preds);
+      branchingPreds = preds;
     }
 
     /**
@@ -84,16 +83,16 @@ public class CounterexampleTraceInfo {
      *
      * @return a list of predicates
      */
-    public List<Set<AbstractionPredicate>> getPredicatesForRefinement() {
-        return Collections.unmodifiableList(pmap);
+    public List<Collection<AbstractionPredicate>> getPredicatesForRefinement() {
+        return pmap;
     }
 
     /**
      * Adds some predicates to the list of those corresponding to the given
      * AbstractElement
      */
-    public void addPredicatesForRefinement(Iterable<AbstractionPredicate> preds) {
-      pmap.add(ImmutableSet.copyOf(preds));
+    public void addPredicatesForRefinement(Collection<AbstractionPredicate> preds) {
+      pmap.add(preds);
     }
 
     @Override
