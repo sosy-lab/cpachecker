@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.io.PrintStream;
 import java.util.Collections;
 import java.util.List;
 
@@ -89,15 +88,6 @@ class AutomatonInternalState {
 
   public boolean isTarget() {
     return mIsTarget;
-  }
-
-  /**  Writes a representation of this state (as node) in DOT file format to the argument {@link PrintStream}.
-   * @param pOut
-   */
-  public void writeTransitionsToDotFile(PrintStream pOut) {
-    for (AutomatonTransition t : transitions) {
-      t.writeTransitionToDotFile(stateId, pOut);
-    }
   }
 
   public List<AutomatonTransition> getTransitions() {

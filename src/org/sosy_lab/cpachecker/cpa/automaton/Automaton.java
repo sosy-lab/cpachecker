@@ -83,19 +83,41 @@ public class Automaton {
   void writeDotFile(PrintStream pOut) {
     pOut.println("digraph " + name + "{");
 
-    pOut.println(AutomatonInternalState.ERROR.getStateId() + " [shape=\"circle\" color=\"red\" label=\"" +  AutomatonInternalState.ERROR.getName() + "\"]");
-    pOut.println(AutomatonInternalState.BOTTOM.getStateId() + " [shape=\"circle\" color=\"red\" label=\"" +  AutomatonInternalState.BOTTOM.getName() + "\"]");
+    boolean errorState = false;
+    boolean bottomState = false;
 
     for (AutomatonInternalState s : states) {
-      if (initState.equals(s)) {
-        pOut.println(s.getStateId() + " [shape=\"circle\" color=\"green\" label=\"" +  s.getName() + "\"]");
-      } else {
-        pOut.println(s.getStateId() + " [shape=\"circle\" color=\"black\" label=\"" +  s.getName() + "\"]");
+      String color = initState.equals(s) ? "green" : "black";
+
+      pOut.println(formatState(s, color));
+
+      for (AutomatonTransition t : s.getTransitions()) {
+        pOut.println(formatTransition(s, t));
+
+        errorState = errorState || t.getFollowState().equals(AutomatonInternalState.ERROR);
+        bottomState = bottomState || t.getFollowState().equals(AutomatonInternalState.BOTTOM);
       }
-      s.writeTransitionsToDotFile(pOut);
+    }
+
+    if (errorState) {
+      pOut.println(formatState(AutomatonInternalState.ERROR, "red"));
+    }
+
+    if (bottomState) {
+      pOut.println(formatState(AutomatonInternalState.BOTTOM, "red"));
     }
     pOut.println("}");
   }
+
+  private static String formatState(AutomatonInternalState s, String color) {
+    String name = s.getName().replace("_predefinedState_", "");
+    return String.format("%d [shape=\"circle\" color=\"%s\" label=\"%s\"]", s.getStateId(), color, name);
+  }
+
+  private static String formatTransition(AutomatonInternalState sourceState, AutomatonTransition t) {
+    return String.format("%d -> %d [label=\"" /*+ pattern */ + "\"]", sourceState.getStateId(), t.getFollowState().getStateId());
+  }
+
 
   public Map<String, AutomatonVariable> getInitialVariables() {
     return initVars;

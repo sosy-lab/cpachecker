@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.PrintStream;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -107,12 +106,6 @@ class AutomatonTransition {
       }
       throw new InvalidAutomatonException("No Follow-State with name " + followStateName + " found.");
     }
-  }
-
-  /** Writes a representation of this transition (as edge) in DOT file format to the argument {@link PrintStream}.
-   */
-  void writeTransitionToDotFile(int sourceStateId, PrintStream out) {
-    out.println(sourceStateId + " -> " + followState.getStateId() + " [label=\"" /*+ pattern */ + "\"]");
   }
 
   /** Determines if this Transition matches on the current State of the CPA.
