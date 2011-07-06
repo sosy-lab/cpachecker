@@ -39,7 +39,6 @@ import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -127,26 +126,12 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
 
     // create path with all abstraction location elements (excluding the initial element)
     // the last element is the element corresponding to the error location
-    List<Triple<ARTElement, CFANode, PredicateAbstractElement>> path = transformPath(pPath);
-
-    Precision oldPrecision = pReached.getPrecision(targetElement);
-    PredicatePrecision oldPredicatePrecision = Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
-    if (oldPredicatePrecision == null) {
-      throw new IllegalStateException("Could not find the PredicatePrecision for the error element");
-    }
+    List<Pair<ARTElement, CFANode>> path = transformPath(pPath);
 
     logger.log(Level.ALL, "Abstraction trace is", path);
 
     // create list of formulas on path
-    List<Formula> formulas = transform(path, Functions.compose(
-        new Function<PredicateAbstractElement, Formula>() {
-          @Override
-          public Formula apply(PredicateAbstractElement e) {
-            assert e instanceof PredicateAbstractElement.AbstractionElement;
-            return e.getAbstractionFormula().getBlockFormula();
-          };
-        },
-        Triple.<PredicateAbstractElement>getProjectionToThird()));
+    List<Formula> formulas = getFormulasForPath(path, pPath.getFirst().getFirst());
     assert path.size() == formulas.size();
 
     // build the counterexample
@@ -157,6 +142,14 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     if (mCounterexampleTraceInfo.isSpurious()) {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
       precisionUpdate.start();
+
+      // get previous precision
+      Precision oldPrecision = pReached.getPrecision(targetElement);
+      PredicatePrecision oldPredicatePrecision = Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
+      if (oldPredicatePrecision == null) {
+        throw new IllegalStateException("Could not find the PredicatePrecision for the error element");
+      }
+
       Pair<ARTElement, PredicatePrecision> refinementResult =
               performRefinement(oldPredicatePrecision, path, mCounterexampleTraceInfo);
       precisionUpdate.stop();
@@ -216,14 +209,14 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     }
   }
 
-  protected List<Triple<ARTElement, CFANode, PredicateAbstractElement>> transformPath(Path pPath) throws CPATransferException {
-    List<Triple<ARTElement, CFANode, PredicateAbstractElement>> result = Lists.newArrayList();
+  private List<Pair<ARTElement, CFANode>> transformPath(Path pPath) throws CPATransferException {
+    List<Pair<ARTElement, CFANode>> result = Lists.newArrayList();
 
     for (ARTElement ae : skip(transform(pPath, Pair.<ARTElement>getProjectionToFirst()), 1)) {
       PredicateAbstractElement pe = extractElementByType(ae, PredicateAbstractElement.class);
       if (pe instanceof AbstractionElement) {
         CFANode loc = AbstractElements.extractLocation(ae);
-        result.add(Triple.of(ae, loc, pe));
+        result.add(Pair.of(ae, loc));
       }
     }
 
@@ -232,23 +225,47 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
   }
 
   /**
+   * Get the block formulas from a path.
+   * @param path A list of all abstraction elements
+   * @param initialElement The initial element of the analysis (= the root element of the ART)
+   * @return A list of block formulas for this path.
+   * @throws CPATransferException
+   */
+  protected List<Formula> getFormulasForPath(List<Pair<ARTElement, CFANode>> path, ARTElement initialElement) throws CPATransferException {
+
+    List<Formula> formulas = transform(path, Functions.compose(
+        new Function<PredicateAbstractElement, Formula>() {
+          @Override
+          public Formula apply(PredicateAbstractElement e) {
+            assert e instanceof AbstractionElement;
+            return e.getAbstractionFormula().getBlockFormula();
+          };
+        },
+        Functions.compose(
+            AbstractElements.extractElementByTypeFunction(PredicateAbstractElement.class),
+            Pair.<ARTElement>getProjectionToFirst())));
+
+    return formulas;
+  }
+
+  /**
    * pPath and pArtPath need to fit together such that
    * pPath.get(i) == pArtPath.get(i).retrieveWrappedElement(PredicateAbstractElement)
    */
   private Pair<ARTElement, PredicatePrecision> performRefinement(PredicatePrecision oldPrecision,
-      List<Triple<ARTElement, CFANode, PredicateAbstractElement>> pPath,
+      List<Pair<ARTElement, CFANode>> pPath,
       CounterexampleTraceInfo pInfo) throws CPAException {
 
     List<Set<AbstractionPredicate>> newPreds = pInfo.getPredicatesForRefinement();
 
     // target element is not really an interpolation point, exclude it
-    List<Triple<ARTElement, CFANode, PredicateAbstractElement>> interpolationPoints = pPath.subList(0, pPath.size()-1);
+    List<Pair<ARTElement, CFANode>> interpolationPoints = pPath.subList(0, pPath.size()-1);
     assert interpolationPoints.size() == newPreds.size();
 
     Multimap<CFANode, AbstractionPredicate> oldPredicateMap = oldPrecision.getPredicateMap();
     Set<AbstractionPredicate> globalPredicates = oldPrecision.getGlobalPredicates();
 
-    Triple<ARTElement, CFANode, PredicateAbstractElement> firstInterpolationPoint = null;
+    Pair<ARTElement, CFANode> firstInterpolationPoint = null;
     boolean newPredicatesFound = false;
 
     ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
@@ -257,7 +274,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
 
     // iterate through pPath and find first point with new predicates, from there we have to cut the ART
     int i = 0;
-    for (Triple<ARTElement, CFANode, PredicateAbstractElement> interpolationPoint : interpolationPoints) {
+    for (Pair<ARTElement, CFANode> interpolationPoint : interpolationPoints) {
       CFANode loc = interpolationPoint.getSecond();
       Collection<AbstractionPredicate> localPreds = newPreds.get(i++);
 
@@ -284,7 +301,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
 
     logger.log(Level.ALL, "Predicate map now is", newPredicateMap);
 
-    List<CFANode> absLocations = ImmutableList.copyOf(transform(pPath, Triple.<CFANode>getProjectionToSecond()));
+    List<CFANode> absLocations = ImmutableList.copyOf(transform(pPath, Pair.<CFANode>getProjectionToSecond()));
 
     // We have two different strategies for the refinement root: set it to
     // the firstInterpolationPoint or set it to highest location in the ART
@@ -312,7 +329,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
 
       // find first element in path with location == loc,
       // this is not necessary equal to firstInterpolationPoint.getFirst()
-      for (Triple<ARTElement, CFANode, PredicateAbstractElement> abstractionPoint : pPath) {
+      for (Pair<ARTElement, CFANode> abstractionPoint : pPath) {
         if (abstractionPoint.getSecond().equals(loc)) {
           root = abstractionPoint.getFirst();
           break;

@@ -34,8 +34,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -46,12 +46,9 @@ import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 import com.google.common.collect.Lists;
 
@@ -105,7 +102,6 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
 
     final Timer ssaRenamingTimer = new Timer();
 
-    private final FormulaManager fmgr;
     private final PathFormulaManager pfmgr;
 
     private ExtendedPredicateRefiner(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
@@ -116,7 +112,6 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
         throw new CPAException(getClass().getSimpleName() + " needs a PredicateCPA");
       }
 
-      this.fmgr = predicateCpa.getFormulaManager();
       this.pfmgr = predicateCpa.getPathFormulaManager();
     }
 
@@ -132,31 +127,32 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
     }
 
     @Override
-    protected final List<Triple<ARTElement, CFANode, PredicateAbstractElement>> transformPath(Path pPath) throws CPATransferException {
+    protected final List<Formula> getFormulasForPath(List<Pair<ARTElement, CFANode>> pPath, ARTElement initialElement) throws CPATransferException {
       // the elements in the path are not expanded, so they contain the path formulas
       // with the wrong indices
       // we need to re-create all path formulas in the flattened ART
 
-      List<Triple<ARTElement, CFANode, PredicateAbstractElement>> notRenamedPath = super.transformPath(pPath);
-
       ssaRenamingTimer.start();
       try {
-        Map<ARTElement, Formula> renamedBlockFormulas = computeBlockFormulas(pPath.getFirst().getFirst());
+        Map<ARTElement, Formula> renamedBlockFormulas = computeBlockFormulas(pPath, initialElement);
 
-        return replaceFormulasInPath(notRenamedPath, renamedBlockFormulas);
+        return replaceFormulasInPath(pPath, renamedBlockFormulas);
 
       } finally {
         ssaRenamingTimer.stop();
       }
     }
 
-    private Map<ARTElement, Formula> computeBlockFormulas(ARTElement pRoot) throws CPATransferException {
+    // TODO return List<Formula> instead of Map
+    // The assertion in the loop shows that the formulas are actually created in the order in which we need them
+    private Map<ARTElement, Formula> computeBlockFormulas(List<Pair<ARTElement, CFANode>> pPath, ARTElement pRoot) throws CPATransferException {
 
       Map<ARTElement, PathFormula> formulas = new HashMap<ARTElement, PathFormula>();
       Map<ARTElement, Formula> abstractionFormulas = new HashMap<ARTElement, Formula>();
       Deque<ARTElement> todo = new ArrayDeque<ARTElement>();
 
       // initialize
+      int i = 0;
       assert pRoot.getParents().isEmpty();
       formulas.put(pRoot, pfmgr.makeEmptyPathFormula());
       todo.addAll(pRoot.getChildren());
@@ -190,6 +186,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
           // abstraction element
           PathFormula currentFormula = getOnlyElement(currentFormulas);
           abstractionFormulas.put(currentElement, currentFormula.getFormula());
+          assert currentElement == pPath.get(i++).getFirst() : "Formulas not created in order";
 
           // start new block with empty formula
           assert todo.isEmpty() : "todo should be empty because of the special ART structure";
@@ -213,27 +210,21 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
       return abstractionFormulas;
     }
 
-    private List<Triple<ARTElement, CFANode, PredicateAbstractElement>> replaceFormulasInPath(
-        List<Triple<ARTElement, CFANode, PredicateAbstractElement>> notRenamedPath,
+    private List<Formula> replaceFormulasInPath(
+        List<Pair<ARTElement, CFANode>> notRenamedPath,
         Map<ARTElement, Formula> blockFormulas) {
 
-      List<Triple<ARTElement, CFANode, PredicateAbstractElement>> result = Lists.newArrayListWithExpectedSize(notRenamedPath.size());
+      List<Formula> result = Lists.newArrayListWithExpectedSize(notRenamedPath.size());
 
       assert notRenamedPath.size() == blockFormulas.size();
 
-      Region fakeRegion = new Region() { };
-
-      for (Triple<ARTElement, CFANode, PredicateAbstractElement> abstractionPoint : notRenamedPath) {
+      for (Pair<ARTElement, CFANode> abstractionPoint : notRenamedPath) {
         ARTElement oldARTElement = abstractionPoint.getFirst();
 
         Formula blockFormula = blockFormulas.get(oldARTElement);
         assert blockFormula != null;
-        AbstractionFormula abs = new AbstractionFormula(fakeRegion, fmgr.makeTrue(), blockFormula);
-        PredicateAbstractElement predicateElement = new PredicateAbstractElement.AbstractionElement(pfmgr.makeEmptyPathFormula(), abs);
 
-        result.add(Triple.of(oldARTElement,
-                             abstractionPoint.getSecond(),
-                             predicateElement));
+        result.add(blockFormula);
       }
       return result;
     }
