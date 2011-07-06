@@ -147,6 +147,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
           };
         },
         Triple.<PredicateAbstractElement>getProjectionToThird()));
+    assert path.size() == formulas.size();
 
     // build the counterexample
     mCounterexampleTraceInfo = formulaManager.buildCounterexampleTrace(formulas, elementsOnPath);

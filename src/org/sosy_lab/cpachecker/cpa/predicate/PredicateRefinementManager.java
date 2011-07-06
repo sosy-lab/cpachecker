@@ -319,12 +319,14 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
           dumpFormulaToFile(itp, new File(dumpFile));
         }
 
+        Collection<AbstractionPredicate> preds;
+
         if (itp.isTrue()) {
           logger.log(Level.ALL, "For step", i, "got no interpolant.");
+          preds = Collections.emptySet();
 
         } else {
           foundPredicates = true;
-          Collection<AbstractionPredicate> preds;
 
           if (itp.isFalse()) {
             preds = ImmutableSet.of(amgr.makeFalsePredicate());
@@ -332,7 +334,6 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
             preds = getAtomsAsPredicates(itp);
           }
           assert !preds.isEmpty();
-          info.addPredicatesForRefinement(preds);
 
           logger.log(Level.ALL, "For step", i, "got:",
               "interpolant", itp,
@@ -351,6 +352,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
             printFormulasToFile(atoms, new File(dumpFile));
           }
         }
+        info.addPredicatesForRefinement(preds);
 
         // TODO wellScopedPredicates have been disabled
 
