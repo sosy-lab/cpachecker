@@ -61,7 +61,10 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
@@ -135,8 +138,19 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
 
     logger.log(Level.ALL, "Abstraction trace is", path);
 
+    // create list of formulas on path
+    List<Formula> formulas = transform(path, Functions.compose(
+        new Function<PredicateAbstractElement, Formula>() {
+          @Override
+          public Formula apply(PredicateAbstractElement e) {
+            assert e instanceof PredicateAbstractElement.AbstractionElement;
+            return e.getAbstractionFormula().getBlockFormula();
+          };
+        },
+        Triple.<PredicateAbstractElement>getProjectionToThird()));
+
     // build the counterexample
-    mCounterexampleTraceInfo = formulaManager.buildCounterexampleTrace(transform(path, Triple.<PredicateAbstractElement>getProjectionToThird()), elementsOnPath);
+    mCounterexampleTraceInfo = formulaManager.buildCounterexampleTrace(formulas, elementsOnPath);
     targetPath = null;
 
     // if error is spurious refine
@@ -225,6 +239,12 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
       List<Triple<ARTElement, CFANode, PredicateAbstractElement>> pPath,
       CounterexampleTraceInfo pInfo) throws CPAException {
 
+    List<Set<AbstractionPredicate>> newPreds = pInfo.getPredicatesForRefinement();
+
+    // target element is not really an interpolation point, exclude it
+    List<Triple<ARTElement, CFANode, PredicateAbstractElement>> interpolationPoints = pPath.subList(0, pPath.size()-1);
+    assert interpolationPoints.size() == newPreds.size();
+
     Multimap<CFANode, AbstractionPredicate> oldPredicateMap = oldPrecision.getPredicateMap();
     Set<AbstractionPredicate> globalPredicates = oldPrecision.getGlobalPredicates();
 
@@ -236,19 +256,20 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     pmapBuilder.putAll(oldPredicateMap);
 
     // iterate through pPath and find first point with new predicates, from there we have to cut the ART
-    for (Triple<ARTElement, CFANode, PredicateAbstractElement> interpolationPoint : pPath) {
+    int i = 0;
+    for (Triple<ARTElement, CFANode, PredicateAbstractElement> interpolationPoint : interpolationPoints) {
       CFANode loc = interpolationPoint.getSecond();
-      Collection<AbstractionPredicate> newpreds = pInfo.getPredicatesForRefinement(interpolationPoint.getThird());
+      Collection<AbstractionPredicate> localPreds = newPreds.get(i++);
 
-      if (firstInterpolationPoint == null && newpreds.size() > 0) {
+      if (firstInterpolationPoint == null && localPreds.size() > 0) {
         firstInterpolationPoint = interpolationPoint;
       }
-      if (!newPredicatesFound && !oldPredicateMap.get(loc).containsAll(newpreds)) {
+      if (!newPredicatesFound && !oldPredicateMap.get(loc).containsAll(localPreds)) {
         // new predicates for this location
         newPredicatesFound = true;
       }
 
-      pmapBuilder.putAll(loc, newpreds);
+      pmapBuilder.putAll(loc, localPreds);
       pmapBuilder.putAll(loc, globalPredicates);
     }
     assert firstInterpolationPoint != null;

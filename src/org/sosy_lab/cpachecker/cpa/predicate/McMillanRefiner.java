@@ -27,6 +27,7 @@ import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -43,8 +44,12 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.Abstractio
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 public class McMillanRefiner extends AbstractARTBasedRefiner {
 
@@ -88,8 +93,19 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
     assert path.size() == pPath.size() - 1 : "not all elements are abstraction nodes?";
 
 
+    // create list of formulas on path
+    List<Formula> formulas = Lists.transform(path,
+        new Function<PredicateAbstractElement, Formula>() {
+          @Override
+          public Formula apply(PredicateAbstractElement e) {
+            assert e instanceof PredicateAbstractElement.AbstractionElement;
+            return e.getAbstractionFormula().getBlockFormula();
+          };
+        }
+        );
+
     // build the counterexample
-    CounterexampleTraceInfo info = formulaManager.buildCounterexampleTrace(path, ARTUtils.getAllElementsOnPathsTo(pReached.getLastElement()));
+    CounterexampleTraceInfo info = formulaManager.buildCounterexampleTrace(formulas, ARTUtils.getAllElementsOnPathsTo(pReached.getLastElement()));
 
     // if error is spurious refine
     if (info.isSpurious()) {
@@ -120,7 +136,10 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
 
       assert e instanceof AbstractionElement;
 
-      Collection<AbstractionPredicate> newpreds = pInfo.getPredicatesForRefinement(e);
+      // TODO get predicates from pInfo.getPredicatesForRefinement() list
+      //Collection<AbstractionPredicate> newpreds = pInfo.getPredicatesForRefinement(e);
+      Collection<AbstractionPredicate> newpreds = new ArrayList<AbstractionPredicate>();
+
       if (newpreds.size() == 0) {
         if (foundInterpolant) {
           // no predicates after some interpolants have been found means we have

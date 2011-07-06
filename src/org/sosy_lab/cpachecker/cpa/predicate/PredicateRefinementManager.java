@@ -183,19 +183,20 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
 
   /**
    * Counterexample analysis and predicate discovery.
-   * @param pAbstractTrace abstract trace of the error path
+   * @param pFormulas the formulas for the path
+   * @param elementsOnPath the ARTElements on the path (may be empty if no branching information is required)
    * @param pItpProver interpolation solver used
    * @return counterexample info with predicated information
    * @throws CPAException
    */
   private <T> CounterexampleTraceInfo buildCounterexampleTraceWithSpecifiedItp(
-      List<PredicateAbstractElement> pAbstractTrace, Set<ARTElement> elementsOnPath, InterpolatingTheoremProver<T> pItpProver) throws CPAException, InterruptedException {
+      List<Formula> pFormulas, Set<ARTElement> elementsOnPath, InterpolatingTheoremProver<T> pItpProver) throws CPAException, InterruptedException {
 
     refStats.cexAnalysisTimer.start();
 
     logger.log(Level.FINEST, "Building counterexample trace");
 
-    List<Formula> f = getFormulasForTrace(pAbstractTrace);
+    List<Formula> f = new ArrayList<Formula>(pFormulas); // copy because we will change the list
 
     if (useBitwiseAxioms) {
       Formula bitwiseAxioms = fmgr.makeTrue();
@@ -304,7 +305,6 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
       for (int i = 0; i < f.size()-1; ++i) {
         // last iteration is left out because B would be empty
         final int start_of_a = (wellScopedPredicates ? entryPoints.peek() : 0);
-        PredicateAbstractElement e = pAbstractTrace.get(i);
 
         logger.log(Level.ALL, "Looking for interpolant for formulas from",
             start_of_a, "to", i);
@@ -332,7 +332,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
             preds = getAtomsAsPredicates(itp);
           }
           assert !preds.isEmpty();
-          info.addPredicatesForRefinement(e, preds);
+          info.addPredicatesForRefinement(preds);
 
           logger.log(Level.ALL, "For step", i, "got:",
               "interpolant", itp,
@@ -442,16 +442,19 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
    * Counterexample analysis and predicate discovery.
    * This method is just an helper to delegate the actual work
    * This is used to detect timeouts for interpolation
+   *
+   * @param pFormulas the formulas for the path
+   * @param elementsOnPath the ARTElements on the path (may be empty if no branching information is required)
    * @throws CPAException
    * @throws InterruptedException
    */
   public CounterexampleTraceInfo buildCounterexampleTrace(
-      final List<PredicateAbstractElement> pAbstractTrace,
+      final List<Formula> pFormulas,
       final Set<ARTElement> elementsOnPath) throws CPAException, InterruptedException {
 
     // if we don't want to limit the time given to the solver
     if (itpTimeLimit == 0) {
-      return buildCounterexampleTraceWithSpecifiedItp(pAbstractTrace, elementsOnPath, firstItpProver);
+      return buildCounterexampleTraceWithSpecifiedItp(pFormulas, elementsOnPath, firstItpProver);
     }
 
     assert executor != null;
@@ -466,7 +469,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
       Callable<CounterexampleTraceInfo> tc = new Callable<CounterexampleTraceInfo>() {
         @Override
         public CounterexampleTraceInfo call() throws CPAException, InterruptedException {
-          return buildCounterexampleTraceWithSpecifiedItp(pAbstractTrace, elementsOnPath, currentItpProver);
+          return buildCounterexampleTraceWithSpecifiedItp(pFormulas, elementsOnPath, currentItpProver);
         }
       };
 
@@ -496,19 +499,6 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
         throw new AssertionError(t);
       }
     }
-  }
-
-  private List<Formula> getFormulasForTrace(
-      List<PredicateAbstractElement> abstractTrace) {
-
-    // create the DAG formula corresponding to the abstract trace. We create
-    // n formulas, one per interpolation group
-    List<Formula> result = new ArrayList<Formula>(abstractTrace.size());
-
-    for (PredicateAbstractElement e : abstractTrace) {
-      result.add(e.getAbstractionFormula().getBlockFormula());
-    }
-    return result;
   }
 
   private <T> boolean checkInfeasabilityOfShortestTrace(List<Formula> traceFormulas,
