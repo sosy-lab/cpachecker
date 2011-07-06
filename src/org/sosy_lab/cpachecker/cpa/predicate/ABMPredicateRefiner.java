@@ -69,7 +69,7 @@ import com.google.common.collect.Lists;
  * AbstractABMBasedRefiner        PredicateRefiner
  *           ^                           ^
  *           |                           |
- *   ABMPredicateRefiner <--> ExtendedPredicateRefiner
+ *   ABMPredicateRefiner ---> ExtendedPredicateRefiner
  *
  * Here ^ means inheritance and -> means reference.
  */
@@ -98,7 +98,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
    * This is a small extension of PredicateRefiner that overrides
    * {@link #transformPath(Path)} so that it respects ABM.
    */
-  final class ExtendedPredicateRefiner extends PredicateRefiner {
+  static final class ExtendedPredicateRefiner extends PredicateRefiner {
 
     final Timer ssaRenamingTimer = new Timer();
 

@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.abm;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -76,7 +75,7 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
     if (pPath == null) {
       return true;
     } else {
-      return performRefinement0(new ABMReachedSet(pReached, pPath), pPath);
+      return performRefinement0(new ABMReachedSet(transfer, pReached, pPath), pPath);
     }
   }
 
@@ -108,36 +107,6 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
     }
   }
 
-  protected final BlockPartitioning getBlockPartitioning() {
-    return transfer.getBlockPartitioning();
-  }
-
-  private void removeSubtree(ARTReachedSet reachSet, Path pPath, ARTElement element, Precision newPrecision) {
-    Precision oldPrecision = Precisions.extractPrecisionByType(reachSet.getPrecision(reachSet.getLastElement()), newPrecision.getClass());
-
-    if (newPrecision.equals(oldPrecision)) {
-      //Strategy 2
-      //restart the analysis
-      //TODO: this can be implemented less drastic -> only remove lazy caches (on path)
-      System.err.println("Warning: restarting analysis");
-      restartAnalysis(reachSet);
-      return;
-    }
-
-    transfer.removeSubtree(reachSet, pPath, element, newPrecision);
-  }
-
-
-  private void restartAnalysis(ARTReachedSet reachSet) {
-
-    Precision precision = reachSet.getPrecision(reachSet.getLastElement());
-    ARTElement child = Iterables.getOnlyElement(reachSet.getFirstElement().getChildren());
-    reachSet.removeSubtree(child, precision);
-
-    transfer.clearCaches();
-  }
-
-
   private Path computeCounterexample(ARTElement root) {
     Path path = new Path();
     ARTElement currentElement = root;
@@ -153,19 +122,41 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
     return path;
   }
 
-  private class ABMReachedSet extends ARTReachedSet.ForwardingARTReachedSet {
+  private static class ABMReachedSet extends ARTReachedSet.ForwardingARTReachedSet {
 
+    private final ABMTransferRelation transfer;
     private final Path path;
 
-    public ABMReachedSet(ARTReachedSet pReached, Path pPath) {
+    private ABMReachedSet(ABMTransferRelation pTransfer, ARTReachedSet pReached, Path pPath) {
       super(pReached);
+      this.transfer = pTransfer;
       this.path = pPath;
     }
 
     @Override
     public void removeSubtree(ARTElement element, Precision newPrecision) {
+      Precision oldPrecision = Precisions.extractPrecisionByType(getPrecision(getLastElement()), newPrecision.getClass());
 
-      AbstractABMBasedRefiner.this.removeSubtree(delegate, path, element, newPrecision);
+      if (newPrecision.equals(oldPrecision)) {
+        //Strategy 2
+        //restart the analysis
+        //TODO: this can be implemented less drastic -> only remove lazy caches (on path)
+        System.err.println("Warning: restarting analysis");
+        restartAnalysis();
+
+      } else {
+
+        transfer.removeSubtree(delegate, path, element, newPrecision);
+      }
+    }
+
+    private void restartAnalysis() {
+
+      Precision precision = getPrecision(getLastElement());
+      ARTElement child = Iterables.getOnlyElement(getFirstElement().getChildren());
+      delegate.removeSubtree(child, precision);
+
+      transfer.clearCaches();
     }
 
     @Override
