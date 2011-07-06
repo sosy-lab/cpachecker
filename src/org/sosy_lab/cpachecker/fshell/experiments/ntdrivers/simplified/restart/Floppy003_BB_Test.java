@@ -41,6 +41,8 @@ public class Floppy003_BB_Test extends ExperimentalSeries {
     lArguments.add(Main.BASIC_BLOCK_COVERAGE);
     lArguments.add("test/programs/fql/ntdrivers-simplified/" + lCFile);
     lArguments.add("main");
+    lArguments.add("--withoutCilPreprocessing");
+    lArguments.add("--nooutput");
 
     String[] lArgs = new String[lArguments.size()];
     lArguments.toArray(lArgs);

@@ -62,7 +62,6 @@ public abstract class ExperimentalSeries {
 
   public FShell3Result execute(String[] pArguments) throws IOException, InvalidConfigurationException {
     Preconditions.checkNotNull(pArguments);
-    //Preconditions.checkArgument(pArguments.length == 3 || pArguments.length == 4);
 
     TimeAccumulator lTime = new TimeAccumulator();
 

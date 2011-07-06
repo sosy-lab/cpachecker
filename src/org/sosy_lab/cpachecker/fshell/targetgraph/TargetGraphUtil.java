@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.fshell.targetgraph;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -113,13 +112,24 @@ public class TargetGraphUtil {
       addLeavingEdgesToWorklist(lCurrentTraceEdge.getSuccessor(), lWorklist);
     }
 
+    /*CFAEdge[] lEdges = new CFAEdge[lBasicBlockEntries.size()];
+    lEdges = lBasicBlockEntries.toArray(lEdges);
+    
+    LinkedHashSet<CFAEdge> lBBEntries = new LinkedHashSet<CFAEdge>();
+    
+    for (int i = lEdges.length - 1; i >= 0; i--) {
+      lBBEntries.add(lEdges[i]);
+    }
+    
+    return lBBEntries;*/
     return lBasicBlockEntries;
   }
 
-  private static void addLeavingEdgesToWorklist(CFANode pCFANode, Collection<CFAEdge> pWorklist) {
+  private static void addLeavingEdgesToWorklist(CFANode pCFANode, LinkedList<CFAEdge> pWorklist) {
     for (int lIndex = 0; lIndex < pCFANode.getNumLeavingEdges(); lIndex++) {
       CFAEdge lSuccessorEdge = pCFANode.getLeavingEdge(lIndex);
       pWorklist.add(lSuccessorEdge);
+      //pWorklist.addFirst(lSuccessorEdge);
     }
   }
 

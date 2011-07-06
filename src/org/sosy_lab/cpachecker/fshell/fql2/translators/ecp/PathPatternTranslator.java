@@ -47,12 +47,12 @@ import org.sosy_lab.cpachecker.fshell.targetgraph.Path;
 import org.sosy_lab.cpachecker.fshell.targetgraph.TargetGraph;
 import org.sosy_lab.cpachecker.fshell.targetgraph.TargetGraphUtil;
 import org.sosy_lab.cpachecker.util.ecp.ECPConcatenation;
-import org.sosy_lab.cpachecker.util.ecp.ECPEdgeSet;
 import org.sosy_lab.cpachecker.util.ecp.ECPNodeSet;
 import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.util.ecp.ECPRepetition;
 import org.sosy_lab.cpachecker.util.ecp.ECPUnion;
 import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
+import org.sosy_lab.cpachecker.util.ecp.StandardECPEdgeSet;
 
 public class PathPatternTranslator {
 
@@ -102,7 +102,8 @@ public class PathPatternTranslator {
     List<Predicate> lSourcePredicates = lSource.getPredicates();
     List<Predicate> lTargetPredicates = lTarget.getPredicates();
 
-    ElementaryCoveragePattern lPattern = new ECPEdgeSet(pEdge.getCFAEdge());
+    //ElementaryCoveragePattern lPattern = new ECPEdgeSet(pEdge.getCFAEdge());
+    ElementaryCoveragePattern lPattern = StandardECPEdgeSet.create(pEdge.getCFAEdge());
 
     if (!lSourcePredicates.isEmpty()) {
       lPattern = new ECPConcatenation(translate(lSourcePredicates), lPattern);
@@ -126,7 +127,8 @@ public class PathPatternTranslator {
         Node lSource = lEdge.getSource();
         List<Predicate> lSourcePredicates = lSource.getPredicates();
 
-        ElementaryCoveragePattern lPattern = new ECPEdgeSet(lEdge.getCFAEdge());
+        //ElementaryCoveragePattern lPattern = new ECPEdgeSet(lEdge.getCFAEdge());
+        ElementaryCoveragePattern lPattern = StandardECPEdgeSet.create(lEdge.getCFAEdge());
 
         if (!lSource.getPredicates().isEmpty()) {
           lPattern = new ECPConcatenation(translate(lSourcePredicates), lPattern);
@@ -252,7 +254,8 @@ public class PathPatternTranslator {
           }
         }
 
-        lPattern = new ECPEdgeSet(lCFAEdges);
+        //lPattern = new ECPEdgeSet(lCFAEdges);
+        lPattern = StandardECPEdgeSet.create(lCFAEdges);
 
         for (ElementaryCoveragePattern lSubpattern : lToBeUnited) {
           lPattern = new ECPUnion(lPattern, lSubpattern);

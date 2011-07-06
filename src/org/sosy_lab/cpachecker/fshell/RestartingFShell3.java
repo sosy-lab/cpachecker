@@ -49,7 +49,7 @@ public class RestartingFShell3 {
     lCommand.add(lEntryFunction);
     lCommand.add("--withoutCilPreprocessing");
     lCommand.add("--restart");
-    lCommand.add("--restart-bound=5000000000"); // 1 GB ram
+    lCommand.add("--restart-bound=200000000"); // 1 GB ram
     
     File lTmpTestsuiteFile = File.createTempFile("testsuite", ".tst");
     lTmpTestsuiteFile.deleteOnExit();

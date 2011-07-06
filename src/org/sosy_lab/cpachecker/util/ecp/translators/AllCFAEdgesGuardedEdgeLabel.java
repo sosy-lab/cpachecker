@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.ecp.translators;
 
-import java.util.Collections;
-
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.util.ecp.ECPEdgeSet;
+import org.sosy_lab.cpachecker.util.ecp.EmptyECPEdgeSet;
 
 public class AllCFAEdgesGuardedEdgeLabel extends GuardedEdgeLabel {
 
@@ -37,7 +36,8 @@ public class AllCFAEdgesGuardedEdgeLabel extends GuardedEdgeLabel {
   }
 
   private AllCFAEdgesGuardedEdgeLabel() {
-    super(new ECPEdgeSet(Collections.<CFAEdge>emptySet()));
+    super(EmptyECPEdgeSet.INSTANCE);
+    //super(new ECPEdgeSet(Collections.<CFAEdge>emptySet()));
   }
 
   @Override

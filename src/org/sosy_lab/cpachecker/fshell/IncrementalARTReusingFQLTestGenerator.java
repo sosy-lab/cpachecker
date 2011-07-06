@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.fshell;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -68,6 +69,7 @@ import org.sosy_lab.cpachecker.cpa.cfapath.CFAPathCPA;
 import org.sosy_lab.cpachecker.cpa.cfapath.CFAPathStandardElement;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
+import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonStateElement;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonCPA;
@@ -76,6 +78,7 @@ import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.fshell.cfa.Wrapper;
@@ -89,10 +92,15 @@ import org.sosy_lab.cpachecker.fshell.testcases.TestSuite;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.ecp.ECPEdgeSet;
 import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
+import org.sosy_lab.cpachecker.util.ecp.SingletonECPEdgeSet;
 import org.sosy_lab.cpachecker.util.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.util.ecp.translators.InverseGuardedEdgeLabel;
 import org.sosy_lab.cpachecker.util.ecp.translators.ToGuardedAutomatonTranslator;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
+
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.SetMultimap;
 
 /*
  * TODO AutomatonBuilder <- integrate State-Pool there to ensure correct time
@@ -134,6 +142,12 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
   private FeasibilityInformation mFeasibilityInformation;
   private TestSuite mTestSuite;
+
+  private PrintStream mOutput = System.out;
+
+  public void setOutput(PrintStream pOutput) {
+    mOutput = pOutput;
+  }
 
   public void setGoalIndices(int pMinIndex, int pMaxIndex) {
     mMinIndex = pMinIndex;
@@ -206,9 +220,9 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       throw new RuntimeException(e);
     }
 
-    mAlphaLabel = new GuardedEdgeLabel(new ECPEdgeSet(mWrapper.getAlphaEdge()));
+    mAlphaLabel = new GuardedEdgeLabel(new SingletonECPEdgeSet(mWrapper.getAlphaEdge()));
     mInverseAlphaLabel = new InverseGuardedEdgeLabel(mAlphaLabel);
-    mOmegaLabel = new GuardedEdgeLabel(new ECPEdgeSet(mWrapper.getOmegaEdge()));
+    mOmegaLabel = new GuardedEdgeLabel(new SingletonECPEdgeSet(mWrapper.getOmegaEdge()));
 
 
     /*
@@ -268,8 +282,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     // we can collect test cases accross several run invocations and use them for coverage analysis
     // TODO output test cases from an earlier run
     mGeneratedTestCases = new HashMap<TestCase, CFAEdge[]>();
-
-    //mFeasibilityInformation = new HashMap<Integer, FeasibilityInformation>();
   }
 
   @Override
@@ -291,13 +303,13 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
   private GuardedEdgeAutomatonCPA getPassingCPA(FQLSpecification pFQLSpecification) {
     if (pFQLSpecification.hasPassingClause()) {
-      System.out.println("Cache hits (1): " + mCoverageSpecificationTranslator.getOverallCacheHits());
-      System.out.println("Cache misses (1): " + mCoverageSpecificationTranslator.getOverallCacheMisses());
+      mOutput.println("Cache hits (1): " + mCoverageSpecificationTranslator.getOverallCacheHits());
+      mOutput.println("Cache misses (1): " + mCoverageSpecificationTranslator.getOverallCacheMisses());
 
       ElementaryCoveragePattern lPassingClause = mCoverageSpecificationTranslator.mPathPatternTranslator.translate(pFQLSpecification.getPathPattern());
 
-      System.out.println("Cache hits (2): " + mCoverageSpecificationTranslator.getOverallCacheHits());
-      System.out.println("Cache misses (2): " + mCoverageSpecificationTranslator.getOverallCacheMisses());
+      mOutput.println("Cache hits (2): " + mCoverageSpecificationTranslator.getOverallCacheHits());
+      mOutput.println("Cache misses (2): " + mCoverageSpecificationTranslator.getOverallCacheMisses());
 
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton1 = ToGuardedAutomatonTranslator.toAutomaton(lPassingClause, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
 
@@ -339,12 +351,12 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     IncrementalCoverageSpecificationTranslator lTranslator = new IncrementalCoverageSpecificationTranslator(mCoverageSpecificationTranslator.mPathPatternTranslator);
 
-    System.out.println("Determining the number of test goals ...");
+    mOutput.println("Determining the number of test goals ...");
 
     int lNumberOfTestGoals = lTranslator.getNumberOfTestGoals(lFQLSpecification.getCoverageSpecification());
     //int lNumberOfTestGoals = -1;
 
-    System.out.println("Number of test goals: " + lNumberOfTestGoals);
+    mOutput.println("Number of test goals: " + lNumberOfTestGoals);
 
     Iterator<ElementaryCoveragePattern> lGoalIterator = lTranslator.translate(lFQLSpecification.getCoverageSpecification());
 
@@ -370,7 +382,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
           Mem lMemory = lSigar.getMem();
 
           if (pHadProgress && lMemory.getFree() < mRestartBound) {
-            System.out.println("SHUTDOWN TEST GENERATION");
+            mOutput.println("SHUTDOWN TEST GENERATION");
 
             lResultFactory.setUnfinished();
 
@@ -385,7 +397,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
       ElementaryCoveragePattern lGoalPattern = lGoalIterator.next();
 
-      System.out.println("Processing test goal #" + lIndex + " of " + lNumberOfTestGoals + " test goals.");
+      mOutput.println("Processing test goal #" + lIndex + " of " + lNumberOfTestGoals + " test goals.");
 
       if (mMinIndex > lIndex) {
         System.out.println("Skipped.");
@@ -394,14 +406,12 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
       if (mMaxIndex < lIndex) {
         // we do not have to enumerate unnecessary test goals
-        System.out.println("Stop test goal enumeration.");
+        mOutput.println("Stop test goal enumeration.");
         break;
       }
 
       if (mFeasibilityInformation.isKnown(lIndex)) {
-      //if (mFeasibilityInformation.containsKey(lIndex)) {
-        //System.out.println("Stored information: " + mFeasibilityInformation.get(lIndex));
-        System.out.println("Stored information: " + mFeasibilityInformation.getStatus(lIndex));
+        mOutput.println("Stored information: " + mFeasibilityInformation.getStatus(lIndex));
         continue;
       }
 
@@ -462,7 +472,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       }
 
       if (lIsCovered) {
-        System.out.println("Goal #" + lIndex + " is covered by an existing test case!");
+        mOutput.println("Goal #" + lIndex + " is covered by an existing test case!");
 
         mFeasibilityInformation.setStatus(lIndex, FeasibilityInformation.FeasibilityStatus.FEASIBLE);
 
@@ -505,7 +515,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       lTimeReach.pause();
 
       if (lCounterexampleTraceInfo == null || lCounterexampleTraceInfo.isSpurious()) {
-        System.out.println("Goal #" + lIndex + " is infeasible!");
+        mOutput.println("Goal #" + lIndex + " is infeasible!");
 
         if (lIsCovered) {
           throw new RuntimeException("Inconsistent result of coverage check and reachability analysis!");
@@ -545,7 +555,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
           }
 
           if (lIsPrecise) {
-            System.out.println("Goal #" + lIndex + " is feasible!");
+            mOutput.println("Goal #" + lIndex + " is feasible!");
 
             lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lTestCase);
 
@@ -555,7 +565,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
             mFeasibilityInformation.setStatus(lIndex, FeasibilityInformation.FeasibilityStatus.FEASIBLE);
           }
           else {
-            System.err.println("Goal #" + lIndex + " lead to an imprecise execution!");
+            mOutput.println("Goal #" + lIndex + " lead to an imprecise execution!");
 
             lResultFactory.addImpreciseTestCase(lTestCase);
 
@@ -563,7 +573,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
           }
         }
         else {
-          System.out.println("Goal #" + lIndex + " is imprecise!");
+          mOutput.println("Goal #" + lIndex + " is imprecise!");
 
           lResultFactory.addImpreciseTestCase(lTestCase);
 
@@ -575,10 +585,10 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       }
     }
 
-    System.out.println("Number of CFA infeasible test goals: " + lNumberOfCFAInfeasibleGoals);
+    mOutput.println("Number of CFA infeasible test goals: " + lNumberOfCFAInfeasibleGoals);
 
-    System.out.println("Time in reach: " + mTimeInReach.getSeconds());
-    System.out.println("Mean time of reach: " + (mTimeInReach.getSeconds()/mTimesInReach) + " s");
+    mOutput.println("Time in reach: " + mTimeInReach.getSeconds());
+    mOutput.println("Mean time of reach: " + (mTimeInReach.getSeconds()/mTimesInReach) + " s");
 
     // TODO remove ... look at statistics
     //System.out.println("#abstraction elements: " + mPredicateCPA.getAbstractionElementFactory().getNumberOfCreatedAbstractionElements());
@@ -590,39 +600,20 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       throw new RuntimeException();
     }*/
 
-    printStatistics(lResultFactory, lIndex);
+    printStatistics(lResultFactory);
 
     return lResult;
   }
 
-  private void printStatistics(FShell3Result.Factory pResultFactory, int pNumberOfTestGoals) {
-    System.out.println("Generated Test Cases:");
+  private void printStatistics(FShell3Result.Factory pResultFactory) {
+    mOutput.println("Generated Test Cases:");
 
     for (TestCase lTestCase : pResultFactory.getTestCases()) {
-      System.out.println(lTestCase);
+      mOutput.println(lTestCase);
     }
 
-    /*int lFeasibleGoals = 0;
-    int lInfeasibleGoals = 0;
-    int lImpreciseGoals = 0;
-
-    for (Map.Entry<Integer, FeasibilityInformation> lEntry : mFeasibilityInformation.entrySet()) {
-      switch (lEntry.getValue()) {
-      case FEASIBLE:
-        lFeasibleGoals++;
-        break;
-      case INFEASIBLE:
-        lInfeasibleGoals++;
-        break;
-      case IMPRECISE:
-        lImpreciseGoals++;
-        break;
-      }
-    }
-
-    System.out.println("INTERN:");
-    System.out.println("#Goals: " + pNumberOfTestGoals + ", #Feasible: " + lFeasibleGoals + ", #Infeasible: " + lInfeasibleGoals + ", #Imprecise: " + lImpreciseGoals);
-    */
+    mOutput.println("INTERN:");
+    mOutput.println("#Goals: " + mFeasibilityInformation.getNumberOfTestgoals() + ", #Feasible: " + mFeasibilityInformation.getNumberOfFeasibleTestgoals() + ", #Infeasible: " + mFeasibilityInformation.getNumberOfInfeasibleTestgoals() + ", #Imprecise: " + mFeasibilityInformation.getNumberOfImpreciseTestgoals());
   }
 
   private Pair<Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>, Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>> determineLocalDifference(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton, NondeterministicFiniteAutomaton.State pPreviousState, NondeterministicFiniteAutomaton.State pCurrentState) {
@@ -715,6 +706,8 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     return Pair.of(lF1, lF2);
   }
 
+  PredicatePrecision mPrecision;
+
   private CounterexampleTraceInfo reach(ReachedSet pReachedSet, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, GuardedEdgeAutomatonCPA pAutomatonCPA, CFAFunctionDefinitionNode pEntryNode, GuardedEdgeAutomatonCPA pPassingCPA) {
     mTimeInReach.proceed();
     mTimesInReach++;
@@ -742,6 +735,8 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     int lProductAutomatonIndex = lComponentAnalyses.size();
     lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs, false));
+
+    int lPredicateCPAIndex = lComponentAnalyses.size();
     lComponentAnalyses.add(mPredicateCPA);
 
     lComponentAnalyses.add(mAssumeCPA);
@@ -799,7 +794,116 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     lAlgorithm.collectStatistics(lStatistics);
 
     if (mReuseART) {
+      AbstractElement lLastElement = pReachedSet.getLastElement();
+
+      PredicatePrecision lWaitlistPrecision = null;
+
+      if (lLastElement != null) {
+        /*CFANode lLocation = getLocation(lLastElement);
+
+        if (!lLocation.equals(mWrapper.getOmegaEdge().getPredecessor())) {*/
+          lWaitlistPrecision = getPredicatePrecision(pReachedSet.getPrecision(lLastElement), lPredicateCPAIndex);
+        //}
+      }
+
+      if (mPrecision != null) {
+        lWaitlistPrecision = mPrecision;
+      }
+
+      // TODO: remove (just to test effect on ssh examples
+      //lWaitlistPrecision = null;
+
+      /*ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> lBuilder = new ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate>();
+      HashSet<AbstractionPredicate> lGlobalPredicates = new HashSet<AbstractionPredicate>();
+
+      for (Pair<AbstractElement, Precision> lPair : pReachedSet.getReachedWithPrecision()) {
+        PredicatePrecision lPredicatePrecision = getPredicatePrecision(lPair.getSecond(), lPredicateCPAIndex);
+
+        SetMultimap<CFANode, AbstractionPredicate> lPredicateMap = lPredicatePrecision.getPredicateMap();
+
+        for (CFANode lNode : lPredicateMap.keys()) {
+          lBuilder.putAll(lNode, lPredicateMap.get(lNode));
+        }
+
+        lGlobalPredicates.addAll(lPredicatePrecision.getGlobalPredicates());
+      }
+
+      lWaitlistPrecision = new PredicatePrecision(lBuilder.build(), lGlobalPredicates);
+      */
+
       modifyReachedSet(pReachedSet, pEntryNode, lARTCPA, lProductAutomatonIndex, pPreviousAutomaton, pAutomatonCPA.getAutomaton());
+
+      if (pReachedSet.size() > 1) {
+        // create empty precision
+        //PredicatePrecision lEmptyPrecision = new PredicatePrecision(null);
+
+        /*for (Pair<AbstractElement, Precision> lPair : pReachedSet.getReachedWithPrecision()) {
+          CompositePrecision lCompositePrecision = (CompositePrecision)lPair.getSecond();
+          PredicatePrecision lPredicatePrecision = (PredicatePrecision)lCompositePrecision.get(lPredicateCPAIndex);
+
+          SetMultimap<CFANode, AbstractionPredicate> lPredicateMap = lPredicatePrecision.getPredicateMap();
+
+          ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> lBuilder = new ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate>();
+
+          for (CFANode lNode : lPredicateMap.keys()) {
+            Set<AbstractionPredicate> lPredicates = lPredicateMap.get(lNode);
+
+            if (lPredicates != null && lPredicates.size() < 10) {
+              lBuilder.putAll(lNode, lPredicates);
+            }
+          }
+
+          pReachedSet.updatePrecision(lPair.getFirst(), new PredicatePrecision(lBuilder.build(), lPredicatePrecision.getGlobalPredicates()));
+        }*/
+
+        /*for (AbstractElement lElement : pReachedSet) {
+          if (!pReachedSet.isInWaitlist(lElement)) {
+            pReachedSet.updatePrecision(lElement, lEmptyPrecision);
+          }
+        }*/
+
+        if (lWaitlistPrecision != null) {
+          for (AbstractElement lWaitlistElement : pReachedSet.getWaitlist()) {
+            pReachedSet.updatePrecision(lWaitlistElement, lWaitlistPrecision);
+          }
+        }
+
+        /*if (lWaitlistPrecision != null) {
+          SetMultimap<CFANode, AbstractionPredicate> lWaitlistPredicateMap = lWaitlistPrecision.getPredicateMap();
+
+          for (AbstractElement lWaitlistElement : pReachedSet.getWaitlist()) {
+            PredicatePrecision lPredicatePrecision = getPredicatePrecision(pReachedSet.getPrecision(lWaitlistElement), lPredicateCPAIndex);
+
+            SetMultimap<CFANode, AbstractionPredicate> lPredicateMap = lPredicatePrecision.getPredicateMap();
+
+            // create an updated version
+            ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> lBuilder = new ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate>();
+
+            for (CFANode lNode : lPredicateMap.keys()) {
+              Set<AbstractionPredicate> lPredicates = lPredicateMap.get(lNode);
+
+              if (lPredicates != null) {
+                lBuilder.putAll(lNode, lPredicates);
+              }
+
+              lPredicates = lWaitlistPredicateMap.get(lNode);
+
+              if (lPredicates != null) {
+                lBuilder.putAll(lNode, lPredicates);
+              }
+            }
+
+            Set<AbstractionPredicate> lGlobalPredicates = new HashSet<AbstractionPredicate>();
+
+            lGlobalPredicates.addAll(lPredicatePrecision.getGlobalPredicates());
+            lGlobalPredicates.addAll(lWaitlistPrecision.getGlobalPredicates());
+
+            PredicatePrecision lUpdatedPredicatePrecision = new PredicatePrecision(lBuilder.build(), lGlobalPredicates);
+
+            pReachedSet.updatePrecision(lWaitlistElement, lUpdatedPredicatePrecision);
+          }
+        }*/
+      }
     }
     else {
       pReachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.TOPSORT);
@@ -810,6 +914,21 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       pReachedSet.add(lInitialElement, lInitialPrecision);
     }
 
+    // determine predicates in reached set
+    /*SetMultimap<CFANode, AbstractionPredicate> lPredicateMap = HashMultimap.create();
+
+    for (Pair<AbstractElement, Precision> lPair : pReachedSet.getReachedWithPrecision()) {
+      ARTElement lARTElement = (ARTElement)lPair.getFirst();
+      CompositePrecision lPrecision = (CompositePrecision)lPair.getSecond();
+
+      PredicatePrecision lPredicatePrecision = (PredicatePrecision)lPrecision.get(lPredicateCPAIndex);
+
+
+      CFANode lLocation = ((CompositeElement)lARTElement.getWrappedElement()).retrieveLocationElement().getLocationNode();
+
+      lPredicateMap.putAll(lLocation, lPredicatePrecision.getPredicates(lLocation));
+    }*/
+
     try {
       lAlgorithm.run(pReachedSet);
     } catch (CPAException e) {
@@ -819,9 +938,96 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       throw new RuntimeException(e);
     }
 
+    if (mPrecision == null) {
+      mPrecision = new PredicatePrecision(lRefiner.mBuilder.build(), lRefiner.mGlobalPredicates);
+    }
+    else {
+      PredicatePrecision lTmpPrecision = new PredicatePrecision(lRefiner.mBuilder.build(), lRefiner.mGlobalPredicates);
+
+      SetMultimap<CFANode, AbstractionPredicate> lPredicateMap = mPrecision.getPredicateMap();
+
+      // create an updated version
+      ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> lBuilder = new ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate>();
+
+      for (CFANode lNode : lPredicateMap.keys()) {
+        lBuilder.putAll(lNode, lPredicateMap.get(lNode));
+      }
+
+      lPredicateMap = lTmpPrecision.getPredicateMap();
+
+      for (CFANode lNode : lPredicateMap.keys()) {
+        lBuilder.putAll(lNode, lPredicateMap.get(lNode));
+      }
+
+      Set<AbstractionPredicate> lGlobalPredicates = new HashSet<AbstractionPredicate>();
+
+      lGlobalPredicates.addAll(mPrecision.getGlobalPredicates());
+      lGlobalPredicates.addAll(lTmpPrecision.getGlobalPredicates());
+
+      mPrecision = new PredicatePrecision(lBuilder.build(), lGlobalPredicates);
+    }
+
+    //printPredicateStatistics(pReachedSet, lPredicateCPAIndex);
+
     mTimeInReach.pause();
 
     return lRefiner.getCounterexampleTraceInfo();
+  }
+
+  private static void printPredicateStatistics(ReachedSet pReachedSet, int lPredicateCPAIndex) {
+
+    Map<Integer, Integer> lPredicates = new HashMap<Integer, Integer>();
+
+    int lMaxNumberOfPredicates = 0;
+
+    for (Pair<AbstractElement, Precision> lPair : pReachedSet.getReachedWithPrecision()) {
+      ARTElement lARTElement = (ARTElement)lPair.getFirst();
+      CompositePrecision lPrecision = (CompositePrecision)lPair.getSecond();
+
+      PredicatePrecision lPredicatePrecision = (PredicatePrecision)lPrecision.get(lPredicateCPAIndex);
+
+      CFANode lLocation = ((CompositeElement)lARTElement.getWrappedElement()).retrieveLocationElement().getLocationNode();
+
+      int lNumberOfPredicates = lPredicatePrecision.getPredicates(lLocation).size();
+
+      if (lNumberOfPredicates > lMaxNumberOfPredicates) {
+        lMaxNumberOfPredicates = lNumberOfPredicates;
+      }
+
+      int lCounter = 0;
+      if (lPredicates.containsKey(lNumberOfPredicates)) {
+        lCounter = lPredicates.get(lNumberOfPredicates);
+      }
+
+      lCounter++;
+      lPredicates.put(lNumberOfPredicates, lCounter);
+
+      if (lNumberOfPredicates >= 20) {
+        System.out.println(lPredicatePrecision.getPredicates(lLocation));
+      }
+    }
+
+    System.out.println("Max number of predicates: " + lMaxNumberOfPredicates);
+
+    for (int i = 0; i <= lMaxNumberOfPredicates; i++) {
+      int lCounter = 0;
+
+      if (lPredicates.containsKey(i)) {
+        lCounter = lPredicates.get(i);
+      }
+
+      System.out.println("" + i + " predicates: " + lCounter);
+    }
+
+  }
+
+  private static PredicatePrecision getPredicatePrecision(Precision pPrecision, int pPredicateCPAIndex) {
+    return (PredicatePrecision)((CompositePrecision)pPrecision).get(pPredicateCPAIndex);
+  }
+
+  private static CFANode getLocation(AbstractElement pElement) {
+    ARTElement lARTElement = (ARTElement)pElement;
+    return ((CompositeElement)lARTElement.getWrappedElement()).retrieveLocationElement().getLocationNode();
   }
 
   private void modifyReachedSet(ReachedSet pReachedSet, CFAFunctionDefinitionNode pEntryNode, ARTCPA pARTCPA, int pProductAutomatonIndex, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton) {
@@ -885,6 +1091,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
               // by removing the children, lARTElement gets added to the
               // worklist automatically
 
+              /* TODO add removal of only non-isomorphic parts again */
               while (!lARTElement.getChildren().isEmpty()) {
                 ARTElement lChildElement = lARTElement.getChildren().iterator().next();
 

@@ -48,6 +48,10 @@ public class FeasibilityInformation {
   private final Map<Integer, FeasibilityStatus> mFeasibilityInformation;
   private String mTestsuiteFilename;
   
+  private int mNumberOfInfeasibleTestgoals = 0;
+  private int mNumberOfFeasibleTestgoals = 0;
+  private int mNumberOfImpreciseTestgoals = 0;
+  
   public FeasibilityInformation() {
     mFeasibilityInformation = new HashMap<Integer, FeasibilityStatus>();
   }
@@ -156,14 +160,45 @@ public class FeasibilityInformation {
     return !isKnown(pGoalIndex);
   }
   
+  public int getNumberOfFeasibleTestgoals() {
+    return mNumberOfFeasibleTestgoals;
+  }
+  
+  public int getNumberOfInfeasibleTestgoals() {
+    return mNumberOfInfeasibleTestgoals;
+  }
+  
+  public int getNumberOfImpreciseTestgoals() {
+    return mNumberOfImpreciseTestgoals;
+  }
+  
+  public int getNumberOfTestgoals() {
+    return mFeasibilityInformation.size();
+  }
+  
   public void setStatus(int pGoalIndex, FeasibilityStatus pStatus) {
+    
+    switch (pStatus) {
+    case FEASIBLE:
+      mNumberOfFeasibleTestgoals++;
+      break;
+    case INFEASIBLE:
+      mNumberOfInfeasibleTestgoals++;
+      break;
+    case IMPRECISE:
+      mNumberOfImpreciseTestgoals++;
+      break;
+    case UNKNOWN:
+      // we don't store unknown
+      return;
+    }
     
     // TODO shall we remove feasibility information if information is set back to unknown?
     
     // we don't store unknown
-    if (pStatus.equals(FeasibilityStatus.UNKNOWN)) {
+    /*if (pStatus.equals(FeasibilityStatus.UNKNOWN)) {
       return;
-    }
+    }*/
     
     mFeasibilityInformation.put(pGoalIndex, pStatus);
   }

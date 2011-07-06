@@ -41,6 +41,8 @@ String lCFile = "floppy_simpl3_BUG.cil.c";
     lArguments.add(Main.BASIC_BLOCK_2_COVERAGE);
     lArguments.add("test/programs/fql/ntdrivers-simplified/" + lCFile);
     lArguments.add("main");
+    lArguments.add("--withoutCilPreprocessing");
+    lArguments.add("--nooutput");
 
     String[] lArgs = new String[lArguments.size()];
     lArguments.toArray(lArgs);

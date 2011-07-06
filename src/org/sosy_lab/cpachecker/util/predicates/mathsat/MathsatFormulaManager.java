@@ -32,6 +32,7 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -185,6 +186,12 @@ public class MathsatFormulaManager implements FormulaManager  {
     }
 
     return Pair.of(s[0], Integer.parseInt(s[1]));
+  }
+
+  static String parseName2(String var) {
+    String[] s = var.split(INDEX_SEPARATOR);
+    assert(s.length == 2);
+    return s[0];
   }
 
   // ----------------- Boolean formulas -----------------
@@ -799,5 +806,75 @@ public class MathsatFormulaManager implements FormulaManager  {
     }
     arithCache.put(f, res);
     return res;
+  }
+
+  public Collection<String> getVariables(Formula pFormula) {
+    //return getVariables(getTerm(pFormula));
+    long lTerm = getTerm(pFormula);
+    Collection<String> lVariables = lVariablesCache.get(lTerm);
+    if (lVariables == null) {
+      lVariables = getVariables(lTerm);
+      lVariablesCache.put(lTerm, lVariables);
+    }
+    return lVariables;
+  }
+
+  public Collection<String> getVariables(long pTerm) {
+    HashSet<String> lVariables = new HashSet<String>();
+
+    LinkedList<Long> lWorklist = new LinkedList<Long>();
+    lWorklist.add(pTerm);
+
+    while (!lWorklist.isEmpty()) {
+      long lTerm = lWorklist.removeFirst();
+
+      if (msat_term_is_variable(lTerm) != 0) {
+        lVariables.add(parseName2(msat_term_repr(lTerm)));
+      }
+      else {
+        int lArity = msat_term_arity(lTerm);
+        for (int i = 0; i < lArity; i++) {
+          lWorklist.add(msat_term_get_arg(lTerm, i));
+        } 
+      }
+    }
+
+    return lVariables;
+  }
+
+  HashMap<Long, Collection<String>> lVariablesCache = new HashMap<Long, Collection<String>>();
+
+  public Collection<String> getVariables2(Formula pFormula) {
+    long lTerm = getTerm(pFormula);
+    Collection<String> lVariables = lVariablesCache.get(lTerm);
+    if (lVariables == null) {
+      lVariables = getVariables2(lTerm);
+      lVariablesCache.put(lTerm, lVariables);
+    }
+    return lVariables;
+    //return getVariables2(getTerm(pFormula));
+  }
+
+  public Collection<String> getVariables2(long pTerm) {
+    HashSet<String> lVariables = new HashSet<String>();
+
+    LinkedList<Long> lWorklist = new LinkedList<Long>();
+    lWorklist.add(pTerm);
+
+    while (!lWorklist.isEmpty()) {
+      long lTerm = lWorklist.removeFirst();
+
+      if (msat_term_is_variable(lTerm) != 0) {
+        lVariables.add(msat_term_repr(lTerm));
+      }
+      else {
+        int lArity = msat_term_arity(lTerm);
+        for (int i = 0; i < lArity; i++) {
+          lWorklist.add(msat_term_get_arg(lTerm, i));
+        }
+      }
+    }
+
+    return lVariables;
   }
 }

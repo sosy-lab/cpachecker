@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.fshell.experiments.ntdrivers.simplified;
 
+import java.util.LinkedList;
+
 import junit.framework.Assert;
 
 import org.junit.Test;
@@ -34,12 +36,30 @@ public class KBFilter2_BB2_Test extends ExperimentalSeries {
 
   @Test
   public void test002() throws Exception {
-    String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_2_COVERAGE,
-                                        "test/programs/fql/ntdrivers-simplified/kbfiltr_simpl2_BUG.cil.c",
-                                        "main",
+    /*String[] lArguments = Main.getParameters(Main.BASIC_BLOCK_2_COVERAGE, 
+                                        "test/programs/fql/ntdrivers-simplified/kbfiltr_simpl2_BUG.cil.c", 
+                                        "main", 
                                         true);
 
-    FShell3Result lResult = execute(lArguments);
+    FShell3Result lResult = execute(lArguments);*/
+    
+    
+    String lCFile = "kbfiltr_simpl2_BUG.cil.c";
+    
+    LinkedList<String> lArguments = new LinkedList<String>();
+    
+    lArguments.add(Main.BASIC_BLOCK_2_COVERAGE);
+    lArguments.add("test/programs/fql/ntdrivers-simplified/" + lCFile);
+    lArguments.add("main");
+    lArguments.add("--withoutCilPreprocessing");
+    //lArguments.add("--output=kbfilter.bb2.2.txt");
+    lArguments.add("--nooutput");
+    
+    String[] lArgs = new String[lArguments.size()];
+    lArguments.toArray(lArgs);
+
+    FShell3Result lResult = execute(lArgs);
+
 
     Assert.assertEquals(690, lResult.getNumberOfTestGoals());
     Assert.assertEquals(-1, lResult.getNumberOfFeasibleTestGoals());

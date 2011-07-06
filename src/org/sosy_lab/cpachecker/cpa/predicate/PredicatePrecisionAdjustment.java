@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -39,6 +40,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 
 public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
@@ -54,11 +56,13 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   private final LogManager logger;
   private final PredicateAbstractionManager formulaManager;
   private final PathFormulaManager pathFormulaManager;
+  private final MathsatFormulaManager mMathsatFormulaManager;
 
   public PredicatePrecisionAdjustment(PredicateCPA pCpa) {
     logger = pCpa.getLogger();
     formulaManager = pCpa.getPredicateManager();
     pathFormulaManager = pCpa.getPathFormulaManager();
+    mMathsatFormulaManager = (MathsatFormulaManager)pCpa.getFormulaManager();
   }
 
   @Override
@@ -69,10 +73,23 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     totalPrecTime.start();
 
     if (pElement instanceof ComputeAbstractionElement) {
+      //long lStartTime = System.currentTimeMillis();
+
       ComputeAbstractionElement element = (ComputeAbstractionElement)pElement;
       PredicatePrecision precision = (PredicatePrecision)pPrecision;
 
       pElement = computeAbstraction(element, precision);
+
+      /*long lEndTime = System.currentTimeMillis();
+
+      long lDuration = lEndTime - lStartTime;
+
+      if (lDuration > 10000) {
+        CFANode lLocation = element.getLocation();
+        Collection<AbstractionPredicate> lPredicates = precision.getPredicates(lLocation);
+
+        throw new RuntimeException("Elapsed time: " + (lDuration/1000.0) + "s (" + lPredicates.size() + ") @ " + lLocation.toString());
+      }*/
     }
 
     totalPrecTime.stop();
@@ -95,6 +112,36 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     logger.log(Level.FINEST, "Computing abstraction on node", loc);
 
     Collection<AbstractionPredicate> preds = precision.getPredicates(loc);
+
+    //if (preds.size() > 10) {
+    //if (loc.getNodeNumber() == 126 && preds.size() == 79) {
+      HashSet<String> lVariables = new HashSet<String>();
+      lVariables.addAll(mMathsatFormulaManager.getVariables(abstractionFormula.asFormula()));
+      lVariables.addAll(mMathsatFormulaManager.getVariables(pathFormula.getFormula()));
+
+      Collection<AbstractionPredicate> lRemainingPredicates = new HashSet<AbstractionPredicate>();
+
+      for (AbstractionPredicate lPredicate : preds) {
+        Collection<String> lPredicateVariables = mMathsatFormulaManager.getVariables2(lPredicate.getSymbolicAtom());
+
+        boolean lFound = false;
+
+        for (String lVariable : lPredicateVariables) {
+          if (lVariables.contains(lVariable)) {
+            lFound = true;
+            break;
+          }
+        }
+
+        if (lFound || lPredicateVariables.isEmpty()) {
+          lRemainingPredicates.add(lPredicate);
+        }
+      }
+
+      if (preds.size() != lRemainingPredicates.size()) {
+        preds = lRemainingPredicates;
+      }
+    //}
 
     maxBlockSize = Math.max(maxBlockSize, pathFormula.getLength());
     maxPredsPerAbstraction = Math.max(maxPredsPerAbstraction, preds.size());

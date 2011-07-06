@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.cpachecker.fshell;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -32,6 +35,8 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.Cilly;
+
+import com.google.common.io.NullOutputStream;
 
 public class Main {
 
@@ -94,6 +99,7 @@ public class Main {
     boolean lDoAppendingLogging = false;
     boolean lDoRestart = false;
     long lRestartBound = 100000000; // 100 MB
+    PrintStream lOutput = System.out;
 
     for (int lIndex = 3; lIndex < pArguments.length; lIndex++) {
       String lOption = pArguments[lIndex].trim();
@@ -131,6 +137,13 @@ public class Main {
         String lTmp = lOption.substring("--restart-bound=".length());
         lRestartBound = Long.valueOf(lTmp);
       }
+      else if (lOption.startsWith("--output=")) {
+        String lTmp = lOption.substring("--output=".length());
+        lOutput = new PrintStream(new BufferedOutputStream(new FileOutputStream(lTmp)));
+      }
+      else if (lOption.equals("--nooutput")) {
+        lOutput = new PrintStream(new NullOutputStream());
+      }
     }
 
     if (lCilPreprocessing) {
@@ -145,12 +158,13 @@ public class Main {
 
         lSourceFileName = lCillyProcessedFile.getAbsolutePath();
 
-        System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
+        lOutput.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
       }
     }
 
     FShell3 lFShell = new FShell3(lSourceFileName, lEntryFunction);
 
+    lFShell.setOutput(lOutput);
     lFShell.setGoalIndices(lMinIndex, lMaxIndex);
 
     if (lFeasibilityInformationInputFile != null) {
@@ -180,8 +194,12 @@ public class Main {
 
     FShell3Result lResult = lFShell.run(lFQLSpecificationString);
 
-    System.out.println("#Goals: " + lResult.getNumberOfTestGoals() + ", #Feasible: " + lResult.getNumberOfFeasibleTestGoals() + ", #Infeasible: " + lResult.getNumberOfInfeasibleTestGoals() + ", #Imprecise: " + lResult.getNumberOfImpreciseTestCases());
+    lOutput.println("#Goals: " + lResult.getNumberOfTestGoals() + ", #Feasible: " + lResult.getNumberOfFeasibleTestGoals() + ", #Infeasible: " + lResult.getNumberOfInfeasibleTestGoals() + ", #Imprecise: " + lResult.getNumberOfImpreciseTestCases());
 
+    if (!lOutput.equals(System.out)){
+      lOutput.close();
+    }
+    
     return lResult;
   }
 

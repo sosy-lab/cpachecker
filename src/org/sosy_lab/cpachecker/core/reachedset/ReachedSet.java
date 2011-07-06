@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
+import org.sosy_lab.cpachecker.util.Precisions;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
@@ -78,6 +79,18 @@ public class ReachedSet implements UnmodifiableReachedSet {
     reached.put(element, precision);
     waitlist.add(element);
     lastElement = element;
+  }
+
+  public void updatePrecision(AbstractElement element, Precision pNewPrecision) {
+    Preconditions.checkNotNull(element);
+    Preconditions.checkNotNull(pNewPrecision);
+    Preconditions.checkArgument(reached.containsKey(element), "Element has to be in the reached set");
+    
+    Precision lOldPrecision = getPrecision(element);
+
+    Precision lNewPrecision = Precisions.replaceByType(lOldPrecision, pNewPrecision, pNewPrecision.getClass());
+
+    reached.put(element, lNewPrecision);
   }
 
 
@@ -206,6 +219,10 @@ public class ReachedSet implements UnmodifiableReachedSet {
   @Override
   public Iterable<AbstractElement> getWaitlist() {
     return Iterables.unmodifiableIterable(waitlist);
+  }
+
+  public boolean isInWaitlist(AbstractElement lElement) {
+    return waitlist.contains(lElement);
   }
 
   public AbstractElement popFromWaitlist() {

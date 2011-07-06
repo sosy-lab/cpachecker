@@ -30,6 +30,7 @@ import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -57,7 +58,6 @@ import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -68,6 +68,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
 
 @Options(prefix="cpa.predicate")
 public class PredicateRefiner extends AbstractARTBasedRefiner {
@@ -99,6 +100,9 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
   private CounterexampleTraceInfo mCounterexampleTraceInfo;
   private Path targetPath;
   protected List<CFANode> lastErrorPath = null;
+
+  public ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> mBuilder = new ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate>();
+  public HashSet<AbstractionPredicate> mGlobalPredicates = new HashSet<AbstractionPredicate>();
 
   public PredicateRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     super(pCpa);
@@ -142,6 +146,12 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
       Pair<ARTElement, PredicatePrecision> refinementResult =
               performRefinement(oldPredicatePrecision, path, mCounterexampleTraceInfo);
       precisionUpdate.stop();
+
+      SetMultimap<CFANode, AbstractionPredicate> lPredicateMap = refinementResult.getSecond().getPredicateMap();
+      for (CFANode lNode : lPredicateMap.keys()) {
+        mBuilder.putAll(lNode, lPredicateMap.get(lNode));
+      }
+      mGlobalPredicates.addAll(refinementResult.getSecond().getGlobalPredicates());
 
       artUpdate.start();
 
@@ -276,9 +286,9 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
           "trying strategy 1: remove everything below", root, "from ART.");
 
     } else {
-      if (absLocations.equals(lastErrorPath)) {
+      /*if (absLocations.equals(lastErrorPath)) {
         throw new RefinementFailedException(RefinementFailedException.Reason.NoNewPredicates, null);
-      }
+      }*/
 
       CFANode loc = firstInterpolationPoint.getSecond();
 

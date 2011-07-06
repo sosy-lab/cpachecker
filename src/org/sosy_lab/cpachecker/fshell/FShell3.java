@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.fshell;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.Collection;
 import java.util.Collections;
@@ -64,10 +65,10 @@ import com.google.common.base.Joiner;
 
 public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
 
-  private final NonincrementalFQLTestGenerator mNonincrementalTestGenerator;
+  /*private final NonincrementalFQLTestGenerator mNonincrementalTestGenerator;
   private final IncrementalFQLTestGenerator mIncrementalTestGenerator;
   private final IncrementalAndAlternatingFQLTestGenerator mIncrementalAndAlternatingTestGenerator;
-  private final StandardFQLCoverageAnalyser mCoverageAnalyser;
+  private final StandardFQLCoverageAnalyser mCoverageAnalyser;*/
 
   private final IncrementalARTReusingFQLTestGenerator mIncrementalARTReusingTestGenerator;
 
@@ -80,15 +81,20 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
   private boolean mDoAppendingLogging = false;
   private boolean mDoRestart = false;
   private long mRestartBound = 100000000; // 100 MB
+  private PrintStream mOutput = System.out;
 
   public FShell3(String pSourceFileName, String pEntryFunction) {
-    mNonincrementalTestGenerator = new NonincrementalFQLTestGenerator(pSourceFileName, pEntryFunction);
+    /*mNonincrementalTestGenerator = new NonincrementalFQLTestGenerator(pSourceFileName, pEntryFunction);
     mIncrementalTestGenerator = new IncrementalFQLTestGenerator(pSourceFileName, pEntryFunction);
     mIncrementalAndAlternatingTestGenerator = new IncrementalAndAlternatingFQLTestGenerator(pSourceFileName, pEntryFunction);
 
-    mCoverageAnalyser = new StandardFQLCoverageAnalyser(pSourceFileName, pEntryFunction);
+    mCoverageAnalyser = new StandardFQLCoverageAnalyser(pSourceFileName, pEntryFunction);*/
 
     mIncrementalARTReusingTestGenerator = new IncrementalARTReusingFQLTestGenerator(pSourceFileName, pEntryFunction);
+  }
+
+  public void setOutput(PrintStream pOutput) {
+    mOutput = pOutput;
   }
 
   public void doRestart() {
@@ -142,7 +148,7 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
 
   @Override
   public FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating) {
-    if (pGenerateTestGoalAutomataInAdvance) {
+    /*if (pGenerateTestGoalAutomataInAdvance) {
       return mNonincrementalTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
     }
     else {
@@ -152,7 +158,8 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
       else {
         // TODO make configurable
         if (!pAlternating) {
-
+          */
+          mIncrementalARTReusingTestGenerator.setOutput(mOutput);
           mIncrementalARTReusingTestGenerator.setGoalIndices(mMinIndex, mMaxIndex);
 
           FeasibilityInformation lFeasibilityInformation;
@@ -242,17 +249,17 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
           }
 
           return lResult;
-        }
+        /*}
         else {
           return mIncrementalTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
         }
       }
-    }
+    }*/
   }
 
   @Override
   public void checkCoverage(String pFQLSpecification, Collection<TestCase> pTestSuite, boolean pPedantic) {
-    mCoverageAnalyser.checkCoverage(pFQLSpecification, pTestSuite, pPedantic);
+    //mCoverageAnalyser.checkCoverage(pFQLSpecification, pTestSuite, pPedantic);
   }
 
   public static Map<String, CFAFunctionDefinitionNode> getCFAMap(String pSourceFileName, Configuration pConfiguration, LogManager pLogManager) throws InvalidConfigurationException {

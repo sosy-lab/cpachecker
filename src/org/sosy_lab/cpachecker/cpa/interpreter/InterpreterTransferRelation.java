@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.interpreter;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -42,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
@@ -458,9 +460,19 @@ public class InterpreterTransferRelation implements TransferRelation {
 
       return lSuccessor;
     }
-
+    else if (expression instanceof IASTIntegerLiteralExpression) {
+      IASTIntegerLiteralExpression lIntegerLiteral = (IASTIntegerLiteralExpression)expression;
+      BigInteger lValue = lIntegerLiteral.getValue();
+      
+      if (lValue.equals(BigInteger.ZERO)) {
+        return InterpreterBottomElement.INSTANCE;
+      }
+      else {
+        return element.clone();
+      }
+    }
     else{
-      throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
+      throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement() + ", " + expression.getClass().toString());
     }
 
   }

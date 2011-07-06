@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.util.ecp.ECPRepetition;
 import org.sosy_lab.cpachecker.util.ecp.ECPUnion;
 import org.sosy_lab.cpachecker.util.ecp.ECPVisitor;
 import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
+import org.sosy_lab.cpachecker.util.ecp.StandardECPEdgeSet;
 
 public class ToGuardedAutomatonTranslator {
 
@@ -263,7 +264,8 @@ public class ToGuardedAutomatonTranslator {
             }
 
             if (!lRemainingCFAEdges.isEmpty()) {
-              ECPEdgeSet lNewEdgeSet = new ECPEdgeSet(lRemainingCFAEdges);
+              //ECPEdgeSet lNewEdgeSet = new ECPEdgeSet(lRemainingCFAEdges);
+              ECPEdgeSet lNewEdgeSet = StandardECPEdgeSet.create(lRemainingCFAEdges);
 
               GuardedEdgeLabel lNewGuard = new GuardedEdgeLabel(lNewEdgeSet, lRemainingGuards);
 
@@ -617,7 +619,8 @@ public class ToGuardedAutomatonTranslator {
                 }
               }
 
-              ECPEdgeSet lNewEdgeSet = new ECPEdgeSet(lIncomingCFAEdges);
+              //ECPEdgeSet lNewEdgeSet = new ECPEdgeSet(lIncomingCFAEdges);
+              ECPEdgeSet lNewEdgeSet = StandardECPEdgeSet.create(lIncomingCFAEdges);
 
               GuardedEdgeLabel lNewLabel = new GuardedEdgeLabel(lNewEdgeSet, lIncomingEdge.getLabel().getGuards());
 

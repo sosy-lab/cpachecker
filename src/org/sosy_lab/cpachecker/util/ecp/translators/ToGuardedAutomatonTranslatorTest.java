@@ -41,9 +41,9 @@ import org.sosy_lab.cpachecker.fshell.fql2.translators.ecp.CoverageSpecification
 import org.sosy_lab.cpachecker.fshell.fql2.translators.ecp.PathPatternTranslator;
 import org.sosy_lab.cpachecker.util.Cilly;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
-import org.sosy_lab.cpachecker.util.ecp.ECPEdgeSet;
 import org.sosy_lab.cpachecker.util.ecp.ECPPrettyPrinter;
 import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
+import org.sosy_lab.cpachecker.util.ecp.StandardECPEdgeSet;
 
 public class ToGuardedAutomatonTranslatorTest {
 
@@ -290,8 +290,10 @@ public class ToGuardedAutomatonTranslatorTest {
 
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCFAMap, lLogManager);
 
-    GuardedEdgeLabel lAlphaLabel = new GuardedEdgeLabel(new ECPEdgeSet(lWrapper.getAlphaEdge()));
-    GuardedEdgeLabel lOmegaLabel = new GuardedEdgeLabel(new ECPEdgeSet(lWrapper.getOmegaEdge()));
+    //GuardedEdgeLabel lAlphaLabel = new GuardedEdgeLabel(new ECPEdgeSet(lWrapper.getAlphaEdge()));
+    GuardedEdgeLabel lAlphaLabel = new GuardedEdgeLabel(StandardECPEdgeSet.create(lWrapper.getAlphaEdge()));
+    //GuardedEdgeLabel lOmegaLabel = new GuardedEdgeLabel(new ECPEdgeSet(lWrapper.getOmegaEdge()));
+    GuardedEdgeLabel lOmegaLabel = new GuardedEdgeLabel(StandardECPEdgeSet.create(lWrapper.getOmegaEdge()));
 
     NondeterministicFiniteAutomaton<GuardedLabel> lLambdaFreeAutomaton = ToGuardedAutomatonTranslator.removeLambdaEdges(lInitialAutomaton, lAlphaLabel, lOmegaLabel);
     System.out.println(AutomatonPrettyPrinter.print(lLambdaFreeAutomaton));
@@ -351,8 +353,10 @@ public class ToGuardedAutomatonTranslatorTest {
 
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCFAMap, lLogManager);
 
-    GuardedEdgeLabel lAlphaLabel = new GuardedEdgeLabel(new ECPEdgeSet(lWrapper.getAlphaEdge()));
-    GuardedEdgeLabel lOmegaLabel = new GuardedEdgeLabel(new ECPEdgeSet(lWrapper.getOmegaEdge()));
+    //GuardedEdgeLabel lAlphaLabel = new GuardedEdgeLabel(new ECPEdgeSet(lWrapper.getAlphaEdge()));
+    GuardedEdgeLabel lAlphaLabel = new GuardedEdgeLabel(StandardECPEdgeSet.create(lWrapper.getAlphaEdge()));
+    //GuardedEdgeLabel lOmegaLabel = new GuardedEdgeLabel(new ECPEdgeSet(lWrapper.getOmegaEdge()));
+    GuardedEdgeLabel lOmegaLabel = new GuardedEdgeLabel(StandardECPEdgeSet.create(lWrapper.getOmegaEdge()));
 
     NondeterministicFiniteAutomaton<GuardedLabel> lLambdaFreeAutomaton = ToGuardedAutomatonTranslator.removeLambdaEdges(lInitialAutomaton, lAlphaLabel, lOmegaLabel);
     System.out.println(AutomatonPrettyPrinter.print(lLambdaFreeAutomaton));
