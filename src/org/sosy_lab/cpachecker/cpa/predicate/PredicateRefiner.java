@@ -29,7 +29,6 @@ import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -248,10 +247,6 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     return formulas;
   }
 
-  /**
-   * pPath and pArtPath need to fit together such that
-   * pPath.get(i) == pArtPath.get(i).retrieveWrappedElement(PredicateAbstractElement)
-   */
   private Pair<ARTElement, PredicatePrecision> performRefinement(PredicatePrecision oldPrecision,
       List<Pair<ARTElement, CFANode>> pPath,
       CounterexampleTraceInfo pInfo) throws CPAException {
@@ -265,29 +260,35 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     Multimap<CFANode, AbstractionPredicate> oldPredicateMap = oldPrecision.getPredicateMap();
     Set<AbstractionPredicate> globalPredicates = oldPrecision.getGlobalPredicates();
 
-    Pair<ARTElement, CFANode> firstInterpolationPoint = null;
     boolean newPredicatesFound = false;
-
+    Pair<ARTElement, CFANode> firstInterpolationPoint = null;
     ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
 
     pmapBuilder.putAll(oldPredicateMap);
 
-    // iterate through pPath and find first point with new predicates, from there we have to cut the ART
+    // iterate through interpolationPoints and find first point with new predicates, from there we have to cut the ART
+    // also build new precision
     int i = 0;
     for (Pair<ARTElement, CFANode> interpolationPoint : interpolationPoints) {
-      CFANode loc = interpolationPoint.getSecond();
-      Collection<AbstractionPredicate> localPreds = newPreds.get(i++);
+      Set<AbstractionPredicate> localPreds = newPreds.get(i++);
 
-      if (firstInterpolationPoint == null && localPreds.size() > 0) {
-        firstInterpolationPoint = interpolationPoint;
-      }
-      if (!newPredicatesFound && !oldPredicateMap.get(loc).containsAll(localPreds)) {
-        // new predicates for this location
-        newPredicatesFound = true;
-      }
+      if (localPreds.size() > 0) {
+        // found predicates
+        CFANode loc = interpolationPoint.getSecond();
 
-      pmapBuilder.putAll(loc, localPreds);
-      pmapBuilder.putAll(loc, globalPredicates);
+        if (firstInterpolationPoint == null) {
+          firstInterpolationPoint = interpolationPoint;
+        }
+
+        if (!oldPredicateMap.get(loc).containsAll(localPreds)) {
+          // new predicates for this location
+          newPredicatesFound = true;
+
+          pmapBuilder.putAll(loc, localPreds);
+          pmapBuilder.putAll(loc, globalPredicates);
+        }
+
+      }
     }
     assert firstInterpolationPoint != null;
 
