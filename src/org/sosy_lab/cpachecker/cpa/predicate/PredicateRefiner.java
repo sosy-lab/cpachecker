@@ -121,7 +121,6 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     totalRefinement.start();
 
     ARTElement targetElement = pReached.getLastElement();
-    assert targetElement.equals(pPath.getLast().getFirst());
     Set<ARTElement> elementsOnPath = ARTUtils.getAllElementsOnPathsTo(targetElement); // TODO: make this lazy?
 
     logger.log(Level.FINEST, "Starting refinement for PredicateCPA");
