@@ -23,14 +23,66 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
+import java.util.logging.Level;
+
+import org.sosy_lab.common.Timer;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateMergeOperator;
+import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
 
 public class RelyGuaranteeMergeOperator extends PredicateMergeOperator {
 
+  final Timer totalMergeTime = new Timer();
+
+
   public RelyGuaranteeMergeOperator(PredicateCPA pCpa) {
-    super(pCpa);
+    super(pCpa.getLogger(), pCpa.getPathFormulaManager());
+
+  }
+
+
+
+  @Override
+  public AbstractElement merge(AbstractElement element1,
+                               AbstractElement element2, Precision precision) {
+
+    RelyGuaranteeAbstractElement elem1 = (RelyGuaranteeAbstractElement)element1;
+    RelyGuaranteeAbstractElement elem2 = (RelyGuaranteeAbstractElement)element2;
+
+    // this will be the merged element
+    RelyGuaranteeAbstractElement merged;
+
+    if (elem1 instanceof RelyGuaranteeAbstractElement.AbstractionElement || elem2 instanceof RelyGuaranteeAbstractElement.AbstractionElement) {
+      // we don't merge if this is an abstraction location
+      merged = elem2;
+    } else {
+      // don't merge if the elements are in different blocks (they have different abstractions)
+      if (!elem1.getAbstractionFormula().equals(elem2.getAbstractionFormula())) {
+        merged = elem2;
+
+      } else {
+        totalMergeTime.start();
+        // create a new element
+
+        logger.log(Level.FINEST, "Merging two non-abstraction nodes.");
+
+        PathFormula pathFormula = formulaManager.makeOr(elem1.getPathFormula(), elem2.getPathFormula());
+
+        logger.log(Level.ALL, "New path formula is", pathFormula);
+
+        merged = new RelyGuaranteeAbstractElement(pathFormula, elem1.getAbstractionFormula());
+
+        // now mark elem1 so that coverage check can find out it was merged
+        elem1.setMergedInto(merged);
+
+        totalMergeTime.stop();
+      }
+    }
+
+    return merged;
   }
 
 }

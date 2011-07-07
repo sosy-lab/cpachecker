@@ -51,14 +51,20 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   int maxBlockSize = 0;
   int maxPredsPerAbstraction = 0;
 
-  private final LogManager logger;
-  private final PredicateAbstractionManager formulaManager;
-  private final PathFormulaManager pathFormulaManager;
+  protected final LogManager logger;
+  protected final PredicateAbstractionManager formulaManager;
+  protected final PathFormulaManager pathFormulaManager;
 
   public PredicatePrecisionAdjustment(PredicateCPA pCpa) {
     logger = pCpa.getLogger();
     formulaManager = pCpa.getPredicateManager();
     pathFormulaManager = pCpa.getPathFormulaManager();
+  }
+
+  public PredicatePrecisionAdjustment(LogManager logger, PredicateAbstractionManager fManager, PathFormulaManager pFormulaManager) {
+    this.logger = logger;
+    this.formulaManager = fManager;
+    this.pathFormulaManager = pFormulaManager;
   }
 
   @Override

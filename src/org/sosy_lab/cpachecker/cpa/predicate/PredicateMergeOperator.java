@@ -44,14 +44,19 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
  */
 public class PredicateMergeOperator implements MergeOperator {
 
-  private final LogManager logger;
-  private final PathFormulaManager formulaManager;
+  protected final LogManager logger;
+  protected final PathFormulaManager formulaManager;
 
   final Timer totalMergeTime = new Timer();
 
   public PredicateMergeOperator(PredicateCPA pCpa) {
     this.logger = pCpa.getLogger();
     formulaManager = pCpa.getPathFormulaManager();
+  }
+
+  public PredicateMergeOperator(LogManager logger, PathFormulaManager formulaManager){
+    this.logger = logger;
+    this.formulaManager = formulaManager;
   }
 
   @Override
