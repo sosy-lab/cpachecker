@@ -841,6 +841,7 @@ public class MathsatFormulaManager implements FormulaManager  {
     }
   }
 
+
   public Formula addThreadId(Formula f, int tid){
     return encapsulate(addThreadId(getTerm(f), tid));
   }

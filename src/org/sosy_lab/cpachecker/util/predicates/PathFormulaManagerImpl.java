@@ -225,12 +225,12 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
   }
 
   @Override
-  public PathFormula makeAnd(PathFormula pFormula1, PathFormula pFormula2) {
-    SSAMap ssa1 = pFormula1.getSsa();
-    SSAMap ssa2 = pFormula2.getSsa();
+  public PathFormula makeAnd(PathFormula localPathFormula, PathFormula envPathFormula) {
+    SSAMap ssa1 = localPathFormula.getSsa();
+    SSAMap ssa2 = envPathFormula.getSsa();
     SSAMap mergedSSA = SSAMap.merge(ssa1, ssa2);
-    Formula f1 = pFormula1.getFormula();
-    Formula f2 = pFormula2.getFormula();
+    Formula f1 = localPathFormula.getFormula();
+    Formula f2 = envPathFormula.getFormula();
     Formula mergedFormula = fmgr.makeAnd(f1, f2);
 
     Formula mt = fmgr.makeTrue();
@@ -256,6 +256,18 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
       }
     }
 
-    return new PathFormula(fmgr.makeAnd(mergedFormula, mt), mergedSSA, pFormula1.getLength()+pFormula2.getLength());
+
+    // TODO correct length
+    return new PathFormula(fmgr.makeAnd(mergedFormula, mt), mergedSSA, localPathFormula.getLength()+envPathFormula.getLength());
   }
+
+
+
+  @Override
+  public PathFormula makeAnd(PathFormula pPathFormula, Formula pForuma, int pTid) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+
 }

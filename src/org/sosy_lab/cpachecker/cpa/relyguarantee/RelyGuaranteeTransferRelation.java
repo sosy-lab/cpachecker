@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
@@ -205,6 +204,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
   public PathFormula convertEdgeToPathFormula(PathFormula pathFormula, CFAEdge edge) throws CPATransferException {
     pathFormulaTimer.start();
     PathFormula newPathFormula = null;
+    System.out.println("# Edge "+edge.getRawStatement());
     try {
       if(edge.getEdgeType() == CFAEdgeType.EnvironmentalEdge){
         newPathFormula = matchFormula(pathFormula,edge);
@@ -227,35 +227,17 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
     PathFormula lEnvironmentPathFormula = envEdge.getPathFormula();
     Formula lEnvironmentAbstractionFormula = envEdge.getAbstractionFormula().asFormula();
     PathFormula lEnvironmentFormula = pathFormulaManager.makeAnd(envEdge.getPathFormula(), envEdge.getAbstractionFormula().asFormula());
-    // determine the last index of the pathFormula
-    int max_index = -1;
-    SSAMap ssaMap =  pathFormula.getSsa();
-    for (String key : ssaMap.allVariables()){
-      if (ssaMap.getIndex(key)>max_index){
-        max_index = ssaMap.getIndex(key);
-      }
-    }
-
-
 
     System.out.println("My id: "+this.cpa.getThreadId());
     System.out.println("# Abstraction I "+lEnvironmentAbstractionFormula);
     System.out.println("# Path I "+lEnvironmentPathFormula);
     System.out.println("# Env "+lEnvironmentFormula);
-    // shift the environmental path by the index
-   // Formula shiftedEnvFormula = manager.shiftFormula(lEnvironmentFormula.getFormula(), max_index+1);
-
-    PathFormula shiftedEnvPathFormula = pathFormulaManager.shiftFormula(lEnvironmentFormula, max_index+1);
-
-    System.out.println("# Shiftend Env "+shiftedEnvPathFormula);
     // merge the formulas
-    //
-    PathFormula mergedPathFormula = pathFormulaManager.makeAnd(pathFormula, shiftedEnvPathFormula);
-    //pathFormulaManager
     System.out.println("# Path II "+pathFormula);
+    PathFormula mergedPathFormula = pathFormulaManager.makeAnd(pathFormula, lEnvironmentFormula);
     System.out.println("# Merged "+mergedPathFormula);
     // apply the strongest post operator
-    PathFormula newPathFormula = pathFormulaManager.makeAnd(mergedPathFormula, envEdge.getLocalEdge());
+    PathFormula newPathFormula = pathFormulaManager.makeAnd(mergedPathFormula, envEdge.getLocalEdge(), this.cpa.getThreadId());
     System.out.println("# Op "+envEdge.getLocalEdge().getRawStatement());
     System.out.println("# Final "+newPathFormula);
     System.out.println();
