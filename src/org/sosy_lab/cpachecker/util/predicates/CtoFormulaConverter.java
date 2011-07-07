@@ -428,11 +428,6 @@ public class CtoFormulaConverter {
 
       SSAMapBuilder ssa = oldFormula.getSsa().builder();
 
-
-
-
-
-
       Formula edgeFormula;
       switch (edge.getEdgeType()) {
       case StatementEdge: {
@@ -501,51 +496,48 @@ public class CtoFormulaConverter {
         }
       }
 
-
-      //oldFormula.getSsa().getIndex(variable);
-
-      //ssa.setIndex(var, idx)
+      // adjust the index of the new variable
       SSAMap newSsa = ssa.build();
-      // add thread id to the new variable in the map
-      SSAMapBuilder renamedSSA = oldFormula.getSsa().builder();
+      SSAMapBuilder adjustedSSA = oldFormula.getSsa().builder();
       for (String var: newSsa.allVariables()){
-        if (oldFormula.getSsa().getIndex(var) == -1){
+        if (oldFormula.getSsa().getIndex(var) == -1 & newSsa.getIndex(var)>1){
+
           int index = oldFormula.getSsa().getIndex(var+"_"+tid);
-          if (index <= 2){
-            index = 2;
+          System.out.println(newSsa.getIndex(var));
+          if (index < 2){
+            index = 1;
           }
-          else {
-            index++;
-          }
-          renamedSSA.setIndex(var+"_"+tid, index);
+          adjustedSSA.setIndex(var, index);
+
         }
       }
-      Formula renamedFormula = fmgr.addThreadId(edgeFormula, tid);
+      Formula adjustedFormula = fmgr.addThreadId(edgeFormula, tid);
+
 
       // ///
-      /*
+
       switch (edge.getEdgeType()) {
       case StatementEdge: {
         StatementEdge statementEdge = (StatementEdge)edge;
-        StatementToFormulaVisitor v = new StatementToFormulaVisitor(function, renamedSSA);
+        StatementToFormulaVisitor v = new StatementToFormulaVisitor(function, adjustedSSA);
         edgeFormula = statementEdge.getStatement().accept(v);
         break;
       }
 
       case ReturnStatementEdge: {
         ReturnStatementEdge returnEdge = (ReturnStatementEdge)edge;
-        edgeFormula = makeReturn(returnEdge.getExpression(), function, renamedSSA);
+        edgeFormula = makeReturn(returnEdge.getExpression(), function, adjustedSSA);
         break;
       }
 
       case DeclarationEdge: {
         DeclarationEdge d = (DeclarationEdge)edge;
-        edgeFormula = makeDeclaration(d.getDeclSpecifier(), d.isGlobal(), d, function, renamedSSA);
+        edgeFormula = makeDeclaration(d.getDeclSpecifier(), d.isGlobal(), d, function, adjustedSSA);
         break;
       }
 
       case AssumeEdge: {
-        edgeFormula = makeAssume((AssumeEdge)edge, function, renamedSSA);
+        edgeFormula = makeAssume((AssumeEdge)edge, function, adjustedSSA);
         break;
       }
 
@@ -556,7 +548,7 @@ public class CtoFormulaConverter {
       }
 
       case FunctionCallEdge: {
-        edgeFormula = makeFunctionCall((FunctionCallEdge)edge, function, renamedSSA);
+        edgeFormula = makeFunctionCall((FunctionCallEdge)edge, function, adjustedSSA);
         break;
       }
 
@@ -564,11 +556,28 @@ public class CtoFormulaConverter {
         // get the expression from the summary edge
         CFANode succ = edge.getSuccessor();
         CallToReturnEdge ce = succ.getEnteringSummaryEdge();
-        edgeFormula = makeExitFunction(ce, function, renamedSSA);
+        edgeFormula = makeExitFunction(ce, function, adjustedSSA);
         break;
       }
       default:
         throw new UnrecognizedCFAEdgeException(edge);
+      }
+
+
+
+      // change the new variable new to SSA
+      SSAMapBuilder renamedSSA = oldFormula.getSsa().builder();
+      for (String var: newSsa.allVariables()){
+        if (oldFormula.getSsa().getIndex(var) == -1){
+          int index = oldFormula.getSsa().getIndex(var+"_"+tid);
+          if (index < 2){
+            index = 2;
+          }
+          else {
+            index++;
+          }
+          renamedSSA.setIndex(var+"_"+tid, index);
+        }
       }
 
       newSsa = renamedSSA.build();
@@ -577,10 +586,11 @@ public class CtoFormulaConverter {
         // formula is just "true" and SSAMap is identical
         // i.e. no writes to SSAMap, no branching and length should stay the same
         return oldFormula;
-      }*/
-      newSsa = renamedSSA.build();
+      }
 
 
+
+      Formula renamedFormula = fmgr.addThreadId(edgeFormula, tid);
       Formula newFormula = fmgr.makeAnd(oldFormula.getFormula(), renamedFormula);
       int newLength = oldFormula.getLength() + 1;
       return new PathFormula(newFormula, newSsa, newLength);

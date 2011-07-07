@@ -204,18 +204,23 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
   public PathFormula convertEdgeToPathFormula(PathFormula pathFormula, CFAEdge edge) throws CPATransferException {
     pathFormulaTimer.start();
     PathFormula newPathFormula = null;
-    System.out.println("# Edge "+edge.getRawStatement());
     try {
       if(edge.getEdgeType() == CFAEdgeType.EnvironmentalEdge){
         newPathFormula = matchFormula(pathFormula,edge);
+        RelyGuaranteeEnvEdge envEdge = (RelyGuaranteeEnvEdge) edge;
+        System.out.println("@ Env s. of '"+pathFormula+"' by edge '"+envEdge.getLocalEdge().getRawStatement()+"'");
+        System.out.println("is '"+newPathFormula.getFormula()+"' with SSA "+newPathFormula.getSsa());
       }
       else {
         //newPathFormula = pathFormulaManager.makeAnd(pathFormula, edge);
         newPathFormula = pathFormulaManager.makeAnd(pathFormula, edge, this.cpa.getThreadId());
+        System.out.println("@ Local s. of '"+pathFormula+"' by edge '"+edge.getRawStatement()+"'");
+        System.out.println("is '"+newPathFormula.getFormula()+"' with SSA "+newPathFormula.getSsa());
       }
     } finally {
       pathFormulaTimer.stop();
     }
+    System.out.println();
     return newPathFormula;
   }
 
@@ -228,19 +233,18 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
     Formula lEnvironmentAbstractionFormula = envEdge.getAbstractionFormula().asFormula();
     PathFormula lEnvironmentFormula = pathFormulaManager.makeAnd(envEdge.getPathFormula(), envEdge.getAbstractionFormula().asFormula());
 
-    System.out.println("My id: "+this.cpa.getThreadId());
-    System.out.println("# Abstraction I "+lEnvironmentAbstractionFormula);
+   /* System.out.println("# Abstraction I "+lEnvironmentAbstractionFormula);
     System.out.println("# Path I "+lEnvironmentPathFormula);
     System.out.println("# Env "+lEnvironmentFormula);
     // merge the formulas
-    System.out.println("# Path II "+pathFormula);
+    System.out.println("# Path II "+pathFormula);*/
     PathFormula mergedPathFormula = pathFormulaManager.makeAnd(pathFormula, lEnvironmentFormula);
-    System.out.println("# Merged "+mergedPathFormula);
+  //  System.out.println("# Merged "+mergedPathFormula);
     // apply the strongest post operator
     PathFormula newPathFormula = pathFormulaManager.makeAnd(mergedPathFormula, envEdge.getLocalEdge(), this.cpa.getThreadId());
-    System.out.println("# Op "+envEdge.getLocalEdge().getRawStatement());
-    System.out.println("# Final "+newPathFormula);
-    System.out.println();
+   // System.out.println("# Op "+envEdge.getLocalEdge().getRawStatement());
+   // System.out.println("# Final "+newPathFormula);
+  //  System.out.println();
 
     return newPathFormula;
   }

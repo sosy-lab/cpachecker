@@ -235,9 +235,6 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
     Formula mt = fmgr.makeTrue();
 
-    if (!f2.isTrue()){
-      System.out.println();
-    }
 
     for (String lVariable : ssa1.allVariables()) {
       if (ssa2.allVariables().contains(lVariable)) {
