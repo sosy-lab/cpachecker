@@ -500,15 +500,23 @@ public class CtoFormulaConverter {
       SSAMap newSsa = ssa.build();
       SSAMapBuilder adjustedSSA = oldFormula.getSsa().builder();
       for (String var: newSsa.allVariables()){
-        if (oldFormula.getSsa().getIndex(var) == -1 & newSsa.getIndex(var)>1){
-
-          int index = oldFormula.getSsa().getIndex(var+"_"+tid);
-          System.out.println(newSsa.getIndex(var));
-          if (index < 2){
-            index = 1;
+        if (oldFormula.getSsa().getIndex(var) == -1){
+          int index = 0;
+          if (newSsa.getIndex(var)==1){
+            // var is rhs
+            index = oldFormula.getSsa().getIndex(var+"_"+tid);
+            if (index < 2){
+              index = 2;
+            }
+          }
+          else if (newSsa.getIndex(var)==2){
+            // var is lhs
+            index = oldFormula.getSsa().getIndex(var+"_"+tid);
+            if (index < 2){
+              index = 1;
+            }
           }
           adjustedSSA.setIndex(var, index);
-
         }
       }
       Formula adjustedFormula = fmgr.addThreadId(edgeFormula, tid);
@@ -569,12 +577,23 @@ public class CtoFormulaConverter {
       SSAMapBuilder renamedSSA = oldFormula.getSsa().builder();
       for (String var: newSsa.allVariables()){
         if (oldFormula.getSsa().getIndex(var) == -1){
-          int index = oldFormula.getSsa().getIndex(var+"_"+tid);
-          if (index < 2){
-            index = 2;
+          int index = 0;
+          if (newSsa.getIndex(var)==1){
+            // var is rhs
+            index = oldFormula.getSsa().getIndex(var+"_"+tid);
+            if (index < 2){
+              index = 2;
+            }
+
           }
-          else {
-            index++;
+          else if (newSsa.getIndex(var)>1){
+            // var is lhs
+            index = oldFormula.getSsa().getIndex(var+"_"+tid);
+            if (index < 2){
+              index = 2;
+            } else {
+              index ++;
+            }
           }
           renamedSSA.setIndex(var+"_"+tid, index);
         }
