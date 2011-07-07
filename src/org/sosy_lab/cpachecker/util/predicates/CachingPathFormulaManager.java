@@ -125,8 +125,8 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public PathFormula makeAnd(PathFormula pPathFormula,  PathFormula pShiftedEnvPathFormula) {
-    return delegate.makeAnd(pPathFormula, pShiftedEnvPathFormula);
+  public PathFormula makeAnd(PathFormula pPathFormula,  PathFormula pShiftedEnvPathFormula, int myTid, int sourceTid) {
+    return delegate.makeAnd(pPathFormula, pShiftedEnvPathFormula, myTid, sourceTid);
   }
 
   @Override

@@ -23,10 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -225,10 +229,15 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
   }
 
   @Override
-  public PathFormula makeAnd(PathFormula localPathFormula, PathFormula envPathFormula) {
+  public PathFormula makeAnd(PathFormula localPathFormula, PathFormula envPathFormula,  int myTid, int sourceTid) {
+    // hardcoded
+    Set<String> globalVars = new HashSet<String>();
+    globalVars.add("g");
+
     SSAMap ssa1 = localPathFormula.getSsa();
     SSAMap ssa2 = envPathFormula.getSsa();
     SSAMap mergedSSA = SSAMap.merge(ssa1, ssa2);
+    SSAMapBuilder mergedWithEQSSA = mergedSSA.builder();
     Formula f1 = localPathFormula.getFormula();
     Formula f2 = envPathFormula.getFormula();
     Formula mergedFormula = fmgr.makeAnd(f1, f2);
@@ -236,7 +245,27 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     Formula mt = fmgr.makeTrue();
 
 
-    for (String lVariable : ssa1.allVariables()) {
+    for (String lVariable : ssa2.allVariables()){
+      // check if global
+      String pureVariable = lVariable.replace("_"+sourceTid, "");
+      if (globalVars.contains(pureVariable)){
+        int localIndex = ssa1.getIndex(pureVariable+"_"+myTid);
+        if (localIndex == -1){
+          localIndex = 1;
+        }
+
+        Formula lVar1 = fmgr.makeVariable(pureVariable+"_"+myTid, localIndex+1);
+        Formula lVar2 = fmgr.makeVariable(lVariable, ssa2.getIndex(lVariable));
+        Formula e = fmgr.makeEqual(lVar1, lVar2);
+        mt = fmgr.makeAnd(mt, e);
+        mergedWithEQSSA.setIndex(pureVariable+"_"+myTid, localIndex+1);
+        // TODO what about nondet?
+        if (useNondetFlags && lVariable.equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
+          throw new RuntimeException();
+        }
+      }
+    }
+    /*for (String lVariable : ssa1.allVariables()) {
       if (ssa2.allVariables().contains(lVariable)) {
      //   if (pFormula1.
 
@@ -251,11 +280,11 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
           throw new RuntimeException();
         }
       }
-    }
+    }*/
 
 
     // TODO correct length
-    return new PathFormula(fmgr.makeAnd(mergedFormula, mt), mergedSSA, localPathFormula.getLength()+envPathFormula.getLength());
+    return new PathFormula(fmgr.makeAnd(mergedFormula, mt), mergedWithEQSSA.build(), localPathFormula.getLength()+envPathFormula.getLength());
   }
 
 

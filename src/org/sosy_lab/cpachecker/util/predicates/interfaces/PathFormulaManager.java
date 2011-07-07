@@ -58,12 +58,12 @@ public interface PathFormulaManager {
 
   PathFormula shiftFormula(PathFormula formula, int offset);
 
-  PathFormula makeAnd(PathFormula pPathFormula, PathFormula pShiftedEnvPathFormula);
 
   PathFormula makeAnd(PathFormula pPathFormula, Formula foruma, int tid);
 
 
 
+  PathFormula makeAnd(PathFormula pLocalPathFormula, PathFormula pEnvPathFormula, int pMyTid, int pSourceTid);
 
 
 }

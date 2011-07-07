@@ -37,6 +37,7 @@ public class RelyGuaranteeEnvEdge implements CFAEdge{
   private PathFormula pathFormula;
   private CFANode predecessor;
   private CFANode successor;
+  private int sourceTid;
 
 
   /**
@@ -44,16 +45,18 @@ public class RelyGuaranteeEnvEdge implements CFAEdge{
    * @param abstractionFormula abstraction formula of the predecessor of the local edge
    * @param pathFormula path formula of the predecessor of the local edge
    */
-  public RelyGuaranteeEnvEdge(CFAEdge pEdge, AbstractionFormula pAbstractionFormula, PathFormula pPathFormula){
+  public RelyGuaranteeEnvEdge(CFAEdge pEdge, AbstractionFormula pAbstractionFormula, PathFormula pPathFormula, int sourceTid){
     this.localEdge = pEdge;
     this.abstractionFormula = pAbstractionFormula;
     this.pathFormula = pPathFormula;
+    this.sourceTid = sourceTid;
   }
 
   public RelyGuaranteeEnvEdge(RelyGuaranteeEnvEdge pOther) {
     this.localEdge = pOther.localEdge;
     this.abstractionFormula = pOther.abstractionFormula;
     this.pathFormula = pOther.pathFormula;
+    this.sourceTid = pOther.sourceTid;
   }
 
   @Override
@@ -108,11 +111,15 @@ public class RelyGuaranteeEnvEdge implements CFAEdge{
   }
 
   public String toString() {
-    return "RelyGuaranteeEnvEdge: "+localEdge.getRawStatement()+", "+this.abstractionFormula.toString()+", "+this.pathFormula.toString();
+    return "RelyGuaranteeEnvEdge from "+this.sourceTid+": "+localEdge.getRawStatement()+", "+this.abstractionFormula.toString()+", "+this.pathFormula.toString();
   }
 
   public CFAEdge getLocalEdge() {
     return this.localEdge;
+  }
+
+  public int getSourceTid(){
+    return this.sourceTid;
   }
 
 }

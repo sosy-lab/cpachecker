@@ -847,6 +847,7 @@ public class MathsatFormulaManager implements FormulaManager  {
   }
 
   private long addThreadId(long lTerm, int tid) {
+
     if (msat_term_is_variable(lTerm) != 0) {
       Pair<String, Integer> lVariable = parseName(msat_term_repr(lTerm));
       String newName = addThreadIdToVar(lVariable.getFirst(),tid);
@@ -854,6 +855,7 @@ public class MathsatFormulaManager implements FormulaManager  {
       return msat_make_variable(msatEnv, decl);
     }
     else {
+
       long[] newargs = new long[msat_term_arity(lTerm)];
 
       for (int i = 0; i < newargs.length; ++i) {

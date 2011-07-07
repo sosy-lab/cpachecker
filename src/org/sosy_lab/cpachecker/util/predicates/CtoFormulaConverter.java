@@ -608,7 +608,6 @@ public class CtoFormulaConverter {
       }
 
 
-
       Formula renamedFormula = fmgr.addThreadId(edgeFormula, tid);
       Formula newFormula = fmgr.makeAnd(oldFormula.getFormula(), renamedFormula);
       int newLength = oldFormula.getLength() + 1;

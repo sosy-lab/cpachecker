@@ -108,7 +108,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
   }
 
   private final CPAStatistics               stats = new CPAStatistics();
-  private final ConfigurableProgramAnalysis            cpa;
+  private final ConfigurableProgramAnalysis           cpa;
   private final LogManager                  logger;
   private Vector<RelyGuaranteeEnvEdge> envTransitions;
   private int tid;
@@ -250,6 +250,8 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
           logger.log(Level.FINER,
               "No need to stop, adding successor to waitlist");
 
+          //RelyGuaranteeAbstractElement rgSuccessor = (RelyGuaranteeAbstractElement) successor;
+          // System.out.println("@ Adding to reached '"+rgSuccessor.getAbstractionFormula()+"','"+rgSuccessor.getPathFormula()+"'");
           reachedSet.add(successor, successorPrecision);
         }
       }
@@ -274,7 +276,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     for (int i=0; i<node.getNumLeavingEdges(); i++){
       edge = node.getLeavingEdge(i);
       if (edge.getEdgeType() == CFAEdgeType.StatementEdge && !(edge.getRawAST() instanceof IASTFunctionCallStatement)) {
-        RelyGuaranteeEnvEdge newEnvTransition = new RelyGuaranteeEnvEdge(edge, predElement.getAbstractionFormula(), predElement.getPathFormula());
+        RelyGuaranteeEnvEdge newEnvTransition = new RelyGuaranteeEnvEdge(edge, predElement.getAbstractionFormula(), predElement.getPathFormula(), this.tid);
         logger.log(Level.ALL, "Created",newEnvTransition);
         envTransitions.add(newEnvTransition);
       }
