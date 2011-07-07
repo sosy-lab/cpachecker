@@ -208,7 +208,9 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
     try {
       if(edge.getEdgeType() == CFAEdgeType.EnvironmentalEdge){
 
-        System.out.println("@ Env s. of '"+element.getAbstractionFormula()+"','"+element.getPathFormula()+"' by edge '"+edge.getRawStatement()+"'");
+        System.out.println("@ Env s. of '"+element.getAbstractionFormula()+"','"+element.getPathFormula()+
+        		"' with SSAMap '"+element.getPathFormula().getSsa()+"' by edge '"+edge.getRawStatement()+"'");
+
         RelyGuaranteeEnvEdge envEdge = (RelyGuaranteeEnvEdge) edge;
         newPathFormula = matchFormula(pathFormula,edge,  this.cpa.getThreadId());
         System.out.println("is '"+newPathFormula.getFormula()+"' with SSA "+newPathFormula.getSsa());
@@ -217,7 +219,8 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
       else {
         //newPathFormula = pathFormulaManager.makeAnd(pathFormula, edge);
         newPathFormula = pathFormulaManager.makeAnd(pathFormula, edge, this.cpa.getThreadId());
-        System.out.println("@ Local s. of '"+element.getAbstractionFormula()+"','"+element.getPathFormula()+"' by edge '"+edge.getRawStatement()+"'");
+        System.out.println("@ Local s. of '"+element.getAbstractionFormula()+"','"+element.getPathFormula()+
+        		"' with SSAMap '"+element.getPathFormula().getSsa()+"' by edge '"+edge.getRawStatement()+"'");
         System.out.println("is '"+newPathFormula.getFormula()+"' with SSA "+newPathFormula.getSsa());
       }
     } finally {
