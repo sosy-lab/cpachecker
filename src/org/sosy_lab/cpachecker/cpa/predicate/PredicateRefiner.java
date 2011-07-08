@@ -101,10 +101,16 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
   private Path targetPath;
   protected List<CFANode> lastErrorPath = null;
 
-  public ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> mBuilder = new ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate>();
-  public HashSet<AbstractionPredicate> mGlobalPredicates = new HashSet<AbstractionPredicate>();
+  //public ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> mBuilder = new ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate>();
+  //public HashSet<AbstractionPredicate> mGlobalPredicates = new HashSet<AbstractionPredicate>();
+  private final ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> mBuilder;
+  private final Collection<AbstractionPredicate> mGlobalPredicates;
 
   public PredicateRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
+    this(pCpa, new ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate>(), new HashSet<AbstractionPredicate>());
+  }
+
+  public PredicateRefiner(final ConfigurableProgramAnalysis pCpa, ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pBuilder, Collection<AbstractionPredicate> pGlobalPredicates) throws CPAException, InvalidConfigurationException {
     super(pCpa);
 
     PredicateCPA predicateCpa = this.getArtCpa().retrieveWrappedCpa(PredicateCPA.class);
@@ -116,6 +122,9 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     logger = predicateCpa.getLogger();
     formulaManager = predicateCpa.getPredicateManager();
     predicateCpa.getStats().addRefiner(this);
+
+    mBuilder = pBuilder;
+    mGlobalPredicates = pGlobalPredicates;
   }
 
   @Override

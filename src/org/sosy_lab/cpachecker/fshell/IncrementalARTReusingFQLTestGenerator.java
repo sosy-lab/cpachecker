@@ -707,6 +707,8 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
   }
 
   PredicatePrecision mPrecision;
+  ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> mBuilder = new ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate>();
+  HashSet<AbstractionPredicate> mGlobalPredicates = new HashSet<AbstractionPredicate>();
 
   private CounterexampleTraceInfo reach(ReachedSet pReachedSet, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, GuardedEdgeAutomatonCPA pAutomatonCPA, CFAFunctionDefinitionNode pEntryNode, GuardedEdgeAutomatonCPA pPassingCPA) {
     mTimeInReach.proceed();
@@ -767,7 +769,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     PredicateRefiner lRefiner;
     try {
-      lRefiner = new PredicateRefiner(lBasicAlgorithm.getCPA());
+      lRefiner = new PredicateRefiner(lBasicAlgorithm.getCPA(), mBuilder, mGlobalPredicates);
     } catch (CPAException e) {
       throw new RuntimeException(e);
     } catch (InvalidConfigurationException e) {
@@ -834,34 +836,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       throw new RuntimeException(e);
     }
 
-    if (mPrecision == null) {
-      mPrecision = new PredicatePrecision(lRefiner.mBuilder.build(), lRefiner.mGlobalPredicates);
-    }
-    else {
-      PredicatePrecision lTmpPrecision = new PredicatePrecision(lRefiner.mBuilder.build(), lRefiner.mGlobalPredicates);
-
-      SetMultimap<CFANode, AbstractionPredicate> lPredicateMap = mPrecision.getPredicateMap();
-
-      // create an updated version
-      ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> lBuilder = new ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate>();
-
-      for (CFANode lNode : lPredicateMap.keys()) {
-        lBuilder.putAll(lNode, lPredicateMap.get(lNode));
-      }
-
-      lPredicateMap = lTmpPrecision.getPredicateMap();
-
-      for (CFANode lNode : lPredicateMap.keys()) {
-        lBuilder.putAll(lNode, lPredicateMap.get(lNode));
-      }
-
-      Set<AbstractionPredicate> lGlobalPredicates = new HashSet<AbstractionPredicate>();
-
-      lGlobalPredicates.addAll(mPrecision.getGlobalPredicates());
-      lGlobalPredicates.addAll(lTmpPrecision.getGlobalPredicates());
-
-      mPrecision = new PredicatePrecision(lBuilder.build(), lGlobalPredicates);
-    }
+    mPrecision = new PredicatePrecision(mBuilder.build(), mGlobalPredicates);
 
     //printPredicateStatistics(pReachedSet, lPredicateCPAIndex);
 
