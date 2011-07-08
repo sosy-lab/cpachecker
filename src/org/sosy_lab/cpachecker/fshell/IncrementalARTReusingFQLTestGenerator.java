@@ -796,25 +796,11 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     lAlgorithm.collectStatistics(lStatistics);
 
     if (mReuseART) {
-      AbstractElement lLastElement = pReachedSet.getLastElement();
-
-      PredicatePrecision lWaitlistPrecision = null;
-
-      if (lLastElement != null) {
-        lWaitlistPrecision = getPredicatePrecision(pReachedSet.getPrecision(lLastElement), lPredicateCPAIndex);
-      }
-
-      if (mPrecision != null) {
-        lWaitlistPrecision = mPrecision;
-      }
-
       modifyReachedSet(pReachedSet, pEntryNode, lARTCPA, lProductAutomatonIndex, pPreviousAutomaton, pAutomatonCPA.getAutomaton());
 
-      if (pReachedSet.size() > 1) {
-        if (lWaitlistPrecision != null) {
-          for (AbstractElement lWaitlistElement : pReachedSet.getWaitlist()) {
-            pReachedSet.updatePrecision(lWaitlistElement, lWaitlistPrecision);
-          }
+      if (mPrecision != null) {
+        for (AbstractElement lWaitlistElement : pReachedSet.getWaitlist()) {
+          pReachedSet.updatePrecision(lWaitlistElement, mPrecision);
         }
       }
     }
