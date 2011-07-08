@@ -107,11 +107,11 @@ public class PredicateTransferRelation implements TransferRelation {
   public int numSatChecksFalse = 0;
   public int numStrengthenChecksFalse = 0;
 
-  private  LogManager logger;
-  private  PredicateAbstractionManager formulaManager;
-  private  PathFormulaManager pathFormulaManager;
+  protected  LogManager logger;
+  protected  PredicateAbstractionManager formulaManager;
+  protected PathFormulaManager pathFormulaManager;
 
-  private  MathsatFormulaManager manager;
+  protected  MathsatFormulaManager manager;
 
   public PredicateTransferRelation() throws InvalidConfigurationException {
     this.logger = null;

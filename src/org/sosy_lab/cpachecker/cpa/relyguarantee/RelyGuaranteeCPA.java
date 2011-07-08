@@ -27,7 +27,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Collection;
-import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -99,8 +98,6 @@ public class RelyGuaranteeCPA extends PredicateCPA{
 
     private RelyGuaranteeCPAStatistics stats;
 
-    // a set of global variables
-    private Set<String> globalVariabes;
 
     private int tid;
 
@@ -249,11 +246,6 @@ public class RelyGuaranteeCPA extends PredicateCPA{
     return new RelyGuaranteePrecision(predicates);
   }
 
-
-
-  public void setGlobalVariables(Set<String> pGlobalVariables) {
-    this.globalVariabes = pGlobalVariables;
-  }
 
   public void setThreadId(int tid){
     this.tid = tid;

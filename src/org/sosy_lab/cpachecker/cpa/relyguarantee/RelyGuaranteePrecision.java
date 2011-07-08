@@ -33,8 +33,8 @@ import com.google.common.collect.ImmutableSetMultimap;
 
   public class RelyGuaranteePrecision extends PredicatePrecision {
 
-    private final int id = idCounter++;
-    private static int idCounter = 0;
+    //private final int id = idCounter++;
+    //private static int idCounter = 0;
 
     public RelyGuaranteePrecision(ImmutableSetMultimap<CFANode, AbstractionPredicate> predicateMap, Collection<AbstractionPredicate> globalPredicates) {
       super(predicateMap, globalPredicates);

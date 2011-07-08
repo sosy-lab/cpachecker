@@ -106,10 +106,12 @@ public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustme
     return new RelyGuaranteeAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula, element.getParentEdge());
   }
 
+  @Override
   protected AbstractionFormula computeAbstraction(AbstractionFormula pAbstractionFormula, PathFormula pPathFormula, Collection<AbstractionPredicate> pPreds, CFANode node) {
     return formulaManager.buildAbstraction(pAbstractionFormula, pPathFormula, pPreds);
   }
 
+  @Override
   protected LogManager getLogger() {
     return logger;
   }

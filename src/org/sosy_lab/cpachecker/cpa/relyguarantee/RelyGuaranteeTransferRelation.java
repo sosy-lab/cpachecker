@@ -92,23 +92,12 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
   private boolean targetStateSatCheck = true;
 
   // statistics
-  /*final Timer postTimer = new Timer();
-  final Timer satCheckTimer = new Timer();
-  final Timer pathFormulaTimer = new Timer();
-  final Timer strengthenTimer = new Timer();
-  final Timer strengthenCheckTimer = new Timer();
-
-  int numBlkFunctions = 0;
-  int numBlkLoops = 0;
-  int numBlkThreshold = 0;
-  int numSatChecksFalse = 0;
-  int numStrengthenChecksFalse = 0;*/
 
   private final LogManager logger;
   private final PredicateAbstractionManager formulaManager;
   private final PathFormulaManager pathFormulaManager;
 
-  private final MathsatFormulaManager manager;
+  //private final MathsatFormulaManager manager;
   private final RelyGuaranteeCPA cpa;
 
   public RelyGuaranteeTransferRelation(RelyGuaranteeCPA pCpa) throws InvalidConfigurationException {
@@ -138,7 +127,6 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
       }
 
       // calculate strongest post
-      RelyGuaranteeAbstractElement rgElement =  (RelyGuaranteeAbstractElement)pElement;
       PathFormula pathFormula = convertEdgeToPathFormula(element, edge);
       logger.log(Level.ALL, "New path formula is", pathFormula);
 
@@ -210,7 +198,6 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
 
     try {
       if(edge.getEdgeType() == CFAEdgeType.EnvironmentalEdge){
-        RelyGuaranteeEnvEdge envEdge = (RelyGuaranteeEnvEdge) edge;
         newPathFormula = matchFormula(pathFormula,edge,  this.cpa.getThreadId());
       }
       else {
@@ -228,8 +215,8 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
   private PathFormula matchFormula(PathFormula pathFormula, CFAEdge edge,  int tid) throws CPATransferException {
     RelyGuaranteeEnvEdge envEdge = (RelyGuaranteeEnvEdge) edge;
 
-    PathFormula lEnvironmentPathFormula = envEdge.getPathFormula();
-    Formula lEnvironmentAbstractionFormula = envEdge.getAbstractionFormula().asFormula();
+    //PathFormula lEnvironmentPathFormula = envEdge.getPathFormula();
+    //Formula lEnvironmentAbstractionFormula = envEdge.getAbstractionFormula().asFormula();
     PathFormula lEnvironmentFormula = pathFormulaManager.makeAnd(envEdge.getPathFormula(), envEdge.getAbstractionFormula().asFormula());
 
     PathFormula newPathFormula = pathFormulaManager.makeAnd(lEnvironmentFormula, envEdge.getLocalEdge(), envEdge.getSourceTid());
@@ -251,6 +238,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
    * an abstraction location if it has an incoming loop-back edge, if it is
    * the start node of a function or if it is the call site from a function call.
    */
+  @Override
   protected boolean isBlockEnd(CFANode succLoc, PathFormula pf) {
     boolean result = false;
 

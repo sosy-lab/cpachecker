@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -34,8 +33,6 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
 
 public class RelyGuaranteeMergeOperator extends PredicateMergeOperator {
-
-  final Timer totalMergeTime = new Timer();
 
 
   public RelyGuaranteeMergeOperator(PredicateCPA pCpa) {
