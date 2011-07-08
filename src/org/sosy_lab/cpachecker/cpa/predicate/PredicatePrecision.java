@@ -36,10 +36,11 @@ import com.google.common.collect.SetMultimap;
 
 public class PredicatePrecision implements Precision {
 
-  private final ImmutableSetMultimap<CFANode, AbstractionPredicate> predicateMap;
+  protected final ImmutableSetMultimap<CFANode, AbstractionPredicate> predicateMap;
   private final ImmutableSet<AbstractionPredicate> globalPredicates;
   private final int id = idCounter++;
   private static int idCounter = 0;
+
 
   public PredicatePrecision(ImmutableSetMultimap<CFANode, AbstractionPredicate> predicateMap, Collection<AbstractionPredicate> globalPredicates) {
     assert predicateMap != null;

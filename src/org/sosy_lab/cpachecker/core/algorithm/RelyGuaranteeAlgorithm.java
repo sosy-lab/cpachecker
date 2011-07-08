@@ -99,6 +99,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     try{
       do {
         threadCPA[0].run(pReached[0]);
+        System.out.println();
         printEnvTransitions(0);
         addEnvTransitionsToCFA(1);
         this.dumpDot(1, "test/output/newCFA"+1+".dot");
@@ -153,7 +154,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
 
 
   private void printEnvTransitions(int pI) {
-    System.out.println("# Env transitions created by thread "+pI+" #");
+    System.out.println("## Env transitions created by thread "+pI+" ##");
     for (RelyGuaranteeEnvEdge edge : this.envTransitionsFromThread[pI]){
       System.out.println(edge);
     }

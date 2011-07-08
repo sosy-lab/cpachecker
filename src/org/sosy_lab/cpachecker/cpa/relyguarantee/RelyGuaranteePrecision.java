@@ -25,13 +25,37 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
 import java.util.Collection;
 
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
-public class RelyGuaranteePrecision extends PredicatePrecision{
+import com.google.common.collect.ImmutableSetMultimap;
 
-  public RelyGuaranteePrecision( Collection<AbstractionPredicate> pGlobalPredicates) {
-    super(pGlobalPredicates);
+  public class RelyGuaranteePrecision extends PredicatePrecision {
+
+    private final int id = idCounter++;
+    private static int idCounter = 0;
+
+    public RelyGuaranteePrecision(ImmutableSetMultimap<CFANode, AbstractionPredicate> predicateMap, Collection<AbstractionPredicate> globalPredicates) {
+      super(predicateMap, globalPredicates);
+    }
+
+    public RelyGuaranteePrecision(Collection<AbstractionPredicate> globalPredicates) {
+      super(globalPredicates);
+    }
+
+
+
+    @Override
+    public boolean equals(Object pObj) {
+      if (pObj == this) {
+        return true;
+      } else if (!(pObj instanceof RelyGuaranteePrecision)) {
+        return false;
+      } else {
+        return predicateMap.equals(((RelyGuaranteePrecision)pObj).predicateMap);
+      }
+    }
+
+
   }
-
-}

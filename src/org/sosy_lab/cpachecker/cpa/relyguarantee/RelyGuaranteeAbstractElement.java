@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
@@ -40,6 +41,7 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
 
   private int tid;
   public static int UNKOWN = -1;
+  private CFAEdge parentEdge = null;
 
 
 
@@ -71,6 +73,18 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
      Preconditions.checkArgument(pf.getFormula().isTrue());
    }
 
+
+   public AbstractionElement(PathFormula pf, AbstractionFormula pA, CFAEdge edge) {
+     super(pf, pA, edge);
+     // Check whether the pathFormula of an abstraction element is just "true".
+     // partialOrder relies on this for optimization.
+     Preconditions.checkArgument(pf.getFormula().isTrue());
+   }
+
+
+
+
+
    @Override
    public Object getPartitionKey() {
      if (super.abstractionFormula.asFormula().isFalse()) {
@@ -97,6 +111,12 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
      super(pf, pA);
      location = pLoc;
    }
+
+   public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc, CFAEdge edge) {
+     super(pf, pA, edge);
+     location = pLoc;
+   }
+
 
    @Override
    public Object getPartitionKey() {
@@ -133,6 +153,13 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
    this.tid = RelyGuaranteeAbstractElement.UNKOWN;
  }
 
+ public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a, CFAEdge edge) {
+   this.pathFormula = pf;
+   this.abstractionFormula = a;
+   this.tid = RelyGuaranteeAbstractElement.UNKOWN;
+   this.parentEdge = edge;
+ }
+
  public AbstractionFormula getAbstractionFormula() {
    return abstractionFormula;
  }
@@ -163,6 +190,10 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
  @Override
  public Formula getFormulaApproximation(FormulaManager manager) {
    return getAbstractionFormula().asFormula();
+ }
+
+ public CFAEdge getParentEdge() {
+   return this.parentEdge;
  }
 
 }

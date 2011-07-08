@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecisionAdjustment;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -66,7 +65,7 @@ public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustme
     if (pElement instanceof RelyGuaranteeAbstractElement.ComputeAbstractionElement) {
       RelyGuaranteeAbstractElement.ComputeAbstractionElement element = (RelyGuaranteeAbstractElement.ComputeAbstractionElement)pElement;
       //RelyGuaranteePrecision precision = (RelyGuaranteePrecision)pPrecision;
-      PredicatePrecision precision = (PredicatePrecision)pPrecision;
+      RelyGuaranteePrecision precision = (RelyGuaranteePrecision)pPrecision;
 
       pElement = computeAbstraction(element, precision);
     }
@@ -81,7 +80,7 @@ public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustme
    */
   private AbstractElement computeAbstraction(
       RelyGuaranteeAbstractElement.ComputeAbstractionElement element,
-      PredicatePrecision precision) {
+      RelyGuaranteePrecision precision) {
 
     AbstractionFormula abstractionFormula = element.getAbstractionFormula();
     PathFormula pathFormula = element.getPathFormula();
@@ -112,7 +111,7 @@ public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustme
     // create new empty path formula
     PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula);
 
-    return new RelyGuaranteeAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula);
+    return new RelyGuaranteeAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula, element.getParentEdge());
   }
 
   protected AbstractionFormula computeAbstraction(AbstractionFormula pAbstractionFormula, PathFormula pPathFormula, Collection<AbstractionPredicate> pPreds, CFANode node) {

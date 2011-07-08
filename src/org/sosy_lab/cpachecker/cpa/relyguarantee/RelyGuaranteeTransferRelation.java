@@ -151,11 +151,15 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
       if (doAbstraction) {
         return Collections.singleton(
             new RelyGuaranteeAbstractElement.ComputeAbstractionElement(
-                pathFormula, element.getAbstractionFormula(), loc));
+                pathFormula, element.getAbstractionFormula(), loc, edge));
+
       } else {
-        return handleNonAbstractionFormulaLocation(pathFormula, element.getAbstractionFormula());
+        return handleNonAbstractionFormulaLocation(pathFormula, element.getAbstractionFormula(), edge);
       }
+
+
     } finally {
+      //System.out.println();
       postTimer.stop();
     }
   }
@@ -164,8 +168,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
    * Does special things when we do not compute an abstraction for the
    * successor. This currently only envolves an optional sat check.
    */
-  private Set<RelyGuaranteeAbstractElement> handleNonAbstractionFormulaLocation(
-                PathFormula pathFormula, AbstractionFormula abstractionFormula) {
+  private Set<RelyGuaranteeAbstractElement> handleNonAbstractionFormulaLocation( PathFormula pathFormula, AbstractionFormula abstractionFormula, CFAEdge edge) {
     boolean satCheck = (satCheckBlockSize > 0) && (pathFormula.getLength() >= satCheckBlockSize);
 
     logger.log(Level.FINEST, "Handling non-abstraction location",
@@ -187,7 +190,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
 
     // create the new abstract element for non-abstraction location
     return Collections.singleton(
-        new RelyGuaranteeAbstractElement(pathFormula, abstractionFormula));
+        new RelyGuaranteeAbstractElement(pathFormula, abstractionFormula, edge));
   }
 
   /**
@@ -205,28 +208,19 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
     PathFormula pathFormula = element.getPathFormula();
     pathFormulaTimer.start();
     PathFormula newPathFormula = null;
+
     try {
       if(edge.getEdgeType() == CFAEdgeType.EnvironmentalEdge){
-
-        System.out.println("@ Env s. of '"+element.getAbstractionFormula()+"','"+element.getPathFormula()+
-        		"' with SSAMap '"+element.getPathFormula().getSsa()+"' by edge '"+edge.getRawStatement()+"'");
-
         RelyGuaranteeEnvEdge envEdge = (RelyGuaranteeEnvEdge) edge;
         newPathFormula = matchFormula(pathFormula,edge,  this.cpa.getThreadId());
-        System.out.println("is '"+newPathFormula.getFormula()+"' with SSA "+newPathFormula.getSsa());
-
       }
       else {
         //newPathFormula = pathFormulaManager.makeAnd(pathFormula, edge);
         newPathFormula = pathFormulaManager.makeAnd(pathFormula, edge, this.cpa.getThreadId());
-        System.out.println("@ Local s. of '"+element.getAbstractionFormula()+"','"+element.getPathFormula()+
-        		"' with SSAMap '"+element.getPathFormula().getSsa()+"' by edge '"+edge.getRawStatement()+"'");
-        System.out.println("is '"+newPathFormula.getFormula()+"' with SSA "+newPathFormula.getSsa());
       }
     } finally {
       pathFormulaTimer.stop();
     }
-    System.out.println();
     return newPathFormula;
   }
 

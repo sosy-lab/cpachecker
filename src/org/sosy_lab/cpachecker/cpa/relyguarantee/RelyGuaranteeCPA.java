@@ -208,10 +208,31 @@ public class RelyGuaranteeCPA extends PredicateCPA{
         predicates.add(p);
       }
     }
-    this.initialPrecision= new PredicatePrecision(predicates);
+
+
+    // hardcode predicates
+    //this.initialPrecision= new PredicatePrecision(predicates);
+    this.initialPrecision = hardcodedPredicates();
 
     this.stats = createStatistics();
 
+  }
+
+  private RelyGuaranteePrecision hardcodedPredicates() {
+    Collection<AbstractionPredicate> predicates=null;
+
+    Formula fVariable1 = this.formulaManager.makeVariable("g_0",2);
+    Formula fVariable2 = this.formulaManager.makeVariable("g_1",2);
+    Formula fNumeral = this.formulaManager.makeNumber(0);
+    Formula fPred1 = this.formulaManager.makeEqual(fVariable1, fNumeral);
+    Formula fPred2 = this.formulaManager.makeEqual(fVariable2, fNumeral);
+    Formula fPred3 = this.formulaManager.makeGt(fVariable2, fNumeral);
+    Formula fPredAnd1 = this.formulaManager.makeAnd(fPred1, fPred2);
+    Formula fPredAnd2 = this.formulaManager.makeAnd(fPredAnd1, fPred3);
+    predicates = this.predicateManager.getAtomsAsPredicates(fPredAnd2);
+
+
+    return new RelyGuaranteePrecision(predicates);
   }
 
   public void setGlobalVariables(Set<String> pGlobalVariables) {
@@ -226,7 +247,16 @@ public class RelyGuaranteeCPA extends PredicateCPA{
     return this.tid;
   }
 
+  // set the inital predicates as a formula
+  // TODO for debugging
+  public void setPredicates(Formula predicateFormula){
+    Collection<AbstractionPredicate> predicates = this.predicateManager.getAtomsAsPredicates(predicateFormula);
+    this.initialPrecision = new RelyGuaranteePrecision(predicates);
+  }
 
+  public PredicatePrecision getPredicates(){
+    return this.initialPrecision;
+  }
 
   @Override
   public AbstractElement getInitialElement(CFANode node) {

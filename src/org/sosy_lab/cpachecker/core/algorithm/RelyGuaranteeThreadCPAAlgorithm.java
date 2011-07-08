@@ -125,7 +125,9 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
   @Override
   public boolean run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
     stats.totalTimer.start();
-    System.out.println("! Running thread "+this.tid);
+    System.out.println();
+    System.out.println("## Running thread "+this.tid+" ##");
+    System.out.println();
     final TransferRelation transferRelation = cpa.getTransferRelation();
     final MergeOperator mergeOperator = cpa.getMergeOperator();
     final StopOperator stopOperator = cpa.getStopOperator();
@@ -148,6 +150,8 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
       stats.chooseTimer.start();
       final AbstractElement element =  reachedSet.popFromWaitlist();
       final Precision precision = reachedSet.getPrecision(element);
+      //fina Precision precision = this.cpa.
+
       stats.chooseTimer.stop();
 
       logger.log(Level.FINER, "Retrieved element from waitlist");
@@ -155,6 +159,10 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
           precision);
 
       stats.transferTimer.start();
+      // pretty printing of predecessors
+      RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(element, RelyGuaranteeAbstractElement.class);
+      System.out.println("@ Successor of '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+
+          "' with SSAMap '"+rgElement.getPathFormula().getSsa());
 
       Collection<? extends AbstractElement> successors =
           transferRelation.getAbstractSuccessors(element, precision, null);
@@ -188,6 +196,9 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
         successor = precAdjustmentResult.getFirst();
         Precision successorPrecision = precAdjustmentResult.getSecond();
         Action action = precAdjustmentResult.getThird();
+
+        printRelyGuaranteeAbstractElement(successor);
+
 
         if (action == Action.BREAK) {
           stats.countBreak++;
@@ -260,6 +271,20 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     return true;
   }
 
+ // pretty-printing of successors
+  private void printRelyGuaranteeAbstractElement(AbstractElement pSuccessor) {
+    //ARTElement aElement = (ARTElement) pSuccessor;
+    RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(pSuccessor, RelyGuaranteeAbstractElement.class);
+    if (rgElement.getParentEdge().getEdgeType() == CFAEdgeType.EnvironmentalEdge){
+      RelyGuaranteeEnvEdge rgEdge = (RelyGuaranteeEnvEdge) rgElement.getParentEdge();
+      System.out.println("- by env. edge '"+rgEdge.getAbstractionFormula()+"','"+rgEdge.getPathFormula()+"','"+rgEdge.getLocalEdge().getRawStatement()+"'");
+    } else {
+      System.out.println("- by local edge "+rgElement.getParentEdge().getRawStatement());
+    }
+    System.out.println("\t is '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+"' with SSA "+rgElement.getPathFormula().getSsa());
+    //System.out.println();
+
+  }
 
   // generate and environmental edge
   private Vector<RelyGuaranteeEnvEdge> createEnvTransitions(AbstractElement pElement) {
