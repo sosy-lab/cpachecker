@@ -56,10 +56,9 @@ public interface PathFormulaManager {
 
   PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM);
 
-  PathFormula shiftFormula(PathFormula formula, int offset);
+  //PathFormula shiftFormula(PathFormula formula, int offset);
 
 
-  PathFormula makeAnd(PathFormula pPathFormula, Formula foruma, int tid);
 
 
 

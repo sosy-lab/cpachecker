@@ -800,12 +800,14 @@ public class MathsatFormulaManager implements FormulaManager  {
     return res;
   }
 
-
+  // TODO added for RelyGuarantee
+  /*
   public Formula shiftFormula(Formula f, int offset){
-    return encapsulate(shift(getTerm(f), offset));
+
+    return null;
   }
 
-  private long shift(long lTerm, int offset) {
+  /private long shift(long lTerm, int offset) {
     if (msat_term_is_variable(lTerm) != 0) {
       Pair<String, Integer> lVariable = parseName(msat_term_repr(lTerm));
       long decl = msat_declare_variable(msatEnv, makeName(lVariable.getFirst(), lVariable.getSecond() + offset), msat_term_get_type(lTerm));
@@ -839,7 +841,7 @@ public class MathsatFormulaManager implements FormulaManager  {
 
       return newt;
     }
-  }
+  }*/
 
 
   public Formula addThreadId(Formula f, int tid){

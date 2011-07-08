@@ -84,6 +84,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     return new PathFormula(newFormula, newSsa, newLength);
   }
 
+  // TODO added for RelyGuarantee
   @Override
   public PathFormula makeAnd(PathFormula pPathFormula, Formula pOtherFormula) {
     SSAMap ssa = pPathFormula.getSsa();
@@ -209,6 +210,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     return result;
   }
 
+  /*
   @Override
   public PathFormula shiftFormula(PathFormula pathFormula, int offset) {
     Formula shiftedFormula = fmgr.shiftFormula(pathFormula.getFormula(), offset);
@@ -226,7 +228,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     PathFormula lShiftedFormula = new PathFormula(shiftedFormula, newmap, pathFormula.getLength());
 
     return lShiftedFormula;
-  }
+  }*/
 
   @Override
   public PathFormula makeAnd(PathFormula localPathFormula, PathFormula envPathFormula,  int myTid, int sourceTid) {
@@ -265,34 +267,8 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
         }
       }
     }
-    /*for (String lVariable : ssa1.allVariables()) {
-      if (ssa2.allVariables().contains(lVariable)) {
-     //   if (pFormula1.
-
-        // set variables equal
-        Formula lVar1 = fmgr.makeVariable(lVariable, ssa1.getIndex(lVariable));
-        Formula lVar2 = fmgr.makeVariable(lVariable, ssa2.getIndex(lVariable));
-        Formula e = fmgr.makeEqual(lVar1, lVar2);
-        mt = fmgr.makeAnd(mt, e);
-
-        // TODO what about nondet?
-        if (useNondetFlags && lVariable.equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
-          throw new RuntimeException();
-        }
-      }
-    }*/
-
-
     // TODO correct length
     return new PathFormula(fmgr.makeAnd(mergedFormula, mt), mergedWithEQSSA.build(), localPathFormula.getLength()+envPathFormula.getLength());
-  }
-
-
-
-  @Override
-  public PathFormula makeAnd(PathFormula pPathFormula, Formula pForuma, int pTid) {
-    // TODO Auto-generated method stub
-    return null;
   }
 
 

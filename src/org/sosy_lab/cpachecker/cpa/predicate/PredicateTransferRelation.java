@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonPred
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.ComputeAbstractionElement;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.fshell.fql2.translators.cfa.ToFlleShAssumeEdgeTranslator;
@@ -55,7 +54,6 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
@@ -228,7 +226,7 @@ public class PredicateTransferRelation implements TransferRelation {
 
   // Create a path formula from an env. edge and an abstract state
   private PathFormula matchFormula(PathFormula pathFormula, CFAEdge edge) throws CPATransferException {
-    RelyGuaranteeEnvEdge envEdge = (RelyGuaranteeEnvEdge) edge;
+    /*RelyGuaranteeEnvEdge envEdge = (RelyGuaranteeEnvEdge) edge;
 
     PathFormula lEnvironmentPathFormula = envEdge.getPathFormula();
     Formula lEnvironmentAbstractionFormula = envEdge.getAbstractionFormula().asFormula();
@@ -257,7 +255,8 @@ public class PredicateTransferRelation implements TransferRelation {
     System.out.println("# Final "+newPathFormula);
     System.out.println();
 
-    return newPathFormula;
+    return newPathFormula;*/
+    return null;
   }
 
   /**

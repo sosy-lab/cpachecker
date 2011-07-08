@@ -215,8 +215,6 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
   private PathFormula matchFormula(PathFormula pathFormula, CFAEdge edge,  int tid) throws CPATransferException {
     RelyGuaranteeEnvEdge envEdge = (RelyGuaranteeEnvEdge) edge;
 
-    //PathFormula lEnvironmentPathFormula = envEdge.getPathFormula();
-    //Formula lEnvironmentAbstractionFormula = envEdge.getAbstractionFormula().asFormula();
     PathFormula lEnvironmentFormula = pathFormulaManager.makeAnd(envEdge.getPathFormula(), envEdge.getAbstractionFormula().asFormula());
 
     PathFormula newPathFormula = pathFormulaManager.makeAnd(lEnvironmentFormula, envEdge.getLocalEdge(), envEdge.getSourceTid());

@@ -232,8 +232,8 @@ public interface FormulaManager {
     public Formula createPredicateVariable(Formula pAtom);
 
 
-    public Formula shiftFormula(Formula formula, int offset);
+    //public Formula shiftFormula(Formula formula, int offset);
 
-    // new
+    // TODO added for RelyGuarantee
     public Formula addThreadId(Formula f, int tid);
 }
