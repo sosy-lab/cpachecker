@@ -28,7 +28,6 @@ import java.util.Collection;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -42,13 +41,6 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustment {
 
   // statistics
-  final Timer totalPrecTime = new Timer();
-  final Timer computingAbstractionTime = new Timer();
-
-  int numAbstractions = 0;
-  int numAbstractionsFalse = 0;
-  int maxBlockSize = 0;
-  int maxPredsPerAbstraction = 0;
 
 
   public RelyGuaranteePrecisionAdjustment(RelyGuaranteeCPA pCpa) {

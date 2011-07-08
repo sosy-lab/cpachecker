@@ -88,10 +88,10 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
       description="where to dump the counterexample formula in case the error location is reached")
   private File dumpCexFile = new File("counterexample.msat");
 
-  final Timer totalRefinement = new Timer();
-  final Timer precisionUpdate = new Timer();
-  final Timer artUpdate = new Timer();
-  final Timer errorPathProcessing = new Timer();
+  public final Timer totalRefinement = new Timer();
+  public final Timer precisionUpdate = new Timer();
+  public final Timer artUpdate = new Timer();
+  public final Timer errorPathProcessing = new Timer();
 
   private final LogManager logger;
   private final PredicateRefinementManager<?,?> formulaManager;

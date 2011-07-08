@@ -67,7 +67,7 @@ import com.google.common.collect.ImmutableMap;
 public
 class PredicateAbstractionManager {
 
-  static class Stats {
+  public static class Stats {
     public int numCallsAbstraction = 0;
     public int numSymbolicAbstractions = 0;
     public int numSatCheckAbstractions = 0;
@@ -79,7 +79,7 @@ class PredicateAbstractionManager {
     public Timer extractTimer = new Timer();
   }
 
-  final Stats stats;
+  public final Stats stats;
 
   protected final LogManager logger;
   protected final FormulaManager fmgr;

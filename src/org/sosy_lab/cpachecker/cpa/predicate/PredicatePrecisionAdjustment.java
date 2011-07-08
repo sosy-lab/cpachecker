@@ -43,13 +43,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
   // statistics
-  final Timer totalPrecTime = new Timer();
-  final Timer computingAbstractionTime = new Timer();
+  public final Timer totalPrecTime = new Timer();
+  public final Timer computingAbstractionTime = new Timer();
 
-  int numAbstractions = 0;
-  int numAbstractionsFalse = 0;
-  int maxBlockSize = 0;
-  int maxPredsPerAbstraction = 0;
+  public int numAbstractions = 0;
+  public int numAbstractionsFalse = 0;
+  public int maxBlockSize = 0;
+  public int maxPredsPerAbstraction = 0;
 
   protected final LogManager logger;
   protected final PredicateAbstractionManager formulaManager;

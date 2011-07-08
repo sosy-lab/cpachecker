@@ -95,17 +95,17 @@ public class PredicateTransferRelation implements TransferRelation {
   private boolean targetStateSatCheck = true;
 
   // statistics
-  final Timer postTimer = new Timer();
-  final Timer satCheckTimer = new Timer();
-  final Timer pathFormulaTimer = new Timer();
-  final Timer strengthenTimer = new Timer();
-  final Timer strengthenCheckTimer = new Timer();
+  public final Timer postTimer = new Timer();
+  public final Timer satCheckTimer = new Timer();
+  public final Timer pathFormulaTimer = new Timer();
+  public final Timer strengthenTimer = new Timer();
+  public final Timer strengthenCheckTimer = new Timer();
 
-  int numBlkFunctions = 0;
-  int numBlkLoops = 0;
-  int numBlkThreshold = 0;
-  int numSatChecksFalse = 0;
-  int numStrengthenChecksFalse = 0;
+  public int numBlkFunctions = 0;
+  public int numBlkLoops = 0;
+  public int numBlkThreshold = 0;
+  public int numSatChecksFalse = 0;
+  public int numStrengthenChecksFalse = 0;
 
   private  LogManager logger;
   private  PredicateAbstractionManager formulaManager;

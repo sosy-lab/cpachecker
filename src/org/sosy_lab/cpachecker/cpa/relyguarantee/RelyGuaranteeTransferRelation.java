@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -93,7 +92,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
   private boolean targetStateSatCheck = true;
 
   // statistics
-  final Timer postTimer = new Timer();
+  /*final Timer postTimer = new Timer();
   final Timer satCheckTimer = new Timer();
   final Timer pathFormulaTimer = new Timer();
   final Timer strengthenTimer = new Timer();
@@ -103,7 +102,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
   int numBlkLoops = 0;
   int numBlkThreshold = 0;
   int numSatChecksFalse = 0;
-  int numStrengthenChecksFalse = 0;
+  int numStrengthenChecksFalse = 0;*/
 
   private final LogManager logger;
   private final PredicateAbstractionManager formulaManager;

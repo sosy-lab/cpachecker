@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -95,6 +96,8 @@ public class RelyGuaranteeCPA extends PredicateCPA{
     private static PathFormulaManager pfManager;
     private static MathsatFormulaManager    fManager;
     private static TheoremProver  tProver;
+
+    private RelyGuaranteeCPAStatistics stats;
 
     // a set of global variables
     private Set<String> globalVariabes;
@@ -214,7 +217,7 @@ public class RelyGuaranteeCPA extends PredicateCPA{
     //this.initialPrecision= new PredicatePrecision(predicates);
     this.initialPrecision = hardcodedPredicates();
 
-    this.stats = createStatistics();
+    this.stats = new RelyGuaranteeCPAStatistics(this);
 
   }
 
@@ -274,6 +277,15 @@ public class RelyGuaranteeCPA extends PredicateCPA{
   @Override
   public AbstractElement getInitialElement(CFANode node) {
     return topElement;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(this.stats);
+  }
+
+  RelyGuaranteeCPAStatistics getStats() {
+    return this.stats;
   }
 
 }

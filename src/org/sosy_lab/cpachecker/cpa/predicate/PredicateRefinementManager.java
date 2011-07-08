@@ -60,10 +60,10 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.Model;
+import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.util.predicates.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.Model.Variable;
-import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
@@ -84,13 +84,13 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 @Options(prefix="cpa.predicate.refinement")
 public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionManager {
 
-  static class Stats {
+  public static class Stats {
     public final Timer cexAnalysisTimer = new Timer();
     public final Timer cexAnalysisSolverTimer = new Timer();
     public final Timer cexAnalysisGetUsefulBlocksTimer = new Timer();
   }
 
-  final Stats refStats;
+  public final Stats refStats;
 
   private final InterpolatingTheoremProver<T1> firstItpProver;
   private final InterpolatingTheoremProver<T2> secondItpProver;

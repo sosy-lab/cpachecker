@@ -47,7 +47,7 @@ public class PredicateMergeOperator implements MergeOperator {
   protected final LogManager logger;
   protected final PathFormulaManager formulaManager;
 
-  final Timer totalMergeTime = new Timer();
+  public final Timer totalMergeTime = new Timer();
 
   public PredicateMergeOperator(PredicateCPA pCpa) {
     this.logger = pCpa.getLogger();
