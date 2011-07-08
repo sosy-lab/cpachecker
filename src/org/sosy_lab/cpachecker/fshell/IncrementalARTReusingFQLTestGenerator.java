@@ -799,110 +799,21 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       PredicatePrecision lWaitlistPrecision = null;
 
       if (lLastElement != null) {
-        /*CFANode lLocation = getLocation(lLastElement);
-
-        if (!lLocation.equals(mWrapper.getOmegaEdge().getPredecessor())) {*/
-          lWaitlistPrecision = getPredicatePrecision(pReachedSet.getPrecision(lLastElement), lPredicateCPAIndex);
-        //}
+        lWaitlistPrecision = getPredicatePrecision(pReachedSet.getPrecision(lLastElement), lPredicateCPAIndex);
       }
 
       if (mPrecision != null) {
         lWaitlistPrecision = mPrecision;
       }
 
-      // TODO: remove (just to test effect on ssh examples
-      //lWaitlistPrecision = null;
-
-      /*ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> lBuilder = new ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate>();
-      HashSet<AbstractionPredicate> lGlobalPredicates = new HashSet<AbstractionPredicate>();
-
-      for (Pair<AbstractElement, Precision> lPair : pReachedSet.getReachedWithPrecision()) {
-        PredicatePrecision lPredicatePrecision = getPredicatePrecision(lPair.getSecond(), lPredicateCPAIndex);
-
-        SetMultimap<CFANode, AbstractionPredicate> lPredicateMap = lPredicatePrecision.getPredicateMap();
-
-        for (CFANode lNode : lPredicateMap.keys()) {
-          lBuilder.putAll(lNode, lPredicateMap.get(lNode));
-        }
-
-        lGlobalPredicates.addAll(lPredicatePrecision.getGlobalPredicates());
-      }
-
-      lWaitlistPrecision = new PredicatePrecision(lBuilder.build(), lGlobalPredicates);
-      */
-
       modifyReachedSet(pReachedSet, pEntryNode, lARTCPA, lProductAutomatonIndex, pPreviousAutomaton, pAutomatonCPA.getAutomaton());
 
       if (pReachedSet.size() > 1) {
-        // create empty precision
-        //PredicatePrecision lEmptyPrecision = new PredicatePrecision(null);
-
-        /*for (Pair<AbstractElement, Precision> lPair : pReachedSet.getReachedWithPrecision()) {
-          CompositePrecision lCompositePrecision = (CompositePrecision)lPair.getSecond();
-          PredicatePrecision lPredicatePrecision = (PredicatePrecision)lCompositePrecision.get(lPredicateCPAIndex);
-
-          SetMultimap<CFANode, AbstractionPredicate> lPredicateMap = lPredicatePrecision.getPredicateMap();
-
-          ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> lBuilder = new ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate>();
-
-          for (CFANode lNode : lPredicateMap.keys()) {
-            Set<AbstractionPredicate> lPredicates = lPredicateMap.get(lNode);
-
-            if (lPredicates != null && lPredicates.size() < 10) {
-              lBuilder.putAll(lNode, lPredicates);
-            }
-          }
-
-          pReachedSet.updatePrecision(lPair.getFirst(), new PredicatePrecision(lBuilder.build(), lPredicatePrecision.getGlobalPredicates()));
-        }*/
-
-        /*for (AbstractElement lElement : pReachedSet) {
-          if (!pReachedSet.isInWaitlist(lElement)) {
-            pReachedSet.updatePrecision(lElement, lEmptyPrecision);
-          }
-        }*/
-
         if (lWaitlistPrecision != null) {
           for (AbstractElement lWaitlistElement : pReachedSet.getWaitlist()) {
             pReachedSet.updatePrecision(lWaitlistElement, lWaitlistPrecision);
           }
         }
-
-        /*if (lWaitlistPrecision != null) {
-          SetMultimap<CFANode, AbstractionPredicate> lWaitlistPredicateMap = lWaitlistPrecision.getPredicateMap();
-
-          for (AbstractElement lWaitlistElement : pReachedSet.getWaitlist()) {
-            PredicatePrecision lPredicatePrecision = getPredicatePrecision(pReachedSet.getPrecision(lWaitlistElement), lPredicateCPAIndex);
-
-            SetMultimap<CFANode, AbstractionPredicate> lPredicateMap = lPredicatePrecision.getPredicateMap();
-
-            // create an updated version
-            ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> lBuilder = new ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate>();
-
-            for (CFANode lNode : lPredicateMap.keys()) {
-              Set<AbstractionPredicate> lPredicates = lPredicateMap.get(lNode);
-
-              if (lPredicates != null) {
-                lBuilder.putAll(lNode, lPredicates);
-              }
-
-              lPredicates = lWaitlistPredicateMap.get(lNode);
-
-              if (lPredicates != null) {
-                lBuilder.putAll(lNode, lPredicates);
-              }
-            }
-
-            Set<AbstractionPredicate> lGlobalPredicates = new HashSet<AbstractionPredicate>();
-
-            lGlobalPredicates.addAll(lPredicatePrecision.getGlobalPredicates());
-            lGlobalPredicates.addAll(lWaitlistPrecision.getGlobalPredicates());
-
-            PredicatePrecision lUpdatedPredicatePrecision = new PredicatePrecision(lBuilder.build(), lGlobalPredicates);
-
-            pReachedSet.updatePrecision(lWaitlistElement, lUpdatedPredicatePrecision);
-          }
-        }*/
       }
     }
     else {
@@ -913,21 +824,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
       pReachedSet.add(lInitialElement, lInitialPrecision);
     }
-
-    // determine predicates in reached set
-    /*SetMultimap<CFANode, AbstractionPredicate> lPredicateMap = HashMultimap.create();
-
-    for (Pair<AbstractElement, Precision> lPair : pReachedSet.getReachedWithPrecision()) {
-      ARTElement lARTElement = (ARTElement)lPair.getFirst();
-      CompositePrecision lPrecision = (CompositePrecision)lPair.getSecond();
-
-      PredicatePrecision lPredicatePrecision = (PredicatePrecision)lPrecision.get(lPredicateCPAIndex);
-
-
-      CFANode lLocation = ((CompositeElement)lARTElement.getWrappedElement()).retrieveLocationElement().getLocationNode();
-
-      lPredicateMap.putAll(lLocation, lPredicatePrecision.getPredicates(lLocation));
-    }*/
 
     try {
       lAlgorithm.run(pReachedSet);
