@@ -97,6 +97,7 @@ public class MathsatFormulaManager implements FormulaManager  {
 
   // cache for uninstantiating terms (see uninstantiate() below)
   private final Map<Formula, Formula> uninstantiateCache = new HashMap<Formula, Formula>();
+  private final Map<Formula, Formula> addThreadIdCache  =  new HashMap<Formula, Formula>();
 
   private final Formula trueFormula;
   private final Formula falseFormula;
@@ -843,7 +844,7 @@ public class MathsatFormulaManager implements FormulaManager  {
     }
   }*/
 
-
+/*  old implementation
   public Formula addThreadId(Formula f, int tid){
     return encapsulate(addThreadId(getTerm(f), tid));
   }
@@ -885,6 +886,69 @@ public class MathsatFormulaManager implements FormulaManager  {
 
       return newt;
     }
+  }*/
+
+  public Formula addThreadId(Formula f, int tid){
+    Map<Formula, Formula> cache = this.addThreadIdCache;
+    Deque<Formula> toProcess = new ArrayDeque<Formula>();
+
+    toProcess.push(f);
+    while (!toProcess.isEmpty()) {
+      final Formula tt = toProcess.peek();
+      if (cache.containsKey(tt)) {
+        toProcess.pop();
+        continue;
+      }
+      final long t = getTerm(tt);
+
+      if (msat_term_is_variable(t) != 0) {
+        Pair<String, Integer> lVariable = parseName(msat_term_repr(t));
+        String newName = addThreadIdToVar(lVariable.getFirst(),tid);
+        //long newt = msat_declare_variable(msatEnv, makeName(newName, lVariable.getSecond()), msat_term_get_type(t));
+        // maybe?
+        long newt = buildMsatVariable(newName, msat_term_get_type(t));
+        cache.put(tt, encapsulate(newt));
+
+      } else {
+        boolean childrenDone = true;
+        long[] newargs = new long[msat_term_arity(t)];
+        for (int i = 0; i < newargs.length; ++i) {
+          Formula c = encapsulate(msat_term_get_arg(t, i));
+          Formula newC = cache.get(c);
+          if (newC != null) {
+            newargs[i] = getTerm(newC);
+          } else {
+            toProcess.push(c);
+            childrenDone = false;
+          }
+        }
+
+        if (childrenDone) {
+          toProcess.pop();
+          long newt;
+          if (msat_term_is_uif(t) != 0) {
+            String name = msat_decl_get_name(msat_term_get_decl(t));
+            assert name != null;
+
+            if (ufCanBeLvalue(name)) {
+              name = parseName(name).getFirst();
+
+              newt = buildMsatUF(name, newargs);
+            } else {
+              newt = msat_replace_args(msatEnv, t, newargs);
+            }
+          } else {
+            newt = msat_replace_args(msatEnv, t, newargs);
+          }
+
+          cache.put(tt, encapsulate(newt));
+        }
+      }
+    }
+
+    Formula result = cache.get(f);
+    assert result != null;
+    return result;
   }
 
   // add an id to a variable, unless it already has one

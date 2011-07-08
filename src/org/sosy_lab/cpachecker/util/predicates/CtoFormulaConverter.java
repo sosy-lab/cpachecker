@@ -412,6 +412,7 @@ public class CtoFormulaConverter {
     return new PathFormula(newFormula, newSsa, newLength);
   }
 
+  // TODO changed for RelyGuarantee
   public PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge, int tid) throws CPATransferException {
       // this is where the "meat" is... We have to parse the statement
       // attached to the edge, and convert it to the appropriate formula
@@ -519,10 +520,7 @@ public class CtoFormulaConverter {
           adjustedSSA.setIndex(var, index);
         }
       }
-      Formula adjustedFormula = fmgr.addThreadId(edgeFormula, tid);
 
-
-      // ///
 
       switch (edge.getEdgeType()) {
       case StatementEdge: {
@@ -606,7 +604,6 @@ public class CtoFormulaConverter {
         // i.e. no writes to SSAMap, no branching and length should stay the same
         return oldFormula;
       }
-
 
       Formula renamedFormula = fmgr.addThreadId(edgeFormula, tid);
       Formula newFormula = fmgr.makeAnd(oldFormula.getFormula(), renamedFormula);

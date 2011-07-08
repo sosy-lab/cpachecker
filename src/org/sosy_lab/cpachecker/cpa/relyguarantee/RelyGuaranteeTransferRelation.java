@@ -214,10 +214,11 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
   // Create a path formula from an env. edge and an abstract state
   private PathFormula matchFormula(PathFormula pathFormula, CFAEdge edge,  int tid) throws CPATransferException {
     RelyGuaranteeEnvEdge envEdge = (RelyGuaranteeEnvEdge) edge;
-
+    //  lEnvironmentFormula = psi1 ^ phi1
     PathFormula lEnvironmentFormula = pathFormulaManager.makeAnd(envEdge.getPathFormula(), envEdge.getAbstractionFormula().asFormula());
-
+    // newPathFormula = Post_op( psi1 ^ phi1)
     PathFormula newPathFormula = pathFormulaManager.makeAnd(lEnvironmentFormula, envEdge.getLocalEdge(), envEdge.getSourceTid());
+    // mergePathFormua = Post_op(psi1 ^ phi1) ^ phi2 ^ equalities over phi2 and (psi1 ^ phi1)
     PathFormula mergedPathFormula = pathFormulaManager.makeAnd(pathFormula, newPathFormula, tid, envEdge.getSourceTid());
     return mergedPathFormula;
 
