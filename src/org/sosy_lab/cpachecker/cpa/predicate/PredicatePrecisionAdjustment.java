@@ -113,8 +113,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     Collection<AbstractionPredicate> preds = precision.getPredicates(loc);
 
-    //if (preds.size() > 10) {
-    //if (loc.getNodeNumber() == 126 && preds.size() == 79) {
+    if (preds.size() > 0) {
       HashSet<String> lVariables = new HashSet<String>();
       lVariables.addAll(mMathsatFormulaManager.getVariables(abstractionFormula.asFormula()));
       lVariables.addAll(mMathsatFormulaManager.getVariables(pathFormula.getFormula()));
@@ -141,7 +140,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       if (preds.size() != lRemainingPredicates.size()) {
         preds = lRemainingPredicates;
       }
-    //}
+    }
 
     maxBlockSize = Math.max(maxBlockSize, pathFormula.getLength());
     maxPredsPerAbstraction = Math.max(maxPredsPerAbstraction, preds.size());
