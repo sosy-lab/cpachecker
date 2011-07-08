@@ -146,7 +146,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
 
       // check whether to do abstraction
       boolean doAbstraction = isBlockEnd(loc, pathFormula);
-      doAbstraction = true;
+      //doAbstraction = true;
 
       if (doAbstraction) {
         return Collections.singleton(
@@ -236,23 +236,8 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
     PathFormula newPathFormula = pathFormulaManager.makeAnd(lEnvironmentFormula, envEdge.getLocalEdge(), envEdge.getSourceTid());
     PathFormula mergedPathFormula = pathFormulaManager.makeAnd(pathFormula, newPathFormula, tid, envEdge.getSourceTid());
     return mergedPathFormula;
-   /* System.out.println("# Abstraction I "+lEnvironmentAbstractionFormula);
-    System.out.println("# Path I "+lEnvironmentPathFormula);
-    System.out.println("# Env "+lEnvironmentFormula);
-    // merge the formulas
-    System.out.println("# Path II "+pathFormula);*/
-    //PathFormula mergedPathFormula = pathFormulaManager.makeAnd(pathFormula, lEnvironmentFormula);
-  //  System.out.println("# Merged "+mergedPathFormula);
-    // apply the strongest post operator
-   // PathFormula newPathFormula = pathFormulaManager.makeAnd(mergedPathFormula, envEdge.getLocalEdge(), envEdge.getSourceTid());
-   // System.out.println("# Op "+envEdge.getLocalEdge().getRawStatement());
-   // System.out.println("# Final "+newPathFormula);
-  //  System.out.println();
 
-    /* worked before
-    PathFormula mergedPathFormula = pathFormulaManager.makeAnd(pathFormula, lEnvironmentFormula);
-      PathFormula newPathFormula = pathFormulaManager.makeAnd(mergedPathFormula, envEdge.getLocalEdge(), envEdge.getSourceTid());
-    return newPathFormula;*/
+
   }
 
   /**

@@ -219,21 +219,34 @@ public class RelyGuaranteeCPA extends PredicateCPA{
   }
 
   private RelyGuaranteePrecision hardcodedPredicates() {
+    Formula fVariable=null;
     Collection<AbstractionPredicate> predicates=null;
+    if (this.tid == 0){
+      fVariable = this.formulaManager.makeVariable("g_0",2);
+    }
+    else if (this.tid == 1){
+      fVariable = this.formulaManager.makeVariable("g_1",2);
+    }
+    Formula fNumeral0 = this.formulaManager.makeNumber(0);
+    Formula fNumeral1 = this.formulaManager.makeNumber(1);
+    Formula fNumeral2 = this.formulaManager.makeNumber(2);
+    Formula fNumeral3 = this.formulaManager.makeNumber(3);
 
-    Formula fVariable1 = this.formulaManager.makeVariable("g_0",2);
-    Formula fVariable2 = this.formulaManager.makeVariable("g_1",2);
-    Formula fNumeral = this.formulaManager.makeNumber(0);
-    Formula fPred1 = this.formulaManager.makeEqual(fVariable1, fNumeral);
-    Formula fPred2 = this.formulaManager.makeEqual(fVariable2, fNumeral);
-    Formula fPred3 = this.formulaManager.makeGt(fVariable2, fNumeral);
-    Formula fPredAnd1 = this.formulaManager.makeAnd(fPred1, fPred2);
-    Formula fPredAnd2 = this.formulaManager.makeAnd(fPredAnd1, fPred3);
-    predicates = this.predicateManager.getAtomsAsPredicates(fPredAnd2);
 
+    Formula fPred0 = this.formulaManager.makeEqual(fVariable, fNumeral0);
+    Formula fPred1 = this.formulaManager.makeEqual(fVariable, fNumeral1);
+    Formula fPred2 = this.formulaManager.makeEqual(fVariable, fNumeral2);
+    Formula fPred3 = this.formulaManager.makeGeq(fVariable, fNumeral3);
+
+    Formula fPredAnd1 = this.formulaManager.makeAnd(fPred0, fPred1);
+    Formula fPredAnd2 = this.formulaManager.makeAnd(fPredAnd1, fPred2);
+    Formula fPredAnd3 = this.formulaManager.makeAnd(fPredAnd2, fPred3);
+    predicates = this.predicateManager.getAtomsAsPredicates(fPredAnd1);
 
     return new RelyGuaranteePrecision(predicates);
   }
+
+
 
   public void setGlobalVariables(Set<String> pGlobalVariables) {
     this.globalVariabes = pGlobalVariables;

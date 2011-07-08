@@ -161,8 +161,9 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
       stats.transferTimer.start();
       // pretty printing of predecessors
       RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(element, RelyGuaranteeAbstractElement.class);
+      System.out.println();
       System.out.println("@ Successor of '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+
-          "' with SSAMap '"+rgElement.getPathFormula().getSsa());
+          "' with SSAMap "+rgElement.getPathFormula().getSsa());
 
       Collection<? extends AbstractElement> successors =
           transferRelation.getAbstractSuccessors(element, precision, null);
@@ -275,7 +276,10 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
   private void printRelyGuaranteeAbstractElement(AbstractElement pSuccessor) {
     //ARTElement aElement = (ARTElement) pSuccessor;
     RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(pSuccessor, RelyGuaranteeAbstractElement.class);
-    if (rgElement.getParentEdge().getEdgeType() == CFAEdgeType.EnvironmentalEdge){
+    if (rgElement.getParentEdge() == null){
+      System.out.println("- by local edge UNKNOWN");
+    }
+    else if (rgElement.getParentEdge().getEdgeType() == CFAEdgeType.EnvironmentalEdge){
       RelyGuaranteeEnvEdge rgEdge = (RelyGuaranteeEnvEdge) rgElement.getParentEdge();
       System.out.println("- by env. edge '"+rgEdge.getAbstractionFormula()+"','"+rgEdge.getPathFormula()+"','"+rgEdge.getLocalEdge().getRawStatement()+"'");
     } else {
