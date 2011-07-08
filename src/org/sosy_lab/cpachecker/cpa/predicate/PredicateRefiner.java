@@ -101,8 +101,6 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
   private Path targetPath;
   protected List<CFANode> lastErrorPath = null;
 
-  //public ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> mBuilder = new ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate>();
-  //public HashSet<AbstractionPredicate> mGlobalPredicates = new HashSet<AbstractionPredicate>();
   private final ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> mBuilder;
   private final Collection<AbstractionPredicate> mGlobalPredicates;
 
