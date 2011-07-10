@@ -877,4 +877,44 @@ public class MathsatFormulaManager implements FormulaManager  {
 
     return lVariables;
   }
+
+  public Collection<String> getConstants(Formula pFormula) {
+    long lTerm = getTerm(pFormula);
+    Collection<String> lConstants = new HashSet<String>();
+
+    LinkedList<Long> lWorklist = new LinkedList<Long>();
+    lWorklist.add(lTerm);
+
+    while (!lWorklist.isEmpty()) {
+      long lCurrentTerm = lWorklist.removeFirst();
+
+      if (msat_term_is_number(lCurrentTerm) != 0) {
+        lConstants.add(msat_term_repr(lCurrentTerm));
+      }
+      else {
+        int lArity = msat_term_arity(lCurrentTerm);
+        for (int i = 0; i < lArity; i++) {
+          lWorklist.add(msat_term_get_arg(lCurrentTerm, i));
+        }
+      }
+    }
+
+    return lConstants;
+  }
+
+  public boolean isComparisonAgainstConstant(Formula pFormula) {
+    long lTerm = getTerm(pFormula);
+
+    if (msat_term_is_equal(lTerm) != 0) {
+      long lArgument1 = msat_term_get_arg(lTerm, 0);
+      long lArgument2 = msat_term_get_arg(lTerm, 1);
+
+      if ((msat_term_is_variable(lArgument1) != 0 && msat_term_is_number(lArgument2) != 0)
+          || (msat_term_is_variable(lArgument2) != 0 && msat_term_is_number(lArgument1) != 0)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
 }

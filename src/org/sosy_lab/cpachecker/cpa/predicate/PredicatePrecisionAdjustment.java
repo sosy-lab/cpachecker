@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.ComputeAbs
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 
@@ -97,6 +98,8 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
         pElement, pPrecision, Action.CONTINUE);
   }
 
+  long mMaxDuration = -1;
+
   /**
    * Compute an abstraction.
    */
@@ -118,6 +121,24 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       lVariables.addAll(mMathsatFormulaManager.getVariables(abstractionFormula.asFormula()));
       lVariables.addAll(mMathsatFormulaManager.getVariables(pathFormula.getFormula()));
 
+      // TODO remove
+      HashSet<String> lConstants = new HashSet<String>();
+      lConstants.addAll(mMathsatFormulaManager.getConstants(abstractionFormula.asFormula()));
+      lConstants.addAll(mMathsatFormulaManager.getConstants(pathFormula.getFormula()));
+
+      /*System.out.println(">>");
+      System.out.println(lConstants);
+      System.out.println("-");
+
+      lConstants.clear();
+
+      for (AbstractionPredicate lPredicate : preds) {
+        lConstants.addAll(mMathsatFormulaManager.getConstants(lPredicate.getSymbolicAtom()));
+      }
+
+      System.out.println(lConstants);
+      System.out.println("<<");*/
+
       Collection<AbstractionPredicate> lRemainingPredicates = new HashSet<AbstractionPredicate>();
 
       for (AbstractionPredicate lPredicate : preds) {
@@ -132,8 +153,36 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
           }
         }
 
+        // TODO 
+        if (mMathsatFormulaManager.isComparisonAgainstConstant(lPredicate.getSymbolicAtom())) {
+          boolean lTrue = true;
+          for (String lVariable : lPredicateVariables) {
+            if (!lVariable.equals("ssl3_accept::s__state")) {
+              lTrue = false;
+            }
+          }
+
+          if (lTrue) {
+            Collection<String> lPredConstants = mMathsatFormulaManager.getConstants(lPredicate.getSymbolicAtom());
+            lPredConstants.retainAll(lConstants);
+            if (lPredConstants.isEmpty()) {
+              lFound = false;
+              //throw new RuntimeException(lPredicate.toString());
+            }
+          }
+	}
+
+        // TODO think about it
+        /*if (lFound && !lVariables.containsAll(lPredicateVariables)) {
+          System.out.println(">>>>" + lPredicate.toString());
+          lFound = false;
+        }*/
+
         if (lFound || lPredicateVariables.isEmpty()) {
           lRemainingPredicates.add(lPredicate);
+          /*if (mMathsatFormulaManager.isComparisonAgainstConstant(lPredicate.getSymbolicAtom())) {
+            System.out.println(lPredicate);
+          }*/
         }
       }
 
@@ -145,6 +194,8 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     maxBlockSize = Math.max(maxBlockSize, pathFormula.getLength());
     maxPredsPerAbstraction = Math.max(maxPredsPerAbstraction, preds.size());
 
+    //long start = System.currentTimeMillis();
+
     computingAbstractionTime.start();
 
     // compute new abstraction
@@ -152,6 +203,33 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
         abstractionFormula, pathFormula, preds, loc);
 
     computingAbstractionTime.stop();
+
+    /*long stop = System.currentTimeMillis();
+
+    long duration = stop - start;
+
+    if (duration > mMaxDuration) {
+      mMaxDuration = duration;
+      //System.out.println("PREDICATES:");
+      //System.out.println(preds);
+      //System.out.println(newAbstractionFormula);
+      System.out.println("#preds: " + preds.size() + ", " + (newAbstractionFormula.isFalse()?"infeasible":"feasible"));
+
+      int lComparisons = 0;
+
+      for (AbstractionPredicate lPredicate : preds) {
+        if (mMathsatFormulaManager.isComparisonAgainstConstant(lPredicate.getSymbolicAtom())) {
+          lComparisons++;
+        }
+      }
+
+      System.out.println("#comparisons: " + lComparisons);
+
+      Collection<Formula> lAtoms = mMathsatFormulaManager.extractAtoms(newAbstractionFormula.asFormula(), false, false);
+
+      //System.out.println(lAtoms);
+      System.out.println("Remaining predicates in abstraction: " + lAtoms.size());
+    }*/
 
     // if the abstraction is false, return bottom (represented by empty set)
     if (newAbstractionFormula.isFalse()) {

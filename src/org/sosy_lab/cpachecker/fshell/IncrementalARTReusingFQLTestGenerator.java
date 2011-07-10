@@ -800,6 +800,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
       if (mPrecision != null) {
         for (AbstractElement lWaitlistElement : pReachedSet.getWaitlist()) {
+        //for (AbstractElement lWaitlistElement : pReachedSet) {
           pReachedSet.updatePrecision(lWaitlistElement, mPrecision);
         }
       }
