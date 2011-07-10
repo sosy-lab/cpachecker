@@ -106,6 +106,10 @@ import com.google.common.collect.ImmutableSet;
 @Options(prefix="cpa.predicate")
 public class CtoFormulaConverter {
 
+  @Option(name="globalVariables", toUppercase=true,
+      description="global variables")
+  protected String[] globalVariables = {};
+
   @Option(description="add special information to formulas about non-deterministic functions")
   protected boolean useNondetFlags = false;
 

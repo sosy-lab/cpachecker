@@ -38,11 +38,13 @@ import org.sosy_lab.cpachecker.cfa.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvEdge;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
 
@@ -99,11 +101,24 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     try{
       do {
         threadCPA[0].run(pReached[0]);
-        System.out.println();
+        filterEnvTransitions(0);
         printEnvTransitions(0);
         addEnvTransitionsToCFA(1);
         this.dumpDot(1, "test/output/newCFA"+1+".dot");
+
         threadCPA[1].run(pReached[1]);
+        filterEnvTransitions(1);
+        printEnvTransitions(1);
+        addEnvTransitionsToCFA(0);
+        this.dumpDot(1, "test/output/newCFA"+0+".dot");
+        for (AbstractElement element : pReached[1].getReached()){
+          pReached[1].reAddToWaitlist(element);
+        }
+        threadCPA[1].run(pReached[1]);
+
+        /*threadCPA[0].run(pReached[0]);
+        filterEnvTransitions(0);
+        printEnvTransitions(0);*/
 
       }
       while (!finish);
@@ -113,6 +128,22 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
 
     return true;
   }
+
+
+  // removes unnecessary env transitions
+  private void filterEnvTransitions( int i ) {
+
+    Vector<RelyGuaranteeEnvEdge> toDelete = new Vector<RelyGuaranteeEnvEdge>();
+    for (RelyGuaranteeEnvEdge env : this.envTransitionsFromThread[i]){
+      Formula af = env.getAbstractionFormula().asFormula();
+      if (af.isFalse()){
+        toDelete.add(env);
+      }
+    }
+
+    this.envTransitionsFromThread[i].removeAll(toDelete);
+  }
+
 
   private void dumpDot(int pI, String file) {
     FileWriter fstream;
@@ -149,7 +180,6 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     pEnvTransition.setSuccessor(pNode);
     pNode.addLeavingEdge(pEnvTransition);
     pNode.addEnteringEdge(pEnvTransition);
-    //System.out.println("# Added node "+pEnvTransition+"\n to the node \n"+pNode);
   }
 
 

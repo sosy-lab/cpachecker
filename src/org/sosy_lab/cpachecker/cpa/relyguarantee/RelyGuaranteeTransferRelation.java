@@ -133,6 +133,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
 
       // check whether to do abstraction
       boolean doAbstraction = isBlockEnd(loc, pathFormula);
+      doAbstraction =true;
       //doAbstraction = true;
 
       if (doAbstraction) {

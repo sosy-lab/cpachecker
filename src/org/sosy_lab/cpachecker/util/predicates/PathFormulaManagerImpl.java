@@ -44,9 +44,19 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
  */
 public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathFormulaManager {
 
+  private Set<String> globalVariablesSet;
+
   public PathFormulaManagerImpl(FormulaManager pFmgr, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     super(config, pFmgr, pLogger);
+    globalVariablesSet = new HashSet<String>();
+    for (String var: this.globalVariables){
+      this.globalVariablesSet.add(var);
+    }
+
+
   }
+
+
 
   @Override
   public PathFormula makeEmptyPathFormula() {
@@ -233,8 +243,6 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
   @Override
   public PathFormula makeAnd(PathFormula localPathFormula, PathFormula envPathFormula,  int myTid, int sourceTid) {
     // hardcoded
-    Set<String> globalVars = new HashSet<String>();
-    globalVars.add("g");
 
     SSAMap ssa1 = localPathFormula.getSsa();
     SSAMap ssa2 = envPathFormula.getSsa();
@@ -250,7 +258,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     for (String lVariable : ssa2.allVariables()){
       // check if global
       String pureVariable = lVariable.replace("_"+sourceTid, "");
-      if (globalVars.contains(pureVariable)){
+      if (this.globalVariablesSet.contains(pureVariable)){
         int localIndex = ssa1.getIndex(pureVariable+"_"+myTid);
         if (localIndex == -1){
           localIndex = 1;
