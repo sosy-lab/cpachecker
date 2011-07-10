@@ -49,8 +49,8 @@ public class RelyGuaranteeAbstractDomain extends PredicateAbstractDomain {
       RelyGuaranteeAbstractElement e1 = (RelyGuaranteeAbstractElement)element1;
       RelyGuaranteeAbstractElement e2 = (RelyGuaranteeAbstractElement)element2;
 
-    // TODO time statistics (previously in formula manager)
-    /*
+      // TODO time statistics (previously in formula manager)
+      /*
   long start = System.currentTimeMillis();
   entails(f1, f2);
   long end = System.currentTimeMillis();
@@ -58,37 +58,37 @@ public class RelyGuaranteeAbstractDomain extends PredicateAbstractDomain {
       (end - start));
   stats.bddCoverageCheckTime += (end - start);
   ++stats.numCoverageChecks;
-     */
+       */
 
-    if (e1 instanceof RelyGuaranteeAbstractElement.AbstractionElement && e2 instanceof RelyGuaranteeAbstractElement.AbstractionElement) {
-      bddCoverageCheckTimer.start();
+      if (e1 instanceof RelyGuaranteeAbstractElement.AbstractionElement && e2 instanceof RelyGuaranteeAbstractElement.AbstractionElement) {
+        bddCoverageCheckTimer.start();
 
-      // if e1's predicate abstraction entails e2's pred. abst.
-      boolean result = mRegionManager.entails(e1.getAbstractionFormula().asRegion(), e2.getAbstractionFormula().asRegion());
+        // if e1's predicate abstraction entails e2's pred. abst.
+        boolean result = mRegionManager.entails(e1.getAbstractionFormula().asRegion(), e2.getAbstractionFormula().asRegion());
 
-      bddCoverageCheckTimer.stop();
-      return result;
-
-    } else if (e2 instanceof RelyGuaranteeAbstractElement.AbstractionElement) {
-      if (symbolicCoverageCheck) {
-        symbolicCoverageCheckTimer.start();
-
-        boolean result = mgr.checkCoverage(e1.getAbstractionFormula(), e1.getPathFormula(), e2.getAbstractionFormula());
-
-        symbolicCoverageCheckTimer.stop();
+        bddCoverageCheckTimer.stop();
         return result;
 
-      } else {
+      } else if (e2 instanceof RelyGuaranteeAbstractElement.AbstractionElement) {
+        if (symbolicCoverageCheck) {
+          symbolicCoverageCheckTimer.start();
+
+          boolean result = mgr.checkCoverage(e1.getAbstractionFormula(), e1.getPathFormula(), e2.getAbstractionFormula());
+
+          symbolicCoverageCheckTimer.stop();
+          return result;
+
+        } else {
+          return false;
+        }
+
+      } else if (e1 instanceof RelyGuaranteeAbstractElement.AbstractionElement) {
         return false;
+
+      } else {
+        // only the fast check which returns true if a merge occurred for this element
+        return e1.getMergedInto() == e2;
       }
-
-    } else if (e1 instanceof RelyGuaranteeAbstractElement.AbstractionElement) {
-      return false;
-
-    } else {
-      // only the fast check which returns true if a merge occurred for this element
-      return e1.getMergedInto() == e2;
-    }
 
     } finally {
       coverageCheckTimer.stop();

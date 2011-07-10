@@ -127,7 +127,6 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     stats.totalTimer.start();
     System.out.println();
     System.out.println("## Running thread "+this.tid+" ##");
-    System.out.println();
     final TransferRelation transferRelation = cpa.getTransferRelation();
     final MergeOperator mergeOperator = cpa.getMergeOperator();
     final StopOperator stopOperator = cpa.getStopOperator();

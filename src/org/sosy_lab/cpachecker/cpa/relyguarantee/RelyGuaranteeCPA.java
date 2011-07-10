@@ -99,6 +99,7 @@ public class RelyGuaranteeCPA extends PredicateCPA{
     private RelyGuaranteeCPAStatistics stats;
 
 
+
     private int tid;
 
     private static  MathsatFormulaManager getFormulaManager(Configuration config, LogManager logger) throws InvalidConfigurationException{
