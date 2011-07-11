@@ -246,8 +246,18 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
     SSAMap ssa1 = localPathFormula.getSsa();
     SSAMap ssa2 = envPathFormula.getSsa();
-    SSAMap mergedSSA = SSAMap.merge(ssa1, ssa2);
-    SSAMapBuilder mergedWithEQSSA = mergedSSA.builder();
+
+
+    SSAMapBuilder mergedWithEQSSA = ssa1.builder();
+    // copy local ssa's from envPathFormula
+    for (String var : ssa2.allVariables()){
+      if (!var.contains("_"+myTid)){
+        mergedWithEQSSA.setIndex(var, ssa2.getIndex(var));
+      }
+    }
+
+    /*SSAMap mergedSSA = SSAMap.merge(ssa1, ssa2);
+    SSAMapBuilder mergedWithEQSSA = mergedSSA.builder();*/
     Formula f1 = localPathFormula.getFormula();
     Formula f2 = envPathFormula.getFormula();
     Formula mergedFormula = fmgr.makeAnd(f1, f2);
