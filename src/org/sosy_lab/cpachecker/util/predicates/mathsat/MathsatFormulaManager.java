@@ -904,7 +904,7 @@ public class MathsatFormulaManager implements FormulaManager  {
       if (msat_term_is_variable(t) != 0) {
         Pair<String, Integer> lVariable = parseName(msat_term_repr(t));
         String newName = addThreadIdToVar(lVariable.getFirst(),tid);
-        long newt = buildMsatVariable(newName, msat_term_get_type(t));
+        long newt = buildMsatVariable(makeName(newName, lVariable.getSecond()), msat_term_get_type(t));
         cache.put(tt, encapsulate(newt));
 
       } else {

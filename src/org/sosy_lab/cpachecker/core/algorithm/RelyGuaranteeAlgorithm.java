@@ -44,9 +44,13 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvEdge;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
+
+import com.google.common.collect.Iterables;
 
 public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
 
@@ -104,30 +108,63 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
 
   }
 
-  public boolean run(ReachedSet[] reached) {
-    boolean finish = true;
-
+  public Result run(ReachedSet[] reached, boolean stopAfterError) {
+    boolean error = false;
+    int i = 0;
+    int error_i = -1;
     try{
       // fixed point computation
-      int i = 0;
+
       do {
         setWaitlist(reached[i]);
         addEnvTransitionsToCFA(i);
-        threadCPA[i].run(reached[i]);
+        error = runThread(i, reached[i], stopAfterError);
         printEnvTransitions();
         filterEnvTransitions(i);
         printEnvTransitions();
         distributeEnvTransitions(i);
         i = pickThread();
-      } while(i != -1);
-
+      } while(i != -1 && !error);
     } catch(Exception e){
       e.printStackTrace();
     }
 
-    return true;
+    // result analysis
+    i=0;
+    do {
+      if (Iterables.any(reached[i], AbstractElements.IS_TARGET_ELEMENT)) {
+        return Result.UNSAFE;
+      }
+      /*
+      if (reached[i].hasWaitingElement()) {
+        logger.log(Level.WARNING, "Analysis not completed: there are still elements to be processed.");
+        return Result.UNKNOWN;
+      }
+      if (!sound) {
+      logger.log(Level.WARNING, "Analysis incomplete: no errors found, but not everything could be checked.");
+      return Result.UNKNOWN;*/
+
+      i++;
+    } while (i<this.threadNo );
+    return Result.SAFE;
   }
 
+
+  // runs a thread
+  private boolean runThread(int i, ReachedSet reached, boolean stopAfterError) throws CPAException, InterruptedException {
+    boolean sound = true;
+    do {
+      sound &=  threadCPA[i].run(reached);
+
+      // either run only once (if stopAfterError == true)
+      // or until the waitlist is empty
+    } while (!stopAfterError && reached.hasWaitingElement());
+
+    if (reached.hasWaitingElement()) {
+      return true;
+    }
+    return false;
+  }
 
 
   // remove redundant env transitions
@@ -273,10 +310,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
   }
 
 
-  public Result getResult() {
-    // TODO Auto-generated method stub
-    return Result.SAFE;
-  }
+
 
 
 
@@ -284,6 +318,13 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
   public ConfigurableProgramAnalysis[] getCPAs() {
     // TODO Auto-generated method stub
     return this.cpas;
+  }
+
+
+  @Override
+  public Result getResult() {
+    // TODO Auto-generated method stub
+    return null;
   }
 
 }

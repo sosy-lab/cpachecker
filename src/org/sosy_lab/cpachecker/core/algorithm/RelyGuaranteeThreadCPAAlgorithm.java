@@ -303,7 +303,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     CFAEdge edge;
     for (int i=0; i<node.getNumLeavingEdges(); i++){
       edge = node.getLeavingEdge(i);
-      if (edge.getEdgeType() == CFAEdgeType.StatementEdge && !(edge.getRawAST() instanceof IASTFunctionCallStatement)) {
+      if (this.createsEnvTransition(edge)) {
         RelyGuaranteeEnvEdge newEnvTransition = new RelyGuaranteeEnvEdge(edge, predElement.getAbstractionFormula(), predElement.getPathFormula(), this.tid);
         logger.log(Level.ALL, "Created",newEnvTransition);
         envTransitions.add(newEnvTransition);
@@ -311,6 +311,20 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     }
 
     return envTransitions;
+  }
+
+  // returns true if an enviornmental transition is created from the edge
+  private boolean createsEnvTransition(CFAEdge edge){
+    if (edge.getRawAST() instanceof IASTFunctionCallStatement) {
+      return false;
+    }
+    if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
+      return true;
+    }
+    if (edge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+      return false;
+    }
+    return false;
   }
 
   @Override

@@ -203,6 +203,7 @@ public class CPAchecker {
         WrapperCPA wCPA = (WrapperCPA) cpa;
         RelyGuaranteeCPA rgCPA = wCPA.retrieveWrappedCpa(RelyGuaranteeCPA.class);
         rgCPA.setThreadId(i);
+        rgCPA.useHardcodedPredicates();
         cpas[i] = cpa;
       }
       // get main functions and CFA
@@ -516,18 +517,13 @@ public class CPAchecker {
     logger.log(Level.INFO, "Starting analysis ...");
     stats.analysisTime.start();
 
-    boolean sound = true;
-    do {
-      sound &= pAlgorithm.run(reached);
-
-      // either run only once (if stopAfterError == true)
-    } while (!options.stopAfterError);
+    Result result = pAlgorithm.run(reached, options.stopAfterError);
 
     logger.log(Level.INFO, "Stopping analysis ...");
     stats.analysisTime.stop();
     stats.programTime.stop();
 
-    return pAlgorithm.getResult();
+    return result;
   }
 
   private Result runRestartAlgorithm(final RestartAlgorithm restartAlgorithm,

@@ -74,18 +74,21 @@ public class ConcurrentCEGARAlgorithm implements ConcurrentAlgorithm,  Statistic
     return null;
   }
 
-  @Override
-  public boolean run(ReachedSet[] pReachedSets) throws CPAException,
-      InterruptedException {
-    // TODO Auto-generated method stub
-    return false;
-  }
+
 
   @Override
   public Result getResult() {
     // TODO Auto-generated method stub
     return null;
   }
+
+  @Override
+  public Result run(ReachedSet[] pReachedSets, boolean pStopAfterError) {
+    // TODO Auto-generated method stub
+    return Result.UNKNOWN;
+  }
+
+
 
 
 

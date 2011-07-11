@@ -213,7 +213,7 @@ public class RelyGuaranteeCPA extends PredicateCPA{
 
     // hardcode predicates
     //this.initialPrecision= new PredicatePrecision(predicates);
-    this.initialPrecision = hardcodedPredicates();
+    this.initialPrecision = null;
 
     this.stats = new RelyGuaranteeCPAStatistics(this);
 
@@ -237,12 +237,12 @@ public class RelyGuaranteeCPA extends PredicateCPA{
     Formula fPred0 = this.formulaManager.makeEqual(fVariable, fNumeral0);
     Formula fPred1 = this.formulaManager.makeEqual(fVariable, fNumeral1);
     Formula fPred2 = this.formulaManager.makeEqual(fVariable, fNumeral2);
-    Formula fPred3 = this.formulaManager.makeGeq(fVariable, fNumeral3);
+    Formula fPred3 = this.formulaManager.makeEqual(fVariable, fNumeral3);
 
     Formula fPredAnd1 = this.formulaManager.makeAnd(fPred0, fPred1);
     Formula fPredAnd2 = this.formulaManager.makeAnd(fPredAnd1, fPred2);
     Formula fPredAnd3 = this.formulaManager.makeAnd(fPredAnd2, fPred3);
-    predicates = this.predicateManager.getAtomsAsPredicates(fPredAnd1);
+    predicates = this.predicateManager.getAtomsAsPredicates(fPredAnd2);
 
     return new RelyGuaranteePrecision(predicates);
   }
@@ -250,6 +250,10 @@ public class RelyGuaranteeCPA extends PredicateCPA{
 
   public void setThreadId(int tid){
     this.tid = tid;
+  }
+
+  public void useHardcodedPredicates() {
+    this.initialPrecision = this.hardcodedPredicates();
   }
 
   public int getThreadId(){

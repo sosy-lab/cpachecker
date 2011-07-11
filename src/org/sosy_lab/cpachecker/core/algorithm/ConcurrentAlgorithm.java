@@ -26,11 +26,10 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public interface ConcurrentAlgorithm{
 
-  public boolean run(ReachedSet[] reachedSets) throws CPAException, InterruptedException;
+  public Result run(ReachedSet[] reachedSets, boolean stopAfterError);
 
   public ConfigurableProgramAnalysis[] getCPAs();
 
