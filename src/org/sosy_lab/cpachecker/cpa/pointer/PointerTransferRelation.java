@@ -406,7 +406,7 @@ public class PointerTransferRelation implements TransferRelation {
       do {
         nestedSpecifier = ((IASTPointerTypeSpecifier)nestedSpecifier).getType();
         depth++;
-      } while (specifier instanceof IASTPointerTypeSpecifier);
+      } while (nestedSpecifier instanceof IASTPointerTypeSpecifier);
 
 
       if (nestedSpecifier instanceof IASTElaboratedTypeSpecifier) {
