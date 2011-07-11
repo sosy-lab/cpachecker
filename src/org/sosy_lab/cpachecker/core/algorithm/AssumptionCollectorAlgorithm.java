@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
-import static org.sosy_lab.cpachecker.util.AbstractElements.filterTargetElements;
+import static org.sosy_lab.cpachecker.util.AbstractElements.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -214,17 +213,22 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     // collect and dump all assumptions stored in abstract states
     logger.log(Level.FINER, "Dumping assumptions resulting from tool assumptions");
     for (AbstractElement element : reached) {
-      AssumptionStorageElement e = AbstractElements.extractElementByType(element, AssumptionStorageElement.class);
 
-      Formula assumption = formulaManager.makeAnd(e.getAssumption(), e.getStopFormula());
+      if (AbstractElements.isTargetElement(element)) {
+        // create assumptions for target element
+        addAvoidingAssumptions(result, element);
 
-      addAssumption(result, assumption, element);
-    }
+      } else {
+        // get stored assumption
 
-    // create assumptions for target elements
-    logger.log(Level.FINER, "Dumping assumptions resulting from target elements");
-    for (AbstractElement element : filterTargetElements(reached)) {
-      addAvoidingAssumptions(result, element);
+        AssumptionStorageElement e = AbstractElements.extractElementByType(element, AssumptionStorageElement.class);
+
+        Formula assumption = formulaManager.makeAnd(e.getAssumption(), e.getStopFormula());
+
+        if (!assumption.isTrue()) {
+          addAssumption(result, assumption, element);
+        }
+      }
     }
 
     // dump invariants to prevent going further with nodes in the waitlist
