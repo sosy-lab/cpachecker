@@ -97,7 +97,7 @@ public class MathsatFormulaManager implements FormulaManager  {
 
   // cache for uninstantiating terms (see uninstantiate() below)
   private final Map<Formula, Formula> uninstantiateCache = new HashMap<Formula, Formula>();
-  private final Map<Formula, Formula> addThreadIdCache  =  new HashMap<Formula, Formula>();
+  private final Map<Pair<Formula, Integer>, Formula> addThreadIdCache  =  new HashMap<Pair<Formula, Integer>, Formula>();
 
   private final Formula trueFormula;
   private final Formula falseFormula;
@@ -889,13 +889,15 @@ public class MathsatFormulaManager implements FormulaManager  {
   }*/
 
   public Formula addThreadId(Formula f, int tid){
-    Map<Formula, Formula> cache = this.addThreadIdCache;
+    Map<Pair<Formula, Integer>, Formula> cache = this.addThreadIdCache;
     Deque<Formula> toProcess = new ArrayDeque<Formula>();
+    Pair<Formula, Integer> key = null;
 
     toProcess.push(f);
     while (!toProcess.isEmpty()) {
       final Formula tt = toProcess.peek();
-      if (cache.containsKey(tt)) {
+      key = new Pair<Formula, Integer>(tt,tid);
+      if (cache.containsKey(key)) {
         toProcess.pop();
         continue;
       }
@@ -905,14 +907,16 @@ public class MathsatFormulaManager implements FormulaManager  {
         Pair<String, Integer> lVariable = parseName(msat_term_repr(t));
         String newName = addThreadIdToVar(lVariable.getFirst(),tid);
         long newt = buildMsatVariable(makeName(newName, lVariable.getSecond()), msat_term_get_type(t));
-        cache.put(tt, encapsulate(newt));
+        key = new Pair<Formula, Integer>(tt,tid);
+        cache.put(key, encapsulate(newt));
 
       } else {
         boolean childrenDone = true;
         long[] newargs = new long[msat_term_arity(t)];
         for (int i = 0; i < newargs.length; ++i) {
           Formula c = encapsulate(msat_term_get_arg(t, i));
-          Formula newC = cache.get(c);
+          key = new Pair<Formula, Integer>(c,tid);
+          Formula newC = cache.get(key);
           if (newC != null) {
             newargs[i] = getTerm(newC);
           } else {
@@ -939,12 +943,14 @@ public class MathsatFormulaManager implements FormulaManager  {
             newt = msat_replace_args(msatEnv, t, newargs);
           }
 
-          cache.put(tt, encapsulate(newt));
+          key = new Pair<Formula, Integer>(tt,tid);
+          cache.put(key, encapsulate(newt));
         }
       }
     }
 
-    Formula result = cache.get(f);
+    key = new Pair<Formula, Integer>(f,tid);
+    Formula result = cache.get(key);
     assert result != null;
     return result;
   }

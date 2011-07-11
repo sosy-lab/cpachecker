@@ -106,7 +106,7 @@ import com.google.common.collect.ImmutableSet;
 @Options(prefix="cpa.predicate")
 public class CtoFormulaConverter {
 
-  @Option(name="globalVariables", toUppercase=true,
+  @Option(name="globalVariables",
       description="global variables")
   protected String[] globalVariables = {};
 
