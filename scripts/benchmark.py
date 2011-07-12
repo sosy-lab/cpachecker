@@ -895,33 +895,35 @@ def run_satabs(options, sourcefile, columns, rlimits):
 
 def run_acsar(options, sourcefile, columns, rlimits):
     exe = findExecutable("acsar", None)
-    
-    prepSourcefile = prepareSourceFileForAcsar(sourcefile)
-    
-    args = [exe] + options + [prepSourcefile] + ["--mainproc", "main"]
 
-    print args
-    
+    # create tmp-files for acsar, acsar needs special error-labels
+    prepSourcefile = prepareSourceFileForAcsar(sourcefile)
+
+    if ("--mainproc" not in options):
+        options = options + ["--mainproc", "main"]
+
+    args = [exe] + ["--file"] + [prepSourcefile] + options
+
     (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
     if "syntax error" in output:
-        status = "SYNTAX"
+        status = "SYNTAX ERROR"
+    elif "runtime error" in output:
+        status = "RUNTIME ERROR"
     elif "can not be used as a root procedure because it is not defined" in output:
         status = "NO MAIN"
-    elif "I don't Know" in output:
-        status = "UNKNOWN"
     elif "Error Location <<ERROR_LOCATION>> is reachable via the following path" in output:
         status = "UNSAFE"
-    elif "*** runtime error:" in output:
-        status = "ERROR"
+    elif "******  Error State Reachable *******\nSimplify process destroyed ...\nreceived signal 6 ..." in output:
+        status = "SAFE"
+    elif "refinement ...Simplify process destroyed ...\nreceived signal 6 ..." in output:
+        status = "SAFE"
     else:
-        status = "NOT UNSAFE" # ?? unknown
-        
-    print output
-    
+        status = "UNKNOWN"
+
     #delete tmp-files
     import os
-    #os.remove(prepSourcefile)
-    
+    os.remove(prepSourcefile)
+
     return (status, cpuTimeDelta, wallTimeDelta, output)
 
 
