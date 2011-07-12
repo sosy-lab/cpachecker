@@ -898,9 +898,9 @@ def run_acsar(options, sourcefile, columns, rlimits):
     
     prepSourcefile = prepareSourceFileForAcsar(sourcefile)
     
-    args = [exe] + options + [prepSourcefile]
+    args = [exe] + options + [prepSourcefile] + ["--mainproc", "main"]
 
-    #print args
+    print args
     
     (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
     if "syntax error" in output:
@@ -920,7 +920,7 @@ def run_acsar(options, sourcefile, columns, rlimits):
     
     #delete tmp-files
     import os
-    os.remove(prepSourcefile)
+    #os.remove(prepSourcefile)
     
     return (status, cpuTimeDelta, wallTimeDelta, output)
 
