@@ -67,5 +67,7 @@ public interface PathFormulaManager {
   // returns an empty path formula with a clean SSAMap from variables that do not belong to this thread
   PathFormula makeEmptyPathFormula(PathFormula pPathFormula,  int pThreadId);
 
+  PathFormula primePathFormula(PathFormula envPF, int offset);
+
 
 }

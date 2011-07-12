@@ -197,8 +197,8 @@ public class RelyGuaranteeCPA extends PredicateCPA{
 
 
     // hardcode predicates
-    //this.initialPrecision= new PredicatePrecision(predicates);
-    this.initialPrecision = null;
+    this.initialPrecision= new PredicatePrecision(predicates);
+    //this.initialPrecision = null;
 
     this.stats = new RelyGuaranteeCPAStatistics(this);
 
@@ -208,10 +208,10 @@ public class RelyGuaranteeCPA extends PredicateCPA{
     Formula fVariable=null;
     Collection<AbstractionPredicate> predicates=null;
     if (this.tid == 0){
-      fVariable = this.formulaManager.makeVariable("g_0",2);
+      fVariable = this.formulaManager.makeVariable("cs1",2);
     }
     else if (this.tid == 1){
-      fVariable = this.formulaManager.makeVariable("g_1",2);
+      fVariable = this.formulaManager.makeVariable("g",2);
     }
     Formula fNumeral0 = this.formulaManager.makeNumber(0);
     Formula fNumeral1 = this.formulaManager.makeNumber(1);
@@ -227,7 +227,7 @@ public class RelyGuaranteeCPA extends PredicateCPA{
     Formula fPredAnd1 = this.formulaManager.makeAnd(fPred0, fPred1);
     Formula fPredAnd2 = this.formulaManager.makeAnd(fPredAnd1, fPred2);
     Formula fPredAnd3 = this.formulaManager.makeAnd(fPredAnd2, fPred3);
-    predicates = this.predicateManager.getAtomsAsPredicates(fPred0);
+    predicates = this.predicateManager.getAtomsAsPredicates(fPredAnd1);
 
     return new RelyGuaranteePrecision(predicates);
   }

@@ -148,9 +148,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
         error = runThread(i, reached[i], stopAfterError);
         printEnvTransitions();
         processEnvTransitions(i);
-        //filterEnvTransitions(i);
-        //printEnvTransitions();
-        //distributeEnvTransitions(i);
+        printEnvTransitions();
         i = pickThread();
       } //while(i != -1 && !error);
       while(false);
@@ -213,7 +211,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     if (checkEnvTransitionCoverage) {
       semanticCoverageCheck(rgEdges, i);
     }
-    // rember the remaining edges
+    // remember the remaining edges
     envTransitionsCreatedBy[i].addAll(rgEdges);
   }
 
@@ -232,7 +230,6 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
         }
       }
     }
-
     rgEdges.removeAll(toDelete);
 
   }

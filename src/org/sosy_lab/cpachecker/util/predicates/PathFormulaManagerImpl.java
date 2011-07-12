@@ -310,12 +310,12 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
   }
 
 
-  public PathFormula primePathFormula(PathFormula pFormula, int howManyPrimes) {
-    Formula f = pFormula.getFormula();
-    Formula fPrimed = this.fmgr.primeFormula(f, howManyPrimes);
 
-    return pFormula;
 
+  @Override
+  public PathFormula primePathFormula(PathFormula envPF, int offset) {
+    Formula primedF = this.fmgr.primeFormula(envPF.getFormula(), offset);
+    return new PathFormula(primedF, envPF.getSsa(), envPF.getLength());
   }
 
 

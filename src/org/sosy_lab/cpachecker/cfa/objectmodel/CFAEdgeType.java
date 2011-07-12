@@ -33,5 +33,5 @@ public enum CFAEdgeType
     FunctionCallEdge,
     FunctionReturnEdge,
     CallToReturnEdge,
-    EnvironmentalEdge
+    RelyGuaranteeCFAEdge
 }

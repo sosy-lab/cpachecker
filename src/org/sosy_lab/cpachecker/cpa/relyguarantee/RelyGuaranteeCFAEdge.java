@@ -57,7 +57,7 @@ public class RelyGuaranteeCFAEdge implements CFAEdge{
 
   @Override
   public CFAEdgeType getEdgeType() {
-    return CFAEdgeType.EnvironmentalEdge;
+    return CFAEdgeType.RelyGuaranteeCFAEdge;
   }
 
   @Override

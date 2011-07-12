@@ -35,6 +35,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
@@ -107,6 +108,9 @@ public class MathsatFormulaManager implements FormulaManager  {
   private Map<Pair<Formula, Integer>, Formula> addPrimingCache = new HashMap<Pair<Formula, Integer>, Formula>();
 
   private static MathsatFormulaManager    fManager;
+
+  // precompiled regex expression
+  private static Pattern primeRegex = Pattern.compile("(.+)\\^(\\d+)$");
 
   public MathsatFormulaManager(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, MathsatFormulaManager.class);
@@ -1054,12 +1058,19 @@ public class MathsatFormulaManager implements FormulaManager  {
   // primes a variable given number of times
   private String primeVariable(String pFirst, int pHowManyPrimes) {
     // get the current number of primes
-    Pattern primeRegex = Pattern.compile("\\^(\\d*)@");
-    String currentPrime = primeRegex.matcher(pFirst).group(1);
-    System.out.print(pFirst+" -> "+currentPrime);
-
-
-    return pFirst;
+    //Pattern primeRegex = Pattern.compile("(.*)\\^?(\\d*)$");
+    int currentPrime;
+    String bareName;
+    Matcher m = primeRegex.matcher(pFirst);
+    if(m.find()) {
+      bareName = m.group(1);
+      String currentPrimeStr = m.group(2);
+      currentPrime = Integer.parseInt(currentPrimeStr);
+    } else {
+      currentPrime = 0;
+      bareName = pFirst;
+    }
+    return bareName+"^"+(currentPrime+pHowManyPrimes);
   }
 
 

@@ -290,7 +290,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     if (rgElement.getParentEdge() == null){
       System.out.println("- by local edge UNKNOWN");
     }
-    else if (rgElement.getParentEdge().getEdgeType() == CFAEdgeType.EnvironmentalEdge){
+    else if (rgElement.getParentEdge().getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
       RelyGuaranteeCFAEdge rgEdge = (RelyGuaranteeCFAEdge) rgElement.getParentEdge();
       System.out.println("- by env. edge '"+rgEdge.getPathFormula()+"','"+rgEdge.getLocalEdge().getRawStatement()+"'");
     } else {
@@ -311,7 +311,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     // find the predicate CPA
     RelyGuaranteeAbstractElement predElement = AbstractElements.extractElementByType(cElement, RelyGuaranteeAbstractElement.class);
 
-    // create an environmental edge for every outgoing assigment
+    // create an environmental edge for every outgoing assignment
     CFAEdge edge;
     for (int i=0; i<node.getNumLeavingEdges(); i++){
       edge = node.getLeavingEdge(i);
@@ -326,7 +326,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
 
 
 
-  // returns true if an enviornmental transition should be created by the edge
+  // returns true if an environmental transition should be created by the edge
   private boolean createsEnvTransition(CFAEdge edge){
     if (edge.getRawAST() instanceof IASTFunctionCallStatement) {
       return false;

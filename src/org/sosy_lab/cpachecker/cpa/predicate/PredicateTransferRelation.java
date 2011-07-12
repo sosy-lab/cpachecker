@@ -211,7 +211,7 @@ public class PredicateTransferRelation implements TransferRelation {
     pathFormulaTimer.start();
     PathFormula newPathFormula = null;
     try {
-      if(edge.getEdgeType() == CFAEdgeType.EnvironmentalEdge){
+      if(edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
         newPathFormula = matchFormula(pathFormula,edge);
       }
       else {

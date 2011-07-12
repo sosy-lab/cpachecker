@@ -196,12 +196,16 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
     PathFormula newPathFormula = null;
 
     try {
-      if(edge.getEdgeType() == CFAEdgeType.EnvironmentalEdge){
-        newPathFormula = matchFormula(pathFormula,edge,  this.cpa.getThreadId());
+      if(edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
+        RelyGuaranteeCFAEdge rgEdge = (RelyGuaranteeCFAEdge) edge;
+        newPathFormula = handleEnvFormula(pathFormula, rgEdge);
       }
       else {
         //newPathFormula = pathFormulaManager.makeAnd(pathFormula, edge);
-        newPathFormula = pathFormulaManager.makeAnd(pathFormula, edge, this.cpa.getThreadId());
+        // TODO for testing only
+        PathFormula test = pathFormulaManager.makeAnd(pathFormula, edge);
+        System.out.println("! Priming test: "+pathFormula+" -> "+pathFormulaManager.primePathFormula(pathFormula, 2));
+        newPathFormula = pathFormulaManager.makeAnd(pathFormula, edge);
       }
     } finally {
       pathFormulaTimer.stop();
@@ -210,8 +214,16 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
   }
 
 
-  // Create a path formula from an env. edge and an abstract state
-  private PathFormula matchFormula(PathFormula pathFormula, CFAEdge edge,  int tid) throws CPATransferException {
+  // Create a path formula from an env. edge and a local pathFormula
+  private PathFormula handleEnvFormula(PathFormula localPF, RelyGuaranteeCFAEdge edge) throws CPATransferException {
+   PathFormula envPF = edge.getPathFormula();
+   // prime the env. path formula so it does not collide with the local path formula
+   int offset = localPF.getPrimedNo();
+   PathFormula primedEnvPF = pathFormulaManager.primePathFormula(envPF, offset);
+   // make equalities between the last global values in the local and env. path formula
+   // apply the strongest postcondition with respect on the local values
+
+    // prime
   /*  RelyGuaranteeEnvEdge envEdge = (RelyGuaranteeEnvEdge) edge;
     //  lEnvironmentFormula = psi1 ^ phi1
     PathFormula lEnvironmentFormula = pathFormulaManager.makeAnd(envEdge.getPathFormula(), envEdge.getAbstractionFormula().asFormula());
