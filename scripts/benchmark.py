@@ -893,6 +893,49 @@ def run_satabs(options, sourcefile, columns, rlimits):
     return (status, cpuTimeDelta, wallTimeDelta, output)
 
 
+def run_acsar(options, sourcefile, columns, rlimits):
+    exe = findExecutable("acsar", None)
+    
+    prepSourcefile = prepareSourceFileForAcsar(sourcefile)
+    
+    args = [exe] + options + [prepSourcefile]
+
+    #print args
+    
+    (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
+    if "syntax error" in output:
+        status = "SYNTAX"
+    elif "can not be used as a root procedure because it is not defined" in output:
+        status = "NO MAIN"
+    elif "I don't Know" in output:
+        status = "UNKNOWN"
+    elif "Error Location <<ERROR_LOCATION>> is reachable via the following path" in output:
+        status = "UNSAFE"
+    elif "*** runtime error:" in output:
+        status = "ERROR"
+    else:
+        status = "NOT UNSAFE" # ?? unknown
+        
+    print output
+    
+    #delete tmp-files
+    import os
+    os.remove(prepSourcefile)
+    
+    return (status, cpuTimeDelta, wallTimeDelta, output)
+
+
+def prepareSourceFileForAcsar(sourcefile):
+    content = open(sourcefile, "r").read()
+    content = content.replace(
+        "ERROR;", "ERROR_LOCATION;").replace(
+        "ERROR:", "ERROR_LOCATION:").replace(
+        "errorFn();", "goto ERROR_LOCATION; ERROR_LOCATION:;")
+    newFilename = sourcefile + "_acsar.c"
+    preparedFile = FileWriter(newFilename, content)
+    return newFilename
+
+
 def run_cpachecker(options, sourcefile, columns, rlimits):
     exe = findExecutable("cpachecker", "scripts/cpa.sh")
     args = [exe] + options + [sourcefile]
@@ -1008,7 +1051,7 @@ def run_blast(options, sourcefile, columns, rlimits):
 def runBenchmark(benchmarkFile):
     benchmark = Benchmark(benchmarkFile)
 
-    assert benchmark.tool in ["cbmc", "satabs", "cpachecker", "blast"]
+    assert benchmark.tool in ["cbmc", "satabs", "cpachecker", "blast", "acsar"]
     run_func = eval("run_" + benchmark.tool)
 
     if len(benchmark.tests) == 1:

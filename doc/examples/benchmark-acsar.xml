@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+
+<benchmark tool="acsar">
+       
+    <option name="--reach"></option>
+   
+    <test name="test 1">
+        <sourcefiles>
+            <include>test/programs/ssh*/*.cil.c</include>
+        </sourcefiles>
+    </test>
+   
+</benchmark>
