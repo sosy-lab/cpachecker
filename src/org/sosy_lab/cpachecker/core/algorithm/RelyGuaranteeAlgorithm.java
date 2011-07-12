@@ -34,6 +34,8 @@ import java.util.Map.Entry;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -61,8 +63,12 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 
 import com.google.common.collect.Iterables;
 
+@Options(prefix="cpa.relyguarantee")
 public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
 
+  @Option(description="Use a theorem prover to remove covered environemtal transitions" +
+                      " if false perform only a syntatic check for equivalence")
+  private boolean checkEnvTransitionCoverage = true;
 
   private int threadNo;
   private CFA[] cfas;
@@ -141,7 +147,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
         addEnvTransitionsToCFA(i);
         error = runThread(i, reached[i], stopAfterError);
         printEnvTransitions();
-        processEnvTransitions();
+        processEnvTransitions(i);
         //filterEnvTransitions(i);
         //printEnvTransitions();
         //distributeEnvTransitions(i);
@@ -184,7 +190,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     }
   }
 
-  private void processEnvTransitions() {
+  private void processEnvTransitions(int i) {
     // generate CFA edges from env tranitions
     Vector<RelyGuaranteeCFAEdge> rgEdges = new Vector<RelyGuaranteeCFAEdge>();
     for (RelyGuaranteeEnvironmentalTransition  et: newEnvTransitions){
@@ -192,17 +198,65 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
       PathFormula pf = et.getPathFormula();
       CFAEdge localEdge = et.getEdge();
       int sourceThread = et.getSourceThread();
-      PathFormula mergedPF = pfManager.makeAnd(pf, f);
-      RelyGuaranteeCFAEdge rgEdge = new RelyGuaranteeCFAEdge(localEdge, mergedPF, sourceThread);
-      rgEdges.add(rgEdge);
+      // add genete transition with 'false' abstractionor path formulas
+      if (f.isFalse() || pf.getFormula().isFalse()) {
+        System.out.println("Skipping "+et);
+        continue;
+      } else {
+        PathFormula mergedPF = pfManager.makeAnd(pf, f);
+        RelyGuaranteeCFAEdge rgEdge = new RelyGuaranteeCFAEdge(localEdge, mergedPF, sourceThread);
+        rgEdges.add(rgEdge);
+      }
+    }
+    // remove CFA edges that are covered
+    syntacticCoverageCheck(rgEdges,  i);
+    if (checkEnvTransitionCoverage) {
+      semanticCoverageCheck(rgEdges, i);
+    }
+    // rember the remaining edges
+    envTransitionsCreatedBy[i].addAll(rgEdges);
+  }
+
+
+
+
+  // removed env edges that are equivalent to edges that have been generated before
+  private void syntacticCoverageCheck(Vector<RelyGuaranteeCFAEdge> rgEdges, int i) {
+    Vector<RelyGuaranteeCFAEdge> toDelete = new Vector<RelyGuaranteeCFAEdge>();
+    // remove env that are false
+    for (RelyGuaranteeCFAEdge newEnv : rgEdges) {
+      for (RelyGuaranteeCFAEdge oldEnv : this.envTransitionsCreatedBy[i]) {
+          if (isSyntacticallyEqual(newEnv, oldEnv)){
+            toDelete.add(newEnv);
+            System.out.println("Removing (syn) "+newEnv);
+        }
+      }
     }
 
-    //
-
-
+    rgEdges.removeAll(toDelete);
 
   }
 
+  // returns true if env1 is equal to env2 by a quick syntactic check
+  private boolean isSyntacticallyEqual(RelyGuaranteeCFAEdge env1, RelyGuaranteeCFAEdge env2) {
+    // compare local edges
+    if (env1.getLocalEdge() != env2.getLocalEdge()){
+      return false;
+    }
+
+    // compare the path formulas (without SSAMap)
+    Formula f1 = env1.getPathFormula().getFormula();
+    Formula f2 = env2.getPathFormula().getFormula();
+    if (!f1.equals(f2)){
+      return false;
+    }
+    return true;
+  }
+
+
+  private void semanticCoverageCheck(Vector<RelyGuaranteeCFAEdge> rgEdges, int i) {
+    return;
+  }
 
   // runs a thread
   private boolean runThread(int i, ReachedSet reached, boolean stopAfterError) throws CPAException, InterruptedException {
@@ -217,55 +271,9 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     return false;
   }
 
+
+
 /*
-  // remove redundant env transitions
-  private void filterEnvTransitions(int i) {
-    // removed env. edges with abstraction equal to "false"
-    Vector<RelyGuaranteeEnvEdge> toDelete = new Vector<RelyGuaranteeEnvEdge>();
-    for (RelyGuaranteeEnvEdge env : this.newEnvTransitions){
-      Formula af = env.getAbstractionFormula().asFormula();
-      if (af.isFalse()){
-        toDelete.add(env);
-      }
-    }
-    this.newEnvTransitions.removeAll(toDelete);
-    toDelete = new Vector<RelyGuaranteeEnvEdge>();
-
-    for (RelyGuaranteeEnvEdge newEnv : this.newEnvTransitions) {
-      for (RelyGuaranteeEnvEdge oldEnv : this.envTransitionsCreatedBy[i]) {
-          if (isCovered(newEnv, oldEnv)){
-            toDelete.add(newEnv);
-        }
-      }
-    }
-    this.newEnvTransitions.removeAll(toDelete);
-    this.envTransitionsCreatedBy[i].addAll(this.newEnvTransitions);
-  }
-
-
-  // returns true if env1 <= env2
-  private boolean isCovered(RelyGuaranteeEnvEdge env1, RelyGuaranteeEnvEdge env2) {
-    // compare local edges
-    if (env1.getLocalEdge() != env2.getLocalEdge()){
-      return false;
-    }
-    // compare abstractions
-
-    if (!env1.getAbstractionFormula().equals(env2.getAbstractionFormula())){
-      return false;
-    }
-
-    //TODO implement a real check
-    if (!env1.getPathFormula().equals(env2.getPathFormula())){
-      return false;
-    }
-    return true;
-  }
-
-
-
-
-
   // filters abd distributes env transitions created by one thread to the others threads
   private void distributeEnvTransitions(int i) {
     // remove all edges for thread i
@@ -281,8 +289,8 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
         }
       }
     }
-  }
-*/
+  }*/
+
 
   // chose the next thread for reachability computation
   // return -1 if there are no new env transitions for any any thread

@@ -128,7 +128,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     SSAMap ssa = pPathFormula.getSsa();
     Formula otherFormula =  fmgr.instantiate(pOtherFormula, ssa);
     Formula resultFormula = fmgr.makeAnd(pPathFormula.getFormula(), otherFormula);
-    return new PathFormula(resultFormula, ssa, pPathFormula.getLength());
+    return new PathFormula(resultFormula, ssa, pPathFormula.getLength(), pPathFormula.getPrimedNo());
   }
 
   /**
