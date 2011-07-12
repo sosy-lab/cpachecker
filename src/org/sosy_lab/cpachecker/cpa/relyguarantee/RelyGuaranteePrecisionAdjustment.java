@@ -40,11 +40,15 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
 public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustment {
 
+  private RelyGuaranteeCPA cpa;
+
   // statistics
+
 
 
   public RelyGuaranteePrecisionAdjustment(RelyGuaranteeCPA pCpa) {
     super(pCpa.getLogger(), pCpa.getPredicateManager(), pCpa.getPathFormulaManager() );
+    this.cpa = pCpa;
   }
 
   @Override
@@ -100,8 +104,12 @@ public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustme
       logger.log(Level.FINEST, "Abstraction is false, node is not reachable");
     }
 
+
+
     // create new empty path formula
-    PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula);
+    //PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula);
+    PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula,  this.cpa.getThreadId() );
+
 
     return new RelyGuaranteeAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula, element.getParentEdge());
   }

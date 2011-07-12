@@ -242,7 +242,7 @@ public class RelyGuaranteeCPA extends PredicateCPA{
     Formula fPredAnd1 = this.formulaManager.makeAnd(fPred0, fPred1);
     Formula fPredAnd2 = this.formulaManager.makeAnd(fPredAnd1, fPred2);
     Formula fPredAnd3 = this.formulaManager.makeAnd(fPredAnd2, fPred3);
-    predicates = this.predicateManager.getAtomsAsPredicates(fPredAnd2);
+    predicates = this.predicateManager.getAtomsAsPredicates(fPred0);
 
     return new RelyGuaranteePrecision(predicates);
   }

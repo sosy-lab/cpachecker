@@ -150,6 +150,9 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
   }
 
 
+
+
+
   // runs a thread
   private boolean runThread(int i, ReachedSet reached, boolean stopAfterError) throws CPAException, InterruptedException {
     boolean sound = true;

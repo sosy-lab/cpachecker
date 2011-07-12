@@ -139,6 +139,12 @@ public class CachingPathFormulaManager implements PathFormulaManager {
     return delegate.makeAnd(pPathFormula, pEdge, pThreadId);
   }
 
+  @Override
+  public PathFormula makeEmptyPathFormula(PathFormula pPathFormula,
+      int pThreadId) {
+    return delegate.makeEmptyPathFormula(pPathFormula, pThreadId);
+  }
+
 
 
 }

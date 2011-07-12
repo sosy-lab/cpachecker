@@ -226,9 +226,12 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
           logger.log(Level.FINER, "Considering", reached.size(),
               "elements from reached set for merge");
           for (AbstractElement reachedElement : reached) {
+
             AbstractElement mergedElement =
                 mergeOperator.merge(successor, reachedElement,
                     successorPrecision);
+
+            printMerge(successor, reachedElement, mergedElement);
 
             if (!mergedElement.equals(reachedElement)) {
               logger.log(Level.FINER,
@@ -271,7 +274,17 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     return true;
   }
 
- // pretty-printing of successors
+ private void printMerge(AbstractElement pSuccessor,
+      AbstractElement pReachedElement, AbstractElement pMergedElement) {
+    RelyGuaranteeAbstractElement rSuccessor = AbstractElements.extractElementByType(pSuccessor, RelyGuaranteeAbstractElement.class);
+    RelyGuaranteeAbstractElement rReached   = AbstractElements.extractElementByType(pReachedElement, RelyGuaranteeAbstractElement.class);
+    RelyGuaranteeAbstractElement rMerged  = AbstractElements.extractElementByType(pReachedElement, RelyGuaranteeAbstractElement.class);
+    System.out.println("+ merged '"+rSuccessor.getAbstractionFormula()+"','"+rSuccessor.getPathFormula()+"' with SSA "+rSuccessor.getPathFormula().getSsa());
+    System.out.println("\twith '"+rReached.getAbstractionFormula()+"','"+rReached.getPathFormula()+"' with SSA "+rReached.getPathFormula().getSsa());
+    System.out.println("\t= '"+rMerged.getAbstractionFormula()+"','"+rMerged.getPathFormula()+"' with SSA "+rMerged.getPathFormula().getSsa());
+  }
+
+  // pretty-printing of successors
   private void printRelyGuaranteeAbstractElement(AbstractElement pSuccessor) {
     //ARTElement aElement = (ARTElement) pSuccessor;
     RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(pSuccessor, RelyGuaranteeAbstractElement.class);
@@ -284,7 +297,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     } else {
       System.out.println("- by local edge "+rgElement.getParentEdge().getRawStatement());
     }
-    System.out.println("\t is '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+"' with SSA "+rgElement.getPathFormula().getSsa());
+    System.out.println("\t is '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+"' with SSA "+rgElement.getPathFormula().getSsa()+"'");
     //System.out.println();
 
   }

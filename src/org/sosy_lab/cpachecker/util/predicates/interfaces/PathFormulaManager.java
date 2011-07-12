@@ -64,5 +64,8 @@ public interface PathFormulaManager {
 
   PathFormula makeAnd(PathFormula pLocalPathFormula, PathFormula pEnvPathFormula, int pMyTid, int pSourceTid);
 
+  // returns an empty path formula with a clean SSAMap from variables that do not belong to this thread
+  PathFormula makeEmptyPathFormula(PathFormula pPathFormula,  int pThreadId);
+
 
 }

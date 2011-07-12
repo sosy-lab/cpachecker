@@ -98,7 +98,7 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
 
    @Override
    public String toString() {
-     return "Abstraction location: true, Abstraction: " + super.abstractionFormula;
+     return "Abstraction, '"+this.getAbstractionFormula()+"','"+this.getPathFormula()+"' with SSA "+this.getPathFormula().getSsa();
    }
  }
 
@@ -179,7 +179,7 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
 
  @Override
  public String toString() {
-   return "Abstraction location: false";
+   return "Non-abstraction, '"+this.getAbstractionFormula()+"','"+this.getPathFormula()+"' with SSA "+this.getPathFormula().getSsa();
  }
 
  @Override

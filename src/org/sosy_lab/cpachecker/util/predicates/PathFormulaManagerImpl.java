@@ -57,7 +57,6 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
   }
 
 
-
   @Override
   public PathFormula makeEmptyPathFormula() {
     return new PathFormula(fmgr.makeTrue(), SSAMap.emptySSAMap(), 0);
@@ -66,6 +65,27 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
   @Override
   public PathFormula makeEmptyPathFormula(PathFormula oldFormula) {
     return new PathFormula(fmgr.makeTrue(), oldFormula.getSsa(), 0);
+  }
+
+  // returns an empty path formula with a clean SSAMap from variables that do not belong to this thread
+  public PathFormula makeEmptyPathFormula(PathFormula oldFormula, int tid) {
+    //
+    int otherTid = 0;
+    SSAMapBuilder cleanMap = SSAMap.emptySSAMap().builder();
+    for(String var : oldFormula.getSsa().allVariables()){
+      if (tid==0){
+        otherTid = 1;
+      }
+      else {
+        otherTid = 0;
+      }
+     if(!var.contains("_"+otherTid)) {
+       cleanMap.setIndex(var, oldFormula.getSsa().getIndex(var));
+     }
+
+    }
+
+    return new PathFormula(fmgr.makeTrue(), cleanMap.build(), 0);
   }
 
   @Override
@@ -247,17 +267,8 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     SSAMap ssa1 = localPathFormula.getSsa();
     SSAMap ssa2 = envPathFormula.getSsa();
 
-
-    SSAMapBuilder mergedWithEQSSA = ssa1.builder();
-    // copy local ssa's from envPathFormula
-    for (String var : ssa2.allVariables()){
-      if (!var.contains("_"+myTid)){
-        mergedWithEQSSA.setIndex(var, ssa2.getIndex(var));
-      }
-    }
-
-    /*SSAMap mergedSSA = SSAMap.merge(ssa1, ssa2);
-    SSAMapBuilder mergedWithEQSSA = mergedSSA.builder();*/
+    SSAMap mergedSSA = SSAMap.merge(ssa1, ssa2);
+    SSAMapBuilder mergedWithEQSSA = mergedSSA.builder();
     Formula f1 = localPathFormula.getFormula();
     Formula f2 = envPathFormula.getFormula();
     Formula mergedFormula = fmgr.makeAnd(f1, f2);
@@ -288,6 +299,10 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     // TODO correct length
     return new PathFormula(fmgr.makeAnd(mergedFormula, mt), mergedWithEQSSA.build(), localPathFormula.getLength()+envPathFormula.getLength());
   }
+
+
+
+
 
 
 }
