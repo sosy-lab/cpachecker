@@ -43,8 +43,16 @@ import com.google.common.base.Preconditions;
 
 public class MathsatTheoremProver implements TheoremProver {
 
+  private static MathsatTheoremProver tProver;
   private final MathsatFormulaManager mgr;
   private long curEnv;
+
+  public static MathsatTheoremProver getInstance(MathsatFormulaManager pMgr) {
+    if (tProver == null) {
+      tProver = new MathsatTheoremProver(pMgr);
+    }
+    return tProver;
+  }
 
   public MathsatTheoremProver(MathsatFormulaManager pMgr) {
     mgr = pMgr;

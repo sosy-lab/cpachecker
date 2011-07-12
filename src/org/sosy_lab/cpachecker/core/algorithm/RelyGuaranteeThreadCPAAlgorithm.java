@@ -108,12 +108,12 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
   }
 
   private final CPAStatistics               stats = new CPAStatistics();
-  private final ConfigurableProgramAnalysis           cpa;
+  private final ConfigurableProgramAnalysis       cpa;
   private final LogManager                  logger;
   private Vector<RelyGuaranteeEnvEdge> envTransitions;
   private int tid;
 
-  public RelyGuaranteeThreadCPAAlgorithm(ConfigurableProgramAnalysis cpa, Vector<RelyGuaranteeEnvEdge> envTransitions, LogManager logger, Set<String> pGlobalVariables, int tid) {
+  public RelyGuaranteeThreadCPAAlgorithm(ConfigurableProgramAnalysis  cpa, Vector<RelyGuaranteeEnvEdge> envTransitions, LogManager logger, Set<String> pGlobalVariables, int tid) {
     this.cpa = cpa;
     this.envTransitions = envTransitions;
     this.logger = logger;
@@ -302,7 +302,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
 
   }
 
-  // generate and environmental edge
+  // generate  environmental edges for every outgoing
   private Vector<RelyGuaranteeEnvEdge> createEnvTransitions(AbstractElement pElement) {
     // get the underlying PredicateAbstractElement
     Vector<RelyGuaranteeEnvEdge> envTransitions = new Vector<RelyGuaranteeEnvEdge>();
@@ -318,7 +318,6 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
       edge = node.getLeavingEdge(i);
       if (this.createsEnvTransition(edge)) {
         RelyGuaranteeEnvEdge newEnvTransition = new RelyGuaranteeEnvEdge(edge, predElement.getAbstractionFormula(), predElement.getPathFormula(), this.tid);
-        logger.log(Level.ALL, "Created",newEnvTransition);
         envTransitions.add(newEnvTransition);
       }
     }
@@ -326,7 +325,9 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     return envTransitions;
   }
 
-  // returns true if an enviornmental transition is created from the edge
+
+
+  // returns true if an enviornmental transition should be created by the edge
   private boolean createsEnvTransition(CFAEdge edge){
     if (edge.getRawAST() instanceof IASTFunctionCallStatement) {
       return false;

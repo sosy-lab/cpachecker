@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
@@ -92,8 +91,8 @@ public class RelyGuaranteeCPA extends PredicateCPA{
   private boolean useCache = true;
 
 
-    private static PathFormulaManager pfManager;
-    private static MathsatFormulaManager    fManager;
+
+
     private static TheoremProver  tProver;
 
     private RelyGuaranteeCPAStatistics stats;
@@ -102,31 +101,11 @@ public class RelyGuaranteeCPA extends PredicateCPA{
 
     private int tid;
 
-    private static  MathsatFormulaManager getFormulaManager(Configuration config, LogManager logger) throws InvalidConfigurationException{
-      if (fManager == null){
-        fManager = new MathsatFormulaManager(config, logger);
-      }
-      return fManager;
-    }
 
-    private static PathFormulaManager getPathFormulaManager(Configuration config, LogManager logger) throws InvalidConfigurationException{
-      if (pfManager == null){
-        FormulaManager formulaManager = getFormulaManager(config, logger);
-        pfManager = new PathFormulaManagerImpl(formulaManager, config, logger);
-      }
-      return pfManager;
-    }
-
-    private static TheoremProver getTheoremProver(Configuration config, LogManager logger,String type) throws InvalidConfigurationException{
+    public static TheoremProver getTheoremProver(Configuration config, LogManager logger,String type) throws InvalidConfigurationException{
       if (tProver == null){
-        MathsatFormulaManager msatFormulaManager = getFormulaManager(config, logger);
-        if (type.equals("MATHSAT")) {
-          tProver = new MathsatTheoremProver(msatFormulaManager);
-        } else if (type.equals("YICES")) {
-          tProver = new YicesTheoremProver(msatFormulaManager);
-        } else {
-          throw new InternalError("Update list of allowed solvers!");
-        }
+        MathsatFormulaManager msatFormulaManager =  MathsatFormulaManager.getInstance(config, logger);
+
       }
       return tProver;
     }
@@ -141,14 +120,14 @@ public class RelyGuaranteeCPA extends PredicateCPA{
 
     this.regionManager = BDDRegionManager.getInstance();
     // MathsatFormulaManager mathsatFormulaManager = new MathsatFormulaManager(config, logger);
-    MathsatFormulaManager mathsatFormulaManager = getFormulaManager(config, logger);
-
+    MathsatFormulaManager mathsatFormulaManager = MathsatFormulaManager.getInstance(config, logger);
+    MathsatFormulaManager msatFormulaManager =  MathsatFormulaManager.getInstance(config, logger);
     this.formulaManager = mathsatFormulaManager;
 
     //PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger);
-    PathFormulaManager pfMgr = getPathFormulaManager(config, logger);
+    PathFormulaManager pfMgr  = PathFormulaManagerImpl.getInstance(mathsatFormulaManager, config, logger);
     if (useCache) {
-      pfMgr = new CachingPathFormulaManager(pfMgr);
+      pfMgr = CachingPathFormulaManager.getInstance(pfMgr);
     }
     this.pathFormulaManager = pfMgr;
 
@@ -159,7 +138,14 @@ public class RelyGuaranteeCPA extends PredicateCPA{
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }*/
-    this.theoremProver = getTheoremProver(config, logger,whichProver);
+
+    if (whichProver.equals("MATHSAT")) {
+      theoremProver = new MathsatTheoremProver(msatFormulaManager);
+    } else if (whichProver.equals("YICES")) {
+      theoremProver = new YicesTheoremProver(msatFormulaManager);
+    } else {
+      throw new InternalError("Update list of allowed solvers!");
+    }
 
     InterpolatingTheoremProver<Integer> itpProver;
     InterpolatingTheoremProver<Integer> alternativeItpProver = null;

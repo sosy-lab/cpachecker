@@ -35,6 +35,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -102,6 +103,11 @@ public class MathsatFormulaManager implements FormulaManager  {
   private final Formula trueFormula;
   private final Formula falseFormula;
 
+  // cache Formula x NumberOfPrimes -> PrimedFormula
+  private Map<Pair<Formula, Integer>, Formula> addPrimingCache = new HashMap<Pair<Formula, Integer>, Formula>();
+
+  private static MathsatFormulaManager    fManager;
+
   public MathsatFormulaManager(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, MathsatFormulaManager.class);
     msatEnv = msat_create_env();
@@ -124,6 +130,15 @@ public class MathsatFormulaManager implements FormulaManager  {
 
     trueFormula = encapsulate(msat_make_true(msatEnv));
     falseFormula = encapsulate(msat_make_false(msatEnv));
+
+  }
+
+  // returns a singleton instance of MathsatFormulaManager
+  public static  MathsatFormulaManager getInstance(Configuration config, LogManager logger) throws InvalidConfigurationException{
+    if (fManager == null){
+      fManager = new MathsatFormulaManager(config, logger);
+    }
+    return fManager;
   }
 
   long getMsatEnv() {
@@ -965,6 +980,86 @@ public class MathsatFormulaManager implements FormulaManager  {
       result = var+"_"+tid;
     }
     return result;
+  }
+
+  @Override
+  // primed the variables inside the formula given number of times
+  public Formula primeFormula(Formula f, int howManyPrimes) {
+    Map<Pair<Formula, Integer>, Formula> cache = this.addPrimingCache;
+    Deque<Formula> toProcess = new ArrayDeque<Formula>();
+    Pair<Formula, Integer> key = null;
+
+    toProcess.push(f);
+    while (!toProcess.isEmpty()) {
+      final Formula tt = toProcess.peek();
+      key = new Pair<Formula, Integer>(tt,howManyPrimes);
+      if (cache.containsKey(key)) {
+        toProcess.pop();
+        continue;
+      }
+      final long t = getTerm(tt);
+
+      if (msat_term_is_variable(t) != 0) {
+        Pair<String, Integer> lVariable = parseName(msat_term_repr(t));
+        String newName = primeVariable(lVariable.getFirst(),howManyPrimes);
+        long newt = buildMsatVariable(makeName(newName, lVariable.getSecond()), msat_term_get_type(t));
+        key = new Pair<Formula, Integer>(tt,howManyPrimes);
+        cache.put(key, encapsulate(newt));
+
+      } else {
+        boolean childrenDone = true;
+        long[] newargs = new long[msat_term_arity(t)];
+        for (int i = 0; i < newargs.length; ++i) {
+          Formula c = encapsulate(msat_term_get_arg(t, i));
+          key = new Pair<Formula, Integer>(c,howManyPrimes);
+          Formula newC = cache.get(key);
+          if (newC != null) {
+            newargs[i] = getTerm(newC);
+          } else {
+            toProcess.push(c);
+            childrenDone = false;
+          }
+        }
+
+        if (childrenDone) {
+          toProcess.pop();
+          long newt;
+          if (msat_term_is_uif(t) != 0) {
+            String name = msat_decl_get_name(msat_term_get_decl(t));
+            assert name != null;
+
+            if (ufCanBeLvalue(name)) {
+              name = parseName(name).getFirst();
+
+              newt = buildMsatUF(name, newargs);
+            } else {
+              newt = msat_replace_args(msatEnv, t, newargs);
+            }
+          } else {
+            newt = msat_replace_args(msatEnv, t, newargs);
+          }
+
+          key = new Pair<Formula, Integer>(tt,howManyPrimes);
+          cache.put(key, encapsulate(newt));
+        }
+      }
+    }
+
+    key = new Pair<Formula, Integer>(f,howManyPrimes);
+    Formula result = cache.get(key);
+    assert result != null;
+    return result;
+  }
+
+  // primes a variable given number of times
+  private String primeVariable(String pFirst, int pHowManyPrimes) {
+    // get the current number of primes
+    Pattern primeRegex = Pattern.compile("\\^(\\d*)@");
+    String currentPrime = primeRegex.matcher(pFirst).group(1);
+    System.out.print(pFirst+" -> "+currentPrime);
+
+
+    return pFirst;
   }
 
 

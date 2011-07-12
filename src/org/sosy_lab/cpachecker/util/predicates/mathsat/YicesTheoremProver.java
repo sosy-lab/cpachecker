@@ -51,6 +51,7 @@ import com.google.common.base.Joiner;
 
 public class YicesTheoremProver implements TheoremProver {
 
+    private static YicesTheoremProver tProver;
     private Map<Long, String> msatVarToYicesVar;
     private Map<Long, String> msatToYicesCache;
     private Map<String, Long> yicesPredToMsat;
@@ -63,6 +64,13 @@ public class YicesTheoremProver implements TheoremProver {
     private Set<String> globalDecls;
 
     int curLevel = 0;
+
+    public static YicesTheoremProver getInstance(MathsatFormulaManager pMgr) {
+      if (tProver == null) {
+        tProver = new YicesTheoremProver(pMgr);
+      }
+      return tProver;
+    }
 
     // TODO
     // restart yices every once in a while, otherwise it starts eating too

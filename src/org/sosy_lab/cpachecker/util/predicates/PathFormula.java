@@ -30,11 +30,21 @@ public class PathFormula {
   private final Formula formula;
   private final SSAMap ssa;
   private final int length;
+  // how many times a formula has been primed
+  private int primedNo;
 
   protected PathFormula(Formula pf, SSAMap ssa, int pLength) {
     this.formula = pf;
     this.ssa = ssa;
     this.length = pLength;
+    this.primedNo = 0;
+  }
+
+  protected PathFormula(Formula pf, SSAMap ssa, int pLength, int pPrimedNo) {
+    this.formula = pf;
+    this.ssa = ssa;
+    this.length = pLength;
+    this.primedNo = pPrimedNo;
   }
 
   public Formula getFormula() {
@@ -47,6 +57,10 @@ public class PathFormula {
 
   public int getLength() {
     return length;
+  }
+
+  public int getPrimedNo() {
+    return this.primedNo;
   }
 
   @Override

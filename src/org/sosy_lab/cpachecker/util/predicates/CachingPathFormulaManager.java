@@ -39,6 +39,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
  */
 public class CachingPathFormulaManager implements PathFormulaManager {
 
+  // singleton instance of CachingPathFormulaManager
+  private static CachingPathFormulaManager pfManager;
+
   public final Timer pathFormulaComputationTimer = new Timer();
   public int pathFormulaCacheHits = 0;
 
@@ -54,6 +57,14 @@ public class CachingPathFormulaManager implements PathFormulaManager {
             = new HashMap<PathFormula, PathFormula>();
 
   private final PathFormula emptyFormula;
+
+  public static CachingPathFormulaManager getInstance(PathFormulaManager pDelegate) {
+    if (pfManager == null){
+      pfManager = new CachingPathFormulaManager(pDelegate);
+    }
+    return  pfManager;
+  }
+
 
   public CachingPathFormulaManager(PathFormulaManager pDelegate) {
     delegate = pDelegate;

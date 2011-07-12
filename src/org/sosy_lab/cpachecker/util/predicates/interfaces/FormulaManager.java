@@ -29,6 +29,8 @@ import java.util.List;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 
 
+
+
 /**
  * A FormulaManager is an object that can create/manipulate
  * Formulas
@@ -236,4 +238,6 @@ public interface FormulaManager {
 
     // TODO added for RelyGuarantee
     public Formula addThreadId(Formula f, int tid);
+
+    public Formula primeFormula(Formula f, int howManyPrimes);
 }

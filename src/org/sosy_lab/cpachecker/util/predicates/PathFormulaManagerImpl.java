@@ -46,13 +46,21 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
   private Set<String> globalVariablesSet;
 
+  private static  PathFormulaManager pfManager;
+
+  public static PathFormulaManager getInstance(FormulaManager pFmgr, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+    if (pfManager == null){
+      pfManager = new PathFormulaManagerImpl(pFmgr, config, pLogger);
+    }
+    return pfManager;
+  }
+
   public PathFormulaManagerImpl(FormulaManager pFmgr, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     super(config, pFmgr, pLogger);
     globalVariablesSet = new HashSet<String>();
     for (String var: this.globalVariables){
       this.globalVariablesSet.add(var);
     }
-
 
   }
 
@@ -264,6 +272,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
   public PathFormula makeAnd(PathFormula localPathFormula, PathFormula envPathFormula,  int myTid, int sourceTid) {
     // hardcoded
 
+
     SSAMap ssa1 = localPathFormula.getSsa();
     SSAMap ssa2 = envPathFormula.getSsa();
 
@@ -300,6 +309,14 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     return new PathFormula(fmgr.makeAnd(mergedFormula, mt), mergedWithEQSSA.build(), localPathFormula.getLength()+envPathFormula.getLength());
   }
 
+
+  public PathFormula primePathFormula(PathFormula pFormula, int howManyPrimes) {
+    Formula f = pFormula.getFormula();
+    Formula fPrimed = this.fmgr.primeFormula(f, howManyPrimes);
+
+    return pFormula;
+
+  }
 
 
 
