@@ -218,7 +218,7 @@ public class CPAchecker {
 
 
 
-      ConcurrentAlgorithm algorithm = new RelyGuaranteeAlgorithm(cfas, mainFunctions, cpas, logger);
+      ConcurrentAlgorithm algorithm = new RelyGuaranteeAlgorithm(cfas, mainFunctions, cpas, config, logger);
 
       if (options.useRelyGuaranteeRefinement) {
         algorithm = new ConcurrentCEGARAlgorithm(algorithm, config, logger);

@@ -27,7 +27,6 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 import java.util.Vector;
 import java.util.logging.Level;
 
@@ -56,7 +55,8 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvEdge;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdge;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvironmentalTransition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 
@@ -110,16 +110,15 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
   private final CPAStatistics               stats = new CPAStatistics();
   private final ConfigurableProgramAnalysis       cpa;
   private final LogManager                  logger;
-  private Vector<RelyGuaranteeEnvEdge> envTransitions;
+  private Vector<RelyGuaranteeEnvironmentalTransition> envTransitions;
   private int tid;
 
-  public RelyGuaranteeThreadCPAAlgorithm(ConfigurableProgramAnalysis  cpa, Vector<RelyGuaranteeEnvEdge> envTransitions, LogManager logger, Set<String> pGlobalVariables, int tid) {
+  public RelyGuaranteeThreadCPAAlgorithm(ConfigurableProgramAnalysis  cpa, Vector<RelyGuaranteeEnvironmentalTransition> envTransitions, LogManager logger,  int tid) {
     this.cpa = cpa;
     this.envTransitions = envTransitions;
     this.logger = logger;
     this.tid = tid;
-    //this.cpa.setGlobalVariables(pGlobalVariables);
-    //this.cpa.setThreadId(tid);
+
   }
 
   @Override
@@ -169,7 +168,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
       stats.transferTimer.stop();
           // TODO stats...
           // create and environmental edge and add it the global storage
-          Vector<RelyGuaranteeEnvEdge> newEnvTransitions = createEnvTransitions(element);
+          Vector<RelyGuaranteeEnvironmentalTransition> newEnvTransitions = createEnvTransitions(element);
           if (!newEnvTransitions.isEmpty()){
             envTransitions.addAll(newEnvTransitions);
           }
@@ -292,8 +291,8 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
       System.out.println("- by local edge UNKNOWN");
     }
     else if (rgElement.getParentEdge().getEdgeType() == CFAEdgeType.EnvironmentalEdge){
-      RelyGuaranteeEnvEdge rgEdge = (RelyGuaranteeEnvEdge) rgElement.getParentEdge();
-      System.out.println("- by env. edge '"+rgEdge.getAbstractionFormula()+"','"+rgEdge.getPathFormula()+"','"+rgEdge.getLocalEdge().getRawStatement()+"'");
+      RelyGuaranteeCFAEdge rgEdge = (RelyGuaranteeCFAEdge) rgElement.getParentEdge();
+      System.out.println("- by env. edge '"+rgEdge.getPathFormula()+"','"+rgEdge.getLocalEdge().getRawStatement()+"'");
     } else {
       System.out.println("- by local edge "+rgElement.getParentEdge().getRawStatement());
     }
@@ -303,9 +302,9 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
   }
 
   // generate  environmental edges for every outgoing
-  private Vector<RelyGuaranteeEnvEdge> createEnvTransitions(AbstractElement pElement) {
+  private Vector<RelyGuaranteeEnvironmentalTransition> createEnvTransitions(AbstractElement pElement) {
     // get the underlying PredicateAbstractElement
-    Vector<RelyGuaranteeEnvEdge> envTransitions = new Vector<RelyGuaranteeEnvEdge>();
+    Vector<RelyGuaranteeEnvironmentalTransition> envTransitions = new  Vector<RelyGuaranteeEnvironmentalTransition>();
     ARTElement aElement  = (ARTElement) pElement;
     CompositeElement cElement = (CompositeElement)  aElement.getWrappedElement();
     CFANode node = cElement.retrieveLocationElement().getLocationNode();
@@ -317,7 +316,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     for (int i=0; i<node.getNumLeavingEdges(); i++){
       edge = node.getLeavingEdge(i);
       if (this.createsEnvTransition(edge)) {
-        RelyGuaranteeEnvEdge newEnvTransition = new RelyGuaranteeEnvEdge(edge, predElement.getAbstractionFormula(), predElement.getPathFormula(), this.tid);
+        RelyGuaranteeEnvironmentalTransition newEnvTransition = new RelyGuaranteeEnvironmentalTransition(predElement.getAbstractionFormula().asFormula(), predElement.getPathFormula(), edge, this.tid);
         envTransitions.add(newEnvTransition);
       }
     }

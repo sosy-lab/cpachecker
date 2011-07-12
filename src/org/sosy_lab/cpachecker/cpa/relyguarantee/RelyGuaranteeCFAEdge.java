@@ -27,13 +27,11 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
-public class RelyGuaranteeEnvEdge implements CFAEdge{
+public class RelyGuaranteeCFAEdge implements CFAEdge{
 
   private CFAEdge localEdge;
-  private AbstractionFormula abstractionFormula;
   private PathFormula pathFormula;
   private CFANode predecessor;
   private CFANode successor;
@@ -45,16 +43,14 @@ public class RelyGuaranteeEnvEdge implements CFAEdge{
    * @param abstractionFormula abstraction formula of the predecessor of the local edge
    * @param pathFormula path formula of the predecessor of the local edge
    */
-  public RelyGuaranteeEnvEdge(CFAEdge pEdge, AbstractionFormula pAbstractionFormula, PathFormula pPathFormula, int sourceTid){
+  public RelyGuaranteeCFAEdge(CFAEdge pEdge, PathFormula pPathFormula, int sourceTid){
     this.localEdge = pEdge;
-    this.abstractionFormula = pAbstractionFormula;
     this.pathFormula = pPathFormula;
     this.sourceTid = sourceTid;
   }
 
-  public RelyGuaranteeEnvEdge(RelyGuaranteeEnvEdge pOther) {
+  public RelyGuaranteeCFAEdge(RelyGuaranteeCFAEdge pOther) {
     this.localEdge = pOther.localEdge;
-    this.abstractionFormula = pOther.abstractionFormula;
     this.pathFormula = pOther.pathFormula;
     this.sourceTid = pOther.sourceTid;
   }
@@ -97,9 +93,6 @@ public class RelyGuaranteeEnvEdge implements CFAEdge{
     this.successor = node;
   }
 
-  public AbstractionFormula getAbstractionFormula(){
-    return this.abstractionFormula;
-  }
 
   public PathFormula getPathFormula() {
     return this.pathFormula;
@@ -112,7 +105,7 @@ public class RelyGuaranteeEnvEdge implements CFAEdge{
 
   @Override
   public String toString() {
-    return "RelyGuaranteeEnvEdge from "+this.sourceTid+": "+localEdge.getRawStatement()+", "+this.abstractionFormula.toString()+", "+this.pathFormula.toString();
+    return "RelyGuaranteeEnvEdge from "+this.sourceTid+": "+localEdge.getRawStatement()+", "+this.pathFormula.toString();
   }
 
   public CFAEdge getLocalEdge() {

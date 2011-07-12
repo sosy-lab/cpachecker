@@ -121,7 +121,6 @@ public class RelyGuaranteeCPA extends PredicateCPA{
     this.regionManager = BDDRegionManager.getInstance();
     // MathsatFormulaManager mathsatFormulaManager = new MathsatFormulaManager(config, logger);
     MathsatFormulaManager mathsatFormulaManager = MathsatFormulaManager.getInstance(config, logger);
-    MathsatFormulaManager msatFormulaManager =  MathsatFormulaManager.getInstance(config, logger);
     this.formulaManager = mathsatFormulaManager;
 
     //PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger);
@@ -140,9 +139,9 @@ public class RelyGuaranteeCPA extends PredicateCPA{
     }*/
 
     if (whichProver.equals("MATHSAT")) {
-      theoremProver = new MathsatTheoremProver(msatFormulaManager);
+      theoremProver = new MathsatTheoremProver(mathsatFormulaManager);
     } else if (whichProver.equals("YICES")) {
-      theoremProver = new YicesTheoremProver(msatFormulaManager);
+      theoremProver = new YicesTheoremProver(mathsatFormulaManager);
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
