@@ -69,5 +69,7 @@ public interface PathFormulaManager {
 
   PathFormula primePathFormula(PathFormula envPF, int offset);
 
+  PathFormula matchPaths(PathFormula pLocalPF, PathFormula pPrimedEnvPF);
+
 
 }

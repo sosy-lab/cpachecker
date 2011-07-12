@@ -164,6 +164,12 @@ public class CachingPathFormulaManager implements PathFormulaManager {
     return delegate.primePathFormula(pEnvPF, pOffset);
   }
 
+  // TODO maybe cache me!
+  @Override
+  public PathFormula matchPaths(PathFormula pLocalPF, PathFormula pPrimedEnvPF) {
+    return delegate.matchPaths(pLocalPF, pPrimedEnvPF);
+  }
+
 
 
 }

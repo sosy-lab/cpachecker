@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
@@ -119,7 +121,14 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
     int newLength = Math.max(pF1.getLength(), pF2.getLength());
 
-    return new PathFormula(newFormula, newSsa, newLength);
+    int max_prime;
+    if (pF1.getPrimedNo() > pF2.getPrimedNo()) {
+      max_prime = pF1.getPrimedNo();
+    } else {
+      max_prime = pF2.getPrimedNo();
+    }
+
+    return new PathFormula(newFormula, newSsa, newLength, max_prime);
   }
 
   // TODO added for RelyGuarantee
@@ -313,9 +322,71 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
 
   @Override
+  // returns path formula primed given number of times
   public PathFormula primePathFormula(PathFormula envPF, int offset) {
+    if (offset == 0) {
+      return envPF;
+    }
+    // prime the formula
     Formula primedF = this.fmgr.primeFormula(envPF.getFormula(), offset);
-    return new PathFormula(primedF, envPF.getSsa(), envPF.getLength());
+    // build a new SSAMAP
+    SSAMapBuilder primedSSA = SSAMap.emptySSAMap().builder();
+    for (String var : envPF.getSsa().allVariables()) {
+      Pair<String, Integer> data = PathFormula.getPrimeData(var);
+      String bareName = data.getFirst();
+      int primeNo = data.getSecond() + offset;
+      int idx = envPF.getSsa().getIndex(var);
+      primedSSA.setIndex(bareName+"^"+primeNo, idx);
+    }
+
+    return new PathFormula(primedF, primedSSA.build(), envPF.getLength(), envPF.getPrimedNo()+offset);
+  }
+
+  @Override
+  // merge two possible primed formulas and add  equalities for their final values
+  public PathFormula matchPaths(PathFormula localPF, PathFormula envPF) {
+    Formula f = this.fmgr.makeAnd(localPF.getFormula(), envPF.getFormula());
+    SSAMap matchedSSA = SSAMap.merge(localPF.getSsa(), envPF.getSsa());
+
+    // build maps variable -> primed_no for both formulas
+    Map<String, Integer> map1 = new HashMap<String, Integer>();
+    Map<String, Integer> map2 = new HashMap<String, Integer>();
+
+    for (String var : localPF.getSsa().allVariables()) {
+      Pair<String, Integer> data = PathFormula.getPrimeData(var);
+      map1.put(data.getFirst(), data.getSecond());
+    }
+
+    for (String var : envPF.getSsa().allVariables()) {
+      Pair<String, Integer> data = PathFormula.getPrimeData(var);
+      map2.put(data.getFirst(), data.getSecond());
+    }
+
+    // build equalities for overlapping variables
+    Formula eF = fmgr.makeTrue();
+    for (String var : map1.keySet()) {
+      if (map2.containsKey(var)) {
+        String name1 = var +"^"+ map1.get(var);
+        String name2 = var +"^"+ map2.get(var);
+        int idx1 = localPF.getSsa().getIndex(name1);
+        int idx2 = envPF.getSsa().getIndex(name2);
+        Formula var1 = fmgr.makeVariable(name1, idx1);
+        Formula var2 = fmgr.makeVariable(name2, idx2);
+        Formula eq  = fmgr.makeEqual(var1, var2);
+        eF = fmgr.makeAnd(eF, eq);
+      }
+
+    }
+    eF = fmgr.makeAnd(eF, f);
+
+    int max_prime;
+    if (localPF.getPrimedNo() > envPF.getPrimedNo()) {
+      max_prime = localPF.getPrimedNo();
+    } else {
+      max_prime = envPF.getPrimedNo();
+    }
+
+    return new PathFormula(eF, matchedSSA, localPF.getLength()+envPF.getLength(),  max_prime);
   }
 
 

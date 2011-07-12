@@ -70,6 +70,8 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
                       " if false perform only a syntatic check for equivalence")
   private boolean checkEnvTransitionCoverage = true;
 
+  // TODO option for CFA export
+
   private int threadNo;
   private CFA[] cfas;
   private CFAFunctionDefinitionNode[] mainFunctions;
@@ -149,6 +151,10 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
         printEnvTransitions();
         processEnvTransitions(i);
         printEnvTransitions();
+        //
+        addEnvTransitionsToCFA(1);
+        error = runThread(1, reached[1], stopAfterError);
+
         i = pickThread();
       } //while(i != -1 && !error);
       while(false);
@@ -213,6 +219,19 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     }
     // remember the remaining edges
     envTransitionsCreatedBy[i].addAll(rgEdges);
+
+    // distribute the env edge to other threads
+    this.envTransitionsForThread[i].removeAllElements();
+    // distribute env. edges
+    RelyGuaranteeCFAEdge edge;
+    while (!rgEdges.isEmpty()){
+      edge = rgEdges.remove(0);
+      for (int j=0; j<this.threadNo; j++){
+        if (j!=i) {
+          this.envTransitionsForThread[j].add(new RelyGuaranteeCFAEdge(edge));
+        }
+      }
+    }
   }
 
 
@@ -273,19 +292,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
 /*
   // filters abd distributes env transitions created by one thread to the others threads
   private void distributeEnvTransitions(int i) {
-    // remove all edges for thread i
-    this.envTransitionsForThread[i].removeAllElements();
-    // distribute env. edges
-    RelyGuaranteeEnvEdge edge;
-    while (!newEnvTransitions.isEmpty()){
-      edge = newEnvTransitions.remove(0);
-      for (int j=0; j<this.threadNo; j++){
-        // don't add to the same thread
-        if (j!=i){
-          this.envTransitionsForThread[j].add(new RelyGuaranteeEnvEdge(edge));
-        }
-      }
-    }
+
   }*/
 
 

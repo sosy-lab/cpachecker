@@ -35,8 +35,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -44,6 +42,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
@@ -109,8 +108,7 @@ public class MathsatFormulaManager implements FormulaManager  {
 
   private static MathsatFormulaManager    fManager;
 
-  // precompiled regex expression
-  private static Pattern primeRegex = Pattern.compile("(.+)\\^(\\d+)$");
+
 
   public MathsatFormulaManager(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, MathsatFormulaManager.class);
@@ -1005,7 +1003,7 @@ public class MathsatFormulaManager implements FormulaManager  {
 
       if (msat_term_is_variable(t) != 0) {
         Pair<String, Integer> lVariable = parseName(msat_term_repr(t));
-        String newName = primeVariable(lVariable.getFirst(),howManyPrimes);
+        String newName = PathFormula.primeVariable(lVariable.getFirst(),howManyPrimes);
         long newt = buildMsatVariable(makeName(newName, lVariable.getSecond()), msat_term_get_type(t));
         key = new Pair<Formula, Integer>(tt,howManyPrimes);
         cache.put(key, encapsulate(newt));
@@ -1055,23 +1053,9 @@ public class MathsatFormulaManager implements FormulaManager  {
     return result;
   }
 
-  // primes a variable given number of times
-  private String primeVariable(String pFirst, int pHowManyPrimes) {
-    // get the current number of primes
-    //Pattern primeRegex = Pattern.compile("(.*)\\^?(\\d*)$");
-    int currentPrime;
-    String bareName;
-    Matcher m = primeRegex.matcher(pFirst);
-    if(m.find()) {
-      bareName = m.group(1);
-      String currentPrimeStr = m.group(2);
-      currentPrime = Integer.parseInt(currentPrimeStr);
-    } else {
-      currentPrime = 0;
-      bareName = pFirst;
-    }
-    return bareName+"^"+(currentPrime+pHowManyPrimes);
-  }
+
+
+
 
 
 }

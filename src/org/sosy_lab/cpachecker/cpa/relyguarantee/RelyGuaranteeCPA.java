@@ -208,7 +208,7 @@ public class RelyGuaranteeCPA extends PredicateCPA{
     Formula fVariable=null;
     Collection<AbstractionPredicate> predicates=null;
     if (this.tid == 0){
-      fVariable = this.formulaManager.makeVariable("cs1",2);
+      fVariable = this.formulaManager.makeVariable("g",2);
     }
     else if (this.tid == 1){
       fVariable = this.formulaManager.makeVariable("g",2);

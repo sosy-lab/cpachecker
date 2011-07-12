@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 public class PathFormula {
@@ -32,6 +36,9 @@ public class PathFormula {
   private final int length;
   // how many times a formula has been primed
   private int primedNo;
+
+  // precompiled regex expression
+  private static Pattern primeRegex = Pattern.compile("(.+)\\^(\\d+)$");
 
   protected PathFormula(Formula pf, SSAMap ssa, int pLength) {
     this.formula = pf;
@@ -85,5 +92,30 @@ public class PathFormula {
   @Override
   public int hashCode() {
     return formula.hashCode() * 17 + ssa.hashCode();
+  }
+
+  // TODO maybe some caching?
+  // returns (unprimed name, number of primes)
+  public static Pair<String, Integer> getPrimeData(String pFirst) {
+    Integer currentPrime;
+    String bareName;
+    Matcher m = primeRegex.matcher(pFirst);
+    if(m.find()) {
+      bareName = m.group(1);
+      String currentPrimeStr = m.group(2);
+      currentPrime = Integer.parseInt(currentPrimeStr);
+    } else {
+      currentPrime = 0;
+      bareName = pFirst;
+    }
+
+    return new Pair<String, Integer>(bareName, currentPrime);
+  }
+
+  // primes a variable given number of times
+  public static String primeVariable(String pFirst, int pHowManyPrimes) {
+    // get the current number of primes
+    Pair<String, Integer> data = getPrimeData(pFirst);
+    return data.getFirst()+"^"+(data.getSecond()+pHowManyPrimes);
   }
 }
