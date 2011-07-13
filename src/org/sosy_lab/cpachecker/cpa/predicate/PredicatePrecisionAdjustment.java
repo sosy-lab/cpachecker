@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.ComputeAbs
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 
@@ -126,19 +125,6 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       lConstants.addAll(mMathsatFormulaManager.getConstants(abstractionFormula.asFormula()));
       lConstants.addAll(mMathsatFormulaManager.getConstants(pathFormula.getFormula()));
 
-      /*System.out.println(">>");
-      System.out.println(lConstants);
-      System.out.println("-");
-
-      lConstants.clear();
-
-      for (AbstractionPredicate lPredicate : preds) {
-        lConstants.addAll(mMathsatFormulaManager.getConstants(lPredicate.getSymbolicAtom()));
-      }
-
-      System.out.println(lConstants);
-      System.out.println("<<");*/
-
       Collection<AbstractionPredicate> lRemainingPredicates = new HashSet<AbstractionPredicate>();
 
       for (AbstractionPredicate lPredicate : preds) {
@@ -153,24 +139,19 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
           }
         }
 
-        // TODO 
-        if (mMathsatFormulaManager.isComparisonAgainstConstant(lPredicate.getSymbolicAtom())) {
-          boolean lTrue = true;
-          for (String lVariable : lPredicateVariables) {
-            if (!lVariable.equals("ssl3_accept::s__state")) {
-              lTrue = false;
-            }
-          }
+        // TODO
+        /*if (mMathsatFormulaManager.isComparisonAgainstConstant(lPredicate.getSymbolicAtom())) {
+          if (lFound) {
+            Collection<String> lPredConstants = new HashSet<String>();
 
-          if (lTrue) {
-            Collection<String> lPredConstants = mMathsatFormulaManager.getConstants(lPredicate.getSymbolicAtom());
+            lPredConstants.addAll(mMathsatFormulaManager.getConstants(lPredicate.getSymbolicAtom()));
             lPredConstants.retainAll(lConstants);
+
             if (lPredConstants.isEmpty()) {
               lFound = false;
-              //throw new RuntimeException(lPredicate.toString());
             }
           }
-	}
+        }*/
 
         // TODO think about it
         /*if (lFound && !lVariables.containsAll(lPredicateVariables)) {
@@ -180,9 +161,6 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
         if (lFound || lPredicateVariables.isEmpty()) {
           lRemainingPredicates.add(lPredicate);
-          /*if (mMathsatFormulaManager.isComparisonAgainstConstant(lPredicate.getSymbolicAtom())) {
-            System.out.println(lPredicate);
-          }*/
         }
       }
 

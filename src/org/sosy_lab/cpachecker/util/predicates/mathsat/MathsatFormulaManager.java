@@ -23,12 +23,68 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat;
 
-import static mathsat.api.*;
+import static mathsat.api.MSAT_BOOL;
+import static mathsat.api.MSAT_COMB_DTC;
+import static mathsat.api.MSAT_ERROR_DECL;
+import static mathsat.api.MSAT_ERROR_TERM;
+import static mathsat.api.MSAT_INT;
+import static mathsat.api.MSAT_LIA;
+import static mathsat.api.MSAT_LRA;
+import static mathsat.api.MSAT_MAKE_ERROR_TERM;
+import static mathsat.api.MSAT_REAL;
+import static mathsat.api.MSAT_UF;
+import static mathsat.api.msat_add_theory;
+import static mathsat.api.msat_create_env;
+import static mathsat.api.msat_create_shared_env;
+import static mathsat.api.msat_decl_get_name;
+import static mathsat.api.msat_declare_uif;
+import static mathsat.api.msat_declare_variable;
+import static mathsat.api.msat_from_msat;
+import static mathsat.api.msat_from_string;
+import static mathsat.api.msat_make_and;
+import static mathsat.api.msat_make_equal;
+import static mathsat.api.msat_make_false;
+import static mathsat.api.msat_make_geq;
+import static mathsat.api.msat_make_gt;
+import static mathsat.api.msat_make_iff;
+import static mathsat.api.msat_make_ite;
+import static mathsat.api.msat_make_leq;
+import static mathsat.api.msat_make_lt;
+import static mathsat.api.msat_make_minus;
+import static mathsat.api.msat_make_negate;
+import static mathsat.api.msat_make_not;
+import static mathsat.api.msat_make_number;
+import static mathsat.api.msat_make_or;
+import static mathsat.api.msat_make_plus;
+import static mathsat.api.msat_make_times;
+import static mathsat.api.msat_make_true;
+import static mathsat.api.msat_make_uif;
+import static mathsat.api.msat_make_variable;
+import static mathsat.api.msat_replace_args;
+import static mathsat.api.msat_set_option;
+import static mathsat.api.msat_set_theory_combination;
+import static mathsat.api.msat_term_arity;
+import static mathsat.api.msat_term_get_arg;
+import static mathsat.api.msat_term_get_decl;
+import static mathsat.api.msat_term_get_type;
+import static mathsat.api.msat_term_id;
+import static mathsat.api.msat_term_is_and;
+import static mathsat.api.msat_term_is_atom;
+import static mathsat.api.msat_term_is_equal;
+import static mathsat.api.msat_term_is_false;
+import static mathsat.api.msat_term_is_not;
+import static mathsat.api.msat_term_is_number;
+import static mathsat.api.msat_term_is_true;
+import static mathsat.api.msat_term_is_uif;
+import static mathsat.api.msat_term_is_variable;
+import static mathsat.api.msat_term_repr;
+import static mathsat.api.msat_to_msat;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -809,13 +865,13 @@ public class MathsatFormulaManager implements FormulaManager  {
   }
 
   public Collection<String> getVariables(Formula pFormula) {
-    //return getVariables(getTerm(pFormula));
     long lTerm = getTerm(pFormula);
     Collection<String> lVariables = lVariablesCache.get(lTerm);
     if (lVariables == null) {
       lVariables = getVariables(lTerm);
       lVariablesCache.put(lTerm, lVariables);
     }
+
     return lVariables;
   }
 
@@ -835,7 +891,7 @@ public class MathsatFormulaManager implements FormulaManager  {
         int lArity = msat_term_arity(lTerm);
         for (int i = 0; i < lArity; i++) {
           lWorklist.add(msat_term_get_arg(lTerm, i));
-        } 
+        }
       }
     }
 
@@ -851,8 +907,8 @@ public class MathsatFormulaManager implements FormulaManager  {
       lVariables = getVariables2(lTerm);
       lVariablesCache.put(lTerm, lVariables);
     }
+
     return lVariables;
-    //return getVariables2(getTerm(pFormula));
   }
 
   public Collection<String> getVariables2(long pTerm) {
@@ -878,9 +934,17 @@ public class MathsatFormulaManager implements FormulaManager  {
     return lVariables;
   }
 
+  HashMap<Long, Collection<String>> mConstantsCache = new HashMap<Long, Collection<String>>();
+
   public Collection<String> getConstants(Formula pFormula) {
     long lTerm = getTerm(pFormula);
-    Collection<String> lConstants = new HashSet<String>();
+    Collection<String> lConstants = mConstantsCache.get(lTerm);
+
+    if (lConstants != null) {
+      return lConstants;
+    }
+
+    lConstants = new HashSet<String>();
 
     LinkedList<Long> lWorklist = new LinkedList<Long>();
     lWorklist.add(lTerm);
@@ -898,6 +962,10 @@ public class MathsatFormulaManager implements FormulaManager  {
         }
       }
     }
+
+    lConstants = Collections.unmodifiableCollection(lConstants);
+
+    mConstantsCache.put(lTerm, lConstants);
 
     return lConstants;
   }
