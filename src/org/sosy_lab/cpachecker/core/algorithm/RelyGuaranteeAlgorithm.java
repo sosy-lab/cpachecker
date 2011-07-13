@@ -27,6 +27,7 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.Vector;
 import java.util.Map.Entry;
@@ -38,6 +39,9 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.DOTBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -70,6 +74,9 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
                       " if false perform only a syntatic check for equivalence")
   private boolean checkEnvTransitionCoverage = true;
 
+  @Option(description="List of variables global to multiple threads")
+  protected String[] globalVariables = {};
+
   // TODO option for CFA export
 
   private int threadNo;
@@ -84,8 +91,10 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
   private Vector<RelyGuaranteeCFAEdge>[] envTransitionsCreatedBy;
   // CPA for each thread
   private RelyGuaranteeThreadCPAAlgorithm[] threadCPA;
-  //
-  public Set<String> globalVariables;
+  // data structure for deciding whether a variable is global
+  private Set<String> globalVarsSet;
+
+  // managers
   private PathFormulaManager pfManager;
   private FormulaManager     fManager;
   private RegionManager rManager = BDDRegionManager.getInstance();
@@ -99,9 +108,13 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     this.cpas = pCpas;
     this.logger = logger;
 
+
+
     // TODO add option for caching
     MathsatFormulaManager msatFormulaManager;
     try {
+      config.inject(this, RelyGuaranteeAlgorithm.class);
+      // set up managers
       msatFormulaManager = MathsatFormulaManager .getInstance(config, logger);
       this.fManager = msatFormulaManager;
       PathFormulaManager pfMgr  = PathFormulaManagerImpl.getInstance(msatFormulaManager, config, logger);
@@ -111,10 +124,17 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
       e.printStackTrace();
     }
 
+    // create a set of global variables
+    globalVarsSet = new HashSet<String>();
+    for (String var : globalVariables) {
+      globalVarsSet.add(var);
+    }
+
     threadCPA = new RelyGuaranteeThreadCPAAlgorithm[this.threadNo];
     envTransitionsForThread = new Vector[this.threadNo];
     envTransitionsCreatedBy = new Vector[this.threadNo];
     newEnvTransitions = new Vector<RelyGuaranteeEnvironmentalTransition>();
+
 
 
     // create RelyGuaranteeThreadCPAAlgorithms for each thread
@@ -150,7 +170,6 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
         error = runThread(i, reached[i], stopAfterError);
         printEnvTransitions();
         processEnvTransitions(i);
-        printEnvTransitions();
         //
         addEnvTransitionsToCFA(1);
         error = runThread(1, reached[1], stopAfterError);
@@ -202,7 +221,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
       PathFormula pf = et.getPathFormula();
       CFAEdge localEdge = et.getEdge();
       int sourceThread = et.getSourceThread();
-      // add genete transition with 'false' abstractionor path formulas
+      // don't generate transition with 'false' abstraction or path formulas
       if (f.isFalse() || pf.getFormula().isFalse()) {
         System.out.println("Skipping "+et);
         continue;
@@ -212,6 +231,10 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
         rgEdges.add(rgEdge);
       }
     }
+    // clean newEnvTransitions
+    newEnvTransitions.removeAllElements();
+    // remove CFA edges that assign to local variables
+    removeLocalEdges(rgEdges);
     // remove CFA edges that are covered
     syntacticCoverageCheck(rgEdges,  i);
     if (checkEnvTransitionCoverage) {
@@ -223,9 +246,11 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     // distribute the env edge to other threads
     this.envTransitionsForThread[i].removeAllElements();
     // distribute env. edges
+    System.out.println("## Env filetered left ##");
     RelyGuaranteeCFAEdge edge;
     while (!rgEdges.isEmpty()){
       edge = rgEdges.remove(0);
+      System.out.println(edge);
       for (int j=0; j<this.threadNo; j++){
         if (j!=i) {
           this.envTransitionsForThread[j].add(new RelyGuaranteeCFAEdge(edge));
@@ -234,7 +259,25 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     }
   }
 
+  //remove CFA edges that assign to local variables
+  // TODO compleate
+  private void removeLocalEdges(Vector<RelyGuaranteeCFAEdge> rgEdges) {
+    Vector<RelyGuaranteeCFAEdge> toDelete = new Vector<RelyGuaranteeCFAEdge>();
+    for (RelyGuaranteeCFAEdge edge : rgEdges) {
+      IASTNode node = edge.getLocalEdge().getRawAST();
+      if (node instanceof IASTExpressionAssignmentStatement) {
+        IASTExpressionAssignmentStatement stmNode = (IASTExpressionAssignmentStatement) node;
+        if (stmNode.getLeftHandSide() instanceof IASTIdExpression) {
+          IASTIdExpression idExp = (IASTIdExpression) stmNode.getLeftHandSide();
+          if(! globalVarsSet.contains(idExp.getName())){
+            toDelete.add(edge);
+          }
+        }
 
+      }
+    }
+    rgEdges.removeAll(toDelete);
+  }
 
 
   // removed env edges that are equivalent to edges that have been generated before
@@ -355,9 +398,8 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     for (RelyGuaranteeEnvironmentalTransition edge : this.newEnvTransitions){
       System.out.println(edge);
     }
-    // TODO Auto-generated method stub
-
   }
+
 
 
 

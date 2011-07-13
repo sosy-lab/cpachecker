@@ -28,8 +28,11 @@ import java.util.Map;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
@@ -135,10 +138,6 @@ public class CachingPathFormulaManager implements PathFormulaManager {
     return delegate.makeNewPathFormula(pOldFormula, pM);
   }
 
-  @Override
-  public PathFormula makeAnd(PathFormula pPathFormula,  PathFormula pShiftedEnvPathFormula, int myTid, int sourceTid) {
-    return delegate.makeAnd(pPathFormula, pShiftedEnvPathFormula, myTid, sourceTid);
-  }
 
   /*@Override
   public PathFormula shiftFormula(PathFormula pFormula, int pOffset) {
@@ -168,6 +167,12 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   @Override
   public PathFormula matchPaths(PathFormula pLocalPF, PathFormula pPrimedEnvPF) {
     return delegate.matchPaths(pLocalPF, pPrimedEnvPF);
+  }
+
+
+  @Override
+  public Formula buildLvalueTerm(IASTExpression pExp, String pFunction, SSAMapBuilder pSsa) throws UnrecognizedCCodeException {
+    return delegate.buildLvalueTerm(pExp, pFunction, pSsa);
   }
 
 

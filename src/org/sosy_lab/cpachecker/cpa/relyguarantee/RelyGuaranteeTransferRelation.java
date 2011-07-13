@@ -207,6 +207,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
     } finally {
       pathFormulaTimer.stop();
     }
+
     return newPathFormula;
   }
 
@@ -214,12 +215,16 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
   // Create a path formula from an env. edge and a local pathFormula
   private PathFormula handleEnvFormula(PathFormula localPF, RelyGuaranteeCFAEdge edge) throws CPATransferException {
    PathFormula envPF = edge.getPathFormula();
+
    // prime the env. path formula so it does not collide with the local path formula
    int offset = localPF.getPrimedNo() + 1;
    PathFormula primedEnvPF = pathFormulaManager.primePathFormula(envPF, offset);
    // make equalities between the last global values in the local and env. path formula
    PathFormula matchedPF = pathFormulaManager.matchPaths(localPF, primedEnvPF);
    // apply the strongest postcondition with respect on the local values
+   PathFormula finalPF = pathFormulaManager.makeAnd(matchedPF, edge.getLocalEdge());
+
+
 
     // prime
   /*  RelyGuaranteeEnvEdge envEdge = (RelyGuaranteeEnvEdge) edge;
@@ -229,7 +234,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
     PathFormula newPathFormula = pathFormulaManager.makeAnd(lEnvironmentFormula, envEdge.getLocalEdge(), envEdge.getSourceTid());
     // mergePathFormua = Post_op(psi1 ^ phi1) ^ phi2 ^ equalities over phi2 and (psi1 ^ phi1)
     PathFormula mergedPathFormula = pathFormulaManager.makeAnd(pathFormula, newPathFormula, tid, envEdge.getSourceTid());*/
-    return matchedPF;
+    return finalPF;
   }
 
   /**

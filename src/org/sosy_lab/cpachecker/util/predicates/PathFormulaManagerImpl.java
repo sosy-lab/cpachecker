@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -59,11 +58,6 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
   public PathFormulaManagerImpl(FormulaManager pFmgr, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     super(config, pFmgr, pLogger);
-    globalVariablesSet = new HashSet<String>();
-    for (String var: this.globalVariables){
-      this.globalVariablesSet.add(var);
-    }
-
   }
 
 
@@ -277,7 +271,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     return lShiftedFormula;
   }*/
 
-  @Override
+ /* @Override
   public PathFormula makeAnd(PathFormula localPathFormula, PathFormula envPathFormula,  int myTid, int sourceTid) {
     // hardcoded
 
@@ -316,7 +310,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     }
     // TODO correct length
     return new PathFormula(fmgr.makeAnd(mergedFormula, mt), mergedWithEQSSA.build(), localPathFormula.getLength()+envPathFormula.getLength());
-  }
+  }*/
 
 
 
@@ -363,7 +357,24 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     }
 
     // build equalities for overlapping variables
+    // if a variable appears only in env path, then make equality with ssa index 1.
     Formula eF = fmgr.makeTrue();
+    for (String var : map2.keySet()) {
+      String name2 = var +"^"+ map2.get(var);
+      int idx2 = envPF.getSsa().getIndex(name2);
+      String name1 = var;
+      int idx1     =  1;
+      if (map1.containsKey(var)) {
+        name1 = var +"^"+ map1.get(var);
+        idx1 = localPF.getSsa().getIndex(name1);
+      }
+      Formula var1 = fmgr.makeVariable(name1, idx1);
+      Formula var2 = fmgr.makeVariable(name2, idx2);
+      Formula eq  = fmgr.makeEqual(var1, var2);
+      eF = fmgr.makeAnd(eF, eq);
+    }
+    // build equalities for overlapping variables
+    /*Formula eF = fmgr.makeTrue();
     for (String var : map1.keySet()) {
       if (map2.containsKey(var)) {
         String name1 = var +"^"+ map1.get(var);
@@ -376,7 +387,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
         eF = fmgr.makeAnd(eF, eq);
       }
 
-    }
+    }*/
     eF = fmgr.makeAnd(eF, f);
 
     int max_prime;

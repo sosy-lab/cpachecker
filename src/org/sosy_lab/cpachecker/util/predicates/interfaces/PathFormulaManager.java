@@ -23,10 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 
 public interface PathFormulaManager {
 
@@ -62,7 +65,7 @@ public interface PathFormulaManager {
 
 
 
-  PathFormula makeAnd(PathFormula pLocalPathFormula, PathFormula pEnvPathFormula, int pMyTid, int pSourceTid);
+  //PathFormula makeAnd(PathFormula pLocalPathFormula, PathFormula pEnvPathFormula, int pMyTid, int pSourceTid);
 
   // returns an empty path formula with a clean SSAMap from variables that do not belong to this thread
   PathFormula makeEmptyPathFormula(PathFormula pPathFormula,  int pThreadId);
@@ -70,6 +73,9 @@ public interface PathFormulaManager {
   PathFormula primePathFormula(PathFormula envPF, int offset);
 
   PathFormula matchPaths(PathFormula pLocalPF, PathFormula pPrimedEnvPF);
+
+  // for testing...
+  Formula buildLvalueTerm(IASTExpression exp, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException;
 
 
 }
