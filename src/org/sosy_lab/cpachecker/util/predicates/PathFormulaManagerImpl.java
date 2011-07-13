@@ -365,7 +365,9 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
       String name1 = var;
       int idx1     =  1;
       if (map1.containsKey(var)) {
-        name1 = var +"^"+ map1.get(var);
+        if (map1.get(var) > 0){
+          name1 = var +"^"+ map1.get(var);
+        }
         idx1 = localPF.getSsa().getIndex(name1);
       }
       Formula var1 = fmgr.makeVariable(name1, idx1);
@@ -373,21 +375,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
       Formula eq  = fmgr.makeEqual(var1, var2);
       eF = fmgr.makeAnd(eF, eq);
     }
-    // build equalities for overlapping variables
-    /*Formula eF = fmgr.makeTrue();
-    for (String var : map1.keySet()) {
-      if (map2.containsKey(var)) {
-        String name1 = var +"^"+ map1.get(var);
-        String name2 = var +"^"+ map2.get(var);
-        int idx1 = localPF.getSsa().getIndex(name1);
-        int idx2 = envPF.getSsa().getIndex(name2);
-        Formula var1 = fmgr.makeVariable(name1, idx1);
-        Formula var2 = fmgr.makeVariable(name2, idx2);
-        Formula eq  = fmgr.makeEqual(var1, var2);
-        eF = fmgr.makeAnd(eF, eq);
-      }
 
-    }*/
     eF = fmgr.makeAnd(eF, f);
 
     int max_prime;

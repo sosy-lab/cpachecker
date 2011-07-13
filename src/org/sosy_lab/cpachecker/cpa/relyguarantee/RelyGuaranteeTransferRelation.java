@@ -222,18 +222,9 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
    // make equalities between the last global values in the local and env. path formula
    PathFormula matchedPF = pathFormulaManager.matchPaths(localPF, primedEnvPF);
    // apply the strongest postcondition with respect on the local values
+   // TODO this could be slightly optimised - bypass some equalities
    PathFormula finalPF = pathFormulaManager.makeAnd(matchedPF, edge.getLocalEdge());
 
-
-
-    // prime
-  /*  RelyGuaranteeEnvEdge envEdge = (RelyGuaranteeEnvEdge) edge;
-    //  lEnvironmentFormula = psi1 ^ phi1
-    PathFormula lEnvironmentFormula = pathFormulaManager.makeAnd(envEdge.getPathFormula(), envEdge.getAbstractionFormula().asFormula());
-    // newPathFormula = Post_op( psi1 ^ phi1)
-    PathFormula newPathFormula = pathFormulaManager.makeAnd(lEnvironmentFormula, envEdge.getLocalEdge(), envEdge.getSourceTid());
-    // mergePathFormua = Post_op(psi1 ^ phi1) ^ phi2 ^ equalities over phi2 and (psi1 ^ phi1)
-    PathFormula mergedPathFormula = pathFormulaManager.makeAnd(pathFormula, newPathFormula, tid, envEdge.getSourceTid());*/
     return finalPF;
   }
 
