@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.fshell;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -100,7 +101,6 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.SetMultimap;
 
 /*
  * TODO AutomatonBuilder <- integrate State-Pool there to ensure correct time
@@ -374,7 +374,19 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     boolean pHadProgress = false;
 
+    long[] lGoalRuntime = new long[lNumberOfTestGoals];
+
+    for (int i = 0; i < lGoalRuntime.length; i++) {
+      lGoalRuntime[i] = -1; // value indicating invalid value
+    }
+
     while (lGoalIterator.hasNext()) {
+      if (lIndex > 0) {
+        System.out.println("Goal #" + (lIndex) + " needed " + lGoalRuntime[lIndex - 1] + " ms");
+      }
+
+      long lStartTime = System.currentTimeMillis();
+
       if (mDoRestart) {
         try {
           Sigar lSigar = new Sigar();
@@ -477,6 +489,10 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         mFeasibilityInformation.setStatus(lIndex, FeasibilityInformation.FeasibilityStatus.FEASIBLE);
 
         if (!pCheckReachWhenCovered) {
+          long lEndTime = System.currentTimeMillis();
+
+          lGoalRuntime[lIndex - 1] = lEndTime - lStartTime;
+
           lTimeAccu.pause(lFeasibleTestGoalsTimeSlot);
 
           continue;
@@ -526,6 +542,10 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         lResultFactory.addInfeasibleTestCase(lGoal.getPattern());
 
         lTimeAccu.pause(lInfeasibleTestGoalsTimeSlot);
+
+        long lEndTime = System.currentTimeMillis();
+
+        lGoalRuntime[lIndex - 1] = lEndTime - lStartTime;
       }
       else {
         lTimeCover.proceed();
@@ -582,8 +602,14 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
         lTimeAccu.pause(lFeasibleTestGoalsTimeSlot);
         lTimeCover.pause();
+
+        long lEndTime = System.currentTimeMillis();
+
+        lGoalRuntime[lIndex - 1] = lEndTime - lStartTime;
       }
     }
+
+    System.out.println("Goal #" + (lIndex) + " needed " + lGoalRuntime[lIndex - 1] + " ms");
 
     mOutput.println("Number of CFA infeasible test goals: " + lNumberOfCFAInfeasibleGoals);
 
@@ -601,6 +627,12 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     }*/
 
     printStatistics(lResultFactory);
+
+    // print per goal runtimes
+    Arrays.sort(lGoalRuntime);
+    for (int i = 0; i < lGoalRuntime.length; i++) {
+      System.out.println("#" + (i + 1) + ": " + lGoalRuntime[i] + " ms");
+    }
 
     return lResult;
   }
