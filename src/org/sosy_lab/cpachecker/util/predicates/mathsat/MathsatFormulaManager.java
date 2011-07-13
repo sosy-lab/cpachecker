@@ -646,8 +646,8 @@ public class MathsatFormulaManager implements FormulaManager  {
         boolean childrenDone = true;
         long[] newargs = new long[msat_term_arity(t)];
         for (int i = 0; i < newargs.length; ++i) {
-          // TODO no idea if 0 here is correct
-          Formula c = encapsulate(msat_term_get_arg(t, i), 0);
+          // TODO no idea if tt.getAtomNo()-1 is correct
+          Formula c = encapsulate(msat_term_get_arg(t, i), tt.getAtomNo()-1);
           Formula newC = cache.get(c);
           if (newC != null) {
             newargs[i] = getTerm(newC);
@@ -1019,7 +1019,7 @@ public class MathsatFormulaManager implements FormulaManager  {
         boolean childrenDone = true;
         long[] newargs = new long[msat_term_arity(t)];
         for (int i = 0; i < newargs.length; ++i) {
-          Formula c = encapsulate(msat_term_get_arg(t, i));
+          Formula c = encapsulate(msat_term_get_arg(t, i), tt.getAtomNo()-1);
           key = new Pair<Formula, Integer>(c,howManyPrimes);
           Formula newC = cache.get(key);
           if (newC != null) {
