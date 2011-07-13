@@ -23,10 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
+import java.util.logging.Level;
+
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateMergeOperator;
+import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
 
 public class RelyGuaranteeMergeOperator extends PredicateMergeOperator {
@@ -48,8 +51,7 @@ public class RelyGuaranteeMergeOperator extends PredicateMergeOperator {
     RelyGuaranteeAbstractElement elem1 = (RelyGuaranteeAbstractElement)element1;
     RelyGuaranteeAbstractElement elem2 = (RelyGuaranteeAbstractElement)element2;
 
-    return elem2;
-   /* // this will be the merged element
+    // this will be the merged element
     RelyGuaranteeAbstractElement merged;
 
     if (elem1 instanceof RelyGuaranteeAbstractElement.AbstractionElement || elem2 instanceof RelyGuaranteeAbstractElement.AbstractionElement) {
@@ -79,7 +81,7 @@ public class RelyGuaranteeMergeOperator extends PredicateMergeOperator {
       }
     }
 
-    return merged;*/
+    return merged;
   }
 
 }

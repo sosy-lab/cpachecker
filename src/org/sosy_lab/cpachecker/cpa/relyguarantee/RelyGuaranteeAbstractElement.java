@@ -179,7 +179,7 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
 
  @Override
  public String toString() {
-   return "Non-abstraction, '"+this.getAbstractionFormula()+"','"+this.getPathFormula()+"' with SSA "+this.getPathFormula().getSsa();
+   return "Non-abstraction, '"+this.getAbstractionFormula()+"','"+this.getPathFormula()+"' SSA "+this.getPathFormula().getSsa()+" atomNo="+this.getPathFormula().getAtomNo();
  }
 
  @Override

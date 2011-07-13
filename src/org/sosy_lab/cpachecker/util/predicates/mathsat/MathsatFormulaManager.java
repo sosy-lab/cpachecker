@@ -130,8 +130,8 @@ public class MathsatFormulaManager implements FormulaManager  {
 
     stringLitUfDecl = msat_declare_uif(msatEnv, "__string__", msatVarType, 1, msatVarType1);
 
-    trueFormula = encapsulate(msat_make_true(msatEnv));
-    falseFormula = encapsulate(msat_make_false(msatEnv));
+    trueFormula = encapsulate(msat_make_true(msatEnv),0);
+    falseFormula = encapsulate(msat_make_false(msatEnv),0);
 
   }
 
@@ -188,6 +188,10 @@ public class MathsatFormulaManager implements FormulaManager  {
     return new MathsatFormula(t);
   }
 
+  static Formula encapsulate(long t, int pI) {
+    return new MathsatFormula(t, pI);
+  }
+
   private static FormulaList encapsulate(long[] t) {
     return new MathsatFormulaList(t);
   }
@@ -224,27 +228,28 @@ public class MathsatFormulaManager implements FormulaManager  {
 
   @Override
   public Formula makeNot(Formula f) {
-    return encapsulate(msat_make_not(msatEnv, getTerm(f)));
+    return encapsulate(msat_make_not(msatEnv, getTerm(f)), f.getAtomNo());
   }
 
   @Override
   public Formula makeAnd(Formula f1, Formula f2) {
-    return encapsulate(msat_make_and(msatEnv, getTerm(f1), getTerm(f2)));
+    return encapsulate(msat_make_and(msatEnv, getTerm(f1), getTerm(f2)), f1.getAtomNo()+f2.getAtomNo());
   }
+
 
   @Override
   public Formula makeOr(Formula f1, Formula f2) {
-    return encapsulate(msat_make_or(msatEnv, getTerm(f1), getTerm(f2)));
+    return encapsulate(msat_make_or(msatEnv, getTerm(f1), getTerm(f2)),  f1.getAtomNo()+f2.getAtomNo());
   }
 
   @Override
   public Formula makeEquivalence(Formula f1, Formula f2) {
-    return encapsulate(msat_make_iff(msatEnv, getTerm(f1), getTerm(f2)));
+    return encapsulate(msat_make_iff(msatEnv, getTerm(f1), getTerm(f2)),  1);
   }
 
   @Override
   public Formula makeIfThenElse(Formula condition, Formula f1, Formula f2) {
-    return encapsulate(msat_make_ite(msatEnv, getTerm(condition), getTerm(f1), getTerm(f2)));
+    return encapsulate(msat_make_ite(msatEnv, getTerm(condition), getTerm(f1), getTerm(f2)), condition.getAtomNo()+f1.getAtomNo()+f2.getAtomNo());
   }
 
 
@@ -252,7 +257,7 @@ public class MathsatFormulaManager implements FormulaManager  {
 
   @Override
   public Formula makeNegate(Formula f) {
-    return encapsulate(msat_make_negate(msatEnv, getTerm(f)));
+    return encapsulate(msat_make_negate(msatEnv, getTerm(f)), 0);
   }
 
   @Override
@@ -262,17 +267,17 @@ public class MathsatFormulaManager implements FormulaManager  {
 
   @Override
   public Formula makeNumber(String i) {
-    return encapsulate(msat_make_number(msatEnv, i));
+    return encapsulate(msat_make_number(msatEnv, i), 0);
   }
 
   @Override
   public Formula makePlus(Formula f1, Formula f2) {
-    return encapsulate(msat_make_plus(msatEnv, getTerm(f1), getTerm(f2)));
+    return encapsulate(msat_make_plus(msatEnv, getTerm(f1), getTerm(f2)), 0);
   }
 
   @Override
   public Formula makeMinus(Formula f1, Formula f2) {
-    return encapsulate(msat_make_minus(msatEnv, getTerm(f1), getTerm(f2)));
+    return encapsulate(msat_make_minus(msatEnv, getTerm(f1), getTerm(f2)), 0);
   }
 
   @Override
@@ -299,7 +304,7 @@ public class MathsatFormulaManager implements FormulaManager  {
     } else {
       result = msat_make_uif(msatEnv, divUfDecl, new long[]{t1, t2});
     }
-    return encapsulate(result);
+    return encapsulate(result,0);
   }
 
   @Override
@@ -321,34 +326,34 @@ public class MathsatFormulaManager implements FormulaManager  {
       result = msat_make_uif(msatEnv, multUfDecl, new long[]{t1, t2});
     }
 
-    return encapsulate(result);
+    return encapsulate(result,0);
   }
 
   // ----------------- Numeric relations -----------------
 
   @Override
   public Formula makeEqual(Formula f1, Formula f2) {
-    return encapsulate(msat_make_equal(msatEnv, getTerm(f1), getTerm(f2)));
+    return encapsulate(msat_make_equal(msatEnv, getTerm(f1), getTerm(f2)), 1);
   }
 
   @Override
   public Formula makeGt(Formula f1, Formula f2) {
-    return encapsulate(msat_make_gt(msatEnv, getTerm(f1), getTerm(f2)));
+    return encapsulate(msat_make_gt(msatEnv, getTerm(f1), getTerm(f2)), 1);
   }
 
   @Override
   public Formula makeGeq(Formula f1, Formula f2) {
-    return encapsulate(msat_make_geq(msatEnv, getTerm(f1), getTerm(f2)));
+    return encapsulate(msat_make_geq(msatEnv, getTerm(f1), getTerm(f2)), 1);
   }
 
   @Override
   public Formula makeLt(Formula f1, Formula f2) {
-    return encapsulate(msat_make_lt(msatEnv, getTerm(f1), getTerm(f2)));
+    return encapsulate(msat_make_lt(msatEnv, getTerm(f1), getTerm(f2)), 1);
   }
 
   @Override
   public Formula makeLeq(Formula f1, Formula f2) {
-    return encapsulate(msat_make_leq(msatEnv, getTerm(f1), getTerm(f2)));
+    return encapsulate(msat_make_leq(msatEnv, getTerm(f1), getTerm(f2)), 1);
   }
 
   // ----------------- Bit-manipulation functions -----------------
@@ -483,7 +488,7 @@ public class MathsatFormulaManager implements FormulaManager  {
     long d = msat_declare_variable(msatEnv, "\"PRED" + repr + "\"", MSAT_BOOL);
     long var = msat_make_variable(msatEnv, d);
 
-    return encapsulate(var);
+    return encapsulate(var, 1);
   }
 
   @Override
@@ -544,6 +549,7 @@ public class MathsatFormulaManager implements FormulaManager  {
     Deque<Formula> toProcess = new ArrayDeque<Formula>();
     Map<Formula, Formula> cache = new HashMap<Formula, Formula>();
 
+
     toProcess.push(f);
     while (!toProcess.isEmpty()) {
       final Formula tt = toProcess.peek();
@@ -560,7 +566,7 @@ public class MathsatFormulaManager implements FormulaManager  {
         if (idx > 0) {
           // ok, the variable has an instance in the SSA, replace it
           long newt = buildMsatVariable(makeName(name, idx), msat_term_get_type(t));
-          cache.put(tt, encapsulate(newt));
+          cache.put(tt, encapsulate(newt,0));
         } else {
           // the variable is not used in the SSA, keep it as is
           cache.put(tt, tt);
@@ -602,7 +608,7 @@ public class MathsatFormulaManager implements FormulaManager  {
             newt = msat_replace_args(msatEnv, t, newargs);
           }
 
-          cache.put(tt, encapsulate(newt));
+          cache.put(tt, encapsulate(newt, tt.getAtomNo()));
         }
       }
     }
@@ -634,13 +640,14 @@ public class MathsatFormulaManager implements FormulaManager  {
         String name = parseName(msat_term_repr(t)).getFirst();
 
         long newt = buildMsatVariable(name, msat_term_get_type(t));
-        cache.put(tt, encapsulate(newt));
+        cache.put(tt, encapsulate(newt,0));
 
       } else {
         boolean childrenDone = true;
         long[] newargs = new long[msat_term_arity(t)];
         for (int i = 0; i < newargs.length; ++i) {
-          Formula c = encapsulate(msat_term_get_arg(t, i));
+          // TODO no idea if 0 here is correct
+          Formula c = encapsulate(msat_term_get_arg(t, i), 0);
           Formula newC = cache.get(c);
           if (newC != null) {
             newargs[i] = getTerm(newC);
@@ -668,7 +675,7 @@ public class MathsatFormulaManager implements FormulaManager  {
             newt = msat_replace_args(msatEnv, t, newargs);
           }
 
-          cache.put(tt, encapsulate(newt));
+          cache.put(tt, encapsulate(newt, tt.getAtomNo()));
         }
       }
     }
@@ -761,7 +768,7 @@ public class MathsatFormulaManager implements FormulaManager  {
           long a2 = msat_term_get_arg(t, 1);
           long t1 = msat_make_leq(msatEnv, a1, a2);
           //long t2 = msat_make_leq(msatEnv, a2, a1);
-          Formula tt1 = encapsulate(t1);
+          Formula tt1 = encapsulate(t1,1);
           //SymbolicFormula tt2 = encapsulate(t2);
           cache.add(tt1);
           //cache.add(tt2);
@@ -781,7 +788,7 @@ public class MathsatFormulaManager implements FormulaManager  {
       } else {
         // ok, go into this formula
         for (int i = 0; i < msat_term_arity(t); ++i){
-          Formula c = encapsulate(msat_term_get_arg(t, i));
+          Formula c = encapsulate(msat_term_get_arg(t, i),1);
           if (!cache.contains(c)) {
             toProcess.push(c);
           }
@@ -1006,7 +1013,7 @@ public class MathsatFormulaManager implements FormulaManager  {
         String newName = PathFormula.primeVariable(lVariable.getFirst(),howManyPrimes);
         long newt = buildMsatVariable(makeName(newName, lVariable.getSecond()), msat_term_get_type(t));
         key = new Pair<Formula, Integer>(tt,howManyPrimes);
-        cache.put(key, encapsulate(newt));
+        cache.put(key, encapsulate(newt, 0));
 
       } else {
         boolean childrenDone = true;
@@ -1042,7 +1049,7 @@ public class MathsatFormulaManager implements FormulaManager  {
           }
 
           key = new Pair<Formula, Integer>(tt,howManyPrimes);
-          cache.put(key, encapsulate(newt));
+          cache.put(key, encapsulate(newt, tt.getAtomNo()));
         }
       }
     }

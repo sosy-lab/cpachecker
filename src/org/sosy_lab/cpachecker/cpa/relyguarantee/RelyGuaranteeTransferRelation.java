@@ -70,6 +70,11 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
         + "(non-negative number, special values: 0 = don't check threshold, 1 = SBE)")
   private int absBlockSize = 0;
 
+  @Option(name="blk.atomThreshold",
+      description="maximum number of atoms in a path formula before abstraction is forced\n"
+        + "(non-negative number, special values: 0 = don't check threshold, 1 = SBE)")
+  private int atomThreshold = 0;
+
   @Option(name="blk.functions",
       description="force abstractions on function call/return")
   private boolean absOnFunction = true;
@@ -145,7 +150,6 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
 
 
     } finally {
-      //System.out.println();
       postTimer.stop();
     }
   }
@@ -221,7 +225,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
    PathFormula primedEnvPF = pathFormulaManager.primePathFormula(envPF, offset);
    // make equalities between the last global values in the local and env. path formula
    PathFormula matchedPF = pathFormulaManager.matchPaths(localPF, primedEnvPF);
-   // apply the strongest postcondition with respect on the local values
+   // apply the strongest postcondition with respect to the local values
    // TODO this could be slightly optimised - bypass some equalities
    PathFormula finalPF = pathFormulaManager.makeAnd(matchedPF, edge.getLocalEdge());
 
@@ -260,8 +264,8 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
       }
     }
 
-    if (absBlockSize > 0) {
-      boolean threshold = (pf.getLength() >= absBlockSize);
+    if (atomThreshold > 0) {
+      boolean threshold = (pf.getAtomNo() >= atomThreshold);
       if (threshold) {
         numBlkThreshold++;
       }

@@ -63,12 +63,12 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
   @Override
   public PathFormula makeEmptyPathFormula() {
-    return new PathFormula(fmgr.makeTrue(), SSAMap.emptySSAMap(), 0);
+    return new PathFormula(fmgr.makeTrue(), SSAMap.emptySSAMap(), 0, 0);
   }
 
   @Override
   public PathFormula makeEmptyPathFormula(PathFormula oldFormula) {
-    return new PathFormula(fmgr.makeTrue(), oldFormula.getSsa(), 0);
+    return new PathFormula(fmgr.makeTrue(), oldFormula.getSsa(), 0, 0);
   }
 
   // returns an empty path formula with a clean SSAMap from variables that do not belong to this thread
@@ -89,7 +89,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
     }
 
-    return new PathFormula(fmgr.makeTrue(), cleanMap.build(), 0);
+    return new PathFormula(fmgr.makeTrue(), cleanMap.build(), 0, 0);
   }
 
   @Override
@@ -358,6 +358,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
     // build equalities for overlapping variables
     // if a variable appears only in env path, then make equality with ssa index 1.
+    int equalitiesNo = 0;
     Formula eF = fmgr.makeTrue();
     for (String var : map2.keySet()) {
       String name2 = var +"^"+ map2.get(var);
@@ -374,6 +375,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
       Formula var2 = fmgr.makeVariable(name2, idx2);
       Formula eq  = fmgr.makeEqual(var1, var2);
       eF = fmgr.makeAnd(eF, eq);
+      equalitiesNo++;
     }
 
     eF = fmgr.makeAnd(eF, f);
@@ -385,6 +387,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
       max_prime = envPF.getPrimedNo();
     }
 
+    int atomNo = localPF.getAtomNo() + envPF.getAtomNo() + equalitiesNo;
     return new PathFormula(eF, matchedSSA, localPF.getLength()+envPF.getLength(),  max_prime);
   }
 

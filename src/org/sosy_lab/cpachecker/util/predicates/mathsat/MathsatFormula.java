@@ -32,13 +32,25 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 public class MathsatFormula implements Formula {
 
     private final long msatTerm;
+    private final int  atomNo;
 
     public MathsatFormula(long t) {
         if (mathsat.api.MSAT_ERROR_TERM(t)) {
           throw new IllegalArgumentException("Error term is not a valid formula");
         }
         msatTerm = t;
+        atomNo = Formula.UNKNOWN;
     }
+
+    public MathsatFormula(long t, int pAtomNo) {
+      if (mathsat.api.MSAT_ERROR_TERM(t)) {
+        throw new IllegalArgumentException("Error term is not a valid formula");
+      }
+      msatTerm = t;
+      atomNo = pAtomNo;
+  }
+
+
 
     @Override
     public boolean isFalse() {
@@ -67,4 +79,11 @@ public class MathsatFormula implements Formula {
     public int hashCode() {
         return (int)msatTerm;
     }
+
+    @Override
+    public int getAtomNo() {
+      return this.atomNo;
+    }
+
+
 }

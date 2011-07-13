@@ -27,6 +27,8 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
  * A generic interface for manipulating symbolic representations of formulas.
  */
 public interface Formula {
+    static int UNKNOWN = Integer.MIN_VALUE;
+
     /**
      * checks whether this formula represents "true"
      * @return true if this formula represents logical truth, false otherwise
@@ -38,4 +40,7 @@ public interface Formula {
      * @return true if this formula represents logical falsity, false otherwise
      */
     public boolean isFalse();
+
+    public int getAtomNo();
+
 }

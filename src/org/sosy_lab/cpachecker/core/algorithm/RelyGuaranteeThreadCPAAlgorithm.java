@@ -161,7 +161,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
       RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(element, RelyGuaranteeAbstractElement.class);
       System.out.println();
       System.out.println("@ Successor of '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+
-          "' with SSAMap "+rgElement.getPathFormula().getSsa());
+          "' with SSAMap "+rgElement.getPathFormula().getSsa()+" atomNo="+rgElement.getPathFormula().getAtomNo());
 
       Collection<? extends AbstractElement> successors =
           transferRelation.getAbstractSuccessors(element, precision, null);
@@ -273,14 +273,13 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     return true;
   }
 
- private void printMerge(AbstractElement pSuccessor,
-      AbstractElement pReachedElement, AbstractElement pMergedElement) {
+ private void printMerge(AbstractElement pSuccessor, AbstractElement pReachedElement, AbstractElement pMergedElement) {
     RelyGuaranteeAbstractElement rSuccessor = AbstractElements.extractElementByType(pSuccessor, RelyGuaranteeAbstractElement.class);
     RelyGuaranteeAbstractElement rReached   = AbstractElements.extractElementByType(pReachedElement, RelyGuaranteeAbstractElement.class);
-    RelyGuaranteeAbstractElement rMerged  = AbstractElements.extractElementByType(pReachedElement, RelyGuaranteeAbstractElement.class);
-    System.out.println("+ merged '"+rSuccessor.getAbstractionFormula()+"','"+rSuccessor.getPathFormula()+"' with SSA "+rSuccessor.getPathFormula().getSsa());
-    System.out.println("\twith '"+rReached.getAbstractionFormula()+"','"+rReached.getPathFormula()+"' with SSA "+rReached.getPathFormula().getSsa());
-    System.out.println("\t= '"+rMerged.getAbstractionFormula()+"','"+rMerged.getPathFormula()+"' with SSA "+rMerged.getPathFormula().getSsa());
+    RelyGuaranteeAbstractElement rMerged  = AbstractElements.extractElementByType(pMergedElement, RelyGuaranteeAbstractElement.class);
+    System.out.println("+ merged '"+rSuccessor.getAbstractionFormula()+"','"+rSuccessor.getPathFormula()+"' with SSA "+rSuccessor.getPathFormula().getSsa()+" atomNo"+rSuccessor.getPathFormula().getAtomNo());
+    System.out.println("\twith '"+rReached.getAbstractionFormula()+"','"+rReached.getPathFormula()+"' with SSA "+rReached.getPathFormula().getSsa()+" atomNo"+rReached.getPathFormula().getAtomNo());
+    System.out.println("\t= '"+rMerged.getAbstractionFormula()+"','"+rMerged.getPathFormula()+"' with SSA "+rMerged.getPathFormula().getSsa()+" atomNo"+rMerged.getPathFormula().getAtomNo());
   }
 
   // pretty-printing of successors
@@ -292,11 +291,11 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     }
     else if (rgElement.getParentEdge().getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
       RelyGuaranteeCFAEdge rgEdge = (RelyGuaranteeCFAEdge) rgElement.getParentEdge();
-      System.out.println("- by env. edge '"+rgEdge.getPathFormula()+"','"+rgEdge.getLocalEdge().getRawStatement()+"'");
+      System.out.println("- by env. edge '"+rgEdge.getLocalEdge().getRawStatement()+"','"+rgEdge.getPathFormula()+"' atomNo="+rgEdge.getPathFormula().getAtomNo());
     } else {
       System.out.println("- by local edge "+rgElement.getParentEdge().getRawStatement());
     }
-    System.out.println("\t is '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+"' with SSA "+rgElement.getPathFormula().getSsa()+"'");
+    System.out.println("\t is '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+"' with SSA "+rgElement.getPathFormula().getSsa()+" atomNo="+rgElement.getPathFormula().getAtomNo());
     //System.out.println();
 
   }

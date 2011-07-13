@@ -170,13 +170,8 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
         error = runThread(i, reached[i], stopAfterError);
         printEnvTransitions();
         processEnvTransitions(i);
-        //
-        addEnvTransitionsToCFA(1);
-        error = runThread(1, reached[1], stopAfterError);
-
         i = pickThread();
-      } //while(i != -1 && !error);
-      while(false);
+      } while(i != -1 && !error);
     } catch(Exception e){
       e.printStackTrace();
     }
@@ -223,7 +218,6 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
       int sourceThread = et.getSourceThread();
       // don't generate transition with 'false' abstraction or path formulas
       if (f.isFalse() || pf.getFormula().isFalse()) {
-        System.out.println("Skipping "+et);
         continue;
       } else {
         PathFormula mergedPF = pfManager.makeAnd(pf, f);
@@ -246,7 +240,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     // distribute the env edge to other threads
     this.envTransitionsForThread[i].removeAllElements();
     // distribute env. edges
-    System.out.println("## Env filetered left ##");
+    System.out.println("## Env after filterings ##");
     RelyGuaranteeCFAEdge edge;
     while (!rgEdges.isEmpty()){
       edge = rgEdges.remove(0);

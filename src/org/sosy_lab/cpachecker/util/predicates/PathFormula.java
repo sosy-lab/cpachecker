@@ -33,12 +33,16 @@ public class PathFormula {
 
   private final Formula formula;
   private final SSAMap ssa;
+  // the  number of edges in the longest path in encoded the formula
   private final int length;
   // how many times a formula has been primed
   private int primedNo;
 
+
+
   // precompiled regex expression
   private static Pattern primeRegex = Pattern.compile("(.+)\\^(\\d+)$");
+  private static int UNKNOWN  = Integer.MIN_VALUE;
 
   protected PathFormula(Formula pf, SSAMap ssa, int pLength) {
     this.formula = pf;
@@ -52,7 +56,11 @@ public class PathFormula {
     this.ssa = ssa;
     this.length = pLength;
     this.primedNo = pPrimedNo;
+
   }
+
+
+
 
   public Formula getFormula() {
     return formula;
@@ -68,6 +76,10 @@ public class PathFormula {
 
   public int getPrimedNo() {
     return this.primedNo;
+  }
+
+  public int getAtomNo() {
+    return this.formula.getAtomNo();
   }
 
   @Override

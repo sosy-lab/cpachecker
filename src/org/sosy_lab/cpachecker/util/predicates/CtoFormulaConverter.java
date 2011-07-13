@@ -411,6 +411,7 @@ public class CtoFormulaConverter {
 
     Formula newFormula = fmgr.makeAnd(oldFormula.getFormula(), edgeFormula);
     int newLength = oldFormula.getLength() + 1;
+
     return new PathFormula(newFormula, newSsa, newLength, oldFormula.getPrimedNo());
   }
 
