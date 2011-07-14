@@ -144,10 +144,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
     return delegate.shiftFormula(pFormula, pOffset);
   }*/
 
-  @Override
-  public PathFormula makeAnd(PathFormula pPathFormula, CFAEdge pEdge, int pThreadId) throws CPATransferException {
-    return delegate.makeAnd(pPathFormula, pEdge, pThreadId);
-  }
+
 
   @Override
   public PathFormula makeEmptyPathFormula(PathFormula pPathFormula,

@@ -34,6 +34,8 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
@@ -59,6 +61,7 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdge;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvironmentalTransition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 
 public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
@@ -113,11 +116,20 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
   private Vector<RelyGuaranteeEnvironmentalTransition> envTransitions;
   private int tid;
 
-  public RelyGuaranteeThreadCPAAlgorithm(ConfigurableProgramAnalysis  cpa, Vector<RelyGuaranteeEnvironmentalTransition> envTransitions, LogManager logger,  int tid) {
+  private MathsatFormulaManager fManager;
+
+  public RelyGuaranteeThreadCPAAlgorithm(ConfigurableProgramAnalysis  cpa, Vector<RelyGuaranteeEnvironmentalTransition> envTransitions, Configuration config, LogManager logger,  int tid) {
     this.cpa = cpa;
     this.envTransitions = envTransitions;
     this.logger = logger;
     this.tid = tid;
+
+    try {
+      fManager = MathsatFormulaManager.getInstance(config, logger);
+    } catch (InvalidConfigurationException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
 
   }
 
@@ -148,7 +160,6 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
       stats.chooseTimer.start();
       final AbstractElement element =  reachedSet.popFromWaitlist();
       final Precision precision = reachedSet.getPrecision(element);
-      //fina Precision precision = this.cpa.
 
       stats.chooseTimer.stop();
 
@@ -160,8 +171,10 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
       // pretty printing of predecessors
       RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(element, RelyGuaranteeAbstractElement.class);
       System.out.println();
+      int atomNo = fManager.countAtoms(rgElement.getPathFormula().getFormula());
       System.out.println("@ Successor of '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+
-          "' with SSAMap "+rgElement.getPathFormula().getSsa()+" atomNo="+rgElement.getPathFormula().getAtomNo());
+          "' with SSAMap "+rgElement.getPathFormula().getSsa()+" atomNo="+atomNo);
+
 
       Collection<? extends AbstractElement> successors =
           transferRelation.getAbstractSuccessors(element, precision, null);
@@ -277,9 +290,10 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     RelyGuaranteeAbstractElement rSuccessor = AbstractElements.extractElementByType(pSuccessor, RelyGuaranteeAbstractElement.class);
     RelyGuaranteeAbstractElement rReached   = AbstractElements.extractElementByType(pReachedElement, RelyGuaranteeAbstractElement.class);
     RelyGuaranteeAbstractElement rMerged  = AbstractElements.extractElementByType(pMergedElement, RelyGuaranteeAbstractElement.class);
-    System.out.println("+ merged '"+rSuccessor.getAbstractionFormula()+"','"+rSuccessor.getPathFormula()+"' with SSA "+rSuccessor.getPathFormula().getSsa()+" atomNo"+rSuccessor.getPathFormula().getAtomNo());
-    System.out.println("\twith '"+rReached.getAbstractionFormula()+"','"+rReached.getPathFormula()+"' with SSA "+rReached.getPathFormula().getSsa()+" atomNo"+rReached.getPathFormula().getAtomNo());
-    System.out.println("\t= '"+rMerged.getAbstractionFormula()+"','"+rMerged.getPathFormula()+"' with SSA "+rMerged.getPathFormula().getSsa()+" atomNo"+rMerged.getPathFormula().getAtomNo());
+    int atomNo = fManager.countAtoms(rMerged.getPathFormula().getFormula());
+    System.out.println("+ merged '"+rSuccessor.getAbstractionFormula()+"','"+rSuccessor.getPathFormula()+"' with SSA "+rSuccessor.getPathFormula().getSsa());
+    System.out.println("\twith '"+rReached.getAbstractionFormula()+"','"+rReached.getPathFormula()+"' with SSA "+rReached.getPathFormula().getSsa());
+    System.out.println("\t= '"+rMerged.getAbstractionFormula()+"','"+rMerged.getPathFormula()+"' with SSA "+rMerged.getPathFormula().getSsa()+" atomNo="+atomNo);
   }
 
   // pretty-printing of successors
@@ -291,11 +305,13 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     }
     else if (rgElement.getParentEdge().getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
       RelyGuaranteeCFAEdge rgEdge = (RelyGuaranteeCFAEdge) rgElement.getParentEdge();
-      System.out.println("- by env. edge '"+rgEdge.getLocalEdge().getRawStatement()+"','"+rgEdge.getPathFormula()+"' atomNo="+rgEdge.getPathFormula().getAtomNo());
+      int atomNo = fManager.countAtoms(rgEdge.getPathFormula().getFormula());
+      System.out.println("- by env. edge '"+rgEdge.getLocalEdge().getRawStatement()+"','"+rgEdge.getPathFormula()+"' SSA "+rgEdge.getPathFormula().getSsa()+" atomNo="+atomNo);
     } else {
       System.out.println("- by local edge "+rgElement.getParentEdge().getRawStatement());
     }
-    System.out.println("\t is '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+"' with SSA "+rgElement.getPathFormula().getSsa()+" atomNo="+rgElement.getPathFormula().getAtomNo());
+    int atomNo2 = fManager.countAtoms(rgElement.getPathFormula().getFormula());
+    System.out.println("\t is '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+"' with SSA "+rgElement.getPathFormula().getSsa()+" atomNo="+atomNo2);
     //System.out.println();
 
   }

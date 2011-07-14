@@ -41,6 +41,6 @@ public interface Formula {
      */
     public boolean isFalse();
 
-    public int getAtomNo();
+   // public int getAtomNo();
 
 }

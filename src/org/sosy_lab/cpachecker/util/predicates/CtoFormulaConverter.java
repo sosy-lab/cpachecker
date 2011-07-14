@@ -416,7 +416,7 @@ public class CtoFormulaConverter {
   }
 
   // TODO changed for RelyGuarantee
-  public PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge, int tid) throws CPATransferException {
+ /* public PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge, int tid) throws CPATransferException {
       // this is where the "meat" is... We have to parse the statement
       // attached to the edge, and convert it to the appropriate formula
 
@@ -612,7 +612,7 @@ public class CtoFormulaConverter {
       Formula newFormula = fmgr.makeAnd(oldFormula.getFormula(), renamedFormula);
       int newLength = oldFormula.getLength() + 1;
       return new PathFormula(newFormula, newSsa, newLength);
-  }
+  }*/
 
 
 

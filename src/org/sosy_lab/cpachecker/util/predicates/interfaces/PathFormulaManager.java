@@ -53,8 +53,8 @@ public interface PathFormulaManager {
 
   PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge) throws CPATransferException;
 
-  PathFormula makeAnd(PathFormula pMergedPathFormula, CFAEdge pLocalEdge,
-      int pThreadId) throws CPATransferException;
+  //PathFormula makeAnd(PathFormula pMergedPathFormula, CFAEdge pLocalEdge,
+  //    int pThreadId) throws CPATransferException;
 
 
   PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM);

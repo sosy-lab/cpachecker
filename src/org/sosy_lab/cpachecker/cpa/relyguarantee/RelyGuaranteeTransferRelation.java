@@ -131,6 +131,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
         return Collections.emptySet();
       }
 
+
       // calculate strongest post
       PathFormula pathFormula = convertEdgeToPathFormula(element, edge);
       logger.log(Level.ALL, "New path formula is", pathFormula);
@@ -219,7 +220,6 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
   // Create a path formula from an env. edge and a local pathFormula
   private PathFormula handleEnvFormula(PathFormula localPF, RelyGuaranteeCFAEdge edge) throws CPATransferException {
    PathFormula envPF = edge.getPathFormula();
-
    // prime the env. path formula so it does not collide with the local path formula
    int offset = localPF.getPrimedNo() + 1;
    PathFormula primedEnvPF = pathFormulaManager.primePathFormula(envPF, offset);
@@ -228,6 +228,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
    // apply the strongest postcondition with respect to the local values
    // TODO this could be slightly optimised - bypass some equalities
    PathFormula finalPF = pathFormulaManager.makeAnd(matchedPF, edge.getLocalEdge());
+   System.out.println("\tby pf '"+finalPF+"'");
 
     return finalPF;
   }
@@ -264,8 +265,10 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
       }
     }
 
+    int atomNo = this.manager.countAtoms(pf.getFormula());
+
     if (atomThreshold > 0) {
-      boolean threshold = (pf.getAtomNo() >= atomThreshold);
+      boolean threshold = (atomNo >= atomThreshold);
       if (threshold) {
         numBlkThreshold++;
       }

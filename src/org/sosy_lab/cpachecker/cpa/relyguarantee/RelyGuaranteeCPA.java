@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatInterpolatingProve
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.YicesTheoremProver;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
 
 
@@ -76,9 +75,13 @@ public class RelyGuaranteeCPA extends PredicateCPA{
       description="which interpolating solver to use for interpolant generation?")
       private String whichItpProver = "MATHSAT";
 
-  @Option(name="abstraction.initialPredicates", type=Option.Type.OPTIONAL_INPUT_FILE,
+  @Option(name="abstraction.initialPredicates0", type=Option.Type.OPTIONAL_INPUT_FILE,
       description="get an initial set of predicates from a file in MSAT format")
-      private File predicatesFile = null;
+      private File predicatesFile0 = null;
+
+  @Option(name="abstraction.initialPredicates1", type=Option.Type.OPTIONAL_INPUT_FILE,
+      description="get an initial set of predicates from a file in MSAT format")
+      private File predicatesFile1 = null;
 
   @Option(description="always check satisfiability at end of block, even if precision is empty")
   private boolean checkBlockFeasibility = false;
@@ -171,8 +174,17 @@ public class RelyGuaranteeCPA extends PredicateCPA{
     this.prec = new RelyGuaranteePrecisionAdjustment(this);
     this.stop = new StopSepOperator(domain);
 
+    File predicatesFile;
+    if (this.tid==0){
+      predicatesFile = this.predicatesFile0;
+    } else if (this.tid==1) {
+      predicatesFile = this.predicatesFile1;
+    }
+    else {
+      predicatesFile = null;
+    }
     Collection<AbstractionPredicate> predicates = null;
-    if (predicatesFile != null) {
+    /*if (predicatesFile != null) {
       try {
         String fileContent = Files.toString(predicatesFile, Charset.defaultCharset());
         Formula f = mathsatFormulaManager.parse(fileContent);
@@ -193,7 +205,7 @@ public class RelyGuaranteeCPA extends PredicateCPA{
       } else {
         predicates.add(p);
       }
-    }
+    }*/
 
 
     // hardcode predicates
@@ -235,6 +247,32 @@ public class RelyGuaranteeCPA extends PredicateCPA{
 
   public void setThreadId(int tid){
     this.tid = tid;
+    File predicatesFile;
+    if (this.tid==0){
+      predicatesFile = this.predicatesFile0;
+    } else if (this.tid==1) {
+      predicatesFile = this.predicatesFile1;
+    }
+    else {
+      predicatesFile = null;
+    }
+    Collection<AbstractionPredicate> predicates = null;
+    if (predicatesFile != null) {
+      try {
+        String fileContent = Files.toString(predicatesFile, Charset.defaultCharset());
+        Formula f = this.formulaManager.parse(fileContent);
+        predicates = this.predicateManager.getAtomsAsPredicates(f);
+      } catch (IllegalArgumentException e) {
+        logger.log(Level.WARNING, "Could not read predicates from file", predicatesFile,
+            "(" + e.getMessage() + ")");
+      } catch (IOException e) {
+        logger.log(Level.WARNING, "Could not read predicates from file", predicatesFile,
+            "(" + e.getMessage() + ")");
+      }
+    }
+
+    this.initialPrecision= new RelyGuaranteePrecision(predicates);
+
   }
 
   public void useHardcodedPredicates() {

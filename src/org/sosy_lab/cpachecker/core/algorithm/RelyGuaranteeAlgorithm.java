@@ -144,7 +144,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     // create RelyGuaranteeThreadCPAAlgorithms for each thread
     // initialize envTransitionsForThread
     for (int i=0; i< this.threadNo; i++){
-      threadCPA[i] = new RelyGuaranteeThreadCPAAlgorithm(cpas[i],newEnvTransitions,logger, i);
+      threadCPA[i] = new RelyGuaranteeThreadCPAAlgorithm(cpas[i],newEnvTransitions,config, logger, i);
       envTransitionsForThread[i] = new Vector<RelyGuaranteeCFAEdge>();
       envTransitionsCreatedBy[i] = new Vector<RelyGuaranteeCFAEdge>();
     }

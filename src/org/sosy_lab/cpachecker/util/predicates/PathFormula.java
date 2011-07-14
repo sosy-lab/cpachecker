@@ -78,10 +78,6 @@ public class PathFormula {
     return this.primedNo;
   }
 
-  public int getAtomNo() {
-    return this.formula.getAtomNo();
-  }
-
   @Override
   public String toString(){
     return getFormula().toString();

@@ -233,11 +233,7 @@ public interface FormulaManager {
      */
     public Formula createPredicateVariable(Formula pAtom);
 
-
-    //public Formula shiftFormula(Formula formula, int offset);
-
-    // TODO added for RelyGuarantee
-    public Formula addThreadId(Formula f, int tid);
-
     public Formula primeFormula(Formula f, int howManyPrimes);
+
+    public int countAtoms(Formula f);
 }

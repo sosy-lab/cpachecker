@@ -1,3 +1,3 @@
-VAR    g@2 : INTEGER
+VAR    g@2 : REAL
 FORMULA g@2 = 0
 

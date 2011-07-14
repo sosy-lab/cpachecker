@@ -387,9 +387,9 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
       max_prime = envPF.getPrimedNo();
     }
 
-    int atomNo = localPF.getAtomNo() + envPF.getAtomNo() + equalitiesNo;
     return new PathFormula(eF, matchedSSA, localPF.getLength()+envPF.getLength(),  max_prime);
   }
+
 
 
 
