@@ -907,20 +907,35 @@ def run_acsar(options, sourcefile, columns, rlimits):
     (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
     if "syntax error" in output:
         status = "SYNTAX ERROR"
+
     elif "runtime error" in output:
         status = "RUNTIME ERROR"
+
     elif "can not be used as a root procedure because it is not defined" in output:
         status = "NO MAIN"
+
+    elif "For Error Location <<ERROR_LOCATION>>: I don't Know " in output:
+        status = "TIMEOUT"
+
+    elif "received signal 6" in output:
+        status = "ABORT"
+
+    elif "received signal 11" in output:
+        status = "SEGFAULT"
+
+    elif "received signal 15" in output:
+        status = "KILLED"
+
     elif "Error Location <<ERROR_LOCATION>> is reachable via the following path" in output:
         status = "UNSAFE"
-    elif "******  Error State Reachable *******\nSimplify process destroyed ...\nreceived signal 6 ..." in output:
+    
+    elif "Error Location <<ERROR_LOCATION>> is reachable via the following path" not in output:
         status = "SAFE"
-    elif "refinement ...Simplify process destroyed ...\nreceived signal 6 ..." in output:
-        status = "SAFE"
+
     else:
         status = "UNKNOWN"
 
-    #delete tmp-files
+    # delete tmp-files
     import os
     os.remove(prepSourcefile)
 
