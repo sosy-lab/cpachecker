@@ -872,7 +872,9 @@ public class PointerElement implements AbstractQueryableElement, Memory,
     while (tempIt.hasNext()) {
       PointerLocation loc = tempIt.next();
 
-      if (oldFunctionName.equals(((LocalVariable) loc).getFunctionName())) {
+      if ((loc instanceof LocalVariable)
+          && oldFunctionName.equals(((LocalVariable) loc).getFunctionName())) {
+
         tempIt.remove(); // instead of tempTracked.remove(loc);
       }
     }
