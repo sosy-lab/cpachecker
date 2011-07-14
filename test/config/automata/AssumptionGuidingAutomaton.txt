@@ -1,5 +1,3 @@
-#include test/output/AssumptionAutomaton.txt
-
 CONTROL AUTOMATON AssumptionGuidingAutomaton
 
 INITIAL STATE Init;
