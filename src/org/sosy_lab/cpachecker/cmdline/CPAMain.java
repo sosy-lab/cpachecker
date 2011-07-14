@@ -242,7 +242,7 @@ public class CPAMain {
           || handleArgument1("-logfile", "log.file", arg, argsIt, properties)
           || handleArgument1("-entryfunction", "analysis.entryFunction", arg, argsIt, properties)
           || handleArgument1("-config", CONFIGURATION_FILE_OPTION, arg, argsIt, properties)
-          || handleArgument1("-spec", SPECIFICATION_FILE_OPTION, arg, argsIt, properties)
+          || handleMultipleArgument1("-spec", SPECIFICATION_FILE_OPTION, arg, argsIt, properties)
       ) {
         // nothing left to do
 
@@ -349,6 +349,32 @@ public class CPAMain {
     if (currentArg.equals(arg)) {
       if (args.hasNext()) {
         putIfNotExistent(properties, option, args.next());
+      } else {
+        throw new InvalidCmdlineArgumentException(currentArg + " argument missing!");
+      }
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  /**
+   * Handle a command line argument with one value that may appear several times.
+   */
+  private static boolean handleMultipleArgument1(String arg, String option, String currentArg,
+      Iterator<String> args, Map<String, String> properties)
+      throws InvalidCmdlineArgumentException {
+    if (currentArg.equals(arg)) {
+      if (args.hasNext()) {
+
+        String value = properties.get(option);
+        if (value != null) {
+          value = value + "," + args.next();
+        } else {
+          value = args.next();
+        }
+        properties.put(option, value);
+
       } else {
         throw new InvalidCmdlineArgumentException(currentArg + " argument missing!");
       }
