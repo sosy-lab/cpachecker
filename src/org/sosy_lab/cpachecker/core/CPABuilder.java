@@ -63,9 +63,9 @@ public class CPABuilder {
   private String cpaName = CompositeCPA.class.getCanonicalName();
 
   @Option(name="specification", type=Option.Type.OPTIONAL_INPUT_FILE,
-      description="file with a specification that should be checked"
+      description="comma-separated list of files with specifications that should be checked"
         + "\n(see test/config/automata/ for examples)")
-  private File specificationFile = null;
+  private List<File> specificationFiles = null;
 
   private final Configuration config;
   private final LogManager logger;
@@ -87,22 +87,25 @@ public class CPABuilder {
 
     // create automata cpas for specification given in specification file
     List<ConfigurableProgramAnalysis> cpas = null;
-    if (specificationFile != null) {
-      List<Automaton> automata = AutomatonParser.parseAutomatonFile(specificationFile, config, logger);
-      cpas = new ArrayList<ConfigurableProgramAnalysis>(automata.size());
+    if (specificationFiles != null) {
+      cpas = new ArrayList<ConfigurableProgramAnalysis>();
 
-      for (Automaton automaton : automata) {
-        String cpaAlias = automaton.getName();
-        if (!usedAliases.add(cpaAlias)) {
-          throw new InvalidConfigurationException("Name " + cpaAlias + " used twice for an automaton.");
+      for (File specFile : specificationFiles) {
+        List<Automaton> automata = AutomatonParser.parseAutomatonFile(specFile, config, logger);
+
+        for (Automaton automaton : automata) {
+          String cpaAlias = automaton.getName();
+          if (!usedAliases.add(cpaAlias)) {
+            throw new InvalidConfigurationException("Name " + cpaAlias + " used twice for an automaton.");
+          }
+
+          CPAFactory factory = ControlAutomatonCPA.factory();
+          factory.setConfiguration(Configuration.copyWithNewPrefix(config, cpaAlias));
+          factory.setLogger(logger);
+          factory.set(automaton, Automaton.class);
+          cpas.add(factory.createInstance());
+          logger.log(Level.FINE, "Loaded Automaton\"" + automaton.getName() + "\"");
         }
-
-        CPAFactory factory = ControlAutomatonCPA.factory();
-        factory.setConfiguration(Configuration.copyWithNewPrefix(config, cpaAlias));
-        factory.setLogger(logger);
-        factory.set(automaton, Automaton.class);
-        cpas.add(factory.createInstance());
-        logger.log(Level.FINE, "Loaded Automaton\"" + automaton.getName() + "\"");
       }
     }
     return buildCPAs(cpaName, CPA_OPTION_NAME, usedAliases, cpas);

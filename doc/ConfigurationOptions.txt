@@ -488,7 +488,7 @@ reachedSet.file = "reached.txt"
 # (except for the configuration file itself)
 rootDirectory = "."
 
-# file with a specification that should be checked
+# comma-separated list of files with specifications that should be checked
 # (see test/config/automata/ for examples)
 specification = 
 
