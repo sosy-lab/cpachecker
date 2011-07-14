@@ -131,7 +131,7 @@ counterexample.checker = "CBMC"
   allowed values: [CBMC, CPACHECKER]
 
 # configuration file for counterexample checks with CPAchecker
-counterexample.checker.config = "test/config/explicitAnalysisInf.properties"
+counterexample.checker.config = "test/config/explicitAnalysis-no-cbmc.properties"
 
 # continue analysis after an counterexample was found that was denied by the
 # second check
