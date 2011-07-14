@@ -254,16 +254,16 @@ public class CPAMain {
           throw new InvalidCmdlineArgumentException("-cpas argument missing!");
         }
       } else if (arg.equals("-dfs")) {
-        properties.put("analysis.traversal.order", "dfs");
+        putIfNotExistent(properties, "analysis.traversal.order", "dfs");
       } else if (arg.equals("-bfs")) {
-        properties.put("analysis.traversal.order", "bfs");
+        putIfNotExistent(properties, "analysis.traversal.order", "bfs");
       } else if (arg.equals("-topsort")) {
-        properties.put("analysis.traversal.order", "topsort");
+        putIfNotExistent(properties, "analysis.traversal.order", "topsort");
       } else if (arg.equals("-cbmc")) {
-        properties.put("analysis.useCBMC", "true");
+        putIfNotExistent(properties, "analysis.useCBMC", "true");
       } else if (arg.equals("-nolog")) {
-        properties.put("log.level", "off");
-        properties.put("log.consoleLevel", "off");
+        putIfNotExistent(properties, "log.level", "off");
+        putIfNotExistent(properties, "log.consoleLevel", "off");
       } else if (arg.equals("-setprop")) {
         if (argsIt.hasNext()) {
           String[] bits = argsIt.next().split("=");
@@ -271,7 +271,7 @@ public class CPAMain {
             throw new InvalidCmdlineArgumentException(
                 "-setprop argument must be a key=value pair!");
           }
-          properties.put(bits[0], bits[1]);
+          putIfNotExistent(properties, bits[0], bits[1]);
         } else {
           throw new InvalidCmdlineArgumentException("-setprop argument missing!");
         }
@@ -286,7 +286,7 @@ public class CPAMain {
         System.exit(0);
 
       } else if ("-printUsedOptions".equals(arg)) {
-        properties.put("log.usedOptions.export", "true");
+        putIfNotExistent(properties, "log.usedOptions.export", "true");
         // interrupt thread before CPAchecker is run
         // this will stop CPAchecker before the actual analysis (hack)
         Thread.currentThread().interrupt();
@@ -306,7 +306,7 @@ public class CPAMain {
 
     // arguments with non-specified options are considered as file names
     if (!programs.isEmpty()) {
-      properties.put("analysis.programNames", Joiner.on(", ").join(programs));
+      putIfNotExistent(properties, "analysis.programNames", Joiner.on(", ").join(programs));
     }
     return properties;
   }
@@ -330,6 +330,16 @@ public class CPAMain {
     System.exit(0);
   }
 
+  private static void putIfNotExistent(Map<String, String> properties, String key, String value)
+      throws InvalidCmdlineArgumentException {
+
+    if (properties.containsKey(key)) {
+      throw new InvalidCmdlineArgumentException("Duplicate option " + key + " specified on command-line");
+    }
+
+    properties.put(key, value);
+  }
+
   /**
    * Handle a command line argument with one value.
    */
@@ -338,7 +348,7 @@ public class CPAMain {
         throws InvalidCmdlineArgumentException {
     if (currentArg.equals(arg)) {
       if (args.hasNext()) {
-        properties.put(option, args.next());
+        putIfNotExistent(properties, option, args.next());
       } else {
         throw new InvalidCmdlineArgumentException(currentArg + " argument missing!");
       }
