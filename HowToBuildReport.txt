@@ -15,7 +15,7 @@ Generate and a report
 
 1) run CPAChecker like so:
 
-scripts/cpa.sh -config test/config/symbpredabsCPA.properties path/to/my.cil.c
+scripts/cpa.sh -config test/config/predicateAbstraction.properties path/to/my.cil.c
 
 2) after CPAChecker has completed, generate the report:
 

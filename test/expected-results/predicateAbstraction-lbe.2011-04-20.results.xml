@@ -1,5 +1,5 @@
 <?xml version="1.0" ?>
-<test benchmarkname="symbpredabsCPA-lbe" date="2011-04-20" memlimit="14000 MB" options="-setprop output.disable=true -config test/config/symbpredabsCPA-lbe.properties -heap 12000m" timelimit="1800 s" tool="CPAchecker" version="r3332">
+<test benchmarkname="predicateAbstraction-lbe" date="2011-04-20" memlimit="14000 MB" options="-setprop output.disable=true -config test/config/predicateAbstraction-lbe.properties -heap 12000m" timelimit="1800 s" tool="CPAchecker" version="r3332">
   <systeminfo>
     <os name="Linux 2.6.35-28-generic x86_64"/>
     <cpu cores="4" frequency="3200 MHz" model="AMD Phenom(tm) II X4 955 Processor"/>

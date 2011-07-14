@@ -4,7 +4,7 @@
   <test name="explicit-heuristic">
     <sourcefiles><include>test/programs/nondet_init_programs/explicit-heuristics/pc_sfifo_1_BUG.cil.c</include></sourcefiles>
     <option name="-setprop">output.disable=true</option>
-    <option name="-config">test/config/explicitAnalysis-heuristics.properties</option>
+    <option name="-config">test/assumptions/explicitAnalysis-heuristics.properties</option>
     <option name="-setprop">ProgressObserverCPA.cpa.assumptions.progressobserver.heuristics=RepetitionsInPathHeuristics</option>
     <option name="-setprop">cpa.assumptions.progressobserver.heuristics.repetitionsInPathHeuristics.threshold=3</option>
     <option name="-heap">12000m</option>
@@ -12,7 +12,7 @@
     <test name="explicit-heuristic">
     <sourcefiles><include>test/programs/nondet_init_programs/explicit-heuristics/pc_sfifo_2_BUG.cil.c</include></sourcefiles>
     <option name="-setprop">output.disable=true</option>
-    <option name="-config">test/config/explicitAnalysis-heuristics.properties</option>
+    <option name="-config">test/assumptions/explicitAnalysis-heuristics.properties</option>
     <option name="-setprop">ProgressObserverCPA.cpa.assumptions.progressobserver.heuristics=RepetitionsInPathHeuristics</option>
     <option name="-setprop">cpa.assumptions.progressobserver.heuristics.repetitionsInPathHeuristics.threshold=3</option>
     <option name="-heap">12000m</option>
@@ -20,7 +20,7 @@
   <test name="explicit-heuristic">
     <sourcefiles><include>test/programs/nondet_init_programs/explicit-heuristics/test_locks_14.BUG.c</include></sourcefiles>
     <option name="-setprop">output.disable=true</option>
-    <option name="-config">test/config/explicitAnalysis-heuristics.properties</option>
+    <option name="-config">test/assumptions/explicitAnalysis-heuristics.properties</option>
     <option name="-setprop">cpa.assumptions.progressobserver.heuristics=PathLengthHeuristics</option>
     <option name="-setprop">cpa.assumptions.progressobserver.heuristics.pathLengthHeuristics.threshold=85</option>
     <option name="-heap">12000m</option>
@@ -28,7 +28,7 @@
   <test name="explicit-heuristic">
     <sourcefiles><include>test/programs/nondet_init_programs/explicit-heuristics/test_locks_15.BUG.c</include></sourcefiles>
     <option name="-setprop">output.disable=true</option>
-    <option name="-config">test/config/explicitAnalysis-heuristics.properties</option>
+    <option name="-config">test/assumptions/explicitAnalysis-heuristics.properties</option>
     <option name="-setprop">cpa.assumptions.progressobserver.heuristics=PathLengthHeuristics</option>
     <option name="-setprop">cpa.assumptions.progressobserver.heuristics.pathLengthHeuristics.threshold=90</option>
     <option name="-heap">12000m</option>
@@ -36,7 +36,7 @@
   <test name="explicit-heuristic">
     <sourcefiles><include>test/programs/nondet_init_programs/explicit-heuristics/transmitter.15.BUG.cil.c</include></sourcefiles>
     <option name="-setprop">output.disable=true</option>
-    <option name="-config">test/config/explicitAnalysis-heuristics.properties</option>
+    <option name="-config">test/assumptions/explicitAnalysis-heuristics.properties</option>
     <option name="-setprop">cpa.assumptions.progressobserver.heuristics=PathLengthHeuristics</option>
     <option name="-setprop">cpa.assumptions.progressobserver.heuristics.pathLengthHeuristics.threshold=600</option>
     <option name="-heap">12000m</option>
@@ -44,7 +44,7 @@
   <test name="explicit-heuristic">
     <sourcefiles><include>test/programs/nondet_init_programs/explicit-heuristics/transmitter.16.BUG.cil.c</include></sourcefiles>
     <option name="-setprop">output.disable=true</option>
-    <option name="-config">test/config/explicitAnalysis-heuristics.properties</option>
+    <option name="-config">test/assumptions/explicitAnalysis-heuristics.properties</option>
     <option name="-setprop">cpa.assumptions.progressobserver.heuristics=PathLengthHeuristics</option>
     <option name="-setprop">cpa.assumptions.progressobserver.heuristics.pathLengthHeuristics.threshold=600</option>
     <option name="-heap">12000m</option>

@@ -14,7 +14,7 @@ for i in `cat $RESDIR/vars_file`; do \
 	RESULT="$1 $i"
 	eval $cmd  || exit 1
 	$CILLY $1.$i.i --out $1.$i.cilf.i --printCilAsIs --domakeCFG || exit 1
-	cd $CPADIR && ./scripts/cpa.sh -config ./test/config/symbpredabsCPA.properties -entryfunction main -outputpath $CWD/output-$1.$i.out/ $CWD/$1.$i.cilf.i > $CWD/$1.$i.output 2>&1 || exit 1
+	cd $CPADIR && ./scripts/cpa.sh -config ./test/config/predicateAbstraction.properties -entryfunction main -outputpath $CWD/output-$1.$i.out/ $CWD/$1.$i.cilf.i > $CWD/$1.$i.output 2>&1 || exit 1
 	cd $CWD
 	VERDICT=`grep --only-match 'VERDICT_\w\+' $1.$i.i | sed 's/VERDICT_//g'`
 	CURRENT=`grep --only-match 'CURRENTLY_\w\+' $1.$i.i | sed 's/CURRENTLY_//g'`

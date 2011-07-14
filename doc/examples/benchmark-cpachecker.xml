@@ -28,7 +28,7 @@
       <include>test/programs/locks/*1?.c</include>
     </sourcefiles>
 
-    <option name="-config">test/config/symbpredabsCPA-lbe.properties</option>    
+    <option name="-config">test/config/predicateAbstraction-lbe.properties</option>    
   </test>
 
 
@@ -37,7 +37,7 @@
       <include>test/programs/locks/*.c</include>
     </sourcefiles>
 
-    <option name="-config">test/config/symbpredabsCPA-lbe.properties</option>
+    <option name="-config">test/config/predicateAbstraction-lbe.properties</option>
   </test>
 
   <!-- Example columns from CPAchecker output -->

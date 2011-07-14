@@ -31,7 +31,7 @@ Running CPAchecker:
 6. If you want to enable certain analyses like predicate analysis,
    choose a configuration file. This file defines for example which CPAs are used.
    Standard configuration files can be found in the directory test/config/.
-   Example: test/config/explicitAnalysisInf.properties
+   Example: test/config/explicitAnalysis.properties
    The configuration options used in this file are explained in HowToConfiguration.txt.
 7. Choose a specification file (you may not need this for some CPAs).
    The standard configuration files use test/config/automata/ErrorLocationAutomaton.txt
@@ -42,7 +42,7 @@ Running CPAchecker:
    Either a configuration file or a specification file needs to be given.
    The current directory should be the CPAchecker project directory.
    Additional command line switches are described in HowToConfiguration.txt.
-   Example: scripts/cpa.sh -config test/config/explicitAnalysisInf.properties test/programs/simple/loop1.c
+   Example: scripts/cpa.sh -config test/config/explicitAnalysis.properties test/programs/simple/loop1.c
 9. Additionally to the console output, there will be several output files in test/output/:
      ART.dot: Visualization of abstract reachability tree (Graphviz format)
      cfa*.dot: Visualization of control flow automaton (Graphviz format)

@@ -5,7 +5,7 @@
     <sourcefiles>
       <includesfile>test/assumptions/assumptions.set</includesfile>
     </sourcefiles>
-    <option name="-config">test/config/restartAlgorithm-comb-a.properties</option>
+    <option name="-config">test/assumptions/combination-a.properties</option>
     <option name="-setprop">output.disable=true</option>
     <option name="-heap">4000m</option>
   </test>
@@ -13,15 +13,7 @@
     <sourcefiles>
       <includesfile>test/assumptions/assumptions.set</includesfile>
     </sourcefiles>
-    <option name="-config">test/config/restartAlgorithm-comb-b.properties</option>
-    <option name="-setprop">output.disable=true</option>
-    <option name="-heap">4000m</option>
-  </test>
-  <test name="combinations-c">
-    <sourcefiles>
-      <includesfile>test/assumptions/assumptions.set</includesfile>
-    </sourcefiles>
-    <option name="-config">test/config/restartAlgorithm-comb-c.properties</option>
+    <option name="-config">test/assumptions/combination-b.properties</option>
     <option name="-setprop">output.disable=true</option>
     <option name="-heap">4000m</option>
   </test>

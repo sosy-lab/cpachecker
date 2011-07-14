@@ -14,7 +14,7 @@
       <includesfile>test/test-sets/systemc.set</includesfile>
       <includesfile>test/test-sets/nested.set</includesfile>
     </sourcefiles>
-    <option name="-config">test/config/explicitAnalysisInf.properties</option>
+    <option name="-config">test/config/explicitAnalysis-no-cbmc.properties</option>
   </test>
 
   <test name="with-cbmc">
