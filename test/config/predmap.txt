@@ -1,0 +1,3 @@
+VAR    g@2 : INTEGER
+FORMULA g@2 = 0
+

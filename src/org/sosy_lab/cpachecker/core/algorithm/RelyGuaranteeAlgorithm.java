@@ -63,7 +63,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 
 import com.google.common.collect.Iterables;
 
@@ -97,6 +99,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
   // managers
   private PathFormulaManager pfManager;
   private FormulaManager     fManager;
+  private TheoremProver      tProver;
   private RegionManager rManager = BDDRegionManager.getInstance();
 
 
@@ -108,8 +111,6 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     this.cpas = pCpas;
     this.logger = logger;
 
-
-
     // TODO add option for caching
     MathsatFormulaManager msatFormulaManager;
     try {
@@ -117,12 +118,15 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
       // set up managers
       msatFormulaManager = MathsatFormulaManager .getInstance(config, logger);
       this.fManager = msatFormulaManager;
+      tProver = MathsatTheoremProver.getInstance(msatFormulaManager);
       PathFormulaManager pfMgr  = PathFormulaManagerImpl.getInstance(msatFormulaManager, config, logger);
       pfMgr = CachingPathFormulaManager.getInstance(pfMgr);
       this.pfManager = pfMgr;
     } catch (InvalidConfigurationException e) {
       e.printStackTrace();
     }
+
+
 
     // create a set of global variables
     globalVarsSet = new HashSet<String>();
@@ -163,7 +167,6 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     int error_i = -1;
     try{
       // fixed point computation
-
       do {
         setWaitlist(reached[i]);
         addEnvTransitionsToCFA(i);
@@ -308,7 +311,32 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
 
 
   private void semanticCoverageCheck(Vector<RelyGuaranteeCFAEdge> rgEdges, int i) {
-    return;
+    Vector<RelyGuaranteeCFAEdge> toDelete = new Vector<RelyGuaranteeCFAEdge>();
+    for (RelyGuaranteeCFAEdge newEdge : rgEdges){
+      for (RelyGuaranteeCFAEdge oldEdge : envTransitionsCreatedBy[i]){
+        // check for coverage only if the operations are the same
+        if (newEdge.getLocalEdge().equals(oldEdge.getLocalEdge())){
+          if (isCovered(newEdge, oldEdge)){
+            toDelete.add(newEdge);
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  //returns true if env2 is weaker than env1 (env1 => env2)
+  private boolean isCovered(RelyGuaranteeCFAEdge env1, RelyGuaranteeCFAEdge env2) {
+    Formula f1 = env1.getPathFormula().getFormula();
+    Formula f2 = env2.getPathFormula().getFormula();
+    Formula nf2 = fManager.makeNot(f2);
+    Formula nImpl = fManager.makeAnd(f1, nf2);
+    tProver.init();
+    try {
+      return tProver.isUnsat(nImpl);
+    } finally {
+      tProver.reset();
+    }
   }
 
   // runs a thread

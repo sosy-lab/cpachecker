@@ -441,7 +441,7 @@ public class MathsatFormulaManager implements FormulaManager  {
 
   @Override
   public Formula makeVariable(String var) {
-    return encapsulate(buildMsatVariable(var, msatVarType));
+    return encapsulate(buildMsatVariable(var, msatVarType),0);
   }
 
   @Override
@@ -540,7 +540,7 @@ public class MathsatFormulaManager implements FormulaManager  {
     long f = msat_from_msat(msatEnv, s);
     Preconditions.checkArgument(!MSAT_ERROR_TERM(f),
         "Could not parse formula %s as Mathsat formula.", s);
-
+    // TODO wrong, but
     return encapsulate(f);
   }
 
@@ -646,8 +646,9 @@ public class MathsatFormulaManager implements FormulaManager  {
         boolean childrenDone = true;
         long[] newargs = new long[msat_term_arity(t)];
         for (int i = 0; i < newargs.length; ++i) {
-          // TODO no idea if tt.getAtomNo()-1 is correct
-          Formula c = encapsulate(msat_term_get_arg(t, i), tt.getAtomNo()-1);
+          // TODO no idea if 0 is correct
+          Formula c = encapsulate(msat_term_get_arg(t, i), 0);
+          //Formula c2 = new MathsatFormula();
           Formula newC = cache.get(c);
           if (newC != null) {
             newargs[i] = getTerm(newC);

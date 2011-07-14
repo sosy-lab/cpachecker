@@ -203,7 +203,7 @@ public class CPAchecker {
         WrapperCPA wCPA = (WrapperCPA) cpa;
         RelyGuaranteeCPA rgCPA = wCPA.retrieveWrappedCpa(RelyGuaranteeCPA.class);
         rgCPA.setThreadId(i);
-        rgCPA.useHardcodedPredicates();
+        //rgCPA.useHardcodedPredicates();
         cpas[i] = cpa;
       }
       // get main functions and CFA

@@ -197,7 +197,7 @@ public class RelyGuaranteeCPA extends PredicateCPA{
 
 
     // hardcode predicates
-    this.initialPrecision= new PredicatePrecision(predicates);
+    this.initialPrecision= new RelyGuaranteePrecision(predicates);
     //this.initialPrecision = null;
 
     this.stats = new RelyGuaranteeCPAStatistics(this);
