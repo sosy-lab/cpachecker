@@ -119,7 +119,12 @@ class TranslationUnit {
 
   public void insertCallEdgesRecursively(String pEntryFunction) {
     CFASecondPassBuilder lBuilder = new CFASecondPassBuilder(mCFAs);
-    lBuilder.insertCallEdgesRecursively(pEntryFunction);
+    try {
+      lBuilder.insertCallEdgesRecursively(pEntryFunction);
+    } catch (ParserException e) {
+      throw new RuntimeException("Error during parsing C code \""
+          + pEntryFunction + "\": " + e.getMessage());
+    }
   }
 
   public void toDot(String pFunction, File pFile) throws IOException {
