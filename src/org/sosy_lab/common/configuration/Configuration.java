@@ -893,4 +893,8 @@ public class Configuration {
     return this.rootDirectory;
   }
 
+  public String getOutputDirectory() {
+    return disableOutput ? null : outputDirectory;
+  }
+
 }

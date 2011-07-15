@@ -111,6 +111,7 @@ class MainCPAStatistics implements Statistics {
     private boolean monitorMemoryUsage = true;
 
     private final LogManager logger;
+    private final Configuration config;
     private final Collection<Statistics> subStats;
     private final MemoryStatistics memStats;
 
@@ -120,10 +121,11 @@ class MainCPAStatistics implements Statistics {
 
     private CFACreator cfaCreator;
 
-    public MainCPAStatistics(Configuration config, LogManager logger) throws InvalidConfigurationException {
+    public MainCPAStatistics(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+        logger = pLogger;
+        config = pConfig;
         config.inject(this);
 
-        this.logger = logger;
         subStats = new ArrayList<Statistics>();
 
         if (monitorMemoryUsage) {
@@ -250,6 +252,10 @@ class MainCPAStatistics implements Statistics {
           break;
         default:
           out.println("UNKNOWN result: " + result);
+        }
+        String outputDirectory = config.getOutputDirectory();
+        if (outputDirectory != null) {
+          out.println("More details about the verification run can be found in the directory " + outputDirectory);
         }
         out.flush();
     }
