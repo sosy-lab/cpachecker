@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
@@ -407,6 +408,23 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     }
 
     return new PathFormula(f, matchedSSA.build(), length,  envPF.getPrimedNo());
+  }
+
+  @Override
+  // reduces indexes to the lowest possible values, additionally it removes dead entries from ssa
+  public PathFormula normalize(PathFormula pNewPF) {
+    // reduce the formula are retrive the lowest indexes
+    Pair<Formula,Map<String, Integer>> data = fmgr.normalize(pNewPF.getFormula());
+    Formula f = data.getFirst();
+    Map<String, Integer> lowestIndex = data.getSecond();
+    // build a new SSAMap
+    SSAMap oldSsa = pNewPF.getSsa();
+    SSAMapBuilder newSsa = SSAMap.emptySSAMap().builder();
+    for (String var : lowestIndex.keySet()){
+      int nidx = oldSsa.getIndex(var) - lowestIndex.get(var) + 2;
+      newSsa.setIndex(var, nidx);
+    }
+    return new PathFormula(f, newSsa.build(), pNewPF.getLength());
   }
 
 

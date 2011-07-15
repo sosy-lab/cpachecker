@@ -223,8 +223,9 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
       if (f.isFalse() || pf.getFormula().isFalse()) {
         continue;
       } else {
-        PathFormula mergedPF = pfManager.makeAnd(pf, f);
-        RelyGuaranteeCFAEdge rgEdge = new RelyGuaranteeCFAEdge(localEdge, mergedPF, sourceThread);
+        PathFormula newPF = pfManager.makeAnd(pf, f);
+        newPF = pfManager.normalize(newPF);
+        RelyGuaranteeCFAEdge rgEdge = new RelyGuaranteeCFAEdge(localEdge, newPF, sourceThread);
         rgEdges.add(rgEdge);
       }
     }
@@ -255,6 +256,13 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
       }
     }
   }
+
+  // reduces the indeces to the minimum values
+  private PathFormula normalize(PathFormula pNewPF) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
 
   //remove CFA edges that assign to local variables
   // TODO compleate

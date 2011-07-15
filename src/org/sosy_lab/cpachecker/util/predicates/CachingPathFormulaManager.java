@@ -181,5 +181,11 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
 
+  @Override
+  public PathFormula normalize(PathFormula pNewPF) {
+    return delegate.normalize(pNewPF);
+  }
+
+
 
 }

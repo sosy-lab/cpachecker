@@ -935,5 +935,92 @@ public class MathsatFormulaManager implements FormulaManager  {
 
   }
 
+  // TODO could use caching
+  @Override
+  // reduces idenexes to the lowest possible value
+  public Pair<Formula,Map<String, Integer>>  normalize(Formula formula) {
+    Map<String, Integer> lowestIndex = new HashMap<String, Integer>();
+    // gather information about the lowest index
+    Deque<Formula> toProcess = new ArrayDeque<Formula>();
 
+    toProcess.push(formula);
+    while(!toProcess.isEmpty()){
+      Formula f = toProcess.pop();
+      long term = getTerm(f);
+      if (msat_term_is_variable(term) != 0){
+        Pair<String, Integer> data = parseName(msat_term_repr(term));
+        Integer currentLowest = lowestIndex.get(data.getFirst());
+        // update the index
+        if (currentLowest==null || currentLowest > data.getSecond()){
+          lowestIndex.put(data.getFirst(), data.getSecond());
+        }
+      } else {
+        for (int i=0; i<msat_term_arity(term); i++) {
+          Formula c = encapsulate(msat_term_get_arg(term, i));
+          toProcess.push(c);
+        }
+      }
+    }
+    // TODO check if all minimal index == 2, the do nothing
+
+    // rebuild the formula reducing indexes
+    // cache for and index of subformulas entire formulas
+    Map<Formula, Formula> lcache = new HashMap<Formula, Formula>();     // can't be global cache
+    toProcess.push(formula);
+    while (!toProcess.isEmpty()) {
+      final Formula f = toProcess.peek();
+      final long term = getTerm(f);
+      if (msat_term_is_variable(term) != 0) {
+        Pair<String, Integer> data = parseName(msat_term_repr(term));
+        // adjust the index; the lowest is 2
+        String name = data.getFirst();
+        int nidx = data.getSecond() - lowestIndex.get(name)+2;
+        long newterm = buildMsatVariable(makeName(name, nidx), msat_term_get_type(term));
+        lcache.put(f, encapsulate(newterm));
+        toProcess.pop();
+      } else {
+        boolean childrenDone = true;
+        long[] newargs = new long[msat_term_arity(term)];
+        for (int i = 0; i < newargs.length; ++i) {
+          Formula c = encapsulate(msat_term_get_arg(term, i));
+          Formula newC = lcache.get(c);
+          if (newC != null) {
+            newargs[i] = getTerm(newC);
+          } else {
+            toProcess.push(c);
+            childrenDone = false;
+          }
+        }
+
+        if (childrenDone) {
+          toProcess.pop();
+          long newt;
+          if (msat_term_is_uif(term) != 0) {
+            /* TODO not handled yet
+             * String name = msat_decl_get_name(msat_term_get_decl(term));
+            assert name != null;
+
+            if (ufCanBeLvalue(name)) {
+              int idx = ssa.getIndex(name, encapsulate(newargs));
+              if (idx > 0) {
+                // ok, the variable has an instance in the SSA, replace it
+                newt = buildMsatUF(makeName(name, idx), newargs);
+              } else {
+                newt = msat_replace_args(msatEnv, t, newargs);
+              }
+            } else {
+              newt = msat_replace_args(msatEnv, t, newargs);
+            }*/
+            newt = -1;
+          } else {
+            newt = msat_replace_args(msatEnv, term, newargs);
+          }
+
+          lcache.put(f, encapsulate(newt));
+        }
+      }
+    }
+
+    return new Pair<Formula,Map<String, Integer>> (lcache.get(formula), lowestIndex);
+  }
 }

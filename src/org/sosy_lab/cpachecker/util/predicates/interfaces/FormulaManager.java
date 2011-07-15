@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 
 
@@ -236,4 +238,7 @@ public interface FormulaManager {
     public Formula primeFormula(Formula f, int howManyPrimes);
 
     public int countAtoms(Formula f);
+
+    //
+    public Pair<Formula,Map<String, Integer>>  normalize(Formula formula);
 }

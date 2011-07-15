@@ -80,5 +80,7 @@ public interface PathFormulaManager {
 
   CFAEdge inject(CFAEdge pLocalEdge, Set<String> pGlobalVariablesSet, int pOffset, SSAMap pSsa) throws CPATransferException;
 
+  PathFormula normalize(PathFormula pNewPF);
+
 
 }
