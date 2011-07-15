@@ -152,7 +152,7 @@ public class CPAMain {
 
           String outputDirectory = config.getOutputDirectory();
           if (outputDirectory != null) {
-            stream.println("More details about the verification run can be found in the directory " + outputDirectory);
+            stream.println("More details about the verification run can be found in the directory \"" + outputDirectory + "\".");
           }
 
           stream.flush();
