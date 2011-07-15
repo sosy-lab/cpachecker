@@ -27,11 +27,16 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 
 /**
  * Helper class with collection of ART related utility methods.
@@ -108,5 +113,92 @@ public class ARTUtils {
       currentARTElement = parentElement;
     }
     return path;
+  }
+
+  /**
+   * Create String with ART in the DOT format of Graphviz.
+   * @param pReached the reached set
+   * @param pathEdges the edges of the error path (may be empty)
+   * @return the ART as DOT graph
+   */
+  static String convertARTToDot(ReachedSet pReached, Set<Pair<ARTElement, ARTElement>> pathEdges) {
+    ARTElement firstElement = (ARTElement)pReached.getFirstElement();
+
+    Deque<ARTElement> worklist = new LinkedList<ARTElement>();
+    Set<Integer> nodesList = new HashSet<Integer>();
+    Set<ARTElement> processed = new HashSet<ARTElement>();
+    StringBuilder sb = new StringBuilder();
+    StringBuilder edges = new StringBuilder();
+
+    sb.append("digraph ART {\n");
+    sb.append("style=filled; fontsize=10.0; fontname=\"Courier New\"; \n");
+
+    worklist.add(firstElement);
+
+    while(worklist.size() != 0){
+      ARTElement currentElement = worklist.removeLast();
+      if(processed.contains(currentElement)){
+        continue;
+      }
+      processed.add(currentElement);
+      if(!nodesList.contains(currentElement.getElementId())){
+        String color;
+        if (currentElement.isCovered()) {
+          color = "green";
+        } else if (currentElement.isTarget()) {
+          color = "red";
+        } else {
+          AbstractElement abselem = AbstractElements.extractElementByType(currentElement, PredicateAbstractElement.AbstractionElement.class);
+          if (abselem != null) {
+            color = "blue";
+          } else {
+            color = "white";
+          }
+        }
+
+        CFANode loc = currentElement.retrieveLocationElement().getLocationNode();
+        String label = (loc==null ? 0 : loc.getNodeNumber()) + "000" + currentElement.getElementId();
+
+        sb.append("node [shape = diamond, color = " + color + ", style = filled, label=" + label +" id=\"" + currentElement.getElementId() + "\"] " + currentElement.getElementId() + ";\n");
+
+        nodesList.add(currentElement.getElementId());
+      }
+
+      for (ARTElement covered : currentElement.getCoveredByThis()) {
+        edges.append(covered.getElementId());
+        edges.append(" -> ");
+        edges.append(currentElement.getElementId());
+        edges.append(" [style = dashed, label = \"covered by\"];\n");
+      }
+
+      for (ARTElement child : currentElement.getChildren()) {
+        boolean colored = pathEdges.contains(Pair.of(currentElement, child));
+        CFAEdge edge = currentElement.getEdgeToChild(child);
+        edges.append(currentElement.getElementId());
+        edges.append(" -> ");
+        edges.append(child.getElementId());
+        edges.append(" [");
+        if (colored) {
+          edges.append("color = red");
+        }
+        if (edge != null) {
+          edges.append(" label = \"");
+          edges.append(edge.toString().replace('"', '\''));
+          edges.append("\"");
+          edges.append(" id=\"");
+          edges.append(currentElement.getElementId());
+          edges.append("->");
+          edges.append(child.getElementId());
+          edges.append("\"");
+        }
+        edges.append("];\n");
+        if(!worklist.contains(child)){
+          worklist.add(child);
+        }
+      }
+    }
+    sb.append(edges);
+    sb.append("}\n");
+    return sb.toString();
   }
 }
