@@ -1,6 +1,8 @@
 package org.sosy_lab.cpachecker.plugin.eclipse;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
@@ -23,14 +25,13 @@ import org.eclipse.ui.console.IConsoleView;
 import org.eclipse.ui.console.IOConsole;
 import org.eclipse.ui.part.IPageBookViewPage;
 import org.eclipse.ui.progress.IProgressService;
+import org.sosy_lab.common.DuplicateOutputStream;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.LogManager.ConsoleLogFormatter;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.plugin.eclipse.preferences.PreferenceConstants;
-
-import com.google.common.io.NullOutputStream;
 
 
 public class TaskRunner {
@@ -207,14 +208,37 @@ public class TaskRunner {
 					CPAchecker cpachecker = new CPAchecker(config, logger);
 					final CPAcheckerResult results = cpachecker.run(task.getTranslationUnit().getLocation().toOSString());
 					logger.flush();
+					
+					OutputStream console = null;
 					if (CPAclipse.getPlugin().getPreferenceStore().getBoolean(PreferenceConstants.P_STATS)) {
-						results.printStatistics(consoleStream);	
-						consoleStream.println("");
-					} else {
-						// cannot avoid this, because i have to generate the (log)- files
-						results.printStatistics(new PrintStream(new NullOutputStream()));
+						console = consoleStream;
 					}
 					
+					OutputStream fileStream = null;
+					IFolder outDir = task.getOutputDirectory(true);
+					if (outDir.exists()) {
+						IFile result = outDir.getFile("VerificationResult.txt");						
+						File f = new File(result.getLocation().toPortableString());
+						f.createNewFile();
+						fileStream = new FileOutputStream(f);
+						
+						IFile prevConfig = outDir.getFile("UsedConfiguration.properties");
+						if (prevConfig.exists()) {
+							prevConfig.delete(true, true, null);
+						}
+						task.getConfigFile().copy(prevConfig.getFullPath(), true, null);
+						
+						IFile prevSpec = outDir.getFile("UsedSpecification.spc");
+						if (prevSpec.exists()) {
+							prevSpec.delete(true, true, null);
+						}
+						task.getSpecFile().copy(prevSpec.getFullPath(), true, null);
+					}
+					
+					PrintStream outputStream = makePrintStream(DuplicateOutputStream.mergeStreams(console, fileStream));
+					results.printStatistics(outputStream);	
+					outputStream.println("");
+
 					switch (results.getResult()) {
 					case SAFE:
 						//color: green, doesnt work, threading issues
@@ -229,30 +253,22 @@ public class TaskRunner {
 						//consoleStream.setColor(new Color(CPAcheckerPlugin.getPlugin().getWorkbench().getDisplay(), 255, 0,0));
 						break;
 					}
-					results.printResult(consoleStream);
-					consoleStream.flush();
+					
+					if (console == null) {
+						outputStream = makePrintStream(DuplicateOutputStream.mergeStreams(consoleStream, fileStream));
+					}
+					results.printResult(outputStream);
+					outputStream.flush();
+					
+					if (fileStream != null) {
+						fileStream.close();
+					}
+					if (outDir.exists()) {
+						outDir.refreshLocal(IResource.DEPTH_ONE, null);
+					}
 					
 					task.setLastResult(results.getResult());
-					IFolder outDir = task.getOutputDirectory(true);
-					if (outDir.exists()) {
-						IFile result = outDir.getFile("VerificationResult.txt");						
-						File f = new File(result.getLocation().toPortableString());
-						f.createNewFile();
-						results.printStatistics(new PrintStream(f));
-						result.refreshLocal(IResource.DEPTH_ONE, null);
-						
-						IFile prevConfig = outDir.getFile("UsedConfiguration.properties");
-						if (prevConfig.exists()) {
-							prevConfig.delete(true, true, null);
-						}
-						task.getConfigFile().copy(prevConfig.getFullPath(), true, null);
-						
-						IFile prevSpec = outDir.getFile("UsedSpecification.spc");
-						if (prevSpec.exists()) {
-							prevSpec.delete(true, true, null);
-						}
-						task.getSpecFile().copy(prevSpec.getFullPath(), true, null);
-					}
+					
 					// finshedAnnouncement must be fired in Eclipse UI thread
 					fireTaskFinished(results, monitor);
 				} catch (Exception e) {
@@ -304,5 +320,13 @@ public class TaskRunner {
 				}
 			});
 		}
+
+	    private static PrintStream makePrintStream(OutputStream stream) {
+	      if (stream instanceof PrintStream) {
+	        return (PrintStream)stream;
+	      } else {
+	        return new PrintStream(stream);
+	      }
+	    }
 	}
 }
