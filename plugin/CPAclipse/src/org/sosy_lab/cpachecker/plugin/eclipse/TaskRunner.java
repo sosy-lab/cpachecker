@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.plugin.eclipse.preferences.PreferenceConstants;
 
+import com.google.common.io.NullOutputStream;
+
 
 public class TaskRunner {
 
@@ -209,7 +211,7 @@ public class TaskRunner {
 						results.printStatistics(consoleStream);					
 					} else {
 						// cannot avoid this, because i have to generate the (log)- files
-						results.printStatistics(consoleStream);
+						results.printStatistics(new PrintStream(new NullOutputStream()));
 						switch (results.getResult()) {
 						case SAFE:
 							//color: green, doesnt work, threading issues

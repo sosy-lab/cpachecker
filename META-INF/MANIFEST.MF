@@ -14,7 +14,8 @@ Bundle-ClassPath: bin/,
  lib/guava-r09.jar,
  lib/eclipse-cdt6-parser.jar
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
-Export-Package: org.sosy_lab.common,
+Export-Package: com.google.common.io,
+ org.sosy_lab.common,
  org.sosy_lab.common.configuration,
  org.sosy_lab.cpachecker.core
 Require-Bundle: org.eclipse.core.runtime;resolution:=optional,
