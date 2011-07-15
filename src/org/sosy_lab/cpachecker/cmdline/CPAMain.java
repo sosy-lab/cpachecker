@@ -324,6 +324,8 @@ public class CPAMain {
         putIfNotExistent(properties, "analysis.traversal.order", "topsort");
       } else if (arg.equals("-cbmc")) {
         putIfNotExistent(properties, "analysis.useCBMC", "true");
+      } else if (arg.equals("-statistics")) {
+        putIfNotExistent(properties, "statistics.print", "true");
       } else if (arg.equals("-nolog")) {
         putIfNotExistent(properties, "log.level", "off");
         putIfNotExistent(properties, "log.consoleLevel", "off");
@@ -385,6 +387,7 @@ public class CPAMain {
     System.out.println(" -dfs");
     System.out.println(" -bfs");
     System.out.println(" -cbmc");
+    System.out.println(" -statistics");
     System.out.println(" -nolog");
     System.out.println(" -setprop");
     System.out.println(" -printOptions [-v|-verbose]");
