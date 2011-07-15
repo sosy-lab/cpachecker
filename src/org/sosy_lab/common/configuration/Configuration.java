@@ -671,10 +671,10 @@ public class Configuration {
       throws UnsupportedOperationException, InvalidConfigurationException {
     // convert value to correct type
 
-    if (valueStr == null) {
-      return null;
-
-    } else if (type.isArray()) {
+    if (type.isArray()) {
+      if (valueStr == null) {
+        return null;
+      }
 
       @SuppressWarnings("unchecked")
       Class<Object> componentType = (Class<Object>) type.getComponentType();
@@ -683,6 +683,10 @@ public class Configuration {
       return Iterables.toArray(values, componentType);
 
     } else if (COLLECTIONS.containsKey(type)) {
+      if (valueStr == null) {
+        return null;
+      }
+
       return handleCollectionOption(optionName, valueStr, type, genericType, typeInfo);
 
     } else {
@@ -714,6 +718,10 @@ public class Configuration {
       if (typeInfo != Option.Type.NOT_APPLICABLE) {
         throw new UnsupportedOperationException("Type " + type.getSimpleName()
             + " and type=" + typeInfo + " do not match for option " + optionName);
+      }
+
+      if (valueStr == null) {
+        return null;
       }
 
       if (type.isPrimitive()) {
