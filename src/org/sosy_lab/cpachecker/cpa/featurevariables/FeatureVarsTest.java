@@ -162,7 +162,6 @@ public class FeatureVarsTest {
         "  if (__SELECTED_FEATURE_Sign) error: fail();\n"+
         "  }");
       TestResults results = run(prop, "test/programs/simple/tmpProgram.c");
-      results.getCheckerResult().printStatistics(System.out); // to get an error path
       //System.out.println(results.getLog());
       //System.out.println(results.getCheckerResult().getResult());
       // only the feature Sign causes the error. (analysis should have joined the states before, because all other analysis' states are equal).
