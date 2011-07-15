@@ -89,5 +89,9 @@ if [ ! -z "$JAVA_VM_ARGUMENTS" ]; then
   echo "Running CPAchecker with the following extra VM options: $JAVA_VM_ARGUMENTS"
 fi
 
+if [ ! -z "$CPACHECKER_ARGUMENTS" ]; then
+  echo "Running CPAchecker with the following extra arguments: $CPACHECKER_ARGUMENTS"
+fi
+
 # run CPAchecker
-exec "$JAVA" $JAVA_VM_ARGUMENTS "-Djava.library.path=$arch_platform_path" -Xmx${JAVA_HEAP_SIZE:-$DEFAULT_HEAP_SIZE} -ea org.sosy_lab.cpachecker.cmdline.CPAMain "${OPTIONS[@]}"
+exec "$JAVA" $JAVA_VM_ARGUMENTS "-Djava.library.path=$arch_platform_path" -Xmx${JAVA_HEAP_SIZE:-$DEFAULT_HEAP_SIZE} -ea org.sosy_lab.cpachecker.cmdline.CPAMain "${OPTIONS[@]}" $CPACHECKER_ARGUMENTS
