@@ -1006,11 +1006,11 @@ def getCPAcheckerStatus(returncode, output):
             status = 'SEGMENTATION FAULT'
         elif (returncode == 0 or returncode == 1) and (line.find('Exception') != -1):
             status = 'EXCEPTION'
-        elif (status is None) and line.startswith('Given specification violated?'):
-            line = line[30:].strip()
-            if line.startswith('NO'):
+        elif (status is None) and line.startswith('Verification result: '):
+            line = line[21:].strip()
+            if line.startswith('SAFE'):
                 status = 'SAFE'
-            elif line.startswith('YES'):
+            elif line.startswith('UNSAFE'):
                 status = 'UNSAFE'
             else:
                 status = 'UNKNOWN'

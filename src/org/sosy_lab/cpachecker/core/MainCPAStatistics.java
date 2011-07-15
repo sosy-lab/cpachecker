@@ -233,20 +233,20 @@ class MainCPAStatistics implements Statistics {
         }
 
         out.println("");
-        out.print("Given specification violated? ");
+        out.print("Verification result: ");
         switch (result) {
         case UNKNOWN:
-          out.println("UNKNOWN, analysis has not completed\n\n" +
+          out.println("UNKNOWN, incomplete analysis.\n\n" +
               "***********************************************************************\n" +
               "* WARNING: Analysis interrupted!! The statistics might be unreliable! *\n" +
               "***********************************************************************"
             );
           break;
         case UNSAFE:
-          out.println("YES, there is a BUG!");
+          out.println("UNSAFE. Error path found by chosen configuration.");
           break;
         case SAFE:
-          out.println("NO, the system is considered safe by the chosen CPAs");
+          out.println("SAFE. No error path found by chosen configuration.");
           break;
         default:
           out.println("UNKNOWN result: " + result);
