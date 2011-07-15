@@ -189,12 +189,18 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
       }
 
       // check if (e \in ART) => (e \in Reached ^ e.isCovered())
-      // There is a special case here:
-      // If the element is the sibling of the target element, it might have not
-      // been added to the reached set if CPAAlgorithm stopped before.
-      // But in this case its parent is in the waitlist.
-      assert (pReached.contains(currentElement) || pReached.getWaitlist().containsAll(currentElement.getParents()))
-            ^ currentElement.isCovered();
+      if (currentElement.isCovered()) {
+        assert !pReached.contains(currentElement);
+
+      } else {
+        // There is a special case here:
+        // If the element is the sibling of the target element, it might have not
+        // been added to the reached set if CPAAlgorithm stopped before.
+        // But in this case its parent is in the waitlist.
+
+        assert pReached.contains(currentElement)
+            || pReached.getWaitlist().containsAll(currentElement.getParents());
+      }
 
       if (art.add(currentElement)) {
         workList.addAll(currentElement.getChildren());
