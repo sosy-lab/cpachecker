@@ -5,24 +5,22 @@ Spelling:
 - Type names start with a capital,
   and each sub-type name starts with an abbreviation of the type
   (allows for look-up of type hierarchy via auto completion/listing).
-- Method names start lower case.
-- Variable names start lower case,
-  where a field starts with 'm', a static field starts with 's',
-  a parameter starts with 'p', and a local variable starts with 'l'.
+- Method names start lower case and begin with a verb.
+- Variable names start lower case.
+  Parameters should start with 'p' to avoid confusion with
+  local variables or fields.
 
 Formatting:
 - A block is surrounded by braces, e.g., if (...) { ...block... }.
 - A function call has no whitespace between function name and parenthesis,
   e.g. func()...
+- No trailing whitespaces.
 
 Compilation:
 - Warnings are taken serious, and problems should be fixed if possible.
   (When it becomes to many, we can't see the important ones anymore.)
 - Errors are to be eliminated as soon as possible.
   (Annoying.)
-
-Eclipse:
-- I have added a suggested style into the .settings for Eclipse.
 
 Version Control:
 - Commit early, commit often, and
