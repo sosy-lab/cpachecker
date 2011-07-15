@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
@@ -1102,7 +1103,13 @@ class ASTConverter {
   }
 
   private IASTInitializerExpression convert(org.eclipse.cdt.core.dom.ast.IASTInitializerExpression i) {
-    return new IASTInitializerExpression(i.getRawSignature(), convert(i.getFileLocation()), convertExpressionWithoutSideEffects(i.getExpression()));
+    IASTNode initializer = convertExpressionWithSideEffects(i.getExpression());
+    if (initializer != null && !(initializer instanceof IASTRightHandSide)) {
+      System.err.println(initializer.getClass().getSimpleName());
+      throw new CFAGenerationRuntimeException("Initializer is not free of side-effects", i);
+    }
+
+    return new IASTInitializerExpression(i.getRawSignature(), convert(i.getFileLocation()), (IASTRightHandSide)initializer);
   }
 
   private IASTInitializerList convert(org.eclipse.cdt.core.dom.ast.IASTInitializerList iList) {
@@ -1117,7 +1124,15 @@ class ASTConverter {
     org.eclipse.cdt.core.dom.ast.IASTInitializerClause ic = i.getInitializerClause();
     if (ic instanceof org.eclipse.cdt.core.dom.ast.IASTExpression) {
       org.eclipse.cdt.core.dom.ast.IASTExpression e = (org.eclipse.cdt.core.dom.ast.IASTExpression)ic;
-      return new IASTInitializerExpression(ic.getRawSignature(), convert(ic.getFileLocation()), convertExpressionWithoutSideEffects(e));
+
+      IASTNode initializer = convertExpressionWithSideEffects(e);
+      if (initializer != null && !(initializer instanceof IASTRightHandSide)) {
+        System.err.println(initializer.getClass().getSimpleName());
+        throw new CFAGenerationRuntimeException("Initializer is not free of side-effects", i);
+      }
+
+      return new IASTInitializerExpression(ic.getRawSignature(), convert(ic.getFileLocation()), (IASTRightHandSide)initializer);
+
     } else if (ic instanceof org.eclipse.cdt.core.dom.ast.IASTInitializerList) {
       return convert((org.eclipse.cdt.core.dom.ast.IASTInitializerList)ic);
     } else {

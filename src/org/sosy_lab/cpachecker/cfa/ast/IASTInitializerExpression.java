@@ -25,15 +25,15 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 public final class IASTInitializerExpression extends IASTInitializer {
 
-  private final IASTExpression expression;
+  private final IASTRightHandSide expression;
 
   public IASTInitializerExpression(final String pRawSignature,
-      final IASTFileLocation pFileLocation, final IASTExpression pExpression) {
+      final IASTFileLocation pFileLocation, final IASTRightHandSide pExpression) {
     super(pRawSignature, pFileLocation);
     expression = pExpression;
   }
 
-  public IASTExpression getExpression() {
+  public IASTRightHandSide getExpression() {
     return expression;
   }
 
