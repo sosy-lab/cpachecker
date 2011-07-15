@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -118,41 +119,55 @@ public class CPAMain {
       System.out.flush();
       System.err.flush();
       if (mResult != null) {
-        PrintStream stream = null;
+        PrintStream console = null;
         FileOutputStream file = null;
 
         if (printStatistics) {
-          stream = System.out;
+          console = System.out;
         }
 
         if (exportStatistics && exportStatisticsFile != null) {
           try {
             com.google.common.io.Files.createParentDirs(exportStatisticsFile);
             file = new FileOutputStream(exportStatisticsFile);
-
-            if (stream == null) {
-              stream = new PrintStream(new DuplicateOutputStream(stream, file));
-            } else {
-              stream = new PrintStream(file);
-            }
-
           } catch (IOException e) {
             logManager.log(Level.WARNING, "Could not write statistics to file ("
                 + e.getMessage() + ")");
           }
         }
 
-        if (stream == null) {
-          stream = new PrintStream(new NullOutputStream());
-        }
-
-        mResult.printStatistics(stream);
+        mResult.printStatistics(mergeStreams(console, file));
 
         if (file != null) {
           Closeables.closeQuietly(file);
         }
       }
       logManager.flush();
+    }
+
+    private static PrintStream mergeStreams(OutputStream stream1, OutputStream stream2) {
+      OutputStream result;
+
+      if (stream1 == null) {
+        if (stream2 == null) {
+          result = new NullOutputStream();
+        } else {
+          result = stream2;
+        }
+
+      } else {
+        if (stream2 == null) {
+          result = stream1;
+        } else {
+          result = new DuplicateOutputStream(stream1, stream2);
+        }
+      }
+
+      if (result instanceof PrintStream) {
+        return (PrintStream)result;
+      } else {
+        return new PrintStream(result);
+      }
     }
   }
 
