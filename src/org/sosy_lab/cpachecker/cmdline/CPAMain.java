@@ -49,6 +49,8 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 
 import com.google.common.base.Joiner;
+import com.google.common.io.Closeables;
+import com.google.common.io.NullOutputStream;
 
 public class CPAMain {
 
@@ -73,6 +75,9 @@ public class CPAMain {
     @Option(name="file", type=Option.Type.OUTPUT_FILE,
         description="write some statistics to disk")
     private File exportStatisticsFile = new File("Statistics.txt");
+
+    @Option(name="print", description="print statistics to console")
+    private boolean printStatistics = true;
 
     private final LogManager logManager;
     private final Thread mainThread;
@@ -113,18 +118,39 @@ public class CPAMain {
       System.out.flush();
       System.err.flush();
       if (mResult != null) {
-        PrintStream stream = System.out;
+        PrintStream stream = null;
+        FileOutputStream file = null;
+
+        if (printStatistics) {
+          stream = System.out;
+        }
+
         if (exportStatistics && exportStatisticsFile != null) {
           try {
             com.google.common.io.Files.createParentDirs(exportStatisticsFile);
-            FileOutputStream file = new FileOutputStream(exportStatisticsFile);
-            stream = new PrintStream(new DuplicateOutputStream(stream, file));
+            file = new FileOutputStream(exportStatisticsFile);
+
+            if (stream == null) {
+              stream = new PrintStream(new DuplicateOutputStream(stream, file));
+            } else {
+              stream = new PrintStream(file);
+            }
+
           } catch (IOException e) {
             logManager.log(Level.WARNING, "Could not write statistics to file ("
                 + e.getMessage() + ")");
           }
         }
+
+        if (stream == null) {
+          stream = new PrintStream(new NullOutputStream());
+        }
+
         mResult.printStatistics(stream);
+
+        if (file != null) {
+          Closeables.closeQuietly(file);
+        }
       }
       logManager.flush();
     }

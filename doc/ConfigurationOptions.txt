@@ -499,3 +499,6 @@ statistics.file = "Statistics.txt"
 # track memory usage of JVM during runtime
 statistics.memory = true
 
+# print statistics to console
+statistics.print = true
+
