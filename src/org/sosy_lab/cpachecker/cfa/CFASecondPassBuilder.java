@@ -34,16 +34,21 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
  * This class takes several CFAs (each for a single function) and combines them
@@ -67,8 +72,9 @@ public class CFASecondPassBuilder {
    * reachable from the first one.
    * @param functionName  The function where to start processing.
    * @return A set of all functions reachable (including external functions and the function passed as argument).
+   * @throws ParserException
    */
-  public Set<String> insertCallEdgesRecursively(String functionName) {
+  public Set<String> insertCallEdgesRecursively(String functionName) throws ParserException {
     Deque<String> worklist = new ArrayDeque<String>();
     worklist.addLast(functionName);
     Set<String> reachedFunctions = new HashSet<String>();
@@ -94,8 +100,9 @@ public class CFASecondPassBuilder {
    * call.
    * @param initialNode CFANode where to start processing
    * @return a list of all function calls encountered (may contain duplicates)
+   * @throws ParserException
    */
-  private List<String> insertCallEdges(CFAFunctionDefinitionNode initialNode) {
+  private List<String> insertCallEdges(CFAFunctionDefinitionNode initialNode) throws ParserException {
     // we use a worklist algorithm
     Deque<CFANode> workList = new ArrayDeque<CFANode>();
     Set<CFANode> processed = new HashSet<CFANode>();
@@ -123,6 +130,21 @@ public class CFASecondPassBuilder {
             IASTFunctionCall functionCall = (IASTFunctionCall)expr;
             String functionName = createCallAndReturnEdges(statement, functionCall);
             calledFunctions.add(functionName);
+          }
+
+        } else if (edge instanceof DeclarationEdge) {
+          // check if this is "int x = f()" and f is a non-extern function
+          // we don't support this currently
+          IASTInitializer init = ((DeclarationEdge)edge).getInitializer();
+          if (init != null && init instanceof IASTInitializerExpression) {
+            IASTRightHandSide initExpression = ((IASTInitializerExpression)init).getExpression();
+            if (initExpression != null && initExpression instanceof IASTFunctionCallExpression) {
+              IASTFunctionCallExpression f = (IASTFunctionCallExpression)initExpression;
+              String name = f.getFunctionNameExpression().getRawSignature();
+              if (cfas.containsKey(name)) {
+                throw new ParserException("Function call in initializer not supported", edge);
+              }
+            }
           }
         }
 
