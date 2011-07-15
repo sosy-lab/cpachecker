@@ -169,11 +169,12 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
 
       stats.transferTimer.start();
       // pretty printing of predecessors
+      ARTElement aElement = (ARTElement) element;
       RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(element, RelyGuaranteeAbstractElement.class);
       System.out.println();
       int atomNo = fManager.countAtoms(rgElement.getPathFormula().getFormula());
       System.out.println("@ Successor of '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+
-          "' with SSAMap "+rgElement.getPathFormula().getSsa()+" atomNo="+atomNo);
+          "' with SSAMap "+rgElement.getPathFormula().getSsa()+" atomNo="+atomNo+" id:"+aElement.getElementId());
 
 
       Collection<? extends AbstractElement> successors =
@@ -243,9 +244,9 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
                 mergeOperator.merge(successor, reachedElement,
                     successorPrecision);
 
-            printMerge(successor, reachedElement, mergedElement);
 
             if (!mergedElement.equals(reachedElement)) {
+              printMerge(successor, reachedElement, mergedElement);
               logger.log(Level.FINER,
                   "Successor was merged with element from reached set");
               logger.log(Level.ALL, "Merged", successor, "\nand",
@@ -270,6 +271,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
         if (stop) {
           logger.log(Level.FINER,
               "Successor is covered or unreachable, not adding to waitlist");
+          printCovered(successor);
           stats.countStop++;
 
         } else {
@@ -281,24 +283,35 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
           reachedSet.add(successor, successorPrecision);
         }
       }
+      System.out.println();
     }
     stats.totalTimer.stop();
     return true;
   }
 
- private void printMerge(AbstractElement pSuccessor, AbstractElement pReachedElement, AbstractElement pMergedElement) {
+ private void printCovered(AbstractElement pSuccessor) {
+   ARTElement aSuccessor = (ARTElement) pSuccessor;
+   RelyGuaranteeAbstractElement rSuccessor = AbstractElements.extractElementByType(pSuccessor, RelyGuaranteeAbstractElement.class);
+   System.out.println("^ Covered  '"+rSuccessor.getAbstractionFormula()+"','"+rSuccessor.getPathFormula()+"' with SSA "+rSuccessor.getPathFormula().getSsa()+" id:"+aSuccessor.getElementId());
+
+  }
+
+private void printMerge(AbstractElement pSuccessor, AbstractElement pReachedElement, AbstractElement pMergedElement) {
+     ARTElement aSuccessor = (ARTElement) pSuccessor;
+     ARTElement aReachedElement = (ARTElement) pReachedElement;
+     ARTElement aMergedElement = (ARTElement) pMergedElement;
     RelyGuaranteeAbstractElement rSuccessor = AbstractElements.extractElementByType(pSuccessor, RelyGuaranteeAbstractElement.class);
     RelyGuaranteeAbstractElement rReached   = AbstractElements.extractElementByType(pReachedElement, RelyGuaranteeAbstractElement.class);
     RelyGuaranteeAbstractElement rMerged  = AbstractElements.extractElementByType(pMergedElement, RelyGuaranteeAbstractElement.class);
     int atomNo = fManager.countAtoms(rMerged.getPathFormula().getFormula());
-    System.out.println("+ merged '"+rSuccessor.getAbstractionFormula()+"','"+rSuccessor.getPathFormula()+"' with SSA "+rSuccessor.getPathFormula().getSsa());
-    System.out.println("\twith '"+rReached.getAbstractionFormula()+"','"+rReached.getPathFormula()+"' with SSA "+rReached.getPathFormula().getSsa());
-    System.out.println("\t= '"+rMerged.getAbstractionFormula()+"','"+rMerged.getPathFormula()+"' with SSA "+rMerged.getPathFormula().getSsa()+" atomNo="+atomNo);
+    System.out.println("+ merged '"+rSuccessor.getAbstractionFormula()+"','"+rSuccessor.getPathFormula()+"' with SSA "+rSuccessor.getPathFormula().getSsa()+" id:"+aSuccessor.getElementId());
+    System.out.println("\twith '"+rReached.getAbstractionFormula()+"','"+rReached.getPathFormula()+"' with SSA "+rReached.getPathFormula().getSsa()+" id:"+aReachedElement.getElementId());
+    System.out.println("\t= '"+rMerged.getAbstractionFormula()+"','"+rMerged.getPathFormula()+"' with SSA "+rMerged.getPathFormula().getSsa()+" atomNo="+atomNo+" id:"+aMergedElement.getElementId());
   }
 
   // pretty-printing of successors
   private void printRelyGuaranteeAbstractElement(AbstractElement pSuccessor) {
-    //ARTElement aElement = (ARTElement) pSuccessor;
+    ARTElement aElement = (ARTElement) pSuccessor;
     RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(pSuccessor, RelyGuaranteeAbstractElement.class);
     if (rgElement.getParentEdge() == null){
       System.out.println("- by local edge UNKNOWN");
@@ -306,12 +319,12 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     else if (rgElement.getParentEdge().getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
       RelyGuaranteeCFAEdge rgEdge = (RelyGuaranteeCFAEdge) rgElement.getParentEdge();
       int atomNo = fManager.countAtoms(rgEdge.getPathFormula().getFormula());
-      System.out.println("- by env. edge '"+rgEdge.getLocalEdge().getRawStatement()+"','"+rgEdge.getPathFormula()+"' SSA "+rgEdge.getPathFormula().getSsa()+" atomNo="+atomNo);
+      System.out.println("- by env. edge '"+rgEdge.getLocalEdge().getRawStatement()+"','"+rgEdge.getPathFormula()+"' SSA "+rgEdge.getPathFormula().getSsa()+" atomNo="+atomNo+" id:"+aElement.getElementId());
     } else {
       System.out.println("- by local edge "+rgElement.getParentEdge().getRawStatement());
     }
     int atomNo2 = fManager.countAtoms(rgElement.getPathFormula().getFormula());
-    System.out.println("\t is '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+"' with SSA "+rgElement.getPathFormula().getSsa()+" atomNo="+atomNo2);
+    System.out.println("\t is '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+"' with SSA "+rgElement.getPathFormula().getSsa()+" atomNo="+atomNo2+" id:"+aElement.getElementId());
     //System.out.println();
 
   }

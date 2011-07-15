@@ -268,8 +268,8 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
 
     int atomNo = this.manager.countAtoms(pf.getFormula());
 
-    if (atomThreshold > 0) {
-      boolean threshold = (atomNo >= atomThreshold);
+    if (absBlockSize > 0) {
+      boolean threshold = (atomNo >= absBlockSize);
       if (threshold) {
         numBlkThreshold++;
       }

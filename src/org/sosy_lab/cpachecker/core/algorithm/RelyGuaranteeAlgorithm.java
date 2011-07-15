@@ -402,6 +402,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
         addEnvTransitionToNode(node, new  RelyGuaranteeCFAEdge(envTransition));
       }
     }
+    this.dumpDot(i, "test/output/newCFA"+i+".dot");
 
   }
 
