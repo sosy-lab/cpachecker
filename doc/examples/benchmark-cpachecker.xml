@@ -14,11 +14,6 @@
 
   <test name="locks-lbe">
     <sourcefiles>
-
-      <!-- This option overrides the global option "-heap".
-      It is only valid for this sourcefiles-tag. -->
-      <option name="-heap">500m</option>
-
       <include>test/programs/locks/*7.c</include>
       <include>test/programs/locks/*8.c</include>
     </sourcefiles>
