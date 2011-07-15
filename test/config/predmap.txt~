@@ -1,0 +1,12 @@
+LOCATION: N2
+<0:1> <-> "PRED(cs2 = 0)" <-> (cs2 = 0)
+
+LOCATION: N3
+<0:1> <-> "PRED(cs2 = 0)" <-> (cs2 = 0)
+
+LOCATION: N6
+<1:1> <-> "PREDfalse" <-> false
+
+LOCATION: N15
+<0:1> <-> "PRED(cs2 = 0)" <-> (cs2 = 0)
+

@@ -224,9 +224,10 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
    int offset = localPF.getPrimedNo() + 1;
    PathFormula primedEnvPF = pathFormulaManager.primePathFormula(envPF, offset);
    // make equalities between the last global values in the local and env. path formula
-   PathFormula matchedPF = pathFormulaManager.matchPaths(localPF, primedEnvPF);
-   // apply the strongest postcondition with respect to the local values
-   // TODO this could be slightly optimised - bypass some equalities
+   PathFormula matchedPF = pathFormulaManager.matchPaths(localPF, primedEnvPF, this.cpa.globalVariablesSet);
+
+   CFAEdge injectedEdge = pathFormulaManager.inject(edge.getLocalEdge(), this.cpa.globalVariablesSet, offset, primedEnvPF.getSsa());
+   // apply the strongest postcondition
    PathFormula finalPF = pathFormulaManager.makeAnd(matchedPF, edge.getLocalEdge());
    System.out.println("\tby pf '"+finalPF+"'");
 

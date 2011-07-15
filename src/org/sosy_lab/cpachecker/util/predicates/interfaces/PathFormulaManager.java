@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
+import java.util.Set;
+
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -62,7 +64,7 @@ public interface PathFormulaManager {
   //PathFormula shiftFormula(PathFormula formula, int offset);
 
 
-
+  PathFormula matchPaths(PathFormula localPF, PathFormula envPF, Set<String> globalVariablesSet);
 
 
   //PathFormula makeAnd(PathFormula pLocalPathFormula, PathFormula pEnvPathFormula, int pMyTid, int pSourceTid);
@@ -72,10 +74,11 @@ public interface PathFormulaManager {
 
   PathFormula primePathFormula(PathFormula envPF, int offset);
 
-  PathFormula matchPaths(PathFormula pLocalPF, PathFormula pPrimedEnvPF);
 
   // for testing...
   Formula buildLvalueTerm(IASTExpression exp, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException;
+
+  CFAEdge inject(CFAEdge pLocalEdge, Set<String> pGlobalVariablesSet, int pOffset, SSAMap pSsa) throws CPATransferException;
 
 
 }

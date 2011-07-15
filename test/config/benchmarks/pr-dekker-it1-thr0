@@ -1,0 +1,5 @@
+VAR    x@2, flag1@2,  flag2@2, turn@2 : REAL
+FORMULA x@2 <= 0
+
+
+

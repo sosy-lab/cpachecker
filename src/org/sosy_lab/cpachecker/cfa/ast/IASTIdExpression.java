@@ -23,10 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import org.sosy_lab.common.Pair;
+
 public class IASTIdExpression extends IASTExpression {
 
   private final String name;
   private final IASTSimpleDeclaration declaration;
+  // for relyguarantee prototype
+  private Pair<String, Integer> primed = null;
 
   public IASTIdExpression(final String pRawSignature,
       final IASTFileLocation pFileLocation, final IType pType,
@@ -68,5 +72,14 @@ public class IASTIdExpression extends IASTExpression {
   @Override
   public String toASTString() {
     return name;
+  }
+
+  // for relyguarantee prototype
+  public void setPrimed(String name, int index) {
+    this.primed = new Pair<String, Integer>(name, index);
+  }
+  // for relyguarantee prototype
+  public Pair<String, Integer> getPrimed() {
+    return this.primed;
   }
 }

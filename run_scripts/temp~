@@ -1,0 +1,13 @@
+@ Successor of 'ABS15166: (((((x@3 >= 1) & (!((flag1@3 <= 0)) & ((turn@2 <= 0) & (turn@2 >= 0)))) & !((flag2@3 <= 0))) & (flag2@3 >= 1)) & (flag1@3 >= 1))','true' with
+SSAMap flag1 x 3 flag2 x 3 turn x 2 x x 3 flag1^1 x 2 flag2^1 x 3 turn^1 x 2 x^1 x 2 flag1^2 x 2 flag2^2 x 2 turn^2 x 2 x^2 x 2  atomNo=0
+
+	by pf '(((((((((!((flag2^1@5 <= 0)) & (!((turn^1@2 >= 1)) & !((turn^1@2 <= -1)))) & (flag2^1@5 >= 1)) & (flag1^1@3 >= 1)) & !((x^1@3 <= 0))) & (turn^1@2 = turn@2)) & (flag1^1@3 = flag1@3)) & (x^1@3 = x@3)) & (flag2^1@5 = flag2@3)) & (x@4 = 0))'
+	by pf '(((((((((!((flag2^1@5 <= 0)) & ((turn^1@3 >= 1) & !((turn^1@3 <= -1)))) & (flag2^1@5 >= 1)) & (flag1^1@3 >= 1)) & !((x^1@3 <= 0))) & (turn^1@3 = turn@2)) & (flag1^1@3 = flag1@3)) & (x^1@3 = x@3)) & (flag2^1@5 = flag2@3)) & (x@4 = 0))'
+
+
+- by env. edge 'x = 0','((((!((flag2@5 <= 0)) & (!((turn@2 >= 1)) & !((turn@2 <= -1)))) & (flag2@5 >= 1)) & (flag1@3 >= 1)) & !((x@3 <= 0)))'
+SSA flag1 x 3 flag2 x 5 turn x 2 x x 3 flag1^1 x 3 flag2^1 x 3 turn^1 x 3 x^1 x 3 flag1^2 x 2 flag2^2 x 2 turn^2 x 2 x^2 x 2  atomNo=6
+
+ is 'ABS15567: ((((!((x@4 >= 1)) & (!((flag1@3 <= 0)) & ((turn@2 <= 0) & (turn@2 >= 0)))) & !((flag2@3 <= 0))) & (flag2@3 >= 1)) & (flag1@3 >= 1))','true' 
+
+with SSA flag1 x 3 flag2 x 3 turn x 2 x x 4 flag1^1 x 3 flag2^1 x 5 turn^1 x 2 x^1 x 3 flag1^2 x 3 flag2^2 x 3 turn^2 x 3 x^2 x 3 flag1^3 x 2 flag2^3 x 2 turn^3 x 2 x^3 x 2  atomNo=0

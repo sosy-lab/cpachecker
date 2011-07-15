@@ -27,6 +27,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -89,6 +91,11 @@ public class RelyGuaranteeCPA extends PredicateCPA{
   @Option(name="interpolation.changesolverontimeout",
       description="try second interpolating solver if the first takes too long")
       private boolean changeItpSolveOTF = false;
+
+  @Option(description="List of variables global to multiple threads")
+  protected String[] globalVariables = {};
+
+  public Set<String> globalVariablesSet;
 
   @Option(name="blk.useCache", description="use caching of path formulas")
   private boolean useCache = true;
@@ -206,6 +213,11 @@ public class RelyGuaranteeCPA extends PredicateCPA{
         predicates.add(p);
       }
     }*/
+
+    globalVariablesSet = new HashSet<String>();
+    for (String var : globalVariables){
+      globalVariablesSet.add(var);
+    }
 
 
     // hardcode predicates

@@ -1,0 +1,18 @@
+LOCATION: N3
+<0:1> <-> "PRED(main::counter = 4)" <-> (main::counter = 4)
+
+LOCATION: N4
+<0:1> <-> "PRED(main::counter = 4)" <-> (main::counter = 4)
+
+LOCATION: N7
+<0:1> <-> "PRED(main::counter = 4)" <-> (main::counter = 4)
+
+LOCATION: N12
+<0:1> <-> "PRED(main::counter = 4)" <-> (main::counter = 4)
+
+LOCATION: N15
+<0:1> <-> "PRED(main::counter = 4)" <-> (main::counter = 4)
+
+LOCATION: N20
+<1:1> <-> "PREDfalse" <-> false
+

@@ -1,0 +1,4 @@
+#!/bin/bash
+exec_path=".."
+$exec_path/scripts/cpa.sh -concurrent -config $exec_path/test/config/rg-dekker-abe.properties $exec_path/test/programs/multi-threaded/threader_benchmarks/dekker-thr1.cil.c  $exec_path/test/programs/multi-threaded/threader_benchmarks/dekker-thr1.cil.c
+

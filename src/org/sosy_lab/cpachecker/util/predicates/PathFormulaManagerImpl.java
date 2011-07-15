@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
@@ -338,11 +336,32 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
   @Override
   // merge two possible primed formulas and add  equalities for their final values
-  public PathFormula matchPaths(PathFormula localPF, PathFormula envPF) {
+  public PathFormula matchPaths(PathFormula localPF, PathFormula envPF, Set<String> globalVariablesSet) {
     Formula f = this.fmgr.makeAnd(localPF.getFormula(), envPF.getFormula());
-    SSAMap matchedSSA = SSAMap.merge(localPF.getSsa(), envPF.getSsa());
+    SSAMapBuilder matchedSSA = SSAMap.merge(localPF.getSsa(), envPF.getSsa()).builder();
 
-    // build maps variable -> primed_no for both formulas
+    // unprimed variables in env should have offset * primes
+    int offset = localPF.getPrimedNo()+1;
+    // build equalities for globalVariables variables
+    for (String var : globalVariablesSet) {
+      int lidx = localPF.getSsa().getIndex(var);
+      int eidx = envPF.getSsa().getIndex(var+"^"+offset);
+      if (lidx == -1) {
+        lidx = 1;
+        matchedSSA.setIndex(var, lidx);
+      }
+      if (eidx == -1) {
+        eidx = 1;
+        matchedSSA.setIndex(var+"^"+offset, eidx);
+      }
+      Formula lvar = fmgr.makeVariable(var, lidx);
+      Formula evar = fmgr.makeVariable(var+"^"+offset, eidx);
+      Formula eq  = fmgr.makeEqual(lvar, evar);
+      f = fmgr.makeAnd(f, eq);
+    }
+
+
+    /*// build maps variable -> primed_no for both formulas
     Map<String, Integer> map1 = new HashMap<String, Integer>();
     Map<String, Integer> map2 = new HashMap<String, Integer>();
 
@@ -378,16 +397,16 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
       equalitiesNo++;
     }
 
-    eF = fmgr.makeAnd(eF, f);
+    eF = fmgr.makeAnd(eF, f);*/
 
-    int max_prime;
-    if (localPF.getPrimedNo() > envPF.getPrimedNo()) {
-      max_prime = localPF.getPrimedNo();
+    int length;
+    if (localPF.getLength() > envPF.getLength()) {
+      length = localPF.getLength();
     } else {
-      max_prime = envPF.getPrimedNo();
+      length = envPF.getLength();
     }
 
-    return new PathFormula(eF, matchedSSA, localPF.getLength()+envPF.getLength(),  max_prime);
+    return new PathFormula(f, matchedSSA.build(), length,  envPF.getPrimedNo());
   }
 
 

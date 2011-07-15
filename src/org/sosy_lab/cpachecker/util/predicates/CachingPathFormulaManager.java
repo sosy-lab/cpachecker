@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
@@ -160,16 +161,23 @@ public class CachingPathFormulaManager implements PathFormulaManager {
     return delegate.primePathFormula(pEnvPF, pOffset);
   }
 
-  // TODO maybe cache me!
-  @Override
-  public PathFormula matchPaths(PathFormula pLocalPF, PathFormula pPrimedEnvPF) {
-    return delegate.matchPaths(pLocalPF, pPrimedEnvPF);
-  }
 
 
   @Override
   public Formula buildLvalueTerm(IASTExpression pExp, String pFunction, SSAMapBuilder pSsa) throws UnrecognizedCCodeException {
     return delegate.buildLvalueTerm(pExp, pFunction, pSsa);
+  }
+
+
+  @Override
+  public PathFormula matchPaths(PathFormula pLocalPF, PathFormula pEnvPF, Set<String> pGlobalVariablesSet) {
+    return delegate.matchPaths(pLocalPF, pEnvPF, pGlobalVariablesSet);
+  }
+
+
+  @Override
+  public CFAEdge inject(CFAEdge pLocalEdge, Set<String> pGlobalVariablesSet, int pOffset, SSAMap pSsa) throws CPATransferException {
+    return delegate.inject(pLocalEdge, pGlobalVariablesSet, pOffset, pSsa);
   }
 
 

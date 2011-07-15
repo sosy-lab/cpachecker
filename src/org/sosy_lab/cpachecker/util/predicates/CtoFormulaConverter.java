@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -193,12 +194,20 @@ public class CtoFormulaConverter {
       isGlobal = ((IASTDeclaration)decl).isGlobal();
     }
 
+    // TODO prototype
+    String name = var.getName();
+    Pair<String, Integer> data = var.getPrimed();
+    if (data!=null){
+      name = data.getFirst();
+    }
+
     if (isGlobal) {
-      return var.getName();
+      return name;
     } else {
-      return scoped(var.getName(), function);
+      return scoped(name, function);
     }
   }
+
 
   // prefixes function to variable name
   // Call only if you are sure you have a local variable!
@@ -299,6 +308,10 @@ public class CtoFormulaConverter {
     return fmgr.makeVariable(var, idx);
   }
 
+  private Formula makeVariablePrimed(String var, int idx) {
+    return fmgr.makeVariable(var, idx);
+  }
+
   /**
    * Create a formula for a given variable with a fresh index for the left-hand
    * side of an assignment.
@@ -318,7 +331,7 @@ public class CtoFormulaConverter {
   }
 
 //  @Override
-  public PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge)
+  public PathFormula makeAnd(PathFormula localF, CFAEdge edge )
       throws CPATransferException {
     // this is where the "meat" is... We have to parse the statement
     // attached to the edge, and convert it to the appropriate formula
@@ -326,13 +339,13 @@ public class CtoFormulaConverter {
     if (edge.getEdgeType() == CFAEdgeType.BlankEdge) {
 
       // in this case there's absolutely nothing to do, so take a shortcut
-      return oldFormula;
+      return localF;
     }
 
     String function = (edge.getPredecessor() != null)
                           ? edge.getPredecessor().getFunctionName() : null;
 
-    SSAMapBuilder ssa = oldFormula.getSsa().builder();
+    SSAMapBuilder ssa = localF.getSsa().builder();
 
     Formula edgeFormula;
     switch (edge.getEdgeType()) {
@@ -403,16 +416,16 @@ public class CtoFormulaConverter {
     }
 
     SSAMap newSsa = ssa.build();
-    if (edgeFormula.isTrue() && (newSsa == oldFormula.getSsa())) {
+    if (edgeFormula.isTrue() && (newSsa == localF.getSsa())) {
       // formula is just "true" and SSAMap is identical
       // i.e. no writes to SSAMap, no branching and length should stay the same
-      return oldFormula;
+      return localF;
     }
 
-    Formula newFormula = fmgr.makeAnd(oldFormula.getFormula(), edgeFormula);
-    int newLength = oldFormula.getLength() + 1;
+    Formula newFormula = fmgr.makeAnd(localF.getFormula(), edgeFormula);
+    int newLength = localF.getLength() + 1;
 
-    return new PathFormula(newFormula, newSsa, newLength, oldFormula.getPrimedNo());
+    return new PathFormula(newFormula, newSsa, newLength, localF.getPrimedNo());
   }
 
   // TODO changed for RelyGuarantee
@@ -954,7 +967,13 @@ public class CtoFormulaConverter {
         return makeFreshVariable(NONDET_VARIABLE, ssa);
 
       } else {
-        return makeVariable(scopedIfNecessary(idExp, function), ssa);
+        // TODO for prototing rely-guarantee
+        Pair<String, Integer> data = idExp.getPrimed();
+        if (data!=null){
+          return makeVariablePrimed(scopedIfNecessary(idExp, function), data.getSecond());
+        } else {
+          return makeVariable(scopedIfNecessary(idExp, function), ssa);
+        }
       }
 
     }
@@ -1333,6 +1352,42 @@ public class CtoFormulaConverter {
 
       return fmgr.makeUIF(ufname, args, idx);
 
+    }
+  }
+
+
+  public CFAEdge inject(CFAEdge localEdge, Set<String> globalVariablesSet, int offset, SSAMap pSsa) throws CPATransferException {
+    if (!(localEdge.getRawAST() instanceof IASTExpressionAssignmentStatement)) {
+      throw new UnrecognizedCFAEdgeException("Unrecognized AST type: "+localEdge.getRawAST().getClass());
+    }
+    IASTExpression rhs = ((IASTExpressionAssignmentStatement) localEdge.getRawAST()).getRightHandSide();
+
+    inject(rhs, globalVariablesSet, offset, pSsa);
+
+    return localEdge;
+  }
+
+  private void inject(IASTExpression exp, Set<String> globalVariablesSet, int offset, SSAMap pSsa) throws UnrecognizedCFAEdgeException {
+    if (exp instanceof IASTIdExpression){
+      IASTIdExpression id = (IASTIdExpression) exp;
+      String var = id.getName();
+      if (globalVariablesSet.contains(var)) {
+        return;
+      }
+      String primedName = var+"^"+offset;
+      int idx = pSsa.getIndex(primedName);
+      id.setPrimed(primedName, idx);
+    }
+    else if (exp instanceof IASTBinaryExpression){
+      IASTBinaryExpression bin = (IASTBinaryExpression) exp;
+      inject(bin.getOperand1(), globalVariablesSet, offset, pSsa);
+      inject(bin.getOperand2(), globalVariablesSet, offset, pSsa);
+    }
+    else if (exp instanceof IASTIntegerLiteralExpression){
+      return;
+    }
+    else {
+      throw new UnrecognizedCFAEdgeException("Unrecognized AST type: "+exp.getClass());
     }
   }
 }

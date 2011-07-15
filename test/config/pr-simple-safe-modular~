@@ -1,0 +1,10 @@
+VAR    g@2, cs1@2,  cs2@2 : REAL
+FORMULA g@2 = 0
+FORMULA g@2 = 1
+FORMULA cs1@2 = 0
+FORMULA cs1@2 = 1
+FORMULA cs2@2 = 0
+FORMULA cs2@2 = 1
+FORMULA turn@2  = 0 
+FORMULA turn@2  = 1
+
