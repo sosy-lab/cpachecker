@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import com.google.common.base.Preconditions;
+import com.google.common.io.NullOutputStream;
 
 /**
  * This class is an OutputStream implementation that sends everything to two
@@ -42,6 +43,28 @@ public class DuplicateOutputStream extends OutputStream {
   public DuplicateOutputStream(OutputStream pStream1, OutputStream pStream2) {
     stream1 = Preconditions.checkNotNull(pStream1);
     stream2 = Preconditions.checkNotNull(pStream2);
+  }
+
+  /**
+   * Create an output stream that forwards to all given output streams,
+   * ignoring null parameters.
+   */
+  public static OutputStream mergeStreams(OutputStream stream1, OutputStream stream2) {
+
+    if (stream1 == null) {
+      if (stream2 == null) {
+        return new NullOutputStream();
+      } else {
+        return stream2;
+      }
+
+    } else {
+      if (stream2 == null) {
+        return stream1;
+      } else {
+        return new DuplicateOutputStream(stream1, stream2);
+      }
+    }
   }
 
   @Override

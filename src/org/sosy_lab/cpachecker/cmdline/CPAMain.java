@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
+import static org.sosy_lab.common.DuplicateOutputStream.mergeStreams;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -37,7 +39,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.DuplicateOutputStream;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -51,7 +52,6 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 
 import com.google.common.base.Joiner;
 import com.google.common.io.Closeables;
-import com.google.common.io.NullOutputStream;
 
 public class CPAMain {
 
@@ -137,16 +137,16 @@ public class CPAMain {
           }
         }
 
-        PrintStream stream = mergeStreams(console, file);
+        PrintStream stream = makePrintStream(mergeStreams(console, file));
 
         try {
           // print statistics
           mResult.printStatistics(stream);
-          stream.println("");
+          stream.println();
 
           // print result
           if (!printStatistics) {
-            stream = mergeStreams(System.out, file); // ensure that result is printed to System.out
+            stream = makePrintStream(mergeStreams(System.out, file)); // ensure that result is printed to System.out
           }
           mResult.printResult(stream);
 
@@ -167,28 +167,11 @@ public class CPAMain {
       logManager.flush();
     }
 
-    private static PrintStream mergeStreams(OutputStream stream1, OutputStream stream2) {
-      OutputStream result;
-
-      if (stream1 == null) {
-        if (stream2 == null) {
-          result = new NullOutputStream();
-        } else {
-          result = stream2;
-        }
-
+    private static PrintStream makePrintStream(OutputStream stream) {
+      if (stream instanceof PrintStream) {
+        return (PrintStream)stream;
       } else {
-        if (stream2 == null) {
-          result = stream1;
-        } else {
-          result = new DuplicateOutputStream(stream1, stream2);
-        }
-      }
-
-      if (result instanceof PrintStream) {
-        return (PrintStream)result;
-      } else {
-        return new PrintStream(result);
+        return new PrintStream(stream);
       }
     }
   }
