@@ -39,8 +39,10 @@ import org.sosy_lab.cpachecker.cfa.ast.DefaultExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
@@ -59,10 +61,8 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
@@ -613,7 +613,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
           // global variables may be initialized explicitly on the spot ...
           if(init instanceof IASTInitializerExpression)
           {
-            IASTExpression exp = ((IASTInitializerExpression)init).getExpression();
+            IASTRightHandSide exp = ((IASTInitializerExpression)init).getExpression();
 
             interval = evaluateInterval(element, exp, "", declarationEdge);
           }
@@ -739,12 +739,12 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @return the interval in respect to the evaluated expression of null, if the expression could not be evaluated properly
    */
   //getExpressionValue
-  private Interval evaluateInterval(IntervalAnalysisElement element, IASTExpression expression, String functionName, CFAEdge cfaEdge)
+  private Interval evaluateInterval(IntervalAnalysisElement element, IASTRightHandSide expression, String functionName, CFAEdge cfaEdge)
     throws UnrecognizedCCodeException
   {
     if(expression instanceof IASTLiteralExpression)
     {
-      Long value = parseLiteral(expression);
+      Long value = parseLiteral((IASTLiteralExpression)expression);
 
       return (value == null) ? Interval.createUnboundInterval() : new Interval(value, value);
     }
@@ -809,11 +809,9 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    * @return a number or null if the parsing failed
    * @throws UnrecognizedCCodeException
    */
-  private static Long parseLiteral(IASTExpression expression) throws UnrecognizedCCodeException
+  private static Long parseLiteral(IASTLiteralExpression expression) throws UnrecognizedCCodeException
   {
-    if(expression instanceof IASTLiteralExpression)
-    {
-      int typeOfLiteral = ((IASTLiteralExpression)expression).getKind();
+      int typeOfLiteral = expression.getKind();
 
       if(typeOfLiteral == IASTLiteralExpression.lk_integer_constant)
       {
@@ -836,7 +834,6 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
       if(typeOfLiteral == IASTLiteralExpression.lk_string_literal)
         return (long)expression.hashCode();
-    }
 
     return null;
   }

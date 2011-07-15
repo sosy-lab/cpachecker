@@ -1000,7 +1000,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         // get initial value
         IASTInitializer init = declarationEdge.getInitializer();
         if (init instanceof IASTInitializerExpression) {
-          IASTExpression exp = ((IASTInitializerExpression)init).getExpression();
+          IASTRightHandSide exp = ((IASTInitializerExpression)init).getExpression();
 
           initialValue = getExpressionValue(element, exp, functionName);
         }
@@ -1371,7 +1371,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     }
   }
 
-  private Long getExpressionValue(ExplicitElement element, IASTExpression expression,
+  private Long getExpressionValue(ExplicitElement element, IASTRightHandSide expression,
       String functionName) throws UnrecognizedCCodeException {
 
     ExpressionValueVisitor v = new ExpressionValueVisitor(element, functionName);

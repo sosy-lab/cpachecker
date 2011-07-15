@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTNamedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
@@ -462,7 +463,7 @@ public class CtoFormulaConverter {
         // if there is an initializer associated to this variable,
         // take it into account
         IASTInitializer initializer = edge.getInitializer();
-        IASTExpression init = null;
+        IASTRightHandSide init = null;
 
         if (initializer == null) {
           if (initAllVars) {
@@ -582,6 +583,10 @@ public class CtoFormulaConverter {
       String function, SSAMapBuilder ssa) throws CPATransferException {
 
     return makePredicate(assume.getExpression(), assume.getTruthAssumption(), function, ssa);
+  }
+
+  private Formula buildTerm(IASTRightHandSide exp, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
+    return toNumericFormula(exp.accept(new RightHandSideToFormulaVisitor(function, ssa)));
   }
 
   private Formula buildTerm(IASTExpression exp, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {

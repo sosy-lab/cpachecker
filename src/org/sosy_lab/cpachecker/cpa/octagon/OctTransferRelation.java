@@ -314,7 +314,7 @@ public class OctTransferRelation implements TransferRelation{
       }
 
       else if(arg instanceof IASTLiteralExpression){
-        Long val = parseLiteral(arg);
+        Long val = parseLiteral((IASTLiteralExpression)arg);
 
         if (val != null) {
           octagonElement.assignConstant(formalParamName, val);
@@ -421,7 +421,7 @@ public class OctTransferRelation implements TransferRelation{
             || typeOfLiteral == IASTLiteralExpression.lk_char_constant
         )
         {
-          long valueOfLiteral = parseLiteral(op2);
+          long valueOfLiteral = parseLiteral((IASTLiteralExpression)op2);
           // a == 9
           if(opType == BinaryOperator.EQUALS) {
             if(truthValue){
@@ -912,7 +912,7 @@ public class OctTransferRelation implements TransferRelation{
         IASTInitializer init = declarationEdge.getInitializer();
         if (init != null) {
           if (init instanceof IASTInitializerExpression) {
-            IASTExpression exp = ((IASTInitializerExpression)init).getExpression();
+            IASTRightHandSide exp = ((IASTInitializerExpression)init).getExpression();
 
             v = getExpressionValue(pElement, exp, varName, declarationEdge);
           } else {
@@ -1306,11 +1306,11 @@ public class OctTransferRelation implements TransferRelation{
   }
 
   //  // TODO modify this.
-  private Long getExpressionValue(OctElement pElement, IASTExpression expression,
+  private Long getExpressionValue(OctElement pElement, IASTRightHandSide expression,
       String functionName, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
 
     if (expression instanceof IASTLiteralExpression) {
-      return parseLiteral(expression);
+      return parseLiteral((IASTLiteralExpression)expression);
 
     } else if (expression instanceof IASTIdExpression) {
       return null;
@@ -1375,7 +1375,7 @@ public class OctTransferRelation implements TransferRelation{
   }
 
   private OctElement handleAssignmentOfLiteral(OctElement pElement,
-      String lParam, IASTExpression op2, String functionName)
+      String lParam, IASTLiteralExpression op2, String functionName)
   throws UnrecognizedCCodeException
   {
     //    OctElement newElement = element.clone();
@@ -1393,8 +1393,7 @@ public class OctTransferRelation implements TransferRelation{
     //    return null;
   }
 
-  private Long parseLiteral(IASTExpression expression) {
-    if (expression instanceof IASTLiteralExpression) {
+  private Long parseLiteral(IASTLiteralExpression expression) {
       //      System.out.println("expr " + expression.getRawSignature());
 
       //      int typeOfLiteral = ((IASTLiteralExpression)expression).getKind();
@@ -1417,7 +1416,7 @@ public class OctTransferRelation implements TransferRelation{
       //      }
 
       // this should be a number...
-      IASTLiteralExpression lexp = (IASTLiteralExpression)expression;
+      IASTLiteralExpression lexp = expression;
       String num = lexp.getRawSignature();
       Long retVal = null;
       switch (lexp.getKind()) {
@@ -1482,8 +1481,6 @@ public class OctTransferRelation implements TransferRelation{
         }
       }
       return retVal;
-    }
-    return null;
   }
 
   private Long parseLiteralWithOppositeSign(IASTExpression expression){
