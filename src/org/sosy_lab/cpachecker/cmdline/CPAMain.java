@@ -78,7 +78,7 @@ public class CPAMain {
     private File exportStatisticsFile = new File("Statistics.txt");
 
     @Option(name="print", description="print statistics to console")
-    private boolean printStatistics = true;
+    private boolean printStatistics = false;
 
     private final Configuration config;
     private final LogManager logManager;
@@ -324,7 +324,7 @@ public class CPAMain {
         putIfNotExistent(properties, "analysis.traversal.order", "topsort");
       } else if (arg.equals("-cbmc")) {
         putIfNotExistent(properties, "analysis.useCBMC", "true");
-      } else if (arg.equals("-statistics")) {
+      } else if (arg.equals("-stats")) {
         putIfNotExistent(properties, "statistics.print", "true");
       } else if (arg.equals("-nolog")) {
         putIfNotExistent(properties, "log.level", "off");
@@ -387,7 +387,7 @@ public class CPAMain {
     System.out.println(" -dfs");
     System.out.println(" -bfs");
     System.out.println(" -cbmc");
-    System.out.println(" -statistics");
+    System.out.println(" -stats");
     System.out.println(" -nolog");
     System.out.println(" -setprop");
     System.out.println(" -printOptions [-v|-verbose]");

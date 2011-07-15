@@ -500,5 +500,5 @@ statistics.file = "Statistics.txt"
 statistics.memory = true
 
 # print statistics to console
-statistics.print = true
+statistics.print = false
 

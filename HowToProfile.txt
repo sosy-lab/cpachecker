@@ -1,5 +1,8 @@
 Time profiling
 --------------
+CPAchecker has internal time statistics, which are dumped into Statistics.txt.
+With -stats or statistics.print=true they are printed to the console, too.
+
 1. Get latest JRat (Development Release) from http://jrat.sourceforge.net
 2. Set the option "-javaagent:<PATH>/shiftone-jrat.jar" for the Java VM,
    where <PATH> has to be replaced by the path to the JRat JAR file.

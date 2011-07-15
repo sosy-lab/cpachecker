@@ -18,7 +18,7 @@ following arguments (see below to learn what the options mean):
 -outputpath <DIR>	sets "output.path = <DIR>"
 -logfile <FILE>		sets "log.file = <FILE>"
 -nolog			sets "log.level = OFF" and "log.consoleLevel = OFF"
--statistics		sets "statistics.print = true"
+-stats			sets "statistics.print = true"
 -entryfunction <FUNC>	sets "analysis.entryFunction = <FUNC>"
 -dfs			sets "analysis.traversal.order = DFS"
 -bfs			sets "analysis.traversal.order = BFS"

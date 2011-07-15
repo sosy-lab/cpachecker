@@ -954,6 +954,9 @@ def prepareSourceFileForAcsar(sourcefile):
 
 
 def run_cpachecker(options, sourcefile, columns, rlimits):
+    if ("-stats" not in options):
+        options = options + ["-stats"]
+        
     exe = findExecutable("cpachecker", "scripts/cpa.sh")
     args = [exe] + options + [sourcefile]
     (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
