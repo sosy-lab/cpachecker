@@ -702,7 +702,7 @@ public class Configuration {
       }
 
       if ((defaultValue != null) && !(defaultValue instanceof File)) {
-        assert defaultValue instanceof Iterable || defaultValue instanceof File[] : defaultValue;
+        assert defaultValue instanceof Iterable<?> || defaultValue instanceof File[] : defaultValue;
 
         throw new UnsupportedOperationException(
             "Collections of Files are not allowed with defaultValues (option " + optionName + ")");
