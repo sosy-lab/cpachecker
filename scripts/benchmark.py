@@ -1120,7 +1120,7 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
     from optparse import OptionParser
-    parser = OptionParser()
+    parser = OptionParser(usage="usage: %prog [OPTION]... [FILE]...")
     parser.add_option("-d", "--debug",
                       action="store_true",
                       help="enable debug output")
