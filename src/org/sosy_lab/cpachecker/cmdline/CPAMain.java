@@ -122,12 +122,10 @@ public class CPAMain {
       System.out.flush();
       System.err.flush();
       if (mResult != null) {
-        PrintStream console = null;
-        FileOutputStream file = null;
 
-        if (printStatistics) {
-          console = System.out;
-        }
+        // setup output streams
+        PrintStream console = printStatistics ? System.out : null;
+        FileOutputStream file = null;
 
         if (exportStatistics && exportStatisticsFile != null) {
           try {
@@ -140,19 +138,30 @@ public class CPAMain {
         }
 
         PrintStream stream = mergeStreams(console, file);
-        mResult.printStatistics(stream);
-        stream.println("");
-        mResult.printResult(stream);
 
-        String outputDirectory = config.getOutputDirectory();
-        if (outputDirectory != null) {
-          stream.println("More details about the verification run can be found in the directory " + outputDirectory);
-        }
+        try {
+          // print statistics
+          mResult.printStatistics(stream);
+          stream.println("");
 
-        stream.flush();
+          // print result
+          if (!printStatistics) {
+            stream = mergeStreams(System.out, file); // ensure that result is printed to System.out
+          }
+          mResult.printResult(stream);
 
-        if (file != null) {
-          Closeables.closeQuietly(file);
+          String outputDirectory = config.getOutputDirectory();
+          if (outputDirectory != null) {
+            stream.println("More details about the verification run can be found in the directory " + outputDirectory);
+          }
+
+          stream.flush();
+
+        } finally {
+          // close only file, not System.out
+          if (file != null) {
+            Closeables.closeQuietly(file);
+          }
         }
       }
       logManager.flush();
