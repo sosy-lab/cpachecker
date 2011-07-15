@@ -80,4 +80,25 @@ public class CPAcheckerResult {
       stats.printStatistics(target, result, reached);
     }
   }
+
+  public void printResult(PrintStream out) {
+    out.print("Verification result: ");
+    switch (result) {
+    case UNKNOWN:
+      out.println("UNKNOWN, incomplete analysis.\n\n" +
+          "***********************************************************************\n" +
+          "* WARNING: Analysis interrupted!! The statistics might be unreliable! *\n" +
+          "***********************************************************************"
+        );
+      break;
+    case UNSAFE:
+      out.println("UNSAFE. Error path found by chosen configuration.");
+      break;
+    case SAFE:
+      out.println("SAFE. No error path found by chosen configuration.");
+      break;
+    default:
+      out.println("UNKNOWN result: " + result);
+    }
+  }
 }

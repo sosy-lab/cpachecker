@@ -111,7 +111,6 @@ class MainCPAStatistics implements Statistics {
     private boolean monitorMemoryUsage = true;
 
     private final LogManager logger;
-    private final Configuration config;
     private final Collection<Statistics> subStats;
     private final MemoryStatistics memStats;
 
@@ -121,9 +120,8 @@ class MainCPAStatistics implements Statistics {
 
     private CFACreator cfaCreator;
 
-    public MainCPAStatistics(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+    public MainCPAStatistics(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
         logger = pLogger;
-        config = pConfig;
         config.inject(this);
 
         subStats = new ArrayList<Statistics>();
@@ -233,31 +231,6 @@ class MainCPAStatistics implements Statistics {
           out.println("Heap memory usage:            " + formatMem(memStats.maxHeap) + " max (" + formatMem(memStats.sumHeap/memStats.count) + " avg)");
           out.println("Non-Heap memory usage:        " + formatMem(memStats.maxNonHeap) + " max (" + formatMem(memStats.sumNonHeap/memStats.count) + " avg)");
         }
-
-        out.println("");
-        out.print("Verification result: ");
-        switch (result) {
-        case UNKNOWN:
-          out.println("UNKNOWN, incomplete analysis.\n\n" +
-              "***********************************************************************\n" +
-              "* WARNING: Analysis interrupted!! The statistics might be unreliable! *\n" +
-              "***********************************************************************"
-            );
-          break;
-        case UNSAFE:
-          out.println("UNSAFE. Error path found by chosen configuration.");
-          break;
-        case SAFE:
-          out.println("SAFE. No error path found by chosen configuration.");
-          break;
-        default:
-          out.println("UNKNOWN result: " + result);
-        }
-        String outputDirectory = config.getOutputDirectory();
-        if (outputDirectory != null) {
-          out.println("More details about the verification run can be found in the directory " + outputDirectory);
-        }
-        out.flush();
     }
 
     private static String formatMem(long mem) {

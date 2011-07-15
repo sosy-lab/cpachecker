@@ -208,28 +208,30 @@ public class TaskRunner {
 					final CPAcheckerResult results = cpachecker.run(task.getTranslationUnit().getLocation().toOSString());
 					logger.flush();
 					if (CPAclipse.getPlugin().getPreferenceStore().getBoolean(PreferenceConstants.P_STATS)) {
-						results.printStatistics(consoleStream);					
+						results.printStatistics(consoleStream);	
+						consoleStream.println("");
 					} else {
 						// cannot avoid this, because i have to generate the (log)- files
 						results.printStatistics(new PrintStream(new NullOutputStream()));
-						switch (results.getResult()) {
-						case SAFE:
-							//color: green, doesnt work, threading issues
-							//consoleStream.setColor(new Color(CPAcheckerPlugin.getPlugin().getWorkbench().getDisplay(), 0, 255,0));
-							consoleStream.println("\nGiven specification is not violated. The system is considered safe.");
-							break;
-						case UNKNOWN:
-							//color: blue, doesnt work, threading issues
-							//consoleStream.setColor(new Color(CPAcheckerPlugin.getPlugin().getWorkbench().getDisplay(), 0, 0,255));
-							consoleStream.println("\nThe analysis did not terminate correctly. The result is unknown.");
-							break;
-						case UNSAFE:
-							// color: red, doesnt work, threading issues
-							//consoleStream.setColor(new Color(CPAcheckerPlugin.getPlugin().getWorkbench().getDisplay(), 255, 0,0));
-							consoleStream.println("\nGiven specification is violated. The program is UNSAFE!");
-							break;
-						}
 					}
+					
+					switch (results.getResult()) {
+					case SAFE:
+						//color: green, doesnt work, threading issues
+						//consoleStream.setColor(new Color(CPAcheckerPlugin.getPlugin().getWorkbench().getDisplay(), 0, 255,0));
+						break;
+					case UNKNOWN:
+						//color: blue, doesnt work, threading issues
+						//consoleStream.setColor(new Color(CPAcheckerPlugin.getPlugin().getWorkbench().getDisplay(), 0, 0,255));
+						break;
+					case UNSAFE:
+						// color: red, doesnt work, threading issues
+						//consoleStream.setColor(new Color(CPAcheckerPlugin.getPlugin().getWorkbench().getDisplay(), 255, 0,0));
+						break;
+					}
+					results.printResult(consoleStream);
+					consoleStream.flush();
+					
 					task.setLastResult(results.getResult());
 					IFolder outDir = task.getOutputDirectory(true);
 					if (outDir.exists()) {

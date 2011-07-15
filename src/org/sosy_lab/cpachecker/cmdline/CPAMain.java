@@ -80,15 +80,18 @@ public class CPAMain {
     @Option(name="print", description="print statistics to console")
     private boolean printStatistics = true;
 
+    private final Configuration config;
     private final LogManager logManager;
     private final Thread mainThread;
 
     // if still null when run() is executed, analysis has been interrupted by user
     private CPAcheckerResult mResult = null;
 
-    public ShutdownHook(Configuration config, LogManager logger) throws InvalidConfigurationException {
+    public ShutdownHook(Configuration pConfig, LogManager logger) throws InvalidConfigurationException {
+      config = pConfig;
+      logManager = logger;
+
       config.inject(this);
-      this.logManager = logger;
       mainThread = Thread.currentThread();
     }
 
@@ -136,7 +139,17 @@ public class CPAMain {
           }
         }
 
-        mResult.printStatistics(mergeStreams(console, file));
+        PrintStream stream = mergeStreams(console, file);
+        mResult.printStatistics(stream);
+        stream.println("");
+        mResult.printResult(stream);
+
+        String outputDirectory = config.getOutputDirectory();
+        if (outputDirectory != null) {
+          stream.println("More details about the verification run can be found in the directory " + outputDirectory);
+        }
+
+        stream.flush();
 
         if (file != null) {
           Closeables.closeQuietly(file);
