@@ -291,7 +291,7 @@ public class CPAMain {
         // this will stop CPAchecker before the actual analysis (hack)
         Thread.currentThread().interrupt();
 
-      } else if (arg.equals("-help")) {
+      } else if (arg.equals("-help") || arg.equals("-h")) {
         printHelp();
 
       } else if (arg.startsWith("-") && !(new File(arg).exists())) {
@@ -327,6 +327,8 @@ public class CPAMain {
     System.out.println(" -printOptions [-v|-verbose]");
     System.out.println(" -printUsedOptions");
     System.out.println(" -help");
+    System.out.println("");
+    System.out.println("More information on how to configure CPAchecker can be found in HowToConfiguration.txt");
     System.exit(0);
   }
 
