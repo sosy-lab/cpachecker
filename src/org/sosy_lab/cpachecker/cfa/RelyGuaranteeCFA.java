@@ -40,13 +40,10 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.SortedSetMultimap;
-import com.google.common.collect.TreeMultimap;
 
 
 public class RelyGuaranteeCFA extends CFA {
 
-  private final SortedSetMultimap<String, CFANode> originalNodes;
   private final Multimap<CFANode, String> rhsVariables;
 
   /*public RelyGuaranteeCFA(Map<String, CFAFunctionDefinitionNode> pFunctions, SortedSetMultimap<String, CFANode> pCfaNodes, List<IASTDeclaration> pGlobalDeclarations) {
@@ -56,13 +53,12 @@ public class RelyGuaranteeCFA extends CFA {
 
   public RelyGuaranteeCFA(CFA other) throws UnrecognizedCFAEdgeException{
     super(other);
-    originalNodes = TreeMultimap.create(other.getCFANodes());
 
     rhsVariables = HashMultimap.create();
     for (CFANode node : other.cfaNodes.values()){
       for (int i=0; i<node.getNumLeavingEdges(); i++) {
         CFAEdge edge = node.getLeavingEdge(i);
-        if (edge.getEdgeType() ==CFAEdgeType.StatementEdge ) {
+        if (edge.getEdgeType() == CFAEdgeType.StatementEdge || edge.getEdgeType() == CFAEdgeType.AssumeEdge ) {
           Set<String> vars = getReadVariables(edge.getRawAST());
           rhsVariables.putAll(node, vars);
         }
@@ -78,7 +74,10 @@ public class RelyGuaranteeCFA extends CFA {
     if (exp instanceof IASTExpressionAssignmentStatement){
       IASTExpression rhs = ((IASTExpressionAssignmentStatement) exp).getRightHandSide();
       toProcess.add(rhs);
+    } else if (exp instanceof IASTBinaryExpression) {
+      toProcess.add((IASTBinaryExpression)exp);
     }
+
     while(! toProcess.isEmpty()){
       IASTExpression e = toProcess.remove(0);
       if (e instanceof IASTIdExpression){
@@ -99,15 +98,9 @@ public class RelyGuaranteeCFA extends CFA {
     return result;
   }
 
-
-  public void resetNodes() {
-    cfaNodes = TreeMultimap.create(originalNodes);
-  }
-
   public Multimap<CFANode, String> getRhsVariables() {
     return rhsVariables;
   }
-
 
 
 }
