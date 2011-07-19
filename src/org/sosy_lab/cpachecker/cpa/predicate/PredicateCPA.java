@@ -111,6 +111,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicateRefinementManager<?, ?> predicateManager;
   private final PredicateCPAStatistics stats;
   private final AbstractElement topElement;
+  private final InterpolatingTheoremProver<Integer> itpProver;
+  private final InterpolatingTheoremProver<Integer> alternativeItpProver;
 
   protected PredicateCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, PredicateCPA.class);
@@ -136,22 +138,25 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       throw new InternalError("Update list of allowed solvers!");
     }
 
-    InterpolatingTheoremProver<Integer> itpProver;
-    InterpolatingTheoremProver<Integer> alternativeItpProver = null;
+
     if (whichItpProver.equals("MATHSAT")) {
       itpProver = new MathsatInterpolatingProver(mathsatFormulaManager, false);
       if(changeItpSolveOTF){
-        alternativeItpProver =  new CSIsatInterpolatingProver(mathsatFormulaManager, logger);
+        alternativeItpProver = new CSIsatInterpolatingProver(mathsatFormulaManager, logger);
+      } else {
+        alternativeItpProver = null;
       }
     } else if (whichItpProver.equals("CSISAT")) {
       itpProver = new CSIsatInterpolatingProver(mathsatFormulaManager, logger);
       if(changeItpSolveOTF){
         alternativeItpProver = new MathsatInterpolatingProver(mathsatFormulaManager, false);
+      } else {
+        alternativeItpProver = null;
       }
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
-    predicateManager = new PredicateRefinementManager<Integer, Integer>(regionManager, formulaManager, pathFormulaManager, theoremProver, itpProver, alternativeItpProver, config, logger);
+    predicateManager = createNewPredicateManager();
     transfer = new PredicateTransferRelation(this);
 
     topElement = new PredicateAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null));
@@ -189,6 +194,10 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     stats = createStatistics();
   }
 
+  protected PredicateRefinementManager<?, ?> createNewPredicateManager() throws InvalidConfigurationException {
+    return new PredicateRefinementManager<Integer, Integer>(regionManager, formulaManager, pathFormulaManager, theoremProver, itpProver, alternativeItpProver, config, logger);
+  }
+
   protected PredicateCPAStatistics createStatistics() throws InvalidConfigurationException {
     return new PredicateCPAStatistics(this);
   }
@@ -219,6 +228,14 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   protected PredicateRefinementManager<?, ?> getPredicateManager() {
     return predicateManager;
+  }
+
+  InterpolatingTheoremProver<Integer> getItpProver() {
+    return itpProver;
+  }
+
+  InterpolatingTheoremProver<Integer> getAlternativeItpProver() {
+    return alternativeItpProver;
   }
 
   public FormulaManager getFormulaManager() {

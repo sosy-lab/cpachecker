@@ -159,7 +159,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
       Configuration config,
       LogManager pLogger) throws InvalidConfigurationException {
     super(pRmgr, pFmgr, pPmgr, pThmProver, config, pLogger);
-    config.inject(this);
+    config.inject(this, PredicateRefinementManager.class);
 
     refStats = new Stats();
     firstItpProver = pItpProver;
@@ -691,7 +691,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
     return preds;
   }
 
-  private Formula buildBranchingFormula(Set<ARTElement> elementsOnPath) throws CPATransferException {
+  protected Formula buildBranchingFormula(Set<ARTElement> elementsOnPath) throws CPATransferException {
     // build the branching formula that will help us find the real error path
     Formula branchingFormula = fmgr.makeTrue();
     for (final ARTElement pathElement : elementsOnPath) {

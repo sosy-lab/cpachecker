@@ -55,6 +55,7 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
   @Option(description="whether to use auxiliary predidates for reduction")
   private boolean auxiliaryPredicateComputer = true;
 
+
   private ABMPredicateCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     super(config, logger);
 
@@ -68,6 +69,11 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
 
     reducer = new ABMPredicateReducer(this);
     transfer = new ABMPredicateTransferRelation(this);
+  }
+
+  @Override
+  protected PredicateRefinementManager<?, ?> createNewPredicateManager() throws InvalidConfigurationException {
+    return new ABMPredicateRefinementManager<Integer, Integer>(getRegionManager(), getFormulaManager(), getPathFormulaManager(), getTheoremProver(), getItpProver(), getAlternativeItpProver(), getConfiguration(), getLogger());
   }
 
   @Override
