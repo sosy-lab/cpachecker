@@ -24,8 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.abm;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
-import static org.sosy_lab.cpachecker.util.AbstractElements.isTargetElement;
+import static org.sosy_lab.cpachecker.util.AbstractElements.*;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -537,7 +536,7 @@ public class ABMTransferRelation implements TransferRelation {
           //and remember to explore the parent later
           openElements.push(parent);
         }
-        CFAEdge edge = getEdgeToChild(parent, currentElement);
+        CFAEdge edge = ABMARTUtils.getEdgeToChild(parent, currentElement);
         if(edge == null) {
           //this is a summarized call and thus an direct edge could not be found
           //we have the transfer function to handle this case, as our reachSet is wrong
@@ -600,21 +599,15 @@ public class ABMTransferRelation implements TransferRelation {
     subgraphReturnCache.clear();
   }
 
-  private static CFAEdge getEdgeToChild(ARTElement parent, ARTElement child) {
-    CFANode currentLoc = parent.retrieveLocationElement().getLocationNode();
-    CFANode childNode = child.retrieveLocationElement().getLocationNode();
+  Pair<Block, ReachedSet> getCachedReachedSet(ARTElement root, Precision rootPrecision) {
+    CFANode rootNode = root.retrieveLocationElement().getLocationNode();
+    Block rootSubtree = partitioning.getBlockForCallNode(rootNode);
 
-    return getEdgeTo(currentLoc, childNode);
-  }
-
-  private static CFAEdge getEdgeTo(CFANode node1, CFANode node2) {
-    for(int i = 0; i < node1.getNumLeavingEdges(); i++) {
-      CFAEdge edge = node1.getLeavingEdge(i);
-      if(edge.getSuccessor() == node2) {
-        return edge;
-      }
-    }
-    return null;
+    AbstractElement reducedRootElement = wrappedReducer.getVariableReducedElement(root, rootSubtree, rootNode);
+    Precision reducedRootPrecision = wrappedReducer.getVariableReducedPrecision(rootPrecision, rootSubtree);
+    ReachedSet reachSet = subgraphReachCache.get(reducedRootElement, reducedRootPrecision, rootSubtree);
+    assert reachSet != null;
+    return Pair.of(rootSubtree, reachSet);
   }
 
   @Override

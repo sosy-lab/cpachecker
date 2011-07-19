@@ -60,7 +60,12 @@ class ABMCPAStatistics implements Statistics {
       TimedReducer reducer = cpa.getReducer();
 
       int sumCalls = transferRelation.cacheMisses + transferRelation.partialCacheHits + transferRelation.fullCacheHits;
+      int sumARTElemets = 0;
+      for(ReachedSet subreached : ABMARTUtils.gatherReachedSets(cpa, reached).values()) {
+        sumARTElemets += subreached.size();
+      }
 
+      out.println("Total size of all ARTs:                                         " + sumARTElemets);
       out.println("Maximum block depth:                                            " + transferRelation.maxRecursiveDepth);
       out.println("Total number of recursive CPA calls:                            " + sumCalls);
       out.println("  Number of cache misses:                                       " + transferRelation.cacheMisses + " (" + toPercent(transferRelation.cacheMisses, sumCalls) + " of all calls)");
