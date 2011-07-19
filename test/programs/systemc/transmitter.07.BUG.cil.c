@@ -601,7 +601,7 @@ int exists_runnable_thread(void)
 }
 }
 void eval(void) 
-{ int __BLAST_NONDET ;
+{// int nondet_int() ;
   int tmp ;
 
   {
@@ -617,7 +617,9 @@ void eval(void)
       goto while_9_break;
     }
     if (m_st == 0) {
-      if (__BLAST_NONDET) {
+      int tmp_ndt_1;
+      tmp_ndt_1 = nondet_int();
+      if (tmp_ndt_1) {
         {
         m_st = 1;
         master();
@@ -629,7 +631,9 @@ void eval(void)
 
     }
     if (t1_st == 0) {
-      if (__BLAST_NONDET) {
+      int tmp_ndt_2;
+      tmp_ndt_2 = nondet_int();
+      if (tmp_ndt_2) {
         {
         t1_st = 1;
         transmit1();
@@ -641,7 +645,9 @@ void eval(void)
 
     }
     if (t2_st == 0) {
-      if (__BLAST_NONDET) {
+      int tmp_ndt_3;
+      tmp_ndt_3 = nondet_int();
+      if (tmp_ndt_3) {
         {
         t2_st = 1;
         transmit2();
@@ -653,7 +659,9 @@ void eval(void)
 
     }
     if (t3_st == 0) {
-      if (__BLAST_NONDET) {
+      int tmp_ndt_4;
+      tmp_ndt_4 = nondet_int();
+      if (tmp_ndt_4) {
         {
         t3_st = 1;
         transmit3();
@@ -665,7 +673,9 @@ void eval(void)
 
     }
     if (t4_st == 0) {
-      if (__BLAST_NONDET) {
+      int tmp_ndt_5;
+      tmp_ndt_5 = nondet_int();
+      if (tmp_ndt_5) {
         {
         t4_st = 1;
         transmit4();
@@ -677,7 +687,9 @@ void eval(void)
 
     }
     if (t5_st == 0) {
-      if (__BLAST_NONDET) {
+      int tmp_ndt_6;
+      tmp_ndt_6 = nondet_int();
+      if (tmp_ndt_6) {
         {
         t5_st = 1;
         transmit5();
@@ -689,7 +701,9 @@ void eval(void)
 
     }
     if (t6_st == 0) {
-      if (__BLAST_NONDET) {
+      int tmp_ndt_7;
+      tmp_ndt_7 = nondet_int();
+      if (tmp_ndt_7) {
         {
         t6_st = 1;
         transmit6();
@@ -701,7 +715,9 @@ void eval(void)
 
     }
     if (t7_st == 0) {
-      if (__BLAST_NONDET) {
+      int tmp_ndt_8;
+      tmp_ndt_8 = nondet_int();
+      if (tmp_ndt_8) {
         {
         t7_st = 1;
         transmit7();

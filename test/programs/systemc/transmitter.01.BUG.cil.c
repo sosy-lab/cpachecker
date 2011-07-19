@@ -181,7 +181,7 @@ int exists_runnable_thread(void)
 }
 }
 void eval(void) 
-{ int __BLAST_NONDET ;
+{// int nondet_int() ;
   int tmp ;
 
   {
@@ -197,7 +197,9 @@ void eval(void)
       goto while_3_break;
     }
     if (m_st == 0) {
-      if (__BLAST_NONDET) {
+      int tmp_ndt_1;
+      tmp_ndt_1 = nondet_int();
+      if (tmp_ndt_1) {
         {
         m_st = 1;
         master();
@@ -209,7 +211,9 @@ void eval(void)
 
     }
     if (t1_st == 0) {
-      if (__BLAST_NONDET) {
+      int tmp_ndt_2;
+      tmp_ndt_2 = nondet_int();
+      if (tmp_ndt_2) {
         {
         t1_st = 1;
         transmit1();

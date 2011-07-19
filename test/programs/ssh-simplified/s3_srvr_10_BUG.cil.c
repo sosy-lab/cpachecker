@@ -55,7 +55,6 @@ int ssl3_accept(int initial_state )
   int tmp___9 ;
   int tmp___10 ;
   int blastFlag ;
-  int __BLAST_NONDET ;
   int __cil_tmp55 ;
   unsigned long __cil_tmp56 ;
   unsigned long __cil_tmp57 ;
@@ -287,7 +286,7 @@ int ssl3_accept(int initial_state )
 #line 221
                                                                             if (s__init_buf___0 == 0) {
 #line 222
-                                                                              tmp___3 = __BLAST_NONDET;
+                                                                              tmp___3 = nondet_int();
 #line 223
                                                                               if (! tmp___3) {
 #line 224
@@ -298,7 +297,7 @@ int ssl3_accept(int initial_state )
                                                                               s__init_buf___0 = buf;
                                                                             }
 #line 233
-                                                                            tmp___4 = __BLAST_NONDET;
+                                                                            tmp___4 = nondet_int();
 #line 234
                                                                             if (! tmp___4) {
 #line 235
@@ -310,7 +309,7 @@ int ssl3_accept(int initial_state )
 #line 241
                                                                             if (s__state != 12292) {
 #line 242
-                                                                              tmp___5 = __BLAST_NONDET;
+                                                                              tmp___5 = nondet_int();
 #line 243
                                                                               if (! tmp___5) {
 #line 244
@@ -333,7 +332,7 @@ int ssl3_accept(int initial_state )
 #line 258
                                                                             s__shutdown = 0;
 #line 259
-                                                                            ret = __BLAST_NONDET;
+                                                                            ret = nondet_int();
 #line 260
                                                                             if (ret <= 0) {
                                                                               goto end;
@@ -355,7 +354,7 @@ int ssl3_accept(int initial_state )
 #line 275
                                                                             s__shutdown = 0;
 #line 276
-                                                                            ret = __BLAST_NONDET;
+                                                                            ret = nondet_int();
 #line 277
                                                                             if (blastFlag == 0) {
 #line 278
@@ -375,7 +374,7 @@ int ssl3_accept(int initial_state )
                                                                             switch_1_8496: ;
                                                                             switch_1_8497: 
 #line 293
-                                                                            ret = __BLAST_NONDET;
+                                                                            ret = nondet_int();
 #line 294
                                                                             if (blastFlag == 1) {
 #line 295
@@ -407,7 +406,7 @@ int ssl3_accept(int initial_state )
                                                                               skip = 1;
                                                                             } else {
 #line 316
-                                                                              ret = __BLAST_NONDET;
+                                                                              ret = nondet_int();
 #line 317
                                                                               if (ret <= 0) {
                                                                                 goto end;
@@ -455,7 +454,7 @@ int ssl3_accept(int initial_state )
 #line 344
                                                                                     if (__cil_tmp58 + 2UL) {
 #line 345
-                                                                                      tmp___6 = __BLAST_NONDET;
+                                                                                      tmp___6 = nondet_int();
                                                                                       {
 #line 346
                                                                                       __cil_tmp59 = (unsigned long )s__s3__tmp__new_cipher__algo_strength;
@@ -475,7 +474,7 @@ int ssl3_accept(int initial_state )
                                                                                       if (__cil_tmp60 > tmp___7) {
                                                                                         _L___0: 
 #line 353
-                                                                                        ret = __BLAST_NONDET;
+                                                                                        ret = nondet_int();
 #line 354
                                                                                         if (ret <= 0) {
                                                                                           goto end;
@@ -542,7 +541,7 @@ int ssl3_accept(int initial_state )
 #line 397
                                                                                   s__s3__tmp__cert_request = 1;
 #line 398
-                                                                                  ret = __BLAST_NONDET;
+                                                                                  ret = nondet_int();
 #line 399
                                                                                   if (ret <= 0) {
                                                                                     goto end;
@@ -568,7 +567,7 @@ int ssl3_accept(int initial_state )
                                                                             switch_1_8560: ;
                                                                             switch_1_8561: 
 #line 417
-                                                                            ret = __BLAST_NONDET;
+                                                                            ret = nondet_int();
 #line 418
                                                                             if (ret <= 0) {
                                                                               goto end;
@@ -582,7 +581,7 @@ int ssl3_accept(int initial_state )
                                                                             goto switch_1_break;
                                                                             switch_1_8448: 
 #line 428
-                                                                            num1 = (long )__BLAST_NONDET;
+                                                                            num1 = (long )nondet_int();
 #line 429
                                                                             if (num1 > 0L) {
 #line 430
@@ -604,7 +603,7 @@ int ssl3_accept(int initial_state )
                                                                             switch_1_8576: ;
                                                                             switch_1_8577: 
 #line 446
-                                                                            ret = __BLAST_NONDET;
+                                                                            ret = nondet_int();
 #line 447
                                                                             if (ret <= 0) {
                                                                               goto end;
@@ -615,7 +614,7 @@ int ssl3_accept(int initial_state )
                                                                               s__state = 8466;
                                                                             } else {
 #line 455
-                                                                              ret = __BLAST_NONDET;
+                                                                              ret = nondet_int();
 #line 456
                                                                               if (ret <= 0) {
                                                                                 goto end;
@@ -629,7 +628,7 @@ int ssl3_accept(int initial_state )
                                                                             switch_1_8592: ;
                                                                             switch_1_8593: 
 #line 467
-                                                                            ret = __BLAST_NONDET;
+                                                                            ret = nondet_int();
 #line 468
                                                                             if (ret <= 0) {
                                                                               goto end;
@@ -642,7 +641,7 @@ int ssl3_accept(int initial_state )
                                                                             switch_1_8608: ;
                                                                             switch_1_8609: 
 #line 478
-                                                                            ret = __BLAST_NONDET;
+                                                                            ret = nondet_int();
 #line 479
                                                                             if (ret <= 0) {
                                                                               goto end;
@@ -655,7 +654,7 @@ int ssl3_accept(int initial_state )
                                                                             switch_1_8640: ;
                                                                             switch_1_8641: 
 #line 489
-                                                                            ret = __BLAST_NONDET;
+                                                                            ret = nondet_int();
 #line 490
                                                                             if (blastFlag == 3) {
 #line 491
@@ -681,7 +680,7 @@ int ssl3_accept(int initial_state )
 #line 509
                                                                             s__session__cipher = s__s3__tmp__new_cipher;
 #line 510
-                                                                            tmp___9 = __BLAST_NONDET;
+                                                                            tmp___9 = nondet_int();
 #line 511
                                                                             if (! tmp___9) {
 #line 512
@@ -689,7 +688,7 @@ int ssl3_accept(int initial_state )
                                                                               goto end;
                                                                             }
 #line 517
-                                                                            ret = __BLAST_NONDET;
+                                                                            ret = nondet_int();
 #line 518
                                                                             if (blastFlag == 2) {
 #line 519
@@ -704,7 +703,7 @@ int ssl3_accept(int initial_state )
 #line 529
                                                                             s__init_num = 0;
 #line 530
-                                                                            tmp___10 = __BLAST_NONDET;
+                                                                            tmp___10 = nondet_int();
 #line 531
                                                                             if (! tmp___10) {
 #line 532
@@ -715,7 +714,7 @@ int ssl3_accept(int initial_state )
                                                                             switch_1_8672: ;
                                                                             switch_1_8673: 
 #line 540
-                                                                            ret = __BLAST_NONDET;
+                                                                            ret = nondet_int();
 #line 541
                                                                             if (blastFlag == 4) {
 #line 542
@@ -819,7 +818,7 @@ int ssl3_accept(int initial_state )
        }
         if (s__debug) {
 #line 624
-          ret = __BLAST_NONDET;
+          ret = nondet_int();
 #line 625
           if (ret <= 0) {
             goto end;

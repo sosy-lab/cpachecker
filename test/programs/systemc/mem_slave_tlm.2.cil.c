@@ -1113,7 +1113,7 @@ void s_run(void)
 void eval(void) 
 { int tmp ;
   int tmp___0 ;
-  int __BLAST_NONDET; 
+//  int nondet_int(); 
 
   {
   {
@@ -1130,7 +1130,7 @@ void eval(void)
     }
     if ((int )m_run_st == 0) {
       {
-	tmp = __BLAST_NONDET;
+	tmp = nondet_int();
       }
       if (tmp) {
         {
@@ -1145,7 +1145,7 @@ void eval(void)
     }
     if ((int )s_run_st == 0) {
       {
-	tmp___0 = __BLAST_NONDET;
+	tmp___0 = nondet_int();
       }
       if (tmp___0) {
         {

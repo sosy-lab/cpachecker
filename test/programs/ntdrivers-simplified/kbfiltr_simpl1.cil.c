@@ -371,14 +371,14 @@ int main(void)
   int irp ;
   int pirp ;
   int pirp__IoStatus__Status ;
-  int __BLAST_NONDET ;
+//  int nondet_int() ;
   int irp_choice ;
   int devobj ;
   int __cil_tmp8 ;
 
   {
   {
-//__BLAST_NONDET = random();
+;
 KernelMode = 0 ;
  Executive  = 0;
 s  = 0;
@@ -449,7 +449,9 @@ NP  = 0;
     }
     }
 #line 355
-    if (__BLAST_NONDET == 3) {
+    int tmp_ndt_1;
+    tmp_ndt_1 = nondet_int();
+    if (tmp_ndt_1 == 3) {
       goto switch_1_3;
     } else {
       goto switch_1_default;
@@ -561,12 +563,12 @@ void stubMoreProcessingRequired(void)
 }
 #line 455 "kbfiltr_simpl1.cil.c"
 int IofCallDriver(int DeviceObject , int Irp ) 
-{ int __BLAST_NONDET ;
+{ //int nondet_int() ;
   int returnVal2 ;
   int compRetStatus ;
   int lcontext ;
   long long __cil_tmp7 ;
-__BLAST_NONDET = random();
+;
   {
 #line 462
   if (compRegistered) {
@@ -574,11 +576,15 @@ __BLAST_NONDET = random();
     stubMoreProcessingRequired();
   }
 #line 476
-  if (__BLAST_NONDET == 0) {
+  int tmp_ndt_2;
+  tmp_ndt_2 = nondet_int();
+  if (tmp_ndt_2 == 0) {
     goto switch_2_0;
   } else {
 #line 479
-    if (__BLAST_NONDET == 1) {
+    int tmp_ndt_3;
+    tmp_ndt_3 = nondet_int();
+    if (tmp_ndt_3 == 1) {
       goto switch_2_1;
     } else {
       goto switch_2_default;
@@ -674,8 +680,8 @@ int KeSetEvent(int Event , int Increment , int Wait )
 #line 548 "kbfiltr_simpl1.cil.c"
 int KeWaitForSingleObject(int Object , int WaitReason , int WaitMode , int Alertable ,
                           int Timeout ) 
-{ int __BLAST_NONDET ;
-__BLAST_NONDET = random();
+{ //int nondet_int() ;
+;
   {
 #line 553
   if (s == MPR3) {
@@ -707,7 +713,9 @@ __BLAST_NONDET = random();
     }
   }
 #line 575
-  if (__BLAST_NONDET == 0) {
+  int tmp_ndt_4;
+  tmp_ndt_4 = nondet_int();
+  if (tmp_ndt_4 == 0) {
     goto switch_3_0;
   } else {
     goto switch_3_default;

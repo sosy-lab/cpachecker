@@ -890,7 +890,7 @@ int main(void)
   int irp ;
   int pirp ;
   int pirp__IoStatus__Status ;
-  int __BLAST_NONDET ;
+//  int nondet_int() ;
   int irp_choice ;
   int devobj ;
   int __cil_tmp8 ;
@@ -967,7 +967,9 @@ int main(void)
     }
     }
 #line 732
-    if (__BLAST_NONDET == 3) {
+    int tmp_ndt_1;
+    tmp_ndt_1 = nondet_int();
+    if (tmp_ndt_1 == 3) {
       goto switch_2_3;
     } else {
       goto switch_2_default;
@@ -1073,14 +1075,16 @@ int main(void)
 int IoBuildDeviceIoControlRequest(int IoControlCode , int DeviceObject , int InputBuffer ,
                                   int InputBufferLength , int OutputBuffer , int OutputBufferLength ,
                                   int InternalDeviceIoControl , int Event , int IoStatusBlock ) 
-{ int __BLAST_NONDET ;
+{// int nondet_int() ;
   int malloc ;
 
   {
 #line 830
   customIrp = 1;
 #line 831
-  if (__BLAST_NONDET == 0) {
+  int tmp_ndt_2;
+  tmp_ndt_2 = nondet_int();
+  if (tmp_ndt_2 == 0) {
     goto switch_3_0;
   } else {
     goto switch_3_default;
@@ -1100,11 +1104,13 @@ int IoBuildDeviceIoControlRequest(int IoControlCode , int DeviceObject , int Inp
 }
 #line 848 "floppy_simpl3.cil.c"
 int IoDeleteSymbolicLink(int SymbolicLinkName ) 
-{ int __BLAST_NONDET ;
+{// int nondet_int() ;
 
   {
 #line 852
-  if (__BLAST_NONDET == 0) {
+  int tmp_ndt_3;
+  tmp_ndt_3 = nondet_int();
+  if (tmp_ndt_3 == 0) {
     goto switch_4_0;
   } else {
     goto switch_4_default;
@@ -1126,11 +1132,13 @@ int IoDeleteSymbolicLink(int SymbolicLinkName )
 int IoQueryDeviceDescription(int BusType , int BusNumber , int ControllerType , int ControllerNumber ,
                              int PeripheralType , int PeripheralNumber , int CalloutRoutine ,
                              int Context ) 
-{ int __BLAST_NONDET ;
+{// int nondet_int() ;
 
   {
 #line 875
-  if (__BLAST_NONDET == 0) {
+  int tmp_ndt_4;
+  tmp_ndt_4 = nondet_int();
+  if (tmp_ndt_4 == 0) {
     goto switch_5_0;
   } else {
     goto switch_5_default;
@@ -1151,11 +1159,13 @@ int IoQueryDeviceDescription(int BusType , int BusNumber , int ControllerType , 
 #line 892 "floppy_simpl3.cil.c"
 int IoRegisterDeviceInterface(int PhysicalDeviceObject , int InterfaceClassGuid ,
                               int ReferenceString , int SymbolicLinkName ) 
-{ int __BLAST_NONDET ;
+{// int nondet_int() ;
 
   {
 #line 897
-  if (__BLAST_NONDET == 0) {
+  int tmp_ndt_5;
+  tmp_ndt_5 = nondet_int();
+  if (tmp_ndt_5 == 0) {
     goto switch_6_0;
   } else {
     goto switch_6_default;
@@ -1175,11 +1185,13 @@ int IoRegisterDeviceInterface(int PhysicalDeviceObject , int InterfaceClassGuid 
 }
 #line 914 "floppy_simpl3.cil.c"
 int IoSetDeviceInterfaceState(int SymbolicLinkName , int Enable ) 
-{ int __BLAST_NONDET ;
+{// int nondet_int() ;
 
   {
 #line 918
-  if (__BLAST_NONDET == 0) {
+  int tmp_ndt_6;
+  tmp_ndt_6 = nondet_int();
+  if (tmp_ndt_6 == 0) {
     goto switch_7_0;
   } else {
     goto switch_7_default;
@@ -1218,7 +1230,7 @@ void stubMoreProcessingRequired(void)
 }
 #line 949 "floppy_simpl3.cil.c"
 int IofCallDriver(int DeviceObject , int Irp ) 
-{ int __BLAST_NONDET ;
+{// int nondet_int() ;
   int returnVal2 ;
   int compRetStatus1 ;
   int lcontext ;
@@ -1244,11 +1256,15 @@ int IofCallDriver(int DeviceObject , int Irp )
     }
   }
 #line 970
-  if (__BLAST_NONDET == 0) {
+  int tmp_ndt_12;
+  tmp_ndt_12 = nondet_int();
+  if (tmp_ndt_12 == 0) {
     goto switch_8_0;
   } else {
 #line 973
-    if (__BLAST_NONDET == 1) {
+    int tmp_ndt_7;
+    tmp_ndt_7 = nondet_int();
+    if (tmp_ndt_7 == 1) {
       goto switch_8_1;
     } else {
       goto switch_8_default;
@@ -1344,7 +1360,7 @@ int KeSetEvent(int Event , int Increment , int Wait )
 #line 1042 "floppy_simpl3.cil.c"
 int KeWaitForSingleObject(int Object , int WaitReason , int WaitMode , int Alertable ,
                           int Timeout ) 
-{ int __BLAST_NONDET ;
+{// int nondet_int() ;
 
   {
 #line 1047
@@ -1377,7 +1393,9 @@ int KeWaitForSingleObject(int Object , int WaitReason , int WaitMode , int Alert
     }
   }
 #line 1069
-  if (__BLAST_NONDET == 0) {
+  int tmp_ndt_8;
+  tmp_ndt_8 = nondet_int();
+  if (tmp_ndt_8 == 0) {
     goto switch_9_0;
   } else {
     goto switch_9_default;
@@ -1398,11 +1416,13 @@ int KeWaitForSingleObject(int Object , int WaitReason , int WaitMode , int Alert
 #line 1086 "floppy_simpl3.cil.c"
 int ObReferenceObjectByHandle(int Handle , int DesiredAccess , int ObjectType , int AccessMode ,
                               int Object , int HandleInformation ) 
-{ int __BLAST_NONDET ;
+{// int nondet_int() ;
 
   {
 #line 1091
-  if (__BLAST_NONDET == 0) {
+  int tmp_ndt_9;
+  tmp_ndt_9 = nondet_int();
+  if (tmp_ndt_9 == 0) {
     goto switch_10_0;
   } else {
     goto switch_10_default;
@@ -1423,11 +1443,13 @@ int ObReferenceObjectByHandle(int Handle , int DesiredAccess , int ObjectType , 
 #line 1108 "floppy_simpl3.cil.c"
 int PsCreateSystemThread(int ThreadHandle , int DesiredAccess , int ObjectAttributes ,
                          int ProcessHandle , int ClientId , int StartRoutine , int StartContext ) 
-{ int __BLAST_NONDET ;
+{ //int nondet_int() ;
 
   {
 #line 1113
-  if (__BLAST_NONDET == 0) {
+  int tmp_ndt_10;
+  tmp_ndt_10 = nondet_int();
+  if (tmp_ndt_10 == 0) {
     goto switch_11_0;
   } else {
     goto switch_11_default;
@@ -1447,11 +1469,13 @@ int PsCreateSystemThread(int ThreadHandle , int DesiredAccess , int ObjectAttrib
 }
 #line 1130 "floppy_simpl3.cil.c"
 int ZwClose(int Handle ) 
-{ int __BLAST_NONDET ;
+{// int nondet_int() ;
 
   {
 #line 1134
-  if (__BLAST_NONDET == 0) {
+  int tmp_ndt_11;
+  tmp_ndt_11 = nondet_int();
+  if (tmp_ndt_11 == 0) {
     goto switch_12_0;
   } else {
     goto switch_12_default;

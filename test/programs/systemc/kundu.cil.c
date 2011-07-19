@@ -339,7 +339,7 @@ void eval(void)
   int tmp___0 ;
   int tmp___1 ;
   int tmp___2 ;
-  int __BLAST_NONDET;
+//  int nondet_int();
 
   {
   {
@@ -355,7 +355,7 @@ void eval(void)
     }
     if ((int )P_1_st == 0) {
       {
-      tmp = __BLAST_NONDET;
+      tmp = nondet_int();
       }
       if (tmp) {
         {
@@ -370,7 +370,7 @@ void eval(void)
     }
     if ((int )P_2_st == 0) {
       {
-      tmp___0 = __BLAST_NONDET;
+      tmp___0 = nondet_int();
       }
       if (tmp___0) {
         {
@@ -385,7 +385,7 @@ void eval(void)
     }
     if ((int )C_1_st == 0) {
       {
-	tmp___1 = __BLAST_NONDET;
+	tmp___1 = nondet_int();
       }
       if (tmp___1) {
         {

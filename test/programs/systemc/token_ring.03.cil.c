@@ -36,7 +36,7 @@ int is_transmit2_triggered(void) ;
 int is_transmit3_triggered(void) ;
 void immediate_notify(void) ;
 int token  ;
-int __BLAST_NONDET  ;
+int nondet_int()  ;
 int local  ;
 void master(void) 
 { 
@@ -56,7 +56,7 @@ void master(void)
   while (1) {
     while_0_continue: /* CIL Label */ ;
     {
-    token = __BLAST_NONDET;
+    token = nondet_int();
     local = token;
     E_1 = 1;
     immediate_notify();
@@ -333,7 +333,7 @@ int exists_runnable_thread(void)
 }
 }
 void eval(void) 
-{ int __BLAST_NONDET___0 ;
+{// int nondet_int() ;
   int tmp ;
 
   {
@@ -349,7 +349,9 @@ void eval(void)
       goto while_4_break;
     }
     if (m_st == 0) {
-      if (__BLAST_NONDET___0) {
+      int tmp_ndt_1;
+      tmp_ndt_1 = nondet_int();
+      if (tmp_ndt_1) {
         {
         m_st = 1;
         master();
@@ -361,7 +363,9 @@ void eval(void)
 
     }
     if (t1_st == 0) {
-      if (__BLAST_NONDET___0) {
+      int tmp_ndt_2;
+      tmp_ndt_2 = nondet_int();
+      if (tmp_ndt_2) {
         {
         t1_st = 1;
         transmit1();
@@ -373,7 +377,9 @@ void eval(void)
 
     }
     if (t2_st == 0) {
-      if (__BLAST_NONDET___0) {
+      int tmp_ndt_3;
+      tmp_ndt_3 = nondet_int();
+      if (tmp_ndt_3) {
         {
         t2_st = 1;
         transmit2();
@@ -385,7 +391,9 @@ void eval(void)
 
     }
     if (t3_st == 0) {
-      if (__BLAST_NONDET___0) {
+      int tmp_ndt_4;
+      tmp_ndt_4 = nondet_int();
+      if (tmp_ndt_4) {
         {
         t3_st = 1;
         transmit3();

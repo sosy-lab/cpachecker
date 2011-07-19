@@ -128,7 +128,6 @@ void eval(void)
   int tmp___1 ;
   int tmp___2 ;
   int tmp___3 ;
-  int __BLAST_NONDET;
 
   {
   {
@@ -157,7 +156,7 @@ void eval(void)
     }
     if ((int )N_generate_st == 0) {
       {
-      tmp = __BLAST_NONDET;
+      tmp = nondet_int();
       }
       if (tmp) {
         {
@@ -172,7 +171,7 @@ void eval(void)
     }
     if ((int )S1_addsub_st == 0) {
       {
-      tmp___0 = __BLAST_NONDET;
+      tmp___0 = nondet_int();
       }
       if (tmp___0) {
         {
@@ -187,7 +186,7 @@ void eval(void)
     }
     if ((int )S2_presdbl_st == 0) {
       {
-      tmp___1 = __BLAST_NONDET;
+      tmp___1 = nondet_int();
       }
       if (tmp___1) {
         {
@@ -202,7 +201,7 @@ void eval(void)
     }
     if ((int )S3_zero_st == 0) {
       {
-      tmp___2 = __BLAST_NONDET;
+      tmp___2 = nondet_int();
       }
       if (tmp___2) {
         {
@@ -217,7 +216,7 @@ void eval(void)
     }
     if ((int )D_print_st == 0) {
       {
-      tmp___3 = __BLAST_NONDET;
+      tmp___3 = nondet_int();
       }
       if (tmp___3) {
         {

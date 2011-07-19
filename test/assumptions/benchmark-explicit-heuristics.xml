@@ -2,7 +2,7 @@
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="180" memlimit="14000">
   <test name="explicit-heuristic">
-    <sourcefiles><include>test/programs/nondet_init_programs/systemc/pc_sfifo_1_BUG.cil.c</include></sourcefiles>
+    <sourcefiles><include>test/programs/systemc/pc_sfifo_1_BUG.cil.c</include></sourcefiles>
     <option name="-setprop">output.disable=true</option>
     <option name="-config">test/assumptions/explicitAnalysis-heuristics.properties</option>
     <option name="-setprop">ProgressObserverCPA.cpa.assumptions.progressobserver.heuristics=RepetitionsInPathHeuristics</option>
@@ -10,7 +10,7 @@
     <option name="-heap">12000m</option>
   </test>
     <test name="explicit-heuristic">
-    <sourcefiles><include>test/programs/nondet_init_programs/systemc/pc_sfifo_2_BUG.cil.c</include></sourcefiles>
+    <sourcefiles><include>test/programs/systemc/pc_sfifo_2_BUG.cil.c</include></sourcefiles>
     <option name="-setprop">output.disable=true</option>
     <option name="-config">test/assumptions/explicitAnalysis-heuristics.properties</option>
     <option name="-setprop">ProgressObserverCPA.cpa.assumptions.progressobserver.heuristics=RepetitionsInPathHeuristics</option>
@@ -34,7 +34,7 @@
     <option name="-heap">12000m</option>
   </test>
   <test name="explicit-heuristic">
-    <sourcefiles><include>test/programs/nondet_init_programs/systemc/transmitter.15.BUG.cil.c</include></sourcefiles>
+    <sourcefiles><include>test/programs/systemc/transmitter.15.BUG.cil.c</include></sourcefiles>
     <option name="-setprop">output.disable=true</option>
     <option name="-config">test/assumptions/explicitAnalysis-heuristics.properties</option>
     <option name="-setprop">cpa.assumptions.progressobserver.heuristics=PathLengthHeuristics</option>
@@ -42,7 +42,7 @@
     <option name="-heap">12000m</option>
   </test>
   <test name="explicit-heuristic">
-    <sourcefiles><include>test/programs/nondet_init_programs/systemc/transmitter.16.BUG.cil.c</include></sourcefiles>
+    <sourcefiles><include>test/programs/systemc/transmitter.16.BUG.cil.c</include></sourcefiles>
     <option name="-setprop">output.disable=true</option>
     <option name="-config">test/assumptions/explicitAnalysis-heuristics.properties</option>
     <option name="-setprop">cpa.assumptions.progressobserver.heuristics=PathLengthHeuristics</option>
@@ -51,12 +51,12 @@
   </test>
   <test name="explicit">
     <sourcefiles>
-      <include>test/programs/nondet_init_programs/systemc/pc_sfifo_1_BUG.cil.c</include>
-      <include>test/programs/nondet_init_programs/systemc/pc_sfifo_2_BUG.cil.c</include>
+      <include>test/programs/systemc/pc_sfifo_1_BUG.cil.c</include>
+      <include>test/programs/systemc/pc_sfifo_2_BUG.cil.c</include>
       <include>test/programs/locks/test_locks_14.BUG.c</include>
       <include>test/programs/locks/test_locks_15.BUG.c</include>
-      <include>test/programs/nondet_init_programs/systemc/transmitter.15.BUG.cil.c</include>
-      <include>test/programs/nondet_init_programs/systemc/transmitter.16.BUG.cil.c</include>
+      <include>test/programs/systemc/transmitter.15.BUG.cil.c</include>
+      <include>test/programs/systemc/transmitter.16.BUG.cil.c</include>
     </sourcefiles>
     <option name="-setprop">output.disable=true</option>
     <option name="-config">test/config/explicitAnalysis.properties</option>

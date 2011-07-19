@@ -8,15 +8,13 @@ int main() {
   int buf ;
   int cb ;
   int blastFlag ;
-  int __BLAST_NONDET ;
+  int tmp___1;
 
   s__state = 8466;
   blastFlag = 0;
 
   while (1) {
-             if (s__state <= 8512) {
-               if (blastFlag > 2) { goto ERROR; }
-             }
+             if (s__state <= 8512 && blastFlag > 2) { goto ERROR; }
               {
                 {
                   {
@@ -127,7 +125,8 @@ int main() {
                                                                             goto switch_1_break;
 
                                                                           switch_1_8576:
-                                                                            if (__BLAST_NONDET == 2) {
+                                                                            tmp___1 = nondet_int();
+                                                                            if (tmp___1 == 2) {
                                                                               s__state = 8466;
                                                                             } else {
                                                                               s__state = 8592;

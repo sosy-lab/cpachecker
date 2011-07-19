@@ -274,7 +274,7 @@ int exists_runnable_thread(void)
 void eval(void) 
 { int tmp ;
   int tmp___0 ;
-  int __BLAST_NONDET; 
+ // int nondet_int(); 
 
   {
   {
@@ -290,7 +290,7 @@ void eval(void)
     }
     if ((int )comp_m1_st == 0) {
       {
-	tmp = __BLAST_NONDET; 
+	tmp = nondet_int(); 
       }
       if (tmp) {
         {
