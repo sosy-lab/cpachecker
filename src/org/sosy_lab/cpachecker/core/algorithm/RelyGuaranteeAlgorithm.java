@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdge;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvironmentalTransition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -69,6 +70,7 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.relyguarantee")
 public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
@@ -118,10 +120,14 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
 
     // remember the original CFAs
     cfas = new RelyGuaranteeCFA[threadNo];
-    for (int i=0; i<threadNo; i++) {
-      cfas[i] = new RelyGuaranteeCFA(pCfas[i]);
+    try {
+      for (int i=0; i<threadNo; i++) {
+        cfas[i] = new RelyGuaranteeCFA(pCfas[i]);
+      }
+    } catch (UnrecognizedCFAEdgeException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
     }
-
 
     // TODO add option for caching
     MathsatFormulaManager msatFormulaManager;
@@ -298,71 +304,82 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
 
   // returns true iff edge is an assignment to a non-global variable
   private boolean isLocalAssigment(CFAEdge edge) {
-    IASTNode node = edge.getRawAST();
-    if (node instanceof IASTExpressionAssignmentStatement) {
-      IASTExpressionAssignmentStatement stmNode = (IASTExpressionAssignmentStatement) node;
-      if (stmNode.getLeftHandSide() instanceof IASTIdExpression) {
-        IASTIdExpression idExp = (IASTIdExpression) stmNode.getLeftHandSide();
-        if(! globalVarsSet.contains(idExp.getName())){
-          return true;
-        }
-      }
+    String var = getLhsVariable(edge);
+    if (var != null && !globalVarsSet.contains(var)){
+      return true;
     }
     return false;
   }
 
 
+  // get the variable in the lhs of an expression or return null
+  private String getLhsVariable(CFAEdge edge){
+    IASTNode node = edge.getRawAST();
+    if (node instanceof IASTExpressionAssignmentStatement) {
+      IASTExpressionAssignmentStatement stmNode = (IASTExpressionAssignmentStatement) node;
+      if (stmNode.getLeftHandSide() instanceof IASTIdExpression) {
+        IASTIdExpression idExp = (IASTIdExpression) stmNode.getLeftHandSide();
+        return new String(idExp.getName());
+      }
+    }
+    return null;
+  }
+
+
+
+
   // removes new  and old edges (from 'rgEdges' and envEdgesForThread[i], respectivly) that are covered
   private void semanticCoverageCheck(Vector<RelyGuaranteeCFAEdge> rgEdges, int i) {
+
+    //Vector<RelyGuaranteeCFAEdge> uncovered = new Vector<RelyGuaranteeCFAEdge>(rgEdges);
     Vector<RelyGuaranteeCFAEdge> toProcess = new Vector<RelyGuaranteeCFAEdge>(rgEdges);
-    Vector<RelyGuaranteeCFAEdge> uncovered = new Vector<RelyGuaranteeCFAEdge>(rgEdges);
     Vector<RelyGuaranteeCFAEdge> toDelete = new Vector<RelyGuaranteeCFAEdge>();
 
     // remove edges in rgEdges that are covered by some other edge in this vector
-    boolean covered = false;
-    while(!toProcess.isEmpty()){
-      RelyGuaranteeCFAEdge edge = toProcess.remove(0);
-      for (RelyGuaranteeCFAEdge other : toProcess){
-        if (isCovered(edge, other)){
-          System.out.println("Semantic check: "+edge+" => "+other);
-          covered = true;
+    for(RelyGuaranteeCFAEdge edge : rgEdges){
+      for(RelyGuaranteeCFAEdge other : toProcess){
+        if (!edge.equals(other) && isCovered(edge, other)){
+          toProcess.remove(edge);
+          toDelete.add(edge);
+          System.out.println("Semantic check "+edge+" => "+other);
           break;
         }
       }
-      if (covered){
-        covered = false;
-      } else {
-        uncovered.add(edge);
-      }
     }
-    // check for coverage against the old edges
-    toProcess.removeAllElements();
-    toProcess.addAll(uncovered);
+
+   rgEdges.removeAll(toDelete);
+
     while(! toProcess.isEmpty()){
       RelyGuaranteeCFAEdge newEdge = toProcess.remove(0);
       for (RelyGuaranteeCFAEdge oldEdge : envEdgesForThread[i]){
         if (isCovered(newEdge, oldEdge)) {
           // newEdge => oldEdge
-          uncovered.remove(newEdge);
-          System.out.println("Semantic check: "+newEdge+" => "+oldEdge);
+          rgEdges.remove(newEdge);
+          System.out.println("Semantic check "+newEdge+" => "+oldEdge);
           break;
         } else if (isCovered(oldEdge, newEdge)) {
           // oldEdge => newEdge, but not newEdge => oldEdge
           toDelete.add(oldEdge);
-          System.out.println("Semantic check: "+oldEdge+" => "+newEdge);
+          System.out.println("Semantic check "+oldEdge+" => "+newEdge);
         }
       }
       envEdgesForThread[i].removeAll(toDelete);
       toDelete.removeAllElements();
     }
-    rgEdges = uncovered;
+    rgEdges = rgEdges;
   }
 
   //returns true if env2 is weaker than env1 (env1 => env2)
   private boolean isCovered(RelyGuaranteeCFAEdge env1, RelyGuaranteeCFAEdge env2) {
+    if (env1.equals(env2)){
+      return true;
+    }
+    if (!env1.getLocalEdge().equals(env2.getLocalEdge())){
+      return false;
+    }
     Formula f1 = env1.getPathFormula().getFormula();
     Formula f2 = env2.getPathFormula().getFormula();
-    if (f1.isFalse() || f1.isTrue()) {
+    if (f1.isFalse() || f2.isTrue()) {
       return true;
     }
     Formula nf2 = fManager.makeNot(f2);
@@ -418,15 +435,26 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
 
   // apply env transitions to CFA no. i
   private void addEnvTransitionsToCFA(int i) {
-    // loop over env transitions from threads other than pI
-    for (RelyGuaranteeCFAEdge envTransition : this.envEdgesForThread[i]){
-      // get nodes for the CFA
-      CFA cfa = this.cfas[i];
+    RelyGuaranteeCFA cfa = this.cfas[i];
+    Multimap<CFANode, String> map = cfa.getRhsVariables();
+
+    // iterate over both new and old env edges
+    Vector<RelyGuaranteeCFAEdge> union = new Vector<RelyGuaranteeCFAEdge>(envEdgesForThread[i]);
+    union.addAll(newEnvEgesForThread[i]);
+
+    for (RelyGuaranteeCFAEdge envTransition : union){
+      String var = getLhsVariable(envTransition.getLocalEdge());
       for(Entry<String, CFANode> entry :   cfa.getCFANodes().entries()){
         CFANode node = entry.getValue();
-        addEnvTransitionToNode(node, new  RelyGuaranteeCFAEdge(envTransition));
+        // check if the rhs of any edge leaving the node reads the variable assigned by 'envTransition'
+        if (map.get(node).contains(var)){
+          addEnvTransitionToNode(node, new  RelyGuaranteeCFAEdge(envTransition));
+        }
       }
     }
+
+
+
     this.dumpDot(i, "test/output/newCFA"+i+".dot");
   }
 
