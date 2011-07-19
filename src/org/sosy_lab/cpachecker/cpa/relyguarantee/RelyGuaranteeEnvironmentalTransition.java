@@ -64,4 +64,18 @@ public class RelyGuaranteeEnvironmentalTransition {
     return "RelyGuaranteeEnvironemtalTransition from "+this.sourceThread+": "+edge.getRawStatement()+",'"+this.formula+"','"+this.pathFormula+"'";
   }
 
+  // returns true if 'other' is syntactially equivalent to this env transtion
+  public boolean equals(RelyGuaranteeEnvironmentalTransition other){
+    if (! this.getEdge().equals(other.getEdge())) {
+      return false;
+    }
+    if (! this.getFormula().equals(other.getFormula())){
+      return false;
+    }
+    if (! this.getPathFormula().equals(other.getPathFormula())){
+      return false;
+    }
+    return true;
+  }
+
 }

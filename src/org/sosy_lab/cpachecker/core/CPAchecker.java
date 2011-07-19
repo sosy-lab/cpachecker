@@ -184,7 +184,7 @@ public class CPAchecker {
   // analysis for multiple threads
   private CPAcheckerResult runRelyGuarantee(String[] filenames) {
     int threadNo = filenames.length;
-    CFACreator[] cfaCreators = new CFACreator[threadNo];
+    //CFACreator[] cfaCreators = new CFACreator[threadNo];
     CFA cfas[] = new CFA[threadNo];
     CFAFunctionDefinitionNode mainFunctions[] = new CFAFunctionDefinitionNode[threadNo];
     ConfigurableProgramAnalysis cpas[] = new ConfigurableProgramAnalysis[threadNo];
@@ -214,9 +214,6 @@ public class CPAchecker {
       for(int i=0; i<threadNo; i++){
         initalReachedSets[i] = createInitialReachedSet(cpas[i], mainFunctions[i]);
       }
-
-
-
 
       ConcurrentAlgorithm algorithm = new RelyGuaranteeAlgorithm(cfas, mainFunctions, cpas, config, logger);
 

@@ -47,7 +47,7 @@ public class CFA {
 
   private final Map<String, CFAFunctionDefinitionNode> functions;
 
-  private final SortedSetMultimap<String, CFANode> cfaNodes;
+  protected SortedSetMultimap<String, CFANode> cfaNodes;
 
   private final List<IASTDeclaration> globalDeclarations;
 
@@ -58,6 +58,13 @@ public class CFA {
     cfaNodes = pCfaNodes;
     globalDeclarations = pGlobalDeclarations;
   }
+
+  public CFA(CFA other){
+    functions = other.functions;
+    cfaNodes = other.cfaNodes;
+    globalDeclarations = other.globalDeclarations;
+  }
+
 
   public Map<String, CFAFunctionDefinitionNode> getFunctions() {
     return functions;
