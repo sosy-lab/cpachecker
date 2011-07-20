@@ -44,7 +44,7 @@ public class PathFormula {
   private static Pattern primeRegex = Pattern.compile("(.+)\\^(\\d+)$");
   private static int UNKNOWN  = Integer.MIN_VALUE;
 
-  protected PathFormula(Formula pf, SSAMap ssa, int pLength) {
+  public PathFormula(Formula pf, SSAMap ssa, int pLength) {
     this.formula = pf;
     this.ssa = ssa;
     this.length = pLength;

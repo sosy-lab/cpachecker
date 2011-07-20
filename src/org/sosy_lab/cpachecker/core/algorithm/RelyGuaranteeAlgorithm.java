@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.RelyGuaranteeCFA;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -61,6 +62,8 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -231,6 +234,8 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
   }
 
 
+
+
   // put relevant states in the waitlist
   private void setWaitlist(ReachedSet reachedSet) {
     // if waitlist not empty, then this is the first run of for this thread
@@ -281,7 +286,8 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
   // remove env transitions that have been produced before by thread i  or are obviously unnecessary
   private void syntacticCoverageCheck(int i) {
     Vector<RelyGuaranteeEnvironmentalTransition> toDelete = new Vector<RelyGuaranteeEnvironmentalTransition>();
-    // remove env that are false
+
+
     for (RelyGuaranteeEnvironmentalTransition  et: newEnvTransitions){
       Formula f = et.getFormula();
       PathFormula pf = et.getPathFormula();
@@ -290,14 +296,28 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
       // don't generate transition with 'false' or transitions that assign to local variables
       if (f.isFalse() || pf.getFormula().isFalse() || isLocalAssigment(localEdge)) {
         toDelete.add(et);
-        System.out.println("Removed (syn): "+et);
+        System.out.println("Removed (syn,false): "+et);
       } else {
         // check if the transition has been produced before
         for (RelyGuaranteeEnvironmentalTransition oldEt : envTransitionsCreatedBy[i]) {
           if (et.equals(oldEt)) {
             toDelete.add(et);
-            System.out.println("Removed (syn): "+et);
+            System.out.println("Removed (syn,old): "+et);
           }
+        }
+      }
+    }
+    newEnvTransitions.removeAll(toDelete);
+
+    // remove duplicate transitions from newEnvTransitions
+    toDelete.removeAllElements();
+    Vector<RelyGuaranteeEnvironmentalTransition> toProcess = new Vector<RelyGuaranteeEnvironmentalTransition>(newEnvTransitions);
+    while (! toProcess.isEmpty()){
+      RelyGuaranteeEnvironmentalTransition et = toProcess.remove(0);
+      for (RelyGuaranteeEnvironmentalTransition other : toProcess){
+        if (et.equals(other)){
+          toDelete.add(other);
+          System.out.println("Removed (syn,new): "+other);
         }
       }
     }
@@ -370,7 +390,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
    }
   }
 
-  //returns true if env2 is weaker than env1 (env1 => env2)
+  //returns true if env1 => env2, sound but not complete
   private boolean isCovered(RelyGuaranteeCFAEdge env1, RelyGuaranteeCFAEdge env2) {
     if (env1.equals(env2)){
       return true;
@@ -378,19 +398,44 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     if (!env1.getLocalEdge().equals(env2.getLocalEdge())){
       return false;
     }
+
     Formula f1 = env1.getPathFormula().getFormula();
     Formula f2 = env2.getPathFormula().getFormula();
+    SSAMap s1 = env1.getPathFormula().getSsa();
+    SSAMap s2 = env2.getPathFormula().getSsa();
     if (f1.isFalse() || f2.isTrue()) {
       return true;
     }
-    Formula nf2 = fManager.makeNot(f2);
-    Formula nImpl = fManager.makeAnd(f1, nf2);
+    /*int offset = env1.getPathFormula().getPrimedNo() + 1;
+    Formula f2p = fManager.primeFormula(f2, offset);
+    Formula ef = fManager.makeTrue();
+    // every last unprimed value in f2 must equal to the  last value in f1
+    for (String var : s2.allVariables()){
+      // skip primed variables
+      if(PathFormula.getPrimeData(var).getSecond()>0) {
+        continue;
+      }
+      int idx1 = s1.getIndex(var);
+      if (idx1 == -1){
+        idx1 = 1;
+      }
+      int idx2 = s2.getIndex(var);
+      String name2 = var+"^"+offset;
+      Formula var1 = fManager.makeVariable(var, idx1);
+      Formula var2 = fManager.makeVariable(name2, idx2);
+      Formula eq = fManager.makeEqual(var1, var2);
+      ef = fManager.makeAnd(ef, eq);
+    }*/
+    Formula nImpl = fManager.makeAnd(f1, fManager.makeNot(f2));
     tProver.init();
+    boolean result = false;
     try {
-      return tProver.isUnsat(nImpl);
+      result =  tProver.isUnsat(nImpl);
+      System.out.println(tProver.getModel());
     } finally {
       tProver.reset();
     }
+    return result;
   }
 
   // runs a thread
@@ -501,6 +546,82 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     // TODO Auto-generated method stub
     return null;
   }
+
+  // for testing 'isCovered' method, commented cases are for completness
+  private boolean isCoveredTest() {
+    Formula g1 = fManager.makeVariable("g", 1);
+    Formula g2 = fManager.makeVariable("g", 2);
+    Formula g3 = fManager.makeVariable("g", 3);
+    Formula t = fManager.makeTrue();
+    Formula f = fManager.makeFalse();
+    Formula r2 = fManager.makeVariable("r", 2);
+    Formula n0 = fManager.makeNumber(0);
+    Formula n1 = fManager.makeNumber(1);
+    Formula n2 = fManager.makeNumber(2);
+    Formula g2_1 = fManager.makeEqual(g1, n1);
+    Formula g2_2 = fManager.makeEqual(g2, n2);
+    Formula r2_1 = fManager.makeEqual(r2, n1);
+    Formula g1geq0 = fManager.makeGeq(g1, n0);
+    Formula g1lt0 = fManager.makeLt(g1, n0);
+    Formula g2minus1 = fManager.makeMinus(g2, n1);
+    Formula g3_g2minus1 = fManager.makeEqual(g3, g2minus1);
+    Formula l2 = fManager.makeAnd(fManager.makeOr(g1geq0, g1lt0),r2_1);
+    Formula l3 = fManager.makeAnd(r2_1, g1geq0);
+    Formula l4 = fManager.makeAnd(g2_2, g3_g2minus1);
+    // test I
+    CFANode node = new CFANode(0, "f");
+    CFAEdge edge = new BlankEdge("test",0,node,node);
+    SSAMapBuilder ssa1_I = SSAMap.emptySSAMap().builder();
+    ssa1_I.setIndex("g", 1);
+    PathFormula pf1_I = new PathFormula(g2_1,ssa1_I.build(),0);
+    PathFormula pf2_It = new PathFormula(t,SSAMap.emptySSAMap(),0);
+    PathFormula pf2_If = new PathFormula(f,SSAMap.emptySSAMap(),0);
+    RelyGuaranteeCFAEdge ef1_I = new RelyGuaranteeCFAEdge(edge, pf1_I, 0);
+    RelyGuaranteeCFAEdge ef2_It = new RelyGuaranteeCFAEdge(edge, pf2_It, 0);
+    RelyGuaranteeCFAEdge ef2_If = new RelyGuaranteeCFAEdge(edge, pf2_If, 0);
+    if (!isCovered(ef1_I, ef2_It)){
+      return false;
+    }
+    if (isCovered(ef1_I, ef2_If)){
+      return false;
+    }
+
+    // test III
+    RelyGuaranteeCFAEdge ef1_III = ef1_I;
+    SSAMapBuilder ssa2_IIIt = SSAMap.emptySSAMap().builder();
+    ssa2_IIIt.setIndex("g", 2);
+    PathFormula pf2_IIIt = new PathFormula(l4, ssa2_IIIt.build(), 0);
+    PathFormula pf2_IIIf = new PathFormula(g2_2, ssa1_I.build(), 0);
+    RelyGuaranteeCFAEdge ef2_IIIt = new RelyGuaranteeCFAEdge(edge, pf2_IIIt, 0);
+    RelyGuaranteeCFAEdge ef2_IIIf = new RelyGuaranteeCFAEdge(edge, pf2_IIIf, 0);
+   /* if (!isCovered(ef1_III, ef2_IIIt)){
+      return false;
+    }*/
+    if (isCovered(ef1_III, ef2_IIIf)){
+      return false;
+    }
+    // test II
+    SSAMapBuilder ssa1_II = SSAMap.emptySSAMap().builder();
+    ssa1_II.setIndex("r", 1);
+    PathFormula pf1_II = new PathFormula(r2_1,ssa1_II.build(),0);
+    SSAMapBuilder ssa2_IIt = SSAMap.emptySSAMap().builder();
+    ssa2_IIt.setIndex("r", 1);
+    ssa2_IIt.setIndex("g", 2);
+    PathFormula pf2_IIt = new PathFormula(l2,ssa2_IIt.build(),0);
+    PathFormula pf2_IIf = new PathFormula(l3,ssa2_IIt.build(),0);
+    RelyGuaranteeCFAEdge ef1_II = new RelyGuaranteeCFAEdge(edge, pf1_II, 0);
+    RelyGuaranteeCFAEdge ef2_IIt = new RelyGuaranteeCFAEdge(edge, pf2_IIt, 0);
+    RelyGuaranteeCFAEdge ef2_IIf = new RelyGuaranteeCFAEdge(edge, pf2_IIf, 0);
+   /* if (!isCovered(ef1_II, ef2_IIt)){
+      return false;
+    }*/
+    if (isCovered(ef1_II, ef2_IIf)){
+      return false;
+    }
+
+    return true;
+  }
+
 
 }
 
