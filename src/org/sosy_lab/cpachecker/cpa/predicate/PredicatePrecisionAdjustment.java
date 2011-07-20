@@ -24,10 +24,12 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -39,6 +41,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.ComputeAbs
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 
@@ -78,7 +81,11 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       ComputeAbstractionElement element = (ComputeAbstractionElement)pElement;
       PredicatePrecision precision = (PredicatePrecision)pPrecision;
 
-      pElement = computeAbstraction(element, precision);
+      //pElement = computeAbstraction(element, precision);
+
+      Pair<AbstractElement, PredicatePrecision> lPair = computeAbstraction(element, precision);
+      pElement = lPair.getFirst();
+      pPrecision = lPair.getSecond();
 
       /*long lEndTime = System.currentTimeMillis();
 
@@ -98,13 +105,20 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   }
 
   long mMaxDuration = -1;
+  boolean mRemoveIrrelevantPredicates = true;
+  int mPredsSizeThreshold = 0;
+  HashMap<Formula, Collection<Formula>> mAtomCache = new HashMap<Formula, Collection<Formula>>();
+
+  public int NUMBER_OF_ABSTRACTIONS;
 
   /**
    * Compute an abstraction.
    */
-  private AbstractElement computeAbstraction(
+  private Pair<AbstractElement, PredicatePrecision> computeAbstraction(
       ComputeAbstractionElement element,
       PredicatePrecision precision) {
+
+    NUMBER_OF_ABSTRACTIONS++;
 
     AbstractionFormula abstractionFormula = element.getAbstractionFormula();
     PathFormula pathFormula = element.getPathFormula();
@@ -115,15 +129,15 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     Collection<AbstractionPredicate> preds = precision.getPredicates(loc);
 
-    if (preds.size() > 0) {
+    if (mRemoveIrrelevantPredicates && preds.size() > mPredsSizeThreshold) {
       HashSet<String> lVariables = new HashSet<String>();
       lVariables.addAll(mMathsatFormulaManager.getVariables(abstractionFormula.asFormula()));
       lVariables.addAll(mMathsatFormulaManager.getVariables(pathFormula.getFormula()));
 
       // TODO remove
-      HashSet<String> lConstants = new HashSet<String>();
+      /*HashSet<String> lConstants = new HashSet<String>();
       lConstants.addAll(mMathsatFormulaManager.getConstants(abstractionFormula.asFormula()));
-      lConstants.addAll(mMathsatFormulaManager.getConstants(pathFormula.getFormula()));
+      lConstants.addAll(mMathsatFormulaManager.getConstants(pathFormula.getFormula()));*/
 
       Collection<AbstractionPredicate> lRemainingPredicates = new HashSet<AbstractionPredicate>();
 
@@ -182,6 +196,38 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     computingAbstractionTime.stop();
 
+    /*int lThreshold = 15;
+
+    if (preds.size() > lThreshold) {
+      Formula lFormula = newAbstractionFormula.asFormula();*/
+      /*Collection<Formula> lAtoms = mAtomCache.get(lFormula);
+
+      if (lAtoms == null) {
+        lAtoms = mMathsatFormulaManager.extractAtoms(newAbstractionFormula.asFormula(), false, false);
+        mAtomCache.put(lFormula, lAtoms);
+      }*/
+/*
+      Collection<Formula> lAtoms = mMathsatFormulaManager.extractAtoms(lFormula, false, false);
+
+      if (lAtoms.size() != preds.size()) {
+        Collection<AbstractionPredicate> lNotVanished = new HashSet<AbstractionPredicate>();
+
+        for (AbstractionPredicate lPredicate : preds) {
+          Formula lSymbolicAtom = lPredicate.getSymbolicAtom();
+
+          if (lAtoms.contains(lSymbolicAtom)) {
+            lNotVanished.add(lPredicate);
+          }
+        }
+
+        if (preds.size() - lNotVanished.size() >= lThreshold) {
+          precision = precision.update(loc, lNotVanished);
+        }
+      }
+    }*/
+
+
+
     /*long stop = System.currentTimeMillis();
 
     long duration = stop - start;
@@ -218,7 +264,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     // create new empty path formula
     PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula);
 
-    return new PredicateAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula);
+    return Pair.<AbstractElement, PredicatePrecision>of(new PredicateAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula), precision);
   }
 
   protected AbstractionFormula computeAbstraction(AbstractionFormula pAbstractionFormula, PathFormula pPathFormula, Collection<AbstractionPredicate> pPreds, CFANode node) {
