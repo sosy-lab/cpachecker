@@ -67,7 +67,14 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
   @Override
   public PathFormula makeEmptyPathFormula(PathFormula oldFormula) {
-    return new PathFormula(fmgr.makeTrue(), oldFormula.getSsa(), 0, 0);
+    // remove primed variables from ssa map
+    SSAMapBuilder ssa = SSAMap.emptySSAMap().builder();
+    for (String var : oldFormula.getSsa().allVariables()){
+      if (! var.contains("^")){
+        ssa.setIndex(var, oldFormula.getSsa().getIndex(var));
+      }
+    }
+    return new PathFormula(fmgr.makeTrue(), ssa.build(), 0, 0);
   }
 
   // returns an empty path formula with a clean SSAMap from variables that do not belong to this thread
