@@ -512,8 +512,7 @@ public class OptionCollector {
             final Class<?> foundClass = Class.forName(nameOfClass);
 
             // collect only real classes
-            if (!Modifier.isAbstract(foundClass.getModifiers())
-                && !Modifier.isInterface(foundClass.getModifiers())) {
+            if (!Modifier.isInterface(foundClass.getModifiers())) {
               classes.add(foundClass);
             }
           } catch (ClassNotFoundException e) {
