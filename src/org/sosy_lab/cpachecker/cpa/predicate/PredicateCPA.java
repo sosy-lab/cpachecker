@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.YicesTheoremProver;
@@ -121,7 +122,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     this.logger = logger;
 
     regionManager = BDDRegionManager.getInstance();
-    MathsatFormulaManager mathsatFormulaManager = new MathsatFormulaManager(config, logger);
+    MathsatFormulaManager mathsatFormulaManager = MathsatFactory.createFormulaManager(config, logger);
     formulaManager = mathsatFormulaManager;
 
     PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger);
@@ -133,7 +134,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     if (whichProver.equals("MATHSAT")) {
       theoremProver = new MathsatTheoremProver(mathsatFormulaManager);
     } else if (whichProver.equals("YICES")) {
-      theoremProver = new YicesTheoremProver(mathsatFormulaManager);
+      theoremProver = new YicesTheoremProver(formulaManager);
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
@@ -142,12 +143,12 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     if (whichItpProver.equals("MATHSAT")) {
       itpProver = new MathsatInterpolatingProver(mathsatFormulaManager, false);
       if(changeItpSolveOTF){
-        alternativeItpProver = new CSIsatInterpolatingProver(mathsatFormulaManager, logger);
+        alternativeItpProver = new CSIsatInterpolatingProver(formulaManager, logger);
       } else {
         alternativeItpProver = null;
       }
     } else if (whichItpProver.equals("CSISAT")) {
-      itpProver = new CSIsatInterpolatingProver(mathsatFormulaManager, logger);
+      itpProver = new CSIsatInterpolatingProver(formulaManager, logger);
       if(changeItpSolveOTF){
         alternativeItpProver = new MathsatInterpolatingProver(mathsatFormulaManager, false);
       } else {

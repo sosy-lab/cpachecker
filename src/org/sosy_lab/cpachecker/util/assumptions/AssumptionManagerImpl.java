@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
 
 
 /**
@@ -70,7 +70,7 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
   public static FormulaManager createFormulaManager(Configuration pConfig, LogManager pLogger)
   throws InvalidConfigurationException {
     if (fmgr == null) {
-      fmgr = new MathsatFormulaManager(pConfig, pLogger);
+      fmgr = MathsatFactory.createFormulaManager(pConfig, pLogger);
     }
     return fmgr;
   }

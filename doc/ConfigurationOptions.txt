@@ -313,8 +313,18 @@ cpa.predicate.interpolatingProver = "MATHSAT"
 # try second interpolating solver if the first takes too long
 cpa.predicate.interpolation.changesolverontimeout = false
 
+# With of the bitvectors if useBitwise is true.
+cpa.predicate.mathsat.bitWidth = 32
+
 # use uninterpreted functions for *, & and array access
 cpa.predicate.mathsat.lvalsAsUIFs = false
+
+# Whether to use signed or unsigned variables if useBitwise is true.
+cpa.predicate.mathsat.signed = true
+
+# Encode program variables of bitvectors of a fixed size,instead of using
+# REALS. No interpolation and thus no refinement issupported in this case.
+cpa.predicate.mathsat.useBitwise = false
 
 # use a combination of theories (this is incomplete)
 cpa.predicate.mathsat.useDtc = false

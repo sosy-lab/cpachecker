@@ -61,7 +61,7 @@ public class MathsatModel {
     String lName = mathsat.api.msat_decl_get_name(lDeclarationId);
     TermType lType = toMathsatType(mathsat.api.msat_decl_get_return_type(lDeclarationId));
 
-    Pair<String, Integer> lSplitName = MathsatFormulaManager.parseName(lName);
+    Pair<String, Integer> lSplitName = ArithmeticMathsatFormulaManager.parseName(lName);
     return new Variable(lSplitName.getFirst(), lSplitName.getSecond(), lType);
   }
 
@@ -192,7 +192,7 @@ public class MathsatModel {
     }
 
     mathsat.api.msat_destroy_model_iterator(lModelIterator);
-    return new Model(model.build(), MathsatFormulaManager.encapsulate(modelFormula));
+    return new Model(model.build(), ArithmeticMathsatFormulaManager.encapsulate(modelFormula));
   }
 
 }

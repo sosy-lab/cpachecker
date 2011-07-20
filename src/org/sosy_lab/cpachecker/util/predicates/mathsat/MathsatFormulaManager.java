@@ -50,31 +50,16 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import com.google.common.base.Preconditions;
 
 @Options(prefix="cpa.predicate.mathsat")
-public class MathsatFormulaManager implements FormulaManager  {
-
-  @Option(description="encode program variables as INTEGERs in MathSAT, instead of "
-    + "using REALs. Since interpolation is not really supported by the laz solver, "
-    + "when computing interpolants we still use the LA solver, "
-    + "but encoding variables as ints might still be a good idea: "
-    + "we can tighten strict inequalities, and split negated equalities")
-  private boolean useIntegers = false;
+public abstract class MathsatFormulaManager implements FormulaManager {
 
   @Option(description="use a combination of theories (this is incomplete)")
   private boolean useDtc = false;
 
   // the MathSAT environment in which all terms are created
-  private final long msatEnv;
+  // default visibility because its heavily used in sub-classes
+  final long msatEnv;
 
   // UF encoding of some unsupported operations
-  private final long bitwiseAndUfDecl;
-  private final long bitwiseOrUfDecl;
-  private final long bitwiseXorUfDecl;
-  private final long bitwiseNotUfDecl;
-  private final long leftShiftUfDecl;
-  private final long rightShiftUfDecl;
-  private final long multUfDecl;
-  private final long divUfDecl;
-  private final long modUfDecl;
   private final long stringLitUfDecl;
 
   // datatype to use for variables, when converting them to mathsat vars
@@ -85,7 +70,7 @@ public class MathsatFormulaManager implements FormulaManager  {
   // by setting the vars to be MSAT_INT, the solver tries some heuristics
   // that might work (e.g. tightening of a < b into a <= b - 1, splitting
   // negated equalities, ...)
-  protected final int msatVarType;
+  private final int msatVarType;
 
   // the character for separating name and index of a value
   private static final String INDEX_SEPARATOR = "@";
@@ -101,28 +86,17 @@ public class MathsatFormulaManager implements FormulaManager  {
   private final Formula trueFormula;
   private final Formula falseFormula;
 
-  public MathsatFormulaManager(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  MathsatFormulaManager(Configuration config, LogManager logger, int pVarType) throws InvalidConfigurationException {
     config.inject(this, MathsatFormulaManager.class);
+    msatVarType = pVarType;
     msatEnv = msat_create_env();
-    msatVarType = useIntegers ? MSAT_INT : MSAT_REAL;
 
     final int[] msatVarType1 = {msatVarType};
-    final int[] msatVarType2 = {msatVarType, msatVarType};
-
-    bitwiseAndUfDecl = msat_declare_uif(msatEnv, "_&_", msatVarType, 2, msatVarType2);
-    bitwiseOrUfDecl = msat_declare_uif(msatEnv, "_|_", msatVarType, 2, msatVarType2);
-    bitwiseXorUfDecl = msat_declare_uif(msatEnv, "_^_", msatVarType, 2, msatVarType2);
-    bitwiseNotUfDecl = msat_declare_uif(msatEnv, "_~_", msatVarType, 1, msatVarType1);
-    leftShiftUfDecl = msat_declare_uif(msatEnv, "_<<_", msatVarType, 2, msatVarType2);
-    rightShiftUfDecl = msat_declare_uif(msatEnv, "_>>_", msatVarType, 2, msatVarType2);
-    multUfDecl = msat_declare_uif(msatEnv, "_*_", msatVarType, 2, msatVarType2);
-    divUfDecl = msat_declare_uif(msatEnv, "_/_", msatVarType, 2, msatVarType2);
-    modUfDecl = msat_declare_uif(msatEnv, "_%_", msatVarType, 2, msatVarType2);
-
-    stringLitUfDecl = msat_declare_uif(msatEnv, "__string__", msatVarType, 1, msatVarType1);
 
     trueFormula = encapsulate(msat_make_true(msatEnv));
     falseFormula = encapsulate(msat_make_false(msatEnv));
+
+    stringLitUfDecl = msat_declare_uif(msatEnv, "__string__", msatVarType, 1, msatVarType1);
   }
 
   long getMsatEnv() {
@@ -138,13 +112,6 @@ public class MathsatFormulaManager implements FormulaManager  {
     }
 
     msat_add_theory(env, MSAT_UF);
-    if (useIntegers) {
-      msat_add_theory(env, MSAT_LIA);
-      int ok = msat_set_option(env, "split_eq", "false");
-      assert(ok == 0);
-    } else {
-      msat_add_theory(env, MSAT_LRA);
-    }
     if (useDtc) {
       msat_set_theory_combination(env, MSAT_COMB_DTC);
     }
@@ -186,6 +153,7 @@ public class MathsatFormulaManager implements FormulaManager  {
 
     return Pair.of(s[0], Integer.parseInt(s[1]));
   }
+
 
   // ----------------- Boolean formulas -----------------
 
@@ -230,143 +198,6 @@ public class MathsatFormulaManager implements FormulaManager  {
   }
 
 
-  // ----------------- Numeric formulas -----------------
-
-  @Override
-  public Formula makeNegate(Formula f) {
-    return encapsulate(msat_make_negate(msatEnv, getTerm(f)));
-  }
-
-  @Override
-  public Formula makeNumber(int i) {
-    return makeNumber(Integer.toString(i));
-  }
-
-  @Override
-  public Formula makeNumber(String i) {
-    return encapsulate(msat_make_number(msatEnv, i));
-  }
-
-  @Override
-  public Formula makePlus(Formula f1, Formula f2) {
-    return encapsulate(msat_make_plus(msatEnv, getTerm(f1), getTerm(f2)));
-  }
-
-  @Override
-  public Formula makeMinus(Formula f1, Formula f2) {
-    return encapsulate(msat_make_minus(msatEnv, getTerm(f1), getTerm(f2)));
-  }
-
-  @Override
-  public Formula makeDivide(Formula f1, Formula f2) {
-    long t1 = getTerm(f1);
-    long t2 = getTerm(f2);
-
-    long result;
-    if (msat_term_is_number(t2) != 0) {
-      // invert t2 and multiply with it
-      String n = msat_term_repr(t2);
-      if (n.startsWith("(")) {
-        n = n.substring(1, n.length()-1);
-      }
-      String[] frac = n.split("/");
-      if (frac.length == 1) {
-        n = "1/" + n;
-      } else {
-        assert(frac.length == 2);
-        n = frac[1] + "/" + frac[0];
-      }
-      t2 = msat_make_number(msatEnv, n);
-      result = msat_make_times(msatEnv, t2, t1);
-    } else {
-      result = msat_make_uif(msatEnv, divUfDecl, new long[]{t1, t2});
-    }
-    return encapsulate(result);
-  }
-
-  @Override
-  public Formula makeModulo(Formula f1, Formula f2) {
-    return makeUIFforBinaryOperator(f1, f2, modUfDecl);
-  }
-
-  @Override
-  public Formula makeMultiply(Formula f1, Formula f2) {
-    long t1 = getTerm(f1);
-    long t2 = getTerm(f2);
-
-    long result;
-    if (msat_term_is_number(t1) != 0) {
-      result = msat_make_times(msatEnv, t1, t2);
-    } else if (msat_term_is_number(t2) != 0) {
-      result = msat_make_times(msatEnv, t2, t1);
-    } else {
-      result = msat_make_uif(msatEnv, multUfDecl, new long[]{t1, t2});
-    }
-
-    return encapsulate(result);
-  }
-
-  // ----------------- Numeric relations -----------------
-
-  @Override
-  public Formula makeEqual(Formula f1, Formula f2) {
-    return encapsulate(msat_make_equal(msatEnv, getTerm(f1), getTerm(f2)));
-  }
-
-  @Override
-  public Formula makeGt(Formula f1, Formula f2) {
-    return encapsulate(msat_make_gt(msatEnv, getTerm(f1), getTerm(f2)));
-  }
-
-  @Override
-  public Formula makeGeq(Formula f1, Formula f2) {
-    return encapsulate(msat_make_geq(msatEnv, getTerm(f1), getTerm(f2)));
-  }
-
-  @Override
-  public Formula makeLt(Formula f1, Formula f2) {
-    return encapsulate(msat_make_lt(msatEnv, getTerm(f1), getTerm(f2)));
-  }
-
-  @Override
-  public Formula makeLeq(Formula f1, Formula f2) {
-    return encapsulate(msat_make_leq(msatEnv, getTerm(f1), getTerm(f2)));
-  }
-
-  // ----------------- Bit-manipulation functions -----------------
-
-  @Override
-  public Formula makeBitwiseNot(Formula f) {
-    long[] args = {getTerm(f)};
-
-    return encapsulate(msat_make_uif(msatEnv, bitwiseNotUfDecl, args));
-  }
-
-  @Override
-  public Formula makeBitwiseAnd(Formula f1, Formula f2) {
-    return makeUIFforBinaryOperator(f1, f2, bitwiseAndUfDecl);
-  }
-
-  @Override
-  public Formula makeBitwiseOr(Formula f1, Formula f2) {
-    return makeUIFforBinaryOperator(f1, f2, bitwiseOrUfDecl);
-  }
-
-  @Override
-  public Formula makeBitwiseXor(Formula f1, Formula f2) {
-    return makeUIFforBinaryOperator(f1, f2, bitwiseXorUfDecl);
-  }
-
-  @Override
-  public Formula makeShiftLeft(Formula f1, Formula f2) {
-    return makeUIFforBinaryOperator(f1, f2, leftShiftUfDecl);
-  }
-
-  @Override
-  public Formula makeShiftRight(Formula f1, Formula f2) {
-    return makeUIFforBinaryOperator(f1, f2, rightShiftUfDecl);
-  }
-
   // ----------------- Uninterpreted functions -----------------
 
   private long buildMsatUF(String name, long[] args) {
@@ -388,13 +219,6 @@ public class MathsatFormulaManager implements FormulaManager  {
   public Formula makeUIF(String name, FormulaList args, int idx) {
     return encapsulate(buildMsatUF(makeName(name, idx), getTerm(args)));
   }
-
-  private Formula makeUIFforBinaryOperator(Formula f1, Formula f2, long uifDecl) {
-    long[] args = {getTerm(f1), getTerm(f2)};
-
-    return encapsulate(msat_make_uif(msatEnv, uifDecl, args));
-  }
-
 
   // ----------------- Other formulas -----------------
 
@@ -454,6 +278,7 @@ public class MathsatFormulaManager implements FormulaManager  {
     }
     return encapsulate(t);
   }
+
   // ----------------- Complex formula manipulation -----------------
 
   @Override
@@ -658,59 +483,6 @@ public class MathsatFormulaManager implements FormulaManager  {
     Formula result = cache.get(f);
     assert result != null;
     return result;
-  }
-
-  // returns a formula with some "static learning" about some bitwise
-  // operations, so that they are (a bit) "less uninterpreted"
-  // Currently it add's the following formulas for each number literal n that
-  // appears in the formula: "(n & 0 == 0) and (0 & n == 0)"
-  // But only if an bitwise "and" occurs in the formula.
-  @Override
-  public Formula getBitwiseAxioms(Formula f) {
-    Deque<Formula> toProcess = new ArrayDeque<Formula>();
-    Set<Formula> seen = new HashSet<Formula>();
-    Set<Formula> allLiterals = new HashSet<Formula>();
-
-    boolean andFound = false;
-
-    toProcess.add(f);
-    while (!toProcess.isEmpty()) {
-      final Formula tt = toProcess.pollLast();
-      final long t = getTerm(tt);
-
-      if (msat_term_is_number(t) != 0) {
-        allLiterals.add(tt);
-      }
-      if (msat_term_is_uif(t) != 0) {
-        String r = msat_term_repr(t);
-        if (r.startsWith("_&_")) {
-          andFound = true;
-        }
-      }
-      int arity = msat_term_arity(t);
-      for (int i = 0; i < arity; ++i) {
-        Formula c = encapsulate(msat_term_get_arg(t, i));
-        if (seen.add(c)) {
-          // was not already contained in seen
-          toProcess.add(c);
-        }
-      }
-    }
-
-    long result = msat_make_true(msatEnv);
-    if (andFound) {
-      long z = msat_make_number(msatEnv, "0");
-      for (Formula nn : allLiterals) {
-        long n = getTerm(nn);
-        long u1 = msat_make_uif(msatEnv, bitwiseAndUfDecl, new long[]{n, z});
-        long u2 = msat_make_uif(msatEnv, bitwiseAndUfDecl, new long[]{z, n});
-        long e1 = msat_make_equal(msatEnv, u1, z);
-        long e2 = msat_make_equal(msatEnv, u2, z);
-        long a = msat_make_and(msatEnv, e1, e2);
-        result = msat_make_and(msatEnv, result, a);
-      }
-    }
-    return encapsulate(result);
   }
 
   @Override
