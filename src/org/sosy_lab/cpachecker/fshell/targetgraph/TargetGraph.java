@@ -230,6 +230,17 @@ public class TargetGraph {
     }
 
     public Set<Edge> edges() {
+      /*LinkedHashSet<Edge> lSet = new LinkedHashSet<Edge>();
+      
+      Edge[] lEdges = new Edge[mTargetGraph.getEdges().size()];
+      lEdges = mTargetGraph.getEdges().toArray(lEdges);
+
+      for (int i = lEdges.length - 1; i >= 0; i--) {
+        lSet.add(lEdges[i]);
+      }
+
+      return Collections.unmodifiableSet(lSet);*/
+
       return Collections.unmodifiableSet(mTargetGraph.getEdges());
     }
 

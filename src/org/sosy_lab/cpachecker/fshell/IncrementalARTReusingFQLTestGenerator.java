@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.fshell;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -80,6 +79,7 @@ import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecisionAdjustment;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.fshell.cfa.Wrapper;
@@ -412,7 +412,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       mOutput.println("Processing test goal #" + lIndex + " of " + lNumberOfTestGoals + " test goals.");
 
       if (mMinIndex > lIndex) {
-        System.out.println("Skipped.");
+        mOutput.println("Skipped.");
         continue;
       }
 
@@ -432,6 +432,18 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       Goal lGoal = new Goal(lGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
 
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton = optimizeAutomaton(lGoal.getAutomaton());
+
+      /*for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lEdge : lGoalAutomaton.getEdges()) {
+        GuardedEdgeLabel lLabel = lEdge.getLabel();
+
+        if (!(lLabel instanceof InverseGuardedEdgeLabel)) {
+          ECPEdgeSet lEdgeSet = lLabel.getEdgeSet();
+
+          if (lEdgeSet instanceof SingletonECPEdgeSet) {
+            System.out.println(((SingletonECPEdgeSet)lEdgeSet).getCFAEdge());
+          }
+        }
+      }*/
 
       lTimeAccu.proceed();
 
@@ -629,10 +641,10 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     printStatistics(lResultFactory);
 
     // print per goal runtimes
-    Arrays.sort(lGoalRuntime);
+    /*Arrays.sort(lGoalRuntime);
     for (int i = 0; i < lGoalRuntime.length; i++) {
       System.out.println("#" + (i + 1) + ": " + lGoalRuntime[i] + " ms");
-    }
+    }*/
 
     return lResult;
   }
@@ -846,6 +858,9 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       pReachedSet.add(lInitialElement, lInitialPrecision);
     }
 
+    PredicatePrecisionAdjustment lAdjustment = (PredicatePrecisionAdjustment)mPredicateCPA.getPrecisionAdjustment();
+    lAdjustment.NUMBER_OF_ABSTRACTIONS = 0;
+
     try {
       lAlgorithm.run(pReachedSet);
     } catch (CPAException e) {
@@ -854,6 +869,8 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       // TODO Auto-generated catch block
       throw new RuntimeException(e);
     }
+
+    System.out.println("Number of abstractions: " + lAdjustment.NUMBER_OF_ABSTRACTIONS);
 
     mPrecision = new PredicatePrecision(mBuilder.build(), mGlobalPredicates);
 

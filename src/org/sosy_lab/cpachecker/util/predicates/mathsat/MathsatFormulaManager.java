@@ -878,11 +878,20 @@ public class MathsatFormulaManager implements FormulaManager  {
   public Collection<String> getVariables(long pTerm) {
     HashSet<String> lVariables = new HashSet<String>();
 
+    HashSet<Long> lHits = new HashSet<Long>();
+
     LinkedList<Long> lWorklist = new LinkedList<Long>();
     lWorklist.add(pTerm);
 
     while (!lWorklist.isEmpty()) {
-      long lTerm = lWorklist.removeFirst();
+      //long lTerm = lWorklist.removeFirst();
+      long lTerm = lWorklist.removeLast();
+
+      if (!lHits.add(lTerm)) {
+        // we can skip this term because we already gathered the 
+        // corresponding information
+        continue;
+      }
 
       if (msat_term_is_variable(lTerm) != 0) {
         lVariables.add(parseName2(msat_term_repr(lTerm)));
@@ -890,7 +899,8 @@ public class MathsatFormulaManager implements FormulaManager  {
       else {
         int lArity = msat_term_arity(lTerm);
         for (int i = 0; i < lArity; i++) {
-          lWorklist.add(msat_term_get_arg(lTerm, i));
+          long lSubterm = msat_term_get_arg(lTerm, i);
+          lWorklist.add(lSubterm);
         }
       }
     }
@@ -926,7 +936,8 @@ public class MathsatFormulaManager implements FormulaManager  {
       else {
         int lArity = msat_term_arity(lTerm);
         for (int i = 0; i < lArity; i++) {
-          lWorklist.add(msat_term_get_arg(lTerm, i));
+          long lSubterm = msat_term_get_arg(lTerm, i);
+          lWorklist.add(lSubterm);
         }
       }
     }

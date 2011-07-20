@@ -68,7 +68,6 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.SetMultimap;
 
 @Options(prefix="cpa.predicate")
 public class PredicateRefiner extends AbstractARTBasedRefiner {
@@ -154,10 +153,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
               performRefinement(oldPredicatePrecision, path, mCounterexampleTraceInfo);
       precisionUpdate.stop();
 
-      SetMultimap<CFANode, AbstractionPredicate> lPredicateMap = refinementResult.getSecond().getPredicateMap();
-      for (CFANode lNode : lPredicateMap.keys()) {
-        mBuilder.putAll(lNode, lPredicateMap.get(lNode));
-      }
+      mBuilder.putAll(refinementResult.getSecond().getPredicateMap());
       mGlobalPredicates.addAll(refinementResult.getSecond().getGlobalPredicates());
 
       artUpdate.start();

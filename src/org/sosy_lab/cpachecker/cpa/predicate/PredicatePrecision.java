@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -48,6 +49,25 @@ public class PredicatePrecision implements Precision {
   public PredicatePrecision(Collection<AbstractionPredicate> globalPredicates) {
     predicateMap = ImmutableSetMultimap.of();
     this.globalPredicates = (globalPredicates == null ? ImmutableSet.<AbstractionPredicate>of() : ImmutableSet.copyOf(globalPredicates));
+  }
+
+  private PredicatePrecision(ImmutableSetMultimap<CFANode, AbstractionPredicate> pPredicateMap, ImmutableSet<AbstractionPredicate> pGlobalPredicates) {
+    predicateMap = pPredicateMap;
+    globalPredicates = pGlobalPredicates;
+  }
+
+  public PredicatePrecision update(CFANode pNode, Collection<AbstractionPredicate> pPredicates) {
+    ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> lBuilder = new ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate>();
+
+    for (Map.Entry<CFANode, AbstractionPredicate> lEntry : predicateMap.entries()) {
+      if (!lEntry.getKey().equals(pNode)) {
+        lBuilder.put(lEntry.getKey(), lEntry.getValue());
+      }
+    }
+
+    lBuilder.putAll(pNode, pPredicates);
+
+    return new PredicatePrecision(lBuilder.build(), globalPredicates);
   }
 
   public SetMultimap<CFANode, AbstractionPredicate> getPredicateMap() {

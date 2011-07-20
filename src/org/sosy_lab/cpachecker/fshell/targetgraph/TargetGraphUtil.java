@@ -114,13 +114,21 @@ public class TargetGraphUtil {
 
     /*CFAEdge[] lEdges = new CFAEdge[lBasicBlockEntries.size()];
     lEdges = lBasicBlockEntries.toArray(lEdges);
-    
+
     LinkedHashSet<CFAEdge> lBBEntries = new LinkedHashSet<CFAEdge>();
-    
+
     for (int i = lEdges.length - 1; i >= 0; i--) {
       lBBEntries.add(lEdges[i]);
     }
-    
+
+    CFAEdge[] lEdges2 = new CFAEdge[lBBEntries.size()];
+    lEdges2 = lBBEntries.toArray(lEdges2);
+
+    for (int i = 0; i < lEdges2.length; i++) {
+      //System.out.println((i + 1) + ") " + lEdges[i].toString() + " --- " + lEdges2[i].toString());
+      System.out.println((i + 1) + ") " + lEdges2[i].toString());
+    }
+
     return lBBEntries;*/
     return lBasicBlockEntries;
   }
@@ -129,7 +137,6 @@ public class TargetGraphUtil {
     for (int lIndex = 0; lIndex < pCFANode.getNumLeavingEdges(); lIndex++) {
       CFAEdge lSuccessorEdge = pCFANode.getLeavingEdge(lIndex);
       pWorklist.add(lSuccessorEdge);
-      //pWorklist.addFirst(lSuccessorEdge);
     }
   }
 
@@ -151,7 +158,96 @@ public class TargetGraphUtil {
     return false;
   }
 
+  /*
+   * The order in which we traverse the CFA here determines the order
+   * in which test goals are enumerated later on.
+   */
   public static TargetGraph cfa(CFANode pInitialNode) {
+    if (pInitialNode == null) {
+      throw new IllegalArgumentException();
+    }
+
+    Builder lBuilder = new Builder();
+
+    HashMap<CFANode, Node> lNodeMapping = new HashMap<CFANode, Node>();
+
+    LinkedList<CFANode> lWorklist = new LinkedList<CFANode>();
+    Set<CFANode> lVisitedNodes = new HashSet<CFANode>();
+
+    lWorklist.add(pInitialNode);
+
+    Node lInitialNode = new Node(pInitialNode);
+    lBuilder.addInitialNode(lInitialNode);
+    lBuilder.addNode(lInitialNode);
+
+    lNodeMapping.put(pInitialNode, lInitialNode);
+
+    while (!lWorklist.isEmpty()) {
+      //CFANode lCFANode = lWorklist.removeFirst();
+      // TODO removeLast() worked for many examples very well (testlocks are exceptions)
+      CFANode lCFANode = lWorklist.removeLast();
+
+      lVisitedNodes.add(lCFANode);
+
+      Node lNode = lNodeMapping.get(lCFANode);
+
+      // determine successors
+      int lNumberOfLeavingEdges = lCFANode.getNumLeavingEdges();
+
+      CallToReturnEdge lCallToReturnEdge = lCFANode.getLeavingSummaryEdge();
+
+      if (lNumberOfLeavingEdges == 0 && lCallToReturnEdge == null) {
+        assert(lCFANode instanceof CFAFunctionExitNode);
+
+        lBuilder.addFinalNode(lNode);
+      }
+      else {
+        for (int lEdgeIndex = 0; lEdgeIndex < lNumberOfLeavingEdges; lEdgeIndex++) {
+          CFAEdge lEdge = lCFANode.getLeavingEdge(lEdgeIndex);
+          CFANode lSuccessor = lEdge.getSuccessor();
+
+          Node lSuccessorNode;
+
+          if (lVisitedNodes.contains(lSuccessor)) {
+            lSuccessorNode = lNodeMapping.get(lSuccessor);
+          }
+          else {
+            lSuccessorNode = new Node(lSuccessor);
+
+            lNodeMapping.put(lSuccessor, lSuccessorNode);
+            lBuilder.addNode(lSuccessorNode);
+
+            lWorklist.add(lSuccessor);
+          }
+
+          lBuilder.addEdge(lNode, lSuccessorNode, lEdge);
+        }
+
+        if (lCallToReturnEdge != null) {
+          CFANode lSuccessor = lCallToReturnEdge.getSuccessor();
+
+          Node lSuccessorNode;
+
+          if (lVisitedNodes.contains(lSuccessor)) {
+            lSuccessorNode = lNodeMapping.get(lSuccessor);
+          }
+          else {
+            lSuccessorNode = new Node(lSuccessor);
+
+            lNodeMapping.put(lSuccessor, lSuccessorNode);
+            lBuilder.addNode(lSuccessorNode);
+
+            lWorklist.add(lSuccessor);
+          }
+
+          lBuilder.addEdge(lNode, lSuccessorNode, lCallToReturnEdge);
+        }
+      }
+    }
+
+    return lBuilder.build();
+  }
+  /*public static TargetGraph cfa(CFANode pInitialNode) {
     if (pInitialNode == null) {
       throw new IllegalArgumentException();
     }
@@ -234,7 +330,7 @@ public class TargetGraphUtil {
     }
 
     return lBuilder.build();
-  }
+  }*/
 
   public static TargetGraph union(TargetGraph pTargetGraph1, TargetGraph pTargetGraph2) {
     if (pTargetGraph1 == null || pTargetGraph2 == null) {
