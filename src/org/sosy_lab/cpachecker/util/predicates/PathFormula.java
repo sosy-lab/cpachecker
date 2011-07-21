@@ -65,11 +65,12 @@ public class PathFormula {
 
     PathFormula other = (PathFormula)obj;
     return formula.equals(other.formula)
-        && ssa.equals(other.ssa);
+        && ssa.equals(other.ssa)
+        && (length == other.length);
   }
 
   @Override
   public int hashCode() {
-    return formula.hashCode() * 17 + ssa.hashCode();
+    return (formula.hashCode() * 17 + ssa.hashCode()) * 31 + length;
   }
 }
