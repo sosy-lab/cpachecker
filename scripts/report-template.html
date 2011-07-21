@@ -107,7 +107,7 @@ html,body {
     border: 0px;
 }
 
-#cfawin,#artwin {
+#tab_cfa,#tab_art {
     position: absolute;
     top: 27px;
     bottom: 0px;
@@ -117,7 +117,7 @@ html,body {
     background: white;
 }
 
-#logwin,#statswin,#confwin,#cilwin {
+#tab_log,#tab_stats,#tab_conf,#tab_cil {
     position: absolute;
     top: 0px;
     bottom: 0px;
@@ -151,17 +151,17 @@ a.action:hover {
     background-color: lime;
 }
 
-#cilwin #cil_holder td {
+#tab_cil #cil_holder td {
     padding: 0px;
     margin: 0px;
     padding-right: 10px;
 }
 
-#cilwin #cil_holder td:first-child {
+#tab_cil #cil_holder td:first-child {
     background-color: #ccc;
 }
 
-#cilwin #cil_holder td pre {
+#tab_cil #cil_holder td pre {
     padding: 0px;
     margin: 0px;
 }
@@ -241,38 +241,98 @@ a.action:hover {
             </div>
 
             <div id="tabContent">
-                <div id="cfawin">
-                    <iframe name="cfawin" src="about:blank"></iframe>
+                <div id="tab_cfa">
+                    <iframe name="tab_cfa" src="about:blank"></iframe>
                 </div>
-                <div id="artwin">
-                    <iframe name="artwin" src="ART.svg"></iframe>
+                <div id="tab_art">
+                    <iframe name="tab_art" src="ART.svg"></iframe>
                 </div>
-                <div id="cilwin">
+                <div id="tab_cil">
                     {{{formatted_cil}}}
                 </div>
-                <div id="logwin">
+                <div id="tab_log">
                     <pre>{{{logfile}}}</pre>
                 </div>
-                <div id="statswin">
+                <div id="tab_stats">
                     <pre>{{{statistics}}}</pre>
                 </div>
-                <div id="confwin">
+                <div id="tab_conf">
                     <pre>{{{conffile}}}</pre>
                 </div>                                        
             </div>
         </div>
 
         <script>
+            /* a widget for showing tabs,
+            tabs are searched under the rootElement, tabName should be "tab_X"
+            buttons are searches in the whole document, buttonName should be "show_X".*/
+
+            function Tabber(id) {
+               this.rootId = id;
+               this.tabs = [];
+               this.buttons = [];
+
+               this.select_tab = function(tabname) {
+                   console.log('selected tab: ' + tabname + ' from #' + this.tabs.length);
+
+                   for (var i = 0; i < this.tabs.length; i++) {
+                       if (this.tabs[i].id == tabname) {
+                           this.tabs[i].style.display = 'block';
+                           this.buttons[i].style.textDecoration = 'underline';
+                           console.log('showing tab: ' + tabname);
+                       } else {
+                           this.tabs[i].style.display = 'none';
+                           this.buttons[i].style.textDecoration = 'none';
+                       }
+                   }
+                   this.selection = tabname;
+               };
+
+               // collect all buttons and tabs
+               this.init = function() {
+                   var self = this; // needed for function "button.onclick(tabname)"
+
+                   // get all children with tag "div" and extract children with id='tab_*'
+                   var allChildren = document.getElementById(this.rootId).getElementsByTagName('div');
+                   for (var i = 0; i < allChildren.length; i++) {
+                       var child = allChildren[i];
+
+                       if (child.id != null && child.id.startsWith('tab_')) {
+                           this.tabs.push(child);
+
+                           var button = document.getElementById('show_' + child.id.substring(4))
+                           this.buttons.push(button);
+
+                           // add function to button for choosing the tab
+                           button.onclick = function(tabname) {
+                               return function() {self.select_tab(tabname);};    
+                           } (child.id);
+
+                           console.log('tab found: ' + child.id + ' + ' + button.id);
+                       }
+                   }
+
+                   // initial show the first tab
+                   this.select_tab(this.tabs[0].id);                               
+               };
+            }
+
+            String.prototype.startsWith = function(str) {
+               return (this.match("^" + str) == str);
+            }
+        </script>
+
+        <script>
         
-	       	var activeWindow    = "cfawin";
+	       	var activeWindow    = "tab_cfa";
 
 			var zoomLevel		= new Array();
-			zoomLevel["cfawin"]	= 100;
-			zoomLevel["artwin"]	= 100;
+			zoomLevel["tab_cfa"]	= 100;
+			zoomLevel["tab_art"]	= 100;
 			
 			var scrOffset		= new Array();
-			scrOffset["cfawin"]	= 0;
-			scrOffset["artwin"]	= 0;
+			scrOffset["tab_cfa"]	= 0;
+			scrOffset["tab_art"]	= 0;
 			
 			function setActiveWindow(event)
 			{
@@ -284,9 +344,9 @@ a.action:hover {
 				
 				win = 'none';
 				if(event.target.id == "show_cfa")
-					win = "cfawin";
+					win = "tab_cfa";
 				else if(event.target.id == "show_art")
-					win = "artwin";
+					win = "tab_art";
 
 				if(win == 'none')
 				  slider.style.display = "none";
@@ -374,47 +434,8 @@ a.action:hover {
                 var re = new RegExp('\\b' + cssclass + '\\b');
                 elem.className = elem.className.replace(re, ' ');                
             }
-            
-            //a tab widget (used for the panel on the right)
-            function Tabber(names) {
-                var self = this;
-                self.names = names;
-                
-                self.selected_win = null;
-                
-                self.select_tab = function(tabname) {
-                    for (var i = 0; i < self.names.length; i++) {
-                        if (self.names[i] == tabname) {
-                            self.windows[i].style.display = 'block';
-                            self.buttons[i].style.textDecoration = 'underline';
-                        } else {
-                            self.windows[i].style.display = 'none';
-                            self.buttons[i].style.textDecoration = 'none';
-                        }                        
-                    }
-                    self.selection = tabname;
-                    self.selected_win = self.windows[i];
-                };
-                                               
-                self.init = function() {
-                    self.windows = [];
-                    self.buttons = [];                    
-                    for (var i = 0; i < self.names.length; i++) {
-                        
-                        self.windows.push(document.getElementById(self.names[i] + 'win'));
-                        var button = document.getElementById('show_' + self.names[i]);
-                        self.buttons.push(button);
-                        button.onclick = (function(tabname) {
-                            return function() {
-                                self.select_tab(tabname);
-                            };    
-                        })(self.names[i]);                        
-                    }
-                    self.select_tab(self.names[0]);                               
-                };            
-            }
-            
-            //adjust height of components (used for errpathwin, cilwin and logwin to get around layout issues)
+          
+            //adjust height of components (used for errpathwin, tab_cil and tab_log to get around layout issues)
             function HeightFix(hint, ids) {
                 var self = this;
                 self.ids = ids;
@@ -445,7 +466,7 @@ a.action:hover {
             viewer.windows = {};
             
             //the panel on the right
-            viewer.windows.rightpane = new Tabber(['cfa', 'art', 'cil', 'log', 'stats', 'conf']);
+            viewer.windows.rightpane = new Tabber('tabContent');
             
             //the cfa view
             viewer.windows.cfawin = new (function() {
@@ -502,7 +523,7 @@ a.action:hover {
                 //callback is fired when a new function was loaded into the cfa window
                 function on_frame_onload() {
                     console.log('cfawin -- onload');
-                    self.label.innerHTML = self.active_function;                    
+                    self.label.innerHTML = self.active_function;
                     self.svgdoc = self.frame.document;
                     index_svg();
                     self.handlers.fire('cfa_loaded', self.active_function);
@@ -511,7 +532,7 @@ a.action:hover {
                 //initialize the cfa window - DOM must be ready
                 self.init = function() {
                     console.log('cfawin -- init');
-                    self.frame = window.frames['cfawin'];
+                    self.frame = window.frames['tab_cfa'];
                     //self.frame.onload = on_frame_onload;
                     self.label = document.getElementById('cfalabel');
                     //self.load('main');
@@ -793,7 +814,7 @@ a.action:hover {
                     var nodeid = label.split('}-> N')[1];
                     nodeid = parseInt(nodeid.substring(0, nodeid.length - 1), 10);
                     
-                    viewer.windows.rightpane.select_tab('cfa');
+                    viewer.windows.rightpane.select_tab('tab_cfa');
                     viewer.windows.cfawin.focus_node(nodeid);
                 }
                 
@@ -807,8 +828,8 @@ a.action:hover {
                 
                 //initialize ART window - DOM must be ready
                 self.init = function() {
-                    console.log('artwin -- init');
-                    self.frame = window.frames['artwin'];                   
+                    console.log('tab_art -- init');
+                    self.frame = window.frames['tab_art'];                   
                     self.svgdoc = self.frame.document;                    
                 };
             })();
@@ -928,32 +949,32 @@ a.action:hover {
             
             //viewer.windows.cfawin.init();
             viewer.windows.errorpathwin.handlers.add('node_selected', function(evtname, nodeid, errpathindex) {
-                if (viewer.windows.rightpane.selection == 'cfa') {
+                if (viewer.windows.rightpane.selection == 'tab_cfa') {
                     viewer.windows.cfawin.focus_node(nodeid);
-                } else if (viewer.windows.rightpane.selection == 'art') {
+                } else if (viewer.windows.rightpane.selection == 'tab_art') {
                     viewer.windows.artwin.focus_node(
                         '' + viewer.data.errorpath[errpathindex].artelem
                     );
-                } else if (viewer.windows.rightpane.selection == 'cil') {
+                } else if (viewer.windows.rightpane.selection == 'tab_cil') {
                     scroll_cil(viewer.data.cfainfo.nodes[nodeid].line);
                 }
             });
 
             viewer.windows.errorpathwin.handlers.add('edge_selected', function(evtname, edgeid, errpathindex) {
-                if (viewer.windows.rightpane.selection == 'cfa') {
+                if (viewer.windows.rightpane.selection == 'tab_cfa') {
                     viewer.windows.cfawin.focus_node(edgeid[1]);
                     //viewer.windows.cfawin.set_edge_color(edgeid, 'red');
-                } else if (viewer.windows.rightpane.selection == 'art') {
+                } else if (viewer.windows.rightpane.selection == 'tab_art') {
                     viewer.windows.artwin.focus_node(
                         '' + viewer.data.errorpath[errpathindex].artelem
                     );
-                } else if (viewer.windows.rightpane.selection == 'cil') {
+                } else if (viewer.windows.rightpane.selection == 'tab_cil') {
                     scroll_cil(viewer.data.cfainfo.edges[edgeid[0] + '->' + edgeid[1]].line);
                 }
             });
             
             viewer.windows.cfawin.handlers.add('edge_clicked', function(evtname, edgeid) {
-                viewer.windows.rightpane.select_tab('cil');
+                viewer.windows.rightpane.select_tab('tab_cil');
                 scroll_cil(viewer.data.cfainfo.edges[edgeid].line);
             });
             
@@ -973,14 +994,11 @@ a.action:hover {
             }, 1000);
             
             viewer.windows.functionselector.init();
-            
-            
-            
-            var hfix = new HeightFix('resizehint', ['errpathwin', 'cilwin', 'logwin', 'statswin', 'confwin']);
+
+            var hfix = new HeightFix('resizehint', ['errpathwin', 'tab_cil', 'tab_log', 'tab_stats', 'tab_conf']);
             
             viewer.windows.cfawin.load('main');
-            
 
-            
         </script>
-        
+    </body>
+</html>
