@@ -229,6 +229,9 @@ public class OptionCollector {
 
   /** This function formats text and splits lines, if they are too long. */
   public static String formatText(final String text) {
+    if (text.isEmpty()) {
+      return text;
+    }
 
     // split description into lines
     final String[] lines = text.split("\n");
@@ -261,14 +264,14 @@ public class OptionCollector {
     }
 
     // add "# " before each line
-    String formattedLines = "";
-    if (!text.isEmpty()) {
-      for (String line : splittedLines) {
-        formattedLines += "# " + line + "\n";
-      }
+    StringBuilder formattedLines = new StringBuilder();
+    for (String line : splittedLines) {
+      formattedLines.append("# ");
+      formattedLines.append(line);
+      formattedLines.append('\n');
     }
 
-    return formattedLines;
+    return formattedLines.toString();
   }
 
   /** This function returns the name of an {@link Option}.

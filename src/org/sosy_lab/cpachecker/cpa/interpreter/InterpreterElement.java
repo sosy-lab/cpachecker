@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.interpreter;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -31,6 +32,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.AccessToUninitializedVariableException;
 import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.MissingInputException;
 import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.ReadingFromNondetVariableException;
+
+import com.google.common.base.Joiner;
 
 public class InterpreterElement implements AbstractElement {
 
@@ -225,20 +228,25 @@ public class InterpreterElement implements AbstractElement {
 
   @Override
   public String toString() {
-    String s = "{";
+    StringBuilder sb = new StringBuilder();
+    sb.append("{");
 
-    for (int lIndex = 0; lIndex < mInputs.length; lIndex++) {
-      s += mInputs[lIndex] + ", ";
+    Joiner.on(", ").appendTo(sb, Arrays.asList(mInputs));
+
+    sb.append("}[");
+    sb.append(mInputIndex);
+    sb.append("] [");
+
+    for (Map.Entry<String, Long> entry: mConstantsMap.entrySet()){
+      String key = entry.getKey();
+      long val = entry.getValue();
+      sb.append(" <");
+      sb.append(key);
+      sb.append(" = ");
+      sb.append(val);
+      sb.append("> ");
     }
-
-    s += "}[" + mInputIndex + "]";
-
-    s += " [";
-    for (String key: mConstantsMap.keySet()){
-      long val = mConstantsMap.get(key);
-      s = s  + " <" +key + " = " + val + "> ";
-    }
-    return s + "] size->  " + mConstantsMap.size();
+    return sb.append("] size->  ").append(mConstantsMap.size()).toString();
   }
 
   public Map<String, Long> getConstantsMap(){

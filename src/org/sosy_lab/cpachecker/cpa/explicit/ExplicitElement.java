@@ -179,15 +179,19 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
 
   @Override
   public String toString() {
-    String s = "[";
-    for (String key: constantsMap.keySet()){
-      long val = constantsMap.get(key);
-      int refCount = noOfReferences.get(key);
-      s = s  + " <" +key + " = " + val +
-      " :: " + refCount +
-      "> ";
+    StringBuilder sb = new StringBuilder();
+    sb.append("[");
+    for (Map.Entry<String, Long> entry: constantsMap.entrySet()){
+      String key = entry.getKey();
+      sb.append(" <");
+      sb.append(key);
+      sb.append(" = ");
+      sb.append(entry.getValue());
+      sb.append(" :: ");
+      sb.append(noOfReferences.get(key));
+      sb.append("> ");
     }
-    return s + "] size->  " + constantsMap.size();
+    return sb.append("] size->  ").append(constantsMap.size()).toString();
   }
 
   public Map<String, Long> getConstantsMap(){

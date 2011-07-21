@@ -310,11 +310,20 @@ public class IntervalAnalysisElement implements AbstractElement
   @Override
   public String toString()
   {
-    String result = "[\n";
+    StringBuilder sb = new StringBuilder();
+    sb.append("[\n");
 
-    for (String key: intervals.keySet())
-      result += " <" + key + " = " + getInterval(key) + " :: " + getReferenceCount(key) + ">\n";
+    for (Map.Entry<String, Interval> entry: intervals.entrySet()) {
+      String key = entry.getKey();
+      sb.append(" <");
+      sb.append(key);
+      sb.append(" = ");
+      sb.append(entry.getValue());
+      sb.append(" :: ");
+      sb.append(getReferenceCount(key));
+      sb.append(">\n");
+    }
 
-    return result + "] size->  " + intervals.size();
+    return sb.append("] size->  ").append(intervals.size()).toString();
   }
 }
