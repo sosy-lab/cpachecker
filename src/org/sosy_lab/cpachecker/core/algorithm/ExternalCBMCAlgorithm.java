@@ -40,9 +40,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CBMCDummyErrorElement;
 import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CBMCExecutor;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -79,7 +77,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
       description="disable unwinding assertions violation error")
       private boolean noUnwindingAssertions = false;
 
-  public ExternalCBMCAlgorithm(String fileName, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
+  public ExternalCBMCAlgorithm(String fileName, Configuration config, LogManager logger) throws InvalidConfigurationException {
     this.fileName = fileName;
     this.logger = logger;
     config.inject(this);

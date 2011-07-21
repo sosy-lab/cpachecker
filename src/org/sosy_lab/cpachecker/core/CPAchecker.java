@@ -163,7 +163,7 @@ public class CPAchecker {
       stats = new MainCPAStatistics(config, logger);
 
       if (options.runCBMCasExternalTool) {
-        Algorithm algorithm = createExternalCBMCAlgorithm(filename, config);
+        Algorithm algorithm = new ExternalCBMCAlgorithm(filename, config, logger);
         reached = new ReachedSetFactory(config).create();
         result = runAlgorithm(algorithm, reached, stats);
         return new CPAcheckerResult(result, reached, stats);
@@ -253,18 +253,6 @@ public class CPAchecker {
       logger.logUserException(Level.SEVERE, e, null);
     }
     return new CPAcheckerResult(result, reached, stats);
-  }
-
-  private Algorithm createExternalCBMCAlgorithm(String fileName, Configuration pConfig) {
-    ExternalCBMCAlgorithm cbmcAlgorithm = null;
-    try {
-      cbmcAlgorithm = new ExternalCBMCAlgorithm(fileName, pConfig, logger);
-    } catch (InvalidConfigurationException e) {
-      e.printStackTrace();
-    } catch (CPAException e) {
-      e.printStackTrace();
-    }
-    return cbmcAlgorithm;
   }
 
   private Result runAlgorithm(final Algorithm algorithm,

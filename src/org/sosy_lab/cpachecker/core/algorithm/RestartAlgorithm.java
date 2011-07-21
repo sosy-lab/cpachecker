@@ -255,7 +255,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       singleConfig.inject(singleOptions);
 
       if(singleOptions.runCBMCasExternalTool){
-        algorithm = createExternalCBMCAlgorithm(filename, singleConfig);
+        algorithm = new ExternalCBMCAlgorithm(filename, singleConfig, logger);
         reached = new ReachedSetFactory(singleConfig).create();
       }
       else{
@@ -294,18 +294,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     ReachedSet reached = pReachedSetFactory.create();
     reached.add(initialElement, initialPrecision);
     return reached;
-  }
-
-  private Algorithm createExternalCBMCAlgorithm(String fileName, Configuration pConfig) {
-    ExternalCBMCAlgorithm cbmcAlgorithm = null;
-    try {
-      cbmcAlgorithm = new ExternalCBMCAlgorithm(fileName, pConfig, logger);
-    } catch (InvalidConfigurationException e) {
-      e.printStackTrace();
-    } catch (CPAException e) {
-      e.printStackTrace();
-    }
-    return cbmcAlgorithm;
   }
 
   private ConfigurableProgramAnalysis createCPA(ReachedSetFactory pReachedSetFactory, Configuration pConfig, RestartAlgorithmStatistics stats) throws InvalidConfigurationException, CPAException {
