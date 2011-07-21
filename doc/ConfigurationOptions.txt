@@ -494,6 +494,9 @@ parser.ignoreCasts = false
 reachedSet.export = true
 reachedSet.file = "reached.txt"
 
+# list of files with configurations to use
+restartAlgorithm.configFiles = 
+
 # base directory for all input & output files
 # (except for the configuration file itself)
 rootDirectory = "."

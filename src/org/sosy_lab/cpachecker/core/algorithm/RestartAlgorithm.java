@@ -23,10 +23,12 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -34,6 +36,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Option.Type;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
@@ -52,14 +55,14 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 
+@Options(prefix="restartAlgorithm")
 public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   private int idx = 0;
 
-  private static class RestartAlgorithmStatistics implements Statistics {
+  private class RestartAlgorithmStatistics implements Statistics {
 
     private final Collection<Statistics> subStats;
-    private int noOfAlgorithmsProvided = 0;
     private int noOfAlgorithmsUsed = 0;
 
     public RestartAlgorithmStatistics() {
@@ -83,7 +86,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     public void printStatistics(PrintStream out, Result result,
         ReachedSet reached) {
 
-      out.println("Number of algorithms provided:    " + noOfAlgorithmsProvided);
+      out.println("Number of algorithms provided:    " + configFiles.size());
       out.println("Number of algorithms used:        " + noOfAlgorithmsUsed);
 
       for (Statistics s : subStats) {
@@ -100,22 +103,27 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   }
 
+  @Option(type=Type.REQUIRED_INPUT_FILE, description = "list of files with configurations to use")
+  private List<File> configFiles;
+
+  private final LogManager logger;
   private final RestartAlgorithmStatistics stats;
+  private final String filename;
+
   private Algorithm currentAlgorithm;
   private ReachedSet currentReached;
-  private final LogManager logger;
   private Result analysisResult;
-  private String[] configFiles;
-  private Configuration config;
-  private String filename;
 
-  public RestartAlgorithm(Configuration pConfig, LogManager pLogger, String pFilename) throws InvalidConfigurationException {
+  public RestartAlgorithm(Configuration config, LogManager pLogger, String pFilename) throws InvalidConfigurationException {
+    config.inject(this);
+
+    if (configFiles.isEmpty()) {
+      throw new InvalidConfigurationException("Need at least one configuration for restart algorithm!");
+    }
+
     this.stats = new RestartAlgorithmStatistics();
     this.logger = pLogger;
-    this.config = pConfig;
     this.filename = pFilename;
-    this.configFiles = config.getPropertiesArray("restartAlgorithm.configFiles");
-    stats.noOfAlgorithmsProvided = configFiles.length;
   }
 
   @Override
@@ -136,8 +144,8 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     do {
       continueAnalysis = false;
 
-      String singleConfigFileName = configFiles[idx++];
-      Pair<Algorithm, ReachedSet> currentPair = createNextAlgorithm(config, singleConfigFileName, mainFunction, filename);
+      File singleConfigFileName = configFiles.get(idx++);
+      Pair<Algorithm, ReachedSet> currentPair = createNextAlgorithm(singleConfigFileName, mainFunction);
 
       currentAlgorithm = currentPair.getFirst();
       currentReached = currentPair.getSecond();
@@ -162,7 +170,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       if(!sound){
         // if there are no more algorithms to proceed with,
         // return the result
-        if(idx == configFiles.length){
+        if(idx == configFiles.size()){
           logger.log(Level.INFO, "RestartAlgorithm result is unsound.");
           analysisResult = Result.UNKNOWN;
           return false;
@@ -182,7 +190,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
         if (currentReached.hasWaitingElement()) {
           // if there are no more algorithms to proceed with,
           // return the result
-          if(idx == configFiles.length){
+          if(idx == configFiles.size()){
             logger.log(Level.INFO, "Analysis not completed: There are still elements to be processed.");
             analysisResult = Result.UNKNOWN;
             return false;
@@ -234,13 +242,12 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   }
 
-  private Pair<Algorithm, ReachedSet> createNextAlgorithm(Configuration config, String singleConfigFileName, CFANode mainFunction, String filename) {
+  private Pair<Algorithm, ReachedSet> createNextAlgorithm(File singleConfigFileName, CFANode mainFunction) {
 
     ReachedSet reached = null;
     Algorithm algorithm = null;
 
     Configuration.Builder singleConfigBuilder = Configuration.builder();
-    Preconditions.checkNotNull(singleConfigFileName);
     try {
       RestartAlgorithmOptions singleOptions = new RestartAlgorithmOptions();
       singleConfigBuilder.loadFromFile(singleConfigFileName);
