@@ -162,107 +162,63 @@ public class CPAchecker {
     try {
       stats = new MainCPAStatistics(config, logger);
 
-      if (options.useRestartingAlgorithm) {
-        logger.log(Level.INFO, "Using Restarting Algorithm");
+      if (options.runCBMCasExternalTool) {
+        Algorithm algorithm = createExternalCBMCAlgorithm(filename, config);
+        reached = new ReachedSetFactory(config).create();
+        result = runAlgorithm(algorithm, reached, stats);
+        return new CPAcheckerResult(result, reached, stats);
+      }
 
-        // create parser, cpa, algorithm
-        stats.creationTime.start();
+      // create parser, cpa, algorithm
+      stats.creationTime.start();
 
-        CFACreator cfaCreator = new CFACreator(config, logger);
-        stats.setCFACreator(cfaCreator);
+      CFACreator cfaCreator = new CFACreator(config, logger);
+      stats.setCFACreator(cfaCreator);
 
-        ConfigurableProgramAnalysis fakeCPA = LocationCPA.factory().createInstance();
+      ConfigurableProgramAnalysis cpa = createCPA(stats);
 
-        RestartAlgorithm restartAlgorithm = new RestartAlgorithm(config, logger, filename);
-        ((StatisticsProvider)restartAlgorithm).collectStatistics(stats.getSubStatistics());
+      Algorithm algorithm = createAlgorithm(cpa, stats, filename);
 
-        Set<String> unusedProperties = config.getUnusedProperties();
-        if (!unusedProperties.isEmpty()) {
-          logger.log(Level.WARNING, "The following configuration options were specified but are not used:\n",
-              Joiner.on("\n ").join(unusedProperties), "\n");
-        }
+      Set<String> unusedProperties = config.getUnusedProperties();
+      if (!unusedProperties.isEmpty()) {
+        logger.log(Level.WARNING, "The following configuration options were specified but are not used:\n",
+            Joiner.on("\n ").join(unusedProperties), "\n");
+      }
 
-        stats.creationTime.stop();
+      stats.creationTime.stop();
 
-        stopIfNecessary();
+      stopIfNecessary();
 
-        // create CFA
-        cfaCreator.parseFileAndCreateCFA(filename);
+      // create CFA
+      cfaCreator.parseFileAndCreateCFA(filename);
 
-        if (cfaCreator.getFunctions().isEmpty()) {
-          // empty program, do nothing
-          return new CPAcheckerResult(Result.NOT_YET_STARTED, null, null);
-        }
+      if (cfaCreator.getFunctions().isEmpty()) {
+        // empty program, do nothing
+        return new CPAcheckerResult(Result.NOT_YET_STARTED, null, null);
+      }
 
-        ReachedSet fakeReachedSet = createInitialReachedSet(fakeCPA, cfaCreator.getMainFunction());
+      reached = createInitialReachedSet(cpa, cfaCreator.getMainFunction());
 
-        stopIfNecessary();
+      stopIfNecessary();
 
-        result = Result.UNKNOWN;
+      result = Result.UNKNOWN;
 
-        // register management interface for CPAchecker
-        CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
-        try {
-          result = runRestartAlgorithm(restartAlgorithm, fakeReachedSet, stats);
+      // register management interface for CPAchecker
+      CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
+      try {
+
+        if (options.useRestartingAlgorithm) {
+          RestartAlgorithm restartAlgorithm = (RestartAlgorithm)algorithm;
+          result = runRestartAlgorithm(restartAlgorithm, reached, stats);
           reached = restartAlgorithm.getUsedReachedSet();
-        } finally {
-          // unregister management interface for CPAchecker
-          mxbean.unregister();
-        }
 
-      } else {
-
-        if (options.runCBMCasExternalTool) {
-          Algorithm algorithm = createExternalCBMCAlgorithm(filename, config);
-          reached = new ReachedSetFactory(config).create();
+        } else {
           result = runAlgorithm(algorithm, reached, stats);
-          return new CPAcheckerResult(result, reached, stats);
         }
 
-        // create parser, cpa, algorithm
-        stats.creationTime.start();
-
-        CFACreator cfaCreator = new CFACreator(config, logger);
-        stats.setCFACreator(cfaCreator);
-
-        ConfigurableProgramAnalysis cpa = createCPA(stats);
-
-        Algorithm algorithm = createAlgorithm(cpa, stats);
-
-        Set<String> unusedProperties = config.getUnusedProperties();
-        if (!unusedProperties.isEmpty()) {
-          logger.log(Level.WARNING, "The following configuration options were specified but are not used:\n",
-              Joiner.on("\n ").join(unusedProperties), "\n");
-        }
-
-        stats.creationTime.stop();
-
-        stopIfNecessary();
-
-        // create CFA
-        cfaCreator.parseFileAndCreateCFA(filename);
-
-        if (cfaCreator.getFunctions().isEmpty()) {
-          // empty program, do nothing
-          return new CPAcheckerResult(Result.NOT_YET_STARTED, null, null);
-        }
-
-        reached = createInitialReachedSet(cpa, cfaCreator.getMainFunction());
-
-        stopIfNecessary();
-
-        result = Result.UNKNOWN;
-
-        // register management interface for CPAchecker
-        CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
-        try {
-
-          result = runAlgorithm(algorithm, reached, stats);
-
-        } finally {
-          // unregister management interface for CPAchecker
-          mxbean.unregister();
-        }
+      } finally {
+        // unregister management interface for CPAchecker
+        mxbean.unregister();
       }
 
     } catch (IOException e) {
@@ -371,6 +327,11 @@ public class CPAchecker {
   private ConfigurableProgramAnalysis createCPA(MainCPAStatistics stats) throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
 
+    if (options.useRestartingAlgorithm) {
+      // hard-coded dummy CPA
+      return LocationCPA.factory().createInstance();
+    }
+
     CPABuilder builder = new CPABuilder(config, logger, reachedSetFactory);
     ConfigurableProgramAnalysis cpa = builder.buildCPAs();
 
@@ -380,10 +341,17 @@ public class CPAchecker {
     return cpa;
   }
 
-  private Algorithm createAlgorithm(
-      final ConfigurableProgramAnalysis cpa, final MainCPAStatistics stats)
-  throws InvalidConfigurationException, CPAException {
+  private Algorithm createAlgorithm(final ConfigurableProgramAnalysis cpa,
+        final MainCPAStatistics stats, final String filename)
+        throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating algorithms");
+
+    if (options.useRestartingAlgorithm) {
+      logger.log(Level.INFO, "Using Restarting Algorithm");
+      RestartAlgorithm restartAlgorithm = new RestartAlgorithm(config, logger, filename);
+      restartAlgorithm.collectStatistics(stats.getSubStatistics());
+      return restartAlgorithm;
+    }
 
     Algorithm algorithm = new CPAAlgorithm(cpa, logger);
 
