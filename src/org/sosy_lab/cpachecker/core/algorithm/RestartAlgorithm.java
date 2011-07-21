@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -57,8 +58,6 @@ import com.google.common.collect.Iterables;
 
 @Options(prefix="restartAlgorithm")
 public class RestartAlgorithm implements Algorithm, StatisticsProvider {
-
-  private int idx = 0;
 
   private class RestartAlgorithmStatistics implements Statistics {
 
@@ -138,13 +137,10 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     CFANode mainFunction = AbstractElements.extractLocation(pReached.getFirstElement());
     assert mainFunction != null : "Location information needed";
 
-    boolean sound = true;
+    Iterator<File> configFilesIterator = configFiles.iterator();
 
-    boolean continueAnalysis;
-    do {
-      continueAnalysis = false;
-
-      File singleConfigFileName = configFiles.get(idx++);
+    while (configFilesIterator.hasNext()) {
+      File singleConfigFileName = configFilesIterator.next();
       Pair<Algorithm, ReachedSet> currentPair = createNextAlgorithm(singleConfigFileName, mainFunction);
 
       currentAlgorithm = currentPair.getFirst();
@@ -152,62 +148,46 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
       // run algorithm
       Preconditions.checkNotNull(currentReached);
-      sound = currentAlgorithm.run(currentReached);
+      boolean sound = currentAlgorithm.run(currentReached);
 
       if (currentAlgorithm instanceof StatisticsProvider) {
         ((StatisticsProvider)currentAlgorithm).collectStatistics(stats.getSubStatistics());
       }
 
-      stats.noOfAlgorithmsUsed = idx;
+      stats.noOfAlgorithmsUsed++;
 
       if (Iterables.any(currentReached, AbstractElements.IS_TARGET_ELEMENT)) {
         analysisResult = Result.UNSAFE;
+        return sound;
+      }
+
+      if (!sound) {
+        // if the analysis is not sound and we can proceed with
+        // another algorithm, continue with the next algorithm
+        logger.log(Level.INFO, "Analysis result was unsound.");
+
+      } else if (currentReached.hasWaitingElement()) {
+        // if there are still elements in the waitlist, the result is unknown
+        // continue with the next algorithm
+        logger.log(Level.INFO, "Analysis not completed: There are still elements to be processed.");
+
+      } else {
+        // sound analysis and completely finished, terminate
+        analysisResult = Result.SAFE;
         return true;
       }
 
-      // if the analysis is not sound and we can proceed with
-      // another algorithm, continue with the next algorithm
-      if(!sound){
-        // if there are no more algorithms to proceed with,
-        // return the result
-        if(idx == configFiles.size()){
-          logger.log(Level.INFO, "RestartAlgorithm result is unsound.");
-          analysisResult = Result.UNKNOWN;
-          return false;
-        }
-
-        else{
-          stats.printStatistics(System.out, Result.UNKNOWN, currentReached);
-          stats.resetSubStatistics();
-          logger.log(Level.INFO, "RestartAlgorithm switches to the next algorithm [Reason: Unsound result]...");
-          continueAnalysis = true;
-        }
+      if (configFilesIterator.hasNext()) {
+        stats.printStatistics(System.out, Result.UNKNOWN, currentReached);
+        stats.resetSubStatistics();
+        logger.log(Level.INFO, "RestartAlgorithm switches to the next configuration...");
       }
+    }
 
-      else {
-        // if there are still elements in the waitlist, the result is unknown
-        // continue with the next algorithm
-        if (currentReached.hasWaitingElement()) {
-          // if there are no more algorithms to proceed with,
-          // return the result
-          if(idx == configFiles.size()){
-            logger.log(Level.INFO, "Analysis not completed: There are still elements to be processed.");
-            analysisResult = Result.UNKNOWN;
-            return false;
-          }
-
-          else{
-            stats.printStatistics(System.out, Result.UNKNOWN, currentReached);
-            stats.resetSubStatistics();
-            logger.log(Level.INFO, "RestartAlgorithm switches to the next algorithm [Reason: There are still elements in the waitlist]...");
-            continueAnalysis = true;
-          }
-        }
-      }
-
-    } while (continueAnalysis);
-    analysisResult = Result.SAFE;
-    return sound;
+    // no further configuration available, and analysis has not finished
+    logger.log(Level.INFO, "No further configuration available.");
+    analysisResult = Result.UNKNOWN;
+    return false;
   }
 
   public ReachedSet getUsedReachedSet(){
