@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
@@ -33,6 +36,8 @@ import org.sosy_lab.cpachecker.util.predicates.Model.Variable;
 import com.google.common.collect.ImmutableMap;
 
 public class MathsatModel {
+
+  private static Pattern BITVECTOR_PATTERN = Pattern.compile("^0d\\d+_(\\d+)$");
 
   private static TermType toMathsatType(int pTypeId) {
 
@@ -45,11 +50,13 @@ public class MathsatModel {
       return TermType.Integer;
     case mathsat.api.MSAT_REAL:
       return TermType.Real;
-    case mathsat.api.MSAT_BV:
-      return TermType.Bitvector;
+    default:
+      if (pTypeId <= mathsat.api.MSAT_BV) {
+        throw new IllegalArgumentException("Given parameter is not a mathsat type!");
+      } else {
+        return TermType.Bitvector; // all other values are bitvectors of different sizes
+      }
     }
-
-    throw new IllegalArgumentException("Given parameter is not a mathsat type!");
   }
 
   private static Variable toVariable(long pVariableId) {
@@ -95,7 +102,7 @@ public class MathsatModel {
         String[] lNumbers = lTermRepresentation.split("/");
 
         if (lNumbers.length != 2) {
-          throw new RuntimeException("I do not understand this format!");
+          throw new NumberFormatException("Unknown number format: " + lTermRepresentation);
         }
 
         double lNumerator = Double.valueOf(lNumbers[0]);
@@ -171,7 +178,7 @@ public class MathsatModel {
           String[] lNumbers = lTermRepresentation.split("/");
 
           if (lNumbers.length != 2) {
-            throw new RuntimeException("I do not understand this format!");
+            throw new NumberFormatException("Unknown number format: " + lTermRepresentation);
           }
 
           double lNumerator = Double.valueOf(lNumbers[0]);
@@ -181,11 +188,25 @@ public class MathsatModel {
         }
 
         break;
+
       case Integer:
         lValue = Long.valueOf(lTermRepresentation);
         break;
+
+      case Bitvector:
+        // the term is of the format "0d<WIDTH>_<VALUE>"
+        Matcher matcher =  BITVECTOR_PATTERN.matcher(lTermRepresentation);
+        if (matcher.matches()) {
+          String term = matcher.group(1);
+          lValue = Long.valueOf(term);
+
+        } else {
+          throw new NumberFormatException("Unknown bitvector format: " + lTermRepresentation);
+        }
+        break;
+
       default:
-        throw new RuntimeException("I don't understand this!");
+        throw new IllegalArgumentException("Mathsat term with unhandled type " + lAssignable.getType());
       }
 
       model.put(lAssignable, lValue);
