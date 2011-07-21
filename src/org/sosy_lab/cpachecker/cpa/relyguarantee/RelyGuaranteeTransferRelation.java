@@ -266,10 +266,19 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
       }
     }
 
-    int atomNo = this.manager.countAtoms(pf.getFormula());
+    // atom number threshold
+    boolean athreshold = false;
+    if(atomThreshold > 0) {
+      athreshold = (this.manager.countAtoms(pf.getFormula()) >= atomThreshold) ;
+      if (athreshold) {
+        numAtomThreshold++;
+      }
+    }
 
+
+    // path length treshold
     if (absBlockSize > 0) {
-      boolean threshold = (atomNo >= absBlockSize);
+      boolean threshold = (pf.getLength() >= absBlockSize);
       if (threshold) {
         numBlkThreshold++;
       }
@@ -281,8 +290,9 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
       }
     }
 
-    return result;
+    return result || athreshold;
   }
+
 
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement pElement,

@@ -206,6 +206,10 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
             precisionAdjustment.prec(successor, precision, reachedSet);
         stats.precisionTimer.stop();
 
+        if (((ARTElement)element).getElementId() == 2352) {
+          System.out.println();
+        }
+
         successor = precAdjustmentResult.getFirst();
         Precision successorPrecision = precAdjustmentResult.getSecond();
         Action action = precAdjustmentResult.getThird();
@@ -246,15 +250,26 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
 
 
             if (!mergedElement.equals(reachedElement)) {
-              printMerge(successor, reachedElement, mergedElement);
+
               logger.log(Level.FINER,
                   "Successor was merged with element from reached set");
               logger.log(Level.ALL, "Merged", successor, "\nand",
                   reachedElement, "\n-->", mergedElement);
               stats.countMerge++;
-
+              // adjust precision after merging
+              precAdjustmentResult = precisionAdjustment.prec(mergedElement, successorPrecision, reachedSet);
+              mergedElement = precAdjustmentResult.getFirst();
+              Precision mergedPrecision = precAdjustmentResult.getSecond();
               toRemove.add(reachedElement);
-              toAdd.add(Pair.of(mergedElement, successorPrecision));
+              // check if the merged element is covered
+              printMerge(successor, reachedElement, precAdjustmentResult.getFirst());
+              boolean stop =  stopOperator.stop(mergedElement, reached, mergedPrecision);
+
+              if (stop) {
+                printCovered(mergedElement);
+              } else {
+                toAdd.add(Pair.of(mergedElement, mergedPrecision));
+              }
             }
           }
           reachedSet.removeAll(toRemove);

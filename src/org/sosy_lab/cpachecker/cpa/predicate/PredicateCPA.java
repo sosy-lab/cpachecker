@@ -105,7 +105,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   protected   StopOperator stop;
   protected   PredicatePrecision initialPrecision;
   protected   RegionManager regionManager;
-  protected   FormulaManager formulaManager;
+  public      FormulaManager formulaManager;
   protected   PathFormulaManager pathFormulaManager;
   protected   TheoremProver theoremProver;
   protected   PredicateRefinementManager<?, ?> predicateManager;

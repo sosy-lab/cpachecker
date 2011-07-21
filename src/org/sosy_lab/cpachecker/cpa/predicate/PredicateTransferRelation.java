@@ -102,6 +102,7 @@ public class PredicateTransferRelation implements TransferRelation {
   public int numBlkFunctions = 0;
   public int numBlkLoops = 0;
   public int numBlkThreshold = 0;
+  public int numAtomThreshold = 0;
   public int numSatChecksFalse = 0;
   public int numStrengthenChecksFalse = 0;
 

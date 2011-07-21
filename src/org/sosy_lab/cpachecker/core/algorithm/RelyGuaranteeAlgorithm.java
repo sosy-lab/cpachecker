@@ -79,7 +79,7 @@ import com.google.common.collect.Multimap;
 @Options(prefix="cpa.relyguarantee")
 public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
 
-  @Option(description="Use a theorem prover to remove covered environemtal transitions" +
+  @Option(name="symbolcCoverageCheck",description="Use a theorem prover to remove covered environemtal transitions" +
                       " if false perform only a syntatic check for equivalence")
   private boolean checkEnvTransitionCoverage = true;
 
@@ -428,14 +428,11 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     }*/
     Formula nImpl = fManager.makeAnd(f1, fManager.makeNot(f2));
     tProver.init();
-    boolean result = false;
-    try {
-      result =  tProver.isUnsat(nImpl);
-      System.out.println(tProver.getModel());
+     try {
+      return tProver.isUnsat(nImpl);
     } finally {
       tProver.reset();
     }
-    return result;
   }
 
   // runs a thread

@@ -25,19 +25,52 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
 import java.util.logging.Level;
 
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateMergeOperator;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
-
+@Options(prefix="cpa.relyguarantee")
 public class RelyGuaranteeMergeOperator extends PredicateMergeOperator {
+  @Option(name="blk.threshold",
+      description="maximum blocksize before abstraction is forced\n"
+        + "(non-negative number, special values: 0 = don't check threshold, 1 = SBE)")
+  private int absBlockSize = 0;
 
+  @Option(name="blk.atomThreshold",
+      description="maximum number of atoms in a path formula before abstraction is forced\n"
+        + "(non-negative number, special values: 0 = don't check threshold, 1 = SBE)")
+  private int atomThreshold = 0;
+
+  @Option(name="blk.functions",
+      description="force abstractions on function call/return")
+  private boolean absOnFunction = true;
+
+  @Option(name="blk.loops",
+      description="force abstractions for each loop iteration")
+  private boolean absOnLoop = true;
+
+  @Option(name="blk.requireThresholdAndLBE",
+      description="require that both the threshold and (functions or loops) "
+        + "have to be fulfilled to compute an abstraction")
+  private boolean absOnlyIfBoth = false;
+
+  private RelyGuaranteeCPA cpa;
 
   public RelyGuaranteeMergeOperator(PredicateCPA pCpa) {
     super(pCpa.getLogger(), pCpa.getPathFormulaManager());
-
+    cpa = (RelyGuaranteeCPA) pCpa;
+    try {
+      pCpa.getConfiguration().inject(this, RelyGuaranteeMergeOperator.class);
+    } catch (InvalidConfigurationException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
   }
 
 
@@ -72,7 +105,16 @@ public class RelyGuaranteeMergeOperator extends PredicateMergeOperator {
 
         logger.log(Level.ALL, "New path formula is", pathFormula);
 
-        merged = new RelyGuaranteeAbstractElement(pathFormula, elem1.getAbstractionFormula());
+        CFANode loc = elem1.getParentEdge().getSuccessor();
+
+        if(doAbstraction(pathFormula)){
+          merged = new RelyGuaranteeAbstractElement.ComputeAbstractionElement(pathFormula, elem1.getAbstractionFormula(), loc);
+        }
+        else {
+          merged = new RelyGuaranteeAbstractElement(pathFormula, elem1.getAbstractionFormula());
+        }
+
+
 
         // now mark elem1 so that coverage check can find out it was merged
         elem1.setMergedInto(merged);
@@ -82,6 +124,34 @@ public class RelyGuaranteeMergeOperator extends PredicateMergeOperator {
     }
 
     return merged;
+  }
+
+  // copy from RelyGuaranteeTransferRelation
+  protected boolean doAbstraction(PathFormula pf) {
+    boolean result = false;
+
+    // atom number threshold
+    boolean athreshold = false;
+    if(atomThreshold > 0) {
+      athreshold = (this.cpa.formulaManager.countAtoms(pf.getFormula()) >= atomThreshold) ;
+      /*if (athreshold) {
+        numAtomThreshold++;
+      }*/
+    }
+    // path length treshold
+    if (absBlockSize > 0) {
+      boolean threshold = (pf.getLength() >= absBlockSize);
+      /*if (threshold) {
+        numBlkThreshold++;
+      }*/
+
+      if (absOnlyIfBoth) {
+        result = result && threshold;
+      } else {
+        result = result || threshold;
+      }
+    }
+    return result || athreshold;
   }
 
 }
