@@ -157,7 +157,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
 
           } else {
             Path path = ARTUtils.getOnePathTo(errorElement);
-            throw new RefinementFailedException(Reason.InfeasibleCounterexample, path, true);
+            throw new RefinementFailedException(Reason.InfeasibleCounterexample, path);
           }
         }
       } finally {
