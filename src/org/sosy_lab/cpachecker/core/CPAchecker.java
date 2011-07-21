@@ -171,18 +171,10 @@ public class CPAchecker {
         CFACreator cfaCreator = new CFACreator(config, logger);
         stats.setCFACreator(cfaCreator);
 
-        // create CFA
-        cfaCreator.parseFileAndCreateCFA(filename);
-
-        if (cfaCreator.getFunctions().isEmpty()) {
-          // empty program, do nothing
-          return new CPAcheckerResult(Result.NOT_YET_STARTED, null, null);
-        }
-
         ConfigurableProgramAnalysis fakeCPA = LocationCPA.factory().createInstance();
-        ReachedSet fakeReachedSet = createInitialReachedSet(fakeCPA, cfaCreator.getMainFunction());
 
         RestartAlgorithm restartAlgorithm = new RestartAlgorithm(config, logger, filename);
+        ((StatisticsProvider)restartAlgorithm).collectStatistics(stats.getSubStatistics());
 
         Set<String> unusedProperties = config.getUnusedProperties();
         if (!unusedProperties.isEmpty()) {
@@ -194,7 +186,17 @@ public class CPAchecker {
 
         stopIfNecessary();
 
-        ((StatisticsProvider)restartAlgorithm).collectStatistics(stats.getSubStatistics());
+        // create CFA
+        cfaCreator.parseFileAndCreateCFA(filename);
+
+        if (cfaCreator.getFunctions().isEmpty()) {
+          // empty program, do nothing
+          return new CPAcheckerResult(Result.NOT_YET_STARTED, null, null);
+        }
+
+        ReachedSet fakeReachedSet = createInitialReachedSet(fakeCPA, cfaCreator.getMainFunction());
+
+        stopIfNecessary();
 
         result = Result.UNKNOWN;
 
