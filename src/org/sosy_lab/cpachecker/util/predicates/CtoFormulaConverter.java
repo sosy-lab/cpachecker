@@ -544,7 +544,7 @@ public class CtoFormulaConverter {
       Formula result = fmgr.makeTrue();
       for (IASTParameterDeclaration formalParam : formalParams) {
         // get formal parameter name
-        String formalParamName = formalParam.getName().toString();
+        String formalParamName = formalParam.getName();
         assert(!formalParamName.isEmpty()) : edge;
 
         if (formalParam.getDeclSpecifier() instanceof IASTPointerTypeSpecifier) {

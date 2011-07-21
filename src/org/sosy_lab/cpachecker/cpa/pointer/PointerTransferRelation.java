@@ -365,7 +365,7 @@ public class PointerTransferRelation implements TransferRelation {
       return;
     }
 
-    String varName = name.toString();
+    String varName = name;
 
     if (specifier instanceof IASTArrayTypeSpecifier) {
       Pointer p = new Pointer(1);
@@ -1264,7 +1264,7 @@ public class PointerTransferRelation implements TransferRelation {
         if (rightPointer == null) {
           if (element.isPointerVariable(leftPointer.getLocation())) {
 
-            if (((IASTIdExpression)expression).getName().toString().equals(
+            if (((IASTIdExpression)expression).getName().equals(
                 "NULL")) {
               element.pointerOp(new Pointer.Assign(Memory.NULL_POINTER),
                   leftPointer, leftDereference);

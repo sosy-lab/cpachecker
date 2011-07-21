@@ -630,7 +630,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
         // non-global variables are initialized with an unbound interval
         else
         {
-          String varName = constructVariableName(declarationEdge.getName().toString(), declarationEdge.getPredecessor().getFunctionName());
+          String varName = constructVariableName(declarationEdge.getName(), declarationEdge.getPredecessor().getFunctionName());
 
           newElement.addInterval(varName, Interval.createUnboundInterval(), this.threshold);
           //newElement.addInterval(varName, new Interval(0L), this.threshold);

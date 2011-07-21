@@ -234,7 +234,7 @@ public class ABMTransferRelation implements TransferRelation {
         // -> return these states as successor
         // -> cache the result
 
-        logger.log(Level.FINER, "Starting recursive analysis of depth", ++depth, "at edge", edge);
+        logger.log(Level.FINER, "Starting recursive analysis of depth", ++depth);
         logger.log(Level.ALL, "Starting element:", pElement);
         maxRecursiveDepth = Math.max(depth, maxRecursiveDepth);
 

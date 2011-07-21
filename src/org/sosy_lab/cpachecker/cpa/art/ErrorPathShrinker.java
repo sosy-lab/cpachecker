@@ -157,7 +157,7 @@ public final class ErrorPathShrinker {
           // if a variable (declarator) is no pointer variable,
           // it is added to the list of global variables
           if (!(specifier instanceof IASTPointerTypeSpecifier)) {
-            GLOBAL_VARS.add(declarationEdge.getName().toString());
+            GLOBAL_VARS.add(declarationEdge.getName());
           }
         }
       }

@@ -895,7 +895,7 @@ public class OctTransferRelation implements TransferRelation{
     if (declarationEdge.getName() != null) {
 
       // get the variable name in the declarator
-      String varName = declarationEdge.getName().toString();
+      String varName = declarationEdge.getName();
 
       // TODO check other types of variables later - just handle primitive
       // types for the moment

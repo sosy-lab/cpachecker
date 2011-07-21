@@ -82,11 +82,11 @@ class FeatureVarsManager {
       } else {
         ifFalse = "!" + predName + " & " + regionToString(triple.getThird());
       }
-      if (ifTrue != "" && ifFalse != "") {
+      if (!ifTrue.isEmpty() && !ifFalse.isEmpty()) {
         return "((" + ifTrue + ") | (" + ifFalse + "))";
-      } else if (ifTrue == "") {
+      } else if (ifTrue.isEmpty()) {
         return ifFalse;
-      } else if (ifFalse == "") {
+      } else if (ifFalse.isEmpty()) {
         return ifTrue;
       } else {
         throw new InternalError("Both BDD Branches are empty!?");

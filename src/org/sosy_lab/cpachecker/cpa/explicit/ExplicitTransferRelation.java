@@ -983,7 +983,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     }
 
         // get the variable name in the declarator
-        String varName = declarationEdge.getName().toString();
+        String varName = declarationEdge.getName();
         String functionName = declarationEdge.getPredecessor().getFunctionName();
 
         Long initialValue = null;

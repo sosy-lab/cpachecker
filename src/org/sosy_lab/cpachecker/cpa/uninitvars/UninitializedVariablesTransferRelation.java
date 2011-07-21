@@ -199,7 +199,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     if (declaration.getStorageClass() != StorageClass.TYPEDEF) {
 
       if (declaration.getName() != null) {
-          String varName = declaration.getName().toString();
+          String varName = declaration.getName();
           if (declaration.isGlobal()) {
             globalVars.add(varName);
           }
