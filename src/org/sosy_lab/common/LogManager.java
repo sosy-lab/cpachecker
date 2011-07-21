@@ -360,10 +360,6 @@ public class LogManager {
 
       logger.log(record);
     }
-
-    e.printStackTrace();
-    System.err.println();
-
   }
 
   public void flush() {
