@@ -64,6 +64,13 @@ import com.google.common.collect.Lists;
 
 public class AbstractPathToCTranslator {
 
+  private static Function<IASTNode, String> RAW_SIGNATURE_FUNCTION = new Function<IASTNode, String>() {
+    @Override
+    public String apply(IASTNode pArg0) {
+      return pArg0.getRawSignature();
+    }
+  };
+
   private final List<String> mGlobalDefinitionsList = new ArrayList<String>();
   private final List<String> mFunctionDecls = new ArrayList<String>();
   private int mFunctionIndex = 0;
@@ -421,12 +428,7 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
 
     String lFunctionName = lFunctionCallEdge.getSuccessor().getFunctionName();
 
-    List<String> lArguments = Lists.transform(lFunctionCallEdge.getArguments(), new Function<IASTNode, String>() {
-      @Override
-      public String apply(IASTNode pArg0) {
-        return pArg0.getRawSignature();
-      }
-    });
+    List<String> lArguments = Lists.transform(lFunctionCallEdge.getArguments(), RAW_SIGNATURE_FUNCTION);
     String lArgumentString = "(" + Joiner.on(", ").join(lArguments) + ")";
 
     CFAEdge summaryEdge = lFunctionCallEdge.getPredecessor().getLeavingSummaryEdge();

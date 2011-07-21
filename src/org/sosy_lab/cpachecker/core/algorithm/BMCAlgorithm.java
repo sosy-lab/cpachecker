@@ -104,6 +104,14 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
                            },
                        AbstractElements.extractElementByTypeFunction(AssumptionStorageElement.class));
 
+  private static final Predicate<AbstractElement> IS_IN_LOOP = new Predicate<AbstractElement>() {
+    @Override
+    public boolean apply(AbstractElement pArg0) {
+      LoopstackElement loopElement = extractElementByType(pArg0, LoopstackElement.class);
+      return loopElement.getLoop() != null;
+    }
+  };
+
   private static <T> boolean none(Iterable<T> iterable, Predicate<? super T> predicate) {
     return !any(iterable, predicate);
   }
@@ -390,13 +398,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     Multimap<CFANode, AbstractElement> reachedPerLocation = Multimaps.index(reached, AbstractElements.EXTRACT_LOCATION);
 
     // live view of reached set with only the elements in the loop
-    Iterable<AbstractElement> loopStates = Iterables.filter(reached, new Predicate<AbstractElement>() {
-      @Override
-      public boolean apply(AbstractElement pArg0) {
-        LoopstackElement loopElement = extractElementByType(pArg0, LoopstackElement.class);
-        return loopElement.getLoop() != null;
-      }
-    });
+    Iterable<AbstractElement> loopStates = Iterables.filter(reached, IS_IN_LOOP);
 
     assert !Iterables.isEmpty(loopStates);
     if (Iterables.any(loopStates, IS_TARGET_ELEMENT)) {

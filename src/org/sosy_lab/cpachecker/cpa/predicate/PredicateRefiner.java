@@ -224,6 +224,15 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     return result;
   }
 
+  private static final Function<PredicateAbstractElement, Formula> GET_BLOCK_FORMULA
+                = new Function<PredicateAbstractElement, Formula>() {
+                    @Override
+                    public Formula apply(PredicateAbstractElement e) {
+                      assert e instanceof AbstractionElement;
+                      return e.getAbstractionFormula().getBlockFormula();
+                    };
+                  };
+
   /**
    * Get the block formulas from a path.
    * @param path A list of all abstraction elements
@@ -233,14 +242,9 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
    */
   protected List<Formula> getFormulasForPath(List<Pair<ARTElement, CFANode>> path, ARTElement initialElement) throws CPATransferException {
 
-    List<Formula> formulas = transform(path, Functions.compose(
-        new Function<PredicateAbstractElement, Formula>() {
-          @Override
-          public Formula apply(PredicateAbstractElement e) {
-            assert e instanceof AbstractionElement;
-            return e.getAbstractionFormula().getBlockFormula();
-          };
-        },
+    List<Formula> formulas = transform(path,
+        Functions.compose(
+            GET_BLOCK_FORMULA,
         Functions.compose(
             AbstractElements.extractElementByTypeFunction(PredicateAbstractElement.class),
             Pair.<ARTElement>getProjectionToFirst())));
