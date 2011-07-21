@@ -334,29 +334,30 @@ public class CPAchecker {
         throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating algorithms");
 
+    Algorithm algorithm;
+
     if (options.useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
-      RestartAlgorithm restartAlgorithm = new RestartAlgorithm(config, logger, filename);
-      restartAlgorithm.collectStatistics(stats.getSubStatistics());
-      return restartAlgorithm;
-    }
+      algorithm = new RestartAlgorithm(config, logger, filename);
 
-    Algorithm algorithm = new CPAAlgorithm(cpa, logger);
+    } else {
+      algorithm = new CPAAlgorithm(cpa, logger);
 
-    if (options.useRefinement) {
-      algorithm = new CEGARAlgorithm(algorithm, config, logger);
-    }
+      if (options.useRefinement) {
+        algorithm = new CEGARAlgorithm(algorithm, config, logger);
+      }
 
-    if (options.useBMC) {
-      algorithm = new BMCAlgorithm(algorithm, config, logger, reachedSetFactory);
-    }
+      if (options.useBMC) {
+        algorithm = new BMCAlgorithm(algorithm, config, logger, reachedSetFactory);
+      }
 
-    if (options.useCBMC) {
-      algorithm = new CounterexampleCheckAlgorithm(algorithm, config, logger);
-    }
+      if (options.useCBMC) {
+        algorithm = new CounterexampleCheckAlgorithm(algorithm, config, logger);
+      }
 
-    if (options.useAssumptionCollector) {
-      algorithm = new AssumptionCollectorAlgorithm(algorithm, config, logger);
+      if (options.useAssumptionCollector) {
+        algorithm = new AssumptionCollectorAlgorithm(algorithm, config, logger);
+      }
     }
 
     if (algorithm instanceof StatisticsProvider) {
