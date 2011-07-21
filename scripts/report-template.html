@@ -1,175 +1,265 @@
+<!DOCTYPE HTML>
 <html>
     <head>       
         <title>CPAChecker Report</title>
         <style>
-            .edge {
-                cursor:pointer;
-            }
-        
-            body {
-                background: #ddd;
-                font-family: sans-serif;
-                margin:0;
-                }
-                fieldset {
-                    border: 1px solid #999;
-                    display: inline-block;
-                    }
-                a {
-                    cursor: pointer;
-                    }
-                    a.action {
-                        display:inline-block;
-                        padding:5px;
-                        border: 1px solid #ccc;
-                        background-color: #ddd;
-                        }
-                
-                .toolbar {
-                    padding:5px;
-                    border: 1px solid #ccc;
-                    background-color: #eee;
-                    }
-                 
-                #errpathwin {                
-                    margin:0;
-                    padding:0px;
-                    background-color:#fff;
-                    vertical-align:top;
-                    width:500px;
-                    height:650px;
-                    overflow:scroll;                
-                    }                
-                    #errpathwin ul {
-                        list-style:none;
-                        font-family: monospace;
-                        padding:0;
-                        }
-                        #errpathwin ul span{
-                            width:4em;
-                            background:#ccc;
-                            display:inline-block;
-                            }
-                        #errpathwin ul li{
-                            margin:2px;
-                            white-space:nowrap;
-                            }
-                            #errpathwin ul li.selected {
-                                border: 1px solid red;
-                                margin:0;
-                                }
-                #rightpane iframe {       
-                    width:100%;
-                    height:100%;
-                    }
-                #logwin {
-                    overflow:scroll;
-                    background: #fff;
-                    }
-                #logwin {
-                    overflow:scroll;
-                    background: #fff;
-                    }
-                #statswin {
-                    overflow:scroll;
-                    background: #fff;
-                    }
-                #confwin {
-                    overflow:scroll;
-                    background: #fff;
-                    }
-                #cilwin {
-                    overflow:scroll;
-                    background: #fff;
-                    }
-                    #cilwin #cil_holder td {
-                        padding-right: 10px;
-                        padding-bottom:0;
-                        margin-bottom:0;
-                        }
-                        #cilwin #cil_holder td:first-child {
-                            background-color: #ccc;
-                            }
-                        #cilwin #cil_holder td pre {
-                            padding-bottom:0;
-                            margin-bottom:0;
-                            }
-        </style>
+.edge {
+    cursor: pointer;
+}
+
+html,body {
+    background: #ddd;
+    font-family: sans-serif;
+    margin: 0px;
+}
+
+#header {
+    position: absolute;
+    left: 0px;
+    right: 0px;
+    padding: 10px;
+    text-align: center;
+}
+
+#header h1 {
+    float: left;
+    margin: 0px;
+    font-size: large;
+}
+
+#header small {
+    display: block;
+    float: right;
+}
+
+#leftContent {
+    position: absolute;
+    top: 80px;
+    bottom: 0px;
+    width: 400px;
+    border: 1px solid black;
+    margin: 5px;
+}
+
+#rightContent {
+    position: absolute;
+    top: 80px;
+    bottom: 0px;
+    left: 408px;
+    right: 0px;
+    min-width: 400px;
+    border: 1px solid black;
+    margin: 5px;
+}
+
+.toolbar {
+    padding: 5px;
+    background-color: #eed;
+    text-align: center;
+    border-bottom: 1px solid black;
+}
+
+#errpathwin {
+    position: absolute;
+    top: 46px;
+    bottom: 0px;
+    width: 100%;
+    margin: 0px;
+    padding: 0px;
+    vertical-align: top;
+    overflow: auto;
+    background-color: white;
+}
+
+#errpathwin ul {
+    list-style: none;
+    font-family: monospace;
+    padding: 0px;
+}
+
+#errpathwin ul span {
+    width: 4em;
+    background: #ccc;
+    display: inline-block;
+}
+
+#errpathwin ul li {
+    margin: 2px;
+    white-space: nowrap;
+}
+
+#errpathwin ul li.selected {
+    border: 1px solid red;
+    margin: 0px;
+}
+
+#tabContent { /* no css for tabcontent, only children are format */
+    position: absolute;
+    top: 46px;
+    bottom: 0px;
+    left: 0px;
+    right: 0px;
+}
+
+#tabContent iframe {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background: #ddc;
+    border: 0px;
+}
+
+#cfawin,#artwin {
+    position: absolute;
+    top: 40px;
+    bottom: 0px;
+    left: 0px;
+    right: 0px;
+    overflow: hidden;
+    background: white;
+}
+
+#logwin,#statswin,#confwin,#cilwin {
+    position: absolute;
+    top: 0px;
+    bottom: 0px;
+    left: 0px;
+    right: 0px;
+    height: 100%;
+    overflow: auto;
+    background: white;
+}
+
+fieldset {
+    border: 1px solid #999;
+    display: inline-block;
+}
+
+a {
+    cursor: pointer;
+}
+
+a.action {
+    height: 33px;
+    line-height: 33px;
+    display: inline-block;
+    padding-left: 5px;
+    padding-right: 5px;
+    border: 1px solid silver;
+    background-color: #ddd;
+}
+
+a.action:hover {
+    background-color: lime;
+}
+
+#cilwin #cil_holder td {
+    padding: 0px;
+    margin: 0px;
+    padding-right: 10px;
+}
+
+#cilwin #cil_holder td:first-child {
+    background-color: #ccc;
+}
+
+#cilwin #cil_holder td pre {
+    padding: 0px;
+    margin: 0px;
+}
+
+#zoomSlider {
+    position: absolute;
+    top: 46px;
+    left: 0px;
+    right: 0px;
+    height: 43px;
+    z-index: 2; // slider is over content
+    padding: auto;
+    border-bottom: 1px solid black;
+    background: #eee;
+    padding: auto;
+}
+
+#zoomLevelLabel {
+    text-align: center;
+}
+
+#zoomSliderContainer { /* DO NOT CHANGE, USED FOR CALCULATION */
+    width: 400px;
+    overflow-x: scroll;
+    overflow-y: hidden;
+    height: 20px;
+    margin: auto;
+}
+
+#zoomSliderContent { /* DO NOT CHANGE, USED FOR CALCULATION */
+    width: 2300px;
+    height: 18px;
+}
+</style>
     </head>
+
     <body>                
-        <table width="100%" height="100%" border="1">
-            <tr>
-                <td colspan="3">
-                    <div class="toolbar">
-                    CPAChecker Report <small style='display:block;float:right'>Generated: {{{time_generated}}}</small>
-                    </div>
-                    <h3 id="cfalabel" style="display:none;">main</h3>
-                    <fieldset>
-                        <legend>Displayed CFA</legend>
-                        Function
-                        <select id="functionselect"></select>
-                    </fieldset>
-         
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    <div class="toolbar">
-                        <a class="action" id="sim_start">Start</a>
-                        <a class="action" id="sim_prev">Prev</a>
-                        <a class="action" id="sim_next">Next</a>  
-                    </div>
-                </td>
-                <td colspan="2">
-                <div>
-					<div id="zoomSliderContainer" onmousemove="setZoomLevel();" onmouseup="setZoomLevel();zoom();" style="width:500px; overflow-x:scroll; overflow-y:hidden; float:left; margin-left:5px; margin-right:5px;">
-						<div id="zoomSliderContent" style="width:1450px; height:18px;">
-							<div id="zoomLevelLabel" style="position:absolute; left:500px; width:500px; text-align:center;">
-								100
-							</div>
-							<span style="position:absolute; left:500px; width:550px; text-align:center;">
-								%
-							</span>
-						</div>
-					</div>
-                    <div class="toolbar" onclick="setActiveWindow(event);">
-                        <a class="action" id="show_cfa">CFA</a>
-                        <a class="action" id="show_art">ART</a>
-                        <a class="action" id="show_cil">CIL</a>
-                        <a class="action" id="show_log">Log</a>                        
-                        <a class="action" id="show_stats">Statistics</a> 
-                        <a class="action" id="show_conf">Configuration</a> 
-					</div>
-				</div>
-                </td>
-                
-            <tr>
-                <td width="500px" height="90%" valign="top">
-                    
-                    <div id="errpathwin">
-                    </div>
-                </td>        
-                <td id="rightpane">
-                    <iframe id="cfawin" name="cfawin" src="about:blank"></iframe>
-                    <iframe id="artwin" name="artwin" src="ART.svg"></iframe>
-                    <div id="cilwin">
-                        {{{formatted_cil}}}
-                    </div>
-                    <div id="logwin">
-                        <pre>{{{logfile}}}</pre>
-                    </div>
-                    <div id="statswin">
-                        <pre>{{{statistics}}}</pre>
-                    </div>
-                    <div id="confwin">
-                        <pre>{{{conffile}}}</pre>
-                    </div>                                        
-                </td>
-                <td width="10px" style="overflow:hidden; padding:0; margin:0;border:none;">
-                    <iframe id="resizehint" name="resizehint" src="about:blank" style="width:1px;height:100%;margin:0;border:none;"></iframe>
-                </td>
-            </tr>
-        </table>
+        <div class="toolbar" id="header">
+            <h1>CPAChecker Report</h1>
+            <small>Generated: {{{time_generated}}}</small>
+            <h3 id="cfalabel" style="display:none;">main</h3>
+            <fieldset>
+                <legend>Displayed CFA</legend>
+                Function
+                <select id="functionselect"></select>
+            </fieldset>
+        </div>
+
+        <div id="leftContent">
+            <div class="toolbar">
+                <a class="action" id="sim_start">Start</a>
+                <a class="action" id="sim_prev">Prev</a>
+                <a class="action" id="sim_next">Next</a>  
+            </div>
+            <div id="errpathwin"></div>
+        </div>
+
+        <div id="rightContent">
+            <div class="toolbar" onclick="setActiveWindow(event);">
+                <a class="action" id="show_cfa">CFA</a>
+                <a class="action" id="show_art">ART</a>
+                <a class="action" id="show_cil">CIL</a>
+                <a class="action" id="show_log">Log</a>                        
+                <a class="action" id="show_stats">Statistics</a> 
+                <a class="action" id="show_conf">Configuration</a> 
+            </div>
+
+            <div id="zoomSlider">
+                <div id="zoomSliderContainer" onmousemove="setZoomLevel();" onmouseup="setZoomLevel();zoom();">
+                    <div id="zoomSliderContent"></div>
+                </div>
+                <div id="zoomLevelLabel">100 %</div>
+            </div>
+
+            <div id="tabContent">
+                <div id="cfawin">
+                    <iframe name="cfawin" src="about:blank"></iframe>
+                </div>
+                <div id="artwin">
+                    <iframe name="artwin" src="ART.svg"></iframe>
+                </div>
+                <div id="cilwin">
+                    {{{formatted_cil}}}
+                </div>
+                <div id="logwin">
+                    <pre>{{{logfile}}}</pre>
+                </div>
+                <div id="statswin">
+                    <pre>{{{statistics}}}</pre>
+                </div>
+                <div id="confwin">
+                    <pre>{{{conffile}}}</pre>
+                </div>                                        
+            </div>
+        </div>
+
         <script>
         
 	       	var activeWindow    = "cfawin";
@@ -187,7 +277,8 @@
 				if(event.target.className != 'action')
 					return;
 
-				slider = document.getElementById('zoomSliderContainer');
+				slider = document.getElementById('zoomSlider');
+				sliderScroller = document.getElementById('zoomSliderContainer');
 				
 				win = 'none';
 				if(event.target.id == "show_cfa")
@@ -196,29 +287,23 @@
 					win = "artwin";
 
 				if(win == 'none')
-				  slider.style.visibility = "hidden";
+				  slider.style.display = "none";
 				
 				else
 				{
 				  activeWindow = win;
 
-				  slider.style.visibility = "visible";
+				  slider.style.display = "block";
 				
-				  slider.scrollLeft = 1000 - zoomLevel[activeWindow] * 10;
+				  sliderScroller.scrollLeft = 2000 - zoomLevel[activeWindow] * 20; // inverse function from 5 lines below
 				
 				  setZoomLevel();
 				}
 			}
 
-		    function setZoomLevel()
-		    {
-              diff = document.getElementById('zoomSliderContainer').scrollLeft - scrOffset[activeWindow];
-              
-              scrOffset[activeWindow] = document.getElementById('zoomSliderContainer').scrollLeft;
-
-		      zoomLevel[activeWindow] = zoomLevel[activeWindow] - (diff / 10);
-		      
-		      document.getElementById('zoomLevelLabel').innerHTML =  Math.round(zoomLevel[activeWindow]);
+		    function setZoomLevel() {
+		      zoomLevel[activeWindow] = 100 - (document.getElementById('zoomSliderContainer').scrollLeft / 20);
+		      document.getElementById('zoomLevelLabel').innerHTML =  Math.round(zoomLevel[activeWindow]) + ' %';
 		    }
 
             function zoom()

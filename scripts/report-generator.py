@@ -127,7 +127,7 @@ def main():
                 if not encode:
                     raise Exception('File not found: ' + filepath)
                 else:
-                    return '<h2>Not found:' + filepath + '</h2>'
+                    return 'Not found:' + filepath
             print 'Reading: ' + filepath
             with open(filepath, 'r') as fp:
                 if encode:
@@ -154,7 +154,7 @@ def main():
             with open(cilfile, 'r') as fp:
                 buff = ['<table id="cil_holder">']
                 for no, line in enumerate(fp):
-                    buff.append('<tr id="cil_line_%d"><td><pre>%d</pre></td><td><pre>%s</pre></td></tr>' % (
+                    buff.append('<tr id="cil_line_%d"><td><pre>%d</pre></td><td><pre>%s</pre></td></tr>\n' % (
                             no,
                             no,
                             line.replace('<','&lt;').replace('>', '&gt;').rstrip()
