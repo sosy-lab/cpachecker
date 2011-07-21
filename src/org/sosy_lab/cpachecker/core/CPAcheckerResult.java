@@ -42,7 +42,7 @@ public class CPAcheckerResult {
    * - UNSAFE: bug found
    * - SAFE: no bug found
    */
-  public static enum Result { UNKNOWN, UNSAFE, SAFE }
+  public static enum Result { NOT_YET_STARTED, UNKNOWN, UNSAFE, SAFE }
 
   private final Result result;
 
@@ -82,6 +82,10 @@ public class CPAcheckerResult {
   }
 
   public void printResult(PrintStream out) {
+    if (result == Result.NOT_YET_STARTED) {
+      return;
+    }
+
     out.print("Verification result: ");
     switch (result) {
     case UNKNOWN:

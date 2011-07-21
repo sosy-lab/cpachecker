@@ -48,6 +48,7 @@ import org.sosy_lab.common.configuration.OptionCollector;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 
 import com.google.common.base.Joiner;
@@ -151,7 +152,7 @@ public class CPAMain {
           mResult.printResult(stream);
 
           String outputDirectory = config.getOutputDirectory();
-          if (outputDirectory != null) {
+          if (outputDirectory != null && mResult.getResult() != Result.NOT_YET_STARTED) {
             stream.println("More details about the verification run can be found in the directory \"" + outputDirectory + "\".");
           }
 

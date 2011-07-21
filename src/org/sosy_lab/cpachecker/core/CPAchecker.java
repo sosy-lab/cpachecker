@@ -157,7 +157,7 @@ public class CPAchecker {
 
     MainCPAStatistics stats = null;
     ReachedSet reached = null;
-    Result result = Result.UNKNOWN;
+    Result result = Result.NOT_YET_STARTED;
 
     if(options.useRestartingAlgorithm){
       logger.log(Level.INFO, "Using Restarting Algorithm");
@@ -176,7 +176,7 @@ public class CPAchecker {
 
         if (cfaCreator.getFunctions().isEmpty()) {
           // empty program, do nothing
-          return new CPAcheckerResult(Result.UNKNOWN, null, null);
+          return new CPAcheckerResult(Result.NOT_YET_STARTED, null, null);
         }
 
         Algorithm restartAlgorithm = createRestartAlgorithm(config, stats, cfaCreator, filename);
@@ -192,6 +192,8 @@ public class CPAchecker {
         stopIfNecessary();
 
         ((StatisticsProvider)restartAlgorithm).collectStatistics(stats.getSubStatistics());
+
+        result = Result.UNKNOWN;
 
         // register management interface for CPAchecker
         CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
@@ -273,12 +275,14 @@ public class CPAchecker {
 
         if (cfaCreator.getFunctions().isEmpty()) {
           // empty program, do nothing
-          return new CPAcheckerResult(Result.UNKNOWN, null, null);
+          return new CPAcheckerResult(Result.NOT_YET_STARTED, null, null);
         }
 
         reached = createInitialReachedSet(cpa, cfaCreator.getMainFunction());
 
         stopIfNecessary();
+
+        result = Result.UNKNOWN;
 
         // register management interface for CPAchecker
         CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
