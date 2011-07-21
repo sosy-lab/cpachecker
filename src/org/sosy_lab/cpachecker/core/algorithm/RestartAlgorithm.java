@@ -111,7 +111,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   private CFACreator cfaCreator;
   private String filename;
 
-  public RestartAlgorithm(Configuration pConfig, LogManager pLogger, CFACreator pCfaCreator, String pFilename) throws InvalidConfigurationException, CPAException {
+  public RestartAlgorithm(Configuration pConfig, LogManager pLogger, CFACreator pCfaCreator, String pFilename) throws InvalidConfigurationException {
     this.stats = new RestartAlgorithmStatistics();
     this.logger = pLogger;
     this.config = pConfig;
