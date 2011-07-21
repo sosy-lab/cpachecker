@@ -103,6 +103,9 @@ class AutomatonState implements AbstractQueryableElement, Targetable {
     if (this == pObj) {
       return true;
     }
+    if (pObj == null) {
+      return false;
+    }
     if (!pObj.getClass().equals(AutomatonState.class)) {
       return false;
     }

@@ -40,7 +40,7 @@ import com.google.common.base.Predicate;
  */
 public class PredicateAbstractElement implements AbstractElement, Partitionable, FormulaReportingElement {
 
-  public static Predicate<AbstractElement> FILTER_ABSTRACTION_ELEMENTS = new Predicate<AbstractElement>() {
+  public final static Predicate<AbstractElement> FILTER_ABSTRACTION_ELEMENTS = new Predicate<AbstractElement>() {
     @Override
     public boolean apply(AbstractElement ae) {
       return (ae instanceof AbstractionElement);

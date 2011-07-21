@@ -196,7 +196,7 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
    */
   protected static class StubScannerInfo implements IScannerInfo {
 
-    protected static IScannerInfo instance = new StubScannerInfo();
+    protected final static IScannerInfo instance = new StubScannerInfo();
 
     @Override
     public Map<String, String> getDefinedSymbols() {

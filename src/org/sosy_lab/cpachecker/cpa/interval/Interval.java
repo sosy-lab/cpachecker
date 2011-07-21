@@ -116,7 +116,7 @@ public class Interval
   @Override
   public boolean equals(Object other)
   {
-    if(getClass().equals(other.getClass()))
+    if(other != null && getClass().equals(other.getClass()))
     {
       Interval another = (Interval)other;
 

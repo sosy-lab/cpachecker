@@ -112,6 +112,12 @@ public class ProgressObserverElement implements AbstractElement, AvoidanceReport
   }
 
   @Override
+  public int hashCode() {
+    // TODO add better hash code, this is correct but not good for HashMaps
+    return 0;
+  }
+
+  @Override
   public String toString() {
     StringBuilder buffer = new StringBuilder();
     boolean first = true;

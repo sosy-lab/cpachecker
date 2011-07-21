@@ -37,7 +37,7 @@ import com.google.common.collect.BiMap;
 
 public class OctDomain implements AbstractDomain{
 
-  public static long totaltime = 0;
+  static long totaltime = 0;
 
   @Override
   public boolean isLessOrEqual(AbstractElement element1, AbstractElement element2) {
