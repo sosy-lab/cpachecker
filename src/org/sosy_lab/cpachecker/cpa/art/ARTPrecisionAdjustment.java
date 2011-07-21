@@ -72,7 +72,7 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
       resultElement.addParent(parent);
     }
     for (ARTElement child : element.getChildren()) {
-      resultElement.addParent(child);
+      child.addParent(resultElement);
     }
 
     // first copy list of covered elements, then remove element from ART, then set elements covered by new element
