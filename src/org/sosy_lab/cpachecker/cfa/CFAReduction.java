@@ -136,10 +136,10 @@ public class CFAReduction {
 
     } catch (CPAException e) {
       logger.log(Level.WARNING, "Error during CFA reduction, using full CFA");
-      logger.logException(Level.ALL, e, "");
+      logger.logDebugException(e);
     } catch (InvalidConfigurationException e) {
       logger.log(Level.WARNING, "Error during CFA reduction, using full CFA");
-      logger.logException(Level.ALL, e, "");
+      logger.logDebugException(e);
     }
     return allNodes;
   }

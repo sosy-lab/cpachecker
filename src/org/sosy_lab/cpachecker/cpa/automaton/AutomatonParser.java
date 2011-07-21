@@ -464,7 +464,7 @@ import org.sosy_lab.cpachecker.cfa.CParser;
       Symbol symbol = new AutomatonParser(new AutomatonScanner(input, pInputFile.getName(), config, pLogger, sf),sf, pLogger).parse();
       return ((List<Automaton>) symbol.value);
     } catch (Exception e) {
-      pLogger.logException(Level.FINER, e, "Could not load automaton from file " + pInputFile.getAbsolutePath());
+      pLogger.logDebugException(e, "Could not load automaton from file " + pInputFile.getAbsolutePath());
       throw new InvalidConfigurationException("Could not load automaton from file " + pInputFile.getAbsolutePath()
           + " (" + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()) + ")");
     } finally {

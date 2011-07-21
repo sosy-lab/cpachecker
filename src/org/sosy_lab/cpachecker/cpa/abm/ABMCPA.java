@@ -29,7 +29,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Level;
 
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.ClassInstantiationException;
@@ -97,7 +96,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       Throwable t = e.getCause();
       Throwables.propagateIfPossible(t, CPAException.class, InvalidConfigurationException.class);
 
-      logger.logException(Level.FINE, t, "Unexpected exception during CPA instantiation!");
+      logger.logDebugException(t, "Unexpected exception during CPA instantiation!");
       throw new CPAException("Unexpected exception " + t.getClass().getSimpleName() + " during CPA instantiation (" + t.getMessage() + ")!");
     }
   }

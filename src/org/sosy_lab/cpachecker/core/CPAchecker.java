@@ -232,7 +232,7 @@ public class CPAchecker {
         // so we can return the partial result we have so far
 
       } catch (CPAException e) {
-        logger.logException(Level.SEVERE, e, null);
+        logger.logUserException(Level.SEVERE, e, null);
       }
 
     }
@@ -303,7 +303,7 @@ public class CPAchecker {
             + "If the error still occurs, please send this error message together with the input file to cpachecker-users@sosy-lab.org.");
 
       } catch (InvalidConfigurationException e) {
-        logger.log(Level.SEVERE, "Invalid configuration:", e.getMessage());
+        logger.logUserException(Level.SEVERE, e, "Invalid configuration");
 
       } catch (UnsatisfiedLinkError e) {
         if (e.getMessage().contains("libgmpxx.so.4")) {
@@ -320,7 +320,7 @@ public class CPAchecker {
         // so we can return the partial result we have so far
 
       } catch (CPAException e) {
-        logger.logException(Level.SEVERE, e, null);
+        logger.logUserException(Level.SEVERE, e, null);
       }
     }
     return new CPAcheckerResult(result, reached, stats);

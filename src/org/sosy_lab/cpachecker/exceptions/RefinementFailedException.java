@@ -98,9 +98,4 @@ public class RefinementFailedException extends CPAException {
   public String getMessage() {
     return "Refinement failed: " + reason;
   }
-
-  @Override
-  public String toString() {
-    return super.toString() + "[" + reason.toString() + "]";
-  }
 }

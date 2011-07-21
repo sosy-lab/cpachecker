@@ -208,7 +208,7 @@ public class CPABuilder {
       Throwable cause = e.getCause();
       Throwables.propagateIfPossible(cause, CPAException.class);
 
-      logger.logException(Level.FINE, cause, "CPA factory methods should never throw an exception!");
+      logger.logDebugException(cause, "CPA factory methods should never throw an exception!");
       throw new CPAException("Cannot create CPA because of unexpected exception: " + cause.getMessage());
     }
 

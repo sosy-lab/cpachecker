@@ -208,7 +208,7 @@ public class CPAMain {
       shutdownHook = new ShutdownHook(cpaConfig, logManager);
       cpachecker = new CPAchecker(cpaConfig, logManager);
     } catch (InvalidConfigurationException e) {
-      logManager.log(Level.SEVERE, "Invalid configuration:", e.getMessage());
+      logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
       System.exit(1);
     }
 

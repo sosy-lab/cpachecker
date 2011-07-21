@@ -30,9 +30,9 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.Classes;
+import org.sosy_lab.common.Classes.ClassInstantiationException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
-import org.sosy_lab.common.Classes.ClassInstantiationException;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -151,7 +151,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
       Throwable t = e.getCause();
       Throwables.propagateIfPossible(t, CPAException.class, InvalidConfigurationException.class);
 
-      logger.logException(Level.FINE, t, "Unexpected exception during refiner instantiation!");
+      logger.logDebugException(t, "Unexpected exception during refiner instantiation!");
       throw new CPAException("Unexpected exception " + t.getClass().getSimpleName() + " during refiner instantiation (" + t.getMessage() + ")!");
     }
   }

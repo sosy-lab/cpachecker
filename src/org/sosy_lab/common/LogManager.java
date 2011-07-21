@@ -44,6 +44,8 @@ import org.sosy_lab.common.configuration.Options;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Files;
 
@@ -99,6 +101,7 @@ public class LogManager {
   @Option(description="maximum size of log output strings before they will be truncated")
   private int truncateSize = 10000;
 
+  private static final Level exceptionDebugLevel = Level.ALL;
   private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");
   private static final Joiner messageFormat = Joiner.on(' ').useForNull("null");
   private final Logger logger;
@@ -328,38 +331,119 @@ public class LogManager {
     }
   }
 
+
   /**
-   * Logs any Exception occurring during program execution by composing a message of
-   * the exception's properties, and optionally an additional message passed.
+   * Log an exception by printing the full details to the user.
    *
-   * After logging, print the stack trace.
-   * TODO remove this, better log stack trace with level debug (if enabled)
+   * This method should only be used in cases where logUserException and
+   * logDebugException are not acceptable.
+   *
    * @param priority the log level for the message
    * @param e the occurred exception
    * @param additionalMessage an optional message
    */
   public void logException(Level priority, Throwable e, String additionalMessage) {
-
     if (wouldBeLogged(priority)) {
+      logException(priority, 1, e, additionalMessage);
+    }
+  }
 
-      String logMessage = e.getMessage() + ", " + e.getStackTrace()[0];
+  /**
+   * Log a message by printing its message to the user.
+   * The details (e.g., stack trace) are hidden from the user and logged with
+   * a lower log level.
+   *
+   * Use this method in cases where an expected exception with a useful error
+   * message is thrown, e.g. an InvalidConfigurationException.
+   *
+   * @param priority the log level for the message
+   * @param e the occurred exception
+   * @param additionalMessage an optional message
+   */
+  public void logUserException(Level priority, Throwable e, String additionalMessage) {
+    if (wouldBeLogged(priority)) {
+      String logMessage = "Error: ";
 
-      if (additionalMessage == null || additionalMessage.equals("")) {
-        logMessage = "Exception " + "(" + logMessage + ")";
+      String exceptionMessage = Strings.nullToEmpty(e.getMessage());
+
+      if (Strings.isNullOrEmpty(additionalMessage)) {
+
+        if (!exceptionMessage.isEmpty()) {
+          logMessage += exceptionMessage;
+        } else {
+          // No message at all, this shoudn't happen as its not nice for the user
+          // Create a default message
+          logMessage += e.getClass().getSimpleName() + " in " + e.getStackTrace()[0];
+        }
+
       } else {
-        logMessage = "Exception: " + additionalMessage + " (" + logMessage + ")";
+        logMessage += additionalMessage;
+
+        if (!exceptionMessage.isEmpty()) {
+           logMessage += " (" + exceptionMessage + ")";
+        }
       }
 
-      //The following is copied from log().
-      //It should not be replaced with a call to log() because of the fixed reference
-      //to the correct position of the caller in the stack trace.
-      LogRecord record = new LogRecord(priority, logMessage);
-      StackTraceElement[] trace = Thread.currentThread().getStackTrace();
-      record.setSourceClassName(trace[2].getClassName());
-      record.setSourceMethodName(trace[2].getMethodName());
-
-      logger.log(record);
+      log(priority, 1, logMessage);
     }
+
+    if (wouldBeLogged(exceptionDebugLevel)) {
+      logException(exceptionDebugLevel, 1, e, additionalMessage);
+    }
+  }
+
+  /**
+   * Log an exception solely for the purpose of debugging.
+   * In default configuration, this exception is not shown to the user!
+   *
+   * Use this method when you want to log an exception that was handled by the
+   * catching site, but you don't want to forget the information completely.
+   *
+   * @param e the occurred exception
+   * @param additionalMessage an optional message
+   */
+  public void logDebugException(Throwable e, String additionalMessage) {
+    if (wouldBeLogged(exceptionDebugLevel)) {
+      logException(exceptionDebugLevel, 1, e, additionalMessage);
+    }
+  }
+
+  /**
+   * Log an exception solely for the purpose of debugging.
+   * In default configuration, this exception is not shown to the user!
+   *
+   * Use this method when you want to log an exception that was handled by the
+   * catching site, but you don't want to forget the information completely.
+   *
+   * @param e the occurred exception
+   */
+  public void logDebugException(Throwable e) {
+    if (wouldBeLogged(exceptionDebugLevel)) {
+      logException(exceptionDebugLevel, 1, e, null);
+    }
+  }
+
+  private void logException(Level priority, int offset, Throwable e, String additionalMessage) {
+    String logMessage = "";
+
+    if (!Strings.isNullOrEmpty(additionalMessage)) {
+      logMessage = additionalMessage + "\n";
+    }
+
+    logMessage += Throwables.getStackTraceAsString(e);
+
+    //The following is copied from log().
+    //It should not be replaced with a call to log() because of the fixed reference
+    //to the correct position of the caller in the stack trace.
+
+    offset += 2; // first method in stacktrace is Thread#getStackTrace(), second is this method
+
+    LogRecord record = new LogRecord(priority, logMessage);
+    StackTraceElement[] trace = Thread.currentThread().getStackTrace();
+    record.setSourceClassName(trace[offset].getClassName());
+    record.setSourceMethodName(trace[offset].getMethodName());
+
+    logger.log(record);
   }
 
   public void flush() {
