@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -178,7 +179,10 @@ public class CPAchecker {
           return new CPAcheckerResult(Result.NOT_YET_STARTED, null, null);
         }
 
-        Algorithm restartAlgorithm = new RestartAlgorithm(config, logger, cfaCreator, filename);
+        ConfigurableProgramAnalysis fakeCPA = LocationCPA.factory().createInstance();
+        ReachedSet fakeReachedSet = createInitialReachedSet(fakeCPA, cfaCreator.getMainFunction());
+
+        RestartAlgorithm restartAlgorithm = new RestartAlgorithm(config, logger, filename);
 
         Set<String> unusedProperties = config.getUnusedProperties();
         if (!unusedProperties.isEmpty()) {
@@ -197,8 +201,8 @@ public class CPAchecker {
         // register management interface for CPAchecker
         CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
         try {
-          result = runRestartAlgorithm((RestartAlgorithm)restartAlgorithm, stats);
-          reached = ((RestartAlgorithm)restartAlgorithm).getUsedReachedSet();
+          result = runRestartAlgorithm(restartAlgorithm, fakeReachedSet, stats);
+          reached = restartAlgorithm.getUsedReachedSet();
         } finally {
           // unregister management interface for CPAchecker
           mxbean.unregister();
@@ -342,6 +346,7 @@ public class CPAchecker {
   }
 
   private Result runRestartAlgorithm(final RestartAlgorithm restartAlgorithm,
+      final ReachedSet reached,
       final MainCPAStatistics stats) throws CPAException, InterruptedException {
 
     logger.log(Level.INFO, "Starting analysis ...");
@@ -349,7 +354,7 @@ public class CPAchecker {
 
     boolean sound = true;
     do {
-      sound &= restartAlgorithm.run(null);
+      sound &= restartAlgorithm.run(reached);
 
       // either run only once (if stopAfterError == true)
     } while (!options.stopAfterError);

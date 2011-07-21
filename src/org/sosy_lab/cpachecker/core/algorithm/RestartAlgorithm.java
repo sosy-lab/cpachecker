@@ -35,8 +35,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -108,14 +107,12 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   private Result analysisResult;
   private String[] configFiles;
   private Configuration config;
-  private CFACreator cfaCreator;
   private String filename;
 
-  public RestartAlgorithm(Configuration pConfig, LogManager pLogger, CFACreator pCfaCreator, String pFilename) throws InvalidConfigurationException {
+  public RestartAlgorithm(Configuration pConfig, LogManager pLogger, String pFilename) throws InvalidConfigurationException {
     this.stats = new RestartAlgorithmStatistics();
     this.logger = pLogger;
     this.config = pConfig;
-    this.cfaCreator = pCfaCreator;
     this.filename = pFilename;
     this.configFiles = config.getPropertiesArray("restartAlgorithm.configFiles");
     stats.noOfAlgorithmsProvided = configFiles.length;
@@ -127,8 +124,11 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public boolean run(ReachedSet pReached) throws CPAException,
-  InterruptedException {
+  public boolean run(ReachedSet pReached) throws CPAException, InterruptedException {
+    assert pReached.getFirstElement() != null : "Empty reached set not allowed";
+
+    CFANode mainFunction = AbstractElements.extractLocation(pReached.getFirstElement());
+    assert mainFunction != null : "Location information needed";
 
     boolean sound = true;
 
@@ -137,7 +137,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       continueAnalysis = false;
 
       String singleConfigFileName = configFiles[idx++];
-      Pair<Algorithm, ReachedSet> currentPair = createNextAlgorithm(config, singleConfigFileName, cfaCreator, filename);
+      Pair<Algorithm, ReachedSet> currentPair = createNextAlgorithm(config, singleConfigFileName, mainFunction, filename);
 
       currentAlgorithm = currentPair.getFirst();
       currentReached = currentPair.getSecond();
@@ -234,7 +234,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   }
 
-  private Pair<Algorithm, ReachedSet> createNextAlgorithm(Configuration config, String singleConfigFileName, CFACreator cfaCreator, String filename) {
+  private Pair<Algorithm, ReachedSet> createNextAlgorithm(Configuration config, String singleConfigFileName, CFANode mainFunction, String filename) {
 
     ReachedSet reached = null;
     Algorithm algorithm = null;
@@ -255,7 +255,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
         ReachedSetFactory singleReachedSetFactory = new ReachedSetFactory(singleConfig);
         ConfigurableProgramAnalysis cpa = createCPA(singleReachedSetFactory, singleConfig, stats);
         algorithm = createAlgorithm(cpa, singleConfig, stats, singleReachedSetFactory, singleOptions);
-        reached = createInitialReachedSetForRestart(cpa, cfaCreator.getMainFunction(), singleReachedSetFactory);
+        reached = createInitialReachedSetForRestart(cpa, mainFunction, singleReachedSetFactory);
       }
 
       stopIfNecessary();
@@ -277,7 +277,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   private ReachedSet createInitialReachedSetForRestart(
       ConfigurableProgramAnalysis cpa,
-      CFAFunctionDefinitionNode mainFunction,
+      CFANode mainFunction,
       ReachedSetFactory pReachedSetFactory) {
     logger.log(Level.FINE, "Creating initial reached set");
 
