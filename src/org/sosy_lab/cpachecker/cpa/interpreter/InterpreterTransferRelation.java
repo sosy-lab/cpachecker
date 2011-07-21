@@ -435,18 +435,18 @@ public class InterpreterTransferRelation implements TransferRelation {
         return lSuccessor;
 
       }
-      else if(expression instanceof IASTCastExpression) {
-        AbstractElement lSuccessor = handleAssumption(element, ((IASTCastExpression)expression).getOperand(), cfaEdge, truthValue);
-
-        if (lSuccessor == null) {
-          throw new RuntimeException();
-        }
-
-        return lSuccessor;
-      }
       else {
         throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
       }
+    }
+    else if(expression instanceof IASTCastExpression) {
+      AbstractElement lSuccessor = handleAssumption(element, ((IASTCastExpression)expression).getOperand(), cfaEdge, truthValue);
+
+      if (lSuccessor == null) {
+        throw new RuntimeException();
+      }
+
+      return lSuccessor;
     }
     else if(expression instanceof IASTIdExpression
         || expression instanceof IASTFieldReference) {
@@ -982,19 +982,6 @@ public class InterpreterTransferRelation implements TransferRelation {
             throw new UnrecognizedCFAEdgeException("Unhandled case ");
           }
         }
-        // right hand side is a cast exp
-        else if(op2 instanceof IASTCastExpression){
-          IASTCastExpression castExp = (IASTCastExpression)op2;
-          IASTExpression exprInCastOp = castExp.getOperand();
-
-          AbstractElement lSuccessor = propagateBooleanExpression(element, opType, op1, exprInCastOp, functionName, truthValue);
-
-          if (lSuccessor == null) {
-            throw new RuntimeException();
-          }
-
-          return lSuccessor;
-        }
         else{
           throw new UnrecognizedCFAEdgeException("Unhandled case ");
         }
@@ -1003,6 +990,19 @@ public class InterpreterTransferRelation implements TransferRelation {
         String varName = op1.getRawSignature();
         // TODO forgetting
         newElement.forget(varName);
+      }
+      // right hand side is a cast exp
+      else if(op2 instanceof IASTCastExpression){
+        IASTCastExpression castExp = (IASTCastExpression)op2;
+        IASTExpression exprInCastOp = castExp.getOperand();
+
+        AbstractElement lSuccessor = propagateBooleanExpression(element, opType, op1, exprInCastOp, functionName, truthValue);
+
+        if (lSuccessor == null) {
+          throw new RuntimeException();
+        }
+
+        return lSuccessor;
       }
       else{
       String varName = op1.getRawSignature();

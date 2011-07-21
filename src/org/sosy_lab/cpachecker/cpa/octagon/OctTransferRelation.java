@@ -368,9 +368,6 @@ public class OctTransferRelation implements TransferRelation{
         IASTExpression exp1 = unaryExp.getOperand();
         return handleAssumption(pElement, exp1, cfaEdge, !truthValue);
       }
-      else if(expression instanceof IASTCastExpression){
-        return handleAssumption(pElement, ((IASTCastExpression)expression).getOperand(), cfaEdge, truthValue);
-      }
       else {
         throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
       }
@@ -379,6 +376,10 @@ public class OctTransferRelation implements TransferRelation{
     else if(expression instanceof IASTIdExpression
         || expression instanceof IASTFieldReference){
       return propagateBooleanExpression(pElement, null, expression, null, functionName, truthValue);
+    }
+
+    else if(expression instanceof IASTCastExpression){
+      return handleAssumption(pElement, ((IASTCastExpression)expression).getOperand(), cfaEdge, truthValue);
     }
 
     else{
@@ -698,12 +699,6 @@ public class OctTransferRelation implements TransferRelation{
             throw new UnrecognizedCFAEdgeException("Unhandled case ");
           }
         }
-        // right hand side is a cast exp
-        else if(op2 instanceof IASTCastExpression){
-          IASTCastExpression castExp = (IASTCastExpression)op2;
-          IASTExpression exprInCastOp = castExp.getOperand();
-          return propagateBooleanExpression(pElement, opType, op1, exprInCastOp, functionName, truthValue);
-        }
         else{
           throw new UnrecognizedCFAEdgeException("Unhandled case ");
         }
@@ -712,6 +707,12 @@ public class OctTransferRelation implements TransferRelation{
         String varName = op1.getRawSignature();
         String variableName = getvarName(varName, functionName);
         return forgetElement(pElement, variableName);
+      }
+      // right hand side is a cast exp
+      else if(op2 instanceof IASTCastExpression){
+        IASTCastExpression castExp = (IASTCastExpression)op2;
+        IASTExpression exprInCastOp = castExp.getOperand();
+        return propagateBooleanExpression(pElement, opType, op1, exprInCastOp, functionName, truthValue);
       }
       else{
         String varName = op1.getRawSignature();

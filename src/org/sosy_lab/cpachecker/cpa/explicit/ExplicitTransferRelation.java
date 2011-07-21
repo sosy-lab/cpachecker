@@ -840,12 +840,6 @@ public class ExplicitTransferRelation implements TransferRelation {
             throw new UnrecognizedCFAEdgeException("Unhandled case ");
           }
         }
-        // right hand side is a cast exp
-        else if(op2 instanceof IASTCastExpression){
-          IASTCastExpression castExp = (IASTCastExpression)op2;
-          IASTExpression exprInCastOp = castExp.getOperand();
-          return propagateBooleanExpression(element, opType, op1, exprInCastOp, functionName, truthValue, precision);
-        }
         else{
           throw new UnrecognizedCFAEdgeException("Unhandled case ");
         }
@@ -856,6 +850,12 @@ public class ExplicitTransferRelation implements TransferRelation {
           return element;
         // TODO forgetting
         newElement.forget(varName);
+      }
+      // right hand side is a cast exp
+      else if(op2 instanceof IASTCastExpression){
+        IASTCastExpression castExp = (IASTCastExpression)op2;
+        IASTExpression exprInCastOp = castExp.getOperand();
+        return propagateBooleanExpression(element, opType, op1, exprInCastOp, functionName, truthValue, precision);
       }
       else{
         String varName = op1.getRawSignature();

@@ -526,11 +526,6 @@ public class PointerTransferRelation implements TransferRelation {
           element.pointerOpAssumeInequality(p, Memory.NULL_POINTER);
         }
 
-      } else if (expression instanceof IASTCastExpression) {
-
-        handleAssume(element, unaryExpression.getOperand(), isTrueBranch,
-            assumeEdge);
-
       } else {
 
         throw new UnrecognizedCCodeException("not expected in CIL", assumeEdge,
@@ -564,6 +559,12 @@ public class PointerTransferRelation implements TransferRelation {
         // !p holds, i.e. p == 0 holds, i.e. p points to null
         element.pointerOpAssumeEquality(p, Memory.NULL_POINTER);
       }
+
+    } else if (expression instanceof IASTCastExpression) {
+
+      handleAssume(element, ((IASTCastExpression)expression).getOperand(), isTrueBranch,
+          assumeEdge);
+
     }
   }
 
