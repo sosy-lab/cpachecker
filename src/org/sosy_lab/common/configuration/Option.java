@@ -124,4 +124,11 @@ public @interface Option {
     OPTIONAL_INPUT_FILE,
     OUTPUT_FILE,
   }
+
+  /**
+   * If the type of the option is Class<...>, this field provides an optional
+   * prefix that will be added to the specified class name, if a class with the
+   * specified name is not found.
+   */
+  public String packagePrefix() default "";
 }

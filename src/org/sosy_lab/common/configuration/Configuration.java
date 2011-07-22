@@ -46,6 +46,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.SortedSet;
 
+import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Files;
 
 import com.google.common.base.Preconditions;
@@ -410,7 +411,10 @@ public class Configuration {
    * - all enum types
    * - {@link String} and arrays of it
    * - {@link File} (the field {@link Option#type()} is required in this case!)
-   * - collection types {@link Iterable}, {@link Collection}, {@link List}, {@link Set}, {@link SortedSet} and {@link Multiset}
+   * - arrays of the above types
+   * - collection types {@link Iterable}, {@link Collection}, {@link List},
+   *   {@link Set}, {@link SortedSet} and {@link Multiset} of the above types
+   * - Class<Something>
    *
    * For the collection types an immutable instance will be created and injected.
    * Their type parameter has to be one of the other supported types.
@@ -490,7 +494,7 @@ public class Configuration {
     }
 
     final Object value = convertValue(
-        name, valueStr, defaultValue, type, genericType, option.type());
+        name, valueStr, defaultValue, type, genericType, option);
 
     if (exportUsedOptions) {
       printOptionInfos(field, option, name, valueStr, defaultValue);
@@ -555,7 +559,7 @@ public class Configuration {
     final Class<?> type = parameters[0];
     final Type genericType = method.getGenericParameterTypes()[0];
     final String valueStr = getOptionValue(name, option, type.isEnum());
-    final Object value = convertValue(name, valueStr, null, type, genericType, option.type());
+    final Object value = convertValue(name, valueStr, null, type, genericType, option);
 
     // options which were not specified need not to be set
     // but do set OUTPUT_FILE options for disableOutput to work
@@ -656,7 +660,8 @@ public class Configuration {
     return valueStr;
   }
 
-  /** This function takes a value (String) and a type and
+  /**
+   * This function takes a value (String) and a type and
    * returns an Object of this type with the value as content.
    *
    * @param optionName name of option, only for error handling
@@ -664,46 +669,83 @@ public class Configuration {
    * @param defaultValue old value of the option
    * @param type type of the object
    * @param genericType type of the object
-   * @param typeInfo info about the type of the file (outputfile, inputfile) */
+   * @param option the annotation
+   */
   private <T> Object convertValue(final String optionName, final String valueStr,
       final Object defaultValue, final Class<?> type, final Type genericType,
-      final Option.Type typeInfo)
+      final Option option)
       throws UnsupportedOperationException, InvalidConfigurationException {
     // convert value to correct type
 
-    if (type.isArray()) {
+    if (type.equals(Class.class)) {
       if (valueStr == null) {
         return null;
       }
 
-      @SuppressWarnings("unchecked")
-      Class<Object> componentType = (Class<Object>) type.getComponentType();
-      Iterable<?> values = convertMultipleValues(optionName, valueStr, componentType, typeInfo);
-
-      return Iterables.toArray(values, componentType);
-
-    } else if (COLLECTIONS.containsKey(type)) {
-      if (valueStr == null) {
-        return null;
-      }
-
-      return handleCollectionOption(optionName, valueStr, type, genericType, typeInfo);
+      return handleClassOption(optionName, valueStr, genericType, option.packagePrefix());
 
     } else {
-      return convertSingleValue(optionName, valueStr, defaultValue, type, typeInfo);
+      if (!option.packagePrefix().isEmpty()) {
+        throw new UnsupportedOperationException("Package prefix may be specified only for Class options, not for option " + optionName);
+      }
+
+      if (type.isArray()) {
+        if (valueStr == null) {
+          return null;
+        }
+
+        @SuppressWarnings("unchecked")
+        Class<Object> componentType = (Class<Object>) type.getComponentType();
+        Iterable<?> values = convertMultipleValues(optionName, valueStr, componentType, option);
+
+        return Iterables.toArray(values, componentType);
+
+      } else if (COLLECTIONS.containsKey(type)) {
+        if (valueStr == null) {
+          return null;
+        }
+
+        return handleCollectionOption(optionName, valueStr, type, genericType, option);
+
+      } else {
+        return convertSingleValue(optionName, valueStr, defaultValue, type, option);
+      }
     }
   }
 
   private Object convertSingleValue(final String optionName, final String valueStr,
-      final Object defaultValue, final Class<?> type, final Option.Type typeInfo)
+      final Object defaultValue, final Class<?> type, final Option option)
       throws InvalidConfigurationException {
 
+    Option.Type typeInfo = option.type();
 
-    if (type.equals(File.class)) {
-      if (typeInfo == Option.Type.NOT_APPLICABLE) {
-        throw new UnsupportedOperationException(
-            "Type File and type=NOT_APPLICABLE do not match for option " + optionName);
-      }
+    // (type has to be File) XOR (typeInfo has to be NOT_APPLICABLE)
+    if ((typeInfo == Option.Type.NOT_APPLICABLE) == (type.equals(File.class))) {
+      throw new UnsupportedOperationException("Type " + type.getSimpleName()
+          + " and type=" + typeInfo + " do not match for option " + optionName);
+    }
+
+    if (valueStr == null) {
+      return null;
+    }
+
+    if (type.isPrimitive()) {
+      // get wrapper type in order to use valueOf method
+      final Class<?> wrapperType = Primitives.wrap(type);
+      return valueOf(wrapperType, optionName, valueStr);
+
+    } else if (Primitives.isWrapperType(type)) {
+      // all wrapper types have valueOf method
+      return valueOf(type, optionName, valueStr);
+
+    } else if (type.isEnum()) {
+      // all enums have valueOf method
+      return valueOf(type, optionName, valueStr);
+
+    } else if (type.equals(String.class)) {
+      return valueStr;
+
+    } else if (type.equals(File.class)) {
 
       if ((defaultValue != null) && !(defaultValue instanceof File)) {
         assert defaultValue instanceof Iterable<?> || defaultValue instanceof File[] : defaultValue;
@@ -715,40 +757,13 @@ public class Configuration {
       return handleFileOption(optionName, valueStr, (File) defaultValue, typeInfo);
 
     } else {
-      if (typeInfo != Option.Type.NOT_APPLICABLE) {
-        throw new UnsupportedOperationException("Type " + type.getSimpleName()
-            + " and type=" + typeInfo + " do not match for option " + optionName);
-      }
-
-      if (valueStr == null) {
-        return null;
-      }
-
-      if (type.isPrimitive()) {
-        // get wrapper type in order to use valueOf method
-        final Class<?> wrapperType = Primitives.wrap(type);
-        return valueOf(wrapperType, optionName, valueStr);
-
-      } else if (Primitives.isWrapperType(type)) {
-        // all wrapper types have valueOf method
-        return valueOf(type, optionName, valueStr);
-
-      } else if (type.isEnum()) {
-        // all enums have valueOf method
-        return valueOf(type, optionName, valueStr);
-
-      } else if (type.equals(String.class)) {
-        return valueStr;
-
-      } else {
-        throw new UnsupportedOperationException(
-            "Unimplemented type for option: " + type.getSimpleName());
-      }
+      throw new UnsupportedOperationException(
+          "Unimplemented type for option: " + type.getSimpleName());
     }
   }
 
   private Iterable<?> convertMultipleValues(final String optionName, final String valueStr,
-      final Class<?> type, final Option.Type typeInfo)
+      final Class<?> type, final Option option)
       throws InvalidConfigurationException {
 
     Iterable<String> values = ARRAY_SPLITTER.split(valueStr);
@@ -760,7 +775,7 @@ public class Configuration {
     List<Object> result = new ArrayList<Object>();
 
     for (String item : values) {
-      result.add(convertSingleValue(optionName, item, null, type, typeInfo));
+      result.add(convertSingleValue(optionName, item, null, type, option));
     }
 
     return result;
@@ -842,8 +857,36 @@ public class Configuration {
     return file;
   }
 
+  private Class<?> handleClassOption(final String optionName, final String valueStr,
+      Type genericType, String packagePrefix) throws InvalidConfigurationException {
+
+    // get value of type parameter
+    assert genericType instanceof ParameterizedType : "Class type that is not a ParameterizedType";
+    ParameterizedType pType = (ParameterizedType)genericType;
+    Type[] parameterTypes = pType.getActualTypeArguments();
+    assert parameterTypes.length == 1 : "Class type with more than one type parameter";
+    Type paramType = parameterTypes[0];
+
+    Class<?> targetType = extractUpperBoundFromType(paramType);
+
+    // get class object
+    Class<?> cls;
+    try {
+      cls = Classes.forName(valueStr, packagePrefix);
+    } catch (ClassNotFoundException e) {
+      throw new InvalidConfigurationException("Class " + valueStr + " specified in option " + optionName + " not found");
+    }
+
+    // check type
+    if (!targetType.isAssignableFrom(cls)) {
+      throw new InvalidConfigurationException("Class " + valueStr + " specified in option " + optionName + " is not an instance of " + targetType.getCanonicalName());
+    }
+
+    return cls;
+  }
+
   private Object handleCollectionOption(String optionName, String valueStr,
-      Class<?> type, Type genericType, final Option.Type typeInfo) throws UnsupportedOperationException,
+      Class<?> type, Type genericType, final Option option) throws UnsupportedOperationException,
       InvalidConfigurationException {
 
     // it's a collections class, get value of type parameter
@@ -860,7 +903,7 @@ public class Configuration {
     Class<?> implementationClass = COLLECTIONS.get(type);
     assert implementationClass != null : "Only call this method with a class that has a mapping in COLLECTIONS";
 
-    Iterable<?> values = convertMultipleValues(optionName, valueStr, componentType, typeInfo);
+    Iterable<?> values = convertMultipleValues(optionName, valueStr, componentType, option);
 
     // invoke ImmutableSet.copyOf(Iterable) etc.
     return invokeMethod(implementationClass, "copyOf", Iterable.class, values, optionName);
