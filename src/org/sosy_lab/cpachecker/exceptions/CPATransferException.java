@@ -23,18 +23,14 @@
  */
 package org.sosy_lab.cpachecker.exceptions;
 
+/**
+ * Super class for all exceptions thrown from transfer relation.
+ */
 public abstract class CPATransferException extends CPAException {
 
-    /**
-     * auto generated
-     */
-    private static final long serialVersionUID = -7851950254941139295L;
+  private static final long serialVersionUID = -7851950254941139295L;
 
-    public CPATransferException(String msg) {
-        super(msg);
-    }
-
-    public CPATransferException() {
-        super();
-    }
+  public CPATransferException(String msg) {
+    super(msg);
+  }
 }

@@ -29,4 +29,7 @@ public class ReadingFromNondetVariableException extends CPATransferException {
 
   private static final long serialVersionUID = 6227594213791342654L;
 
+  public ReadingFromNondetVariableException() {
+    super("Read from special nondet variable __BLAST_NONDET");
+  }
 }

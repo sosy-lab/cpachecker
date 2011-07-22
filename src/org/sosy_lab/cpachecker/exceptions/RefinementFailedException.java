@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.exceptions;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.sosy_lab.cpachecker.cpa.art.Path;
 
 /**
@@ -56,27 +58,24 @@ public class RefinementFailedException extends CPAException {
   private Path path;
   private final int failurePoint;
 
-  public RefinementFailedException(Reason r, Path p, int pFailurePoint)
-  {
+  public RefinementFailedException(Reason r, Path p, int pFailurePoint) {
+    super("Refinement failed: " + checkNotNull(r));
     reason = r;
     path = p;
     failurePoint = pFailurePoint;
   }
 
-  public RefinementFailedException(Reason r, Path p)
-  {
+  public RefinementFailedException(Reason r, Path p) {
     this(r, p, -1);
   }
 
   /** Return the reason for the failure */
-  public Reason getReason()
-  {
+  public Reason getReason() {
     return reason;
   }
 
   /** Return the path that caused the failure */
-  public Path getErrorPath()
-  {
+  public Path getErrorPath() {
     return path;
   }
 
@@ -89,13 +88,7 @@ public class RefinementFailedException extends CPAException {
    * the failure occurred (or -1 if the failure cannot
    * be caused by a given node)
    */
-  public int getFailurePoint()
-  {
+  public int getFailurePoint() {
     return failurePoint;
-  }
-
-  @Override
-  public String getMessage() {
-    return "Refinement failed: " + reason;
   }
 }

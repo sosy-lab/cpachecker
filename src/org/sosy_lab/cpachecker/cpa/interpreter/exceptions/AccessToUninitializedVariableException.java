@@ -30,15 +30,7 @@ public class AccessToUninitializedVariableException extends
 
   private static final long serialVersionUID = -954636600896070300L;
 
-  private final String mVariableName;
-
   public AccessToUninitializedVariableException(String pVariableName) {
-    mVariableName = pVariableName;
+    super("Access to uninitialized variable " + pVariableName);
   }
-
-  @Override
-  public String toString() {
-    return "Access to uninitialized variable " + mVariableName;
-  }
-
 }
