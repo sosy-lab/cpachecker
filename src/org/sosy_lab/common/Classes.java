@@ -82,13 +82,12 @@ public final class Classes {
    * @throws ClassInstantiationException If something goes wrong (like class cannot be found or has no constructor).
    * @throws InvocationTargetException If the constructor throws an exception.
    */
-  public static <T> T createInstance(Class<?> cls,
+  public static <T> T createInstance(Class<? extends T> cls,
       Class<?>[] argumentTypes, Object[] argumentValues, Class<T> type)
       throws ClassInstantiationException, InvocationTargetException {
     try {
-      Constructor<?> ct = cls.getConstructor(argumentTypes);
-      Object obj = ct.newInstance(argumentValues);
-      return type.cast(obj);
+      Constructor<? extends T> ct = cls.getConstructor(argumentTypes);
+      return ct.newInstance(argumentValues);
 
     } catch (SecurityException e) {
       throw new ClassInstantiationException(cls.getCanonicalName(), e.getMessage());
@@ -98,8 +97,6 @@ public final class Classes {
       throw new ClassInstantiationException(cls.getCanonicalName(), e.getMessage());
     } catch (IllegalAccessException e) {
       throw new ClassInstantiationException(cls.getCanonicalName(), e.getMessage());
-    } catch (ClassCastException e) {
-      throw new ClassInstantiationException(cls.getCanonicalName(), "Not an instance of " + type.getCanonicalName());
     }
   }
 

@@ -57,8 +57,9 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
   }
 
   @Option(name="heuristics", required=true,
+      packagePrefix="org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.heuristics",
       description="which heuristics should be used to track progress?")
-  private String[] heuristicsNames = {};
+  private List<Class<? extends StopHeuristics<?>>> heuristics;
 
   private final ProgressObserverDomain abstractDomain;
   private final StopOperator stopOperator;
@@ -79,25 +80,20 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
     ImmutableList.Builder<StopHeuristics<?>> builder = ImmutableList.builder();
 
     Class<?>[] argsTypes = {Configuration.class, LogManager.class};
-    for (String heuristicsName : heuristicsNames) {
-      if (!heuristicsName.contains(".")) {
-        heuristicsName = "org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.heuristics." + heuristicsName;
-      }
+    for (Class<? extends StopHeuristics<?>> heuristicsClass : heuristics) {
+
       try {
-        Class<?> cls = Class.forName(heuristicsName);
         Object[] localArgs = {config, logger};
-        StopHeuristics<?> newHeuristics = Classes.createInstance(cls, argsTypes, localArgs, StopHeuristics.class);
+        StopHeuristics<?> newHeuristics = Classes.createInstance(heuristicsClass, argsTypes, localArgs, StopHeuristics.class);
         builder.add(newHeuristics);
-      } catch (ClassNotFoundException e) {
-        throw new InvalidConfigurationException("Heuristic " + heuristicsName + " does not exist", e);
 
       } catch (InvocationTargetException e) {
         Throwable t = e.getCause();
         Throwables.propagateIfPossible(t, InvalidConfigurationException.class);
-        throw new InvalidConfigurationException("Heuristic " + heuristicsName + " could not be instantiated (" + t.getMessage() + ")", e);
+        throw new InvalidConfigurationException("Heuristic " + heuristicsClass.getSimpleName() + " could not be instantiated (" + t.getMessage() + ")", e);
 
       } catch (ClassInstantiationException e) {
-        throw new InvalidConfigurationException("Invalid heuristic " + heuristicsName + " (" + e.getMessage() + ")", e);
+        throw new InvalidConfigurationException("Invalid heuristic " + heuristicsClass.getSimpleName() + " (" + e.getMessage() + ")", e);
       }
     }
 
