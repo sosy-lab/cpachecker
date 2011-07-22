@@ -43,6 +43,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
@@ -577,7 +578,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
         } catch (ExecutionException e) {
           Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
-          throw new RuntimeException("unexpected checked exception", e.getCause());
+          throw new UnexpectedCheckedException("invariant generation", e.getCause());
         }
       }
     }

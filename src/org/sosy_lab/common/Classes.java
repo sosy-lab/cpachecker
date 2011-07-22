@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.common;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.concurrent.Callable;
 
 /**
  * Helper class for various methods related to handling Java classes and types.
@@ -42,6 +45,27 @@ public final class Classes {
 
     public ClassInstantiationException(String className, String msg) {
       super("Cannot instantiate class " + className + ":" + msg);
+    }
+  }
+
+  /**
+   * An exception that should be used if a checked exception is encountered in
+   * a situation where it is not excepted
+   * (e.g., when getting the result from a {@link Callable} of which you know
+   * it shouldn't throw such exceptions).
+   */
+  public final static class UnexpectedCheckedException extends RuntimeException {
+
+    private static final long serialVersionUID = -8706288432548996095L;
+
+    public UnexpectedCheckedException(String message, Throwable source) {
+      super("Unexpected checked exception "
+            + source.getClass().getSimpleName()
+            + (isNullOrEmpty(message)             ? "" : " during "  + message)
+            + (isNullOrEmpty(source.getMessage()) ? "" : ": " + source.getMessage()),
+        source);
+
+      assert (source instanceof Exception) && !(source instanceof RuntimeException);
     }
   }
 

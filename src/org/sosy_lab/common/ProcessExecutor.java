@@ -42,6 +42,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Classes.UnexpectedCheckedException;
+
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.io.Closeables;
@@ -273,8 +275,7 @@ public class ProcessExecutor<E extends Exception> {
     } catch (ExecutionException e) {
       Throwable t = e.getCause();
       Throwables.propagateIfPossible(t, IOException.class, exceptionClass);
-      logger.logException(Level.SEVERE, t, "Unexpected checked exception");
-      throw new AssertionError(t);
+      throw new UnexpectedCheckedException("output handling of external process " + name, t);
 
     } finally {
       // cleanup

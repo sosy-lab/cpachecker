@@ -34,6 +34,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 
+import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -254,7 +255,7 @@ public class AutomaticCPAFactory implements CPAFactory {
     } catch (InvocationTargetException e) {
       Throwable t = e.getCause();
       Throwables.propagateIfPossible(t, CPAException.class, InvalidConfigurationException.class);
-      throw new RuntimeException("Unexpected checked exception altough exceptions where verified above", t);
+      throw new UnexpectedCheckedException("instantiation of CPA options holder class " + optionsClass.getCanonicalName(), t);
 
     } catch (IllegalAccessException e) {
       throw new UnsupportedOperationException("Cannot automatically create CPAs without an accessible constructor for their options class!", e);

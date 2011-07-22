@@ -43,6 +43,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
+import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
@@ -497,8 +498,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
         Throwable t = e.getCause();
         Throwables.propagateIfPossible(t, CPAException.class, InterruptedException.class);
 
-        logger.logException(Level.SEVERE, t, "Unexpected exception during interpolation!");
-        throw new AssertionError(t);
+        throw new UnexpectedCheckedException("interpolation", t);
       }
     }
   }
