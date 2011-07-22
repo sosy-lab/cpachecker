@@ -9,6 +9,7 @@ from datetime import date
 
 OUTPUT_PATH = "test/results/"
 
+LOGFILES_IN_HTML = True # create links to logfiles in hmtl
 
 CSV_SEPARATOR = '\t'
 
@@ -24,8 +25,9 @@ CSS = '''
 <style type="text/css"> 
     <!--
     table { outline:3px solid black; border-spacing:0px; font-family:arial, sans serif}
-    thead { text-align:center}
+    thead, .log { text-align:center}
     tbody { text-align:right}
+    tr:hover { background-color:yellow}
     td { border:1px solid black}
     td:first-child { text-align:left; white-space:nowrap}
     tbody td:first-child { font-family: monospace; }
@@ -75,12 +77,29 @@ def getListOfTests(file):
                     columnTitles = [column.get("title") for column in 
                                     resultElem.find('sourcefile').findall('column')]
     
+                if LOGFILES_IN_HTML: insertLogFileNames(resultElem)
+
                 listOfTests.append((resultElem, columnTitles))
             else:
                 print 'File {0} is not found.'.format(repr(resultFile))
                 exit()
 
     return listOfTests
+
+
+def insertLogFileNames(resultElem):
+    # get folder of logfiles
+    logFolder = resultElem.get('benchmarkname') + "." + resultElem.get('date') + ".logfiles/"
+
+    # append begin of filename
+    testname = resultElem.get('name')
+    if testname is not None:
+        logFolder += testname + "."
+
+    # for each file: append original filename and insert logFileName into sourcefileElement
+    for sourcefile in resultElem.findall('sourcefile'):
+        logFileName = logFolder + os.path.basename(sourcefile.get('name')) + ".log"
+        sourcefile.set('logfileForHtml', logFileName)
 
 
 def getFileList(shortFile):
@@ -133,6 +152,10 @@ def getColumnsRowAndTestWidths(listOfTests):
     testWidths = []
     for testResult, columns in listOfTests:
         numberOfColumns = 0
+        if LOGFILES_IN_HTML:
+            columnsTitles.append('log')
+            numberOfColumns += 1
+
         for columnTitle in columns:
             for column in testResult.find('columns').findall('column'):
 
@@ -285,6 +308,12 @@ def getTableBody(listOfTests):
         columnValuesForCSV = []
         for testResult, test in zip(file, listOfTests):
             (valuesForHTML, valuesForCSV) = getValuesOfFileXTest(testResult, test[1])
+
+            if LOGFILES_IN_HTML:
+                columnValuesForHTML += ['<td class="log"><a href="' \
+                                    + str(testResult.get('logfileForHtml')) \
+                                    + '">log</a></td>']
+
             columnValuesForHTML += valuesForHTML
             columnValuesForCSV += valuesForCSV
 
