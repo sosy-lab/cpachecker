@@ -88,16 +88,15 @@ parser code {:
       Symbol symbol = new AutomatonParser(new AutomatonScanner(input, pInputFile.getName(), config, pLogger, sf),sf, pLogger).parse();
       return ((List<Automaton>) symbol.value);
     } catch (Exception e) {
-      pLogger.logDebugException(e, "Could not load automaton from file " + pInputFile.getAbsolutePath());
       throw new InvalidConfigurationException("Could not load automaton from file " + pInputFile.getAbsolutePath()
-          + " (" + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()) + ")");
+          + " (" + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()) + ")", e);
     } finally {
       if (input!= null) {
         try {
           input.close();
         } catch (IOException e) {
           throw new InvalidConfigurationException(
-              "IO Exception when closing the FileStream to \"" + pInputFile.getAbsolutePath() + "\": "+e.getMessage());
+              "IO Exception when closing the FileStream to \"" + pInputFile.getAbsolutePath() + "\": "+e.getMessage(), e);
         }
       }
     }

@@ -90,7 +90,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       return Classes.createInstance(className, PACKAGE_NAME_PREFIX, argumentTypes, argumentList, type);
 
     } catch (ClassInstantiationException e) {
-      throw new InvalidConfigurationException("Invalid block heuristic specified (" + e.getMessage() + ")!");
+      throw new InvalidConfigurationException("Invalid block heuristic specified (" + e.getMessage() + ")!", e);
 
     } catch (InvocationTargetException e) {
       Throwable t = e.getCause();

@@ -148,7 +148,7 @@ public class CPABuilder {
     try {
       cpa = factory.createInstance();
     } catch (IllegalStateException e) {
-      throw new InvalidConfigurationException(e.getMessage());
+      throw new InvalidConfigurationException(e.getMessage(), e);
     }
     return cpa;
   }
@@ -174,7 +174,7 @@ public class CPABuilder {
     try {
       cpaClass = Classes.forName(cpaName, CPA_CLASS_PREFIX);
     } catch (ClassNotFoundException e) {
-      throw new InvalidConfigurationException("Option " + optionName + " is set to unknown CPA " + cpaName);
+      throw new InvalidConfigurationException("Option " + optionName + " is set to unknown CPA " + cpaName, e);
     }
 
     if (!ConfigurableProgramAnalysis.class.isAssignableFrom(cpaClass)) {
@@ -243,7 +243,7 @@ public class CPABuilder {
       try {
         factory.setChild(child);
       } catch (UnsupportedOperationException e) {
-        throw new InvalidConfigurationException(cpaName + " is no wrapper CPA, but option " + childOptionName + " was specified!");
+        throw new InvalidConfigurationException(cpaName + " is no wrapper CPA, but option " + childOptionName + " was specified!", e);
       }
 
     } else if (childrenCpaNames != null) {
@@ -261,7 +261,7 @@ public class CPABuilder {
       try {
         factory.setChildren(childrenCpas.build());
       } catch (UnsupportedOperationException e) {
-        throw new InvalidConfigurationException(cpaName + " is no wrapper CPA, but option " + childrenOptionName + " was specified!");
+        throw new InvalidConfigurationException(cpaName + " is no wrapper CPA, but option " + childrenOptionName + " was specified!", e);
       }
     }
   }

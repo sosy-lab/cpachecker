@@ -145,7 +145,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
       return Classes.createInstance(className, PACKAGE_NAME_PREFIX, argumentTypes, argumentList, type);
 
     } catch (ClassInstantiationException e) {
-      throw new InvalidConfigurationException("Invalid refiner specified (" + e.getMessage() + ")!");
+      throw new InvalidConfigurationException("Invalid refiner specified (" + e.getMessage() + ")!", e);
 
     } catch (InvocationTargetException e) {
       Throwable t = e.getCause();

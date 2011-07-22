@@ -579,11 +579,11 @@ public class Configuration {
       } catch (IllegalArgumentException iae) {
         throw new InvalidConfigurationException("Invalid value in configuration file: \""
             + name + " = " + valueStr + '\"'
-            + (iae.getMessage() != null ? " (" + iae.getMessage() + ")" : ""));
+            + (iae.getMessage() != null ? " (" + iae.getMessage() + ")" : ""), iae);
       }
 
       // We can't handle it correctly, but we can't throw it either.
-      final InvalidConfigurationException newException = new InvalidConfigurationException(
+      final AssertionError newException = new AssertionError(
           "Unexpected checked exception in method "
           + method.toGenericString()
           + ", which was invoked by Configuration.inject()");
@@ -792,7 +792,7 @@ public class Configuration {
           + method + "(" + paramType.getSimpleName() + ") method!");
     } catch (InvocationTargetException e) {
       throw new InvalidConfigurationException("Could not parse \"" + optionName +
-          " = " + value + "\" (" + e.getTargetException().getMessage() + ")");
+          " = " + value + "\" (" + e.getTargetException().getMessage() + ")", e);
     }
   }
 
@@ -835,7 +835,7 @@ public class Configuration {
         Files.checkReadableFile(file);
       } catch (FileNotFoundException e) {
         throw new InvalidConfigurationException("Option " + optionName
-            + " specifies an invalid input file: " + e.getMessage());
+            + " specifies an invalid input file: " + e.getMessage(), e);
       }
     }
 

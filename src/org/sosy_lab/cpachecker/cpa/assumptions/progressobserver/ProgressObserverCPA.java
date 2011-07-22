@@ -89,15 +89,15 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
         StopHeuristics<?> newHeuristics = Classes.createInstance(cls, argsTypes, localArgs, StopHeuristics.class);
         builder.add(newHeuristics);
       } catch (ClassNotFoundException e) {
-        throw new InvalidConfigurationException("Heuristic " + heuristicsName + " does not exist");
+        throw new InvalidConfigurationException("Heuristic " + heuristicsName + " does not exist", e);
 
       } catch (InvocationTargetException e) {
         Throwable t = e.getCause();
         Throwables.propagateIfPossible(t, InvalidConfigurationException.class);
-        throw new InvalidConfigurationException("Heuristic " + heuristicsName + " could not be instantiated (" + t.getMessage() + ")");
+        throw new InvalidConfigurationException("Heuristic " + heuristicsName + " could not be instantiated (" + t.getMessage() + ")", e);
 
       } catch (ClassInstantiationException e) {
-        throw new InvalidConfigurationException("Invalid heuristic " + heuristicsName + " (" + e.getMessage() + ")");
+        throw new InvalidConfigurationException("Invalid heuristic " + heuristicsName + " (" + e.getMessage() + ")", e);
       }
     }
 
