@@ -207,16 +207,44 @@ public class CPAchecker {
       CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
       try {
 
-        if (options.useRestartingAlgorithm) {
-          RestartAlgorithm restartAlgorithm = (RestartAlgorithm)algorithm;
-          result = runRestartAlgorithm(restartAlgorithm, reached, stats);
-          reached = restartAlgorithm.getUsedReachedSet();
+        logger.log(Level.INFO, "Starting analysis ...");
+        stats.analysisTime.start();
+
+        boolean sound = true;
+
+        do {
+          sound &= algorithm.run(reached);
+
+          if (algorithm instanceof RestartAlgorithm) {
+            // this algorithm produces a new reached set
+            reached = ((RestartAlgorithm)algorithm).getUsedReachedSet();
+          }
+
+          // either run only once (if stopAfterError == true)
+          // or until the waitlist is empty
+        } while (!options.stopAfterError && reached.hasWaitingElement());
+
+        logger.log(Level.INFO, "Stopping analysis ...");
+
+        if (Iterables.any(reached, AbstractElements.IS_TARGET_ELEMENT)) {
+          result = Result.UNSAFE;
+
+        } else if (reached.hasWaitingElement()) {
+          logger.log(Level.WARNING, "Analysis not completed: there are still elements to be processed.");
+          result = Result.UNKNOWN;
+
+        } else if (!sound) {
+          logger.log(Level.WARNING, "Analysis incomplete: no errors found, but not everything could be checked.");
+          result = Result.UNKNOWN;
 
         } else {
-          result = runAlgorithm(algorithm, reached, stats);
+          result = Result.SAFE;
         }
 
       } finally {
+        stats.analysisTime.stop();
+        stats.programTime.stop();
+
         // unregister management interface for CPAchecker
         mxbean.unregister();
       }
@@ -289,27 +317,6 @@ public class CPAchecker {
     }
 
     return Result.SAFE;
-  }
-
-  private Result runRestartAlgorithm(final RestartAlgorithm restartAlgorithm,
-      final ReachedSet reached,
-      final MainCPAStatistics stats) throws CPAException, InterruptedException {
-
-    logger.log(Level.INFO, "Starting analysis ...");
-    stats.analysisTime.start();
-
-    boolean sound = true;
-    do {
-      sound &= restartAlgorithm.run(reached);
-
-      // either run only once (if stopAfterError == true)
-    } while (!options.stopAfterError);
-
-    logger.log(Level.INFO, "Stopping analysis ...");
-    stats.analysisTime.stop();
-    stats.programTime.stop();
-
-    return restartAlgorithm.getResult();
   }
 
   private ConfigurableProgramAnalysis createCPA(MainCPAStatistics stats) throws InvalidConfigurationException, CPAException {

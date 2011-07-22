@@ -111,7 +111,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   private Algorithm currentAlgorithm;
   private ReachedSet currentReached;
-  private Result analysisResult;
 
   public RestartAlgorithm(Configuration config, LogManager pLogger, String pFilename) throws InvalidConfigurationException {
     config.inject(this);
@@ -157,7 +156,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       stats.noOfAlgorithmsUsed++;
 
       if (Iterables.any(currentReached, AbstractElements.IS_TARGET_ELEMENT)) {
-        analysisResult = Result.UNSAFE;
         return sound;
       }
 
@@ -173,7 +171,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
       } else {
         // sound analysis and completely finished, terminate
-        analysisResult = Result.SAFE;
         return true;
       }
 
@@ -186,7 +183,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     // no further configuration available, and analysis has not finished
     logger.log(Level.INFO, "No further configuration available.");
-    analysisResult = Result.UNKNOWN;
     return false;
   }
 
@@ -331,9 +327,5 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     if(currentAlgorithm instanceof StatisticsProvider)
       ((StatisticsProvider)currentAlgorithm).collectStatistics(pStatsCollection);
     pStatsCollection.add(stats);
-  }
-
-  public Result getResult() {
-    return analysisResult;
   }
 }
