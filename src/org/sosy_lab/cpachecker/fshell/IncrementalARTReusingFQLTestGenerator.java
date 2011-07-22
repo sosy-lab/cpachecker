@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.fshell;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -852,7 +853,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       for (CFAEdge lCFAEdge : lEdgeSet) {
         CFANode lCFANode = lCFAEdge.getPredecessor();
 
-        Set<AbstractElement> lAbstractElements = pReachedSet.getReached(lCFANode);
+        Collection<AbstractElement> lAbstractElements = pReachedSet.getReached(lCFANode);
 
         LinkedList<AbstractElement> lAbstractElements2 = new LinkedList<AbstractElement>();
         lAbstractElements2.addAll(lAbstractElements);

@@ -87,9 +87,9 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractElement> {
   public boolean hasWaitingElement();
 
   /**
-   * An unmodifiable view of the waitlist as an Iterable.
+   * An unmodifiable view of the waitlist as an Collection.
    */
-  public Iterable<AbstractElement> getWaitlist();
+  public Collection<AbstractElement> getWaitlist();
 
   public int getWaitlistSize();
 
