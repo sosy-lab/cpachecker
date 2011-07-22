@@ -93,7 +93,7 @@ public class ReachedSetFactory {
 
     case NORMAL:
     default:
-      return new ReachedSet(waitlistFactory);
+      return new DefaultReachedSet(waitlistFactory);
     }
   }
 }

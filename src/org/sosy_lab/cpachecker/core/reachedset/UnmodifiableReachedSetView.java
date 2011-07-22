@@ -139,6 +139,16 @@ public class UnmodifiableReachedSetView
   }
 
   @Override
+  public boolean contains(AbstractElement pElement) {
+    throw new UnsupportedOperationException("Unwrapping may prevent to check contains");
+  }
+
+  @Override
+  public boolean isEmpty() {
+    return underlying.isEmpty();
+  }
+
+  @Override
   public int size() {
     return underlying.size();
   }

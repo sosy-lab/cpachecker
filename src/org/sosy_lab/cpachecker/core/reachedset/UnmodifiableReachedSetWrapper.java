@@ -104,6 +104,16 @@ public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
   }
 
   @Override
+  public boolean contains(AbstractElement pElement) {
+    return delegate.contains(pElement);
+  }
+
+  @Override
+  public boolean isEmpty() {
+    return delegate.isEmpty();
+  }
+
+  @Override
   public int size() {
     return delegate.size();
   }
