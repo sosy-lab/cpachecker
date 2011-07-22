@@ -165,8 +165,9 @@ public class CPAchecker {
 
       if (options.runCBMCasExternalTool) {
         Algorithm algorithm = new ExternalCBMCAlgorithm(filename, config, logger);
-        reached = new ReachedSetFactory(config).create();
-        result = runAlgorithm(algorithm, reached, stats);
+        reached = reachedSetFactory.create();
+        boolean sound = runAlgorithm(algorithm, reached, stats);
+        result = analyzeResult(reached, sound);
         return new CPAcheckerResult(result, reached, stats);
       }
 
@@ -207,48 +208,11 @@ public class CPAchecker {
 
       stopIfNecessary();
 
-      result = Result.UNKNOWN;
+      result = Result.UNKNOWN; // set to unknown so that the result is correct in case of exception
 
-      // register management interface for CPAchecker
-      CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
-      try {
+      boolean sound = runAlgorithm(algorithm, reached, stats);
 
-        logger.log(Level.INFO, "Starting analysis ...");
-        stats.analysisTime.start();
-
-        boolean sound = true;
-
-        do {
-          sound &= algorithm.run(reached);
-
-          // either run only once (if stopAfterError == true)
-          // or until the waitlist is empty
-        } while (!options.stopAfterError && reached.hasWaitingElement());
-
-        logger.log(Level.INFO, "Stopping analysis ...");
-
-        if (Iterables.any(reached, AbstractElements.IS_TARGET_ELEMENT)) {
-          result = Result.UNSAFE;
-
-        } else if (reached.hasWaitingElement()) {
-          logger.log(Level.WARNING, "Analysis not completed: there are still elements to be processed.");
-          result = Result.UNKNOWN;
-
-        } else if (!sound) {
-          logger.log(Level.WARNING, "Analysis incomplete: no errors found, but not everything could be checked.");
-          result = Result.UNKNOWN;
-
-        } else {
-          result = Result.SAFE;
-        }
-
-      } finally {
-        stats.analysisTime.stop();
-        stats.programTime.stop();
-
-        // unregister management interface for CPAchecker
-        mxbean.unregister();
-      }
+      result = analyzeResult(reached, sound);
 
     } catch (IOException e) {
       logger.log(Level.SEVERE, "Could not read file", filename,
@@ -284,25 +248,40 @@ public class CPAchecker {
     return new CPAcheckerResult(result, reached, stats);
   }
 
-  private Result runAlgorithm(final Algorithm algorithm,
+  private boolean runAlgorithm(final Algorithm algorithm,
       final ReachedSet reached,
       final MainCPAStatistics stats) throws CPAException, InterruptedException {
 
     logger.log(Level.INFO, "Starting analysis ...");
-    stats.analysisTime.start();
 
     boolean sound = true;
-    do {
-      sound &= algorithm.run(reached);
 
-      // either run only once (if stopAfterError == true)
-      // or until the waitlist is empty
-    } while (!options.stopAfterError && reached.hasWaitingElement());
+    // register management interface for CPAchecker
+    CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
 
-    logger.log(Level.INFO, "Stopping analysis ...");
-    stats.analysisTime.stop();
-    stats.programTime.stop();
+    stats.analysisTime.start();
+    try {
 
+      do {
+        sound &= algorithm.run(reached);
+
+        // either run only once (if stopAfterError == true)
+        // or until the waitlist is empty
+      } while (!options.stopAfterError && reached.hasWaitingElement());
+
+      logger.log(Level.INFO, "Stopping analysis ...");
+      return sound;
+
+    } finally {
+      stats.analysisTime.stop();
+      stats.programTime.stop();
+
+      // unregister management interface for CPAchecker
+      mxbean.unregister();
+    }
+  }
+
+  private Result analyzeResult(final ReachedSet reached, boolean sound) {
     if (Iterables.any(reached, AbstractElements.IS_TARGET_ELEMENT)) {
       return Result.UNSAFE;
     }
