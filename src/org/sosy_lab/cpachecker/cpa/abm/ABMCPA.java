@@ -38,6 +38,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
+import org.sosy_lab.cpachecker.cfa.blocks.builder.FunctionAndLoopPartitioning;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.PartitioningHeuristic;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
@@ -77,17 +78,16 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   private final ABMCPAStatistics stats;
   private final PartitioningHeuristic heuristic;
 
-  @Option(description="Type of partitioning (FunctionAndLoopPartitioning or DelayedFunctionAndLoopPartitioning)\n"
+  @Option(packagePrefix="org.sosy_lab.cpachecker.cfa.blocks.builder",
+          description="Type of partitioning (FunctionAndLoopPartitioning or DelayedFunctionAndLoopPartitioning)\n"
   		              + "or any class that implements a PartitioningHeuristic")
-  private String blockHeuristic = "FunctionAndLoopPartitioning";
+  private Class<? extends PartitioningHeuristic> blockHeuristic = FunctionAndLoopPartitioning.class;
 
-  private static final String PACKAGE_NAME_PREFIX = "org.sosy_lab.cpachecker.cfa.blocks.builder";
-
-  private <T> T createInstance(String className, Object[] argumentList, Class<T> type) throws CPAException, InvalidConfigurationException {
+  private <T> T createInstance(Class<? extends T> cls, Object[] argumentList, Class<T> type) throws CPAException, InvalidConfigurationException {
     Class<?> argumentTypes[] = {LogManager.class};
 
     try {
-      return Classes.createInstance(className, PACKAGE_NAME_PREFIX, argumentTypes, argumentList, type);
+      return Classes.createInstance(cls, argumentTypes, argumentList, type);
 
     } catch (ClassInstantiationException e) {
       throw new InvalidConfigurationException("Invalid block heuristic specified (" + e.getMessage() + ")!", e);

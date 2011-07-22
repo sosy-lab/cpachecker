@@ -123,12 +123,11 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   private volatile int sizeOfReachedSetBeforeRefinement = 0;
 
-  private static final String PACKAGE_NAME_PREFIX = "org.sosy_lab.cpachecker";
-
-  @Option(required = true, description = "Which refinement algorithm to use? "
+  @Option(required = true, packagePrefix = "org.sosy_lab.cpachecker",
+      description = "Which refinement algorithm to use? "
       + "(give class name, required for CEGAR) If the package name starts with "
       + "'org.sosy_lab.cpachecker.', this prefix can be omitted.")
-  private String refiner = "";
+  private Class<? extends Refiner> refiner = null;
 
   @Option(description = "completely restart analysis on refinement "
       + "by removing everything from the reached set")
@@ -138,11 +137,11 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   private final Algorithm algorithm;
   private final Refiner mRefiner;
 
-  private <T> T createInstance(String className, Object[] argumentList, Class<T> type) throws CPAException, InvalidConfigurationException {
+  private <T> T createInstance(Class<? extends T> cls, Object[] argumentList, Class<T> type) throws CPAException, InvalidConfigurationException {
     Class<?> argumentTypes[] = {ConfigurableProgramAnalysis.class};
 
     try {
-      return Classes.createInstance(className, PACKAGE_NAME_PREFIX, argumentTypes, argumentList, type);
+      return Classes.createInstance(cls, argumentTypes, argumentList, type);
 
     } catch (ClassInstantiationException e) {
       throw new InvalidConfigurationException("Invalid refiner specified (" + e.getMessage() + ")!", e);

@@ -38,7 +38,7 @@ public final class Classes {
   private Classes() { }
 
   /**
-   * Exception thrown by {@link Classes#createInstance(String, String, Class[], Object[], Class)}.
+   * Exception thrown by {@link Classes#createInstance(Class, Class[], Object[], Class)}.
    */
   public static class ClassInstantiationException extends Exception {
 
@@ -69,54 +69,6 @@ public final class Classes {
       assert (source instanceof Exception) && !(source instanceof RuntimeException);
     }
   }
-
-  /**
-   * Creates an instance of class className, passing the objects from argumentList
-   * to the constructor and casting the object to class type.
-   *
-   * @param className The class name.
-   * @param prefix An optional package name that is prefixed to the className if the class is not found.
-   * @param argumentTypes Array with the types of the parameters of the desired constructor.
-   * @param argumentValues Array with the values that will be passed to the constructor.
-   * @param type The return type (has to be a super type of the class, of course).
-   * @throws ClassInstantiationException If something goes wrong (like class cannot be found or has no constructor).
-   * @throws InvocationTargetException If the constructor throws an exception.
-   */
-  public static <T> T createInstance(String className, String prefix,
-      Class<?>[] argumentTypes, Object[] argumentValues, Class<T> type)
-      throws ClassInstantiationException, InvocationTargetException {
-
-    return createInstance(className, prefix, argumentTypes, argumentValues, type, null);
-  }
-
-  /**
-   * Creates an instance of class className, passing the objects from argumentList
-   * to the constructor and casting the object to class type.
-   *
-   * @param className The class name.
-   * @param prefix An optional package name that is prefixed to the className if the class is not found.
-   * @param argumentTypes Array with the types of the parameters of the desired constructor.
-   * @param argumentValues Array with the values that will be passed to the constructor.
-   * @param type The return type (has to be a super type of the class, of course).
-   * @param cl An optional class loader to load the class (may be null).
-   * @throws ClassInstantiationException If something goes wrong (like class cannot be found or has no constructor).
-   * @throws InvocationTargetException If the constructor throws an exception.
-   */
-  public static <T> T createInstance(String className, String prefix,
-      Class<?>[] argumentTypes, Object[] argumentValues, Class<T> type,
-      ClassLoader cl)
-      throws ClassInstantiationException, InvocationTargetException {
-    try {
-      Class<?> cls = forName(className, prefix, cl);
-      return createInstance(cls, argumentTypes, argumentValues, type);
-
-    } catch (ClassNotFoundException e) {
-      throw new ClassInstantiationException(className, "Class not found!");
-    } catch (SecurityException e) {
-      throw new ClassInstantiationException(className, e.getMessage());
-    }
-  }
-
 
   /**
    * Creates an instance of class cls, passing the objects from argumentList
