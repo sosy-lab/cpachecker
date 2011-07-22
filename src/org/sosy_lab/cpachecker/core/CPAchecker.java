@@ -163,23 +163,32 @@ public class CPAchecker {
     try {
       stats = new MainCPAStatistics(config, logger);
 
-      if (options.runCBMCasExternalTool) {
-        Algorithm algorithm = new ExternalCBMCAlgorithm(filename, config, logger);
-        reached = reachedSetFactory.create();
-        boolean sound = runAlgorithm(algorithm, reached, stats);
-        result = analyzeResult(reached, sound);
-        return new CPAcheckerResult(result, reached, stats);
-      }
+      ConfigurableProgramAnalysis cpa = null;
+      Algorithm algorithm;
+      CFACreator cfaCreator = null;
 
-      // create parser, cpa, algorithm
+      // create parser, cpa, algorithm, reached set
       stats.creationTime.start();
 
-      CFACreator cfaCreator = new CFACreator(config, logger);
-      stats.setCFACreator(cfaCreator);
+      if (options.runCBMCasExternalTool) {
+        algorithm = new ExternalCBMCAlgorithm(filename, config, logger);
 
-      ConfigurableProgramAnalysis cpa = createCPA(stats);
+      } else {
+        cpa = createCPA(stats);
 
-      Algorithm algorithm = createAlgorithm(cpa, stats, filename);
+        algorithm = createAlgorithm(cpa, stats, filename);
+
+        cfaCreator = new CFACreator(config, logger);
+        stats.setCFACreator(cfaCreator);
+      }
+
+      // create reached set
+      reached = reachedSetFactory.create();
+      if (algorithm instanceof RestartAlgorithm) {
+        // this algorithm needs an indirection so that it can change
+        // the actual reached set instance on the fly
+        reached = new ForwardingReachedSet(reached);
+      }
 
       Set<String> unusedProperties = config.getUnusedProperties();
       if (!unusedProperties.isEmpty()) {
@@ -188,26 +197,27 @@ public class CPAchecker {
       }
 
       stats.creationTime.stop();
-
       stopIfNecessary();
+      // now everything necessary has been instantiated
 
-      // create CFA
-      cfaCreator.parseFileAndCreateCFA(filename);
 
-      if (cfaCreator.getFunctions().isEmpty()) {
-        // empty program, do nothing
-        return new CPAcheckerResult(Result.NOT_YET_STARTED, null, null);
+      // parse file, create CFA and initialize reached set
+      if (!options.runCBMCasExternalTool) {
+        assert cfaCreator != null && cpa != null;
+        cfaCreator.parseFileAndCreateCFA(filename);
+
+        if (cfaCreator.getFunctions().isEmpty()) {
+          // empty program, do nothing
+          return new CPAcheckerResult(Result.NOT_YET_STARTED, null, null);
+        }
+
+        initializeReachedSet(reached, cpa, cfaCreator.getMainFunction());
+
+        stopIfNecessary();
       }
 
-      reached = createInitialReachedSet(cpa, cfaCreator.getMainFunction());
-      if (algorithm instanceof RestartAlgorithm) {
-        // this algorithm needs an indirection so that it can change
-        // the actual reached set instance on the fly
-        reached = new ForwardingReachedSet(reached);
-      }
 
-      stopIfNecessary();
-
+      // run analysis
       result = Result.UNKNOWN; // set to unknown so that the result is correct in case of exception
 
       boolean sound = runAlgorithm(algorithm, reached, stats);
@@ -353,7 +363,8 @@ public class CPAchecker {
     return algorithm;
   }
 
-  private ReachedSet createInitialReachedSet(
+  private void initializeReachedSet(
+      final ReachedSet reached,
       final ConfigurableProgramAnalysis cpa,
       final CFAFunctionDefinitionNode mainFunction) {
     logger.log(Level.FINE, "Creating initial reached set");
@@ -361,8 +372,6 @@ public class CPAchecker {
     AbstractElement initialElement = cpa.getInitialElement(mainFunction);
     Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
 
-    ReachedSet reached = reachedSetFactory.create();
     reached.add(initialElement, initialPrecision);
-    return reached;
   }
 }
