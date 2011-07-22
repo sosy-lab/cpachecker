@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.util.CFA.Loop;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.SortedSetMultimap;
 
 /**
@@ -171,11 +172,7 @@ public class CFACreator {
 
       final Map<String, CFAFunctionDefinitionNode> cfas = c.getFunctions();
       final SortedSetMultimap<String, CFANode> cfaNodes = c.getCFANodes();
-      final CFAFunctionDefinitionNode mainFunction = cfas.get(mainFunctionName);
-
-      if (mainFunction == null) {
-        throw new InvalidConfigurationException("Function " + mainFunctionName + " not found!");
-      }
+      final CFAFunctionDefinitionNode mainFunction = getMainFunction(filename, cfas);
 
       checkTime.start();
       assert cfas.keySet().equals(cfaNodes.keySet());
@@ -212,7 +209,7 @@ public class CFACreator {
         logger.log(Level.FINE, "Analysis is interprocedural, adding super edges");
 
         CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfas);
-        Set<String> calledFunctions = spbuilder.insertCallEdgesRecursively(mainFunctionName);
+        Set<String> calledFunctions = spbuilder.insertCallEdgesRecursively(mainFunction.getFunctionName());
 
         // remove all functions which are never reached from cfas
         cfas.keySet().retainAll(calledFunctions);
@@ -295,6 +292,41 @@ public class CFACreator {
 
     } finally {
       totalTime.stop();
+    }
+  }
+
+  private CFAFunctionDefinitionNode getMainFunction(String filename,
+      final Map<String, CFAFunctionDefinitionNode> cfas)
+      throws InvalidConfigurationException {
+
+    // try specified function
+    CFAFunctionDefinitionNode mainFunction = cfas.get(mainFunctionName);
+
+    if (mainFunction != null) {
+      return mainFunction;
+    }
+
+    if (!mainFunctionName.equals("main")) {
+      // function explicitly given by user, but not found
+      throw new InvalidConfigurationException("Function " + mainFunctionName + " not found!");
+    }
+
+    if (cfas.size() == 1) {
+      // only one function available, take this one
+      return Iterables.getOnlyElement(cfas.values());
+
+    } else {
+      // get the AAA part out of a filename like AAA.cil.c
+      int indexOfDot = filename.indexOf('.');
+      String baseFilename = indexOfDot >= 1 ? filename.substring(0, indexOfDot) : filename;
+
+      // try function with same name as file
+      mainFunction = cfas.get(baseFilename);
+
+      if (mainFunction == null) {
+        throw new InvalidConfigurationException("No entry function found, please specify one!");
+      }
+      return mainFunction;
     }
   }
 
