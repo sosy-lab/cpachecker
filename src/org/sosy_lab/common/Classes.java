@@ -23,12 +23,17 @@
  */
 package org.sosy_lab.common;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.concurrent.Callable;
+
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+
+import com.google.common.base.Throwables;
 
 /**
  * Helper class for various methods related to handling Java classes and types.
@@ -97,6 +102,84 @@ public final class Classes {
       throw new ClassInstantiationException(cls.getCanonicalName(), e.getMessage());
     } catch (IllegalAccessException e) {
       throw new ClassInstantiationException(cls.getCanonicalName(), e.getMessage());
+    }
+  }
+
+
+  /**
+   * Creates an instance of class cls, passing the objects from argumentList
+   * to the constructor and casting the object to class type.
+   *
+   * If there is no matching constructor or the the class cannot be instantiated,
+   * an InvalidConfigurationException is thrown.
+   *
+   * @param type The return type (has to be a super type of the class, of course).
+   * @param cls The class to instantiate.
+   * @param argumentTypes Array with the types of the parameters of the desired constructor (optional).
+   * @param argumentValues Array with the values that will be passed to the constructor.
+   */
+  public static <T> T createInstance(Class<T> type, Class<? extends T> cls, Class<?>[] argumentTypes, Object[] argumentValues) throws InvalidConfigurationException {
+    return createInstance(type, cls, argumentTypes, argumentValues, RuntimeException.class);
+  }
+
+  /**
+   * Creates an instance of class cls, passing the objects from argumentList
+   * to the constructor and casting the object to class type.
+   *
+   * If there is no matching constructor or the the class cannot be instantiated,
+   * an InvalidConfigurationException is thrown.
+   *
+   * @param type The return type (has to be a super type of the class, of course).
+   * @param cls The class to instantiate.
+   * @param argumentTypes Array with the types of the parameters of the desired constructor (optional).
+   * @param argumentValues Array with the values that will be passed to the constructor.
+   * @param exceptionType An exception type the constructor is allowed to throw.
+   */
+  public static <T, X extends Exception> T createInstance(Class<T> type, Class<? extends T> cls, Class<?>[] argumentTypes, Object[] argumentValues, Class<X> exceptionType) throws X, InvalidConfigurationException {
+    if (argumentTypes == null) {
+      // fill argumenTypes array
+      argumentTypes = new Class<?>[argumentValues.length];
+      int i = 0;
+      for (Object obj : argumentValues) {
+        argumentTypes[i++] = obj.getClass();
+      }
+
+    } else {
+      checkArgument(argumentTypes.length == argumentValues.length);
+    }
+
+    String className = cls.getSimpleName();
+    String typeName = type.getSimpleName();
+
+    // get constructor
+    Constructor<? extends T> ct;
+    try {
+      ct = cls.getConstructor(argumentTypes);
+    } catch (NoSuchMethodException e) {
+      throw new InvalidConfigurationException("Invalid " + typeName + " " + className + ", no matching constructor", e);
+    }
+
+    // verify signature
+    String exception = Classes.verifyDeclaredExceptions(ct, exceptionType, InvalidConfigurationException.class);
+    if (exception != null) {
+      throw new InvalidConfigurationException("Invalid " + typeName + " " + className + ", constructor declares unsupported checked exception " + exception);
+    }
+
+    // instantiate
+    try {
+      return ct.newInstance(argumentValues);
+
+    } catch (InstantiationException e) {
+      throw new InvalidConfigurationException("Invalid " + typeName + " " + className + ", class cannot be instantiated (" + e.getMessage() + ")", e);
+
+    } catch (IllegalAccessException e) {
+      throw new InvalidConfigurationException("Invalid " + typeName + " " + className + ", constructor is not accessible", e);
+
+    } catch (InvocationTargetException e) {
+      Throwable t = e.getCause();
+      Throwables.propagateIfPossible(t, exceptionType, InvalidConfigurationException.class);
+
+      throw new UnexpectedCheckedException("instantiation of " + typeName + " " + className, t);
     }
   }
 

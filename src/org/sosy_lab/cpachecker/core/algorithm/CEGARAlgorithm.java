@@ -24,13 +24,11 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import java.io.PrintStream;
-import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.Classes;
-import org.sosy_lab.common.Classes.ClassInstantiationException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
@@ -49,7 +47,6 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 
 @Options(prefix="cegar")
 public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
@@ -137,32 +134,15 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   private final Algorithm algorithm;
   private final Refiner mRefiner;
 
-  private <T> T createInstance(Class<? extends T> cls, Object[] argumentList, Class<T> type) throws CPAException, InvalidConfigurationException {
-    Class<?> argumentTypes[] = {ConfigurableProgramAnalysis.class};
-
-    try {
-      return Classes.createInstance(cls, argumentTypes, argumentList, type);
-
-    } catch (ClassInstantiationException e) {
-      throw new InvalidConfigurationException("Invalid refiner specified (" + e.getMessage() + ")!", e);
-
-    } catch (InvocationTargetException e) {
-      Throwable t = e.getCause();
-      Throwables.propagateIfPossible(t, CPAException.class, InvalidConfigurationException.class);
-
-      logger.logDebugException(t, "Unexpected exception during refiner instantiation!");
-      throw new CPAException("Unexpected exception " + t.getClass().getSimpleName() + " during refiner instantiation (" + t.getMessage() + ")!");
-    }
-  }
-
   public CEGARAlgorithm(Algorithm algorithm, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
     config.inject(this);
     this.algorithm = algorithm;
     this.logger = logger;
 
-    Object[] refinerArguments = {algorithm.getCPA()};
+    Class<?>[] argumentTypes = {ConfigurableProgramAnalysis.class};
+    Object[] argumentValues = {algorithm.getCPA()};
 
-    mRefiner = createInstance(refiner, refinerArguments, Refiner.class);
+    mRefiner = Classes.createInstance(Refiner.class, refiner, argumentTypes, argumentValues, CPAException.class);
     new CEGARMBean(); // don't store it because we wouldn't know when to unregister anyway
   }
 

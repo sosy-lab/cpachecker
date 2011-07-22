@@ -25,13 +25,11 @@ package org.sosy_lab.cpachecker.cpa.abm;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.sosy_lab.common.Classes;
-import org.sosy_lab.common.Classes.ClassInstantiationException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -59,8 +57,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.predicate.ABMPredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-import com.google.common.base.Throwables;
-
 
 @Options(prefix="cpa.abm")
 public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvider {
@@ -82,24 +78,6 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
           description="Type of partitioning (FunctionAndLoopPartitioning or DelayedFunctionAndLoopPartitioning)\n"
   		              + "or any class that implements a PartitioningHeuristic")
   private Class<? extends PartitioningHeuristic> blockHeuristic = FunctionAndLoopPartitioning.class;
-
-  private <T> T createInstance(Class<? extends T> cls, Object[] argumentList, Class<T> type) throws CPAException, InvalidConfigurationException {
-    Class<?> argumentTypes[] = {LogManager.class};
-
-    try {
-      return Classes.createInstance(cls, argumentTypes, argumentList, type);
-
-    } catch (ClassInstantiationException e) {
-      throw new InvalidConfigurationException("Invalid block heuristic specified (" + e.getMessage() + ")!", e);
-
-    } catch (InvocationTargetException e) {
-      Throwable t = e.getCause();
-      Throwables.propagateIfPossible(t, CPAException.class, InvalidConfigurationException.class);
-
-      logger.logDebugException(t, "Unexpected exception during CPA instantiation!");
-      throw new CPAException("Unexpected exception " + t.getClass().getSimpleName() + " during CPA instantiation (" + t.getMessage() + ")!");
-    }
-  }
 
   public ABMCPA(ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger, ReachedSetFactory pReachedSetFactory) throws InvalidConfigurationException, CPAException {
     super(pCpa);
@@ -142,7 +120,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   }
 
   private PartitioningHeuristic getPartitioningHeuristic() throws CPAException, InvalidConfigurationException {
-    return createInstance(blockHeuristic, new Object[]{logger}, PartitioningHeuristic.class);
+    return Classes.createInstance(PartitioningHeuristic.class, blockHeuristic, null, new Object[]{logger}, CPAException.class);
   }
 
   @Override

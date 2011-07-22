@@ -23,12 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.sosy_lab.common.Classes;
-import org.sosy_lab.common.Classes.ClassInstantiationException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -46,7 +44,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 
 @Options(prefix="cpa.assumptions.progressobserver")
@@ -79,22 +76,10 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
               throws InvalidConfigurationException {
     ImmutableList.Builder<StopHeuristics<?>> builder = ImmutableList.builder();
 
-    Class<?>[] argsTypes = {Configuration.class, LogManager.class};
+    Object[] argsValues = {config, logger};
+
     for (Class<? extends StopHeuristics<?>> heuristicsClass : heuristics) {
-
-      try {
-        Object[] localArgs = {config, logger};
-        StopHeuristics<?> newHeuristics = Classes.createInstance(heuristicsClass, argsTypes, localArgs, StopHeuristics.class);
-        builder.add(newHeuristics);
-
-      } catch (InvocationTargetException e) {
-        Throwable t = e.getCause();
-        Throwables.propagateIfPossible(t, InvalidConfigurationException.class);
-        throw new InvalidConfigurationException("Heuristic " + heuristicsClass.getSimpleName() + " could not be instantiated (" + t.getMessage() + ")", e);
-
-      } catch (ClassInstantiationException e) {
-        throw new InvalidConfigurationException("Invalid heuristic " + heuristicsClass.getSimpleName() + " (" + e.getMessage() + ")", e);
-      }
+      builder.add(Classes.createInstance(StopHeuristics.class, heuristicsClass, null, argsValues));
     }
 
     return builder.build();
