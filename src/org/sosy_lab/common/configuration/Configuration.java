@@ -411,10 +411,10 @@ public class Configuration {
    * - all enum types
    * - {@link String} and arrays of it
    * - {@link File} (the field {@link Option#type()} is required in this case!)
+   * - Class<Something>
    * - arrays of the above types
    * - collection types {@link Iterable}, {@link Collection}, {@link List},
    *   {@link Set}, {@link SortedSet} and {@link Multiset} of the above types
-   * - Class<Something>
    *
    * For the collection types an immutable instance will be created and injected.
    * Their type parameter has to be one of the other supported types.
@@ -677,44 +677,31 @@ public class Configuration {
       throws UnsupportedOperationException, InvalidConfigurationException {
     // convert value to correct type
 
-    if (type.equals(Class.class)) {
+    if (type.isArray()) {
       if (valueStr == null) {
         return null;
       }
 
-      return handleClassOption(optionName, valueStr, genericType, option.packagePrefix());
+      @SuppressWarnings("unchecked")
+      Class<Object> componentType = (Class<Object>) type.getComponentType();
+      Iterable<?> values = convertMultipleValues(optionName, valueStr, componentType, null, option);
+
+      return Iterables.toArray(values, componentType);
+
+    } else if (COLLECTIONS.containsKey(type)) {
+      if (valueStr == null) {
+        return null;
+      }
+
+      return handleCollectionOption(optionName, valueStr, type, genericType, option);
 
     } else {
-      if (!option.packagePrefix().isEmpty()) {
-        throw new UnsupportedOperationException("Package prefix may be specified only for Class options, not for option " + optionName);
-      }
-
-      if (type.isArray()) {
-        if (valueStr == null) {
-          return null;
-        }
-
-        @SuppressWarnings("unchecked")
-        Class<Object> componentType = (Class<Object>) type.getComponentType();
-        Iterable<?> values = convertMultipleValues(optionName, valueStr, componentType, option);
-
-        return Iterables.toArray(values, componentType);
-
-      } else if (COLLECTIONS.containsKey(type)) {
-        if (valueStr == null) {
-          return null;
-        }
-
-        return handleCollectionOption(optionName, valueStr, type, genericType, option);
-
-      } else {
-        return convertSingleValue(optionName, valueStr, defaultValue, type, option);
-      }
+      return convertSingleValue(optionName, valueStr, defaultValue, type, genericType, option);
     }
   }
 
   private Object convertSingleValue(final String optionName, final String valueStr,
-      final Object defaultValue, final Class<?> type, final Option option)
+      final Object defaultValue, final Class<?> type, final Type genericType, final Option option)
       throws InvalidConfigurationException {
 
     Option.Type typeInfo = option.type();
@@ -723,6 +710,10 @@ public class Configuration {
     if ((typeInfo == Option.Type.NOT_APPLICABLE) == (type.equals(File.class))) {
       throw new UnsupportedOperationException("Type " + type.getSimpleName()
           + " and type=" + typeInfo + " do not match for option " + optionName);
+    }
+
+    if (!option.packagePrefix().isEmpty() && !type.equals(Class.class)) {
+      throw new UnsupportedOperationException("Package prefix may be specified only for Class options, not for option " + optionName);
     }
 
     if (valueStr == null) {
@@ -756,6 +747,9 @@ public class Configuration {
 
       return handleFileOption(optionName, valueStr, (File) defaultValue, typeInfo);
 
+    } else if (type.equals(Class.class)) {
+      return handleClassOption(optionName, valueStr, genericType, option.packagePrefix());
+
     } else {
       throw new UnsupportedOperationException(
           "Unimplemented type for option: " + type.getSimpleName());
@@ -763,7 +757,7 @@ public class Configuration {
   }
 
   private Iterable<?> convertMultipleValues(final String optionName, final String valueStr,
-      final Class<?> type, final Option option)
+      final Class<?> type, final Type genericType, final Option option)
       throws InvalidConfigurationException {
 
     Iterable<String> values = ARRAY_SPLITTER.split(valueStr);
@@ -775,7 +769,7 @@ public class Configuration {
     List<Object> result = new ArrayList<Object>();
 
     for (String item : values) {
-      result.add(convertSingleValue(optionName, item, null, type, option));
+      result.add(convertSingleValue(optionName, item, null, type, genericType, option));
     }
 
     return result;
@@ -860,6 +854,8 @@ public class Configuration {
   private Class<?> handleClassOption(final String optionName, final String valueStr,
       Type genericType, String packagePrefix) throws InvalidConfigurationException {
 
+    assert genericType != null : "Need a generic type for class options";
+
     // get value of type parameter
     assert genericType instanceof ParameterizedType : "Class type that is not a ParameterizedType";
     ParameterizedType pType = (ParameterizedType)genericType;
@@ -867,7 +863,17 @@ public class Configuration {
     assert parameterTypes.length == 1 : "Class type with more than one type parameter";
     Type paramType = parameterTypes[0];
 
-    Class<?> targetType = extractUpperBoundFromType(paramType);
+    paramType = extractUpperBoundFromType(paramType);
+    if (paramType instanceof ParameterizedType) {
+      paramType = ((ParameterizedType)paramType).getRawType();
+    }
+
+    Class<?> targetType;
+    if (paramType instanceof Class<?>) {
+      targetType = (Class<?>)paramType;
+    } else {
+      throw new UnsupportedOperationException("Currently types like \"" + paramType + "\" are not supported");
+    }
 
     // get class object
     Class<?> cls;
@@ -896,20 +902,32 @@ public class Configuration {
     assert parameterTypes.length == 1 : "Collections type with more than one type parameter";
     Type paramType = parameterTypes[0];
 
-    Class<?> componentType = extractUpperBoundFromType(paramType);
+    paramType = extractUpperBoundFromType(paramType);
+
+    Class<?> componentType;
+    Type componentGenericType = null;
+    if (paramType instanceof ParameterizedType) {
+      componentGenericType = paramType;
+      paramType = ((ParameterizedType)paramType).getRawType();
+    }
+    if (paramType instanceof Class<?>) {
+      componentType = (Class<?>)paramType;
+    } else {
+      throw new UnsupportedOperationException("Currently types like \"" + type + "\" are not supported");
+    }
 
     // now we now that it's a Collection<componentType> / Set<? extends componentType> etc., so we can safely assign to it
 
     Class<?> implementationClass = COLLECTIONS.get(type);
     assert implementationClass != null : "Only call this method with a class that has a mapping in COLLECTIONS";
 
-    Iterable<?> values = convertMultipleValues(optionName, valueStr, componentType, option);
+    Iterable<?> values = convertMultipleValues(optionName, valueStr, componentType, componentGenericType, option);
 
     // invoke ImmutableSet.copyOf(Iterable) etc.
     return invokeMethod(implementationClass, "copyOf", Iterable.class, values, optionName);
   }
 
-  private static Class<?> extractUpperBoundFromType(Type type) {
+  private static Type extractUpperBoundFromType(Type type) {
     if (type instanceof WildcardType) {
       WildcardType wcType = (WildcardType)type;
       if (wcType.getLowerBounds().length > 0) {
@@ -921,12 +939,7 @@ public class Configuration {
       }
       type = upperBounds[0];
     }
-
-    if (type instanceof Class<?>) {
-      return (Class<?>)type;
-    } else {
-      throw new UnsupportedOperationException("Currently types like \"" + type + "\" are not supported");
-    }
+    return type;
   }
 
   private static void checkRange(Option option, String name, Object value) throws InvalidConfigurationException {
