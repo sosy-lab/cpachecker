@@ -76,23 +76,17 @@ import com.google.common.io.Files;
     + "become quite large and memory usage might become an issue.")
 public class LogManager {
 
-  @Option(name="level", toUppercase=true,
-      description="log level of file output",
-      values={"OFF", "SEVERE", "WARNING", "INFO", "FINE", "FINER", "FINEST", "ALL"})
-  private String logLevelStr = "OFF";
+  @Option(name="level", toUppercase=true, description="log level of file output")
+  private Level fileLevel = Level.OFF;
 
-  @Option(name="consoleLevel", toUppercase=true,
-      description="log level of console output",
-      values={"OFF", "SEVERE", "WARNING", "INFO", "FINE", "FINER", "FINEST", "ALL"})
-  private String consoleLevelStr = "INFO";
+  @Option(toUppercase=true, description="log level of console output")
+  private Level consoleLevel = Level.INFO;
 
-  @Option(name="fileExclude", toUppercase=true,
-      description="single levels to be excluded from being logged")
-  private String[] excludeLevelsFileStr = {};
+  @Option(toUppercase=true, description="single levels to be excluded from being logged")
+  private List<Level> fileExclude = ImmutableList.of();
 
-  @Option(name="consoleExclude", toUppercase=true,
-      description="single levels to be excluded from being logged")
-  private String[] excludeLevelsConsoleStr = {};
+  @Option(toUppercase=true, description="single levels to be excluded from being logged")
+  private List<Level> consoleExclude = ImmutableList.of();
 
   @Option(name="file", type=Option.Type.OUTPUT_FILE,
       description="name of the log file")
@@ -229,40 +223,37 @@ public class LogManager {
     Preconditions.checkNotNull(consoleOutputHandler);
     config.inject(this);
 
-    Level logFileLevel = Level.parse(logLevelStr);
-    Level logConsoleLevel = Level.parse(consoleLevelStr);
-
-    Level logLevel;
-    if (logFileLevel.intValue() > logConsoleLevel.intValue()) {
-      logLevel = logConsoleLevel; // smaller level is more detailed logging
+    Level effectiveLogLevel;
+    if (fileLevel.intValue() > consoleLevel.intValue()) {
+      effectiveLogLevel = consoleLevel; // smaller level is more detailed logging
     } else {
-      logLevel = logFileLevel;
+      effectiveLogLevel = fileLevel;
     }
 
     logger = Logger.getAnonymousLogger();
-    logger.setLevel(logLevel);
+    logger.setLevel(effectiveLogLevel);
     logger.setUseParentHandlers(false);
 
-    if (logLevel == Level.OFF) {
+    if (effectiveLogLevel.equals(Level.OFF)) {
       return;
     }
 
     // create console logger
-    setupHandler(consoleOutputHandler, new ConsoleLogFormatter(), logConsoleLevel, excludeLevelsConsoleStr);
+    setupHandler(consoleOutputHandler, new ConsoleLogFormatter(), consoleLevel, consoleExclude);
 
     // create file logger
-    if (logFileLevel != Level.OFF && outputFile != null) {
+    if (!fileLevel.equals(Level.OFF) && outputFile != null) {
       try {
         Files.createParentDirs(outputFile);
 
         Handler outfileHandler = new FileHandler(outputFile.getAbsolutePath(), false);
 
-        setupHandler(outfileHandler, new FileLogFormatter(), logFileLevel, excludeLevelsFileStr);
+        setupHandler(outfileHandler, new FileLogFormatter(), fileLevel, fileExclude);
 
       } catch (IOException e) {
         // redirect log messages to console
-        if (logConsoleLevel.intValue() > logFileLevel.intValue()) {
-          logger.getHandlers()[0].setLevel(logFileLevel);
+        if (consoleLevel.intValue() > fileLevel.intValue()) {
+          logger.getHandlers()[0].setLevel(fileLevel);
         }
 
         logger.log(Level.WARNING, "Could not open log file " + e.getMessage() + ", redirecting log output to console");
@@ -270,14 +261,10 @@ public class LogManager {
     }
   }
 
-  private void setupHandler(Handler handler, Formatter formatter, Level level, String[] excludeLevelsStr) {
+  private void setupHandler(Handler handler, Formatter formatter, Level level, List<Level> excludeLevels) throws InvalidConfigurationException {
     //build up list of Levels to exclude from logging
-    if (excludeLevelsStr.length != 0) {
-      ImmutableList.Builder<Level> excludeLevels = ImmutableList.builder();
-      for (String s : excludeLevelsStr) {
-        excludeLevels.add(Level.parse(s));
-      }
-      handler.setFilter(new LogLevelFilter(excludeLevels.build()));
+    if (excludeLevels.size() > 0) {
+      handler.setFilter(new LogLevelFilter(excludeLevels));
     } else {
       handler.setFilter(null);
     }

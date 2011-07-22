@@ -45,6 +45,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Files;
@@ -411,7 +412,8 @@ public class Configuration {
    * - all enum types
    * - {@link String} and arrays of it
    * - {@link File} (the field {@link Option#type()} is required in this case!)
-   * - Class<Something>
+   * - {@link Class<Something>}
+   * - {@link java.util.logging.Level}
    * - arrays of the above types
    * - collection types {@link Iterable}, {@link Collection}, {@link List},
    *   {@link Set}, {@link SortedSet} and {@link Multiset} of the above types
@@ -749,6 +751,13 @@ public class Configuration {
 
     } else if (type.equals(Class.class)) {
       return handleClassOption(optionName, valueStr, genericType, option.packagePrefix());
+
+    } else if (type.equals(Level.class)) {
+      try {
+        return Level.parse(valueStr);
+      } catch (IllegalArgumentException e) {
+        throw new InvalidConfigurationException("Illegal log level " + valueStr + " in option " + optionName);
+      }
 
     } else {
       throw new UnsupportedOperationException(
