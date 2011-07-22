@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
@@ -198,6 +199,11 @@ public class CPAchecker {
       }
 
       reached = createInitialReachedSet(cpa, cfaCreator.getMainFunction());
+      if (algorithm instanceof RestartAlgorithm) {
+        // this algorithm needs an indirection so that it can change
+        // the actual reached set instance on the fly
+        reached = new ForwardingReachedSet(reached);
+      }
 
       stopIfNecessary();
 
@@ -214,11 +220,6 @@ public class CPAchecker {
 
         do {
           sound &= algorithm.run(reached);
-
-          if (algorithm instanceof RestartAlgorithm) {
-            // this algorithm produces a new reached set
-            reached = ((RestartAlgorithm)algorithm).getUsedReachedSet();
-          }
 
           // either run only once (if stopAfterError == true)
           // or until the waitlist is empty

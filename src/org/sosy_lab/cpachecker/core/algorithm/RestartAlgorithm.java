@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -47,6 +49,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -110,7 +113,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   private final String filename;
 
   private Algorithm currentAlgorithm;
-  private ReachedSet currentReached;
 
   public RestartAlgorithm(Configuration config, LogManager pLogger, String pFilename) throws InvalidConfigurationException {
     config.inject(this);
@@ -131,7 +133,11 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public boolean run(ReachedSet pReached) throws CPAException, InterruptedException {
-    assert pReached.getFirstElement() != null : "Empty reached set not allowed";
+    checkArgument(pReached instanceof ForwardingReachedSet, "RestartAlgorithm needs ForwardingReachedSet");
+    checkArgument(pReached.size() <= 1, "RestartAlgorithm does not support being called several times with the same reached set");
+    checkArgument(!pReached.isEmpty(), "RestartAlgorithm needs non-empty reached set");
+
+    ForwardingReachedSet reached = (ForwardingReachedSet)pReached;
 
     CFANode mainFunction = AbstractElements.extractLocation(pReached.getFirstElement());
     assert mainFunction != null : "Location information needed";
@@ -143,7 +149,8 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       Pair<Algorithm, ReachedSet> currentPair = createNextAlgorithm(singleConfigFileName, mainFunction);
 
       currentAlgorithm = currentPair.getFirst();
-      currentReached = currentPair.getSecond();
+      ReachedSet currentReached = currentPair.getSecond();
+      reached.setDelegate(currentReached);
 
       // run algorithm
       Preconditions.checkNotNull(currentReached);
@@ -184,10 +191,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     // no further configuration available, and analysis has not finished
     logger.log(Level.INFO, "No further configuration available.");
     return false;
-  }
-
-  public ReachedSet getUsedReachedSet(){
-    return currentReached;
   }
 
   @Options
