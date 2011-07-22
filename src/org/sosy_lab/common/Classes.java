@@ -27,6 +27,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.concurrent.Callable;
 
 /**
@@ -194,5 +195,60 @@ public final class Classes {
         throw e; // re-throw original exception to get correct error message
       }
     }
+  }
+
+  /**
+   * Verify that a constructor declares no other checked exceptions except a
+   * given type.
+   *
+   * Returns the name of any violating exception, or null if there is none.
+   *
+   * @param constructor The constructor to check.
+   * @param allowedExceptionType The type of exception that is allowed.
+   * @return Null or the name of a declared exception.
+   */
+  public static String verifyDeclaredExceptions(Constructor<?> constructor, Class<?>... allowedExceptionTypes) {
+    return verifyDeclaredExceptions(constructor.getExceptionTypes(), allowedExceptionTypes);
+  }
+
+  /**
+   * Verify that a method declares no other checked exceptions except a
+   * given type.
+   *
+   * Returns the name of any violating exception, or null if there is none.
+   *
+   * @param method The method to check.
+   * @param allowedExceptionType The type of exception that is allowed.
+   * @return Null or the name of a declared exception.
+   */
+  public static String verifyDeclaredExceptions(Method method, Class<?>... allowedExceptionTypes) {
+    return verifyDeclaredExceptions(method.getExceptionTypes(), allowedExceptionTypes);
+  }
+
+  private static String verifyDeclaredExceptions(Class<?>[] declaredExceptionTypes, Class<?>[] allowedExceptionTypes) {
+    for (Class<?> declaredException : declaredExceptionTypes) {
+
+      if (Exception.class.isAssignableFrom(declaredException)) {
+        // it's an exception, not an error
+
+        if (Runtime.class.isAssignableFrom(declaredException)) {
+          // it's a runtime exception
+          continue;
+        }
+
+        boolean ok = false;
+        for (Class<?> allowedExceptionType : allowedExceptionTypes) {
+          if (allowedExceptionType.isAssignableFrom(declaredException)) {
+            ok = true;
+            break;
+          }
+        }
+
+        if (!ok) {
+          return declaredException.getSimpleName();
+        }
+      }
+    }
+    return null;
   }
 }

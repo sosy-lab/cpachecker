@@ -34,6 +34,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 
+import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -119,12 +120,19 @@ public class AutomaticCPAFactory implements CPAFactory {
       actualParameters[i] = actualParam;
     }
 
+    // verify types of declared exceptions
+    String exception = Classes.verifyDeclaredExceptions(cons, InvalidConfigurationException.class, CPAException.class);
+    if (exception != null) {
+      throw new UnsupportedOperationException("Cannot automatically create CPAs if the constructor declares the unsupported checked exception " + exception);
+    }
+
+    // instantiate
     try {
       return type.cast(cons.newInstance(actualParameters));
     } catch (InvocationTargetException e) {
       Throwable t = e.getCause();
       Throwables.propagateIfPossible(t, CPAException.class, InvalidConfigurationException.class);
-      throw new RuntimeException("Unexpected checked exception", t);
+      throw new UnexpectedCheckedException("instantiation of CPA " + type.getSimpleName(), t);
 
     } catch (InstantiationException e) {
       throw new UnsupportedOperationException("Cannot automatically create CPAs " +
@@ -217,16 +225,9 @@ public class AutomaticCPAFactory implements CPAFactory {
     }
 
     // verify types of declared exceptions
-    for (Class<?> cls : constructor.getExceptionTypes()) {
-      if (Exception.class.isAssignableFrom(cls)) {
-        // it's a checked exception
-
-        if (!InvalidConfigurationException.class.isAssignableFrom(cls)
-          && !CPAException.class.isAssignableFrom(cls)) {
-
-          throw new IllegalArgumentException("Constructor of options holder class declares illegal checked exception: " + cls.getSimpleName());
-        }
-      }
+    String exception = Classes.verifyDeclaredExceptions(constructor, InvalidConfigurationException.class, CPAException.class);
+    if (exception != null) {
+      throw new IllegalArgumentException("Constructor of options holder class declares illegal checked exception: " + exception);
     }
 
     return new AutomaticCPAFactoryWithOptions<T>(type, injects, optionsClass, constructor);

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core;
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -33,6 +34,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Classes;
+import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -185,35 +187,42 @@ public class CPABuilder {
   }
 
   private CPAFactory getFactoryInstance(String cpaName, Class<?> cpaClass) throws CPAException {
+
+    // get factory method
+    Method factoryMethod;
+    try {
+      factoryMethod = cpaClass.getMethod("factory", (Class<?>[]) null);
+    } catch (NoSuchMethodException e) {
+      throw new CPAException("Each CPA class has to offer a public static method \"factory\" with zero parameters, but " + cpaName + " does not!");
+    }
+
+    // verify signature
+    if (!Modifier.isStatic(factoryMethod.getModifiers())) {
+      throw new CPAException("The factory method of the CPA " + cpaName + " is not static!");
+    }
+
+    String exception = Classes.verifyDeclaredExceptions(factoryMethod, CPAException.class);
+    if (exception != null) {
+      throw new CPAException("The factory method of the CPA " + cpaName + " declares the unsupported checked exception: " + exception);
+    }
+
+    // invoke factory method
     Object factoryObj;
     try {
-      Method factoryMethod = cpaClass.getMethod("factory", (Class<?>[]) null);
       factoryObj = factoryMethod.invoke(null, (Object[])null);
 
-    } catch (NullPointerException e) {
-      throw new CPAException("The factory method of the CPA " + cpaName + " is not static!");
-
-    } catch (NoSuchMethodException e) {
-      throw new CPAException("Each CPA class has to offer a public static method factory with zero parameters, but " + cpaName + " does not!");
-
-    } catch (IllegalArgumentException e) {
-      // method is not static
-      throw new CPAException("Each CPA class has to offer a public static method factory with zero parameters, but " + cpaName + " does not!");
-
     } catch (IllegalAccessException e) {
-      // method is not public
-      throw new CPAException("Each CPA class has to offer a public static method factory with zero parameters, but " + cpaName + " does not!");
+      throw new CPAException("The factory method of the CPA " + cpaName + " is not public!");
 
     } catch (InvocationTargetException e) {
       Throwable cause = e.getCause();
       Throwables.propagateIfPossible(cause, CPAException.class);
 
-      logger.logDebugException(cause, "CPA factory methods should never throw an exception!");
-      throw new CPAException("Cannot create CPA because of unexpected exception: " + cause.getMessage());
+      throw new UnexpectedCheckedException("instantiation of CPA " + cpaName, cause);
     }
 
     if ((factoryObj == null) || !(factoryObj instanceof CPAFactory)) {
-      throw new CPAException("The factory method of a CPA has to return an instance of CPAFactory!");
+      throw new CPAException("The factory method of the CPA " + cpaName + " didn't return a CPAFactory!");
     }
 
     return (CPAFactory)factoryObj;
