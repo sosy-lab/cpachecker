@@ -89,8 +89,8 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public boolean run(ReachedSet pReachedSet) throws CPAException,
-  InterruptedException {
+  public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+    assert pReachedSet.isEmpty();
 
     // run CBMC
     logger.log(Level.INFO, "Starting CBMC algorithm.");
@@ -132,6 +132,11 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
       }
       else{
         pReachedSet.add(new CBMCDummyErrorElement(), SingletonPrecision.getInstance());
+        assert pReachedSet.size() == 1 && pReachedSet.hasWaitingElement();
+
+        // remove dummy element from waitlist
+        pReachedSet.popFromWaitlist();
+        assert !pReachedSet.hasWaitingElement();
       }
     }
 
