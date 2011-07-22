@@ -114,7 +114,7 @@ public class LogManager {
     private final StringBuilder sb = new StringBuilder();
 
     @Override
-    public void close() throws SecurityException {
+    public void close() {
       // ignore
     }
 
@@ -159,17 +159,30 @@ public class LogManager {
     }
   }
 
+  /**
+   * Get the simple name of the source class of a log record.
+   */
+  private static String extractSimpleClassName(LogRecord lr) {
+    String fullClassName = lr.getSourceClassName();
+    int dotIndex = fullClassName.lastIndexOf('.');
+    assert dotIndex < fullClassName.length() - 1 : "Last character in a class name cannot be a dot";
+
+    // if no dot is contained, dotIndex is -1 so we get the substring from 0,
+    // i.e., the whole string (which is what we want)
+
+    String className = fullClassName.substring(dotIndex+1);
+    return className;
+  }
+
   // class to handle formatting for file output
   private static class FileLogFormatter extends Formatter {
     @Override
     public String format(LogRecord lr) {
-      String[] className = lr.getSourceClassName().split("\\.");
-      String[] methodName = lr.getSourceMethodName().split("\\.");
+
       return dateFormat.format(lr.getMillis()) + "\t "
-      + "level: " + lr.getLevel().toString() + "\t "
-      + className[className.length-1]  + "."
-      + methodName[0]  + "\t "
-      + lr.getMessage() + "\n\n";
+          + "level: " + lr.getLevel().toString() + "\t "
+          + extractSimpleClassName(lr)  + "." + lr.getSourceMethodName()  + "\t "
+          + lr.getMessage() + "\n\n";
     }
   }
 
@@ -177,13 +190,11 @@ public class LogManager {
   public static class ConsoleLogFormatter extends Formatter {
     @Override
     public String format(LogRecord lr) {
-      String[] className = lr.getSourceClassName().split("\\.");
-      String[] methodName = lr.getSourceMethodName().split("\\.");
+
       return lr.getMessage() + " ("
-      + className[className.length-1]  + "."
-      + methodName[0]  + ", "
-      + lr.getLevel().toString()
-      + ")\n\n";
+          + extractSimpleClassName(lr)  + "." + lr.getSourceMethodName()  + ", "
+          + lr.getLevel().toString()
+          + ")\n\n";
     }
   }
 

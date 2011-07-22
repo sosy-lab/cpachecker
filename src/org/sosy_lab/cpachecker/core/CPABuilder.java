@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 
@@ -59,6 +60,8 @@ public class CPABuilder {
 
   private static final String CPA_OPTION_NAME = "cpa";
   private static final String CPA_CLASS_PREFIX = "org.sosy_lab.cpachecker";
+
+  private static final Splitter LIST_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings();
 
   @Option(name=CPA_OPTION_NAME,
       description="CPA to use (see HowToConfiguration.txt for more documentation on this)")
@@ -259,7 +262,7 @@ public class CPABuilder {
       // several children CPAs
       ImmutableList.Builder<ConfigurableProgramAnalysis> childrenCpas = ImmutableList.builder();
 
-      for (String currentChildCpaName : childrenCpaNames.split("\\s*,\\s*")) {
+      for (String currentChildCpaName : LIST_SPLITTER.split(childrenCpaNames)) {
         childrenCpas.add(buildCPAs(currentChildCpaName, childrenOptionName, usedAliases, null));
       }
       if (cpas != null) {
