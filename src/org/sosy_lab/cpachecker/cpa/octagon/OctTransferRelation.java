@@ -65,7 +65,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerElement;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 /**
  * Handles transfer relation for Octagon abstract domain library.
  * See <a href="http://www.di.ens.fr/~mine/oct/">Octagon abstract domain library</a>
@@ -89,7 +88,7 @@ public class OctTransferRelation implements TransferRelation{
   }
 
   @Override
-  public Collection<? extends AbstractElement> getAbstractSuccessors (AbstractElement element, Precision prec, CFAEdge cfaEdge)
+  public Collection<? extends AbstractElement> getAbstractSuccessors (AbstractElement element, Precision prec, CFAEdge cfaEdge) throws UnrecognizedCCodeException
   {
 
     System.out.println(cfaEdge);
@@ -98,11 +97,7 @@ public class OctTransferRelation implements TransferRelation{
 
     OctElement octElement = null;
     OctElement prevElement = (OctElement)element;
-    try {
-      octElement = (OctElement)((OctElement)element).clone();
-    } catch (CloneNotSupportedException e) {
-      e.printStackTrace();
-    }
+    octElement = ((OctElement)element).clone();
 
     assert(octElement != null);
 
@@ -115,11 +110,7 @@ public class OctTransferRelation implements TransferRelation{
     {
       StatementEdge statementEdge = (StatementEdge) cfaEdge;
       IASTStatement expression = statementEdge.getStatement();
-      try {
-        octElement = handleStatement (octElement, expression, cfaEdge);
-      } catch (UnrecognizedCCodeException e) {
-        e.printStackTrace();
-      }
+      octElement = handleStatement (octElement, expression, cfaEdge);
       break;
     }
 
@@ -131,11 +122,7 @@ public class OctTransferRelation implements TransferRelation{
       // this is a statement edge which leads the function to the
       // last node of its CFA, where return edge is from that last node
       // to the return site of the caller function
-      try {
-        octElement = handleExitFromFunction(octElement, statementEdge.getExpression(), statementEdge);
-      } catch (UnrecognizedCCodeException e) {
-        e.printStackTrace();
-      }
+      octElement = handleExitFromFunction(octElement, statementEdge.getExpression(), statementEdge);
       break;
     }
 
@@ -143,11 +130,7 @@ public class OctTransferRelation implements TransferRelation{
     case DeclarationEdge:
     {
       DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
-      try {
-        octElement = handleDeclaration (octElement, declarationEdge);
-      } catch (UnrecognizedCCodeException e) {
-        e.printStackTrace();
-      }
+      octElement = handleDeclaration (octElement, declarationEdge);
       break;
     }
 
@@ -156,11 +139,7 @@ public class OctTransferRelation implements TransferRelation{
     {
       AssumeEdge assumeEdge = (AssumeEdge) cfaEdge;
       IASTExpression expression = assumeEdge.getExpression();
-      try {
-        octElement = (OctElement)handleAssumption (octElement, expression, cfaEdge, assumeEdge.getTruthAssumption());
-      } catch (UnrecognizedCFAEdgeException e) {
-        e.printStackTrace();
-      }
+      octElement = (OctElement)handleAssumption (octElement, expression, cfaEdge, assumeEdge.getTruthAssumption());
       break;
 
     }
@@ -173,12 +152,7 @@ public class OctTransferRelation implements TransferRelation{
     case FunctionCallEdge:
     {
       FunctionCallEdge functionCallEdge = (FunctionCallEdge) cfaEdge;
-      try {
-
-        octElement = handleFunctionCall(octElement, prevElement, functionCallEdge);
-      } catch (UnrecognizedCCodeException e) {
-        e.printStackTrace();
-      }
+      octElement = handleFunctionCall(octElement, prevElement, functionCallEdge);
       break;
     }
 
@@ -187,11 +161,7 @@ public class OctTransferRelation implements TransferRelation{
     case FunctionReturnEdge:
     {
       FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge) cfaEdge;
-      try {
-        octElement = handleFunctionReturn(octElement, functionReturnEdge);
-      } catch (UnrecognizedCCodeException e) {
-        e.printStackTrace();
-      }
+      octElement = handleFunctionReturn(octElement, functionReturnEdge);
       break;
     }
 
@@ -345,7 +315,7 @@ public class OctTransferRelation implements TransferRelation{
 
   private AbstractElement handleAssumption (OctElement pElement,
       IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
-  throws UnrecognizedCFAEdgeException {
+  throws UnrecognizedCCodeException {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
     // Binary operation
@@ -368,7 +338,7 @@ public class OctTransferRelation implements TransferRelation{
         return handleAssumption(pElement, exp1, cfaEdge, !truthValue);
       }
       else {
-        throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
+        throw new UnrecognizedCCodeException("Unknown unary operator in assumption", cfaEdge, expression);
       }
     }
 
@@ -382,7 +352,7 @@ public class OctTransferRelation implements TransferRelation{
     }
 
     else{
-      throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
+      throw new UnrecognizedCCodeException("Unknown expression type in assumption", cfaEdge, expression);
     }
 
   }
@@ -390,7 +360,7 @@ public class OctTransferRelation implements TransferRelation{
   private AbstractElement propagateBooleanExpression(OctElement pElement,
       BinaryOperator opType,IASTExpression op1,
       IASTExpression op2, String functionName, boolean truthValue)
-  throws UnrecognizedCFAEdgeException {
+  throws UnrecognizedCCodeException {
 
     // a (bop) ?
     if(op1 instanceof IASTIdExpression ||
@@ -519,11 +489,11 @@ public class OctTransferRelation implements TransferRelation{
           }
 
           else{
-            throw new UnrecognizedCFAEdgeException("Unhandled case ");
+            throw new UnrecognizedCCodeException("Unhandled case ");
           }
         }
         else{
-          throw new UnrecognizedCFAEdgeException("Unhandled case ");
+          throw new UnrecognizedCCodeException("Unhandled case ");
         }
       }
       // a (bop) b
@@ -599,7 +569,7 @@ public class OctTransferRelation implements TransferRelation{
           }
         }
         else{
-          throw new UnrecognizedCFAEdgeException("Unhandled case ");
+          throw new UnrecognizedCCodeException("Unhandled case ");
         }
       }
       else if(op2 instanceof IASTUnaryExpression)
@@ -687,19 +657,19 @@ public class OctTransferRelation implements TransferRelation{
                 }
               }
               else{
-                throw new UnrecognizedCFAEdgeException("Unhandled case ");
+                throw new UnrecognizedCCodeException("Unhandled case ");
               }
             }
             else{
-              throw new UnrecognizedCFAEdgeException("Unhandled case ");
+              throw new UnrecognizedCCodeException("Unhandled case ");
             }
           }
           else{
-            throw new UnrecognizedCFAEdgeException("Unhandled case ");
+            throw new UnrecognizedCCodeException("Unhandled case ");
           }
         }
         else{
-          throw new UnrecognizedCFAEdgeException("Unhandled case ");
+          throw new UnrecognizedCCodeException("Unhandled case ");
         }
       }
       else if(op2 instanceof IASTBinaryExpression){
@@ -777,12 +747,7 @@ public class OctTransferRelation implements TransferRelation{
   private AbstractElement addIneqConstraint(OctElement pElement,
       String pRightVariableName, String pLeftVariableName) {
     OctElement newElem1 = null;
-    try {
-      newElem1 = (OctElement)pElement.clone();
-    } catch (CloneNotSupportedException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
+    newElem1 = pElement.clone();
     addEqConstraint(newElem1, pLeftVariableName, pRightVariableName);
     if(! newElem1.isEmpty()){
       return null;
@@ -799,12 +764,7 @@ public class OctTransferRelation implements TransferRelation{
 //    return pElement;
 
     OctElement newElem1 = null;
-    try {
-      newElem1 = (OctElement)pElement.clone();
-    } catch (CloneNotSupportedException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
+    newElem1 = pElement.clone();
     addSmallerEqConstraint(pElement, pRightVariableName, pLeftVariableName);
     addGreaterEqConstraint(pElement, pRightVariableName, pLeftVariableName);
     if(newElem1.isEmpty()){
@@ -852,12 +812,7 @@ public class OctTransferRelation implements TransferRelation{
 //    return pElement;
 
     OctElement newElem1 = null;
-    try {
-      newElem1 = (OctElement)pElement.clone();
-    } catch (CloneNotSupportedException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
+    newElem1 = pElement.clone();
     addSmallerEqConstraint(pElement, pVariableName, pI);
     addGreaterEqConstraint(pElement, pVariableName, pI);
     if(newElem1.isEmpty()){
@@ -873,12 +828,7 @@ public class OctTransferRelation implements TransferRelation{
   private AbstractElement addIneqConstraint(OctElement pElement,
       String pVariableName, long pI) {
     OctElement newElem1 = null;
-    try {
-      newElem1 = (OctElement)pElement.clone();
-    } catch (CloneNotSupportedException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
+    newElem1 = pElement.clone();
     addEqConstraint(newElem1, pVariableName, pI);
     if(! newElem1.isEmpty()){
       return pElement;

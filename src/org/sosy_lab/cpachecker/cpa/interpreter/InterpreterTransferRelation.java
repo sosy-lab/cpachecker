@@ -400,7 +400,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
   private AbstractElement handleAssumption(InterpreterElement element,
                   IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
-                  throws UnrecognizedCFAEdgeException, MissingInputException, ReadingFromNondetVariableException, AccessToUninitializedVariableException {
+                  throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException, AccessToUninitializedVariableException {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
     // Binary operation
@@ -436,7 +436,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
       }
       else {
-        throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
+        throw new UnrecognizedCCodeException("Unknown unary operator in assumption", cfaEdge, expression);
       }
     }
     else if(expression instanceof IASTCastExpression) {
@@ -460,7 +460,7 @@ public class InterpreterTransferRelation implements TransferRelation {
     }
 
     else{
-      throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
+      throw new UnrecognizedCCodeException("Unknown expression type in assumption", cfaEdge, expression);
     }
 
   }
@@ -468,7 +468,7 @@ public class InterpreterTransferRelation implements TransferRelation {
   private AbstractElement propagateBooleanExpression(AbstractElement element,
       BinaryOperator opType,IASTExpression op1,
       IASTExpression op2, String functionName, boolean truthValue)
-  throws UnrecognizedCFAEdgeException, ReadingFromNondetVariableException, AccessToUninitializedVariableException {
+  throws UnrecognizedCCodeException, ReadingFromNondetVariableException, AccessToUninitializedVariableException {
 
     InterpreterElement newElement = ((InterpreterElement)element).clone();
 
@@ -665,11 +665,11 @@ public class InterpreterTransferRelation implements TransferRelation {
           }
 
           else{
-            throw new UnrecognizedCFAEdgeException("Unhandled case ");
+            throw new UnrecognizedCCodeException("Unhandled case");
           }
         }
         else{
-          throw new UnrecognizedCFAEdgeException("Unhandled case ");
+          throw new UnrecognizedCCodeException("Unhandled case");
         }
       }
       // a (bop) b
@@ -797,7 +797,7 @@ public class InterpreterTransferRelation implements TransferRelation {
           }
         }
         else{
-          throw new UnrecognizedCFAEdgeException("Unhandled case ");
+          throw new UnrecognizedCCodeException("Unhandled case");
         }
       }
       else if(op2 instanceof IASTUnaryExpression)
@@ -971,19 +971,19 @@ public class InterpreterTransferRelation implements TransferRelation {
                 }
               }
               else{
-                throw new UnrecognizedCFAEdgeException("Unhandled case ");
+                throw new UnrecognizedCCodeException("Unhandled case");
               }
             }
             else{
-              throw new UnrecognizedCFAEdgeException("Unhandled case ");
+              throw new UnrecognizedCCodeException("Unhandled case");
             }
           }
           else{
-            throw new UnrecognizedCFAEdgeException("Unhandled case ");
+            throw new UnrecognizedCCodeException("Unhandled case");
           }
         }
         else{
-          throw new UnrecognizedCFAEdgeException("Unhandled case ");
+          throw new UnrecognizedCCodeException("Unhandled case");
         }
       }
       else if(op2 instanceof IASTBinaryExpression){

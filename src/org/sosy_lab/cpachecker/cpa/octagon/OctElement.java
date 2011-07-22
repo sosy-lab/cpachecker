@@ -114,7 +114,7 @@ public class OctElement implements AbstractElement{
   }
 
   @Override
-  protected Object clone() throws CloneNotSupportedException {
+  protected OctElement clone() {
     Octagon newOct = OctagonManager.full_copy(octagon);
     BiMap<String, Integer> newMap = HashBiMap.create();
 

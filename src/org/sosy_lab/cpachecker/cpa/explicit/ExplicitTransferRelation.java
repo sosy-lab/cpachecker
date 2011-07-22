@@ -364,7 +364,7 @@ public class ExplicitTransferRelation implements TransferRelation {
   private AbstractElement propagateBooleanExpression(AbstractElement element,
       BinaryOperator opType,IASTExpression op1,
       IASTExpression op2, String functionName, boolean truthValue, ExplicitPrecision precision)
-  throws UnrecognizedCFAEdgeException {
+  throws UnrecognizedCCodeException {
 
     ExplicitElement newElement = ((ExplicitElement)element).clone();
 
@@ -565,11 +565,11 @@ public class ExplicitTransferRelation implements TransferRelation {
           }
 
           else{
-            throw new UnrecognizedCFAEdgeException("Unhandled case ");
+            throw new UnrecognizedCCodeException("Unhandled case ");
           }
         }
         else{
-          throw new UnrecognizedCFAEdgeException("Unhandled case ");
+          throw new UnrecognizedCCodeException("Unhandled case ");
         }
       }
       // a (bop) b
@@ -704,7 +704,7 @@ public class ExplicitTransferRelation implements TransferRelation {
           }
         }
         else{
-          throw new UnrecognizedCFAEdgeException("Unhandled case ");
+          throw new UnrecognizedCCodeException("Unhandled case ");
         }
       }
       else if(op2 instanceof IASTUnaryExpression)
@@ -829,19 +829,19 @@ public class ExplicitTransferRelation implements TransferRelation {
                 }
               }
               else{
-                throw new UnrecognizedCFAEdgeException("Unhandled case ");
+                throw new UnrecognizedCCodeException("Unhandled case ");
               }
             }
             else{
-              throw new UnrecognizedCFAEdgeException("Unhandled case ");
+              throw new UnrecognizedCCodeException("Unhandled case ");
             }
           }
           else{
-            throw new UnrecognizedCFAEdgeException("Unhandled case ");
+            throw new UnrecognizedCCodeException("Unhandled case ");
           }
         }
         else{
-          throw new UnrecognizedCFAEdgeException("Unhandled case ");
+          throw new UnrecognizedCCodeException("Unhandled case ");
         }
       }
       else if(op2 instanceof IASTBinaryExpression){

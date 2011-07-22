@@ -177,7 +177,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
 
   private AbstractElement handleAssumption(FeatureVarsElement element,
       IASTExpression expression, CFAEdge cfaEdge, boolean truthValue,
-      FeatureVarsPrecision precision) throws UnrecognizedCFAEdgeException {
+      FeatureVarsPrecision precision) throws UnrecognizedCCodeException {
     String functionName = cfaEdge.getPredecessor().getFunctionName();
     FeatureVarsElement result = handleBooleanExpression(element, expression, functionName, truthValue, precision);
     if (rmgr.isFalse(result.getRegion())) {
@@ -189,7 +189,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
 
   private FeatureVarsElement handleBooleanExpression(FeatureVarsElement element,
       IASTExpression op, String functionName, boolean pTruthValue,
-      FeatureVarsPrecision precision) throws UnrecognizedCFAEdgeException {
+      FeatureVarsPrecision precision) throws UnrecognizedCCodeException {
     Region operand = propagateBooleanExpression(element, op, functionName, precision);
     if (operand == null)
       return element;
@@ -209,7 +209,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
 
   private Region propagateBooleanExpression(FeatureVarsElement element,
       IASTExpression op, String functionName, FeatureVarsPrecision precision)
-    throws UnrecognizedCFAEdgeException {
+    throws UnrecognizedCCodeException {
     Region operand = null;
     if (op instanceof IASTIdExpression || op instanceof IASTFieldReference
         || op instanceof IASTArraySubscriptExpression) {
@@ -233,7 +233,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
 
   private Region propagateUnaryBooleanExpression(FeatureVarsElement element,
       UnaryOperator opType, IASTExpression op, String functionName,
-      FeatureVarsPrecision precision) throws UnrecognizedCFAEdgeException {
+      FeatureVarsPrecision precision) throws UnrecognizedCCodeException {
     Region returnValue = null;
     Region operand = null;
     if (op instanceof IASTIdExpression || op instanceof IASTFieldReference
@@ -263,7 +263,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
       // don't know anything
       break;
     default:
-      throw new UnrecognizedCFAEdgeException("Unhandled case "
+      throw new UnrecognizedCCodeException("Unhandled case "
           + op.getRawSignature());
     }
     return returnValue;
@@ -272,7 +272,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
   private Region propagateBinaryBooleanExpression(FeatureVarsElement element,
       BinaryOperator opType, IASTExpression op1, IASTExpression op2,
       String functionName, FeatureVarsPrecision precision)
-      throws UnrecognizedCFAEdgeException {
+      throws UnrecognizedCCodeException {
     // determine operand1:
     Region operand1 = null;
     if (op1 instanceof IASTIdExpression || op1 instanceof IASTFieldReference
@@ -324,7 +324,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     case EQUALS:
     case NOT_EQUALS:
     default:
-      throw new UnrecognizedCFAEdgeException(
+      throw new UnrecognizedCCodeException(
           "Cases ==, != and others are not implemented");
     }
     return returnValue;

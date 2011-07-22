@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.exceptions;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
@@ -49,6 +51,14 @@ public class UnrecognizedCCodeException extends CPATransferException {
         + (msg != null ? " (" + msg + ") " : " ")
         + "in line " + edge.getLineNumber()
         + ": " + edge.getRawStatement());
+  }
 
-    }
+  /**
+   * Create an UnrecognizedCCodeException only with a message.
+   * Deprecated because such an exception should always contain the relevant source code.
+   */
+  @Deprecated
+  public UnrecognizedCCodeException(String msg) {
+    super("Unrecognized C code (" + checkNotNull(msg) + ")");
+  }
 }

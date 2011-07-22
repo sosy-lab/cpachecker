@@ -522,7 +522,7 @@ public class CtoFormulaConverter {
       return fmgr.makeAssignment(outvarFormula, retvarFormula);
 
     } else {
-      throw new UnrecognizedCFAEdgeException("UNKNOWN FUNCTION EXIT EXPRESSION: " + ce.getRawStatement());
+      throw new UnrecognizedCCodeException("Unknown function exit expression", ce, retExp.asStatement());
     }
   }
 
