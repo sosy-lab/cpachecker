@@ -231,7 +231,7 @@ public class CPAchecker {
     } catch (ParserException e) {
       // only log message, not whole exception because this is a C problem,
       // not a CPAchecker problem
-      logger.log(Level.SEVERE, Throwables.getRootCause(e).getMessage());
+      logger.logUserException(Level.SEVERE, Throwables.getRootCause(e), "Parsing failed");
       logger.log(Level.INFO, "Make sure that the code was preprocessed using Cil (HowTo.txt).\n"
           + "If the error still occurs, please send this error message together with the input file to cpachecker-users@sosy-lab.org.");
 
