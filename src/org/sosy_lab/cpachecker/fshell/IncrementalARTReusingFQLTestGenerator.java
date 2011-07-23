@@ -140,6 +140,8 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
   private boolean mUseGraphCPA = true;
   private boolean mReuseART = true;
 
+  private boolean mPrintPredicateStatistics = false;
+
   private FeasibilityInformation mFeasibilityInformation;
   private TestSuite mTestSuite;
 
@@ -874,7 +876,9 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     mPrecision = new PredicatePrecision(mBuilder.build(), mGlobalPredicates);
 
-    //printPredicateStatistics(pReachedSet, lPredicateCPAIndex);
+    if (mPrintPredicateStatistics) {
+      printPredicateStatistics(pReachedSet, lPredicateCPAIndex);
+    }
 
     mTimeInReach.pause();
 
