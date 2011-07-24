@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.common;
 
+import static com.google.common.base.Objects.firstNonNull;
+
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -310,7 +312,7 @@ public class LogManager {
 
       String[] argsStr = new String[args.length];
       for (int i = 0; i < args.length; i++) {
-        String arg = args[i].toString();
+        String arg = firstNonNull(args[i], "null").toString();
         if ((truncateSize > 0) && (arg.length() > truncateSize)) {
           argsStr[i] = "<ARGUMENT OMITTED BECAUSE " + arg.length() + " CHARACTERS LONG>";
         } else {
