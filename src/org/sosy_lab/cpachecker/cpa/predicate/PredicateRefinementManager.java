@@ -173,6 +173,11 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
       executor = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setDaemon(true).build());
     }
 
+    if (formulaDumpFilePattern == null) {
+      // output files were disable
+      dumpInterpolationProblems = false;
+    }
+
     if (wellScopedPredicates) {
       throw new InvalidConfigurationException("wellScopePredicates are currently disabled");
     }
