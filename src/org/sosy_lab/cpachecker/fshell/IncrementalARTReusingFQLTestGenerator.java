@@ -91,6 +91,7 @@ import org.sosy_lab.cpachecker.fshell.testcases.ImpreciseExecutionException;
 import org.sosy_lab.cpachecker.fshell.testcases.TestCase;
 import org.sosy_lab.cpachecker.fshell.testcases.TestSuite;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
+import org.sosy_lab.cpachecker.util.ecp.ECPConcatenation;
 import org.sosy_lab.cpachecker.util.ecp.ECPEdgeSet;
 import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.util.ecp.SingletonECPEdgeSet;
@@ -336,6 +337,57 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     return pAutomaton;
   }
 
+  private CFAEdge getSingletonCFAEdge(ElementaryCoveragePattern pPattern, int pIndex) {
+    ECPConcatenation lConcatenation = (ECPConcatenation)pPattern;
+
+    int lIndex = 1;
+
+    for (ElementaryCoveragePattern lSubpattern : lConcatenation) {
+      if (lSubpattern instanceof SingletonECPEdgeSet) {
+        if (lIndex == pIndex) {
+          SingletonECPEdgeSet lSingletonSet = (SingletonECPEdgeSet)lSubpattern;
+          return lSingletonSet.getCFAEdge();
+        }
+        else {
+          lIndex++;
+        }
+      }
+    }
+
+    throw new RuntimeException("Unhandled case!");
+  }
+
+  private boolean dfs(CFANode pInitialCFANode, CFAEdge pForbiddenCFAEdge, CFAEdge pTargetCFAEdge) {
+    LinkedList<CFANode> lWorklist = new LinkedList<CFANode>();
+    lWorklist.add(pInitialCFANode);
+
+    HashSet<CFANode> lVisitedCFANodes = new HashSet<CFANode>();
+
+    while (!lWorklist.isEmpty()) {
+      CFANode lCurrentCFANode = lWorklist.poll();
+
+      if (lVisitedCFANodes.contains(lCurrentCFANode)) {
+        continue;
+      }
+
+      lVisitedCFANodes.add(lCurrentCFANode);
+
+      for (int lEdgeIndex = 0; lEdgeIndex < lCurrentCFANode.getNumLeavingEdges(); lEdgeIndex++) {
+        CFAEdge lCFAEdge = lCurrentCFANode.getLeavingEdge(lEdgeIndex);
+
+        if (!pForbiddenCFAEdge.equals(lCFAEdge)) {
+          if (lCFAEdge.equals(pTargetCFAEdge)) {
+            return true;
+          }
+
+          lWorklist.add(lCFAEdge.getSuccessor());
+        }
+      }
+    }
+
+    return false;
+  }
+
   private FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pCheckReachWhenCovered, boolean pPedantic) {
 
     FQLSpecification lFQLSpecification = getFQLSpecification(pFQLSpecification);
@@ -356,11 +408,34 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     mOutput.println("Determining the number of test goals ...");
 
     int lNumberOfTestGoals = lTranslator.getNumberOfTestGoals(lFQLSpecification.getCoverageSpecification());
-    //int lNumberOfTestGoals = -1;
-
     mOutput.println("Number of test goals: " + lNumberOfTestGoals);
 
     Iterator<ElementaryCoveragePattern> lGoalIterator = lTranslator.translate(lFQLSpecification.getCoverageSpecification());
+
+    ElementaryCoveragePattern[] lGoalPatterns = new ElementaryCoveragePattern[lNumberOfTestGoals];
+
+    for (int lGoalIndex = 0; lGoalIndex < lNumberOfTestGoals; lGoalIndex++) {
+      lGoalPatterns[lGoalIndex] = lGoalIterator.next();
+    }
+
+    // Experimental clustering
+    HashMap<CFAEdge, LinkedList<Integer>> lClusters = new HashMap<CFAEdge, LinkedList<Integer>>();
+
+    for (int lGoalIndex = 0; lGoalIndex < lGoalPatterns.length; lGoalIndex++) {
+      ElementaryCoveragePattern lGoalPattern = lGoalPatterns[lGoalIndex];
+
+      CFAEdge lCFAEdge = getSingletonCFAEdge(lGoalPattern, 1);
+
+      LinkedList<Integer> lCluster = lClusters.get(lCFAEdge);
+
+      if (lCluster == null) {
+        lCluster = new LinkedList<Integer>();
+        lClusters.put(lCFAEdge, lCluster);
+      }
+
+      lCluster.add(lGoalIndex);
+    }
+
 
     int lNumberOfCFAInfeasibleGoals = 0;
 
@@ -377,12 +452,15 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     boolean pHadProgress = false;
 
     long[] lGoalRuntime = new long[lNumberOfTestGoals];
+    int[] lGoalPrediction = new int[lNumberOfTestGoals];
 
     for (int i = 0; i < lGoalRuntime.length; i++) {
       lGoalRuntime[i] = -1; // value indicating invalid value
+      lGoalPrediction[i] = -1; // value indicating unknown prediction
     }
 
-    while (lGoalIterator.hasNext()) {
+    //while (lGoalIterator.hasNext()) {
+    while (lIndex < lGoalPatterns.length) {
       if (lIndex > 0) {
         System.out.println("Goal #" + (lIndex) + " needed " + lGoalRuntime[lIndex - 1] + " ms");
       }
@@ -409,7 +487,18 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
       lIndex++;
 
-      ElementaryCoveragePattern lGoalPattern = lGoalIterator.next();
+
+      if (lGoalPrediction[lIndex - 1] == 1) {
+        mOutput.println("Predicted as infeasible!");
+
+        mFeasibilityInformation.setStatus(lIndex, FeasibilityInformation.FeasibilityStatus.INFEASIBLE);
+
+        continue;
+      }
+
+
+      //ElementaryCoveragePattern lGoalPattern = lGoalIterator.next();
+      ElementaryCoveragePattern lGoalPattern = lGoalPatterns[lIndex - 1];
 
       mOutput.println("Processing test goal #" + lIndex + " of " + lNumberOfTestGoals + " test goals.");
 
@@ -502,6 +591,15 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
         mFeasibilityInformation.setStatus(lIndex, FeasibilityInformation.FeasibilityStatus.FEASIBLE);
 
+        int lCurrentPrediction = lGoalPrediction[lIndex - 1];
+
+        switch (lCurrentPrediction) {
+        case -1:
+          break;
+        default:
+          throw new RuntimeException("missmatching prediction: " + lCurrentPrediction);
+        }
+
         if (!pCheckReachWhenCovered) {
           long lEndTime = System.currentTimeMillis();
 
@@ -560,6 +658,61 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         long lEndTime = System.currentTimeMillis();
 
         lGoalRuntime[lIndex - 1] = lEndTime - lStartTime;
+
+        int lCurrentPrediction = lGoalPrediction[lIndex - 1];
+
+        switch (lCurrentPrediction) {
+        case -1:
+        case 1:
+          break;
+        default:
+          throw new RuntimeException("missmatching prediction");
+        }
+
+        // TODO experimental setting ...
+        if (lReachableViaGraphSearch) {
+          CFAEdge lFirstSingletonCFAEdge = getSingletonCFAEdge(lGoalPattern, 1);
+
+          // TODO change to extraction of all singleton CFA edges (non-skipable)
+          CFAEdge lSecondSingletonCFAEdge = getSingletonCFAEdge(lGoalPattern, 2);
+
+
+
+          CFANode lSuccessorNode = lFirstSingletonCFAEdge.getSuccessor();
+
+          LinkedList<Integer> lCluster = lClusters.get(lFirstSingletonCFAEdge);
+
+          System.out.print("Analyse this ... ");
+
+          int lPredictedElements = 0;
+
+          for (int lClusterElement : lCluster) {
+            //if (lClusterElement != lIndex - 1) {
+            if (lClusterElement > lIndex - 1) {
+              CFAEdge lTargetCFAEdge = getSingletonCFAEdge(lGoalPatterns[lClusterElement], 2);
+
+              // do not consider the element itself
+              if (!dfs(lSuccessorNode, lSecondSingletonCFAEdge, lTargetCFAEdge)) {
+                // should be infeasible
+                int lPrediction = lGoalPrediction[lClusterElement];
+
+                switch (lPrediction) {
+                case -1:
+                  lGoalPrediction[lClusterElement] = 1;
+                  break;
+                case 1:
+                  break;
+                default:
+                  throw new RuntimeException();
+                }
+
+                lPredictedElements++;
+              }
+            }
+          }
+
+          System.out.println(lPredictedElements);
+        }
       }
       else {
         lTimeCover.proceed();
@@ -597,6 +750,16 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
             mGeneratedTestCases.put(lTestCase, lCFAPath);
 
             mFeasibilityInformation.setStatus(lIndex, FeasibilityInformation.FeasibilityStatus.FEASIBLE);
+
+
+
+            int lCurrentPrediction = lGoalPrediction[lIndex - 1];
+            switch (lCurrentPrediction) {
+            case -1:
+              break;
+            default:
+              throw new RuntimeException("missmatching prediction");
+            }
           }
           else {
             mOutput.println("Goal #" + lIndex + " lead to an imprecise execution!");
@@ -604,6 +767,16 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
             lResultFactory.addImpreciseTestCase(lTestCase);
 
             mFeasibilityInformation.setStatus(lIndex, FeasibilityInformation.FeasibilityStatus.IMPRECISE);
+
+
+
+            int lCurrentPrediction = lGoalPrediction[lIndex - 1];
+            switch (lCurrentPrediction) {
+            case -1:
+              break;
+            default:
+              throw new RuntimeException("missmatching prediction");
+            }
           }
         }
         else {
@@ -612,6 +785,16 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
           lResultFactory.addImpreciseTestCase(lTestCase);
 
           mFeasibilityInformation.setStatus(lIndex, FeasibilityInformation.FeasibilityStatus.IMPRECISE);
+
+
+
+          int lCurrentPrediction = lGoalPrediction[lIndex - 1];
+          switch (lCurrentPrediction) {
+          case -1:
+            break;
+          default:
+            throw new RuntimeException("missmatching prediction");
+          }
         }
 
         lTimeAccu.pause(lFeasibleTestGoalsTimeSlot);
