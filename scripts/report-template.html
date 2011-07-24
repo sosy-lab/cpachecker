@@ -14,7 +14,7 @@ html,body {
 }
 
 #header {
-    position: absolute;
+    position: fixed;
     left: 0px;
     right: 0px;
     padding: 7px;
@@ -50,6 +50,22 @@ html,body {
     min-width: 400px;
     border-top: 1px solid black;
     border-left: 1px solid black;
+}
+
+#middleLine {
+    position: absolute;
+    top: 40px;
+    left: 450px;
+    height: 39px;
+    width: 4px;
+    z-index: 100; /* in front of all content */
+    border: 1px solid black;
+    background-color: black;
+    cursor: col-resize;
+}
+
+#middleLine:hover {
+    background-color: lime;
 }
 
 .toolbar {
@@ -219,6 +235,9 @@ a.action:hover {
             <div id="errpathwin"></div>
         </div>
 
+        <div id="middleLine" onmousedown="changeWidthMouseDown()">
+        </div>
+
         <div id="rightContent">
             <div class="toolbar" onclick="setActiveWindow(event);">
                 <a class="action" id="show_cfa">CFA</a>
@@ -319,6 +338,40 @@ a.action:hover {
 
             String.prototype.startsWith = function(str) {
                return (this.match("^" + str) == str);
+            }
+        </script>
+
+        <script>
+            /* add listeners for mouseMove and mouseUp, for changing the size,
+            add functions for not selecting text while moving the mouse. */
+            function changeWidthMouseDown() {
+                console.log('change column width - mouse down');
+                document.getElementById('middleLine').style.backgroundColor = 'orange';
+                document.onmousemove = changeWidthMouseMove;
+                document.onmouseup = changeWidthMouseUp;
+                document.onselectstart = function() {return false;};
+                document.onmousedown = function() {return false;};  // for firefox
+            }
+
+            /* remove all listeners added on mouseDown */
+            function changeWidthMouseUp() {
+                console.log('change column width - mouse up');
+                document.getElementById('middleLine').style.backgroundColor = null;
+                document.onmousemove = null;
+                document.onmouseup = null;
+                document.onselectstart = null;
+                document.onmousedown = null;  // for firefox
+            }
+
+            /* take mousePosition and set new widths and positions */
+            function changeWidthMouseMove(event) {
+            	/* leftContentWidth is at least 150px */
+                leftContentWidth = Math.max(event.pageX - 2, 150);
+            	console.log('move to ' + leftContentWidth);
+
+                document.getElementById('middleLine').style.left = leftContentWidth + 'px';
+                document.getElementById('leftContent').style.width = leftContentWidth + 'px';
+                document.getElementById('rightContent').style.left = (leftContentWidth + 5) + 'px';
             }
         </script>
 
