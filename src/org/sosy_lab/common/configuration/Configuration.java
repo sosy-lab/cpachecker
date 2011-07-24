@@ -718,7 +718,7 @@ public class Configuration {
       throw new UnsupportedOperationException("Package prefix may be specified only for Class options, not for option " + optionName);
     }
 
-    if (valueStr == null) {
+    if ((valueStr == null) && (option.type() != Option.Type.OUTPUT_FILE)) {
       return null;
     }
 
