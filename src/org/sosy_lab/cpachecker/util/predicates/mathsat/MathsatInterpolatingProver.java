@@ -65,7 +65,7 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
         int group = mathsat.api.msat_create_itp_group(env);
         mathsat.api.msat_set_itp_group(env, group);
         mathsat.api.msat_assert_formula(env, t);
-        return 0;
+        return group;
     }
 
     @Override
