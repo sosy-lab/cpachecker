@@ -5,8 +5,8 @@ int cs1 = 0;
 int cs2 = 0;
 
 void main() {
-  cs1 = 1;
-  g = 1;
-  assert(cs2 == 0);
-  cs1 = 0;
+  while (g != 1);
+  g = 0;
+  cs2 = 1;
+  assert(cs1 == 0);
 }
