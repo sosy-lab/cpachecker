@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdge;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvironmentalTransition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
-import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
@@ -73,7 +72,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.relyguarantee")
@@ -179,8 +177,8 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
 
   }
 
-
-  public Result run(ReachedSet[] reached, boolean stopAfterError) {
+  // returns -1 if no error is found or the thread no with an error
+  public int run(ReachedSet[] reached, boolean stopAfterError) {
     boolean error = false;
     try{
       // run every thread at least once
@@ -188,7 +186,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
         addEnvTransitionsToCFA(i);
         error = runThread(i, reached[i], stopAfterError);
         if (error) {
-          break;
+          return i;
         }
         newEnvEgesForThread[i].removeAllElements();
       //  cfas[i].resetNodes();
@@ -202,6 +200,9 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
         setWaitlist(reached[i]);
         addEnvTransitionsToCFA(i);
         error = runThread(i, reached[i], stopAfterError);
+        if (error) {
+          return i;
+        }
         newEnvEgesForThread[i].removeAllElements();
         // cfas[i].resetNodes();
         printEnvTransitions();
@@ -213,24 +214,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
       e.printStackTrace();
     }
 
-    // result analysis
-    int i=0;
-    do {
-      if (Iterables.any(reached[i], AbstractElements.IS_TARGET_ELEMENT)) {
-        return Result.UNSAFE;
-      }
-      /*
-      if (reached[i].hasWaitingElement()) {
-        logger.log(Level.WARNING, "Analysis not completed: there are still elements to be processed.");
-        return Result.UNKNOWN;
-      }
-      if (!sound) {
-      logger.log(Level.WARNING, "Analysis incomplete: no errors found, but not everything could be checked.");
-      return Result.UNKNOWN;*/
-
-      i++;
-    } while (i<this.threadNo );
-    return Result.SAFE;
+    return -1;
   }
 
 
@@ -436,6 +420,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
   }
 
   // runs a thread
+  // TODO remove stopAfterError
   private boolean runThread(int i, ReachedSet reached, boolean stopAfterError) throws CPAException, InterruptedException {
     boolean sound = true;
     do {

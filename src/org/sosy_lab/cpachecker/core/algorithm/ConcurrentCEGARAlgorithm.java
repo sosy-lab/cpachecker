@@ -30,36 +30,33 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 @Options(prefix="rely-guarantee cegar")
 public class ConcurrentCEGARAlgorithm implements ConcurrentAlgorithm,  StatisticsProvider {
 
   private ConcurrentAlgorithm algorithm;
-  private Refiner refiner;
+  private RelyGuaranteeRefiner refiner;
   private Configuration config;
   private LogManager logger;
 
-  public ConcurrentCEGARAlgorithm(ConcurrentAlgorithm pAlgorithm, Refiner pRefiner, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException, CPAException {
-    this.algorithm = pAlgorithm;
-    this.refiner = pRefiner;
-    this.config = pConfig;
-    this.logger = pLogger;
+  private static final int GC_PERIOD = 100;
+  private int gcCounter = 0;
 
-
-  }
-
-  public ConcurrentCEGARAlgorithm(ConcurrentAlgorithm pAlgorithm, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException, CPAException {
+  public ConcurrentCEGARAlgorithm(ConcurrentAlgorithm pAlgorithm,  Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException, CPAException {
     this.algorithm = pAlgorithm;
     this.config = pConfig;
     this.logger = pLogger;
-  }
 
+    // TODO for now only rg refiner is available
+    refiner = new RelyGuaranteeRefiner(algorithm.getCPAs());
+  }
 
 
   @Override
@@ -83,12 +80,43 @@ public class ConcurrentCEGARAlgorithm implements ConcurrentAlgorithm,  Statistic
   }
 
   @Override
-  public Result run(ReachedSet[] pReachedSets, boolean pStopAfterError) {
-    // TODO Auto-generated method stub
-    return Result.UNKNOWN;
+  /**
+   * Returns -1 if the threads are safe, otherwise it returns the thread id with the error
+   */
+  public int run(ReachedSet[] reachedSets, boolean pStopAfterError) {
+
+    // TODO stats
+    int errorThr ;
+    boolean continueAnalysis = false;
+    do {
+      errorThr = algorithm.run(reachedSets, true);
+      if (errorThr == -1){
+        // the program is safe
+        continueAnalysis = false;
+      } else {
+        // the program is unsafe, so perform refinement
+        try {
+          continueAnalysis = refiner.performRefinment(reachedSets, errorThr);
+        } catch (Exception e) {
+          // TODO Auto-generated catch block
+          e.printStackTrace();
+        }
+      }
+      AbstractElement error = reachedSets[errorThr].getLastElement();
+
+    } while (continueAnalysis);
+
+    return errorThr;
   }
 
-
+  private void runGC() {
+    if ((++gcCounter % GC_PERIOD) == 0) {
+      //stats.gcTimer.start();
+      System.gc();
+      gcCounter = 0;
+      //stats.gcTimer.stop();
+    }
+  }
 
 
 

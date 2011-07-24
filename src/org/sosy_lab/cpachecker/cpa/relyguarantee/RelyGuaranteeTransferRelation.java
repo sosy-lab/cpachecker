@@ -290,7 +290,8 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
       }
     }
 
-    return result || athreshold;
+    //return result || athreshold;
+    return result;
   }
 
 

@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefinementManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CSIsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
@@ -102,14 +103,12 @@ public class RelyGuaranteeCPA extends PredicateCPA{
 
 
 
-
+    //private RelyGuaranteeRefiner refiner;
     private static TheoremProver  tProver;
-
     private RelyGuaranteeCPAStatistics stats;
-
-
-
     private int tid;
+
+
 
 
     public static TheoremProver getTheoremProver(Configuration config, LogManager logger,String type) throws InvalidConfigurationException{
@@ -318,6 +317,10 @@ public class RelyGuaranteeCPA extends PredicateCPA{
 
   RelyGuaranteeCPAStatistics getStats() {
     return this.stats;
+  }
+
+  public PredicateRefinementManager<?, ?> getPredicateManager() {
+    return predicateManager;
   }
 
 }

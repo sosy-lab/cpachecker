@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 public interface ConcurrentAlgorithm{
 
-  public Result run(ReachedSet[] reachedSets, boolean stopAfterError);
+  public int run(ReachedSet[] reachedSets, boolean stopAfterError);
 
   public ConfigurableProgramAnalysis[] getCPAs();
 

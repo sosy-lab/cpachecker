@@ -173,7 +173,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     return ARTUtils.getOnePathTo(pLastElement);
   }
 
-  private static boolean checkART(ReachedSet pReached) {
+  protected static boolean checkART(ReachedSet pReached) {
 
     Deque<AbstractElement> workList = new ArrayDeque<AbstractElement>();
     Set<ARTElement> art = new HashSet<ARTElement>();
