@@ -25,7 +25,7 @@ CSS = '''
 <style type="text/css"> 
     <!--
     table { outline:3px solid black; border-spacing:0px; font-family:arial, sans serif}
-    thead, .log { text-align:center}
+    thead { text-align:center}
     tbody { text-align:right}
     tr:hover { background-color:yellow}
     td { border:1px solid black}
@@ -36,6 +36,8 @@ CSS = '''
     #columnTitles td { border-bottom:3px solid black}
     .correctStatus { text-align:center; color:green}
     .wrongStatus { text-align:center; color:red; font-weight: bold; }
+    a { color: inherit; text-decoration: none; display: block; }
+    a:hover { background: orange }
     -->
 </style> 
 '''
@@ -152,10 +154,6 @@ def getColumnsRowAndTestWidths(listOfTests):
     testWidths = []
     for testResult, columns in listOfTests:
         numberOfColumns = 0
-        if LOGFILES_IN_HTML:
-            columnsTitles.append('log')
-            numberOfColumns += 1
-
         for columnTitle in columns:
             for column in testResult.find('columns').findall('column'):
 
@@ -308,12 +306,6 @@ def getTableBody(listOfTests):
         columnValuesForCSV = []
         for testResult, test in zip(file, listOfTests):
             (valuesForHTML, valuesForCSV) = getValuesOfFileXTest(testResult, test[1])
-
-            if LOGFILES_IN_HTML:
-                columnValuesForHTML += ['<td class="log"><a href="' \
-                                    + str(testResult.get('logfileForHtml')) \
-                                    + '">log</a></td>']
-
             columnValuesForHTML += valuesForHTML
             columnValuesForCSV += valuesForCSV
 
@@ -348,11 +340,19 @@ def getValuesOfFileXTest(currentFile, listOfColumns):
                     fileName = currentFile.get('name')
                     status = value.lower()
                     isSafeFile = fileName.lower().find('bug') == -1
+
                     if (isSafeFile and status == 'safe') or (
                         not isSafeFile and status == 'unsafe'):
-                        valuesForHTML.append('<td class="correctStatus">{0}</td>'.format(status))
+                        valueForHTML = '<td class="correctStatus">'
                     else:
-                        valuesForHTML.append('<td class="wrongStatus">{0}</td>'.format(status))
+                        valueForHTML = '<td class="wrongStatus">'
+
+                    if LOGFILES_IN_HTML:                
+                        valuesForHTML.append(valueForHTML + '<a href="{0}">{1}</a></td>'
+                            .format(str(currentFile.get('logfileForHtml')), status))
+                    else:
+                        valuesForHTML.append(valueForHTML + '{0}</td>'.format(status))
+
                 else:
                     valuesForHTML.append('<td>{0}</td>'.format(value))
                 break
