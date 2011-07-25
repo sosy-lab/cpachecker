@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.fshell;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -388,6 +389,41 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     return false;
   }
 
+  private Collection<CFAEdge> dfs2(CFANode pInitialCFANode, CFAEdge pForbiddenCFAEdge, Collection<CFAEdge> pTargetEdges) {
+    HashSet<CFAEdge> lFoundTargetEdges = new HashSet<CFAEdge>();
+    HashSet<CFAEdge> lTargetEdges = new HashSet<CFAEdge>(pTargetEdges);
+
+    LinkedList<CFANode> lWorklist = new LinkedList<CFANode>();
+    lWorklist.add(pInitialCFANode);
+
+    HashSet<CFANode> lVisitedCFANodes = new HashSet<CFANode>();
+
+    while (!lWorklist.isEmpty() && !lTargetEdges.isEmpty()) {
+      CFANode lCurrentCFANode = lWorklist.poll();
+
+      if (lVisitedCFANodes.contains(lCurrentCFANode)) {
+        continue;
+      }
+
+      lVisitedCFANodes.add(lCurrentCFANode);
+
+      for (int lEdgeIndex = 0; lEdgeIndex < lCurrentCFANode.getNumLeavingEdges(); lEdgeIndex++) {
+        CFAEdge lCFAEdge = lCurrentCFANode.getLeavingEdge(lEdgeIndex);
+
+        if (!pForbiddenCFAEdge.equals(lCFAEdge)) {
+          if (lTargetEdges.contains(lCFAEdge)) {
+            lFoundTargetEdges.add(lCFAEdge);
+            lTargetEdges.remove(lCFAEdge);
+          }
+
+          lWorklist.add(lCFAEdge.getSuccessor());
+        }
+      }
+    }
+
+    return lFoundTargetEdges;
+  }
+
   private FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pCheckReachWhenCovered, boolean pPedantic) {
 
     FQLSpecification lFQLSpecification = getFQLSpecification(pFQLSpecification);
@@ -687,53 +723,86 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
           int lPredictedElements = 0;
           //int lPastElements = 0;
 
+          HashSet<CFAEdge> lTargetEdges = new HashSet<CFAEdge>();
+
           for (int lClusterElement : lCluster) {
             int lPrediction = lGoalPrediction[lClusterElement];
 
-            //if (lClusterElement != lIndex - 1) {
-            if (lClusterElement > lIndex - 1 && lPrediction == -1) {
-              CFAEdge lTargetCFAEdge = getSingletonCFAEdge(lGoalPatterns[lClusterElement], 2);
-
-              // do not consider the element itself
-              if (!dfs(lSuccessorNode, lSecondSingletonCFAEdge, lTargetCFAEdge)) {
-                // should be infeasible
-                //int lPrediction = lGoalPrediction[lClusterElement];
-
-                switch (lPrediction) {
-                case -1:
-                  lGoalPrediction[lClusterElement] = 1;
-                  break;
-                case 1:
-                  break;
-                default:
-                  throw new RuntimeException();
-                }
-
-                lPredictedElements++;
+            if (lPrediction == -1) {
+              if (lClusterElement > lIndex - 1) {
+                CFAEdge lTargetCFAEdge = getSingletonCFAEdge(lGoalPatterns[lClusterElement], 2);
+                lTargetEdges.add(lTargetCFAEdge);
               }
             }
-            /*else if (lClusterElement < lIndex - 1) {
-              CFAEdge lTargetCFAEdge = getSingletonCFAEdge(lGoalPatterns[lClusterElement], 2);
-
-              // do not consider the element itself
-              if (!dfs(lSuccessorNode, lSecondSingletonCFAEdge, lTargetCFAEdge)) {
-                // should be infeasible
-                int lPrediction = lGoalPrediction[lClusterElement];
-
-                switch (lPrediction) {
-                case -1:
-                  lGoalPrediction[lClusterElement] = 1;
-                  break;
-                case 1:
-                  break;
-                default:
-                  throw new RuntimeException();
-                }
-
-                lPastElements++;
-              }
-            }*/
           }
+
+          Collection<CFAEdge> lFoundEdges = dfs2(lSuccessorNode, lSecondSingletonCFAEdge, lTargetEdges);
+
+          for (int lClusterElement : lCluster) {
+            int lPrediction = lGoalPrediction[lClusterElement];
+
+            if (lPrediction == -1) {
+              if (lClusterElement > lIndex - 1) {
+                CFAEdge lTargetCFAEdge = getSingletonCFAEdge(lGoalPatterns[lClusterElement], 2);
+
+                if (!lFoundEdges.contains(lTargetCFAEdge)) {
+                  switch (lPrediction) {
+                  case -1:
+                    lGoalPrediction[lClusterElement] = 1;
+                    break;
+                  case 1:
+                    break;
+                  default:
+                    throw new RuntimeException();
+                  }
+
+                  lPredictedElements++;
+                }
+              }
+            }
+          }
+
+
+          /*for (int lClusterElement : lCluster) {
+            int lPrediction = lGoalPrediction[lClusterElement];
+
+            if (lPrediction == -1) {
+              if (lClusterElement > lIndex - 1) {
+                CFAEdge lTargetCFAEdge = getSingletonCFAEdge(lGoalPatterns[lClusterElement], 2);
+
+                if (!dfs(lSuccessorNode, lSecondSingletonCFAEdge, lTargetCFAEdge)) {
+                  switch (lPrediction) {
+                  case -1:
+                    lGoalPrediction[lClusterElement] = 1;
+                    break;
+                  case 1:
+                    break;
+                  default:
+                    throw new RuntimeException();
+                  }
+
+                  lPredictedElements++;
+                }
+              }*/
+              /*else if (lClusterElement < lIndex - 1) {
+                CFAEdge lTargetCFAEdge = getSingletonCFAEdge(lGoalPatterns[lClusterElement], 2);
+
+                if (!dfs(lSuccessorNode, lSecondSingletonCFAEdge, lTargetCFAEdge)) {
+                  switch (lPrediction) {
+                  case -1:
+                    lGoalPrediction[lClusterElement] = 1;
+                    break;
+                  case 1:
+                    break;
+                  default:
+                    throw new RuntimeException();
+                  }
+
+                  lPastElements++;
+                }
+              }*/
+            /*}
+          }*/
 
           //System.out.println("(" + lPredictedElements + "/" + lPastElements + ")");
           System.out.println("(" + lPredictedElements + ")");
