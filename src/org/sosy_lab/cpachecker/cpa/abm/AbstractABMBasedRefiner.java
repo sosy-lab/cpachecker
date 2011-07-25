@@ -80,7 +80,7 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
   }
 
   @Override
-  protected final Path computePath(ARTElement pLastElement, ReachedSet pReachedSet) throws InterruptedException, CPATransferException {
+  protected final Path computePath(ARTElement pLastElement, ARTReachedSet pReachedSet) throws InterruptedException, CPATransferException {
     assert pLastElement.isTarget();
 
     computePathTimer.start();

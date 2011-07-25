@@ -90,8 +90,9 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     AbstractElement lastElement = pReached.getLastElement();
     assert lastElement instanceof ARTElement;
     assert ((ARTElement)lastElement).isTarget();
+    ARTReachedSet reached = new ARTReachedSet(pReached, mArtCpa);
 
-    Path path = computePath((ARTElement)lastElement, pReached);
+    Path path = computePath((ARTElement)lastElement, reached);
 
     if (logger.wouldBeLogged(Level.ALL) && path != null) {
       logger.log(Level.ALL, "Error path:\n", path);
@@ -101,7 +102,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
 
     boolean result;
     try {
-      result = performRefinement(new ARTReachedSet(pReached, mArtCpa), path);
+      result = performRefinement(reached, path);
     } catch (RefinementFailedException e) {
       if (e.getErrorPath() == null) {
         e.setErrorPath(path);
@@ -169,7 +170,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
    * @return
    * @throws InterruptedException
    */
-  protected Path computePath(ARTElement pLastElement, ReachedSet pReached) throws InterruptedException, CPAException {
+  protected Path computePath(ARTElement pLastElement, ARTReachedSet pReached) throws InterruptedException, CPAException {
     return ARTUtils.getOnePathTo(pLastElement);
   }
 

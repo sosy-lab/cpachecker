@@ -447,11 +447,6 @@ public class ABMTransferRelation implements TransferRelation {
     }
   }
 
-  private void removeSubtree(ReachedSet reachedSet, ARTElement artElement) {
-    ARTReachedSet artReachSet = new ARTReachedSet(reachedSet, wrappedCPA);
-    removeSubtree(artReachSet, artElement);
-  }
-
   private void removeSubtree(ReachedSet reachedSet, ARTElement artElement, Precision newPrecision) {
     ARTReachedSet artReachSet = new ARTReachedSet(reachedSet, wrappedCPA);
     removeSubtree(artReachSet, artElement, newPrecision);
@@ -517,7 +512,7 @@ public class ABMTransferRelation implements TransferRelation {
   //returns root of a subtree leading from the root element of the given reachedSet to the target element
   //subtree is represented using children and parents of ARTElements, where newTreeTarget is the ARTElement
   //in the constructed subtree that represents target
-  ARTElement computeCounterexampleSubgraph(ARTElement target, ReachedSet reachedSet, ARTElement newTreeTarget) throws InterruptedException, RecursiveAnalysisFailedException {
+  ARTElement computeCounterexampleSubgraph(ARTElement target, ARTReachedSet reachedSet, ARTElement newTreeTarget) throws InterruptedException, RecursiveAnalysisFailedException {
     //start by creating ARTElements for each node needed in the tree
     Map<ARTElement, ARTElement> elementsMap = new HashMap<ARTElement, ARTElement>();
     Stack<ARTElement> openElements = new Stack<ARTElement>();
@@ -586,7 +581,7 @@ public class ABMTransferRelation implements TransferRelation {
       return null;
     }
     //we found the target; now construct a subtree in the ART starting with targetARTElement
-    ARTElement result = computeCounterexampleSubgraph(targetARTElement, reachSet, newTreeTarget);
+    ARTElement result = computeCounterexampleSubgraph(targetARTElement, new ARTReachedSet(reachSet, wrappedCPA), newTreeTarget);
     if(result == null) {
       //enforce recomputation to update cached subtree
       subgraphReturnCache.remove(reducedRootElement, reducedRootPrecision, rootSubtree);
