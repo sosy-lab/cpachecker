@@ -93,15 +93,30 @@ def insertLogFileNames(resultElem):
     # get folder of logfiles
     logFolder = resultElem.get('benchmarkname') + "." + resultElem.get('date') + ".logfiles/"
 
+    # crate folder for txt-files (copies of the logfiles)
+    txtFolder = 'table.' + logFolder
+    if not os.path.isdir(OUTPUT_PATH + txtFolder):
+            os.mkdir(OUTPUT_PATH + txtFolder)
+
     # append begin of filename
     testname = resultElem.get('name')
     if testname is not None:
         logFolder += testname + "."
+        txtFolder += testname + "."
 
     # for each file: append original filename and insert logFileName into sourcefileElement
     for sourcefile in resultElem.findall('sourcefile'):
-        logFileName = logFolder + os.path.basename(sourcefile.get('name')) + ".log"
-        sourcefile.set('logfileForHtml', logFileName)
+        logFileName = os.path.basename(sourcefile.get('name'))
+
+        # copy logfiles to extra folder and rename them to '.txt'
+        try:
+            import shutil
+            shutil.copyfile(OUTPUT_PATH + logFolder + logFileName + ".log", 
+                            OUTPUT_PATH + txtFolder + logFileName + ".txt")
+        except IOError:
+            print 'logfile "{0}" not found or not copied'.format(logFileName + ".log")          
+
+        sourcefile.set('logfileForHtml', txtFolder + logFileName + ".txt")
 
 
 def getFileList(shortFile):
