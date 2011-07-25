@@ -685,10 +685,34 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
           System.out.print("Analyse this ... ");
 
           int lPredictedElements = 0;
+          //int lPastElements = 0;
 
           for (int lClusterElement : lCluster) {
+            int lPrediction = lGoalPrediction[lClusterElement];
+
             //if (lClusterElement != lIndex - 1) {
-            if (lClusterElement > lIndex - 1) {
+            if (lClusterElement > lIndex - 1 && lPrediction == -1) {
+              CFAEdge lTargetCFAEdge = getSingletonCFAEdge(lGoalPatterns[lClusterElement], 2);
+
+              // do not consider the element itself
+              if (!dfs(lSuccessorNode, lSecondSingletonCFAEdge, lTargetCFAEdge)) {
+                // should be infeasible
+                //int lPrediction = lGoalPrediction[lClusterElement];
+
+                switch (lPrediction) {
+                case -1:
+                  lGoalPrediction[lClusterElement] = 1;
+                  break;
+                case 1:
+                  break;
+                default:
+                  throw new RuntimeException();
+                }
+
+                lPredictedElements++;
+              }
+            }
+            /*else if (lClusterElement < lIndex - 1) {
               CFAEdge lTargetCFAEdge = getSingletonCFAEdge(lGoalPatterns[lClusterElement], 2);
 
               // do not consider the element itself
@@ -706,12 +730,13 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
                   throw new RuntimeException();
                 }
 
-                lPredictedElements++;
+                lPastElements++;
               }
-            }
+            }*/
           }
 
-          System.out.println(lPredictedElements);
+          //System.out.println("(" + lPredictedElements + "/" + lPastElements + ")");
+          System.out.println("(" + lPredictedElements + ")");
         }
       }
       else {
