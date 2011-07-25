@@ -48,6 +48,7 @@ import java.util.SortedSet;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Classes;
+import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.Files;
 
 import com.google.common.base.Preconditions;
@@ -557,6 +558,11 @@ public class Configuration {
           "Method with @Option must have exactly one parameter!");
     }
 
+    String exception = Classes.verifyDeclaredExceptions(method, InvalidConfigurationException.class);
+    if (exception != null) {
+      throw new IllegalArgumentException("Method with @Option may not throw " + exception);
+    }
+
     final String name = getOptionName(options, method, option);
     final Class<?> type = parameters[0];
     final Type genericType = method.getGenericParameterTypes()[0];
@@ -580,21 +586,16 @@ public class Configuration {
       // ITEs always have a wrapped exception which is the real one thrown by
       // the invoked method. We want to handle this exception.
       final Throwable t = e.getCause();
-      try {
-        Throwables.propagateIfPossible(t, InvalidConfigurationException.class);
-      } catch (IllegalArgumentException iae) {
+
+      if (t instanceof IllegalArgumentException) {
+        // this is an expected exception if the value is wrong, so create a nice message for the user
         throw new InvalidConfigurationException("Invalid value in configuration file: \""
             + name + " = " + valueStr + '\"'
-            + (iae.getMessage() != null ? " (" + iae.getMessage() + ")" : ""), iae);
+            + (t.getMessage() != null ? " (" + t.getMessage() + ")" : ""), t);
       }
 
-      // We can't handle it correctly, but we can't throw it either.
-      final AssertionError newException = new AssertionError(
-          "Unexpected checked exception in method "
-          + method.toGenericString()
-          + ", which was invoked by Configuration.inject()");
-      newException.initCause(t);
-      throw newException;
+      Throwables.propagateIfPossible(t, InvalidConfigurationException.class);
+      throw new UnexpectedCheckedException("configuration injection in method " + method, t);
     }
   }
 
