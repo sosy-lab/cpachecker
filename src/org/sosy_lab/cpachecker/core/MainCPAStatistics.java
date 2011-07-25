@@ -168,19 +168,23 @@ class MainCPAStatistics implements Statistics {
 
         for (Statistics s : subStats) {
             String name = s.getName();
-            if (name != null && !name.isEmpty()) {
+            if (!Strings.isNullOrEmpty(name)) {
               name = name + " statistics";
-              out.println("");
               out.println(name);
               out.println(Strings.repeat("-", name.length()));
             }
+
             s.printStatistics(out, result, reached);
+
+            if (!Strings.isNullOrEmpty(name)) {
+              out.println();
+            }
         }
 
         Set<CFANode> allLocations = ImmutableSet.copyOf(AbstractElements.extractLocations(reached));
         Iterable<AbstractElement> allTargetElements = AbstractElements.filterTargetElements(reached);
 
-        out.println("\nCPAchecker general statistics");
+        out.println("CPAchecker general statistics");
         out.println("-----------------------------");
         out.println("Size of reached set:          " + reached.size());
         out.println("  Number of locations:        " + allLocations.size());
