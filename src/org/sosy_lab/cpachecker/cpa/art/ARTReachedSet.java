@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.art;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -53,8 +55,12 @@ public class ARTReachedSet {
   private final ReachedSet mReached;
   private final ARTCPA mCpa;
 
+  public ARTReachedSet(ReachedSet pReached) {
+    this(pReached, null);
+  }
+
   public ARTReachedSet(ReachedSet pReached, ARTCPA pCpa) {
-    mReached = pReached;
+    mReached = checkNotNull(pReached);
     mCpa = pCpa;
   }
 
@@ -253,6 +259,10 @@ public class ARTReachedSet {
     Preconditions.checkNotNull(element);
     Preconditions.checkArgument(mReached.contains(element));
     assert !element.isCovered() : "element in reached set but covered";
+
+    if (mCpa == null) {
+      throw new UnsupportedOperationException("Need CPA for coverage checks");
+    }
 
     // get the reached set and remove the element itself and all its children
     Set<AbstractElement> localReached = new HashSet<AbstractElement>(mReached.getReached(element));

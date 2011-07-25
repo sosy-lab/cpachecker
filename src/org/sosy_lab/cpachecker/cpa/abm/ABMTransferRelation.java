@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.Path;
@@ -156,7 +155,6 @@ public class ABMTransferRelation implements TransferRelation {
 
   private final LogManager logger;
   private final CPAAlgorithm algorithm;
-  private final ARTCPA wrappedCPA;
   private final TransferRelation wrappedTransfer;
   private final ReachedSetFactory reachedSetFactory;
   private final Reducer wrappedReducer;
@@ -179,8 +177,7 @@ public class ABMTransferRelation implements TransferRelation {
     logger = pLogger;
     algorithm = new CPAAlgorithm(abmCpa, logger);
     reachedSetFactory = pReachedSetFactory;
-    wrappedCPA = (ARTCPA)abmCpa.getWrappedCpa();
-    wrappedTransfer = wrappedCPA.getTransferRelation();
+    wrappedTransfer = abmCpa.getWrappedCpa().getTransferRelation();
     wrappedReducer = abmCpa.getReducer();
     assert wrappedReducer != null;
   }
@@ -447,16 +444,16 @@ public class ABMTransferRelation implements TransferRelation {
     }
   }
 
-  private void removeSubtree(ReachedSet reachedSet, ARTElement artElement, Precision newPrecision) {
-    ARTReachedSet artReachSet = new ARTReachedSet(reachedSet, wrappedCPA);
+  private static void removeSubtree(ReachedSet reachedSet, ARTElement artElement, Precision newPrecision) {
+    ARTReachedSet artReachSet = new ARTReachedSet(reachedSet);
     removeSubtree(artReachSet, artElement, newPrecision);
   }
 
-  private void removeSubtree(ARTReachedSet reachedSet, ARTElement artElement) {
+  private static void removeSubtree(ARTReachedSet reachedSet, ARTElement artElement) {
     reachedSet.removeSubtree(artElement);
   }
 
-  private void removeSubtree(ARTReachedSet reachedSet, ARTElement artElement, Precision newPrecision) {
+  private static void removeSubtree(ARTReachedSet reachedSet, ARTElement artElement, Precision newPrecision) {
     if(newPrecision == null) {
       removeSubtree(reachedSet, artElement);
     } else {
@@ -581,7 +578,7 @@ public class ABMTransferRelation implements TransferRelation {
       return null;
     }
     //we found the target; now construct a subtree in the ART starting with targetARTElement
-    ARTElement result = computeCounterexampleSubgraph(targetARTElement, new ARTReachedSet(reachSet, wrappedCPA), newTreeTarget);
+    ARTElement result = computeCounterexampleSubgraph(targetARTElement, new ARTReachedSet(reachSet), newTreeTarget);
     if(result == null) {
       //enforce recomputation to update cached subtree
       subgraphReturnCache.remove(reducedRootElement, reducedRootPrecision, rootSubtree);
