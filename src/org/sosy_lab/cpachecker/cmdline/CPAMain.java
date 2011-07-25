@@ -106,10 +106,14 @@ public class CPAMain {
     @SuppressWarnings("deprecation")
     @Override
     public void run() {
+      boolean cancelled = false;
+
       if (mainThread.isAlive()) {
         // probably the user pressed Ctrl+C
         mainThread.interrupt();
         logManager.log(Level.INFO, "Stop signal received, waiting 2s for analysis to stop cleanly...");
+        cancelled = true;
+
         try {
           mainThread.join(2000);
         } catch (InterruptedException e) {}
@@ -143,6 +147,13 @@ public class CPAMain {
           // print statistics
           mResult.printStatistics(stream);
           stream.println();
+
+          if (cancelled) {
+            stream.println(
+                "***********************************************************************\n" +
+                "* WARNING: Analysis interrupted!! The statistics might be unreliable! *\n" +
+                "***********************************************************************\n");
+          }
 
           // print result
           if (!printStatistics) {

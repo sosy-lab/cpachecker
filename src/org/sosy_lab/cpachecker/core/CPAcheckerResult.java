@@ -89,11 +89,7 @@ public class CPAcheckerResult {
     out.print("Verification result: ");
     switch (result) {
     case UNKNOWN:
-      out.println("UNKNOWN, incomplete analysis.\n\n" +
-          "***********************************************************************\n" +
-          "* WARNING: Analysis interrupted!! The statistics might be unreliable! *\n" +
-          "***********************************************************************"
-        );
+      out.println("UNKNOWN, incomplete analysis.");
       break;
     case UNSAFE:
       out.println("UNSAFE. Error path found by chosen configuration.");
