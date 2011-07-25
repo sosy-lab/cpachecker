@@ -55,8 +55,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremPr
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
+import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.YicesTheoremProver;
@@ -174,11 +174,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
         Formula f = mathsatFormulaManager.parse(fileContent);
         predicates = predicateManager.getAtomsAsPredicates(f);
       } catch (IllegalArgumentException e) {
-        logger.log(Level.WARNING, "Could not read predicates from file", predicatesFile,
-            "(" + e.getMessage() + ")");
+        logger.logUserException(Level.WARNING, e, "Could not read predicates from file " + predicatesFile);
       } catch (IOException e) {
-        logger.log(Level.WARNING, "Could not read predicates from file", predicatesFile,
-            "(" + e.getMessage() + ")");
+        logger.logUserException(Level.WARNING, e, "Could not read predicates from file");
       }
     }
 

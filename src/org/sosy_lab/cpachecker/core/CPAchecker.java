@@ -225,8 +225,7 @@ public class CPAchecker {
       result = analyzeResult(reached, sound);
 
     } catch (IOException e) {
-      logger.log(Level.SEVERE, "Could not read file", filename,
-          (e.getMessage() != null ? "(" + e.getMessage() + ")" : ""));
+      logger.logUserException(Level.SEVERE, e, "Could not read file");
 
     } catch (ParserException e) {
       // only log message, not whole exception because this is a C problem,

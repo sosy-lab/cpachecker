@@ -460,8 +460,7 @@ class PredicateAbstractionManager {
     try {
       Files.writeFile(outputFile, fmgr.dumpFormula(f));
     } catch (IOException e) {
-      logger.log(Level.WARNING,
-          "Failed to save formula to file ", outputFile.getPath(), "(", e.getMessage(), ")");
+      logger.logUserException(Level.WARNING, e, "Failed to save formula to file");
     }
   }
 
@@ -471,8 +470,7 @@ class PredicateAbstractionManager {
     try {
       Files.writeFile(outputFile, LINE_JOINER.join(f));
     } catch (IOException e) {
-      logger.log(Level.WARNING,
-          "Failed to save formula to file ", outputFile.getPath(), "(", e.getMessage(), ")");
+      logger.logUserException(Level.WARNING, e, "Failed to save formula to file");
     }
   }
 

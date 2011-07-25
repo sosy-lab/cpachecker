@@ -106,8 +106,7 @@ class PredicateCPAStatistics implements Statistics {
         try {
           Files.writeFile(file, sb);
         } catch (IOException e) {
-          cpa.getLogger().log(Level.WARNING, "Could not write predicate map to file ", file,
-              (e.getMessage() != null ? "(" + e.getMessage() + ")" : ""));
+          cpa.getLogger().logUserException(Level.WARNING, e, "Could not write predicate map to file");
         }
       }
 

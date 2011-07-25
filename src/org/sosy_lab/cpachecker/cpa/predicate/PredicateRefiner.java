@@ -185,7 +185,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
             }
           } catch (CPATransferException e) {
             // path is now suddenly a problem
-            logger.log(Level.WARNING, "Could not replay error path (" + e.getMessage() + ")!");
+            logger.logUserException(Level.WARNING, e, "Could not replay error path");
           }
         }
       }
@@ -200,8 +200,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
         try {
           Files.writeFile(exportFile, mCounterexampleTraceInfo.getCounterexample());
         } catch (IOException e) {
-          logger.log(Level.WARNING, "Could not write satisfying assignment for error path to file! ("
-              + e.getMessage() + ")");
+          logger.logUserException(Level.WARNING, e, "Could not write satisfying assignment for error path to file");
         }
       }
       totalRefinement.stop();

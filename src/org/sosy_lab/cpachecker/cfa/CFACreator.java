@@ -201,7 +201,7 @@ public class CFACreator {
         CFACreator.loops = loops.build();
       } catch (ParserException e) {
         // don't abort here, because if the analysis doesn't need the loop information, we can continue
-        logger.log(Level.WARNING, e.getMessage());
+        logger.logUserException(Level.WARNING, e, "Could not analze loop structure of program");
       }
 
       // Insert call and return edges and build the supergraph

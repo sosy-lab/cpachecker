@@ -356,13 +356,22 @@ public class LogManager {
    * Use this method in cases where an expected exception with a useful error
    * message is thrown, e.g. an InvalidConfigurationException.
    *
+   * If you want to log an IOException because of a write error, it is recommended
+   * to write the message like "Could not write FOO to file". The final message
+   * will then be "Could not write FOO to file FOO.txt (REASON)".
+   *
    * @param priority the log level for the message
    * @param e the occurred exception
    * @param additionalMessage an optional message
    */
   public void logUserException(Level priority, Throwable e, String additionalMessage) {
     if (wouldBeLogged(priority)) {
-      String logMessage = "Error: ";
+      String logMessage = "";
+      if (priority.equals(Level.SEVERE)) {
+        logMessage = "Error: ";
+      } else if (priority.equals(Level.WARNING)) {
+        logMessage = "Warning: ";
+      }
 
       String exceptionMessage = Strings.nullToEmpty(e.getMessage());
 
@@ -380,7 +389,13 @@ public class LogManager {
         logMessage += additionalMessage;
 
         if (!exceptionMessage.isEmpty()) {
-           logMessage += " (" + exceptionMessage + ")";
+          if ((e instanceof IOException) && logMessage.endsWith("file")) {
+            // nicer error message, so that we have something like
+            // "could not write to file /FOO.txt (Permission denied)"
+            logMessage += " " + exceptionMessage;
+          } else {
+            logMessage += " (" + exceptionMessage + ")";
+          }
         }
       }
 

@@ -91,9 +91,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
           try {
             Files.writeFile(assumptionsFile, resultAssumption);
           } catch (IOException e) {
-            logger.log(Level.WARNING,
-                "Could not write assumptions to file ", assumptionsFile.getAbsolutePath(),
-                ", (", e.getMessage(), ")");
+            logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");
           }
         }
 
@@ -101,9 +99,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
           try {
             Files.writeFile(assumptionAutomatonFile, produceAssumptionAutomaton(pReached));
           } catch (IOException e) {
-            logger.log(Level.WARNING,
-                "Could not write assumptions to file ", assumptionAutomatonFile.getAbsolutePath(),
-                ", (", e.getMessage(), ")");
+            logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");
           }
         }
       }

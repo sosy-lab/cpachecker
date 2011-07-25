@@ -133,8 +133,7 @@ public class CPAMain {
             com.google.common.io.Files.createParentDirs(exportStatisticsFile);
             file = new FileOutputStream(exportStatisticsFile);
           } catch (IOException e) {
-            logManager.log(Level.WARNING, "Could not write statistics to file ("
-                + e.getMessage() + ")");
+            logManager.logUserException(Level.WARNING, e, "Could not write statistics to file");
           }
         }
 
@@ -241,7 +240,7 @@ public class CPAMain {
     try {
       Files.checkReadableFile(cFile);
     } catch (FileNotFoundException e) {
-      logManager.log(Level.SEVERE, e.getMessage());
+      logManager.logUserException(Level.SEVERE, e, "");
       System.exit(1);
     }
 
