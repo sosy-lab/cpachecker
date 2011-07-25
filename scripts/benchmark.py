@@ -494,7 +494,7 @@ class OutputHandler:
 
     def writeTestInfoToLog(self):
         """
-        THis method writes the information about a test into the TXTFile.
+        This method writes the information about a test into the TXTFile.
         """
 
         numberOfTest = self.benchmark.tests.index(self.test) + 1
@@ -532,7 +532,7 @@ class OutputHandler:
 
 
     def outputAfterRun(self, sourcefile, fileOptions, status,
-                       cpuTimeDelta, wallTimeDelta, output):
+                       cpuTimeDelta, wallTimeDelta, output, args):
         """
         The method outputAfterRun() prints filename, result, time and status 
         of a test to terminal and stores all data in XML 
@@ -562,7 +562,9 @@ class OutputHandler:
         if self.test.name is not None:
             logFileName += self.test.name + "."
         logFileName += os.path.basename(sourcefile) + ".log"
-        FileWriter(logFileName, output)
+        logFile = FileWriter(logFileName, ' '.join(args))
+        logFile.append('\n\n\n' + '-'*80 + '\n\n\n')
+        logFile.append(output)
 
         # output in terminal/console
         print status.ljust(8) + cpuTimeDelta.rjust(8) + wallTimeDelta.rjust(8)
@@ -877,7 +879,7 @@ def run_cbmc(options, sourcefile, columns, rlimits):
     else:
         status = "ERROR ({0})".format(returncode)
 
-    return (status, cpuTimeDelta, wallTimeDelta, output)
+    return (status, cpuTimeDelta, wallTimeDelta, output, args)
 
 
 def run_satabs(options, sourcefile, columns, rlimits):
@@ -890,7 +892,7 @@ def run_satabs(options, sourcefile, columns, rlimits):
         status = "UNSAFE"
     else:
         status = "FAILURE"
-    return (status, cpuTimeDelta, wallTimeDelta, output)
+    return (status, cpuTimeDelta, wallTimeDelta, output, args)
 
 
 def run_acsar(options, sourcefile, columns, rlimits):
@@ -939,7 +941,7 @@ def run_acsar(options, sourcefile, columns, rlimits):
     import os
     os.remove(prepSourcefile)
 
-    return (status, cpuTimeDelta, wallTimeDelta, output)
+    return (status, cpuTimeDelta, wallTimeDelta, output, args)
 
 
 def prepareSourceFileForAcsar(sourcefile):
@@ -975,7 +977,7 @@ def run_cpachecker(options, sourcefile, columns, rlimits):
 
     getCPAcheckerColumns(output, columns)
 
-    return (status, cpuTimeDelta, wallTimeDelta, output)
+    return (status, cpuTimeDelta, wallTimeDelta, output, args)
 
 
 def getCPAcheckerStatus(returncode, output):
@@ -1065,7 +1067,7 @@ def run_blast(options, sourcefile, columns, rlimits):
         elif (returncode == 2) and line.startswith('Ack! The gremlins again!: Sys_error("Broken pipe")'):
             status = 'TIMEOUT'
 
-    return (status, cpuTimeDelta, wallTimeDelta, output)
+    return (status, cpuTimeDelta, wallTimeDelta, output, args)
 
 
 def runBenchmark(benchmarkFile):
@@ -1102,11 +1104,11 @@ def runBenchmark(benchmarkFile):
                 outputHandler.outputBeforeRun(sourcefile, currentOptions)
     
                 # run test
-                (status, cpuTimeDelta, wallTimeDelta, output) = \
+                (status, cpuTimeDelta, wallTimeDelta, output, args) = \
                     run_func(currentOptions, sourcefile, benchmark.columns, benchmark.rlimits)
     
                 outputHandler.outputAfterRun(sourcefile, fileOptions, status,
-                                             cpuTimeDelta, wallTimeDelta, output)
+                                             cpuTimeDelta, wallTimeDelta, output, args)
     
             # get times after test
             wallTimeAfter = time.time()
