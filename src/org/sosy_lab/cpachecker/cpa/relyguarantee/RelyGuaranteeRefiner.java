@@ -36,6 +36,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -60,7 +61,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 
-
+@Options(prefix="cpa.relyguarantee")
 public class RelyGuaranteeRefiner{
   @Option(name="refinement.addPredicatesGlobally",
       description="refinement will add all discovered predicates "
@@ -78,6 +79,9 @@ public class RelyGuaranteeRefiner{
   @Option(name="refinement.msatCexFile", type=Option.Type.OUTPUT_FILE,
       description="where to dump the counterexample formula in case the error location is reached")
   private File dumpCexFile = new File("counterexample.msat");
+
+  @Option(description="List of variables global to multiple threads")
+  protected String[] globalVariables = {};
 
   private RelyGuaranteeRefinementManager manager;
   private final ARTCPA[] artCpas;
@@ -98,6 +102,7 @@ public class RelyGuaranteeRefiner{
     RelyGuaranteeCPA rgCPA = artCpas[0].retrieveWrappedCpa(RelyGuaranteeCPA.class);
     if (rgCPA != null){
       manager = rgCPA.getRelyGuaranteeManager();
+      //rgCPA.getConfiguration().inject(this, RelyGuaranteeRefiner.class);
     } else {
       throw new InvalidConfigurationException("RelyGuaranteeCPA needed for refinement");
     }

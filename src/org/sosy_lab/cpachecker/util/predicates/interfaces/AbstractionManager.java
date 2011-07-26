@@ -27,6 +27,7 @@ import java.util.Collection;
 
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
 public interface AbstractionManager {
 
@@ -52,7 +53,7 @@ public interface AbstractionManager {
    */
   Formula toConcrete(Region af);
 
-  AbstractionFormula makeTrueAbstractionFormula(Formula previousBlockFormula);
+  AbstractionFormula makeTrueAbstractionFormula(PathFormula previousBlockFormula);
 
   RegionManager getRegionManager();
 

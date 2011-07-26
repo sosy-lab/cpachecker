@@ -164,7 +164,7 @@ class PredicateAbstractionManager {
 
     if (predicates.isEmpty()) {
       stats.numSymbolicAbstractions++;
-      return makeTrueAbstractionFormula(pathFormula.getFormula());
+      return makeTrueAbstractionFormula(pathFormula);
     }
 
     logger.log(Level.ALL, "Old abstraction:", abstractionFormula);
@@ -497,8 +497,7 @@ class PredicateAbstractionManager {
     return amgr.makeFalsePredicate();
   }
 
-  public AbstractionFormula makeTrueAbstractionFormula(
-      Formula pPreviousBlockFormula) {
+  public AbstractionFormula makeTrueAbstractionFormula(PathFormula pPreviousBlockFormula) {
     return amgr.makeTrueAbstractionFormula(pPreviousBlockFormula);
   }
 

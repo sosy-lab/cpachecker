@@ -65,6 +65,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
@@ -81,7 +82,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 
-@Options(prefix="cpa.predicate.refinement")
+@Options(prefix="cpa.relyguarantee.refinement")
 public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementManager<T1, T2>  {
 
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
@@ -135,13 +136,15 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
   @Option(description="skip refinement if input formula is larger than "
     + "this amount of bytes (ignored if 0)")
   private int maxRefinementSize = 0;
+  private Set<String> globalVariables;
 
 
 
   public RelyGuaranteeRefinementManager(RegionManager pRmgr, FormulaManager pFmgr, PathFormulaManager pPmgr, TheoremProver pThmProver,
       InterpolatingTheoremProver<T1> pItpProver, InterpolatingTheoremProver<T2> pAltItpProver, Configuration pConfig,
-      LogManager pLogger) throws InvalidConfigurationException {
+      LogManager pLogger, Set<String> globalVariables) throws InvalidConfigurationException {
     super(pRmgr, pFmgr, pPmgr, pThmProver, pItpProver, pAltItpProver, pConfig, pLogger);
+    this.globalVariables = globalVariables;
 
   }
 
@@ -582,9 +585,20 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
 
 
-  private PathFormula applyEnvToInstance(RelyGuaranteeCFAEdge rgEdge, PathFormula contextPF, List<PathFormula> pPrimedEnvPFList, RelyGuaranteeFormulaTemplate pTemplate) {
-    // TODO Auto-generated method stub
-    return null;
+  private PathFormula applyEnvToInstance(RelyGuaranteeCFAEdge rgEdge, PathFormula contextPF, List<PathFormula> envPFList, RelyGuaranteeFormulaTemplate template) throws CPATransferException {
+    // concatenate one path formula
+    PathFormula envPF = pmgr.makeEmptyPathFormula();
+    for (PathFormula pf : envPFList){
+      envPF = pmgr.makeAnd(envPF, pf);
+    }
+    // build equalities
+    PathFormula eq = pmgr.buildEqualitiesOverVariables(contextPF, envPF, globalVariables);
+    // apply the operation
+    Triple<Formula, SSAMap, Integer> data = pmgr.makeAnd2(contextPF, rgEdge.getLocalEdge());
+    PathFormula op = new PathFormula(data.getFirst(), data.getSecond(), data.getThird());
+
+    PathFormula result = pmgr.makeAnd(eq, op);
+    return result;
   }
 
 
@@ -622,7 +636,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     List<RelyGuaranteeAbstractElement> abstractTrace = Lists.transform(path, Triple.<RelyGuaranteeAbstractElement>getProjectionToThird());
 
     List<Formula> f = getFormulasForTrace(abstractTrace);
-    //List<PathFormula> f = getRGFormulaForElement(targetElement, reachedSets, threadNo);
+    List<PathFormula> pf = getRGFormulaForElement(targetElement, reachedSets, threadNo);
 
     if (useBitwiseAxioms) {
       Formula bitwiseAxioms = fmgr.makeTrue();

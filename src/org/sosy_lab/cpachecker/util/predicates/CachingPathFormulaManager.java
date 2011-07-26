@@ -29,6 +29,7 @@ import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement.RelyGuaranteeFormulaTemplate;
@@ -204,6 +205,13 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   public PathFormula buildEqualitiesOverVariables(PathFormula pPf1, PathFormula pPf2, Set<String> pVariableSet) {
     return delegate.buildEqualitiesOverVariables(pPf1, pPf2, pVariableSet);
   }
+
+
+  @Override
+  public Triple<Formula, SSAMap, Integer> makeAnd2(PathFormula pLocalF,CFAEdge pEdge) throws CPATransferException {
+    return delegate.makeAnd2(pLocalF, pEdge);
+  }
+
 
 
 

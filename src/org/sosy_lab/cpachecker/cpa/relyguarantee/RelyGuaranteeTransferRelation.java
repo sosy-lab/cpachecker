@@ -430,7 +430,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
       logger.log(Level.FINEST, "Last part of the path is not infeasible.");
 
       // set abstraction to true (we don't know better)
-      AbstractionFormula abs = formulaManager.makeTrueAbstractionFormula(pathFormula.getFormula());
+      AbstractionFormula abs = formulaManager.makeTrueAbstractionFormula(pathFormula);
 
       PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula);
 

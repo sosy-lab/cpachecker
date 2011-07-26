@@ -349,10 +349,8 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
   @Override
   // merge two possible primed formulas and add  equalities for their final values
   public PathFormula matchPaths(PathFormula localPF, PathFormula envPF, Set<String> globalVariablesSet) {
-    PathFormula eqPF = buildEqualitiesOverVariables(localPF, envPF, globalVariablesSet);
-    PathFormula result = makeAnd(localPF, envPF);
-    result = makeAnd(result, eqPF);
-   /* Formula f = fmgr.makeAnd(localPF.getFormula(), envPF.getFormula());
+
+    Formula f = fmgr.makeAnd(localPF.getFormula(), envPF.getFormula());
     SSAMapBuilder matchedSSA = SSAMap.merge(localPF.getSsa(), envPF.getSsa()).builder();
 
     // unprimed variables in env should have offset x primes
@@ -377,8 +375,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
     int length = Math.max(localPF.getLength(), envPF.getLength());
 
-    return new PathFormula(f, matchedSSA.build(), length,  envPF.getPrimedNo());*/
-    return result;
+    return new PathFormula(f, matchedSSA.build(), length,  envPF.getPrimedNo());
   }
 
   /**

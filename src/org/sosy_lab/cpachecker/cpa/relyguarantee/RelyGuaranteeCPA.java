@@ -128,6 +128,13 @@ public class RelyGuaranteeCPA extends PredicateCPA{
     this.logger = logger;
     config.inject(this, RelyGuaranteeCPA.class);
 
+    globalVariablesSet = new HashSet<String>();
+    for (String var : globalVariables){
+      globalVariablesSet.add(var);
+    }
+
+
+
     this.regionManager = BDDRegionManager.getInstance();
     MathsatFormulaManager mathsatFormulaManager = MathsatFormulaManager.getInstance(config, logger);
     this.formulaManager = mathsatFormulaManager;
@@ -169,7 +176,7 @@ public class RelyGuaranteeCPA extends PredicateCPA{
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
-    this.predicateManager = new RelyGuaranteeRefinementManager<Integer, Integer>(regionManager, formulaManager, pathFormulaManager, theoremProver, itpProver, alternativeItpProver, config, logger);
+    this.predicateManager = new RelyGuaranteeRefinementManager<Integer, Integer>(regionManager, formulaManager, pathFormulaManager, theoremProver, itpProver, alternativeItpProver, config, logger, globalVariablesSet);
     this.transfer = new RelyGuaranteeTransferRelation(this);
 
     RelyGuaranteeFormulaTemplate freshTemplate = new RelyGuaranteeFormulaTemplate(pathFormulaManager.makeEmptyPathFormula());
@@ -212,11 +219,6 @@ public class RelyGuaranteeCPA extends PredicateCPA{
         predicates.add(p);
       }
     }*/
-
-    globalVariablesSet = new HashSet<String>();
-    for (String var : globalVariables){
-      globalVariablesSet.add(var);
-    }
 
 
     // hardcode predicates

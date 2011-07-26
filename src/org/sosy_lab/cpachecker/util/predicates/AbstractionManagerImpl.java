@@ -240,9 +240,10 @@ public class AbstractionManagerImpl implements AbstractionManager {
   }
 
   @Override
-  public AbstractionFormula makeTrueAbstractionFormula(Formula previousBlockFormula) {
+  // TODO use PathFormulaManager instead of FormulaManager
+  public AbstractionFormula makeTrueAbstractionFormula(PathFormula previousBlockFormula) {
     if (previousBlockFormula == null) {
-      previousBlockFormula = fmgr.makeTrue();
+      previousBlockFormula = new PathFormula(fmgr.makeTrue(), SSAMap.emptySSAMap(), 0);
     }
     return new AbstractionFormula(rmgr.makeTrue(), fmgr.makeTrue(), previousBlockFormula);
   }

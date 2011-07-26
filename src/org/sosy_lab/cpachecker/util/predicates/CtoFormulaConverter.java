@@ -459,8 +459,8 @@ public class CtoFormulaConverter {
       Formula oldTemplateF = oldTemplate.getLocalPathFormula().getFormula();
       PathFormula newTemplatePF = new PathFormula(oldTemplateF, newTemplateSSA.build(), data.getThird(), 0);
       // add entry about this env transition
-      Vector<Pair<RelyGuaranteeCFAEdge, SSAMap>> newList = new Vector(oldTemplate.getEnvTransitionApplied());
-      Pair<RelyGuaranteeCFAEdge, SSAMap> newEntry = new Pair<RelyGuaranteeCFAEdge, SSAMap>(rgEdge, oldLocalF.getSsa());
+      Vector<Pair<RelyGuaranteeCFAEdge, PathFormula>> newList = new Vector(oldTemplate.getEnvTransitionApplied());
+      Pair<RelyGuaranteeCFAEdge, PathFormula> newEntry = new Pair<RelyGuaranteeCFAEdge, PathFormula>(rgEdge, oldLocalF);
       newList.add(newEntry);
       newTemplate = new RelyGuaranteeFormulaTemplate(newTemplatePF, newList);
     } else {
