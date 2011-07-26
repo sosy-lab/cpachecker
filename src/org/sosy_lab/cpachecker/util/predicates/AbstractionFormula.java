@@ -43,16 +43,16 @@ public class AbstractionFormula {
    * The formula of the block directly before this abstraction.
    * (This formula was used to create this abstraction).
    */
-  private final Formula blockFormula;
+  //private final Formula blockFormula;
+  private final PathFormula blockPathFormula;
 
   private static int nextId = 0;
   private final int id = nextId++;
 
-  public AbstractionFormula(Region pFirst, Formula pSecond,
-      Formula pBlockFormula) {
+  public AbstractionFormula(Region pFirst, Formula pSecond, PathFormula pBlocPathFormula) {
     this.region = pFirst;
     this.formula = pSecond;
-    this.blockFormula = pBlockFormula;
+    this.blockPathFormula = pBlocPathFormula;
   }
 
   public boolean isTrue() {
@@ -72,7 +72,11 @@ public class AbstractionFormula {
   }
 
   public Formula getBlockFormula() {
-    return blockFormula;
+    return blockPathFormula.getFormula();
+  }
+
+  public PathFormula getBlockPathFormula() {
+    return blockPathFormula;
   }
 
   public int getId() {

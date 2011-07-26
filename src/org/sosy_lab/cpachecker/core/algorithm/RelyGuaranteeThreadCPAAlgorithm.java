@@ -366,7 +366,8 @@ private void printMerge(AbstractElement pSuccessor, AbstractElement pReachedElem
     for (int i=0; i<node.getNumLeavingEdges(); i++){
       edge = node.getLeavingEdge(i);
       if (this.createsEnvTransition(edge)) {
-        RelyGuaranteeEnvironmentalTransition newEnvTransition = new RelyGuaranteeEnvironmentalTransition(predElement.getAbstractionFormula().asFormula(), predElement.getPathFormula(), edge, this.tid);
+        //RelyGuaranteeEnvironmentalTransition newEnvTransition = new RelyGuaranteeEnvironmentalTransition(predElement.getAbstractionFormula().asFormula(), predElement.getPathFormula(), edge,  this.tid);
+        RelyGuaranteeEnvironmentalTransition newEnvTransition = new RelyGuaranteeEnvironmentalTransition(aElement, edge,  this.tid);
         envTransitions.add(newEnvTransition);
       }
     }

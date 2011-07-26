@@ -53,6 +53,7 @@ public interface PathFormulaManager {
    */
   PathFormula makeOr(PathFormula pF1, PathFormula pF2);
 
+  public PathFormula makeAnd(PathFormula pf1, PathFormula pf2);
 
   PathFormula makeAnd(PathFormula pPathFormula, Formula pOtherFormula);
 
@@ -62,19 +63,13 @@ public interface PathFormulaManager {
   Pair<PathFormula, RelyGuaranteeFormulaTemplate> makeTemplateAnd(PathFormula oldLocalF, CFAEdge edge, RelyGuaranteeFormulaTemplate oldTemplate) throws CPATransferException;
 
 
-  //PathFormula makeAnd(PathFormula pMergedPathFormula, CFAEdge pLocalEdge,
-  //    int pThreadId) throws CPATransferException;
-
-
   PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM);
-
-  //PathFormula shiftFormula(PathFormula formula, int offset);
 
 
   PathFormula matchPaths(PathFormula localPF, PathFormula envPF, Set<String> globalVariablesSet);
 
+  PathFormula buildEqualitiesOverVariables(PathFormula pf1, PathFormula pf2, Set<String> variableSet);
 
-  //PathFormula makeAnd(PathFormula pLocalPathFormula, PathFormula pEnvPathFormula, int pMyTid, int pSourceTid);
 
   // returns an empty path formula with a clean SSAMap from variables that do not belong to this thread
   PathFormula makeEmptyPathFormula(PathFormula pPathFormula,  int pThreadId);

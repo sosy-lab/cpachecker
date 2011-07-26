@@ -24,6 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
@@ -32,16 +36,30 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
  */
 public class RelyGuaranteeEnvironmentalTransition {
 
-  private Formula formula;
-  private PathFormula pathFormula;
-  private CFAEdge edge;
-  private int sourceThread;
+  private final Formula formula;
+  private final PathFormula pathFormula;
+  private final CFAEdge edge;
+  private final int sourceThread;
+  private final ARTElement sourceARTElement;
 
-  public RelyGuaranteeEnvironmentalTransition (Formula formula, PathFormula pathFormula, CFAEdge edge, int sourceThread) {
+ /* public RelyGuaranteeEnvironmentalTransition (Formula formula, PathFormula pathFormula, CFAEdge edge, int sourceThread) {
     this.formula = formula;
     this.pathFormula = pathFormula;
     this.edge = edge;
     this.sourceThread = sourceThread;
+  }*/
+
+  // TODO some type-check would be good
+  public RelyGuaranteeEnvironmentalTransition(ARTElement aElement, CFAEdge edge, int tid) {
+    CompositeElement cElement = (CompositeElement)  aElement.getWrappedElement();
+    CFANode node = cElement.retrieveLocationElement().getLocationNode();
+    RelyGuaranteeAbstractElement predElement = AbstractElements.extractElementByType(cElement, RelyGuaranteeAbstractElement.class);
+
+    this.formula = predElement.getAbstractionFormula().asFormula();
+    this.pathFormula = predElement.getPathFormula();
+    this.edge = edge;
+    this.sourceThread = tid;
+    this.sourceARTElement = aElement;
   }
 
   public Formula getFormula() {
@@ -58,6 +76,10 @@ public class RelyGuaranteeEnvironmentalTransition {
 
   public int getSourceThread() {
     return sourceThread;
+  }
+
+  public ARTElement getSourceARTElement() {
+    return sourceARTElement;
   }
 
   public String toString() {

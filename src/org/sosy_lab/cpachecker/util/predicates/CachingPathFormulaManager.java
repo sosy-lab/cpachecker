@@ -194,6 +194,18 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
 
+  @Override
+  public PathFormula makeAnd(PathFormula pPf1, PathFormula pPf2) {
+    return delegate.makeAnd(pPf1, pPf2);
+  }
+
+
+  @Override
+  public PathFormula buildEqualitiesOverVariables(PathFormula pPf1, PathFormula pPf2, Set<String> pVariableSet) {
+    return delegate.buildEqualitiesOverVariables(pPf1, pPf2, pVariableSet);
+  }
+
+
 
 
 

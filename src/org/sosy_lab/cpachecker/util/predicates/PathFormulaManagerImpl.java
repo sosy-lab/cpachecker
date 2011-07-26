@@ -120,13 +120,8 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     SSAMap newSsa = pm.getSecond();
 
     int newLength = Math.max(pF1.getLength(), pF2.getLength());
+    int max_prime = Math.max(pF1.getPrimedNo(), pF2.getPrimedNo());
 
-    int max_prime;
-    if (pF1.getPrimedNo() > pF2.getPrimedNo()) {
-      max_prime = pF1.getPrimedNo();
-    } else {
-      max_prime = pF2.getPrimedNo();
-    }
 
     return new PathFormula(newFormula, newSsa, newLength, max_prime);
   }
@@ -138,6 +133,15 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     Formula otherFormula =  fmgr.instantiate(pOtherFormula, ssa);
     Formula resultFormula = fmgr.makeAnd(pPathFormula.getFormula(), otherFormula);
     return new PathFormula(resultFormula, ssa, pPathFormula.getLength(), pPathFormula.getPrimedNo());
+  }
+
+  public PathFormula makeAnd(PathFormula pf1, PathFormula pf2){
+    SSAMap ssa = SSAMap.merge(pf1.getSsa(), pf2.getSsa());
+    Formula f = fmgr.makeAnd(pf1.getFormula(), pf2.getFormula());
+    int length = Math.max(pf1.getLength(), pf2.getLength());
+    int primedNo = Math.max(pf1.getPrimedNo(), pf2.getPrimedNo());
+    return new PathFormula(f, ssa, length, primedNo);
+
   }
 
   /**
@@ -345,10 +349,13 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
   @Override
   // merge two possible primed formulas and add  equalities for their final values
   public PathFormula matchPaths(PathFormula localPF, PathFormula envPF, Set<String> globalVariablesSet) {
-    Formula f = this.fmgr.makeAnd(localPF.getFormula(), envPF.getFormula());
+    PathFormula eqPF = buildEqualitiesOverVariables(localPF, envPF, globalVariablesSet);
+    PathFormula result = makeAnd(localPF, envPF);
+    result = makeAnd(result, eqPF);
+   /* Formula f = fmgr.makeAnd(localPF.getFormula(), envPF.getFormula());
     SSAMapBuilder matchedSSA = SSAMap.merge(localPF.getSsa(), envPF.getSsa()).builder();
 
-    // unprimed variables in env should have offset * primes
+    // unprimed variables in env should have offset x primes
     int offset = localPF.getPrimedNo()+1;
     // build equalities for globalVariables variables
     for (String var : globalVariablesSet) {
@@ -368,53 +375,46 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
       f = fmgr.makeAnd(f, eq);
     }
 
+    int length = Math.max(localPF.getLength(), envPF.getLength());
 
-    /*// build maps variable -> primed_no for both formulas
-    Map<String, Integer> map1 = new HashMap<String, Integer>();
-    Map<String, Integer> map2 = new HashMap<String, Integer>();
+    return new PathFormula(f, matchedSSA.build(), length,  envPF.getPrimedNo());*/
+    return result;
+  }
 
-    for (String var : localPF.getSsa().allVariables()) {
-      Pair<String, Integer> data = PathFormula.getPrimeData(var);
-      map1.put(data.getFirst(), data.getSecond());
-    }
+  /**
+   * Generate equalities over last indexes of specified variables. Path formula pf1 should be unprimed.
+   * @param pf1
+   * @param pf2
+   * @param variableSet
+   * @return
+   */
+  public PathFormula buildEqualitiesOverVariables(PathFormula pf1, PathFormula pf2, Set<String> variableSet){
+    assert pf1.getPrimedNo() == 0;
 
-    for (String var : envPF.getSsa().allVariables()) {
-      Pair<String, Integer> data = PathFormula.getPrimeData(var);
-      map2.put(data.getFirst(), data.getSecond());
-    }
+    Formula f = fmgr.makeTrue();
+    SSAMapBuilder matchedSSA = SSAMap.merge(pf1.getSsa(), pf2.getSsa()).builder();
 
-    // build equalities for overlapping variables
-    // if a variable appears only in env path, then make equality with ssa index 1.
-    int equalitiesNo = 0;
-    Formula eF = fmgr.makeTrue();
-    for (String var : map2.keySet()) {
-      String name2 = var +"^"+ map2.get(var);
-      int idx2 = envPF.getSsa().getIndex(name2);
-      String name1 = var;
-      int idx1     =  1;
-      if (map1.containsKey(var)) {
-        if (map1.get(var) > 0){
-          name1 = var +"^"+ map1.get(var);
-        }
-        idx1 = localPF.getSsa().getIndex(name1);
+    // unprimed variables in env should have offset x primes
+    int offset = pf1.getPrimedNo()+1;
+    // build equalities for globalVariables variables
+    for (String var : globalVariablesSet) {
+      int lidx = pf1.getSsa().getIndex(var);
+      int eidx = pf2.getSsa().getIndex(var+"^"+offset);
+      if (lidx == -1) {
+        lidx = 1;
+        matchedSSA.setIndex(var, lidx);
       }
-      Formula var1 = fmgr.makeVariable(name1, idx1);
-      Formula var2 = fmgr.makeVariable(name2, idx2);
-      Formula eq  = fmgr.makeEqual(var1, var2);
-      eF = fmgr.makeAnd(eF, eq);
-      equalitiesNo++;
+      if (eidx == -1) {
+        eidx = 1;
+        matchedSSA.setIndex(var+"^"+offset, eidx);
+      }
+      Formula lvar = fmgr.makeVariable(var, lidx);
+      Formula evar = fmgr.makeVariable(var+"^"+offset, eidx);
+      Formula eq  = fmgr.makeEqual(lvar, evar);
+      f = fmgr.makeAnd(f, eq);
     }
 
-    eF = fmgr.makeAnd(eF, f);*/
-
-    int length;
-    if (localPF.getLength() > envPF.getLength()) {
-      length = localPF.getLength();
-    } else {
-      length = envPF.getLength();
-    }
-
-    return new PathFormula(f, matchedSSA.build(), length,  envPF.getPrimedNo());
+    return new PathFormula(f, matchedSSA.build(), 0,  pf2.getPrimedNo());
   }
 
   @Override

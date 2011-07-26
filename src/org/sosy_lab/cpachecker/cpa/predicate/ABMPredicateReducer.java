@@ -107,8 +107,7 @@ public class ABMPredicateReducer implements Reducer {
 
       //System.out.println("New formula: " + newFormula);
       AbstractionFormula newAbstractionFormula =
-            new AbstractionFormula(newRegion, newFormula, predicateElement
-                .getAbstractionFormula().getBlockFormula());
+            new AbstractionFormula(newRegion, newFormula, predicateElement.getAbstractionFormula().getBlockPathFormula());
 
       return new PredicateAbstractElement.AbstractionElement(pathFormula,
             newAbstractionFormula);
@@ -171,8 +170,7 @@ public class ABMPredicateReducer implements Reducer {
       Formula newFormula =
           fmgr.instantiate(pmgr.toConcrete(expandedRegion),
               pathFormula.getSsa());
-      Formula blockFormula =
-          reducedElement.getAbstractionFormula().getBlockFormula();
+      PathFormula blockFormula =  reducedElement.getPathFormula();
 
       AbstractionFormula newAbstractionFormula =
           new AbstractionFormula(expandedRegion, newFormula, blockFormula);

@@ -33,6 +33,7 @@ public class MathsatFormula implements Formula {
 
     private final long msatTerm;
 
+
     public MathsatFormula(long t) {
         if (mathsat.api.MSAT_ERROR_TERM(t)) {
           throw new IllegalArgumentException("Error term is not a valid formula");

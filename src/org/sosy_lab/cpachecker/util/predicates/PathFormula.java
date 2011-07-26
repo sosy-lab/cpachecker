@@ -42,7 +42,6 @@ public class PathFormula {
 
   // precompiled regex expression
   private static Pattern primeRegex = Pattern.compile("(.+)\\^(\\d+)$");
-  private static int UNKNOWN  = Integer.MIN_VALUE;
 
   public PathFormula(Formula pf, SSAMap ssa, int pLength) {
     this.formula = pf;
@@ -56,7 +55,6 @@ public class PathFormula {
     this.ssa = ssa;
     this.length = pLength;
     this.primedNo = pPrimedNo;
-
   }
 
 

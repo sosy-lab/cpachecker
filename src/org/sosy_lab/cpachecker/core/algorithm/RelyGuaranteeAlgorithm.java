@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.cfa.RelyGuaranteeCFA;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -62,7 +61,6 @@ import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -254,10 +252,9 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     for (RelyGuaranteeEnvironmentalTransition  et: newEnvTransitions){
       Formula f = et.getFormula();
       PathFormula pf = et.getPathFormula();
-      CFAEdge localEdge = et.getEdge();
       PathFormula newPF = pfManager.makeAnd(pf, f);
       newPF = pfManager.normalize(newPF);
-      RelyGuaranteeCFAEdge rgEdge = new RelyGuaranteeCFAEdge(localEdge, newPF, et.getSourceThread());
+      RelyGuaranteeCFAEdge rgEdge = new RelyGuaranteeCFAEdge(et.getEdge(), newPF, et.getSourceThread(), et.getSourceARTElement());
       rgEdges.add(rgEdge);
     }
     newEnvTransitions.removeAllElements();
@@ -555,7 +552,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
   }
 
   // for testing 'isCovered' method, commented cases are for completness
-  private boolean isCoveredTest() {
+  /*private boolean isCoveredTest() {
     Formula g1 = fManager.makeVariable("g", 1);
     Formula g2 = fManager.makeVariable("g", 2);
     Formula g3 = fManager.makeVariable("g", 3);
@@ -604,7 +601,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
    /* if (!isCovered(ef1_III, ef2_IIIt)){
       return false;
     }*/
-    if (isCovered(ef1_III, ef2_IIIf)){
+ /*   if (isCovered(ef1_III, ef2_IIIf)){
       return false;
     }
     // test II
@@ -622,12 +619,12 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
    /* if (!isCovered(ef1_II, ef2_IIt)){
       return false;
     }*/
-    if (isCovered(ef1_II, ef2_IIf)){
+ /*   if (isCovered(ef1_II, ef2_IIf)){
       return false;
     }
 
     return true;
-  }
+  }*/
 
 
 }

@@ -27,15 +27,17 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
 public class RelyGuaranteeCFAEdge implements CFAEdge{
 
   private CFAEdge localEdge;
-  private PathFormula pathFormula;
+  private final PathFormula pathFormula;
   private CFANode predecessor;
   private CFANode successor;
-  private int sourceTid;
+  private final int sourceTid;
+  private final ARTElement sourceARTElement;
 
 
   /**
@@ -43,16 +45,22 @@ public class RelyGuaranteeCFAEdge implements CFAEdge{
    * @param abstractionFormula abstraction formula of the predecessor of the local edge
    * @param pathFormula path formula of the predecessor of the local edge
    */
-  public RelyGuaranteeCFAEdge(CFAEdge pEdge, PathFormula pPathFormula, int sourceTid){
+  public RelyGuaranteeCFAEdge(CFAEdge pEdge, PathFormula pPathFormula, int sourceTid, ARTElement sourceARTElement){
     this.localEdge = pEdge;
     this.pathFormula = pPathFormula;
     this.sourceTid = sourceTid;
+    this.sourceARTElement = sourceARTElement;
   }
 
   public RelyGuaranteeCFAEdge(RelyGuaranteeCFAEdge pOther) {
     this.localEdge = pOther.localEdge;
     this.pathFormula = pOther.pathFormula;
     this.sourceTid = pOther.sourceTid;
+    this.sourceARTElement = pOther.sourceARTElement;
+  }
+
+  public ARTElement getSourceARTElement() {
+    return sourceARTElement;
   }
 
   @Override

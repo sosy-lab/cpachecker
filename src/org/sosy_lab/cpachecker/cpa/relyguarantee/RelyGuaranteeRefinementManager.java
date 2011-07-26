@@ -35,6 +35,7 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
@@ -54,6 +55,7 @@ import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefinementManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement.AbstractionElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement.RelyGuaranteeFormulaTemplate;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -63,7 +65,6 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
@@ -504,29 +505,100 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
    * @throws CPAException
    * @throws InterruptedException
    */
-  public List<Formula> getRGFormulaForElement(ARTElement target, ReachedSet[] reachedSets, int threadNo) throws InterruptedException, CPAException{
+  public List<PathFormula> getRGFormulaForElement(ARTElement target, ReachedSet[] reachedSets, int threadNo) throws InterruptedException, CPAException{
 
     assert reachedSets[threadNo].contains(target);
-
-
-
     // get the set of ARTElement that have been abstracted
     Path cfaPath = computePath(target, reachedSets[threadNo]);
     System.out.println("The error trace in thread "+threadNo+" is "+cfaPath);
     List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement.AbstractionElement>> path = transformPath(cfaPath);
 
-    System.out.println("Env edges applied:");
+    List<PathFormula> rgResult = new ArrayList<PathFormula>(path.size());
+
+    printEnvEdgesApplied(path);
+
     for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement.AbstractionElement> triple : path){
-      System.out.println("- on element id:"+triple.getFirst().getElementId()+" location "+triple.getSecond());
-      for (Pair<RelyGuaranteeCFAEdge, SSAMap> pair : triple.getThird().getRgFormulaTemplate().getEnvTransitionApplied()) {
-        System.out.println("\t"+pair.getFirst()+",");
+      AbstractionElement ae = triple.getThird();
+      RelyGuaranteeFormulaTemplate template = ae.getRgFormulaTemplate();
+      // in any case template formula and path formula should have the same ssa indexes
+      assert (template.getLocalPathFormula().getSsa().equals(ae.getPathFormula().getSsa()));
+
+      if (template.getEnvTransitionApplied().size() == 0){
+        // no env have been applied, so no need for templating
+        assert template.getLocalPathFormula().equals(ae.getPathFormula());
+        rgResult.add(ae.getAbstractionFormula().getBlockPathFormula());
+      } else {
+        // some env have been applied, so the template has to be instantiated
+        List<PathFormula> envFormulas = instantiateTemplateByEnvTransitions(template, reachedSets);
+        rgResult.addAll(envFormulas);
+      }
+    }
+    return rgResult;
+  }
+
+  /**
+   * Returns a path formula instantiated from the template by env transitions
+   * and primed path formulas that generated those env transitions
+   * @param pTemplate
+   * @return
+   * @throws CPAException
+   * @throws InterruptedException
+   */
+  private List<PathFormula> instantiateTemplateByEnvTransitions(RelyGuaranteeFormulaTemplate template, ReachedSet[] reachedSets) throws InterruptedException, CPAException {
+    List<PathFormula> rgResult = new ArrayList<PathFormula>();
+    // the effect of applying all env transitions - it consists of applied operator and equalities
+    PathFormula overallEnvEffectPF = template.getLocalPathFormula();
+    // the highest number of primes in the env path formulas
+    int maximumPrimedNo = 0;
+
+    for (Pair<RelyGuaranteeCFAEdge, PathFormula> pair : template.getEnvTransitionApplied()){
+      // get the path formula that generated the env transition
+      RelyGuaranteeCFAEdge rgEdge = pair.getFirst();
+      int sourceThr = rgEdge.getSourceTid();
+      ARTElement envTarget = rgEdge.getSourceARTElement();
+      List<PathFormula> envPFList = getRGFormulaForElement(envTarget, reachedSets, sourceThr);
+
+      // prime env path formulas so they do not collide
+      List<PathFormula> primedEnvPFList = new Vector<PathFormula>();
+      int newMaximumPrimedNo = 0;
+      for (PathFormula envPF : envPFList){
+        PathFormula primedPF = pmgr.primePathFormula(envPF, maximumPrimedNo+1);;
+        newMaximumPrimedNo  = Math.max(newMaximumPrimedNo , primedPF.getPrimedNo());
+        primedEnvPFList.add(primedPF);
       }
 
+      // the effect of applying this env transition
+      PathFormula envEffectPF = applyEnvToInstance(pair.getFirst(), pair.getSecond(), primedEnvPFList, template);
+      overallEnvEffectPF = pmgr.makeAnd(overallEnvEffectPF, envEffectPF);
+      rgResult.addAll(primedEnvPFList);
     }
 
 
-    return null;
+    rgResult.add(overallEnvEffectPF);
+    return rgResult;
+  }
 
+
+
+
+
+  private PathFormula applyEnvToInstance(RelyGuaranteeCFAEdge rgEdge, PathFormula contextPF, List<PathFormula> pPrimedEnvPFList, RelyGuaranteeFormulaTemplate pTemplate) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+
+  // TODO For testing
+  private void printEnvEdgesApplied( List<Triple<ARTElement, CFANode, AbstractionElement>> path) {
+    System.out.println("Env edges applied:");
+    for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement.AbstractionElement> triple : path){
+      if (triple.getThird().getRgFormulaTemplate().getEnvTransitionApplied().size() > 0){
+        System.out.println("- on element id:"+triple.getFirst().getElementId()+" location "+triple.getSecond());
+        for (Pair<RelyGuaranteeCFAEdge, PathFormula> pair : triple.getThird().getRgFormulaTemplate().getEnvTransitionApplied()) {
+          System.out.println("\t"+pair.getFirst()+",");
+        }
+      }
+    }
   }
 
 
@@ -550,7 +622,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     List<RelyGuaranteeAbstractElement> abstractTrace = Lists.transform(path, Triple.<RelyGuaranteeAbstractElement>getProjectionToThird());
 
     List<Formula> f = getFormulasForTrace(abstractTrace);
-  //List<Formula> f = getRGFormulaForElement(targetElement, reachedSets, threadNo);
+    //List<PathFormula> f = getRGFormulaForElement(targetElement, reachedSets, threadNo);
 
     if (useBitwiseAxioms) {
       Formula bitwiseAxioms = fmgr.makeTrue();

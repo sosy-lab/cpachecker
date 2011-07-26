@@ -183,7 +183,7 @@ class PredicateAbstractionManager {
 
       if (result != null) {
         // create new abstraction object to have a unique abstraction id
-        result = new AbstractionFormula(result.asRegion(), result.asFormula(), pathFormula.getFormula());
+        result = new AbstractionFormula(result.asRegion(), result.asFormula(), pathFormula);
         logger.log(Level.ALL, "Abstraction was cached, result is", result);
         stats.numCallsAbstractionCached++;
         return result;
@@ -198,7 +198,7 @@ class PredicateAbstractionManager {
     }
 
     Formula symbolicAbs = fmgr.instantiate(amgr.toConcrete(abs), pathFormula.getSsa());
-    AbstractionFormula result = new AbstractionFormula(abs, symbolicAbs, pathFormula.getFormula());
+    AbstractionFormula result = new AbstractionFormula(abs, symbolicAbs, pathFormula);
 
     if (useCache) {
       abstractionCache.put(absKey, result);

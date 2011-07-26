@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateMergeOperator;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement.RelyGuaranteeFormulaTemplate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 
 @Options(prefix="cpa.relyguarantee")
 public class RelyGuaranteeMergeOperator extends PredicateMergeOperator {
@@ -115,7 +114,7 @@ public class RelyGuaranteeMergeOperator extends PredicateMergeOperator {
         RelyGuaranteeFormulaTemplate t1= elem1.getRgFormulaTemplate();
         RelyGuaranteeFormulaTemplate t2 = elem2.getRgFormulaTemplate();
         PathFormula mergedTemplatePF = formulaManager.makeOr(t1.getLocalPathFormula(), t2.getLocalPathFormula());
-        Vector<Pair<RelyGuaranteeCFAEdge, SSAMap>> mergedL = new Vector<Pair<RelyGuaranteeCFAEdge, SSAMap>>(t1.getEnvTransitionApplied());
+        Vector<Pair<RelyGuaranteeCFAEdge, PathFormula>> mergedL = new Vector<Pair<RelyGuaranteeCFAEdge, PathFormula>>(t1.getEnvTransitionApplied());
         mergedL.addAll(t2.getEnvTransitionApplied());
         RelyGuaranteeFormulaTemplate mergedTemplate = new RelyGuaranteeFormulaTemplate(mergedTemplatePF, mergedL);
 

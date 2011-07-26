@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.util.assumptions.FormulaReportingElement;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
@@ -222,9 +221,6 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
   return rgFormulaTemplate;
 }
 
-public void setRgFormulaTemplate(PathFormula localPathFormula,  List<Pair<RelyGuaranteeCFAEdge, SSAMap>> envTransitionApplied) {
-  rgFormulaTemplate = new RelyGuaranteeFormulaTemplate(localPathFormula, envTransitionApplied);
-}
 
 public AbstractionFormula getAbstractionFormula() {
    return abstractionFormula;
@@ -277,17 +273,17 @@ public AbstractionFormula getAbstractionFormula() {
 
    // path formula with environmental parts removed - SSA index like in the ordniary path formula
    private final PathFormula localPathFormula;
-   // environmental edge together with the SSA map of the path formula to which it was applied
-   private final List<Pair<RelyGuaranteeCFAEdge, SSAMap>> envTransitionApplied;
+   // environmental edge together with the  path formula to which it was applied
+   private final List<Pair<RelyGuaranteeCFAEdge, PathFormula>> envTransitionApplied;
 
-   public RelyGuaranteeFormulaTemplate(PathFormula localPathFormula,  List<Pair<RelyGuaranteeCFAEdge, SSAMap>> envTransitionApplied) {
+   public RelyGuaranteeFormulaTemplate(PathFormula localPathFormula,  List<Pair<RelyGuaranteeCFAEdge, PathFormula>> envTransitionApplied) {
      this.localPathFormula = localPathFormula;
      this.envTransitionApplied = envTransitionApplied;
    }
 
    public RelyGuaranteeFormulaTemplate(PathFormula localPathFormula) {
      this.localPathFormula = localPathFormula;
-     this.envTransitionApplied = new Vector<Pair<RelyGuaranteeCFAEdge, SSAMap>>();
+     this.envTransitionApplied = new Vector<Pair<RelyGuaranteeCFAEdge, PathFormula>>();
    }
 
 
@@ -295,7 +291,7 @@ public AbstractionFormula getAbstractionFormula() {
     return localPathFormula;
   }
 
-  public List<Pair<RelyGuaranteeCFAEdge, SSAMap>> getEnvTransitionApplied() {
+  public List<Pair<RelyGuaranteeCFAEdge, PathFormula>> getEnvTransitionApplied() {
     return envTransitionApplied;
   }
 
