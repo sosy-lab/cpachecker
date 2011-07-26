@@ -3,6 +3,7 @@
 import xml.etree.ElementTree as ET
 import os.path
 import glob
+import shutil
 
 from datetime import date
 
@@ -71,6 +72,9 @@ def getListOfTests(file):
 
         for resultFile in getFileList(test.get('filename')): # expand wildcards
             if os.path.exists(resultFile) and os.path.isfile(resultFile):
+
+                print '    ' + resultFile
+
                 columns = test.findall('column')
                 resultElem = ET.ElementTree().parse(resultFile)
                 if columns: # not empty
@@ -78,7 +82,7 @@ def getListOfTests(file):
                 else:
                     columnTitles = [column.get("title") for column in 
                                     resultElem.find('sourcefile').findall('column')]
-    
+
                 if LOGFILES_IN_HTML: insertLogFileNames(resultElem)
 
                 listOfTests.append((resultElem, columnTitles))
@@ -109,12 +113,12 @@ def insertLogFileNames(resultElem):
         logFileName = os.path.basename(sourcefile.get('name'))
 
         # copy logfiles to extra folder and rename them to '.txt'
+        logFile = OUTPUT_PATH + logFolder + logFileName + ".log"
+        txtFile = OUTPUT_PATH + txtFolder + logFileName + ".txt"
         try:
-            import shutil
-            shutil.copyfile(OUTPUT_PATH + logFolder + logFileName + ".log", 
-                            OUTPUT_PATH + txtFolder + logFileName + ".txt")
+            shutil.copyfile(logFile, txtFile)
         except IOError:
-            print 'logfile "{0}" not found or not copied'.format(logFileName + ".log")          
+            print 'logfile not found or not copied:\n' + logFile
 
         sourcefile.set('logfileForHtml', txtFolder + logFileName + ".txt")
 
@@ -325,16 +329,27 @@ def getTableBody(listOfTests):
             columnValuesForCSV += valuesForCSV
 
         fileName = file[0].get("name")
-        pathFromOutputPathToCPAcheckerDir = './' + '../'*OUTPUT_PATH.count("/")
+        filePath = getPathOfSourceFile(fileName)
 
         rowsForHTML.append(HTML_SHIFT 
-                    + '<tr><td><a href="{0}{1}">{1}</a></td>'
-                        .format(pathFromOutputPathToCPAcheckerDir, fileName) \
+                    + '<tr><td><a href="{0}">{1}</a></td>'.format(filePath, fileName) \
                     + ''.join(columnValuesForHTML) + '</tr>\n')
         rowsForCSV.append(CSV_SEPARATOR.join([fileName] + columnValuesForCSV))
 
     return ('<tbody>\n' + "".join(rowsForHTML) + '</tbody>',
             '\n'.join(rowsForCSV))
+
+
+def getPathOfSourceFile(filename):
+    '''
+    This method expand a filename of a sourcefile to a path to the sourcefile.
+    An absolute filename will not be changed, 
+    a filename, that is relative to CPAchackerDir, will get a prefix.
+    '''
+    if not filename.startswith('/'): # not absolute -> relative, TODO: windows?
+        filename = './' + '../'*OUTPUT_PATH.count("/") + filename
+
+    return filename
 
 
 def getValuesOfFileXTest(currentFile, listOfColumns):
@@ -383,14 +398,17 @@ def createTable(file):
     parse inputfile, create html-code and write it to file
     '''
 
-    print 'generating html ...',
+    print 'collecting files ...'
 
     listOfTests = getListOfTests(file)
+
 
     if len(listOfTests) == 0:
         print '\nError! No file with testresults found.\n' \
             + 'Please check the filenames in your XML-file.'
         exit()
+
+    print 'generating html ...'
 
     (tableHeadHTML, tableHeadCSV) = getTableHead(listOfTests)
     (tableBodyHTML, tableBodyCSV) = getTableBody(listOfTests)
