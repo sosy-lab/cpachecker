@@ -548,7 +548,7 @@ public static final class ArrayType extends AbstractType {
     }
   }
 
-  public final static class FunctionType extends AbstractType {
+  public final static class FunctionType extends AbstractType  {
 
     private static int uniqueNameId = 0;
 

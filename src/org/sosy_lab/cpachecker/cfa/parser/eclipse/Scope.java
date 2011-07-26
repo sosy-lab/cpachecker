@@ -84,6 +84,8 @@ class Scope {
   }
 
   public boolean variableNameInUse(String name, String origName) {
+      if(name == null)
+        return false;
       checkNotNull(name);
       checkNotNull(origName);
 

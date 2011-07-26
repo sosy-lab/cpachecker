@@ -34,6 +34,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -42,6 +43,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionPntCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionPntReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 
@@ -119,10 +122,18 @@ public class CFASecondPassBuilder {
           IASTStatement expr = statement.getStatement();
 
           // if statement is of the form x = call(a,b); or call(a,b);
-          if (shouldCreateCallEdges(expr)) {
+          if (shouldCreateCallEdges(expr)==1) {
+
             IASTFunctionCall functionCall = (IASTFunctionCall)expr;
             String functionName = createCallAndReturnEdges(statement, functionCall);
             calledFunctions.add(functionName);
+          }else if(shouldCreateCallEdges(expr)==2){
+
+            IASTFunctionCall functionCall = (IASTFunctionCall)expr;
+            List<String> functionNames = createCallAndReturnEdges2(statement, functionCall);
+            for(String s : functionNames){
+              calledFunctions.add(s);
+            }
           }
         }
 
@@ -136,13 +147,24 @@ public class CFASecondPassBuilder {
     return calledFunctions;
   }
 
-  private boolean shouldCreateCallEdges(IASTStatement s) {
+  private int shouldCreateCallEdges(IASTStatement s) {
+
     if (!(s instanceof IASTFunctionCall)) {
-      return false;
+      return 0;
     }
+
     IASTFunctionCallExpression f = ((IASTFunctionCall)s).getFunctionCallExpression();
-    String name = f.getFunctionNameExpression().getRawSignature();
-    return cfas.containsKey(name);
+    IASTExpression expr = f.getFunctionNameExpression();
+    if(expr instanceof IASTIdExpression){
+      String name = f.getFunctionNameExpression().getRawSignature();
+      if(cfas.containsKey(name))
+        return 1;
+      else
+        return 0;
+    }
+
+
+    return 2;
   }
 
   /**
@@ -194,4 +216,77 @@ public class CFASecondPassBuilder {
 
     return functionName;
   }
+
+
+
+
+private List<String> createCallAndReturnEdges2(StatementEdge edge, IASTFunctionCall functionCall) {
+
+  List<String> funcnames = new ArrayList<String>();
+  CFANode predecessorNode = edge.getPredecessor();
+  CFANode successorNode = edge.getSuccessor();
+  IASTFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
+  int lineNumber = edge.getLineNumber();
+  /*String functionName = functionCallExpression.getFunctionNameExpression().getRawSignature();
+
+  CFAFunctionDefinitionNode fDefNode = cfas.get(functionName);
+  CFAFunctionExitNode fExitNode = fDefNode.getExitNode();
+ */
+
+  if (!predecessorNode.getFunctionName().equals(successorNode.getFunctionName())) {
+    throw new RuntimeException("The computer says no!");
+  }
+
+
+  for(CFAFunctionDefinitionNode fDefNode  : cfas.values()){
+    /*if(fDefNode.getFunctionName().equals(edge.getPredecessor().getFunctionName())){
+      continue;
+    }*/
+    CFAFunctionExitNode fExitNode = fDefNode.getExitNode();
+    funcnames.add(fDefNode.getFunctionName());
+
+    assert fDefNode instanceof FunctionDefinitionNode : "This code creates edges from package cfa.objectmodel.c, so the nodes need to be from this package, too.";
+
+  //get the parameter expression
+    List<IASTExpression> parameters = functionCallExpression.getParameterExpressions();
+
+  // delete old edge
+    predecessorNode.removeLeavingEdge(edge);
+    successorNode.removeEnteringEdge(edge);
+
+  // create new edges
+    FunctionPntCallEdge callEdge = new FunctionPntCallEdge(functionCallExpression.getRawSignature(), edge.getStatement(), lineNumber, predecessorNode, (FunctionDefinitionNode)fDefNode, parameters);
+    predecessorNode.addLeavingEdge(callEdge);
+    fDefNode.addEnteringEdge(callEdge);
+
+    if (fExitNode.getNumEnteringEdges() == 0) {
+      // exit node of called functions is not reachable, i.e. this function never returns
+      // no need to add return edges, instead we can remove the part after this function call
+
+      CFACreationUtils.removeChainOfNodesFromCFA(successorNode);
+
+    } else {
+
+      FunctionPntReturnEdge returnEdge = new FunctionPntReturnEdge("Return Edge to " + successorNode.getNodeNumber(), lineNumber, fExitNode, successorNode);
+      fExitNode.addLeavingEdge(returnEdge);
+      successorNode.addEnteringEdge(returnEdge);
+    }
+
+  }
+
+  CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(functionCall.asStatement().getRawSignature(), lineNumber, predecessorNode, successorNode, functionCall);
+  predecessorNode.addLeavingSummaryEdge(calltoReturnEdge);
+  successorNode.addEnteringSummaryEdge(calltoReturnEdge);
+
+  if (!predecessorNode.getFunctionName().equals(successorNode.getFunctionName())) {
+    throw new RuntimeException("The computer says no! 2");
+  }
+
+  return funcnames;
+ }
+
+
+
 }
+
+

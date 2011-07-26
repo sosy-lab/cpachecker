@@ -31,6 +31,8 @@ public enum CFAEdgeType
     DeclarationEdge,
     ReturnStatementEdge,
     FunctionCallEdge,
+    FunctionPntCallEdge,
     FunctionReturnEdge,
+    FunctionPntReturnEdge,
     CallToReturnEdge
 }
