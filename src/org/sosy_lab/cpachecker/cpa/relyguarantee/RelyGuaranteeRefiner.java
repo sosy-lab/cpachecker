@@ -23,88 +23,29 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
-import org.sosy_lab.cpachecker.cpa.art.Path;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-
-public class RelyGuaranteeRefiner{
-
-  public RelyGuaranteeRefiner(final ConfigurableProgramAnalysis[] cpas){
-
-  }
-
-
-  /**
-   *
-   * @param pReachedSets
-   * @param pErrorThr
-   * @return
-   * @throws CPAException
-   * @throws InterruptedException
-   */
-  public boolean performRefinment(ReachedSet[] reachedSets, int errorThr) throws InterruptedException, CPAException {
-
-    //assert checkART(reachedSets[errorThr]);
-    AbstractElement lastElement = reachedSets[errorThr].getLastElement();
-    assert lastElement instanceof ARTElement;
-    assert ((ARTElement)lastElement).isTarget();
-
-    // get the path from the root to the error in the relevant thread
-    Path path = computePath((ARTElement)lastElement, reachedSets[errorThr]);
-
-    return false;
-  }
-
-
-
-
-
-  protected Path computePath(ARTElement pLastElement, ReachedSet pReached) throws InterruptedException, CPAException {
-    return ARTUtils.getOnePathTo(pLastElement);
-  }
-
-
-
-
-}
-
-/*import static com.google.common.collect.Iterables.skip;
+import static com.google.common.collect.Iterables.skip;
 import static com.google.common.collect.Lists.transform;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
 
-import org.sosy_lab.common.Files;
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
-import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.art.Path;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.AbstractionElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -115,13 +56,12 @@ import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
-@Options(prefix="cpa.predicate")
-public class RelyGuaranteeRefiner extends AbstractARTBasedRefiner {
 
+
+public class RelyGuaranteeRefiner{
   @Option(name="refinement.addPredicatesGlobally",
       description="refinement will add all discovered predicates "
         + "to all the locations in the abstract trace")
@@ -139,125 +79,98 @@ public class RelyGuaranteeRefiner extends AbstractARTBasedRefiner {
       description="where to dump the counterexample formula in case the error location is reached")
   private File dumpCexFile = new File("counterexample.msat");
 
-  public final Timer totalRefinement = new Timer();
-  public final Timer precisionUpdate = new Timer();
-  public final Timer artUpdate = new Timer();
-  public final Timer errorPathProcessing = new Timer();
+  private RelyGuaranteeRefinementManager manager;
+  private final ARTCPA[] artCpas;
 
-  private final LogManager logger;
-  private final RelyGuaranteeRefinementManager<?,?> formulaManager;
-  private CounterexampleTraceInfo mCounterexampleTraceInfo;
-  private Path targetPath;
-  protected List<CFANode> lastErrorPath = null;
+  private Object lastErrorPath;
 
-  public RelyGuaranteeRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
-    super(pCpa);
+  public RelyGuaranteeRefiner(final ConfigurableProgramAnalysis[] cpas) throws InvalidConfigurationException{
 
-    RelyGuaranteeCPA rgCPA = this.getArtCpa().retrieveWrappedCpa(RelyGuaranteeCPA.class);
-    if (rgCPA == null) {
-      throw new InvalidConfigurationException(getClass().getSimpleName() + " needs a RelyGuaranteeCPA");
+    artCpas = new ARTCPA[cpas.length];
+    for (int i=0; i<cpas.length; i++){
+      if (cpas[i] instanceof ARTCPA) {
+        artCpas[i] = (ARTCPA) cpas[i];
+      } else {
+        throw new InvalidConfigurationException("ART CPA needed for refinement");
+      }
     }
 
-    rgCPA.getConfiguration().inject(this, RelyGuaranteeRefiner.class);
-    logger = rgCPA.getLogger();
-    formulaManager = (RelyGuaranteeRefinementManager<?, ?>) rgCPA.getPredicateManager();
-    //predicateCpa.getStats().addRefiner(this);
+    RelyGuaranteeCPA rgCPA = artCpas[0].retrieveWrappedCpa(RelyGuaranteeCPA.class);
+    if (rgCPA != null){
+      manager = rgCPA.getRelyGuaranteeManager();
+    } else {
+      throw new InvalidConfigurationException("RelyGuaranteeCPA needed for refinement");
+    }
+
   }
 
-  @Override
-  protected boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
-    totalRefinement.start();
 
-    ARTElement targetElement = pReached.getLastElement();
-    assert targetElement.equals(pPath.getLast().getFirst());
-    Set<ARTElement> elementsOnPath = ARTUtils.getAllElementsOnPathsTo(targetElement); // TODO: make this lazy?
+  /**
+   *
+   * @param pReachedSets
+   * @param pErrorThr
+   * @return
+   * @throws CPAException
+   * @throws InterruptedException
+   */
+  public boolean performRefinment(ReachedSet[] reachedSets, int errorThr) throws InterruptedException, CPAException {
 
-    logger.log(Level.FINEST, "Starting refinement for PredicateCPA");
 
-    // create path with all abstraction location elements (excluding the initial element)
-    // the last element is the element corresponding to the error location
-    List<Triple<ARTElement, CFANode, PredicateAbstractElement>> path = transformPath(pPath);
+    //assert checkART(reachedSets[errorThr]);
+    assert reachedSets[errorThr].getLastElement() instanceof ARTElement;
+    ARTElement targetElement = (ARTElement) reachedSets[errorThr].getLastElement();
+    assert (targetElement).isTarget();
 
-    Precision oldPrecision = pReached.getPrecision(targetElement);
-    PredicatePrecision oldPredicatePrecision = Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
-    if (oldPredicatePrecision == null) {
-      throw new IllegalStateException("Could not find the PredicatePrecision for the error element");
+
+    //List<Formula> f = manager.getRelyGuaranteeFormulaForNode(targetElement, reachedSets, errorThr);
+
+
+    // get the path from the root to the error in the relevant thread
+    Path cfaPath = computePath(targetElement, reachedSets[errorThr]);
+
+    //
+    ARTReachedSet[] artReachedSets = new ARTReachedSet[reachedSets.length];
+    for (int i=0; i<reachedSets.length; i++){
+      artReachedSets[i] = new ARTReachedSet(reachedSets[i], artCpas[i]);
     }
 
-    logger.log(Level.ALL, "Abstraction trace is", path);
+    Set<ARTElement> elementsOnPath = ARTUtils.getAllElementsOnPathsTo(targetElement);
+    List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> path = transformPath(cfaPath);
 
-    // build the counterexample
-    mCounterexampleTraceInfo = formulaManager.buildCounterexampleTrace(transform(path, Triple.<PredicateAbstractElement>getProjectionToThird()), elementsOnPath);
-    targetPath = null;
+    Precision oldPrecision = reachedSets[errorThr].getPrecision(targetElement);
+    RelyGuaranteePrecision oldPredicatePrecision = Precisions.extractPrecisionByType(oldPrecision, RelyGuaranteePrecision.class);
+
+    List<RelyGuaranteeAbstractElement> abstractTrace = Lists.transform(path, Triple.<RelyGuaranteeAbstractElement>getProjectionToThird());
+    CounterexampleTraceInfo mCounterexampleTraceInfo = manager.buildRgCounterexampleTrace(abstractTrace, elementsOnPath);
 
     // if error is spurious refine
     if (mCounterexampleTraceInfo.isSpurious()) {
-      logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
-      precisionUpdate.start();
-      Pair<ARTElement, PredicatePrecision> refinementResult =
-              performRefinement(oldPredicatePrecision, path, mCounterexampleTraceInfo);
-      precisionUpdate.stop();
+      Pair<ARTElement, RelyGuaranteePrecision> refinementResult =  performRefinement(oldPredicatePrecision, path, mCounterexampleTraceInfo);
 
-      artUpdate.start();
-
-      pReached.removeSubtree(refinementResult.getFirst(), refinementResult.getSecond());
-
-      artUpdate.stop();
-      totalRefinement.stop();
+      artReachedSets[errorThr].removeSubtree(refinementResult.getFirst(), refinementResult.getSecond());
+      //pReached.removeSubtree(refinementResult.getFirst(), refinementResult.getSecond());
       return true;
     } else {
       // we have a real error
-      logger.log(Level.FINEST, "Error trace is not spurious");
-      errorPathProcessing.start();
-
-      boolean preciseInfo = false;
-      Map<Integer, Boolean> preds = mCounterexampleTraceInfo.getBranchingPredicates();
-      if (preds.isEmpty()) {
-        logger.log(Level.WARNING, "No information about ART branches available!");
-      } else {
-        targetPath = createPathFromPredicateValues(pPath, preds);
-
-        if (targetPath != null) {
-          // try to create a better satisfying assignment by replaying this single path
-          try {
-            CounterexampleTraceInfo info2 = formulaManager.checkPath(targetPath.asEdgesList());
-            if (info2.isSpurious()) {
-              logger.log(Level.WARNING, "Inconsistent replayed error path!");
-            } else {
-              mCounterexampleTraceInfo = info2;
-              preciseInfo = true;
-            }
-          } catch (CPATransferException e) {
-            // path is now suddenly a problem
-            logger.log(Level.WARNING, "Could not replay error path (" + e.getMessage() + ")!");
-          }
-        }
-      }
-      errorPathProcessing.stop();
-
-      if (exportErrorPath && exportFile != null) {
-        if (!preciseInfo) {
-          logger.log(Level.WARNING, "The produced satisfying assignment is imprecise!");
-        }
-
-        formulaManager.dumpCounterexampleToFile(mCounterexampleTraceInfo, dumpCexFile);
-        try {
-          Files.writeFile(exportFile, mCounterexampleTraceInfo.getCounterexample());
-        } catch (IOException e) {
-          logger.log(Level.WARNING, "Could not write satisfying assignment for error path to file! ("
-              + e.getMessage() + ")");
-        }
-      }
-      totalRefinement.stop();
       return false;
     }
+
+
   }
 
-  protected List<Triple<ARTElement, CFANode, PredicateAbstractElement>> transformPath(Path pPath) throws CPATransferException {
-    List<Triple<ARTElement, CFANode, PredicateAbstractElement>> result = Lists.newArrayList();
+
+
+
+
+  protected Path computePath(ARTElement pLastElement, ReachedSet pReached) throws InterruptedException, CPAException {
+    return ARTUtils.getOnePathTo(pLastElement);
+  }
+
+  protected List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> transformPath(Path pPath) throws CPATransferException {
+    List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> result = Lists.newArrayList();
 
     for (ARTElement ae : skip(transform(pPath, Pair.<ARTElement>getProjectionToFirst()), 1)) {
-      PredicateAbstractElement pe = extractElementByType(ae, PredicateAbstractElement.class);
+      RelyGuaranteeAbstractElement pe = extractElementByType(ae, RelyGuaranteeAbstractElement.class);
       if (pe instanceof AbstractionElement) {
         CFANode loc = AbstractElements.extractLocation(ae);
         result.add(Triple.of(ae, loc, pe));
@@ -272,14 +185,14 @@ public class RelyGuaranteeRefiner extends AbstractARTBasedRefiner {
    * pPath and pArtPath need to fit together such that
    * pPath.get(i) == pArtPath.get(i).retrieveWrappedElement(PredicateAbstractElement)
    */
-/*  private Pair<ARTElement, PredicatePrecision> performRefinement(PredicatePrecision oldPrecision,
-      List<Triple<ARTElement, CFANode, PredicateAbstractElement>> pPath,
+  private Pair<ARTElement, RelyGuaranteePrecision> performRefinement(RelyGuaranteePrecision oldPrecision,
+      List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> pPath,
       CounterexampleTraceInfo pInfo) throws CPAException {
 
     Multimap<CFANode, AbstractionPredicate> oldPredicateMap = oldPrecision.getPredicateMap();
     Set<AbstractionPredicate> globalPredicates = oldPrecision.getGlobalPredicates();
 
-    Triple<ARTElement, CFANode, PredicateAbstractElement> firstInterpolationPoint = null;
+    Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement> firstInterpolationPoint = null;
     boolean newPredicatesFound = false;
 
     ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
@@ -287,7 +200,7 @@ public class RelyGuaranteeRefiner extends AbstractARTBasedRefiner {
     pmapBuilder.putAll(oldPredicateMap);
 
     // iterate through pPath and find first point with new predicates, from there we have to cut the ART
-    for (Triple<ARTElement, CFANode, PredicateAbstractElement> interpolationPoint : pPath) {
+    for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement> interpolationPoint : pPath) {
       CFANode loc = interpolationPoint.getSecond();
       Collection<AbstractionPredicate> newpreds = getPredicatesForARTElement(pInfo, interpolationPoint);
 
@@ -299,20 +212,25 @@ public class RelyGuaranteeRefiner extends AbstractARTBasedRefiner {
         newPredicatesFound = true;
       }
 
+
+
       pmapBuilder.putAll(loc, newpreds);
       pmapBuilder.putAll(loc, globalPredicates);
     }
     assert firstInterpolationPoint != null;
 
     ImmutableSetMultimap<CFANode, AbstractionPredicate> newPredicateMap = pmapBuilder.build();
-    PredicatePrecision newPrecision;
+    RelyGuaranteePrecision newPrecision;
     if (addPredicatesGlobally) {
-      newPrecision = new PredicatePrecision(newPredicateMap.values());
+      newPrecision = new RelyGuaranteePrecision(newPredicateMap.values());
     } else {
-      newPrecision = new PredicatePrecision(newPredicateMap, globalPredicates);
+      newPrecision = new RelyGuaranteePrecision(newPredicateMap, globalPredicates);
     }
 
-    logger.log(Level.ALL, "Predicate map now is", newPredicateMap);
+    System.out.println();
+    System.out.println("--------------------------------------- -------------------------------");
+    System.out.println("# Predicate map now is "+newPredicateMap);
+
 
     List<CFANode> absLocations = ImmutableList.copyOf(transform(pPath, Triple.<CFANode>getProjectionToSecond()));
 
@@ -327,8 +245,7 @@ public class RelyGuaranteeRefiner extends AbstractARTBasedRefiner {
     if (newPredicatesFound) {
       root = firstInterpolationPoint.getFirst();
 
-      logger.log(Level.FINEST, "Found spurious counterexample,",
-          "trying strategy 1: remove everything below", root, "from ART.");
+
 
     } else {
       if (absLocations.equals(lastErrorPath)) {
@@ -337,12 +254,11 @@ public class RelyGuaranteeRefiner extends AbstractARTBasedRefiner {
 
       CFANode loc = firstInterpolationPoint.getSecond();
 
-      logger.log(Level.FINEST, "Found spurious counterexample,",
-          "trying strategy 2: remove everything below node", loc, "from ART.");
+
 
       // find first element in path with location == loc,
       // this is not necessary equal to firstInterpolationPoint.getFirst()
-      for (Triple<ARTElement, CFANode, PredicateAbstractElement> abstractionPoint : pPath) {
+      for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement> abstractionPoint : pPath) {
         if (abstractionPoint.getSecond().equals(loc)) {
           root = abstractionPoint.getFirst();
           break;
@@ -357,117 +273,9 @@ public class RelyGuaranteeRefiner extends AbstractARTBasedRefiner {
   }
 
   protected Collection<AbstractionPredicate> getPredicatesForARTElement(
-      CounterexampleTraceInfo pInfo, Triple<ARTElement, CFANode, PredicateAbstractElement> pInterpolationPoint) {
+      CounterexampleTraceInfo pInfo, Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement> pInterpolationPoint) {
     return pInfo.getPredicatesForRefinement(pInterpolationPoint.getThird());
   }
 
-  @Override
-  protected Path getTargetPath(Path pPath) {
-    if (targetPath == null) {
-      logger.log(Level.WARNING, "The produced error path is imprecise!");
-      return pPath;
-    }
-    return targetPath;
-  }
-
-  private Path createPathFromPredicateValues(Path pPath, Map<Integer, Boolean> preds) {
-
-    ARTElement errorElement = pPath.getLast().getFirst();
-    Set<ARTElement> errorPathElements = ARTUtils.getAllElementsOnPathsTo(errorElement);
-
-    Path result = new Path();
-    ARTElement currentElement = pPath.getFirst().getFirst();
-    while (!currentElement.isTarget()) {
-      Set<ARTElement> children = currentElement.getChildren();
-
-      ARTElement child;
-      CFAEdge edge;
-      switch (children.size()) {
-
-      case 0:
-        logger.log(Level.WARNING, "ART target path terminates without reaching target element!");
-        return null;
-
-      case 1: // only one successor, easy
-        child = Iterables.getOnlyElement(children);
-        edge = currentElement.getEdgeToChild(child);
-        break;
-
-      case 2: // branch
-        // first, find out the edges and the children
-        CFAEdge trueEdge = null;
-        CFAEdge falseEdge = null;
-        ARTElement trueChild = null;
-        ARTElement falseChild = null;
-
-        for (ARTElement currentChild : children) {
-          CFAEdge currentEdge = currentElement.getEdgeToChild(currentChild);
-          if (!(currentEdge instanceof AssumeEdge)) {
-            logger.log(Level.WARNING, "ART branches where there is no AssumeEdge!");
-            return null;
-          }
-
-          if (((AssumeEdge)currentEdge).getTruthAssumption()) {
-            trueEdge = currentEdge;
-            trueChild = currentChild;
-          } else {
-            falseEdge = currentEdge;
-            falseChild = currentChild;
-          }
-        }
-        if (trueEdge == null || falseEdge == null) {
-          logger.log(Level.WARNING, "ART branches with non-complementary AssumeEdges!");
-          return null;
-        }
-        assert trueChild != null;
-        assert falseChild != null;
-
-        // search first idx where we have a predicate for the current branching
-        Boolean predValue = preds.get(currentElement.getElementId());
-        if (predValue == null) {
-          logger.log(Level.WARNING, "ART branches without direction information from solver!");
-          return null;
-        }
-
-        // now select the right edge
-        if (predValue) {
-          edge = trueEdge;
-          child = trueChild;
-        } else {
-          edge = falseEdge;
-          child = falseChild;
-        }
-        break;
-
-      default:
-        logger.log(Level.WARNING, "ART splits with more than two branches!");
-        return null;
-      }
-
-      if (!errorPathElements.contains(child)) {
-        logger.log(Level.WARNING, "ART and direction information from solver disagree!");
-        return null;
-      }
-
-      result.add(Pair.of(currentElement, edge));
-      currentElement = child;
-    }
-
-    // need to add another pair with target element and outgoing edge
-    Pair<ARTElement, CFAEdge> lastPair = pPath.getLast();
-    if (currentElement != lastPair.getFirst()) {
-      logger.log(Level.WARNING, "ART target path reached the wrong target element!");
-      return null;
-    }
-    result.add(lastPair);
-
-    return result;
-  }
-
-  public CounterexampleTraceInfo getCounterexampleTraceInfo() {
-    return mCounterexampleTraceInfo;
-  }
-
-}*/
-
+}
 

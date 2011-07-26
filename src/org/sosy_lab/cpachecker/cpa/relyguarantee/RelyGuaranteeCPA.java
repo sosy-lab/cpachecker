@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefinementManager;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement.RelyGuaranteeFormulaTemplate;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CSIsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
@@ -111,6 +111,7 @@ public class RelyGuaranteeCPA extends PredicateCPA{
 
 
 
+
     public static TheoremProver getTheoremProver(Configuration config, LogManager logger,String type) throws InvalidConfigurationException{
       if (tProver == null){
         MathsatFormulaManager msatFormulaManager =  MathsatFormulaManager.getInstance(config, logger);
@@ -128,11 +129,9 @@ public class RelyGuaranteeCPA extends PredicateCPA{
     config.inject(this, RelyGuaranteeCPA.class);
 
     this.regionManager = BDDRegionManager.getInstance();
-    // MathsatFormulaManager mathsatFormulaManager = new MathsatFormulaManager(config, logger);
     MathsatFormulaManager mathsatFormulaManager = MathsatFormulaManager.getInstance(config, logger);
     this.formulaManager = mathsatFormulaManager;
 
-    //PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger);
     PathFormulaManager pfMgr  = PathFormulaManagerImpl.getInstance(mathsatFormulaManager, config, logger);
     if (useCache) {
       pfMgr = CachingPathFormulaManager.getInstance(pfMgr);
@@ -148,9 +147,9 @@ public class RelyGuaranteeCPA extends PredicateCPA{
     }*/
 
     if (whichProver.equals("MATHSAT")) {
-      theoremProver = new MathsatTheoremProver(mathsatFormulaManager);
+      theoremProver =  MathsatTheoremProver.getInstance(mathsatFormulaManager);
     } else if (whichProver.equals("YICES")) {
-      theoremProver = new YicesTheoremProver(mathsatFormulaManager);
+      theoremProver =  YicesTheoremProver.getInstance(mathsatFormulaManager);
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
@@ -158,14 +157,14 @@ public class RelyGuaranteeCPA extends PredicateCPA{
     InterpolatingTheoremProver<Integer> itpProver;
     InterpolatingTheoremProver<Integer> alternativeItpProver = null;
     if (whichItpProver.equals("MATHSAT")) {
-      itpProver = new MathsatInterpolatingProver(mathsatFormulaManager, false);
+      itpProver = MathsatInterpolatingProver.getInstance(mathsatFormulaManager, false);
       if(changeItpSolveOTF){
-        alternativeItpProver =  new CSIsatInterpolatingProver(mathsatFormulaManager, logger);
+        alternativeItpProver = CSIsatInterpolatingProver.getInstance(mathsatFormulaManager, logger);
       }
     } else if (whichItpProver.equals("CSISAT")) {
-      itpProver = new CSIsatInterpolatingProver(mathsatFormulaManager, logger);
+      itpProver = CSIsatInterpolatingProver.getInstance(mathsatFormulaManager, logger);
       if(changeItpSolveOTF){
-        alternativeItpProver = new MathsatInterpolatingProver(mathsatFormulaManager, false);
+        alternativeItpProver = MathsatInterpolatingProver.getInstance(mathsatFormulaManager, false);
       }
     } else {
       throw new InternalError("Update list of allowed solvers!");
@@ -173,7 +172,8 @@ public class RelyGuaranteeCPA extends PredicateCPA{
     this.predicateManager = new RelyGuaranteeRefinementManager<Integer, Integer>(regionManager, formulaManager, pathFormulaManager, theoremProver, itpProver, alternativeItpProver, config, logger);
     this.transfer = new RelyGuaranteeTransferRelation(this);
 
-    this.topElement = new RelyGuaranteeAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null));
+    RelyGuaranteeFormulaTemplate freshTemplate = new RelyGuaranteeFormulaTemplate(pathFormulaManager.makeEmptyPathFormula());
+    this.topElement = new RelyGuaranteeAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null), freshTemplate);
     this.domain = new RelyGuaranteeAbstractDomain(this);
 
     this.merge = new RelyGuaranteeMergeOperator(this);
@@ -319,8 +319,8 @@ public class RelyGuaranteeCPA extends PredicateCPA{
     return this.stats;
   }
 
-  public PredicateRefinementManager<?, ?> getPredicateManager() {
-    return predicateManager;
+  public RelyGuaranteeRefinementManager<?, ?> getRelyGuaranteeManager() {
+    return (RelyGuaranteeRefinementManager<?, ?>) this.predicateManager;
   }
 
 }

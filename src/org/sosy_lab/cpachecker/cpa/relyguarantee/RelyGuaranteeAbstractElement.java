@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
+import java.util.List;
+import java.util.Vector;
+
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -30,6 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.util.assumptions.FormulaReportingElement;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
@@ -66,7 +71,7 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
   */
  public static class AbstractionElement extends RelyGuaranteeAbstractElement {
 
-   public AbstractionElement(PathFormula pf, AbstractionFormula pA) {
+   /*public AbstractionElement(PathFormula pf, AbstractionFormula pA) {
      super(pf, pA);
      // Check whether the pathFormula of an abstraction element is just "true".
      // partialOrder relies on this for optimization.
@@ -76,6 +81,21 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
 
    public AbstractionElement(PathFormula pf, AbstractionFormula pA, CFAEdge edge) {
      super(pf, pA, edge);
+     // Check whether the pathFormula of an abstraction element is just "true".
+     // partialOrder relies on this for optimization.
+     Preconditions.checkArgument(pf.getFormula().isTrue());
+   }*/
+
+   public AbstractionElement(PathFormula pf, AbstractionFormula pA, RelyGuaranteeFormulaTemplate template) {
+     super(pf, pA, template);
+     // Check whether the pathFormula of an abstraction element is just "true".
+     // partialOrder relies on this for optimization.
+     Preconditions.checkArgument(pf.getFormula().isTrue());
+   }
+
+
+   public AbstractionElement(PathFormula pf, AbstractionFormula pA, CFAEdge edge, RelyGuaranteeFormulaTemplate template) {
+     super(pf, pA, edge, template);
      // Check whether the pathFormula of an abstraction element is just "true".
      // partialOrder relies on this for optimization.
      Preconditions.checkArgument(pf.getFormula().isTrue());
@@ -98,7 +118,12 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
 
    @Override
    public String toString() {
-     return "Abstraction, '"+this.getAbstractionFormula()+"','"+this.getPathFormula()+"' with SSA "+this.getPathFormula().getSsa();
+     if (this.rgFormulaTemplate == null){
+       return "Abstraction, '"+this.getAbstractionFormula()+"','"+this.getPathFormula()+"' with SSA "+this.getPathFormula().getSsa()+", empty template";
+     } else {
+       return "Abstraction, '"+this.getAbstractionFormula()+"','"+this.getPathFormula()+"' with SSA "+this.getPathFormula().getSsa()+", "+this.rgFormulaTemplate;
+     }
+
    }
  }
 
@@ -107,7 +132,7 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
 
    private final CFANode location;
 
-   public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc) {
+   /*public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc) {
      super(pf, pA);
      location = pLoc;
    }
@@ -115,12 +140,22 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
    public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc, CFAEdge edge) {
      super(pf, pA, edge);
      location = pLoc;
+   }*/
+
+   public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc, RelyGuaranteeFormulaTemplate template) {
+     super(pf, pA, template);
+     location = pLoc;
+   }
+
+   public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc, CFAEdge edge, RelyGuaranteeFormulaTemplate template) {
+     super(pf, pA, edge, template);
+     location = pLoc;
    }
 
 
    @Override
    public Object getPartitionKey() {
-     return this;
+     return null;
    }
 
    @Override
@@ -147,10 +182,17 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
   */
  private RelyGuaranteeAbstractElement mergedInto = null;
 
- public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a) {
+ /**
+  * Template for generating path formula with custom environmental part
+  */
+ protected RelyGuaranteeFormulaTemplate rgFormulaTemplate;
+
+
+/* public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a) {
    this.pathFormula = pf;
    this.abstractionFormula = a;
    this.tid = RelyGuaranteeAbstractElement.UNKOWN;
+   this.rgFormulaTemplate = null;
  }
 
  public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a, CFAEdge edge) {
@@ -158,9 +200,33 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
    this.abstractionFormula = a;
    this.tid = RelyGuaranteeAbstractElement.UNKOWN;
    this.parentEdge = edge;
+   this.rgFormulaTemplate = null;
+ }*/
+
+ public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a, RelyGuaranteeFormulaTemplate template) {
+   this.pathFormula = pf;
+   this.abstractionFormula = a;
+   this.tid = RelyGuaranteeAbstractElement.UNKOWN;
+   this.rgFormulaTemplate = template;
  }
 
- public AbstractionFormula getAbstractionFormula() {
+ public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a, CFAEdge edge, RelyGuaranteeFormulaTemplate template) {
+   this.pathFormula = pf;
+   this.abstractionFormula = a;
+   this.tid = RelyGuaranteeAbstractElement.UNKOWN;
+   this.parentEdge = edge;
+   this.rgFormulaTemplate = template;
+ }
+
+ public RelyGuaranteeFormulaTemplate getRgFormulaTemplate() {
+  return rgFormulaTemplate;
+}
+
+public void setRgFormulaTemplate(PathFormula localPathFormula,  List<Pair<RelyGuaranteeCFAEdge, SSAMap>> envTransitionApplied) {
+  rgFormulaTemplate = new RelyGuaranteeFormulaTemplate(localPathFormula, envTransitionApplied);
+}
+
+public AbstractionFormula getAbstractionFormula() {
    return abstractionFormula;
  }
 
@@ -179,13 +245,19 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
 
  @Override
  public String toString() {
-   return "Non-abstraction, '"+this.getAbstractionFormula()+"','"+this.getPathFormula()+"' SSA "+this.getPathFormula().getSsa();
+   if (this.rgFormulaTemplate == null){
+     return "Non-abstraction, '"+this.getAbstractionFormula()+"','"+this.getPathFormula()+"' SSA "+this.getPathFormula().getSsa()+", empty template";
+   } else {
+     return "Non-abstraction, '"+this.getAbstractionFormula()+"','"+this.getPathFormula()+"' SSA "+this.getPathFormula().getSsa()+", "+this.rgFormulaTemplate;
+   }
+
  }
 
 
  @Override
  public Object getPartitionKey() {
-   return abstractionFormula;
+   //return abstractionFormula;
+   return null;
  }
 
  @Override
@@ -195,6 +267,42 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
 
  public CFAEdge getParentEdge() {
    return this.parentEdge;
+ }
+
+
+ /**
+  * Information about environmental transitions that appear in the path formula.
+  */
+ public static class RelyGuaranteeFormulaTemplate {
+
+   // path formula with environmental parts removed - SSA index like in the ordniary path formula
+   private final PathFormula localPathFormula;
+   // environmental edge together with the SSA map of the path formula to which it was applied
+   private final List<Pair<RelyGuaranteeCFAEdge, SSAMap>> envTransitionApplied;
+
+   public RelyGuaranteeFormulaTemplate(PathFormula localPathFormula,  List<Pair<RelyGuaranteeCFAEdge, SSAMap>> envTransitionApplied) {
+     this.localPathFormula = localPathFormula;
+     this.envTransitionApplied = envTransitionApplied;
+   }
+
+   public RelyGuaranteeFormulaTemplate(PathFormula localPathFormula) {
+     this.localPathFormula = localPathFormula;
+     this.envTransitionApplied = new Vector<Pair<RelyGuaranteeCFAEdge, SSAMap>>();
+   }
+
+
+  public PathFormula getLocalPathFormula() {
+    return localPathFormula;
+  }
+
+  public List<Pair<RelyGuaranteeCFAEdge, SSAMap>> getEnvTransitionApplied() {
+    return envTransitionApplied;
+  }
+
+  @Override
+  public String toString(){
+    return "template '"+localPathFormula+"' with "+envTransitionApplied.size()+" env edges";
+  }
  }
 
 }

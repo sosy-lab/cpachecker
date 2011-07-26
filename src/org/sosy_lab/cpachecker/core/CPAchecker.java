@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.core.algorithm.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ConcurrentAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.ConcurrentCEGARAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.RelyGuaranteeCEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RelyGuaranteeAlgorithm;
@@ -218,7 +218,7 @@ public class CPAchecker {
       ConcurrentAlgorithm algorithm = new RelyGuaranteeAlgorithm(cfas, mainFunctions, cpas, config, logger);
 
       if (options.useRelyGuaranteeRefinement) {
-        algorithm = new ConcurrentCEGARAlgorithm(algorithm, config, logger);
+        algorithm = new RelyGuaranteeCEGARAlgorithm(algorithm, config, logger);
       }
 
       Set<String> unusedProperties = config.getUnusedProperties();

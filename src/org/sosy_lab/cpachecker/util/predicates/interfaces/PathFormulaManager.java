@@ -25,8 +25,10 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import java.util.Set;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement.RelyGuaranteeFormulaTemplate;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -51,9 +53,14 @@ public interface PathFormulaManager {
    */
   PathFormula makeOr(PathFormula pF1, PathFormula pF2);
 
+
   PathFormula makeAnd(PathFormula pPathFormula, Formula pOtherFormula);
 
   PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge) throws CPATransferException;
+
+
+  Pair<PathFormula, RelyGuaranteeFormulaTemplate> makeTemplateAnd(PathFormula oldLocalF, CFAEdge edge, RelyGuaranteeFormulaTemplate oldTemplate) throws CPATransferException;
+
 
   //PathFormula makeAnd(PathFormula pMergedPathFormula, CFAEdge pLocalEdge,
   //    int pThreadId) throws CPATransferException;

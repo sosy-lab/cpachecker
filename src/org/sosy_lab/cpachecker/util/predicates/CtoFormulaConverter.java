@@ -29,10 +29,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -91,6 +93,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdge;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement.RelyGuaranteeFormulaTemplate;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -331,15 +335,14 @@ public class CtoFormulaConverter {
   }
 
 //  @Override
-  public PathFormula makeAnd(PathFormula localF, CFAEdge edge )
-      throws CPATransferException {
+  public Triple<Formula, SSAMap, Integer> makeAnd2(PathFormula localF, CFAEdge edge )    throws CPATransferException {
     // this is where the "meat" is... We have to parse the statement
     // attached to the edge, and convert it to the appropriate formula
 
     if (edge.getEdgeType() == CFAEdgeType.BlankEdge) {
 
       // in this case there's absolutely nothing to do, so take a shortcut
-      return localF;
+      return new Triple<Formula, SSAMap, Integer> (fmgr.makeTrue(), localF.getSsa(), localF.getLength());
     }
 
     String function = (edge.getPredecessor() != null)
@@ -419,14 +422,65 @@ public class CtoFormulaConverter {
     if (edgeFormula.isTrue() && (newSsa == localF.getSsa())) {
       // formula is just "true" and SSAMap is identical
       // i.e. no writes to SSAMap, no branching and length should stay the same
-      return localF;
+      return new Triple<Formula, SSAMap, Integer> (fmgr.makeTrue(), localF.getSsa(), localF.getLength());
     }
 
     Formula newFormula = fmgr.makeAnd(localF.getFormula(), edgeFormula);
     int newLength = localF.getLength() + 1;
 
-    return new PathFormula(newFormula, newSsa, newLength, localF.getPrimedNo());
+    //return new PathFormula(newFormula, newSsa, newLength, localF.getPrimedNo());
+    return new Triple<Formula, SSAMap, Integer>(edgeFormula, newSsa, newLength);
   }
+
+  public PathFormula makeAnd(PathFormula localF, CFAEdge edge )    throws CPATransferException{
+    Triple<Formula, SSAMap, Integer> data = makeAnd2(localF, edge);
+
+    Formula newFormula = fmgr.makeAnd(localF.getFormula(), data.getFirst());
+    return new PathFormula(newFormula, data.getSecond(), data.getThird(), localF.getPrimedNo());
+  }
+
+  public Pair<PathFormula, RelyGuaranteeFormulaTemplate> makeTemplateAnd(PathFormula oldLocalF, CFAEdge edge, RelyGuaranteeFormulaTemplate oldTemplate) throws CPATransferException{
+    Triple<Formula, SSAMap, Integer> data;
+    RelyGuaranteeFormulaTemplate newTemplate;
+
+    if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
+      // env edge is applied
+      RelyGuaranteeCFAEdge rgEdge = (RelyGuaranteeCFAEdge) edge;
+      data = makeAnd2(oldLocalF, rgEdge.getLocalEdge());
+      // remove primed variables from the SSAMap
+      SSAMapBuilder newTemplateSSA = SSAMap.emptySSAMap().builder();
+      for (String var : data.getSecond().allVariables()){
+        Pair<String, Integer> varData = PathFormula.getPrimeData(var);
+        if (varData.getSecond() == 0){
+          newTemplateSSA.setIndex(var, data.getSecond().getIndex(var));
+        }
+      }
+      // build a new template path formula which like the old one, but with current ssa changes to the unprimed variables
+      Formula oldTemplateF = oldTemplate.getLocalPathFormula().getFormula();
+      PathFormula newTemplatePF = new PathFormula(oldTemplateF, newTemplateSSA.build(), data.getThird(), 0);
+      // add entry about this env transition
+      Vector<Pair<RelyGuaranteeCFAEdge, SSAMap>> newList = new Vector(oldTemplate.getEnvTransitionApplied());
+      Pair<RelyGuaranteeCFAEdge, SSAMap> newEntry = new Pair<RelyGuaranteeCFAEdge, SSAMap>(rgEdge, oldLocalF.getSsa());
+      newList.add(newEntry);
+      newTemplate = new RelyGuaranteeFormulaTemplate(newTemplatePF, newList);
+    } else {
+      // the edge is local
+      data = makeAnd2(oldLocalF, edge);
+      // extend the template path formula just like the local path formula and don't add any new env entries
+      Formula oldTemplateF = oldTemplate.getLocalPathFormula().getFormula();
+      Formula newTemplateF = fmgr.makeAnd(oldTemplateF, data.getFirst());
+      PathFormula newTemplatePF = new PathFormula(newTemplateF, data.getSecond(), data.getThird(), oldLocalF.getPrimedNo());
+      newTemplate = new RelyGuaranteeFormulaTemplate(newTemplatePF, oldTemplate.getEnvTransitionApplied());
+    }
+
+    // generate the new local path formula
+    Formula newLocalF = fmgr.makeAnd(oldLocalF.getFormula(), data.getFirst());
+    PathFormula newLocalPF = new PathFormula(newLocalF, data.getSecond(), data.getThird(), oldLocalF.getPrimedNo());
+
+    return new Pair<PathFormula, RelyGuaranteeFormulaTemplate>(newLocalPF, newTemplate);
+  }
+
+
 
   // TODO changed for RelyGuarantee
  /* public PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge, int tid) throws CPATransferException {

@@ -35,4 +35,5 @@ public interface ConcurrentAlgorithm{
 
   public Result getResult();
 
+
 }

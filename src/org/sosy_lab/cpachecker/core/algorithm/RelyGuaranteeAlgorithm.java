@@ -177,8 +177,21 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
 
   }
 
+  /**
+   * Removes unprocessed env transitions and cleans up CFAs from env edges
+   */
+  public void reset() {
+    newEnvTransitions.removeAllElements();
+    for (int i=0; i<threadNo; i++){
+      removeRGEdges(i);
+      newEnvEgesForThread[i].removeAllElements();
+    }
+  }
+
   // returns -1 if no error is found or the thread no with an error
   public int run(ReachedSet[] reached, boolean stopAfterError) {
+
+
     boolean error = false;
     try{
       // run every thread at least once
@@ -186,6 +199,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
         addEnvTransitionsToCFA(i);
         error = runThread(i, reached[i], stopAfterError);
         if (error) {
+          reset();
           return i;
         }
         newEnvEgesForThread[i].removeAllElements();
@@ -201,6 +215,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
         addEnvTransitionsToCFA(i);
         error = runThread(i, reached[i], stopAfterError);
         if (error) {
+          reset();
           return i;
         }
         newEnvEgesForThread[i].removeAllElements();
@@ -466,16 +481,8 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     boolean modified = false;
     RelyGuaranteeCFA cfa = this.cfas[i];
     Multimap<CFANode, String> map = cfa.getRhsVariables();
-
-    // remove old env edges from the CFA
-    for (CFANode node : cfa.getCFANodes().values()){
-      for (int j=0; j<node.getNumLeavingEdges(); j++) {
-        CFAEdge edge = node.getLeavingEdge(j);
-        if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
-          node.removeLeavingEdge(edge);
-        }
-      }
-    }
+    // remove old environmental edges
+    removeRGEdges(i);
     this.dumpDot(i, "test/output/revertedCFA"+i+".dot");
     // iterate over both new and old env edges
     Vector<RelyGuaranteeCFAEdge> union = new Vector<RelyGuaranteeCFAEdge>(envEdgesForThread[i]);
@@ -495,6 +502,24 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     this.dumpDot(i, "test/output/newCFA"+i+".dot");
 
     return modified;
+  }
+
+  // removed old environmental edges
+  private void removeRGEdges(int i) {
+    RelyGuaranteeCFA cfa = this.cfas[i];
+    Multimap<CFANode, String> map = cfa.getRhsVariables();
+    // remove old env edges from the CFA
+    for (CFANode node : cfa.getCFANodes().values()){
+      for (int j=0; j<node.getNumLeavingEdges(); j++) {
+        CFAEdge edge = node.getLeavingEdge(j);
+        if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
+          node.removeLeavingEdge(edge);
+          CFANode successor = edge.getSuccessor();
+          successor.removeEnteringEdge(edge);
+        }
+      }
+    }
+
   }
 
 

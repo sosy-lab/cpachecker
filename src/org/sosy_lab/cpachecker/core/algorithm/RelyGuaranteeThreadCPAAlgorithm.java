@@ -174,7 +174,8 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
       System.out.println();
       int atomNo = fManager.countAtoms(rgElement.getPathFormula().getFormula());
       System.out.println("@ Successor of '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+
-          "' with SSAMap "+rgElement.getPathFormula().getSsa()+" atomNo="+atomNo+" id:"+aElement.getElementId());
+          "' with SSAMap "+rgElement.getPathFormula().getSsa()+" atomNo="+atomNo+" id:"+aElement.getElementId()+
+          ", "+rgElement.getRgFormulaTemplate());
 
 
       Collection<? extends AbstractElement> successors =
@@ -206,10 +207,6 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
             precisionAdjustment.prec(successor, precision, reachedSet);
         stats.precisionTimer.stop();
 
-        if (((ARTElement)element).getElementId() == 2352) {
-          System.out.println();
-        }
-
         successor = precAdjustmentResult.getFirst();
         Precision successorPrecision = precAdjustmentResult.getSecond();
         Action action = precAdjustmentResult.getThird();
@@ -233,6 +230,9 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
 
         // An optimization, we don't bother merging if we know that the
         // merge operator won't do anything (i.e., it is merge-sep).
+        AbstractElement mergedElement = null;
+        boolean successorMerged = false;
+
         if (mergeOperator != MergeSepOperator.getInstance() && !reached.isEmpty()) {
           stats.mergeTimer.start();
 
@@ -244,9 +244,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
               "elements from reached set for merge");
           for (AbstractElement reachedElement : reached) {
 
-            AbstractElement mergedElement =
-                mergeOperator.merge(successor, reachedElement,
-                    successorPrecision);
+            mergedElement = mergeOperator.merge(successor, reachedElement,successorPrecision);
 
 
             if (!mergedElement.equals(reachedElement)) {
@@ -261,6 +259,9 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
               mergedElement = precAdjustmentResult.getFirst();
               Precision mergedPrecision = precAdjustmentResult.getSecond();
               toRemove.add(reachedElement);
+              // TODO add hoc solution - the case of predicate abstraction,
+              // the sucessor is subsummed by the merged element, but after abstraction of the merged element, this may not be detected
+              successorMerged = true;
               // check if the merged element is covered
               printMerge(successor, reachedElement, precAdjustmentResult.getFirst());
               boolean stop =  stopOperator.stop(mergedElement, reached, mergedPrecision);
@@ -278,12 +279,14 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
           stats.mergeTimer.stop();
         }
 
+
+
         stats.stopTimer.start();
         boolean stop =
             stopOperator.stop(successor, reached, successorPrecision);
         stats.stopTimer.stop();
 
-        if (stop) {
+        if (stop || successorMerged) {
           logger.log(Level.FINER,
               "Successor is covered or unreachable, not adding to waitlist");
           printCovered(successor);
@@ -319,9 +322,12 @@ private void printMerge(AbstractElement pSuccessor, AbstractElement pReachedElem
     RelyGuaranteeAbstractElement rReached   = AbstractElements.extractElementByType(pReachedElement, RelyGuaranteeAbstractElement.class);
     RelyGuaranteeAbstractElement rMerged  = AbstractElements.extractElementByType(pMergedElement, RelyGuaranteeAbstractElement.class);
     int atomNo = fManager.countAtoms(rMerged.getPathFormula().getFormula());
-    System.out.println("+ merged '"+rSuccessor.getAbstractionFormula()+"','"+rSuccessor.getPathFormula()+"' with SSA "+rSuccessor.getPathFormula().getSsa()+" id:"+aSuccessor.getElementId());
-    System.out.println("\twith '"+rReached.getAbstractionFormula()+"','"+rReached.getPathFormula()+"' with SSA "+rReached.getPathFormula().getSsa()+" id:"+aReachedElement.getElementId());
-    System.out.println("\t= '"+rMerged.getAbstractionFormula()+"','"+rMerged.getPathFormula()+"' with SSA "+rMerged.getPathFormula().getSsa()+" atomNo="+atomNo+" id:"+aMergedElement.getElementId());
+    System.out.println("+ merged '"+rSuccessor.getAbstractionFormula()+"','"+rSuccessor.getPathFormula()+"' with SSA "+rSuccessor.getPathFormula().getSsa()+" id:"+aSuccessor.getElementId()+
+        ", "+rSuccessor.getRgFormulaTemplate());
+    System.out.println("\twith '"+rReached.getAbstractionFormula()+"','"+rReached.getPathFormula()+"' with SSA "+rReached.getPathFormula().getSsa()+" id:"+aReachedElement.getElementId()+
+        ", "+rReached.getRgFormulaTemplate());
+    System.out.println("\t= '"+rMerged.getAbstractionFormula()+"','"+rMerged.getPathFormula()+"' with SSA "+rMerged.getPathFormula().getSsa()+" atomNo="+atomNo+" id:"+aMergedElement.getElementId()+
+        ", "+rMerged.getRgFormulaTemplate());
   }
 
   // pretty-printing of successors
@@ -339,7 +345,8 @@ private void printMerge(AbstractElement pSuccessor, AbstractElement pReachedElem
       System.out.println("- by local edge "+rgElement.getParentEdge().getRawStatement());
     }
     int atomNo2 = fManager.countAtoms(rgElement.getPathFormula().getFormula());
-    System.out.println("\t is '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+"' with SSA "+rgElement.getPathFormula().getSsa()+" atomNo="+atomNo2+" id:"+aElement.getElementId());
+    System.out.println("\t is '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+"' with SSA "+rgElement.getPathFormula().getSsa()+" atomNo="+atomNo2+" id:"+aElement.getElementId()+
+        ", "+rgElement.getRgFormulaTemplate());
     //System.out.println();
 
   }

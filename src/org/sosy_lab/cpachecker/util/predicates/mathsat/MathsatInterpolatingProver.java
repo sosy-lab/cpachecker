@@ -38,6 +38,15 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
 
     private final boolean useSharedEnv;
 
+    private static MathsatInterpolatingProver mathsatItp;
+
+    public static MathsatInterpolatingProver getInstance(MathsatFormulaManager pMgr, boolean shared){
+      if (mathsatItp == null){
+        mathsatItp = new MathsatInterpolatingProver(pMgr, shared);
+      }
+      return mathsatItp;
+    }
+
     public MathsatInterpolatingProver(MathsatFormulaManager pMgr, boolean shared) {
         mgr = pMgr;
         env = 0;

@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 @Options(prefix="rely-guarantee cegar")
-public class ConcurrentCEGARAlgorithm implements ConcurrentAlgorithm,  StatisticsProvider {
+public class RelyGuaranteeCEGARAlgorithm implements ConcurrentAlgorithm,  StatisticsProvider {
 
   private ConcurrentAlgorithm algorithm;
   private RelyGuaranteeRefiner refiner;
@@ -49,7 +49,7 @@ public class ConcurrentCEGARAlgorithm implements ConcurrentAlgorithm,  Statistic
   private static final int GC_PERIOD = 100;
   private int gcCounter = 0;
 
-  public ConcurrentCEGARAlgorithm(ConcurrentAlgorithm pAlgorithm,  Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException, CPAException {
+  public RelyGuaranteeCEGARAlgorithm(ConcurrentAlgorithm pAlgorithm,  Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException, CPAException {
     this.algorithm = pAlgorithm;
     this.config = pConfig;
     this.logger = pLogger;
@@ -87,9 +87,13 @@ public class ConcurrentCEGARAlgorithm implements ConcurrentAlgorithm,  Statistic
 
     // TODO stats
     int errorThr ;
+    int refinmentNo = 0;
     boolean continueAnalysis = false;
     do {
+      System.out.println();
+      System.out.println("-------------------------- CEGAR iteration "+refinmentNo+" --------------------------");
       errorThr = algorithm.run(reachedSets, true);
+
       if (errorThr == -1){
         // the program is safe
         continueAnalysis = false;
@@ -103,7 +107,7 @@ public class ConcurrentCEGARAlgorithm implements ConcurrentAlgorithm,  Statistic
         }
       }
       AbstractElement error = reachedSets[errorThr].getLastElement();
-
+      refinmentNo++;
     } while (continueAnalysis);
 
     return errorThr;

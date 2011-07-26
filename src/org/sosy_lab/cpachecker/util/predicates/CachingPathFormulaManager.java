@@ -31,6 +31,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement.RelyGuaranteeFormulaTemplate;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
@@ -185,6 +186,14 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   public PathFormula normalize(PathFormula pNewPF) {
     return delegate.normalize(pNewPF);
   }
+
+
+  @Override
+  public Pair<PathFormula, RelyGuaranteeFormulaTemplate> makeTemplateAnd(PathFormula pOldLocalF, CFAEdge pEdge, RelyGuaranteeFormulaTemplate pOldTemplate) throws CPATransferException {
+    return delegate.makeTemplateAnd(pOldLocalF, pEdge, pOldTemplate);
+  }
+
+
 
 
 

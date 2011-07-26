@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.art;
 
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -32,6 +33,9 @@ import java.util.Set;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 /**
  * Helper class with collection of ART related utility methods.
@@ -66,6 +70,69 @@ public class ARTUtils {
     return result;
   }
 
+  public static Collection<Path> getAllPathsBetweem(ARTElement pFirst, ARTElement pSecond) {
+    Multimap<ARTElement, Path> pathMap = HashMultimap.create();
+    Deque<ARTElement> waitList = new ArrayDeque<ARTElement>();
+    Set<ARTElement> explored = new HashSet<ARTElement>();
+
+    Set<Path> toAdd = new HashSet<Path>();
+
+    waitList.add(pSecond);
+    explored.add(pSecond);
+    pathMap.put(pSecond, new Path());
+    while(!waitList.isEmpty()){
+      ARTElement currentElement = waitList.poll();
+      if (currentElement == pFirst) {
+        continue;
+      }
+
+      for (ARTElement parent : currentElement.getParents()){
+        if (currentElement == parent){
+          continue;
+        }
+        if (parent.getElementId() == 33){
+          System.out.println();
+        }
+        waitList.add(parent);
+        // extend the path for every parent
+        CFAEdge edge = parent.getEdgeToChild(currentElement);
+        for (Path currentPath : pathMap.get(currentElement)) {
+
+          Path newPath = (Path) currentPath.clone();
+          newPath.add(new Pair<ARTElement,CFAEdge>(parent,edge));
+          pathMap.put(parent, newPath);
+
+        }
+      }
+    }
+    return pathMap.get(pFirst);
+  }
+
+
+  public static Set<ARTElement> getAllElementsOnPathsBetweem(ARTElement start, ARTElement end) {
+
+    Set<ARTElement> result = new HashSet<ARTElement>();
+    Deque<ARTElement> waitList = new ArrayDeque<ARTElement>();
+
+    result.add(end);
+    waitList.add(end);
+
+    while (!waitList.isEmpty()) {
+      ARTElement currentElement = waitList.poll();
+      if (currentElement == start){
+        continue;
+      }
+      for (ARTElement parent : currentElement.getParents()) {
+        if (result.add(parent)) {
+          waitList.push(parent);
+        }
+      }
+    }
+    return result;
+  }
+
+
+
   /**
    * Create a path in the ART from root to the given element.
    * If there are several such paths, one is chosen randomly.
@@ -96,11 +163,27 @@ public class ARTUtils {
     while (!currentARTElement.getParents().isEmpty()) {
       Iterator<ARTElement> parents = currentARTElement.getParents().iterator();
 
+
       ARTElement parentElement = parents.next();
-      while (!seenElements.add(parentElement) && parents.hasNext()) {
-        // while seenElements already contained parentElement, try next parent
+      // skip over self loops
+      while(parentElement == currentARTElement){
         parentElement = parents.next();
       }
+
+      while (!seenElements.add(parentElement) && parents.hasNext()) {
+        // while seenElements already contained parentElement, try next parent
+        ARTElement newParentElement = parents.next();
+        // avoid choosing a self-loop
+        if (newParentElement == currentARTElement){
+          if (parents.hasNext()){
+            parentElement = parents.next();
+          }
+        } else {
+          parentElement = newParentElement;
+        }
+      }
+
+
 
       CFAEdge edge = parentElement.getEdgeToChild(currentARTElement);
       path.addFirst(Pair.of(parentElement, edge));
@@ -109,4 +192,8 @@ public class ARTUtils {
     }
     return path;
   }
+
+
+
+
 }

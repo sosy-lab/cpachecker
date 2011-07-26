@@ -92,7 +92,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
 
   public final Stats refStats;
 
-  private final InterpolatingTheoremProver<T1> firstItpProver;
+  protected final InterpolatingTheoremProver<T1> firstItpProver;
   private final InterpolatingTheoremProver<T2> secondItpProver;
 
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
@@ -511,7 +511,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
     return result;
   }
 
-  private <T> boolean checkInfeasabilityOfShortestTrace(List<Formula> traceFormulas,
+  protected <T> boolean checkInfeasabilityOfShortestTrace(List<Formula> traceFormulas,
         List<T> itpGroupsIds, InterpolatingTheoremProver<T> pItpProver) throws InterruptedException {
     Boolean tmpSpurious = null;
 
@@ -569,7 +569,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
     return (tmpSpurious == null) ? pItpProver.isUnsat() : tmpSpurious;
   }
 
-  private List<Formula> getUsefulBlocks(List<Formula> f,
+  protected List<Formula> getUsefulBlocks(List<Formula> f,
       boolean suffixTrace, boolean zigZag) {
 
     refStats.cexAnalysisGetUsefulBlocksTimer.start();
@@ -747,7 +747,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
     return branchingFormula;
   }
 
-  private Map<Integer, Boolean> getPredicateValuesFromModel(Model model) {
+  protected Map<Integer, Boolean> getPredicateValuesFromModel(Model model) {
 
     Map<Integer, Boolean> preds = Maps.newTreeMap();
     for (AssignableTerm a : model.keySet()) {

@@ -43,6 +43,7 @@ public class ARTMergeJoin implements MergeOperator {
     ARTElement artElement1 = (ARTElement)pElement1;
     ARTElement artElement2 = (ARTElement)pElement2;
 
+
     // covered elements are not in the reached set
     assert !artElement1.isCovered();
     assert !artElement2.isCovered();
@@ -74,6 +75,7 @@ public class ARTMergeJoin implements MergeOperator {
     // artElement1 is the current successor, it does not have any children yet
     assert artElement1.getChildren().isEmpty();
 
+    // TODO check if correct - can get a loop in ARTby the two lines below
     for (ARTElement childOfElement2 : artElement2.getChildren()) {
       childOfElement2.addParent(mergedElement);
     }

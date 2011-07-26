@@ -53,6 +53,9 @@ import com.google.common.base.Preconditions;
  */
 public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Integer> {
 
+
+
+
   private static final Joiner FORMULAS_JOINER = Joiner.on("; ");
   private static final String[] CSISAT_CMDLINE = {"csisat", "-syntax", "infix", "-round", "-LAsolver", "simplex"};
 
@@ -90,8 +93,17 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
     }
   }
 
+  private static CSIsatInterpolatingProver csiItp;
+
   private final FormulaManager smgr;
   private final LogManager logger;
+
+  public static CSIsatInterpolatingProver getInstance(FormulaManager pSmgr, LogManager pLogger) {
+    if (csiItp == null){
+      csiItp = new CSIsatInterpolatingProver(pSmgr, pLogger);
+    }
+    return csiItp;
+  }
 
   public CSIsatInterpolatingProver(FormulaManager pSmgr, LogManager pLogger) {
     Preconditions.checkNotNull(pSmgr);
