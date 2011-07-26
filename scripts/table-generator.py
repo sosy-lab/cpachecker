@@ -93,10 +93,10 @@ def insertLogFileNames(resultElem):
     # get folder of logfiles
     logFolder = resultElem.get('benchmarkname') + "." + resultElem.get('date') + ".logfiles/"
 
-    # crate folder for txt-files (copies of the logfiles)
-    txtFolder = 'table.' + logFolder
+    # create folder for txt-files (copies of the logfiles)
+    txtFolder = 'table/' + logFolder
     if not os.path.isdir(OUTPUT_PATH + txtFolder):
-            os.mkdir(OUTPUT_PATH + txtFolder)
+            os.makedirs(OUTPUT_PATH + txtFolder)
 
     # append begin of filename
     testname = resultElem.get('name')
@@ -325,8 +325,11 @@ def getTableBody(listOfTests):
             columnValuesForCSV += valuesForCSV
 
         fileName = file[0].get("name")
+        pathFromOutputPathToCPAcheckerDir = './' + '../'*OUTPUT_PATH.count("/")
+
         rowsForHTML.append(HTML_SHIFT 
-                    + '<tr><td>{0}</td>'.format(fileName) \
+                    + '<tr><td><a href="{0}{1}">{1}</a></td>'
+                        .format(pathFromOutputPathToCPAcheckerDir, fileName) \
                     + ''.join(columnValuesForHTML) + '</tr>\n')
         rowsForCSV.append(CSV_SEPARATOR.join([fileName] + columnValuesForCSV))
 
