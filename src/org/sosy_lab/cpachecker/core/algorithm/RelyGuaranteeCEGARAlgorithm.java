@@ -93,7 +93,8 @@ public class RelyGuaranteeCEGARAlgorithm implements ConcurrentAlgorithm,  Statis
       System.out.println();
       System.out.println("-------------------------- CEGAR iteration "+refinmentNo+" --------------------------");
       errorThr = algorithm.run(reachedSets, true);
-
+      System.out.println();
+      System.out.println("-----------------------------------------------------------------------");
       if (errorThr == -1){
         // the program is safe
         continueAnalysis = false;

@@ -122,13 +122,11 @@ public class RelyGuaranteeRefiner{
     assert (targetElement).isTarget();
 
 
-    //List<Formula> f = manager.getRelyGuaranteeFormulaForNode(targetElement, reachedSets, errorThr);
-
 
     // get the path from the root to the error in the relevant thread
     Path cfaPath = computePath(targetElement, reachedSets[errorThr]);
 
-    //
+
     ARTReachedSet[] artReachedSets = new ARTReachedSet[reachedSets.length];
     for (int i=0; i<reachedSets.length; i++){
       artReachedSets[i] = new ARTReachedSet(reachedSets[i], artCpas[i]);
@@ -141,7 +139,7 @@ public class RelyGuaranteeRefiner{
     RelyGuaranteePrecision oldPredicatePrecision = Precisions.extractPrecisionByType(oldPrecision, RelyGuaranteePrecision.class);
 
     List<RelyGuaranteeAbstractElement> abstractTrace = Lists.transform(path, Triple.<RelyGuaranteeAbstractElement>getProjectionToThird());
-    CounterexampleTraceInfo mCounterexampleTraceInfo = manager.buildRgCounterexampleTrace(abstractTrace, elementsOnPath);
+    CounterexampleTraceInfo mCounterexampleTraceInfo = manager.buildRgCounterexampleTrace(targetElement, reachedSets, errorThr);
 
     // if error is spurious refine
     if (mCounterexampleTraceInfo.isSpurious()) {
@@ -227,8 +225,7 @@ public class RelyGuaranteeRefiner{
       newPrecision = new RelyGuaranteePrecision(newPredicateMap, globalPredicates);
     }
 
-    System.out.println();
-    System.out.println("--------------------------------------- -------------------------------");
+
     System.out.println("# Predicate map now is "+newPredicateMap);
 
 
