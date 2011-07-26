@@ -147,8 +147,6 @@ public class ABMTransferRelation implements TransferRelation {
   private final Cache<ReachedSet> subgraphReachCache = new Cache<ReachedSet>();
   private final Cache<Collection<AbstractElement>> subgraphReturnCache = new Cache<Collection<AbstractElement>>();
 
-  private final Map<ARTElement, ARTElement> pathElementToReachedElement = new HashMap<ARTElement, ARTElement>();
-
   private Block currentBlock;
   private BlockPartitioning partitioning;
   private int depth = 0;
@@ -370,7 +368,7 @@ public class ABMTransferRelation implements TransferRelation {
     return reached;
   }
 
-  void removeSubtree(ARTReachedSet mainReachedSet, Path pPath, ARTElement element, Precision newPrecision) {
+  void removeSubtree(ARTReachedSet mainReachedSet, Path pPath, ARTElement element, Precision newPrecision, Map<ARTElement, ARTElement> pPathElementToReachedElement) {
     removeSubtreeTimer.start();
 
     List<ARTElement> path = trimPath(pPath, element);
@@ -387,7 +385,7 @@ public class ABMTransferRelation implements TransferRelation {
       }
 
       if(relevantCallNodes.contains(pathElement)) {
-        ARTElement currentElement = pathElementToReachedElement.get(pathElement);
+        ARTElement currentElement = pPathElementToReachedElement.get(pathElement);
 
         if (lastElement == null) {
           lastPrecision = mainReachedSet.asReachedSet().getPrecision(currentElement);
@@ -401,9 +399,9 @@ public class ABMTransferRelation implements TransferRelation {
     }
 
     if(lastElement == null) {
-      removeSubtree(mainReachedSet, pathElementToReachedElement.get(element), newPrecision);
+      removeSubtree(mainReachedSet, pPathElementToReachedElement.get(element), newPrecision);
     } else {
-      removeCachedSubtree(lastElement, lastPrecision, pathElementToReachedElement.get(element), newPrecision);
+      removeCachedSubtree(lastElement, lastPrecision, pPathElementToReachedElement.get(element), newPrecision);
     }
 
     removeSubtreeTimer.stop();
@@ -509,13 +507,13 @@ public class ABMTransferRelation implements TransferRelation {
   //returns root of a subtree leading from the root element of the given reachedSet to the target element
   //subtree is represented using children and parents of ARTElements, where newTreeTarget is the ARTElement
   //in the constructed subtree that represents target
-  ARTElement computeCounterexampleSubgraph(ARTElement target, ARTReachedSet reachedSet, ARTElement newTreeTarget) throws InterruptedException, RecursiveAnalysisFailedException {
+  ARTElement computeCounterexampleSubgraph(ARTElement target, ARTReachedSet reachedSet, ARTElement newTreeTarget, Map<ARTElement, ARTElement> pPathElementToReachedElement) throws InterruptedException, RecursiveAnalysisFailedException {
     //start by creating ARTElements for each node needed in the tree
     Map<ARTElement, ARTElement> elementsMap = new HashMap<ARTElement, ARTElement>();
     Stack<ARTElement> openElements = new Stack<ARTElement>();
     ARTElement root = null;
 
-    pathElementToReachedElement.put(newTreeTarget, target);
+    pPathElementToReachedElement.put(newTreeTarget, target);
     elementsMap.put(target, newTreeTarget);
     openElements.push(target);
     while(!openElements.empty()) {
@@ -524,7 +522,7 @@ public class ABMTransferRelation implements TransferRelation {
         if(!elementsMap.containsKey(parent)) {
           //create node for parent in the new subtree
           elementsMap.put(parent, new ARTElement(parent.getWrappedElement(), null));
-          pathElementToReachedElement.put(elementsMap.get(parent), parent);
+          pPathElementToReachedElement.put(elementsMap.get(parent), parent);
           //and remember to explore the parent later
           openElements.push(parent);
         }
@@ -533,7 +531,7 @@ public class ABMTransferRelation implements TransferRelation {
           //this is a summarized call and thus an direct edge could not be found
           //we have the transfer function to handle this case, as our reachSet is wrong
           //(we have to use the cached ones)
-          ARTElement innerTree = computeCounterexampleSubgraph(parent, reachedSet.getPrecision(parent), elementsMap.get(currentElement));
+          ARTElement innerTree = computeCounterexampleSubgraph(parent, reachedSet.getPrecision(parent), elementsMap.get(currentElement), pPathElementToReachedElement);
           if(innerTree == null) {
             removeSubtree(reachedSet, parent);
             return null;
@@ -563,7 +561,7 @@ public class ABMTransferRelation implements TransferRelation {
    * (recursively, if needed).
    * @throws RecursiveAnalysisFailedException
    */
-  private ARTElement computeCounterexampleSubgraph(ARTElement root, Precision rootPrecision, ARTElement newTreeTarget) throws InterruptedException, RecursiveAnalysisFailedException {
+  private ARTElement computeCounterexampleSubgraph(ARTElement root, Precision rootPrecision, ARTElement newTreeTarget, Map<ARTElement, ARTElement> pPathElementToReachedElement) throws InterruptedException, RecursiveAnalysisFailedException {
     CFANode rootNode = root.retrieveLocationElement().getLocationNode();
     Block rootSubtree = partitioning.getBlockForCallNode(rootNode);
 
@@ -572,13 +570,13 @@ public class ABMTransferRelation implements TransferRelation {
     ReachedSet reachSet = subgraphReachCache.get(reducedRootElement, reducedRootPrecision, rootSubtree);
     //we found the to the root and precision corresponding reach set
     //now try to find the target in the reach set
-    ARTElement targetARTElement = (ARTElement)wrappedReducer.getVariableReducedElement(pathElementToReachedElement.get(newTreeTarget), rootSubtree, rootNode);
+    ARTElement targetARTElement = (ARTElement)wrappedReducer.getVariableReducedElement(pPathElementToReachedElement.get(newTreeTarget), rootSubtree, rootNode);
     if(targetARTElement.isDestroyed()) {
       logger.log(Level.FINE, "Target element refers to a destroyed ARTElement, i.e., the cached subtree is outdated. Updating it.");
       return null;
     }
     //we found the target; now construct a subtree in the ART starting with targetARTElement
-    ARTElement result = computeCounterexampleSubgraph(targetARTElement, new ARTReachedSet(reachSet), newTreeTarget);
+    ARTElement result = computeCounterexampleSubgraph(targetARTElement, new ARTReachedSet(reachSet), newTreeTarget, pPathElementToReachedElement);
     if(result == null) {
       //enforce recomputation to update cached subtree
       subgraphReturnCache.remove(reducedRootElement, reducedRootPrecision, rootSubtree);

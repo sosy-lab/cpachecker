@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.abm;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -54,6 +57,7 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
   final Timer computeCounterexampleTimer = new Timer();
 
   private final ABMTransferRelation transfer;
+  private final Map<ARTElement, ARTElement> pathElementToReachedElement = new HashMap<ARTElement, ARTElement>();
 
   protected AbstractABMBasedRefiner(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
@@ -75,7 +79,7 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
     if (pPath == null) {
       return true;
     } else {
-      return performRefinement0(new ABMReachedSet(transfer, pReached, pPath), pPath);
+      return performRefinement0(new ABMReachedSet(transfer, pReached, pPath, pathElementToReachedElement), pPath);
     }
   }
 
@@ -83,12 +87,14 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
   protected final Path computePath(ARTElement pLastElement, ARTReachedSet pReachedSet) throws InterruptedException, CPATransferException {
     assert pLastElement.isTarget();
 
+    pathElementToReachedElement.clear();
+
     computePathTimer.start();
     try {
       ARTElement subgraph;
       computeSubtreeTimer.start();
       try {
-        subgraph = transfer.computeCounterexampleSubgraph(pLastElement, pReachedSet, new ARTElement(pLastElement.getWrappedElement(), null));
+        subgraph = transfer.computeCounterexampleSubgraph(pLastElement, pReachedSet, new ARTElement(pLastElement.getWrappedElement(), null), pathElementToReachedElement);
         if (subgraph == null) {
           return null;
         }
@@ -126,11 +132,13 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
 
     private final ABMTransferRelation transfer;
     private final Path path;
+    private final Map<ARTElement, ARTElement> pathElementToReachedElement;
 
-    private ABMReachedSet(ABMTransferRelation pTransfer, ARTReachedSet pReached, Path pPath) {
+    private ABMReachedSet(ABMTransferRelation pTransfer, ARTReachedSet pReached, Path pPath, Map<ARTElement, ARTElement> pPathElementToReachedElement) {
       super(pReached);
       this.transfer = pTransfer;
       this.path = pPath;
+      this.pathElementToReachedElement = pPathElementToReachedElement;
     }
 
     @Override
@@ -146,7 +154,7 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
 
       } else {
 
-        transfer.removeSubtree(delegate, path, element, newPrecision);
+        transfer.removeSubtree(delegate, path, element, newPrecision, pathElementToReachedElement);
       }
     }
 
