@@ -143,6 +143,8 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
   private boolean mReuseART = true;
 
   private boolean mPrintPredicateStatistics = false;
+  private boolean mApplyBBHeuristics = false;
+  private boolean mApplyBB2Heuristics = false;
 
   private FeasibilityInformation mFeasibilityInformation;
   private TestSuite mTestSuite;
@@ -457,19 +459,21 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     // Experimental clustering
     HashMap<CFAEdge, LinkedList<Integer>> lClusters = new HashMap<CFAEdge, LinkedList<Integer>>();
 
-    for (int lGoalIndex = 0; lGoalIndex < lGoalPatterns.length; lGoalIndex++) {
-      ElementaryCoveragePattern lGoalPattern = lGoalPatterns[lGoalIndex];
+    if (mApplyBB2Heuristics) {
+      for (int lGoalIndex = 0; lGoalIndex < lGoalPatterns.length; lGoalIndex++) {
+        ElementaryCoveragePattern lGoalPattern = lGoalPatterns[lGoalIndex];
 
-      CFAEdge lCFAEdge = getSingletonCFAEdge(lGoalPattern, 1);
+        CFAEdge lCFAEdge = getSingletonCFAEdge(lGoalPattern, 1);
 
-      LinkedList<Integer> lCluster = lClusters.get(lCFAEdge);
+        LinkedList<Integer> lCluster = lClusters.get(lCFAEdge);
 
-      if (lCluster == null) {
-        lCluster = new LinkedList<Integer>();
-        lClusters.put(lCFAEdge, lCluster);
+        if (lCluster == null) {
+          lCluster = new LinkedList<Integer>();
+          lClusters.put(lCFAEdge, lCluster);
+        }
+
+        lCluster.add(lGoalIndex);
       }
-
-      lCluster.add(lGoalIndex);
     }
 
 
@@ -706,49 +710,40 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         }
 
         // TODO experimental setting ...
-        if (lReachableViaGraphSearch) {
-          CFAEdge lFirstSingletonCFAEdge = getSingletonCFAEdge(lGoalPattern, 1);
-
-          // TODO change to extraction of all singleton CFA edges (non-skipable)
-          CFAEdge lSecondSingletonCFAEdge = getSingletonCFAEdge(lGoalPattern, 2);
-
-
-
-          CFANode lSuccessorNode = lFirstSingletonCFAEdge.getSuccessor();
-
-          LinkedList<Integer> lCluster = lClusters.get(lFirstSingletonCFAEdge);
+        if (lReachableViaGraphSearch && (mApplyBBHeuristics || mApplyBB2Heuristics)) {
+          int lPredictedElements = 0;
 
           System.out.print("Analyse this ... ");
 
-          int lPredictedElements = 0;
-          //int lPastElements = 0;
+          if (mApplyBBHeuristics) {
+            // BB case
+            CFAEdge lFirstSingletonCFAEdge = getSingletonCFAEdge(lGoalPattern, 1);
 
-          HashSet<CFAEdge> lTargetEdges = new HashSet<CFAEdge>();
+            CFANode lInitialNode = this.mAlphaLabel.getEdgeSet().iterator().next().getSuccessor();
 
-          for (int lClusterElement : lCluster) {
-            int lPrediction = lGoalPrediction[lClusterElement];
+            HashSet<CFAEdge> lTargetEdges = new HashSet<CFAEdge>();
 
-            if (lPrediction == -1) {
-              if (lClusterElement > lIndex - 1) {
-                CFAEdge lTargetCFAEdge = getSingletonCFAEdge(lGoalPatterns[lClusterElement], 2);
+            for (int i = lIndex; i < lGoalPatterns.length; i++) {
+              int lPrediction = lGoalPrediction[i];
+
+              if (lPrediction == -1) {
+                CFAEdge lTargetCFAEdge = getSingletonCFAEdge(lGoalPatterns[i], 1);
                 lTargetEdges.add(lTargetCFAEdge);
               }
             }
-          }
 
-          Collection<CFAEdge> lFoundEdges = dfs2(lSuccessorNode, lSecondSingletonCFAEdge, lTargetEdges);
+            Collection<CFAEdge> lFoundEdges = dfs2(lInitialNode, lFirstSingletonCFAEdge, lTargetEdges);
 
-          for (int lClusterElement : lCluster) {
-            int lPrediction = lGoalPrediction[lClusterElement];
+            for (int i = lIndex; i < lGoalPatterns.length; i++) {
+              int lPrediction = lGoalPrediction[i];
 
-            if (lPrediction == -1) {
-              if (lClusterElement > lIndex - 1) {
-                CFAEdge lTargetCFAEdge = getSingletonCFAEdge(lGoalPatterns[lClusterElement], 2);
+              if (lPrediction == -1) {
+                CFAEdge lTargetCFAEdge = getSingletonCFAEdge(lGoalPatterns[i], 1);
 
                 if (!lFoundEdges.contains(lTargetCFAEdge)) {
                   switch (lPrediction) {
                   case -1:
-                    lGoalPrediction[lClusterElement] = 1;
+                    lGoalPrediction[i] = 1;
                     break;
                   case 1:
                     break;
@@ -757,6 +752,61 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
                   }
 
                   lPredictedElements++;
+                }
+              }
+            }
+          }
+
+          if (mApplyBB2Heuristics) {
+            // BB2 case
+            CFAEdge lFirstSingletonCFAEdge = getSingletonCFAEdge(lGoalPattern, 1);
+
+            // TODO change to extraction of all singleton CFA edges (non-skipable)
+            CFAEdge lSecondSingletonCFAEdge = getSingletonCFAEdge(lGoalPattern, 2);
+
+
+
+            CFANode lSuccessorNode = lFirstSingletonCFAEdge.getSuccessor();
+
+            LinkedList<Integer> lCluster = lClusters.get(lFirstSingletonCFAEdge);
+
+            //int lPastElements = 0;
+
+            HashSet<CFAEdge> lTargetEdges = new HashSet<CFAEdge>();
+
+            for (int lClusterElement : lCluster) {
+              int lPrediction = lGoalPrediction[lClusterElement];
+
+              if (lPrediction == -1) {
+                if (lClusterElement > lIndex - 1) {
+                  CFAEdge lTargetCFAEdge = getSingletonCFAEdge(lGoalPatterns[lClusterElement], 2);
+                  lTargetEdges.add(lTargetCFAEdge);
+                }
+              }
+            }
+
+            Collection<CFAEdge> lFoundEdges = dfs2(lSuccessorNode, lSecondSingletonCFAEdge, lTargetEdges);
+
+            for (int lClusterElement : lCluster) {
+              int lPrediction = lGoalPrediction[lClusterElement];
+
+              if (lPrediction == -1) {
+                if (lClusterElement > lIndex - 1) {
+                  CFAEdge lTargetCFAEdge = getSingletonCFAEdge(lGoalPatterns[lClusterElement], 2);
+
+                  if (!lFoundEdges.contains(lTargetCFAEdge)) {
+                    switch (lPrediction) {
+                    case -1:
+                      lGoalPrediction[lClusterElement] = 1;
+                      break;
+                    case 1:
+                      break;
+                    default:
+                      throw new RuntimeException();
+                    }
+
+                    lPredictedElements++;
+                  }
                 }
               }
             }
