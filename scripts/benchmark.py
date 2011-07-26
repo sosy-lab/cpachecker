@@ -527,7 +527,8 @@ class OutputHandler:
             self.getToolnameForPrinting(), options, sourcefile))
 
         # output in terminal
-        sys.stdout.write(sourcefile.ljust(self.maxLengthOfFileName + 4))
+        sys.stdout.write(time.strftime("%H:%M:%S", time.localtime()) \
+            + '   ' + sourcefile.ljust(self.maxLengthOfFileName + 4))
         sys.stdout.flush()
 
 
