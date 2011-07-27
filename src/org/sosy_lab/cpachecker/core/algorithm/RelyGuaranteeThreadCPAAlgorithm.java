@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.RelyGuaranteeAlgorithm.RelyGuaranteeEnvironment;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -62,8 +63,6 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvironmentalTrans
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
-
-import com.google.common.collect.Multimap;
 
 public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
@@ -115,14 +114,14 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
   private final CPAStatistics               stats = new CPAStatistics();
   private final ConfigurableProgramAnalysis       cpa;
   private final LogManager                  logger;
-  private Multimap<ARTElement, RelyGuaranteeEnvironmentalTransition> envTransitions;
+  private RelyGuaranteeEnvironment environment;
   private int tid;
 
   private MathsatFormulaManager fManager;
 
-  public RelyGuaranteeThreadCPAAlgorithm(ConfigurableProgramAnalysis  cpa, Multimap<ARTElement, RelyGuaranteeEnvironmentalTransition> envTransitions, Configuration config, LogManager logger,  int tid) {
+  public RelyGuaranteeThreadCPAAlgorithm(ConfigurableProgramAnalysis  cpa, RelyGuaranteeEnvironment environment, Configuration config, LogManager logger,  int tid) {
     this.cpa = cpa;
-    this.envTransitions = envTransitions;
+    this.environment = environment;
     this.logger = logger;
     this.tid = tid;
 
@@ -186,9 +185,8 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
           // TODO stats...
           // create and environmental edge and add it the global storage
           Vector<RelyGuaranteeEnvironmentalTransition> newEnvTransitions = createEnvTransitions(element);
-          if (!newEnvTransitions.isEmpty()){
-            envTransitions.putAll(aElement, newEnvTransitions);
-          }
+          environment.addEnvTransitions(aElement, newEnvTransitions);
+
 
 
       // TODO When we have a nice way to mark the analysis result as incomplete,
