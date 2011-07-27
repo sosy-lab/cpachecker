@@ -116,6 +116,7 @@ class MainCPAStatistics implements Statistics {
 
     final Timer programTime = new Timer();
     final Timer creationTime = new Timer();
+    final Timer cpaCreationTime = new Timer();
     final Timer analysisTime = new Timer();
 
     private CFACreator cfaCreator;
@@ -196,6 +197,7 @@ class MainCPAStatistics implements Statistics {
         out.println("Time for analysis setup:      " + creationTime);
         if (cfaCreator != null) {
           out.println("  Time for loading C parser:  " + cfaCreator.parserInstantiationTime);
+          out.println("  Time for loading CPAs:      " + cpaCreationTime);
           out.println("Time for CFA construction:    " + cfaCreator.totalTime);
           out.println("  Time for parsing C file:    " + cfaCreator.parsingTime);
           out.println("  Time for AST to CFA:        " + cfaCreator.conversionTime);

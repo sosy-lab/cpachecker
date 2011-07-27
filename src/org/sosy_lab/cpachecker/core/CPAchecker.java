@@ -310,19 +310,25 @@ public class CPAchecker {
 
   private ConfigurableProgramAnalysis createCPA(MainCPAStatistics stats) throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
+    stats.cpaCreationTime.start();
+    try {
 
-    if (options.useRestartingAlgorithm) {
-      // hard-coded dummy CPA
-      return LocationCPA.factory().createInstance();
+      if (options.useRestartingAlgorithm) {
+        // hard-coded dummy CPA
+        return LocationCPA.factory().createInstance();
+      }
+
+      CPABuilder builder = new CPABuilder(config, logger, reachedSetFactory);
+      ConfigurableProgramAnalysis cpa = builder.buildCPAs();
+
+      if (cpa instanceof StatisticsProvider) {
+        ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
+      }
+      return cpa;
+
+    } finally {
+      stats.cpaCreationTime.stop();
     }
-
-    CPABuilder builder = new CPABuilder(config, logger, reachedSetFactory);
-    ConfigurableProgramAnalysis cpa = builder.buildCPAs();
-
-    if (cpa instanceof StatisticsProvider) {
-      ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
-    }
-    return cpa;
   }
 
   private Algorithm createAlgorithm(final ConfigurableProgramAnalysis cpa,
