@@ -643,29 +643,7 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
       } else {
         foundPredicates = true;
 
-        if (itp.isFalse()) {
-          preds = ImmutableSet.of(amgr.makeFalsePredicate());
-        } else {
-          preds = getAtomsAsPredicates(itp);
-        }
-        assert !preds.isEmpty();
-
-        logger.log(Level.ALL, "For step", i, "got:",
-            "interpolant", itp,
-            "predicates", preds);
-
-        if (dumpInterpolationProblems) {
-          String dumpFile = String.format(formulaDumpFilePattern,
-                      "interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "atoms", i);
-          Collection<Formula> atoms = Collections2.transform(preds,
-              new Function<AbstractionPredicate, Formula>(){
-                    @Override
-                    public Formula apply(AbstractionPredicate pArg0) {
-                      return pArg0.getSymbolicAtom();
-                    }
-              });
-          printFormulasToFile(atoms, new File(dumpFile));
-        }
+        preds = getPredicatesFromInterpolant(itp, i);
       }
       info.addPredicatesForRefinement(preds);
 
@@ -689,6 +667,41 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
       throw new RefinementFailedException(RefinementFailedException.Reason.InterpolationFailed, null);
     }
     return info;
+  }
+
+  /**
+   * Get the predicates out of an interpolant.
+   * @param interpolant The interpolant formula.
+   * @param index The index in the list of formulas (just for debugging)
+   * @return A set of predicates.
+   */
+  private Collection<AbstractionPredicate> getPredicatesFromInterpolant(Formula interpolant, int index) {
+
+    Collection<AbstractionPredicate> preds;
+    if (interpolant.isFalse()) {
+      preds = ImmutableSet.of(amgr.makeFalsePredicate());
+    } else {
+      preds = getAtomsAsPredicates(interpolant);
+    }
+    assert !preds.isEmpty();
+
+    logger.log(Level.ALL, "For step", index, "got:",
+        "interpolant", interpolant,
+        "predicates", preds);
+
+    if (dumpInterpolationProblems) {
+      String dumpFile = String.format(formulaDumpFilePattern,
+                  "interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "atoms", index);
+      Collection<Formula> atoms = Collections2.transform(preds,
+          new Function<AbstractionPredicate, Formula>(){
+                @Override
+                public Formula apply(AbstractionPredicate pArg0) {
+                  return pArg0.getSymbolicAtom();
+                }
+          });
+      printFormulasToFile(atoms, new File(dumpFile));
+    }
+    return preds;
   }
 
   /**
@@ -726,19 +739,28 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
       InterpolatingTheoremProver<T> pItpProver, Set<ARTElement> elementsOnPath)
       throws CPATransferException, InterruptedException {
 
-    // get the branchingFormula and add it to the solver environment
+    // get the branchingFormula
     // this formula contains predicates for all branches we took
     // this way we can figure out which branches make a feasible path
     Formula branchingFormula = buildBranchingFormula(elementsOnPath);
-    pItpProver.addFormula(branchingFormula);
 
-    Map<Integer, Boolean> preds;
-    Model model;
+    if (branchingFormula.isTrue()) {
+      return new CounterexampleTraceInfo(f, pItpProver.getModel(), Collections.<Integer, Boolean>emptyMap());
+    }
+
+    // add formula to solver environment
+    pItpProver.addFormula(branchingFormula);
 
     // need to ask solver for satisfiability again,
     // otherwise model doesn't contain new predicates
     boolean stillSatisfiable = !pItpProver.isUnsat();
-    if (!stillSatisfiable) {
+
+    if (stillSatisfiable) {
+      Model model = pItpProver.getModel();
+      return new CounterexampleTraceInfo(f, model, getBranchingPredicateValuesFromModel(model));
+
+    } else {
+      // this should not happen
       logger.log(Level.WARNING, "Could not get precise error path information because of inconsistent reachingPathsFormula!");
 
       dumpInterpolationProblem(f);
@@ -747,21 +769,8 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
               refStats.cexAnalysisTimer.getNumberOfIntervals(), "formula", f.size());
       dumpFormulaToFile(branchingFormula, new File(dumpFile));
 
-      preds = Collections.emptyMap();
-      model = new Model(fmgr);
-
-    } else {
-      model = pItpProver.getModel();
-
-      if (model.isEmpty()) {
-        logger.log(Level.WARNING, "No satisfying assignment given by solver!");
-        preds = Collections.emptyMap();
-      } else {
-        preds = getBranchingPredicateValuesFromModel(model);
-      }
+      return new CounterexampleTraceInfo(f, new Model(fmgr), Collections.<Integer, Boolean>emptyMap());
     }
-
-    return new CounterexampleTraceInfo(f, model, preds);
   }
 
   /**
@@ -835,6 +844,10 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
    * @return A map from ART element id to a boolean value indicating direction.
    */
   private Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Model model) {
+    if (model.isEmpty()) {
+      logger.log(Level.WARNING, "No satisfying assignment given by solver!");
+      return Collections.emptyMap();
+    }
 
     Map<Integer, Boolean> preds = Maps.newHashMap();
     for (AssignableTerm a : model.keySet()) {
