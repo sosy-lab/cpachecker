@@ -157,7 +157,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
-    predicateManager = createNewPredicateManager();
+    predicateManager = new PredicateRefinementManager<Integer, Integer>(regionManager, formulaManager, pathFormulaManager, theoremProver, itpProver, alternativeItpProver, config, logger);
     transfer = new PredicateTransferRelation(this);
 
     topElement = new PredicateAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null));
@@ -191,10 +191,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     initialPrecision = new PredicatePrecision(predicates);
 
     stats = createStatistics();
-  }
-
-  protected PredicateRefinementManager<?, ?> createNewPredicateManager() throws InvalidConfigurationException {
-    return new PredicateRefinementManager<Integer, Integer>(regionManager, formulaManager, pathFormulaManager, theoremProver, itpProver, alternativeItpProver, config, logger);
   }
 
   protected PredicateCPAStatistics createStatistics() throws InvalidConfigurationException {

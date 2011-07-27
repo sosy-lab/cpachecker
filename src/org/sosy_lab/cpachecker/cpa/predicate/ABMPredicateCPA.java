@@ -72,11 +72,6 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
   }
 
   @Override
-  protected PredicateRefinementManager<?, ?> createNewPredicateManager() throws InvalidConfigurationException {
-    return new ABMPredicateRefinementManager<Integer, Integer>(getRegionManager(), getFormulaManager(), getPathFormulaManager(), getTheoremProver(), getItpProver(), getAlternativeItpProver(), getConfiguration(), getLogger());
-  }
-
-  @Override
   protected PredicateCPAStatistics createStatistics() throws InvalidConfigurationException {
     return new ABMPredicateCPAStatistics(this);
   }
