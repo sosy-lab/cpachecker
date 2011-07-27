@@ -127,13 +127,14 @@ public class RelyGuaranteeRefiner{
 
   /**
    *
+   * @param pRelyGuaranteeEnvironment
    * @param pReachedSets
    * @param pErrorThr
    * @return
    * @throws CPAException
    * @throws InterruptedException
    */
-  public boolean performRefinment(ReachedSet[] reachedSets, int errorThr) throws InterruptedException, CPAException {
+  public boolean performRefinment(ReachedSet[] reachedSets, RelyGuaranteeEnvironment environment, int errorThr) throws InterruptedException, CPAException {
 
 
     //assert checkART(reachedSets[errorThr]);
@@ -164,7 +165,17 @@ public class RelyGuaranteeRefiner{
     // if error is spurious refine
     if (mCounterexampleTraceInfo.isSpurious()) {
       Pair<ARTElement, RelyGuaranteePrecision> refinementResult =  performRefinement(oldPredicatePrecision, path, mCounterexampleTraceInfo);
-      artReachedSets[errorThr].removeSubtree(refinementResult.getFirst(), refinementResult.getSecond());
+      ARTElement root = refinementResult.getFirst();
+      RelyGuaranteePrecision precision = refinementResult.getSecond();
+
+      environment.printUnprocessedTransitions();
+      // remove environmental transition that belong to the removed subtree of the ART and haven't been processed
+      environment.removeUnprocessedTransitionsFromElement(root);
+      // process the remaining environmental transition
+
+      environment.processEnvTransitions(errorThr);
+
+      artReachedSets[errorThr].removeSubtree(root, precision);
       //pReached.removeSubtree(refinementResult.getFirst(), refinementResult.getSecond());
       return true;
     } else {
@@ -217,10 +228,11 @@ public class RelyGuaranteeRefiner{
     pmapBuilder.putAll(oldPredicateMap);
 
     // iterate through pPath and find first point with new predicates, from there we have to cut the ART
+    System.out.println("New predicates:");
     for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement> interpolationPoint : pPath) {
       CFANode loc = interpolationPoint.getSecond();
       Collection<AbstractionPredicate> newpreds = getPredicatesForARTElement(pInfo, interpolationPoint);
-      System.out.println("- new predicates at "+loc+" : "+newpreds);
+      System.out.println("- at "+loc+" : "+newpreds);
 
       if (firstInterpolationPoint == null && newpreds.size() > 0) {
         firstInterpolationPoint = interpolationPoint;

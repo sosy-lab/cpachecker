@@ -631,7 +631,11 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
   // TODO For testing
   private void printEnvEdgesApplied( List<Triple<ARTElement, CFANode, AbstractionElement>> path) {
+
     System.out.println("Env edges applied:");
+    if (path.isEmpty()){
+     System.out.println(" none");
+    }
     for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement.AbstractionElement> triple : path){
       if (triple.getThird().getRgFormulaTemplate().getEnvTransitionApplied().size() > 0){
         System.out.println("- on element id:"+triple.getFirst().getElementId()+" location "+triple.getSecond());

@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvironment;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -100,7 +101,7 @@ public class RelyGuaranteeCEGARAlgorithm implements ConcurrentAlgorithm,  Statis
       } else {
         // the program is unsafe, so perform refinement
         try {
-          continueAnalysis = refiner.performRefinment(reachedSets, runThread);
+          continueAnalysis = refiner.performRefinment(reachedSets, algorithm.getRelyGuaranteeEnvironment(), runThread);
         } catch (Exception e) {
           // TODO Auto-generated catch block
           e.printStackTrace();
@@ -121,6 +122,12 @@ public class RelyGuaranteeCEGARAlgorithm implements ConcurrentAlgorithm,  Statis
       gcCounter = 0;
       //stats.gcTimer.stop();
     }
+  }
+
+
+  @Override
+  public RelyGuaranteeEnvironment getRelyGuaranteeEnvironment() {
+    return algorithm.getRelyGuaranteeEnvironment();
   }
 
 
