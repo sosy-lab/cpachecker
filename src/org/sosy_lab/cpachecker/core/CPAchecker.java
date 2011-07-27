@@ -45,10 +45,10 @@ import org.sosy_lab.cpachecker.core.algorithm.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ConcurrentAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.RelyGuaranteeCEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RelyGuaranteeAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.RelyGuaranteeCEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -514,7 +514,7 @@ public class CPAchecker {
     logger.log(Level.INFO, "Starting analysis ...");
     stats.analysisTime.start();
 
-    int errorThr = pAlgorithm.run(reached, options.stopAfterError);
+    int errorThr = pAlgorithm.run(reached, 0);
 
     logger.log(Level.INFO, "Stopping analysis ...");
     stats.analysisTime.stop();

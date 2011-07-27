@@ -63,6 +63,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 
+import com.google.common.collect.Multimap;
+
 public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class CPAStatistics implements Statistics {
@@ -113,12 +115,12 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
   private final CPAStatistics               stats = new CPAStatistics();
   private final ConfigurableProgramAnalysis       cpa;
   private final LogManager                  logger;
-  private Vector<RelyGuaranteeEnvironmentalTransition> envTransitions;
+  private Multimap<ARTElement, RelyGuaranteeEnvironmentalTransition> envTransitions;
   private int tid;
 
   private MathsatFormulaManager fManager;
 
-  public RelyGuaranteeThreadCPAAlgorithm(ConfigurableProgramAnalysis  cpa, Vector<RelyGuaranteeEnvironmentalTransition> envTransitions, Configuration config, LogManager logger,  int tid) {
+  public RelyGuaranteeThreadCPAAlgorithm(ConfigurableProgramAnalysis  cpa, Multimap<ARTElement, RelyGuaranteeEnvironmentalTransition> envTransitions, Configuration config, LogManager logger,  int tid) {
     this.cpa = cpa;
     this.envTransitions = envTransitions;
     this.logger = logger;
@@ -185,7 +187,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
           // create and environmental edge and add it the global storage
           Vector<RelyGuaranteeEnvironmentalTransition> newEnvTransitions = createEnvTransitions(element);
           if (!newEnvTransitions.isEmpty()){
-            envTransitions.addAll(newEnvTransitions);
+            envTransitions.putAll(aElement, newEnvTransitions);
           }
 
 

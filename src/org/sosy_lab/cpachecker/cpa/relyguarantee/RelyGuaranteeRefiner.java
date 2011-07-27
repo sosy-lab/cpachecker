@@ -164,7 +164,6 @@ public class RelyGuaranteeRefiner{
     // if error is spurious refine
     if (mCounterexampleTraceInfo.isSpurious()) {
       Pair<ARTElement, RelyGuaranteePrecision> refinementResult =  performRefinement(oldPredicatePrecision, path, mCounterexampleTraceInfo);
-
       artReachedSets[errorThr].removeSubtree(refinementResult.getFirst(), refinementResult.getSecond());
       //pReached.removeSubtree(refinementResult.getFirst(), refinementResult.getSecond());
       return true;
@@ -221,7 +220,7 @@ public class RelyGuaranteeRefiner{
     for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement> interpolationPoint : pPath) {
       CFANode loc = interpolationPoint.getSecond();
       Collection<AbstractionPredicate> newpreds = getPredicatesForARTElement(pInfo, interpolationPoint);
-      System.out.println("# New predicates at "+loc+" : "+newpreds);
+      System.out.println("- new predicates at "+loc+" : "+newpreds);
 
       if (firstInterpolationPoint == null && newpreds.size() > 0) {
         firstInterpolationPoint = interpolationPoint;
@@ -246,8 +245,8 @@ public class RelyGuaranteeRefiner{
       newPrecision = new RelyGuaranteePrecision(newPredicateMap, globalPredicates);
     }
 
-
-    System.out.println("# Predicate map now is "+newPredicateMap);
+    System.out.println();
+    System.out.println("Predicate map now is "+newPredicateMap);
 
 
     List<CFANode> absLocations = ImmutableList.copyOf(transform(pPath, Triple.<CFANode>getProjectionToSecond()));
@@ -287,6 +286,7 @@ public class RelyGuaranteeRefiner{
       }
     }
     lastErrorPath = absLocations;
+    System.out.println("Root is id:"+root.getElementId());
     return Pair.of(root, newPrecision);
   }
 

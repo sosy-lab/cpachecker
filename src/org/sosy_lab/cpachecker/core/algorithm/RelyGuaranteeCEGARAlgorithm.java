@@ -82,25 +82,25 @@ public class RelyGuaranteeCEGARAlgorithm implements ConcurrentAlgorithm,  Statis
   /**
    * Returns -1 if the threads are safe, otherwise it returns the thread id with the error
    */
-  public int run(ReachedSet[] reachedSets, boolean pStopAfterError) {
+  public int run(ReachedSet[] reachedSets, int startThread) {
 
     // TODO stats
-    int errorThr ;
+    int runThread = startThread;
     int refinmentNo = 0;
     boolean continueAnalysis = false;
     do {
       System.out.println();
       System.out.println("-------------------------- CEGAR iteration "+refinmentNo+" --------------------------");
-      errorThr = algorithm.run(reachedSets, true);
+      runThread = algorithm.run(reachedSets, runThread);
       System.out.println();
       System.out.println("-----------------------------------------------------------------------");
-      if (errorThr == -1){
+      if (runThread == -1){
         // the program is safe
         continueAnalysis = false;
       } else {
         // the program is unsafe, so perform refinement
         try {
-          continueAnalysis = refiner.performRefinment(reachedSets, errorThr);
+          continueAnalysis = refiner.performRefinment(reachedSets, runThread);
         } catch (Exception e) {
           // TODO Auto-generated catch block
           e.printStackTrace();
@@ -111,7 +111,7 @@ public class RelyGuaranteeCEGARAlgorithm implements ConcurrentAlgorithm,  Statis
 
     } while (continueAnalysis);
 
-    return errorThr;
+    return runThread;
   }
 
   private void runGC() {
