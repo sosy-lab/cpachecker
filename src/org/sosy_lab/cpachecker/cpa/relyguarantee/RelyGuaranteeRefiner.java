@@ -88,6 +88,21 @@ public class RelyGuaranteeRefiner{
 
   private Object lastErrorPath;
 
+  private static RelyGuaranteeRefiner rgRefiner;
+
+  /**
+   * Singleton instance of RelyGuaranteeRefiner.
+   * @param cpas
+   * @return
+   * @throws InvalidConfigurationException
+   */
+  public static RelyGuaranteeRefiner getInstance(final ConfigurableProgramAnalysis[] cpas) throws InvalidConfigurationException {
+    if (rgRefiner == null){
+      rgRefiner = new RelyGuaranteeRefiner(cpas);
+    }
+    return rgRefiner;
+  }
+
   public RelyGuaranteeRefiner(final ConfigurableProgramAnalysis[] cpas) throws InvalidConfigurationException{
 
     artCpas = new ARTCPA[cpas.length];
@@ -206,6 +221,7 @@ public class RelyGuaranteeRefiner{
     for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement> interpolationPoint : pPath) {
       CFANode loc = interpolationPoint.getSecond();
       Collection<AbstractionPredicate> newpreds = getPredicatesForARTElement(pInfo, interpolationPoint);
+      System.out.println("# New predicates at "+loc+" : "+newpreds);
 
       if (firstInterpolationPoint == null && newpreds.size() > 0) {
         firstInterpolationPoint = interpolationPoint;

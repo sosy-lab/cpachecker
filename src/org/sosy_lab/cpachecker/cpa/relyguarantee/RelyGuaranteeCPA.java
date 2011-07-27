@@ -101,24 +101,21 @@ public class RelyGuaranteeCPA extends PredicateCPA{
   @Option(name="blk.useCache", description="use caching of path formulas")
   private boolean useCache = true;
 
-
-
-    //private RelyGuaranteeRefiner refiner;
-    private static TheoremProver  tProver;
-    private RelyGuaranteeCPAStatistics stats;
-    private int tid;
+  private static TheoremProver  tProver;
+  private RelyGuaranteeCPAStatistics stats;
+  private int tid;
 
 
 
 
 
-    public static TheoremProver getTheoremProver(Configuration config, LogManager logger,String type) throws InvalidConfigurationException{
-      if (tProver == null){
-        MathsatFormulaManager msatFormulaManager =  MathsatFormulaManager.getInstance(config, logger);
+  public static TheoremProver getTheoremProver(Configuration config, LogManager logger,String type) throws InvalidConfigurationException{
+    if (tProver == null){
+      MathsatFormulaManager msatFormulaManager =  MathsatFormulaManager.getInstance(config, logger);
 
-      }
-      return tProver;
     }
+    return tProver;
+  }
 
 
   public RelyGuaranteeCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
@@ -176,7 +173,9 @@ public class RelyGuaranteeCPA extends PredicateCPA{
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
-    this.predicateManager = new RelyGuaranteeRefinementManager<Integer, Integer>(regionManager, formulaManager, pathFormulaManager, theoremProver, itpProver, alternativeItpProver, config, logger, globalVariablesSet);
+    //this.predicateManager = new RelyGuaranteeRefinementManager<Integer, Integer>(regionManager, formulaManager, pathFormulaManager, theoremProver, itpProver, alternativeItpProver, config, logger, globalVariablesSet);
+    this.predicateManager = RelyGuaranteeRefinementManager.getInstance(regionManager, formulaManager, pathFormulaManager, theoremProver, itpProver, alternativeItpProver, config, logger, globalVariablesSet);
+
     this.transfer = new RelyGuaranteeTransferRelation(this);
 
     RelyGuaranteeFormulaTemplate freshTemplate = new RelyGuaranteeFormulaTemplate(pathFormulaManager.makeEmptyPathFormula());

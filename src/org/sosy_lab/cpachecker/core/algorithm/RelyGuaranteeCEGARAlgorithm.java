@@ -30,7 +30,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -55,7 +54,7 @@ public class RelyGuaranteeCEGARAlgorithm implements ConcurrentAlgorithm,  Statis
     this.logger = pLogger;
 
     // TODO for now only rg refiner is available
-    refiner = new RelyGuaranteeRefiner(algorithm.getCPAs());
+    refiner = RelyGuaranteeRefiner.getInstance(algorithm.getCPAs());
   }
 
 
@@ -106,9 +105,10 @@ public class RelyGuaranteeCEGARAlgorithm implements ConcurrentAlgorithm,  Statis
           // TODO Auto-generated catch block
           e.printStackTrace();
         }
+        //AbstractElement error = reachedSets[errorThr].getLastElement();
+        refinmentNo++;
       }
-      AbstractElement error = reachedSets[errorThr].getLastElement();
-      refinmentNo++;
+
     } while (continueAnalysis);
 
     return errorThr;

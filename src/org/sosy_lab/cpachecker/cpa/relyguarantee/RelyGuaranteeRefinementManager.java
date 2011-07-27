@@ -136,9 +136,35 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
   @Option(description="skip refinement if input formula is larger than "
     + "this amount of bytes (ignored if 0)")
   private int maxRefinementSize = 0;
+
+
   private Set<String> globalVariables;
 
 
+  private static RelyGuaranteeRefinementManager<?,?> rgRefManager;
+
+  /**
+   * Singleton instance of RelyGuaranteeRefinementManager.
+   * @param pRmgr
+   * @param pFmgr
+   * @param pPmgr
+   * @param pThmProver
+   * @param pItpProver
+   * @param pAltItpProver
+   * @param pConfig
+   * @param pLogger
+   * @param globalVariables
+   * @return
+   * @throws InvalidConfigurationException
+   */
+  public static RelyGuaranteeRefinementManager<?, ?> getInstance(RegionManager pRmgr, FormulaManager pFmgr, PathFormulaManager pPmgr, TheoremProver pThmProver,
+      InterpolatingTheoremProver<?> pItpProver, InterpolatingTheoremProver<?> pAltItpProver, Configuration pConfig,
+      LogManager pLogger, Set<String> globalVariables) throws InvalidConfigurationException {
+    if (rgRefManager == null){
+      rgRefManager = new RelyGuaranteeRefinementManager(pRmgr, pFmgr, pPmgr, pThmProver, pItpProver, pAltItpProver, pConfig, pLogger, globalVariables);
+    }
+    return rgRefManager;
+  }
 
   public RelyGuaranteeRefinementManager(RegionManager pRmgr, FormulaManager pFmgr, PathFormulaManager pPmgr, TheoremProver pThmProver,
       InterpolatingTheoremProver<T1> pItpProver, InterpolatingTheoremProver<T2> pAltItpProver, Configuration pConfig,
@@ -161,10 +187,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     //return buildCounterexampleTraceWithSpecifiedItp(pAbstractTrace, elementsOnPath, firstItpProver);
     return buildRgCounterexampleTraceWithSpecifiedItp(targetElement,  reachedSets, threadNo, firstItpProver);
   }
-
-
-
-
 
 
   /**
@@ -515,6 +537,11 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     Path cfaPath = computePath(target, reachedSets[threadNo]);
     System.out.println("The error trace in thread "+threadNo+" is "+cfaPath);
     List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement.AbstractionElement>> path = transformPath(cfaPath);
+
+    System.out.println("Abstraction elements are: ");
+    for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement.AbstractionElement> triple : path){
+      System.out.println("- id:"+triple.getFirst().getElementId()+" at loc "+triple.getSecond());
+    }
 
     List<PathFormula> rgResult = new ArrayList<PathFormula>(path.size());
 
@@ -867,12 +894,4 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     return info;
   }
-
-
-
-
-
-
-
-
 }
