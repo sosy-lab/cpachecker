@@ -187,320 +187,8 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
 //    }
   }
 
-  /**
-   * Counterexample analysis and predicate discovery.
-   * @param pFormulas the formulas for the path
-   * @param elementsOnPath the ARTElements on the path (may be empty if no branching information is required)
-   * @param pItpProver interpolation solver used
-   * @return counterexample info with predicated information
-   * @throws CPAException
-   */
-  private <T> CounterexampleTraceInfo buildCounterexampleTraceWithSpecifiedItp(
-      List<Formula> pFormulas, Set<ARTElement> elementsOnPath, InterpolatingTheoremProver<T> pItpProver) throws CPAException, InterruptedException {
-
-    logger.log(Level.FINEST, "Building counterexample trace");
-    refStats.cexAnalysisTimer.start();
-    pItpProver.init();
-    try {
-
-      // Final adjustments to the list of formulas
-      List<Formula> f = new ArrayList<Formula>(pFormulas); // copy because we will change the list
-
-      if (useBitwiseAxioms) {
-        addBitwiseAxioms(f);
-      }
-
-      f = Collections.unmodifiableList(f);
-      logger.log(Level.ALL, "Counterexample trace formulas:", f);
-
-      // now f is the DAG formula which is satisfiable iff there is a
-      // concrete counterexample
-
-
-      // Check if refinement problem is not too big
-      if (maxRefinementSize > 0) {
-        Formula cex = fmgr.makeTrue();
-        for (Formula formula : f) {
-          cex = fmgr.makeAnd(cex, formula);
-        }
-        int size = fmgr.dumpFormula(cex).length();
-        if (size > maxRefinementSize) {
-          logger.log(Level.FINEST, "Skipping refinement because input formula is", size, "bytes large.");
-          throw new RefinementFailedException(Reason.TooMuchUnrolling, null);
-        }
-      }
-
-
-      // Check feasibility of counterexample
-      logger.log(Level.FINEST, "Checking feasibility of counterexample trace");
-      refStats.cexAnalysisSolverTimer.start();
-
-      boolean spurious;
-      List<T> itpGroupsIds;
-      try {
-
-        if (shortestTrace && getUsefulBlocks) {
-          f = Collections.unmodifiableList(getUsefulBlocks(f, useSuffix, useZigZag));
-        }
-
-        if (dumpInterpolationProblems) {
-          dumpInterpolationProblem(f);
-        }
-
-        // initialize all interpolation group ids with "null"
-        itpGroupsIds = new ArrayList<T>(Collections.<T>nCopies(f.size(), null));
-
-        if (getUsefulBlocks || !shortestTrace) {
-          spurious = checkInfeasibilityOfFullTrace(f, itpGroupsIds, pItpProver);
-
-        } else {
-          spurious = checkInfeasabilityOfShortestTrace(f, itpGroupsIds, pItpProver);
-        }
-        assert itpGroupsIds.size() == f.size();
-        assert !itpGroupsIds.contains(null); // has to be filled completely
-
-      } finally {
-        refStats.cexAnalysisSolverTimer.stop();
-      }
-
-      logger.log(Level.FINEST, "Counterexample trace is", (spurious ? "infeasible" : "feasible"));
-
-
-      // Get either interpolants or error path information
-      CounterexampleTraceInfo info;
-      if (spurious) {
-
-        info = getInterpolants(pItpProver, itpGroupsIds);
-
-      } else {
-        // this is a real bug
-        info = getErrorPath(f, pItpProver, elementsOnPath);
-      }
-
-      logger.log(Level.ALL, "Counterexample information:", info);
-
-      return info;
-
-    } finally {
-      pItpProver.reset();
-      refStats.cexAnalysisTimer.stop();
-    }
-  }
-
-  /**
-   * Check the satisfiability of all formulas in a list.
-   *
-   * @param f The list of formulas to check.
-   * @param itpGroupsIds The list where to store the references to the interpolation groups.
-   * @param pItpProver The solver to use.
-   * @return True if the formulas are unsatisfiable.
-   * @throws InterruptedException
-   */
-  private <T> boolean checkInfeasibilityOfFullTrace(List<Formula> f,
-      List<T> itpGroupsIds, InterpolatingTheoremProver<T> pItpProver)
-      throws InterruptedException {
-    // check all formulas in f at once
-
-    for (int i = useSuffix ? f.size()-1 : 0;
-    useSuffix ? i >= 0 : i < f.size(); i += useSuffix ? -1 : 1) {
-
-      itpGroupsIds.set(i, pItpProver.addFormula(f.get(i)));
-    }
-
-    return pItpProver.isUnsat();
-  }
-
-  /**
-   * Get the interpolants from the solver after the formulas have been proved
-   * to be unsatisfiable.
-   *
-   * @param pItpProver The solver.
-   * @param itpGroupsIds The references to the interpolation groups
-   * @return Information about the counterexample, including the interpolants.
-   * @throws RefinementFailedException If there were no interpolants.
-   */
-  private <T> CounterexampleTraceInfo getInterpolants(
-      InterpolatingTheoremProver<T> pItpProver, List<T> itpGroupsIds)
-      throws RefinementFailedException {
-
-    CounterexampleTraceInfo info = new CounterexampleTraceInfo();
-
-    // the counterexample is spurious. Extract the predicates from
-    // the interpolants
-
-    // how to partition the trace into (A, B) depends on whether
-    // there are function calls involved or not: in general, A
-    // is the trace from the entry point of the current function
-    // to the current point, and B is everything else. To implement
-    // this, we keep track of which function we are currently in.
-    // if we don't want "well-scoped" predicates, A always starts at the beginning
-    Deque<Integer> entryPoints = null;
-    if (wellScopedPredicates) {
-      entryPoints = new ArrayDeque<Integer>();
-      entryPoints.push(0);
-    }
-    boolean foundPredicates = false;
-
-    for (int i = 0; i < itpGroupsIds.size()-1; ++i) {
-      // last iteration is left out because B would be empty
-      final int start_of_a = (wellScopedPredicates ? entryPoints.peek() : 0);
-
-      logger.log(Level.ALL, "Looking for interpolant for formulas from",
-          start_of_a, "to", i);
-
-      refStats.cexAnalysisSolverTimer.start();
-      Formula itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_a, i+1));
-      refStats.cexAnalysisSolverTimer.stop();
-
-      if (dumpInterpolationProblems) {
-        String dumpFile = String.format(formulaDumpFilePattern,
-                "interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "interpolant", i);
-        dumpFormulaToFile(itp, new File(dumpFile));
-      }
-
-      Collection<AbstractionPredicate> preds;
-
-      if (itp.isTrue()) {
-        logger.log(Level.ALL, "For step", i, "got no interpolant.");
-        preds = Collections.emptySet();
-
-      } else {
-        foundPredicates = true;
-
-        if (itp.isFalse()) {
-          preds = ImmutableSet.of(amgr.makeFalsePredicate());
-        } else {
-          preds = getAtomsAsPredicates(itp);
-        }
-        assert !preds.isEmpty();
-
-        logger.log(Level.ALL, "For step", i, "got:",
-            "interpolant", itp,
-            "predicates", preds);
-
-        if (dumpInterpolationProblems) {
-          String dumpFile = String.format(formulaDumpFilePattern,
-                      "interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "atoms", i);
-          Collection<Formula> atoms = Collections2.transform(preds,
-              new Function<AbstractionPredicate, Formula>(){
-                    @Override
-                    public Formula apply(AbstractionPredicate pArg0) {
-                      return pArg0.getSymbolicAtom();
-                    }
-              });
-          printFormulasToFile(atoms, new File(dumpFile));
-        }
-      }
-      info.addPredicatesForRefinement(preds);
-
-      // TODO wellScopedPredicates have been disabled
-
-      // TODO the following code relies on the fact that there is always an abstraction on function call and return
-
-      // If we are entering or exiting a function, update the stack
-      // of entry points
-      // TODO checking if the abstraction node is a new function
-//        if (wellScopedPredicates && e.getAbstractionLocation() instanceof CFAFunctionDefinitionNode) {
-//          entryPoints.push(i);
-//        }
-        // TODO check we are returning from a function
-//        if (wellScopedPredicates && e.getAbstractionLocation().getEnteringSummaryEdge() != null) {
-//          entryPoints.pop();
-//        }
-    }
-
-    if (!foundPredicates) {
-      throw new RefinementFailedException(RefinementFailedException.Reason.InterpolationFailed, null);
-    }
-    return info;
-  }
-
-  /**
-   * Get information about the error path from the solver after the formulas
-   * have been proved to be satisfiable.
-   *
-   * @param f The list of formulas on the path.
-   * @param pItpProver The solver.
-   * @param elementsOnPath The ARTElements of the paths represented by f.
-   * @return Information about the error path, including a satisfying assignment.
-   * @throws CPATransferException
-   * @throws InterruptedException
-   */
-  private <T> CounterexampleTraceInfo getErrorPath(List<Formula> f,
-      InterpolatingTheoremProver<T> pItpProver, Set<ARTElement> elementsOnPath)
-      throws CPATransferException, InterruptedException {
-
-    // get the branchingFormula and add it to the solver environment
-    // this formula contains predicates for all branches we took
-    // this way we can figure out which branches make a feasible path
-    Formula branchingFormula = buildBranchingFormula(elementsOnPath);
-    pItpProver.addFormula(branchingFormula);
-
-    Map<Integer, Boolean> preds;
-    Model model;
-
-    // need to ask solver for satisfiability again,
-    // otherwise model doesn't contain new predicates
-    boolean stillSatisfiable = !pItpProver.isUnsat();
-    if (!stillSatisfiable) {
-      logger.log(Level.WARNING, "Could not get precise error path information because of inconsistent reachingPathsFormula!");
-
-      dumpInterpolationProblem(f);
-      String dumpFile =
-          String.format(formulaDumpFilePattern, "interpolation",
-              refStats.cexAnalysisTimer.getNumberOfIntervals(), "formula", f.size());
-      dumpFormulaToFile(branchingFormula, new File(dumpFile));
-
-      preds = Collections.emptyMap();
-      model = new Model(fmgr);
-
-    } else {
-      model = pItpProver.getModel();
-
-      if (model.isEmpty()) {
-        logger.log(Level.WARNING, "No satisfying assignment given by solver!");
-        preds = Collections.emptyMap();
-      } else {
-        preds = getPredicateValuesFromModel(model);
-      }
-    }
-
-    return new CounterexampleTraceInfo(f, model, preds);
-  }
-
-  private void dumpInterpolationProblem(List<Formula> f) {
-    int k = 0;
-    for (Formula formula : f) {
-      String dumpFile = String.format(formulaDumpFilePattern,
-                  "interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "formula", k++);
-      dumpFormulaToFile(formula, new File(dumpFile));
-    }
-  }
-
-  private void addBitwiseAxioms(List<Formula> f) {
-    Formula bitwiseAxioms = fmgr.makeTrue();
-
-    for (Formula fm : f) {
-      Formula a = fmgr.getBitwiseAxioms(fm);
-      if (!a.isTrue()) {
-        bitwiseAxioms = fmgr.makeAnd(bitwiseAxioms, a);
-      }
-    }
-
-    if (!bitwiseAxioms.isTrue()) {
-      logger.log(Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE",
-          "LAST GROUP: ", bitwiseAxioms);
-      int lastIndex = f.size()-1;
-      f.set(lastIndex, fmgr.makeAnd(f.get(lastIndex), bitwiseAxioms));
-    }
-  }
-
   public void dumpCounterexampleToFile(CounterexampleTraceInfo cex, File file) {
-    Formula f = fmgr.makeTrue();
-    for (Formula part : cex.getCounterExampleFormulas()) {
-      f = fmgr.makeAnd(f, part);
-    }
-    dumpFormulaToFile(f, file);
+    dumpFormulaToFile(makeConjunction(cex.getCounterExampleFormulas()), file);
   }
 
   /**
@@ -565,66 +253,139 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
     }
   }
 
-  private <T> boolean checkInfeasabilityOfShortestTrace(List<Formula> traceFormulas,
-        List<T> itpGroupsIds, InterpolatingTheoremProver<T> pItpProver) throws InterruptedException {
-    Boolean tmpSpurious = null;
+  /**
+   * Counterexample analysis and predicate discovery.
+   * @param pFormulas the formulas for the path
+   * @param elementsOnPath the ARTElements on the path (may be empty if no branching information is required)
+   * @param pItpProver interpolation solver used
+   * @return counterexample info with predicated information
+   * @throws CPAException
+   */
+  private <T> CounterexampleTraceInfo buildCounterexampleTraceWithSpecifiedItp(
+      List<Formula> pFormulas, Set<ARTElement> elementsOnPath, InterpolatingTheoremProver<T> pItpProver) throws CPAException, InterruptedException {
 
-    if (useZigZag) {
-      int e = traceFormulas.size()-1;
-      int s = 0;
-      boolean fromStart = false;
-      while (s <= e) {
-        int i = fromStart ? s : e;
-        if (fromStart) s++;
-        else e--;
-        fromStart = !fromStart;
+    logger.log(Level.FINEST, "Building counterexample trace");
+    refStats.cexAnalysisTimer.start();
+    pItpProver.init();
+    try {
 
-        tmpSpurious = null;
-        Formula fm = traceFormulas.get(i);
-        itpGroupsIds.set(i, pItpProver.addFormula(fm));
-        if (!fm.isTrue()) {
-          if (pItpProver.isUnsat()) {
-            tmpSpurious = Boolean.TRUE;
-            for (int j = s; j <= e; ++j) {
-              itpGroupsIds.set(j, pItpProver.addFormula(traceFormulas.get(j)));
-            }
-            break;
-          } else {
-            tmpSpurious = Boolean.FALSE;
-          }
+      // Final adjustments to the list of formulas
+      List<Formula> f = new ArrayList<Formula>(pFormulas); // copy because we will change the list
+
+      if (useBitwiseAxioms) {
+        addBitwiseAxioms(f);
+      }
+
+      f = Collections.unmodifiableList(f);
+      logger.log(Level.ALL, "Counterexample trace formulas:", f);
+
+      // now f is the DAG formula which is satisfiable iff there is a
+      // concrete counterexample
+
+
+      // Check if refinement problem is not too big
+      if (maxRefinementSize > 0) {
+        int size = fmgr.dumpFormula(makeConjunction(f)).length();
+        if (size > maxRefinementSize) {
+          logger.log(Level.FINEST, "Skipping refinement because input formula is", size, "bytes large.");
+          throw new RefinementFailedException(Reason.TooMuchUnrolling, null);
         }
       }
 
-    } else {
-      for (int i = useSuffix ? traceFormulas.size()-1 : 0;
-      useSuffix ? i >= 0 : i < traceFormulas.size(); i += useSuffix ? -1 : 1) {
 
-        tmpSpurious = null;
-        Formula fm = traceFormulas.get(i);
-        itpGroupsIds.set(i, pItpProver.addFormula(fm));
-        if (!fm.isTrue()) {
-          if (pItpProver.isUnsat()) {
-            tmpSpurious = Boolean.TRUE;
-            // we need to add the other formulas to the itpProver
-            // anyway, so it can setup its internal state properly
-            for (int j = i+(useSuffix ? -1 : 1);
-            useSuffix ? j >= 0 : j < traceFormulas.size();
-            j += useSuffix ? -1 : 1) {
-              itpGroupsIds.set(j, pItpProver.addFormula(traceFormulas.get(j)));
-            }
-            break;
-          } else {
-            tmpSpurious = Boolean.FALSE;
-          }
+      // Check feasibility of counterexample
+      logger.log(Level.FINEST, "Checking feasibility of counterexample trace");
+      refStats.cexAnalysisSolverTimer.start();
+
+      boolean spurious;
+      List<T> itpGroupsIds;
+      try {
+
+        if (shortestTrace && getUsefulBlocks) {
+          f = Collections.unmodifiableList(getUsefulBlocks(f, useSuffix, useZigZag));
         }
+
+        if (dumpInterpolationProblems) {
+          dumpInterpolationProblem(f);
+        }
+
+        // initialize all interpolation group ids with "null"
+        itpGroupsIds = new ArrayList<T>(Collections.<T>nCopies(f.size(), null));
+
+        if (getUsefulBlocks || !shortestTrace) {
+          spurious = checkInfeasibilityOfFullTrace(f, itpGroupsIds, pItpProver);
+
+        } else {
+          spurious = checkInfeasabilityOfShortestTrace(f, itpGroupsIds, pItpProver);
+        }
+        assert itpGroupsIds.size() == f.size();
+        assert !itpGroupsIds.contains(null); // has to be filled completely
+
+      } finally {
+        refStats.cexAnalysisSolverTimer.stop();
+      }
+
+      logger.log(Level.FINEST, "Counterexample trace is", (spurious ? "infeasible" : "feasible"));
+
+
+      // Get either interpolants or error path information
+      CounterexampleTraceInfo info;
+      if (spurious) {
+
+        info = getInterpolants(pItpProver, itpGroupsIds);
+
+      } else {
+        // this is a real bug
+        info = getErrorPath(f, pItpProver, elementsOnPath);
+      }
+
+      logger.log(Level.ALL, "Counterexample information:", info);
+
+      return info;
+
+    } finally {
+      pItpProver.reset();
+      refStats.cexAnalysisTimer.stop();
+    }
+  }
+
+  /**
+   * Add axioms about bitwise operations to a list of formulas, if such operations
+   * are used. This is probably not that helpful currently, we would have to the
+   * tell the solver that these are axioms.
+   *
+   * The axioms are added to the last part of the list of formulas.
+   *
+   * @param f The list of formulas to scan for bitwise operations.
+   */
+  private void addBitwiseAxioms(List<Formula> f) {
+    Formula bitwiseAxioms = fmgr.makeTrue();
+
+    for (Formula fm : f) {
+      Formula a = fmgr.getBitwiseAxioms(fm);
+      if (!a.isTrue()) {
+        bitwiseAxioms = fmgr.makeAnd(bitwiseAxioms, a);
       }
     }
 
-    return (tmpSpurious == null) ? pItpProver.isUnsat() : tmpSpurious;
+    if (!bitwiseAxioms.isTrue()) {
+      logger.log(Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE",
+          "LAST GROUP: ", bitwiseAxioms);
+      int lastIndex = f.size()-1;
+      f.set(lastIndex, fmgr.makeAnd(f.get(lastIndex), bitwiseAxioms));
+    }
   }
 
-  private List<Formula> getUsefulBlocks(List<Formula> f,
-      boolean suffixTrace, boolean zigZag) {
+  /**
+   * Try to find out which formulas out of a list of formulas are relevant for
+   * making the conjunction unsatisfiable.
+   *
+   * @param f The list of formulas to check.
+   * @param suffixTrace Whether to start from the end of the list.
+   * @param zigZag Whether to use a zig-zag way, using formulas from the beginning and the end.
+   * @return A sublist of f that contains the useful formulas.
+   */
+  private List<Formula> getUsefulBlocks(List<Formula> f, boolean suffixTrace, boolean zigZag) {
 
     refStats.cexAnalysisGetUsefulBlocksTimer.start();
 
@@ -733,6 +494,203 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
     return f;
   }
 
+
+  /**
+   * Check the satisfiability of all formulas in a list.
+   *
+   * @param f The list of formulas to check.
+   * @param itpGroupsIds The list where to store the references to the interpolation groups.
+   * @param pItpProver The solver to use.
+   * @return True if the formulas are unsatisfiable.
+   * @throws InterruptedException
+   */
+  private <T> boolean checkInfeasibilityOfFullTrace(List<Formula> f,
+      List<T> itpGroupsIds, InterpolatingTheoremProver<T> pItpProver)
+      throws InterruptedException {
+    // check all formulas in f at once
+
+    for (int i = useSuffix ? f.size()-1 : 0;
+    useSuffix ? i >= 0 : i < f.size(); i += useSuffix ? -1 : 1) {
+
+      itpGroupsIds.set(i, pItpProver.addFormula(f.get(i)));
+    }
+
+    return pItpProver.isUnsat();
+  }
+
+  /**
+   * Check the satisfiability of a list of formulas, while trying to use as few
+   * formulas as possible to make it unsatisfiable.
+   *
+   * @param traceFormulas The list of formulas to check.
+   * @param itpGroupsIds The list where to store the references to the interpolation groups.
+   * @param pItpProver The solver to use.
+   * @return True if the formulas are unsatisfiable.
+   * @throws InterruptedException
+   */
+  private <T> boolean checkInfeasabilityOfShortestTrace(List<Formula> traceFormulas,
+      List<T> itpGroupsIds, InterpolatingTheoremProver<T> pItpProver) throws InterruptedException {
+    Boolean tmpSpurious = null;
+
+    if (useZigZag) {
+      int e = traceFormulas.size()-1;
+      int s = 0;
+      boolean fromStart = false;
+      while (s <= e) {
+        int i = fromStart ? s : e;
+        if (fromStart) s++;
+        else e--;
+        fromStart = !fromStart;
+
+        tmpSpurious = null;
+        Formula fm = traceFormulas.get(i);
+        itpGroupsIds.set(i, pItpProver.addFormula(fm));
+        if (!fm.isTrue()) {
+          if (pItpProver.isUnsat()) {
+            tmpSpurious = Boolean.TRUE;
+            for (int j = s; j <= e; ++j) {
+              itpGroupsIds.set(j, pItpProver.addFormula(traceFormulas.get(j)));
+            }
+            break;
+          } else {
+            tmpSpurious = Boolean.FALSE;
+          }
+        }
+      }
+
+    } else {
+      for (int i = useSuffix ? traceFormulas.size()-1 : 0;
+      useSuffix ? i >= 0 : i < traceFormulas.size(); i += useSuffix ? -1 : 1) {
+
+        tmpSpurious = null;
+        Formula fm = traceFormulas.get(i);
+        itpGroupsIds.set(i, pItpProver.addFormula(fm));
+        if (!fm.isTrue()) {
+          if (pItpProver.isUnsat()) {
+            tmpSpurious = Boolean.TRUE;
+            // we need to add the other formulas to the itpProver
+            // anyway, so it can setup its internal state properly
+            for (int j = i+(useSuffix ? -1 : 1);
+            useSuffix ? j >= 0 : j < traceFormulas.size();
+            j += useSuffix ? -1 : 1) {
+              itpGroupsIds.set(j, pItpProver.addFormula(traceFormulas.get(j)));
+            }
+            break;
+          } else {
+            tmpSpurious = Boolean.FALSE;
+          }
+        }
+      }
+    }
+
+    return (tmpSpurious == null) ? pItpProver.isUnsat() : tmpSpurious;
+  }
+
+  /**
+   * Get the interpolants from the solver after the formulas have been proved
+   * to be unsatisfiable.
+   *
+   * @param pItpProver The solver.
+   * @param itpGroupsIds The references to the interpolation groups
+   * @return Information about the counterexample, including the interpolants.
+   * @throws RefinementFailedException If there were no interpolants.
+   */
+  private <T> CounterexampleTraceInfo getInterpolants(
+      InterpolatingTheoremProver<T> pItpProver, List<T> itpGroupsIds)
+      throws RefinementFailedException {
+
+    CounterexampleTraceInfo info = new CounterexampleTraceInfo();
+
+    // the counterexample is spurious. Extract the predicates from
+    // the interpolants
+
+    // how to partition the trace into (A, B) depends on whether
+    // there are function calls involved or not: in general, A
+    // is the trace from the entry point of the current function
+    // to the current point, and B is everything else. To implement
+    // this, we keep track of which function we are currently in.
+    // if we don't want "well-scoped" predicates, A always starts at the beginning
+    Deque<Integer> entryPoints = null;
+    if (wellScopedPredicates) {
+      entryPoints = new ArrayDeque<Integer>();
+      entryPoints.push(0);
+    }
+    boolean foundPredicates = false;
+
+    for (int i = 0; i < itpGroupsIds.size()-1; ++i) {
+      // last iteration is left out because B would be empty
+      final int start_of_a = (wellScopedPredicates ? entryPoints.peek() : 0);
+
+      logger.log(Level.ALL, "Looking for interpolant for formulas from",
+          start_of_a, "to", i);
+
+      refStats.cexAnalysisSolverTimer.start();
+      Formula itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_a, i+1));
+      refStats.cexAnalysisSolverTimer.stop();
+
+      if (dumpInterpolationProblems) {
+        String dumpFile = String.format(formulaDumpFilePattern,
+                "interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "interpolant", i);
+        dumpFormulaToFile(itp, new File(dumpFile));
+      }
+
+      Collection<AbstractionPredicate> preds;
+
+      if (itp.isTrue()) {
+        logger.log(Level.ALL, "For step", i, "got no interpolant.");
+        preds = Collections.emptySet();
+
+      } else {
+        foundPredicates = true;
+
+        if (itp.isFalse()) {
+          preds = ImmutableSet.of(amgr.makeFalsePredicate());
+        } else {
+          preds = getAtomsAsPredicates(itp);
+        }
+        assert !preds.isEmpty();
+
+        logger.log(Level.ALL, "For step", i, "got:",
+            "interpolant", itp,
+            "predicates", preds);
+
+        if (dumpInterpolationProblems) {
+          String dumpFile = String.format(formulaDumpFilePattern,
+                      "interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "atoms", i);
+          Collection<Formula> atoms = Collections2.transform(preds,
+              new Function<AbstractionPredicate, Formula>(){
+                    @Override
+                    public Formula apply(AbstractionPredicate pArg0) {
+                      return pArg0.getSymbolicAtom();
+                    }
+              });
+          printFormulasToFile(atoms, new File(dumpFile));
+        }
+      }
+      info.addPredicatesForRefinement(preds);
+
+      // TODO wellScopedPredicates have been disabled
+
+      // TODO the following code relies on the fact that there is always an abstraction on function call and return
+
+      // If we are entering or exiting a function, update the stack
+      // of entry points
+      // TODO checking if the abstraction node is a new function
+//        if (wellScopedPredicates && e.getAbstractionLocation() instanceof CFAFunctionDefinitionNode) {
+//          entryPoints.push(i);
+//        }
+        // TODO check we are returning from a function
+//        if (wellScopedPredicates && e.getAbstractionLocation().getEnteringSummaryEdge() != null) {
+//          entryPoints.pop();
+//        }
+    }
+
+    if (!foundPredicates) {
+      throw new RefinementFailedException(RefinementFailedException.Reason.InterpolationFailed, null);
+    }
+    return info;
+  }
+
   /**
    * Create predicates for all atoms in a formula.
    */
@@ -753,6 +711,71 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
     return preds;
   }
 
+  /**
+   * Get information about the error path from the solver after the formulas
+   * have been proved to be satisfiable.
+   *
+   * @param f The list of formulas on the path.
+   * @param pItpProver The solver.
+   * @param elementsOnPath The ARTElements of the paths represented by f.
+   * @return Information about the error path, including a satisfying assignment.
+   * @throws CPATransferException
+   * @throws InterruptedException
+   */
+  private <T> CounterexampleTraceInfo getErrorPath(List<Formula> f,
+      InterpolatingTheoremProver<T> pItpProver, Set<ARTElement> elementsOnPath)
+      throws CPATransferException, InterruptedException {
+
+    // get the branchingFormula and add it to the solver environment
+    // this formula contains predicates for all branches we took
+    // this way we can figure out which branches make a feasible path
+    Formula branchingFormula = buildBranchingFormula(elementsOnPath);
+    pItpProver.addFormula(branchingFormula);
+
+    Map<Integer, Boolean> preds;
+    Model model;
+
+    // need to ask solver for satisfiability again,
+    // otherwise model doesn't contain new predicates
+    boolean stillSatisfiable = !pItpProver.isUnsat();
+    if (!stillSatisfiable) {
+      logger.log(Level.WARNING, "Could not get precise error path information because of inconsistent reachingPathsFormula!");
+
+      dumpInterpolationProblem(f);
+      String dumpFile =
+          String.format(formulaDumpFilePattern, "interpolation",
+              refStats.cexAnalysisTimer.getNumberOfIntervals(), "formula", f.size());
+      dumpFormulaToFile(branchingFormula, new File(dumpFile));
+
+      preds = Collections.emptyMap();
+      model = new Model(fmgr);
+
+    } else {
+      model = pItpProver.getModel();
+
+      if (model.isEmpty()) {
+        logger.log(Level.WARNING, "No satisfying assignment given by solver!");
+        preds = Collections.emptyMap();
+      } else {
+        preds = getBranchingPredicateValuesFromModel(model);
+      }
+    }
+
+    return new CounterexampleTraceInfo(f, model, preds);
+  }
+
+  /**
+   * Build a formula containing a predicate for all branching situations in the
+   * ART. If a satisfying assignment is created for this formula, it can be used
+   * to find out which paths in the ART are feasible.
+   *
+   * This method may be called with an empty set, in which case it does nothing
+   * and returns the formula "true".
+   *
+   * @param elementsOnPath The ART elements that should be considered.
+   * @return A formula containing a predicate for each branching.
+   * @throws CPATransferException
+   */
   protected Formula buildBranchingFormula(Set<ARTElement> elementsOnPath) throws CPATransferException {
     // build the branching formula that will help us find the real error path
     Formula branchingFormula = fmgr.makeTrue();
@@ -801,7 +824,17 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
     return branchingFormula;
   }
 
-  private Map<Integer, Boolean> getPredicateValuesFromModel(Model model) {
+  /**
+   * Extract the information about the branching predicates created by
+   * {@link #buildBranchingFormula(Set)} from a satisfying assignment.
+   *
+   * A map is created that stores for each ARTElement (using its element id as
+   * the map key) which edge was taken (the positive or the negated one).
+   *
+   * @param model A satisfying assignment that should contain values for branching predicates.
+   * @return A map from ART element id to a boolean value indicating direction.
+   */
+  private Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Model model) {
 
     Map<Integer, Boolean> preds = Maps.newHashMap();
     for (AssignableTerm a : model.keySet()) {
@@ -823,5 +856,29 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
       }
     }
     return preds;
+  }
+
+
+  /**
+   * Helper method to create the conjunction of all formulas in a list.
+   */
+  private Formula makeConjunction(List<Formula> f) {
+    Formula result = fmgr.makeTrue();
+    for (Formula formula : f) {
+      result = fmgr.makeAnd(result, formula);
+    }
+    return result;
+  }
+
+  /**
+   * Helper method to dump a list of formulas to files.
+   */
+  private void dumpInterpolationProblem(List<Formula> f) {
+    int k = 0;
+    for (Formula formula : f) {
+      String dumpFile = String.format(formulaDumpFilePattern,
+                  "interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "formula", k++);
+      dumpFormulaToFile(formula, new File(dumpFile));
+    }
   }
 }
