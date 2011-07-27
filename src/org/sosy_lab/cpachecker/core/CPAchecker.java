@@ -174,12 +174,12 @@ public class CPAchecker {
         algorithm = new ExternalCBMCAlgorithm(filename, config, logger);
 
       } else {
+        cfaCreator = new CFACreator(config, logger);
+        stats.setCFACreator(cfaCreator);
+
         cpa = createCPA(stats);
 
         algorithm = createAlgorithm(cpa, stats, filename);
-
-        cfaCreator = new CFACreator(config, logger);
-        stats.setCFACreator(cfaCreator);
       }
 
       // create reached set
