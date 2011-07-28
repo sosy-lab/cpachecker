@@ -45,19 +45,16 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.CSIsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.YicesTheoremProver;
 
@@ -78,20 +75,12 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       description="which solver to use?")
   private String whichProver = "MATHSAT";
 
-  @Option(name="interpolatingProver", toUppercase=true, values={"MATHSAT", "CSISAT"},
-      description="which interpolating solver to use for interpolant generation?")
-  private String whichItpProver = "MATHSAT";
-
   @Option(name="abstraction.initialPredicates", type=Option.Type.OPTIONAL_INPUT_FILE,
       description="get an initial set of predicates from a file in MSAT format")
   private File predicatesFile = null;
 
   @Option(description="always check satisfiability at end of block, even if precision is empty")
   private boolean checkBlockFeasibility = false;
-
-  @Option(name="interpolation.changesolverontimeout",
-          description="try second interpolating solver if the first takes too long")
-  private boolean changeItpSolveOTF = false;
 
   @Option(name="blk.useCache", description="use caching of path formulas")
   private boolean useCache = true;
@@ -109,11 +98,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final FormulaManager formulaManager;
   private final PathFormulaManager pathFormulaManager;
   private final TheoremProver theoremProver;
-  private final PredicateRefinementManager<?, ?> predicateManager;
+  private final PredicateRefinementManager predicateManager;
   private final PredicateCPAStatistics stats;
   private final AbstractElement topElement;
-  private final InterpolatingTheoremProver<Integer> itpProver;
-  private final InterpolatingTheoremProver<Integer> alternativeItpProver;
 
   protected PredicateCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, PredicateCPA.class);
@@ -139,25 +126,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       throw new InternalError("Update list of allowed solvers!");
     }
 
-
-    if (whichItpProver.equals("MATHSAT")) {
-      itpProver = new MathsatInterpolatingProver(mathsatFormulaManager, false);
-      if(changeItpSolveOTF){
-        alternativeItpProver = new CSIsatInterpolatingProver(formulaManager, logger);
-      } else {
-        alternativeItpProver = null;
-      }
-    } else if (whichItpProver.equals("CSISAT")) {
-      itpProver = new CSIsatInterpolatingProver(formulaManager, logger);
-      if(changeItpSolveOTF){
-        alternativeItpProver = new MathsatInterpolatingProver(mathsatFormulaManager, false);
-      } else {
-        alternativeItpProver = null;
-      }
-    } else {
-      throw new InternalError("Update list of allowed solvers!");
-    }
-    predicateManager = new PredicateRefinementManager<Integer, Integer>(regionManager, formulaManager, pathFormulaManager, theoremProver, itpProver, alternativeItpProver, config, logger);
+    predicateManager = new PredicateRefinementManager(regionManager, formulaManager, pathFormulaManager, theoremProver, config, logger);
     transfer = new PredicateTransferRelation(this);
 
     topElement = new PredicateAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null));
@@ -171,7 +140,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     if (predicatesFile != null) {
       try {
         String fileContent = Files.toString(predicatesFile, Charset.defaultCharset());
-        Formula f = mathsatFormulaManager.parse(fileContent);
+        Formula f = formulaManager.parse(fileContent);
         predicates = predicateManager.getAtomsAsPredicates(f);
       } catch (IllegalArgumentException e) {
         logger.logUserException(Level.WARNING, e, "Could not read predicates from file " + predicatesFile);
@@ -217,20 +186,12 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return stop;
   }
 
-  protected RegionManager getRegionManager() {
+  RegionManager getRegionManager() {
     return regionManager;
   }
 
-  protected PredicateRefinementManager<?, ?> getPredicateManager() {
+  PredicateRefinementManager getPredicateManager() {
     return predicateManager;
-  }
-
-  InterpolatingTheoremProver<Integer> getItpProver() {
-    return itpProver;
-  }
-
-  InterpolatingTheoremProver<Integer> getAlternativeItpProver() {
-    return alternativeItpProver;
   }
 
   public FormulaManager getFormulaManager() {
@@ -245,11 +206,11 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return theoremProver;
   }
 
-  protected Configuration getConfiguration() {
+  Configuration getConfiguration() {
     return config;
   }
 
-  protected LogManager getLogger() {
+  LogManager getLogger() {
     return logger;
   }
 

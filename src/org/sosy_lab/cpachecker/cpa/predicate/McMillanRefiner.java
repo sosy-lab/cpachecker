@@ -54,7 +54,7 @@ import com.google.common.collect.Lists;
 public class McMillanRefiner extends AbstractARTBasedRefiner {
 
   private final RegionManager regionManager;
-  private final PredicateRefinementManager<?,?> formulaManager;
+  private final PredicateRefinementManager formulaManager;
 
   private final LogManager logger;
 

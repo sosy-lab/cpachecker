@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.CSIsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
@@ -71,6 +72,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremPr
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatInterpolatingProver;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
@@ -83,7 +86,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 
 @Options(prefix="cpa.predicate.refinement")
-public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionManager {
+public class PredicateRefinementManager extends PredicateAbstractionManager {
 
   static class Stats {
     public final Timer cexAnalysisTimer = new Timer();
@@ -93,12 +96,16 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
 
   final Stats refStats;
 
-  private final InterpolatingTheoremProver<T1> firstItpProver;
-  private final InterpolatingTheoremProver<T2> secondItpProver;
+  private final InterpolatingTheoremProver<?> firstItpProver;
+  private final InterpolatingTheoremProver<?> secondItpProver;
 
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
       "^.*" + BRANCHING_PREDICATE_NAME + "(?=\\d+$)");
+
+  @Option(name="interpolatingProver", toUppercase=true, values={"MATHSAT", "CSISAT"},
+      description="which interpolating solver to use for interpolant generation?")
+  private String whichItpProver = "MATHSAT";
 
   @Option(description="apply deletion-filter to the abstract counterexample, to get "
     + "a minimal set of blocks, before applying interpolation-based refinement")
@@ -155,16 +162,39 @@ public class PredicateRefinementManager<T1, T2> extends PredicateAbstractionMana
       FormulaManager pFmgr,
       PathFormulaManager pPmgr,
       TheoremProver pThmProver,
-      InterpolatingTheoremProver<T1> pItpProver,
-      InterpolatingTheoremProver<T2> pAltItpProver,
       Configuration config,
       LogManager pLogger) throws InvalidConfigurationException {
     super(pRmgr, pFmgr, pPmgr, pThmProver, config, pLogger);
     config.inject(this, PredicateRefinementManager.class);
 
     refStats = new Stats();
-    firstItpProver = pItpProver;
-    secondItpProver = pAltItpProver;
+
+    // create solvers
+    if (whichItpProver.equals("MATHSAT")) {
+      if (!(pFmgr instanceof MathsatFormulaManager)) {
+        throw new InvalidConfigurationException("Need to use Mathsat as solver if Mathsat should be used for interpolation");
+      }
+      firstItpProver = new MathsatInterpolatingProver((MathsatFormulaManager) pFmgr, false);
+
+    } else if (whichItpProver.equals("CSISAT")) {
+      firstItpProver = new CSIsatInterpolatingProver(pFmgr, logger);
+
+    } else {
+      throw new InternalError("Update list of allowed solvers!");
+    }
+
+    if (changeItpSolveOTF) {
+      if (whichItpProver.equals("MATHSAT")) {
+        secondItpProver = new CSIsatInterpolatingProver(pFmgr, logger);
+      } else {
+        if (!(pFmgr instanceof MathsatFormulaManager)) {
+          throw new InvalidConfigurationException("Need to use Mathsat as solver if Mathsat should be used for interpolation");
+        }
+        secondItpProver = new MathsatInterpolatingProver((MathsatFormulaManager) pFmgr, false);
+      }
+    } else {
+      secondItpProver = null;
+    }
 
     if (itpTimeLimit == 0) {
       executor = null;

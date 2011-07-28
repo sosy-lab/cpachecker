@@ -107,7 +107,7 @@ cbmc.timelimit = 0
 # Which refinement algorithm to use? (give class name, required for CEGAR) If
 # the package name starts with 'org.sosy_lab.cpachecker.', this prefix can be
 # omitted.
-cegar.refiner = ""
+cegar.refiner = 
 
 # completely restart analysis on refinement by removing everything from the
 # reached set
@@ -151,7 +151,7 @@ cpa.abm.NO_CACHING = false
 # Type of partitioning (FunctionAndLoopPartitioning or
 # DelayedFunctionAndLoopPartitioning)
 # or any class that implements a PartitioningHeuristic
-cpa.abm.blockHeuristic = "FunctionAndLoopPartitioning"
+cpa.abm.blockHeuristic = 
 
 # export error path to file, if one is found
 cpa.art.errorPath.core = "ErrorPathCore.txt"
@@ -165,7 +165,7 @@ cpa.art.export = true
 cpa.art.file = "ART.dot"
 
 # which heuristics should be used to track progress?
-cpa.assumptions.progressobserver.heuristics = {}
+cpa.assumptions.progressobserver.heuristics = 
 
 # threshold for heuristics of progressobserver
 cpa.assumptions.progressobserver.heuristics.assumeEdgesInPathHeuristics.threshold = -1
@@ -306,13 +306,6 @@ cpa.predicate.formulaDumpFilePattern = "%s%04d-%s%03d.msat"
 # initialize all variables to 0 when they are declared
 cpa.predicate.initAllVars = false
 
-# which interpolating solver to use for interpolant generation?
-cpa.predicate.interpolatingProver = "MATHSAT"
-  allowed values: [MATHSAT, CSISAT]
-
-# try second interpolating solver if the first takes too long
-cpa.predicate.interpolation.changesolverontimeout = false
-
 # With of the bitvectors if useBitwise is true.
 cpa.predicate.mathsat.bitWidth = 32
 
@@ -377,6 +370,10 @@ cpa.predicate.refinement.dumpInterpolationProblems = false
 # apply deletion-filter to the abstract counterexample, to get a minimal set
 # of blocks, before applying interpolation-based refinement
 cpa.predicate.refinement.getUsefulBlocks = false
+
+# which interpolating solver to use for interpolant generation?
+cpa.predicate.refinement.interpolatingProver = "MATHSAT"
+  allowed values: [MATHSAT, CSISAT]
 
 # skip refinement if input formula is larger than this amount of bytes
 # (ignored if 0)
@@ -448,21 +445,19 @@ cpa.uninitvars.stop = "sep"
 # become quite large and memory usage might become an issue.
 
 # single levels to be excluded from being logged
-log.consoleExclude = {}
+log.consoleExclude = 
 
 # log level of console output
-log.consoleLevel = "INFO"
-  allowed values: [OFF, SEVERE, WARNING, INFO, FINE, FINER, FINEST, ALL]
+log.consoleLevel = Level.INFO
 
 # name of the log file
 log.file = "CPALog.txt"
 
 # single levels to be excluded from being logged
-log.fileExclude = {}
+log.fileExclude = 
 
 # log level of file output
-log.level = "OFF"
-  allowed values: [OFF, SEVERE, WARNING, INFO, FINE, FINER, FINEST, ALL]
+log.level = Level.OFF
 
 # maximum size of log output strings before they will be truncated
 log.truncateSize = 10000

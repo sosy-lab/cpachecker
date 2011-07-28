@@ -59,7 +59,7 @@ public class ABMPredicateReducer implements Reducer {
 
   private final RegionManager rmgr;
   private final FormulaManager fmgr;
-  private final PredicateRefinementManager<?, ?> pmgr;
+  private final PredicateRefinementManager pmgr;
   private final RelevantPredicatesComputer relevantComputer;
 
   public ABMPredicateReducer(ABMPredicateCPA cpa) {
