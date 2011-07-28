@@ -443,8 +443,8 @@ class OutputHandler:
             self.maxLengthOfFileName = max(len(sourcefile), self.maxLengthOfFileName)
 
         # write testname to terminal
-        print "\nrunning test" + \
-            (" '" + test.name + "'" if test.name is not None else "")
+        print("\nrunning test" + \
+            (" '" + test.name + "'" if test.name is not None else ""))
 
         # store testname and options in XML, 
         # copy benchmarkinfo, limits, columntitles, systeminfo from XMLHeader
@@ -466,8 +466,8 @@ class OutputHandler:
         '''
         
         # print to terminal
-        print "\nskipping test" + \
-            (" '" + test.name + "'" if test.name is not None else "")
+        print("\nskipping test" + \
+            (" '" + test.name + "'" if test.name is not None else ""))
 
         # write into TXTFile
         numberOfTest = self.benchmark.tests.index(test) + 1
@@ -568,7 +568,7 @@ class OutputHandler:
         logFile.append(output)
 
         # output in terminal/console
-        print status.ljust(8) + cpuTimeDelta.rjust(8) + wallTimeDelta.rjust(8)
+        print(status.ljust(8) + cpuTimeDelta.rjust(8) + wallTimeDelta.rjust(8))
 
         # store filename, status, times, columns in XML
         fileElem = ET.Element("sourcefile", {"name": sourcefile})
@@ -1167,13 +1167,13 @@ if __name__ == "__main__":
     try:
         sys.exit(main())
     except LookupError as e:
-        print e
+        print(e)
     except KeyboardInterrupt:
         timer.cancel() # Timer, that kills a subprocess after timelimit
         interruptMessage = "\n\nscript was interrupted by user, some tests may not be done"
         logging.debug(interruptMessage)
 
-        print interruptMessage
+        print(interruptMessage)
 
         pass
 
