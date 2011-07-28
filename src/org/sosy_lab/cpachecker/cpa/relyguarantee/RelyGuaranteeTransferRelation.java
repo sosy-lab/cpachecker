@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.Product
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement.RelyGuaranteeFormulaTemplate;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.fshell.fql2.translators.cfa.ToFlleShAssumeEdgeTranslator;
@@ -434,7 +433,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
 
       PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula);
 
-      return new RelyGuaranteeAbstractElement.AbstractionElement(newPathFormula, abs, new RelyGuaranteeFormulaTemplate(newPathFormula));
+      return new RelyGuaranteeAbstractElement.AbstractionElement(newPathFormula, abs, new RelyGuaranteeFormulaTemplate(newPathFormula), pElement.getRgFormulaTemplate());
     }
   }
 }

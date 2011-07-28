@@ -171,6 +171,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
       stats.transferTimer.start();
       // pretty printing of predecessors
       ARTElement aElement = (ARTElement) element;
+
       RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(element, RelyGuaranteeAbstractElement.class);
       System.out.println();
       int atomNo = fManager.countAtoms(rgElement.getPathFormula().getFormula());
@@ -243,6 +244,10 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
           logger.log(Level.FINER, "Considering", reached.size(),
               "elements from reached set for merge");
           for (AbstractElement reachedElement : reached) {
+
+            if (((ARTElement)successor).getElementId() == 37){
+              System.out.println();
+            }
 
             mergedElement = mergeOperator.merge(successor, reachedElement,successorPrecision);
 

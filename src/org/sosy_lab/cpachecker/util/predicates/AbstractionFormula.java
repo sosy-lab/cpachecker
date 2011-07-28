@@ -36,24 +36,31 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
  */
 public class AbstractionFormula {
 
+
+
   private final Region region;
   private final Formula formula;
-
   /**
    * The formula of the block directly before this abstraction.
    * (This formula was used to create this abstraction).
    */
-  //private final Formula blockFormula;
   private final PathFormula blockPathFormula;
+
+
 
   private static int nextId = 0;
   private final int id = nextId++;
+
 
   public AbstractionFormula(Region pFirst, Formula pSecond, PathFormula pBlocPathFormula) {
     this.region = pFirst;
     this.formula = pSecond;
     this.blockPathFormula = pBlocPathFormula;
   }
+
+
+
+
 
   public boolean isTrue() {
     return asFormula().isTrue();

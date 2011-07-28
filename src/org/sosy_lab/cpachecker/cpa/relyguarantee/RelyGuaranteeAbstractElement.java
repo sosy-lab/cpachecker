@@ -23,10 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
-import java.util.List;
-import java.util.Vector;
-
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -85,16 +81,20 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
      Preconditions.checkArgument(pf.getFormula().isTrue());
    }*/
 
-   public AbstractionElement(PathFormula pf, AbstractionFormula pA, RelyGuaranteeFormulaTemplate template) {
+   private RelyGuaranteeFormulaTemplate blockPathTemplate;
+
+  public AbstractionElement(PathFormula pf, AbstractionFormula pA, RelyGuaranteeFormulaTemplate template, RelyGuaranteeFormulaTemplate blockPathTemplate) {
      super(pf, pA, template);
+     this.blockPathTemplate = blockPathTemplate;
      // Check whether the pathFormula of an abstraction element is just "true".
      // partialOrder relies on this for optimization.
      Preconditions.checkArgument(pf.getFormula().isTrue());
    }
 
 
-   public AbstractionElement(PathFormula pf, AbstractionFormula pA, CFAEdge edge, RelyGuaranteeFormulaTemplate template) {
+   public AbstractionElement(PathFormula pf, AbstractionFormula pA, CFAEdge edge, RelyGuaranteeFormulaTemplate template, RelyGuaranteeFormulaTemplate blockPathTemplate) {
      super(pf, pA, edge, template);
+     this.blockPathTemplate = blockPathTemplate;
      // Check whether the pathFormula of an abstraction element is just "true".
      // partialOrder relies on this for optimization.
      Preconditions.checkArgument(pf.getFormula().isTrue());
@@ -104,7 +104,12 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
 
 
 
-   @Override
+   public RelyGuaranteeFormulaTemplate getBlockPathTemplate() {
+    return blockPathTemplate;
+  }
+
+
+  @Override
    public Object getPartitionKey() {
      if (super.abstractionFormula.asFormula().isFalse()) {
        // put unreachable states in a separate partition to avoid merging
@@ -266,39 +271,6 @@ public AbstractionFormula getAbstractionFormula() {
  }
 
 
- /**
-  * Information about environmental transitions that appear in the path formula.
-  */
- public static class RelyGuaranteeFormulaTemplate {
 
-   // path formula with environmental parts removed - SSA index like in the ordniary path formula
-   private final PathFormula localPathFormula;
-   // environmental edge together with the  path formula to which it was applied
-   private final List<Pair<RelyGuaranteeCFAEdge, PathFormula>> envTransitionApplied;
-
-   public RelyGuaranteeFormulaTemplate(PathFormula localPathFormula,  List<Pair<RelyGuaranteeCFAEdge, PathFormula>> envTransitionApplied) {
-     this.localPathFormula = localPathFormula;
-     this.envTransitionApplied = envTransitionApplied;
-   }
-
-   public RelyGuaranteeFormulaTemplate(PathFormula localPathFormula) {
-     this.localPathFormula = localPathFormula;
-     this.envTransitionApplied = new Vector<Pair<RelyGuaranteeCFAEdge, PathFormula>>();
-   }
-
-
-  public PathFormula getLocalPathFormula() {
-    return localPathFormula;
-  }
-
-  public List<Pair<RelyGuaranteeCFAEdge, PathFormula>> getEnvTransitionApplied() {
-    return envTransitionApplied;
-  }
-
-  @Override
-  public String toString(){
-    return "template '"+localPathFormula+"' with "+envTransitionApplied.size()+" env edges";
-  }
- }
 
 }

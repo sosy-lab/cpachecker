@@ -55,7 +55,6 @@ import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefinementManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement.AbstractionElement;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement.RelyGuaranteeFormulaTemplate;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -453,7 +452,8 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       }
     }
 
-    assert pPath.getLast().getFirst() == result.get(result.size()-1).getFirst();
+    // TODO does not have to be true under rely guarantee
+    //assert pPath.getLast().getFirst() == result.get(result.size()-1).getFirst();
     return result;
   }
 
@@ -547,15 +547,15 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     printEnvEdgesApplied(path);
 
+
+
     for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement.AbstractionElement> triple : path){
       AbstractionElement ae = triple.getThird();
-      RelyGuaranteeFormulaTemplate template = ae.getRgFormulaTemplate();
+      RelyGuaranteeFormulaTemplate template = ae.getBlockPathTemplate();
       // in any case template formula and path formula should have the same ssa indexes
       assert (template.getLocalPathFormula().getSsa().equals(ae.getPathFormula().getSsa()));
-
       if (template.getEnvTransitionApplied().size() == 0){
-        // no env have been applied, so no need for templating
-        assert template.getLocalPathFormula().equals(ae.getPathFormula());
+        assert template.getLocalPathFormula().equals(ae.getAbstractionFormula().getBlockPathFormula());
         rgResult.add(ae.getAbstractionFormula().getBlockPathFormula());
       } else {
         // some env have been applied, so the template has to be instantiated

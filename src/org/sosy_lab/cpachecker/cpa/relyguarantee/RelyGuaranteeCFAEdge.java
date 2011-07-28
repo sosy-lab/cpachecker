@@ -38,6 +38,9 @@ public class RelyGuaranteeCFAEdge implements CFAEdge{
   private CFANode successor;
   private final int sourceTid;
   private final ARTElement sourceARTElement;
+  private final int id;
+
+  private static int lastGlobalId = 0;
 
 
   /**
@@ -50,6 +53,8 @@ public class RelyGuaranteeCFAEdge implements CFAEdge{
     this.pathFormula = pPathFormula;
     this.sourceTid = sourceTid;
     this.sourceARTElement = sourceARTElement;
+    lastGlobalId++;
+    this.id = lastGlobalId;
   }
 
   public RelyGuaranteeCFAEdge(RelyGuaranteeCFAEdge pOther) {
@@ -57,6 +62,12 @@ public class RelyGuaranteeCFAEdge implements CFAEdge{
     this.pathFormula = pOther.pathFormula;
     this.sourceTid = pOther.sourceTid;
     this.sourceARTElement = pOther.sourceARTElement;
+    lastGlobalId++;
+    this.id = lastGlobalId;
+  }
+
+  public int getId() {
+    return id;
   }
 
   public ARTElement getSourceARTElement() {
