@@ -42,6 +42,9 @@ analysis.traversal.useExplicitInformation = false
 # secondary strategy may not be TOPSORT.
 analysis.traversal.useTopsort = false
 
+# use adjustable conditions algorithm
+analysis.useAdjustableConditions = false
+
 # use assumption collecting algorithm
 analysis.useAssumptionCollector = false
 

@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -98,6 +99,10 @@ public class CPAchecker {
     @Option(name="analysis.useAssumptionCollector",
         description="use assumption collecting algorithm")
         boolean useAssumptionCollector = false;
+
+    @Option(name="analysis.useAdjustableConditions",
+        description="use adjustable conditions algorithm")
+        boolean useAdjustableConditions = false;
 
     @Option(name = "analysis.useRefinement",
         description = "use CEGAR algorithm for lazy counter-example guided analysis"
@@ -360,6 +365,11 @@ public class CPAchecker {
       if (options.useAssumptionCollector) {
         algorithm = new AssumptionCollectorAlgorithm(algorithm, config, logger);
       }
+
+      if (options.useAdjustableConditions) {
+        algorithm = new RestartWithConditionsAlgorithm(algorithm, config, logger);
+      }
+
     }
 
     if (algorithm instanceof StatisticsProvider) {

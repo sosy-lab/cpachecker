@@ -120,7 +120,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   private final LogManager logger;
   private final Algorithm innerAlgorithm;
   private final FormulaManager formulaManager;
-  private final AssumptionWithLocation exceptionAssumptions;
+  protected final AssumptionWithLocation exceptionAssumptions;
   private final AssumptionStorageCPA cpa;
 
   // store only the ids, not the elements in order to prevent memory leaks
@@ -203,7 +203,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     return sound;
   }
 
-  private AssumptionWithLocation collectLocationAssumptions(ReachedSet reached, AssumptionWithLocation exceptionAssumptions) {
+  protected AssumptionWithLocation collectLocationAssumptions(ReachedSet reached, AssumptionWithLocation exceptionAssumptions) {
     AssumptionWithLocation result = AssumptionWithLocation.copyOf(exceptionAssumptions);
 
     // collect and dump all assumptions stored in abstract states

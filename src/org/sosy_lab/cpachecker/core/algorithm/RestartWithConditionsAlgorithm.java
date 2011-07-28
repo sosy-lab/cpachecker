@@ -28,25 +28,28 @@ import java.util.Collection;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ProgressObserverCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 
+@Options(prefix="adjustableconditions")
 public class RestartWithConditionsAlgorithm implements Algorithm, StatisticsProvider {
 
-  private final Algorithm innerAlgorithm;
+  private final AssumptionCollectorAlgorithm innerAlgorithm;
   private final LogManager logger;
 
   public RestartWithConditionsAlgorithm(Algorithm algorithm, Configuration config, LogManager logger) throws InvalidConfigurationException
   {
     config.inject(this);
     this.logger = logger;
-    innerAlgorithm = algorithm;
+    if (!(algorithm instanceof AssumptionCollectorAlgorithm)) {
+      throw new InvalidConfigurationException("Assumption Algorithm needed for RestartWithConditionsAlgorithm");
+    }
+    innerAlgorithm = (AssumptionCollectorAlgorithm)algorithm;
   }
 
   @Override
@@ -67,16 +70,22 @@ public class RestartWithConditionsAlgorithm implements Algorithm, StatisticsProv
       // run the inner algorithm to fill the reached set
       sound = innerAlgorithm.run(pReached);
 
-      if(!sound) {
+      AssumptionWithLocation assumption = innerAlgorithm.collectLocationAssumptions(pReached, innerAlgorithm.exceptionAssumptions);
+
+      // if there are elements that an assumption is generated for
+      if(assumption.getNumberOfLocations() > 0) {
         restartCPA = true;
-        ConfigurableProgramAnalysis observerCpa = ((WrapperCPA)getCPA()).retrieveWrappedCpa(ProgressObserverCPA.class);
-        PrecisionAdjustment predAdjustment = ((ProgressObserverCPA)observerCpa).getPrecisionAdjustment();
-        //predAdjustment.prec(element, precision, elements);
+        adjustThresholds();
       }
 
     } while (restartCPA);
 
     return sound;
+  }
+
+  private void adjustThresholds() {
+    // TODO Auto-generated method stub
+
   }
 
   @Override
