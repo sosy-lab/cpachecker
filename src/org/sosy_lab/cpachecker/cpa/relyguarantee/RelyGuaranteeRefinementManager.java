@@ -64,6 +64,8 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.RelyGuaranteePathFormulaBuilder;
+import org.sosy_lab.cpachecker.util.predicates.RelyGuaranteePathFormulaConstructor;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -138,6 +140,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
 
   private Set<String> globalVariables;
+  private RelyGuaranteePathFormulaConstructor pathFormulaConstructor;
 
 
   private static RelyGuaranteeRefinementManager<?,?> rgRefManager;
@@ -170,6 +173,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       LogManager pLogger, Set<String> globalVariables) throws InvalidConfigurationException {
     super(pRmgr, pFmgr, pPmgr, pThmProver, pItpProver, pAltItpProver, pConfig, pLogger);
     this.globalVariables = globalVariables;
+    this.pathFormulaConstructor = RelyGuaranteePathFormulaConstructor.getInstance(pConfig, pLogger);
 
   }
 
@@ -551,16 +555,18 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement.AbstractionElement> triple : path){
       AbstractionElement ae = triple.getThird();
-      RelyGuaranteeFormulaTemplate template = ae.getBlockPathTemplate();
+      RelyGuaranteePathFormulaBuilder builder = ae.getOldPathBuilder();
+      PathFormula builderPF = pathFormulaConstructor.construct(builder);
       // in any case template formula and path formula should have the same ssa indexes
-      assert (template.getLocalPathFormula().getSsa().equals(ae.getPathFormula().getSsa()));
-      if (template.getEnvTransitionApplied().size() == 0){
-        assert template.getLocalPathFormula().equals(ae.getAbstractionFormula().getBlockPathFormula());
-        rgResult.add(ae.getAbstractionFormula().getBlockPathFormula());
+      assert (builderPF.getSsa().equals(ae.getAbstractionFormula().getBlockPathFormula().getSsa()));
+      if (pathFormulaConstructor.envTransitionsNo(builder) == 0){
+        assert builderPF.equals(ae.getAbstractionFormula().getBlockPathFormula());
+        //rgResult.add(ae.getAbstractionFormula().getBlockPathFormula());
       } else {
+        System.out.println("Some env tr. have been applied");
         // some env have been applied, so the template has to be instantiated
-        List<PathFormula> envFormulas = instantiateTemplateByEnvTransitions(template, reachedSets);
-        rgResult.addAll(envFormulas);
+        //List<PathFormula> envFormulas = instantiateTemplateByEnvTransitions(template, reachedSets);
+        //rgResult.addAll(envFormulas);
       }
     }
     return rgResult;
@@ -636,14 +642,14 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     if (path.isEmpty()){
      System.out.println(" none");
     }
-    for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement.AbstractionElement> triple : path){
+   /* for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement.AbstractionElement> triple : path){
       if (triple.getThird().getRgFormulaTemplate().getEnvTransitionApplied().size() > 0){
         System.out.println("- on element id:"+triple.getFirst().getElementId()+" location "+triple.getSecond());
         for (Pair<RelyGuaranteeCFAEdge, PathFormula> pair : triple.getThird().getRgFormulaTemplate().getEnvTransitionApplied()) {
           System.out.println("\t"+pair.getFirst()+",");
         }
       }
-    }
+    }*/
   }
 
 

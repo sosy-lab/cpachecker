@@ -34,13 +34,17 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecisionAdjustment;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.RelyGuaranteePathFormulaBuilder;
+import org.sosy_lab.cpachecker.util.predicates.RelyGuaranteePathFormulaConstructor;
 
 public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustment {
 
   private RelyGuaranteeCPA cpa;
+  private RelyGuaranteePathFormulaConstructor pathFormulaConstructor;
 
   // statistics
 
@@ -49,6 +53,7 @@ public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustme
   public RelyGuaranteePrecisionAdjustment(RelyGuaranteeCPA pCpa) {
     super(pCpa.getLogger(), pCpa.getPredicateManager(), pCpa.getPathFormulaManager() );
     this.cpa = pCpa;
+    this.pathFormulaConstructor = cpa.getPathFormulaConstructor();
   }
 
   @Override
@@ -82,6 +87,15 @@ public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustme
     PathFormula pathFormula = element.getPathFormula();
     CFANode loc = element.getLocation();
 
+    PathFormula pathByBuilder = null;
+    try {
+      pathByBuilder = this.cpa.getPathFormulaConstructor().construct(element.getPathBuilder());
+    } catch (CPATransferException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+    assert pathByBuilder.equals(pathFormula);
+
     numAbstractions++;
     logger.log(Level.FINEST, "Computing abstraction on node", loc);
 
@@ -107,12 +121,11 @@ public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustme
 
 
     // create new empty path formula
-    //PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula);
-    PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula );
+    PathFormula newPathFormula = this.pathFormulaManager.makeEmptyPathFormula(pathFormula);
 
-    RelyGuaranteeFormulaTemplate freshTemplate = new RelyGuaranteeFormulaTemplate(pathFormulaManager.makeEmptyPathFormula(pathFormula ));
 
-    return new RelyGuaranteeAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula, element.getParentEdge(), freshTemplate, element.getRgFormulaTemplate());
+    RelyGuaranteePathFormulaBuilder freshBuilder = this.pathFormulaConstructor.createEmpty(pathFormula);
+    return new RelyGuaranteeAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula, element.getParentEdge(), freshBuilder, element.getPathBuilder());
   }
 
   @Override

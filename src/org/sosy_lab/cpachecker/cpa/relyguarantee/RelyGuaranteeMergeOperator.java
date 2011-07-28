@@ -23,10 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
-import java.util.Vector;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -36,6 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateMergeOperator;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.RelyGuaranteePathFormulaBuilder;
 
 @Options(prefix="cpa.relyguarantee")
 public class RelyGuaranteeMergeOperator extends PredicateMergeOperator {
@@ -110,18 +109,20 @@ public class RelyGuaranteeMergeOperator extends PredicateMergeOperator {
         CFANode loc = elem1.getParentEdge().getSuccessor();
 
         // adjust the templates
-        RelyGuaranteeFormulaTemplate t1= elem1.getRgFormulaTemplate();
+        /*RelyGuaranteeFormulaTemplate t1= elem1.getRgFormulaTemplate();
         RelyGuaranteeFormulaTemplate t2 = elem2.getRgFormulaTemplate();
         PathFormula mergedTemplatePF = formulaManager.makeOr(t1.getLocalPathFormula(), t2.getLocalPathFormula());
         Vector<Pair<RelyGuaranteeCFAEdge, PathFormula>> mergedL = new Vector<Pair<RelyGuaranteeCFAEdge, PathFormula>>(t1.getEnvTransitionApplied());
         mergedL.addAll(t2.getEnvTransitionApplied());
-        RelyGuaranteeFormulaTemplate mergedTemplate = new RelyGuaranteeFormulaTemplate(mergedTemplatePF, mergedL);
+        RelyGuaranteeFormulaTemplate mergedTemplate = new RelyGuaranteeFormulaTemplate(mergedTemplatePF, mergedL);*/
+
+        RelyGuaranteePathFormulaBuilder mergedBuilder = elem1.getPathBuilder().mergeWith(elem2.getPathBuilder());
 
         if(doAbstraction(pathFormula)){
-          merged = new RelyGuaranteeAbstractElement.ComputeAbstractionElement(pathFormula, elem1.getAbstractionFormula(), loc, mergedTemplate);
+          merged = new RelyGuaranteeAbstractElement.ComputeAbstractionElement(pathFormula, elem1.getAbstractionFormula(), loc, mergedBuilder);
         }
         else {
-          merged = new RelyGuaranteeAbstractElement(pathFormula, elem1.getAbstractionFormula(), mergedTemplate);
+          merged = new RelyGuaranteeAbstractElement(pathFormula, elem1.getAbstractionFormula(), mergedBuilder);
         }
 
 

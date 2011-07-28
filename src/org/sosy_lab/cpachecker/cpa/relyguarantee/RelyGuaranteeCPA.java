@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CSIsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.RelyGuaranteePathFormulaConstructor;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
@@ -104,6 +105,8 @@ public class RelyGuaranteeCPA extends PredicateCPA{
   private RelyGuaranteeCPAStatistics stats;
   private int tid;
 
+  private RelyGuaranteePathFormulaConstructor pathFormulaConstructor;
+
 
 
 
@@ -129,7 +132,7 @@ public class RelyGuaranteeCPA extends PredicateCPA{
       globalVariablesSet.add(var);
     }
 
-
+    this.pathFormulaConstructor = RelyGuaranteePathFormulaConstructor.getInstance(config, logger);
 
     this.regionManager = BDDRegionManager.getInstance();
     MathsatFormulaManager mathsatFormulaManager = MathsatFormulaManager.getInstance(config, logger);
@@ -177,9 +180,7 @@ public class RelyGuaranteeCPA extends PredicateCPA{
 
     this.transfer = new RelyGuaranteeTransferRelation(this);
 
-    RelyGuaranteeFormulaTemplate freshTemplate = new RelyGuaranteeFormulaTemplate(pathFormulaManager.makeEmptyPathFormula());
-    RelyGuaranteeFormulaTemplate freshTemplate2 = new RelyGuaranteeFormulaTemplate(pathFormulaManager.makeEmptyPathFormula());
-    this.topElement = new RelyGuaranteeAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null), freshTemplate, freshTemplate2);
+    this.topElement = new RelyGuaranteeAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null), pathFormulaConstructor.createEmpty(), pathFormulaConstructor.createEmpty());
     this.domain = new RelyGuaranteeAbstractDomain(this);
 
     this.merge = new RelyGuaranteeMergeOperator(this);
@@ -322,6 +323,11 @@ public class RelyGuaranteeCPA extends PredicateCPA{
 
   public RelyGuaranteeRefinementManager<?, ?> getRelyGuaranteeManager() {
     return (RelyGuaranteeRefinementManager<?, ?>) this.predicateManager;
+  }
+
+
+  public RelyGuaranteePathFormulaConstructor getPathFormulaConstructor() {
+    return pathFormulaConstructor;
   }
 
 }
