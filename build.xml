@@ -39,7 +39,7 @@
 
     <target depends="init" name="build-project">
         <echo message="${ant.project.name}: ${ant.file}"/>
-        <javac debug="true" debuglevel="${debuglevel}" destdir="bin" source="${source}" target="${target}">
+        <javac debug="true" debuglevel="${debuglevel}" destdir="bin" source="${source}" target="${target}" encoding="UTF-8">
             <src path="src"/>
 	    <exclude name="org/sosy_lab/cpachecker/cpaplugin/**"/>
             <classpath refid="CPAchecker.classpath"/>
