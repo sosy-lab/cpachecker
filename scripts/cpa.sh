@@ -53,8 +53,8 @@ arch_platform_path="$PATH_TO_CPACHECKER/lib/native/$arch_platform/"
 CLASSPATH="$CLASSPATH:$PATH_TO_CPACHECKER/bin"
 
 # external jars shipped with the project
-CLASSPATH="$CLASSPATH$(find "$PATH_TO_CPACHECKER/lib" -maxdepth 1 -name '*.jar' -printf ':%p' )"
-CLASSPATH="$CLASSPATH$(find "$PATH_TO_CPACHECKER/lib/eclipse" -maxdepth 1 -name '*.jar' -printf ':%p' )"
+CLASSPATH="$CLASSPATH:$(find "$PATH_TO_CPACHECKER/lib" -maxdepth 1 -name '*.jar' | tr "[:space:]" ":" )"
+CLASSPATH="$CLASSPATH:$(find "$PATH_TO_CPACHECKER/lib/eclipse" -maxdepth 1 -name '*.jar' | tr "[:space:]" ":" )"
 
 export CLASSPATH
 
