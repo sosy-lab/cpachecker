@@ -15,7 +15,7 @@ public class PrimitiveVariable implements Variable{
 
   boolean isSigned;
   boolean isConst;
-  boolean isPntCalc;//wenn CIL basic datentyp fuer pointer berechnung verwendet;
+  boolean isPntCalc;//wenn CIL basic datentyp fuer pointer berechnung verwendet; Versions gebraucht
 
 
   /*public PrimitiveVariable(String pname, Address pmemorylocation, Scope pscope, Primitive ptype, boolean pisSigned,boolean pisConst){

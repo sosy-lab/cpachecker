@@ -271,7 +271,7 @@ public class InterpreterTransferRelation implements TransferRelation {
     case FunctionReturnEdge: {
       FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge) cfaEdge;
 
-      successor.setCurrentScope(successor.getCurrentScope().getParentScope());
+      successor.redScope();
       check = successor;
       break;
     }
@@ -282,7 +282,7 @@ public class InterpreterTransferRelation implements TransferRelation {
       CFANode nod = abbr.getPredecessor();
       if(nod.equals(successor.getCurrentScope().getReturnNode())){
         check = successor;
-        successor.setCurrentScope(successor.getCurrentScope().getParentScope());
+        successor.redScope();
       }
       break;
     case FunctionPntCallEdge:

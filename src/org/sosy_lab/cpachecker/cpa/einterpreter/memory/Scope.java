@@ -10,15 +10,18 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 public class Scope {
-  Map<String,Variable> variables;
- String name;
- Scope parent;
- Scope child;
- Scope clone=null;
- private DynamicTypes types;
- private TDef definition;
- IASTExpression returnexpr;
- CFANode returnnod;
+  private Map<String,Variable> variables; //versions
+  private  String   name;
+  private Scope parent;
+
+  private Scope clone=null;
+  private DynamicTypes types;
+  private TDef definition;
+
+  private  IASTExpression returnexpr;
+  private CFANode returnnod;
+
+
   public Scope(String pname){
     variables = new HashMap<String,Variable>();
     name = pname;
@@ -40,7 +43,7 @@ public class Scope {
     }
 
   }
-  private Scope(String pname, Scope pparent, Scope pchild, IASTExpression preturnexpr,DynamicTypes ptypes,TDef pdefinition,CFANode preturnnode){
+  private Scope(String pname, Scope pparent,  IASTExpression preturnexpr,DynamicTypes ptypes,TDef pdefinition,CFANode preturnnode){
    variables = new HashMap<String,Variable>();
    returnexpr = preturnexpr;
     name = new String(pname);
@@ -90,17 +93,12 @@ public class Scope {
     variables.put(pvar.getName(), pvar);
   }
 
-  public void setChild(Scope pchild){
-    child = pchild;
-  }
 
   private void setParent(Scope pparent){
     parent = pparent;
   }
 
-  public Scope getChildScope(){
-    return child;
-  }
+
   public Scope getParentScope(){
     return parent;
   }
@@ -110,10 +108,9 @@ public class Scope {
     if(clone !=null){
       return clone;
     }else{
-     clone = new Scope(name,parent,child,returnexpr,types,definition,returnnod);
+     clone = new Scope(name,parent,returnexpr,types,definition,returnnod);
      clone.setVariables(variables);
-     if(child!=null)
-       clone.setChild(child.clone());
+
      if(parent!=null)
        clone.setParent(parent.clone());
      return clone;

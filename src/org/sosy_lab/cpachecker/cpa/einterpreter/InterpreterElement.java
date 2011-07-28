@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cpa.einterpreter.memory.Scope;
 
 public class InterpreterElement implements AbstractElement {
   private MemoryFactory factory;
-  private Scope curscope;
+  private Scope curscope; //versions
 
 
   public InterpreterElement(){
@@ -58,16 +58,19 @@ public class InterpreterElement implements AbstractElement {
 
   public void setCurrentScope(String name){
     Scope s = new Scope(name,curscope);
-    curscope.setChild(s);
+
     curscope =s;
   }
 
-
-  public void setCurrentScope(Scope pnew){
-      curscope.setChild(pnew);
-
-      curscope =curscope.getChildScope();
+  public void redScope(){
+    curscope = curscope.getParentScope();
   }
+
+
+ /* public void setCurrentScope(Scope pnew){
+
+      curscope =pnew;
+  }*/
 
 
 
