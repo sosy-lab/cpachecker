@@ -374,27 +374,27 @@ class ASTConverter {
   }
 
   private IASTLiteralExpression convert(org.eclipse.cdt.core.dom.ast.IASTLiteralExpression e) {
-    check(e.getRawSignature().equals(String.valueOf(e.getValue())), "raw signature and value not equal", e);
     IASTFileLocation fileLoc = convert(e.getFileLocation());
     IType type = convert(e.getExpressionType());
 
+    String valueStr = String.valueOf(e.getValue());
     switch (e.getKind()) {
     case org.eclipse.cdt.core.dom.ast.IASTLiteralExpression.lk_char_constant:
-      return new IASTCharLiteralExpression(e.getRawSignature(), fileLoc, type, parseCharacterLiteral(e.getRawSignature(), e));
+      return new IASTCharLiteralExpression(e.getRawSignature(), fileLoc, type, parseCharacterLiteral(valueStr, e));
 
     case org.eclipse.cdt.core.dom.ast.IASTLiteralExpression.lk_integer_constant:
-      return new IASTIntegerLiteralExpression(e.getRawSignature(), fileLoc, type, parseIntegerLiteral(e.getRawSignature(), e));
+      return new IASTIntegerLiteralExpression(e.getRawSignature(), fileLoc, type, parseIntegerLiteral(valueStr, e));
 
     case org.eclipse.cdt.core.dom.ast.IASTLiteralExpression.lk_float_constant:
       BigDecimal value;
       try {
-        value = new BigDecimal(e.getRawSignature());
+        value = new BigDecimal(valueStr);
       } catch (NumberFormatException nfe1) {
         try {
           // this might be a hex floating point literal
           // BigDecimal doesn't support this, but Double does
           // TODO handle hex floating point literals that are too large for Double
-          value = BigDecimal.valueOf(Double.parseDouble(e.getRawSignature()));
+          value = BigDecimal.valueOf(Double.parseDouble(valueStr));
         } catch (NumberFormatException nfe2) {
           throw new CFAGenerationRuntimeException("illegal floating point literal", e);
         }
