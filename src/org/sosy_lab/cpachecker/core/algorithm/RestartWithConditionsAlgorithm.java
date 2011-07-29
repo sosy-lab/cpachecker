@@ -24,17 +24,22 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ProgressObserverElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 
 @Options(prefix="adjustableconditions")
 public class RestartWithConditionsAlgorithm implements Algorithm, StatisticsProvider {
@@ -70,12 +75,12 @@ public class RestartWithConditionsAlgorithm implements Algorithm, StatisticsProv
       // run the inner algorithm to fill the reached set
       sound = innerAlgorithm.run(pReached);
 
-      AssumptionWithLocation assumption = innerAlgorithm.collectLocationAssumptions(pReached, innerAlgorithm.exceptionAssumptions);
+      List<AbstractElement> elementsWithAssumptions = innerAlgorithm.getElementsWithAssumptions(pReached);
 
       // if there are elements that an assumption is generated for
-      if(assumption.getNumberOfLocations() > 0) {
+      if(elementsWithAssumptions.size() > 0) {
         restartCPA = true;
-        adjustThresholds();
+        adjustThresholds(elementsWithAssumptions, pReached);
       }
 
     } while (restartCPA);
@@ -83,8 +88,21 @@ public class RestartWithConditionsAlgorithm implements Algorithm, StatisticsProv
     return sound;
   }
 
-  private void adjustThresholds() {
-    // TODO Auto-generated method stub
+  private void adjustThresholds(List<AbstractElement> pElementsWithAssumptions, ReachedSet pReached) {
+
+    for(AbstractElement e: pElementsWithAssumptions){
+      ARTElement artElement = (ARTElement)e;
+      Set<ARTElement> parents = artElement.getParents();
+      pReached.remove(e);
+      for(AbstractElement parent: parents){
+        adjustThreshold(parent);
+        pReached.reAddToWaitlist(parent);
+      }
+    }
+  }
+
+  private void adjustThreshold(AbstractElement pParent) {
+    ProgressObserverElement observerElement = AbstractElements.extractElementByType(pParent, ProgressObserverElement.class);
 
   }
 

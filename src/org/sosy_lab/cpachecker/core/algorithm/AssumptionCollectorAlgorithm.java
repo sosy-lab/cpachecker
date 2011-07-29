@@ -120,7 +120,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   private final LogManager logger;
   private final Algorithm innerAlgorithm;
   private final FormulaManager formulaManager;
-  protected final AssumptionWithLocation exceptionAssumptions;
+  private final AssumptionWithLocation exceptionAssumptions;
   private final AssumptionStorageCPA cpa;
 
   // store only the ids, not the elements in order to prevent memory leaks
@@ -203,7 +203,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     return sound;
   }
 
-  protected AssumptionWithLocation collectLocationAssumptions(ReachedSet reached, AssumptionWithLocation exceptionAssumptions) {
+  private AssumptionWithLocation collectLocationAssumptions(ReachedSet reached, AssumptionWithLocation exceptionAssumptions) {
     AssumptionWithLocation result = AssumptionWithLocation.copyOf(exceptionAssumptions);
 
     // collect and dump all assumptions stored in abstract states
@@ -379,6 +379,33 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         && trueAssumptions.containsAll(tempChildrenAndCoveredList)){
       trueAssumptions.add(e);
     }
+  }
+
+  protected List<AbstractElement> getElementsWithAssumptions(ReachedSet reached){
+
+    List<AbstractElement> retList = new ArrayList<AbstractElement>();
+
+    for (AbstractElement element : reached) {
+
+      // TODO do we need target elements?
+//      if (AbstractElements.isTargetElement(element)) {
+//        // create assumptions for target element
+//        retList.add(element);
+//
+//      } else {
+        // get stored assumption
+
+        AssumptionStorageElement e = AbstractElements.extractElementByType(element, AssumptionStorageElement.class);
+
+        Formula assumption = formulaManager.makeAnd(e.getAssumption(), e.getStopFormula());
+
+        if (!assumption.isTrue()) {
+          retList.add(element);
+        }
+//      }
+    }
+
+    return retList;
   }
 
   @Override
