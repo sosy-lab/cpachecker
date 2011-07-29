@@ -44,6 +44,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 
+import com.google.common.base.Preconditions;
+
 @Options(prefix="cpa.relyguarantee")
 public class RelyGuaranteePathFormulaConstructor {
 
@@ -125,8 +127,31 @@ public class RelyGuaranteePathFormulaConstructor {
     return rgEdges;
   }
 
-  // TODO make it non-recursive
+  /**
+   * Construct a path formula from the builder. Path formulas for environmetal transitions are taken from the edges themselves.
+   * @param root
+   * @return
+   * @throws CPATransferException
+   */
+  public PathFormula constructFromEdges(RelyGuaranteePathFormulaBuilder root) throws CPATransferException{
+    return construct(root, null);
+  }
+
+  /**
+   * Construct a path formula from the builder. Path formulas for environmental transitions are specified in the map.
+   * @param root
+   * @param map
+   * @return
+   * @throws CPATransferException
+   */
   public PathFormula constructFromMap(RelyGuaranteePathFormulaBuilder root, Map<Integer, PathFormula> map) throws CPATransferException{
+    Preconditions.checkNotNull(map);
+    return construct(root, map);
+  }
+
+
+  // TODO make it non-recursive
+  private PathFormula construct(RelyGuaranteePathFormulaBuilder root, Map<Integer, PathFormula> map) throws CPATransferException{
 
     Deque<RelyGuaranteePathFormulaBuilder> stack = new LinkedList<RelyGuaranteePathFormulaBuilder>();
     Deque<RelyGuaranteePathFormulaBuilder> preorderStack = new LinkedList<RelyGuaranteePathFormulaBuilder>();
@@ -174,7 +199,15 @@ public class RelyGuaranteePathFormulaConstructor {
         RelyGuaranteeEnvTransitionBuilder currentB = (RelyGuaranteeEnvTransitionBuilder) builder;
         PathFormula argumentPF = arguments.removeFirst();
         RelyGuaranteeCFAEdge rgEdge = currentB.getEnvEdge();
-        PathFormula envPF = rgEdge.getPathFormula();
+        // use path formula provided as an argument or get it from the edge itself.
+        int rgEdgeId = rgEdge.getId();
+        PathFormula envPF;
+        if (map != null){
+          envPF = map.get(rgEdgeId);
+          assert envPF != null;
+        } else {
+          envPF = rgEdge.getPathFormula();
+        }
         // prime the env. path formula so it does not collide with the local path formula
         int offset = argumentPF.getPrimedNo() + 1;
         PathFormula primedEnvPF = pfManager.primePathFormula(envPF, offset);
@@ -194,21 +227,19 @@ public class RelyGuaranteePathFormulaConstructor {
       }
     }
     assert arguments.size() == 1;
-    PathFormula finalPF = arguments.peek();
-    assert finalPF.equals(this.constructDefault(root));
     return arguments.peek();
   }
 
 
-  // TODO make it non-recursive
-  public PathFormula constructDefault(RelyGuaranteePathFormulaBuilder builder) throws CPATransferException{
+  // TODO delete this
+  private PathFormula constructRecursive(RelyGuaranteePathFormulaBuilder builder) throws CPATransferException{
     if (builder instanceof RelyGuaranteeLocalPathFormulaBuilder){
       return ((RelyGuaranteeLocalPathFormulaBuilder) builder).getPathFormula();
     }
     if (builder instanceof RelyGuaranteeLocalTransitionBuilder){
       RelyGuaranteeLocalTransitionBuilder currentB = (RelyGuaranteeLocalTransitionBuilder) builder;
       RelyGuaranteePathFormulaBuilder nextB = currentB.getBuilder();
-      PathFormula nextPF = constructDefault(nextB);
+      PathFormula nextPF = constructRecursive(nextB);
       CFAEdge edge = currentB.getEdge();
       PathFormula currentPF = pfManager.makeAnd(nextPF, edge);
       return currentPF;
@@ -216,7 +247,7 @@ public class RelyGuaranteePathFormulaConstructor {
     if (builder instanceof RelyGuaranteeEnvTransitionBuilder){
       RelyGuaranteeEnvTransitionBuilder currentB = (RelyGuaranteeEnvTransitionBuilder) builder;
       RelyGuaranteePathFormulaBuilder nextB = currentB.getBuilder();
-      PathFormula nextPF = constructDefault(nextB);
+      PathFormula nextPF = constructRecursive(nextB);
       RelyGuaranteeCFAEdge rgEdge = currentB.getEnvEdge();
       PathFormula envPF = rgEdge.getPathFormula();
       // prime the env. path formula so it does not collide with the local path formula
@@ -233,8 +264,8 @@ public class RelyGuaranteePathFormulaConstructor {
       RelyGuaranteeMergeBuilder currentB = (RelyGuaranteeMergeBuilder) builder;
       RelyGuaranteePathFormulaBuilder nextB1 = currentB.getBuilder1();
       RelyGuaranteePathFormulaBuilder nextB2 = currentB.getBuilder2();
-      PathFormula nextPF1 = constructDefault(nextB1);
-      PathFormula nextPF2 = constructDefault(nextB2);
+      PathFormula nextPF1 = constructRecursive(nextB1);
+      PathFormula nextPF2 = constructRecursive(nextB2);
       PathFormula finalPF = pfManager.makeOr(nextPF1, nextPF2);
       return finalPF;
     } else {

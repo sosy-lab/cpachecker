@@ -89,7 +89,7 @@ public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustme
 
     PathFormula pathByBuilder = null;
     try {
-      pathByBuilder = this.cpa.getPathFormulaConstructor().constructDefault(element.getPathBuilder());
+      pathByBuilder = this.cpa.getPathFormulaConstructor().constructFromEdges(element.getPathBuilder());
     } catch (CPATransferException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();

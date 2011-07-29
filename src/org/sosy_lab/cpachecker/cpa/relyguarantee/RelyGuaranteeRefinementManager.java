@@ -552,11 +552,10 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement.AbstractionElement> triple : path){
       AbstractionElement ae = triple.getThird();
       RelyGuaranteePathFormulaBuilder builder = ae.getOldPathBuilder();
-      //PathFormula builderPF = pathFormulaConstructor.constructDefault(builder);
-      PathFormula builderPF = pathFormulaConstructor.constructFromMap(builder, null);
-
+      PathFormula builderPF = pathFormulaConstructor.constructFromEdges(builder);
       // in any case builder formula with default env. values and path formula should be the same
       assert builderPF.equals(ae.getAbstractionFormula().getBlockPathFormula());
+
 
       List<RelyGuaranteeCFAEdge> rgEdges = pathFormulaConstructor.getRelyGuaranteeCFAEdges(builder);
       printEnvEdgesApplied(rgEdges);
