@@ -295,6 +295,7 @@ public class Configuration {
     newConfig.disableOutput = oldConfig.disableOutput;
     newConfig.outputDirectory = oldConfig.outputDirectory;
     newConfig.rootDirectory = oldConfig.rootDirectory;
+    newConfig.exportUsedOptions = oldConfig.exportUsedOptions;
 
     return newConfig;
   }

@@ -350,6 +350,9 @@ public class CPAMain {
         // this will stop CPAchecker before the actual analysis (hack)
         Thread.currentThread().interrupt();
 
+        // this will disable all other output
+        properties.put("log.consoleLevel", "OFF");
+
       } else if (arg.equals("-help") || arg.equals("-h")) {
         printHelp();
 
