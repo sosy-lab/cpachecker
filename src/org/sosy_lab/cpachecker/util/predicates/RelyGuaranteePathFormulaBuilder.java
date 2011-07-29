@@ -42,6 +42,7 @@ public abstract class  RelyGuaranteePathFormulaBuilder {
   public RelyGuaranteePathFormulaBuilder mergeWith(RelyGuaranteePathFormulaBuilder reached){
     return new RelyGuaranteeMergeBuilder(this, reached);
   }
+
 }
 
 
@@ -57,8 +58,11 @@ class RelyGuaranteeLocalPathFormulaBuilder extends  RelyGuaranteePathFormulaBuil
     return pFormula;
   }
 
+  @Override
+  public String toString(){
+    return pFormula.toString();
+  }
 }
-
 
 class RelyGuaranteeLocalTransitionBuilder extends  RelyGuaranteePathFormulaBuilder {
 
@@ -83,6 +87,11 @@ class RelyGuaranteeLocalTransitionBuilder extends  RelyGuaranteePathFormulaBuild
     return edge;
   }
 
+  @Override
+  public String toString(){
+    return edge.getRawStatement()+","+builder;
+  }
+
 }
 
 class RelyGuaranteeEnvTransitionBuilder extends  RelyGuaranteePathFormulaBuilder {
@@ -101,6 +110,11 @@ class RelyGuaranteeEnvTransitionBuilder extends  RelyGuaranteePathFormulaBuilder
 
   public RelyGuaranteePathFormulaBuilder getBuilder() {
     return builder;
+  }
+
+  @Override
+  public String toString(){
+    return "env:+"+envEdge.getLocalEdge()+","+builder;
   }
 
 
@@ -122,6 +136,11 @@ class RelyGuaranteeMergeBuilder extends  RelyGuaranteePathFormulaBuilder {
 
   public RelyGuaranteePathFormulaBuilder getBuilder2() {
     return builder2;
+  }
+
+  @Override
+  public String toString(){
+    return builder1+" | "+builder2;
   }
 
 }

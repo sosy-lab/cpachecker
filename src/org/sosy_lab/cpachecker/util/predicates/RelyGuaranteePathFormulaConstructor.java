@@ -23,8 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import java.util.Deque;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -85,41 +90,125 @@ public class RelyGuaranteePathFormulaConstructor {
     }
   }
 
-  // returns the number of env transition in the subtree
-  // TODO make it non-recurise or possible delete it
-  public int envTransitionsNo(RelyGuaranteePathFormulaBuilder builder) {
-    if (builder instanceof RelyGuaranteeLocalPathFormulaBuilder){
-      return 0;
-    }
-    if (builder instanceof RelyGuaranteeLocalTransitionBuilder){
-      RelyGuaranteeLocalTransitionBuilder currentB = (RelyGuaranteeLocalTransitionBuilder) builder;
-      RelyGuaranteePathFormulaBuilder nextB = currentB.getBuilder();
-      return envTransitionsNo(nextB);
-    }
-    if (builder instanceof RelyGuaranteeEnvTransitionBuilder){
-      RelyGuaranteeEnvTransitionBuilder currentB = (RelyGuaranteeEnvTransitionBuilder) builder;
-      RelyGuaranteePathFormulaBuilder nextB = currentB.getBuilder();
-      return envTransitionsNo(nextB)+1;
-    }
-    if (builder instanceof RelyGuaranteeMergeBuilder){
-      RelyGuaranteeMergeBuilder currentB = (RelyGuaranteeMergeBuilder) builder;
-      RelyGuaranteePathFormulaBuilder nextB1 = currentB.getBuilder1();
-      RelyGuaranteePathFormulaBuilder nextB2 = currentB.getBuilder2();
-      return envTransitionsNo(nextB1)+envTransitionsNo(nextB2);
-    };
-    return -1;
+  /**
+   * Returns the list of env. edges in the tree rooted at the argument.
+   * @return
+   */
+  public List<RelyGuaranteeCFAEdge> getRelyGuaranteeCFAEdges(RelyGuaranteePathFormulaBuilder root) {
+    Deque<RelyGuaranteePathFormulaBuilder> stack = new LinkedList<RelyGuaranteePathFormulaBuilder>();
+    List<RelyGuaranteeCFAEdge> rgEdges = new Vector<RelyGuaranteeCFAEdge>();
 
+    stack.addFirst(root);
+    while(!stack.isEmpty()){
+      RelyGuaranteePathFormulaBuilder builder = stack.removeFirst();
+      if (builder instanceof RelyGuaranteeLocalTransitionBuilder){
+        RelyGuaranteeLocalTransitionBuilder currentB = (RelyGuaranteeLocalTransitionBuilder) builder;
+        RelyGuaranteePathFormulaBuilder nextB = currentB.getBuilder();
+        stack.addFirst(nextB);
+      }
+      else if (builder instanceof RelyGuaranteeEnvTransitionBuilder){
+        RelyGuaranteeEnvTransitionBuilder currentB = (RelyGuaranteeEnvTransitionBuilder) builder;
+        RelyGuaranteePathFormulaBuilder nextB = currentB.getBuilder();
+        RelyGuaranteeCFAEdge rgEdge = currentB.getEnvEdge();
+        stack.addFirst(nextB);
+        rgEdges.add(rgEdge);
+      }
+      else if (builder instanceof RelyGuaranteeMergeBuilder){
+        RelyGuaranteeMergeBuilder currentB = (RelyGuaranteeMergeBuilder) builder;
+        RelyGuaranteePathFormulaBuilder nextB1 = currentB.getBuilder1();
+        RelyGuaranteePathFormulaBuilder nextB2 = currentB.getBuilder2();
+        stack.addFirst(nextB1);
+        stack.addFirst(nextB2);
+      }
+    }
+
+    return rgEdges;
   }
 
   // TODO make it non-recursive
-  public PathFormula construct(RelyGuaranteePathFormulaBuilder builder) throws CPATransferException{
+  public PathFormula constructFromMap(RelyGuaranteePathFormulaBuilder root, Map<Integer, PathFormula> map) throws CPATransferException{
+
+    Deque<RelyGuaranteePathFormulaBuilder> stack = new LinkedList<RelyGuaranteePathFormulaBuilder>();
+    Deque<RelyGuaranteePathFormulaBuilder> preorderStack = new LinkedList<RelyGuaranteePathFormulaBuilder>();
+    // traverse the tree in preorder
+    stack.addFirst(root);
+    while(!stack.isEmpty()){
+      RelyGuaranteePathFormulaBuilder builder = stack.removeFirst();
+      preorderStack.addLast(builder);
+      if (builder instanceof RelyGuaranteeLocalTransitionBuilder){
+        RelyGuaranteeLocalTransitionBuilder currentB = (RelyGuaranteeLocalTransitionBuilder) builder;
+        RelyGuaranteePathFormulaBuilder nextB = currentB.getBuilder();
+        stack.addFirst(nextB);
+      }
+      else if (builder instanceof RelyGuaranteeEnvTransitionBuilder){
+        RelyGuaranteeEnvTransitionBuilder currentB = (RelyGuaranteeEnvTransitionBuilder) builder;
+        RelyGuaranteePathFormulaBuilder nextB = currentB.getBuilder();
+        RelyGuaranteeCFAEdge rgEdge = currentB.getEnvEdge();
+        stack.addFirst(nextB);
+      }
+      else if (builder instanceof RelyGuaranteeMergeBuilder){
+        RelyGuaranteeMergeBuilder currentB = (RelyGuaranteeMergeBuilder) builder;
+        RelyGuaranteePathFormulaBuilder nextB1 = currentB.getBuilder1();
+        RelyGuaranteePathFormulaBuilder nextB2 = currentB.getBuilder2();
+        stack.addFirst(nextB1);
+        stack.addFirst(nextB2);
+      }
+    }
+    // build the path formula
+    Deque<PathFormula> arguments = new LinkedList<PathFormula>();
+    while(!preorderStack.isEmpty()){
+      RelyGuaranteePathFormulaBuilder builder = preorderStack.removeLast();
+      if (builder instanceof RelyGuaranteeLocalPathFormulaBuilder){
+        RelyGuaranteeLocalPathFormulaBuilder currentB = (RelyGuaranteeLocalPathFormulaBuilder) builder;
+        PathFormula currentPF = currentB.getPathFormula();
+        arguments.addFirst(currentPF);
+      }
+      else if (builder instanceof RelyGuaranteeLocalTransitionBuilder){
+        RelyGuaranteeLocalTransitionBuilder currentB = (RelyGuaranteeLocalTransitionBuilder) builder;
+        PathFormula argumentPF = arguments.removeFirst();
+        CFAEdge edge = currentB.getEdge();
+        PathFormula currentPF = pfManager.makeAnd(argumentPF, edge);
+        arguments.addFirst(currentPF);
+      }
+      else if (builder instanceof RelyGuaranteeEnvTransitionBuilder){
+        RelyGuaranteeEnvTransitionBuilder currentB = (RelyGuaranteeEnvTransitionBuilder) builder;
+        PathFormula argumentPF = arguments.removeFirst();
+        RelyGuaranteeCFAEdge rgEdge = currentB.getEnvEdge();
+        PathFormula envPF = rgEdge.getPathFormula();
+        // prime the env. path formula so it does not collide with the local path formula
+        int offset = argumentPF.getPrimedNo() + 1;
+        PathFormula primedEnvPF = pfManager.primePathFormula(envPF, offset);
+        // make equalities between the last global values in the local and env. path formula
+        PathFormula matchedPF = pfManager.matchPaths(argumentPF, primedEnvPF, globalVariablesSet);
+        // apply the strongest postcondition
+        CFAEdge injectedEdge = pfManager.inject(rgEdge.getLocalEdge(), globalVariablesSet, offset, primedEnvPF.getSsa());
+        PathFormula currentPF = pfManager.makeAnd(matchedPF, rgEdge.getLocalEdge());
+        arguments.addFirst(currentPF);
+      }
+      else if (builder instanceof RelyGuaranteeMergeBuilder){
+        RelyGuaranteeMergeBuilder currentB = (RelyGuaranteeMergeBuilder) builder;
+        PathFormula argumentPF1 = arguments.removeFirst();
+        PathFormula argumentPF2 = arguments.removeFirst();
+        PathFormula currentPF = pfManager.makeOr(argumentPF1, argumentPF2);
+        arguments.addFirst(currentPF);
+      }
+    }
+    assert arguments.size() == 1;
+    PathFormula finalPF = arguments.peek();
+    assert finalPF.equals(this.constructDefault(root));
+    return arguments.peek();
+  }
+
+
+  // TODO make it non-recursive
+  public PathFormula constructDefault(RelyGuaranteePathFormulaBuilder builder) throws CPATransferException{
     if (builder instanceof RelyGuaranteeLocalPathFormulaBuilder){
       return ((RelyGuaranteeLocalPathFormulaBuilder) builder).getPathFormula();
     }
     if (builder instanceof RelyGuaranteeLocalTransitionBuilder){
       RelyGuaranteeLocalTransitionBuilder currentB = (RelyGuaranteeLocalTransitionBuilder) builder;
       RelyGuaranteePathFormulaBuilder nextB = currentB.getBuilder();
-      PathFormula nextPF = construct(nextB);
+      PathFormula nextPF = constructDefault(nextB);
       CFAEdge edge = currentB.getEdge();
       PathFormula currentPF = pfManager.makeAnd(nextPF, edge);
       return currentPF;
@@ -127,7 +216,7 @@ public class RelyGuaranteePathFormulaConstructor {
     if (builder instanceof RelyGuaranteeEnvTransitionBuilder){
       RelyGuaranteeEnvTransitionBuilder currentB = (RelyGuaranteeEnvTransitionBuilder) builder;
       RelyGuaranteePathFormulaBuilder nextB = currentB.getBuilder();
-      PathFormula nextPF = construct(nextB);
+      PathFormula nextPF = constructDefault(nextB);
       RelyGuaranteeCFAEdge rgEdge = currentB.getEnvEdge();
       PathFormula envPF = rgEdge.getPathFormula();
       // prime the env. path formula so it does not collide with the local path formula
@@ -144,16 +233,14 @@ public class RelyGuaranteePathFormulaConstructor {
       RelyGuaranteeMergeBuilder currentB = (RelyGuaranteeMergeBuilder) builder;
       RelyGuaranteePathFormulaBuilder nextB1 = currentB.getBuilder1();
       RelyGuaranteePathFormulaBuilder nextB2 = currentB.getBuilder2();
-      PathFormula nextPF1 = construct(nextB1);
-      PathFormula nextPF2 = construct(nextB2);
+      PathFormula nextPF1 = constructDefault(nextB1);
+      PathFormula nextPF2 = constructDefault(nextB2);
       PathFormula finalPF = pfManager.makeOr(nextPF1, nextPF2);
       return finalPF;
     } else {
       throw new UnrecognizedCFAEdgeException("");
     }
-
   }
-
 
 
 }

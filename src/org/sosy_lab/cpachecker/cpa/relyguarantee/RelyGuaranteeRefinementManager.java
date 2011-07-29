@@ -549,18 +549,19 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     List<PathFormula> rgResult = new ArrayList<PathFormula>(path.size());
 
-    printEnvEdgesApplied(path);
-
-
-
     for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement.AbstractionElement> triple : path){
       AbstractionElement ae = triple.getThird();
       RelyGuaranteePathFormulaBuilder builder = ae.getOldPathBuilder();
-      PathFormula builderPF = pathFormulaConstructor.construct(builder);
-      // in any case template formula and path formula should have the same ssa indexes
-      assert (builderPF.getSsa().equals(ae.getAbstractionFormula().getBlockPathFormula().getSsa()));
-      if (pathFormulaConstructor.envTransitionsNo(builder) == 0){
-        assert builderPF.equals(ae.getAbstractionFormula().getBlockPathFormula());
+      //PathFormula builderPF = pathFormulaConstructor.constructDefault(builder);
+      PathFormula builderPF = pathFormulaConstructor.constructFromMap(builder, null);
+
+      // in any case builder formula with default env. values and path formula should be the same
+      assert builderPF.equals(ae.getAbstractionFormula().getBlockPathFormula());
+
+      List<RelyGuaranteeCFAEdge> rgEdges = pathFormulaConstructor.getRelyGuaranteeCFAEdges(builder);
+      printEnvEdgesApplied(rgEdges);
+
+      if (rgEdges.size() == 0){
         //rgResult.add(ae.getAbstractionFormula().getBlockPathFormula());
       } else {
         System.out.println("Some env tr. have been applied");
@@ -636,20 +637,16 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
 
   // TODO For testing
-  private void printEnvEdgesApplied( List<Triple<ARTElement, CFANode, AbstractionElement>> path) {
+  private void printEnvEdgesApplied(List<RelyGuaranteeCFAEdge> rgEdges) {
 
-    System.out.println("Env edges applied:");
-    if (path.isEmpty()){
-     System.out.println(" none");
-    }
-   /* for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement.AbstractionElement> triple : path){
-      if (triple.getThird().getRgFormulaTemplate().getEnvTransitionApplied().size() > 0){
-        System.out.println("- on element id:"+triple.getFirst().getElementId()+" location "+triple.getSecond());
-        for (Pair<RelyGuaranteeCFAEdge, PathFormula> pair : triple.getThird().getRgFormulaTemplate().getEnvTransitionApplied()) {
-          System.out.println("\t"+pair.getFirst()+",");
-        }
+    if (rgEdges.isEmpty()){
+      System.out.println("Env edges applied: none");
+    } else {
+      System.out.println("Env edges applied:");
+      for (RelyGuaranteeCFAEdge rgEdge : rgEdges){
+        System.out.println("- "+rgEdge);
       }
-    }*/
+    }
   }
 
 
