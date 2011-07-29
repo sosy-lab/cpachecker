@@ -2,35 +2,39 @@ package org.sosy_lab.cpachecker.cpa.einterpreter.memory;
 
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cpa.einterpreter.InterpreterElement;
 
 public class Scope {
-  private Map<String,Variable> variables; //versions
+  private Map<InterpreterElement,HashMap<String,Variable>> variables; //versions
   private  String   name;
   private Scope parent;
 
-  private Scope clone=null;
+
   private DynamicTypes types;
   private TDef definition;
 
   private  IASTExpression returnexpr;
   private CFANode returnnod;
 
+  InterpreterElement tmp = null;
 
-  public Scope(String pname){
-    variables = new HashMap<String,Variable>();
+  public Scope(String pname,InterpreterElement el){
+    HashMap<String, Variable> variable = new HashMap<String,Variable>();
+    variables = new HashMap<InterpreterElement, HashMap<String,Variable>>();
+    variables.put(el, variable);
     name = pname;
     types = new DynamicTypes();
     definition = new TDef();
 
   }
-  public Scope(String pname,Scope pparent){
-    variables = new HashMap<String,Variable>();
+  public Scope(String pname,Scope pparent,InterpreterElement el){
+    HashMap<String, Variable> variable = new HashMap<String,Variable>();
+    variables = new HashMap<InterpreterElement, HashMap<String,Variable>>();
+    variables.put(el, variable);
     name = pname;
     parent = pparent;
     if(parent!=null){
@@ -43,79 +47,62 @@ public class Scope {
     }
 
   }
-  private Scope(String pname, Scope pparent,  IASTExpression preturnexpr,DynamicTypes ptypes,TDef pdefinition,CFANode preturnnode){
-   variables = new HashMap<String,Variable>();
-   returnexpr = preturnexpr;
-    name = new String(pname);
-    types = ptypes;
-    definition = pdefinition;
-    returnnod = preturnnode;
-
+  void setcurInterpreterElement(InterpreterElement el){
+    tmp = el;
   }
 
 
-  private  void setVariables(Map<String,Variable> pvariables){
-    Iterator<Entry<String, Variable>> i = pvariables.entrySet().iterator();
-    while(i.hasNext()){
-         Entry<String,Variable> p = i.next();
-         String nname = new String(p.getKey());
-         Variable nvar = p.getValue().clone();
-         variables.put(nname, nvar);
-    }
-  }
+
 
   public String getID(){
     return name;
   }
+  @SuppressWarnings("unchecked")
   public Variable getVariable(String pname){
-      Variable vtmp;
-      vtmp = variables.get(pname);
-      if(vtmp == null){
-        if(parent!=null){
-          return parent.getVar(pname);
 
-        }else{
-          return null;
-        }
-      }else{
-        return vtmp;
+      HashMap<String, Variable> vtmp = variables.get(tmp);
+      InterpreterElement itmp= tmp;
+      while(vtmp == null && itmp != null){
+        itmp = itmp.getprev();
+        vtmp = variables.get(itmp);
       }
-  }
-  private Variable getVar(String pname) {
-    if(name.compareTo("global")==0){
-      return variables.get(pname);
-    } else{
-      return parent.getVar(pname);
-    }
+      Variable k = vtmp.get(pname);
+      Scope s = this;
+      if(k==null){
+        while(s.parent != null){
+          s = s.parent;
+        }
+        s.setcurInterpreterElement(tmp);
+        return s.getVariable(pname);
+
+      }
+
+      k = vtmp.get(pname);
+      if(k!=null){
+        k.setcurInterpreterElement(tmp);
+      }
+      return k;
 
   }
+
+  @SuppressWarnings("unchecked")
   public void addVariable(Variable pvar){
-    variables.put(pvar.getName(), pvar);
+    pvar.setcurInterpreterElement(tmp);
+    HashMap<String, Variable> variable = variables.get(tmp);
+    variable = (HashMap<String, Variable>) variable.clone();
+    variable.put(pvar.getName(), pvar);
+    variables.put(tmp, variable);
   }
 
 
-  private void setParent(Scope pparent){
-    parent = pparent;
-  }
+
 
 
   public Scope getParentScope(){
     return parent;
   }
 
-  @Override
-  public Scope clone(){
-    if(clone !=null){
-      return clone;
-    }else{
-     clone = new Scope(name,parent,returnexpr,types,definition,returnnod);
-     clone.setVariables(variables);
 
-     if(parent!=null)
-       clone.setParent(parent.clone());
-     return clone;
-    }
-  }
   public void setReturnExpression(IASTExpression pLeft) {
     returnexpr= pLeft;
 

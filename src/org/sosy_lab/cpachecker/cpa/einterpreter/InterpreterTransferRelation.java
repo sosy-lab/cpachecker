@@ -177,8 +177,8 @@ public class InterpreterTransferRelation implements TransferRelation {
     AbstractElement check = null;
     InterpreterElement explicitElement = (InterpreterElement)element;
 
-    successor = explicitElement;
-    //successor = explicitElement.clone();
+    //successor = explicitElement;
+    successor = explicitElement.copy();
 
     // check the type of the edge
      System.out.println(cfaEdge.getRawStatement());
@@ -583,7 +583,7 @@ private void handleAssignment(ExprResult res1, ExprResult res2) throws Exception
     addr = res1.getVariable().getAddress();
     level = 0;
     if(res1.getVariable() instanceof PointerVariable){
-      ((PointerVariable) res1.getVariable()).setNullPointer(false);
+
     }
     break;
   case Addr:
@@ -657,7 +657,7 @@ private void handleAssignment(ExprResult res1, ExprResult res2) throws Exception
       writePrimVar((PrimitiveType)typ,addr,res2.getnumber());
     else if(typ instanceof PointerType && res2.getnumber().compareTo(BigInteger.valueOf(0)) ==0){
       if(res1.getResultType()==RType.Var){
-        ((PointerVariable)res1.getVariable()).setNullPointer(true);
+        ((PointerVariable)res1.getVariable()).setNullPointer();
         return;
       }
       MemoryBlock block;

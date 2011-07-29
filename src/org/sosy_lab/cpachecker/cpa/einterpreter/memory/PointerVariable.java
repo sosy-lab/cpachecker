@@ -31,13 +31,14 @@ import org.sosy_lab.cpachecker.cpa.einterpreter.memory.Type.TypeClass;
 public class PointerVariable implements Variable {
   boolean isConst; //TODO: unhandeld
   String name;
-  PointerVariable clone;
+
   int level;
   PointerType typ;
   Type basetyp;
+  InterpreterElement tmp;
 
   Address addr;
-  boolean isNULLPointer;//TODO: wegoptimieren
+
  /* public PointerVariable(String pname,Address paddr, Scope pscope, Type pbasetyp,int plevel){
     name = pname;
     addr = paddr;
@@ -57,21 +58,11 @@ public class PointerVariable implements Variable {
     level = plevel;
 
     typ = ptyp;
-    isNULLPointer = false;
+
   }
 
 
 
-  private PointerVariable(String pname,Address paddr,  Type pbasetyp, PointerType ptyp,int plevel,boolean pisNULLPointer){
-    name = pname;
-    addr = paddr;
-
-    basetyp = pbasetyp;
-    level = plevel;
-
-    typ = ptyp;
-    isNULLPointer = pisNULLPointer;
-  }
 
   @Override
   public TypeClass getTypeClass() {
@@ -119,15 +110,8 @@ public class PointerVariable implements Variable {
     // TODO Auto-generated method stub
     return isConst;
   }
-  @Override
-  public PointerVariable clone(){
-    if(clone==null){
-      Address v = addr.clone();
 
-      clone= new PointerVariable(name, v, basetyp, typ,level,isNULLPointer);
-    }
-    return clone;
-  }
+
 
 
   @Override
@@ -153,23 +137,27 @@ public class PointerVariable implements Variable {
 
 
 
-  public boolean isNullPointer(){
-       return isNULLPointer;
+  public boolean isNullPointer() throws MemoryException{
+       return addr.getMemoryBlock().getAddress(addr.getOffset()).getMemoryBlock()==null;
   }
 
-  public void setNullPointer(boolean isnull){
-    if(isnull){
-      try {
+  public void setNullPointer(){
+
+    try {
         addr.getMemoryBlock().setAddress(addr.getOffset(), new Address(null,0));
-      } catch (MemoryException e) {
+    } catch (MemoryException e) {
         // TODO Auto-generated catch block
         e.printStackTrace();
-      }
-      isNULLPointer = true;
-    }else{
-      isNULLPointer = false;
     }
 
+
+  }
+
+
+
+  @Override
+  public void setcurInterpreterElement(InterpreterElement pTmp) {
+    tmp = pTmp;
   }
 
 

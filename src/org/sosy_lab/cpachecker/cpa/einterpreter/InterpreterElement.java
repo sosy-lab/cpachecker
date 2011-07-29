@@ -26,58 +26,48 @@ package org.sosy_lab.cpachecker.cpa.einterpreter;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.MemoryFactory;
+import org.sosy_lab.cpachecker.cpa.einterpreter.memory.PersMemory;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.Scope;
 
 public class InterpreterElement implements AbstractElement {
-  private MemoryFactory factory;
-  private Scope curscope; //versions
+    InterpreterElement prev;
+    PersMemory mem;
+
+    InterpreterElement(){
+      mem = new PersMemory(this);
+      prev = null;
+    }
+
+    public InterpreterElement(PersMemory pMem) {
+      mem = pMem;
+    }
+
+    InterpreterElement copy(){
+        InterpreterElement h = new InterpreterElement(mem);
+        h.prev = this;
+        return h;
+    }
 
 
-  public InterpreterElement(){
-    factory = new MemoryFactory();
+    public MemoryFactory getFactory(){
+      return mem.getFactory();
+    }
 
-    curscope = new Scope("global");
+    public Scope getCurrentScope(){
+      return mem.getCurrentScope(this);
+    }
 
-  }
-  private InterpreterElement(MemoryFactory pfactory,  Scope pscope){
-    factory = pfactory;
-    curscope = pscope;
+    public void setCurrentScope(String name){
+      mem.setCurrentScope(name, this);
+    }
 
-  }
+    public void redScope(){
+      mem.redScope(this);
+    }
 
+    public InterpreterElement getprev(){
+      return prev;
+    }
 
-
-
-  public MemoryFactory getFactory(){
-    return factory;
-  }
-
-  public Scope getCurrentScope(){
-    return curscope;
-  }
-
-  public void setCurrentScope(String name){
-    Scope s = new Scope(name,curscope);
-
-    curscope =s;
-  }
-
-  public void redScope(){
-    curscope = curscope.getParentScope();
-  }
-
-
- /* public void setCurrentScope(Scope pnew){
-
-      curscope =pnew;
-  }*/
-
-
-
-  @Override
-  public InterpreterElement clone(){
-
-    return new InterpreterElement(factory,curscope.clone());
-  }
 }
 

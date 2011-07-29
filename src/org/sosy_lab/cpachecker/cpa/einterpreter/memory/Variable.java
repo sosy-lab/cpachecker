@@ -13,10 +13,11 @@ public interface Variable {
     String getName();
     Address getAddress();
     int getSize();
-    Variable clone();
+
     void copyVar(String pname,InterpreterElement el) throws Exception;
 
     boolean isConst();
+    void setcurInterpreterElement(InterpreterElement pTmp);
 
 
 }

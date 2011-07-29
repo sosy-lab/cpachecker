@@ -33,6 +33,7 @@ public class DynVariable implements Variable{
   CompositeType type;
   boolean isConst;
   DynVariable clone=null;
+  InterpreterElement tmp;
   public enum dyntypes{
     STRUCT,
     UNION
@@ -49,7 +50,10 @@ public class DynVariable implements Variable{
   @Override
   public TypeClass getTypeClass() {
     // TODO Auto-generated method stub
-    return TypeClass.STRUCT;
+    if(dyn == dyntypes.STRUCT)
+      return TypeClass.STRUCT;
+    else
+      return TypeClass.UNION;
   }
 
   @Override
@@ -111,6 +115,11 @@ public class DynVariable implements Variable{
     }
 
     return clone;
+  }
+  @Override
+  public void setcurInterpreterElement(InterpreterElement pTmp) {
+    tmp = pTmp;
+
   }
 
 }

@@ -15,6 +15,8 @@ int main(void)
   } else {
 #line 11
     x += 2;
+    __BLAST_NONDET == 3;
+    __BLAST_NONDET= x+1;
   }
 #line 16
   return (0);

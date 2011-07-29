@@ -4,6 +4,7 @@ package org.sosy_lab.cpachecker.cpa.einterpreter.memory;
 //TODO: CIL optimiert signed weg waehrend AST  variablen definiton ohne signed/unsigned als unsigned behandelt
 
 import org.sosy_lab.cpachecker.cpa.einterpreter.InterpreterElement;
+import org.sosy_lab.cpachecker.cpa.einterpreter.memory.MemoryBlock.CellType;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.Type.Primitive;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.Type.PrimitiveType;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.Type.TypeClass;
@@ -11,7 +12,8 @@ public class PrimitiveVariable implements Variable{
  Address memorylocation;
   String name;
   PrimitiveType type;
-  PrimitiveVariable clone=null;
+  InterpreterElement tmp;
+
 
   boolean isSigned;
   boolean isConst;
@@ -81,21 +83,24 @@ public class PrimitiveVariable implements Variable{
 
 
 
-  @Override
-  public PrimitiveVariable clone(){
-    if(clone == null)
-      clone = new PrimitiveVariable(name,memorylocation.clone(), type,isSigned,isConst,isPntCalc);
-    return clone;
 
-  }
 
   @Override
   public TypeClass getTypeClass() {
-    if(isPntCalc==false){
+    if(memorylocation.getMemoryBlock().getCellType(memorylocation.getOffset()) == CellType.ADDR){
+      return TypeClass.PRIMITIVEPNT;
+    }else{
+      return TypeClass.PRIMITIVE;
+    }
+    /*if(isPntCalc==false){
     return TypeClass.PRIMITIVE;
     }else{
       return TypeClass.PRIMITIVEPNT;
-    }
+    }*/
+
+
+
+
   }
 
   @Override
@@ -132,6 +137,12 @@ public class PrimitiveVariable implements Variable{
     }
     el.getCurrentScope().addVariable(nvar);
 
+
+  }
+
+  @Override
+  public void setcurInterpreterElement(InterpreterElement pTmp) {
+    tmp = pTmp;
 
   }
 

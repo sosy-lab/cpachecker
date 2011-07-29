@@ -39,6 +39,7 @@ public class ArrayVariable  implements Variable{
   int length;
   Address addr;
   String name;
+  InterpreterElement tmp;
 
 
   public ArrayVariable(String pname, Address paddr, int plength, ArrayType ptype, Type pbaseType  ){
@@ -114,6 +115,13 @@ public class ArrayVariable  implements Variable{
       clone= new ArrayVariable(name, v,this.length,type,baseType);
     }
     return clone;
+  }
+
+
+  @Override
+  public void setcurInterpreterElement(InterpreterElement pTmp) {
+    tmp = pTmp;
+
   }
 
 }

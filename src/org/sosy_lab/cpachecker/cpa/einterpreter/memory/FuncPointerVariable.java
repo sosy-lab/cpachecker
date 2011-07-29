@@ -35,7 +35,7 @@ public class FuncPointerVariable implements Variable {
   int level;
   PointerType typ;
   Type basetyp;
-
+  InterpreterElement tmp;
   Address addr;
   boolean isNULLPointer;//TODO: wegoptimieren
  /* public PointerVariable(String pname,Address paddr, Scope pscope, Type pbasetyp,int plevel){
@@ -170,6 +170,13 @@ public class FuncPointerVariable implements Variable {
       isNULLPointer = false;
     }
 
+  }
+
+
+
+  @Override
+  public void setcurInterpreterElement(InterpreterElement pTmp) {
+      tmp = pTmp;
   }
 
 
