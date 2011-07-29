@@ -1,10 +1,5 @@
 #!/bin/bash
 
-# where the eclipse project directory is, relative to the location of this
-# script
-SCRIPT="$(readlink -f "$0")"
-[ -n "$PATH_TO_CPACHECKER" ] || PATH_TO_CPACHECKER="$(readlink -f "$(dirname "$SCRIPT")/..")"
-
 # the location of the java command
 JAVA=java
 
@@ -15,11 +10,6 @@ DEFAULT_HEAP_SIZE="1200m"
 # From here on you should not need to change anything
 #------------------------------------------------------------------------------
 
-if [ ! -e "$PATH_TO_CPACHECKER/bin/org/sosy_lab/cpachecker/cmdline/CPAMain.class" ] ; then
-  echo "bin/org/sosy_lab/cpachecker/cmdline/CPAMain.class not found, please check path to project directory" 1>&2
-  exit 1
-fi
-
 java_version="`$JAVA -version 2>&1 | grep "^java version" | cut -f2 -d\\\" | sed 's/\.//g' | cut -b1-2`"
 if [ -z "$java_version" -o "$java_version" -lt 16 ] ; then
   echo "$JAVA not found or version less than 1.6" 1>&2
@@ -29,6 +19,20 @@ fi
 arch_platform="unknown"
 arch="`uname -m`"
 platform="`uname -s`"
+
+# where the eclipse project directory is, relative to the location of this
+# script
+case "$platform" in
+  Linux)
+    SCRIPT="$(readlink -f "$0")"
+    [ -n "$PATH_TO_CPACHECKER" ] || PATH_TO_CPACHECKER="$(readlink -f "$(dirname "$SCRIPT")/..")"
+    ;;
+  # other platforms like Mac don't support readlink -f
+  *)
+    [ -n "$PATH_TO_CPACHECKER" ] || PATH_TO_CPACHECKER="$(dirname "$0")/.."
+    ;;
+esac
+
 case "$arch-$platform" in
   i686-Linux)
     arch_platform="x86-linux"
@@ -47,6 +51,12 @@ if [ "$arch_platform" = "unknown" ] ; then
   echo "Failed to determine system type" 1>&2
   exit 1
 fi
+
+if [ ! -e "$PATH_TO_CPACHECKER/bin/org/sosy_lab/cpachecker/cmdline/CPAMain.class" ] ; then
+  echo "bin/org/sosy_lab/cpachecker/cmdline/CPAMain.class not found, please check path to project directory" 1>&2
+  exit 1
+fi
+
 arch_platform_path="$PATH_TO_CPACHECKER/lib/native/$arch_platform/"
 
 # project files
