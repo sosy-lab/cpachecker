@@ -16,23 +16,10 @@ if [ -z "$java_version" -o "$java_version" -lt 16 ] ; then
   exit 1
 fi
 
-arch_platform="unknown"
+# Find out architecture
+
 arch="`uname -m`"
 platform="`uname -s`"
-
-# where the eclipse project directory is, relative to the location of this
-# script
-case "$platform" in
-  Linux)
-    SCRIPT="$(readlink -f "$0")"
-    [ -n "$PATH_TO_CPACHECKER" ] || PATH_TO_CPACHECKER="$(readlink -f "$(dirname "$SCRIPT")/..")"
-    ;;
-  # other platforms like Mac don't support readlink -f
-  *)
-    [ -n "$PATH_TO_CPACHECKER" ] || PATH_TO_CPACHECKER="$(dirname "$0")/.."
-    ;;
-esac
-
 case "$arch-$platform" in
   i686-Linux)
     arch_platform="x86-linux"
@@ -46,11 +33,24 @@ case "$arch-$platform" in
   "Power Macintosh-Darwin")
     arch_platform="ppc-macosx"
     ;;
+  *)
+   echo "Failed to determine system type" 1>&2
+   exit 1
+   ;;
 esac
-if [ "$arch_platform" = "unknown" ] ; then
-  echo "Failed to determine system type" 1>&2
-  exit 1
-fi
+
+# where the eclipse project directory is, relative to the location of this
+# script
+case "$platform" in
+  Linux)
+    SCRIPT="$(readlink -f "$0")"
+    [ -n "$PATH_TO_CPACHECKER" ] || PATH_TO_CPACHECKER="$(readlink -f "$(dirname "$SCRIPT")/..")"
+    ;;
+  # other platforms like Mac don't support readlink -f
+  *)
+    [ -n "$PATH_TO_CPACHECKER" ] || PATH_TO_CPACHECKER="$(dirname "$0")/.."
+    ;;
+esac
 
 if [ ! -e "$PATH_TO_CPACHECKER/bin/org/sosy_lab/cpachecker/cmdline/CPAMain.class" ] ; then
   echo "bin/org/sosy_lab/cpachecker/cmdline/CPAMain.class not found, please check path to project directory" 1>&2
