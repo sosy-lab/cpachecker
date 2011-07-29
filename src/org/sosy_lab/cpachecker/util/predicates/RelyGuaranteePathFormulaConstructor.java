@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates;
 
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -32,6 +33,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -128,13 +130,13 @@ public class RelyGuaranteePathFormulaConstructor {
   }
 
   /**
-   * Construct a path formula from the builder. Path formulas for environmetal transitions are taken from the edges themselves.
+   * Construct a path formula from the builder. Path formulas for environmental transitions are taken from the edges themselves.
    * @param root
    * @return
    * @throws CPATransferException
    */
-  public PathFormula constructFromEdges(RelyGuaranteePathFormulaBuilder root) throws CPATransferException{
-    return construct(root, null);
+  public PathFormula constructFromEdges(RelyGuaranteePathFormulaBuilder root, int primedNo) throws CPATransferException{
+    return construct(root, null, primedNo).getFirst();
   }
 
   /**
@@ -144,9 +146,9 @@ public class RelyGuaranteePathFormulaConstructor {
    * @return
    * @throws CPATransferException
    */
-  public PathFormula constructFromMap(RelyGuaranteePathFormulaBuilder root, Map<Integer, PathFormula> map) throws CPATransferException{
+  public Pair<PathFormula, Map<Integer, Integer>> constructFromMap(RelyGuaranteePathFormulaBuilder root, Map<Integer, PathFormula> map, int primedNo) throws CPATransferException{
     Preconditions.checkNotNull(map);
-    return construct(root, map);
+    return construct(root, map, primedNo);
   }
 
 
@@ -157,7 +159,7 @@ public class RelyGuaranteePathFormulaConstructor {
    * @return
    * @throws CPATransferException
    */
-  private PathFormula construct(RelyGuaranteePathFormulaBuilder root, Map<Integer, PathFormula> map) throws CPATransferException{
+  private Pair<PathFormula, Map<Integer, Integer>> construct(RelyGuaranteePathFormulaBuilder root, Map<Integer, PathFormula> map, int primedNo) throws CPATransferException{
 
     Deque<RelyGuaranteePathFormulaBuilder> stack = new LinkedList<RelyGuaranteePathFormulaBuilder>();
     Deque<RelyGuaranteePathFormulaBuilder> preorderStack = new LinkedList<RelyGuaranteePathFormulaBuilder>();
@@ -187,6 +189,15 @@ public class RelyGuaranteePathFormulaConstructor {
     }
     // build the path formula
     Deque<PathFormula> arguments = new LinkedList<PathFormula>();
+    // RelyGuaranteeCFAEdge id -> have mane times the related path formula has been primed
+    Map<Integer, Integer> primedMap;
+    if (map != null){
+      primedMap = new HashMap<Integer, Integer>(map.size());
+    } else {
+      primedMap = new HashMap<Integer, Integer>(0);
+    }
+
+
     while(!preorderStack.isEmpty()){
       RelyGuaranteePathFormulaBuilder builder = preorderStack.removeLast();
       if (builder instanceof RelyGuaranteeLocalPathFormulaBuilder){
@@ -215,7 +226,8 @@ public class RelyGuaranteePathFormulaConstructor {
           envPF = rgEdge.getPathFormula();
         }
         // prime the env. path formula so it does not collide with the local path formula
-        int offset = argumentPF.getPrimedNo() + 1;
+        int offset = argumentPF.getPrimedNo() + 1 + primedNo;
+        primedMap.put(rgEdgeId, offset);
         PathFormula primedEnvPF = pfManager.primePathFormula(envPF, offset);
         // make equalities between the last global values in the local and env. path formula
         PathFormula matchedPF = pfManager.matchPaths(argumentPF, primedEnvPF, globalVariablesSet);
@@ -233,7 +245,7 @@ public class RelyGuaranteePathFormulaConstructor {
       }
     }
     assert arguments.size() == 1;
-    return arguments.peek();
+    return Pair.of(arguments.peek(), primedMap);
   }
 
 

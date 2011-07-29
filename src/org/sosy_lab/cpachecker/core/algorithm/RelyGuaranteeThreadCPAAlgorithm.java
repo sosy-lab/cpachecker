@@ -245,9 +245,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
               "elements from reached set for merge");
           for (AbstractElement reachedElement : reached) {
 
-            if (((ARTElement)successor).getElementId() == 37){
-              System.out.println();
-            }
+
 
             mergedElement = mergeOperator.merge(successor, reachedElement,successorPrecision);
 

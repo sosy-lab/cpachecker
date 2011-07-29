@@ -67,7 +67,6 @@ import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.RelyGuaranteePathFormulaBuilder;
 import org.sosy_lab.cpachecker.util.predicates.RelyGuaranteePathFormulaConstructor;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
@@ -549,6 +548,8 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     List<PathFormula> rgResult = new ArrayList<PathFormula>(path.size());
 
+    // the maximum no of primed that appear in the blocks
+    int primedNo = 0;
     for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement> triple : path){
       RelyGuaranteeAbstractElement ae = triple.getThird();
 
@@ -556,102 +557,61 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       RelyGuaranteePathFormulaBuilder builder = null;
       if (ae instanceof AbstractionElement){
         builder = ((AbstractionElement)ae).getOldPathBuilder();
-        PathFormula builderPF = pathFormulaConstructor.constructFromEdges(builder);
-        assert builderPF.equals(ae.getAbstractionFormula().getBlockPathFormula());
+        PathFormula assertBuilderPF = pathFormulaConstructor.constructFromEdges(builder, 0);
+        assert assertBuilderPF.equals(ae.getAbstractionFormula().getBlockPathFormula());
       } else {
         builder = ae.getPathBuilder();
       }
 
-
+      // get list of env edges applied to this block
       List<RelyGuaranteeCFAEdge> rgEdges = pathFormulaConstructor.getRelyGuaranteeCFAEdges(builder);
       printEnvEdgesApplied(rgEdges);
-      Map<Integer, PathFormula> envMap = new HashMap<Integer, PathFormula>();
+      Map<Integer, PathFormula> envTopMap = new HashMap<Integer, PathFormula>();
+      Map<Integer, List<PathFormula>> envRestMap = new HashMap<Integer, List<PathFormula>>();
 
-      // construct the map with environmental path formulas
+      // construct a map with environmental path formulas
       for(RelyGuaranteeCFAEdge rgEdge : rgEdges){
         ARTElement sourceElement = rgEdge.getSourceARTElement();
         int rgEdgeId = rgEdge.getId();
         int sourceThread = rgEdge.getSourceTid();
+
         // TODO caching
         List<PathFormula> envPF = this.getRGFormulaForElement(sourceElement, reachedSets, sourceThread);
-        PathFormula lastBlock = envPF.get(envPF.size()-1);
-        // the last block should be enough to construct proper blabla
-        envMap.put(rgEdgeId, lastBlock);
-
-
+        PathFormula lastBlock = envPF.remove(envPF.size()-1);
+        // the top block should be enough to construct a correct local path
+        envTopMap.put(rgEdgeId, lastBlock);
+        // the remaining blocks
+        envRestMap.put(rgEdgeId, envPF);
       }
 
-      PathFormula builderEnvPF = pathFormulaConstructor.constructFromMap(builder, envMap);
-      // if the were no env. transitions the result should be equal to path formula constructed in the ordinary way
-      assert rgEdges.isEmpty() || builderEnvPF.equals(ae.getAbstractionFormula().getBlockPathFormula());
+      // construct local path formula with
+      Pair<PathFormula, Map<Integer, Integer>> builderResult = pathFormulaConstructor.constructFromMap(builder, envTopMap, primedNo);
+      Map<Integer, Integer> primedMap = builderResult.getSecond();
+      PathFormula localPF = builderResult.getFirst();
+      primedNo = Math.max(primedNo, localPF.getPrimedNo());
+      rgResult.add(localPF);
 
-      rgResult.add(builderEnvPF);
+      // prime the reaming blocks - the top block has been primed inside the local path formula
+      List<PathFormula> envPF = new Vector<PathFormula>();
+      for (Integer rgEdgeId: envRestMap.keySet()){
+        int offset = primedMap.get(rgEdgeId);
+        envPF.clear();
+        for (PathFormula pf : envRestMap.get(rgEdgeId)){
+          PathFormula primedPF = pmgr.primePathFormula(pf, offset);
+          rgResult.add(primedPF);
+        }
+      }
+
+      // if the were no env. transitions and primeNo is zero, then the result should be equal to path formula constructed in the ordinary way
+      if (ae instanceof AbstractionElement){
+        assert !rgEdges.isEmpty() || primedNo!=0 || builderResult.getFirst().equals(ae.getAbstractionFormula().getBlockPathFormula());
+      } else {
+        assert !rgEdges.isEmpty() || primedNo!=0 || builderResult.getFirst().equals(ae.getPathFormula());
+      }
+
     }
     return rgResult;
   }
-
-  /**
-   * Returns a path formula instantiated from the template by env transitions
-   * and primed path formulas that generated those env transitions
-   * @param pTemplate
-   * @return
-   * @throws CPAException
-   * @throws InterruptedException
-   */
-  private List<PathFormula> instantiateTemplateByEnvTransitions(RelyGuaranteeFormulaTemplate template, ReachedSet[] reachedSets) throws InterruptedException, CPAException {
-    List<PathFormula> rgResult = new ArrayList<PathFormula>();
-    // the effect of applying all env transitions - it consists of applied operator and equalities
-    PathFormula overallEnvEffectPF = template.getLocalPathFormula();
-    // the highest number of primes in the env path formulas
-    int maximumPrimedNo = 0;
-
-    for (Pair<RelyGuaranteeCFAEdge, PathFormula> pair : template.getEnvTransitionApplied()){
-      // get the path formula that generated the env transition
-      RelyGuaranteeCFAEdge rgEdge = pair.getFirst();
-      int sourceThr = rgEdge.getSourceTid();
-      ARTElement envTarget = rgEdge.getSourceARTElement();
-      List<PathFormula> envPFList = getRGFormulaForElement(envTarget, reachedSets, sourceThr);
-
-      // prime env path formulas so they do not collide
-      List<PathFormula> primedEnvPFList = new Vector<PathFormula>();
-      int newMaximumPrimedNo = 0;
-      for (PathFormula envPF : envPFList){
-        PathFormula primedPF = pmgr.primePathFormula(envPF, maximumPrimedNo+1);;
-        newMaximumPrimedNo  = Math.max(newMaximumPrimedNo , primedPF.getPrimedNo());
-        primedEnvPFList.add(primedPF);
-      }
-
-      // the effect of applying this env transition
-      PathFormula envEffectPF = applyEnvToInstance(pair.getFirst(), pair.getSecond(), primedEnvPFList, template);
-      overallEnvEffectPF = pmgr.makeAnd(overallEnvEffectPF, envEffectPF);
-      rgResult.addAll(primedEnvPFList);
-    }
-
-
-    rgResult.add(overallEnvEffectPF);
-    return rgResult;
-  }
-
-
-
-
-
-  private PathFormula applyEnvToInstance(RelyGuaranteeCFAEdge rgEdge, PathFormula contextPF, List<PathFormula> envPFList, RelyGuaranteeFormulaTemplate template) throws CPATransferException {
-    // concatenate one path formula
-    PathFormula envPF = pmgr.makeEmptyPathFormula();
-    for (PathFormula pf : envPFList){
-      envPF = pmgr.makeAnd(envPF, pf);
-    }
-    // build equalities
-    PathFormula eq = pmgr.buildEqualitiesOverVariables(contextPF, envPF, globalVariables);
-    // apply the operation
-    Triple<Formula, SSAMap, Integer> data = pmgr.makeAnd2(contextPF, rgEdge.getLocalEdge());
-    PathFormula op = new PathFormula(data.getFirst(), data.getSecond(), data.getThird());
-
-    PathFormula result = pmgr.makeAnd(eq, op);
-    return result;
-  }
-
 
   // TODO For testing
   private void printEnvEdgesApplied(List<RelyGuaranteeCFAEdge> rgEdges) {
