@@ -150,7 +150,13 @@ public class RelyGuaranteePathFormulaConstructor {
   }
 
 
-  // TODO make it non-recursive
+  /**
+   * Construct a path formula from the builder. If map is provided, then it is used for environmental path formulas.
+   * @param root
+   * @param map
+   * @return
+   * @throws CPATransferException
+   */
   private PathFormula construct(RelyGuaranteePathFormulaBuilder root, Map<Integer, PathFormula> map) throws CPATransferException{
 
     Deque<RelyGuaranteePathFormulaBuilder> stack = new LinkedList<RelyGuaranteePathFormulaBuilder>();

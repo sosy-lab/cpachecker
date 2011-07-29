@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -445,19 +446,18 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     return ARTUtils.getOnePathTo(pLastElement);
   }
 
-  protected List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement.AbstractionElement>> transformPath(Path pPath) throws CPATransferException {
-    List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement.AbstractionElement>> result = Lists.newArrayList();
+  protected List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> transformPath(Path pPath) throws CPATransferException {
+    List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> result = Lists.newArrayList();
 
     for (ARTElement ae : transform(pPath, Pair.<ARTElement>getProjectionToFirst())) {
       RelyGuaranteeAbstractElement pe = extractElementByType(ae, RelyGuaranteeAbstractElement.class);
-      if (pe instanceof AbstractionElement) {
+      if (pe instanceof AbstractionElement || ae == pPath.getLast().getFirst()) {
         CFANode loc = AbstractElements.extractLocation(ae);
-        result.add(Triple.of(ae, loc, (AbstractionElement)pe));
+        result.add(Triple.of(ae, loc, pe));
       }
     }
 
-    // TODO does not have to be true under rely guarantee
-    //assert pPath.getLast().getFirst() == result.get(result.size()-1).getFirst();
+    assert pPath.getLast().getFirst() == result.get(result.size()-1).getFirst();
     return result;
   }
 
@@ -540,34 +540,52 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     // get the set of ARTElement that have been abstracted
     Path cfaPath = computePath(target, reachedSets[threadNo]);
     System.out.println("The error trace in thread "+threadNo+" is "+cfaPath);
-    List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement.AbstractionElement>> path = transformPath(cfaPath);
+    List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> path = transformPath(cfaPath);
 
     System.out.println("Abstraction elements are: ");
-    for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement.AbstractionElement> triple : path){
+    for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement> triple : path){
       System.out.println("- id:"+triple.getFirst().getElementId()+" at loc "+triple.getSecond());
     }
 
     List<PathFormula> rgResult = new ArrayList<PathFormula>(path.size());
 
-    for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement.AbstractionElement> triple : path){
-      AbstractionElement ae = triple.getThird();
-      RelyGuaranteePathFormulaBuilder builder = ae.getOldPathBuilder();
-      PathFormula builderPF = pathFormulaConstructor.constructFromEdges(builder);
+    for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement> triple : path){
+      RelyGuaranteeAbstractElement ae = triple.getThird();
+
       // in any case builder formula with default env. values and path formula should be the same
-      assert builderPF.equals(ae.getAbstractionFormula().getBlockPathFormula());
+      RelyGuaranteePathFormulaBuilder builder = null;
+      if (ae instanceof AbstractionElement){
+        builder = ((AbstractionElement)ae).getOldPathBuilder();
+        PathFormula builderPF = pathFormulaConstructor.constructFromEdges(builder);
+        assert builderPF.equals(ae.getAbstractionFormula().getBlockPathFormula());
+      } else {
+        builder = ae.getPathBuilder();
+      }
 
 
       List<RelyGuaranteeCFAEdge> rgEdges = pathFormulaConstructor.getRelyGuaranteeCFAEdges(builder);
       printEnvEdgesApplied(rgEdges);
+      Map<Integer, PathFormula> envMap = new HashMap<Integer, PathFormula>();
 
-      if (rgEdges.size() == 0){
-        //rgResult.add(ae.getAbstractionFormula().getBlockPathFormula());
-      } else {
-        System.out.println("Some env tr. have been applied");
-        // some env have been applied, so the template has to be instantiated
-        //List<PathFormula> envFormulas = instantiateTemplateByEnvTransitions(template, reachedSets);
-        //rgResult.addAll(envFormulas);
+      // construct the map with environmental path formulas
+      for(RelyGuaranteeCFAEdge rgEdge : rgEdges){
+        ARTElement sourceElement = rgEdge.getSourceARTElement();
+        int rgEdgeId = rgEdge.getId();
+        int sourceThread = rgEdge.getSourceTid();
+        // TODO caching
+        List<PathFormula> envPF = this.getRGFormulaForElement(sourceElement, reachedSets, sourceThread);
+        PathFormula lastBlock = envPF.get(envPF.size()-1);
+        // the last block should be enough to construct proper blabla
+        envMap.put(rgEdgeId, lastBlock);
+
+
       }
+
+      PathFormula builderEnvPF = pathFormulaConstructor.constructFromMap(builder, envMap);
+      // if the were no env. transitions the result should be equal to path formula constructed in the ordinary way
+      assert rgEdges.isEmpty() || builderEnvPF.equals(ae.getAbstractionFormula().getBlockPathFormula());
+
+      rgResult.add(builderEnvPF);
     }
     return rgResult;
   }
@@ -659,13 +677,9 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
   private <T> CounterexampleTraceInfo buildRgCounterexampleTraceWithSpecifiedItp(ARTElement targetElement,  ReachedSet[] reachedSets, int threadNo , InterpolatingTheoremProver<T> pItpProver) throws CPAException, InterruptedException{
     logger.log(Level.FINEST, "Building counterexample trace");
 
-
-
-
-
     Path cfaPath = computePath(targetElement, reachedSets[threadNo]);
     Set<ARTElement> elementsOnPath = ARTUtils.getAllElementsOnPathsTo(targetElement);
-    List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement.AbstractionElement>> path = transformPath(cfaPath);
+    List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> path = transformPath(cfaPath);
     List<RelyGuaranteeAbstractElement> abstractTrace = Lists.transform(path, Triple.<RelyGuaranteeAbstractElement>getProjectionToThird());
 
     List<Formula> f = getFormulasForTrace(abstractTrace);
