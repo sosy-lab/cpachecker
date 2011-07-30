@@ -169,11 +169,19 @@ public class OptionCollector {
           optionInfo.append("  type:     " + field.getType().getSimpleName()
               + "\n");
 
+          optionInfo.append("  default value: ");
           if (!defaultValue.isEmpty()) {
-            optionInfo.append("  default value: " + defaultValue);
+            optionInfo.append(defaultValue);
+          } else {
+            optionInfo.append("not available");
           }
+
         } else {
-          optionInfo.append(" = " + defaultValue);
+          if (!defaultValue.isEmpty()) {
+            optionInfo.append(" = " + defaultValue);
+          } else {
+            optionInfo.append(" = no default value");
+          }
         }
         optionInfo.append("\n");
         optionInfo.append(getAllowedValues(field, verbose));
@@ -313,9 +321,32 @@ public class OptionCollector {
 
     // get declaration of field from file
     // example fieldString: 'private boolean shouldCheck'
-    String fieldString =
-        Modifier.toString(field.getModifiers()) + " "
-            + field.getType().getSimpleName() + " " + field.getName();
+    String fieldString = Modifier.toString(field.getModifiers());
+
+    // genericType: "boolean" or "java.util.List<java.util.logging.Level>"
+    String genericType = field.getGenericType().toString();
+    if (genericType.matches(".*<.*>")) {
+
+      // remove package-definition at front:
+      // java.util.List<?> --> List<?>
+      genericType = genericType.replaceAll("^[^<]*\\.", "");
+
+      // remove package-definition in middle: 
+      // List<package.name.X> --> List<X>
+      // (without special case "? extends X", that is handled below)
+      genericType = genericType.replaceAll("<[^\\?][^<]*\\.", "<");
+
+      // remove package-definition in middle:
+      // List<? extends package.name.X> --> List<? extends X>
+      genericType = genericType.replaceAll("<\\?[^<]*\\.", "<? extends ");
+
+      fieldString += " " + genericType;
+
+    } else {
+      fieldString += " " + field.getType().getSimpleName();
+    }
+
+    fieldString += " " + field.getName();
 
     String defaultValue = getDefaultValueFromContent(content, fieldString);
 
@@ -337,7 +368,7 @@ public class OptionCollector {
       }
     }
 
-    if (defaultValue.equals("null")) {
+    if (defaultValue.equals("null")) { // do we need this??
       defaultValue = "";
     }
     return defaultValue;
