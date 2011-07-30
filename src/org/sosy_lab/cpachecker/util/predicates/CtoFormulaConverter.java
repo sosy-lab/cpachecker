@@ -161,25 +161,42 @@ public class CtoFormulaConverter {
   }
 
   private void warnUnsafeVar(IASTExpression exp) {
-    log(Level.WARNING, "Unhandled expression treated as free variable", exp);
+    logDebug("Unhandled expression treated as free variable", exp);
   }
 
-  private void log(Level level, String msg, IASTNode astNode) {
-    msg = "Line " + astNode.getFileLocation().getStartingLineNumber()
-        + ": " + msg
-        + ": " + astNode.getRawSignature();
+  private void warnUnsafeAssignment() {
+    log(Level.WARNING, "Program contains array, pointer, or field access; analysis is imprecise in case of aliasing.");
+  }
 
-    if (printedWarnings.add(msg)) {
-      logger.log(level, 1, msg);
+
+  private String getLogMessage(String msg, IASTNode astNode) {
+    return "Line " + astNode.getFileLocation().getStartingLineNumber()
+            + ": " + msg
+            + ": " + astNode.getRawSignature();
+  }
+
+  private String getLogMessage(String msg, CFAEdge edge) {
+    return "Line " + edge.getLineNumber()
+            + ": " + msg
+            + ": " + edge.getRawStatement();
+  }
+
+  private void logDebug(String msg, IASTNode astNode) {
+    if (logger.wouldBeLogged(Level.ALL)) {
+      logger.log(Level.ALL, 1, getLogMessage(msg, astNode));
     }
   }
 
-  private void log(Level level, String msg, CFAEdge edge) {
-    msg = "Line " + edge.getLineNumber()
-        + ": " + msg
-        + ": " + edge.getRawStatement();
+  private void logDebug(String msg, CFAEdge edge) {
+    if (logger.wouldBeLogged(Level.ALL)) {
+      logger.log(Level.ALL, 1, getLogMessage(msg, edge));
+    }
+  }
 
-    if (printedWarnings.add(msg)) {
+  private void log(Level level, String msg) {
+    if (logger.wouldBeLogged(level)
+        && printedWarnings.add(msg)) {
+
       logger.log(level, 1, msg);
     }
   }
@@ -247,8 +264,7 @@ public class CtoFormulaConverter {
   private int getIndex(String var, SSAMapBuilder ssa) {
     int idx = ssa.getIndex(var);
     if (idx <= 0) {
-      logger.log(Level.ALL, "DEBUG_3",
-          "WARNING: Auto-instantiating variable: ", var);
+      logger.log(Level.ALL, "WARNING: Auto-instantiating variable:", var);
       idx = 1;
       ssa.setIndex(var, idx);
     }
@@ -422,7 +438,7 @@ public class CtoFormulaConverter {
 
     } else if (spec instanceof IASTCompositeTypeSpecifier) {
       // this is the declaration of a struct, just ignore it...
-      log(Level.ALL, "Ignoring declaration", edge);
+      logDebug("Ignoring declaration", edge);
       return fmgr.makeTrue();
 
     } else if (spec instanceof IASTSimpleDeclSpecifier ||
@@ -433,7 +449,7 @@ public class CtoFormulaConverter {
                spec instanceof IASTPointerTypeSpecifier) {
 
       if (edge.getStorageClass() == StorageClass.TYPEDEF) {
-        log(Level.ALL, "Ignoring typedef", edge);
+        logDebug("Ignoring typedef", edge);
         return fmgr.makeTrue();
       }
 
@@ -468,7 +484,7 @@ public class CtoFormulaConverter {
         if (initializer == null) {
           if (initAllVars) {
             // auto-initialize variables to zero
-            logger.log(Level.ALL, "AUTO-INITIALIZING VAR: ", var);
+            logDebug("AUTO-INITIALIZING VAR: ", edge);
             init = Defaults.forType(spec, null);
           }
 
@@ -476,14 +492,14 @@ public class CtoFormulaConverter {
           init = ((IASTInitializerExpression)initializer).getExpression();
 
         } else {
-          log(Level.ALL, "Ignoring unsupported initializer", initializer);
+          logDebug("Ignoring unsupported initializer", initializer);
         }
 
         if (init != null) {
           // initializer value present
 
           if (isNondetVariable(varNameWithoutFunction)) {
-            log(Level.WARNING, "Assignment to special non-determinism variable " + var + " will be ignored.", edge);
+            log(Level.WARNING, getLogMessage("Ignoring initial value of special non-determinism variable " + var, edge));
 
           } else {
             Formula minit = buildTerm(init, function, ssa);
@@ -548,7 +564,8 @@ public class CtoFormulaConverter {
         assert(!formalParamName.isEmpty()) : edge;
 
         if (formalParam.getDeclSpecifier() instanceof IASTPointerTypeSpecifier) {
-          log(Level.WARNING, "Ignoring the semantics of pointer for parameter " + formalParamName,
+          warnUnsafeAssignment();
+          logDebug("Ignoring the semantics of pointer for parameter " + formalParamName,
               fn.getFunctionDefinition());
         }
 
@@ -730,8 +747,7 @@ public class CtoFormulaConverter {
     @Override
     public Formula visit(IASTCastExpression cexp) throws UnrecognizedCCodeException {
       // we completely ignore type casts
-      logger.log(Level.ALL, "DEBUG_3", "IGNORING TYPE CAST:",
-          cexp.getRawSignature());
+      logDebug("IGNORING TYPE CAST:", cexp);
       return cexp.getOperand().accept(this);
     }
 
@@ -942,13 +958,13 @@ public class CtoFormulaConverter {
         } else if (!PURE_EXTERNAL_FUNCTIONS.contains(func)) {
           if (pexps.isEmpty()) {
             // function of arity 0
-            log(Level.INFO, "Assuming external function to be a constant function", fn);
+            log(Level.INFO, "Assuming external function " + func + " to be a constant function.");
           } else {
-            log(Level.INFO, "Assuming external function to be a pure function", fn);
+            log(Level.INFO, "Assuming external function " + func + " to be a pure function.");
           }
         }
       } else {
-        log(Level.WARNING, "Ignoring function call through function pointer", fexp);
+        log(Level.WARNING, getLogMessage("Ignoring function call through function pointer", fexp));
         func = "<func>{" + fn.getRawSignature() + "}";
       }
 
@@ -1026,14 +1042,16 @@ public class CtoFormulaConverter {
       String var = idExp.getName();
 
       if (isNondetVariable(var)) {
-        logger.log(Level.WARNING, "Assignment to special non-determinism variable",
-            var, "will be ignored.");
+        log(Level.WARNING, "Assignment to special non-determinism variable" + var + "will be ignored.");
       }
       var = scopedIfNecessary(idExp, function);
       return makeFreshVariable(var, ssa);
     }
 
     private Formula makeUIF(IASTExpression exp) {
+      warnUnsafeAssignment();
+      logDebug("Assigning to ", exp);
+
       String var = scoped(exprToVarName(exp), function);
       return makeFreshVariable(var, ssa);
     }
