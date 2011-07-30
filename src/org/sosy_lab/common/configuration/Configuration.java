@@ -850,6 +850,10 @@ public class Configuration {
       file = new File(rootDirectory, file.getPath());
     }
 
+    if (file.isDirectory()) {
+      throw new InvalidConfigurationException("Option " + optionName + " needs to specify a file and not a directory");
+    }
+
     if (typeInfo == Option.Type.REQUIRED_INPUT_FILE) {
       try {
         Files.checkReadableFile(file);
