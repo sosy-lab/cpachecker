@@ -35,7 +35,7 @@ public class RefinementFailedException extends CPAException {
 
   public static enum Reason {
     InterpolationFailed("Interpolation failed"),
-    NoNewPredicates("No new predicates"),
+    RepeatedCounterexample("Counterexample could not be ruled out and was found again"),
     TooMuchUnrolling("Too much unrolling"),
     InfeasibleCounterexample("External tool verified counterexample as infeasible"),
     TIMEOUT("SMT-solver timed out");

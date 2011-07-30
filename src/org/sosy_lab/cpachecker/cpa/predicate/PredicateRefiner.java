@@ -323,7 +323,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
 
     } else {
       if (absLocations.equals(lastErrorPath)) {
-        throw new RefinementFailedException(RefinementFailedException.Reason.NoNewPredicates, null);
+        throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
       }
 
       CFANode loc = firstInterpolationPoint.getSecond();
