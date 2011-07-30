@@ -245,12 +245,13 @@ public class CFACreator {
       checkTime.stop();
 
       if ((exportCfaFile != null) && (exportCfa || exportCfaPerFunction)) {
-        exportTime.start();
 
         // execute asynchronously, this may take several seconds for large programs on slow disks
         new Thread(new Runnable() {
           @Override
           public void run() {
+            exportTime.start();
+
             // running the following in parallel is thread-safe
             // because we don't modify the CFA from this point on
 
@@ -260,9 +261,8 @@ public class CFACreator {
                 Files.writeFile(exportCfaFile,
                     DOTBuilder.generateDOT(cfas.values(), mainFunction));
               } catch (IOException e) {
-                logger.log(Level.WARNING,
-                  "Could not write CFA to dot file, check configuration option cfa.file! (",
-                  e.getMessage() + ")");
+                logger.logUserException(Level.WARNING, e,
+                  "Could not write CFA to dot file");
                 // continue with analysis
               }
             }
@@ -273,16 +273,15 @@ public class CFACreator {
                 File outdir = exportCfaFile.getParentFile();
                 DOTBuilder2.writeReport(mainFunction, outdir);
               } catch (IOException e) {
-                logger.log(Level.WARNING,
-                  "Could not write CFA to dot and json files, check configuration option cfa.file! (",
-                  e.getMessage() + ")");
+                logger.logUserException(Level.WARNING, e,
+                  "Could not write CFA to dot and json file");
                 // continue with analysis
               }
             }
-          }
-        }).start();
 
-        exportTime.stop();
+            exportTime.stop();
+          }
+        }, "CFA export thread").start();
       }
 
       logger.log(Level.FINE, "DONE, CFA for", cfas.size(), "functions created");
