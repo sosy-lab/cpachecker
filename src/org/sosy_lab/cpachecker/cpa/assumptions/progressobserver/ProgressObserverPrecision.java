@@ -40,4 +40,8 @@ public class ProgressObserverPrecision implements Precision {
     precisions.add(precision);
   }
 
+  public void adjustPrecisions(){
+
+  }
+
 }

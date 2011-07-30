@@ -35,7 +35,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -62,6 +61,7 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
   private final PrecisionAdjustment precisionAdjustment;
+  private final Precision precision;
   private final LogManager logger;
 
   private final ImmutableList<StopHeuristics<?>> enabledHeuristics;
@@ -96,6 +96,7 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
     stopOperator = new ProgressObserverStop();
     transferRelation = new ProgressObserverTransferRelation(this);
     precisionAdjustment = new ProgressObserverPrecisionAdjustment(this);
+    precision = new ProgressObserverPrecision();
   }
 
   @Override
@@ -114,7 +115,8 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public Precision getInitialPrecision(CFANode pNode) {
-    return SingletonPrecision.getInstance();
+//    return SingletonPrecision.getInstance();
+    return precision;
   }
 
   @Override
