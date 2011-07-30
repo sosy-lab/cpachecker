@@ -316,7 +316,9 @@ public class CFACreator {
       return Iterables.getOnlyElement(cfas.values());
 
     } else {
-      // get the AAA part out of a filename like AAA.cil.c
+      // get the AAA part out of a filename like test/program/AAA.cil.c
+      filename = (new File(filename)).getName(); // remove directory
+
       int indexOfDot = filename.indexOf('.');
       String baseFilename = indexOfDot >= 1 ? filename.substring(0, indexOfDot) : filename;
 
