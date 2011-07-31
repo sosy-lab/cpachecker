@@ -103,6 +103,7 @@ public class MathsatFormulaManager implements FormulaManager  {
 
   // cache Formula x NumberOfPrimes -> PrimedFormula
   private Map<Pair<Formula, Integer>, Formula> primingCache = new HashMap<Pair<Formula, Integer>, Formula>();
+  private Map<Formula, Formula> unprimingCache = new HashMap<Formula, Formula>();
 
   // Formula -> how many times the variables are primed in the formula
   private Multimap<Formula, Integer> howManyPrimesCache = HashMultimap.create();
@@ -879,6 +880,66 @@ public class MathsatFormulaManager implements FormulaManager  {
   }
 
   @Override
+  public Formula unprimeFormula(Formula formula) {
+    Map<Formula, Formula> cache = this.unprimingCache;
+    Deque<Formula> toProcess = new ArrayDeque<Formula>();
+
+    toProcess.push(formula);
+    while (!toProcess.isEmpty()) {
+      final Formula tt = toProcess.peek();
+      if (cache.containsKey(tt)) {
+        toProcess.pop();
+        continue;
+      }
+      final long t = getTerm(tt);
+
+      if (msat_term_is_variable(t) != 0) {
+        Pair<String, Integer> data = PathFormula.getPrimeData(msat_term_repr(t));
+        // long newt = buildMsatVariable(name, msat_term_get_type(t));
+        long newt = buildMsatVariable(data.getFirst(), msat_term_get_type(t));
+        toProcess.pop();
+        cache.put(tt, encapsulate(newt));
+      } else {
+        boolean childrenDone = true;
+        long[] newargs = new long[msat_term_arity(t)];
+        for (int i = 0; i < newargs.length; ++i) {
+          Formula c = encapsulate(msat_term_get_arg(t, i));
+          Formula newC = cache.get(c);
+          if (newC != null) {
+            newargs[i] = getTerm(newC);
+          } else {
+            toProcess.push(c);
+            childrenDone = false;
+          }
+        }
+
+        if (childrenDone) {
+          toProcess.pop();
+          long newt;
+          if (msat_term_is_uif(t) != 0) {
+            String name = msat_decl_get_name(msat_term_get_decl(t));
+            assert name != null;
+
+            if (ufCanBeLvalue(name)) {
+              name = parseName(name).getFirst();
+
+              newt = buildMsatUF(name, newargs);
+            } else {
+              newt = msat_replace_args(msatEnv, t, newargs);
+            }
+          } else {
+            newt = msat_replace_args(msatEnv, t, newargs);
+          }
+
+          cache.put(tt, encapsulate(newt));
+        }
+      }
+    }
+
+    return cache.get(formula);
+  }
+
+  @Override
   // primed the variables inside the formula given number of times
   public Formula primeFormula(Formula f, int howManyPrimes) {
     Map<Pair<Formula, Integer>, Formula> cache = this.primingCache;
@@ -1080,4 +1141,7 @@ public class MathsatFormulaManager implements FormulaManager  {
 
     return new Pair<Formula,Map<String, Integer>> (lcache.get(formula), lowestIndex);
   }
+
+
+
 }

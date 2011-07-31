@@ -225,7 +225,7 @@ public class RelyGuaranteeRefiner{
     Multimap<Integer, Pair<ARTElement, RelyGuaranteePrecision>> refinementMap = HashMultimap.create();
     // for every thread get cut-off elements and their new precision
 
-    for (int tid : artMap.keys()){
+    for (int tid : artMap.keySet()){
       System.out.println("Thread "+tid);
       Collection<ARTElement> artElements = artMap.get(tid);
       List<ARTNode> nodes = new Vector<ARTNode>(artElements.size());
@@ -234,11 +234,13 @@ public class RelyGuaranteeRefiner{
         ARTNode node = new ARTNode(artElem);
         nodes.add(node);
       }
+      List<ARTNode> covered = new Vector<ARTNode>(artElements.size());
       for (ARTNode nodeA : nodes){
         for  (ARTNode nodeB : nodes){
-          if (nodeA != nodeB){
-            if (nodeA.getArtElement().getSubtree().contains(nodeB.getArtElement())){
+          if (nodeA != nodeB && !covered.contains(nodeB)){
+            if (belongsToProperSubtree(nodeA.getArtElement(),nodeB.getArtElement())){
               nodeA.addChild(nodeB);
+              covered.add(nodeB);
             }
           }
         }
@@ -397,13 +399,43 @@ public class RelyGuaranteeRefiner{
 }
 
   /**
-   * Represents reachability relation between elements in an ART
+   * Returns true if artElement1 lies on the path from the root to artElement2
+   * @param pArtElement
+   * @param pArtElement2
+   * @return
    */
+  private boolean belongsToProperSubtree(ARTElement artElement1, ARTElement artElement2) {
+
+    Path cfaPath = ARTUtils.getOnePathTo(artElement2);
+    List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> path = null;
+    try {
+      path = transformPath(cfaPath);
+    } catch (CPATransferException e) {
+      e.printStackTrace();
+    }
+    // find the highest occurence of artElement1 on the path
+    boolean occursOnPath = false;
+    for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement> triple: path){
+      if (triple.getFirst().equals(artElement1)){
+        occursOnPath = true;
+        break;
+      }
+      else if  (triple.getFirst().equals(artElement2)){
+        break;
+      }
+
+    }
+    return occursOnPath;
+  }
+
+
 
 }
 
 
-
+/**
+ * Represents reachability relation between elements in an ART
+ */
 class ARTNode{
 
   private ARTElement  artElement;
@@ -438,12 +470,12 @@ class ARTNode{
   }
 
   public Collection<ARTElement> getARTSubtree() {
-    Collection<ARTElement> subtree = new HashSet<ARTElement>();
-    subtree.add(artElement);
+    Collection<ARTElement> reached = new HashSet<ARTElement>();
+    reached.add(artElement);
     for (ARTNode child : children){
-      subtree.addAll(child.getARTSubtree());
+     reached.add(child.getArtElement());
     }
-    return subtree;
+    return reached;
   }
 
 }

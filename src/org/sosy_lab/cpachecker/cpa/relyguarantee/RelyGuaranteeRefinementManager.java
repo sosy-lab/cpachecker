@@ -810,7 +810,8 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         entryPoints.push(0);
       }
       boolean foundPredicates = false;
-
+      System.out.println();
+      System.out.println("Interpolants:");
       for (int i = 0; i < interpolationFormulas.size()-1; ++i) {
         // last iteration is left out because B would be empty
         final int start_of_a = (wellScopedPredicates ? entryPoints.peek() : 0);
@@ -825,6 +826,12 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         // divide new predicates between relevant ART elements
         Multimap<ARTElement, AbstractionPredicate> precisionForElements = getPrecisionForElements(itp, interpolationPathFormulas.get(i).getScope());
 
+        Multimap<CFANode, AbstractionPredicate> printingMap = HashMultimap.create();
+        for (ARTElement artElement : precisionForElements.keySet()){
+          CFANode node = AbstractElements.extractLocation(artElement);
+          printingMap.putAll(node, precisionForElements.get(artElement));
+        }
+        System.out.println("- "+i+": "+itp+" scope: "+printingMap);
 
         refStats.cexAnalysisSolverTimer.stop();
 
@@ -967,7 +974,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     // TODO maybe handling of non-atomic predicates
     Collection<Formula> atoms = fmgr.extractAtoms(itp, splitItpAtoms, false);
     for (Formula atom : atoms){
-      AbstractionPredicate atomPredicate = amgr.makePredicate(atom);
+
       Collection<Integer> primes = fmgr.howManyPrimes(atom);
       // TODO remove - a quick & dirty correctness test
       for (Integer prime : primes){
@@ -975,6 +982,9 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
           assert itp.toString().contains("^"+prime);
         };
       }
+
+      Formula unprimedAtom = fmgr.unprimeFormula(atom);
+      AbstractionPredicate atomPredicate = amgr.makePredicate(unprimedAtom);
 
       for (Integer i : primes){
         ARTElement artElement = scopeMap.get(i);
