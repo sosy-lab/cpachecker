@@ -23,33 +23,36 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdge;
 
+public  class RelyGuaranteeEnvTransitionBuilder extends  RelyGuaranteePathFormulaBuilder {
 
-public abstract class  RelyGuaranteePathFormulaBuilder {
+  private  static int globalID = 0;
 
-  public  RelyGuaranteePathFormulaBuilder extendByEdge(CFAEdge edge){
-    if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge) {
-      RelyGuaranteeCFAEdge rgEdge = (RelyGuaranteeCFAEdge) edge;
-      return new RelyGuaranteeEnvTransitionBuilder(this, rgEdge);
-    } else {
-      return new RelyGuaranteeLocalTransitionBuilder(this, edge);
-    }
+  private  RelyGuaranteePathFormulaBuilder builder;
+  private  RelyGuaranteeCFAEdge envEdge;
+  private  int id;
+
+  public RelyGuaranteeEnvTransitionBuilder(RelyGuaranteePathFormulaBuilder oldBuilder, RelyGuaranteeCFAEdge rgEdge) {
+    builder = oldBuilder;
+    envEdge = rgEdge;
+    id = globalID++;
   }
 
-  public RelyGuaranteePathFormulaBuilder mergeWith(RelyGuaranteePathFormulaBuilder reached){
-    return new RelyGuaranteeMergeBuilder(this, reached);
+  public int getId() {
+    return id;
   }
 
+  public RelyGuaranteeCFAEdge getEnvEdge() {
+    return envEdge;
+  }
 
+  public RelyGuaranteePathFormulaBuilder getBuilder() {
+    return builder;
+  }
+
+  @Override
+  public String toString(){
+    return "env:+"+envEdge.getLocalEdge()+","+builder;
+  }
 }
-
-
-
-
-
-
-
-

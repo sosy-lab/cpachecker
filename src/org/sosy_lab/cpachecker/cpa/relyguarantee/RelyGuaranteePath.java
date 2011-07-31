@@ -21,35 +21,8 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates;
+package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdge;
-
-
-public abstract class  RelyGuaranteePathFormulaBuilder {
-
-  public  RelyGuaranteePathFormulaBuilder extendByEdge(CFAEdge edge){
-    if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge) {
-      RelyGuaranteeCFAEdge rgEdge = (RelyGuaranteeCFAEdge) edge;
-      return new RelyGuaranteeEnvTransitionBuilder(this, rgEdge);
-    } else {
-      return new RelyGuaranteeLocalTransitionBuilder(this, edge);
-    }
-  }
-
-  public RelyGuaranteePathFormulaBuilder mergeWith(RelyGuaranteePathFormulaBuilder reached){
-    return new RelyGuaranteeMergeBuilder(this, reached);
-  }
-
+public class RelyGuaranteePath {
 
 }
-
-
-
-
-
-
-
-

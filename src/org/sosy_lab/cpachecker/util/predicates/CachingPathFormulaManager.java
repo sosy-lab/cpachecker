@@ -178,8 +178,8 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
 
   @Override
-  public CFAEdge inject(CFAEdge pLocalEdge, Set<String> pGlobalVariablesSet, int pOffset, SSAMap pSsa) throws CPATransferException {
-    return delegate.inject(pLocalEdge, pGlobalVariablesSet, pOffset, pSsa);
+  public void inject(CFAEdge pLocalEdge, Set<String> pGlobalVariablesSet, int pOffset, SSAMap pSsa) throws CPATransferException {
+    delegate.inject(pLocalEdge, pGlobalVariablesSet, pOffset, pSsa);
   }
 
 

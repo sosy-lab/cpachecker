@@ -24,32 +24,32 @@
 package org.sosy_lab.cpachecker.util.predicates;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdge;
 
+public  class RelyGuaranteeLocalTransitionBuilder extends  RelyGuaranteePathFormulaBuilder {
 
-public abstract class  RelyGuaranteePathFormulaBuilder {
+  private  RelyGuaranteePathFormulaBuilder builder;
+  private  CFAEdge  edge;
 
-  public  RelyGuaranteePathFormulaBuilder extendByEdge(CFAEdge edge){
-    if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge) {
-      RelyGuaranteeCFAEdge rgEdge = (RelyGuaranteeCFAEdge) edge;
-      return new RelyGuaranteeEnvTransitionBuilder(this, rgEdge);
-    } else {
-      return new RelyGuaranteeLocalTransitionBuilder(this, edge);
-    }
+  public RelyGuaranteeLocalTransitionBuilder(RelyGuaranteePathFormulaBuilder oldBuilder, CFAEdge pEdge) {
+    builder = oldBuilder;
+    edge = pEdge;
   }
 
-  public RelyGuaranteePathFormulaBuilder mergeWith(RelyGuaranteePathFormulaBuilder reached){
-    return new RelyGuaranteeMergeBuilder(this, reached);
+  public RelyGuaranteeLocalTransitionBuilder(RelyGuaranteePathFormulaBuilder oldBuilder) {
+    builder = oldBuilder;
+    edge = null;
   }
 
+  public RelyGuaranteePathFormulaBuilder getBuilder() {
+    return builder;
+  }
 
+  public CFAEdge getEdge() {
+    return edge;
+  }
+
+  @Override
+  public String toString(){
+    return edge.getRawStatement()+","+builder;
+  }
 }
-
-
-
-
-
-
-
-

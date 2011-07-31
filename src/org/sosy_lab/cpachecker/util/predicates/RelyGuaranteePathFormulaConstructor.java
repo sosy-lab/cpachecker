@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates;
 
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -33,7 +32,6 @@ import java.util.Set;
 import java.util.Vector;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -98,9 +96,9 @@ public class RelyGuaranteePathFormulaConstructor {
    * Returns the list of env. edges in the tree rooted at the argument.
    * @return
    */
-  public List<RelyGuaranteeCFAEdge> getRelyGuaranteeCFAEdges(RelyGuaranteePathFormulaBuilder root) {
+  public List<RelyGuaranteeEnvTransitionBuilder> getEnvironmetalTransitions(RelyGuaranteePathFormulaBuilder root) {
     Deque<RelyGuaranteePathFormulaBuilder> stack = new LinkedList<RelyGuaranteePathFormulaBuilder>();
-    List<RelyGuaranteeCFAEdge> rgEdges = new Vector<RelyGuaranteeCFAEdge>();
+    List<RelyGuaranteeEnvTransitionBuilder> envBuilders = new Vector<RelyGuaranteeEnvTransitionBuilder>();
 
     stack.addFirst(root);
     while(!stack.isEmpty()){
@@ -113,9 +111,8 @@ public class RelyGuaranteePathFormulaConstructor {
       else if (builder instanceof RelyGuaranteeEnvTransitionBuilder){
         RelyGuaranteeEnvTransitionBuilder currentB = (RelyGuaranteeEnvTransitionBuilder) builder;
         RelyGuaranteePathFormulaBuilder nextB = currentB.getBuilder();
-        RelyGuaranteeCFAEdge rgEdge = currentB.getEnvEdge();
         stack.addFirst(nextB);
-        rgEdges.add(rgEdge);
+        envBuilders.add(currentB);
       }
       else if (builder instanceof RelyGuaranteeMergeBuilder){
         RelyGuaranteeMergeBuilder currentB = (RelyGuaranteeMergeBuilder) builder;
@@ -126,7 +123,7 @@ public class RelyGuaranteePathFormulaConstructor {
       }
     }
 
-    return rgEdges;
+    return envBuilders;
   }
 
   /**
@@ -135,8 +132,8 @@ public class RelyGuaranteePathFormulaConstructor {
    * @return
    * @throws CPATransferException
    */
-  public PathFormula constructFromEdges(RelyGuaranteePathFormulaBuilder root, int primedNo) throws CPATransferException{
-    return construct(root, null, primedNo).getFirst();
+  public PathFormula constructFromEdges(RelyGuaranteePathFormulaBuilder root) throws CPATransferException{
+    return construct(root, null);
   }
 
   /**
@@ -146,9 +143,9 @@ public class RelyGuaranteePathFormulaConstructor {
    * @return
    * @throws CPATransferException
    */
-  public Pair<PathFormula, Map<Integer, Integer>> constructFromMap(RelyGuaranteePathFormulaBuilder root, Map<Integer, PathFormula> map, int primedNo) throws CPATransferException{
+  public PathFormula constructFromMap(RelyGuaranteePathFormulaBuilder root, Map<RelyGuaranteeEnvTransitionBuilder, PathFormula> map) throws CPATransferException{
     Preconditions.checkNotNull(map);
-    return construct(root, map, primedNo);
+    return construct(root, map);
   }
 
 
@@ -159,7 +156,7 @@ public class RelyGuaranteePathFormulaConstructor {
    * @return
    * @throws CPATransferException
    */
-  private Pair<PathFormula, Map<Integer, Integer>> construct(RelyGuaranteePathFormulaBuilder root, Map<Integer, PathFormula> map, int primedNo) throws CPATransferException{
+  private PathFormula construct(RelyGuaranteePathFormulaBuilder root, Map<RelyGuaranteeEnvTransitionBuilder, PathFormula> map) throws CPATransferException{
 
     Deque<RelyGuaranteePathFormulaBuilder> stack = new LinkedList<RelyGuaranteePathFormulaBuilder>();
     Deque<RelyGuaranteePathFormulaBuilder> preorderStack = new LinkedList<RelyGuaranteePathFormulaBuilder>();
@@ -187,17 +184,9 @@ public class RelyGuaranteePathFormulaConstructor {
         stack.addFirst(nextB2);
       }
     }
+
     // build the path formula
     Deque<PathFormula> arguments = new LinkedList<PathFormula>();
-    // RelyGuaranteeCFAEdge id -> have mane times the related path formula has been primed
-    Map<Integer, Integer> primedMap;
-    if (map != null){
-      primedMap = new HashMap<Integer, Integer>(map.size());
-    } else {
-      primedMap = new HashMap<Integer, Integer>(0);
-    }
-
-
     while(!preorderStack.isEmpty()){
       RelyGuaranteePathFormulaBuilder builder = preorderStack.removeLast();
       if (builder instanceof RelyGuaranteeLocalPathFormulaBuilder){
@@ -216,28 +205,29 @@ public class RelyGuaranteePathFormulaConstructor {
         RelyGuaranteeEnvTransitionBuilder currentB = (RelyGuaranteeEnvTransitionBuilder) builder;
         PathFormula argumentPF = arguments.removeFirst();
         RelyGuaranteeCFAEdge rgEdge = currentB.getEnvEdge();
-        // use path formula provided as an argument or get it from the edge itself.
-        int rgEdgeId = rgEdge.getId();
-        PathFormula envPF;
+        // use path formula and offset provided as an argument or get it from the edge itself.
+        PathFormula primedEnvPF;
+        int offset;
         if (map != null){
-          envPF = map.get(rgEdgeId);
-          assert envPF != null;
+          primedEnvPF = map.get(currentB);
+          offset = 0;
+          assert primedEnvPF != null;
         } else {
-          envPF = rgEdge.getPathFormula();
+          // TODO could do better
+          PathFormula envPF = currentB.getEnvEdge().getPathFormula();
+          offset = argumentPF.getPrimedNo() + 1;
+          primedEnvPF = pfManager.primePathFormula(envPF, offset);
         }
         // prime the env. path formula so it does not collide with the local path formula
-        int offset = argumentPF.getPrimedNo() + 1 + primedNo;
-        primedMap.put(rgEdgeId, offset);
-        PathFormula primedEnvPF = pfManager.primePathFormula(envPF, offset);
+        offset++;
         // make equalities between the last global values in the local and env. path formula
         PathFormula matchedPF = pfManager.matchPaths(argumentPF, primedEnvPF, globalVariablesSet);
         // apply the strongest postcondition
-        CFAEdge injectedEdge = pfManager.inject(rgEdge.getLocalEdge(), globalVariablesSet, offset, primedEnvPF.getSsa());
+        pfManager.inject(rgEdge.getLocalEdge(), globalVariablesSet, offset, primedEnvPF.getSsa());
         PathFormula currentPF = pfManager.makeAnd(matchedPF, rgEdge.getLocalEdge());
         arguments.addFirst(currentPF);
       }
       else if (builder instanceof RelyGuaranteeMergeBuilder){
-        RelyGuaranteeMergeBuilder currentB = (RelyGuaranteeMergeBuilder) builder;
         PathFormula argumentPF1 = arguments.removeFirst();
         PathFormula argumentPF2 = arguments.removeFirst();
         PathFormula currentPF = pfManager.makeOr(argumentPF1, argumentPF2);
@@ -245,7 +235,7 @@ public class RelyGuaranteePathFormulaConstructor {
       }
     }
     assert arguments.size() == 1;
-    return Pair.of(arguments.peek(), primedMap);
+    return arguments.peek();
   }
 
 
@@ -274,7 +264,7 @@ public class RelyGuaranteePathFormulaConstructor {
       // make equalities between the last global values in the local and env. path formula
       PathFormula matchedPF = pfManager.matchPaths(nextPF, primedEnvPF, globalVariablesSet);
       // apply the strongest postcondition
-      CFAEdge injectedEdge = pfManager.inject(rgEdge.getLocalEdge(), globalVariablesSet, offset, primedEnvPF.getSsa());
+      pfManager.inject(rgEdge.getLocalEdge(), globalVariablesSet, offset, primedEnvPF.getSsa());
       PathFormula finalPF = pfManager.makeAnd(matchedPF, rgEdge.getLocalEdge());
       return finalPF;
     }

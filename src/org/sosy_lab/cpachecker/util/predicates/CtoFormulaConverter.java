@@ -1410,15 +1410,13 @@ public class CtoFormulaConverter {
   }
 
 
-  public CFAEdge inject(CFAEdge localEdge, Set<String> globalVariablesSet, int offset, SSAMap pSsa) throws CPATransferException {
+  public void inject(CFAEdge localEdge, Set<String> globalVariablesSet, int offset, SSAMap pSsa) throws CPATransferException {
     if (!(localEdge.getRawAST() instanceof IASTExpressionAssignmentStatement)) {
       throw new UnrecognizedCFAEdgeException("Unrecognized AST type: "+localEdge.getRawAST().getClass());
     }
     IASTExpression rhs = ((IASTExpressionAssignmentStatement) localEdge.getRawAST()).getRightHandSide();
 
     inject(rhs, globalVariablesSet, offset, pSsa);
-
-    return localEdge;
   }
 
   private void inject(IASTExpression exp, Set<String> globalVariablesSet, int offset, SSAMap pSsa) throws UnrecognizedCFAEdgeException {

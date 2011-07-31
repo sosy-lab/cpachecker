@@ -23,33 +23,20 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdge;
+public class RelyGuaranteeLocalPathFormulaBuilder extends  RelyGuaranteePathFormulaBuilder {
 
+  private  PathFormula pFormula;
 
-public abstract class  RelyGuaranteePathFormulaBuilder {
-
-  public  RelyGuaranteePathFormulaBuilder extendByEdge(CFAEdge edge){
-    if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge) {
-      RelyGuaranteeCFAEdge rgEdge = (RelyGuaranteeCFAEdge) edge;
-      return new RelyGuaranteeEnvTransitionBuilder(this, rgEdge);
-    } else {
-      return new RelyGuaranteeLocalTransitionBuilder(this, edge);
-    }
+  public RelyGuaranteeLocalPathFormulaBuilder(PathFormula pFormula) {
+    this.pFormula = pFormula;
   }
 
-  public RelyGuaranteePathFormulaBuilder mergeWith(RelyGuaranteePathFormulaBuilder reached){
-    return new RelyGuaranteeMergeBuilder(this, reached);
+  public PathFormula getPathFormula() {
+    return pFormula;
   }
 
-
+  @Override
+  public String toString(){
+    return pFormula.toString();
+  }
 }
-
-
-
-
-
-
-
-

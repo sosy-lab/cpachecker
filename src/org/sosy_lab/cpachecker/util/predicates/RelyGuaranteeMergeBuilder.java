@@ -23,33 +23,26 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdge;
+public  class RelyGuaranteeMergeBuilder extends  RelyGuaranteePathFormulaBuilder {
 
+  private  RelyGuaranteePathFormulaBuilder builder1;
+  private  RelyGuaranteePathFormulaBuilder builder2;
 
-public abstract class  RelyGuaranteePathFormulaBuilder {
-
-  public  RelyGuaranteePathFormulaBuilder extendByEdge(CFAEdge edge){
-    if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge) {
-      RelyGuaranteeCFAEdge rgEdge = (RelyGuaranteeCFAEdge) edge;
-      return new RelyGuaranteeEnvTransitionBuilder(this, rgEdge);
-    } else {
-      return new RelyGuaranteeLocalTransitionBuilder(this, edge);
-    }
+  public RelyGuaranteeMergeBuilder(RelyGuaranteePathFormulaBuilder successor, RelyGuaranteePathFormulaBuilder reached) {
+    builder1 = successor;
+    builder2 = reached;
   }
 
-  public RelyGuaranteePathFormulaBuilder mergeWith(RelyGuaranteePathFormulaBuilder reached){
-    return new RelyGuaranteeMergeBuilder(this, reached);
+  public RelyGuaranteePathFormulaBuilder getBuilder1() {
+    return builder1;
   }
 
+  public RelyGuaranteePathFormulaBuilder getBuilder2() {
+    return builder2;
+  }
 
+  @Override
+  public String toString(){
+    return builder1+" | "+builder2;
+  }
 }
-
-
-
-
-
-
-
-

@@ -40,7 +40,7 @@ import com.google.common.base.Predicate;
 
 public class RelyGuaranteeAbstractElement implements AbstractElement, Partitionable, FormulaReportingElement {
 
-  private int tid;
+  protected int tid;
   public static int UNKOWN = -1;
   private CFAEdge parentEdge = null;
 
@@ -68,16 +68,16 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
 
     private RelyGuaranteePathFormulaBuilder oldPathBuilder;
 
-    public AbstractionElement(PathFormula pf, AbstractionFormula pA, RelyGuaranteePathFormulaBuilder  newPathBuilder, RelyGuaranteePathFormulaBuilder  oldPathBuilder) {
-      super(pf, pA, newPathBuilder);
+    public AbstractionElement(PathFormula pf, AbstractionFormula pA, RelyGuaranteePathFormulaBuilder  newPathBuilder, RelyGuaranteePathFormulaBuilder  oldPathBuilder, int tid) {
+      super(pf, pA, newPathBuilder, tid);
       this.oldPathBuilder = oldPathBuilder;
       // Check whether the pathFormula of an abstraction element is just "true".
       // partialOrder relies on this for optimization.
     }
 
 
-    public AbstractionElement(PathFormula pf, AbstractionFormula pA, CFAEdge edge, RelyGuaranteePathFormulaBuilder  newPathBuilder, RelyGuaranteePathFormulaBuilder  oldPathBuilder) {
-      super(pf, pA, edge, newPathBuilder);
+    public AbstractionElement(PathFormula pf, AbstractionFormula pA, CFAEdge edge, RelyGuaranteePathFormulaBuilder  newPathBuilder, RelyGuaranteePathFormulaBuilder  oldPathBuilder, int tid) {
+      super(pf, pA, edge, newPathBuilder, tid);
       this.oldPathBuilder = oldPathBuilder;
       // Check whether the pathFormula of an abstraction element is just "true".
       // partialOrder relies on this for optimization.
@@ -101,12 +101,12 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
 
     @Override
     public String toString() {
-      if (this.pathBuilder == null){
-        return "Abstraction, '"+this.getAbstractionFormula()+"','"+this.getPathFormula()+"' with SSA "+this.getPathFormula().getSsa()+", empty template";
+      /*if (this.pathBuilder == null){
+        return "T:"+this.tid+", Abstraction, '"+this.getAbstractionFormula()+"','"+this.getPathFormula()+"' with SSA "+this.getPathFormula().getSsa()+", empty template";
       } else {
-        return "Abstraction, '"+this.getAbstractionFormula()+"','"+this.getPathFormula()+"' with SSA "+this.getPathFormula().getSsa()+", "+this.pathBuilder;
-      }
-
+        return "T:"+this.tid+", Abstraction, '"+this.getAbstractionFormula()+"','"+this.getPathFormula()+"' with SSA "+this.getPathFormula().getSsa()+", "+this.pathBuilder;
+      }*/
+      return "T:"+this.tid+", Abstraction, '"+this.getAbstractionFormula()+"','"+this.getPathFormula()+"' with SSA "+this.getPathFormula().getSsa();
     }
   }
 
@@ -125,13 +125,13 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
      location = pLoc;
    }*/
 
-    public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc, RelyGuaranteePathFormulaBuilder  pathBuilder) {
-      super(pf, pA, pathBuilder);
+    public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc, RelyGuaranteePathFormulaBuilder  pathBuilder, int tid) {
+      super(pf, pA, pathBuilder, tid);
       location = pLoc;
     }
 
-    public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc, CFAEdge edge, RelyGuaranteePathFormulaBuilder  pathBuilder) {
-      super(pf, pA, edge, pathBuilder);
+    public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc, CFAEdge edge, RelyGuaranteePathFormulaBuilder  pathBuilder, int tid) {
+      super(pf, pA, edge, pathBuilder, tid);
       location = pLoc;
     }
 
@@ -143,7 +143,7 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
 
     @Override
     public String toString() {
-      return "Abstraction location: true, Abstraction: <TO COMPUTE>";
+      return "T:"+this.tid+", Abstraction location: true, Abstraction: <TO COMPUTE>";
     }
 
     public CFANode getLocation() {
@@ -185,21 +185,23 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
    this.rgFormulaTemplate = null;
  }*/
 
-  public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a, RelyGuaranteePathFormulaBuilder  pathBuilder) {
+  public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a, RelyGuaranteePathFormulaBuilder  pathBuilder, int tid) {
     Preconditions.checkNotNull(pathBuilder);
     this.pathFormula = pf;
     this.abstractionFormula = a;
     this.tid = RelyGuaranteeAbstractElement.UNKOWN;
     this.pathBuilder = pathBuilder;
+    this.tid = tid;
   }
 
-  public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a, CFAEdge edge,  RelyGuaranteePathFormulaBuilder  pathBuilder) {
+  public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a, CFAEdge edge,  RelyGuaranteePathFormulaBuilder  pathBuilder, int tid) {
     Preconditions.checkNotNull(pathBuilder);
     this.pathFormula = pf;
     this.abstractionFormula = a;
     this.tid = RelyGuaranteeAbstractElement.UNKOWN;
     this.parentEdge = edge;
     this.pathBuilder = pathBuilder;
+    this.tid = tid;
   }
 
 
@@ -226,11 +228,12 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
 
   @Override
   public String toString() {
-    if (this.pathBuilder == null){
-      return "Non-abstraction, '"+this.getAbstractionFormula()+"','"+this.getPathFormula()+"' SSA "+this.getPathFormula().getSsa()+", empty template";
+   /* if (this.pathBuilder == null){
+      return "T:"+this.tid+", Non-abstraction, '"+this.getAbstractionFormula()+"','"+this.getPathFormula()+"' SSA "+this.getPathFormula().getSsa()+", empty template";
     } else {
-      return "Non-abstraction, '"+this.getAbstractionFormula()+"','"+this.getPathFormula()+"' SSA "+this.getPathFormula().getSsa()+", "+this.pathBuilder;
-    }
+      return "T:"+this.tid+", Non-abstraction, '"+this.getAbstractionFormula()+"','"+this.getPathFormula()+"' SSA "+this.getPathFormula().getSsa()+", "+this.pathBuilder;
+    }*/
+    return "T:"+this.tid+", Non-abstraction, '"+this.getAbstractionFormula()+"','"+this.getPathFormula()+"' SSA "+this.getPathFormula().getSsa();
 
   }
 

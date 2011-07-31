@@ -29,8 +29,9 @@ import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType
 
 import java.io.File;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Vector;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
@@ -38,6 +39,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -49,13 +51,12 @@ import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -125,71 +126,6 @@ public class RelyGuaranteeRefiner{
   }
 
 
-  /**
-   *
-   * @param pRelyGuaranteeEnvironment
-   * @param pReachedSets
-   * @param pErrorThr
-   * @return
-   * @throws CPAException
-   * @throws InterruptedException
-   */
-  public boolean performRefinment(ReachedSet[] reachedSets, RelyGuaranteeEnvironment environment, int errorThr) throws InterruptedException, CPAException {
-
-
-    //assert checkART(reachedSets[errorThr]);
-    assert reachedSets[errorThr].getLastElement() instanceof ARTElement;
-    ARTElement targetElement = (ARTElement) reachedSets[errorThr].getLastElement();
-    assert (targetElement).isTarget();
-
-
-
-    // get the path from the root to the error in the relevant thread
-    Path cfaPath = computePath(targetElement, reachedSets[errorThr]);
-
-
-    ARTReachedSet[] artReachedSets = new ARTReachedSet[reachedSets.length];
-    for (int i=0; i<reachedSets.length; i++){
-      artReachedSets[i] = new ARTReachedSet(reachedSets[i], artCpas[i]);
-    }
-
-    Set<ARTElement> elementsOnPath = ARTUtils.getAllElementsOnPathsTo(targetElement);
-    List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> path = transformPath(cfaPath);
-
-    Precision oldPrecision = reachedSets[errorThr].getPrecision(targetElement);
-    RelyGuaranteePrecision oldPredicatePrecision = Precisions.extractPrecisionByType(oldPrecision, RelyGuaranteePrecision.class);
-
-    List<RelyGuaranteeAbstractElement> abstractTrace = Lists.transform(path, Triple.<RelyGuaranteeAbstractElement>getProjectionToThird());
-    CounterexampleTraceInfo mCounterexampleTraceInfo = manager.buildRgCounterexampleTrace(targetElement, reachedSets, errorThr);
-
-    // if error is spurious refine
-    if (mCounterexampleTraceInfo.isSpurious()) {
-      Pair<ARTElement, RelyGuaranteePrecision> refinementResult =  performRefinement(oldPredicatePrecision, path, mCounterexampleTraceInfo);
-      ARTElement root = refinementResult.getFirst();
-      RelyGuaranteePrecision precision = refinementResult.getSecond();
-
-      environment.printUnprocessedTransitions();
-      // remove environmental transition that belong to the removed subtree of the ART and haven't been processed
-      environment.removeUnprocessedTransitionsFromElement(root);
-      // process the remaining environmental transition
-
-      environment.processEnvTransitions(errorThr);
-
-      artReachedSets[errorThr].removeSubtree(root, precision);
-      //pReached.removeSubtree(refinementResult.getFirst(), refinementResult.getSecond());
-      return true;
-    } else {
-      // we have a real error
-      return false;
-    }
-
-
-  }
-
-
-
-
-
   protected Path computePath(ARTElement pLastElement, ReachedSet pReached) throws InterruptedException, CPAException {
     return ARTUtils.getOnePathTo(pLastElement);
   }
@@ -210,13 +146,164 @@ public class RelyGuaranteeRefiner{
   }
 
   /**
-   * pPath and pArtPath need to fit together such that
-   * pPath.get(i) == pArtPath.get(i).retrieveWrappedElement(PredicateAbstractElement)
+   *
+   * @param pRelyGuaranteeEnvironment
+   * @param pReachedSets
+   * @param pErrorThr
+   * @return
+   * @throws CPAException
+   * @throws InterruptedException
    */
-  private Pair<ARTElement, RelyGuaranteePrecision> performRefinement(RelyGuaranteePrecision oldPrecision,
-      List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> pPath,
-      CounterexampleTraceInfo pInfo) throws CPAException {
+  public boolean performRefinment(ReachedSet[] reachedSets, RelyGuaranteeEnvironment environment, int errorThr) throws InterruptedException, CPAException {
+    int threadNo = reachedSets.length;
 
+    //assert checkART(reachedSets[errorThr]);
+    assert reachedSets[errorThr].getLastElement() instanceof ARTElement;
+    ARTElement targetElement = (ARTElement) reachedSets[errorThr].getLastElement();
+    assert (targetElement).isTarget();
+
+    ARTReachedSet[] artReachedSets = new ARTReachedSet[threadNo];
+    for (int i=0; i<threadNo; i++){
+      artReachedSets[i] = new ARTReachedSet(reachedSets[i], artCpas[i]);
+    }
+    System.out.println("\t\t --- Checking feasability ---");
+    CounterexampleTraceInfo mCounterexampleTraceInfo = manager.buildRgCounterexampleTrace(targetElement, reachedSets, errorThr);
+
+    // if error is spurious refine
+    if (mCounterexampleTraceInfo.isSpurious()) {
+      System.out.println();
+      System.out.println("\t\t --- Lazy abstraction ---");
+      Multimap<Integer, Pair<ARTElement, RelyGuaranteePrecision>> refinementResult = performRefinement(reachedSets, mCounterexampleTraceInfo, errorThr);
+
+      // remove unprocessed environmental edges produced in a drop ART subtree
+      environment.printUnprocessedTransitions();
+      for(Pair<ARTElement, RelyGuaranteePrecision> pair : refinementResult.get(errorThr)){
+        ARTElement root = pair.getFirst();
+        // remove environmental transition that belong to the removed subtree of the ART and haven't been processed
+        environment.removeUnprocessedTransitionsFromElement(root);
+      }
+      // process the remaining environmental transition
+      environment.processEnvTransitions(errorThr);
+
+      // drop subtrees and change precision
+      for(int tid : refinementResult.keySet()){
+        for(Pair<ARTElement, RelyGuaranteePrecision> pair : refinementResult.get(errorThr)){
+          ARTElement root = pair.getFirst();
+          RelyGuaranteePrecision precision = pair.getSecond();
+          artReachedSets[tid].removeSubtree(root, precision);
+        }
+      }
+
+      return true;
+    } else {
+      // we have a real error
+      return false;
+    }
+  }
+
+
+  /**
+   * Returns multimap mapping: thread id -> cut-off element, new precision
+   */
+  private Multimap<Integer, Pair<ARTElement, RelyGuaranteePrecision>> performRefinement(ReachedSet[] reachedSets, CounterexampleTraceInfo info, int errorThr) throws CPAException {
+    // TODO add cutting at the highest node, if no predicates found for a thread
+
+    // multimap : thread no -> (ART element)
+    Multimap<Integer, ARTElement> artMap = HashMultimap.create();
+
+
+    // group interpolation elements  by threads
+    for (AbstractElement aElement : info.getPredicatesForRefinmentKeys()){
+      //Collection<AbstractionPredicate> newpreds = info.getPredicatesForRefinement(aElement);
+      assert aElement instanceof ARTElement;
+      ARTElement artElement = (ARTElement) aElement;
+      RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(artElement, RelyGuaranteeAbstractElement.class);
+      int tid = rgElement.getTid();
+      artMap.put(tid, artElement);
+    }
+
+    Multimap<Integer, Pair<ARTElement, RelyGuaranteePrecision>> refinementMap = HashMultimap.create();
+    // for every thread get cut-off elements and their new precision
+
+    for (int tid : artMap.keys()){
+      System.out.println("Thread "+tid);
+      Collection<ARTElement> artElements = artMap.get(tid);
+      List<ARTNode> nodes = new Vector<ARTNode>(artElements.size());
+      // find reachability relation between ART elements of the thread
+      for (ARTElement artElem : artElements){
+        ARTNode node = new ARTNode(artElem);
+        nodes.add(node);
+      }
+      for (ARTNode nodeA : nodes){
+        for  (ARTNode nodeB : nodes){
+          if (nodeA != nodeB){
+            if (nodeA.getArtElement().getSubtree().contains(nodeB.getArtElement())){
+              nodeA.addChild(nodeB);
+            }
+          }
+        }
+      }
+      // ART element unreachable by other elements are the cut-off node
+      Vector<ARTNode> cutoffNodes = new Vector<ARTNode>();
+      for (ARTNode node : nodes){
+        if (node.getParent() == null){
+          cutoffNodes.add(node);
+        }
+      }
+
+      // get new precision for the cutoff nodes;
+      // precision of a cut-off node should include the precision of the elements below
+      for (ARTNode node : cutoffNodes) {
+        ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
+        // in the error thread, add the precision of the error element
+        if (tid == errorThr){
+          AbstractElement targetElement = reachedSets[errorThr].getLastElement();
+          Precision oldPrecision = reachedSets[tid].getPrecision(targetElement);
+          RelyGuaranteePrecision oldRgPrecision = Precisions.extractPrecisionByType(oldPrecision, RelyGuaranteePrecision.class);
+          pmapBuilder.putAll(oldRgPrecision.getPredicateMap());
+        }
+        for (ARTElement artElement : node.getARTSubtree()){
+          // add old precision of the nodes below the cut-off node
+          Precision oldPrecision = reachedSets[tid].getPrecision(artElement);
+          RelyGuaranteePrecision oldRgPrecision = Precisions.extractPrecisionByType(oldPrecision, RelyGuaranteePrecision.class);
+          pmapBuilder.putAll(oldRgPrecision.getPredicateMap());
+
+          // add the new interpolants
+          Collection<AbstractionPredicate> newpreds = info.getPredicatesForRefinement(artElement);
+          CFANode loc = AbstractElements.extractLocation(artElement);
+          pmapBuilder.putAll(loc, newpreds);
+        }
+        RelyGuaranteePrecision newPrecision = new RelyGuaranteePrecision(pmapBuilder.build(), new HashSet<AbstractionPredicate>());
+        ARTElement artCutoffElement = node.getArtElement();
+        refinementMap.put(tid, Pair.of(artCutoffElement, newPrecision));
+
+        System.out.println("- Cut-off node id:"+node.getArtElement().getElementId()+" precision "+newPrecision);
+      }
+    }
+
+    return refinementMap;
+
+    // find cut points and new precision for every thread - one thread may have several cut p
+
+
+
+/*
+    List<Pair<ARTElement, RelyGuaranteePrecision>>  result = new Vector<Pair<ARTElement, RelyGuaranteePrecision>>();
+    ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> mapBuilder = ImmutableSetMultimap.builder();
+    for (AbstractElement element : info.getPredicatesForRefinmentKeys()){
+
+
+      ARTElement artElement = (ARTElement) element;
+      RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(element, RelyGuaranteeAbstractElement.class);
+
+
+    }
+
+
+
+    for (int i=0; i<oldRgPrecisions.size(); i++){
+     info.getPredicatesForRefinmentKeys()
+    }
     Multimap<CFANode, AbstractionPredicate> oldPredicateMap = oldPrecision.getPredicateMap();
     Set<AbstractionPredicate> globalPredicates = oldPrecision.getGlobalPredicates();
 
@@ -305,7 +392,58 @@ public class RelyGuaranteeRefiner{
   protected Collection<AbstractionPredicate> getPredicatesForARTElement(
       CounterexampleTraceInfo pInfo, Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement> pInterpolationPoint) {
     return pInfo.getPredicatesForRefinement(pInterpolationPoint.getThird());
-  }
+  }*/
 
 }
 
+  /**
+   * Represents reachability relation between elements in an ART
+   */
+
+}
+
+
+
+class ARTNode{
+
+  private ARTElement  artElement;
+  private ARTNode parent;
+  private Collection<ARTNode> children;
+
+  public ARTNode(ARTElement  artElement){
+    this.artElement = artElement;
+    this.parent = null;
+    this.children = new HashSet<ARTNode>();
+  }
+
+  public ARTElement getArtElement() {
+    return artElement;
+  }
+
+  public ARTNode getParent() {
+    return parent;
+  }
+
+  public Collection<ARTNode> getChildren() {
+    return children;
+  }
+
+  public void setParent(ARTNode pParent) {
+    parent = pParent;
+  }
+
+  public void addChild(ARTNode child) {
+    child.setParent(this);
+    children.add(child);
+  }
+
+  public Collection<ARTElement> getARTSubtree() {
+    Collection<ARTElement> subtree = new HashSet<ARTElement>();
+    subtree.add(artElement);
+    for (ARTNode child : children){
+      subtree.addAll(child.getARTSubtree());
+    }
+    return subtree;
+  }
+
+}

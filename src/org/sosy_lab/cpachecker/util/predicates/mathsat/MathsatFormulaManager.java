@@ -49,6 +49,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.predicate.mathsat")
 public class MathsatFormulaManager implements FormulaManager  {
@@ -58,7 +60,7 @@ public class MathsatFormulaManager implements FormulaManager  {
     + "when computing interpolants we still use the LA solver, "
     + "but encoding variables as ints might still be a good idea: "
     + "we can tighten strict inequalities, and split negated equalities")
-  private boolean useIntegers = false;
+    private boolean useIntegers = false;
 
   @Option(description="use a combination of theories (this is incomplete)")
   private boolean useDtc = false;
@@ -102,12 +104,17 @@ public class MathsatFormulaManager implements FormulaManager  {
   // cache Formula x NumberOfPrimes -> PrimedFormula
   private Map<Pair<Formula, Integer>, Formula> primingCache = new HashMap<Pair<Formula, Integer>, Formula>();
 
+  // Formula -> how many times the variables are primed in the formula
+  private Multimap<Formula, Integer> howManyPrimesCache = HashMultimap.create();
+
   //
   private Map<Formula, Integer> atomCountingCache = new HashMap<Formula, Integer>();
 
 
   private final Formula trueFormula;
   private final Formula falseFormula;
+
+
 
   private static MathsatFormulaManager    fManager;
 
@@ -481,7 +488,7 @@ public class MathsatFormulaManager implements FormulaManager  {
     long t = getTerm(atom);
 
     String repr = (msat_term_is_atom(t) != 0)
-                    ? msat_term_repr(t) : ("#" + msat_term_id(t));
+    ? msat_term_repr(t) : ("#" + msat_term_id(t));
     long d = msat_declare_variable(msatEnv, "\"PRED" + repr + "\"", MSAT_BOOL);
     long var = msat_make_variable(msatEnv, d);
 
@@ -493,7 +500,7 @@ public class MathsatFormulaManager implements FormulaManager  {
     return msat_to_msat(msatEnv, getTerm(f));
   }
 
-/* Method for converting MSAT format to NUSMV format.
+  /* Method for converting MSAT format to NUSMV format.
   public String printNusmvFormat(Formula f, Set<Formula> preds) {
 
     StringBuilder out = new StringBuilder();
@@ -521,7 +528,7 @@ public class MathsatFormulaManager implements FormulaManager  {
     }
     return out.toString();
   }
-*/
+   */
 
   @Override
   public Formula parseInfix(String s) {
@@ -775,7 +782,7 @@ public class MathsatFormulaManager implements FormulaManager  {
         }
 
       } else if (conjunctionsOnly
-            && !((msat_term_is_not(t) != 0) || (msat_term_is_and(t) != 0))) {
+          && !((msat_term_is_not(t) != 0) || (msat_term_is_and(t) != 0))) {
         // conjunctions only, but formula is neither "not" nor "and"
         // treat this as atomic
         atoms.add(uninstantiate(tt));
@@ -820,6 +827,56 @@ public class MathsatFormulaManager implements FormulaManager  {
     return res;
   }
 
+
+  // gives the number of times that the variables in the formula are prime
+  // works only on unistanitated variables
+  public Collection<Integer> howManyPrimes(Formula f){
+    // TODO caching
+    Multimap<Formula, Integer> cache = this.howManyPrimesCache;
+    Deque<Formula> toProcess = new ArrayDeque<Formula>();
+
+    toProcess.push(f);
+    while (!toProcess.isEmpty()) {
+      final Formula tt = toProcess.peek();
+      if (cache.containsKey(f)) {
+        toProcess.pop();
+        continue;
+      }
+      final long t = getTerm(tt);
+
+      if (msat_term_is_variable(t) != 0) {
+        Pair<String, Integer> data = PathFormula.getPrimeData(msat_term_repr(t));
+        cache.put(tt, data.getSecond());
+        toProcess.pop();
+      }
+      else if(msat_term_is_number(t) != 0) {
+        cache.put(tt, 0);
+        toProcess.pop();
+      }
+      else {
+        boolean childrenDone = true;
+        int arity = msat_term_arity(t);
+        Collection<Integer> primes = new HashSet<Integer>();
+        for (int i = 0; i < arity; ++i) {
+          Formula c = encapsulate(msat_term_get_arg(t, i));
+          Collection<Integer> cachedResult = cache.get(c);
+          if (!cachedResult.isEmpty()) {
+            primes.addAll(cachedResult);
+          } else {
+            toProcess.push(c);
+            childrenDone = false;
+          }
+        }
+
+        if (childrenDone) {
+          toProcess.pop();
+          cache.putAll(tt, primes);
+        }
+      }
+    }
+
+    return cache.get(f);
+  }
 
   @Override
   // primed the variables inside the formula given number of times

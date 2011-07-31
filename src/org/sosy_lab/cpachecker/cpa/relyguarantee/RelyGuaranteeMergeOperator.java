@@ -119,10 +119,10 @@ public class RelyGuaranteeMergeOperator extends PredicateMergeOperator {
         RelyGuaranteePathFormulaBuilder mergedBuilder = elem1.getPathBuilder().mergeWith(elem2.getPathBuilder());
 
         if(doAbstraction(pathFormula)){
-          merged = new RelyGuaranteeAbstractElement.ComputeAbstractionElement(pathFormula, elem1.getAbstractionFormula(), loc, mergedBuilder);
+          merged = new RelyGuaranteeAbstractElement.ComputeAbstractionElement(pathFormula, elem1.getAbstractionFormula(), loc, mergedBuilder, this.cpa.getThreadId());
         }
         else {
-          merged = new RelyGuaranteeAbstractElement(pathFormula, elem1.getAbstractionFormula(), mergedBuilder);
+          merged = new RelyGuaranteeAbstractElement(pathFormula, elem1.getAbstractionFormula(), mergedBuilder, this.cpa.getThreadId());
         }
 
 

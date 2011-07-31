@@ -89,7 +89,7 @@ public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustme
 
     PathFormula pathByBuilder = null;
     try {
-      pathByBuilder = this.cpa.getPathFormulaConstructor().constructFromEdges(element.getPathBuilder(), 0);
+      pathByBuilder = this.cpa.getPathFormulaConstructor().constructFromEdges(element.getPathBuilder());
     } catch (CPATransferException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
@@ -125,7 +125,7 @@ public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustme
 
 
     RelyGuaranteePathFormulaBuilder freshBuilder = this.pathFormulaConstructor.createEmpty(pathFormula);
-    return new RelyGuaranteeAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula, element.getParentEdge(), freshBuilder, element.getPathBuilder());
+    return new RelyGuaranteeAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula, element.getParentEdge(), freshBuilder, element.getPathBuilder(), this.cpa.getThreadId());
   }
 
   @Override

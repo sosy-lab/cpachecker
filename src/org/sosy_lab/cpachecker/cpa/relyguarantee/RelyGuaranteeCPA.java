@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatInterpolatingProve
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.YicesTheoremProver;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
 
 
@@ -180,7 +181,7 @@ public class RelyGuaranteeCPA extends PredicateCPA{
 
     this.transfer = new RelyGuaranteeTransferRelation(this);
 
-    this.topElement = new RelyGuaranteeAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null), pathFormulaConstructor.createEmpty(), pathFormulaConstructor.createEmpty());
+    this.topElement = new RelyGuaranteeAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null), pathFormulaConstructor.createEmpty(), pathFormulaConstructor.createEmpty(), tid);
     this.domain = new RelyGuaranteeAbstractDomain(this);
 
     this.merge = new RelyGuaranteeMergeOperator(this);
@@ -209,17 +210,13 @@ public class RelyGuaranteeCPA extends PredicateCPA{
         logger.log(Level.WARNING, "Could not read predicates from file", predicatesFile,
             "(" + e.getMessage() + ")");
       }
-    }
-
-    if (checkBlockFeasibility) {
-      AbstractionPredicate p = this.predicateManager.makeFalsePredicate();
-      if (predicates == null) {
-        predicates = ImmutableSet.of(p);
-      } else {
-        predicates.add(p);
-      }
     }*/
 
+    /*if (checkBlockFeasibility) {
+      AbstractionPredicate p = this.predicateManager.makeFalsePredicate();
+      predicates = ImmutableSet.of(p);
+      predicates.add(p);
+    }*/
 
     // hardcode predicates
     this.initialPrecision= new RelyGuaranteePrecision(predicates);
@@ -283,6 +280,17 @@ public class RelyGuaranteeCPA extends PredicateCPA{
             "(" + e.getMessage() + ")");
       }
     }
+
+    if (checkBlockFeasibility) {
+      AbstractionPredicate p = predicateManager.makeFalsePredicate();
+      if (predicates == null) {
+        predicates = ImmutableSet.of(p);
+      } else {
+        predicates.add(p);
+      }
+    }
+    // TODO make-shift solution
+    this.topElement = new RelyGuaranteeAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null), pathFormulaConstructor.createEmpty(), pathFormulaConstructor.createEmpty(), tid);
 
     this.initialPrecision= new RelyGuaranteePrecision(predicates);
 
