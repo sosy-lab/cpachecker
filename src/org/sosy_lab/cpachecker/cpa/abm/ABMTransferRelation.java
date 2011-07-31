@@ -24,7 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.abm;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.cpachecker.util.AbstractElements.*;
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractElements.isTargetElement;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -80,10 +81,15 @@ public class ABMTransferRelation implements TransferRelation {
     private final Object wrappedHash;
     private final Block context;
 
-    public AbstractElementHash(Object pWrappedHash,
-        Block pContext) {
-      wrappedHash = checkNotNull(pWrappedHash);
+    private final AbstractElement predicateKey;
+    private final Precision precisionKey;
+
+    public AbstractElementHash(AbstractElement pPredicateKey, Precision pPrecisionKey, Block pContext) {
+      wrappedHash = wrappedReducer.getHashCodeForElement(pPredicateKey, pPrecisionKey);
       context = checkNotNull(pContext);
+
+      predicateKey = pPredicateKey;
+      precisionKey = pPrecisionKey;
     }
 
     @Override
@@ -119,7 +125,7 @@ public class ABMTransferRelation implements TransferRelation {
     private AbstractElementHash getHashCode(AbstractElement predicateKey,
         Precision precisionKey, Block context) {
 
-      return new AbstractElementHash(wrappedReducer.getHashCodeForElement(predicateKey, precisionKey), context);
+      return new AbstractElementHash(predicateKey, precisionKey, context);
     }
 
     private V put(AbstractElement predicateKey, Precision precisionKey, Block context, V item) {
@@ -136,6 +142,26 @@ public class ABMTransferRelation implements TransferRelation {
 
     private V get(AbstractElement predicateKey, Precision precisionKey, Block context) {
       return cache.get(getHashCode(predicateKey, precisionKey, context));
+    }
+
+    private void findCacheMissCause(AbstractElement pPredicateKey, Precision pPrecisionKey, Block pContext) {
+      AbstractElementHash searchKey = getHashCode(pPredicateKey, pPrecisionKey, pContext);
+      for(AbstractElementHash cacheKey : cache.keySet()) {
+        assert !searchKey.equals(cacheKey);
+        //searchKey != cacheKey, check whether it is the same if we ignore the precision
+        AbstractElementHash ignorePrecisionSearchKey = getHashCode(pPredicateKey, cacheKey.precisionKey, pContext);
+        if(ignorePrecisionSearchKey.equals(cacheKey)) {
+          precisionCausedMisses++;
+          return;
+        }
+        //precision was not the cause. Check abstraction.
+        AbstractElementHash ignoreAbsSearchKey = getHashCode(cacheKey.predicateKey, pPrecisionKey, pContext);
+        if(ignoreAbsSearchKey.equals(cacheKey)) {
+          abstractionCausedMisses++;
+          return;
+        }
+      }
+      noSimilarCausedMisses++;
     }
 
     private void clear() {
@@ -160,10 +186,16 @@ public class ABMTransferRelation implements TransferRelation {
   private Map<AbstractElement, Precision> forwardPrecisionToExpandedPrecision;
 
   //Stats
+  @Option(description="if enabled, the reached set cache is analysed for each cache miss to find the cause of the miss.")
+  boolean gatherCacheMissStatistics = false;
   int cacheMisses = 0;
   int partialCacheHits = 0;
   int fullCacheHits = 0;
   int maxRecursiveDepth = 0;
+  int abstractionCausedMisses = 0;
+  int precisionCausedMisses = 0;
+  int noSimilarCausedMisses = 0;
+
   final Timer hashingTimer = new Timer();
   final Timer equalsTimer = new Timer();
   final Timer recomputeARTTimer = new Timer();
@@ -321,6 +353,11 @@ public class ABMTransferRelation implements TransferRelation {
       } else {
         //compute the subgraph specification from scratch
         cacheMisses++;
+
+        if(gatherCacheMissStatistics) {
+          subgraphReachCache.findCacheMissCause(reducedInitialElement, reducedInitialPrecision, currentBlock);
+        }
+
         reached = createInitialReachedSet(reducedInitialElement, reducedInitialPrecision);
         subgraphReachCache.put(reducedInitialElement, reducedInitialPrecision, currentBlock, reached);
       }
