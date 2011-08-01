@@ -101,10 +101,10 @@ public class RestartWithConditionsAlgorithm implements Algorithm, StatisticsProv
     }
   }
 
-  private void adjustThreshold(AbstractElement pParent, ReachedSet pReached) {
+  private boolean adjustThreshold(AbstractElement pParent, ReachedSet pReached) {
     //ProgressObserverElement observerElement = AbstractElements.extractElementByType(pParent, ProgressObserverElement.class);
     ProgressObserverPrecision observerPrecision = Precisions.extractPrecisionByType(pReached.getPrecision(pParent), ProgressObserverPrecision.class);
-    observerPrecision.adjustPrecisions();
+    return observerPrecision.adjustPrecisions();
 //    pReached.updatePrecision(pParent, adaptPrecision(pParent, observerPrecision, pReached));
   }
 

@@ -21,34 +21,12 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver;
-
-import java.util.ArrayList;
-import java.util.List;
+package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.heuristics;
 
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.heuristics.HeuristicPrecision;
 
-public class ProgressObserverPrecision implements Precision {
+public interface HeuristicPrecision extends Precision {
 
-  private final List<Precision> precisions;
-
-  public ProgressObserverPrecision() {
-    this.precisions = new ArrayList<Precision>();
-  }
-
-  public void addPrecision(Precision precision){
-    precisions.add(precision);
-  }
-
-  public boolean adjustPrecisions(){
-    boolean precisionAdjusted = false;
-    for(Precision pre: precisions){
-      if(pre instanceof HeuristicPrecision){
-        precisionAdjusted |= ((HeuristicPrecision)pre).adjustPrecision();
-      }
-    }
-    return precisionAdjusted;
-  }
+  public boolean adjustPrecision();
 
 }

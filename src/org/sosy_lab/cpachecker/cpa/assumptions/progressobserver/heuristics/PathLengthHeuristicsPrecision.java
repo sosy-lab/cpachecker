@@ -28,10 +28,9 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 @Options(prefix="cpa.assumptions.progressobserver.heuristics.pathLengthHeuristics")
-public class PathLengthHeuristicsPrecision implements Precision {
+public class PathLengthHeuristicsPrecision implements HeuristicPrecision {
 
   @Option(description = "threshold for heuristics of progressobserver")
   private int threshold = -1;
@@ -47,6 +46,11 @@ public class PathLengthHeuristicsPrecision implements Precision {
 
   public void setThreshold(int pThreshold) {
     threshold = pThreshold;
+  }
+
+  @Override
+  public boolean adjustPrecision() {
+    return false;
   }
 
 }
