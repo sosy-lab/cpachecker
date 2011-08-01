@@ -6,6 +6,7 @@ import sys
 import time
 import shutil
 import optparse
+import subprocess
 try:
     import json
 except ImportError:
@@ -45,7 +46,23 @@ class Template(object):
 def call_dot(infile, outpath):
     (basefilename, ext) = os.path.splitext(os.path.basename(infile))
     outfile = os.path.join(outpath, basefilename + '.svg')
-    code = os.system('dot -Nfontsize=10 -Efontsize=10 -Efontname="Courier New" -Tsvg -o %s %s' % (outfile, infile))
+    print ('   generating ' + infile)
+
+    code = 0
+    try:
+        p = subprocess.Popen(['dot', '-Nfontsize=10', '-Efontsize=10',
+                              '-Efontname=Courier New', '-Tsvg', '-o',
+                              outfile, infile], stdout=subprocess.PIPE)
+        code = p.wait()
+    except KeyboardInterrupt: # strg + c
+        print ('   skipping ' + infile)
+        p.terminate()
+
+        try:
+            os.remove(outfile) # sometimes outfile is written half, so cleanup
+        except OSError:
+            pass # if outfile is not written, removing is impossible
+
     if code != 0:
         print 'Error: Could not call GraphViz to create graph %s (error code %d)' % (outfile, code)
         print 'Report generation failed'
