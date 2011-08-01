@@ -1169,7 +1169,12 @@ if __name__ == "__main__":
     except LookupError as e:
         print(e)
     except KeyboardInterrupt:
-        timer.cancel() # Timer, that kills a subprocess after timelimit
+
+        try:
+            timer.cancel() # Timer, that kills a subprocess after timelimit
+        except NameError:
+            pass # if no timer is defined, do nothing
+
         interruptMessage = "\n\nscript was interrupted by user, some tests may not be done"
         logging.debug(interruptMessage)
 
