@@ -267,6 +267,9 @@ public class RelyGuaranteeRefiner{
         for (ARTElement artElement : node.getARTSubtree()){
           // add old precision of the nodes below the cut-off node
           Precision oldPrecision = reachedSets[tid].getPrecision(artElement);
+          if (!reachedSets[tid].contains(artElement)){
+            System.out.println();
+          }
           RelyGuaranteePrecision oldRgPrecision = Precisions.extractPrecisionByType(oldPrecision, RelyGuaranteePrecision.class);
           pmapBuilder.putAll(oldRgPrecision.getPredicateMap());
 

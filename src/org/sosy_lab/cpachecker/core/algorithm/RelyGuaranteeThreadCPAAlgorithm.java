@@ -244,6 +244,10 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
               "elements from reached set for merge");
           for (AbstractElement reachedElement : reached) {
 
+            int succ = ((ARTElement)successor).getElementId();
+            if (succ == 642 || succ == 639 || succ == 662 || succ == 659){
+              System.out.println();
+            }
 
 
             mergedElement = mergeOperator.merge(successor, reachedElement,successorPrecision);
@@ -265,6 +269,16 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
               // the sucessor is subsummed by the merged element, but after abstraction of the merged element, this may not be detected
               successorMerged = true;
               // check if the merged element is covered
+
+              // check
+              RelyGuaranteeAbstractElement rSucc = AbstractElements.extractElementByType(successor, RelyGuaranteeAbstractElement.class);
+              RelyGuaranteeAbstractElement rReached = AbstractElements.extractElementByType(successor, RelyGuaranteeAbstractElement.class);
+              RelyGuaranteeAbstractElement rMerged = AbstractElements.extractElementByType(successor, RelyGuaranteeAbstractElement.class);
+              if (rSucc.getAbstractionFormula().equals(rReached.getAbstractionFormula()) && !rSucc.getAbstractionFormula().equals(rMerged.getAbstractionFormula())){
+                System.out.println();
+              }
+
+
               printMerge(successor, reachedElement, precAdjustmentResult.getFirst());
               boolean stop =  stopOperator.stop(mergedElement, reached, mergedPrecision);
 

@@ -172,8 +172,8 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
 
   @Override
-  public PathFormula matchPaths(PathFormula pLocalPF, PathFormula pEnvPF, Set<String> pGlobalVariablesSet) {
-    return delegate.matchPaths(pLocalPF, pEnvPF, pGlobalVariablesSet);
+  public PathFormula matchPaths(PathFormula pLocalPF, PathFormula pEnvPF, Set<String> pGlobalVariablesSet, int offset) {
+    return delegate.matchPaths(pLocalPF, pEnvPF, pGlobalVariablesSet, offset);
   }
 
 

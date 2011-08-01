@@ -210,7 +210,8 @@ public class RelyGuaranteePathFormulaConstructor {
         int offset;
         if (map != null){
           primedEnvPF = map.get(currentB);
-          offset = 0;
+          // TODO : not in every case, but...
+          offset = primedEnvPF.getPrimedNo();
           assert primedEnvPF != null;
         } else {
           // TODO could do better
@@ -219,9 +220,9 @@ public class RelyGuaranteePathFormulaConstructor {
           primedEnvPF = pfManager.primePathFormula(envPF, offset);
         }
         // prime the env. path formula so it does not collide with the local path formula
-        offset++;
+        //offset++;
         // make equalities between the last global values in the local and env. path formula
-        PathFormula matchedPF = pfManager.matchPaths(argumentPF, primedEnvPF, globalVariablesSet);
+        PathFormula matchedPF = pfManager.matchPaths(argumentPF, primedEnvPF, globalVariablesSet, offset);
         // apply the strongest postcondition
         pfManager.inject(rgEdge.getLocalEdge(), globalVariablesSet, offset, primedEnvPF.getSsa());
         PathFormula currentPF = pfManager.makeAnd(matchedPF, rgEdge.getLocalEdge());
@@ -262,7 +263,7 @@ public class RelyGuaranteePathFormulaConstructor {
       int offset = nextPF.getPrimedNo() + 1;
       PathFormula primedEnvPF = pfManager.primePathFormula(envPF, offset);
       // make equalities between the last global values in the local and env. path formula
-      PathFormula matchedPF = pfManager.matchPaths(nextPF, primedEnvPF, globalVariablesSet);
+      PathFormula matchedPF = pfManager.matchPaths(nextPF, primedEnvPF, globalVariablesSet, offset);
       // apply the strongest postcondition
       pfManager.inject(rgEdge.getLocalEdge(), globalVariablesSet, offset, primedEnvPF.getSsa());
       PathFormula finalPF = pfManager.makeAnd(matchedPF, rgEdge.getLocalEdge());

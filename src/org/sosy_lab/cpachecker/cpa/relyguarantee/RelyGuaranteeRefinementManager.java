@@ -704,8 +704,13 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     // convert it into formulas
     List<Formula> interpolationFormulas = new Vector<Formula>(interpolationPathFormulas.size());
     // List<ARTElement> abstractTrace = new Vector<ARTElement>(interpolationPathFormulas.size());
+    System.out.println();
+    System.out.println("Interpolation formulas");
+    int j=0;
     for (InterpolationBlock ib : interpolationPathFormulas){
+      System.out.println("- "+j+" "+ib.getScope()+": "+ib.getPathFormula().getFormula());
       interpolationFormulas.add(ib.getPathFormula().getFormula());
+      j++;
     }
 
 
@@ -824,6 +829,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         refStats.cexAnalysisSolverTimer.start();
         Formula itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_a, i+1));
         // divide new predicates between relevant ART elements
+        System.out.print("- after blk"+i+": "+itp);
         Multimap<ARTElement, AbstractionPredicate> precisionForElements = getPrecisionForElements(itp, interpolationPathFormulas.get(i).getScope());
 
         Multimap<CFANode, AbstractionPredicate> printingMap = HashMultimap.create();
@@ -831,7 +837,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
           CFANode node = AbstractElements.extractLocation(artElement);
           printingMap.putAll(node, precisionForElements.get(artElement));
         }
-        System.out.println("- "+i+": "+itp+" scope: "+printingMap);
+        System.out.println(" scope: "+printingMap);
 
         refStats.cexAnalysisSolverTimer.stop();
 
@@ -981,6 +987,11 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         if (prime > 0){
           assert itp.toString().contains("^"+prime);
         };
+      }
+      for (int i=1; i<10;i++){
+        if (!scopeMap.keySet().contains(i)){
+          assert !itp.toString().contains("^"+i);
+        }
       }
 
       Formula unprimedAtom = fmgr.unprimeFormula(atom);

@@ -68,8 +68,7 @@ public interface PathFormulaManager {
 
   PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM);
 
-
-  PathFormula matchPaths(PathFormula localPF, PathFormula envPF, Set<String> globalVariablesSet);
+  PathFormula matchPaths(PathFormula localPF, PathFormula envPF, Set<String> globalVariablesSet, int offset);
 
   PathFormula buildEqualitiesOverVariables(PathFormula pf1, PathFormula pf2, Set<String> variableSet);
 
