@@ -79,8 +79,15 @@ public class RestartWithConditionsAlgorithm implements Algorithm, StatisticsProv
 
       // if there are elements that an assumption is generated for
       if(elementsWithAssumptions.size() > 0) {
-        restartCPA = false;
-        adjustThresholds(elementsWithAssumptions, pReached);
+        // if any of the elements' threshold is adjusted
+        if(adjustThresholds(elementsWithAssumptions, pReached)){
+          restartCPA = true;
+        }
+        // no elements adjusted but there are elements with assumptions
+        // the analysis should report UNSOUND
+        else{
+          sound = false;
+        }
       }
 
     } while (restartCPA);
@@ -88,17 +95,18 @@ public class RestartWithConditionsAlgorithm implements Algorithm, StatisticsProv
     return sound;
   }
 
-  private void adjustThresholds(List<AbstractElement> pElementsWithAssumptions, ReachedSet pReached) {
-
+  private boolean adjustThresholds(List<AbstractElement> pElementsWithAssumptions, ReachedSet pReached) {
+    boolean precisionAdjusted = false;
     for(AbstractElement e: pElementsWithAssumptions){
       ARTElement artElement = (ARTElement)e;
       Set<ARTElement> parents = artElement.getParents();
       pReached.remove(e);
       for(AbstractElement parent: parents){
-        adjustThreshold(parent, pReached);
+        precisionAdjusted |= adjustThreshold(parent, pReached);
         pReached.reAddToWaitlist(parent);
       }
     }
+    return precisionAdjusted;
   }
 
   private boolean adjustThreshold(AbstractElement pParent, ReachedSet pReached) {

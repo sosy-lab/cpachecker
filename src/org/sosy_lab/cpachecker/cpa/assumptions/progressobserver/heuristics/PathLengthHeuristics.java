@@ -23,11 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.heuristics;
 
+import java.io.PrintStream;
+import java.util.Collection;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ReachedHeuristicsDataSetView;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristics;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsData;
@@ -37,13 +44,29 @@ import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsDa
  * If the given threshold is exceed, it returns bottom and the assumption
  * collector algorithm is notified.
  */
-public class PathLengthHeuristics implements StopHeuristics<PathLengthHeuristicsData>{
+public class PathLengthHeuristics implements StopHeuristics<PathLengthHeuristicsData>, StatisticsProvider{
+
+  class PathLengthHeuristicsStatistics implements Statistics {
+
+    @Override
+    public String getName() {
+      return "Path Length Heuristics Statistics";
+    }
+
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult,
+        ReachedSet pReached) {
+      pOut.println("Maximum length of a path: " + PathLengthHeuristicsData.maxLenghtOfPath);
+    }
+  }
 
   public PathLengthHeuristicsPrecision precision;
+  public PathLengthHeuristicsStatistics stats;
 
   public PathLengthHeuristics(Configuration config, LogManager logger)
       throws InvalidConfigurationException{
     precision = new PathLengthHeuristicsPrecision(config, logger);
+    stats = new PathLengthHeuristicsStatistics();
   }
 
   @Override
@@ -61,6 +84,11 @@ public class PathLengthHeuristics implements StopHeuristics<PathLengthHeuristics
   public PathLengthHeuristicsData processEdge(StopHeuristicsData pData,
       CFAEdge pEdge) {
     return ((PathLengthHeuristicsData)pData).updateForEdge(pData, precision.getThreshold());
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
   }
 
 }

@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import org.sosy_lab.common.Classes;
@@ -40,13 +41,15 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 import com.google.common.collect.ImmutableList;
 
 @Options(prefix="cpa.assumptions.progressobserver")
-public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
+public class ProgressObserverCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ProgressObserverCPA.class);
@@ -141,6 +144,15 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
 
   public LogManager getLogger() {
     return logger;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    for (StopHeuristics<?> heuristic: enabledHeuristics) {
+      if (heuristic instanceof StatisticsProvider) {
+        ((StatisticsProvider)heuristic).collectStatistics(pStatsCollection);
+      }
+    }
   }
 
 }
