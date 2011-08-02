@@ -173,7 +173,6 @@ public class RelyGuaranteePathFormulaConstructor {
       else if (builder instanceof RelyGuaranteeEnvTransitionBuilder){
         RelyGuaranteeEnvTransitionBuilder currentB = (RelyGuaranteeEnvTransitionBuilder) builder;
         RelyGuaranteePathFormulaBuilder nextB = currentB.getBuilder();
-        RelyGuaranteeCFAEdge rgEdge = currentB.getEnvEdge();
         stack.addFirst(nextB);
       }
       else if (builder instanceof RelyGuaranteeMergeBuilder){
@@ -212,7 +211,6 @@ public class RelyGuaranteePathFormulaConstructor {
           primedEnvPF = map.get(currentB);
           // TODO : not in every case, but...
           offset = primedEnvPF.getPrimedNo();
-          assert primedEnvPF != null;
         } else {
           // TODO could do better
           PathFormula envPF = currentB.getEnvEdge().getPathFormula();
@@ -231,7 +229,7 @@ public class RelyGuaranteePathFormulaConstructor {
       else if (builder instanceof RelyGuaranteeMergeBuilder){
         PathFormula argumentPF1 = arguments.removeFirst();
         PathFormula argumentPF2 = arguments.removeFirst();
-        PathFormula currentPF = pfManager.makeOr(argumentPF1, argumentPF2);
+        PathFormula currentPF = pfManager.makeRelyGuaranteeOr(argumentPF1, argumentPF2);
         arguments.addFirst(currentPF);
       }
     }

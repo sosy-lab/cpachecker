@@ -46,6 +46,8 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
   private Set<String> globalVariablesSet;
 
+  private PathFormula falsePathFormula;
+
   private static  PathFormulaManager pfManager;
 
   public static PathFormulaManager getInstance(FormulaManager pFmgr, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
@@ -57,6 +59,8 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
   public PathFormulaManagerImpl(FormulaManager pFmgr, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     super(config, pFmgr, pLogger);
+    SSAMapBuilder emptyBuilder = SSAMap.emptySSAMap().builder();
+    falsePathFormula = new PathFormula(fmgr.makeFalse(), emptyBuilder.build(), 0);
   }
 
 
@@ -126,6 +130,31 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     return new PathFormula(newFormula, newSsa, newLength, max_prime);
   }
 
+
+  public PathFormula makeRelyGuaranteeOr(PathFormula pF1, PathFormula pF2) {
+    Formula formula1 = pF1.getFormula();
+    Formula formula2 = pF2.getFormula();
+    SSAMap ssa1 = pF1.getSsa();
+    SSAMap ssa2 = pF2.getSsa();
+
+    Pair<Pair<Formula, Formula>,SSAMap> pm = mergeRelyGuaranteeSSAMaps(ssa2, ssa1);
+
+    // do not swap these two lines, that makes a huge difference in performance!
+    Formula newFormula2 = fmgr.makeAnd(formula2, pm.getFirst().getFirst());
+    Formula newFormula1 = fmgr.makeAnd(formula1, pm.getFirst().getSecond());
+
+    Formula newFormula = fmgr.makeOr(newFormula1, newFormula2);
+    SSAMap newSsa = pm.getSecond();
+
+    int newLength = Math.max(pF1.getLength(), pF2.getLength());
+    int max_prime = Math.max(pF1.getPrimedNo(), pF2.getPrimedNo());
+
+
+    return new PathFormula(newFormula, newSsa, newLength, max_prime);
+  }
+
+
+
   // TODO added for RelyGuarantee
   @Override
   public PathFormula makeAnd(PathFormula pPathFormula, Formula pOtherFormula) {
@@ -157,7 +186,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
    * @return A pair (Formula, SSAMap)
    */
   public Pair<Pair<Formula, Formula>, SSAMap> mergeSSAMaps(
-      SSAMap ssa1, SSAMap ssa2) {
+    SSAMap ssa1, SSAMap ssa2) {
     SSAMap result = SSAMap.merge(ssa1, ssa2);
     Formula mt1 = fmgr.makeTrue();
     Formula mt2 = fmgr.makeTrue();
@@ -221,6 +250,81 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
     return Pair.of(Pair.of(mt1, mt2), result);
   }
+
+
+  // like mergeSSAMaps, but equivalences are not build over primed variables
+  private Pair<Pair<Formula, Formula>, SSAMap> mergeRelyGuaranteeSSAMaps(SSAMap ssa1, SSAMap ssa2) {
+
+    SSAMap result = SSAMap.merge(ssa1, ssa2);
+    Formula mt1 = fmgr.makeTrue();
+    Formula mt2 = fmgr.makeTrue();
+
+    for (String var : result.allVariables()) {
+      // don't buid equalities over primed varables
+      if (PathFormula.getPrimeData(var).getSecond() > 0) {
+        continue;
+      }
+      if (var.equals(CtoFormulaConverter.NONDET_VARIABLE)) {
+        continue; // do not add index adjustment terms for __nondet__
+      }
+      int i1 = ssa1.getIndex(var);
+      int i2 = ssa2.getIndex(var);
+
+      if (i1 > i2 && i1 > 1) {
+        // i2:smaller, i1:bigger
+        // => need correction term for i2
+        Formula t;
+
+        if (useNondetFlags && var.equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
+          t = makeNondetFlagMerger(Math.max(i2, 1), i1);
+        }
+        else {
+          t = makeSSAMerger(var, Math.max(i2, 1), i1);
+        }
+
+        mt2 = fmgr.makeAnd(mt2, t);
+
+      } else if (i1 < i2 && i2 > 1) {
+        // i1:smaller, i2:bigger
+        // => need correction term for i1
+        Formula t;
+
+        if (useNondetFlags && var.equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
+          t = makeNondetFlagMerger(Math.max(i1, 1), i2);
+        }
+        else {
+          t = makeSSAMerger(var, Math.max(i1, 1), i2);
+        }
+
+        mt1 = fmgr.makeAnd(mt1, t);
+      }
+    }
+
+    for (Pair<String, FormulaList> f : result.allFunctions()) {
+      String name = f.getFirst();
+      FormulaList args = f.getSecond();
+      int i1 = ssa1.getIndex(f);
+      int i2 = ssa2.getIndex(f);
+
+      if (i1 > i2 && i1 > 1) {
+        // i2:smaller, i1:bigger
+        // => need correction term for i2
+        Formula t = makeSSAMerger(name, args, Math.max(i2, 1), i1);
+        mt2 = fmgr.makeAnd(mt2, t);
+
+      } else if (i1 < i2 && i2 > 1) {
+        // i1:smaller, i2:bigger
+        // => need correction term for i1
+        Formula t = makeSSAMerger(name, args, Math.max(i1, 1), i2);
+        mt1 = fmgr.makeAnd(mt1, t);
+      }
+    }
+
+    return Pair.of(Pair.of(mt1, mt2), result);
+  }
+
+
+
 
   private Formula makeNondetFlagMerger(int iSmaller, int iBigger) {
     return makeMerger(CtoFormulaConverter.NONDET_FLAG_VARIABLE, iSmaller, iBigger, fmgr.makeNumber(0));
@@ -429,6 +533,11 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
       newSsa.setIndex(var, nidx);
     }
     return new PathFormula(f, newSsa.build(), pNewPF.getLength());
+  }
+
+  @Override
+  public PathFormula makeFalsePathFormula() {
+    return falsePathFormula;
   }
 
 

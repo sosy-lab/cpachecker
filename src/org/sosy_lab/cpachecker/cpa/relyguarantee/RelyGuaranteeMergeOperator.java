@@ -81,7 +81,6 @@ public class RelyGuaranteeMergeOperator extends PredicateMergeOperator {
                                AbstractElement element2, Precision precision) {
 
 
-
     RelyGuaranteeAbstractElement elem1 = (RelyGuaranteeAbstractElement)element1;
     RelyGuaranteeAbstractElement elem2 = (RelyGuaranteeAbstractElement)element2;
 
@@ -102,7 +101,7 @@ public class RelyGuaranteeMergeOperator extends PredicateMergeOperator {
 
         logger.log(Level.FINEST, "Merging two non-abstraction nodes.");
 
-        PathFormula pathFormula = formulaManager.makeOr(elem1.getPathFormula(), elem2.getPathFormula());
+        PathFormula pathFormula = formulaManager.makeRelyGuaranteeOr(elem1.getPathFormula(), elem2.getPathFormula());
 
         logger.log(Level.ALL, "New path formula is", pathFormula);
 
@@ -117,8 +116,9 @@ public class RelyGuaranteeMergeOperator extends PredicateMergeOperator {
         RelyGuaranteeFormulaTemplate mergedTemplate = new RelyGuaranteeFormulaTemplate(mergedTemplatePF, mergedL);*/
 
         RelyGuaranteePathFormulaBuilder mergedBuilder = elem1.getPathBuilder().mergeWith(elem2.getPathBuilder());
-
-        if(doAbstraction(pathFormula)){
+        System.out.println("--> Mege formula "+pathFormula);
+        if(false){
+        //if(doAbstraction(pathFormula)){
           merged = new RelyGuaranteeAbstractElement.ComputeAbstractionElement(pathFormula, elem1.getAbstractionFormula(), loc, mergedBuilder, this.cpa.getThreadId());
         }
         else {

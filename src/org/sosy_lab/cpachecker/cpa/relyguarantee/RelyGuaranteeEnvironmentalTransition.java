@@ -91,10 +91,13 @@ public class RelyGuaranteeEnvironmentalTransition {
     if (! this.getEdge().equals(other.getEdge())) {
       return false;
     }
-    if (! this.getFormula().equals(other.getFormula())){
+    if (! this.formula.equals(other.formula)){
       return false;
     }
-    if (! this.getPathFormula().equals(other.getPathFormula())){
+    if (! this.pathFormula.equals(other.pathFormula)){
+      return false;
+    }
+    if (! this.sourceARTElement.equals(other.sourceARTElement)){
       return false;
     }
     return true;

@@ -141,7 +141,7 @@ public class RelyGuaranteeRefiner{
       }
     }
 
-    assert pPath.getLast().getFirst() == result.get(result.size()-1).getFirst();
+    //assert pPath.getLast().getFirst() == result.get(result.size()-1).getFirst();
     return result;
   }
 
@@ -175,24 +175,24 @@ public class RelyGuaranteeRefiner{
       System.out.println("\t\t --- Lazy abstraction ---");
       Multimap<Integer, Pair<ARTElement, RelyGuaranteePrecision>> refinementResult = performRefinement(reachedSets, mCounterexampleTraceInfo, errorThr);
 
-      // remove unprocessed environmental edges produced in a drop ART subtree
       environment.printUnprocessedTransitions();
-      for(Pair<ARTElement, RelyGuaranteePrecision> pair : refinementResult.get(errorThr)){
-        ARTElement root = pair.getFirst();
-        // remove environmental transition that belong to the removed subtree of the ART and haven't been processed
-        environment.removeUnprocessedTransitionsFromElement(root);
-      }
-      // process the remaining environmental transition
-      environment.processEnvTransitions(errorThr);
-
       // drop subtrees and change precision
+      System.out.println();
       for(int tid : refinementResult.keySet()){
-        for(Pair<ARTElement, RelyGuaranteePrecision> pair : refinementResult.get(errorThr)){
+        for(Pair<ARTElement, RelyGuaranteePrecision> pair : refinementResult.get(tid)){
           ARTElement root = pair.getFirst();
+          System.out.println("Removing subtree rooted at id:"+root.getElementId()+" at thread: "+tid);
+          // kill the env transitions that were generated in the drop ARTs
+          // if they killed transitions covered some other transitions, then make them valid again
+          environment.killEnvironmetalEdges(root);
+          // drop cut-off node in every thread
           RelyGuaranteePrecision precision = pair.getSecond();
           artReachedSets[tid].removeSubtree(root, precision);
         }
       }
+      // process the remaining environmental transition
+
+      environment.processEnvTransitions(errorThr);
 
       return true;
     } else {
@@ -236,11 +236,14 @@ public class RelyGuaranteeRefiner{
       }
       List<ARTNode> covered = new Vector<ARTNode>(artElements.size());
       for (ARTNode nodeA : nodes){
-        for  (ARTNode nodeB : nodes){
-          if (nodeA != nodeB && !covered.contains(nodeB)){
-            if (belongsToProperSubtree(nodeA.getArtElement(),nodeB.getArtElement())){
-              nodeA.addChild(nodeB);
-              covered.add(nodeB);
+        Collection<AbstractionPredicate> preds = info.getPredicatesForRefinement(nodeA.getArtElement());
+        if (!preds.isEmpty()){
+          for  (ARTNode nodeB : nodes){
+            if (nodeA != nodeB && !covered.contains(nodeB)){
+              if (belongsToProperSubtree(nodeA.getArtElement(),nodeB.getArtElement())){
+                nodeA.addChild(nodeB);
+                covered.add(nodeB);
+              }
             }
           }
         }
@@ -248,8 +251,9 @@ public class RelyGuaranteeRefiner{
       // ART element unreachable by other elements are the cut-off node
       Vector<ARTNode> cutoffNodes = new Vector<ARTNode>();
       for (ARTNode node : nodes){
-        if (node.getParent() == null){
-          cutoffNodes.add(node);
+        Collection<AbstractionPredicate> preds = info.getPredicatesForRefinement(node.getArtElement());
+        if (node.getParent() == null && !preds.isEmpty()){
+            cutoffNodes.add(node);
         }
       }
 
@@ -266,6 +270,7 @@ public class RelyGuaranteeRefiner{
         }
         for (ARTElement artElement : node.getARTSubtree()){
           // add old precision of the nodes below the cut-off node
+          System.out.println("Getting element "+artElement.getElementId());
           Precision oldPrecision = reachedSets[tid].getPrecision(artElement);
           if (!reachedSets[tid].contains(artElement)){
             System.out.println();
@@ -479,6 +484,10 @@ class ARTNode{
      reached.add(child.getArtElement());
     }
     return reached;
+  }
+
+  public String toString() {
+    return ""+artElement.getElementId();
   }
 
 }

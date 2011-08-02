@@ -211,8 +211,8 @@ public class RelyGuaranteeCPA extends PredicateCPA{
             "(" + e.getMessage() + ")");
       }
     }*/
-
-    /*if (checkBlockFeasibility) {
+/*
+    if (checkBlockFeasibility) {
       AbstractionPredicate p = this.predicateManager.makeFalsePredicate();
       predicates = ImmutableSet.of(p);
       predicates.add(p);

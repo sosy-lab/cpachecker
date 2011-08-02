@@ -598,7 +598,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         // remember the remaining blocks
         envRestMap.put(envBuilder, envPF);
         // extend the scope this env. transition
-        scope.addAll(lastBlock.getScope());
+        // scope.addAll(lastBlock.getScope());
         offset = newOffset;
       }
 
@@ -830,14 +830,17 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         Formula itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_a, i+1));
         // divide new predicates between relevant ART elements
         System.out.print("- after blk"+i+": "+itp);
-        Multimap<ARTElement, AbstractionPredicate> precisionForElements = getPrecisionForElements(itp, interpolationPathFormulas.get(i).getScope());
+         Map<ARTElement, Set<AbstractionPredicate>> precisionForElements = getPrecisionForElements(itp, interpolationPathFormulas.get(i).getScope());
 
         Multimap<CFANode, AbstractionPredicate> printingMap = HashMultimap.create();
         for (ARTElement artElement : precisionForElements.keySet()){
-          CFANode node = AbstractElements.extractLocation(artElement);
-          printingMap.putAll(node, precisionForElements.get(artElement));
+          if (!precisionForElements.get(artElement).isEmpty()){
+            CFANode node = AbstractElements.extractLocation(artElement);
+            printingMap.putAll(node, precisionForElements.get(artElement));
+          }
         }
         System.out.println(" scope: "+printingMap);
+
 
         refStats.cexAnalysisSolverTimer.stop();
 
@@ -848,39 +851,32 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         }
 
         for (ARTElement artElement : precisionForElements.keySet()){
-          Collection<AbstractionPredicate> preds = precisionForElements.get(artElement);
+           Set<AbstractionPredicate> preds = precisionForElements.get(artElement);
 
-
-          if (itp.isTrue()) {
-            logger.log(Level.ALL, "For step", i, "got no interpolant.");
-
-          } else {
-            foundPredicates = true;
-
-
-            if (itp.isFalse()) {
-              preds = ImmutableSet.of(amgr.makeFalsePredicate());
-            } else {
+           if (!preds.isEmpty()){
+             foundPredicates = true;
+           }
+          /*else {
               preds = getAtomsAsPredicates(itp);
-            }
-            assert !preds.isEmpty();
-            info.addPredicatesForRefinement(artElement, preds);
+            }*/
+          //assert !preds.isEmpty();
+          info.addPredicatesForRefinement(artElement, preds);
 
-            logger.log(Level.ALL, "For step", i, "got:",
-                "interpolant", itp,
-                "predicates", preds);
+          logger.log(Level.ALL, "For step", i, "got:",
+              "interpolant", itp,
+              "predicates", preds);
 
-            if (dumpInterpolationProblems) {
-              String dumpFile = String.format(formulaDumpFilePattern,
-                  "interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "atoms", i);
-              Collection<Formula> atoms = Collections2.transform(preds,
-                  new Function<AbstractionPredicate, Formula>(){
-                @Override
-                public Formula apply(AbstractionPredicate pArg0) {return pArg0.getSymbolicAtom();}
-              });
-              printFormulasToFile(atoms, new File(dumpFile));
-            }
+          if (dumpInterpolationProblems) {
+            String dumpFile = String.format(formulaDumpFilePattern,
+                "interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "atoms", i);
+            Collection<Formula> atoms = Collections2.transform(preds,
+                new Function<AbstractionPredicate, Formula>(){
+              @Override
+              public Formula apply(AbstractionPredicate pArg0) {return pArg0.getSymbolicAtom();}
+            });
+            printFormulasToFile(atoms, new File(dumpFile));
           }
+
         }
 
 
@@ -969,43 +965,62 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
    * @param scope
    * @return
    */
-  private Multimap<ARTElement, AbstractionPredicate> getPrecisionForElements(Formula itp, Set<InterpolationBlockScope> scope) {
+  private Map<ARTElement, Set<AbstractionPredicate>> getPrecisionForElements(Formula itp, Set<InterpolationBlockScope> scope) {
+
+    Map<ARTElement, Set<AbstractionPredicate>> map = new HashMap<ARTElement, Set<AbstractionPredicate>>();
     // create a map primed no -> ARTElement
     Map<Integer, ARTElement> scopeMap = new HashMap<Integer, ARTElement>();
     for (InterpolationBlockScope ibs : scope){
       scopeMap.put(ibs.getPrimedNo(), ibs.getArtElement());
+      map.put(ibs.getArtElement(), new HashSet<AbstractionPredicate>());
     }
 
-    Multimap<ARTElement, AbstractionPredicate> map = HashMultimap.create();
+
     // TODO maybe handling of non-atomic predicates
-    Collection<Formula> atoms = fmgr.extractAtoms(itp, splitItpAtoms, false);
-    for (Formula atom : atoms){
-
-      Collection<Integer> primes = fmgr.howManyPrimes(atom);
-      // TODO remove - a quick & dirty correctness test
-      for (Integer prime : primes){
-        if (prime > 0){
-          assert itp.toString().contains("^"+prime);
-        };
-      }
-      for (int i=1; i<10;i++){
-        if (!scopeMap.keySet().contains(i)){
-          assert !itp.toString().contains("^"+i);
+    if (!itp.isTrue()){
+      if (itp.isFalse()){
+        // add false
+        AbstractionPredicate atomPredicate = amgr.makeFalsePredicate();
+        for (ARTElement artElement : scopeMap.values()){
+          Set<AbstractionPredicate> currentSet = map.get(artElement);
+          currentSet.add(atomPredicate);
+          map.put(artElement, currentSet);
         }
       }
+      else {
+        Collection<Formula> atoms = null;
+        atoms = fmgr.extractAtoms(itp, splitItpAtoms, false);
 
-      Formula unprimedAtom = fmgr.unprimeFormula(atom);
-      AbstractionPredicate atomPredicate = amgr.makePredicate(unprimedAtom);
+        for (Formula atom : atoms){
 
-      for (Integer i : primes){
-        ARTElement artElement = scopeMap.get(i);
-        if (artElement != null){
-          map.put(artElement, atomPredicate);
+          Collection<Integer> primes = fmgr.howManyPrimes(atom);
+          // TODO remove - a quick & dirty correctness test
+          for (Integer prime : primes){
+            if (prime > 0){
+              assert itp.toString().contains("^"+prime);
+            };
+          }
+          for (int i=1; i<10;i++){
+            if (!scopeMap.keySet().contains(i)){
+              assert !itp.toString().contains("^"+i);
+            }
+          }
+
+          Formula unprimedAtom = fmgr.unprimeFormula(atom);
+          AbstractionPredicate atomPredicate = amgr.makePredicate(unprimedAtom);
+
+          for (Integer i : primes){
+            ARTElement artElement = scopeMap.get(i);
+            if (artElement != null){
+              Set<AbstractionPredicate> currentSet = map.get(artElement);
+              currentSet.add(atomPredicate);
+              map.put(artElement, currentSet);
+            }
+            //assert artElement != null;
+          }
         }
-
       }
     }
-
     return map;
   }
 

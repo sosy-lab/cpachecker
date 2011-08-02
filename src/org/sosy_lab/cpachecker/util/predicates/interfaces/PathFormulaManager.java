@@ -54,6 +54,8 @@ public interface PathFormulaManager {
    */
   PathFormula makeOr(PathFormula pF1, PathFormula pF2);
 
+  PathFormula makeRelyGuaranteeOr(PathFormula pF1, PathFormula pF2);
+
   PathFormula makeAnd(PathFormula pf1, PathFormula pf2);
 
   PathFormula makeAnd(PathFormula pPathFormula, Formula pOtherFormula);
@@ -85,6 +87,8 @@ public interface PathFormulaManager {
   void inject(CFAEdge pLocalEdge, Set<String> pGlobalVariablesSet, int pOffset, SSAMap pSsa) throws CPATransferException;
 
   PathFormula normalize(PathFormula pNewPF);
+
+  PathFormula makeFalsePathFormula();
 
 
 }

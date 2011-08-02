@@ -90,9 +90,6 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
   // data structure for deciding whether a variable is global
   private Set<String> globalVarsSet;
 
-  // hasbeenRun[i] == true iff thread no i has been run at least once
-  private boolean[] hasBeenRun;
-
   // managers
   private PathFormulaManager pfManager;
   private FormulaManager     fManager;
@@ -110,7 +107,6 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
 
     environment = new RelyGuaranteeEnvironment(threadNo, config, logger);
     threadCPA = new RelyGuaranteeThreadCPAAlgorithm[threadNo];
-    hasBeenRun = new boolean[threadNo];
     cfas = new RelyGuaranteeCFA[threadNo];
 
     try {
@@ -133,7 +129,6 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
 
     for (int i=0; i< this.threadNo; i++){
       threadCPA[i] = new RelyGuaranteeThreadCPAAlgorithm(cpas[i],environment,config, logger, i);
-      hasBeenRun[i] = false;
     }
 
     // create DOT file for the original CFA
@@ -151,23 +146,29 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
    * Returns -1 if no error is found or the thread no with an error
    */
   public int run(ReachedSet[] reached, int startThread) {
-
+    assert environment.getUnprocessedTransitions().isEmpty();
     boolean error = false;
     try{
       // run each tread at least once until no new env can be applied to any thread
       int i = startThread;
       while(i != -1 && !error) {
+        // add relevant states to the wait list
         setWaitlist(reached[i]);
+        // apply all valid env. edges to CFA
         addEnvTransitionsToCFA(i);
-        hasBeenRun[i] = true;
+        // run the thread
         error = runThread(i, reached[i], true);
+        // mark unapplied env. edges  as applied
+        environment.appliedEnvEdgesForThread(i);
         if (error) {
+          // error state has been reached
           return i;
         }
-        environment.removeUnappliedEnvEdgesForThread(i);
         environment.printUnprocessedTransitions();
+        // process new env. transitions
         environment.processEnvTransitions(i);
-        i = pickThread();
+        // chose a new thread to run
+        i = pickThread(reached);
       }
 
     } catch(Exception e){
@@ -208,10 +209,11 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
 
   /**
    * Chose the next thread for running; return -1 if there are no new env edges for any thread and all threads have been run at least once
+   * @param reached
    */
-  private int pickThread() {
+  private int pickThread(ReachedSet[] reached) {
     int i=0;
-    while(i<this.threadNo && environment.getUnappliedEnvEdgesForThread(i).isEmpty() && hasBeenRun[i]){
+    while(i<this.threadNo && reached[i].getWaitlistSize() == 0){
       i++;
     }
     if (i==this.threadNo){
@@ -258,7 +260,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
         CFANode node = entry.getValue();
         // check if the rhs of any edge leaving the node reads the variable assigned by 'envTransition'
         if (map.get(node).contains(var)){
-          addEnvTransitionToNode(node, new  RelyGuaranteeCFAEdge(envTransition));
+          addEnvTransitionToNode(node, envTransition.makeCopy());
           modified = true;
         }
       }

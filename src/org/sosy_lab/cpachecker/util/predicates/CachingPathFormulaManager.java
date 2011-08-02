@@ -213,6 +213,18 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
 
+  @Override
+  public PathFormula makeRelyGuaranteeOr(PathFormula pF1, PathFormula pF2) {
+    return delegate.makeRelyGuaranteeOr(pF1, pF2);
+  }
+
+
+  @Override
+  public PathFormula makeFalsePathFormula() {
+    return delegate.makeFalsePathFormula();
+  }
+
+
 
 
 

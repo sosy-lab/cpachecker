@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,10 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.SetMultimap;
 
 
 /**
@@ -47,7 +46,7 @@ import com.google.common.collect.SetMultimap;
  */
 public class CounterexampleTraceInfo {
     private final boolean spurious;
-    private final SetMultimap<AbstractElement, AbstractionPredicate> pmap;
+    private final Map<AbstractElement, Set<AbstractionPredicate>> pmap;
     private final Model mCounterexampleModel;
     private final List<Formula> mCounterexampleFormula;
     private final Map<Integer, Boolean> branchingPreds;
@@ -56,7 +55,7 @@ public class CounterexampleTraceInfo {
       mCounterexampleFormula = Collections.emptyList();
       mCounterexampleModel = null;
       spurious = true;
-      pmap = HashMultimap.create();
+      pmap = new HashMap<AbstractElement, Set<AbstractionPredicate>>();
       branchingPreds = ImmutableMap.of();
     }
 
@@ -67,7 +66,7 @@ public class CounterexampleTraceInfo {
       mCounterexampleFormula = pCounterexampleFormula;
       mCounterexampleModel = pModel;
       spurious = false;
-      pmap = ImmutableSetMultimap.of();
+      pmap = ImmutableMap.of();
       branchingPreds = ImmutableMap.copyOf(preds);
     }
 
@@ -95,8 +94,13 @@ public class CounterexampleTraceInfo {
      * AbstractElement
      */
     public void addPredicatesForRefinement(AbstractElement e,
-                                           Iterable<AbstractionPredicate> preds) {
-      pmap.putAll(e, preds);
+                                           Collection<AbstractionPredicate> preds) {
+      Set<AbstractionPredicate> currentSet = pmap.get(e);
+      if (currentSet == null){
+        currentSet = new HashSet<AbstractionPredicate>(preds.size());
+      }
+      currentSet.addAll(preds);
+      pmap.put(e, currentSet);
     }
 
     public Set<AbstractElement> getPredicatesForRefinmentKeys() {

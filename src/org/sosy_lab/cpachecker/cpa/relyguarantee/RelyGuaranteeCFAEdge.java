@@ -33,42 +33,68 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 public class RelyGuaranteeCFAEdge implements CFAEdge{
 
   private CFAEdge localEdge;
-  private final PathFormula pathFormula;
+  private PathFormula pathFormula;
   private CFANode predecessor;
   private CFANode successor;
   private final int sourceTid;
-  private final ARTElement sourceARTElement;
-  private final int id;
+  private ARTElement sourceARTElement;
+
+  // environmental transition form which this edge was generated from
+  private final RelyGuaranteeEnvironmentalTransition sourceEnvTransition;
+  //
+  private final Status status;
+
+  //private final int id;
 
   private static int lastGlobalId = 0;
 
 
   /**
+   *
    * @param edge local edge that created the environmental transition
    * @param abstractionFormula abstraction formula of the predecessor of the local edge
    * @param pathFormula path formula of the predecessor of the local edge
    */
-  public RelyGuaranteeCFAEdge(CFAEdge pEdge, PathFormula pPathFormula, int sourceTid, ARTElement sourceARTElement){
+  public RelyGuaranteeCFAEdge(CFAEdge pEdge, PathFormula pPathFormula, int sourceTid, ARTElement sourceARTElement, RelyGuaranteeEnvironmentalTransition sourceEnvTransition){
     this.localEdge = pEdge;
     this.pathFormula = pPathFormula;
     this.sourceTid = sourceTid;
     this.sourceARTElement = sourceARTElement;
     lastGlobalId++;
-    this.id = lastGlobalId;
+    //this.id = lastGlobalId;
+    this.sourceEnvTransition = sourceEnvTransition;
+    this.status = new Status(false);
   }
 
-  public RelyGuaranteeCFAEdge(RelyGuaranteeCFAEdge pOther) {
+  private RelyGuaranteeCFAEdge(CFAEdge pEdge, PathFormula pPathFormula, int sourceTid, ARTElement sourceARTElement, RelyGuaranteeEnvironmentalTransition sourceEnvTransition, Status status){
+    this.localEdge = pEdge;
+    this.pathFormula = pPathFormula;
+    this.sourceTid = sourceTid;
+    this.sourceARTElement = sourceARTElement;
+    lastGlobalId++;
+    //this.id = lastGlobalId;
+    this.sourceEnvTransition = sourceEnvTransition;
+    this.status = status;
+  }
+
+  /*public RelyGuaranteeCFAEdge(RelyGuaranteeCFAEdge pOther) {
     this.localEdge = pOther.localEdge;
     this.pathFormula = pOther.pathFormula;
     this.sourceTid = pOther.sourceTid;
     this.sourceARTElement = pOther.sourceARTElement;
     lastGlobalId++;
     this.id = lastGlobalId;
+    this.sourceEnvTransition = pOther.sourceEnvTransition;
+    this.status = pOther.status;
+  }*/
+
+
+  public RelyGuaranteeCFAEdge makeCopy(){
+    RelyGuaranteeCFAEdge copy = new RelyGuaranteeCFAEdge(this.localEdge, this.pathFormula, this.sourceTid, this.sourceARTElement, this.sourceEnvTransition, this.status);
+    return copy;
   }
 
-  public int getId() {
-    return id;
-  }
+
 
   public ARTElement getSourceARTElement() {
     return sourceARTElement;
@@ -134,5 +160,39 @@ public class RelyGuaranteeCFAEdge implements CFAEdge{
   public int getSourceTid(){
     return this.sourceTid;
   }
+
+  public void addCovered(RelyGuaranteeCFAEdge covered){
+
+  }
+
+  public void setPathFormula(PathFormula pPathFormula) {
+    pathFormula = pPathFormula;
+  }
+
+  public void setSourceARTElement(ARTElement pSourceARTElement) {
+    sourceARTElement = pSourceARTElement;
+  }
+
+  public RelyGuaranteeEnvironmentalTransition getSourceEnvTransition() {
+    return sourceEnvTransition;
+  }
+
+
+  class Status{
+    private boolean isKilled;
+
+    Status(boolean isKilled){
+      this.isKilled = isKilled;
+    }
+
+    public boolean isKilled(){
+      return isKilled;
+    }
+
+    public void setKilled(boolean isKilled){
+      this.isKilled = isKilled;
+    }
+  }
+
 
 }

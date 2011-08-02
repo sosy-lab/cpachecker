@@ -143,7 +143,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
 
 
       // check whether to do abstraction
-      boolean doAbstraction = isBlockEnd(loc, data.getFirst());
+      boolean doAbstraction = isBlockEnd(loc, data.getFirst(), edge);
 
       if (doAbstraction) {
         return Collections.singleton(
@@ -255,9 +255,12 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
    * an abstraction location if it has an incoming loop-back edge, if it is
    * the start node of a function or if it is the call site from a function call.
    */
-  @Override
-  protected boolean isBlockEnd(CFANode succLoc, PathFormula pf) {
+  protected boolean isBlockEnd(CFANode succLoc, PathFormula pf, CFAEdge edge) {
     boolean result = false;
+
+    if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
+      return true;
+    }
 
     if (absOnLoop) {
       result = succLoc.isLoopStart();

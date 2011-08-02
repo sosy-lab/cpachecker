@@ -143,7 +143,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     final MergeOperator mergeOperator = cpa.getMergeOperator();
     final StopOperator stopOperator = cpa.getStopOperator();
     final PrecisionAdjustment precisionAdjustment =
-        cpa.getPrecisionAdjustment();
+      cpa.getPrecisionAdjustment();
 
     while (reachedSet.hasWaitingElement()) {
       CPAchecker.stopIfNecessary();
@@ -180,12 +180,12 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
 
 
       Collection<? extends AbstractElement> successors =
-          transferRelation.getAbstractSuccessors(element, precision, null);
+        transferRelation.getAbstractSuccessors(element, precision, null);
       stats.transferTimer.stop();
-          // TODO stats...
-          // create and environmental edge and add it the global storage
-          Vector<RelyGuaranteeEnvironmentalTransition> newEnvTransitions = createEnvTransitions(element);
-          environment.addEnvTransitions(aElement, newEnvTransitions);
+      // TODO stats...
+      // create and environmental edge and add it the global storage
+      Vector<RelyGuaranteeEnvironmentalTransition> newEnvTransitions = createEnvTransitions(element);
+      environment.addEnvTransitions(aElement, newEnvTransitions);
 
 
 
@@ -194,7 +194,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
 
       int numSuccessors = successors.size();
       logger.log(Level.FINER, "Current element has", numSuccessors,
-          "successors");
+      "successors");
       stats.countSuccessors += numSuccessors;
       stats.maxSuccessors = Math.max(numSuccessors, stats.maxSuccessors);
 
@@ -204,7 +204,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
 
         stats.precisionTimer.start();
         Triple<AbstractElement, Precision, Action> precAdjustmentResult =
-            precisionAdjustment.prec(successor, precision, reachedSet);
+          precisionAdjustment.prec(successor, precision, reachedSet);
         stats.precisionTimer.stop();
 
         successor = precAdjustmentResult.getFirst();
@@ -238,17 +238,30 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
 
           List<AbstractElement> toRemove = new ArrayList<AbstractElement>();
           List<Pair<AbstractElement, Precision>> toAdd =
-              new ArrayList<Pair<AbstractElement, Precision>>();
+            new ArrayList<Pair<AbstractElement, Precision>>();
+
+          // TODO debugging
+          if (AbstractElements.extractLocation(successor).toString().contains("24")){
+            System.out.println();
+          }
+          /*int succ = ((ARTElement)successor).getElementId();
+          if (succ == 647 || succ == 642){
+            System.out.println();
+          }*/
+
 
           logger.log(Level.FINER, "Considering", reached.size(),
-              "elements from reached set for merge");
+          "elements from reached set for merge");
           for (AbstractElement reachedElement : reached) {
 
-            int succ = ((ARTElement)successor).getElementId();
-            if (succ == 642 || succ == 639 || succ == 662 || succ == 659){
-              System.out.println();
+            RelyGuaranteeAbstractElement rsucc = AbstractElements.extractElementByType(successor, RelyGuaranteeAbstractElement.class);
+            RelyGuaranteeAbstractElement rreach = AbstractElements.extractElementByType(reachedElement, RelyGuaranteeAbstractElement.class);
+            if (!(rsucc instanceof RelyGuaranteeAbstractElement.AbstractionElement) && !(rreach instanceof RelyGuaranteeAbstractElement.AbstractionElement)){
+              RelyGuaranteeAbstractElement rfake = AbstractElements.extractElementByType(mergedElement, RelyGuaranteeAbstractElement.class);
+              if (rsucc.getAbstractionFormula().toString().contains("cs1@2 = 0") && rreach.getAbstractionFormula().toString().contains("cs1@2 = 0") && rreach.getPathFormula().toString().contains("(g@3 = 1)")){
+                  System.out.println();
+              }
             }
-
 
             mergedElement = mergeOperator.merge(successor, reachedElement,successorPrecision);
 
@@ -261,7 +274,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
                   reachedElement, "\n-->", mergedElement);
               stats.countMerge++;
               // adjust precision after merging
-              precAdjustmentResult = precisionAdjustment.prec(mergedElement, successorPrecision, reachedSet);
+         /*     precAdjustmentResult = precisionAdjustment.prec(mergedElement, successorPrecision, reachedSet);
               mergedElement = precAdjustmentResult.getFirst();
               Precision mergedPrecision = precAdjustmentResult.getSecond();
               toRemove.add(reachedElement);
@@ -270,23 +283,39 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
               successorMerged = true;
               // check if the merged element is covered
 
+              rsucc = AbstractElements.extractElementByType(successor, RelyGuaranteeAbstractElement.class);
+              rreach = AbstractElements.extractElementByType(reachedElement, RelyGuaranteeAbstractElement.class);
+              if (!(rsucc instanceof RelyGuaranteeAbstractElement.AbstractionElement) && !(rreach instanceof RelyGuaranteeAbstractElement.AbstractionElement)){
+                RelyGuaranteeAbstractElement rfake = AbstractElements.extractElementByType(mergedElement, RelyGuaranteeAbstractElement.class);
+                if (rsucc.getAbstractionFormula().toString().contains("cs1@2 = 0") && rreach.getAbstractionFormula().toString().contains("cs1@2 = 0")){
+                  if (!rfake.getAbstractionFormula().toString().contains("cs1@2 = 0")){
+                    System.out.println();
+                  }
+                }
+              }
+
+
+
+
               // check
               RelyGuaranteeAbstractElement rSucc = AbstractElements.extractElementByType(successor, RelyGuaranteeAbstractElement.class);
               RelyGuaranteeAbstractElement rReached = AbstractElements.extractElementByType(successor, RelyGuaranteeAbstractElement.class);
               RelyGuaranteeAbstractElement rMerged = AbstractElements.extractElementByType(successor, RelyGuaranteeAbstractElement.class);
               if (rSucc.getAbstractionFormula().equals(rReached.getAbstractionFormula()) && !rSucc.getAbstractionFormula().equals(rMerged.getAbstractionFormula())){
                 System.out.println();
-              }
+              }*/
 
 
               printMerge(successor, reachedElement, precAdjustmentResult.getFirst());
-              boolean stop =  stopOperator.stop(mergedElement, reached, mergedPrecision);
+            /*  boolean stop =  stopOperator.stop(mergedElement, reached, mergedPrecision);
 
               if (stop) {
                 printCovered(mergedElement);
               } else {
                 toAdd.add(Pair.of(mergedElement, mergedPrecision));
-              }
+              }*/
+              toRemove.add(reachedElement);
+              toAdd.add(Pair.of(mergedElement, successorPrecision));
             }
           }
           reachedSet.removeAll(toRemove);
@@ -299,7 +328,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
 
         stats.stopTimer.start();
         boolean stop =
-            stopOperator.stop(successor, reached, successorPrecision);
+          stopOperator.stop(successor, reached, successorPrecision);
         stats.stopTimer.stop();
 
         if (stop || successorMerged) {
@@ -310,7 +339,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
 
         } else {
           logger.log(Level.FINER,
-              "No need to stop, adding successor to waitlist");
+          "No need to stop, adding successor to waitlist");
 
           //RelyGuaranteeAbstractElement rgSuccessor = (RelyGuaranteeAbstractElement) successor;
           // System.out.println("@ Adding to reached '"+rgSuccessor.getAbstractionFormula()+"','"+rgSuccessor.getPathFormula()+"'");
@@ -323,17 +352,17 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     return true;
   }
 
- private void printCovered(AbstractElement pSuccessor) {
-   ARTElement aSuccessor = (ARTElement) pSuccessor;
-   RelyGuaranteeAbstractElement rSuccessor = AbstractElements.extractElementByType(pSuccessor, RelyGuaranteeAbstractElement.class);
-   System.out.println("^ Covered  '"+rSuccessor.getAbstractionFormula()+"','"+rSuccessor.getPathFormula()+"' with SSA "+rSuccessor.getPathFormula().getSsa()+" id:"+aSuccessor.getElementId());
+  private void printCovered(AbstractElement pSuccessor) {
+    ARTElement aSuccessor = (ARTElement) pSuccessor;
+    RelyGuaranteeAbstractElement rSuccessor = AbstractElements.extractElementByType(pSuccessor, RelyGuaranteeAbstractElement.class);
+    System.out.println("^ Covered  '"+rSuccessor.getAbstractionFormula()+"','"+rSuccessor.getPathFormula()+"' with SSA "+rSuccessor.getPathFormula().getSsa()+" id:"+aSuccessor.getElementId());
 
   }
 
-private void printMerge(AbstractElement pSuccessor, AbstractElement pReachedElement, AbstractElement pMergedElement) {
-     ARTElement aSuccessor = (ARTElement) pSuccessor;
-     ARTElement aReachedElement = (ARTElement) pReachedElement;
-     ARTElement aMergedElement = (ARTElement) pMergedElement;
+  private void printMerge(AbstractElement pSuccessor, AbstractElement pReachedElement, AbstractElement pMergedElement) {
+    ARTElement aSuccessor = (ARTElement) pSuccessor;
+    ARTElement aReachedElement = (ARTElement) pReachedElement;
+    ARTElement aMergedElement = (ARTElement) pMergedElement;
     RelyGuaranteeAbstractElement rSuccessor = AbstractElements.extractElementByType(pSuccessor, RelyGuaranteeAbstractElement.class);
     RelyGuaranteeAbstractElement rReached   = AbstractElements.extractElementByType(pReachedElement, RelyGuaranteeAbstractElement.class);
     RelyGuaranteeAbstractElement rMerged  = AbstractElements.extractElementByType(pMergedElement, RelyGuaranteeAbstractElement.class);
