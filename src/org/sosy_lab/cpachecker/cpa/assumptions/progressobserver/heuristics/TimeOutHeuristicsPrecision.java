@@ -29,36 +29,27 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 
-@Options(prefix="cpa.assumptions.progressobserver.heuristics.pathLengthHeuristics")
-public class PathLengthHeuristicsPrecision implements HeuristicPrecision {
+@Options(prefix="cpa.assumptions.progressobserver.heuristics.timeOutHeuristics")
+public class TimeOutHeuristicsPrecision implements HeuristicPrecision {
 
   @Option(description = "threshold for heuristics of progressobserver")
   private int threshold = -1;
-  private int increaseThresholdBy;
 
-  public PathLengthHeuristicsPrecision(Configuration config, LogManager logger)
-      throws InvalidConfigurationException{
-    config.inject(this);
+  private final TimeOutHeuristics timeOutHeuristics;
+
+  public TimeOutHeuristicsPrecision(TimeOutHeuristics pTimeOutHeuristics, Configuration pConfig, LogManager pLogger)
+                                   throws InvalidConfigurationException{
+    pConfig.inject(this);
+    timeOutHeuristics = pTimeOutHeuristics;
   }
 
   public int getThreshold() {
     return threshold;
   }
 
-  public void setThreshold(int pThreshold) {
-    threshold = pThreshold;
-  }
-
   @Override
   public boolean adjustPrecision() {
-    // set the initial threshold value
-    if(threshold == -1){
-      threshold = (int) PathLengthHeuristicsData.maxLenghtOfPath / 5;
-      increaseThresholdBy = threshold / 4;
-    }
-    else {
-      threshold = threshold + increaseThresholdBy;
-    }
+    timeOutHeuristics.resetStartTime();
     return true;
   }
 

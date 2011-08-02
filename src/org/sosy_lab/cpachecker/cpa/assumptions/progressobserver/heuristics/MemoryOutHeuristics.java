@@ -155,4 +155,10 @@ implements StopHeuristics<TrivialStopHeuristicsData>
   public TrivialStopHeuristicsData getInitialData(CFANode pNode) {
     return TrivialStopHeuristicsData.TOP;
   }
+
+  @Override
+  public HeuristicPrecision getPrecision() {
+    // TODO Auto-generated method stub
+    return null;
+  }
 }

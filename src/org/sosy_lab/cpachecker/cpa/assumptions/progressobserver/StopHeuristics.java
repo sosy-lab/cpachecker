@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.heuristics.HeuristicPrecision;
 
 /**
  * A stopping heuristics for the controller CPA. A class implementing
@@ -42,4 +43,6 @@ public interface StopHeuristics <D extends StopHeuristicsData> {
 
   /** Process an edge and update the data */
   public D processEdge(StopHeuristicsData data, CFAEdge edge);
+
+  public HeuristicPrecision getPrecision();
 }

@@ -68,4 +68,10 @@ public class EdgeCountHeuristics implements StopHeuristics<EdgeCountHeuristicsDa
     return ((EdgeCountHeuristicsData)pData).updateForEdge(pEdge, thresholdFunction);
   }
 
+  @Override
+  public HeuristicPrecision getPrecision() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
 }

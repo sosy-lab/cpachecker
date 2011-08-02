@@ -99,7 +99,7 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis, Statist
     stopOperator = new ProgressObserverStop();
     transferRelation = new ProgressObserverTransferRelation(this);
     precisionAdjustment = new ProgressObserverPrecisionAdjustment(this);
-    precision = new ProgressObserverPrecision();
+    precision = new ProgressObserverPrecision(this);
   }
 
   @Override

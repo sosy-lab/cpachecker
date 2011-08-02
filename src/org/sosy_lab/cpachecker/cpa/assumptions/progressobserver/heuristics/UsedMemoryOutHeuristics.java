@@ -80,4 +80,10 @@ public class UsedMemoryOutHeuristics
       return TrivialStopHeuristicsData.TOP;
   }
 
+  @Override
+  public HeuristicPrecision getPrecision() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
 }

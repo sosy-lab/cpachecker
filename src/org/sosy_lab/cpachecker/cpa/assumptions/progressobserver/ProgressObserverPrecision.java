@@ -33,8 +33,11 @@ public class ProgressObserverPrecision implements Precision {
 
   private final List<Precision> precisions;
 
-  public ProgressObserverPrecision() {
+  public ProgressObserverPrecision(ProgressObserverCPA pProgressObserverCPA) {
     this.precisions = new ArrayList<Precision>();
+    for(StopHeuristics<?> heur: pProgressObserverCPA.getEnabledHeuristics()) {
+      precisions.add(heur.getPrecision());
+    }
   }
 
   public void addPrecision(Precision precision){

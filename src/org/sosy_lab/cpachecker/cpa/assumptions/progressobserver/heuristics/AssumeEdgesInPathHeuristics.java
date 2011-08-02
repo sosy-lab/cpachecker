@@ -67,4 +67,9 @@ public class AssumeEdgesInPathHeuristics implements StopHeuristics<AssumeEdgesIn
     return ((AssumeEdgesInPathHeuristicsData)pData).updateForEdge(pData, threshold, pEdge);
   }
 
+  @Override
+  public HeuristicPrecision getPrecision() {
+    return null;
+  }
+
 }

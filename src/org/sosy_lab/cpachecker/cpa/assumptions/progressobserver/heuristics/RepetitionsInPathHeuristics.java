@@ -71,4 +71,10 @@ public class RepetitionsInPathHeuristics
     return ((RepetitionsInPathHeuristicsData)pData).updateForEdge(pEdge, thresholdFunction);
   }
 
+  @Override
+  public HeuristicPrecision getPrecision() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
 }

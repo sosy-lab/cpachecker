@@ -70,4 +70,10 @@ public class ReachedSizeHeuristics implements StopHeuristics<TrivialStopHeuristi
     return (TrivialStopHeuristicsData)pData;
   }
 
+  @Override
+  public HeuristicPrecision getPrecision() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
 }

@@ -91,4 +91,9 @@ public class PathLengthHeuristics implements StopHeuristics<PathLengthHeuristics
     pStatsCollection.add(stats);
   }
 
+  @Override
+  public HeuristicPrecision getPrecision() {
+    return precision;
+  }
+
 }

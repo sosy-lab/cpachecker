@@ -26,23 +26,20 @@ package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.heuristics;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ReachedHeuristicsDataSetView;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristics;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsData;
 
-@Options(prefix="cpa.assumptions.progressobserver.heuristics.timeOutHeuristics")
 public class TimeOutHeuristics implements StopHeuristics<TimeOutHeuristicsData> {
 
-  @Option(description = "threshold for heuristics of progressobserver")
-  private int threshold = -1;
+  private TimeOutHeuristicsPrecision precision;
+  private long startTime;
 
   public TimeOutHeuristics(Configuration config, LogManager pLogger)
       throws InvalidConfigurationException {
-    config.inject(this);
+    precision = new TimeOutHeuristicsPrecision(this, config, pLogger);
   }
 
   @Override
@@ -52,7 +49,8 @@ public class TimeOutHeuristics implements StopHeuristics<TimeOutHeuristicsData> 
 
   @Override
   public TimeOutHeuristicsData getInitialData(CFANode pNode) {
-    return new TimeOutHeuristicsData(System.currentTimeMillis(), false);
+    resetStartTime();
+    return new TimeOutHeuristicsData(false);
   }
 
   @Override
@@ -61,12 +59,21 @@ public class TimeOutHeuristics implements StopHeuristics<TimeOutHeuristicsData> 
     if (d == TimeOutHeuristicsData.BOTTOM)
       return d;
     else
-      if (System.currentTimeMillis() > d.getTime() + threshold) {
-        d.setThreshold(threshold);
+      if (System.currentTimeMillis() > startTime + precision.getThreshold()) {
+        d.setThreshold(precision.getThreshold());
         return TimeOutHeuristicsData.BOTTOM;
       }
       else
         return d;
+  }
+
+  public void resetStartTime() {
+    startTime = System.currentTimeMillis();
+  }
+
+  @Override
+  public HeuristicPrecision getPrecision() {
+    return precision;
   }
 
 }

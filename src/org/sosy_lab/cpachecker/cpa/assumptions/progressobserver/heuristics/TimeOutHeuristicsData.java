@@ -29,12 +29,10 @@ import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeu
 public class TimeOutHeuristicsData implements StopHeuristicsData {
 
   private final boolean stop;
-  private final long time;
   private static long threshold;
 
-  public TimeOutHeuristicsData(long pTime, boolean pStop) {
+  public TimeOutHeuristicsData(boolean pStop) {
     stop = pStop;
-    time = pTime;
   }
 
   @Override
@@ -52,11 +50,7 @@ public class TimeOutHeuristicsData implements StopHeuristicsData {
     return !stop;
   }
 
-  public long getTime() {
-    return time;
-  }
-
-  public static final TimeOutHeuristicsData BOTTOM = new TimeOutHeuristicsData(0, true);
+  public static final TimeOutHeuristicsData BOTTOM = new TimeOutHeuristicsData(true);
 
   @Override
   public boolean shouldTerminateAnalysis() {

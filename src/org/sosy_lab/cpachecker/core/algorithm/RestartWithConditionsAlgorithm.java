@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -39,7 +40,10 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ProgressObserverPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.Precisions;
+
+import com.google.common.collect.Iterables;
 
 @Options(prefix="adjustableconditions")
 public class RestartWithConditionsAlgorithm implements Algorithm, StatisticsProvider {
@@ -77,8 +81,13 @@ public class RestartWithConditionsAlgorithm implements Algorithm, StatisticsProv
 
       List<AbstractElement> elementsWithAssumptions = innerAlgorithm.getElementsWithAssumptions(pReached);
 
+      if (Iterables.any(pReached, AbstractElements.IS_TARGET_ELEMENT)) {
+        return sound;
+      }
+
       // if there are elements that an assumption is generated for
       if(elementsWithAssumptions.size() > 0) {
+        logger.log(Level.INFO, "Adjusting heuristics thresholds.");
         // if any of the elements' threshold is adjusted
         if(adjustThresholds(elementsWithAssumptions, pReached)){
           restartCPA = true;
@@ -110,17 +119,9 @@ public class RestartWithConditionsAlgorithm implements Algorithm, StatisticsProv
   }
 
   private boolean adjustThreshold(AbstractElement pParent, ReachedSet pReached) {
-    //ProgressObserverElement observerElement = AbstractElements.extractElementByType(pParent, ProgressObserverElement.class);
     ProgressObserverPrecision observerPrecision = Precisions.extractPrecisionByType(pReached.getPrecision(pParent), ProgressObserverPrecision.class);
     return observerPrecision.adjustPrecisions();
-//    pReached.updatePrecision(pParent, adaptPrecision(pParent, observerPrecision, pReached));
   }
-
-//  private Precision adaptPrecision(ARTElement pARTElement, Precision pNewPrecision, ReachedSet pReached) {
-//    Precision lOldPrecision = pReached.getPrecision(pARTElement);
-//
-//    return Precisions.replaceByType(lOldPrecision, pNewPrecision, pNewPrecision.getClass());
-//  }
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
