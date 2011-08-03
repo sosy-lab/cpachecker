@@ -60,7 +60,12 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
   public PathFormulaManagerImpl(FormulaManager pFmgr, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     super(config, pFmgr, pLogger);
     SSAMapBuilder emptyBuilder = SSAMap.emptySSAMap().builder();
-    falsePathFormula = new PathFormula(fmgr.makeFalse(), emptyBuilder.build(), 0);
+    // TODO change to ordinary false, when problems with interpolation are resolved
+    Formula dummy = fmgr.makePredicateVariable("dummy", 0);
+    Formula not_dummy = fmgr.makeNot(dummy);
+    Formula fancyFalse = fmgr.makeAnd(dummy, not_dummy);
+    //falsePathFormula = new PathFormula(fmgr.makeFalse(), emptyBuilder.build(), 0);
+    falsePathFormula = new PathFormula(fancyFalse, emptyBuilder.build(), 0);
   }
 
 

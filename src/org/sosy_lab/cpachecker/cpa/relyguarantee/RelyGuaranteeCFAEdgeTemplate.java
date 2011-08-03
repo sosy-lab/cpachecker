@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
+import java.util.Vector;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -49,7 +49,7 @@ public class RelyGuaranteeCFAEdgeTemplate{
   // unkilled env. edge that is more general than this one
   private RelyGuaranteeCFAEdgeTemplate coveredBy;
   // unkilled env. edges that are less general that this one
-  private final Set<RelyGuaranteeCFAEdgeTemplate> covers;
+  private final List<RelyGuaranteeCFAEdgeTemplate> covers;
 
 
   public RelyGuaranteeCFAEdgeTemplate(CFAEdge pEdge, PathFormula pPathFormula, int sourceTid, ARTElement sourceARTElement, RelyGuaranteeEnvironmentalTransition sourceEnvTransition){
@@ -59,7 +59,7 @@ public class RelyGuaranteeCFAEdgeTemplate{
     this.sourceTid = sourceTid;
     this.sourceEnvTransition = sourceEnvTransition;
     this.coveredBy = null;
-    this.covers = new HashSet<RelyGuaranteeCFAEdgeTemplate>();
+    this.covers = new Vector<RelyGuaranteeCFAEdgeTemplate>();
   }
   // instantiate
   public RelyGuaranteeCFAEdge instantiate(){
@@ -115,6 +115,15 @@ public class RelyGuaranteeCFAEdgeTemplate{
     return sourceARTElementWrapper;
   }
 
+  public RelyGuaranteeCFAEdgeTemplate getCoveredBy() {
+    return coveredBy;
+  }
+  public List<RelyGuaranteeCFAEdgeTemplate> getCovers() {
+    return covers;
+  }
+  public void setCoveredBy(RelyGuaranteeCFAEdgeTemplate pCoveredBy) {
+    coveredBy = pCoveredBy;
+  }
   /**
    * Remember that environmental edge 'other' is more general than this one.
    * @param other
@@ -124,10 +133,6 @@ public class RelyGuaranteeCFAEdgeTemplate{
     other.covers.add(this);
   }
 
-  public void addCovered(RelyGuaranteeCFAEdgeTemplate covered){
-    covers.add(covered);
-    covered.coveredBy = this;
-  }
 
   /**
    * Called on a covered edge, which source element has been removed. The edge that covers this object will directly cover the elements
@@ -137,7 +142,7 @@ public class RelyGuaranteeCFAEdgeTemplate{
     assert coveredBy != null;
     assert coveredBy.covers.contains(this);
     for ( RelyGuaranteeCFAEdgeTemplate child : covers){
-      coveredBy.addCovered(child);
+      child.coveredBy(coveredBy);
     }
     coveredBy.covers.remove(this);
     covers.clear();
@@ -176,6 +181,7 @@ public class RelyGuaranteeCFAEdgeTemplate{
     ARTElement artElement;
 
     public ARTElementWrapper(ARTElement artElement){
+      assert artElement != null;
       this.artElement = artElement;
     }
 

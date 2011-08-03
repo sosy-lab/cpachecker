@@ -178,7 +178,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     super(pRmgr, pFmgr, pPmgr, pThmProver, pItpProver, pAltItpProver, pConfig, pLogger);
     this.globalVariables = globalVariables;
     this.pathFormulaConstructor = RelyGuaranteePathFormulaConstructor.getInstance(pConfig, pLogger);
-
   }
 
 
@@ -538,19 +537,21 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
    * @throws InterruptedException
    */
   public List<InterpolationBlock> getRGFormulaForElement(ARTElement target, ReachedSet[] reachedSets, int threadNo) throws InterruptedException, CPAException{
-
+    if (target != null && !reachedSets[threadNo].contains(target)){
+      System.out.println();
+    }
+    assert target == null || reachedSets[threadNo].contains(target);
     List<InterpolationBlock> rgResult = new ArrayList<InterpolationBlock>();
 
-    if (!reachedSets[threadNo].contains(target)){
-      // the target element has been dropped in refinement, so return a false interpolation block
-      PathFormula falsePF = pmgr.makeFalsePathFormula();
-      InterpolationBlockScope ibs = new InterpolationBlockScope(threadNo, target);
-      HashSet<InterpolationBlockScope> ibsSet = new HashSet<InterpolationBlockScope>(1);
-      ibsSet.add(ibs);
-      rgResult.add(new InterpolationBlock(falsePF, ibsSet));
+    if (target == null){
+      // the env transition was generate in a part of ART that has been dropped by refinement, so return a false formula
+      PathFormula falsePf = pmgr.makeFalsePathFormula();
+      Set<InterpolationBlockScope> ibSet = new HashSet<InterpolationBlockScope>(1);
+      ibSet.add(new InterpolationBlockScope(0, null));
+      InterpolationBlock ib = new InterpolationBlock(falsePf, ibSet);
+      rgResult.add(ib);
       return rgResult;
     }
-
 
     // get the set of ARTElement that have been abstracted
     Path cfaPath = computePath(target, reachedSets[threadNo]);

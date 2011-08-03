@@ -254,17 +254,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
           "elements from reached set for merge");
           for (AbstractElement reachedElement : reached) {
 
-            RelyGuaranteeAbstractElement rsucc = AbstractElements.extractElementByType(successor, RelyGuaranteeAbstractElement.class);
-            RelyGuaranteeAbstractElement rreach = AbstractElements.extractElementByType(reachedElement, RelyGuaranteeAbstractElement.class);
-            if (!(rsucc instanceof RelyGuaranteeAbstractElement.AbstractionElement) && !(rreach instanceof RelyGuaranteeAbstractElement.AbstractionElement)){
-              RelyGuaranteeAbstractElement rfake = AbstractElements.extractElementByType(mergedElement, RelyGuaranteeAbstractElement.class);
-              if (rsucc.getAbstractionFormula().toString().contains("cs1@2 = 0") && rreach.getAbstractionFormula().toString().contains("cs1@2 = 0") && rreach.getPathFormula().toString().contains("(g@3 = 1)")){
-                  System.out.println();
-              }
-            }
-
             mergedElement = mergeOperator.merge(successor, reachedElement,successorPrecision);
-
 
             if (!mergedElement.equals(reachedElement)) {
 
