@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdgeTemplate.ARTElementWrapper;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdgeTemplate.PathFormulaWrapper;
-import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
@@ -183,9 +182,9 @@ public class RelyGuaranteeEnvironment {
   public void processEnvTransitions(int i) {
     syntacticCoverageCheck(i);
     // generate CFA edges from env transitions
-    Multimap<ARTElement, RelyGuaranteeEnvironmentalTransition> newEnvTransitions =  this.getUnprocessedTransitions();
+    //Multimap<ARTElement, RelyGuaranteeEnvironmentalTransition> newEnvTransitions =  this.getUnprocessedTransitions();
     Vector<RelyGuaranteeCFAEdgeTemplate> rgEdges = new Vector<RelyGuaranteeCFAEdgeTemplate>();
-    for (RelyGuaranteeEnvironmentalTransition  et: newEnvTransitions.values()){
+    for (RelyGuaranteeEnvironmentalTransition  et: unprocessedTransitions.values()){
       Formula f = et.getFormula();
       PathFormula pf = et.getPathFormula();
       PathFormula newPF = pfManager.makeAnd(pf, f);
@@ -193,7 +192,7 @@ public class RelyGuaranteeEnvironment {
       RelyGuaranteeCFAEdgeTemplate rgEdge = new RelyGuaranteeCFAEdgeTemplate(et.getEdge(), newPF, et.getSourceThread(), et.getSourceARTElement(), et);
       rgEdges.add(rgEdge);
     }
-    newEnvTransitions.clear();
+    unprocessedTransitions.clear();
 
     if (checkEnvTransitionCoverage) {
       Pair<Vector<RelyGuaranteeCFAEdgeTemplate>, Vector<RelyGuaranteeCFAEdgeTemplate>> pair = semanticCoverageCheck(rgEdges, i);
@@ -258,6 +257,7 @@ public class RelyGuaranteeEnvironment {
         }
       }
     }
+
 
     envTransProcessedBeforeFromThread[i].putAll(unprocessedTransitions);
 
@@ -411,51 +411,50 @@ public class RelyGuaranteeEnvironment {
   }
 
   /**
-   * Sets the path formula of the transitions that were generated in the subtree of root to false. These transtions will
-   * not be applied again. Transitions covered by them will be valid again, unless they have been also killed.
-   * @param root
+   * Looks for env. edges generated in threads on the list and checks if their source elements have been destroyed.
+   * Their  path formula is set to false and they are not
+   * valid any more. Transitions covered by them will be valid again, unless they have also been  killed.
+   * @param tid
    */
-  public void killEnvironmetalEdges(ARTElement root) {
-    // get source thread no
-    RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(root, RelyGuaranteeAbstractElement.class);
-    int sourceTid = rgElement.getTid();
-    Set<ARTElement> subtree = root.getSubtree();
-    // remove covered transitions that belong to the subtree
-    killCovered(root, sourceTid);
-    // kill valid and processed env. edges
-    killValid(root, sourceTid);
+  public void killEnvironmetalEdges(Iterable<Integer> tids) {
+    for (Integer tid : tids){
+      // remove covered transitions that belong to the subtree
+      killCovered(tid);
+      // kill valid and processed env. edges
+      killValid(tid);
+    }
     // kill unapplied  env. edges
-    killUnapplied(root, sourceTid);
+    killUnapplied();
     // drop unprocess transitions that were generated in the subtree
-    removeUnprocessedTransitionsFromElement(root);
+    removeUnprocessedTransitionsFromElement();
   }
 
   /**
-   * For every covered env. edge from thread i that belongs to subtree:
+   * For every covered env. edge from thread i, whose source element has been destroyed:
    * - remove them for the list
    * - push one level up env. edges that they cover
    * - make them false
    * - remove from envTransProcessedBeforeFromThread so it can be generated again
    * @param pRoot
    */
-  private void killCovered(ARTElement root, int tid) {
+  private void killCovered(int tid) {
     Vector<RelyGuaranteeCFAEdgeTemplate> toDelete = new Vector<RelyGuaranteeCFAEdgeTemplate>();
-    Set<ARTElement> subtree = root.getSubtree();
     for (RelyGuaranteeCFAEdgeTemplate rgEdge : coveredEnvEdgesFromThread[tid]){
-      if (subtree.contains(rgEdge.getSourceARTElement())){
-        // rgEdge belongs to the dropped subtree
+      if (rgEdge.getSourceARTElement().isDestroyed()){
+        // rgEdge belongs to a dropped subtree
         removeFromProcessedBefore(rgEdge, tid);
         toDelete.add(rgEdge);
         rgEdge.recoverChildren();
+
         makeRelyGuaranteeEnvEdgeFalse(rgEdge);
       }
     }
-    printEdges("Killed covered:",toDelete);
+    printEdges("Killed covered in t "+tid+" :",toDelete);
     coveredEnvEdgesFromThread[tid].removeAll(toDelete);
   }
 
   /**
-   * For every valid env. edge from thread i that belongs to subtree:
+   * For every valid env. edge from thread i, whose source element has been destroyed:
    * - remove from the list
    * - make them false
    * - revert covered transitions
@@ -463,14 +462,10 @@ public class RelyGuaranteeEnvironment {
    * @param root
    * @param tid
    */
-  private void killValid(ARTElement root, int tid) {
+  private void killValid(int tid) {
     Vector<RelyGuaranteeCFAEdgeTemplate> toDelete = new Vector<RelyGuaranteeCFAEdgeTemplate>();
-    Set<ARTElement> subtree = root.getSubtree();
     for (RelyGuaranteeCFAEdgeTemplate rgEdge : validEnvEdgesFromThread[tid]){
-      if (rgEdge.getSourceARTElement().getElementId() == 9){
-        System.out.println();
-      }
-      if (subtree.contains(rgEdge.getSourceARTElement())){
+      if (rgEdge.getSourceARTElement().isDestroyed()){
         // rgEdge belongs to the dropped subtree
         removeFromProcessedBefore(rgEdge, tid);
         toDelete.add(rgEdge);
@@ -478,7 +473,7 @@ public class RelyGuaranteeEnvironment {
 
       }
     }
-    printEdges("Killed valid edges:",toDelete);
+    printEdges("Killed valid edges in t "+tid+" : ",toDelete);
     validEnvEdgesFromThread[tid].removeAll(toDelete);
     // see if some transitions that were covered by rgEdge can become valid
     // they could be covered by some other valid transition
@@ -487,6 +482,7 @@ public class RelyGuaranteeEnvironment {
       Pair<Vector<RelyGuaranteeCFAEdgeTemplate>, Vector<RelyGuaranteeCFAEdgeTemplate>> pair = semanticCoverageCheck(covered, tid);
       validEnvEdgesFromThread[tid].addAll(pair.getFirst());
       validEnvEdgesFromThread[tid].removeAll(pair.getSecond());
+      coveredEnvEdgesFromThread[tid].removeAll(pair.getFirst());
       distributeAsUnapplied(pair.getFirst(), tid);
       printEdges("- uncovered edges after "+rgEdge+" :", pair.getFirst());
     }
@@ -494,26 +490,23 @@ public class RelyGuaranteeEnvironment {
   }
 
   /**
-   * For every unapplied env. edge for thread j!=tid, which belongs to the subtree:
+   * For every unapplied env. edge, whose source element has been destroyed:
    * - it removes it from the set
    * @param root
    * @param tid
    */
-  private void killUnapplied(ARTElement root, int tid) {
+  private void killUnapplied() {
     Vector<RelyGuaranteeCFAEdgeTemplate> toDelete = new Vector<RelyGuaranteeCFAEdgeTemplate>();
-    Set<ARTElement> subtree = root.getSubtree();
     for(int j=0; j<threadNo; j++){
-      if (j!=tid){
-        for (RelyGuaranteeCFAEdgeTemplate rgEdge : unappliedEnvEdgesForThread[j]){
-          if (subtree.contains(rgEdge.getSourceARTElement())){
-            // rgEdge belongs to the dropped subtree
-            toDelete.add(rgEdge);
-          }
+      for (RelyGuaranteeCFAEdgeTemplate rgEdge : unappliedEnvEdgesForThread[j]){
+        if (rgEdge.getSourceARTElement().isDestroyed()){
+          // rgEdge belongs to the dropped subtree
+          toDelete.add(rgEdge);
         }
-        unappliedEnvEdgesForThread[j].removeAll(toDelete);
-        printEdges("Deleted unapplied transitions for thread "+j, toDelete);
-        toDelete.clear();
       }
+      unappliedEnvEdgesForThread[j].removeAll(toDelete);
+      printEdges("Deleted unapplied transitions for thread "+j, toDelete);
+      toDelete.clear();
     }
   }
 
@@ -527,6 +520,7 @@ public class RelyGuaranteeEnvironment {
     RelyGuaranteeEnvironmentalTransition et = rgEdge.getSourceEnvTransition();
     ARTElement artElement = rgEdge.getSourceARTElement();
     boolean changed = envTransProcessedBeforeFromThread[tid].remove(artElement, et);
+
     assert changed;
   }
 
@@ -539,25 +533,24 @@ public class RelyGuaranteeEnvironment {
    * @param rgEdge
    */
   private void makeRelyGuaranteeEnvEdgeFalse(RelyGuaranteeCFAEdgeTemplate rgEdge){
-    System.out.println("---> Made false "+rgEdge);
+    //System.out.println("---> Made false "+rgEdge);
     PathFormula falsePathFormula = pfManager.makeFalsePathFormula();
     PathFormulaWrapper pfw = rgEdge.getPathFormulaWrapper();
     ARTElementWrapper aew = rgEdge.getSourceARTElementWrapper();
     assert !pfw.getPathFormula().getFormula().isFalse();
     assert aew.getArtElement() != null;
     pfw.setPathFormula(falsePathFormula);
-    aew.setARTElement(null);
+    //aew.setARTElement(null);
   }
 
   /**
    * Removes all unprocessed environmental transitions that belong to subtree root at the specified element.
    * @param root
    */
-  public void removeUnprocessedTransitionsFromElement(ARTElement root) {
-    Set<ARTElement> subtree = root.getSubtree();
+  public void removeUnprocessedTransitionsFromElement() {
     Set<ARTElement> toDelete = new HashSet<ARTElement>();
     for (ARTElement element : unprocessedTransitions.keys()){
-      if (subtree.contains(element)){
+      if (element.isDestroyed()){
         toDelete.add(element);
       }
     }

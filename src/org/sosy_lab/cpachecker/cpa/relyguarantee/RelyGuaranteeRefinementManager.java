@@ -537,17 +537,20 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
    * @throws InterruptedException
    */
   public List<InterpolationBlock> getRGFormulaForElement(ARTElement target, ReachedSet[] reachedSets, int threadNo) throws InterruptedException, CPAException{
-    if (target != null && !reachedSets[threadNo].contains(target)){
+    assert target != null;
+    assert target.isDestroyed() || reachedSets[threadNo].contains(target);
+    // TODO delete
+    /*if (target != null && !reachedSets[threadNo].contains(target)){
       System.out.println();
-    }
-    assert target == null || reachedSets[threadNo].contains(target);
+    }*/
+
     List<InterpolationBlock> rgResult = new ArrayList<InterpolationBlock>();
 
-    if (target == null){
+    if (target.isDestroyed()){
       // the env transition was generate in a part of ART that has been dropped by refinement, so return a false formula
       PathFormula falsePf = pmgr.makeFalsePathFormula();
       Set<InterpolationBlockScope> ibSet = new HashSet<InterpolationBlockScope>(1);
-      ibSet.add(new InterpolationBlockScope(0, null));
+      ibSet.add(new InterpolationBlockScope(0, target));
       InterpolationBlock ib = new InterpolationBlock(falsePf, ibSet);
       rgResult.add(ib);
       return rgResult;

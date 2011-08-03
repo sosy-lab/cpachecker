@@ -102,7 +102,7 @@ public class RelyGuaranteeCFAEdge implements CFAEdge{
 
   @Override
   public String toString() {
-    return "RelyGuaranteeEnvEdge from "+this.sourceTid+": "+localEdge.getRawStatement()+", "+this.pathFormulaWrapper.pathFormula;
+    return "RelyGuaranteeEnvEdge from "+this.sourceTid+": "+localEdge.getRawStatement()+", "+this.pathFormulaWrapper.pathFormula+" by element id:"+this.sourceARTElementWrapper.getArtElement().getElementId();
   }
 
   public CFAEdge getLocalEdge() {

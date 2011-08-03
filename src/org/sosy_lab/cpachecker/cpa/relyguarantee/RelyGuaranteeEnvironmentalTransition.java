@@ -97,9 +97,9 @@ public class RelyGuaranteeEnvironmentalTransition {
     if (! this.pathFormula.equals(other.pathFormula)){
       return false;
     }
-    if (! this.sourceARTElement.equals(other.sourceARTElement)){
+    /*if (! this.sourceARTElement.equals(other.sourceARTElement)){
       return false;
-    }
+    }*/
     return true;
   }
 

@@ -89,7 +89,7 @@ public class RelyGuaranteeCFAEdgeTemplate{
 
   @Override
   public String toString() {
-    return "RelyGuaranteeEnvEdgeTemplate from "+this.sourceTid+": "+localEdge.getRawStatement()+", "+this.pathFormulaWrapper.pathFormula;
+    return "RelyGuaranteeEnvEdgeTemplate from "+this.sourceTid+": "+localEdge.getRawStatement()+", by element id:"+this.pathFormulaWrapper.pathFormula+this.sourceARTElementWrapper.artElement.getElementId();
   }
 
   public CFAEdge getLocalEdge() {
