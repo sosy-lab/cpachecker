@@ -81,8 +81,10 @@ public class RestartWithConditionsAlgorithm implements Algorithm, StatisticsProv
 
       List<AbstractElement> elementsWithAssumptions = innerAlgorithm.getElementsWithAssumptions(pReached);
 
-      if (Iterables.any(pReached, AbstractElements.IS_TARGET_ELEMENT)) {
-        return sound;
+      if(sound){
+        if (Iterables.any(pReached, AbstractElements.IS_TARGET_ELEMENT)) {
+          return sound;
+        }
       }
 
       // if there are elements that an assumption is generated for

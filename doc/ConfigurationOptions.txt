@@ -83,14 +83,14 @@ bmc.checkTargetStates = true
 bmc.induction = false
 
 # configuration file for invariant generation
-bmc.invariantGenerationConfigFile = 
+bmc.invariantGenerationConfigFile = no default value
 
 # generate invariants for induction in parallel to the analysis
 bmc.parallelInvariantGeneration = false
 
 # file name where to put the path program that is generated as input for
 # CBMC. A temporary file is used if this is unspecified.
-cbmc.dumpCBMCfile = 
+cbmc.dumpCBMCfile = no default value
 
 # specify the name of the error label
 cbmc.options.errorLabel = "ERROR"
@@ -110,7 +110,7 @@ cbmc.timelimit = 0
 # Which refinement algorithm to use? (give class name, required for CEGAR) If
 # the package name starts with 'org.sosy_lab.cpachecker.', this prefix can be
 # omitted.
-cegar.refiner = 
+cegar.refiner = no default value
 
 # completely restart analysis on refinement by removing everything from the
 # reached set
@@ -154,7 +154,11 @@ cpa.abm.NO_CACHING = false
 # Type of partitioning (FunctionAndLoopPartitioning or
 # DelayedFunctionAndLoopPartitioning)
 # or any class that implements a PartitioningHeuristic
-cpa.abm.blockHeuristic = 
+cpa.abm.blockHeuristic = FunctionAndLoopPartitioning.class
+
+# if enabled, the reached set cache is analysed for each cache miss to find
+# the cause of the miss.
+cpa.abm.gatherCacheMissStatistics = false
 
 # export error path to file, if one is found
 cpa.art.errorPath.core = "ErrorPathCore.txt"
@@ -168,7 +172,7 @@ cpa.art.export = true
 cpa.art.file = "ART.dot"
 
 # which heuristics should be used to track progress?
-cpa.assumptions.progressobserver.heuristics = 
+cpa.assumptions.progressobserver.heuristics = no default value
 
 # threshold for heuristics of progressobserver
 cpa.assumptions.progressobserver.heuristics.assumeEdgesInPathHeuristics.threshold = -1
@@ -177,7 +181,14 @@ cpa.assumptions.progressobserver.heuristics.memoryOutHeuristics.threshold = -1
 cpa.assumptions.progressobserver.heuristics.pathLengthHeuristics.threshold = -1
 cpa.assumptions.progressobserver.heuristics.reachedSizeHeuristics.threshold = -1
 cpa.assumptions.progressobserver.heuristics.repetitionsInPathHeuristics.threshold = -1
+
+# how many times to adjust timeout threshold?
+cpa.assumptions.progressobserver.heuristics.timeOutHeuristics.adjustmentLimit = -1
+
+# threshold for timeout heuristics
 cpa.assumptions.progressobserver.heuristics.timeOutHeuristics.threshold = -1
+
+# threshold for heuristics of progressobserver
 cpa.assumptions.progressobserver.heuristics.usedMemoryOutHeuristics.threshold = 0
 
 # signal the analysis to break in case of reached error state
@@ -192,7 +203,7 @@ cpa.automaton.dotExportFile = "%s.dot"
 
 # file with automaton specification for ObserverAutomatonCPA and
 # ControlAutomatonCPA
-cpa.automaton.inputFile = 
+cpa.automaton.inputFile = no default value
 
 # which composite merge operator to use (plain or agree)
 # Both delegate to the component cpas, but agree only allows merging if all
@@ -273,7 +284,7 @@ cpa.predicate.abstraction.cartesian = false
 cpa.predicate.abstraction.dumpHardQueries = false
 
 # get an initial set of predicates from a file in MSAT format
-cpa.predicate.abstraction.initialPredicates = 
+cpa.predicate.abstraction.initialPredicates = no default value
 
 # which solver to use?
 cpa.predicate.abstraction.solver = "MATHSAT"
@@ -448,7 +459,7 @@ cpa.uninitvars.stop = "sep"
 # become quite large and memory usage might become an issue.
 
 # single levels to be excluded from being logged
-log.consoleExclude = 
+log.consoleExclude = ImmutableList.of()
 
 # log level of console output
 log.consoleLevel = Level.INFO
@@ -457,7 +468,7 @@ log.consoleLevel = Level.INFO
 log.file = "CPALog.txt"
 
 # single levels to be excluded from being logged
-log.fileExclude = 
+log.fileExclude = ImmutableList.of()
 
 # log level of file output
 log.level = Level.OFF
@@ -493,7 +504,7 @@ reachedSet.export = true
 reachedSet.file = "reached.txt"
 
 # list of files with configurations to use
-restartAlgorithm.configFiles = 
+restartAlgorithm.configFiles = no default value
 
 # base directory for all input & output files
 # (except for the configuration file itself)
@@ -501,7 +512,7 @@ rootDirectory = "."
 
 # comma-separated list of files with specifications that should be checked
 # (see test/config/automata/ for examples)
-specification = 
+specification = no default value
 
 # write some statistics to disk
 statistics.export = true

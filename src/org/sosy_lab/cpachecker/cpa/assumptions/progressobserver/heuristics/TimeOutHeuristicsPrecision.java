@@ -32,13 +32,19 @@ import org.sosy_lab.common.configuration.Options;
 @Options(prefix="cpa.assumptions.progressobserver.heuristics.timeOutHeuristics")
 public class TimeOutHeuristicsPrecision implements HeuristicPrecision {
 
-  @Option(description = "threshold for heuristics of progressobserver")
+  @Option(description = "threshold for timeout heuristics")
   private int threshold = -1;
+
+  @Option(description = "how many times to adjust timeout threshold?")
+  private int adjustmentLimit = -1;
+
+  // how many times did we adjusted?
+  private int adjustmentIdx = 0;
 
   private final TimeOutHeuristics timeOutHeuristics;
 
   public TimeOutHeuristicsPrecision(TimeOutHeuristics pTimeOutHeuristics, Configuration pConfig, LogManager pLogger)
-                                   throws InvalidConfigurationException{
+  throws InvalidConfigurationException{
     pConfig.inject(this);
     timeOutHeuristics = pTimeOutHeuristics;
   }
@@ -49,7 +55,11 @@ public class TimeOutHeuristicsPrecision implements HeuristicPrecision {
 
   @Override
   public boolean adjustPrecision() {
+    if(adjustmentLimit != -1 && adjustmentIdx > adjustmentLimit){
+      return false;
+    }
     timeOutHeuristics.resetStartTime();
+    adjustmentLimit ++;
     return true;
   }
 

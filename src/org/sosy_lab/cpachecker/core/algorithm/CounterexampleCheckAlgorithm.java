@@ -164,6 +164,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
         checkTime.stop();
       }
     }
+    System.out.println("returning: " + sound);
     return sound;
   }
 
