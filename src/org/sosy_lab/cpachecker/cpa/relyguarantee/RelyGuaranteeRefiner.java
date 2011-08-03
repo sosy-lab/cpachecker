@@ -191,7 +191,6 @@ public class RelyGuaranteeRefiner{
         }
       }
       // process the remaining environmental transition
-
       environment.processEnvTransitions(errorThr);
 
       return true;

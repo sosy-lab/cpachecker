@@ -539,7 +539,19 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
    */
   public List<InterpolationBlock> getRGFormulaForElement(ARTElement target, ReachedSet[] reachedSets, int threadNo) throws InterruptedException, CPAException{
 
-    assert reachedSets[threadNo].contains(target);
+    List<InterpolationBlock> rgResult = new ArrayList<InterpolationBlock>();
+
+    if (!reachedSets[threadNo].contains(target)){
+      // the target element has been dropped in refinement, so return a false interpolation block
+      PathFormula falsePF = pmgr.makeFalsePathFormula();
+      InterpolationBlockScope ibs = new InterpolationBlockScope(threadNo, target);
+      HashSet<InterpolationBlockScope> ibsSet = new HashSet<InterpolationBlockScope>(1);
+      ibsSet.add(ibs);
+      rgResult.add(new InterpolationBlock(falsePF, ibsSet));
+      return rgResult;
+    }
+
+
     // get the set of ARTElement that have been abstracted
     Path cfaPath = computePath(target, reachedSets[threadNo]);
     System.out.println("The error trace in thread "+threadNo+" is "+cfaPath);
@@ -550,7 +562,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       System.out.println("- id:"+triple.getFirst().getElementId()+" at loc "+triple.getSecond());
     }
 
-    List<InterpolationBlock> rgResult = new ArrayList<InterpolationBlock>();
+
 
     // the maximum number of primes that appears in any formula block
     int offset = 0;
@@ -750,6 +762,51 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     logger.log(Level.FINEST, "Checking feasibility of counterexample trace");
 
+    CounterexampleTraceInfo info = null;
+    Set<AbstractionPredicate> falsePreds = null;
+    boolean containsFalse = false;
+    for (int i=0; i<interpolationFormulas.size()-1;i++){
+      if (!containsFalse && interpolationFormulas.get(i).isFalse()){
+        containsFalse = true;
+        info = new CounterexampleTraceInfo();
+        AbstractionPredicate predicate = amgr.makeFalsePredicate();
+        falsePreds = new HashSet<AbstractionPredicate>();
+        falsePreds.add(predicate);
+      }
+      if (containsFalse){
+        Set<InterpolationBlockScope> scope = interpolationPathFormulas.get(i).getScope();
+        for (InterpolationBlockScope ibs : scope){
+          ARTElement artElement = ibs.getArtElement();
+          info.addPredicatesForRefinement(artElement, falsePreds);
+        }
+      }
+    }
+    if (containsFalse){
+      return info;
+    }
+
+    // TODO debug
+    /*Formula ft = this.fmgr.makeTrue();
+    Formula ff = this.fmgr.makeFalse();
+    Formula cs2 = this.fmgr.makeVariable("cs2", 2);
+    Formula one = this.fmgr.makeNumber(1);
+    Formula zero = this.fmgr.makeNumber(0);
+    Formula cs2_one = this.fmgr.makeEqual(cs2, one);
+    Formula ff2 = this.fmgr.makeEqual(zero, one);
+    interpolationFormulas = new Vector<Formula>();
+    interpolationFormulas.add(ff);
+    interpolationFormulas.add(cs2_one);*/
+
+
+    // TODO mathsat gives an error if formulas for interpolation contain 'false'
+    /*boolean containsFalse = false;
+    for (Formula f : interpolationFormulas){
+      if (f.isFalse()){
+        containsFalse = true;
+      }
+    }*/
+
+
     // now f is the DAG formula which is satisfiable iff there is a
     // concrete counterexample
 
@@ -795,7 +852,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     logger.log(Level.FINEST, "Counterexample trace is", (spurious ? "infeasible" : "feasible"));
 
-    CounterexampleTraceInfo info;
 
     if (spurious) {
       info = new CounterexampleTraceInfo();
@@ -830,7 +886,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         Formula itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_a, i+1));
         // divide new predicates between relevant ART elements
         System.out.print("- after blk"+i+": "+itp);
-         Map<ARTElement, Set<AbstractionPredicate>> precisionForElements = getPrecisionForElements(itp, interpolationPathFormulas.get(i).getScope());
+        Map<ARTElement, Set<AbstractionPredicate>> precisionForElements = getPrecisionForElements(itp, interpolationPathFormulas.get(i).getScope());
 
         Multimap<CFANode, AbstractionPredicate> printingMap = HashMultimap.create();
         for (ARTElement artElement : precisionForElements.keySet()){
@@ -851,11 +907,11 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         }
 
         for (ARTElement artElement : precisionForElements.keySet()){
-           Set<AbstractionPredicate> preds = precisionForElements.get(artElement);
+          Set<AbstractionPredicate> preds = precisionForElements.get(artElement);
 
-           if (!preds.isEmpty()){
-             foundPredicates = true;
-           }
+          if (!preds.isEmpty()){
+            foundPredicates = true;
+          }
           /*else {
               preds = getAtomsAsPredicates(itp);
             }*/

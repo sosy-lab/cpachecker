@@ -28,8 +28,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
-import java.util.Vector;
 import java.util.Map.Entry;
 
 import org.sosy_lab.common.LogManager;
@@ -158,8 +158,8 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
         addEnvTransitionsToCFA(i);
         // run the thread
         error = runThread(i, reached[i], true);
-        // mark unapplied env. edges  as applied
-        environment.appliedEnvEdgesForThread(i);
+        // clear the set of  unapplied env. edges
+        environment.clearUnappliedEnvEdgesForThread(i);
         if (error) {
           // error state has been reached
           return i;
@@ -208,12 +208,12 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
   }
 
   /**
-   * Chose the next thread for running; return -1 if there are no new env edges for any thread and all threads have been run at least once
+   * Chose the next thread for running; return -1 if there are no new env edges or waiting elements for any thread
    * @param reached
    */
   private int pickThread(ReachedSet[] reached) {
     int i=0;
-    while(i<this.threadNo && reached[i].getWaitlistSize() == 0){
+    while(i<this.threadNo && reached[i].getWaitlistSize() == 0 && environment.getUnappliedEnvEdgesForThread(i).isEmpty()){
       i++;
     }
     if (i==this.threadNo){
@@ -251,10 +251,12 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     removeRGEdges(i);
     this.dumpDot(i, "test/output/revertedCFA"+i+".dot");
     // iterate over both new and old env edges
-    Vector<RelyGuaranteeCFAEdge> union = new Vector<RelyGuaranteeCFAEdge>(environment.getAppliedEnvEdgesForThread(i));
-    union.addAll(environment.getUnappliedEnvEdgesForThread(i));
+    // TODO extend to mutliple threds
+    int j = (i==1 ? 0 : 1);
+     List<RelyGuaranteeCFAEdge> valid = environment.getValidEnvEdgesFromThread(j);
 
-    for (RelyGuaranteeCFAEdge envTransition : union){
+
+    for (RelyGuaranteeCFAEdge envTransition : valid){
       String var = getLhsVariable(envTransition.getLocalEdge());
       for(Entry<String, CFANode> entry :   cfa.getCFANodes().entries()){
         CFANode node = entry.getValue();

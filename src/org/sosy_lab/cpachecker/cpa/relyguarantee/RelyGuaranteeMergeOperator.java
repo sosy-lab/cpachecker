@@ -116,7 +116,6 @@ public class RelyGuaranteeMergeOperator extends PredicateMergeOperator {
         RelyGuaranteeFormulaTemplate mergedTemplate = new RelyGuaranteeFormulaTemplate(mergedTemplatePF, mergedL);*/
 
         RelyGuaranteePathFormulaBuilder mergedBuilder = elem1.getPathBuilder().mergeWith(elem2.getPathBuilder());
-        System.out.println("--> Mege formula "+pathFormula);
         if(false){
         //if(doAbstraction(pathFormula)){
           merged = new RelyGuaranteeAbstractElement.ComputeAbstractionElement(pathFormula, elem1.getAbstractionFormula(), loc, mergedBuilder, this.cpa.getThreadId());
