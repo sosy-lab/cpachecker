@@ -23,74 +23,30 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdgeTemplate.ARTElementWrapper;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdgeTemplate.PathFormulaWrapper;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
 public class RelyGuaranteeCFAEdge implements CFAEdge{
 
-  private CFAEdge localEdge;
+  private final CFAEdge localEdge;
   private final PathFormulaWrapper pathFormulaWrapper;
   private final ARTElementWrapper sourceARTElementWrapper;
+  private final int sourceTid;
   private CFANode predecessor;
   private CFANode successor;
-  private final int sourceTid;
 
-  // environmental transition form which this edge was generated from
-  private final RelyGuaranteeEnvironmentalTransition sourceEnvTransition;
-
-  // unkilled env. edge that is more general than this one
-  private RelyGuaranteeCFAEdge coveredBy;
-  // unkilled env. edges that are less general that this one
-  private final Set<RelyGuaranteeCFAEdge> covers;
-
-
-
-
-  /**
-   *
-   * @param edge local edge that created the environmental transition
-   * @param abstractionFormula abstraction formula of the predecessor of the local edge
-   * @param pathFormula path formula of the predecessor of the local edge
-   */
-  public RelyGuaranteeCFAEdge(CFAEdge pEdge, PathFormula pPathFormula, int sourceTid, ARTElement sourceARTElement, RelyGuaranteeEnvironmentalTransition sourceEnvTransition){
-    this.localEdge = pEdge;
-    this.pathFormulaWrapper = new PathFormulaWrapper(pPathFormula);
-    this.sourceARTElementWrapper = new ARTElementWrapper(sourceARTElement);
-    //this.pathFormula = pPathFormula;
-    this.sourceTid = sourceTid;
-    //this.sourceARTElement = sourceARTElement;
-    this.sourceEnvTransition = sourceEnvTransition;
-    this.coveredBy = null;
-    this.covers = new HashSet<RelyGuaranteeCFAEdge>();
-  }
-
-  private RelyGuaranteeCFAEdge(CFAEdge pEdge, PathFormulaWrapper pathFormulaWrapper, int sourceTid, ARTElementWrapper sourceARTElementWrapper, RelyGuaranteeEnvironmentalTransition sourceEnvTransition){
+  protected RelyGuaranteeCFAEdge(CFAEdge pEdge, PathFormulaWrapper pathFormulaWrapper, int sourceTid, ARTElementWrapper sourceARTElementWrapper, RelyGuaranteeEnvironmentalTransition sourceEnvTransition){
     this.localEdge = pEdge;
     this.pathFormulaWrapper = pathFormulaWrapper;
     this.sourceARTElementWrapper = sourceARTElementWrapper;
-    //this.pathFormula = pPathFormula;
-
     this.sourceTid = sourceTid;
-    //this.sourceARTElement = sourceARTElement;
-    this.sourceEnvTransition = sourceEnvTransition;
-    this.coveredBy = null;
-    this.covers = null;
   }
-
-
-  public RelyGuaranteeCFAEdge makeCopy(){
-    RelyGuaranteeCFAEdge copy = new RelyGuaranteeCFAEdge(this.localEdge, this.pathFormulaWrapper, this.sourceTid, this.sourceARTElementWrapper, this.sourceEnvTransition);
-    return copy;
-  }
-
-
 
   public ARTElement getSourceARTElement() {
     return this.sourceARTElementWrapper.artElement;
@@ -156,94 +112,5 @@ public class RelyGuaranteeCFAEdge implements CFAEdge{
   public int getSourceTid(){
     return this.sourceTid;
   }
-
-  public void addCovered(RelyGuaranteeCFAEdge covered){
-
-  }
-
-
-  public RelyGuaranteeEnvironmentalTransition getSourceEnvTransition() {
-    return sourceEnvTransition;
-  }
-
-
-
-
-  public PathFormulaWrapper getPathFormulaWrapper() {
-    return pathFormulaWrapper;
-  }
-
-  public ARTElementWrapper getSourceARTElementWrapper() {
-    return sourceARTElementWrapper;
-  }
-
-  /**
-   * Remember that environmental edge 'other' is more general than this one.
-   * @param other
-   */
-  public void coveredBy(RelyGuaranteeCFAEdge other) {
-    coveredBy  = other;
-    other.covers.add(this);
-  }
-
-  /**
-   * Promotes
-   */
-  public void recoverChildren() {
-
-
-  }
-
-
-
-
-  /**
-   * Wrapper around a path formula.
-   */
-  class PathFormulaWrapper{
-
-    private PathFormula pathFormula;
-
-    public PathFormulaWrapper(PathFormula pf){
-      this.pathFormula = pf;
-    }
-
-    public void setPathFormula(PathFormula pf){
-      this.pathFormula = pf;
-    }
-
-    public PathFormula getPathFormula() {
-      return pathFormula;
-    }
-
-  }
-
-  /**
-   * Wrapper around an ART element.
-   */
-  class ARTElementWrapper{
-
-    private ARTElement artElement;
-
-    public ARTElementWrapper(ARTElement artElement){
-      this.artElement = artElement;
-    }
-
-    public void setARTElement(ARTElement artElement){
-      this.artElement = artElement;
-    }
-
-    public ARTElement getArtElement() {
-      return artElement;
-    }
-
-    public void setArtElement(ARTElement pArtElement) {
-      artElement = pArtElement;
-    }
-
-
-  }
-
-
 
 }

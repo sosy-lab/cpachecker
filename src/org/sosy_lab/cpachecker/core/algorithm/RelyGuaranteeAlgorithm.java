@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdge;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdgeTemplate;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvironment;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -253,16 +254,16 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     // iterate over both new and old env edges
     // TODO extend to mutliple threds
     int j = (i==1 ? 0 : 1);
-     List<RelyGuaranteeCFAEdge> valid = environment.getValidEnvEdgesFromThread(j);
+     List<RelyGuaranteeCFAEdgeTemplate> valid = environment.getValidEnvEdgesFromThread(j);
 
 
-    for (RelyGuaranteeCFAEdge envTransition : valid){
+    for (RelyGuaranteeCFAEdgeTemplate envTransition : valid){
       String var = getLhsVariable(envTransition.getLocalEdge());
       for(Entry<String, CFANode> entry :   cfa.getCFANodes().entries()){
         CFANode node = entry.getValue();
         // check if the rhs of any edge leaving the node reads the variable assigned by 'envTransition'
         if (map.get(node).contains(var)){
-          addEnvTransitionToNode(node, envTransition.makeCopy());
+          addEnvTransitionToNode(node, envTransition.instantiate());
           modified = true;
         }
       }
