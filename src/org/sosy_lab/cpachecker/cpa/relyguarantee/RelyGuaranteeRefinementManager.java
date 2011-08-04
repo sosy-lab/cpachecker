@@ -624,12 +624,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         rgResult.addAll(envRestMap.get(key));
       }
 
-
-      // construct an interpolation block that includes the the environmental parts
-      System.out.println();
-      System.out.println("constructing for element "+artElement.getElementId()+" envmap "+envTopMap);
       PathFormula  currentPF = pathFormulaConstructor.constructFromMap(builder, envTopMap);
-      System.out.print("constructed:"+currentPF);
       InterpolationBlock currentBlock = new InterpolationBlock(currentPF, scope);
       rgResult.add(currentBlock);
 

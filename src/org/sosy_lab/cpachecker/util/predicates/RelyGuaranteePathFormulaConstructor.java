@@ -170,9 +170,6 @@ public class RelyGuaranteePathFormulaConstructor {
     while(!stack.isEmpty()){
       RelyGuaranteePathFormulaBuilder builder = stack.removeFirst();
       preorderStack.addLast(builder);
-      if (preorderStack.size()>1000){
-        System.out.println();
-      }
       if (builder instanceof RelyGuaranteeLocalTransitionBuilder){
         RelyGuaranteeLocalTransitionBuilder currentB = (RelyGuaranteeLocalTransitionBuilder) builder;
         RelyGuaranteePathFormulaBuilder nextB = currentB.getBuilder();

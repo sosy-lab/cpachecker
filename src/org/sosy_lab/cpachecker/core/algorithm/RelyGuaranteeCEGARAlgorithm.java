@@ -71,8 +71,6 @@ public class RelyGuaranteeCEGARAlgorithm implements ConcurrentAlgorithm,  Statis
     return null;
   }
 
-
-
   @Override
   public Result getResult() {
     // TODO Auto-generated method stub
@@ -123,7 +121,6 @@ public class RelyGuaranteeCEGARAlgorithm implements ConcurrentAlgorithm,  Statis
       //stats.gcTimer.stop();
     }
   }
-
 
   @Override
   public RelyGuaranteeEnvironment getRelyGuaranteeEnvironment() {
