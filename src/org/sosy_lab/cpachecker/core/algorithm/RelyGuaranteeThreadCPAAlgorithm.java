@@ -230,8 +230,6 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
 
         // An optimization, we don't bother merging if we know that the
         // merge operator won't do anything (i.e., it is merge-sep).
-        AbstractElement mergedElement = null;
-        boolean successorMerged = false;
 
         if (mergeOperator != MergeSepOperator.getInstance() && !reached.isEmpty()) {
           stats.mergeTimer.start();
@@ -244,66 +242,25 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
           if (AbstractElements.extractLocation(successor).toString().contains("24")){
             System.out.println();
           }
-          /*int succ = ((ARTElement)successor).getElementId();
-          if (succ == 647 || succ == 642){
-            System.out.println();
-          }*/
-
 
           logger.log(Level.FINER, "Considering", reached.size(),
           "elements from reached set for merge");
           for (AbstractElement reachedElement : reached) {
 
-            mergedElement = mergeOperator.merge(successor, reachedElement,successorPrecision);
+
+            AbstractElement  mergedElement = mergeOperator.merge(successor, reachedElement,successorPrecision);
 
             if (!mergedElement.equals(reachedElement)) {
+              environment.mergeSourceElements((ARTElement)mergedElement, (ARTElement)reachedElement, tid);
 
               logger.log(Level.FINER,
                   "Successor was merged with element from reached set");
               logger.log(Level.ALL, "Merged", successor, "\nand",
                   reachedElement, "\n-->", mergedElement);
               stats.countMerge++;
-              // adjust precision after merging
-         /*     precAdjustmentResult = precisionAdjustment.prec(mergedElement, successorPrecision, reachedSet);
-              mergedElement = precAdjustmentResult.getFirst();
-              Precision mergedPrecision = precAdjustmentResult.getSecond();
-              toRemove.add(reachedElement);
-              // TODO add hoc solution - the case of predicate abstraction,
-              // the sucessor is subsummed by the merged element, but after abstraction of the merged element, this may not be detected
-              successorMerged = true;
-              // check if the merged element is covered
 
-              rsucc = AbstractElements.extractElementByType(successor, RelyGuaranteeAbstractElement.class);
-              rreach = AbstractElements.extractElementByType(reachedElement, RelyGuaranteeAbstractElement.class);
-              if (!(rsucc instanceof RelyGuaranteeAbstractElement.AbstractionElement) && !(rreach instanceof RelyGuaranteeAbstractElement.AbstractionElement)){
-                RelyGuaranteeAbstractElement rfake = AbstractElements.extractElementByType(mergedElement, RelyGuaranteeAbstractElement.class);
-                if (rsucc.getAbstractionFormula().toString().contains("cs1@2 = 0") && rreach.getAbstractionFormula().toString().contains("cs1@2 = 0")){
-                  if (!rfake.getAbstractionFormula().toString().contains("cs1@2 = 0")){
-                    System.out.println();
-                  }
-                }
-              }
+              printMerge(successor, reachedElement, mergedElement);
 
-
-
-
-              // check
-              RelyGuaranteeAbstractElement rSucc = AbstractElements.extractElementByType(successor, RelyGuaranteeAbstractElement.class);
-              RelyGuaranteeAbstractElement rReached = AbstractElements.extractElementByType(successor, RelyGuaranteeAbstractElement.class);
-              RelyGuaranteeAbstractElement rMerged = AbstractElements.extractElementByType(successor, RelyGuaranteeAbstractElement.class);
-              if (rSucc.getAbstractionFormula().equals(rReached.getAbstractionFormula()) && !rSucc.getAbstractionFormula().equals(rMerged.getAbstractionFormula())){
-                System.out.println();
-              }*/
-
-
-              printMerge(successor, reachedElement, precAdjustmentResult.getFirst());
-            /*  boolean stop =  stopOperator.stop(mergedElement, reached, mergedPrecision);
-
-              if (stop) {
-                printCovered(mergedElement);
-              } else {
-                toAdd.add(Pair.of(mergedElement, mergedPrecision));
-              }*/
               toRemove.add(reachedElement);
               toAdd.add(Pair.of(mergedElement, successorPrecision));
             }
@@ -321,7 +278,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
           stopOperator.stop(successor, reached, successorPrecision);
         stats.stopTimer.stop();
 
-        if (stop || successorMerged) {
+        if (stop) {
           logger.log(Level.FINER,
               "Successor is covered or unreachable, not adding to waitlist");
           printCovered(successor);

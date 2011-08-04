@@ -43,6 +43,6 @@ public  class RelyGuaranteeMergeBuilder extends  RelyGuaranteePathFormulaBuilder
 
   @Override
   public String toString(){
-    return builder1+" | "+builder2;
+    return "merge";
   }
 }

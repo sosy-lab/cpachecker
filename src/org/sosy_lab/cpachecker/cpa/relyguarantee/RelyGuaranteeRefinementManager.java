@@ -537,6 +537,8 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
    * @throws InterruptedException
    */
   public List<InterpolationBlock> getRGFormulaForElement(ARTElement target, ReachedSet[] reachedSets, int threadNo) throws InterruptedException, CPAException{
+    System.out.println();
+    System.out.println("--> Calling for "+target.getElementId()+" in thread "+threadNo+" <----");
     assert target != null;
     assert target.isDestroyed() || reachedSets[threadNo].contains(target);
     // TODO delete
@@ -596,7 +598,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       Set<InterpolationBlockScope> scope = new HashSet<InterpolationBlockScope>(rgEdges.size()+1);
       scope.add(new InterpolationBlockScope(0, artElement));
 
-
       // get the blocks for environmental transitions
       for(RelyGuaranteeEnvTransitionBuilder envBuilder : rgEdges){
         RelyGuaranteeCFAEdge rgEdge = envBuilder.getEnvEdge();
@@ -625,7 +626,10 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
 
       // construct an interpolation block that includes the the environmental parts
+      System.out.println();
+      System.out.println("constructing for element "+artElement.getElementId()+" envmap "+envTopMap);
       PathFormula  currentPF = pathFormulaConstructor.constructFromMap(builder, envTopMap);
+      System.out.print("constructed:"+currentPF);
       InterpolationBlock currentBlock = new InterpolationBlock(currentPF, scope);
       rgResult.add(currentBlock);
 

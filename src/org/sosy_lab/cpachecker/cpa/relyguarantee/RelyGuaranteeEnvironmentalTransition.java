@@ -40,7 +40,7 @@ public class RelyGuaranteeEnvironmentalTransition {
   private final PathFormula pathFormula;
   private final CFAEdge edge;
   private final int sourceThread;
-  private final ARTElement sourceARTElement;
+  private ARTElement sourceARTElement;
 
  /* public RelyGuaranteeEnvironmentalTransition (Formula formula, PathFormula pathFormula, CFAEdge edge, int sourceThread) {
     this.formula = formula;
@@ -80,6 +80,12 @@ public class RelyGuaranteeEnvironmentalTransition {
 
   public ARTElement getSourceARTElement() {
     return sourceARTElement;
+  }
+
+
+
+  public void setSourceARTElement(ARTElement pSourceARTElement) {
+    sourceARTElement = pSourceARTElement;
   }
 
   public String toString() {

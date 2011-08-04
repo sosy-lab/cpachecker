@@ -43,7 +43,6 @@ public abstract class  RelyGuaranteePathFormulaBuilder {
     return new RelyGuaranteeMergeBuilder(this, reached);
   }
 
-
 }
 
 

@@ -28,7 +28,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -105,24 +104,8 @@ public class RelyGuaranteeMergeOperator extends PredicateMergeOperator {
 
         logger.log(Level.ALL, "New path formula is", pathFormula);
 
-        CFANode loc = elem1.getParentEdge().getSuccessor();
-
-        // adjust the templates
-        /*RelyGuaranteeFormulaTemplate t1= elem1.getRgFormulaTemplate();
-        RelyGuaranteeFormulaTemplate t2 = elem2.getRgFormulaTemplate();
-        PathFormula mergedTemplatePF = formulaManager.makeOr(t1.getLocalPathFormula(), t2.getLocalPathFormula());
-        Vector<Pair<RelyGuaranteeCFAEdge, PathFormula>> mergedL = new Vector<Pair<RelyGuaranteeCFAEdge, PathFormula>>(t1.getEnvTransitionApplied());
-        mergedL.addAll(t2.getEnvTransitionApplied());
-        RelyGuaranteeFormulaTemplate mergedTemplate = new RelyGuaranteeFormulaTemplate(mergedTemplatePF, mergedL);*/
-
         RelyGuaranteePathFormulaBuilder mergedBuilder = elem1.getPathBuilder().mergeWith(elem2.getPathBuilder());
-        if(false){
-        //if(doAbstraction(pathFormula)){
-          merged = new RelyGuaranteeAbstractElement.ComputeAbstractionElement(pathFormula, elem1.getAbstractionFormula(), loc, mergedBuilder, this.cpa.getThreadId());
-        }
-        else {
-          merged = new RelyGuaranteeAbstractElement(pathFormula, elem1.getAbstractionFormula(), mergedBuilder, this.cpa.getThreadId());
-        }
+        merged = new RelyGuaranteeAbstractElement(pathFormula, elem1.getAbstractionFormula(), mergedBuilder, this.cpa.getThreadId());
 
 
 

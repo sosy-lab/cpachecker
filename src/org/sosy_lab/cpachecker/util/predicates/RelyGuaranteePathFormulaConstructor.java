@@ -161,10 +161,18 @@ public class RelyGuaranteePathFormulaConstructor {
     Deque<RelyGuaranteePathFormulaBuilder> stack = new LinkedList<RelyGuaranteePathFormulaBuilder>();
     Deque<RelyGuaranteePathFormulaBuilder> preorderStack = new LinkedList<RelyGuaranteePathFormulaBuilder>();
     // traverse the tree in preorder
+    /*if (map !=null){
+      System.out.println("DEBUG: "+root);
+    }*/
+    // TODO for debuuging
+
     stack.addFirst(root);
     while(!stack.isEmpty()){
       RelyGuaranteePathFormulaBuilder builder = stack.removeFirst();
       preorderStack.addLast(builder);
+      if (preorderStack.size()>1000){
+        System.out.println();
+      }
       if (builder instanceof RelyGuaranteeLocalTransitionBuilder){
         RelyGuaranteeLocalTransitionBuilder currentB = (RelyGuaranteeLocalTransitionBuilder) builder;
         RelyGuaranteePathFormulaBuilder nextB = currentB.getBuilder();
@@ -183,7 +191,7 @@ public class RelyGuaranteePathFormulaConstructor {
         stack.addFirst(nextB2);
       }
     }
-
+    System.out.print("Preorder stack size: "+preorderStack.size());
     // build the path formula
     Deque<PathFormula> arguments = new LinkedList<PathFormula>();
     while(!preorderStack.isEmpty()){
@@ -206,7 +214,7 @@ public class RelyGuaranteePathFormulaConstructor {
         RelyGuaranteeCFAEdge rgEdge = currentB.getEnvEdge();
         // use path formula and offset provided as an argument or get it from the edge itself.
         PathFormula primedEnvPF;
-        int offset;
+        int offset = -1;
         if (map != null){
           primedEnvPF = map.get(currentB);
           // TODO : not in every case, but...
@@ -217,6 +225,8 @@ public class RelyGuaranteePathFormulaConstructor {
           offset = argumentPF.getPrimedNo() + 1;
           primedEnvPF = pfManager.primePathFormula(envPF, offset);
         }
+        assert primedEnvPF != null;
+        assert offset != -1;
         // prime the env. path formula so it does not collide with the local path formula
         //offset++;
         // make equalities between the last global values in the local and env. path formula

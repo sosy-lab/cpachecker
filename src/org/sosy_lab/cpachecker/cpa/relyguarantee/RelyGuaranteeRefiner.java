@@ -31,6 +31,7 @@ import java.io.File;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Vector;
 
 import org.sosy_lab.common.Pair;
@@ -184,6 +185,11 @@ public class RelyGuaranteeRefiner{
           System.out.println("Removing subtree rooted at id:"+root.getElementId()+" at thread: "+tid);
           // drop cut-off node in every thread
           RelyGuaranteePrecision precision = pair.getSecond();
+          System.out.println("BEFORE: Parents of id:"+ root.getElementId());
+          Set<ARTElement> parents = root.getParents();
+          for (ARTElement parent : parents){
+            System.out.println("-parent id:"+parent.getElementId()+" precision: "+artReachedSets[tid].getPrecision(parent));
+          }
           artReachedSets[tid].removeSubtree(root, precision);
         }
       }

@@ -215,6 +215,10 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
     RelyGuaranteePathFormulaBuilder newBuilder = oldBuilder.extendByEdge(edge);
     if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
       RelyGuaranteeCFAEdge rgEdge = (RelyGuaranteeCFAEdge) edge;
+      if (rgEdge.toString().contains("dummy")){
+        System.out.println("Debug "+rgEdge);
+      }
+      assert !rgEdge.toString().contains("dummy");
       newPathFormula = handleEnvFormula(oldPathFormula, rgEdge);
     } else {
       newPathFormula = this.pathFormulaManager.makeAnd(oldPathFormula, edge);
