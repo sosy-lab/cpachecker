@@ -27,11 +27,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Vector;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class ARTTransferRelation implements TransferRelation {
@@ -49,7 +51,18 @@ public class ARTTransferRelation implements TransferRelation {
     ARTElement element = (ARTElement)pElement;
 
     AbstractElement wrappedElement = element.getWrappedElement();
-    Collection<? extends AbstractElement> successors = transferRelation.getAbstractSuccessors(wrappedElement, pPrecision, pCfaEdge);
+    Collection<? extends AbstractElement> successors = null;
+    if (pCfaEdge == null && element.getEnvEdgesToBeApplied() != null){
+      Vector<AbstractElement> allSucc = new Vector<AbstractElement>();
+      for (RelyGuaranteeCFAEdge rgEdge : element.getEnvEdgesToBeApplied()){
+        allSucc.addAll(transferRelation.getAbstractSuccessors(wrappedElement, pPrecision, rgEdge));
+      }
+      element.setEnvEdgesToBeApplied(null);
+      successors = allSucc;
+    } else {
+      successors = transferRelation.getAbstractSuccessors(wrappedElement, pPrecision, pCfaEdge);
+    }
+
     if (successors.isEmpty()) {
       return Collections.emptySet();
     }
@@ -64,8 +77,8 @@ public class ARTTransferRelation implements TransferRelation {
 
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement element,
-                         List<AbstractElement> otherElements, CFAEdge cfaEdge,
-                         Precision precision) {
+      List<AbstractElement> otherElements, CFAEdge cfaEdge,
+      Precision precision) {
     return null;
   }
 }

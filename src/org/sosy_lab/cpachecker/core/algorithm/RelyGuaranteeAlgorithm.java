@@ -27,8 +27,10 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
 
@@ -53,11 +55,13 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdge;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdgeTemplate;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvironment;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -153,10 +157,11 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
       // run each tread at least once until no new env can be applied to any thread
       int i = startThread;
       while(i != -1 && !error) {
-        // add relevant states to the wait list
-        setWaitlist(reached[i]);
+
         // apply all valid env. edges to CFA
-        addEnvTransitionsToCFA(i);
+        Map<CFANode, RelyGuaranteeCFAEdge> envEdgesMap = addEnvTransitionsToCFA(i);
+        // add relevant states to the wait list
+        setWaitlist(reached[i], envEdgesMap);
         // run the thread
         error = runThread(i, reached[i], true);
         // clear the set of  unapplied env. edges
@@ -180,15 +185,24 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
   }
 
   /**
-   * Put relevant states in the waitlist
+   * Put relevant states into the waitlist
+   * @param envEdgesMap
    */
-  private void setWaitlist(ReachedSet reachedSet) {
-    // if waitlist not empty, then this is the first run of for this thread
-    if (reachedSet.getWaitlistSize()>0){
-      return;
-    }
-    for(AbstractElement element : reachedSet.getReached()){
-      reachedSet.reAddToWaitlist(element);
+  private void setWaitlist(ReachedSet reachedSet, Map<CFANode, RelyGuaranteeCFAEdge> envEdgesMap) {
+    for (CFANode node : envEdgesMap.keySet()){
+      Set<AbstractElement> relevant = reachedSet.getReached(node);
+      for (AbstractElement ae : relevant){
+        if (AbstractElements.extractLocation(ae).equals(node)){
+          ARTElement artElement = (ARTElement) ae;
+          Set<RelyGuaranteeCFAEdge> envEdges = artElement.getEnvEdgesToBeApplied();
+          if (envEdges == null){
+            envEdges = new HashSet<RelyGuaranteeCFAEdge>();
+          }
+          envEdges.add(envEdgesMap.get(node));
+          artElement.setEnvEdgesToBeApplied(envEdges);
+          reachedSet.reAddToWaitlist(ae);
+        }
+      }
     }
   }
 
@@ -244,9 +258,9 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
   /**
    * Apply env transitions to CFA no. i and return true if at least one node has been applied
    */
-  private boolean addEnvTransitionsToCFA(int i) {
-    boolean modified = false;
-    RelyGuaranteeCFA cfa = this.cfas[i];
+  private Map<CFANode, RelyGuaranteeCFAEdge> addEnvTransitionsToCFA(int i) {
+    Map<CFANode, RelyGuaranteeCFAEdge> envEdgesMap = new HashMap<CFANode, RelyGuaranteeCFAEdge>();
+    RelyGuaranteeCFA cfa = cfas[i];
     Multimap<CFANode, String> map = cfa.getRhsVariables();
     // remove old environmental edges
     removeRGEdges(i);
@@ -263,14 +277,15 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
         CFANode node = entry.getValue();
         // check if the rhs of any edge leaving the node reads the variable assigned by 'envTransition'
         if (map.get(node).contains(var)){
-          addEnvTransitionToNode(node, envTransition.instantiate());
-          modified = true;
+          RelyGuaranteeCFAEdge edge = envTransition.instantiate();
+          addEnvTransitionToNode(node, edge);
+          envEdgesMap.put(node, edge);
         }
       }
     }
     this.dumpDot(i, "test/output/newCFA"+i+".dot");
 
-    return modified;
+    return envEdgesMap;
   }
 
   /**

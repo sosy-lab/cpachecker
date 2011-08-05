@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdge;
 
 import com.google.common.base.Preconditions;
 
@@ -43,6 +44,9 @@ public class ARTElement extends AbstractSingleWrapperElement {
 
   private final Set<ARTElement> children;
   private final Set<ARTElement> parents; // more than one parent if joining elements
+
+  // TODO for rely-guarantee
+  private Set<RelyGuaranteeCFAEdge> envEdgesToBeApplied;
 
   private ARTElement mCoveredBy = null;
   private Set<ARTElement> mCoveredByThis = null; // lazy initialization because rarely needed
@@ -64,6 +68,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
       addParent(pParentElement);
     }
     children = new LinkedHashSet<ARTElement>();
+    envEdgesToBeApplied = null;
   }
 
   public Set<ARTElement> getParents(){
@@ -241,4 +246,14 @@ public class ARTElement extends AbstractSingleWrapperElement {
   public boolean isDestroyed() {
     return destroyed;
   }
+
+  public Set<RelyGuaranteeCFAEdge> getEnvEdgesToBeApplied() {
+    return envEdgesToBeApplied;
+  }
+
+  public void setEnvEdgesToBeApplied(Set<RelyGuaranteeCFAEdge> pEnvEdgesToBeApplied) {
+    envEdgesToBeApplied = pEnvEdgesToBeApplied;
+  }
+
+
 }
