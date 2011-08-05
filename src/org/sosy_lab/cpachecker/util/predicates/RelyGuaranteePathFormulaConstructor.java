@@ -99,7 +99,7 @@ public class RelyGuaranteePathFormulaConstructor {
   public List<RelyGuaranteeEnvTransitionBuilder> getEnvironmetalTransitions(RelyGuaranteePathFormulaBuilder root) {
     Deque<RelyGuaranteePathFormulaBuilder> stack = new LinkedList<RelyGuaranteePathFormulaBuilder>();
     List<RelyGuaranteeEnvTransitionBuilder> envBuilders = new Vector<RelyGuaranteeEnvTransitionBuilder>();
-
+    System.out.println("-> Geeting env. transitions.");
     stack.addFirst(root);
     while(!stack.isEmpty()){
       RelyGuaranteePathFormulaBuilder builder = stack.removeFirst();
@@ -132,7 +132,7 @@ public class RelyGuaranteePathFormulaConstructor {
    * @return
    * @throws CPATransferException
    */
-  public PathFormula constructFromEdges(RelyGuaranteePathFormulaBuilder root) throws CPATransferException{
+  private PathFormula constructFromEdges(RelyGuaranteePathFormulaBuilder root) throws CPATransferException{
     return construct(root, null);
   }
 
@@ -143,7 +143,7 @@ public class RelyGuaranteePathFormulaConstructor {
    * @return
    * @throws CPATransferException
    */
-  public PathFormula constructFromMap(RelyGuaranteePathFormulaBuilder root, Map<RelyGuaranteeEnvTransitionBuilder, PathFormula> map) throws CPATransferException{
+  private PathFormula constructFromMap(RelyGuaranteePathFormulaBuilder root, Map<RelyGuaranteeEnvTransitionBuilder, PathFormula> map) throws CPATransferException{
     Preconditions.checkNotNull(map);
     return construct(root, map);
   }
@@ -160,6 +160,7 @@ public class RelyGuaranteePathFormulaConstructor {
 
     Deque<RelyGuaranteePathFormulaBuilder> stack = new LinkedList<RelyGuaranteePathFormulaBuilder>();
     Deque<RelyGuaranteePathFormulaBuilder> preorderStack = new LinkedList<RelyGuaranteePathFormulaBuilder>();
+    //Map<RelyGuaranteePathFormulaBuilder, PathFormula> cache = new HashMap<RelyGuaranteePathFormulaBuilder, PathFormula>();
     // traverse the tree in preorder
     /*if (map !=null){
       System.out.println("DEBUG: "+root);
@@ -188,7 +189,6 @@ public class RelyGuaranteePathFormulaConstructor {
         stack.addFirst(nextB2);
       }
     }
-    System.out.print("Preorder stack size: "+preorderStack.size());
     // build the path formula
     Deque<PathFormula> arguments = new LinkedList<PathFormula>();
     while(!preorderStack.isEmpty()){

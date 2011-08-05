@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
+import java.util.HashSet;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -104,10 +105,11 @@ public class RelyGuaranteeMergeOperator extends PredicateMergeOperator {
 
         logger.log(Level.ALL, "New path formula is", pathFormula);
 
+        HashSet<RelyGuaranteeCFAEdge> mergedEnvEdges = new HashSet<RelyGuaranteeCFAEdge>(elem1.getBlockEnvEdges());
+        mergedEnvEdges.addAll(elem2.getBlockEnvEdges());
+
         RelyGuaranteePathFormulaBuilder mergedBuilder = elem1.getPathBuilder().mergeWith(elem2.getPathBuilder());
-        merged = new RelyGuaranteeAbstractElement(pathFormula, elem1.getAbstractionFormula(), mergedBuilder, this.cpa.getThreadId());
-
-
+        merged = new RelyGuaranteeAbstractElement(pathFormula, elem1.getAbstractionFormula(), mergedBuilder, this.cpa.getThreadId(), mergedEnvEdges);
 
         // now mark elem1 so that coverage check can find out it was merged
         elem1.setMergedInto(merged);

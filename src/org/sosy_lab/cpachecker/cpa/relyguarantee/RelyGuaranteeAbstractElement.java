@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -67,18 +70,22 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
   public static class AbstractionElement extends RelyGuaranteeAbstractElement {
 
     private RelyGuaranteePathFormulaBuilder oldPathBuilder;
+    private final Set<RelyGuaranteeCFAEdge> oldblockEnvEdges;
 
-    public AbstractionElement(PathFormula pf, AbstractionFormula pA, RelyGuaranteePathFormulaBuilder  newPathBuilder, RelyGuaranteePathFormulaBuilder  oldPathBuilder, int tid) {
-      super(pf, pA, newPathBuilder, tid);
+
+    public AbstractionElement(PathFormula pf, AbstractionFormula pA, RelyGuaranteePathFormulaBuilder  newPathBuilder, RelyGuaranteePathFormulaBuilder  oldPathBuilder, int tid, Set<RelyGuaranteeCFAEdge> oldEnvEdges) {
+      super(pf, pA, newPathBuilder, tid, new HashSet<RelyGuaranteeCFAEdge>());
       this.oldPathBuilder = oldPathBuilder;
+      this.oldblockEnvEdges = oldEnvEdges;
       // Check whether the pathFormula of an abstraction element is just "true".
       // partialOrder relies on this for optimization.
     }
 
 
-    public AbstractionElement(PathFormula pf, AbstractionFormula pA, CFAEdge edge, RelyGuaranteePathFormulaBuilder  newPathBuilder, RelyGuaranteePathFormulaBuilder  oldPathBuilder, int tid) {
-      super(pf, pA, edge, newPathBuilder, tid);
+    public AbstractionElement(PathFormula pf, AbstractionFormula pA, CFAEdge edge, RelyGuaranteePathFormulaBuilder  newPathBuilder, RelyGuaranteePathFormulaBuilder  oldPathBuilder, int tid, Set<RelyGuaranteeCFAEdge> oldEnvEdges) {
+      super(pf, pA, edge, newPathBuilder, tid, new HashSet<RelyGuaranteeCFAEdge>());
       this.oldPathBuilder = oldPathBuilder;
+      this.oldblockEnvEdges = oldEnvEdges;
       // Check whether the pathFormula of an abstraction element is just "true".
       // partialOrder relies on this for optimization.
 
@@ -99,6 +106,13 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
       }
     }
 
+
+
+    public Set<RelyGuaranteeCFAEdge> getOldblockEnvEdges() {
+      return oldblockEnvEdges;
+    }
+
+
     @Override
     public String toString() {
       /*if (this.pathBuilder == null){
@@ -108,6 +122,8 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
       }*/
       return "T:"+this.tid+", Abstraction, '"+this.getAbstractionFormula()+"','"+this.getPathFormula()+"' with SSA "+this.getPathFormula().getSsa();
     }
+
+
   }
 
 
@@ -125,13 +141,13 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
      location = pLoc;
    }*/
 
-    public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc, RelyGuaranteePathFormulaBuilder  pathBuilder, int tid) {
-      super(pf, pA, pathBuilder, tid);
+    public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc, RelyGuaranteePathFormulaBuilder  pathBuilder, int tid, Set<RelyGuaranteeCFAEdge> envEdges) {
+      super(pf, pA, pathBuilder, tid, envEdges);
       location = pLoc;
     }
 
-    public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc, CFAEdge edge, RelyGuaranteePathFormulaBuilder  pathBuilder, int tid) {
-      super(pf, pA, edge, pathBuilder, tid);
+    public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc, CFAEdge edge, RelyGuaranteePathFormulaBuilder  pathBuilder, int tid,  Set<RelyGuaranteeCFAEdge> envEdges) {
+      super(pf, pA, edge, pathBuilder, tid, envEdges);
       location = pLoc;
     }
 
@@ -170,6 +186,8 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
    */
   protected RelyGuaranteePathFormulaBuilder  pathBuilder;
 
+  private final Set<RelyGuaranteeCFAEdge> blockEnvEdges;
+
   /* public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a) {
    this.pathFormula = pf;
    this.abstractionFormula = a;
@@ -185,16 +203,17 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
    this.rgFormulaTemplate = null;
  }*/
 
-  public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a, RelyGuaranteePathFormulaBuilder  pathBuilder, int tid) {
+  public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a, RelyGuaranteePathFormulaBuilder  pathBuilder, int tid, Set<RelyGuaranteeCFAEdge> envEdges) {
     Preconditions.checkNotNull(pathBuilder);
     this.pathFormula = pf;
     this.abstractionFormula = a;
     this.tid = RelyGuaranteeAbstractElement.UNKOWN;
     this.pathBuilder = pathBuilder;
     this.tid = tid;
+    this.blockEnvEdges = envEdges;
   }
 
-  public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a, CFAEdge edge,  RelyGuaranteePathFormulaBuilder  pathBuilder, int tid) {
+  public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a, CFAEdge edge,  RelyGuaranteePathFormulaBuilder  pathBuilder, int tid, Set<RelyGuaranteeCFAEdge> envEdges) {
     Preconditions.checkNotNull(pathBuilder);
     this.pathFormula = pf;
     this.abstractionFormula = a;
@@ -202,6 +221,7 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
     this.parentEdge = edge;
     this.pathBuilder = pathBuilder;
     this.tid = tid;
+    this.blockEnvEdges = envEdges;
   }
 
 
@@ -228,7 +248,7 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
 
   @Override
   public String toString() {
-   /* if (this.pathBuilder == null){
+    /* if (this.pathBuilder == null){
       return "T:"+this.tid+", Non-abstraction, '"+this.getAbstractionFormula()+"','"+this.getPathFormula()+"' SSA "+this.getPathFormula().getSsa()+", empty template";
     } else {
       return "T:"+this.tid+", Non-abstraction, '"+this.getAbstractionFormula()+"','"+this.getPathFormula()+"' SSA "+this.getPathFormula().getSsa()+", "+this.pathBuilder;
@@ -253,6 +273,9 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
     return this.parentEdge;
   }
 
+  public Set<RelyGuaranteeCFAEdge> getBlockEnvEdges() {
+    return blockEnvEdges;
+  }
 
 
 

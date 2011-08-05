@@ -40,9 +40,15 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdgeTemplate.ARTElementWrapper;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdgeTemplate.PathFormulaWrapper;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
@@ -512,9 +518,10 @@ public class RelyGuaranteeEnvironment {
    * Looks for env. edges generated in threads on the list and checks if their source elements have been destroyed.
    * Their  path formula is set to false and they are not
    * valid any more. Transitions covered by them will be valid again, unless they have also been  killed.
+   * @param artReachedSets
    * @param tid
    */
-  public void killEnvironmetalEdges(Iterable<Integer> tids) {
+  public void killEnvironmetalEdges(Iterable<Integer> tids, ARTReachedSet[] artReachedSets) {
     for (Integer tid : tids){
       // remove covered transitions that belong to the subtree
       killCovered(tid);
@@ -525,6 +532,35 @@ public class RelyGuaranteeEnvironment {
     killUnapplied();
     // drop unprocess transitions that were generated in the subtree
     removeUnprocessedTransitionsFromElement();
+
+
+    List<Pair<Integer, ARTElement>> toDrop = new Vector<Pair<Integer, ARTElement>>();
+    for (int i=0; i<threadNo; i++){
+      UnmodifiableReachedSet reached = artReachedSets[i].asReachedSet();
+      for (AbstractElement element : reached){
+        ARTElement artElement = (ARTElement) element;
+        RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(artElement, RelyGuaranteeAbstractElement.class);
+        if (rgElement instanceof AbstractionElement){
+          CFAEdge edge = rgElement.getParentEdge();
+          if (edge != null && edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge ){
+            RelyGuaranteeCFAEdge rgEdge = (RelyGuaranteeCFAEdge) edge;
+            ARTElement source = rgEdge.getSourceARTElement();
+            if (source.isDestroyed()){
+              /// drop it
+              toDrop.add(Pair.of(i, artElement));
+            }
+          }
+        }
+      }
+    }
+
+    System.out.println();
+    System.out.println("Removing subtree because of dead env. edges");
+    for (Pair<Integer, ARTElement> pair : toDrop){
+      System.out.println("- ART element id:"+pair.getSecond().getElementId()+" in thread "+pair.getFirst());
+      artReachedSets[pair.getFirst()].removeSubtree(pair.getSecond());
+    }
+
     assertion();
   }
 
@@ -564,6 +600,7 @@ public class RelyGuaranteeEnvironment {
    * - remove from envTransProcessedBeforeFromThread so it can be generated again
    * @param root
    * @param tid
+   * @param artReachedSets
    */
   private void killValid(int tid) {
     Vector<RelyGuaranteeCFAEdgeTemplate> toDelete = new Vector<RelyGuaranteeCFAEdgeTemplate>();
@@ -577,6 +614,10 @@ public class RelyGuaranteeEnvironment {
       }
     }
     printEdges("Killed valid edges in t "+tid+" : ",toDelete);
+
+
+
+
     validEnvEdgesFromThread[tid].removeAll(toDelete);
     // see if some transitions that were covered by rgEdge can become valid
     // they could be covered by some other valid transition

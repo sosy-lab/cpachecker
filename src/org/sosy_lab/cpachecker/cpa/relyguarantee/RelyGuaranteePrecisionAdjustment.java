@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecisionAdjustment;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -87,14 +86,14 @@ public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustme
     PathFormula pathFormula = element.getPathFormula();
     CFANode loc = element.getLocation();
 
-    PathFormula pathByBuilder = null;
+    /*PathFormula pathByBuilder = null;
     try {
       pathByBuilder = this.cpa.getPathFormulaConstructor().constructFromEdges(element.getPathBuilder());
     } catch (CPATransferException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
-    assert pathByBuilder.equals(pathFormula);
+    assert pathByBuilder.equals(pathFormula);*/
 
     numAbstractions++;
     logger.log(Level.FINEST, "Computing abstraction on node", loc);
@@ -125,7 +124,7 @@ public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustme
 
 
     RelyGuaranteePathFormulaBuilder freshBuilder = this.pathFormulaConstructor.createEmpty(pathFormula);
-    return new RelyGuaranteeAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula, element.getParentEdge(), freshBuilder, element.getPathBuilder(), this.cpa.getThreadId());
+    return new RelyGuaranteeAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula, element.getParentEdge(), freshBuilder, element.getPathBuilder(), this.cpa.getThreadId(), element.getBlockEnvEdges());
   }
 
   @Override

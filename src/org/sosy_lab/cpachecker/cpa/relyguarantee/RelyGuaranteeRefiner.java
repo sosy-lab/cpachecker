@@ -185,17 +185,23 @@ public class RelyGuaranteeRefiner{
           System.out.println("Removing subtree rooted at id:"+root.getElementId()+" at thread: "+tid);
           // drop cut-off node in every thread
           RelyGuaranteePrecision precision = pair.getSecond();
-          System.out.println("BEFORE: Parents of id:"+ root.getElementId());
-          Set<ARTElement> parents = root.getParents();
+          System.out.println();
+          System.out.print("BEFORE: ");
+          Set<ARTElement> parents = new HashSet<ARTElement>(root.getParents());
           for (ARTElement parent : parents){
             System.out.println("-parent id:"+parent.getElementId()+" precision: "+artReachedSets[tid].getPrecision(parent));
           }
           artReachedSets[tid].removeSubtree(root, precision);
+          System.out.print("AFTER: ");
+          for (ARTElement parent : parents){
+            System.out.println("-parent id:"+parent.getElementId()+" precision: "+artReachedSets[tid].getPrecision(parent));
+          }
+
         }
       }
       // kill the env transitions that were generated in the drop ARTs
       // if they killed transitions covered some other transitions, then make them valid again
-      environment.killEnvironmetalEdges(refinementResult.keySet());
+      environment.killEnvironmetalEdges(refinementResult.keySet(), artReachedSets);
       // process the remaining environmental transition
       environment.processEnvTransitions(errorThr);
 

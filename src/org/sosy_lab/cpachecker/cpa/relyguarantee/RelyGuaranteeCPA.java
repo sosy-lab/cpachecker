@@ -181,7 +181,7 @@ public class RelyGuaranteeCPA extends PredicateCPA{
 
     this.transfer = new RelyGuaranteeTransferRelation(this);
 
-    this.topElement = new RelyGuaranteeAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null), pathFormulaConstructor.createEmpty(), pathFormulaConstructor.createEmpty(), tid);
+    this.topElement = new RelyGuaranteeAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null), pathFormulaConstructor.createEmpty(), pathFormulaConstructor.createEmpty(), tid, new HashSet<RelyGuaranteeCFAEdge>());
     this.domain = new RelyGuaranteeAbstractDomain(this);
 
     this.merge = new RelyGuaranteeMergeOperator(this);
@@ -290,7 +290,7 @@ public class RelyGuaranteeCPA extends PredicateCPA{
       }
     }
     // TODO make-shift solution
-    this.topElement = new RelyGuaranteeAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null), pathFormulaConstructor.createEmpty(), pathFormulaConstructor.createEmpty(), tid);
+    this.topElement = new RelyGuaranteeAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null), pathFormulaConstructor.createEmpty(), pathFormulaConstructor.createEmpty(), tid, new HashSet<RelyGuaranteeCFAEdge>());
 
     this.initialPrecision= new RelyGuaranteePrecision(predicates);
 
