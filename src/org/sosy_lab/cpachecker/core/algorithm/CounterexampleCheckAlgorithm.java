@@ -160,7 +160,14 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
             throw new RefinementFailedException(Reason.InfeasibleCounterexample, path);
           }
         }
-      } finally {
+      } catch (CPAException e){
+        logger.log(Level.WARNING, "Analysis unsound because CBMC returned no results for feasibility check.");
+        sound = false;
+      } catch (InterruptedException e){
+        logger.log(Level.WARNING, "Analysis unsound because CBMC interrupted during feasibility check.");
+        sound = false;
+      }
+      finally {
         checkTime.stop();
       }
     }
