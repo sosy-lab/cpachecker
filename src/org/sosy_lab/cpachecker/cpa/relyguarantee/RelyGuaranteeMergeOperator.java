@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
-import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -101,15 +102,25 @@ public class RelyGuaranteeMergeOperator extends PredicateMergeOperator {
 
         logger.log(Level.FINEST, "Merging two non-abstraction nodes.");
 
-        PathFormula pathFormula = formulaManager.makeRelyGuaranteeOr(elem1.getPathFormula(), elem2.getPathFormula());
+        int offset = elem1.getPathFormula().getPrimedNo()+1;
+        Map<Integer, RelyGuaranteeCFAEdge> mergedPrimedMap = new HashMap<Integer,RelyGuaranteeCFAEdge>(elem2.getPrimedMap().size()+elem1.getPrimedMap().size());
+        Map<Integer, Integer> adjustedMap = new HashMap<Integer, Integer>(elem2.getPrimedMap().size());
+        for (Integer primeNo : elem2.getPrimedMap().keySet()){
+          mergedPrimedMap.put(primeNo+offset, elem2.getPrimedMap().get(primeNo));
+          adjustedMap.put(primeNo, primeNo+offset);
+        }
+        mergedPrimedMap.putAll(elem1.getPrimedMap());
+
+        PathFormula adjustedPF = formulaManager.adjustPrimedNo(elem2.getPathFormula(), adjustedMap);
+
+
+        PathFormula pathFormula = formulaManager.makeRelyGuaranteeOr(elem1.getPathFormula(), adjustedPF);
 
         logger.log(Level.ALL, "New path formula is", pathFormula);
 
-        HashSet<RelyGuaranteeCFAEdge> mergedEnvEdges = new HashSet<RelyGuaranteeCFAEdge>(elem1.getBlockEnvEdges());
-        mergedEnvEdges.addAll(elem2.getBlockEnvEdges());
 
         RelyGuaranteePathFormulaBuilder mergedBuilder = elem1.getPathBuilder().mergeWith(elem2.getPathBuilder());
-        merged = new RelyGuaranteeAbstractElement(pathFormula, elem1.getAbstractionFormula(), mergedBuilder, this.cpa.getThreadId(), mergedEnvEdges);
+        merged = new RelyGuaranteeAbstractElement(adjustedPF, elem1.getAbstractionFormula(), mergedBuilder, this.cpa.getThreadId(), mergedPrimedMap);
 
         // now mark elem1 so that coverage check can find out it was merged
         elem1.setMergedInto(merged);

@@ -225,6 +225,12 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
 
+  @Override
+  public PathFormula adjustPrimedNo(PathFormula pPathFormula, Map<Integer, Integer> pPrimedMap) {
+    return delegate.adjustPrimedNo(pPathFormula, pPrimedMap);
+  }
+
+
 
 
 

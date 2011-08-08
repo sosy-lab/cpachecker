@@ -124,7 +124,7 @@ public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustme
 
 
     RelyGuaranteePathFormulaBuilder freshBuilder = this.pathFormulaConstructor.createEmpty(pathFormula);
-    return new RelyGuaranteeAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula, element.getParentEdge(), freshBuilder, element.getPathBuilder(), this.cpa.getThreadId(), element.getBlockEnvEdges());
+    return new RelyGuaranteeAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula, element.getParentEdge(), freshBuilder, element.getPathBuilder(), this.cpa.getThreadId(), element.getPrimedMap());
   }
 
   @Override

@@ -545,9 +545,32 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     return falsePathFormula;
   }
 
+  @Override
+  public PathFormula adjustPrimedNo(PathFormula pathFormula, Map<Integer, Integer> primedMap) {
+    //Formula adjustedF = fmgr.adjustedPrimedNo(pathFormula.getFormula(), primedMap);
+    Formula adjustedF = fmgr.adjustedPrimedNo(pathFormula.getFormula(), primedMap);
+    SSAMapBuilder ssaBuilder = SSAMap.emptySSAMap().builder();
+    SSAMap ssa = pathFormula.getSsa();
+    int maxPrimed = 0;
+    // adjust the ssa map
+    for (String var : ssa.allVariables()){
+      Pair<String, Integer> data = PathFormula.getPrimeData(var);
+      if (primedMap.containsKey(data.getSecond())){
+        int newPrimedNo = primedMap.get(data.getSecond());
+        if (newPrimedNo == 0){
+          ssaBuilder.setIndex(data.getFirst(), ssa.getIndex(var));
+        } else {
+          ssaBuilder.setIndex(data.getFirst()+"^"+newPrimedNo, ssa.getIndex(var));
+        }
+        maxPrimed = Math.max(maxPrimed, newPrimedNo);
+      } else {
+        ssaBuilder.setIndex(var, ssa.getIndex(var));
+        maxPrimed = Math.max(maxPrimed, data.getSecond());
+      }
+    }
+    //
 
-
-
-
+    return new PathFormula(adjustedF, ssaBuilder.build(), maxPrimed);
+  }
 
 }

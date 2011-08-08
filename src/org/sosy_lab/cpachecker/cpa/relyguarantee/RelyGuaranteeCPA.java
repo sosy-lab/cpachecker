@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
@@ -181,7 +182,7 @@ public class RelyGuaranteeCPA extends PredicateCPA{
 
     this.transfer = new RelyGuaranteeTransferRelation(this);
 
-    this.topElement = new RelyGuaranteeAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null), pathFormulaConstructor.createEmpty(), pathFormulaConstructor.createEmpty(), tid, new HashSet<RelyGuaranteeCFAEdge>());
+    this.topElement = new RelyGuaranteeAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null), pathFormulaConstructor.createEmpty(), pathFormulaConstructor.createEmpty(), tid, new HashMap<Integer, RelyGuaranteeCFAEdge>());
     this.domain = new RelyGuaranteeAbstractDomain(this);
 
     this.merge = new RelyGuaranteeMergeOperator(this);
@@ -290,7 +291,7 @@ public class RelyGuaranteeCPA extends PredicateCPA{
       }
     }
     // TODO make-shift solution
-    this.topElement = new RelyGuaranteeAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null), pathFormulaConstructor.createEmpty(), pathFormulaConstructor.createEmpty(), tid, new HashSet<RelyGuaranteeCFAEdge>());
+    this.topElement = new RelyGuaranteeAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null), pathFormulaConstructor.createEmpty(), pathFormulaConstructor.createEmpty(), tid, new HashMap<Integer, RelyGuaranteeCFAEdge>());
 
     this.initialPrecision= new RelyGuaranteePrecision(predicates);
 

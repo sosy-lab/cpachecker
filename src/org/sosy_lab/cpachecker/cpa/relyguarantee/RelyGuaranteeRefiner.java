@@ -31,7 +31,6 @@ import java.io.File;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.Vector;
 
 import org.sosy_lab.common.Pair;
@@ -176,31 +175,33 @@ public class RelyGuaranteeRefiner{
       System.out.println("\t\t --- Lazy abstraction ---");
       Multimap<Integer, Pair<ARTElement, RelyGuaranteePrecision>> refinementResult = performRefinement(reachedSets, mCounterexampleTraceInfo, errorThr);
 
-      environment.printUnprocessedTransitions();
+
       // drop subtrees and change precision
       System.out.println();
       for(int tid : refinementResult.keySet()){
         for(Pair<ARTElement, RelyGuaranteePrecision> pair : refinementResult.get(tid)){
           ARTElement root = pair.getFirst();
-          System.out.println("Removing subtree rooted at id:"+root.getElementId()+" at thread: "+tid);
+          //System.out.println("Removing subtree rooted at id:"+root.getElementId()+" at thread: "+tid);
           // drop cut-off node in every thread
           RelyGuaranteePrecision precision = pair.getSecond();
-          System.out.println();
+          /*System.out.println();
           System.out.print("BEFORE: ");
           Set<ARTElement> parents = new HashSet<ARTElement>(root.getParents());
           for (ARTElement parent : parents){
             System.out.println("-parent id:"+parent.getElementId()+" precision: "+artReachedSets[tid].getPrecision(parent));
-          }
+          }*/
           artReachedSets[tid].removeSubtree(root, precision);
-          System.out.print("AFTER: ");
+          /*System.out.print("AFTER: ");
           for (ARTElement parent : parents){
             System.out.println("-parent id:"+parent.getElementId()+" precision: "+artReachedSets[tid].getPrecision(parent));
-          }
+          }*/
 
         }
       }
       // kill the env transitions that were generated in the drop ARTs
       // if they killed transitions covered some other transitions, then make them valid again
+      System.out.println("\t\t --- Processing env transitions ---");
+      environment.printUnprocessedTransitions();
       environment.killEnvironmetalEdges(refinementResult.keySet(), artReachedSets);
       // process the remaining environmental transition
       environment.processEnvTransitions(errorThr);

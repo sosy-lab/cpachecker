@@ -260,6 +260,9 @@ public class RelyGuaranteeEnvironment {
             }
           }
         }
+        if (!isValid){
+          System.out.println("DEBUG: "+et);
+        }
         assert isValid;
         assert !et.getPathFormula().toString().contains("dummy");
         assert !et.getSourceARTElement().isDestroyed();
@@ -528,38 +531,21 @@ public class RelyGuaranteeEnvironment {
       // kill valid and processed env. edges
       killValid(tid);
     }
+    // propagate drop trees
+    for (Integer tid : dropApplications(artReachedSets)){
+      // remove covered transitions that belong to the subtree
+      killCovered(tid);
+      // kill valid and processed env. edges
+      killValid(tid);
+    }
+
     // kill unapplied  env. edges
     killUnapplied();
     // drop unprocess transitions that were generated in the subtree
     removeUnprocessedTransitionsFromElement();
 
 
-    List<Pair<Integer, ARTElement>> toDrop = new Vector<Pair<Integer, ARTElement>>();
-    for (int i=0; i<threadNo; i++){
-      UnmodifiableReachedSet reached = artReachedSets[i].asReachedSet();
-      for (AbstractElement element : reached){
-        ARTElement artElement = (ARTElement) element;
-        RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(artElement, RelyGuaranteeAbstractElement.class);
-        if (rgElement instanceof AbstractionElement){
-          CFAEdge edge = rgElement.getParentEdge();
-          if (edge != null && edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge ){
-            RelyGuaranteeCFAEdge rgEdge = (RelyGuaranteeCFAEdge) edge;
-            ARTElement source = rgEdge.getSourceARTElement();
-            if (source.isDestroyed()){
-              /// drop it
-              toDrop.add(Pair.of(i, artElement));
-            }
-          }
-        }
-      }
-    }
 
-    System.out.println();
-    System.out.println("Removing subtree because of dead env. edges");
-    for (Pair<Integer, ARTElement> pair : toDrop){
-      System.out.println("- ART element id:"+pair.getSecond().getElementId()+" in thread "+pair.getFirst());
-      artReachedSets[pair.getFirst()].removeSubtree(pair.getSecond());
-    }
 
     assertion();
   }
@@ -610,13 +596,9 @@ public class RelyGuaranteeEnvironment {
         removeFromProcessedBefore(rgEdge, tid);
         toDelete.add(rgEdge);
         makeRelyGuaranteeEnvEdgeFalse(rgEdge);
-
       }
     }
     printEdges("Killed valid edges in t "+tid+" : ",toDelete);
-
-
-
 
     validEnvEdgesFromThread[tid].removeAll(toDelete);
     // see if some transitions that were covered by rgEdge can become valid
@@ -636,6 +618,7 @@ public class RelyGuaranteeEnvironment {
     }
     for (RelyGuaranteeCFAEdgeTemplate rgEdge : validEnvEdgesFromThread[tid]){
       assert !rgEdge.getSourceARTElement().isDestroyed();
+      assert !rgEdge.getPathFormula().toString().contains("dummy");
     }
 
   }
@@ -659,6 +642,44 @@ public class RelyGuaranteeEnvironment {
       printEdges("Deleted unapplied transitions for thread "+j, toDelete);
       toDelete.clear();
     }
+  }
+
+
+
+  private Set<Integer> dropApplications(ARTReachedSet[] artReachedSets) {
+    //List<Pair<Integer, ARTElement>> toDrop = new Vector<Pair<Integer, ARTElement>>();
+    Multimap<Integer, ARTElement> toDrop = HashMultimap.create();
+    for (int i=0; i<threadNo; i++){
+      UnmodifiableReachedSet reached = artReachedSets[i].asReachedSet();
+      for (AbstractElement element : reached){
+        ARTElement artElement = (ARTElement) element;
+        RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(artElement, RelyGuaranteeAbstractElement.class);
+        if (rgElement instanceof AbstractionElement){
+          CFAEdge edge = rgElement.getParentEdge();
+          if (edge != null && edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge ){
+            RelyGuaranteeCFAEdge rgEdge = (RelyGuaranteeCFAEdge) edge;
+            ARTElement source = rgEdge.getSourceARTElement();
+            if (source.isDestroyed()){
+              /// drop it
+              toDrop.put(i, artElement);
+            }
+          }
+        }
+      }
+    }
+
+    System.out.println();
+    System.out.println("Removing subtree because of dead env. edges");
+    for (Integer tid : toDrop.keySet()){
+      for (ARTElement artElement : toDrop.get(tid)){
+        System.out.println("- ART element id:"+artElement.getElementId()+" in thread "+tid);
+        if (!artElement.isDestroyed()){
+          artReachedSets[tid].removeSubtree(artElement);
+        }
+      }
+    }
+
+    return toDrop.keySet();
   }
 
 

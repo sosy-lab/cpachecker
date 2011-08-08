@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
@@ -89,6 +90,8 @@ public interface PathFormulaManager {
   PathFormula normalize(PathFormula pNewPF);
 
   PathFormula makeFalsePathFormula();
+
+  PathFormula adjustPrimedNo(PathFormula pathFormula, Map<Integer, Integer> primedMap);
 
 
 }

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
+import static com.google.common.collect.Iterables.skip;
 import static com.google.common.collect.Lists.transform;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
 
@@ -451,7 +452,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
   protected List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> transformPath(Path pPath) throws CPATransferException {
     List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> result = Lists.newArrayList();
 
-    for (ARTElement ae : transform(pPath, Pair.<ARTElement>getProjectionToFirst())) {
+    for (ARTElement ae : skip(transform(pPath, Pair.<ARTElement>getProjectionToFirst()), 1)) {
       RelyGuaranteeAbstractElement pe = extractElementByType(ae, RelyGuaranteeAbstractElement.class);
       if (pe instanceof AbstractionElement) {
         CFANode loc = AbstractElements.extractLocation(ae);
@@ -577,12 +578,12 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       RelyGuaranteePathFormulaBuilder builder = null;
       if (rgElement instanceof AbstractionElement){
         builder = (rgElement).getOldPathBuilder();
-       /* PathFormula assertBuilderPF = pathFormulaConstructor.constructFromEdges(builder);
+        /* PathFormula assertBuilderPF = pathFormulaConstructor.constructFromEdges(builder);
         assert assertBuilderPF.equals(rgElement.getAbstractionFormula().getBlockPathFormula());*/
       }
 
       // get list of env edges applied to this block
-     /* List<RelyGuaranteeEnvTransitionBuilder> rgEdges = pathFormulaConstructor.getEnvironmetalTransitions(builder);
+      /* List<RelyGuaranteeEnvTransitionBuilder> rgEdges = pathFormulaConstructor.getEnvironmetalTransitions(builder);
       for (RelyGuaranteeEnvTransitionBuilder etb : rgEdges){
         assert rgElement.getOldblockEnvEdges().contains(etb.getEnvEdge());
       }
@@ -596,25 +597,30 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         assert contains;
       }*/
 
-      printEnvEdgesApplied(artElement, rgElement.getOldblockEnvEdges());
+      printEnvEdgesApplied(artElement, rgElement.getOldPrimedMap().values());
       // map : env edge applied -> the top path formula of the env. trace
       Map<RelyGuaranteeEnvTransitionBuilder, PathFormula> envTopMap = new HashMap<RelyGuaranteeEnvTransitionBuilder, PathFormula>();
       // map : env edge applied -> the rest path formula of the env. trace
       Map<RelyGuaranteeEnvTransitionBuilder, List<InterpolationBlock>> envRestMap = new HashMap<RelyGuaranteeEnvTransitionBuilder, List<InterpolationBlock>>();
       List<InterpolationBlock> externalBlocks = new Vector<InterpolationBlock>();
+      Map<Integer, Integer> adjustmentMap = new HashMap<Integer, Integer>(rgElement.getPrimedMap().size());
       // which traces meet in the block
-      Set<InterpolationBlockScope> scope = new HashSet<InterpolationBlockScope>(rgElement.getOldblockEnvEdges().size()+1);
+      Set<InterpolationBlockScope> scope = new HashSet<InterpolationBlockScope>(rgElement.getPrimedMap().size()+1);
       scope.add(new InterpolationBlockScope(0, artElement));
 
       // get the blocks for environmental transitions
-      for(RelyGuaranteeCFAEdge rgEdge : rgElement.getOldblockEnvEdges()){
+      for(Integer primedNo: rgElement.getOldPrimedMap().keySet()){
+        RelyGuaranteeCFAEdge rgEdge = rgElement.getOldPrimedMap().get(primedNo);
         ARTElement sourceElement = rgEdge.getSourceARTElement();
         int sourceThread = rgEdge.getSourceTid();
 
         // TODO caching
         List<InterpolationBlock> envPF = getRGFormulaForElement(sourceElement, reachedSets, sourceThread);
+
         offset++;
-        offset = 1;
+        if (primedNo != offset){
+          adjustmentMap.put(primedNo, offset);
+        }
         // prime the blocks so paths paths are unique
         newOffset = primeInterpolationBlocks(envPF, offset);
         //InterpolationBlock lastBlock = envPF.remove(envPF.size()-1);
@@ -633,8 +639,10 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         rgResult.addAll(envRestMap.get(key));
       }
 
-
       PathFormula currentPF = rgElement.getAbstractionFormula().getBlockPathFormula();
+      if (!adjustmentMap.isEmpty()){
+        currentPF = pmgr.adjustPrimedNo(currentPF, adjustmentMap);
+      }
       InterpolationBlock currentBlock = new InterpolationBlock(currentPF, scope);
       rgResult.add(currentBlock);
 
@@ -651,10 +659,8 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         }
       }*/
 
-      // if the were no env. transitions and primeNo is zero, then the result should be equal to path formula constructed in the ordinary way
-      if (rgElement instanceof AbstractionElement){
-        assert !rgElement.getBlockEnvEdges().isEmpty() || currentPF.equals(rgElement.getAbstractionFormula().getBlockPathFormula());
-      }
+      // if the were no env. transitions and primeNo is zero, then the result should be equal to path formula constructed in the ordinary way{
+      assert !rgElement.getOldPrimedMap().isEmpty() || currentPF.equals(rgElement.getAbstractionFormula().getBlockPathFormula());
 
     }
     return rgResult;
@@ -748,10 +754,10 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       PathFormula  currentPF = pathFormulaConstructor.constructFromMap(builder, envTopMap);
       InterpolationBlock currentBlock = new InterpolationBlock(currentPF, scope);
       rgResult.add(currentBlock);
-*/
+   */
 
 
-      /*DOUBLECOMMENTED// prime the renaming blocks - the top block has been primed inside the local path formula
+  /*DOUBLECOMMENTED// prime the renaming blocks - the top block has been primed inside the local path formula
       List<PathFormula> envPF = new Vector<PathFormula>();
       for (Integer rgEdgeId: envRestMap.keySet()){
         int offset = primedMap.get(rgEdgeId);
@@ -761,7 +767,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
           rgResult.add(Pair.of(primedPF, pair.getSecond()));
         }
       }*/
-/*
+  /*
       // if the were no env. transitions and primeNo is zero, then the result should be equal to path formula constructed in the ordinary way
       if (rgElement instanceof AbstractionElement){
         assert !rgEdges.isEmpty() || currentPF.equals(rgElement.getAbstractionFormula().getBlockPathFormula());
@@ -807,7 +813,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
   }*/
 
   // TODO For testing
-  private void printEnvEdgesApplied(ARTElement artElement, Set<RelyGuaranteeCFAEdge>  set) {
+  private void printEnvEdgesApplied(ARTElement artElement, Collection<RelyGuaranteeCFAEdge>  set) {
 
     if (!set.isEmpty()){
       System.out.println("Env edges applied at id:"+artElement.getElementId());
@@ -978,6 +984,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         entryPoints.push(0);
       }
       boolean foundPredicates = false;
+      boolean redundantFalse = false;
       System.out.println();
       System.out.println("Interpolants:");
       for (int i = 0; i < interpolationFormulas.size()-1; ++i) {
@@ -991,9 +998,22 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
         refStats.cexAnalysisSolverTimer.start();
         Formula itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_a, i+1));
+
+
         // divide new predicates between relevant ART elements
+        Map<ARTElement, Set<AbstractionPredicate>> precisionForElements;
         System.out.print("- after blk"+i+": "+itp);
-        Map<ARTElement, Set<AbstractionPredicate>> precisionForElements = getPrecisionForElements(itp, interpolationPathFormulas.get(i).getScope());
+
+        if (!redundantFalse){
+          precisionForElements = getPrecisionForElements(itp, interpolationPathFormulas.get(i).getScope());
+        } else {
+          break;
+        }
+
+        if (itp.isFalse()){
+          redundantFalse = true;
+        }
+
 
         Multimap<CFANode, AbstractionPredicate> printingMap = HashMultimap.create();
         for (ARTElement artElement : precisionForElements.keySet()){
@@ -1132,11 +1152,11 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
               assert itp.toString().contains("^"+prime);
             };
           }
-          for (int i=1; i<10;i++){
+          /*for (int i=1; i<10;i++){
             if (!scopeMap.keySet().contains(i)){
               assert !itp.toString().contains("^"+i);
             }
-          }
+          }*/
 
           Formula unprimedAtom = fmgr.unprimeFormula(atom);
           AbstractionPredicate atomPredicate = amgr.makePredicate(unprimedAtom);

@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -70,22 +70,22 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
   public static class AbstractionElement extends RelyGuaranteeAbstractElement {
 
     private RelyGuaranteePathFormulaBuilder oldPathBuilder;
-    private final Set<RelyGuaranteeCFAEdge> oldblockEnvEdges;
+    private final Map<Integer, RelyGuaranteeCFAEdge> oldPrimedMap;
 
 
-    public AbstractionElement(PathFormula pf, AbstractionFormula pA, RelyGuaranteePathFormulaBuilder  newPathBuilder, RelyGuaranteePathFormulaBuilder  oldPathBuilder, int tid, Set<RelyGuaranteeCFAEdge> oldEnvEdges) {
-      super(pf, pA, newPathBuilder, tid, new HashSet<RelyGuaranteeCFAEdge>());
+    public AbstractionElement(PathFormula pf, AbstractionFormula pA, RelyGuaranteePathFormulaBuilder  newPathBuilder, RelyGuaranteePathFormulaBuilder  oldPathBuilder, int tid, Map<Integer, RelyGuaranteeCFAEdge> oldPrimedMap) {
+      super(pf, pA, newPathBuilder, tid, new HashMap<Integer, RelyGuaranteeCFAEdge>());
       this.oldPathBuilder = oldPathBuilder;
-      this.oldblockEnvEdges = oldEnvEdges;
+      this.oldPrimedMap = oldPrimedMap;
       // Check whether the pathFormula of an abstraction element is just "true".
       // partialOrder relies on this for optimization.
     }
 
 
-    public AbstractionElement(PathFormula pf, AbstractionFormula pA, CFAEdge edge, RelyGuaranteePathFormulaBuilder  newPathBuilder, RelyGuaranteePathFormulaBuilder  oldPathBuilder, int tid, Set<RelyGuaranteeCFAEdge> oldEnvEdges) {
-      super(pf, pA, edge, newPathBuilder, tid, new HashSet<RelyGuaranteeCFAEdge>());
+    public AbstractionElement(PathFormula pf, AbstractionFormula pA, CFAEdge edge, RelyGuaranteePathFormulaBuilder  newPathBuilder, RelyGuaranteePathFormulaBuilder  oldPathBuilder, int tid, Map<Integer, RelyGuaranteeCFAEdge> oldPrimedMap) {
+      super(pf, pA, edge, newPathBuilder, tid, new HashMap<Integer, RelyGuaranteeCFAEdge>());
       this.oldPathBuilder = oldPathBuilder;
-      this.oldblockEnvEdges = oldEnvEdges;
+      this.oldPrimedMap = oldPrimedMap;
       // Check whether the pathFormula of an abstraction element is just "true".
       // partialOrder relies on this for optimization.
 
@@ -108,8 +108,8 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
 
 
 
-    public Set<RelyGuaranteeCFAEdge> getOldblockEnvEdges() {
-      return oldblockEnvEdges;
+    public Map<Integer, RelyGuaranteeCFAEdge> getOldPrimedMap() {
+      return oldPrimedMap;
     }
 
 
@@ -141,13 +141,13 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
      location = pLoc;
    }*/
 
-    public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc, RelyGuaranteePathFormulaBuilder  pathBuilder, int tid, Set<RelyGuaranteeCFAEdge> envEdges) {
-      super(pf, pA, pathBuilder, tid, envEdges);
+    public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc, RelyGuaranteePathFormulaBuilder  pathBuilder, int tid,  Map<Integer, RelyGuaranteeCFAEdge> primedMap) {
+      super(pf, pA, pathBuilder, tid,  primedMap);
       location = pLoc;
     }
 
-    public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc, CFAEdge edge, RelyGuaranteePathFormulaBuilder  pathBuilder, int tid,  Set<RelyGuaranteeCFAEdge> envEdges) {
-      super(pf, pA, edge, pathBuilder, tid, envEdges);
+    public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc, CFAEdge edge, RelyGuaranteePathFormulaBuilder  pathBuilder, int tid, Map<Integer, RelyGuaranteeCFAEdge> primedMap  ) {
+      super(pf, pA, edge, pathBuilder, tid, primedMap);
       location = pLoc;
     }
 
@@ -186,7 +186,7 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
    */
   protected RelyGuaranteePathFormulaBuilder  pathBuilder;
 
-  private final Set<RelyGuaranteeCFAEdge> blockEnvEdges;
+  private final Map<Integer, RelyGuaranteeCFAEdge> primedMap;
 
   /* public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a) {
    this.pathFormula = pf;
@@ -203,17 +203,17 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
    this.rgFormulaTemplate = null;
  }*/
 
-  public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a, RelyGuaranteePathFormulaBuilder  pathBuilder, int tid, Set<RelyGuaranteeCFAEdge> envEdges) {
+  public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a, RelyGuaranteePathFormulaBuilder  pathBuilder, int tid, Map<Integer, RelyGuaranteeCFAEdge> primedMap) {
     Preconditions.checkNotNull(pathBuilder);
     this.pathFormula = pf;
     this.abstractionFormula = a;
     this.tid = RelyGuaranteeAbstractElement.UNKOWN;
     this.pathBuilder = pathBuilder;
     this.tid = tid;
-    this.blockEnvEdges = envEdges;
+    this.primedMap = primedMap;
   }
 
-  public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a, CFAEdge edge,  RelyGuaranteePathFormulaBuilder  pathBuilder, int tid, Set<RelyGuaranteeCFAEdge> envEdges) {
+  public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a, CFAEdge edge,  RelyGuaranteePathFormulaBuilder  pathBuilder, int tid,  Map<Integer, RelyGuaranteeCFAEdge> primedMap) {
     Preconditions.checkNotNull(pathBuilder);
     this.pathFormula = pf;
     this.abstractionFormula = a;
@@ -221,7 +221,7 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
     this.parentEdge = edge;
     this.pathBuilder = pathBuilder;
     this.tid = tid;
-    this.blockEnvEdges = envEdges;
+    this.primedMap = primedMap;
   }
 
 
@@ -273,9 +273,10 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
     return this.parentEdge;
   }
 
-  public Set<RelyGuaranteeCFAEdge> getBlockEnvEdges() {
-    return blockEnvEdges;
+  public Map<Integer, RelyGuaranteeCFAEdge> getPrimedMap() {
+    return primedMap;
   }
+
 
 
 

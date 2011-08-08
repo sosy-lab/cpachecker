@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 import java.util.Map.Entry;
 
 import org.sosy_lab.common.LogManager;
@@ -309,16 +310,21 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
   private void removeRGEdges(int i) {
     RelyGuaranteeCFA cfa = this.cfas[i];
     Multimap<CFANode, String> map = cfa.getRhsVariables();
+    List<CFAEdge> toRemove = new Vector<CFAEdge>();
     // remove old env edges from the CFA
     for (CFANode node : cfa.getCFANodes().values()){
       for (int j=0; j<node.getNumLeavingEdges(); j++) {
         CFAEdge edge = node.getLeavingEdge(j);
         if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
-          node.removeLeavingEdge(edge);
-          CFANode successor = edge.getSuccessor();
-          successor.removeEnteringEdge(edge);
+          toRemove.add(edge);
         }
       }
+      for (CFAEdge edge : toRemove){
+        node.removeLeavingEdge(edge);
+        CFANode successor = edge.getSuccessor();
+        successor.removeEnteringEdge(edge);
+      }
+      toRemove.clear();
     }
 
   }

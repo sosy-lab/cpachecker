@@ -245,4 +245,6 @@ public interface FormulaManager {
     public Collection<Integer> howManyPrimes(Formula f);
 
     public Formula unprimeFormula(Formula pUnprimedAtom);
+
+    public Formula adjustedPrimedNo(Formula pFormula, Map<Integer, Integer> pPrimedMap);
 }

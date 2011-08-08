@@ -108,12 +108,16 @@ public class MathsatFormulaManager implements FormulaManager  {
   // Formula -> how many times the variables are primed in the formula
   private Multimap<Formula, Integer> howManyPrimesCache = HashMultimap.create();
 
+  private Map<Pair<Formula, Map<Integer, Integer>>, Formula> adjustingCache = new HashMap<Pair<Formula, Map<Integer, Integer>>, Formula>();
+
   //
   private Map<Formula, Integer> atomCountingCache = new HashMap<Formula, Integer>();
 
 
   private final Formula trueFormula;
   private final Formula falseFormula;
+
+
 
 
 
@@ -1140,6 +1144,85 @@ public class MathsatFormulaManager implements FormulaManager  {
     }
 
     return new Pair<Formula,Map<String, Integer>> (lcache.get(formula), lowestIndex);
+  }
+
+
+  @Override
+  public Formula adjustedPrimedNo(Formula formula, Map<Integer, Integer> primedMap) {
+    if (primedMap.isEmpty()){
+      return formula;
+    }
+    Map<Pair<Formula, Map<Integer, Integer>>, Formula> cache = this.adjustingCache;
+    Deque<Pair<Formula,Map<Integer, Integer>>> toProcess = new ArrayDeque<Pair<Formula,Map<Integer, Integer>>>();
+    Pair<Formula, Map<Integer, Integer>> key = null;
+
+    toProcess.push(Pair.of(formula, primedMap));
+    while (!toProcess.isEmpty()) {
+      final Formula tt = toProcess.peek().getFirst();
+      final Map<Integer, Integer> ttMap = toProcess.peek().getSecond();
+      key = Pair.of(tt, ttMap);
+      if (cache.containsKey(key)) {
+        toProcess.pop();
+        continue;
+      }
+      final long t = getTerm(tt);
+
+      if (msat_term_is_variable(t) != 0) {
+        Pair<String, Integer> lVariable = parseName(msat_term_repr(t));
+        Pair<String, Integer> data = PathFormula.getPrimeData(lVariable.getFirst());
+        Integer newPrimeNo = ttMap.get(data.getSecond());
+        key = Pair.of(tt, ttMap);
+        if (newPrimeNo != null){
+          int shift = newPrimeNo - data.getSecond();
+          String newName = PathFormula.primeVariable(lVariable.getFirst(),shift);
+          long newt = buildMsatVariable(makeName(newName, lVariable.getSecond()), msat_term_get_type(t));
+          cache.put(key, encapsulate(newt));
+        } else {
+          cache.put(key, tt);
+        }
+      } else {
+        boolean childrenDone = true;
+        long[] newargs = new long[msat_term_arity(t)];
+        for (int i = 0; i < newargs.length; ++i) {
+          Formula c = encapsulate(msat_term_get_arg(t, i));
+          key = Pair.of(c, ttMap);
+          Formula newC = cache.get(key);
+          if (newC != null) {
+            newargs[i] = getTerm(newC);
+          } else {
+            toProcess.push(Pair.of(c, ttMap));
+            childrenDone = false;
+          }
+        }
+
+        if (childrenDone) {
+          toProcess.pop();
+          long newt;
+          if (msat_term_is_uif(t) != 0) {
+            String name = msat_decl_get_name(msat_term_get_decl(t));
+            assert name != null;
+
+            if (ufCanBeLvalue(name)) {
+              name = parseName(name).getFirst();
+
+              newt = buildMsatUF(name, newargs);
+            } else {
+              newt = msat_replace_args(msatEnv, t, newargs);
+            }
+          } else {
+            newt = msat_replace_args(msatEnv, t, newargs);
+          }
+
+          key = Pair.of(tt, ttMap);
+          cache.put(key, encapsulate(newt));
+        }
+      }
+    }
+
+    key = Pair.of(formula, primedMap);
+    Formula result = cache.get(key);
+    assert result != null;
+    return result;
   }
 
 
