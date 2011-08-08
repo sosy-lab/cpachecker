@@ -614,6 +614,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         // TODO caching
         List<InterpolationBlock> envPF = getRGFormulaForElement(sourceElement, reachedSets, sourceThread);
         offset++;
+        offset = 1;
         // prime the blocks so paths paths are unique
         newOffset = primeInterpolationBlocks(envPF, offset);
         //InterpolationBlock lastBlock = envPF.remove(envPF.size()-1);
