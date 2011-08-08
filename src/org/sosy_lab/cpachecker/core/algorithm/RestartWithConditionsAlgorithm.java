@@ -77,14 +77,12 @@ public class RestartWithConditionsAlgorithm implements Algorithm, StatisticsProv
     do {
       restartCPA = false;
       // run the inner algorithm to fill the reached set
-      sound = innerAlgorithm.run(pReached);
+      sound &= innerAlgorithm.run(pReached);
 
       List<AbstractElement> elementsWithAssumptions = innerAlgorithm.getElementsWithAssumptions(pReached);
 
-      if(sound){
-        if (Iterables.any(pReached, AbstractElements.IS_TARGET_ELEMENT)) {
-          return sound;
-        }
+      if (Iterables.any(pReached, AbstractElements.IS_TARGET_ELEMENT)) {
+        return sound;
       }
 
       // if there are elements that an assumption is generated for
