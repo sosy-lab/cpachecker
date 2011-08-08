@@ -79,10 +79,12 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -941,30 +943,46 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       }
     }
 
-    List<T> itpGroupsIds = new ArrayList<T>(interpolationFormulas.size());
-    for (int i = 0; i < interpolationFormulas.size(); i++) {
-      itpGroupsIds.add(null);
-    }
 
-    boolean spurious;
-    if (getUsefulBlocks || !shortestTrace) {
-      // check all formulas in f at once
 
-      for (int i = useSuffix ? interpolationFormulas.size()-1 : 0;
-      useSuffix ? i >= 0 : i < interpolationFormulas.size(); i += useSuffix ? -1 : 1) {
-
-        itpGroupsIds.set(i, pItpProver.addFormula(interpolationFormulas.get(i)));
+    //itpGroupsIds.set(i, );
+    List<T>[] interpolationScope = new List[interpolationFormulas.size()];
+    ListMultimap<Integer, T> scopeMap = ArrayListMultimap.create();
+    int mark = 0;
+    for (int i=0; i<interpolationFormulas.size();i++){
+      InterpolationBlockScope ibs = (InterpolationBlockScope) interpolationPathFormulas.get(i).getScope().toArray()[0];
+      T group = pItpProver.addFormula(interpolationFormulas.get(i));
+      Integer primedNo = ibs.getPrimedNo();
+      // collaps stack if needed
+      while(primedNo < mark){
+       scopeMap.putAll(mark-1, scopeMap.get(mark));
+       scopeMap.removeAll(mark);
+       mark--;
       }
-      spurious = pItpProver.isUnsat();
-
-    } else {
-      spurious = checkInfeasabilityOfShortestTrace(interpolationFormulas, itpGroupsIds, pItpProver);
+      mark = primedNo;
+      scopeMap.put(primedNo, group);
+      interpolationScope[i] = new Vector<T>(scopeMap.get(primedNo));
     }
-    assert itpGroupsIds.size() == interpolationFormulas.size();
-    assert !itpGroupsIds.contains(null); // has to be filled completely
+
+
+    /*List<T>[] interpolationScope = new List[interpolationFormulas.size()];
+    Map<Integer, List<T>> scopeMap = new HashMap<Integer, List<T>>();
+    for (int i=0; i<interpolationFormulas.size();i++){
+      InterpolationBlockScope ibs = (InterpolationBlockScope) interpolationPathFormulas.get(i).getScope().toArray()[0];
+      T group = pItpProver.addFormula(interpolationFormulas.get(i));
+      Integer primedNo = ibs.getPrimedNo();
+      List<T> currentList = scopeMap.get(primedNo);
+      if (currentList == null){
+        currentList = new Vector<T>();
+        scopeMap.put(primedNo, currentList);
+      }
+      currentList.add(group);
+      interpolationScope[i] = new Vector<T>(currentList);
+    }*/
+
+    boolean spurious = pItpProver.isUnsat();
 
     logger.log(Level.FINEST, "Counterexample trace is", (spurious ? "infeasible" : "feasible"));
-
 
     if (spurious) {
       info = new CounterexampleTraceInfo();
@@ -989,15 +1007,10 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       System.out.println("Interpolants:");
       for (int i = 0; i < interpolationFormulas.size()-1; ++i) {
         // last iteration is left out because B would be empty
-        final int start_of_a = (wellScopedPredicates ? entryPoints.peek() : 0);
-
-
-        // thread to which the element belongs
-
-        logger.log(Level.ALL, "Looking for interpolant for formulas from", start_of_a, "to", i);
+        //logger.log(Level.ALL, "Looking for interpolant for formulas from", start_of_a, "to", i);
 
         refStats.cexAnalysisSolverTimer.start();
-        Formula itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_a, i+1));
+        Formula itp = pItpProver.getInterpolant(interpolationScope[i]);
 
 
         // divide new predicates between relevant ART elements
@@ -1152,11 +1165,11 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
               assert itp.toString().contains("^"+prime);
             };
           }
-          /*for (int i=1; i<10;i++){
+          for (int i=1; i<10;i++){
             if (!scopeMap.keySet().contains(i)){
               assert !itp.toString().contains("^"+i);
             }
-          }*/
+          }
 
           Formula unprimedAtom = fmgr.unprimeFormula(atom);
           AbstractionPredicate atomPredicate = amgr.makePredicate(unprimedAtom);

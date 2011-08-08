@@ -204,13 +204,20 @@ public class RelyGuaranteeEnvironment {
     if (checkEnvTransitionCoverage) {
       Pair<Vector<RelyGuaranteeCFAEdgeTemplate>, Vector<RelyGuaranteeCFAEdgeTemplate>> pair = semanticCoverageCheck(rgEdges, i);
       rgEdges = pair.getFirst();
+      // remove valid edges that have been covered
       validEnvEdgesFromThread[i].removeAll(pair.getSecond());
+      // unapplied edges may also become covered
+      for (int j=0; j<threadNo; j++){
+        if (j != i){
+          unappliedEnvEdgesForThread[j].removeAll(pair.getSecond());
+        }
+      }
     }
     // add the edges after filtering to the set of valid edges by thread i
     // add them to the set of unapplied edges for other threads
     validEnvEdgesFromThread[i].addAll(rgEdges);
     distributeAsUnapplied(rgEdges, i);
-    printEdges("## Env from thread "+i+"after filtering ##", rgEdges);
+    printEdges("## Env from thread "+i+" after filtering ##", rgEdges);
 
     assertion();
 
@@ -692,7 +699,9 @@ public class RelyGuaranteeEnvironment {
     RelyGuaranteeEnvironmentalTransition et = rgEdge.getSourceEnvTransition();
     ARTElement artElement = rgEdge.getSourceARTElement();
     boolean changed = envTransProcessedBeforeFromThread[tid].remove(artElement, et);
-
+    if (!changed){
+      System.out.println("DEBUG: "+et);
+    }
     assert changed;
   }
 
