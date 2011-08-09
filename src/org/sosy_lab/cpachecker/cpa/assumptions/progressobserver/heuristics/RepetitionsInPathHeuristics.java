@@ -23,35 +23,46 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.heuristics;
 
+import java.io.PrintStream;
+import java.util.Collection;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ReachedHeuristicsDataSetView;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristics;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsData;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
+public class RepetitionsInPathHeuristics implements StopHeuristics<RepetitionsInPathHeuristicsData>, StatisticsProvider {
 
-@Options(prefix="cpa.assumptions.progressobserver.heuristics.repetitionsInPathHeuristics")
-public class RepetitionsInPathHeuristics
-  implements StopHeuristics<RepetitionsInPathHeuristicsData>
-{
-  @Option(description = "threshold for heuristics of progressobserver")
-  private int threshold = -1;
-  private final Function<? super CFAEdge, Integer> thresholdFunction;
+  class RepetitionsInPathHeuristicsStatistics implements Statistics {
+
+    @Override
+    public String getName() {
+      return "Repetitions In Path Heuristics Statistics";
+    }
+
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult,
+        ReachedSet pReached) {
+      pOut.println("Maximum number of repetitions: " + RepetitionsInPathHeuristicsData.getMaxNumberOfRepetitions());
+    }
+  }
+
+  RepetitionsInPathHeuristicsPrecision precision;
+  RepetitionsInPathHeuristicsStatistics stats;
 
   public RepetitionsInPathHeuristics(Configuration config, LogManager logger)
       throws InvalidConfigurationException
   {
-    config.inject(this);
-    // there is no dead code in the next line,
-    // because config.inject(this) can change the value of threshold
-    thresholdFunction = Functions.constant((threshold <= 0) ? null : threshold);
+    precision = new RepetitionsInPathHeuristicsPrecision(config, logger);
+    stats = new RepetitionsInPathHeuristicsStatistics();
   }
 
   @Override
@@ -68,13 +79,17 @@ public class RepetitionsInPathHeuristics
   @Override
   public RepetitionsInPathHeuristicsData processEdge(StopHeuristicsData pData,
       CFAEdge pEdge) {
-    return ((RepetitionsInPathHeuristicsData)pData).updateForEdge(pEdge, thresholdFunction);
+    return ((RepetitionsInPathHeuristicsData)pData).updateForEdge(pEdge, precision.getThresholdFunction());
   }
 
   @Override
   public HeuristicPrecision getPrecision() {
-    // TODO Auto-generated method stub
-    return null;
+    return precision;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
   }
 
 }

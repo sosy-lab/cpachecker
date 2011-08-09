@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.collect.ImmutableList;
-
 /**
  * Class to represent the abstract element of the analysis controller.
  */
@@ -161,6 +160,15 @@ public class ProgressObserverElement implements AbstractElement, AvoidanceReport
     } else {
       return manager.makeTrue();
     }
+  }
+
+  public <T extends StopHeuristicsData> T getStopHeuristicDataByType(Class<T> pType){
+    for (StopHeuristicsData shd: getComponents()) {
+      if (pType.isInstance(shd)) {
+        return pType.cast(shd);
+      }
+    }
+    return null;
   }
 
 }
