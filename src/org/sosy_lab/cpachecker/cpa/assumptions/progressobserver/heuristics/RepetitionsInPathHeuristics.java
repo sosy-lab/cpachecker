@@ -51,8 +51,8 @@ public class RepetitionsInPathHeuristics implements StopHeuristics<RepetitionsIn
     @Override
     public void printStatistics(PrintStream pOut, Result pResult,
         ReachedSet pReached) {
-      pOut.println("Maximum number of repetitions:   " + RepetitionsInPathHeuristicsData.maxNoOfRepetitions);
-      pOut.println("Threshold repetitions heuristic: " + RepetitionsInPathHeuristicsData.threshold);
+      pOut.println("Maximum number of repetitions: " + RepetitionsInPathHeuristicsData.maxNoOfRepetitions);
+      pOut.println("Threshold value:               " + RepetitionsInPathHeuristicsData.threshold);
     }
   }
 
