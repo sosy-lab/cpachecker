@@ -121,17 +121,39 @@ public class RelyGuaranteeCFAEdgeTemplate{
   public List<RelyGuaranteeCFAEdgeTemplate> getCovers() {
     return covers;
   }
-  public void setCoveredBy(RelyGuaranteeCFAEdgeTemplate pCoveredBy) {
-    coveredBy = pCoveredBy;
-  }
+
+
   /**
    * Remember that environmental edge 'other' is more general than this one.
    * @param other
    */
   public void coveredBy(RelyGuaranteeCFAEdgeTemplate other) {
+    assert other != null;
+    assert other != this;
+    assert other.localEdge.equals(this.localEdge);
     coveredBy  = other;
     other.covers.add(this);
   }
+
+  public boolean equals(Object other){
+    if (!(other instanceof RelyGuaranteeCFAEdgeTemplate)){
+      return false;
+    }
+    RelyGuaranteeCFAEdgeTemplate rgOther = (RelyGuaranteeCFAEdgeTemplate) other;
+    if (!rgOther.localEdge.equals(this.localEdge)){
+      return false;
+    }
+    if (!rgOther.pathFormulaWrapper.equals(this.pathFormulaWrapper)){
+      return false;
+    }
+    if (!rgOther.sourceARTElementWrapper.equals(rgOther.sourceARTElementWrapper)){
+      return false;
+    }
+
+    return true;
+  }
+
+
 
 
   /**
@@ -139,14 +161,17 @@ public class RelyGuaranteeCFAEdgeTemplate{
    * are covered by the object.
    */
   public void recoverChildren() {
+    if (coveredBy == null){
+      System.out.println("DEBUG "+this);
+    }
     assert coveredBy != null;
     assert coveredBy.covers.contains(this);
+    assert coveredBy != this;
     for ( RelyGuaranteeCFAEdgeTemplate child : covers){
       child.coveredBy(coveredBy);
     }
     coveredBy.covers.remove(this);
     covers.clear();
-    assert !coveredBy.covers.contains(this);
     coveredBy = null;
   }
 
@@ -169,6 +194,11 @@ public class RelyGuaranteeCFAEdgeTemplate{
 
     public PathFormula getPathFormula() {
       return pathFormula;
+    }
+
+    @Override
+    public boolean equals(Object o){
+      return o.equals(pathFormula);
     }
 
   }
@@ -195,6 +225,11 @@ public class RelyGuaranteeCFAEdgeTemplate{
 
     public void setArtElement(ARTElement pArtElement) {
       artElement = pArtElement;
+    }
+
+    @Override
+    public boolean equals(Object o){
+      return o.equals(artElement);
     }
   }
 
