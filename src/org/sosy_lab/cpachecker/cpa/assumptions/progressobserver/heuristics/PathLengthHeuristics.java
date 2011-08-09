@@ -56,7 +56,8 @@ public class PathLengthHeuristics implements StopHeuristics<PathLengthHeuristics
     @Override
     public void printStatistics(PrintStream pOut, Result pResult,
         ReachedSet pReached) {
-      pOut.println("Maximum length of a path: " + PathLengthHeuristicsData.maxLenghtOfPath);
+      pOut.println("Maximum length of a path:       " + PathLengthHeuristicsData.maxLenghtOfPath);
+      pOut.println("Threshold pathLength heuristic: " + PathLengthHeuristicsData.threshold);
     }
   }
 

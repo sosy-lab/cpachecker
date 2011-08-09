@@ -36,8 +36,8 @@ import com.google.common.base.Function;
 
 public class RepetitionsInPathHeuristicsData implements StopHeuristicsData {
 
-  private static long threshold = -1;
-  private static int maxNoOfRepetitions = 0;
+  protected static long threshold = -1;
+  protected static int maxNoOfRepetitions = 0;
 
   public void setThreshold(long newThreshold)
   {
@@ -134,10 +134,6 @@ public class RepetitionsInPathHeuristicsData implements StopHeuristicsData {
     @Override
     public String toString() { return "BOTTOM"; }
   };
-
-  protected static int getMaxNumberOfRepetitions(){
-    return maxNoOfRepetitions;
-  }
 
   @Override
   public boolean shouldTerminateAnalysis() {

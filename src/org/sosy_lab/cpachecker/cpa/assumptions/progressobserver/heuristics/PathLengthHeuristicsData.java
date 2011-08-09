@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeu
 
 public class PathLengthHeuristicsData implements StopHeuristicsData{
 
-  private static long threshold = -1;
+  protected static long threshold = -1;
   protected static long maxLenghtOfPath = -1;
 
   private final int noOfNodes;

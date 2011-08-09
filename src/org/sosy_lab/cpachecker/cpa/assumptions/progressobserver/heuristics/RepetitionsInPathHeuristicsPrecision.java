@@ -57,7 +57,7 @@ public class RepetitionsInPathHeuristicsPrecision implements HeuristicPrecision 
   public boolean adjustPrecision() {
     // set the initial threshold value
     if(threshold == -1){
-      threshold = RepetitionsInPathHeuristicsData.getMaxNumberOfRepetitions() / 5;
+      threshold = RepetitionsInPathHeuristicsData.maxNoOfRepetitions / 5;
       increaseThresholdBy = threshold;
     }
     else {
