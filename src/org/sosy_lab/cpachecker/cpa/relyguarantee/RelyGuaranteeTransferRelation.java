@@ -127,6 +127,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
   public Collection<? extends AbstractElement> getAbstractSuccessors(AbstractElement pElement,
       Precision pPrecision, CFAEdge edge) throws CPATransferException, InterruptedException {
     postTimer.start();
+
     try {
 
       RelyGuaranteeAbstractElement element = (RelyGuaranteeAbstractElement) pElement;

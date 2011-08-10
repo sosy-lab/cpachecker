@@ -70,6 +70,15 @@ public class CounterexampleTraceInfo {
       branchingPreds = ImmutableMap.copyOf(preds);
     }
 
+    public CounterexampleTraceInfo(List<Formula> pCounterexampleFormula) {
+
+      mCounterexampleFormula = pCounterexampleFormula;
+      mCounterexampleModel = null;
+      spurious = false;
+      pmap = null;
+      branchingPreds = null;
+    }
+
     /**
      * checks whether this trace is a real bug or a spurious counterexample
      * @return true if this trace is spurious, false otherwise

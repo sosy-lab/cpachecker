@@ -40,12 +40,14 @@ public class RelyGuaranteeCFAEdge implements CFAEdge{
   private final int sourceTid;
   private CFANode predecessor;
   private CFANode successor;
+  private final RelyGuaranteeCFAEdgeTemplate template;
 
-  protected RelyGuaranteeCFAEdge(CFAEdge pEdge, PathFormulaWrapper pathFormulaWrapper, int sourceTid, ARTElementWrapper sourceARTElementWrapper, RelyGuaranteeEnvironmentalTransition sourceEnvTransition){
+  protected RelyGuaranteeCFAEdge(CFAEdge pEdge, PathFormulaWrapper pathFormulaWrapper, int sourceTid, ARTElementWrapper sourceARTElementWrapper, RelyGuaranteeEnvironmentalTransition sourceEnvTransition, RelyGuaranteeCFAEdgeTemplate template){
     this.localEdge = pEdge;
     this.pathFormulaWrapper = pathFormulaWrapper;
     this.sourceARTElementWrapper = sourceARTElementWrapper;
     this.sourceTid = sourceTid;
+    this.template = template;
   }
 
   public ARTElement getSourceARTElement() {
@@ -112,5 +114,11 @@ public class RelyGuaranteeCFAEdge implements CFAEdge{
   public int getSourceTid(){
     return this.sourceTid;
   }
+
+  public RelyGuaranteeCFAEdgeTemplate getTemplate() {
+    return template;
+  }
+
+
 
 }

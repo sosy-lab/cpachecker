@@ -668,118 +668,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     return rgResult;
   }
 
-  /*
-  public List<InterpolationBlock> getRGFormulaForElement(ARTElement target, ReachedSet[] reachedSets, int threadNo) throws InterruptedException, CPAException{
-    System.out.println();
-    System.out.println("--> Calling for "+target.getElementId()+" in thread "+threadNo+" <----");
-    assert target != null;
-    assert target.isDestroyed() || reachedSets[threadNo].contains(target);
 
-    List<InterpolationBlock> rgResult = new ArrayList<InterpolationBlock>();
-
-    if (target.isDestroyed()){
-      // the env transition was generate in a part of ART that has been dropped by refinement, so return a false formula
-      PathFormula falsePf = pmgr.makeFalsePathFormula();
-      Set<InterpolationBlockScope> ibSet = new HashSet<InterpolationBlockScope>(1);
-      ibSet.add(new InterpolationBlockScope(0, target));
-      InterpolationBlock ib = new InterpolationBlock(falsePf, ibSet);
-      rgResult.add(ib);
-      return rgResult;
-    }
-
-    // get the set of ARTElement that have been abstracted
-    Path cfaPath = computePath(target, reachedSets[threadNo]);
-    System.out.println("The error trace in thread "+threadNo+" is "+cfaPath);
-    List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> path = transformPath(cfaPath);
-
-    System.out.println("Abstraction elements are: ");
-    for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement> triple : path){
-      System.out.println("- id:"+triple.getFirst().getElementId()+" at loc "+triple.getSecond());
-    }
-
-
-
-    // the maximum number of primes that appears in any formula block
-    int offset = 0;
-    int newOffset = 0;
-    for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement> triple : path){
-      ARTElement artElement = triple.getFirst();
-      RelyGuaranteeAbstractElement rgElement = triple.getThird();
-
-      // in any case builder formula with default env. values and path formula should be the same
-      RelyGuaranteePathFormulaBuilder builder = null;
-      if (rgElement instanceof AbstractionElement){
-        builder = ((AbstractionElement)rgElement).getOldPathBuilder();
-        PathFormula assertBuilderPF = pathFormulaConstructor.constructFromEdges(builder);
-        assert assertBuilderPF.equals(rgElement.getAbstractionFormula().getBlockPathFormula());
-      } else {
-        builder = rgElement.getPathBuilder();
-      }
-
-      // get list of env edges applied to this block
-      List<RelyGuaranteeEnvTransitionBuilder> rgEdges = pathFormulaConstructor.getEnvironmetalTransitions(builder);
-      printEnvEdgesApplied(artElement, rgEdges);
-      // map : env edge applied -> the top path formula of the env. trace
-      Map<RelyGuaranteeEnvTransitionBuilder, PathFormula> envTopMap = new HashMap<RelyGuaranteeEnvTransitionBuilder, PathFormula>();
-      // map : env edge applied -> the rest path formula of the env. trace
-      Map<RelyGuaranteeEnvTransitionBuilder, List<InterpolationBlock>> envRestMap = new HashMap<RelyGuaranteeEnvTransitionBuilder, List<InterpolationBlock>>();
-      // which traces meet in the block
-      Set<InterpolationBlockScope> scope = new HashSet<InterpolationBlockScope>(rgEdges.size()+1);
-      scope.add(new InterpolationBlockScope(0, artElement));
-
-      // get the blocks for environmental transitions
-      for(RelyGuaranteeEnvTransitionBuilder envBuilder : rgEdges){
-        RelyGuaranteeCFAEdge rgEdge = envBuilder.getEnvEdge();
-        ARTElement sourceElement = rgEdge.getSourceARTElement();
-        int sourceThread = rgEdge.getSourceTid();
-
-        // TODO caching
-        List<InterpolationBlock> envPF = this.getRGFormulaForElement(sourceElement, reachedSets, sourceThread);
-        offset++;
-        // prime the blocks so paths paths are unique
-        newOffset = primeInterpolationBlocks(envPF, offset);
-        InterpolationBlock lastBlock = envPF.remove(envPF.size()-1);
-        // the top block should be enough to construct a correct local path
-        envTopMap.put(envBuilder, lastBlock.getPathFormula());
-        // remember the remaining blocks
-        envRestMap.put(envBuilder, envPF);
-        // extend the scope this env. transition
-        // scope.addAll(lastBlock.getScope());
-        offset = newOffset;
-      }
-
-      // add the remaining env formulas
-      for (RelyGuaranteeEnvTransitionBuilder  key: envRestMap.keySet()){
-        rgResult.addAll(envRestMap.get(key));
-      }
-
-      PathFormula  currentPF = pathFormulaConstructor.constructFromMap(builder, envTopMap);
-      InterpolationBlock currentBlock = new InterpolationBlock(currentPF, scope);
-      rgResult.add(currentBlock);
-   */
-
-
-  /*DOUBLECOMMENTED// prime the renaming blocks - the top block has been primed inside the local path formula
-      List<PathFormula> envPF = new Vector<PathFormula>();
-      for (Integer rgEdgeId: envRestMap.keySet()){
-        int offset = primedMap.get(rgEdgeId);
-        envPF.clear();
-        for (Pair<PathFormula, ARTElement> pair : envRestMap.get(rgEdgeId)){
-          PathFormula primedPF = pmgr.primePathFormula(pair.getFirst(), offset);
-          rgResult.add(Pair.of(primedPF, pair.getSecond()));
-        }
-      }*/
-  /*
-      // if the were no env. transitions and primeNo is zero, then the result should be equal to path formula constructed in the ordinary way
-      if (rgElement instanceof AbstractionElement){
-        assert !rgEdges.isEmpty() || currentPF.equals(rgElement.getAbstractionFormula().getBlockPathFormula());
-      } else {
-        assert !rgEdges.isEmpty() || currentPF.equals(rgElement.getPathFormula());
-      }
-
-    }
-    return rgResult;
-  }*/
 
   /**
    * Prime interpolation block given number of times. Returns the maximum prime number after the operation.
@@ -1100,18 +989,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     } else {
       // this is a real bug, notify the user
-
-      // get the branchingFormula and add it to the solver environment
-      // this formula contains predicates for all branches we took
-      // this way we can figure out which branches make a feasible path
-
-
-      Map<Integer, Boolean> preds = null;
-      Model model = null;
-
-
-
-      info = new CounterexampleTraceInfo(interpolationFormulas, model, preds);
+      info = new CounterexampleTraceInfo(interpolationFormulas);
     }
 
     pItpProver.reset();

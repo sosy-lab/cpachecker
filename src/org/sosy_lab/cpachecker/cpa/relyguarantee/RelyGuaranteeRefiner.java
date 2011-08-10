@@ -31,6 +31,7 @@ import java.io.File;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Vector;
 
 import org.sosy_lab.common.Pair;
@@ -184,17 +185,19 @@ public class RelyGuaranteeRefiner{
           //System.out.println("Removing subtree rooted at id:"+root.getElementId()+" at thread: "+tid);
           // drop cut-off node in every thread
           RelyGuaranteePrecision precision = pair.getSecond();
+          Set<ARTElement> parents = new HashSet<ARTElement>(root.getParents());
           /*System.out.println();
           System.out.print("BEFORE: ");
-          Set<ARTElement> parents = new HashSet<ARTElement>(root.getParents());
+
           for (ARTElement parent : parents){
             System.out.println("-parent id:"+parent.getElementId()+" precision: "+artReachedSets[tid].getPrecision(parent));
           }*/
           artReachedSets[tid].removeSubtree(root, precision);
-          /*System.out.print("AFTER: ");
+          System.out.println();
+          System.out.println("parents of id:"+root.getElementId());
           for (ARTElement parent : parents){
-            System.out.println("-parent id:"+parent.getElementId()+" precision: "+artReachedSets[tid].getPrecision(parent));
-          }*/
+            System.out.println("-parent id:"+parent.getElementId()+" precision: "+Precisions.extractPrecisionByType(artReachedSets[tid].getPrecision(parent), RelyGuaranteePrecision.class));
+          }
 
         }
       }
@@ -259,6 +262,8 @@ public class RelyGuaranteeRefiner{
           }
         }
       }
+
+
       // ART element unreachable by other elements are the cut-off node
       Vector<ARTNode> cutoffNodes = new Vector<ARTNode>();
       for (ARTNode node : nodes){
@@ -267,6 +272,31 @@ public class RelyGuaranteeRefiner{
             cutoffNodes.add(node);
         }
       }
+      // TODO debug
+      for (ARTNode node : nodes){
+        // node is above all cut-off nodes and has no predicates
+        boolean above=false;
+        if (info.getPredicatesForRefinement(node.getArtElement()).isEmpty()){
+          above = true;
+          for (ARTNode cutNode : cutoffNodes){
+            if (!belongsToProperSubtree(node.getArtElement(),cutNode.getArtElement())){
+              above = false;
+              break;
+            }
+          }
+        }
+        // node belongs to some cut-off node
+        boolean belongs=false;
+        for (ARTNode cutNode : cutoffNodes){
+          if (cutNode.getARTSubtree().contains(cutNode.getArtElement())){
+            belongs = true;
+            break;
+          }
+        }
+        assert above || belongs;
+      }
+
+
 
       // get new precision for the cutoff nodes;
       // precision of a cut-off node should include the precision of the elements below
@@ -296,6 +326,7 @@ public class RelyGuaranteeRefiner{
         System.out.println();
         System.out.println("Thread "+tid+": cut-off node id:"+node.getArtElement().getElementId()+" precision "+newPrecision);
       }
+
     }
 
     return refinementMap;
@@ -484,11 +515,11 @@ class ARTNode{
     children.add(child);
   }
 
-  public Collection<ARTElement> getARTSubtree() {
-    Collection<ARTElement> reached = new HashSet<ARTElement>();
+  public Set<ARTElement> getARTSubtree() {
+    Set<ARTElement> reached = new HashSet<ARTElement>();
     reached.add(artElement);
     for (ARTNode child : children){
-     reached.add(child.getArtElement());
+     reached.addAll(child.getARTSubtree());
     }
     return reached;
   }

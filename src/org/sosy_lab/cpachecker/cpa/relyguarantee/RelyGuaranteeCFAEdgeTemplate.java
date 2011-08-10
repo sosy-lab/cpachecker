@@ -63,7 +63,7 @@ public class RelyGuaranteeCFAEdgeTemplate{
   }
   // instantiate
   public RelyGuaranteeCFAEdge instantiate(){
-    RelyGuaranteeCFAEdge edge = new RelyGuaranteeCFAEdge(this.localEdge, this.pathFormulaWrapper, this.sourceTid, this.sourceARTElementWrapper, this.sourceEnvTransition);
+    RelyGuaranteeCFAEdge edge = new RelyGuaranteeCFAEdge(this.localEdge, this.pathFormulaWrapper, this.sourceTid, this.sourceARTElementWrapper, this.sourceEnvTransition, this);
     return edge;
   }
 
@@ -87,10 +87,10 @@ public class RelyGuaranteeCFAEdgeTemplate{
   }
 
 
-  /*@Override
+  @Override
   public String toString() {
     return "RelyGuaranteeEnvEdgeTemplate from "+this.sourceTid+": "+localEdge.getRawStatement()+","+this.pathFormulaWrapper.pathFormula+", by element id:"+this.sourceARTElementWrapper.artElement.getElementId();
-  }*/
+  }
 
   public CFAEdge getLocalEdge() {
     return this.localEdge;
@@ -128,6 +128,9 @@ public class RelyGuaranteeCFAEdgeTemplate{
    * @param other
    */
   public void coveredBy(RelyGuaranteeCFAEdgeTemplate other) {
+    if (coveredBy != null){
+      System.out.println("DEBUG: "+other);
+    }
     assert coveredBy == null;
     assert other != null;
     assert other != this;

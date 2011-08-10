@@ -60,8 +60,10 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdge;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvironment;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvironmentalTransition;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 
 public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
@@ -173,7 +175,9 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
       RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(element, RelyGuaranteeAbstractElement.class);
       System.out.println();
       CFANode loc = AbstractElements.extractLocation(element);
-      System.out.println("@ Successor of '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+" id:"+aElement.getElementId()+" at "+loc);
+      Precision prec = reachedSet.getPrecision(element);
+      RelyGuaranteePrecision rgPrec = Precisions.extractPrecisionByType(prec, RelyGuaranteePrecision.class);
+      System.out.println("@ Successor of '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+" id:"+aElement.getElementId()+" at "+loc+" with precision: "+rgPrec);
 
 
       Collection<? extends AbstractElement> successors =

@@ -52,7 +52,7 @@ public class ARTTransferRelation implements TransferRelation {
 
     AbstractElement wrappedElement = element.getWrappedElement();
     Collection<? extends AbstractElement> successors = null;
-    if (pCfaEdge == null && element.getEnvEdgesToBeApplied() != null){
+    if (pCfaEdge == null && element.getEnvEdgesToBeApplied() != null && !element.getEnvEdgesToBeApplied().isEmpty()){
       Vector<AbstractElement> allSucc = new Vector<AbstractElement>();
       for (RelyGuaranteeCFAEdge rgEdge : element.getEnvEdgesToBeApplied()){
         allSucc.addAll(transferRelation.getAbstractSuccessors(wrappedElement, pPrecision, rgEdge));

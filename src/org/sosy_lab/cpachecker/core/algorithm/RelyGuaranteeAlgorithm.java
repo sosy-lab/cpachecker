@@ -27,10 +27,8 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 import java.util.Map.Entry;
@@ -69,13 +67,15 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
 
 @Options(prefix="cpa.relyguarantee")
 public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
 
   @Option(name="symbolcCoverageCheck",description="Use a theorem prover to remove covered environemtal transitions" +
-                      " if false perform only a syntatic check for equivalence")
+  " if false perform only a syntatic check for equivalence")
   private boolean checkEnvTransitionCoverage = true;
 
   @Option(description="List of variables global to multiple threads")
@@ -160,7 +160,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
       while(i != -1 && !error) {
 
         // apply all valid env. edges to CFA
-        Map<CFANode, RelyGuaranteeCFAEdge> envEdgesMap = addEnvTransitionsToCFA(i);
+        SetMultimap<CFANode, RelyGuaranteeCFAEdge> envEdgesMap = addEnvTransitionsToCFA(i);
         // add relevant states to the wait list
         setWaitlist(reached[i], envEdgesMap);
         // run the thread
@@ -194,19 +194,24 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
    * Put relevant states into the waitlist
    * @param envEdgesMap
    */
-  private void setWaitlist(ReachedSet reachedSet, Map<CFANode, RelyGuaranteeCFAEdge> envEdgesMap) {
+  private void setWaitlist(ReachedSet reachedSet, SetMultimap<CFANode, RelyGuaranteeCFAEdge> envEdgesMap) {
     for (CFANode node : envEdgesMap.keySet()){
       Set<AbstractElement> relevant = reachedSet.getReached(node);
       for (AbstractElement ae : relevant){
         if (AbstractElements.extractLocation(ae).equals(node)){
-          ARTElement artElement = (ARTElement) ae;
-          Set<RelyGuaranteeCFAEdge> envEdges = artElement.getEnvEdgesToBeApplied();
-          if (envEdges == null){
-            envEdges = new HashSet<RelyGuaranteeCFAEdge>();
+          if (!reachedSet.getWaitlist().contains(relevant)){
+            ARTElement artElement = (ARTElement) ae;
+            Set<RelyGuaranteeCFAEdge> envEdges = artElement.getEnvEdgesToBeApplied();
+            assert envEdges == null;
+            if (envEdges == null){
+              envEdges = new HashSet<RelyGuaranteeCFAEdge>();
+            }
+            envEdges.addAll(envEdgesMap.get(node));
+            artElement.setEnvEdgesToBeApplied(envEdges);
+            reachedSet.reAddToWaitlist(ae);
+          } else {
+            System.out.println("");
           }
-          envEdges.add(envEdgesMap.get(node));
-          artElement.setEnvEdgesToBeApplied(envEdges);
-          reachedSet.reAddToWaitlist(ae);
         }
       }
     }
@@ -264,8 +269,8 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
   /**
    * Apply env transitions to CFA no. i and return true if at least one node has been applied
    */
-  private Map<CFANode, RelyGuaranteeCFAEdge> addEnvTransitionsToCFA(int i) {
-    Map<CFANode, RelyGuaranteeCFAEdge> envEdgesMap = new HashMap<CFANode, RelyGuaranteeCFAEdge>();
+  private SetMultimap<CFANode, RelyGuaranteeCFAEdge> addEnvTransitionsToCFA(int i) {
+    SetMultimap<CFANode, RelyGuaranteeCFAEdge> envEdgesMap = HashMultimap.create();
     RelyGuaranteeCFA cfa = cfas[i];
     Multimap<CFANode, String> map = cfa.getRhsVariables();
     // remove old environmental edges
@@ -274,21 +279,34 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     // iterate over both new and old env edges
     // TODO extend to mutliple threds
     int j = (i==1 ? 0 : 1);
-     List<RelyGuaranteeCFAEdgeTemplate> valid = environment.getValidEnvEdgesFromThread(j);
+    List<RelyGuaranteeCFAEdgeTemplate> valid = environment.getValidEnvEdgesFromThread(j);
+    List<RelyGuaranteeCFAEdgeTemplate> unapplied = environment.getUnappliedEnvEdgesForThread(i);
 
-
-    for (RelyGuaranteeCFAEdgeTemplate envTransition : valid){
-      String var = getLhsVariable(envTransition.getLocalEdge());
-      for(Entry<String, CFANode> entry :   cfa.getCFANodes().entries()){
-        CFANode node = entry.getValue();
-        // check if the rhs of any edge leaving the node reads the variable assigned by 'envTransition'
-        if (map.get(node).contains(var)){
+    System.out.println();
+    System.out.println("Env edges applied at CFA "+i);
+    // apply all env transitions to CFA nodes that have an outgoing edge that reads from a global varialbe
+    for(Entry<String, CFANode> entry :   cfa.getCFANodes().entries()){
+      CFANode node = entry.getValue();
+      boolean globalRead = false;
+      for (String var : map.get(node)){
+        if (this.globalVarsSet.contains(var)){
+          globalRead = true;
+          break;
+        }
+      }
+      if (globalRead){
+        for (RelyGuaranteeCFAEdgeTemplate envTransition : valid){
           RelyGuaranteeCFAEdge edge = envTransition.instantiate();
           addEnvTransitionToNode(node, edge);
-          envEdgesMap.put(node, edge);
+          System.out.println("\t-node "+node+" applied "+edge);
+          if (unapplied.contains(envTransition)){
+            envEdgesMap.put(node, edge);
+
+          }
         }
       }
     }
+
     this.dumpDot(i, "test/output/newCFA"+i+".dot");
 
     return envEdgesMap;
@@ -410,7 +428,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
    /* if (!isCovered(ef1_III, ef2_IIIt)){
       return false;
     }*/
- /*   if (isCovered(ef1_III, ef2_IIIf)){
+  /*   if (isCovered(ef1_III, ef2_IIIf)){
       return false;
     }
     // test II
@@ -428,7 +446,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
    /* if (!isCovered(ef1_II, ef2_IIt)){
       return false;
     }*/
- /*   if (isCovered(ef1_II, ef2_IIf)){
+  /*   if (isCovered(ef1_II, ef2_IIf)){
       return false;
     }
 
