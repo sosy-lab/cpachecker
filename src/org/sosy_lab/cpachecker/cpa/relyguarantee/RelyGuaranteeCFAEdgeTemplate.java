@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
-import java.util.List;
-import java.util.Vector;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -49,7 +49,7 @@ public class RelyGuaranteeCFAEdgeTemplate{
   // unkilled env. edge that is more general than this one
   private RelyGuaranteeCFAEdgeTemplate coveredBy;
   // unkilled env. edges that are less general that this one
-  private final List<RelyGuaranteeCFAEdgeTemplate> covers;
+  private final Set<RelyGuaranteeCFAEdgeTemplate> covers;
 
 
   public RelyGuaranteeCFAEdgeTemplate(CFAEdge pEdge, PathFormula pPathFormula, int sourceTid, ARTElement sourceARTElement, RelyGuaranteeEnvironmentalTransition sourceEnvTransition){
@@ -59,7 +59,7 @@ public class RelyGuaranteeCFAEdgeTemplate{
     this.sourceTid = sourceTid;
     this.sourceEnvTransition = sourceEnvTransition;
     this.coveredBy = null;
-    this.covers = new Vector<RelyGuaranteeCFAEdgeTemplate>();
+    this.covers = new HashSet<RelyGuaranteeCFAEdgeTemplate>();
   }
   // instantiate
   public RelyGuaranteeCFAEdge instantiate(){
@@ -87,10 +87,10 @@ public class RelyGuaranteeCFAEdgeTemplate{
   }
 
 
-  @Override
+  /*@Override
   public String toString() {
-    return "RelyGuaranteeEnvEdgeTemplate from "+this.sourceTid+": "+localEdge.getRawStatement()+", by element id:"+this.pathFormulaWrapper.pathFormula+this.sourceARTElementWrapper.artElement.getElementId();
-  }
+    return "RelyGuaranteeEnvEdgeTemplate from "+this.sourceTid+": "+localEdge.getRawStatement()+","+this.pathFormulaWrapper.pathFormula+", by element id:"+this.sourceARTElementWrapper.artElement.getElementId();
+  }*/
 
   public CFAEdge getLocalEdge() {
     return this.localEdge;
@@ -118,7 +118,7 @@ public class RelyGuaranteeCFAEdgeTemplate{
   public RelyGuaranteeCFAEdgeTemplate getCoveredBy() {
     return coveredBy;
   }
-  public List<RelyGuaranteeCFAEdgeTemplate> getCovers() {
+  public Set<RelyGuaranteeCFAEdgeTemplate> getCovers() {
     return covers;
   }
 
@@ -128,6 +128,7 @@ public class RelyGuaranteeCFAEdgeTemplate{
    * @param other
    */
   public void coveredBy(RelyGuaranteeCFAEdgeTemplate other) {
+    assert coveredBy == null;
     assert other != null;
     assert other != this;
     assert other.localEdge.equals(this.localEdge);
@@ -135,6 +136,18 @@ public class RelyGuaranteeCFAEdgeTemplate{
     other.covers.add(this);
   }
 
+  /**
+   * This edge is not valid anymore.
+   */
+  public void unvalidateEdge(){
+    assert coveredBy == null;
+    for ( RelyGuaranteeCFAEdgeTemplate child : covers){
+      child.coveredBy = null;
+    }
+    covers.clear();
+  }
+
+  /*
   public boolean equals(Object other){
     if (!(other instanceof RelyGuaranteeCFAEdgeTemplate)){
       return false;
@@ -151,7 +164,7 @@ public class RelyGuaranteeCFAEdgeTemplate{
     }
 
     return true;
-  }
+  }*/
 
 
 
@@ -162,13 +175,16 @@ public class RelyGuaranteeCFAEdgeTemplate{
    */
   public void recoverChildren() {
     if (coveredBy == null){
-      System.out.println("DEBUG "+this);
+      System.out.println("DEBUG: "+this);
     }
     assert coveredBy != null;
     assert coveredBy.covers.contains(this);
-    assert coveredBy != this;
+
     for ( RelyGuaranteeCFAEdgeTemplate child : covers){
-      child.coveredBy(coveredBy);
+      assert child.coveredBy == this;
+      assert child != coveredBy;
+      child.coveredBy = coveredBy;
+      coveredBy.covers.add(child);
     }
     coveredBy.covers.remove(this);
     covers.clear();

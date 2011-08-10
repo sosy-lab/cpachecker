@@ -166,13 +166,13 @@ public class RelyGuaranteeRefiner{
     for (int i=0; i<threadNo; i++){
       artReachedSets[i] = new ARTReachedSet(reachedSets[i], artCpas[i]);
     }
-    System.out.println("\t\t --- Checking feasability ---");
+    System.out.println("\t\t\t ----- Interpolation -----");
     CounterexampleTraceInfo mCounterexampleTraceInfo = manager.buildRgCounterexampleTrace(targetElement, reachedSets, errorThr);
 
     // if error is spurious refine
     if (mCounterexampleTraceInfo.isSpurious()) {
       System.out.println();
-      System.out.println("\t\t --- Lazy abstraction ---");
+      System.out.println("\t\t\t ----- Lazy abstraction -----");
       Multimap<Integer, Pair<ARTElement, RelyGuaranteePrecision>> refinementResult = performRefinement(reachedSets, mCounterexampleTraceInfo, errorThr);
 
 
@@ -200,7 +200,7 @@ public class RelyGuaranteeRefiner{
       }
       // kill the env transitions that were generated in the drop ARTs
       // if they killed transitions covered some other transitions, then make them valid again
-      System.out.println("\t\t --- Processing env transitions ---");
+      System.out.println("\t\t\t --- Processing env stransitions ---");
       environment.printUnprocessedTransitions();
       environment.killEnvironmetalEdges(refinementResult.keySet(), artReachedSets);
       // process the remaining environmental transition

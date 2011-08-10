@@ -164,6 +164,8 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
         // add relevant states to the wait list
         setWaitlist(reached[i], envEdgesMap);
         // run the thread
+        System.out.println();
+        System.out.println("\t\t\t----- Running thread "+i+" -----");
         assert environment.getUnprocessedTransitions().isEmpty();
         error = runThread(i, reached[i], true);
         // clear the set of  unapplied env. edges
@@ -172,6 +174,8 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
           // error state has been reached
           return i;
         }
+        System.out.println();
+        System.out.println("\t\t\t----- Processing Env Transitions -----");
         environment.printUnprocessedTransitions();
         // process new env. transitions
         environment.processEnvTransitions(i);

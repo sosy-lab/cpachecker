@@ -89,16 +89,17 @@ public class RelyGuaranteeCEGARAlgorithm implements ConcurrentAlgorithm,  Statis
     boolean continueAnalysis = false;
     do {
       System.out.println();
-      System.out.println("-------------------------- CEGAR iteration "+refinmentNo+" --------------------------");
+          System.out.println("-------------------------- CEGAR iteration "+refinmentNo+" --------------------------");
       runThread = algorithm.run(reachedSets, runThread);
-      System.out.println();
-      System.out.println("-----------------------------------------------------------------------");
+
       if (runThread == -1){
         // the program is safe
         continueAnalysis = false;
       } else {
         // the program is unsafe, so perform refinement
         try {
+          System.out.println();
+          System.out.println("------------------------------- Performing refinment ------------------------------- ");
           continueAnalysis = refiner.performRefinment(reachedSets, algorithm.getRelyGuaranteeEnvironment(), runThread);
         } catch (Exception e) {
           // TODO Auto-generated catch block

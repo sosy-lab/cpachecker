@@ -1165,7 +1165,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
               assert itp.toString().contains("^"+prime);
             };
           }
-          for (int i=1; i<10;i++){
+          for (int i=1; i<30;i++){
             if (!scopeMap.keySet().contains(i)){
               assert !itp.toString().contains("^"+i);
             }

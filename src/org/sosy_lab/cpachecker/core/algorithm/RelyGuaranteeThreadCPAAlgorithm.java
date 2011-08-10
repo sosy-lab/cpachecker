@@ -137,8 +137,6 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
   @Override
   public boolean run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
     stats.totalTimer.start();
-    System.out.println();
-    System.out.println("\t\t--- Running thread "+this.tid+" ---");
     final TransferRelation transferRelation = cpa.getTransferRelation();
     final MergeOperator mergeOperator = cpa.getMergeOperator();
     final StopOperator stopOperator = cpa.getStopOperator();
