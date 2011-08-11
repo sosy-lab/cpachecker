@@ -91,12 +91,10 @@ public abstract class MathsatFormulaManager implements FormulaManager {
     msatVarType = pVarType;
     msatEnv = msat_create_env();
 
-    final int[] msatVarType1 = {msatVarType};
-
     trueFormula = encapsulate(msat_make_true(msatEnv));
     falseFormula = encapsulate(msat_make_false(msatEnv));
 
-    stringLitUfDecl = msat_declare_uif(msatEnv, "__string__", msatVarType, 1, msatVarType1);
+    stringLitUfDecl = msat_declare_uif(msatEnv, "__string__", msatVarType, 1, new int[]{ MSAT_INT });
   }
 
   long getMsatEnv() {
