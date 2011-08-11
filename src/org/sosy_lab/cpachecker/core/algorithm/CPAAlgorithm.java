@@ -41,17 +41,17 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment.Action;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment.Action;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
-  private static class CPAStatistics implements Statistics {
+  public static class CPAStatistics implements Statistics {
 
     private Timer totalTimer         = new Timer();
     private Timer chooseTimer        = new Timer();
@@ -69,6 +69,14 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     private int   countStop         = 0;
     private int   countBreak        = 0;
 
+    public static int numberOfAssigns = 0;
+
+    public static int numberOfUniqueAssigns = 0;
+
+    public static int numberOfDeclarations = 0;
+
+    public static int maxConstantCount = 0;
+
     @Override
     public String getName() {
       return "CPA algorithm";
@@ -77,6 +85,13 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     @Override
     public void printStatistics(PrintStream out, Result pResult,
         ReachedSet pReached) {
+      out.println("Number of declarations:          " + numberOfDeclarations);
+      out.println("Number of assignments:           " + numberOfAssigns);
+      out.println("Number of unique assignments:    " + numberOfUniqueAssigns);
+      out.println("Max. number of constants/element:" + maxConstantCount);
+      out.println("");
+      out.println("");
+
       out.println("Number of iterations:            " + countIterations);
       out.println("Max size of waitlist:            " + maxWaitlistSize);
       out.println("Average size of waitlist:        " + countWaitlistSize
