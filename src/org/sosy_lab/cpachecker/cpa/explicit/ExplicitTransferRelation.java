@@ -38,10 +38,8 @@ import org.sosy_lab.cpachecker.cfa.ast.DefaultExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
@@ -60,9 +58,11 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -115,6 +116,17 @@ public class ExplicitTransferRelation implements TransferRelation {
 
     AbstractElement successor;
     ExplicitElement explicitElement = (ExplicitElement)element;
+
+    if(precision.facts.get(cfaEdge) != null)
+    {
+      if(!explicitElement.contains(precision.facts.get(cfaEdge).getFirst()))
+      {
+//System.out.println("at edge " + cfaEdge + " setting " + precision.facts.get(cfaEdge).getFirst() + " to " + (long)precision.facts.get(cfaEdge).getSecond());
+
+        explicitElement.assignConstant(precision.facts.get(cfaEdge).getFirst(), (long)precision.facts.get(cfaEdge).getSecond(), this.threshold);
+      }
+    }
+    //precision.facts.clear();
     // check the type of the edge
     switch (cfaEdge.getEdgeType ()) {
 
@@ -376,7 +388,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       // [literal]
       if(op2 == null && opType == null){
         String varName = op1.getRawSignature();
-        if (precision.isOnBlacklist(getvarName(varName,functionName)))
+        if (!newElement.contains(getvarName(varName, functionName))/*precision.isNotTracking(getvarName(varName, functionName))*/)
           return element;
         if(truthValue) {
           if(newElement.contains(getvarName(varName, functionName))){
@@ -404,7 +416,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       {
         IASTLiteralExpression lop2 = (IASTLiteralExpression)op2;
         String varName = op1.getRawSignature();
-        if (precision.isOnBlacklist(varName))
+        if (!newElement.contains(getvarName(varName, functionName))/*precision.isNotTracking(getvarName(varName, functionName))*/)
           return element;
         int typeOfLiteral = lop2.getKind();
         if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant
@@ -580,7 +592,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       {
         String leftVarName = op1.getRawSignature();
         String rightVarName = op2.getRawSignature();
-        if (precision.isOnBlacklist(leftVarName) || precision.isOnBlacklist(rightVarName))
+        if (!newElement.contains(getvarName(leftVarName, functionName)) || !newElement.contains(getvarName(rightVarName, functionName))/*precision.isNotTracking(getvarName(leftVarName, functionName)) || precision.isNotTracking(getvarName(rightVarName, functionName))*/)
           return element;
         // a == b
         if(opType == BinaryOperator.EQUALS)
@@ -710,7 +722,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       else if(op2 instanceof IASTUnaryExpression)
       {
         String varName = op1.getRawSignature();
-        if (precision.isOnBlacklist(varName))
+        if (!newElement.contains(getvarName(varName, functionName))/*precision.isNotTracking(getvarName(varName, functionName))*/)
           return element;
         IASTUnaryExpression unaryExp = (IASTUnaryExpression)op2;
         IASTExpression unaryExpOp = unaryExp.getOperand();
@@ -846,7 +858,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       }
       else if(op2 instanceof IASTBinaryExpression){
         String varName = op1.getRawSignature();
-        if (precision.isOnBlacklist(varName))
+        if (!newElement.contains(getvarName(varName, functionName))/*precision.isNotTracking(getvarName(varName, functionName))*/)
           return element;
         // TODO forgetting
         newElement.forget(varName);
@@ -870,7 +882,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     }
     else{
       String varName = op1.getRawSignature();
-      if (precision.isOnBlacklist(varName)) {
+      if (!newElement.contains(getvarName(varName, functionName))/*precision.isNotTracking(getvarName(varName, functionName))*/) {
         return element;
       }
       // TODO forgetting
@@ -971,6 +983,7 @@ public class ExplicitTransferRelation implements TransferRelation {
   //    }
   //  }
 
+  private Set<DeclarationEdge> declared = new HashSet<DeclarationEdge>();
   private ExplicitElement handleDeclaration(ExplicitElement element,
       DeclarationEdge declarationEdge, ExplicitPrecision precision) throws UnrecognizedCCodeException {
 
@@ -981,6 +994,9 @@ public class ExplicitTransferRelation implements TransferRelation {
       // nothing interesting to see here, please move along
       return newElement;
     }
+
+    if(declared.add(declarationEdge))
+      CPAAlgorithm.CPAStatistics.numberOfDeclarations++;
 
         // get the variable name in the declarator
         String varName = declarationEdge.getName();
@@ -1008,7 +1024,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         // assign initial value if necessary
         String scopedVarName = getvarName(varName, functionName);
 
-        if (initialValue != null && !precision.isOnBlacklist(scopedVarName)) {
+        if (initialValue != null && precision.isTracking(scopedVarName)) {
           newElement.assignConstant(scopedVarName, initialValue, this.threshold);
         } else {
           newElement.forget(scopedVarName);
@@ -1047,8 +1063,11 @@ public class ExplicitTransferRelation implements TransferRelation {
 
     if(op1 instanceof IASTIdExpression) {
       // a = ...
-      if (precision.isOnBlacklist(getvarName(op1.getRawSignature(),cfaEdge.getPredecessor().getFunctionName())))
+      if (precision.isNotTracking(getvarName(op1.getRawSignature(),cfaEdge.getPredecessor().getFunctionName())))
+      {
+        element.forget(getvarName(op1.getRawSignature(),cfaEdge.getPredecessor().getFunctionName()));
         return element;
+      }
       else {
         String functionName = cfaEdge.getPredecessor().getFunctionName();
         ExpressionValueVisitor v = new ExpressionValueVisitor(element, functionName);
@@ -1080,8 +1099,11 @@ public class ExplicitTransferRelation implements TransferRelation {
     } else if (op1 instanceof IASTFieldReference) {
 
       // a->b = ...
-      if (precision.isOnBlacklist(getvarName(op1.getRawSignature(),cfaEdge.getPredecessor().getFunctionName())))
+      if (precision.isNotTracking(getvarName(op1.getRawSignature(),cfaEdge.getPredecessor().getFunctionName())))
+      {
+        element.forget(getvarName(op1.getRawSignature(),cfaEdge.getPredecessor().getFunctionName()));
         return element.clone();
+      }
       else {
         String functionName = cfaEdge.getPredecessor().getFunctionName();
         ExpressionValueVisitor v = new ExpressionValueVisitor(element, functionName);
@@ -1500,5 +1522,10 @@ public class ExplicitTransferRelation implements TransferRelation {
       }
     }
     return null;
+  }
+
+  public Set<String> getGlobalVars()
+  {
+    return globalVars;
   }
 }

@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
+import java.util.HashSet;
+
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -44,6 +47,16 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefinementManager;
+import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
+import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 
 @Options(prefix="cpa.explicit")
 public class ExplicitCPA implements ConfigurableProgramAnalysis {
@@ -72,10 +85,27 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
   private TransferRelation transferRelation;
   private PrecisionAdjustment precisionAdjustment;
 
-  private ExplicitCPA(Configuration config) throws InvalidConfigurationException {
-    config.inject(this);
+  private final Configuration config;
+  private final LogManager logger;
 
-    precision = new ExplicitPrecision(variableBlacklist);
+  private final RegionManager regionManager;
+  private final FormulaManager formulaManager;
+  private final PathFormulaManager pathFormulaManager;
+  private final TheoremProver theoremProver;
+
+  private final PredicateRefinementManager predicateManager;
+
+  private ExplicitCPA(Configuration config, LogManager logger) throws InvalidConfigurationException
+  {
+    this.config = config;
+    this.logger = logger;
+
+    this.config.inject(this);
+
+    if(this.config.getProperty("analysis.useRefinement") != null && this.config.getProperty("cegar.refiner").equals("cpa.explicit.ExplicitRefiner"))
+      precision = new ExplicitPrecision(variableBlacklist, new HashSet<String>());
+    else
+      precision = new ExplicitPrecision(variableBlacklist, null);
 
     ExplicitDomain explicitDomain = new ExplicitDomain ();
     MergeOperator explicitMergeOp = null;
@@ -104,6 +134,17 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
     this.stopOperator = explicitStopOp;
     this.transferRelation = explicitRelation;
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+
+    regionManager = BDDRegionManager.getInstance();
+    MathsatFormulaManager mathsatFormulaManager = MathsatFactory.createFormulaManager(config, logger);
+    formulaManager = mathsatFormulaManager;
+    pathFormulaManager = new PathFormulaManagerImpl(formulaManager, config, logger);
+    theoremProver = new MathsatTheoremProver(mathsatFormulaManager);
+
+    //InterpolatingTheoremProver<Integer> itpProver = new MathsatInterpolatingProver(mathsatFormulaManager, false);
+    //InterpolatingTheoremProver<Integer> alternativeItpProver = null;
+
+    predicateManager = new PredicateRefinementManager(regionManager, formulaManager, pathFormulaManager, theoremProver, config, logger);
   }
 
   @Override
@@ -147,4 +188,25 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
     return precisionAdjustment;
   }
 
+  protected PredicateRefinementManager getPredicateManager() {
+    return predicateManager;
+  }
+
+  protected Configuration getConfiguration() {
+    return config;
+  }
+
+  protected LogManager getLogger() {
+    return logger;
+  }
+
+  protected FormulaManager getFormulaManager()
+  {
+    return formulaManager;
+  }
+
+  protected PathFormulaManager getPathFormulaManager()
+  {
+    return pathFormulaManager;
+  }
 }

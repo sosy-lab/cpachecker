@@ -26,9 +26,12 @@ package org.sosy_lab.cpachecker.cpa.explicit;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.assumptions.FormulaReportingElement;
@@ -108,7 +111,14 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
     }
 
     constantsMap.put(nameOfVar, value);
+    CPAAlgorithm.CPAStatistics.numberOfAssigns++;
+
+    if(assigned.add(nameOfVar))
+      CPAAlgorithm.CPAStatistics.numberOfUniqueAssigns++;
+
+    CPAAlgorithm.CPAStatistics.maxConstantCount = Math.max(constantsMap.size(), CPAAlgorithm.CPAStatistics.maxConstantCount);
   }
+  private static Set<String> assigned = new HashSet<String>();
 
   public Long getValueFor(String variableName){
     return checkNotNull(constantsMap.get(variableName));
@@ -199,6 +209,8 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
   }
 
   void forget(String assignedVar) {
+    /*if(true)
+      return;*/
     if(constantsMap.containsKey(assignedVar)){
       constantsMap.remove(assignedVar);
     }
