@@ -23,13 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.heuristics;
 
+import java.io.PrintStream;
+import java.util.Collection;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ReachedHeuristicsDataSetView;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristics;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsData;
@@ -39,15 +44,30 @@ import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsDa
  * If the given threshold is exceed, it returns bottom and the assumption
  * collector algorithm is notified.
  */
-@Options(prefix="cpa.assumptions.progressobserver.heuristics.assumeEdgesInPathHeuristics")
-public class AssumeEdgesInPathHeuristics implements StopHeuristics<AssumeEdgesInPathHeuristicsData>{
+public class AssumeEdgesInPathHeuristics implements StopHeuristics<AssumeEdgesInPathHeuristicsData>, StatisticsProvider {
 
-  @Option(description = "threshold for heuristics of progressobserver")
-  private int threshold = -1;
+  class AssumeEdgesInPathHeuristicsStatistics implements Statistics {
+
+    @Override
+    public String getName() {
+      return "Assume Edges In Path Heuristics Statistics";
+    }
+
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult,
+        ReachedSet pReached) {
+      pOut.println("Maximum number of edges on path: " + AssumeEdgesInPathHeuristicsData.maxNoOfAssumeEdges);
+      pOut.println("Threshold value:                 " + AssumeEdgesInPathHeuristicsData.threshold);
+    }
+  }
+
+  public AssumeEdgesInPathHeuristicsPrecision precision;
+  public AssumeEdgesInPathHeuristicsStatistics stats;
 
   public AssumeEdgesInPathHeuristics(Configuration config, LogManager logger)
       throws InvalidConfigurationException{
-    config.inject(this);
+    precision = new AssumeEdgesInPathHeuristicsPrecision(config, logger);
+    stats = new AssumeEdgesInPathHeuristicsStatistics();
   }
 
   @Override
@@ -64,12 +84,17 @@ public class AssumeEdgesInPathHeuristics implements StopHeuristics<AssumeEdgesIn
   @Override
   public AssumeEdgesInPathHeuristicsData processEdge(StopHeuristicsData pData,
       CFAEdge pEdge) {
-    return ((AssumeEdgesInPathHeuristicsData)pData).updateForEdge(pData, threshold, pEdge);
+    return ((AssumeEdgesInPathHeuristicsData)pData).updateForEdge(pData, precision.getThreshold(), pEdge);
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
   }
 
   @Override
   public HeuristicPrecision getPrecision() {
-    return null;
+    return precision;
   }
 
 }

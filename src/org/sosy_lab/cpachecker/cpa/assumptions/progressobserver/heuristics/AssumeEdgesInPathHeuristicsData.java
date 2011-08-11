@@ -30,7 +30,8 @@ import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeu
 
 public class AssumeEdgesInPathHeuristicsData implements StopHeuristicsData {
 
-  private static long threshold = -1;
+  protected static long threshold = -1;
+  protected static long maxNoOfAssumeEdges;
 
   private final int noOfAssumeEdges;
 
@@ -50,7 +51,7 @@ public class AssumeEdgesInPathHeuristicsData implements StopHeuristicsData {
     if(pEdge.getEdgeType() == CFAEdgeType.AssumeEdge){
 
       newValue++;
-
+      maxNoOfAssumeEdges = Math.max(maxNoOfAssumeEdges, newValue);
       if ((pThreshold > 0) && (newValue > pThreshold)){
         setThreshold(pThreshold);
         return BOTTOM;
@@ -112,6 +113,11 @@ public class AssumeEdgesInPathHeuristicsData implements StopHeuristicsData {
   @Override
   public boolean shouldTerminateAnalysis() {
     return false;
+  }
+
+  @Override
+  public String toString() {
+    return "Number of assume edges: " + noOfAssumeEdges;
   }
 
 }
