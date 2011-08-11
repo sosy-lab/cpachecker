@@ -128,10 +128,6 @@ public class RelyGuaranteeCFAEdgeTemplate{
    * @param other
    */
   public void coveredBy(RelyGuaranteeCFAEdgeTemplate other) {
-    if (coveredBy != null){
-      System.out.println("DEBUG: "+other);
-    }
-    assert coveredBy == null;
     assert other != null;
     assert other != this;
     assert other.localEdge.equals(this.localEdge);

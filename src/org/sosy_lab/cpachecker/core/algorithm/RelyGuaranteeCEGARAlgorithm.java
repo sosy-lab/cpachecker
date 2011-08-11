@@ -54,8 +54,9 @@ public class RelyGuaranteeCEGARAlgorithm implements ConcurrentAlgorithm,  Statis
     this.config = pConfig;
     this.logger = pLogger;
 
+
     // TODO for now only rg refiner is available
-    refiner = RelyGuaranteeRefiner.getInstance(algorithm.getCPAs());
+    refiner = RelyGuaranteeRefiner.getInstance(algorithm.getCPAs(), pConfig);
   }
 
 

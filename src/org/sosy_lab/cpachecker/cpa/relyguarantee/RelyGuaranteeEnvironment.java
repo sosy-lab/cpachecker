@@ -787,6 +787,19 @@ public class RelyGuaranteeEnvironment {
     }
   }
 
+  /**
+   * Removes ALL data on environmental transitions and edges.
+   */
+  public void restartEnvironment() {
+    unprocessedTransitions.clear();
+    for (int i=0; i<threadNo; i++){
+      validEnvEdgesFromThread[i].clear();
+      unappliedEnvEdgesForThread[i].clear();
+      coveredEnvEdgesFromThread[i].clear();
+    }
+
+  }
+
 
 
 }
