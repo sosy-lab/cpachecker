@@ -128,7 +128,11 @@ def appendTests(listOfTests, filelist, columns=None):
 
 
 def containEqualFiles(resultElem1, resultElem2):
-    for (sf1, sf2) in zip(resultElem1.findall('sourcefile'), resultElem2.findall('sourcefile')):
+    list1 = resultElem1.findall('sourcefile')
+    list2 = resultElem2.findall('sourcefile')
+    if len(list1) != len(list2):
+        return False
+    for (sf1, sf2) in zip(list1, list2):
         if sf1.get('name') != sf2.get('name'):
             return False
     return True
@@ -364,29 +368,29 @@ def getTableBody(listOfTests):
     It collects all values from the tests for the columns in the table.
     '''
 
-    # get list of lists (test X file) and convert to list of lists (file X test)
-    listOfFiles = zip(*[[fileTag for fileTag in test[0].findall('sourcefile')] 
-                        for test in listOfTests])
     rowsForHTML = []
     rowsForCSV = []
-    for file in listOfFiles:
-        columnValuesForHTML = []
-        columnValuesForCSV = []
-        for testResult, test in zip(file, listOfTests):
-            (valuesForHTML, valuesForCSV) = getValuesOfFileXTest(testResult, test[1])
-            columnValuesForHTML += valuesForHTML
-            columnValuesForCSV += valuesForCSV
 
-        fileName = file[0].get("name")
+    # get filenames
+    for file in listOfTests[0][0].findall('sourcefile'):
+        fileName = file.get("name")
         filePath = getPathOfSourceFile(fileName)
 
-        rowsForHTML.append(HTML_SHIFT 
-                    + '<tr><td><a href="{0}">{1}</a></td>'.format(filePath, fileName) \
-                    + ''.join(columnValuesForHTML) + '</tr>\n')
-        rowsForCSV.append(CSV_SEPARATOR.join([fileName] + columnValuesForCSV))
+        rowsForHTML.append(['<td><a href="{0}">{1}</a></td>'.format(filePath, fileName)])
+        rowsForCSV.append([fileName])
 
-    return ('<tbody>\n' + "".join(rowsForHTML) + '</tbody>',
-            '\n'.join(rowsForCSV))
+    # get values for each test
+    for testResult, columns in listOfTests:
+
+        # get values for each file in a test
+        for fileResult, rowHTML, rowCSV in zip(testResult.findall('sourcefile'), rowsForHTML, rowsForCSV):
+            (valuesHTML, valuesCSV) = getValuesOfFileXTest(fileResult, columns)
+            rowHTML.extend(valuesHTML)
+            rowCSV.extend(valuesCSV)
+
+    return ('<tbody>\n' + HTML_SHIFT + '<tr>' + \
+            '</tr>\n<tr>'.join(map(''.join, rowsForHTML)) + '</tr>\n</tbody>',
+            '\n'.join(map(CSV_SEPARATOR.join, rowsForCSV)))
 
 
 def getPathOfSourceFile(filename):
