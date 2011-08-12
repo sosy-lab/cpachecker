@@ -4,6 +4,8 @@ import xml.etree.ElementTree as ET
 import os.path
 import glob
 import shutil
+import optparse
+import time
 
 from datetime import date
 
@@ -52,45 +54,84 @@ TITLE = '''
 HTML_SHIFT = '    '
 
 
-def getListOfTests(file):
+def getListOfTests(file, filesFromXML=False):
     '''
-    This function parses the input. The inputfile is an 
-    xml-file containing the testfiles and columns.
+    This function parses the input to get tests and columns.
+    The param 'file' is either a xml-file containing the testfiles
+    or a list of result-files (also called 'file', however used as list).
+
+    If the files are from xml-file, param 'filesFromXML' should be true.
     Currently the tests are read also from xml-files.
 
-    If columntitles are given in the inputfile,
+    If columntitles are given in the xml-file,
     they will be searched in the testfiles.
     If no title is given, all columns of the testfile are taken.
+
+    If result-files are parsed, all columns are taken.
 
     @return: a list of tuples, 
     each tuple contains a testelement and a list of columntitles
     '''
-
-    tableGenFile = ET.ElementTree().parse(file)
     listOfTests = []
-    for test in tableGenFile.findall('test'):
 
-        for resultFile in getFileList(test.get('filename')): # expand wildcards
-            if os.path.exists(resultFile) and os.path.isfile(resultFile):
+    if filesFromXML:
+        tableGenFile = ET.ElementTree().parse(file)
+        if 'table' != tableGenFile.tag:
+            print ("ERROR:\n" \
+                + "    The XML-file seems to be invalid.\n" \
+                + "    The rootelement of table-definition-file is not named 'table'.")
+            exit()
 
-                print '    ' + resultFile
+        for test in tableGenFile.findall('test'):
+            columns = test.findall('column')
+            filelist = getFileList(test.get('filename')) # expand wildcards
+            appendTests(listOfTests, filelist, columns)
 
-                columns = test.findall('column')
-                resultElem = ET.ElementTree().parse(resultFile)
-                if columns: # not empty
-                    columnTitles = [column.get("title") for column in columns]
-                else:
-                    columnTitles = [column.get("title") for column in 
-                                    resultElem.find('sourcefile').findall('column')]
-
-                if LOGFILES_IN_HTML: insertLogFileNames(resultElem)
-
-                listOfTests.append((resultElem, columnTitles))
-            else:
-                print 'File {0} is not found.'.format(repr(resultFile))
-                exit()
+    else:
+        appendTests(listOfTests, extendFileList(file)) # expand wildcards
 
     return listOfTests
+
+
+def appendTests(listOfTests, filelist, columns=None):
+    for resultFile in filelist:
+        if os.path.exists(resultFile) and os.path.isfile(resultFile):
+            print '    ' + resultFile
+
+            resultElem = ET.ElementTree().parse(resultFile)
+
+            if 'test' != resultElem.tag:
+                print ("ERROR:\n" \
+                    + "XML-file seems to be invalid.\n" \
+                    + "The rootelement of testresult is not named 'test'.\n" \
+                    + "If you want to run a table-definition-file,\n"\
+                    + "you should use the option '-x' or '--xml'.").replace('\n','\n    ')
+                exit()
+
+            # check for equal files in the tests
+            if len(listOfTests) and not containEqualFiles(listOfTests[0][0], resultElem):
+                print ('        resultfile contains different files, skipping resultfile')
+                continue
+
+            if columns: # not None
+                    columnTitles = [column.get("title") for column in columns]
+            else:
+                columnTitles = [column.get("title") for column in 
+                                resultElem.find('sourcefile').findall('column')]
+
+            if LOGFILES_IN_HTML: insertLogFileNames(resultElem)
+
+            listOfTests.append((resultElem, columnTitles))
+        else:
+            print 'File {0} is not found.'.format(repr(resultFile))
+            exit()
+
+
+def containEqualFiles(resultElem1, resultElem2):
+    for (sf1, sf2) in zip(resultElem1.findall('sourcefile'), resultElem2.findall('sourcefile')):
+        if sf1.get('name') != sf2.get('name'):
+            return False
+    return True
 
 
 def insertLogFileNames(resultElem):
@@ -145,6 +186,14 @@ def getFileList(shortFile):
     return fileList
 
 
+def extendFileList(filelist):
+    '''
+    This function takes a list of files, expands wildcards
+    and returns a new list of files.
+    '''
+    return [file for wildcardFile in filelist for file in getFileList(wildcardFile)]
+
+    
 def getTableHead(listOfTests):
     '''
     get tablehead (tools, limits, testnames, systeminfo, columntitles for html,
@@ -393,15 +442,22 @@ def getValuesOfFileXTest(currentFile, listOfColumns):
     return (valuesForHTML, valuesForCSV)
 
 
-def createTable(file):
+def createTable(file, filesFromXML=False):
     '''
-    parse inputfile, create html-code and write it to file
+    parse inputfile(s), create html-code and write it to file
     '''
 
     print 'collecting files ...'
 
-    listOfTests = getListOfTests(file)
-
+    if filesFromXML:
+        listOfTests = getListOfTests(file, True)
+        HTMLOutFileName = OUTPUT_PATH + os.path.basename(file)[:-3] + "table.html"
+        CSVOutFileName = OUTPUT_PATH + os.path.basename(file)[:-3] + "table.csv"
+    else:
+        listOfTests = getListOfTests(file)
+        timestamp = time.strftime("%y%m%d-%H%M", time.localtime())
+        HTMLOutFileName = OUTPUT_PATH + "results." + timestamp + ".table.html"
+        CSVOutFileName = OUTPUT_PATH + "results." + timestamp + ".table.csv"
 
     if len(listOfTests) == 0:
         print '\nError! No file with testresults found.\n' \
@@ -412,7 +468,7 @@ def createTable(file):
 
     (tableHeadHTML, tableHeadCSV) = getTableHead(listOfTests)
     (tableBodyHTML, tableBodyCSV) = getTableBody(listOfTests)
-    
+
     tableCode = '<table>\n' \
                 + tableHeadHTML.replace('\n','\n' + HTML_SHIFT) \
                 + '\n' + HTML_SHIFT \
@@ -422,13 +478,13 @@ def createTable(file):
     htmlCode = DOCTYPE + '<html>\n\n<head>\n' + CSS + TITLE + '\n</head>\n\n<body>\n\n' \
                 + tableCode + '</body>\n\n</html>'
 
-    HTMLFile = open(OUTPUT_PATH + os.path.basename(file)[:-3] + "table.html", "w")
+    HTMLFile = open(HTMLOutFileName, "w")
     HTMLFile.write(htmlCode)
     HTMLFile.close()
 
     CSVCode = tableHeadCSV + tableBodyCSV
 
-    CSVFile = open(OUTPUT_PATH + os.path.basename(file)[:-3] + "table.csv", "w")
+    CSVFile = open(CSVOutFileName, "w")
     CSVFile.write(CSVCode)
     CSVFile.close()
 
@@ -445,20 +501,33 @@ def allEqual(list):
 
 def main(args=None):
 
+    parser = optparse.OptionParser('%prog [options] sourcefile')
+    parser.add_option("-x", "--xml", 
+        action="store", 
+        type="string", 
+        dest="xmltablefile",
+        help="xmlfile for table. If this option is used, other args are ignored."
+    )
+    options, args = parser.parse_args()
+
     if args is None:
         args = sys.argv    
 
-    # check parameters
-    if len(args) < 2:
-        print 'please insert a file'
-        exit()
-
-    for file in args[1:]:
-        if not os.path.exists(file) or not os.path.isfile(file):
-            print 'File {0} does not exist.'.format(repr(file))
+    if options.xmltablefile:
+        print ("reading table definition from '" + options.xmltablefile + "'...")
+        if not os.path.exists(options.xmltablefile) \
+                or not os.path.isfile(options.xmltablefile):
+            print 'File {0} does not exist.'.format(repr(options.xmltablefile))
             exit()
         else:
-            createTable(file)
+            createTable(options.xmltablefile, True)
+
+    elif len(args) > 0:
+        createTable(args)
+
+    else: # default case
+        print ("searching resultfiles in '" + OUTPUT_PATH + "'...")
+        createTable([OUTPUT_PATH + '*.????-??-??.results*.xml'])
 
 
 if __name__ == '__main__':
