@@ -113,11 +113,13 @@ def appendTests(listOfTests, filelist, columns=None):
                 print ('        resultfile contains different files, skipping resultfile')
                 continue
 
-            if columns: # not None
-                    columnTitles = [column.get("title") for column in columns]
-            else:
-                columnTitles = [column.get("title") for column in 
+            availableColumnTitles = [column.get("title") for column in 
                                 resultElem.find('sourcefile').findall('column')]
+            if columns: # not None
+                    columnTitles = [column.get("title") for column in columns
+                                    if column.get('title') in availableColumnTitles]
+            else:
+                columnTitles = availableColumnTitles
 
             if LOGFILES_IN_HTML: insertLogFileNames(resultElem)
 
@@ -388,8 +390,9 @@ def getTableBody(listOfTests):
             rowHTML.extend(valuesHTML)
             rowCSV.extend(valuesCSV)
 
-    return ('<tbody>\n' + HTML_SHIFT + '<tr>' + \
-            '</tr>\n<tr>'.join(map(''.join, rowsForHTML)) + '</tr>\n</tbody>',
+    return ('<tbody>\n{0}<tr>'.format(HTML_SHIFT) \
+            + '</tr>\n{0}<tr>'.format(HTML_SHIFT).join(map(''.join, rowsForHTML)) \
+            + '</tr>\n</tbody>',
             '\n'.join(map(CSV_SEPARATOR.join, rowsForCSV)))
 
 
@@ -493,14 +496,6 @@ def createTable(file, filesFromXML=False):
     CSVFile.close()
 
     print 'done'
-
-
-def allEqual(list):
-    if list is None:
-        return false # should not be not needed
-    else:
-        # how often does the first element appear in list?
-        return list.count(list[0]) == len(list)
 
 
 def main(args=None):
