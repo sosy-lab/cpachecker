@@ -29,8 +29,6 @@ import java.lang.management.MemoryMXBean;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ReachedHeuristicsDataSetView;
@@ -39,19 +37,14 @@ import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsDa
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.TrivialStopHeuristicsData;
 import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
 
-@Options(prefix="cpa.assumptions.progressobserver.heuristics.usedMemoryOutHeuristics")
-public class UsedMemoryOutHeuristics
-  implements StopHeuristics<TrivialStopHeuristicsData>
-{
+public class UsedMemoryOutHeuristics implements StopHeuristics<TrivialStopHeuristicsData> {
+
   private final MemoryMXBean mxBean;
-
-  @Option(description = "threshold for heuristics of progressobserver")
-  private long threshold = 0;
-
+  private UsedMemoryOutHeuristicsPrecision precision;
 
   public UsedMemoryOutHeuristics(Configuration config, LogManager logger)
-      throws InvalidConfigurationException {
-    config.inject(this);
+  throws InvalidConfigurationException {
+    precision = new UsedMemoryOutHeuristicsPrecision(config, logger);
     mxBean = ManagementFactory.getMemoryMXBean();
   }
 
@@ -71,8 +64,8 @@ public class UsedMemoryOutHeuristics
       return TrivialStopHeuristicsData.BOTTOM;
 
     long usedMemory = mxBean.getHeapMemoryUsage().getUsed();
-    if (threshold != 0 && usedMemory > threshold){
-      TrivialStopHeuristicsData.setThreshold(threshold);
+    if (precision.getThreshold() != 0 && usedMemory > precision.getThreshold()){
+      TrivialStopHeuristicsData.setThreshold(precision.getThreshold());
       TrivialStopHeuristicsData.setPreventingHeuristicType(PreventingHeuristicType.MEMORYOUT);
       return TrivialStopHeuristicsData.BOTTOM;
     }
@@ -82,8 +75,7 @@ public class UsedMemoryOutHeuristics
 
   @Override
   public HeuristicPrecision getPrecision() {
-    // TODO Auto-generated method stub
-    return null;
+    return precision;
   }
 
 }

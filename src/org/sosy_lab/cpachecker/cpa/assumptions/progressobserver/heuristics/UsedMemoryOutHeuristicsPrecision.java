@@ -29,37 +29,31 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 
-@Options(prefix="cpa.assumptions.progressobserver.heuristics.assumeEdgesInPathHeuristics")
-public class AssumeEdgesInPathHeuristicsPrecision implements HeuristicPrecision {
+@Options(prefix="cpa.assumptions.progressobserver.heuristics.usedMemoryOutHeuristics")
+public class UsedMemoryOutHeuristicsPrecision implements HeuristicPrecision {
 
   @Option(description = "threshold for heuristics of progressobserver")
-  private int threshold = -1;
-  private int increaseThresholdBy;
+  private long threshold = 0;
+  private long increaseThresholdBy;
+  private boolean thresholdInitialized = false;
 
-  public AssumeEdgesInPathHeuristicsPrecision(Configuration config, LogManager logger)
+  public UsedMemoryOutHeuristicsPrecision(Configuration config, LogManager logger)
   throws InvalidConfigurationException{
     config.inject(this);
   }
 
-  public int getThreshold() {
-    return threshold;
-  }
-
-  public void setThreshold(int pThreshold) {
-    threshold = pThreshold;
-  }
-
   @Override
   public boolean adjustPrecision() {
-    // set the initial threshold value
-    if(threshold == -1){
-      threshold = (int) AssumeEdgesInPathHeuristicsData.maxNoOfAssumeEdges / 5;
+    if(!thresholdInitialized){
       increaseThresholdBy = threshold / 4;
+      thresholdInitialized = true;
     }
-    else {
-      threshold = threshold + increaseThresholdBy;
-    }
-    return false;
+    threshold = threshold + increaseThresholdBy;
+    return true;
+  }
+
+  public long getThreshold() {
+    return threshold;
   }
 
 }
