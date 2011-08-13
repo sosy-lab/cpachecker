@@ -78,7 +78,7 @@ public class RelyGuaranteeCPA extends PredicateCPA{
 
   @Option(name="interpolatingProver", toUppercase=true, values={"MATHSAT", "CSISAT"},
       description="which interpolating solver to use for interpolant generation?")
-      private String whichItpProver = "MATHSAT";
+      private String whichItpProver = "CSISAT";
 
   @Option(name="abstraction.initialPredicates0", type=Option.Type.OPTIONAL_INPUT_FILE,
       description="get an initial set of predicates from a file in MSAT format")

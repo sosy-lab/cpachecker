@@ -58,6 +58,7 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
 
   private static final Joiner FORMULAS_JOINER = Joiner.on("; ");
   private static final String[] CSISAT_CMDLINE = {"csisat", "-syntax", "infix", "-round", "-LAsolver", "simplex"};
+  //private static final String[] CSISAT_CMDLINE = {"csisat"};
 
   private class CSIsatExecutor extends ProcessExecutor<IOException> {
 
@@ -72,18 +73,19 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
       if (line.startsWith("Satisfiable: ")) {
         satisfiable = true;
       } else {
-        super.handleErrorOutput(line);
+        super.handleErrorOutput(csiToMSAT(line));
       }
     }
 
     @Override
     public void handleOutput(String line) throws IOException {
-      Formula itp = smgr.parseInfix(line);
+      String out = csiToMSAT(line);
+      Formula itp = smgr.parseInfix(csiToMSAT(line));
       interpolants.add(itp);
       logger.log(Level.ALL, "Parsed interpolant", line, "as", itp);
     }
 
-    public void writeFormulas(List<Formula> formulas) throws IOException {
+    /*  public void writeFormulas(List<Formula> formulas) throws IOException {
       String formulasStr = FORMULAS_JOINER.join(formulas);
 
       logger.log(Level.ALL, "Interpolation problem is", formulasStr);
@@ -91,7 +93,19 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
       print(formulasStr);
       sendEOF();
     }
+  }*/
+
+    public void writeFormulas(List<Formula> formulas) throws IOException {
+      String formulasStr = FORMULAS_JOINER.join(formulas);
+      formulasStr = msatToCSI(formulasStr);
+      logger.log(Level.ALL, "Interpolation problem is", formulasStr);
+      System.out.println("Formula to be solved: "+formulasStr);
+      print(formulasStr);
+      //print(formulasStr);
+      sendEOF();
+    }
   }
+
 
   private static CSIsatInterpolatingProver csiItp;
 
@@ -174,6 +188,19 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
 
       return true;
     }
+  }
+
+  public String msatToCSI(String f){
+    f = f.replace("@", "index");
+    //f = f.replace("^", "p");
+    f = f.replace("!", "not ");
+    return f;
+  }
+
+  public String csiToMSAT(String f){
+    f = f.replace("index", "@");
+    //f = f.replace("p", "^");
+    return f.replace("not ", "!");
   }
 
   @Override

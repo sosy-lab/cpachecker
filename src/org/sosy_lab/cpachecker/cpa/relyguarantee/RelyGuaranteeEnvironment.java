@@ -419,6 +419,9 @@ public class RelyGuaranteeEnvironment {
     while (!toProcess.isEmpty()){
       RelyGuaranteeCFAEdgeTemplate newEdge = toProcess.remove(0);
       for (RelyGuaranteeCFAEdgeTemplate oldEdge : validEnvEdgesFromThread[i]){
+        if (newEdge == oldEdge){
+          System.out.println("DEBUG "+newEdge);
+        }
         assert newEdge != oldEdge;
         if (isCovered(newEdge, oldEdge)){
           System.out.println("Covered 1:\t"+newEdge+" => "+oldEdge);
@@ -657,6 +660,11 @@ public class RelyGuaranteeEnvironment {
       Pair<Vector<RelyGuaranteeCFAEdgeTemplate>, Vector<RelyGuaranteeCFAEdgeTemplate>> pair = semanticCoverageCheck(covered, tid);
       validEnvEdgesFromThread[tid].addAll(pair.getFirst());
       validEnvEdgesFromThread[tid].removeAll(pair.getSecond());
+      for (int i=0; i<threadNo; i++){
+        if (i!=tid){
+          this.unappliedEnvEdgesForThread[i].removeAll(pair.getSecond());
+        }
+      }
       coveredEnvEdgesFromThread[tid].removeAll(pair.getFirst());
       distributeAsUnapplied(pair.getFirst(), tid);
       if (!pair.getFirst().isEmpty()){
@@ -787,17 +795,22 @@ public class RelyGuaranteeEnvironment {
     }
   }
 
-  /**
-   * Removes ALL data on environmental transitions and edges.
-   */
-  public void restartEnvironment() {
-    unprocessedTransitions.clear();
+
+  public void cleanEnvironment(int tid) {
+    // TODO works only for two threads
+    int other = tid==0 ? 1 : 0;
+    unappliedEnvEdgesForThread[other].clear();
+    validEnvEdgesFromThread[tid].clear();
+    coveredEnvEdgesFromThread[tid].clear();
+  }
+
+  public void resetEnvironment() {
     for (int i=0; i<threadNo; i++){
-      validEnvEdgesFromThread[i].clear();
       unappliedEnvEdgesForThread[i].clear();
+      validEnvEdgesFromThread[i].clear();
       coveredEnvEdgesFromThread[i].clear();
     }
-
+    unprocessedTransitions.clear();
   }
 
 

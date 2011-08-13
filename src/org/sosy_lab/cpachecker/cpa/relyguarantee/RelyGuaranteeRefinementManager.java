@@ -65,7 +65,6 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
-import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.RelyGuaranteeEnvTransitionBuilder;
 import org.sosy_lab.cpachecker.util.predicates.RelyGuaranteePathFormulaBuilder;
@@ -82,11 +81,9 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
 
@@ -96,6 +93,10 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
       "^.*" + BRANCHING_PREDICATE_NAME + "(?=\\d+$)");
+
+  @Option(name="interpolatingProver", toUppercase=true, values={"MATHSAT", "CSISAT"},
+      description="which interpolating solver to use for interpolant generation?")
+      private String whichItpProver = "CSISAT";
 
   @Option(description="apply deletion-filter to the abstract counterexample, to get "
     + "a minimal set of blocks, before applying interpolation-based refinement")
@@ -196,255 +197,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     //return buildCounterexampleTraceWithSpecifiedItp(pAbstractTrace, elementsOnPath, firstItpProver);
     return buildRgCounterexampleTraceWithSpecifiedItp(targetElement,  reachedSets, threadNo, firstItpProver);
   }
-
-
-  /**
-   * Counterexample analysis and predicate discovery.
-   * @param pAbstractTrace abstract trace of the error path
-   * @param pItpProver interpolation solver used
-   * @return counterexample info with predicated information
-   * @throws CPAException
-   */
-  private <T> CounterexampleTraceInfo buildCounterexampleTraceWithSpecifiedItp(
-      List<RelyGuaranteeAbstractElement> pAbstractTrace, Set<ARTElement> elementsOnPath, InterpolatingTheoremProver<T> pItpProver) throws CPAException, InterruptedException {
-
-    logger.log(Level.FINEST, "Building counterexample trace");
-
-    List<Formula> f = getFormulasForTrace(pAbstractTrace);
-
-    if (useBitwiseAxioms) {
-      Formula bitwiseAxioms = fmgr.makeTrue();
-
-      for (Formula fm : f) {
-        Formula a = fmgr.getBitwiseAxioms(fm);
-        if (!a.isTrue()) {
-          bitwiseAxioms = fmgr.makeAnd(bitwiseAxioms, a);
-        }
-      }
-
-      if (!bitwiseAxioms.isTrue()) {
-        logger.log(Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE",
-            "LAST GROUP: ", bitwiseAxioms);
-        int lastIndex = f.size()-1;
-        f.set(lastIndex, fmgr.makeAnd(f.get(lastIndex), bitwiseAxioms));
-      }
-    }
-
-    f = Collections.unmodifiableList(f);
-
-    logger.log(Level.ALL, "Counterexample trace formulas:", f);
-
-    if (maxRefinementSize > 0) {
-      Formula cex = fmgr.makeTrue();
-      for (Formula formula : f) {
-        cex = fmgr.makeAnd(cex, formula);
-      }
-      int size = fmgr.dumpFormula(cex).length();
-      if (size > maxRefinementSize) {
-        logger.log(Level.FINEST, "Skipping refinement because input formula is", size, "bytes large.");
-        throw new RefinementFailedException(Reason.TooMuchUnrolling, null);
-      }
-    }
-
-    logger.log(Level.FINEST, "Checking feasibility of counterexample trace");
-
-    // now f is the DAG formula which is satisfiable iff there is a
-    // concrete counterexample
-
-    // create a working environment
-    pItpProver.init();
-
-    refStats.cexAnalysisSolverTimer.start();
-
-    if (shortestTrace && getUsefulBlocks) {
-      f = Collections.unmodifiableList(getUsefulBlocks(f, useSuffix, useZigZag));
-    }
-
-    if (dumpInterpolationProblems) {
-      int k = 0;
-      for (Formula formula : f) {
-        String dumpFile = String.format(formulaDumpFilePattern,
-            "interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "formula", k++);
-        dumpFormulaToFile(formula, new File(dumpFile));
-      }
-    }
-
-    List<T> itpGroupsIds = new ArrayList<T>(f.size());
-    for (int i = 0; i < f.size(); i++) {
-      itpGroupsIds.add(null);
-    }
-
-    boolean spurious;
-    if (getUsefulBlocks || !shortestTrace) {
-      // check all formulas in f at once
-
-      for (int i = useSuffix ? f.size()-1 : 0;
-      useSuffix ? i >= 0 : i < f.size(); i += useSuffix ? -1 : 1) {
-
-        itpGroupsIds.set(i, pItpProver.addFormula(f.get(i)));
-      }
-      spurious = pItpProver.isUnsat();
-
-    } else {
-      spurious = checkInfeasabilityOfShortestTrace(f, itpGroupsIds, pItpProver);
-    }
-    assert itpGroupsIds.size() == f.size();
-    assert !itpGroupsIds.contains(null); // has to be filled completely
-
-    logger.log(Level.FINEST, "Counterexample trace is", (spurious ? "infeasible" : "feasible"));
-
-    CounterexampleTraceInfo info;
-
-    if (spurious) {
-      info = new CounterexampleTraceInfo();
-
-      // the counterexample is spurious. Extract the predicates from
-      // the interpolants
-
-      // how to partition the trace into (A, B) depends on whether
-      // there are function calls involved or not: in general, A
-      // is the trace from the entry point of the current function
-      // to the current point, and B is everything else. To implement
-      // this, we keep track of which function we are currently in.
-      // if we don't want "well-scoped" predicates, A always starts at the beginning
-      Deque<Integer> entryPoints = null;
-      if (wellScopedPredicates) {
-        entryPoints = new ArrayDeque<Integer>();
-        entryPoints.push(0);
-      }
-      boolean foundPredicates = false;
-
-      for (int i = 0; i < f.size()-1; ++i) {
-        // last iteration is left out because B would be empty
-        final int start_of_a = (wellScopedPredicates ? entryPoints.peek() : 0);
-        RelyGuaranteeAbstractElement e = pAbstractTrace.get(i);
-
-        logger.log(Level.ALL, "Looking for interpolant for formulas from",
-            start_of_a, "to", i);
-
-        refStats.cexAnalysisSolverTimer.start();
-        Formula itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_a, i+1));
-        refStats.cexAnalysisSolverTimer.stop();
-
-        if (dumpInterpolationProblems) {
-          String dumpFile = String.format(formulaDumpFilePattern,
-              "interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "interpolant", i);
-          dumpFormulaToFile(itp, new File(dumpFile));
-        }
-
-        if (itp.isTrue()) {
-          logger.log(Level.ALL, "For step", i, "got no interpolant.");
-
-        } else {
-          foundPredicates = true;
-          Collection<AbstractionPredicate> preds;
-
-          if (itp.isFalse()) {
-            preds = ImmutableSet.of(amgr.makeFalsePredicate());
-          } else {
-            preds = getAtomsAsPredicates(itp);
-          }
-          assert !preds.isEmpty();
-          info.addPredicatesForRefinement(e, preds);
-
-          logger.log(Level.ALL, "For step", i, "got:",
-              "interpolant", itp,
-              "predicates", preds);
-
-          if (dumpInterpolationProblems) {
-            String dumpFile = String.format(formulaDumpFilePattern,
-                "interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "atoms", i);
-            Collection<Formula> atoms = Collections2.transform(preds,
-                new Function<AbstractionPredicate, Formula>(){
-              @Override
-              public Formula apply(AbstractionPredicate pArg0) {
-                return pArg0.getSymbolicAtom();
-              }
-            });
-            printFormulasToFile(atoms, new File(dumpFile));
-          }
-        }
-
-        // TODO wellScopedPredicates have been disabled
-
-        // TODO the following code relies on the fact that there is always an abstraction on function call and return
-
-        // If we are entering or exiting a function, update the stack
-        // of entry points
-        // TODO checking if the abstraction node is a new function
-        //        if (wellScopedPredicates && e.getAbstractionLocation() instanceof CFAFunctionDefinitionNode) {
-        //          entryPoints.push(i);
-        //        }
-        // TODO check we are returning from a function
-        //        if (wellScopedPredicates && e.getAbstractionLocation().getEnteringSummaryEdge() != null) {
-        //          entryPoints.pop();
-        //        }
-      }
-
-      if (!foundPredicates) {
-        throw new RefinementFailedException(RefinementFailedException.Reason.InterpolationFailed, null);
-      }
-
-    } else {
-      // this is a real bug, notify the user
-
-      // get the branchingFormula and add it to the solver environment
-      // this formula contains predicates for all branches we took
-      // this way we can figure out which branches make a feasible path
-      Formula branchingFormula = buildBranchingFormula(elementsOnPath);
-      pItpProver.addFormula(branchingFormula);
-
-      Map<Integer, Boolean> preds;
-      Model model;
-
-      // need to ask solver for satisfiability again,
-      // otherwise model doesn't contain new predicates
-      boolean stillSatisfiable = !pItpProver.isUnsat();
-      if (!stillSatisfiable) {
-        logger.log(Level.WARNING, "Could not get precise error path information because of inconsistent reachingPathsFormula!");
-
-        int k = 0;
-        for (Formula formula : f) {
-          String dumpFile =
-            String.format(formulaDumpFilePattern, "interpolation",
-                refStats.cexAnalysisTimer.getNumberOfIntervals(), "formula", k++);
-          dumpFormulaToFile(formula, new File(dumpFile));
-        }
-        String dumpFile =
-          String.format(formulaDumpFilePattern, "interpolation",
-              refStats.cexAnalysisTimer.getNumberOfIntervals(), "formula", k++);
-        dumpFormulaToFile(branchingFormula, new File(dumpFile));
-
-        preds = Maps.newTreeMap();
-        model = new Model(fmgr);
-
-      } else {
-        model = pItpProver.getModel();
-
-        if (model.isEmpty()) {
-          logger.log(Level.WARNING, "No satisfying assignment given by solver!");
-          preds = Maps.newTreeMap();
-        } else {
-          preds = getPredicateValuesFromModel(model);
-        }
-      }
-
-      info = new CounterexampleTraceInfo(f, model, preds);
-    }
-
-    pItpProver.reset();
-
-    // update stats
-    refStats.cexAnalysisTimer.stop();
-
-    logger.log(Level.ALL, "Counterexample information:", info);
-
-    return info;
-
-  }
-
-
-
 
 
   protected Path computePath(ARTElement pLastElement, ReachedSet pReached) throws InterruptedException, CPAException {
@@ -836,38 +588,30 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     //itpGroupsIds.set(i, );
     List<T>[] interpolationScope = new List[interpolationFormulas.size()];
-    ListMultimap<Integer, T> scopeMap = ArrayListMultimap.create();
-    int mark = 0;
-    for (int i=0; i<interpolationFormulas.size();i++){
-      InterpolationBlockScope ibs = (InterpolationBlockScope) interpolationPathFormulas.get(i).getScope().toArray()[0];
-      T group = pItpProver.addFormula(interpolationFormulas.get(i));
-      Integer primedNo = ibs.getPrimedNo();
-      // collaps stack if needed
-      while(primedNo < mark){
-       scopeMap.putAll(mark-1, scopeMap.get(mark));
-       scopeMap.removeAll(mark);
-       mark--;
+    if (whichItpProver.equals("MATHSAT")){
+      ListMultimap<Integer, T> scopeMap = ArrayListMultimap.create();
+      int mark = 0;
+      for (int i=0; i<interpolationFormulas.size();i++){
+        InterpolationBlockScope ibs = (InterpolationBlockScope) interpolationPathFormulas.get(i).getScope().toArray()[0];
+        T group = pItpProver.addFormula(interpolationFormulas.get(i));
+        Integer primedNo = ibs.getPrimedNo();
+        // collaps stack if needed
+        while(primedNo < mark){
+         scopeMap.putAll(mark-1, scopeMap.get(mark));
+         scopeMap.removeAll(mark);
+         mark--;
+        }
+        mark = primedNo;
+        scopeMap.put(primedNo, group);
+        interpolationScope[i] = new Vector<T>(scopeMap.get(primedNo));
       }
-      mark = primedNo;
-      scopeMap.put(primedNo, group);
-      interpolationScope[i] = new Vector<T>(scopeMap.get(primedNo));
+    } else if (whichItpProver.equals("CSISAT")){
+      for (int i=0; i<interpolationFormulas.size();i++){
+        InterpolationBlockScope ibs = (InterpolationBlockScope) interpolationPathFormulas.get(i).getScope().toArray()[0];
+        T group = pItpProver.addFormula(interpolationFormulas.get(i));
     }
 
 
-    /*List<T>[] interpolationScope = new List[interpolationFormulas.size()];
-    Map<Integer, List<T>> scopeMap = new HashMap<Integer, List<T>>();
-    for (int i=0; i<interpolationFormulas.size();i++){
-      InterpolationBlockScope ibs = (InterpolationBlockScope) interpolationPathFormulas.get(i).getScope().toArray()[0];
-      T group = pItpProver.addFormula(interpolationFormulas.get(i));
-      Integer primedNo = ibs.getPrimedNo();
-      List<T> currentList = scopeMap.get(primedNo);
-      if (currentList == null){
-        currentList = new Vector<T>();
-        scopeMap.put(primedNo, currentList);
-      }
-      currentList.add(group);
-      interpolationScope[i] = new Vector<T>(currentList);
-    }*/
 
     boolean spurious = pItpProver.isUnsat();
 

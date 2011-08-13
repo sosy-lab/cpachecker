@@ -93,6 +93,8 @@ public class MathsatFormulaManager implements FormulaManager  {
   // the character for separating name and index of a value
   private static final String INDEX_SEPARATOR = "@";
 
+
+
   // various caches for speeding up expensive tasks
   //
   // cache for splitting arithmetic equalities in extractAtoms

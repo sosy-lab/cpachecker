@@ -220,11 +220,16 @@ public class RelyGuaranteeRefiner{
         }
       }
       if (restartAnalysis){
-       environment.restartEnvironment();
+        System.out.println("\t\t\t --- Dropping all env transitions ---");
+        environment.resetEnvironment();
+        for (int i=0; i<reachedSets.length;i++){
+          assert reachedSets[i].getReached().size()==1;
+        }
+
       } else {
         // kill the env transitions that were generated in the drop ARTs
         // if they killed transitions covered some other transitions, then make them valid again
-        System.out.println("\t\t\t --- Processing env stransitions ---");
+        System.out.println("\t\t\t --- Processing env transitions ---");
         environment.printUnprocessedTransitions();
         environment.killEnvironmetalEdges(refinementResult.keySet(), artReachedSets);
         // process the remaining environmental transition
@@ -260,7 +265,10 @@ public class RelyGuaranteeRefiner{
       ARTElement artElement = (ARTElement) aElement;
       RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(artElement, RelyGuaranteeAbstractElement.class);
       int tid = rgElement.getTid();
-      artMap.put(tid, artElement);
+      if (!info.getPredicatesForRefinement(aElement).isEmpty()){
+        artMap.put(tid, artElement);
+      }
+
     }
 
     // for every thread sum up interpolants and add it to the initial element
@@ -360,6 +368,12 @@ public class RelyGuaranteeRefiner{
       // precision of a cut-off node should include the precision of the elements below
       for (ARTNode node : cutoffNodes) {
         ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
+        // add precision of the dropped element
+        ARTElement artCutoffElement = node.getArtElement();
+        Precision prec = reachedSets[tid].getPrecision(artCutoffElement);
+        RelyGuaranteePrecision rgPrecision = Precisions.extractPrecisionByType(prec, RelyGuaranteePrecision.class);
+        pmapBuilder.putAll(rgPrecision.getPredicateMap());
+
         // in the error thread, add the precision of the error element
         if (tid == errorThr){
           AbstractElement targetElement = reachedSets[errorThr].getLastElement();
@@ -379,7 +393,7 @@ public class RelyGuaranteeRefiner{
           pmapBuilder.putAll(loc, newpreds);
         }
         RelyGuaranteePrecision newPrecision = new RelyGuaranteePrecision(pmapBuilder.build(), new HashSet<AbstractionPredicate>());
-        ARTElement artCutoffElement = node.getArtElement();
+
         refinementMap.put(tid, Pair.of(artCutoffElement, newPrecision));
         System.out.println();
         System.out.println("Thread "+tid+": cut-off node id:"+node.getArtElement().getElementId()+" precision "+newPrecision);

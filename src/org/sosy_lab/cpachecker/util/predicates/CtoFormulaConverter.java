@@ -1426,7 +1426,7 @@ public class CtoFormulaConverter {
       if (globalVariablesSet.contains(var)) {
         return;
       }
-      String primedName = var+"^"+offset;
+      String primedName = var+PathFormula.PRIME_SYMBOL+offset;
       int idx = pSsa.getIndex(primedName);
       id.setPrimed(primedName, idx);
     }

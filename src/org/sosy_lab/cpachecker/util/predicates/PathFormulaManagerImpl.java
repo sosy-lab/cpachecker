@@ -79,7 +79,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     // remove primed variables from ssa map
     SSAMapBuilder ssa = SSAMap.emptySSAMap().builder();
     for (String var : oldFormula.getSsa().allVariables()){
-      if (! var.contains("^")){
+      if (! var.contains(PathFormula.PRIME_SYMBOL)){
         ssa.setIndex(var, oldFormula.getSsa().getIndex(var));
       }
     }
@@ -449,7 +449,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
       String bareName = data.getFirst();
       int primeNo = data.getSecond() + offset;
       int idx = envPF.getSsa().getIndex(var);
-      primedSSA.setIndex(bareName+"^"+primeNo, idx);
+      primedSSA.setIndex(bareName+PathFormula.PRIME_SYMBOL+primeNo, idx);
     }
 
     return new PathFormula(primedF, primedSSA.build(), envPF.getLength(), envPF.getPrimedNo()+offset);
@@ -467,17 +467,17 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     // build equalities over global variables
     for (String var : globalVariablesSet) {
       int lidx = localPF.getSsa().getIndex(var);
-      int eidx = envPF.getSsa().getIndex(var+"^"+offset);
+      int eidx = envPF.getSsa().getIndex(var+PathFormula.PRIME_SYMBOL+offset);
       if (lidx == -1) {
         lidx = 1;
         matchedSSA.setIndex(var, lidx);
       }
       if (eidx == -1) {
         eidx = 1;
-        matchedSSA.setIndex(var+"^"+offset, eidx);
+        matchedSSA.setIndex(var+PathFormula.PRIME_SYMBOL+offset, eidx);
       }
       Formula lvar = fmgr.makeVariable(var, lidx);
-      Formula evar = fmgr.makeVariable(var+"^"+offset, eidx);
+      Formula evar = fmgr.makeVariable(var+PathFormula.PRIME_SYMBOL+offset, eidx);
       Formula eq  = fmgr.makeEqual(lvar, evar);
       f = fmgr.makeAnd(f, eq);
     }
@@ -505,17 +505,17 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     // build equalities for globalVariables variables
     for (String var : globalVariablesSet) {
       int lidx = pf1.getSsa().getIndex(var);
-      int eidx = pf2.getSsa().getIndex(var+"^"+offset);
+      int eidx = pf2.getSsa().getIndex(var+PathFormula.PRIME_SYMBOL+offset);
       if (lidx == -1) {
         lidx = 1;
         matchedSSA.setIndex(var, lidx);
       }
       if (eidx == -1) {
         eidx = 1;
-        matchedSSA.setIndex(var+"^"+offset, eidx);
+        matchedSSA.setIndex(var+PathFormula.PRIME_SYMBOL+offset, eidx);
       }
       Formula lvar = fmgr.makeVariable(var, lidx);
-      Formula evar = fmgr.makeVariable(var+"^"+offset, eidx);
+      Formula evar = fmgr.makeVariable(var+PathFormula.PRIME_SYMBOL+offset, eidx);
       Formula eq  = fmgr.makeEqual(lvar, evar);
       f = fmgr.makeAnd(f, eq);
     }
@@ -560,7 +560,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
         if (newPrimedNo == 0){
           ssaBuilder.setIndex(data.getFirst(), ssa.getIndex(var));
         } else {
-          ssaBuilder.setIndex(data.getFirst()+"^"+newPrimedNo, ssa.getIndex(var));
+          ssaBuilder.setIndex(data.getFirst()+PathFormula.PRIME_SYMBOL+newPrimedNo, ssa.getIndex(var));
         }
         maxPrimed = Math.max(maxPrimed, newPrimedNo);
       } else {
