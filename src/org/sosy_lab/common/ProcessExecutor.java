@@ -107,11 +107,7 @@ public class ProcessExecutor<E extends Exception> {
 
     logger.log(Level.FINEST, "Executing", name);
     logger.log(Level.ALL, (Object[])cmd);
-    System.out.println("Executing: ");
-    for (String str : cmd){
-      System.out.print(str+", ");
-    }
-    System.out.println();
+
 
     final Process process = Runtime.getRuntime().exec(cmd);
     processFuture = executor.submit(new Callable<Integer>() {

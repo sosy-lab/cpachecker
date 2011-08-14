@@ -38,12 +38,13 @@ public class PathFormula {
   // how many times a formula has been primed
   private int primedNo;
   // for RelyGuarantee
-  public static final String PRIME_SYMBOL = "prime";
+  public static final String PRIME_SYMBOL = "pr";
 
 
 
   // precompiled regex expression
   private static Pattern primeRegex = Pattern.compile("(.+)"+PRIME_SYMBOL+"(\\d+)$");
+  //private static Pattern primeRegex = Pattern.compile("(.+)\\^(\\d+)$");
 
   public PathFormula(Formula pf, SSAMap ssa, int pLength) {
     this.formula = pf;

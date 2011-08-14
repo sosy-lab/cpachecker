@@ -61,13 +61,11 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement.Ab
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.RelyGuaranteeEnvTransitionBuilder;
-import org.sosy_lab.cpachecker.util.predicates.RelyGuaranteePathFormulaBuilder;
 import org.sosy_lab.cpachecker.util.predicates.RelyGuaranteePathFormulaConstructor;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -79,12 +77,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
 
 
 @Options(prefix="cpa.relyguarantee.refinement")
@@ -195,7 +190,15 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
   public CounterexampleTraceInfo buildRgCounterexampleTrace(final ARTElement targetElement, final ReachedSet[] reachedSets, int threadNo) throws CPAException, InterruptedException {
     // if we don't want to limit the time given to the solver
     //return buildCounterexampleTraceWithSpecifiedItp(pAbstractTrace, elementsOnPath, firstItpProver);
-    return buildRgCounterexampleTraceWithSpecifiedItp(targetElement,  reachedSets, threadNo, firstItpProver);
+    if (this.whichItpProver.equals("MATHSAT")){
+      return buildRgCounterexampleTraceWithMathSat(targetElement,  reachedSets, threadNo, firstItpProver);
+    }
+    else if (whichItpProver.equals("CSISAT")){
+      return buildRgCounterexampleTraceWithCSISat(targetElement,  reachedSets, threadNo, firstItpProver);
+    } else {
+      throw new InterruptedException("Unknown iterpolating prover "+whichItpProver);
+    }
+
   }
 
 
@@ -321,20 +324,10 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     // the maximum number of primes that appears in any formula block
     int offset = 0;
-    int newOffset = 0;
     for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement> triple : path){
       ARTElement artElement = triple.getFirst();
       assert triple.getThird() instanceof AbstractionElement;
       AbstractionElement rgElement = (AbstractionElement) triple.getThird();
-
-
-      // in any case builder formula with default env. values and path formula should be the same
-      RelyGuaranteePathFormulaBuilder builder = null;
-      if (rgElement instanceof AbstractionElement){
-        builder = (rgElement).getOldPathBuilder();
-        /* PathFormula assertBuilderPF = pathFormulaConstructor.constructFromEdges(builder);
-        assert assertBuilderPF.equals(rgElement.getAbstractionFormula().getBlockPathFormula());*/
-      }
 
       // get list of env edges applied to this block
       /* List<RelyGuaranteeEnvTransitionBuilder> rgEdges = pathFormulaConstructor.getEnvironmetalTransitions(builder);
@@ -352,15 +345,9 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       }*/
 
       printEnvEdgesApplied(artElement, rgElement.getOldPrimedMap().values());
-      // map : env edge applied -> the top path formula of the env. trace
-      Map<RelyGuaranteeEnvTransitionBuilder, PathFormula> envTopMap = new HashMap<RelyGuaranteeEnvTransitionBuilder, PathFormula>();
       // map : env edge applied -> the rest path formula of the env. trace
       Map<RelyGuaranteeEnvTransitionBuilder, List<InterpolationBlock>> envRestMap = new HashMap<RelyGuaranteeEnvTransitionBuilder, List<InterpolationBlock>>();
-      List<InterpolationBlock> externalBlocks = new Vector<InterpolationBlock>();
       Map<Integer, Integer> adjustmentMap = new HashMap<Integer, Integer>(rgElement.getPrimedMap().size());
-      // which traces meet in the block
-      Set<InterpolationBlockScope> scope = new HashSet<InterpolationBlockScope>(rgElement.getPrimedMap().size()+1);
-      scope.add(new InterpolationBlockScope(0, artElement));
 
       // get the blocks for environmental transitions
       for(Integer primedNo: rgElement.getOldPrimedMap().keySet()){
@@ -376,7 +363,8 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
           adjustmentMap.put(primedNo, offset);
         }
         // prime the blocks so paths paths are unique
-        newOffset = primeInterpolationBlocks(envPF, offset);
+        Pair<Integer, List<InterpolationBlock>> pair = primeInterpolationBlocks(envPF, offset);
+        envPF = pair.getSecond();
         //InterpolationBlock lastBlock = envPF.remove(envPF.size()-1);
         // the top block should be enough to construct a correct local path
         //envTopMap.put(envBuilder, lastBlock.getPathFormula());
@@ -385,7 +373,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         rgResult.addAll(envPF);
         // extend the scope this env. transition
         // scope.addAll(lastBlock.getScope());
-        offset = newOffset;
+        offset = pair.getFirst();
       }
 
       // add the remaining env formulas
@@ -397,21 +385,8 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       if (!adjustmentMap.isEmpty()){
         currentPF = pmgr.adjustPrimedNo(currentPF, adjustmentMap);
       }
-      InterpolationBlock currentBlock = new InterpolationBlock(currentPF, scope);
+      InterpolationBlock currentBlock = new InterpolationBlock(currentPF, 0, artElement);
       rgResult.add(currentBlock);
-
-
-
-      /*// prime the renaming blocks - the top block has been primed inside the local path formula
-      List<PathFormula> envPF = new Vector<PathFormula>();
-      for (Integer rgEdgeId: envRestMap.keySet()){
-        int offset = primedMap.get(rgEdgeId);
-        envPF.clear();
-        for (Pair<PathFormula, ARTElement> pair : envRestMap.get(rgEdgeId)){
-          PathFormula primedPF = pmgr.primePathFormula(pair.getFirst(), offset);
-          rgResult.add(Pair.of(primedPF, pair.getSecond()));
-        }
-      }*/
 
       // if the were no env. transitions and primeNo is zero, then the result should be equal to path formula constructed in the ordinary way{
       assert !rgElement.getOldPrimedMap().isEmpty() || currentPF.equals(rgElement.getAbstractionFormula().getBlockPathFormula());
@@ -423,23 +398,22 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
 
   /**
-   * Prime interpolation block given number of times. Returns the maximum prime number after the operation.
+   * Prime interpolation block given number of times. Returns prime blocks and the maximum prime number after the operation.
    * @param pEnvPF
    * @param pOffset
    * @return
    */
-  private int primeInterpolationBlocks(List<InterpolationBlock> envPF, int offset) {
+  private Pair<Integer, List<InterpolationBlock>> primeInterpolationBlocks(List<InterpolationBlock> envPF, int offset) {
     int maximumPrimedNo = 0;
+    List<InterpolationBlock> primedBlocks = new Vector<InterpolationBlock>();
     for (InterpolationBlock ib : envPF){
-      PathFormula primedPF = pmgr.primePathFormula(ib.getPathFormula(), offset);
-      ib.setPathFormula(primedPF);
-      for (InterpolationBlockScope ibs : ib.getScope()){
-        int newPrimedNo = ibs.getPrimedNo()+offset;
-        ibs.setPrimedNo(newPrimedNo);
-        maximumPrimedNo = Math.max(maximumPrimedNo, newPrimedNo);
-      }
+      PathFormula newPF = pmgr.primePathFormula(ib.getPathFormula(), offset);
+      int newPrimedNo = ib.getPrimedNo()+offset;
+      maximumPrimedNo = Math.max(maximumPrimedNo, newPrimedNo);
+      ARTElement artElement = ib.getArtElement();
+      primedBlocks.add(new InterpolationBlock(newPF, newPrimedNo, artElement));
     }
-    return maximumPrimedNo;
+    return Pair.of(maximumPrimedNo, primedBlocks);
   }
 
   /**
@@ -467,8 +441,160 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
   }
 
 
+  /**
+   * Counterexample or interpolates
+   * @param pAbstractTrace
+   * @param pElementsOnPath
+   * @param pFirstItpProver
+   * @return
+   */
+  private <T> CounterexampleTraceInfo buildRgCounterexampleTraceWithCSISat(ARTElement targetElement,  ReachedSet[] reachedSets, int threadNo , InterpolatingTheoremProver<T> itpProver) throws CPAException, InterruptedException{
+    logger.log(Level.FINEST, "Building counterexample trace");
+
+    // get the rely guarantee path for the element
+    List<InterpolationBlock> interpolationBlocks = getRGFormulaForElement(targetElement, reachedSets, threadNo);
+    // List<ARTElement> abstractTrace = new Vector<ARTElement>(interpolationPathFormulas.size());
+    System.out.println();
+    System.out.println("Interpolation scopes/formulas:");
+    int j=0;
+    for (InterpolationBlock ib : interpolationBlocks){
+      System.out.println("\t- "+j+" "+ib);
+      j++;
+    }
+
+    logger.log(Level.ALL, "Counterexample trace formulas:", interpolationBlocks);
+    logger.log(Level.FINEST, "Checking feasibility of counterexample trace");
+    refStats.cexAnalysisSolverTimer.start();
+
+    // CSISAT doesn't support groupping of formulas, so to obtain well-scopped predicates for environmetal formula trace
+    // we have to create a separate list of formulas in the correct order
+
+    // map from scope (number of primes) to  sets of formula in the correct with a map of interpolants
+    Map<Integer, InterpolationMap> interpolationMaps = new HashMap<Integer, InterpolationMap>();
+
+    int mark = 0;
+    for (int i=0; i<interpolationBlocks.size()-1; i++ ){
+      InterpolationBlock ib = interpolationBlocks.get(i);
+      Integer primedNo = ib.getPrimedNo();
+      ARTElement artElement = ib.getArtElement();
+
+      if (primedNo < mark){
+        // environmental formula trace is applied to a local formula trace
+        InterpolationMap envMap = interpolationMaps.get(mark);
+        InterpolationMap localMap = interpolationMaps.get(primedNo);
+
+        if (envMap != null){
+          localMap.formulaList.addAll(envMap.formulaList);
+        }
+
+        localMap.formulaList.add(i);
+        int lastindex = localMap.formulaList.size()-1;
+        localMap.intMap.put(lastindex, artElement);
+        mark = primedNo;
+      } else {
+        // adding formula to the same interpolationMap or above
+        InterpolationMap currentMap = interpolationMaps.get(primedNo);
+
+        if (currentMap == null){
+          currentMap = new InterpolationMap();
+          interpolationMaps.put(primedNo, currentMap);
+        }
+
+        currentMap.formulaList.add(i);
+        int lastindex = currentMap.formulaList.size()-1;
+        currentMap.intMap.put(lastindex, artElement);
+        mark = Math.max(mark, primedNo);
+      }
+    }
+
+    // check correctness
+    assertionInterpolationMaps(interpolationMaps, interpolationBlocks, mark);
+
+    boolean spurious = true;
+    CounterexampleTraceInfo info = new CounterexampleTraceInfo();
+    Map<ARTElement, Pair<Formula, Set<AbstractionPredicate>>> printingPredicates = new HashMap<ARTElement, Pair<Formula, Set<AbstractionPredicate>>>();
+    // get interpolants for each scope
+    for (InterpolationMap interpolationMap : interpolationMaps.values()) {
+      itpProver.init();
+
+      // add conjunction of formulas to the prover
+      List<T> formulaIds = new Vector<T>(interpolationBlocks.size());
+      for (Integer formulaId : interpolationMap.formulaList){
+        Formula f = interpolationBlocks.get(formulaId).getPathFormula().getFormula();
+        T id = itpProver.addFormula(f);
+        formulaIds.add(id);
+      }
+      // add remaining formulas
+      for (int i=0; i<interpolationBlocks.size(); i++){
+        if (!interpolationMap.formulaList.contains(i)){
+          Formula f = interpolationBlocks.get(i).getPathFormula().getFormula();
+          T id = itpProver.addFormula(f);
+          formulaIds.add(id);
+        }
+      }
+
+      assert formulaIds.size() == interpolationBlocks.size();
+
+      // break if error trace is feasible
+      if (!itpProver.isUnsat()){
+        spurious = false;
+        break;
+      }
+
+      // the trace is infeasible, so get interpolants
+      for (Integer idx : interpolationMap.intMap.keySet()){
+        // get the interpolants
+        Formula itp = itpProver.getInterpolant(formulaIds.subList(0, idx+1));
+        Set<AbstractionPredicate> preds = getPrecisionForElements(itp);
+        // add interpolants to the result
+        ARTElement artElement = interpolationMap.intMap.get(idx);
+        printingPredicates.put(artElement, Pair.of(itp, preds));
+        info.addPredicatesForRefinement(artElement, preds);
+      }
+
+      itpProver.reset();
+    }
+
+    if (spurious){
+      // counterexample is spurious - print the interpolants
+      System.out.println();
+      System.out.println("Interpolants/predicates after blocks:");
+      for (int i=0; i<interpolationBlocks.size()-1; i++){
+        ARTElement element = interpolationBlocks.get(i).getArtElement();
+        Pair<Formula, Set<AbstractionPredicate>> pair = printingPredicates.get(element);
+        System.out.println("\t- "+i+": "+pair.getFirst()+",  \t"+pair.getSecond());
+      }
+    } else {
+      // the error trace is feasible
+      info = new CounterexampleTraceInfo(false);
+    }
+
+    return info;
+  }
 
 
+  /**
+   * Check correctnes of interpolationMaps
+   * @param interpolationMaps
+   * @param interpolationPathFormulas
+   * @param mark
+   */
+  private void assertionInterpolationMaps(Map<Integer, InterpolationMap> interpolationMaps, List<InterpolationBlock> interpolationPathFormulas, int mark) {
+    // check that every block is covered by one and only one interpolation map
+    int sum = 0;
+    for (Integer key: interpolationMaps.keySet()){
+      sum = sum + interpolationMaps.get(key).intMap.values().size();
+    }
+    // last block is ommited
+    assert sum == interpolationPathFormulas.size()-1;
+    // a map always has asks for interpolant for the last formula
+    for (Integer key : interpolationMaps.keySet()){
+      InterpolationMap interpolationMap = interpolationMaps.get(key);
+
+      assert interpolationMap.intMap.containsKey(interpolationMap.formulaList.size()-1);
+    }
+
+  }
 
   /**
    * Counterexample or interpolates
@@ -477,7 +603,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
    * @param pFirstItpProver
    * @return
    */
-  private <T> CounterexampleTraceInfo buildRgCounterexampleTraceWithSpecifiedItp(ARTElement targetElement,  ReachedSet[] reachedSets, int threadNo , InterpolatingTheoremProver<T> pItpProver) throws CPAException, InterruptedException{
+  private <T> CounterexampleTraceInfo buildRgCounterexampleTraceWithMathSat(ARTElement targetElement,  ReachedSet[] reachedSets, int threadNo , InterpolatingTheoremProver<T> pItpProver) throws CPAException, InterruptedException{
     logger.log(Level.FINEST, "Building counterexample trace");
 
     Path cfaPath = computePath(targetElement, reachedSets[threadNo]);
@@ -488,135 +614,49 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     //List<Formula> f = getFormulasForTrace(abstractTrace);
     // get the rely guarantee path for the element
     List<InterpolationBlock> interpolationPathFormulas = getRGFormulaForElement(targetElement, reachedSets, threadNo);
-    // convert it into formulas
-    List<Formula> interpolationFormulas = new Vector<Formula>(interpolationPathFormulas.size());
     // List<ARTElement> abstractTrace = new Vector<ARTElement>(interpolationPathFormulas.size());
     System.out.println();
-    System.out.println("Interpolation formulas");
+    System.out.println("Interpolation blocks");
     int j=0;
     for (InterpolationBlock ib : interpolationPathFormulas){
-      System.out.println("- "+j+" "+ib.getScope()+": "+ib.getPathFormula().getFormula());
-      interpolationFormulas.add(ib.getPathFormula().getFormula());
+      System.out.println("\t- "+j+" "+ib);
       j++;
     }
 
+    interpolationPathFormulas = Collections.unmodifiableList(interpolationPathFormulas);
 
-    if (useBitwiseAxioms) {
-      Formula bitwiseAxioms = fmgr.makeTrue();
+    logger.log(Level.ALL, "Counterexample trace formulas:", interpolationPathFormulas);
 
-      for (Formula fm : interpolationFormulas) {
-        Formula a = fmgr.getBitwiseAxioms(fm);
-        if (!a.isTrue()) {
-          bitwiseAxioms = fmgr.makeAnd(bitwiseAxioms, a);
-        }
-      }
 
-      if (!bitwiseAxioms.isTrue()) {
-        logger.log(Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE",
-            "LAST GROUP: ", bitwiseAxioms);
-        int lastIndex = interpolationFormulas.size()-1;
-        interpolationFormulas.set(lastIndex, fmgr.makeAnd(interpolationFormulas.get(lastIndex), bitwiseAxioms));
-      }
-    }
-
-    interpolationFormulas = Collections.unmodifiableList(interpolationFormulas);
-
-    logger.log(Level.ALL, "Counterexample trace formulas:", interpolationFormulas);
-
-    if (maxRefinementSize > 0) {
-      Formula cex = fmgr.makeTrue();
-      for (Formula formula : interpolationFormulas) {
-        cex = fmgr.makeAnd(cex, formula);
-      }
-      int size = fmgr.dumpFormula(cex).length();
-      if (size > maxRefinementSize) {
-        logger.log(Level.FINEST, "Skipping refinement because input formula is", size, "bytes large.");
-        throw new RefinementFailedException(Reason.TooMuchUnrolling, null);
-      }
-    }
 
     logger.log(Level.FINEST, "Checking feasibility of counterexample trace");
-
-    CounterexampleTraceInfo info = null;
-    Set<AbstractionPredicate> falsePreds = null;
-    boolean containsFalse = false;
-    for (int i=0; i<interpolationFormulas.size()-1;i++){
-      if (!containsFalse && interpolationFormulas.get(i).isFalse()){
-        containsFalse = true;
-        info = new CounterexampleTraceInfo();
-        AbstractionPredicate predicate = amgr.makeFalsePredicate();
-        falsePreds = new HashSet<AbstractionPredicate>();
-        falsePreds.add(predicate);
-      }
-      if (containsFalse){
-        Set<InterpolationBlockScope> scope = interpolationPathFormulas.get(i).getScope();
-        for (InterpolationBlockScope ibs : scope){
-          ARTElement artElement = ibs.getArtElement();
-          info.addPredicatesForRefinement(artElement, falsePreds);
-        }
-      }
-    }
-    if (containsFalse){
-      return info;
-    }
-
-
-
-
-    // now f is the DAG formula which is satisfiable iff there is a
-    // concrete counterexample
-
     // create a working environment
     pItpProver.init();
-
     refStats.cexAnalysisSolverTimer.start();
 
-    if (shortestTrace && getUsefulBlocks) {
-      interpolationFormulas = Collections.unmodifiableList(getUsefulBlocks(interpolationFormulas, useSuffix, useZigZag));
-    }
-
-    if (dumpInterpolationProblems) {
-      int k = 0;
-      for (Formula formula : interpolationFormulas) {
-        String dumpFile = String.format(formulaDumpFilePattern,
-            "interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "formula", k++);
-        dumpFormulaToFile(formula, new File(dumpFile));
+    List<T>[] interpolationScope = new List[interpolationPathFormulas.size()];
+    ListMultimap<Integer, T> scopeMap = ArrayListMultimap.create();
+    int mark = 0;
+    for (int i=0; i<interpolationPathFormulas.size();i++){
+      InterpolationBlock  ib = interpolationPathFormulas.get(i);
+      T group = pItpProver.addFormula(ib.getPathFormula().getFormula());
+      Integer primedNo = ib.getPrimedNo();
+      // collaps stack if needed
+      while(primedNo < mark){
+        scopeMap.putAll(mark-1, scopeMap.get(mark));
+        scopeMap.removeAll(mark);
+        mark--;
       }
+      mark = primedNo;
+      scopeMap.put(primedNo, group);
+      interpolationScope[i] = new Vector<T>(scopeMap.get(primedNo));
     }
-
-
-
-    //itpGroupsIds.set(i, );
-    List<T>[] interpolationScope = new List[interpolationFormulas.size()];
-    if (whichItpProver.equals("MATHSAT")){
-      ListMultimap<Integer, T> scopeMap = ArrayListMultimap.create();
-      int mark = 0;
-      for (int i=0; i<interpolationFormulas.size();i++){
-        InterpolationBlockScope ibs = (InterpolationBlockScope) interpolationPathFormulas.get(i).getScope().toArray()[0];
-        T group = pItpProver.addFormula(interpolationFormulas.get(i));
-        Integer primedNo = ibs.getPrimedNo();
-        // collaps stack if needed
-        while(primedNo < mark){
-         scopeMap.putAll(mark-1, scopeMap.get(mark));
-         scopeMap.removeAll(mark);
-         mark--;
-        }
-        mark = primedNo;
-        scopeMap.put(primedNo, group);
-        interpolationScope[i] = new Vector<T>(scopeMap.get(primedNo));
-      }
-    } else if (whichItpProver.equals("CSISAT")){
-      for (int i=0; i<interpolationFormulas.size();i++){
-        InterpolationBlockScope ibs = (InterpolationBlockScope) interpolationPathFormulas.get(i).getScope().toArray()[0];
-        T group = pItpProver.addFormula(interpolationFormulas.get(i));
-    }
-
-
 
     boolean spurious = pItpProver.isUnsat();
 
     logger.log(Level.FINEST, "Counterexample trace is", (spurious ? "infeasible" : "feasible"));
 
+    CounterexampleTraceInfo info;
     if (spurious) {
       info = new CounterexampleTraceInfo();
 
@@ -638,7 +678,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       boolean redundantFalse = false;
       System.out.println();
       System.out.println("Interpolants:");
-      for (int i = 0; i < interpolationFormulas.size()-1; ++i) {
+      for (int i = 0; i < interpolationPathFormulas.size()-1; ++i) {
         // last iteration is left out because B would be empty
         //logger.log(Level.ALL, "Looking for interpolant for formulas from", start_of_a, "to", i);
 
@@ -647,11 +687,11 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
 
         // divide new predicates between relevant ART elements
-        Map<ARTElement, Set<AbstractionPredicate>> precisionForElements;
+        Set<AbstractionPredicate> preds;
         System.out.print("- after blk"+i+": "+itp);
 
         if (!redundantFalse){
-          precisionForElements = getPrecisionForElements(itp, interpolationPathFormulas.get(i).getScope());
+          preds = getPrecisionForElements(itp);
         } else {
           break;
         }
@@ -661,14 +701,14 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         }
 
 
-        Multimap<CFANode, AbstractionPredicate> printingMap = HashMultimap.create();
+        /* Multimap<CFANode, AbstractionPredicate> printingMap = HashMultimap.create();
         for (ARTElement artElement : precisionForElements.keySet()){
           if (!precisionForElements.get(artElement).isEmpty()){
             CFANode node = AbstractElements.extractLocation(artElement);
             printingMap.putAll(node, precisionForElements.get(artElement));
           }
         }
-        System.out.println(" scope: "+printingMap);
+        System.out.println(" scope: "+printingMap);*/
 
 
         refStats.cexAnalysisSolverTimer.stop();
@@ -679,52 +719,18 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
           dumpFormulaToFile(itp, new File(dumpFile));
         }
 
-        for (ARTElement artElement : precisionForElements.keySet()){
-          Set<AbstractionPredicate> preds = precisionForElements.get(artElement);
+        ARTElement artElement = interpolationPathFormulas.get(i).getArtElement();
 
-          if (!preds.isEmpty()){
-            foundPredicates = true;
-          }
-          /*else {
+        if (!preds.isEmpty()){
+          foundPredicates = true;
+        }
+        /*else {
               preds = getAtomsAsPredicates(itp);
             }*/
-          //assert !preds.isEmpty();
-          info.addPredicatesForRefinement(artElement, preds);
+        //assert !preds.isEmpty();
+        info.addPredicatesForRefinement(artElement, preds);
 
-          logger.log(Level.ALL, "For step", i, "got:",
-              "interpolant", itp,
-              "predicates", preds);
-
-          if (dumpInterpolationProblems) {
-            String dumpFile = String.format(formulaDumpFilePattern,
-                "interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "atoms", i);
-            Collection<Formula> atoms = Collections2.transform(preds,
-                new Function<AbstractionPredicate, Formula>(){
-              @Override
-              public Formula apply(AbstractionPredicate pArg0) {return pArg0.getSymbolicAtom();}
-            });
-            printFormulasToFile(atoms, new File(dumpFile));
-          }
-
-        }
-
-
-
-
-        // TODO wellScopedPredicates have been disabled
-
-        // TODO the following code relies on the fact that there is always an abstraction on function call and return
-
-        // If we are entering or exiting a function, update the stack
-        // of entry points
-        // TODO checking if the abstraction node is a new function
-        //        if (wellScopedPredicates && e.getAbstractionLocation() instanceof CFAFunctionDefinitionNode) {
-        //          entryPoints.push(i);
-        //        }
-        // TODO check we are returning from a function
-        //        if (wellScopedPredicates && e.getAbstractionLocation().getEnteringSummaryEdge() != null) {
-        //          entryPoints.pop();
-        //        }
+        logger.log(Level.ALL, "For step", i, "got:","interpolant", itp, "predicates", preds);
       }
 
       if (!foundPredicates) {
@@ -733,7 +739,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     } else {
       // this is a real bug, notify the user
-      info = new CounterexampleTraceInfo(interpolationFormulas);
+      info = new CounterexampleTraceInfo(false);
     }
 
     pItpProver.reset();
@@ -747,63 +753,51 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
   }
 
   /**
-   * Divides the interpolant into atom formulas and distributes them to ARTElements according to their scope.
+   * Divides the interpolant into atom formulas un unprimes them.
    * @param itp
-   * @param scope
+   * @param ib
    * @return
    */
-  private Map<ARTElement, Set<AbstractionPredicate>> getPrecisionForElements(Formula itp, Set<InterpolationBlockScope> scope) {
+  private Set<AbstractionPredicate> getPrecisionForElements(Formula itp) {
 
-    Map<ARTElement, Set<AbstractionPredicate>> map = new HashMap<ARTElement, Set<AbstractionPredicate>>();
-    // create a map primed no -> ARTElement
-    Map<Integer, ARTElement> scopeMap = new HashMap<Integer, ARTElement>();
-    for (InterpolationBlockScope ibs : scope){
-      scopeMap.put(ibs.getPrimedNo(), ibs.getArtElement());
-      map.put(ibs.getArtElement(), new HashSet<AbstractionPredicate>());
-    }
-
-
+    Set <AbstractionPredicate> result = new HashSet<AbstractionPredicate>();
     // TODO maybe handling of non-atomic predicates
     if (!itp.isTrue()){
       if (itp.isFalse()){
         // add false
         AbstractionPredicate atomPredicate = amgr.makeFalsePredicate();
-        for (ARTElement artElement : scopeMap.values()){
-          Set<AbstractionPredicate> currentSet = map.get(artElement);
-          currentSet.add(atomPredicate);
-          map.put(artElement, currentSet);
-        }
+        result.add(atomPredicate);
       }
       else {
         Collection<Formula> atoms = null;
         atoms = fmgr.extractAtoms(itp, splitItpAtoms, false);
 
         for (Formula atom : atoms){
-
-          Collection<Integer> primes = fmgr.howManyPrimes(atom);
-          // TODO remove - a quick & dirty correctness test
-          for (Integer prime : primes){
-            if (prime > 0){
-              assert itp.toString().contains("^"+prime);
-            };
-          }
-
           Formula unprimedAtom = fmgr.unprimeFormula(atom);
           AbstractionPredicate atomPredicate = amgr.makePredicate(unprimedAtom);
-
-          for (Integer i : primes){
-            ARTElement artElement = scopeMap.get(i);
-            if (artElement != null){
-              Set<AbstractionPredicate> currentSet = map.get(artElement);
-              currentSet.add(atomPredicate);
-              map.put(artElement, currentSet);
-            }
-            //assert artElement != null;
-          }
+          result.add(atomPredicate);
         }
       }
     }
-    return map;
+    return result;
+  }
+
+  /**
+   * Contains interpolation formula in correct order and a map from interpolant number to ART element.
+   */
+  class InterpolationMap {
+
+    // formulas by their number
+    List<Integer> formulaList;
+    // interpolant number -> ARTElement
+    Map<Integer, ARTElement> intMap;
+
+    public InterpolationMap(){
+      formulaList = new Vector<Integer>();
+      intMap = new HashMap<Integer, ARTElement>();
+    }
+
+
   }
 
 

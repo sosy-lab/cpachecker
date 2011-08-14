@@ -27,6 +27,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.ProcessExecutor;
@@ -58,7 +60,9 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
 
   private static final Joiner FORMULAS_JOINER = Joiner.on("; ");
   private static final String[] CSISAT_CMDLINE = {"csisat", "-syntax", "infix", "-round", "-LAsolver", "simplex"};
-  //private static final String[] CSISAT_CMDLINE = {"csisat"};
+  private static Pattern termTimesNumber = Pattern.compile("\\(([a-zA-Z_\\^@][a-zA-Z0-9_\\^@]*)\\s*\\*\\s*(\\-?[0-9\\.]+)\\)");
+  private static Pattern ITE = Pattern.compile("ITE\\(([^,]+),([^,]+),(.+?)\\)\\)[$\\s]");
+
 
   private class CSIsatExecutor extends ProcessExecutor<IOException> {
 
@@ -73,35 +77,32 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
       if (line.startsWith("Satisfiable: ")) {
         satisfiable = true;
       } else {
-        super.handleErrorOutput(csiToMSAT(line));
+        super.handleErrorOutput(line);
       }
     }
 
     @Override
     public void handleOutput(String line) throws IOException {
-      String out = csiToMSAT(line);
-      Formula itp = smgr.parseInfix(csiToMSAT(line));
+      Formula itp = smgr.parseInfix(line);
       interpolants.add(itp);
       logger.log(Level.ALL, "Parsed interpolant", line, "as", itp);
     }
 
-    /*  public void writeFormulas(List<Formula> formulas) throws IOException {
-      String formulasStr = FORMULAS_JOINER.join(formulas);
-
-      logger.log(Level.ALL, "Interpolation problem is", formulasStr);
-
-      print(formulasStr);
-      sendEOF();
-    }
-  }*/
-
     public void writeFormulas(List<Formula> formulas) throws IOException {
       String formulasStr = FORMULAS_JOINER.join(formulas);
-      formulasStr = msatToCSI(formulasStr);
       logger.log(Level.ALL, "Interpolation problem is", formulasStr);
-      System.out.println("Formula to be solved: "+formulasStr);
+      System.out.println();
+      System.out.println("CSISAT problem is: "+formulasStr);
+      Matcher m1 = ITE.matcher(formulasStr);
+      if (m1.find()){
+        System.out.println(m1.group(1));
+        System.out.println(m1.group(2));
+        System.out.println(m1.group(3));
+      }
+      Matcher m2 = termTimesNumber.matcher(formulasStr);
+      formulasStr = m2.replaceAll("($2 * $1)" );
+      System.out.println("After replacement: "+formulasStr);
       print(formulasStr);
-      //print(formulasStr);
       sendEOF();
     }
   }
@@ -182,6 +183,7 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
     } else {
       if (interpolants.size() != formulas.size()-1) {
         logger.log(Level.SEVERE, "CSIsat failed to generate interpolants");
+        System.out.println("DEBUG :"+interpolants+"\nformulas:"+formulas);
         throw new UnsupportedOperationException();
       }
       logger.log(Level.FINEST, "CSIsat result: unsatisfiable,", interpolants.size(), " interpolants found.");
@@ -190,18 +192,6 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
     }
   }
 
-  public String msatToCSI(String f){
-    f = f.replace("@", "index");
-    //f = f.replace("^", "p");
-    f = f.replace("!", "not ");
-    return f;
-  }
-
-  public String csiToMSAT(String f){
-    f = f.replace("index", "@");
-    //f = f.replace("p", "^");
-    return f.replace("not ", "!");
-  }
 
   @Override
   public void reset() {

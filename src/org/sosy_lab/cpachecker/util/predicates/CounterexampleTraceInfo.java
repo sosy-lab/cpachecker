@@ -70,11 +70,11 @@ public class CounterexampleTraceInfo {
       branchingPreds = ImmutableMap.copyOf(preds);
     }
 
-    public CounterexampleTraceInfo(List<Formula> pCounterexampleFormula) {
+    public CounterexampleTraceInfo(boolean spurious) {
 
-      mCounterexampleFormula = pCounterexampleFormula;
+      mCounterexampleFormula = null;
       mCounterexampleModel = null;
-      spurious = false;
+      this.spurious = spurious;
       pmap = null;
       branchingPreds = null;
     }

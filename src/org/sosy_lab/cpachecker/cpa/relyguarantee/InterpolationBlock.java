@@ -23,76 +23,48 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
-import java.util.Set;
-
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
 /**
- * Describes a formula for interpolation and its scopes. If the formula contains traces from other thread,
- * then the formula might have many scope - one per thread.
+ * Contains three pieces of information:
+ * - path formula for interpolation
+ * - ART element that is the abstraction point for the formula
+ * - primed no which identified formula trace.
  */
 class InterpolationBlock {
 
-  private Set<InterpolationBlockScope> scope;
-  private PathFormula pf;
-
-  public InterpolationBlock(PathFormula pf, Set<InterpolationBlockScope> scope){
-    this.pf = pf;
-    this.scope = scope;
-  }
-
-  public Set<InterpolationBlockScope> getScope() {
-    return scope;
-  }
-
-  public PathFormula getPathFormula() {
-    return pf;
-  }
-
-  public void setScope(Set<InterpolationBlockScope> pScope) {
-    scope = pScope;
-  }
-
-  public void setPathFormula(PathFormula pPf) {
-    pf = pPf;
-  }
-
-  @Override
-  public String toString(){
-    return "InterpolationBlock: "+pf+" "+scope;
-  }
-}
-
-/**
- * Class describes last abstraction element for a trace and how many times the formula from this trace are primed.
- */
-class InterpolationBlockScope {
-
-  private int primedNo;
-
+  private final int primedNo;
   private final ARTElement artElement;
+  private final PathFormula pf;
 
-  public InterpolationBlockScope(int primedNo, ARTElement artElement){
+  public InterpolationBlock(PathFormula pf, int primedNo, ARTElement artElement){
+    this.pf = pf;
     this.primedNo = primedNo;
     this.artElement = artElement;
   }
 
-  public void setPrimedNo(int pPrimedNo) {
-    primedNo = pPrimedNo;
-  }
+
 
   public int getPrimedNo() {
     return primedNo;
   }
 
+
+
   public ARTElement getArtElement() {
     return artElement;
   }
 
-  @Override
-  public String toString() {
-    return primedNo+"-id:"+artElement.getElementId();
+
+
+  public PathFormula getPathFormula() {
+    return pf;
   }
 
+
+  @Override
+  public String toString(){
+    return "["+primedNo+"- id:"+artElement.getElementId()+"]: "+pf;
+  }
 }

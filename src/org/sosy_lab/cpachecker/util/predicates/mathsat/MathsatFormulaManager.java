@@ -546,6 +546,9 @@ public class MathsatFormulaManager implements FormulaManager  {
     return encapsulate(f);
   }
 
+
+
+
   @Override
   public Formula parse(String s) {
     long f = msat_from_msat(msatEnv, s);
