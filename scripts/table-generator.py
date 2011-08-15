@@ -8,7 +8,7 @@ import optparse
 import time
 
 from datetime import date
-
+from decimal import *
 
 OUTPUT_PATH = "test/results/"
 
@@ -30,17 +30,21 @@ CSS = '''
     table { outline:3px solid black; border-spacing:0px; font-family:arial, sans serif}
     thead { text-align:center}
     tbody { text-align:right}
+    tfoot { text-align:center}
     tr:hover { background-color:yellow}
     td { border:1px solid black}
     td:first-child { text-align:left; white-space:nowrap}
     tbody td:first-child { font-family: monospace; }
     #options td:not(:first-child) {  text-align:left; font-size: x-small; 
                                      font-family: monospace; }
-    #columnTitles td { border-bottom:3px solid black}
-    .correctStatus { text-align:center; color:green}
-    .wrongStatus { text-align:center; color:red; font-weight: bold; }
+    tbody tr:first-child td { border-top:3px solid black}
+    tfoot tr:first-child td { border-top:3px solid black}
+    .correctSafe, .correctUnsafe { text-align:center; color:green}
+    .wrongSafe, .wrongUnsafe { text-align:center; color:red; font-weight: bold; }
+    .unknown { text-align:center; color:orange; font-weight: bold; }
+    .score { text-align:center; font-size:large; font-weight:bold; }
     a { color: inherit; text-decoration: none; display: block; }
-    a:hover { background: orange }
+    a:hover { background: lime }
     -->
 </style> 
 '''
@@ -52,6 +56,14 @@ TITLE = '''
 
 # space in front of a line in htmlcode (4 spaces)
 HTML_SHIFT = '    '
+
+
+# scoreValues taken from http://sv-comp.sosy-lab.org/
+SCORE_CORRECT_SAFE = 2
+SCORE_CORRECT_UNSAFE = 1
+SCORE_UNKNOWN = 0
+SCORE_WRONG_UNSAFE = -2
+SCORE_WRONG_SAFE = -4
 
 
 def getListOfTests(file, filesFromXML=False):
@@ -366,15 +378,22 @@ def getOptionsRow(listOfTests, testWidths):
 
 def getTableBody(listOfTests):
     '''
-    This function build the body of the table.
+    This function build the body and the foot of the table.
     It collects all values from the tests for the columns in the table.
+    The foot contains some statistics.
     '''
 
     rowsForHTML = []
     rowsForCSV = []
+    fileList = listOfTests[0][0].findall('sourcefile')
+    rowsForStats = [['<td>total sum</td>'],
+                    ['<td>(no bug + safe) OR (bug + unsafe)</td>'],
+                    ['<td>bug + safe</td>'],
+                    ['<td>no bug + unsafe</td>'],
+                    ['<td>score ({0} files)</td>'.format(len(fileList))]]
 
     # get filenames
-    for file in listOfTests[0][0].findall('sourcefile'):
+    for file in fileList:
         fileName = file.get("name")
         filePath = getPathOfSourceFile(fileName)
 
@@ -384,15 +403,28 @@ def getTableBody(listOfTests):
     # get values for each test
     for testResult, columns in listOfTests:
 
-        # get values for each file in a test
-        for fileResult, rowHTML, rowCSV in zip(testResult.findall('sourcefile'), rowsForHTML, rowsForCSV):
-            (valuesHTML, valuesCSV) = getValuesOfFileXTest(fileResult, columns)
-            rowHTML.extend(valuesHTML)
-            rowCSV.extend(valuesCSV)
+        valuesListHTML = []
+        valuesListCSV = []
 
-    return ('<tbody>\n{0}<tr>'.format(HTML_SHIFT) \
-            + '</tr>\n{0}<tr>'.format(HTML_SHIFT).join(map(''.join, rowsForHTML)) \
-            + '</tr>\n</tbody>',
+        # get values for each file in a test
+        for fileResult in testResult.findall('sourcefile'):
+            (valuesHTML, valuesCSV) = getValuesOfFileXTest(fileResult, columns)
+            valuesListHTML.append(valuesHTML)
+            valuesListCSV.append(valuesCSV)
+
+        # append values to html and csv
+        map(list.extend, rowsForHTML, valuesListHTML)
+        map(list.extend, rowsForCSV, valuesListCSV)
+
+        # get statistics
+        stats = getStatsOfTest(testResult.findall('sourcefile'), columns, valuesListCSV)
+        map(list.extend, rowsForStats, stats)
+
+    rowsHTML = '</tr>\n{0}<tr>'.format(HTML_SHIFT).join(map(''.join, rowsForHTML))
+    statsHTML = '</tr>\n{0}<tr>'.format(HTML_SHIFT).join(map(''.join, rowsForStats))
+
+    return ('<tbody>\n{0}<tr>{1}</tr>\n</tbody>'.format(HTML_SHIFT, rowsHTML),
+            '<tfoot>\n{0}<tr>{1}</tr>\n</tfoot>'.format(HTML_SHIFT, statsHTML),
             '\n'.join(map(CSV_SEPARATOR.join, rowsForCSV)))
 
 
@@ -414,6 +446,8 @@ def getValuesOfFileXTest(currentFile, listOfColumns):
     Only columns, that should be part of the table, are collected.
     '''
 
+    currentFile.status = 'unknownStatus'
+
     valuesForHTML = []
     valuesForCSV = []
     for columnTitle in listOfColumns: # for all columns that should be shown
@@ -426,27 +460,111 @@ def getValuesOfFileXTest(currentFile, listOfColumns):
 
                 if columnTitle == 'status':
                     # different colors for correct and incorrect results
-                    fileName = currentFile.get('name')
                     status = value.lower()
+                    fileName = currentFile.get('name')
                     isSafeFile = fileName.lower().find('bug') == -1
 
-                    if (isSafeFile and status == 'safe') or (
-                        not isSafeFile and status == 'unsafe'):
-                        valueForHTML = '<td class="correctStatus">'
+                    if status == 'safe':
+                        if isSafeFile:
+                            currentFile.status = 'correctSafe'
+                        else:
+                            currentFile.status = 'wrongSafe'
+                    elif status == 'unsafe':
+                        if isSafeFile:
+                            currentFile.status = 'wrongUnsafe'
+                        else:
+                            currentFile.status = 'correctUnsafe'
                     else:
-                        valueForHTML = '<td class="wrongStatus">'
+                            currentFile.status = 'unknown'
 
                     if LOGFILES_IN_HTML:                
-                        valuesForHTML.append(valueForHTML + '<a href="{0}">{1}</a></td>'
-                            .format(str(currentFile.get('logfileForHtml')), status))
+                        valuesForHTML.append('<td class="{0}"><a href="{1}">{2}</a></td>'
+                            .format(currentFile.status, str(currentFile.get('logfileForHtml')), status))
                     else:
-                        valuesForHTML.append(valueForHTML + '{0}</td>'.format(status))
+                        valuesForHTML.append('<td class="{0}">{1}</td>'
+                            .format(currentFile.status, status))
 
                 else:
                     valuesForHTML.append('<td>{0}</td>'.format(value))
                 break
 
     return (valuesForHTML, valuesForCSV)
+
+
+def toDecimal(s):
+    s = s.strip()
+    if s.endswith('s'): # '1.23s'
+        s = s[:-1].strip() # remove last char
+    return Decimal(s)
+
+
+def getStatsOfTest(fileResult, columns, valuesList):
+
+    # list for status of bug vs tool
+    statusList = [file.status for file in fileResult]
+    assert len(valuesList) == len(statusList)
+
+    # convert:
+    # [['SAFE', 0,1], ['UNSAFE', 0,2]] -->  [['SAFE', 'UNSAFE'], [0,1, 0,2]]
+    listsOfValues = zip(*valuesList)
+
+    # collect some statistics
+    sumRow = []
+    sumCorrectRow = []
+    wrongSafeRow = []
+    wrongUnsafeRow = []
+    scoreRow = []
+
+    for columnTitle, column in zip(columns, listsOfValues):
+
+        # count different elems in statusList
+        if columnTitle == 'status':
+            correctSafeNr = statusList.count('correctSafe')
+            correctUnsafeNr = statusList.count('correctUnsafe')
+            wrongSafeNr = statusList.count('wrongSafe')
+            wrongUnsafeNr = statusList.count('wrongUnsafe')
+
+            sumRow.append('<td>{0}</td>'.format(len(statusList)))
+            sumCorrectRow.append('<td>{0}</td>'.format(correctSafeNr + correctUnsafeNr))
+            wrongSafeRow.append('<td>{0}</td>'.format(wrongSafeNr))
+            wrongUnsafeRow.append('<td>{0}</td>'.format(wrongUnsafeNr))
+            scoreRow.append('<td class="score">{0}</td>'.format(
+                                SCORE_CORRECT_SAFE * correctSafeNr + \
+                                SCORE_CORRECT_UNSAFE * correctUnsafeNr + \
+                                SCORE_WRONG_SAFE * wrongSafeNr + \
+                                SCORE_WRONG_UNSAFE * wrongUnsafeNr))
+
+        # get sums for correct, wrong, etc
+        else: 
+            try:
+                (sum, correctSum, wrongSafeNumber, wrongUnsafeNumber) \
+                    = getStatsOfNumber(map(toDecimal, column), statusList)
+            except InvalidOperation:
+                (sum, correctSum, wrongSafeNumber, wrongUnsafeNumber) = (0, 0, 0, 0)
+                print ("Warning: NumberParseException. Statistics may be wrong.")
+            sumRow.append('<td>{0}</td>'.format(sum))
+            sumCorrectRow.append('<td>{0}</td>'.format(correctSum))
+            wrongSafeRow.append('<td>{0}</td>'.format(wrongSafeNumber))
+            wrongUnsafeRow.append('<td>{0}</td>'.format(wrongUnsafeNumber))
+            scoreRow.append('<td></td>')
+
+    # convert numbers to strings for output
+    return (sumRow, sumCorrectRow, wrongSafeRow, wrongUnsafeRow, scoreRow)
+
+
+def getStatsOfNumber(valueList, statusList=None):
+    assert len(valueList) == len(statusList)
+    correctSum = sum([value 
+                      for value, status in zip(valueList, statusList)
+                      if (status == 'correctSafe' or status == 'correctUnsafe')])
+    wrongSafeNumber = sum([value 
+                      for value, status in zip(valueList, statusList)
+                      if (status == 'wrongSafe')])
+    wrongUnsafeNumber = sum([value 
+                      for value, status in zip(valueList, statusList)
+                      if (status == 'wrongUnsafe')])
+
+    return (sum(valueList), correctSum, wrongSafeNumber, wrongUnsafeNumber)
 
 
 def createTable(file, filesFromXML=False):
@@ -474,10 +592,12 @@ def createTable(file, filesFromXML=False):
     print 'generating html ...'
 
     (tableHeadHTML, tableHeadCSV) = getTableHead(listOfTests)
-    (tableBodyHTML, tableBodyCSV) = getTableBody(listOfTests)
+    (tableBodyHTML, tableFootHTML, tableBodyCSV) = getTableBody(listOfTests)
 
     tableCode = '<table>\n' \
                 + tableHeadHTML.replace('\n','\n' + HTML_SHIFT) \
+                + '\n' + HTML_SHIFT \
+                + tableFootHTML.replace('\n','\n' + HTML_SHIFT) \
                 + '\n' + HTML_SHIFT \
                 + tableBodyHTML.replace('\n','\n' + HTML_SHIFT) \
                 + '\n</table>\n\n'
