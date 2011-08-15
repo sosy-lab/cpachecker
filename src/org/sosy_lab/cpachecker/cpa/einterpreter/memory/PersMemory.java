@@ -59,7 +59,7 @@ public class PersMemory {
     if(s==null){
       //TODO: not possible
     }
-    s.setcurInterpreterElement(el);
+
     return s;
   }
 

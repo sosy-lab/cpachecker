@@ -17,7 +17,7 @@ public interface Variable {
     void copyVar(String pname,InterpreterElement el) throws Exception;
 
     boolean isConst();
-    void setcurInterpreterElement(InterpreterElement pTmp);
+
 
 
 }

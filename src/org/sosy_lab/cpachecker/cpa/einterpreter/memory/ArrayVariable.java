@@ -97,7 +97,7 @@ public class ArrayVariable  implements Variable{
       b.setMemoryCell(data,x);
 
     }
-    el.getCurrentScope().addVariable(nvar);
+    el.getCurrentScope().addVariable(nvar,el);
 
   }
 
@@ -118,10 +118,6 @@ public class ArrayVariable  implements Variable{
   }
 
 
-  @Override
-  public void setcurInterpreterElement(InterpreterElement pTmp) {
-    tmp = pTmp;
 
-  }
 
 }

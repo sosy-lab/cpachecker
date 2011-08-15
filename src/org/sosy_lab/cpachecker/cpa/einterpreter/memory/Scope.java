@@ -20,7 +20,7 @@ public class Scope {
   private  IASTExpression returnexpr;
   private CFANode returnnod;
 
-  InterpreterElement tmp = null;
+
 
   public Scope(String pname,InterpreterElement el){
     HashMap<String, Variable> variable = new HashMap<String,Variable>();
@@ -47,9 +47,7 @@ public class Scope {
     }
 
   }
-  void setcurInterpreterElement(InterpreterElement el){
-    tmp = el;
-  }
+
 
 
 
@@ -58,7 +56,7 @@ public class Scope {
     return name;
   }
   @SuppressWarnings("unchecked")
-  public Variable getVariable(String pname){
+  public Variable getVariable(String pname , InterpreterElement tmp){
 
       HashMap<String, Variable> vtmp = variables.get(tmp);
       InterpreterElement itmp= tmp;
@@ -72,26 +70,32 @@ public class Scope {
         while(s.parent != null){
           s = s.parent;
         }
-        s.setcurInterpreterElement(tmp);
-        return s.getVariable(pname);
+
+        return s.getVariable(pname,tmp);
 
       }
 
       k = vtmp.get(pname);
       if(k!=null){
-        k.setcurInterpreterElement(tmp);
+
       }
       return k;
 
   }
 
   @SuppressWarnings("unchecked")
-  public void addVariable(Variable pvar){
-    pvar.setcurInterpreterElement(tmp);
-    HashMap<String, Variable> variable = variables.get(tmp);
+  public void addVariable(Variable pvar,InterpreterElement el){
+    InterpreterElement tmp=el;
+    HashMap<String, Variable> variable = null;
+    while(variable == null){
+
+      variable = variables.get(tmp);
+      tmp = tmp.getprev();
+
+    }
     variable = (HashMap<String, Variable>) variable.clone();
     variable.put(pvar.getName(), pvar);
-    variables.put(tmp, variable);
+    variables.put(el, variable);
   }
 
 

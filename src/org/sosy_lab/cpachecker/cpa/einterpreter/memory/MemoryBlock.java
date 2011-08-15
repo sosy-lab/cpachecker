@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.einterpreter.memory;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 
+
 public class MemoryBlock {
 
  public enum CellType{
@@ -38,10 +39,12 @@ public class MemoryBlock {
   boolean free = false;
   protected MemoryBlock(int n){
     block = new MemoryCell[n];
+
   }
 
   private MemoryBlock(MemoryCell[] pblock,boolean pfree){
     block = pblock;
+
     free = pfree;
   }
 

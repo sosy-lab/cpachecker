@@ -84,7 +84,6 @@ import org.sosy_lab.cpachecker.cpa.einterpreter.memory.FuncPointerVariable;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.MemoryBlock;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.MemoryBlock.CellType;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.MemoryException;
-import org.sosy_lab.cpachecker.cpa.einterpreter.memory.MemoryFactory;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.PointerVariable;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.PrimitiveVariable;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.Scope;
@@ -210,8 +209,8 @@ public class InterpreterTransferRelation implements TransferRelation {
       IASTExpression exp = successor.getCurrentScope().getReturnExpression();
       if(exp!=null){
         try {
-          ExprResult res = handleLeftSide(exp, successor.getCurrentScope().getParentScope(),successor.getFactory());
-          ExprResult res2  = handleRightSide(returnEdge.getExpression(),successor.getCurrentScope(),successor.getFactory());
+          ExprResult res = handleLeftSide(exp, successor.getCurrentScope().getParentScope(),successor);
+          ExprResult res2  = handleRightSide(returnEdge.getExpression(),successor.getCurrentScope(),successor);
           handleAssignment(res,res2);
 
         } catch (Exception e) {
@@ -304,7 +303,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
 
       try {
-        res = handleRightSide(rside.getFunctionNameExpression(),successor.getCurrentScope(),successor.getFactory());
+        res = handleRightSide(rside.getFunctionNameExpression(),successor.getCurrentScope(),successor);
 
         if(res.getFunctionPnt().equals(fpcedge.getSuccessor())){
           handleFunctionCall(fpcedge.getRawAST(),fpcedge.getSuccessor(),fpcedge.getArguments(), successor);
@@ -351,7 +350,7 @@ private AbstractElement handleAssume(AssumeEdge pAssumeEdge,
     try {
       //System.out.println("TRUTH "+ pAssumeEdge.getTruthAssumption());
       //System.out.println("EXPRESSION "+ pAssumeEdge.getExpression().getRawSignature());
-      ExprResult exp = handleRightSide(pAssumeEdge.getExpression(),pelement.getCurrentScope(),pelement.getFactory());
+      ExprResult exp = handleRightSide(pAssumeEdge.getExpression(),pelement.getCurrentScope(),pelement);
       switch(exp.getResultType()){
       case Num:
         if((exp.getnumber().compareTo(BigInteger.ZERO)==0) ^ !pAssumeEdge.getTruthAssumption()){
@@ -450,12 +449,12 @@ private void handleUnknownFunctionCall(IASTFunctionCallAssignmentStatement pstat
     String funcname = ((IASTIdExpression) nameexpr).getName();
     if(funcname.compareTo("CPAmalloc")==0){
       IASTExpression sizeexp = mcall.getFunctionCallExpression().getParameterExpressions().get(0);
-      ExprResult expr= handleRightSide(sizeexp, pelement.getCurrentScope(),pelement.getFactory());
+      ExprResult expr= handleRightSide(sizeexp, pelement.getCurrentScope(),pelement);
       int size = expr.getnumber().intValue();
       MemoryBlock block = pelement.getFactory().allocateMemoryBlock(size);
       Address addr = new Address(block,0);
       ExprResult res1 = new ExprResult(addr,null,-1);
-      ExprResult res2  = handleLeftSide(mcall.getLeftHandSide(),pelement.getCurrentScope(),pelement.getFactory());
+      ExprResult res2  = handleLeftSide(mcall.getLeftHandSide(),pelement.getCurrentScope(),pelement);
       handleAssignment(res2,res1);
 
 
@@ -480,16 +479,16 @@ private void copyVars(InterpreterElement pelement, List<String> pList,
     IASTParameterDeclaration tmp = parlist.get(x);
     if(exp instanceof IASTLiteralExpression){
       handleSimpleDecl((IASTSimpleDeclSpecifier)tmp.getDeclSpecifier(),tmp.getName(),pelement);
-      ExprResult res2 =handleRightSide(exp, pelement.getCurrentScope(), pelement.getFactory());
-      ExprResult res1 = new ExprResult(pelement.getCurrentScope().getVariable(tmp.getName()));
+      ExprResult res2 =handleRightSide(exp, pelement.getCurrentScope(), pelement);
+      ExprResult res1 = new ExprResult(pelement.getCurrentScope().getVariable(tmp.getName(),pelement));
       handleAssignment(res1, res2);
     }else if(exp instanceof IASTIdExpression){
       String cname = ((IASTIdExpression) exp).getName();
-      Variable cvar = pelement.getCurrentScope().getParentScope().getVariable(cname);
+      Variable cvar = pelement.getCurrentScope().getParentScope().getVariable(cname,pelement);
       cvar.copyVar(varname, pelement);
     }else if (exp instanceof IASTUnaryExpression){
 
-       ExprResult expr = handleRightSide(exp, pelement.getCurrentScope().getParentScope(),pelement.getFactory());
+       ExprResult expr = handleRightSide(exp, pelement.getCurrentScope().getParentScope(),pelement);
        IASTParameterDeclaration pardef = parlist.get(x);
        String cpname = pardef.getName();
        IType  typ = pardef.getDeclSpecifier();
@@ -497,7 +496,7 @@ private void copyVars(InterpreterElement pelement, List<String> pList,
        if(typ instanceof IASTPointerTypeSpecifier){
          try {
            handlePointerDecl((IASTPointerTypeSpecifier)typ,cpname ,pelement);
-           ExprResult expr2 = new ExprResult(pelement.getCurrentScope().getVariable(cpname));
+           ExprResult expr2 = new ExprResult(pelement.getCurrentScope().getVariable(cpname,pelement));
            handleAssignment(expr2,expr);
          } catch (Exception e) {
           e.printStackTrace();
@@ -525,7 +524,7 @@ private void handleFree(IASTFunctionCallStatement pStatement,
     if(nameexpr instanceof IASTIdExpression){
       String funcname = ((IASTIdExpression)nameexpr).getName();
       if(funcname.compareTo("CPAfree")==0){
-        ExprResult x = handleRightSide(mcall.getParameterExpressions().get(0),pelement.getCurrentScope(),pelement.getFactory());
+        ExprResult x = handleRightSide(mcall.getParameterExpressions().get(0),pelement.getCurrentScope(),pelement);
         switch(x.getResultType()){
         case Var:
           Variable v = x.getVariable();
@@ -556,8 +555,8 @@ private void handleAssignStatement(
      IASTExpression right = pStatement.getRightHandSide();
      ExprResult res1;
      ExprResult res2;
-     res2 = handleRightSide(right,pelement.getCurrentScope(),pelement.getFactory());
-     res1 = handleLeftSide(left, pelement.getCurrentScope(),pelement.getFactory());
+     res2 = handleRightSide(right,pelement.getCurrentScope(),pelement);
+     res1 = handleLeftSide(left, pelement.getCurrentScope(),pelement);
 
 
 
@@ -723,7 +722,7 @@ private void handleAssignment(ExprResult res1, ExprResult res2) throws Exception
 }
 
 private ExprResult handleRightSide(IASTExpression pRight,
-    Scope currentScope,MemoryFactory factory ) throws Exception {
+    Scope currentScope,InterpreterElement pel ) throws Exception {
 
   if(pRight instanceof IASTLiteralExpression){
     switch(((IASTLiteralExpression) pRight).getKind()){
@@ -751,13 +750,13 @@ private ExprResult handleRightSide(IASTExpression pRight,
     if(func != null){
       return new ExprResult(func);
     }else{
-    return new ExprResult(currentScope.getVariable(var));
+    return new ExprResult(currentScope.getVariable(var,pel));
     }
 
   }
   if(pRight instanceof IASTUnaryExpression){
     IASTUnaryExpression unaryexp= (IASTUnaryExpression) pRight;
-    ExprResult res =handleRightSide(unaryexp.getOperand(),currentScope,factory);
+    ExprResult res =handleRightSide(unaryexp.getOperand(),currentScope,pel);
     UnaryOperator op = unaryexp.getOperator();
     switch(op){
     case  MINUS:
@@ -784,7 +783,7 @@ private ExprResult handleRightSide(IASTExpression pRight,
     case PLUS:
       return res;
     case STAR:
-      res = handleRightSide(unaryexp.getOperand(),currentScope,factory);
+      res = handleRightSide(unaryexp.getOperand(),currentScope,pel);
       switch(res.getResultType()){
       case Var:
         if(res.getVariable().getTypeClass()== TypeClass.POINTER){
@@ -920,8 +919,8 @@ private ExprResult handleRightSide(IASTExpression pRight,
     }
   }
   if(pRight instanceof IASTBinaryExpression){
-    ExprResult res1 = handleRightSide(((IASTBinaryExpression) pRight).getOperand1(), currentScope,factory);
-    ExprResult res2 = handleRightSide(((IASTBinaryExpression) pRight).getOperand2(), currentScope,factory);
+    ExprResult res1 = handleRightSide(((IASTBinaryExpression) pRight).getOperand1(), currentScope,pel);
+    ExprResult res2 = handleRightSide(((IASTBinaryExpression) pRight).getOperand2(), currentScope,pel);
     ExprResult res;
     switch(((IASTBinaryExpression) pRight).getOperator()){
     case LOGICAL_OR:
@@ -988,7 +987,7 @@ private ExprResult handleRightSide(IASTExpression pRight,
   }
 
   if(pRight instanceof IASTCastExpression){
-    return handleRCast(pRight,currentScope,factory);
+    return handleRCast(pRight,currentScope,pel);
      }
 
 
@@ -1000,13 +999,13 @@ private ExprResult handleRightSide(IASTExpression pRight,
 }
 
 private ExprResult handleRCast(IASTExpression pRight, Scope cur,
-    MemoryFactory factory) throws Exception {
-  Type z= handleRightCast(pRight.getExpressionType(),cur,factory);
+    InterpreterElement el) throws Exception {
+  Type z= handleRightCast(pRight.getExpressionType(),cur,el);
   ExprResult res;
   switch(z.getTypeClass()){
   case PRIMITIVE:
     PrimitiveType k=(PrimitiveType)z;
-    res = handleRightSide(((IASTCastExpression)pRight).getOperand(), cur,factory);
+    res = handleRightSide(((IASTCastExpression)pRight).getOperand(), cur,el);
     switch(res.getResultType()){
     case Num:
       //TODO: add conversion?? (not really needed assign typechecks done by cil)
@@ -1015,7 +1014,7 @@ private ExprResult handleRCast(IASTExpression pRight, Scope cur,
       switch(res.getVariable().getTypeClass()){
       case PRIMITIVE:
 
-        MemoryBlock block = factory.allocateMemoryBlock(k.sizeOf());
+        MemoryBlock block = el.getFactory().allocateMemoryBlock(k.sizeOf());
         Address naddr = new Address(block,0);
         if(k.sizeOf()<res.getVariable().getSize()){
           copyVar(naddr, res.getVariable().getAddress(), k.sizeOf());
@@ -1033,7 +1032,7 @@ private ExprResult handleRCast(IASTExpression pRight, Scope cur,
         return res;
       case ARRAY:
         tmp = null;
-        block = factory.allocateMemoryBlock(4);
+        block = el.getFactory().allocateMemoryBlock(4);
         block.setAddress(0, res.getVariable().getAddress());
         naddr = new Address(block,0);
         tmp = new PrimitiveVariable("tmpy",naddr,k,k.isSigned(),k.isConst());
@@ -1049,7 +1048,7 @@ private ExprResult handleRCast(IASTExpression pRight, Scope cur,
     }
   case POINTER:
     PointerType pt = (PointerType)z;
-    res = handleRightSide(((IASTCastExpression)pRight).getOperand(), cur,factory);
+    res = handleRightSide(((IASTCastExpression)pRight).getOperand(), cur,el);
     switch(res.getResultType()){
     case Addr:
       //TODO add pointer conversion logic
@@ -1454,17 +1453,17 @@ private ExprResult handleBinaryAND(ExprResult pRes1, ExprResult pRes2,
 }
 
 private ExprResult handleLeftSide(IASTExpression pLeft,
-    Scope cur,MemoryFactory fact) throws Exception {
+    Scope cur,InterpreterElement el) throws Exception {
     ExprResult res;
     if(pLeft instanceof IASTIdExpression){
-      Address z = cur.getVariable(((IASTIdExpression) pLeft).getName()).getAddress();
-      return new ExprResult(cur.getVariable(((IASTIdExpression) pLeft).getName()));
+      Address z = cur.getVariable(((IASTIdExpression) pLeft).getName(),el).getAddress();
+      return new ExprResult(cur.getVariable(((IASTIdExpression) pLeft).getName(),el));
     }
     if(pLeft instanceof IASTUnaryExpression){
       IASTUnaryExpression uexp = (IASTUnaryExpression) pLeft;
       switch(uexp.getOperator()){
       case STAR:
-          res = handleLeftSide(uexp.getOperand(),cur,fact);
+          res = handleLeftSide(uexp.getOperand(),cur,el);
           switch(res.getResultType()){
           case Var:
 
@@ -1488,8 +1487,8 @@ private ExprResult handleLeftSide(IASTExpression pLeft,
     if(pLeft instanceof IASTCastExpression){
       IASTCastExpression expr = (IASTCastExpression)pLeft;
       IType type = expr.getExpressionType();
-      Type p = handleRightCast(type,cur,fact);
-      ExprResult res1 = handleLeftSide(expr.getOperand(),cur,fact);
+      Type p = handleRightCast(type,cur,el);
+      ExprResult res1 = handleLeftSide(expr.getOperand(),cur,el);
       switch(p.getTypeClass()){
       case POINTER:
         PointerType pnt= (PointerType)p;
@@ -1513,12 +1512,12 @@ private ExprResult handleLeftSide(IASTExpression pLeft,
   return null;
 }
 
-private Type handleRightCast(IType pExpressionType, Scope pCur,MemoryFactory fact) throws Exception {
+private Type handleRightCast(IType pExpressionType, Scope pCur,InterpreterElement pel) throws Exception {
   if(pExpressionType instanceof IASTSimpleDeclSpecifier){
       return getPrimitiveType((IASTSimpleDeclSpecifier)pExpressionType);
   }
   if(pExpressionType instanceof IASTPointerTypeSpecifier){
-    return getPointerType((IASTPointerTypeSpecifier)pExpressionType,pCur,fact);
+    return getPointerType((IASTPointerTypeSpecifier)pExpressionType,pCur,pel);
   }
   throw new Exception("Not supported");
 }
@@ -1850,11 +1849,11 @@ private void handleDynVarDef(String name, String label, InterpreterElement pElem
   switch(comp.getTypeClass()){
   case STRUCT:
     DynVariable var = new DynVariable(name,addr,comp,isConst,dyntypes.STRUCT);
-    pElement.getCurrentScope().addVariable(var);
+    pElement.getCurrentScope().addVariable(var,pElement);
     break;
   case UNION:
     var = new DynVariable(name,addr,comp,isConst,dyntypes.UNION);
-    pElement.getCurrentScope().addVariable(var);
+    pElement.getCurrentScope().addVariable(var,pElement);
     break;
    default:
      throw new Exception("Not supported dynamic variable type");
@@ -1883,16 +1882,16 @@ private CompositeType allocateDynType(IASTCompositeTypeSpecifier pComptyp,
      cur = getPrimitiveType((IASTSimpleDeclSpecifier) memb);
    }
    else if(memb instanceof IASTPointerTypeSpecifier){
-     cur = getPointerType((IASTPointerTypeSpecifier) memb,pElement.getCurrentScope(),pElement.getFactory());
+     cur = getPointerType((IASTPointerTypeSpecifier) memb,pElement.getCurrentScope(),pElement);
    }
    else if(memb instanceof IASTArrayTypeSpecifier){
-     cur = getArrayType((IASTArrayTypeSpecifier) memb, pElement.getCurrentScope(),pElement.getFactory());
+     cur = getArrayType((IASTArrayTypeSpecifier) memb, pElement.getCurrentScope(),pElement);
    }else if(memb instanceof IASTElaboratedTypeSpecifier){
      cur = pElement.getCurrentScope().getCurrentTypeLibrary().getType(((IASTElaboratedTypeSpecifier) memb).getName());
    }else if (memb instanceof IASTNamedTypeSpecifier){
 
      IASTNamedTypeSpecifier ntmp = (IASTNamedTypeSpecifier)memb;
-     cur = getNamedType(pElement.getCurrentScope().getCurrentDefinitions().getDefinition(ntmp.getName()), pElement.getCurrentScope(), pElement.getFactory());
+     cur = getNamedType(pElement.getCurrentScope().getCurrentDefinitions().getDefinition(ntmp.getName()), pElement.getCurrentScope(), pElement);
 
    }else{
      throw new Exception("NOT YET SUPPORTED");
@@ -1907,13 +1906,13 @@ private CompositeType allocateDynType(IASTCompositeTypeSpecifier pComptyp,
 
 private void handleArrayDecl(IASTArrayTypeSpecifier pTyp, String pName,
     InterpreterElement pElement) throws Exception {
-    ArrayType typ=getArrayType(pTyp,pElement.getCurrentScope(),pElement.getFactory());
+    ArrayType typ=getArrayType(pTyp,pElement.getCurrentScope(),pElement);
     int length = typ.length();
     MemoryBlock b = pElement.getFactory().allocateMemoryBlock(typ.sizeOf());
     Address addr = new Address(b,0);
     ArrayVariable var = new ArrayVariable(pName, addr, length, typ, typ.getType());
 
-    pElement.getCurrentScope().addVariable(var);
+    pElement.getCurrentScope().addVariable(var,pElement);
 
 }
 
@@ -1925,15 +1924,15 @@ private void handlePointerDecl(IASTPointerTypeSpecifier pTyp,
 
 
 
-    PointerType typ = getPointerType(pTyp,pElement.getCurrentScope(),pElement.getFactory());
+    PointerType typ = getPointerType(pTyp,pElement.getCurrentScope(),pElement);
     MemoryBlock block = pElement.getFactory().allocateMemoryBlock(4);
     Address addr = new Address(block, 0);
     if(typ.getTargetType() instanceof FunctionType){
       FuncPointerVariable var = new FuncPointerVariable(pName, addr, typ.getTargetType(), typ, typ.getLevelOfIndirection());
-      pElement.getCurrentScope().addVariable(var);
+      pElement.getCurrentScope().addVariable(var,pElement);
     }else{
       PointerVariable var = new PointerVariable(pName, addr, typ.getTargetType(), typ, typ.getLevelOfIndirection());
-      pElement.getCurrentScope().addVariable(var);
+      pElement.getCurrentScope().addVariable(var,pElement);
     }
     return;
 
@@ -1953,7 +1952,7 @@ public void handleSimpleDecl(IASTSimpleDeclSpecifier pTyp,
     addr = new Address(block,0);
 
     pVar = new PrimitiveVariable(name, addr,  ptyp, ptyp.isSigned(),ptyp.isConst());
-    pElement.getCurrentScope().addVariable(pVar);
+    pElement.getCurrentScope().addVariable(pVar,pElement);
   }else{
     try {
       throw new Exception("Unsupported primitive Data Type");
@@ -1969,7 +1968,7 @@ public void handleSimpleDecl(IASTSimpleDeclSpecifier pTyp,
 
 
 private ArrayType getArrayType(IASTArrayTypeSpecifier pTyp,
-    Scope scope,MemoryFactory fact) throws Exception {
+    Scope scope,InterpreterElement pel) throws Exception {
   IType typ=pTyp;
   IASTArrayTypeSpecifier tmp=null;
   int length = 1;
@@ -1979,7 +1978,7 @@ private ArrayType getArrayType(IASTArrayTypeSpecifier pTyp,
   while(typ instanceof IASTArrayTypeSpecifier){
     tmp = (IASTArrayTypeSpecifier)typ;
 
-    res = handleRightSide(tmp.getLength(),scope, fact);
+    res = handleRightSide(tmp.getLength(),scope, pel);
     switch(res.getResultType()){
     case Num:
       x= res.getnumber().intValue();
@@ -2010,11 +2009,11 @@ private ArrayType getArrayType(IASTArrayTypeSpecifier pTyp,
   if(typ instanceof IASTSimpleDeclSpecifier){
     basetype = getPrimitiveType((IASTSimpleDeclSpecifier) typ);
   }else if(typ instanceof IASTPointerTypeSpecifier)
-    basetype = getPointerType((IASTPointerTypeSpecifier) typ,scope,fact);
+    basetype = getPointerType((IASTPointerTypeSpecifier) typ,scope,pel);
   else if (typ instanceof IASTNamedTypeSpecifier ){
     String name = ((IASTNamedTypeSpecifier)typ).getName();
     IType t  = scope.getCurrentDefinitions().getDefinition(name);
-    basetype = getNamedType(t,scope,fact);
+    basetype = getNamedType(t,scope,pel);
     if(basetype instanceof ArrayType){
       length *= ((ArrayType)basetype).length();
     }
@@ -2032,16 +2031,16 @@ private ArrayType getArrayType(IASTArrayTypeSpecifier pTyp,
 
 
 
-private Type getNamedType(IType t,Scope scope,MemoryFactory fact) throws Exception {
+private Type getNamedType(IType t,Scope scope,InterpreterElement pel) throws Exception {
 
   if(t instanceof IASTArrayTypeSpecifier){
-    return getArrayType((IASTArrayTypeSpecifier) t, scope, fact);
+    return getArrayType((IASTArrayTypeSpecifier) t, scope, pel);
   }
   if(t instanceof IASTSimpleDeclSpecifier){
     return getPrimitiveType((IASTSimpleDeclSpecifier) t);
   }
   if(t instanceof IASTPointerTypeSpecifier){
-    return getPointerType((IASTPointerTypeSpecifier) t, scope,fact);
+    return getPointerType((IASTPointerTypeSpecifier) t, scope,pel);
   }
   if(t instanceof IASTCompositeTypeSpecifier){
     return scope.getCurrentTypeLibrary().getType(((IASTCompositeTypeSpecifier) t).getName());
@@ -2052,7 +2051,7 @@ private Type getNamedType(IType t,Scope scope,MemoryFactory fact) throws Excepti
   if(t instanceof IASTNamedTypeSpecifier){
     String f =((IASTNamedTypeSpecifier) t).getName();
     IType def = scope.getCurrentDefinitions().getDefinition(f);
-    return getNamedType(def, scope,fact);
+    return getNamedType(def, scope,pel);
   }
 
  throw new Exception("could not handle definition");
@@ -2060,7 +2059,7 @@ private Type getNamedType(IType t,Scope scope,MemoryFactory fact) throws Excepti
 
 
 
-public PointerType getPointerType(IASTPointerTypeSpecifier pTyp, Scope scop,MemoryFactory fact) throws Exception{
+public PointerType getPointerType(IASTPointerTypeSpecifier pTyp, Scope scop,InterpreterElement pel) throws Exception{
   boolean isConst;
   isConst = pTyp.isConst();
   int level=1;
@@ -2118,7 +2117,7 @@ public PointerType getPointerType(IASTPointerTypeSpecifier pTyp, Scope scop,Memo
 
   }else if (tmp instanceof IASTNamedTypeSpecifier){
     IASTNamedTypeSpecifier ntmp = (IASTNamedTypeSpecifier)tmp;
-    Type basetype = getNamedType(scop.getCurrentDefinitions().getDefinition(ntmp.getName()), scop, fact);
+    Type basetype = getNamedType(scop.getCurrentDefinitions().getDefinition(ntmp.getName()), scop, pel);
     while(basetype instanceof PointerType){
       level +=((PointerType) basetype).getLevelOfIndirection();
       basetype = ((PointerType) basetype).getTargetType();
@@ -2133,7 +2132,7 @@ public PointerType getPointerType(IASTPointerTypeSpecifier pTyp, Scope scop,Memo
     if(basetype == null){
        IType xx = scop.getCurrentDefinitions().getDefinition(ctmp.getName());
 
-       basetype = getNamedType(xx, scop, fact);
+       basetype = getNamedType(xx, scop, pel);
        while(basetype instanceof PointerType){
          level +=((PointerType) basetype).getLevelOfIndirection();
          basetype = ((PointerType) basetype).getTargetType();

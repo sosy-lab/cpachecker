@@ -96,7 +96,7 @@ public class DynVariable implements Variable{
     }
 
     DynVariable tmp = new DynVariable(pPname,naddr,type,isConst,dyn );
-    pEl.getCurrentScope().addVariable(tmp);
+    pEl.getCurrentScope().addVariable(tmp,pEl);
 
 
   }
@@ -116,10 +116,7 @@ public class DynVariable implements Variable{
 
     return clone;
   }
-  @Override
-  public void setcurInterpreterElement(InterpreterElement pTmp) {
-    tmp = pTmp;
 
-  }
+
 
 }

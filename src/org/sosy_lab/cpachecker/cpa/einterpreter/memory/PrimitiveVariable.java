@@ -12,12 +12,11 @@ public class PrimitiveVariable implements Variable{
  Address memorylocation;
   String name;
   PrimitiveType type;
-  InterpreterElement tmp;
 
 
   boolean isSigned;
   boolean isConst;
-  boolean isPntCalc;//wenn CIL basic datentyp fuer pointer berechnung verwendet; Versions gebraucht
+  //boolean isPntCalc;//wenn CIL basic datentyp fuer pointer berechnung verwendet; Versions gebraucht
 
 
   /*public PrimitiveVariable(String pname, Address pmemorylocation, Scope pscope, Primitive ptype, boolean pisSigned,boolean pisConst){
@@ -38,18 +37,13 @@ public class PrimitiveVariable implements Variable{
     type = ptype;
     isSigned = pisSigned;
     isConst = pisConst;
-    isPntCalc = false;
+   // isPntCalc = false;
+
+
+
   }
 
-  private PrimitiveVariable(String pname, Address pmemorylocation,  PrimitiveType ptype, boolean pisSigned, boolean pisConst,boolean pisPntCalc){
-    name = new String(pname);
 
-    memorylocation = pmemorylocation;
-    type = ptype;
-    isSigned = pisSigned;
-    isConst = pisConst;
-    isPntCalc = pisPntCalc;
-  }
 
 
 
@@ -114,7 +108,7 @@ public class PrimitiveVariable implements Variable{
 
 
   public void setPnt(){
-    isPntCalc = true;
+    //isPntCalc = true;
   }
 
   @Override
@@ -123,7 +117,7 @@ public class PrimitiveVariable implements Variable{
 
     MemoryBlock b =el.getFactory().allocateMemoryBlock(this.getSize());
     Address addr = new Address(b, 0);
-    PrimitiveVariable nvar = new PrimitiveVariable(pname, addr,type , isSigned, isConst, isPntCalc);
+    PrimitiveVariable nvar = new PrimitiveVariable(pname, addr,type , isSigned, isConst);
     MemoryBlock oldb=memorylocation.getMemoryBlock();
     int of= memorylocation.getOffset();
 
@@ -135,16 +129,11 @@ public class PrimitiveVariable implements Variable{
       b.setMemoryCell(data,x);
 
     }
-    el.getCurrentScope().addVariable(nvar);
+    el.getCurrentScope().addVariable(nvar,el);
 
 
   }
 
-  @Override
-  public void setcurInterpreterElement(InterpreterElement pTmp) {
-    tmp = pTmp;
-
-  }
 
 
 
