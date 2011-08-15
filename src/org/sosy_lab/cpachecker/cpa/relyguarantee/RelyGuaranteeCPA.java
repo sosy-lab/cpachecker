@@ -89,7 +89,7 @@ public class RelyGuaranteeCPA extends PredicateCPA{
       private File predicatesFile1 = null;
 
   @Option(description="always check satisfiability at end of block, even if precision is empty")
-  private boolean checkBlockFeasibility = false;
+  private boolean checkBlockFeasibility = true;
 
   @Option(name="interpolation.changesolverontimeout",
       description="try second interpolating solver if the first takes too long")

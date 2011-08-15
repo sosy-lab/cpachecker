@@ -274,7 +274,7 @@ public class RelyGuaranteeRefiner{
     // for every thread sum up interpolants and add it to the initial element
     for (int tid=0; tid<reachedSets.length; tid++){
       ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
-      // add the precision the initial element
+      // add the precision of the initial element
       ARTElement inital  = (ARTElement) reachedSets[tid].getFirstElement();
       Precision prec = reachedSets[tid].getPrecision(inital);
       RelyGuaranteePrecision rgPrecision = Precisions.extractPrecisionByType(prec, RelyGuaranteePrecision.class);
@@ -287,7 +287,7 @@ public class RelyGuaranteeRefiner{
         CFANode loc = AbstractElements.extractLocation(artElement);
         pmapBuilder.putAll(loc, newpreds);
       }
-      RelyGuaranteePrecision newPrecision = new RelyGuaranteePrecision(pmapBuilder.build(), new HashSet<AbstractionPredicate>());
+      RelyGuaranteePrecision newPrecision = new RelyGuaranteePrecision(pmapBuilder.build(), rgPrecision.getGlobalPredicates());
 
       for (ARTElement initChild : inital.getChildren()){
         refinementMap.put(tid, Pair.of(initChild, newPrecision));

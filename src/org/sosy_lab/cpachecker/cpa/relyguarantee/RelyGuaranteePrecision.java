@@ -44,8 +44,6 @@ import com.google.common.collect.ImmutableSetMultimap;
       super(globalPredicates);
     }
 
-
-
     @Override
     public boolean equals(Object pObj) {
       if (pObj == this) {
@@ -54,6 +52,15 @@ import com.google.common.collect.ImmutableSetMultimap;
         return false;
       } else {
         return predicateMap.equals(((RelyGuaranteePrecision)pObj).predicateMap);
+      }
+    }
+
+    @Override
+    public String toString(){
+      if (getGlobalPredicates().isEmpty()){
+        return predicateMap.toString();
+      } else {
+        return predicateMap + " global: "+getGlobalPredicates();
       }
     }
 
