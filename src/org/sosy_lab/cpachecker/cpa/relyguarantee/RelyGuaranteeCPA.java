@@ -78,7 +78,7 @@ public class RelyGuaranteeCPA extends PredicateCPA{
 
   @Option(name="interpolatingProver", toUppercase=true, values={"MATHSAT", "CSISAT"},
       description="which interpolating solver to use for interpolant generation?")
-      private String whichItpProver = "CSISAT";
+      private String whichItpProver = "MATHSAT";
 
   @Option(name="abstraction.initialPredicates0", type=Option.Type.OPTIONAL_INPUT_FILE,
       description="get an initial set of predicates from a file in MSAT format")
@@ -89,7 +89,7 @@ public class RelyGuaranteeCPA extends PredicateCPA{
       private File predicatesFile1 = null;
 
   @Option(description="always check satisfiability at end of block, even if precision is empty")
-  private boolean checkBlockFeasibility = true;
+  private boolean checkBlockFeasibility = false;
 
   @Option(name="interpolation.changesolverontimeout",
       description="try second interpolating solver if the first takes too long")

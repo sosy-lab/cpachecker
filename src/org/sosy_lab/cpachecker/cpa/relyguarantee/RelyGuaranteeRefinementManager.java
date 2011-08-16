@@ -27,17 +27,15 @@ import static com.google.common.collect.Iterables.skip;
 import static com.google.common.collect.Lists.transform;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
 
-import java.io.File;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.Vector;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
@@ -60,7 +58,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefinementManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
@@ -76,9 +73,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 
 
@@ -91,7 +86,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
   @Option(name="interpolatingProver", toUppercase=true, values={"MATHSAT", "CSISAT"},
       description="which interpolating solver to use for interpolant generation?")
-      private String whichItpProver = "CSISAT";
+      private String whichItpProver = "MATHSAT";
 
   @Option(description="apply deletion-filter to the abstract counterexample, to get "
     + "a minimal set of blocks, before applying interpolation-based refinement")
@@ -603,153 +598,170 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
    * @param pFirstItpProver
    * @return
    */
-  private <T> CounterexampleTraceInfo buildRgCounterexampleTraceWithMathSat(ARTElement targetElement,  ReachedSet[] reachedSets, int threadNo , InterpolatingTheoremProver<T> pItpProver) throws CPAException, InterruptedException{
+  private <T> CounterexampleTraceInfo buildRgCounterexampleTraceWithMathSat(ARTElement targetElement,  ReachedSet[] reachedSets, int threadNo , InterpolatingTheoremProver<T> itpProver) throws CPAException, InterruptedException{
     logger.log(Level.FINEST, "Building counterexample trace");
 
-    Path cfaPath = computePath(targetElement, reachedSets[threadNo]);
-    Set<ARTElement> elementsOnPath = ARTUtils.getAllElementsOnPathsTo(targetElement);
-    List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> path = transformPath(cfaPath);
-    //List<RelyGuaranteeAbstractElement> abstractTrace = Lists.transform(path, Triple.<RelyGuaranteeAbstractElement>getProjectionToThird());
-
-    //List<Formula> f = getFormulasForTrace(abstractTrace);
     // get the rely guarantee path for the element
-    List<InterpolationBlock> interpolationPathFormulas = getRGFormulaForElement(targetElement, reachedSets, threadNo);
-    // List<ARTElement> abstractTrace = new Vector<ARTElement>(interpolationPathFormulas.size());
+    List<InterpolationBlock> interpolationBlocks = getRGFormulaForElement(targetElement, reachedSets, threadNo);
+
     System.out.println();
-    System.out.println("Interpolation blocks");
+    System.out.println("Interpolation block/[scope - abstraction element]/formulas:");
     int j=0;
-    for (InterpolationBlock ib : interpolationPathFormulas){
-      System.out.println("\t- "+j+" "+ib);
+    for (InterpolationBlock ib : interpolationBlocks){
+      System.out.println("\t- blk "+j+" "+ib);
       j++;
     }
 
-    interpolationPathFormulas = Collections.unmodifiableList(interpolationPathFormulas);
-
-    logger.log(Level.ALL, "Counterexample trace formulas:", interpolationPathFormulas);
-
-
-
-    logger.log(Level.FINEST, "Checking feasibility of counterexample trace");
-    // create a working environment
-    pItpProver.init();
     refStats.cexAnalysisSolverTimer.start();
 
-    List<T>[] interpolationScope = new List[interpolationPathFormulas.size()];
-    ListMultimap<Integer, T> scopeMap = ArrayListMultimap.create();
-    int mark = 0;
-    for (int i=0; i<interpolationPathFormulas.size();i++){
-      InterpolationBlock  ib = interpolationPathFormulas.get(i);
-      T group = pItpProver.addFormula(ib.getPathFormula().getFormula());
-      Integer primedNo = ib.getPrimedNo();
-      // collaps stack if needed
-      while(primedNo < mark){
-        scopeMap.putAll(mark-1, scopeMap.get(mark));
-        scopeMap.removeAll(mark);
-        mark--;
-      }
-      mark = primedNo;
-      scopeMap.put(primedNo, group);
-      interpolationScope[i] = new Vector<T>(scopeMap.get(primedNo));
+    // prepare the initial list of formulas
+    itpProver.init();
+    List<T> interpolationIds= new Vector<T>(interpolationBlocks.size());
+    for (InterpolationBlock ib : interpolationBlocks){
+      T id = itpProver.addFormula(ib.getPathFormula().getFormula());
+      interpolationIds.add(id);
     }
 
-    boolean spurious = pItpProver.isUnsat();
-
-    logger.log(Level.FINEST, "Counterexample trace is", (spurious ? "infeasible" : "feasible"));
-
     CounterexampleTraceInfo info;
-    if (spurious) {
+    boolean spurious = itpProver.isUnsat();
+
+    if (spurious){
+      /* Here interpolants are computed.
+       *
+       * To obtain well-scoped predicates, we use the technique described in Section 5.2 of
+       * "Predicates from Proofs" by Henzinger et al. The prover may not generate the
+       * strongest interpolants, therefore when we switch to an environmental formula trace,
+       * we substitute the part of the main trace covered so far by the the interpolant at
+       * the end of the part.
+       *
+       * In the example below, Psi is the interpolant for (A, B^C^D). Then, the interpolant
+       * for B is computed as (B, Psi^C^D) and for C is (B^Psi^C, D).
+       *
+       *                 |
+       *                 B  environmental thread
+       *                 |
+       *                ---
+       *                 |
+       *         --D--|--C--|--A-- main thread
+       *                   Psi
+       */
+
       info = new CounterexampleTraceInfo();
+      // the last formula trace scope
+      int previousPrimedNo = 0;
+      // how shorter is the current formula list compared to the original one
+      int offset = 0;
+      // map: scope below the current one -> last interpolant from that scope
+      SortedMap<Integer, Formula> itpContext = new TreeMap<Integer, Formula>();
+      Formula lastItp = null;
 
-      // the counterexample is spurious. Extract the predicates from
-      // the interpolants
-
-      // how to partition the trace into (A, B) depends on whether
-      // there are function calls involved or not: in general, A
-      // is the trace from the entry point of the current function
-      // to the current point, and B is everything else. To implement
-      // this, we keep track of which function we are currently in.
-      // if we don't want "well-scoped" predicates, A always starts at the beginning
-      Deque<Integer> entryPoints = null;
-      if (wellScopedPredicates) {
-        entryPoints = new ArrayDeque<Integer>();
-        entryPoints.push(0);
-      }
-      boolean foundPredicates = false;
-      boolean redundantFalse = false;
       System.out.println();
-      System.out.println("Interpolants:");
-      for (int i = 0; i < interpolationPathFormulas.size()-1; ++i) {
-        // last iteration is left out because B would be empty
-        //logger.log(Level.ALL, "Looking for interpolant for formulas from", start_of_a, "to", i);
+      System.out.println("Interpolants/predicates after blocks:");
 
-        refStats.cexAnalysisSolverTimer.start();
-        Formula itp = pItpProver.getInterpolant(interpolationScope[i]);
+      for (int i=0; i<interpolationBlocks.size()-1; i++ ){
+        InterpolationBlock ib = interpolationBlocks.get(i);
+        Integer primedNo = ib.getPrimedNo();
+        ARTElement artElement = ib.getArtElement();
 
-
-        // divide new predicates between relevant ART elements
-        Set<AbstractionPredicate> preds;
-        System.out.print("- after blk"+i+": "+itp);
-
-        if (!redundantFalse){
-          preds = getPrecisionForElements(itp);
+        if (lastItp!= null && lastItp.isFalse()){
+          // if the last interpolant was false, then the interpolants below are empty
+          itpContext.clear();
+          Set<AbstractionPredicate> predicates = new HashSet<AbstractionPredicate>();
+          System.out.println("\t- blk "+i+" : "+lastItp+",\t"+predicates);
+          info.addPredicatesForRefinement(artElement, predicates);
+        } else if (primedNo == previousPrimedNo){
+          // we continue in the same branch - take the next formula from the current context
+          lastItp = itpProver.getInterpolant(interpolationIds.subList(itpContext.size(), i-offset+1));
+          Set<AbstractionPredicate> predicates = getPrecisionForElements(lastItp);
+          System.out.println("\t- blk "+i+" : "+lastItp+",\t"+predicates);
+          info.addPredicatesForRefinement(artElement, predicates);
+        } else if (primedNo < previousPrimedNo){
+          // we return to a previous branch - the formula list remains the same, but interpolant gets possibly smaller
+          itpContext.remove(primedNo);
+          lastItp = itpProver.getInterpolant(interpolationIds.subList(itpContext.size(), i-offset+1));
+          Set<AbstractionPredicate> predicates = getPrecisionForElements(lastItp);
+          System.out.println("\t- blk "+i+" : "+lastItp+",\t"+predicates);
+          info.addPredicatesForRefinement(artElement, predicates);
         } else {
-          break;
-        }
+          // we switch to an environmental branch - the context get bigger and a new formula list is required
+          itpProver.reset();
+          itpProver.init();
 
-        if (itp.isFalse()){
-          redundantFalse = true;
-        }
-
-
-        /* Multimap<CFANode, AbstractionPredicate> printingMap = HashMultimap.create();
-        for (ARTElement artElement : precisionForElements.keySet()){
-          if (!precisionForElements.get(artElement).isEmpty()){
-            CFANode node = AbstractElements.extractLocation(artElement);
-            printingMap.putAll(node, precisionForElements.get(artElement));
+          // adjust the context and the offset
+          if (lastItp!=null){
+            itpContext.put(previousPrimedNo, lastItp);
           }
+          offset = i-itpContext.size();
+
+          // build a new formula list, where interpolants are used instead of covered formulas
+          interpolationIds.clear();
+          for (Formula f : itpContext.values()){
+            T id = itpProver.addFormula(f);
+            interpolationIds.add(id);
+          }
+          for (int k=i; k<interpolationBlocks.size(); k++){
+            Formula f = interpolationBlocks.get(k).getPathFormula().getFormula();
+            T id = itpProver.addFormula(f);
+            interpolationIds.add(id);
+          }
+          assert interpolationIds.size()-itpContext.size()+i == interpolationBlocks.size();
+
+          // get the interpolant
+          spurious = itpProver.isUnsat();
+          assert spurious;
+          lastItp = itpProver.getInterpolant(interpolationIds.subList(itpContext.size(), i-offset+1));
+          Set<AbstractionPredicate> predicates = getPrecisionForElements(lastItp);
+          System.out.println("\t- blk "+i+" : "+lastItp+",\t"+predicates);
+          info.addPredicatesForRefinement(artElement, predicates);
         }
-        System.out.println(" scope: "+printingMap);*/
-
-
-        refStats.cexAnalysisSolverTimer.stop();
-
-        if (dumpInterpolationProblems) {
-          String dumpFile = String.format(formulaDumpFilePattern,
-              "interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "interpolant", i);
-          dumpFormulaToFile(itp, new File(dumpFile));
-        }
-
-        ARTElement artElement = interpolationPathFormulas.get(i).getArtElement();
-
-        if (!preds.isEmpty()){
-          foundPredicates = true;
-        }
-        /*else {
-              preds = getAtomsAsPredicates(itp);
-            }*/
-        //assert !preds.isEmpty();
-        info.addPredicatesForRefinement(artElement, preds);
-
-        logger.log(Level.ALL, "For step", i, "got:","interpolant", itp, "predicates", preds);
+        previousPrimedNo = primedNo;
       }
-
-      if (!foundPredicates) {
-        throw new RefinementFailedException(RefinementFailedException.Reason.InterpolationFailed, null);
-      }
-
-    } else {
+      assert itpContext.isEmpty();
+    }
+    else {
       // this is a real bug, notify the user
       info = new CounterexampleTraceInfo(false);
     }
 
-    pItpProver.reset();
-
-    // update stats
+    itpProver.reset();
     refStats.cexAnalysisTimer.stop();
 
-    logger.log(Level.ALL, "Counterexample information:", info);
-
     return info;
+  }
+
+  /**
+   * Constructs a formula list from interpolationBlocks to get an interpolant for block i.
+   * The interpolants for parts already covered are given in itpContext and are used in the
+   * formula list instead of these parts.
+   *
+   * @param <T>
+   * @param interpolationBlocks
+   * @param itpContext
+   * @param i
+   * @return
+   */
+  private List<Formula> constructFormulaList(List<InterpolationBlock> interpolationBlocks, List<Formula> itpContext, int i) {
+    List<Formula> formulaList = new Vector<Formula>(interpolationBlocks.size());
+
+
+    int mark = interpolationBlocks.get(i).getPrimedNo();
+    for (int j=i; j<interpolationBlocks.size(); j++){
+      int primedNo = interpolationBlocks.get(j).getPrimedNo();
+
+      if (primedNo == mark){
+        // we continue on the same level
+        Formula f = interpolationBlocks.get(j).getPathFormula().getFormula();
+        formulaList.add(f);
+      } else if (primedNo < mark){
+        // return to a previous trace - use the last interpolant from itpContext for the part
+
+      } else {
+
+      }
+    }
+
+
+    return formulaList;
   }
 
   /**
