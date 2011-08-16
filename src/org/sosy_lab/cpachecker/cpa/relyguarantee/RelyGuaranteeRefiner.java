@@ -190,22 +190,15 @@ public class RelyGuaranteeRefiner{
         refinementResult = lazyRefinement(reachedSets, mCounterexampleTraceInfo, errorThr);
       }
 
-
       // drop subtrees and change precision
       System.out.println();
       for(int tid : refinementResult.keySet()){
         for(Pair<ARTElement, RelyGuaranteePrecision> pair : refinementResult.get(tid)){
           ARTElement root = pair.getFirst();
-          //System.out.println("Removing subtree rooted at id:"+root.getElementId()+" at thread: "+tid);
           // drop cut-off node in every thread
           RelyGuaranteePrecision precision = pair.getSecond();
           Set<ARTElement> parents = new HashSet<ARTElement>(root.getParents());
-          /*System.out.println();
-          System.out.print("BEFORE: ");
 
-          for (ARTElement parent : parents){
-            System.out.println("-parent id:"+parent.getElementId()+" precision: "+artReachedSets[tid].getPrecision(parent));
-          }*/
           System.out.println();
           System.out.println("BEFORE: parents of id:"+root.getElementId());
           for (ARTElement parent : parents){
@@ -222,6 +215,8 @@ public class RelyGuaranteeRefiner{
       if (restartAnalysis){
         System.out.println("\t\t\t --- Dropping all env transitions ---");
         environment.resetEnvironment();
+
+        environment.resetEnvironment();
         for (int i=0; i<reachedSets.length;i++){
           assert reachedSets[i].getReached().size()==1;
         }
@@ -235,11 +230,9 @@ public class RelyGuaranteeRefiner{
         // process the remaining environmental transition
         environment.processEnvTransitions(errorThr);
       }
-
-
       return true;
     } else {
-      // we have a real error
+      // a real error
       return false;
     }
   }
@@ -268,32 +261,36 @@ public class RelyGuaranteeRefiner{
       if (!info.getPredicatesForRefinement(aElement).isEmpty()){
         artMap.put(tid, artElement);
       }
-
     }
 
     // for every thread sum up interpolants and add it to the initial element
-    for (int tid=0; tid<reachedSets.length; tid++){
+    for (int tid=0 ; tid < reachedSets.length; tid++){
       ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
       // add the precision of the initial element
       ARTElement inital  = (ARTElement) reachedSets[tid].getFirstElement();
       Precision prec = reachedSets[tid].getPrecision(inital);
       RelyGuaranteePrecision rgPrecision = Precisions.extractPrecisionByType(prec, RelyGuaranteePrecision.class);
+      SetMultimap<CFANode, AbstractionPredicate> oldPreds = rgPrecision.getPredicateMap();
 
-      pmapBuilder.putAll(rgPrecision.getPredicateMap());
+      pmapBuilder.putAll(oldPreds);
 
       for (ARTElement artElement : artMap.get(tid)){
         // add the new interpolants
         Collection<AbstractionPredicate> newpreds = info.getPredicatesForRefinement(artElement);
         CFANode loc = AbstractElements.extractLocation(artElement);
         pmapBuilder.putAll(loc, newpreds);
-      }
-      RelyGuaranteePrecision newPrecision = new RelyGuaranteePrecision(pmapBuilder.build(), rgPrecision.getGlobalPredicates());
 
+      }
+
+      RelyGuaranteePrecision newPrecision = new RelyGuaranteePrecision(pmapBuilder.build(), rgPrecision.getGlobalPredicates());
       for (ARTElement initChild : inital.getChildren()){
         refinementMap.put(tid, Pair.of(initChild, newPrecision));
         System.out.println();
         System.out.println("Thread "+tid+": cut-off node id:"+initChild.getElementId()+" precision "+newPrecision);
       }
+
+      System.out.println();
+      System.out.println("Thread "+tid+": no new predicates found");
 
     }
     return refinementMap;
@@ -402,118 +399,6 @@ public class RelyGuaranteeRefiner{
     }
 
     return refinementMap;
-
-    // find cut points and new precision for every thread - one thread may have several cut p
-
-
-
-    /*
-    List<Pair<ARTElement, RelyGuaranteePrecision>>  result = new Vector<Pair<ARTElement, RelyGuaranteePrecision>>();
-    ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> mapBuilder = ImmutableSetMultimap.builder();
-    for (AbstractElement element : info.getPredicatesForRefinmentKeys()){
-
-
-      ARTElement artElement = (ARTElement) element;
-      RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(element, RelyGuaranteeAbstractElement.class);
-
-
-    }
-
-
-
-    for (int i=0; i<oldRgPrecisions.size(); i++){
-     info.getPredicatesForRefinmentKeys()
-    }
-    Multimap<CFANode, AbstractionPredicate> oldPredicateMap = oldPrecision.getPredicateMap();
-    Set<AbstractionPredicate> globalPredicates = oldPrecision.getGlobalPredicates();
-
-    Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement> firstInterpolationPoint = null;
-    boolean newPredicatesFound = false;
-
-    ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
-
-    pmapBuilder.putAll(oldPredicateMap);
-
-    // iterate through pPath and find first point with new predicates, from there we have to cut the ART
-    System.out.println("New predicates:");
-    for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement> interpolationPoint : pPath) {
-      CFANode loc = interpolationPoint.getSecond();
-      Collection<AbstractionPredicate> newpreds = getPredicatesForARTElement(pInfo, interpolationPoint);
-      System.out.println("- at "+loc+" : "+newpreds);
-
-      if (firstInterpolationPoint == null && newpreds.size() > 0) {
-        firstInterpolationPoint = interpolationPoint;
-      }
-      if (!newPredicatesFound && !oldPredicateMap.get(loc).containsAll(newpreds)) {
-        // new predicates for this location
-        newPredicatesFound = true;
-      }
-
-
-
-      pmapBuilder.putAll(loc, newpreds);
-      pmapBuilder.putAll(loc, globalPredicates);
-    }
-    assert firstInterpolationPoint != null;
-
-    ImmutableSetMultimap<CFANode, AbstractionPredicate> newPredicateMap = pmapBuilder.build();
-    RelyGuaranteePrecision newPrecision;
-    if (addPredicatesGlobally) {
-      newPrecision = new RelyGuaranteePrecision(newPredicateMap.values());
-    } else {
-      newPrecision = new RelyGuaranteePrecision(newPredicateMap, globalPredicates);
-    }
-
-    System.out.println();
-    System.out.println("Predicate map now is "+newPredicateMap);
-
-
-    List<CFANode> absLocations = ImmutableList.copyOf(transform(pPath, Triple.<CFANode>getProjectionToSecond()));
-
-    // We have two different strategies for the refinement root: set it to
-    // the firstInterpolationPoint or set it to highest location in the ART
-    // where the same CFANode appears.
-    // Both work, so this is a heuristics question to get the best performance.
-    // My benchmark showed, that at least for the benchmarks-lbe examples it is
-    // best to use strategy one iff newPredicatesFound.
-
-    ARTElement root = null;
-    if (newPredicatesFound) {
-      root = firstInterpolationPoint.getFirst();
-
-
-
-    } else {
-      if (absLocations.equals(lastErrorPath)) {
-        throw new RefinementFailedException(RefinementFailedException.Reason.NoNewPredicates, null);
-      }
-
-      CFANode loc = firstInterpolationPoint.getSecond();
-
-
-
-      // find first element in path with location == loc,
-      // this is not necessary equal to firstInterpolationPoint.getFirst()
-      for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement> abstractionPoint : pPath) {
-        if (abstractionPoint.getSecond().equals(loc)) {
-          root = abstractionPoint.getFirst();
-          break;
-        }
-      }
-      if (root == null) {
-        throw new CPAException("Inconsistent ART, did not find element for " + loc);
-      }
-    }
-    lastErrorPath = absLocations;
-    System.out.println("Root is id:"+root.getElementId());
-    return Pair.of(root, newPrecision);
-  }
-
-  protected Collection<AbstractionPredicate> getPredicatesForARTElement(
-      CounterexampleTraceInfo pInfo, Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement> pInterpolationPoint) {
-    return pInfo.getPredicatesForRefinement(pInterpolationPoint.getThird());
-  }*/
-
   }
 
   /**

@@ -795,6 +795,9 @@ public class RelyGuaranteeEnvironment {
     }
   }
 
+  public void clearUnprocessedTransitions() {
+    unprocessedTransitions.clear();
+  }
 
   public void cleanEnvironment(int tid) {
     // TODO works only for two threads

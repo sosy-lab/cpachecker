@@ -635,7 +635,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
        * the end of the part.
        *
        * In the example below, Psi is the interpolant for (A, B^C^D). Then, the interpolant
-       * for B is computed as (B, Psi^C^D) and for C is (B^Psi^C, D).
+       * for B is computed as (B, Psi^C^D) and for C is (A^B^C, D) or equivalently (B^Psi^C, D).
        *
        *                 |
        *                 B  environmental thread
