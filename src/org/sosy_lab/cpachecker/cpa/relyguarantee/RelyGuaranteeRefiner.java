@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -67,6 +68,9 @@ import com.google.common.collect.SetMultimap;
 
 @Options(prefix="cpa.relyguarantee")
 public class RelyGuaranteeRefiner{
+  @Option(description="Print debugging info?")
+  private boolean print=true;
+
   @Option(name="refinement.addPredicatesGlobally",
       description="refinement will add all discovered predicates "
         + "to all the locations in the abstract trace")
@@ -165,6 +169,9 @@ public class RelyGuaranteeRefiner{
   public boolean performRefinment(ReachedSet[] reachedSets, RelyGuaranteeEnvironment environment, int errorThr) throws InterruptedException, CPAException {
     int threadNo = reachedSets.length;
 
+    Timer refinementTimer = new Timer();
+    refinementTimer.start();
+
     //assert checkART(reachedSets[errorThr]);
     assert reachedSets[errorThr].getLastElement() instanceof ARTElement;
     ARTElement targetElement = (ARTElement) reachedSets[errorThr].getLastElement();
@@ -230,9 +237,15 @@ public class RelyGuaranteeRefiner{
         // process the remaining environmental transition
         environment.processEnvTransitions(errorThr);
       }
+      refinementTimer.stop();
+      System.out.println();
+      System.out.println("Refinement time: "+refinementTimer.printMaxTime());
       return true;
     } else {
       // a real error
+      refinementTimer.stop();
+      System.out.println();
+      System.out.println("Refinement time: "+refinementTimer.printMaxTime());
       return false;
     }
   }
@@ -263,6 +276,7 @@ public class RelyGuaranteeRefiner{
       }
     }
 
+    boolean newPredicates = false;
     // for every thread sum up interpolants and add it to the initial element
     for (int tid=0 ; tid < reachedSets.length; tid++){
       ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
@@ -276,10 +290,13 @@ public class RelyGuaranteeRefiner{
 
       for (ARTElement artElement : artMap.get(tid)){
         // add the new interpolants
+
         Collection<AbstractionPredicate> newpreds = info.getPredicatesForRefinement(artElement);
         CFANode loc = AbstractElements.extractLocation(artElement);
         pmapBuilder.putAll(loc, newpreds);
-
+        if (!oldPreds.get(loc).containsAll(newpreds)){
+          newPredicates = true;
+        }
       }
 
       RelyGuaranteePrecision newPrecision = new RelyGuaranteePrecision(pmapBuilder.build(), rgPrecision.getGlobalPredicates());
@@ -289,10 +306,9 @@ public class RelyGuaranteeRefiner{
         System.out.println("Thread "+tid+": cut-off node id:"+initChild.getElementId()+" precision "+newPrecision);
       }
 
-      System.out.println();
-      System.out.println("Thread "+tid+": no new predicates found");
-
     }
+    assert newPredicates;
+
     return refinementMap;
   }
 

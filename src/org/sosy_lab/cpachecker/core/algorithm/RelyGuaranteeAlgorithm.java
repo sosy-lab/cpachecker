@@ -34,6 +34,7 @@ import java.util.Vector;
 import java.util.Map.Entry;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -91,6 +92,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
 
 
 
+
   // CPAAlgorithm for each thread
   private RelyGuaranteeThreadCPAAlgorithm[] threadCPA;
   // data structure for deciding whether a variable is global
@@ -110,6 +112,8 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     this.mainFunctions = pMainFunctions;
     this.cpas = pCpas;
     this.logger = logger;
+
+
 
     environment = new RelyGuaranteeEnvironment(threadNo, config, logger);
     threadCPA = new RelyGuaranteeThreadCPAAlgorithm[threadNo];
@@ -153,6 +157,9 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
    */
   public int run(ReachedSet[] reached, int startThread) {
     assert environment.getUnprocessedTransitions().isEmpty();
+
+    Timer rgTimer = new Timer();
+
     boolean error = false;
     try{
       // run each tread at least once until no new env can be applied to any thread
@@ -172,6 +179,9 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
         environment.clearUnappliedEnvEdgesForThread(i);
         if (error) {
           // error state has been reached
+          rgTimer.stop();
+          System.out.println();
+          System.out.println("RG algorithm time: "+rgTimer.printMaxTime());
           return i;
         }
         System.out.println();
@@ -187,7 +197,10 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
       e.printStackTrace();
     }
 
+    rgTimer.stop();
+    System.out.println("RG algorithm time: "+rgTimer.printMaxTime());
     return -1;
+
   }
 
   /**

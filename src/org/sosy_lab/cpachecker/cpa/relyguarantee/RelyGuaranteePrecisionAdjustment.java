@@ -37,13 +37,11 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecisionAdjustment;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.RelyGuaranteePathFormulaBuilder;
-import org.sosy_lab.cpachecker.util.predicates.RelyGuaranteePathFormulaConstructor;
+
 
 public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustment {
 
   private RelyGuaranteeCPA cpa;
-  private RelyGuaranteePathFormulaConstructor pathFormulaConstructor;
 
   // statistics
 
@@ -52,7 +50,6 @@ public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustme
   public RelyGuaranteePrecisionAdjustment(RelyGuaranteeCPA pCpa) {
     super(pCpa.getLogger(), pCpa.getPredicateManager(), pCpa.getPathFormulaManager() );
     this.cpa = pCpa;
-    this.pathFormulaConstructor = cpa.getPathFormulaConstructor();
   }
 
   @Override
@@ -123,8 +120,7 @@ public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustme
     PathFormula newPathFormula = this.pathFormulaManager.makeEmptyPathFormula(pathFormula);
 
 
-    RelyGuaranteePathFormulaBuilder freshBuilder = this.pathFormulaConstructor.createEmpty(pathFormula);
-    return new RelyGuaranteeAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula, element.getParentEdge(), freshBuilder, element.getPathBuilder(), this.cpa.getThreadId(), element.getPrimedMap());
+    return new RelyGuaranteeAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula, element.getParentEdge(),this.cpa.getThreadId(), element.getPrimedMap());
   }
 
   @Override

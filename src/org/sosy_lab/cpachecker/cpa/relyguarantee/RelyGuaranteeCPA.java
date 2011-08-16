@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CSIsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
-import org.sosy_lab.cpachecker.util.predicates.RelyGuaranteePathFormulaConstructor;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
@@ -107,11 +106,6 @@ public class RelyGuaranteeCPA extends PredicateCPA{
   private RelyGuaranteeCPAStatistics stats;
   private int tid;
 
-  private RelyGuaranteePathFormulaConstructor pathFormulaConstructor;
-
-
-
-
 
   public static TheoremProver getTheoremProver(Configuration config, LogManager logger,String type) throws InvalidConfigurationException{
     if (tProver == null){
@@ -133,8 +127,6 @@ public class RelyGuaranteeCPA extends PredicateCPA{
     for (String var : globalVariables){
       globalVariablesSet.add(var);
     }
-
-    this.pathFormulaConstructor = RelyGuaranteePathFormulaConstructor.getInstance(config, logger);
 
     this.regionManager = BDDRegionManager.getInstance();
     MathsatFormulaManager mathsatFormulaManager = MathsatFormulaManager.getInstance(config, logger);
@@ -182,7 +174,7 @@ public class RelyGuaranteeCPA extends PredicateCPA{
 
     this.transfer = new RelyGuaranteeTransferRelation(this);
 
-    this.topElement = new RelyGuaranteeAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null), pathFormulaConstructor.createEmpty(), pathFormulaConstructor.createEmpty(), tid, new HashMap<Integer, RelyGuaranteeCFAEdge>());
+    this.topElement = new RelyGuaranteeAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null), tid, new HashMap<Integer, RelyGuaranteeCFAEdge>());
     this.domain = new RelyGuaranteeAbstractDomain(this);
 
     this.merge = new RelyGuaranteeMergeOperator(this);
@@ -291,7 +283,7 @@ public class RelyGuaranteeCPA extends PredicateCPA{
       }
     }
     // TODO make-shift solution
-    this.topElement = new RelyGuaranteeAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null), pathFormulaConstructor.createEmpty(), pathFormulaConstructor.createEmpty(), tid, new HashMap<Integer, RelyGuaranteeCFAEdge>());
+    this.topElement = new RelyGuaranteeAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null),  tid, new HashMap<Integer, RelyGuaranteeCFAEdge>());
 
     this.initialPrecision= new RelyGuaranteePrecision(predicates);
 
@@ -334,9 +326,5 @@ public class RelyGuaranteeCPA extends PredicateCPA{
     return (RelyGuaranteeRefinementManager<?, ?>) this.predicateManager;
   }
 
-
-  public RelyGuaranteePathFormulaConstructor getPathFormulaConstructor() {
-    return pathFormulaConstructor;
-  }
 
 }

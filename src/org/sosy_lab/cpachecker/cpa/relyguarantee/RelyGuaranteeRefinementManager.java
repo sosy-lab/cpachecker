@@ -62,8 +62,6 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.RelyGuaranteeEnvTransitionBuilder;
-import org.sosy_lab.cpachecker.util.predicates.RelyGuaranteePathFormulaConstructor;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
@@ -138,7 +136,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
 
   private Set<String> globalVariables;
-  private RelyGuaranteePathFormulaConstructor pathFormulaConstructor;
 
 
   private static RelyGuaranteeRefinementManager<?,?> rgRefManager;
@@ -171,7 +168,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       LogManager pLogger, Set<String> globalVariables) throws InvalidConfigurationException {
     super(pRmgr, pFmgr, pPmgr, pThmProver, pItpProver, pAltItpProver, pConfig, pLogger);
     this.globalVariables = globalVariables;
-    this.pathFormulaConstructor = RelyGuaranteePathFormulaConstructor.getInstance(pConfig, pLogger);
   }
 
 
@@ -341,7 +337,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
       printEnvEdgesApplied(artElement, rgElement.getOldPrimedMap().values());
       // map : env edge applied -> the rest path formula of the env. trace
-      Map<RelyGuaranteeEnvTransitionBuilder, List<InterpolationBlock>> envRestMap = new HashMap<RelyGuaranteeEnvTransitionBuilder, List<InterpolationBlock>>();
       Map<Integer, Integer> adjustmentMap = new HashMap<Integer, Integer>(rgElement.getPrimedMap().size());
 
       // get the blocks for environmental transitions
@@ -369,11 +364,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         // extend the scope this env. transition
         // scope.addAll(lastBlock.getScope());
         offset = pair.getFirst();
-      }
-
-      // add the remaining env formulas
-      for (RelyGuaranteeEnvTransitionBuilder  key: envRestMap.keySet()){
-        rgResult.addAll(envRestMap.get(key));
       }
 
       PathFormula currentPF = rgElement.getAbstractionFormula().getBlockPathFormula();

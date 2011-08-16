@@ -66,6 +66,11 @@ import com.google.common.collect.Multimap;
  */
 @Options(prefix="cpa.relyguarantee")
 public class RelyGuaranteeEnvironment {
+
+  @Option(description="Print debugging info?")
+  private boolean print=true;
+
+
   @Option(name="symbolicCoverageCheck",description="Use a theorem prover to remove covered environemtal transitions" +
   " if false perform only a syntatic check for equivalence")
   private boolean checkEnvTransitionCoverage = true;
@@ -214,7 +219,10 @@ public class RelyGuaranteeEnvironment {
     distributeAsUnapplied(rgEdges, i);
     printEdges("All valid env. edges from thread "+i+" after filtering", validEnvEdgesFromThread[i]);
 
-    assertion();
+    if (print){
+      assertion();
+    }
+
 
   }
 
@@ -556,7 +564,10 @@ public class RelyGuaranteeEnvironment {
     }
     unprocessedTransitions.removeAll(reachedElement);
 
-    assertion();
+    if (print){
+      assertion();
+    }
+
   }
 
   /**
@@ -596,8 +607,10 @@ public class RelyGuaranteeEnvironment {
 
 
 
+    if (print){
+      assertion();
+    }
 
-    assertion();
   }
 
   /**

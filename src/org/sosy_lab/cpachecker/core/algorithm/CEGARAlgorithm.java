@@ -59,6 +59,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     private final Timer totalTimer = new Timer();
     private final Timer refinementTimer = new Timer();
     private final Timer gcTimer = new Timer();
+    private final Timer rgTimer = new Timer();
 
     private volatile int countRefinements = 0;
     private int countSuccessfulRefinements = 0;
@@ -197,6 +198,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
       // run algorithm
       sound &= algorithm.run(reached);
+
 
       AbstractElement lastElement = reached.getLastElement();
 

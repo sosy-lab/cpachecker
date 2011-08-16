@@ -36,6 +36,8 @@ import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
@@ -66,7 +68,11 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 
+@Options(prefix="cpa.relyguarantee")
 public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
+
+  @Option(description="Print debugging info?")
+  private boolean print=true;
 
   private static class CPAStatistics implements Statistics {
 
@@ -128,6 +134,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     this.tid = tid;
 
     try {
+      config.inject(this, RelyGuaranteeThreadCPAAlgorithm.class);
       fManager = MathsatFormulaManager.getInstance(config, logger);
     } catch (InvalidConfigurationException e) {
       // TODO Auto-generated catch block
@@ -173,11 +180,15 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
       ARTElement aElement = (ARTElement) element;
 
       RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(element, RelyGuaranteeAbstractElement.class);
-      System.out.println();
+
       CFANode loc = AbstractElements.extractLocation(element);
       Precision prec = reachedSet.getPrecision(element);
       RelyGuaranteePrecision rgPrec = Precisions.extractPrecisionByType(prec, RelyGuaranteePrecision.class);
-      System.out.println("@ Successor of '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+" id:"+aElement.getElementId()+" at "+loc+" with precision: "+rgPrec);
+      if (print){
+        System.out.println();
+        System.out.println("@ Successor of '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+" id:"+aElement.getElementId()+" at "+loc);
+      }
+
 
 
       Collection<? extends AbstractElement> successors =
@@ -212,8 +223,9 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
         Precision successorPrecision = precAdjustmentResult.getSecond();
         Action action = precAdjustmentResult.getThird();
 
-        printRelyGuaranteeAbstractElement(successor);
-
+        if (print){
+          printRelyGuaranteeAbstractElement(successor);
+        }
 
         if (action == Action.BREAK) {
           stats.countBreak++;
@@ -239,10 +251,6 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
           List<Pair<AbstractElement, Precision>> toAdd =
             new ArrayList<Pair<AbstractElement, Precision>>();
 
-          // TODO debugging
-          if (AbstractElements.extractLocation(successor).toString().contains("24")){
-            System.out.println();
-          }
 
           logger.log(Level.FINER, "Considering", reached.size(),
           "elements from reached set for merge");
@@ -255,12 +263,15 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
               environment.mergeSourceElements((ARTElement)mergedElement, (ARTElement)reachedElement, tid);
 
               logger.log(Level.FINER,
-                  "Successor was merged with element from reached set");
+              "Successor was merged with element from reached set");
               logger.log(Level.ALL, "Merged", successor, "\nand",
                   reachedElement, "\n-->", mergedElement);
               stats.countMerge++;
 
-              printMerge(successor, reachedElement, mergedElement);
+              if (print){
+                printMerge(successor, reachedElement, mergedElement);
+              }
+
 
               toRemove.add(reachedElement);
               toAdd.add(Pair.of(mergedElement, successorPrecision));
@@ -281,16 +292,18 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
 
         if (stop) {
           logger.log(Level.FINER,
-              "Successor is covered or unreachable, not adding to waitlist");
-          printCovered(successor);
+          "Successor is covered or unreachable, not adding to waitlist");
+
+          if (print){
+            printCovered(successor);
+          }
           stats.countStop++;
 
         } else {
           logger.log(Level.FINER,
           "No need to stop, adding successor to waitlist");
 
-          //RelyGuaranteeAbstractElement rgSuccessor = (RelyGuaranteeAbstractElement) successor;
-          // System.out.println("@ Adding to reached '"+rgSuccessor.getAbstractionFormula()+"','"+rgSuccessor.getPathFormula()+"'");
+
           reachedSet.add(successor, successorPrecision);
         }
       }
@@ -339,7 +352,6 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     }
     int atomNo2 = fManager.countAtoms(rgElement.getPathFormula().getFormula());
     System.out.println("\t is '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+" id:"+aElement.getElementId()+" at "+loc);
-    //System.out.println();
 
   }
 

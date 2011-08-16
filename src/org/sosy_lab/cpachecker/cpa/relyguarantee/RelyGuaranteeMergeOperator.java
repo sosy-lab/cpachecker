@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateMergeOperator;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.RelyGuaranteePathFormulaBuilder;
 
 @Options(prefix="cpa.relyguarantee")
 public class RelyGuaranteeMergeOperator extends PredicateMergeOperator {
@@ -119,8 +118,7 @@ public class RelyGuaranteeMergeOperator extends PredicateMergeOperator {
         logger.log(Level.ALL, "New path formula is", pathFormula);
 
 
-        RelyGuaranteePathFormulaBuilder mergedBuilder = elem1.getPathBuilder().mergeWith(elem2.getPathBuilder());
-        merged = new RelyGuaranteeAbstractElement(adjustedPF, elem1.getAbstractionFormula(), mergedBuilder, this.cpa.getThreadId(), mergedPrimedMap);
+        merged = new RelyGuaranteeAbstractElement(adjustedPF, elem1.getAbstractionFormula(), cpa.getThreadId(), mergedPrimedMap);
 
         // now mark elem1 so that coverage check can find out it was merged
         elem1.setMergedInto(merged);

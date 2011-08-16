@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.util.assumptions.FormulaReportingElement;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.RelyGuaranteePathFormulaBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
@@ -69,31 +68,26 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
    */
   public static class AbstractionElement extends RelyGuaranteeAbstractElement {
 
-    private RelyGuaranteePathFormulaBuilder oldPathBuilder;
     private final Map<Integer, RelyGuaranteeCFAEdge> oldPrimedMap;
 
 
-    public AbstractionElement(PathFormula pf, AbstractionFormula pA, RelyGuaranteePathFormulaBuilder  newPathBuilder, RelyGuaranteePathFormulaBuilder  oldPathBuilder, int tid, Map<Integer, RelyGuaranteeCFAEdge> oldPrimedMap) {
-      super(pf, pA, newPathBuilder, tid, new HashMap<Integer, RelyGuaranteeCFAEdge>());
-      this.oldPathBuilder = oldPathBuilder;
+    public AbstractionElement(PathFormula pf, AbstractionFormula pA,  int tid, Map<Integer, RelyGuaranteeCFAEdge> oldPrimedMap) {
+      super(pf, pA, tid, new HashMap<Integer, RelyGuaranteeCFAEdge>());
       this.oldPrimedMap = oldPrimedMap;
       // Check whether the pathFormula of an abstraction element is just "true".
       // partialOrder relies on this for optimization.
     }
 
 
-    public AbstractionElement(PathFormula pf, AbstractionFormula pA, CFAEdge edge, RelyGuaranteePathFormulaBuilder  newPathBuilder, RelyGuaranteePathFormulaBuilder  oldPathBuilder, int tid, Map<Integer, RelyGuaranteeCFAEdge> oldPrimedMap) {
-      super(pf, pA, edge, newPathBuilder, tid, new HashMap<Integer, RelyGuaranteeCFAEdge>());
-      this.oldPathBuilder = oldPathBuilder;
+    public AbstractionElement(PathFormula pf, AbstractionFormula pA, CFAEdge edge, int tid, Map<Integer, RelyGuaranteeCFAEdge> oldPrimedMap) {
+      super(pf, pA, edge, tid, new HashMap<Integer, RelyGuaranteeCFAEdge>());
       this.oldPrimedMap = oldPrimedMap;
       // Check whether the pathFormula of an abstraction element is just "true".
       // partialOrder relies on this for optimization.
 
     }
 
-    public RelyGuaranteePathFormulaBuilder getOldPathBuilder() {
-      return oldPathBuilder;
-    }
+
 
     @Override
     public Object getPartitionKey() {
@@ -141,13 +135,13 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
      location = pLoc;
    }*/
 
-    public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc, RelyGuaranteePathFormulaBuilder  pathBuilder, int tid,  Map<Integer, RelyGuaranteeCFAEdge> primedMap) {
-      super(pf, pA, pathBuilder, tid,  primedMap);
+    public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc,  int tid,  Map<Integer, RelyGuaranteeCFAEdge> primedMap) {
+      super(pf, pA,  tid,  primedMap);
       location = pLoc;
     }
 
-    public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc, CFAEdge edge, RelyGuaranteePathFormulaBuilder  pathBuilder, int tid, Map<Integer, RelyGuaranteeCFAEdge> primedMap  ) {
-      super(pf, pA, edge, pathBuilder, tid, primedMap);
+    public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc, CFAEdge edge,  int tid, Map<Integer, RelyGuaranteeCFAEdge> primedMap  ) {
+      super(pf, pA, edge,  tid, primedMap);
       location = pLoc;
     }
 
@@ -181,10 +175,6 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
    */
   private RelyGuaranteeAbstractElement mergedInto = null;
 
-  /**
-   * Template for generating path formula with custom environmental part
-   */
-  protected RelyGuaranteePathFormulaBuilder  pathBuilder;
 
   private final Map<Integer, RelyGuaranteeCFAEdge> primedMap;
 
@@ -203,31 +193,25 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
    this.rgFormulaTemplate = null;
  }*/
 
-  public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a, RelyGuaranteePathFormulaBuilder  pathBuilder, int tid, Map<Integer, RelyGuaranteeCFAEdge> primedMap) {
-    Preconditions.checkNotNull(pathBuilder);
+  public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a,  int tid, Map<Integer, RelyGuaranteeCFAEdge> primedMap) {
     this.pathFormula = pf;
     this.abstractionFormula = a;
     this.tid = RelyGuaranteeAbstractElement.UNKOWN;
-    this.pathBuilder = pathBuilder;
     this.tid = tid;
     this.primedMap = primedMap;
   }
 
-  public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a, CFAEdge edge,  RelyGuaranteePathFormulaBuilder  pathBuilder, int tid,  Map<Integer, RelyGuaranteeCFAEdge> primedMap) {
-    Preconditions.checkNotNull(pathBuilder);
+  public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a, CFAEdge edge,   int tid,  Map<Integer, RelyGuaranteeCFAEdge> primedMap) {
     this.pathFormula = pf;
     this.abstractionFormula = a;
     this.tid = RelyGuaranteeAbstractElement.UNKOWN;
     this.parentEdge = edge;
-    this.pathBuilder = pathBuilder;
     this.tid = tid;
     this.primedMap = primedMap;
   }
 
 
-  public RelyGuaranteePathFormulaBuilder getPathBuilder() {
-    return pathBuilder;
-  }
+
 
   public AbstractionFormula getAbstractionFormula() {
     return abstractionFormula;
