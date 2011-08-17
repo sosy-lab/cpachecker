@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
@@ -37,9 +36,9 @@ public class ExplicitPrecision implements Precision {
 
   final Set<String> whiteList;
 
-  public Map<CFAEdge, Pair<String, Integer>> facts = new HashMap<CFAEdge, Pair<String, Integer>>();
+  public Map<CFAEdge, Map<String, Integer>> facts = new HashMap<CFAEdge, Map<String, Integer>>();
 
-  public void setFacts(Map<CFAEdge, Pair<String, Integer>> f)
+  public void setFacts(Map<CFAEdge, Map<String, Integer>> f)
   {
     facts = f;
   }

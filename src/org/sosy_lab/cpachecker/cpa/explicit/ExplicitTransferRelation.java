@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
@@ -119,11 +120,19 @@ public class ExplicitTransferRelation implements TransferRelation {
 
     if(precision.facts.get(cfaEdge) != null)
     {
-      if(!explicitElement.contains(precision.facts.get(cfaEdge).getFirst()))
-      {
-//System.out.println("at edge " + cfaEdge + " setting " + precision.facts.get(cfaEdge).getFirst() + " to " + (long)precision.facts.get(cfaEdge).getSecond());
+      Map<String, Integer> factsAtLocation = precision.facts.get(cfaEdge);
 
-        explicitElement.assignConstant(precision.facts.get(cfaEdge).getFirst(), (long)precision.facts.get(cfaEdge).getSecond(), this.threshold);
+      for(Map.Entry<String, Integer> factAtLocation : factsAtLocation.entrySet())
+      {
+        if(!explicitElement.contains(factAtLocation.getKey()))
+        {
+          String factName = factAtLocation.getKey();
+          Integer factValue = factAtLocation.getValue();
+
+          //System.out.println("at edge " + cfaEdge + " setting " + factName + " to " + factValue);
+
+          explicitElement.assignConstant(factName, (long)factValue, this.threshold);
+        }
       }
     }
     //precision.facts.clear();

@@ -119,9 +119,9 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
 
   private final Set<String> globalVars;
 
-  private final Set<String> allVars = new HashSet<String>();
+  private final Set<String> allVariables = new HashSet<String>();
 
-  public final Map<CFAEdge, Pair<String, Integer>> facts = new HashMap<CFAEdge, Pair<String, Integer>>();
+  public final Map<CFAEdge, Map<String, Integer>> facts = new HashMap<CFAEdge, Map<String, Integer>>();
 
   private Path previousPath;
 
@@ -268,38 +268,37 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
   private Pair<ARTElement, ExplicitPrecision> performRefinement(ExplicitPrecision oldPrecision,
       Path path,
       CounterexampleTraceInfo pInfo) throws CPAException {
-//System.out.println("refining ...");
+System.out.println("\nrefining ...");
 
 //System.out.println(path);
 
     // get the predicates ...
     List<Collection<AbstractionPredicate>> newPredicates = pInfo.getPredicatesForRefinement();
 
-    facts.clear();
+    // could we actually keep facts from previous iterations?
+    // new paths would result in new facts, right, so delete old facts
+    // however, cutting all facts after firstInterpolationPoint would be safe, right?
+    //facts.clear();
+
     // ... and, out of these, determine the initial set of variables to track
-    HashSet<String> variables = new HashSet<String>();
+    HashSet<String> currentVariables = new HashSet<String>();
     int i = 0;
     for(Collection<AbstractionPredicate> predicate : newPredicates)
     {
       if(predicate.size() > 0)
-      {
-//System.out.println("found predicate " + predicate + " at edge " + path.get(i).getFirst());
+        currentVariables.addAll(predicateToVariable(predicate, path.get(i)));
 
-        //variables.addAll(predicateToVariable(predicate));
-        allVars.addAll(predicateToVariable(predicate, path.get(i)));
-      }
       i++;
     }
 
-    // keep variables of current precision
-    //variables.addAll(oldPrecision.getWhiteList());
+    allVariables.addAll(currentVariables);
 
-    // accumulate all variables derived from predicates into the precision
-    variables.addAll(allVars);
-    //System.out.println("\n\ninitial precision is " + variables);
+    //System.out.println("current precision is " + oldPrecision.getWhiteList());
+    //System.out.println("new predicates are " + currentVariables);
+
 
     // collect variables on error path, on which the found ones depend on
-    CollectVariablesVisitor visitor = new CollectVariablesVisitor(variables);
+    CollectVariablesVisitor visitor = new CollectVariablesVisitor(allVariables);
     Pair<ARTElement, CFAEdge> firstInterpolationPoint = null;
     Iterator<Pair<ARTElement, CFAEdge>> iterator = path.descendingIterator();
     while(iterator.hasNext())
@@ -314,15 +313,17 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
     }
 
     assert firstInterpolationPoint != null;
-    //System.out.println("firstInterpolationPoint is: " + firstInterpolationPoint);
+    System.out.println("firstInterpolationPoint is: " + firstInterpolationPoint);
 
     Set<String> newWhiteList = new HashSet<String>();
     //newWhiteList.addAll(oldPrecision.getWhiteList());
+    //newWhiteList.addAll(currentVariables);
     newWhiteList.addAll(visitor.getCollectedVariables());
 
     //System.out.println("new precision is: " + newWhiteList);
 
-    madeProgress(path, oldPrecision.getWhiteList(), newWhiteList);
+    boolean madeProgress = madeProgress(path, oldPrecision.getWhiteList(), newWhiteList);
+    //System.out.println("madeProgress " + madeProgress);
 
     ExplicitPrecision newPrecision = new ExplicitPrecision(oldPrecision.getBlackListPattern(), newWhiteList);
     newPrecision.setFacts(facts);
@@ -377,6 +378,15 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
 
     else
     {
+      if(previousPath.toString().equals(path.toString()))
+      {
+        //System.out.println("paths match !!!");
+      }
+      else
+        {
+        //System.out.println("paths DO NOT match !!!");
+        }
+
       if(oldWhiteList.size() != newWhiteList.size())
       {
         //System.out.println("progress - whitelist sizes differ");
@@ -461,8 +471,19 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
             try
             {
               int constant = Integer.parseInt(splits[1]);
+              //System.out.println(splits[1] + ": added fact for expression " + absPredicate.getSymbolicAtom());
 
-              facts.put(pathElement.getSecond(), Pair.of(splits[0], constant));
+              Map<String, Integer> assumesAtLocation = facts.get(pathElement.getSecond());
+
+              if(assumesAtLocation == null)
+                assumesAtLocation = new HashMap<String, Integer>();
+
+              if(assumesAtLocation.get(splits[0]) != null)
+                System.out.println("overwriting " + splits[0] + " = " + assumesAtLocation.get(splits[0]) + " with " + splits[0] + " = " + constant);
+
+              assumesAtLocation.put(splits[0], constant);
+
+              facts.put(pathElement.getSecond(), assumesAtLocation);
             }
             catch(NumberFormatException nfe)
             {
@@ -594,16 +615,19 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
     case AssumeEdge:
       AssumeEdge assumeEdge = (AssumeEdge)edge;
 
-      //System.out.println("insepcting AssumeEdge " + assumeEdge.getRawStatement());
+      //System.out.println("\n\ninsepcting AssumeEdge " + assumeEdge.getRawStatement());
 
       CollectVariablesVisitor tmpVisitor = new CollectVariablesVisitor(new HashSet<String>());
       tmpVisitor.debuggin = false;
       tmpVisitor.setScope(edge.getPredecessor().getFunctionName());
       assumeEdge.getExpression().accept(tmpVisitor);
 
+      //System.out.println("tmpVisitor.getCollectedVariables() = " + tmpVisitor.getCollectedVariables());
+      //System.out.println("visitor.getCollectedVariables() = " + visitor.getCollectedVariables());
+
       for(String collectedVar : tmpVisitor.getCollectedVariables())
       {
-        if(visitor.hasCollected(collectedVar))
+        if(visitor.hasCollected(collectedVar, false))
         {
           extracted = true;
           //System.out.println("     -> interesting: collecting remaining variables");
@@ -741,7 +765,21 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
     {
       String scopedVariableName = getScopedVariableName(variable);
 
+      //System.out.println("hasCollected variable " + variable + " / " + scopedVariableName + " = " + collectedVariables.contains(scopedVariableName));
+
       return collectedVariables.contains(scopedVariableName);
+    }
+
+    public boolean hasCollected(String variable, boolean scopeIt)
+    {
+      if(scopeIt)
+        return hasCollected(variable);
+
+      else
+      {
+        //System.out.println("hasCollected variable " + variable + collectedVariables.contains(variable));
+        return collectedVariables.contains(variable);
+      }
     }
 
     public Set<String> getCollectedVariables()
