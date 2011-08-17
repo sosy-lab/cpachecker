@@ -185,6 +185,10 @@ cpa.assumptions.progressobserver.heuristics.repetitionsInPathHeuristics.threshol
 # how many times to adjust timeout threshold?
 cpa.assumptions.progressobserver.heuristics.timeOutHeuristics.adjustmentLimit = -1
 
+# hard limit threshold for timeout heuristics, disable restarting after this
+# limit
+cpa.assumptions.progressobserver.heuristics.timeOutHeuristics.hardLimitThreshold = -1
+
 # threshold for timeout heuristics
 cpa.assumptions.progressobserver.heuristics.timeOutHeuristics.threshold = -1
 
