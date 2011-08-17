@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -75,15 +76,32 @@ import com.google.common.collect.SetMultimap;
 @Options(prefix="cpa.relyguarantee")
 public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
 
-  @Option(name="symbolcCoverageCheck",description="Use a theorem prover to remove covered environemtal transitions" +
-  " if false perform only a syntatic check for equivalence")
-  private boolean checkEnvTransitionCoverage = true;
+  @Option(description="Print debugging info?")
+  private boolean debug=true;
+
 
   @Option(description="List of variables global to multiple threads")
   protected String[] globalVariables = {};
 
-  // TODO option for CFA export
 
+  public class RelyGuaranteeAlgorithmStatistics implements Statistics {
+    private Timer totalTimer = new Timer();
+
+    @Override
+    public String getName() {
+      return "Rely-guarantee";
+    }
+
+    @Override
+    public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+      out.println("Total Time for algorithm:       " + totalTimer);
+    }
+
+  }
+
+  private RelyGuaranteeAlgorithmStatistics stats;
+
+  // TODO option for CFA export
   private int threadNo;
   private RelyGuaranteeCFA[] cfas;
   private CFAFunctionDefinitionNode[] mainFunctions;
@@ -112,8 +130,6 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     this.mainFunctions = pMainFunctions;
     this.cpas = pCpas;
     this.logger = logger;
-
-
 
     environment = new RelyGuaranteeEnvironment(threadNo, config, logger);
     threadCPA = new RelyGuaranteeThreadCPAAlgorithm[threadNo];
@@ -147,10 +163,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     }
   }
 
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    // TODO Auto-generated method stub
-  }
+
 
   /**
    * Returns -1 if no error is found or the thread no with an error
@@ -158,7 +171,8 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
   public int run(ReachedSet[] reached, int startThread) {
     assert environment.getUnprocessedTransitions().isEmpty();
 
-    Timer rgTimer = new Timer();
+    stats = new RelyGuaranteeAlgorithmStatistics();
+    stats.totalTimer.start();
 
     boolean error = false;
     try{
@@ -175,20 +189,24 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
         System.out.println("\t\t\t----- Running thread "+i+" -----");
         assert environment.getUnprocessedTransitions().isEmpty();
         error = runThread(i, reached[i], true);
+        // print stats
+        threadCPA[i].printStatitics();
         // clear the set of  unapplied env. edges
         environment.clearUnappliedEnvEdgesForThread(i);
         if (error) {
           // error state has been reached
-          rgTimer.stop();
-          System.out.println();
-          System.out.println("RG algorithm time: "+rgTimer.printMaxTime());
+          stats.totalTimer.start();
           return i;
         }
         System.out.println();
         System.out.println("\t\t\t----- Processing Env Transitions -----");
-        environment.printUnprocessedTransitions();
+        if (debug){
+          environment.printUnprocessedTransitions();
+        }
+
         // process new env. transitions
         environment.processEnvTransitions(i);
+        environment.printProcessingStatistics();
         // chose a new thread to run
         i = pickThread(reached);
       }
@@ -197,8 +215,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
       e.printStackTrace();
     }
 
-    rgTimer.stop();
-    System.out.println("RG algorithm time: "+rgTimer.printMaxTime());
+    stats.totalTimer.start();
     return -1;
 
   }
@@ -222,8 +239,6 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
             envEdges.addAll(envEdgesMap.get(node));
             artElement.setEnvEdgesToBeApplied(envEdges);
             reachedSet.reAddToWaitlist(ae);
-          } else {
-            System.out.println("");
           }
         }
       }
@@ -295,8 +310,11 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     List<RelyGuaranteeCFAEdgeTemplate> valid = environment.getValidEnvEdgesFromThread(j);
     List<RelyGuaranteeCFAEdgeTemplate> unapplied = environment.getUnappliedEnvEdgesForThread(i);
 
-    System.out.println();
-    System.out.println("Env edges applied at CFA "+i);
+    if (debug){
+      System.out.println();
+      System.out.println("Env edges applied at CFA "+i);
+    }
+
     // apply all env transitions to CFA nodes that have an outgoing edge that reads from a global varialbe
     for(Entry<String, CFANode> entry :   cfa.getCFANodes().entries()){
       CFANode node = entry.getValue();
@@ -311,7 +329,10 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
         for (RelyGuaranteeCFAEdgeTemplate envTransition : valid){
           RelyGuaranteeCFAEdge edge = envTransition.instantiate();
           addEnvTransitionToNode(node, edge);
-          System.out.println("\t-node "+node+" applied "+edge);
+
+          if (debug){
+            System.out.println("\t-node "+node+" applied "+edge);
+          }
           if (unapplied.contains(envTransition)){
             envEdgesMap.put(node, edge);
 
@@ -391,6 +412,18 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     return environment;
   }
 
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
+  }
+
+  public void printStatitics(){
+    System.out.println();
+    System.out.println("RG algorithm statistics:");
+    if (stats != null){
+      stats.printStatistics(System.out, null, null);
+    }
+  }
   // for testing 'isCovered' method, commented cases are for completness
   /*private boolean isCoveredTest() {
     Formula g1 = fManager.makeVariable("g", 1);

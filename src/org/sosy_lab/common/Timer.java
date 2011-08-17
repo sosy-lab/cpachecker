@@ -46,6 +46,10 @@ public class Timer {
   /** The maximal time of all intervals. */
   private long maxTime           = 0;
 
+  /** Time of the last interval */
+  private long lastTime         = 0;
+
+
   /** The number of intervals. */
   private int  numberOfIntervals = 0;
 
@@ -86,13 +90,14 @@ public class Timer {
 
   final long stop(long endTime) {
     if (isRunning()) {
-      long intervallTime = endTime - startTime;
-      sumTime += intervallTime;
-      maxTime = Math.max(intervallTime, maxTime);
+      long intervalTime = endTime - startTime;
+      sumTime += intervalTime;
+      maxTime = Math.max(intervalTime, maxTime);
 
       // reset startTime for isRunning()
       startTime = 0;
-      return intervallTime;
+      lastTime = intervalTime;
+      return lastTime;
     }
     return 0;
   }
@@ -146,6 +151,15 @@ public class Timer {
    * @return formated String */
   public final String printAvgTime() {
     return formatTime(getAvgTime());
+  }
+
+  /**
+   * Return a String with the length of the last interval.
+   *
+   * @return formatedString
+   */
+  public final String printLastTime() {
+    return formatTime(lastTime);
   }
 
   /** Return a String with the sum of the times of all intervals.

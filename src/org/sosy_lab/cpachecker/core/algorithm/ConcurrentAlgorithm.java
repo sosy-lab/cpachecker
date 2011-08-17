@@ -25,10 +25,11 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvironment;
 
-public interface ConcurrentAlgorithm{
+public interface ConcurrentAlgorithm extends StatisticsProvider{
 
   int run(ReachedSet[] reachedSets, int startThread);
 

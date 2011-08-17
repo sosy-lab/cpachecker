@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -32,6 +33,7 @@ import java.util.Vector;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -41,7 +43,10 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
@@ -68,8 +73,7 @@ import com.google.common.collect.Multimap;
 public class RelyGuaranteeEnvironment {
 
   @Option(description="Print debugging info?")
-  private boolean print=true;
-
+  private boolean debug=true;
 
   @Option(name="symbolicCoverageCheck",description="Use a theorem prover to remove covered environemtal transitions" +
   " if false perform only a syntatic check for equivalence")
@@ -77,6 +81,49 @@ public class RelyGuaranteeEnvironment {
 
   @Option(description="List of variables global to multiple threads")
   protected String[] globalVariables = {};
+
+
+  /**
+   * Statiscs about processing env transitions transitions.
+   */
+  public class RelyGuaranteeEnvironmentProcessStatistics implements Statistics {
+
+    private Timer totalTimer    = new Timer();
+    private Timer semanticTimer = new Timer();
+
+    private int unprocessed       = 0;
+    private int removedSyntactic  = 0;
+    private int coverChecks       = 0;
+    private int oldCovered        = 0;
+    private int newCovered        = 0;
+    private int newValid          = 0;
+    private int allValid           = 0;
+
+    @Override
+    public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
+
+      out.println("Transitions generated:                 " + unprocessed);
+      out.println("Transitions removed by syntatic check: " + removedSyntactic);
+      out.println("No of coverage checks (non-debug):     " + coverChecks);
+      out.println("New transitions that are covered:      " + newCovered);
+      out.println("Old transitions that become covered:   " + oldCovered);
+      out.println("New valid transitions by thread:       " + newValid  );
+      out.println("All valid transitions by thread:       " + allValid  );
+      out.println();
+      out.println("Time for coverage check:               " + semanticTimer);
+      out.println("Total time for processing:             " + totalTimer);
+    }
+
+    @Override
+    public String getName() {
+      return "Enviornmetal transitions processing statistics";
+    }
+
+  }
+
+  // Statitics about processing env. transitions
+  private RelyGuaranteeEnvironmentProcessStatistics processStats;
+
   // TODO more efficient data structures
   // map from ART elements to unprocessed env transitions
   private final Multimap<ARTElement, RelyGuaranteeEnvironmentalTransition> unprocessedTransitions;
@@ -185,6 +232,10 @@ public class RelyGuaranteeEnvironment {
    * @param i   thread that generate the transitions
    */
   public void processEnvTransitions(int i) {
+    processStats = new RelyGuaranteeEnvironmentProcessStatistics();
+    processStats.totalTimer.start();
+    processStats.unprocessed = unprocessedTransitions.values().size();
+
     syntacticCoverageCheck(i);
     // generate CFA edges from env transitions
     Vector<RelyGuaranteeCFAEdgeTemplate> rgEdges = new Vector<RelyGuaranteeCFAEdgeTemplate>();
@@ -199,11 +250,19 @@ public class RelyGuaranteeEnvironment {
     }
     unprocessedTransitions.clear();
 
+
     if (checkEnvTransitionCoverage) {
+      processStats.semanticTimer.start();
       Pair<Vector<RelyGuaranteeCFAEdgeTemplate>, Vector<RelyGuaranteeCFAEdgeTemplate>> pair = semanticCoverageCheck(rgEdges, i);
-      printEdges("New env. edges that are not covered:",pair.getFirst());
-      printEdges("Old env. edges that are covered by some new ones:",pair.getSecond());
+      processStats.oldCovered = pair.getSecond().size();
+      processStats.semanticTimer.stop();
+      if (debug){
+        printEdges("New env. edges that are not covered:",pair.getFirst());
+        printEdges("Old env. edges that are covered by some new ones:",pair.getSecond());
+      }
+
       rgEdges = pair.getFirst();
+      processStats.newValid = rgEdges.size();
       // remove valid edges that have been covered
       validEnvEdgesFromThread[i].removeAll(pair.getSecond());
       // unapplied edges may also become covered
@@ -216,14 +275,15 @@ public class RelyGuaranteeEnvironment {
     // add the edges after filtering to the set of valid edges by thread i
     // add them to the set of unapplied edges for other threads
     validEnvEdgesFromThread[i].addAll(rgEdges);
+    processStats.allValid = validEnvEdgesFromThread[i].size();
     distributeAsUnapplied(rgEdges, i);
-    printEdges("All valid env. edges from thread "+i+" after filtering", validEnvEdgesFromThread[i]);
 
-    if (print){
+    if (debug){
+      printEdges("All valid env. edges from thread "+i+" after filtering", validEnvEdgesFromThread[i]);
       assertion();
     }
 
-
+    processStats.totalTimer.stop();
   }
 
 
@@ -232,17 +292,12 @@ public class RelyGuaranteeEnvironment {
       // valid
       for (RelyGuaranteeCFAEdgeTemplate et : validEnvEdgesFromThread[i]){
         //assert envTransProcessedBeforeFromThread[i].containsValue(et.getSourceEnvTransition());
-        if (coveredEnvEdgesFromThread[i].contains(et)){
-          System.out.println("DEBUG: "+et+" thread "+i);
-        }
+
         assert !coveredEnvEdgesFromThread[i].contains(et);
         assert !et.getSourceARTElement().isDestroyed();
         assert !et.getPathFormula().toString().contains("dummy");
         if (checkEnvTransitionCoverage){
           for (RelyGuaranteeCFAEdgeTemplate et2 : validEnvEdgesFromThread[i]){
-            if (!(et == et2 || !isCovered(et, et2))) {
-              System.out.println("DEBUG "+et+", "+et2);
-            }
             assert et == et2 || !isCovered(et, et2);
           }
         }
@@ -253,15 +308,9 @@ public class RelyGuaranteeEnvironment {
         //assert envTransProcessedBeforeFromThread[i].containsValue(et3.getSourceEnvTransition());
         assert !validEnvEdgesFromThread[i].contains(et3);
         assert !et3.getPathFormula().toString().contains("dummy");
-        if (et3.getSourceARTElement().isDestroyed()){
-          System.out.println("DEBUG: "+et3);
-        }
         assert !et3.getSourceARTElement().isDestroyed();
         assert et3.getCoveredBy()!=null;
         assert et3.getCoveredBy().getCovers().contains(et3);
-        if (!validEnvEdgesFromThread[i].contains(et3.getCoveredBy()) &&  !coveredEnvEdgesFromThread[i].contains(et3.getCoveredBy())){
-          System.out.println("DEBUG: "+et3+" covered by "+et3.getCoveredBy());
-        }
         assert validEnvEdgesFromThread[i].contains(et3.getCoveredBy()) || coveredEnvEdgesFromThread[i].contains(et3.getCoveredBy());
       }
       // processed before
@@ -283,9 +332,6 @@ public class RelyGuaranteeEnvironment {
               isValid = true;
             }
           }
-        }
-        if (!isValid){
-          System.out.println("DEBUG: "+et);
         }
         assert isValid;
         assert !et.getPathFormula().toString().contains("dummy");
@@ -359,17 +405,26 @@ public class RelyGuaranteeEnvironment {
         // don't generate transition with 'false' or transitions that assign to local variables
         if (f.isFalse() || pf.getFormula().isFalse() || isLocalAssigment(localEdge)) {
           toDelete.add(Pair.of(key, et));
-          System.out.println("Removed (syn,false): "+et);
+          if (debug){
+            System.out.println("Removed (syn,false): "+et);
+          }
+
         }
 
       }
     }
+
+    processStats.removedSyntactic = toDelete.size();
+
     for (Pair<ARTElement, RelyGuaranteeEnvironmentalTransition> pair: toDelete){
       unprocessedTransitions.remove(pair.getFirst(), pair.getSecond());
       toPrint.add(pair.getSecond());
     }
 
-    printTransitions("Env. transitions removed by syntactick check:", toPrint);
+    if (debug){
+      printTransitions("Env. transitions removed by syntactick check:", toPrint);
+    }
+
   }
 
 
@@ -394,11 +449,15 @@ public class RelyGuaranteeEnvironment {
       if (!toDelete.contains(edge1)){
         for (RelyGuaranteeCFAEdgeTemplate edge2 : toProcess){
           if (edge1 !=edge2 && !toDelete.contains(edge2)){
+            processStats.coverChecks++;
             if (isCovered(edge1,edge2)){
               // edge1 => edge2
               toDelete.add(edge1);
-              System.out.println("Covered 0:\t"+edge1+" => "+edge2);
+              if (debug){
+                System.out.println("Covered 0:\t"+edge1+" => "+edge2);
+              }
               edge1.coveredBy(edge2);
+              processStats.newCovered++;
               coveredEnvEdgesFromThread[i].add(edge1);
               assert coveredEnvEdgesFromThread[i].contains(edge1);
               break;
@@ -413,61 +472,67 @@ public class RelyGuaranteeEnvironment {
     Vector<RelyGuaranteeCFAEdgeTemplate> list1 = new Vector<RelyGuaranteeCFAEdgeTemplate>(toProcess);
     Vector<RelyGuaranteeCFAEdgeTemplate> list2 = new Vector<RelyGuaranteeCFAEdgeTemplate>();
 
-    for (RelyGuaranteeCFAEdgeTemplate edge1 : newEdges){
-      for (RelyGuaranteeCFAEdgeTemplate edge2 : toProcess){
-        assert edge1 == edge2 || !isCovered(edge2,edge1)  ||  isCovered(edge2,edge1);
+    // sanity check on request
+    if (debug){
+      for (RelyGuaranteeCFAEdgeTemplate edge1 : newEdges){
+        for (RelyGuaranteeCFAEdgeTemplate edge2 : toProcess){
+          assert edge1 == edge2 || !isCovered(edge2,edge1)  ||  isCovered(edge2,edge1);
+        }
       }
-    }
-    for (RelyGuaranteeCFAEdgeTemplate edge1 : toProcess){
-      for (RelyGuaranteeCFAEdgeTemplate edge2 : toProcess){
-        assert edge1 == edge2 || !isCovered(edge2,edge1);
+      for (RelyGuaranteeCFAEdgeTemplate edge1 : toProcess){
+        for (RelyGuaranteeCFAEdgeTemplate edge2 : toProcess){
+          assert edge1 == edge2 || !isCovered(edge2,edge1);
+        }
       }
     }
 
     while (!toProcess.isEmpty()){
       RelyGuaranteeCFAEdgeTemplate newEdge = toProcess.remove(0);
       for (RelyGuaranteeCFAEdgeTemplate oldEdge : validEnvEdgesFromThread[i]){
-        if (newEdge == oldEdge){
-          System.out.println("DEBUG "+newEdge);
-        }
         assert newEdge != oldEdge;
+        processStats.coverChecks++;
         if (isCovered(newEdge, oldEdge)){
-          System.out.println("Covered 1:\t"+newEdge+" => "+oldEdge);
+          // newEdge => oldEdge
+          if (debug){
+            System.out.println("Covered 1:\t"+newEdge+" => "+oldEdge);
+          }
           newEdge.coveredBy(oldEdge);
+          processStats.newCovered++;
           coveredEnvEdgesFromThread[i].add(newEdge);
           list1.remove(newEdge);
           break;
         } else if (isCovered(oldEdge, newEdge)){
           // oldEdge => newEdge, but not equivalent
-          System.out.println("Covered 2:\t"+oldEdge+" => "+newEdge);
+          if (debug){
+            System.out.println("Covered 2:\t"+oldEdge+" => "+newEdge);
+          }
           oldEdge.coveredBy(newEdge);
+          processStats.oldCovered++;
           coveredEnvEdgesFromThread[i].add(oldEdge);
           list2.add(oldEdge);
         }
       }
     }
 
-
-
-
-    for (RelyGuaranteeCFAEdgeTemplate edge1  : list1){
-      for (RelyGuaranteeCFAEdgeTemplate edge2  : newEdges){
-        assert edge1 == edge2 || !isCovered(edge1,edge2) ||  isCovered(edge2,edge1);
+    // sanity check on request
+    if (debug){
+      for (RelyGuaranteeCFAEdgeTemplate edge1  : list1){
+        for (RelyGuaranteeCFAEdgeTemplate edge2  : newEdges){
+          assert edge1 == edge2 || !isCovered(edge1,edge2) ||  isCovered(edge2,edge1);
+        }
+        for (RelyGuaranteeCFAEdgeTemplate edge2  : validEnvEdgesFromThread[i]){
+          assert  !isCovered(edge1,edge2);
+        }
       }
-      for (RelyGuaranteeCFAEdgeTemplate edge2  : validEnvEdgesFromThread[i]){
-        assert  !isCovered(edge1,edge2);
+      for (RelyGuaranteeCFAEdgeTemplate edge1  : list2){
+        boolean covered = false;
+        assert validEnvEdgesFromThread[i].contains(edge1);
+        for (RelyGuaranteeCFAEdgeTemplate edge2  : list1){
+          covered = covered || isCovered(edge1, edge2);
+        }
+        assert covered;
       }
     }
-    for (RelyGuaranteeCFAEdgeTemplate edge1  : list2){
-      boolean covered = false;
-      assert validEnvEdgesFromThread[i].contains(edge1);
-      for (RelyGuaranteeCFAEdgeTemplate edge2  : list1){
-        covered = covered || isCovered(edge1, edge2);
-      }
-      assert covered;
-    }
-
-
     return Pair.of(list1, list2);
   }
 
@@ -532,6 +597,7 @@ public class RelyGuaranteeEnvironment {
   public void mergeSourceElements(ARTElement mergedElement, ARTElement reachedElement, int i) {
     assert reachedElement.isDestroyed();
     assert !mergedElement.isDestroyed();
+
     // valid
     for(RelyGuaranteeCFAEdgeTemplate rgEdge : validEnvEdgesFromThread[i]){
       ARTElementWrapper wrapper = rgEdge.getSourceARTElementWrapper();
@@ -540,6 +606,7 @@ public class RelyGuaranteeEnvironment {
         System.out.println("! Replaced id:"+reachedElement.getElementId()+" by id:"+mergedElement.getElementId()+" in a valid edge: "+rgEdge);
       }
     }
+
     // covered
     for(RelyGuaranteeCFAEdgeTemplate rgEdge : coveredEnvEdgesFromThread[i]){
       ARTElementWrapper wrapper = rgEdge.getSourceARTElementWrapper();
@@ -548,13 +615,7 @@ public class RelyGuaranteeEnvironment {
         System.out.println("! Replaced id:"+reachedElement.getElementId()+" by id:"+mergedElement.getElementId()+" in a covered edge: "+rgEdge);
       }
     }
-    // processed before
-    /* Collection<RelyGuaranteeEnvironmentalTransition> eTransitions = envTransProcessedBeforeFromThread[i].get(reachedElement);
-    for (RelyGuaranteeEnvironmentalTransition et : eTransitions){
-      et.setSourceARTElement(mergedElement);
-      envTransProcessedBeforeFromThread[i].put(mergedElement, et);
-    }*/
-    // envTransProcessedBeforeFromThread[i].removeAll(reachedElement);
+
     // unproccessed
     Collection<RelyGuaranteeEnvironmentalTransition> eTransitions = unprocessedTransitions.get(reachedElement);
     for (RelyGuaranteeEnvironmentalTransition et : eTransitions){
@@ -564,7 +625,7 @@ public class RelyGuaranteeEnvironment {
     }
     unprocessedTransitions.removeAll(reachedElement);
 
-    if (print){
+    if (debug){
       assertion();
     }
 
@@ -607,7 +668,7 @@ public class RelyGuaranteeEnvironment {
 
 
 
-    if (print){
+    if (debug){
       assertion();
     }
 
@@ -633,7 +694,10 @@ public class RelyGuaranteeEnvironment {
         makeRelyGuaranteeEnvEdgeFalse(rgEdge);
       }
     }
-    printEdges("Covered env. edge kill in thread "+tid+" :",toDelete);
+    if (debug){
+      printEdges("Covered env. edge kill in thread "+tid+" :",toDelete);
+    }
+
     coveredEnvEdgesFromThread[tid].removeAll(toDelete);
 
     for (RelyGuaranteeCFAEdgeTemplate rgEdge : coveredEnvEdgesFromThread[tid]){
@@ -661,7 +725,10 @@ public class RelyGuaranteeEnvironment {
         makeRelyGuaranteeEnvEdgeFalse(rgEdge);
       }
     }
-    printEdges("Valid env. edge killed in thread "+tid+" :",toDelete);
+    if (debug){
+      printEdges("Valid env. edge killed in thread "+tid+" :",toDelete);
+    }
+
 
     validEnvEdgesFromThread[tid].removeAll(toDelete);
     // see if some transitions that were covered by rgEdge can become valid
@@ -713,7 +780,9 @@ public class RelyGuaranteeEnvironment {
         }
       }
       unappliedEnvEdgesForThread[j].removeAll(toDelete);
-      printEdges("Unapplied env. edge killed in thread "+j+" :",toDelete);
+      if (debug){
+        printEdges("Unapplied env. edge killed in thread "+j+" :",toDelete);
+      }
       toDelete.clear();
     }
   }
@@ -829,6 +898,14 @@ public class RelyGuaranteeEnvironment {
     unprocessedTransitions.clear();
   }
 
-
-
+  public void printProcessingStatistics(){
+    System.out.println();
+    System.out.println("Processing statistics:");
+    if (processStats != null){
+      processStats.printStatistics(System.out, null, null);
+    }
+  }
 }
+
+
+

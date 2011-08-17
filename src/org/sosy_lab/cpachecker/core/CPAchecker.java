@@ -206,6 +206,9 @@ public class CPAchecker {
         //rgCPA.useHardcodedPredicates();
         cpas[i] = cpa;
       }
+      // TODO quick & dirty solution
+      stats.getSubStatistics().clear();
+
       // get main functions and CFA
       Pair<CFAFunctionDefinitionNode[], CFA[]> tuple = getMainFunctionsAndCFAS(filenames);
       mainFunctions = tuple.getFirst();
@@ -215,11 +218,19 @@ public class CPAchecker {
         initalReachedSets[i] = createInitialReachedSet(cpas[i], mainFunctions[i]);
       }
 
-      ConcurrentAlgorithm algorithm = new RelyGuaranteeAlgorithm(cfas, mainFunctions, cpas, config, logger);
+      RelyGuaranteeAlgorithm rgAlgorithm = new RelyGuaranteeAlgorithm(cfas, mainFunctions, cpas, config, logger);
+      ConcurrentAlgorithm algorithm;
 
       if (options.useRelyGuaranteeRefinement) {
-        algorithm = new RelyGuaranteeCEGARAlgorithm(algorithm, config, logger);
+        algorithm = new RelyGuaranteeCEGARAlgorithm(rgAlgorithm, config, logger);
+
+      } else {
+        algorithm = rgAlgorithm;
       }
+
+      // add the main statistics of the algorithm
+      algorithm.collectStatistics(stats.getSubStatistics());
+
 
       Set<String> unusedProperties = config.getUnusedProperties();
       if (!unusedProperties.isEmpty()) {

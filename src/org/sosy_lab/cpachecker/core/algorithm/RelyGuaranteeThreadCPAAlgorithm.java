@@ -62,26 +62,24 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdge;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvironment;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvironmentalTransition;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
-import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 
 @Options(prefix="cpa.relyguarantee")
 public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(description="Print debugging info?")
-  private boolean print=true;
+  private boolean debug=true;
 
-  private static class CPAStatistics implements Statistics {
+  private static class RelyGuaranteeThreadStatitics implements Statistics {
 
     private Timer totalTimer         = new Timer();
-    private Timer chooseTimer        = new Timer();
     private Timer precisionTimer     = new Timer();
     private Timer transferTimer      = new Timer();
     private Timer mergeTimer         = new Timer();
     private Timer stopTimer          = new Timer();
+    private Timer envGenTimer        = new Timer();
 
     private int   countIterations   = 0;
     private int   maxWaitlistSize   = 0;
@@ -90,16 +88,14 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     private int   maxSuccessors     = 0;
     private int   countMerge        = 0;
     private int   countStop         = 0;
-    private int   countBreak        = 0;
 
     @Override
     public String getName() {
-      return "Single thread rely-guarantee CPA algorithm";
+      return "Thread statistics";
     }
 
     @Override
-    public void printStatistics(PrintStream out, Result pResult,
-        ReachedSet pReached) {
+    public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
       out.println("Number of iterations:            " + countIterations);
       out.println("Max size of waitlist:            " + maxWaitlistSize);
       out.println("Average size of waitlist:        " + countWaitlistSize
@@ -108,18 +104,17 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
       out.println("Max successors for one element:  " + maxSuccessors);
       out.println("Number of times merged:          " + countMerge);
       out.println("Number of times stopped:         " + countStop);
-      out.println("Number of times breaked:         " + countBreak);
       out.println();
-      out.println("Total time for CPA algorithm:   " + totalTimer + " (Max: " + totalTimer.printMaxTime() + ")");
-      out.println("Time for choose from waitlist:  " + chooseTimer);
       out.println("Time for precision adjustment:  " + precisionTimer);
       out.println("Time for transfer relation:     " + transferTimer);
+      out.println("Time for env. transitions:      " + envGenTimer);
       out.println("Time for merge operator:        " + mergeTimer);
       out.println("Time for stop operator:         " + stopTimer);
+      out.println("Total time for CPA algorithm:   " + totalTimer);
     }
   }
 
-  private final CPAStatistics               stats = new CPAStatistics();
+  private  RelyGuaranteeThreadStatitics            stats;
   private final ConfigurableProgramAnalysis       cpa;
   private final LogManager                  logger;
   private RelyGuaranteeEnvironment environment;
@@ -145,12 +140,12 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
 
   @Override
   public boolean run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
+    stats = new RelyGuaranteeThreadStatitics();
     stats.totalTimer.start();
     final TransferRelation transferRelation = cpa.getTransferRelation();
     final MergeOperator mergeOperator = cpa.getMergeOperator();
     final StopOperator stopOperator = cpa.getStopOperator();
-    final PrecisionAdjustment precisionAdjustment =
-      cpa.getPrecisionAdjustment();
+    final PrecisionAdjustment precisionAdjustment = cpa.getPrecisionAdjustment();
 
     while (reachedSet.hasWaitingElement()) {
       CPAchecker.stopIfNecessary();
@@ -165,11 +160,8 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
       }
       stats.countWaitlistSize += size;
 
-      stats.chooseTimer.start();
       final AbstractElement element =  reachedSet.popFromWaitlist();
       final Precision precision = reachedSet.getPrecision(element);
-
-      stats.chooseTimer.stop();
 
       logger.log(Level.FINER, "Retrieved element from waitlist");
       logger.log(Level.ALL, "Current element is", element, "with precision",
@@ -181,28 +173,24 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
 
       RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(element, RelyGuaranteeAbstractElement.class);
 
-      CFANode loc = AbstractElements.extractLocation(element);
-      Precision prec = reachedSet.getPrecision(element);
-      RelyGuaranteePrecision rgPrec = Precisions.extractPrecisionByType(prec, RelyGuaranteePrecision.class);
-      if (print){
+
+      if (debug){
+        CFANode loc = AbstractElements.extractLocation(element);
+        Precision prec = reachedSet.getPrecision(element);
         System.out.println();
         System.out.println("@ Successor of '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+" id:"+aElement.getElementId()+" at "+loc);
       }
 
-
-
-      Collection<? extends AbstractElement> successors =
-        transferRelation.getAbstractSuccessors(element, precision, null);
+      Collection<? extends AbstractElement> successors = transferRelation.getAbstractSuccessors(element, precision, null);
       stats.transferTimer.stop();
-      // TODO stats...
+
+
+
       // create and environmental edge and add it the global storage
+      stats.envGenTimer.start();
       Vector<RelyGuaranteeEnvironmentalTransition> newEnvTransitions = createEnvTransitions(element);
       environment.addEnvTransitions(aElement, newEnvTransitions);
-
-
-
-      // TODO When we have a nice way to mark the analysis result as incomplete,
-      // we could continue analysis on a CPATransferException with the next element from waitlist.
+      stats.envGenTimer.stop();
 
       int numSuccessors = successors.size();
       logger.log(Level.FINER, "Current element has", numSuccessors,
@@ -223,12 +211,11 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
         Precision successorPrecision = precAdjustmentResult.getSecond();
         Action action = precAdjustmentResult.getThird();
 
-        if (print){
+        if (debug){
           printRelyGuaranteeAbstractElement(successor);
         }
 
         if (action == Action.BREAK) {
-          stats.countBreak++;
           // re-add the old element to the waitlist, there may be unhandled
           // successors left that otherwise would be forgotten
           reachedSet.reAddToWaitlist(element);
@@ -268,7 +255,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
                   reachedElement, "\n-->", mergedElement);
               stats.countMerge++;
 
-              if (print){
+              if (debug){
                 printMerge(successor, reachedElement, mergedElement);
               }
 
@@ -294,7 +281,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
           logger.log(Level.FINER,
           "Successor is covered or unreachable, not adding to waitlist");
 
-          if (print){
+          if (debug){
             printCovered(successor);
           }
           stats.countStop++;
@@ -303,11 +290,9 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
           logger.log(Level.FINER,
           "No need to stop, adding successor to waitlist");
 
-
           reachedSet.add(successor, successorPrecision);
         }
       }
-      System.out.println();
     }
     stats.totalTimer.stop();
     return true;
@@ -403,5 +388,13 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
+  }
+
+  public void printStatitics(){
+    System.out.println();
+    System.out.println("Thread statistics:");
+    if (stats != null){
+      stats.printStatistics(System.out, null, null);
+    }
   }
 }

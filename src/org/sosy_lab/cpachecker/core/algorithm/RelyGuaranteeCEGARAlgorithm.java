@@ -23,9 +23,11 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import java.io.PrintStream;
 import java.util.Collection;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
@@ -41,7 +43,32 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 @Options(prefix="rely-guarantee cegar")
 public class RelyGuaranteeCEGARAlgorithm implements ConcurrentAlgorithm,  StatisticsProvider {
 
-  private ConcurrentAlgorithm algorithm;
+  public class RelyGuaranteeCEGARStatistics implements Statistics {
+
+    private Timer totalTimer        = new Timer();
+    private Timer totalRGAlg        = new Timer();
+    private Timer totalRefinement   = new Timer();
+
+    private int   countIterations  = 0;
+
+    @Override
+    public String getName() {
+      return "Rely-guarantee CEGAR";
+    }
+
+    @Override
+    public void printStatistics(PrintStream out, Result pResult,ReachedSet pReached) {
+      out.println("Number of iterations:            " + countIterations);
+      out.println("Total time on ART computation:   " + totalRGAlg);
+      out.println("Total time on refinement:        " + totalRefinement);
+      out.println("Total time on CEGAR:             " + totalTimer);
+
+    }
+  }
+
+  private final RelyGuaranteeCEGARStatistics stats;
+
+  private RelyGuaranteeAlgorithm algorithm;
   private RelyGuaranteeRefiner refiner;
   private Configuration config;
   private LogManager logger;
@@ -49,10 +76,11 @@ public class RelyGuaranteeCEGARAlgorithm implements ConcurrentAlgorithm,  Statis
   private static final int GC_PERIOD = 100;
   private int gcCounter = 0;
 
-  public RelyGuaranteeCEGARAlgorithm(ConcurrentAlgorithm pAlgorithm,  Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException, CPAException {
+  public RelyGuaranteeCEGARAlgorithm(RelyGuaranteeAlgorithm pAlgorithm,  Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException, CPAException {
     this.algorithm = pAlgorithm;
     this.config = pConfig;
     this.logger = pLogger;
+    this.stats  = new RelyGuaranteeCEGARStatistics();
 
 
     // TODO for now only rg refiner is available
@@ -60,23 +88,7 @@ public class RelyGuaranteeCEGARAlgorithm implements ConcurrentAlgorithm,  Statis
   }
 
 
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    // TODO Auto-generated method stub
 
-  }
-
-  @Override
-  public ConfigurableProgramAnalysis[] getCPAs() {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public Result getResult() {
-    // TODO Auto-generated method stub
-    return null;
-  }
 
   @Override
   /**
@@ -84,14 +96,18 @@ public class RelyGuaranteeCEGARAlgorithm implements ConcurrentAlgorithm,  Statis
    */
   public int run(ReachedSet[] reachedSets, int startThread) {
 
-    // TODO stats
+    stats.totalTimer.start();
+
     int runThread = startThread;
     int refinmentNo = 0;
     boolean continueAnalysis = false;
     do {
       System.out.println();
-      System.out.println("-------------------------- CEGAR iteration "+refinmentNo+" --------------------------");
+      System.out.println("------------------------ Rely-guarantee algorithm - run "+refinmentNo+" -------------------------");
+      stats.totalRGAlg.start();
       runThread = algorithm.run(reachedSets, runThread);
+      stats.totalRGAlg.stop();
+      algorithm.printStatitics();
 
       if (runThread == -1){
         // the program is safe
@@ -100,18 +116,24 @@ public class RelyGuaranteeCEGARAlgorithm implements ConcurrentAlgorithm,  Statis
         // the program is unsafe, so perform refinement
         try {
           System.out.println();
-          System.out.println("------------------------------- Performing refinment ------------------------------- ");
+          System.out.println("------------------------------- Performing refinment -------------------------------");
+          stats.totalRefinement.start();
           continueAnalysis = refiner.performRefinment(reachedSets, algorithm.getRelyGuaranteeEnvironment(), runThread);
+          stats.totalRefinement.stop();
+          refiner.printStatitics();
         } catch (Exception e) {
           // TODO Auto-generated catch block
           e.printStackTrace();
         }
         //AbstractElement error = reachedSets[errorThr].getLastElement();
         refinmentNo++;
+        stats.countIterations++;
       }
 
     } while (continueAnalysis);
 
+    System.out.println("----------------------------------------------------------------------------------");
+    stats.totalTimer.stop();
     return runThread;
   }
 
@@ -127,6 +149,23 @@ public class RelyGuaranteeCEGARAlgorithm implements ConcurrentAlgorithm,  Statis
   @Override
   public RelyGuaranteeEnvironment getRelyGuaranteeEnvironment() {
     return algorithm.getRelyGuaranteeEnvironment();
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
+  }
+
+  @Override
+  public ConfigurableProgramAnalysis[] getCPAs() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public Result getResult() {
+    // TODO Auto-generated method stub
+    return null;
   }
 
 

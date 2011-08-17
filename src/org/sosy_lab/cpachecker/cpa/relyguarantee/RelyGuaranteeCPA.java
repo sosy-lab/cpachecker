@@ -315,11 +315,11 @@ public class RelyGuaranteeCPA extends PredicateCPA{
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(this.stats);
+    return;
   }
 
   RelyGuaranteeCPAStatistics getStats() {
-    return this.stats;
+    return null;
   }
 
   public RelyGuaranteeRefinementManager<?, ?> getRelyGuaranteeManager() {

@@ -28,6 +28,7 @@ import static com.google.common.collect.Lists.transform;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
 
 import java.io.File;
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -42,9 +43,11 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
@@ -68,8 +71,9 @@ import com.google.common.collect.SetMultimap;
 
 @Options(prefix="cpa.relyguarantee")
 public class RelyGuaranteeRefiner{
+
   @Option(description="Print debugging info?")
-  private boolean print=true;
+  private boolean debug=true;
 
   @Option(name="refinement.addPredicatesGlobally",
       description="refinement will add all discovered predicates "
@@ -95,11 +99,44 @@ public class RelyGuaranteeRefiner{
   @Option(description="List of variables global to multiple threads")
   protected String[] globalVariables = {};
 
+
+  public abstract class  RelyGuaranteeRefinerStatistics implements Statistics {
+
+    protected Timer totalTimer          = new Timer();
+    public    Timer interpolationTimer  = new Timer();
+    public    Timer formulaTimer        = new Timer();
+
+    public  int formulaNo               = 0;
+    public int unsatChecks              = 0;
+
+    @Override
+    public String getName() {
+      return "RG refinement statistics";
+    }
+
+  }
+  /**
+   * Information about a restarting refinement.
+   */
+  public class RelyGuaranteeRefinerRestartingStatistics extends RelyGuaranteeRefinerStatistics {
+
+    private Timer restartingTimer     = new Timer();
+
+    public void printStatistics(PrintStream out, Result pResult,ReachedSet pReached){
+      out.println("Interpolation fomulas:           " + formulaNo);
+      out.println("Unsat checks:                    " + unsatChecks);
+      out.println();
+      out.println("Time on constructing formulas:   " + formulaTimer);
+      out.println("Total time on interpolation:     " + interpolationTimer+" (max: "+interpolationTimer.printMaxTime()+")");
+      out.println("Time on restarting analysis:     " + restartingTimer);
+      out.println("Total time on refinement:        " + totalTimer);
+    }
+  }
+
+
+  private RelyGuaranteeRefinerRestartingStatistics stats;
   private RelyGuaranteeRefinementManager manager;
   private final ARTCPA[] artCpas;
-
-  private Object lastErrorPath;
-
   private static RelyGuaranteeRefiner rgRefiner;
 
   /**
@@ -167,10 +204,16 @@ public class RelyGuaranteeRefiner{
    * @throws InterruptedException
    */
   public boolean performRefinment(ReachedSet[] reachedSets, RelyGuaranteeEnvironment environment, int errorThr) throws InterruptedException, CPAException {
+
+    // use statistics appriopriate to refinement method: lazy or restarting
+    if (restartAnalysis){
+      stats = new RelyGuaranteeRefinerRestartingStatistics();
+    }
+
+    stats.totalTimer.start();
+
     int threadNo = reachedSets.length;
 
-    Timer refinementTimer = new Timer();
-    refinementTimer.start();
 
     //assert checkART(reachedSets[errorThr]);
     assert reachedSets[errorThr].getLastElement() instanceof ARTElement;
@@ -181,24 +224,25 @@ public class RelyGuaranteeRefiner{
     for (int i=0; i<threadNo; i++){
       artReachedSets[i] = new ARTReachedSet(reachedSets[i], artCpas[i]);
     }
+    System.out.println();
     System.out.println("\t\t\t ----- Interpolation -----");
-    CounterexampleTraceInfo mCounterexampleTraceInfo = manager.buildRgCounterexampleTrace(targetElement, reachedSets, errorThr);
+    CounterexampleTraceInfo mCounterexampleTraceInfo = manager.buildRgCounterexampleTrace(targetElement, reachedSets, errorThr, stats);
 
     // if error is spurious refine
     if (mCounterexampleTraceInfo.isSpurious()) {
-      System.out.println();
-
       Multimap<Integer, Pair<ARTElement, RelyGuaranteePrecision>> refinementResult;
       if (restartAnalysis){
+        System.out.println();
         System.out.println("\t\t\t ----- Restarting analysis -----");
+        stats.restartingTimer.start();
         refinementResult = restartingRefinement(reachedSets, mCounterexampleTraceInfo);
       } else {
+        System.out.println();
         System.out.println("\t\t\t ----- Lazy abstraction -----");
         refinementResult = lazyRefinement(reachedSets, mCounterexampleTraceInfo, errorThr);
       }
 
       // drop subtrees and change precision
-      System.out.println();
       for(int tid : refinementResult.keySet()){
         for(Pair<ARTElement, RelyGuaranteePrecision> pair : refinementResult.get(tid)){
           ARTElement root = pair.getFirst();
@@ -206,22 +250,30 @@ public class RelyGuaranteeRefiner{
           RelyGuaranteePrecision precision = pair.getSecond();
           Set<ARTElement> parents = new HashSet<ARTElement>(root.getParents());
 
-          System.out.println();
-          System.out.println("BEFORE: parents of id:"+root.getElementId());
-          for (ARTElement parent : parents){
-            System.out.println("-parent id:"+parent.getElementId()+" precision: "+Precisions.extractPrecisionByType(artReachedSets[tid].getPrecision(parent), RelyGuaranteePrecision.class));
+          if (debug){
+            System.out.println();
+            System.out.println("BEFORE: parents of id:"+root.getElementId());
+            for (ARTElement parent : parents){
+              System.out.println("-parent id:"+parent.getElementId()+" precision: "+Precisions.extractPrecisionByType(artReachedSets[tid].getPrecision(parent), RelyGuaranteePrecision.class));
+            }
           }
+
           artReachedSets[tid].removeSubtree(root, precision);
-          System.out.println();
-          System.out.println("AFTER: parents of id:"+root.getElementId());
-          for (ARTElement parent : parents){
-            System.out.println("-parent id:"+parent.getElementId()+" precision: "+Precisions.extractPrecisionByType(artReachedSets[tid].getPrecision(parent), RelyGuaranteePrecision.class));
+
+          if (debug){
+            System.out.println();
+            System.out.println("AFTER: parents of id:"+root.getElementId());
+            for (ARTElement parent : parents){
+              System.out.println("-parent id:"+parent.getElementId()+" precision: "+Precisions.extractPrecisionByType(artReachedSets[tid].getPrecision(parent), RelyGuaranteePrecision.class));
+            }
           }
         }
       }
       if (restartAnalysis){
+        System.out.println();
         System.out.println("\t\t\t --- Dropping all env transitions ---");
         environment.resetEnvironment();
+        stats.restartingTimer.stop();
 
         environment.resetEnvironment();
         for (int i=0; i<reachedSets.length;i++){
@@ -232,20 +284,22 @@ public class RelyGuaranteeRefiner{
         // kill the env transitions that were generated in the drop ARTs
         // if they killed transitions covered some other transitions, then make them valid again
         System.out.println("\t\t\t --- Processing env transitions ---");
-        environment.printUnprocessedTransitions();
+
+        if (debug){
+          environment.printUnprocessedTransitions();
+        }
+
         environment.killEnvironmetalEdges(refinementResult.keySet(), artReachedSets);
         // process the remaining environmental transition
         environment.processEnvTransitions(errorThr);
       }
-      refinementTimer.stop();
-      System.out.println();
-      System.out.println("Refinement time: "+refinementTimer.printMaxTime());
+
+      stats.totalTimer.stop();
       return true;
     } else {
+
       // a real error
-      refinementTimer.stop();
-      System.out.println();
-      System.out.println("Refinement time: "+refinementTimer.printMaxTime());
+      stats.totalTimer.stop();
       return false;
     }
   }
@@ -302,8 +356,11 @@ public class RelyGuaranteeRefiner{
       RelyGuaranteePrecision newPrecision = new RelyGuaranteePrecision(pmapBuilder.build(), rgPrecision.getGlobalPredicates());
       for (ARTElement initChild : inital.getChildren()){
         refinementMap.put(tid, Pair.of(initChild, newPrecision));
-        System.out.println();
-        System.out.println("Thread "+tid+": cut-off node id:"+initChild.getElementId()+" precision "+newPrecision);
+        if (debug){
+          System.out.println();
+          System.out.println("Thread "+tid+": cut-off node id:"+initChild.getElementId()+" precision "+newPrecision);
+        }
+
       }
 
     }
@@ -375,7 +432,10 @@ public class RelyGuaranteeRefiner{
       }
 
       // correctness assertion
-      assertionCutoffNodes(tid, nodes, cutoffNodes, reachedSets, info);
+      if (debug){
+        assertionCutoffNodes(tid, nodes, cutoffNodes, reachedSets, info);
+      }
+
 
       // get new precision for the cutoff nodes;
       // precision of a cut-off node should include the precision of the elements below
@@ -408,8 +468,11 @@ public class RelyGuaranteeRefiner{
         RelyGuaranteePrecision newPrecision = new RelyGuaranteePrecision(pmapBuilder.build(), new HashSet<AbstractionPredicate>());
 
         refinementMap.put(tid, Pair.of(artCutoffElement, newPrecision));
-        System.out.println();
-        System.out.println("Thread "+tid+": cut-off node id:"+node.getArtElement().getElementId()+" precision "+newPrecision);
+        if (debug){
+          System.out.println();
+          System.out.println("Thread "+tid+": cut-off node id:"+node.getArtElement().getElementId()+" precision "+newPrecision);
+        }
+
       }
 
     }
@@ -500,10 +563,14 @@ public class RelyGuaranteeRefiner{
     return occursOnPath;
   }
 
-
-
+  public void printStatitics(){
+    System.out.println();
+    System.out.println("RG refinement statistics:");
+    if (stats != null){
+      stats.printStatistics(System.out, null, null);
+    }
+  }
 }
-
 
 /**
  * Represents reachability relation between elements in an ART
@@ -553,5 +620,7 @@ class ARTNode{
   public String toString() {
     return ""+artElement.getElementId();
   }
+
+
 
 }

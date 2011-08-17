@@ -47,15 +47,14 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefinementManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement.AbstractionElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeRefiner.RelyGuaranteeRefinerStatistics;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -69,70 +68,28 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicates;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 
-@Options(prefix="cpa.relyguarantee.refinement")
+@Options(prefix="cpa.relyguarantee")
 public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementManager<T1, T2>  {
 
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
       "^.*" + BRANCHING_PREDICATE_NAME + "(?=\\d+$)");
 
-  @Option(name="interpolatingProver", toUppercase=true, values={"MATHSAT", "CSISAT"},
+  @Option(name="refinement.interpolatingProver", toUppercase=true, values={"MATHSAT", "CSISAT"},
       description="which interpolating solver to use for interpolant generation?")
       private String whichItpProver = "MATHSAT";
 
-  @Option(description="apply deletion-filter to the abstract counterexample, to get "
-    + "a minimal set of blocks, before applying interpolation-based refinement")
-    private boolean getUsefulBlocks = false;
-
-  @Option(name="shortestCexTrace",
-      description="use incremental search in counterexample analysis, "
-        + "to find the minimal infeasible prefix")
-        private boolean shortestTrace = false;
-
-  @Option(description="only use the atoms from the interpolants as predicates, "
-    + "and not the whole interpolant")
-    private boolean atomicPredicates = true;
-
-  @Option(description="split arithmetic equalities when extracting predicates from interpolants")
+  @Option(name="refinement.splitItpAtoms",
+    description="split arithmetic equalities when extracting predicates from interpolants")
   private boolean splitItpAtoms = false;
 
-  @Option(name="shortestCexTraceUseSuffix",
-      description="if shortestCexTrace is used, "
-        + "start from the end with the incremental search")
-        private boolean useSuffix = false;
+  @Option(description="Print debugging info?")
+  private boolean debug=true;
 
-  @Option(name="shortestCexTraceZigZag",
-      description="if shortestCexTrace is used, "
-        + "alternatingly search from start and end of the trace")
-        private boolean useZigZag = false;
 
-  @Option(name="addWellScopedPredicates",
-      description="refinement will try to build 'well-scoped' predicates, "
-        + "by cutting spurious traces as explained in Section 5.2 of the paper "
-        + "'Abstractions From Proofs'\n(this does not work with function inlining).\n"
-        + "THIS FEATURE IS CURRENTLY NOT AVAILABLE. ")
-        private boolean wellScopedPredicates = false;
-
-  @Option(description="dump all interpolation problems")
-  private boolean dumpInterpolationProblems = false;
-
-  @Option(name="timelimit",
-      description="time limit for refinement (0 is infinitely long)")
-      private long itpTimeLimit = 0;
-
-  @Option(name="changesolverontimeout",
-      description="try again with a second solver if refinement timed out")
-      private boolean changeItpSolveOTF = false;
-
-  @Option(description="skip refinement if input formula is larger than "
-    + "this amount of bytes (ignored if 0)")
-    private int maxRefinementSize = 0;
 
 
   private Set<String> globalVariables;
@@ -167,6 +124,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       InterpolatingTheoremProver<T1> pItpProver, InterpolatingTheoremProver<T2> pAltItpProver, Configuration pConfig,
       LogManager pLogger, Set<String> globalVariables) throws InvalidConfigurationException {
     super(pRmgr, pFmgr, pPmgr, pThmProver, pItpProver, pAltItpProver, pConfig, pLogger);
+    pConfig.inject(this, RelyGuaranteeRefinementManager.class);
     this.globalVariables = globalVariables;
   }
 
@@ -175,14 +133,16 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
    * Counterexample analysis and predicate discovery.
    * This method is just an helper to delegate the actual work
    * This is used to detect timeouts for interpolation
+   * @param stats
    * @throws CPAException
    * @throws InterruptedException
    */
-  public CounterexampleTraceInfo buildRgCounterexampleTrace(final ARTElement targetElement, final ReachedSet[] reachedSets, int threadNo) throws CPAException, InterruptedException {
+  public CounterexampleTraceInfo buildRgCounterexampleTrace(final ARTElement targetElement, final ReachedSet[] reachedSets, int threadNo, RelyGuaranteeRefinerStatistics stats) throws CPAException, InterruptedException {
     // if we don't want to limit the time given to the solver
     //return buildCounterexampleTraceWithSpecifiedItp(pAbstractTrace, elementsOnPath, firstItpProver);
+
     if (this.whichItpProver.equals("MATHSAT")){
-      return buildRgCounterexampleTraceWithMathSat(targetElement,  reachedSets, threadNo, firstItpProver);
+      return buildRgCounterexampleTraceWithMathSat(targetElement,  reachedSets, threadNo, firstItpProver, stats);
     }
     else if (whichItpProver.equals("CSISAT")){
       return buildRgCounterexampleTraceWithCSISat(targetElement,  reachedSets, threadNo, firstItpProver);
@@ -212,70 +172,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     return result;
   }
 
-
-
-
-  private List<Formula> getFormulasForTrace(List<RelyGuaranteeAbstractElement> abstractTrace) {
-    // create the DAG formula corresponding to the abstract trace. We create
-    // n formulas, one per interpolation group
-    List<Formula> result = new ArrayList<Formula>(abstractTrace.size());
-
-    for (RelyGuaranteeAbstractElement e : abstractTrace) {
-      result.add(e.getAbstractionFormula().getBlockFormula());
-    }
-    return result;
-  }
-
-  private Formula buildBranchingFormula(Set<ARTElement> elementsOnPath) throws CPATransferException {
-    // build the branching formula that will help us find the real error path
-    Formula branchingFormula = fmgr.makeTrue();
-    for (final ARTElement pathElement : elementsOnPath) {
-
-      if (pathElement.getChildren().size() > 1) {
-        if (pathElement.getChildren().size() > 2) {
-          // can't create branching formula
-          logger.log(Level.WARNING, "ART branching with more than two outgoing edges");
-          return fmgr.makeTrue();
-        }
-
-        Iterable<CFAEdge> outgoingEdges = Iterables.transform(pathElement.getChildren(),
-            new Function<ARTElement, CFAEdge>() {
-          @Override
-          public CFAEdge apply(ARTElement child) {
-            return pathElement.getEdgeToChild(child);
-          }
-        });
-        if (!Iterables.all(outgoingEdges, Predicates.instanceOf(AssumeEdge.class))) {
-          logger.log(Level.WARNING, "ART branching without AssumeEdge");
-          return fmgr.makeTrue();
-        }
-
-        AssumeEdge edge = null;
-        for (CFAEdge currentEdge : outgoingEdges) {
-          if (((AssumeEdge)currentEdge).getTruthAssumption()) {
-            edge = (AssumeEdge)currentEdge;
-            break;
-          }
-        }
-        assert edge != null;
-
-        Formula pred = fmgr.makePredicateVariable(BRANCHING_PREDICATE_NAME + pathElement.getElementId(), 0);
-
-        // create formula by edge, be sure to use the correct SSA indices!
-        RelyGuaranteeAbstractElement pe = AbstractElements.extractElementByType(pathElement, RelyGuaranteeAbstractElement.class);
-        PathFormula pf = pe.getPathFormula();
-        pf = pmgr.makeEmptyPathFormula(pf); // reset everything except SSAMap
-        pf = pmgr.makeAnd(pf, edge);        // conjunct with edge
-
-        Formula equiv = fmgr.makeEquivalence(pred, pf.getFormula());
-        branchingFormula = fmgr.makeAnd(branchingFormula, equiv);
-      }
-    }
-    return branchingFormula;
-  }
-
-
-
   /**
    * Returns a formula encoding rely guarantee transitions to the target element, including interactions with other threads.
    * @param target
@@ -286,8 +182,12 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
    * @throws InterruptedException
    */
   public List<InterpolationBlock> getRGFormulaForElement(ARTElement target, ReachedSet[] reachedSets, int threadNo) throws InterruptedException, CPAException{
-    System.out.println();
-    System.out.println("--> Calling for "+target.getElementId()+" in thread "+threadNo+" <----");
+
+    if (debug){
+      System.out.println();
+      System.out.println("--> Calling for "+target.getElementId()+" in thread "+threadNo+" <----");
+    }
+
     assert !target.isDestroyed() && reachedSets[threadNo].contains(target);
 
 
@@ -305,13 +205,17 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     // get the set of ARTElement that have been abstracted
     Path cfaPath = computePath(target, reachedSets[threadNo]);
-    System.out.println("The error trace in thread "+threadNo+" is:\n"+cfaPath);
     List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> path = transformPath(cfaPath);
 
-    System.out.println("Abstraction elements are: ");
-    for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement> triple : path){
-      System.out.println("- id:"+triple.getFirst().getElementId()+" at loc "+triple.getSecond());
+    if (debug){
+      System.out.println("The error trace in thread "+threadNo+" is:\n"+cfaPath);
+      System.out.println("Abstraction elements are: ");
+      for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement> triple : path){
+        System.out.println("- id:"+triple.getFirst().getElementId()+" at loc "+triple.getSecond());
+      }
     }
+
+
 
     // the maximum number of primes that appears in any formula block
     int offset = 0;
@@ -335,7 +239,10 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         assert contains;
       }*/
 
-      printEnvEdgesApplied(artElement, rgElement.getOldPrimedMap().values());
+      if (debug){
+        printEnvEdgesApplied(artElement, rgElement.getOldPrimedMap().values());
+      }
+
       // map : env edge applied -> the rest path formula of the env. trace
       Map<Integer, Integer> adjustmentMap = new HashMap<Integer, Integer>(rgElement.getPrimedMap().size());
 
@@ -439,12 +346,14 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     // get the rely guarantee path for the element
     List<InterpolationBlock> interpolationBlocks = getRGFormulaForElement(targetElement, reachedSets, threadNo);
     // List<ARTElement> abstractTrace = new Vector<ARTElement>(interpolationPathFormulas.size());
-    System.out.println();
-    System.out.println("Interpolation scopes/formulas:");
-    int j=0;
-    for (InterpolationBlock ib : interpolationBlocks){
-      System.out.println("\t- "+j+" "+ib);
-      j++;
+    if (debug){
+      System.out.println();
+      System.out.println("Interpolation scopes/formulas:");
+      int j=0;
+      for (InterpolationBlock ib : interpolationBlocks){
+        System.out.println("\t- "+j+" "+ib);
+        j++;
+      }
     }
 
     logger.log(Level.ALL, "Counterexample trace formulas:", interpolationBlocks);
@@ -542,12 +451,18 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     if (spurious){
       // counterexample is spurious - print the interpolants
-      System.out.println();
-      System.out.println("Interpolants/predicates after blocks:");
+      if (debug){
+        System.out.println();
+        System.out.println("Interpolants/predicates after blocks:");
+      }
+
       for (int i=0; i<interpolationBlocks.size()-1; i++){
         ARTElement element = interpolationBlocks.get(i).getArtElement();
         Pair<Formula, Set<AbstractionPredicate>> pair = printingPredicates.get(element);
-        System.out.println("\t- "+i+": "+pair.getFirst()+",  \t"+pair.getSecond());
+        if (debug){
+          System.out.println("\t- "+i+": "+pair.getFirst()+",  \t"+pair.getSecond());
+        }
+
       }
     } else {
       // the error trace is feasible
@@ -588,23 +503,30 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
    * @param pFirstItpProver
    * @return
    */
-  private <T> CounterexampleTraceInfo buildRgCounterexampleTraceWithMathSat(ARTElement targetElement,  ReachedSet[] reachedSets, int threadNo , InterpolatingTheoremProver<T> itpProver) throws CPAException, InterruptedException{
+  private <T> CounterexampleTraceInfo buildRgCounterexampleTraceWithMathSat(ARTElement targetElement,  ReachedSet[] reachedSets, int threadNo , InterpolatingTheoremProver<T> itpProver, RelyGuaranteeRefinerStatistics stats) throws CPAException, InterruptedException{
     logger.log(Level.FINEST, "Building counterexample trace");
 
     // get the rely guarantee path for the element
+    stats.formulaTimer.start();
     List<InterpolationBlock> interpolationBlocks = getRGFormulaForElement(targetElement, reachedSets, threadNo);
 
-    System.out.println();
-    System.out.println("Interpolation block/[scope - abstraction element]/formulas:");
-    int j=0;
-    for (InterpolationBlock ib : interpolationBlocks){
-      System.out.println("\t- blk "+j+" "+ib);
-      j++;
+    stats.formulaTimer.stop();
+    stats.formulaNo = interpolationBlocks.size();
+
+    if (debug){
+      System.out.println();
+      System.out.println("Interpolation block/[scope - abstraction element]/formulas:");
+      int j=0;
+      for (InterpolationBlock ib : interpolationBlocks){
+        System.out.println("\t- blk "+j+" "+ib);
+        j++;
+      }
     }
 
     refStats.cexAnalysisSolverTimer.start();
 
     // prepare the initial list of formulas
+    stats.interpolationTimer.start();
     itpProver.init();
     List<T> interpolationIds= new Vector<T>(interpolationBlocks.size());
     for (InterpolationBlock ib : interpolationBlocks){
@@ -614,6 +536,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     CounterexampleTraceInfo info;
     boolean spurious = itpProver.isUnsat();
+    stats.unsatChecks++;
 
     if (spurious){
       /* Here interpolants are computed.
@@ -645,8 +568,11 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       SortedMap<Integer, Formula> itpContext = new TreeMap<Integer, Formula>();
       Formula lastItp = null;
 
-      System.out.println();
-      System.out.println("Interpolants/predicates after blocks:");
+      if (debug){
+        System.out.println();
+        System.out.println("Interpolants/predicates after blocks:");
+      }
+
 
       for (int i=0; i<interpolationBlocks.size()-1; i++ ){
         InterpolationBlock ib = interpolationBlocks.get(i);
@@ -657,24 +583,39 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
           // if the last interpolant was false, then the interpolants below are empty
           itpContext.clear();
           Set<AbstractionPredicate> predicates = new HashSet<AbstractionPredicate>();
-          System.out.println("\t- blk "+i+" : "+lastItp+",\t"+predicates);
+
+          if (debug){
+            System.out.println("\t- blk "+i+" : "+lastItp+",\t"+predicates);
+          }
+
           info.addPredicatesForRefinement(artElement, predicates);
         } else if (primedNo == previousPrimedNo){
           // we continue in the same branch - take the next formula from the current context
           lastItp = itpProver.getInterpolant(interpolationIds.subList(itpContext.size(), i-offset+1));
           Set<AbstractionPredicate> predicates = getPrecisionForElements(lastItp);
-          System.out.println("\t- blk "+i+" : "+lastItp+",\t"+predicates);
+
+          if (debug){
+            System.out.println("\t- blk "+i+" : "+lastItp+",\t"+predicates);
+          }
+
           info.addPredicatesForRefinement(artElement, predicates);
         } else if (primedNo < previousPrimedNo){
           // we return to a previous branch - the formula list remains the same, but interpolant gets possibly smaller
           itpContext.remove(primedNo);
           lastItp = itpProver.getInterpolant(interpolationIds.subList(itpContext.size(), i-offset+1));
           Set<AbstractionPredicate> predicates = getPrecisionForElements(lastItp);
-          System.out.println("\t- blk "+i+" : "+lastItp+",\t"+predicates);
+
+          if (debug){
+            System.out.println("\t- blk "+i+" : "+lastItp+",\t"+predicates);
+          }
+
           info.addPredicatesForRefinement(artElement, predicates);
         } else {
           // we switch to an environmental branch - the context get bigger and a new formula list is required
+
           itpProver.reset();
+          stats.interpolationTimer.stop();
+          stats.interpolationTimer.start();
           itpProver.init();
 
           // adjust the context and the offset
@@ -699,9 +640,15 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
           // get the interpolant
           spurious = itpProver.isUnsat();
           assert spurious;
+          stats.unsatChecks++;
+
           lastItp = itpProver.getInterpolant(interpolationIds.subList(itpContext.size(), i-offset+1));
           Set<AbstractionPredicate> predicates = getPrecisionForElements(lastItp);
-          System.out.println("\t- blk "+i+" : "+lastItp+",\t"+predicates);
+
+          if (debug){
+            System.out.println("\t- blk "+i+" : "+lastItp+",\t"+predicates);
+          }
+
           info.addPredicatesForRefinement(artElement, predicates);
         }
         previousPrimedNo = primedNo;
@@ -713,7 +660,9 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       info = new CounterexampleTraceInfo(false);
     }
 
+
     itpProver.reset();
+    stats.interpolationTimer.stop();
     refStats.cexAnalysisTimer.stop();
 
     return info;
@@ -798,8 +747,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       formulaList = new Vector<Integer>();
       intMap = new HashMap<Integer, ARTElement>();
     }
-
-
   }
 
 

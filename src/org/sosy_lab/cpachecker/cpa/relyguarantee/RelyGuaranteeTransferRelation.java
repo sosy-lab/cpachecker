@@ -73,7 +73,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
   private int absBlockSize = 0;
 
   @Option(description="Print debugging info?")
-  private boolean print=true;
+  private boolean debug=true;
 
 
   @Option(name="blk.atomThreshold",
@@ -237,7 +237,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
    // apply the strongest postcondition
    PathFormula finalPF = pathFormulaManager.makeAnd(matchedPF, edge.getLocalEdge());
 
-   if (print){
+   if (debug){
      System.out.println("\tby pf '"+finalPF+"'");
    }
 
