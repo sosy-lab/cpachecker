@@ -387,9 +387,10 @@ def getTableBody(listOfTests):
     rowsForCSV = []
     fileList = listOfTests[0][0].findall('sourcefile')
     rowsForStats = [['<td>total sum</td>'],
-                    ['<td>(no bug + safe) OR (bug + unsafe)</td>'],
-                    ['<td>bug + safe</td>'],
-                    ['<td>no bug + unsafe</td>'],
+                    ['<td title="(no bug exists + result is SAFE) OR ' + \
+                     '(bug exists + result is UNSAFE)">correct result</td>'],
+                    ['<td title="bug exists + result is SAFE">false positives</td>'],
+                    ['<td title="no bug exists + result is UNSAFE">false negatives</td>'],
                     ['<td>score ({0} files)</td>'.format(len(fileList))]]
 
     # get filenames
