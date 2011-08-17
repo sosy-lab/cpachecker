@@ -81,13 +81,16 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     private Timer stopTimer          = new Timer();
     private Timer envGenTimer        = new Timer();
 
-    private int   countIterations   = 0;
-    private int   maxWaitlistSize   = 0;
-    private int   countWaitlistSize = 0;
-    private int   countSuccessors   = 0;
-    private int   maxSuccessors     = 0;
-    private int   countMerge        = 0;
-    private int   countStop         = 0;
+    private int   countIterations     = 0;
+    private int   maxWaitlistSize     = 0;
+    private int   countWaitlistSize   = 0;
+    private int   countSuccessors     = 0;
+    private int   countEnvSuccessors  = 0;
+    private int   maxSuccessors       = 0;
+    private int   countMerge          = 0;
+    private int   countEnvMerge       = 0;
+    private int   countStop           = 0;
+    private int   countEnvStop        = 0;
 
     @Override
     public String getName() {
@@ -100,10 +103,13 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
       out.println("Max size of waitlist:            " + maxWaitlistSize);
       out.println("Average size of waitlist:        " + countWaitlistSize
           / countIterations);
-      out.println("Number of computed successors:   " + countSuccessors);
+      out.println("No of environmental successors:  " + countEnvSuccessors);
+      out.println("No of all successors:            " + countSuccessors);
       out.println("Max successors for one element:  " + maxSuccessors);
-      out.println("Number of times merged:          " + countMerge);
-      out.println("Number of times stopped:         " + countStop);
+      out.println("Number of environmetal merges:   " + countEnvMerge);
+      out.println("Number of all merges:            " + countMerge);
+      out.println("Number of environmetal stops:    " + countEnvStop);
+      out.println("Number of all stops:             " + countStop);
       out.println();
       out.println("Time for precision adjustment:  " + precisionTimer);
       out.println("Time for transfer relation:     " + transferTimer);
@@ -168,13 +174,11 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
           precision);
 
       stats.transferTimer.start();
-      // pretty printing of predecessors
+
       ARTElement aElement = (ARTElement) element;
-
-      RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(element, RelyGuaranteeAbstractElement.class);
-
-
       if (debug){
+        // pretty printing
+        RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(element, RelyGuaranteeAbstractElement.class);
         CFANode loc = AbstractElements.extractLocation(element);
         Precision prec = reachedSet.getPrecision(element);
         System.out.println();
@@ -199,6 +203,14 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
       stats.maxSuccessors = Math.max(numSuccessors, stats.maxSuccessors);
 
       for (AbstractElement successor : successors) {
+        // TODO for statistics, could slower down the analysis
+        RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(successor, RelyGuaranteeAbstractElement.class);
+        boolean byEnvEdge = false;
+        if (rgElement.getParentEdge() != null && rgElement.getParentEdge().getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
+          byEnvEdge = true;
+          stats.countEnvSuccessors++;
+        }
+
         logger.log(Level.FINER, "Considering successor of current element");
         logger.log(Level.ALL, "Successor of", element, "\nis", successor);
 
@@ -255,6 +267,10 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
                   reachedElement, "\n-->", mergedElement);
               stats.countMerge++;
 
+              if (byEnvEdge){
+                stats.countEnvMerge++;
+              }
+
               if (debug){
                 printMerge(successor, reachedElement, mergedElement);
               }
@@ -285,6 +301,9 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
             printCovered(successor);
           }
           stats.countStop++;
+          if (byEnvEdge){
+            stats.countEnvStop++;
+          }
 
         } else {
           logger.log(Level.FINER,
