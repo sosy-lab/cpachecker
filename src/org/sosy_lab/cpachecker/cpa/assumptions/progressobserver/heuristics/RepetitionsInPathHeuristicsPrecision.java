@@ -67,4 +67,9 @@ public class RepetitionsInPathHeuristicsPrecision implements HeuristicPrecision 
     return true;
   }
 
+  @Override
+  public boolean shouldForceToStop() {
+    return false;
+  }
+
 }

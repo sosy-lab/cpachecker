@@ -35,11 +35,16 @@ public class TimeOutHeuristicsPrecision implements HeuristicPrecision {
   @Option(description = "threshold for timeout heuristics")
   private int threshold = -1;
 
+  @Option(description = "hard limit threshold for timeout heuristics, disable restarting after this limit")
+  private int hardLimitThreshold = -1;
+
   @Option(description = "how many times to adjust timeout threshold?")
   private int adjustmentLimit = -1;
 
   // how many times did we adjusted?
   private int adjustmentIdx = 0;
+
+  private boolean shouldForceToStop = false;
 
   private final TimeOutHeuristics timeOutHeuristics;
 
@@ -53,6 +58,10 @@ public class TimeOutHeuristicsPrecision implements HeuristicPrecision {
     return threshold;
   }
 
+  public int getHardLimitThreshold() {
+    return hardLimitThreshold;
+  }
+
   @Override
   public boolean adjustPrecision() {
     if(adjustmentLimit != -1 && adjustmentIdx > adjustmentLimit){
@@ -61,6 +70,15 @@ public class TimeOutHeuristicsPrecision implements HeuristicPrecision {
     timeOutHeuristics.resetStartTime();
     adjustmentLimit ++;
     return true;
+  }
+
+  public void setShouldForceToStop() {
+    shouldForceToStop = true;
+  }
+
+  @Override
+  public boolean shouldForceToStop() {
+    return shouldForceToStop;
   }
 
 }

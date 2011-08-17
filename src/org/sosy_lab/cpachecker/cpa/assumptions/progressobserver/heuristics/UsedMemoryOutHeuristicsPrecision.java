@@ -56,4 +56,9 @@ public class UsedMemoryOutHeuristicsPrecision implements HeuristicPrecision {
     return threshold;
   }
 
+  @Override
+  public boolean shouldForceToStop() {
+    return false;
+  }
+
 }

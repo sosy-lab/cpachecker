@@ -36,6 +36,7 @@ public class TimeOutHeuristics implements StopHeuristics<TimeOutHeuristicsData> 
 
   private TimeOutHeuristicsPrecision precision;
   private long startTime;
+  private long initialStartTime;
 
   public TimeOutHeuristics(Configuration config, LogManager pLogger)
       throws InvalidConfigurationException {
@@ -50,7 +51,12 @@ public class TimeOutHeuristics implements StopHeuristics<TimeOutHeuristicsData> 
   @Override
   public TimeOutHeuristicsData getInitialData(CFANode pNode) {
     resetStartTime();
+    setInitialStartTime();
     return new TimeOutHeuristicsData(false);
+  }
+
+  private void setInitialStartTime() {
+    initialStartTime = startTime;
   }
 
   @Override
@@ -59,6 +65,12 @@ public class TimeOutHeuristics implements StopHeuristics<TimeOutHeuristicsData> 
     if (d == TimeOutHeuristicsData.BOTTOM)
       return d;
     else
+      if(precision.getHardLimitThreshold()!=-1 &&
+          System.currentTimeMillis() > initialStartTime + precision.getHardLimitThreshold()){
+        precision.setShouldForceToStop();
+        d.setThreshold(precision.getHardLimitThreshold());
+        return TimeOutHeuristicsData.BOTTOM;
+      }
       if (System.currentTimeMillis() > startTime + precision.getThreshold()) {
         d.setThreshold(precision.getThreshold());
         return TimeOutHeuristicsData.BOTTOM;

@@ -62,4 +62,9 @@ public class AssumeEdgesInPathHeuristicsPrecision implements HeuristicPrecision 
     return false;
   }
 
+  @Override
+  public boolean shouldForceToStop() {
+    return false;
+  }
+
 }

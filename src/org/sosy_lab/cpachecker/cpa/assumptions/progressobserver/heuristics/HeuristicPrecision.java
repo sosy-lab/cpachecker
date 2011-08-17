@@ -29,4 +29,6 @@ public interface HeuristicPrecision extends Precision {
 
   public boolean adjustPrecision();
 
+  public boolean shouldForceToStop();
+
 }
