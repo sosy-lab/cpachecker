@@ -193,7 +193,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
       // create and environmental edge and add it the global storage
       stats.envGenTimer.start();
       Vector<RelyGuaranteeEnvironmentalTransition> newEnvTransitions = createEnvTransitions(element);
-      environment.addEnvTransitions(aElement, newEnvTransitions);
+      environment.addEnvTransitions(newEnvTransitions);
       stats.envGenTimer.stop();
 
       int numSuccessors = successors.size();

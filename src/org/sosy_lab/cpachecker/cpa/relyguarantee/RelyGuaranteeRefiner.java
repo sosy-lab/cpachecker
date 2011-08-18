@@ -387,16 +387,18 @@ public class RelyGuaranteeRefiner{
     }
 
     Multimap<Integer, Pair<ARTElement, RelyGuaranteePrecision>> refinementMap = HashMultimap.create();
-    // for every thread get cut-off elements and their new precision
 
+    // for every thread get cut-off elements and their new precision
     for (int tid : artMap.keySet()){
       Collection<ARTElement> artElements = artMap.get(tid);
       List<ARTNode> nodes = new Vector<ARTNode>(artElements.size());
+
       // find reachability relation between ART elements of the thread
       for (ARTElement artElem : artElements){
         ARTNode node = new ARTNode(artElem);
         nodes.add(node);
       }
+
       List<ARTNode> covered = new Vector<ARTNode>(artElements.size());
       for (ARTNode nodeA : nodes){
         CFANode loc = AbstractElements.extractLocation(nodeA.getArtElement());
@@ -436,7 +438,6 @@ public class RelyGuaranteeRefiner{
         assertionCutoffNodes(tid, nodes, cutoffNodes, reachedSets, info);
       }
 
-
       // get new precision for the cutoff nodes;
       // precision of a cut-off node should include the precision of the elements below
       for (ARTNode node : cutoffNodes) {
@@ -448,14 +449,16 @@ public class RelyGuaranteeRefiner{
         pmapBuilder.putAll(rgPrecision.getPredicateMap());
 
         // in the error thread, add the precision of the error element
+        // TODO necessary?
         if (tid == errorThr){
           AbstractElement targetElement = reachedSets[errorThr].getLastElement();
           Precision oldPrecision = reachedSets[tid].getPrecision(targetElement);
           RelyGuaranteePrecision oldRgPrecision = Precisions.extractPrecisionByType(oldPrecision, RelyGuaranteePrecision.class);
           pmapBuilder.putAll(oldRgPrecision.getPredicateMap());
         }
+
+        // add old precision of the nodes below the cut-off node
         for (ARTElement artElement : node.getARTSubtree()){
-          // add old precision of the nodes below the cut-off node
           Precision oldPrecision = reachedSets[tid].getPrecision(artElement);
           RelyGuaranteePrecision oldRgPrecision = Precisions.extractPrecisionByType(oldPrecision, RelyGuaranteePrecision.class);
           pmapBuilder.putAll(oldRgPrecision.getPredicateMap());
@@ -466,15 +469,13 @@ public class RelyGuaranteeRefiner{
           pmapBuilder.putAll(loc, newpreds);
         }
         RelyGuaranteePrecision newPrecision = new RelyGuaranteePrecision(pmapBuilder.build(), new HashSet<AbstractionPredicate>());
-
         refinementMap.put(tid, Pair.of(artCutoffElement, newPrecision));
+
         if (debug){
           System.out.println();
           System.out.println("Thread "+tid+": cut-off node id:"+node.getArtElement().getElementId()+" precision "+newPrecision);
         }
-
       }
-
     }
 
     return refinementMap;

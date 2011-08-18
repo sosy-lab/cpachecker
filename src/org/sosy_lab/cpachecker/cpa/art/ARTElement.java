@@ -46,7 +46,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
   private final Set<ARTElement> parents; // more than one parent if joining elements
 
   // TODO for rely-guarantee
-  private Set<RelyGuaranteeCFAEdge> envEdgesToBeApplied;
+  private List<RelyGuaranteeCFAEdge> envEdgesToBeApplied;
 
   private ARTElement mCoveredBy = null;
   private Set<ARTElement> mCoveredByThis = null; // lazy initialization because rarely needed
@@ -247,13 +247,12 @@ public class ARTElement extends AbstractSingleWrapperElement {
     return destroyed;
   }
 
-  public Set<RelyGuaranteeCFAEdge> getEnvEdgesToBeApplied() {
+  public List<RelyGuaranteeCFAEdge> getEnvEdgesToBeApplied() {
     return envEdgesToBeApplied;
   }
 
-  public void setEnvEdgesToBeApplied(Set<RelyGuaranteeCFAEdge> pEnvEdgesToBeApplied) {
+  public void setEnvEdgesToBeApplied(List<RelyGuaranteeCFAEdge> pEnvEdgesToBeApplied) {
     envEdgesToBeApplied = pEnvEdgesToBeApplied;
   }
-
 
 }

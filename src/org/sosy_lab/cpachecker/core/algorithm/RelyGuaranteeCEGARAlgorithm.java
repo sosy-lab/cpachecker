@@ -58,7 +58,7 @@ public class RelyGuaranteeCEGARAlgorithm implements ConcurrentAlgorithm,  Statis
 
     @Override
     public void printStatistics(PrintStream out, Result pResult,ReachedSet pReached) {
-      out.println("Number of iterations:            " + countIterations);
+      out.println("Number of refinements:             " + countIterations);
       out.println("Total time on ART computation:   " + totalRGAlg);
       out.println("Total time on refinement:        " + totalRefinement);
       out.println("Total time on CEGAR:             " + totalTimer);

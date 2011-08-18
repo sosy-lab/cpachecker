@@ -94,4 +94,9 @@ public class AbstractionFormula {
   public String toString() {
     return "ABS" + id + ": " + formula;
   }
+
+  @Override
+  public int hashCode() {
+    return (13 * region.hashCode()) + 29 * formula.hashCode();
+  }
 }

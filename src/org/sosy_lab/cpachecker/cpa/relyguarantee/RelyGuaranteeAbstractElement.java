@@ -261,6 +261,11 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
     return primedMap;
   }
 
+  @Override
+  public int hashCode() {
+    return (19 * abstractionFormula.hashCode()) + 37 * pathFormula.hashCode();
+  }
+
 
 
 

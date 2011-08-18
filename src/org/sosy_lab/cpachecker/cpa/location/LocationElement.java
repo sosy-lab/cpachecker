@@ -148,5 +148,10 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
       return this;
     }
 
+    @Override
+    public int hashCode() {
+      return locationNode.hashCode();
+    }
+
     // no equals and hashCode because there is always only one element per CFANode
 }

@@ -69,9 +69,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
-import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.SetMultimap;
 
 @Options(prefix="cpa.relyguarantee")
 public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
@@ -181,7 +181,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
       while(i != -1 && !error) {
 
         // apply all valid env. edges to CFA
-        SetMultimap<CFANode, RelyGuaranteeCFAEdge> envEdgesMap = addEnvTransitionsToCFA(i);
+        ListMultimap<CFANode, RelyGuaranteeCFAEdge> envEdgesMap = addEnvTransitionsToCFA(i);
         // add relevant states to the wait list
         setWaitlist(reached[i], envEdgesMap);
         // run the thread
@@ -224,17 +224,17 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
    * Put relevant states into the waitlist
    * @param envEdgesMap
    */
-  private void setWaitlist(ReachedSet reachedSet, SetMultimap<CFANode, RelyGuaranteeCFAEdge> envEdgesMap) {
+  private void setWaitlist(ReachedSet reachedSet, ListMultimap<CFANode, RelyGuaranteeCFAEdge> envEdgesMap) {
     for (CFANode node : envEdgesMap.keySet()){
       Set<AbstractElement> relevant = reachedSet.getReached(node);
       for (AbstractElement ae : relevant){
         if (AbstractElements.extractLocation(ae).equals(node)){
           if (!reachedSet.getWaitlist().contains(relevant)){
             ARTElement artElement = (ARTElement) ae;
-            Set<RelyGuaranteeCFAEdge> envEdges = artElement.getEnvEdgesToBeApplied();
+            List<RelyGuaranteeCFAEdge> envEdges = artElement.getEnvEdgesToBeApplied();
             assert envEdges == null;
             if (envEdges == null){
-              envEdges = new HashSet<RelyGuaranteeCFAEdge>();
+              envEdges = new Vector<RelyGuaranteeCFAEdge>();
             }
             envEdges.addAll(envEdgesMap.get(node));
             artElement.setEnvEdgesToBeApplied(envEdges);
@@ -297,8 +297,9 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
   /**
    * Apply env transitions to CFA no. i and return true if at least one node has been applied
    */
-  private SetMultimap<CFANode, RelyGuaranteeCFAEdge> addEnvTransitionsToCFA(int i) {
-    SetMultimap<CFANode, RelyGuaranteeCFAEdge> envEdgesMap = HashMultimap.create();
+  private ListMultimap<CFANode, RelyGuaranteeCFAEdge> addEnvTransitionsToCFA(int i) {
+    ListMultimap<CFANode, RelyGuaranteeCFAEdge> envEdgesMap = ArrayListMultimap.create();
+
     RelyGuaranteeCFA cfa = cfas[i];
     Multimap<CFANode, String> map = cfa.getRhsVariables();
     // remove old environmental edges

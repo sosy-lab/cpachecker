@@ -105,4 +105,9 @@ public abstract class AbstractSingleWrapperElement implements AbstractWrapperEle
       return null;
     }
   }
+
+  @Override
+  public int hashCode(){
+    return wrappedElement.hashCode();
+  }
 }

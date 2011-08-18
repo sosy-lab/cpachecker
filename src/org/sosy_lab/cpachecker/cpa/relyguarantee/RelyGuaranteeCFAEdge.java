@@ -119,6 +119,10 @@ public class RelyGuaranteeCFAEdge implements CFAEdge{
     return template;
   }
 
+  public int hashCode() {
+    return 31 * sourceARTElementWrapper.artElement.hashCode()  + pathFormulaWrapper.pathFormula.hashCode();
+  }
+
 
 
 }
