@@ -211,7 +211,7 @@ public class InterpreterTransferRelation implements TransferRelation {
         try {
           ExprResult res = handleLeftSide(exp, successor.getCurrentScope().getParentScope(),successor);
           ExprResult res2  = handleRightSide(returnEdge.getExpression(),successor.getCurrentScope(),successor);
-          handleAssignment(res,res2);
+          handleAssignment(res,res2,successor);
 
         } catch (Exception e) {
          e.printStackTrace();
@@ -346,36 +346,36 @@ public class InterpreterTransferRelation implements TransferRelation {
 
 
 private AbstractElement handleAssume(AssumeEdge pAssumeEdge,
-      InterpreterElement pelement) {
+      InterpreterElement pel) {
     try {
       //System.out.println("TRUTH "+ pAssumeEdge.getTruthAssumption());
       //System.out.println("EXPRESSION "+ pAssumeEdge.getExpression().getRawSignature());
-      ExprResult exp = handleRightSide(pAssumeEdge.getExpression(),pelement.getCurrentScope(),pelement);
+      ExprResult exp = handleRightSide(pAssumeEdge.getExpression(),pel.getCurrentScope(),pel);
       switch(exp.getResultType()){
       case Num:
         if((exp.getnumber().compareTo(BigInteger.ZERO)==0) ^ !pAssumeEdge.getTruthAssumption()){
           return InterpreterBottomElement.INSTANCE;
         }else{
-          return pelement;
+          return pel;
         }
       case Var:
         Variable v = exp.getVariable();
-        if(v.getTypeClass() == TypeClass.PRIMITIVE){
+        if(v.getTypeClass(pel) == TypeClass.PRIMITIVE){
           PrimitiveVariable pvar = (PrimitiveVariable)v;
-          BigInteger big1 = decodeVar(pvar);
+          BigInteger big1 = decodeVar(pvar,pel);
           System.out.println(big1);
           if((big1.compareTo(BigInteger.ZERO)==0) ^ !pAssumeEdge.getTruthAssumption()){
             return InterpreterBottomElement.INSTANCE;
           }else{
-            return pelement;
+            return pel;
           }
-        }else if (v.getTypeClass() == TypeClass.POINTER || v.getTypeClass() == TypeClass.PRIMITIVEPNT){
+        }else if (v.getTypeClass(pel) == TypeClass.POINTER || v.getTypeClass(pel) == TypeClass.PRIMITIVEPNT){
           MemoryBlock block = v.getAddress().getMemoryBlock();
           int offset = v.getAddress().getOffset();
-          if(block.getAddress(offset).getMemoryBlock()==null ^ !pAssumeEdge.getTruthAssumption()){
+          if(block.getAddress(offset,pel).getMemoryBlock()==null ^ !pAssumeEdge.getTruthAssumption()){
             return InterpreterBottomElement.INSTANCE;
           }else{
-            return pelement;
+            return pel;
           }
         }else{
           throw new Exception("not yet supported");
@@ -451,11 +451,11 @@ private void handleUnknownFunctionCall(IASTFunctionCallAssignmentStatement pstat
       IASTExpression sizeexp = mcall.getFunctionCallExpression().getParameterExpressions().get(0);
       ExprResult expr= handleRightSide(sizeexp, pelement.getCurrentScope(),pelement);
       int size = expr.getnumber().intValue();
-      MemoryBlock block = pelement.getFactory().allocateMemoryBlock(size);
+      MemoryBlock block = pelement.getFactory().allocateMemoryBlock(size,pelement);
       Address addr = new Address(block,0);
       ExprResult res1 = new ExprResult(addr,null,-1);
       ExprResult res2  = handleLeftSide(mcall.getLeftHandSide(),pelement.getCurrentScope(),pelement);
-      handleAssignment(res2,res1);
+      handleAssignment(res2,res1,pelement);
 
 
     }else{
@@ -481,7 +481,7 @@ private void copyVars(InterpreterElement pelement, List<String> pList,
       handleSimpleDecl((IASTSimpleDeclSpecifier)tmp.getDeclSpecifier(),tmp.getName(),pelement);
       ExprResult res2 =handleRightSide(exp, pelement.getCurrentScope(), pelement);
       ExprResult res1 = new ExprResult(pelement.getCurrentScope().getVariable(tmp.getName(),pelement));
-      handleAssignment(res1, res2);
+      handleAssignment(res1, res2,pelement);
     }else if(exp instanceof IASTIdExpression){
       String cname = ((IASTIdExpression) exp).getName();
       Variable cvar = pelement.getCurrentScope().getParentScope().getVariable(cname,pelement);
@@ -497,7 +497,7 @@ private void copyVars(InterpreterElement pelement, List<String> pList,
          try {
            handlePointerDecl((IASTPointerTypeSpecifier)typ,cpname ,pelement);
            ExprResult expr2 = new ExprResult(pelement.getCurrentScope().getVariable(cpname,pelement));
-           handleAssignment(expr2,expr);
+           handleAssignment(expr2,expr,pelement);
          } catch (Exception e) {
           e.printStackTrace();
          }
@@ -518,24 +518,24 @@ private void copyVars(InterpreterElement pelement, List<String> pList,
 
 
 private void handleFree(IASTFunctionCallStatement pStatement,
-    InterpreterElement pelement) throws Exception {
+    InterpreterElement pel) throws Exception {
   IASTFunctionCallExpression mcall = pStatement.getFunctionCallExpression();
   IASTExpression nameexpr =mcall.getFunctionNameExpression();
     if(nameexpr instanceof IASTIdExpression){
       String funcname = ((IASTIdExpression)nameexpr).getName();
       if(funcname.compareTo("CPAfree")==0){
-        ExprResult x = handleRightSide(mcall.getParameterExpressions().get(0),pelement.getCurrentScope(),pelement);
+        ExprResult x = handleRightSide(mcall.getParameterExpressions().get(0),pel.getCurrentScope(),pel);
         switch(x.getResultType()){
         case Var:
           Variable v = x.getVariable();
           if(v instanceof PointerVariable){
             MemoryBlock b = v.getAddress().getMemoryBlock();
             int offset = v.getAddress().getOffset();
-            Address addr = b.getAddress(offset);
+            Address addr = b.getAddress(offset,pel);
             if(addr.getOffset()!=0){
               throw new Exception("need address with offset 0 for memoryblock");
             }
-            addr.getMemoryBlock().free();
+            addr.getMemoryBlock().free(pel);
             return;
           }
 
@@ -560,7 +560,7 @@ private void handleAssignStatement(
 
 
 
-     handleAssignment(res1,res2);
+     handleAssignment(res1,res2,pelement);
 
 
 
@@ -569,7 +569,7 @@ private void handleAssignStatement(
 
 
 
-private void handleAssignment(ExprResult res1, ExprResult res2) throws Exception{
+private void handleAssignment(ExprResult res1, ExprResult res2, InterpreterElement pelement) throws Exception{
 
 
 
@@ -602,14 +602,14 @@ private void handleAssignment(ExprResult res1, ExprResult res2) throws Exception
   case FuncPnt:
     MemoryBlock bl = addr.getMemoryBlock();
     int offst = addr.getOffset();
-    bl.setFunctionPointer(offst,res2.getFunctionPnt());
+    bl.setFunctionPointer(offst,res2.getFunctionPnt(),pelement);
     return;
 
   case Addr:
     if(res2.getLevelofIndirection()==-1){ //malloc
       int offset =  addr.getOffset();
       MemoryBlock block = addr.getMemoryBlock();
-      block.setAddress(offset, res2.getAddress());
+      block.setAddress(offset, res2.getAddress(),pelement);
       return;
     }
     if(res1.getResultType()== RType.Var){
@@ -620,7 +620,7 @@ private void handleAssignment(ExprResult res1, ExprResult res2) throws Exception
           if(checkType(pvar.getBaseType(),res2.getDataType())&& (pvar.getlevel() == res2.getLevelofIndirection())){
             int offset = pvar.getAddress().getOffset();
             MemoryBlock block = pvar.getAddress().getMemoryBlock();
-            block.setAddress(offset, res2.getAddress());
+            block.setAddress(offset, res2.getAddress(),pelement);
 
           } else{
             throw new Exception("TYPES do not coincide");
@@ -633,7 +633,7 @@ private void handleAssignment(ExprResult res1, ExprResult res2) throws Exception
            pvar.setPnt();
            int offset = pvar.getAddress().getOffset();
            MemoryBlock block = pvar.getAddress().getMemoryBlock();
-           block.setAddress(offset, res2.getAddress());
+           block.setAddress(offset, res2.getAddress(),pelement);
 
         }else{
 
@@ -643,7 +643,7 @@ private void handleAssignment(ExprResult res1, ExprResult res2) throws Exception
       if(checkType(res1.getDataType(),res2.getDataType()) && (res1.getLevelofIndirection()== res2.getLevelofIndirection())){
       MemoryBlock b =addr.getMemoryBlock();
       int offset = addr.getOffset();
-      b.setAddress(offset, res2.getAddress());
+      b.setAddress(offset, res2.getAddress(),pelement);
       }else{
         throw new Exception("TYPES don't coincide");
       }
@@ -653,21 +653,21 @@ private void handleAssignment(ExprResult res1, ExprResult res2) throws Exception
   case Num:
 
     if(typ instanceof PrimitiveType  && level ==0)
-      writePrimVar((PrimitiveType)typ,addr,res2.getnumber());
+      writePrimVar((PrimitiveType)typ,addr,res2.getnumber(),pelement);
     else if(typ instanceof PointerType && res2.getnumber().compareTo(BigInteger.valueOf(0)) ==0){
       if(res1.getResultType()==RType.Var){
-        ((PointerVariable)res1.getVariable()).setNullPointer();
+        ((PointerVariable)res1.getVariable()).setNullPointer(pelement);
         return;
       }
       MemoryBlock block;
       int offset=0;
       block = addr.getMemoryBlock();
       offset = addr.getOffset();
-      block.setAddress(offset, new Address(null,0));
+      block.setAddress(offset, new Address(null,0),pelement);
 
     }
     else if(level >0 && res2.getnumber().compareTo(BigInteger.ZERO)==0){
-      addr.getMemoryBlock().setAddress(addr.getOffset(), new Address(null,0));
+      addr.getMemoryBlock().setAddress(addr.getOffset(), new Address(null,0),pelement);
     }else{
       //System.out.println(typ.getTypeClass());
       //System.out.println("NUMBER" +res2.getnumber());
@@ -681,10 +681,10 @@ private void handleAssignment(ExprResult res1, ExprResult res2) throws Exception
 
     if(checkType(typ,typ2)){
       if(res1.getResultType()== RType.Var){
-        copyVar(res1.getVariable().getAddress(),res2.getVariable().getAddress(),res2.getVariable().getSize());
+        copyVar(res1.getVariable().getAddress(),res2.getVariable().getAddress(),res2.getVariable().getSize(),pelement);
 
       }else if(res1.getResultType()== RType.Addr){
-        copyVar(res1.getAddress(),res2.getVariable().getAddress(),res2.getVariable().getSize());
+        copyVar(res1.getAddress(),res2.getVariable().getAddress(),res2.getVariable().getSize(),pelement);
       }
     }else if(typ instanceof PrimitiveType && typ2 instanceof PointerType){
        if (res1.getResultType()==RType.Var){
@@ -698,13 +698,13 @@ private void handleAssignment(ExprResult res1, ExprResult res2) throws Exception
            throw new Exception("only int can be used in pointer calcs");
          }
        }
-       copyVar(addr,res2.getVariable().getAddress(), res2.getVariable().getSize() );
+       copyVar(addr,res2.getVariable().getAddress(), res2.getVariable().getSize(),pelement );
 
     }
     else if(typ instanceof PointerType && typ2 instanceof PrimitiveType){
 
 
-      copyVar(res1.getVariable().getAddress(),res2.getVariable().getAddress(),res2.getVariable().getSize());
+      copyVar(res1.getVariable().getAddress(),res2.getVariable().getAddress(),res2.getVariable().getSize(),pelement);
     }
 
     else{
@@ -765,9 +765,9 @@ private ExprResult handleRightSide(IASTExpression pRight,
         throw new Exception("not supported");
       case Var:
         Variable v =res.getVariable();
-        if(v.getTypeClass()==TypeClass.PRIMITIVE){
+        if(v.getTypeClass(pel)==TypeClass.PRIMITIVE){
           PrimitiveVariable var = (PrimitiveVariable)v;
-          BigInteger bigint = decodeVar(var);
+          BigInteger bigint = decodeVar(var,pel);
           bigint = bigint.multiply(BigInteger.valueOf(-1));
 
           return new ExprResult(bigint);
@@ -786,45 +786,45 @@ private ExprResult handleRightSide(IASTExpression pRight,
       res = handleRightSide(unaryexp.getOperand(),currentScope,pel);
       switch(res.getResultType()){
       case Var:
-        if(res.getVariable().getTypeClass()== TypeClass.POINTER){
+        if(res.getVariable().getTypeClass(pel)== TypeClass.POINTER){
           PointerVariable var = (PointerVariable)res.getVariable();
           MemoryBlock b =  var.getAddress().getMemoryBlock();
 
 
-          Address addr = b.getAddress(0);
+          Address addr = b.getAddress(0,pel);
           if(var.getlevel()>1 ){
-            if(addr.getMemoryBlock().getCellType(addr.getOffset())==CellType.ADDR){
-              Address addr2 = addr.getMemoryBlock().getAddress(addr.getOffset());
+            if(addr.getMemoryBlock().getCellType(addr.getOffset(),pel)==CellType.ADDR){
+              Address addr2 = addr.getMemoryBlock().getAddress(addr.getOffset(),pel);
 
               return new ExprResult(addr2,var.getBaseType(),var.getlevel()-1);
-            }else if(addr.getMemoryBlock().getCellType(addr.getOffset())==CellType.FUNC){ //TODO: PointerVariable used in Cast should be FuncPointerVariable (either extend cast or merge VariableTypes)
+            }else if(addr.getMemoryBlock().getCellType(addr.getOffset(),pel)==CellType.FUNC){ //TODO: PointerVariable used in Cast should be FuncPointerVariable (either extend cast or merge VariableTypes)
               if(var.getlevel()!=2)
                 throw new Exception("Error with dereference");
-              return new ExprResult(addr.getMemoryBlock().getFunctionPointer(addr.getOffset()));
+              return new ExprResult(addr.getMemoryBlock().getFunctionPointer(addr.getOffset(),pel));
             }
           }else{
             switch(var.getBaseType().getTypeClass()){
             case PRIMITIVE:
               PrimitiveVariable tmp = new PrimitiveVariable("tmp", addr,  (PrimitiveType)var.getBaseType(), false,false);//TODO: signed unsigned handeln
-              return new ExprResult(decodeVar(tmp));
+              return new ExprResult(decodeVar(tmp,pel));
             default:
               throw new Exception("REF OF DATA TYPE NOT YET SUPPORTED");
             }
           }
-        }else if(res.getVariable().getTypeClass() == TypeClass.FUNCPOINTER){
+        }else if(res.getVariable().getTypeClass(pel) == TypeClass.FUNCPOINTER){
           FuncPointerVariable var = (FuncPointerVariable)res.getVariable();
           MemoryBlock b =  var.getAddress().getMemoryBlock();
           int offset = var.getAddress().getOffset();
 
           if(var.getlevel()>1){
-            Address tmp = b.getAddress(offset);
+            Address tmp = b.getAddress(offset,pel);
             PointerType k  = (PointerType)var.getType();
             PointerType x = new PointerType(var.getBaseType(),false,var.getlevel()-1);
 
             FuncPointerVariable fptmp = new FuncPointerVariable("tmp",tmp,var.getBaseType(),x,var.getlevel()-1);
             return new ExprResult(fptmp);
           }else{
-            return new ExprResult(b.getFunctionPointer(offset));
+            return new ExprResult(b.getFunctionPointer(offset,pel));
           }
 
 
@@ -842,7 +842,7 @@ private ExprResult handleRightSide(IASTExpression pRight,
         //struct data->a might return address
         break;
       case Var:
-        switch(res.getVariable().getTypeClass()){
+        switch(res.getVariable().getTypeClass(pel)){
         case PRIMITIVE:
           PrimitiveVariable v = (PrimitiveVariable) res.getVariable();
           return new ExprResult(v.getAddress(), v.getType(),1);
@@ -873,10 +873,10 @@ private ExprResult handleRightSide(IASTExpression pRight,
 
       case Var:
         Variable v = res.getVariable();
-        switch(v.getTypeClass()){
+        switch(v.getTypeClass(pel)){
         case PRIMITIVE:
           PrimitiveVariable pvar = (PrimitiveVariable)v;
-          BigInteger big1= decodeVar(pvar);
+          BigInteger big1= decodeVar(pvar,pel);
           return new ExprResult(big1.not());
 
         default:
@@ -896,7 +896,7 @@ private ExprResult handleRightSide(IASTExpression pRight,
       }
 
     case NOT:
-      ExprResult expr =handleNot(res);
+      ExprResult expr =handleNot(res,pel);
       return expr;
     case SIZEOF:
       switch(res.getResultType()){
@@ -924,20 +924,20 @@ private ExprResult handleRightSide(IASTExpression pRight,
     ExprResult res;
     switch(((IASTBinaryExpression) pRight).getOperator()){
     case LOGICAL_OR:
-      res = handleOr(res1,res2,currentScope);
+      res = handleOr(res1,res2,currentScope,pel);
       return res;
     case LOGICAL_AND:
-      res1 = handleNot(res1);
-      res2 = handleNot(res2);
-      res = handleOr(res1,res2,currentScope);
+      res1 = handleNot(res1,pel);
+      res2 = handleNot(res2,pel);
+      res = handleOr(res1,res2,currentScope,pel);
       return res;
     case LESS_THAN:
-      res = handleLessThan(res1,res2,currentScope);
+      res = handleLessThan(res1,res2,currentScope,pel);
       return res;
 
 
     case GREATER_THAN:
-      res = handleLessThan(res2,res1,currentScope);
+      res = handleLessThan(res2,res1,currentScope,pel);
       return res;
     case LESS_EQUAL:
       ExprResult tmp;
@@ -945,7 +945,7 @@ private ExprResult handleRightSide(IASTExpression pRight,
       res1 = res2;
       res2 = tmp;
     case GREATER_EQUAL:
-      res = handleLessThan(res1,res2,currentScope);
+      res = handleLessThan(res1,res2,currentScope,pel);
       if(res.getnumber().compareTo(BigInteger.ZERO)==0){
         return new ExprResult(BigInteger.ONE);
       }else{
@@ -953,25 +953,25 @@ private ExprResult handleRightSide(IASTExpression pRight,
       }
 
     case BINARY_AND:
-      res = handleBinaryAND(res1,res2,currentScope);
+      res = handleBinaryAND(res1,res2,currentScope,pel);
       return res;
     case PLUS:
-       res = handleBinaryOP(res1,res2,currentScope,NumOP.PLUS);
+       res = handleBinaryOP(res1,res2,currentScope,NumOP.PLUS,pel);
       return res;
     case MINUS:
-      res = handleBinaryOP(res1,res2,currentScope,NumOP.MINUS);
+      res = handleBinaryOP(res1,res2,currentScope,NumOP.MINUS,pel);
       return res;
     case MULTIPLY:
-      res = handleBinaryOP(res1,res2,currentScope,NumOP.MULTIPLY);
+      res = handleBinaryOP(res1,res2,currentScope,NumOP.MULTIPLY,pel);
       return res;
     case DIVIDE:
-      res = handleBinaryOP(res1,res2,currentScope,NumOP.DIVIDE);
+      res = handleBinaryOP(res1,res2,currentScope,NumOP.DIVIDE,pel);
       return res;
     case EQUALS:
-      res = handleEquals(res1,res2,currentScope);
+      res = handleEquals(res1,res2,currentScope,pel);
       return res;
     case NOT_EQUALS:
-      res = handleEquals(res1,res2,currentScope);
+      res = handleEquals(res1,res2,currentScope,pel);
       if(res.getnumber().compareTo(BigInteger.ZERO)==0){
         return new ExprResult(BigInteger.ONE);
       }else{
@@ -999,29 +999,29 @@ private ExprResult handleRightSide(IASTExpression pRight,
 }
 
 private ExprResult handleRCast(IASTExpression pRight, Scope cur,
-    InterpreterElement el) throws Exception {
-  Type z= handleRightCast(pRight.getExpressionType(),cur,el);
+    InterpreterElement pel) throws Exception {
+  Type z= handleRightCast(pRight.getExpressionType(),cur,pel);
   ExprResult res;
   switch(z.getTypeClass()){
   case PRIMITIVE:
     PrimitiveType k=(PrimitiveType)z;
-    res = handleRightSide(((IASTCastExpression)pRight).getOperand(), cur,el);
+    res = handleRightSide(((IASTCastExpression)pRight).getOperand(), cur,pel);
     switch(res.getResultType()){
     case Num:
       //TODO: add conversion?? (not really needed assign typechecks done by cil)
       return res;
     case Var:
-      switch(res.getVariable().getTypeClass()){
+      switch(res.getVariable().getTypeClass(pel)){
       case PRIMITIVE:
 
-        MemoryBlock block = el.getFactory().allocateMemoryBlock(k.sizeOf());
+        MemoryBlock block = pel.getFactory().allocateMemoryBlock(k.sizeOf(),pel);
         Address naddr = new Address(block,0);
         if(k.sizeOf()<res.getVariable().getSize()){
-          copyVar(naddr, res.getVariable().getAddress(), k.sizeOf());
+          copyVar(naddr, res.getVariable().getAddress(), k.sizeOf(),pel);
         }else{
-          copyVar(naddr, res.getVariable().getAddress(), res.getVariable().getSize());
+          copyVar(naddr, res.getVariable().getAddress(), res.getVariable().getSize(),pel);
           for(int x= res.getVariable().getSize();x<k.sizeOf();x++){
-            naddr.getMemoryBlock().setData(x,(byte)0);
+            naddr.getMemoryBlock().setData(x,(byte)0,pel);
           }
         }
         PrimitiveVariable tmp = new PrimitiveVariable("tmpx", naddr, k, k.isSigned(), k.isConst());
@@ -1032,8 +1032,8 @@ private ExprResult handleRCast(IASTExpression pRight, Scope cur,
         return res;
       case ARRAY:
         tmp = null;
-        block = el.getFactory().allocateMemoryBlock(4);
-        block.setAddress(0, res.getVariable().getAddress());
+        block = pel.getFactory().allocateMemoryBlock(4,pel);
+        block.setAddress(0, res.getVariable().getAddress(),pel);
         naddr = new Address(block,0);
         tmp = new PrimitiveVariable("tmpy",naddr,k,k.isSigned(),k.isConst());
         tmp.setPnt();
@@ -1048,7 +1048,7 @@ private ExprResult handleRCast(IASTExpression pRight, Scope cur,
     }
   case POINTER:
     PointerType pt = (PointerType)z;
-    res = handleRightSide(((IASTCastExpression)pRight).getOperand(), cur,el);
+    res = handleRightSide(((IASTCastExpression)pRight).getOperand(), cur,pel);
     switch(res.getResultType()){
     case Addr:
       //TODO add pointer conversion logic
@@ -1063,7 +1063,7 @@ private ExprResult handleRCast(IASTExpression pRight, Scope cur,
       throw new Exception("Can not cast number to pointer");
     case Var:
       Variable v = res.getVariable();
-      switch(v.getTypeClass()){
+      switch(v.getTypeClass(pel)){
         case PRIMITIVE:
           ((PrimitiveVariable) res.getVariable()).setPnt();
 
@@ -1102,7 +1102,7 @@ private ExprResult handleRCast(IASTExpression pRight, Scope cur,
 
 
 
-private ExprResult handleOr(ExprResult pRes1, ExprResult pRes2, Scope pCur) throws Exception{
+private ExprResult handleOr(ExprResult pRes1, ExprResult pRes2, Scope pCur,InterpreterElement pel) throws Exception{
   // TODO Auto-generated method stub
   switch(pRes1.getResultType()){
   case Num:
@@ -1112,17 +1112,17 @@ private ExprResult handleOr(ExprResult pRes1, ExprResult pRes2, Scope pCur) thro
    break;
   case Var:
     Variable v = pRes1.getVariable();
-    switch(v.getTypeClass()){
+    switch(v.getTypeClass(pel)){
     case PRIMITIVE:
       PrimitiveVariable var = (PrimitiveVariable)v;
-      BigInteger big1 = decodeVar(var);
+      BigInteger big1 = decodeVar(var,pel);
       if(big1.compareTo(BigInteger.ZERO)>0){
         return new ExprResult(BigInteger.ONE);
       }
       break;
     case POINTER:
       PointerVariable pvar = (PointerVariable)v;
-      if(!pvar.isNullPointer()){
+      if(!pvar.isNullPointer(pel)){
         return new ExprResult(BigInteger.ONE);
       }
       break;
@@ -1130,7 +1130,7 @@ private ExprResult handleOr(ExprResult pRes1, ExprResult pRes2, Scope pCur) thro
       var = (PrimitiveVariable)v;
       MemoryBlock b = var.getAddress().getMemoryBlock();
       int offset = var.getAddress().getOffset();
-      if(b.getAddress(offset).getMemoryBlock()!=null){
+      if(b.getAddress(offset,pel).getMemoryBlock()!=null){
         return new ExprResult(BigInteger.ONE);
       }
       break;
@@ -1156,10 +1156,10 @@ private ExprResult handleOr(ExprResult pRes1, ExprResult pRes2, Scope pCur) thro
 
   case Var:
     Variable v = pRes2.getVariable();
-    switch(v.getTypeClass()){
+    switch(v.getTypeClass(pel)){
     case PRIMITIVE:
       PrimitiveVariable var = (PrimitiveVariable)v;
-      BigInteger big1 = decodeVar(var);
+      BigInteger big1 = decodeVar(var,pel);
       if(big1.compareTo(BigInteger.ZERO)>0){
         return new ExprResult(BigInteger.ONE);
       }else{
@@ -1168,7 +1168,7 @@ private ExprResult handleOr(ExprResult pRes1, ExprResult pRes2, Scope pCur) thro
 
     case POINTER:
       PointerVariable pvar = (PointerVariable)v;
-      if(!pvar.isNullPointer()){
+      if(!pvar.isNullPointer(pel)){
         return new ExprResult(BigInteger.ONE);
       }else{
         return new ExprResult(BigInteger.ZERO);
@@ -1178,7 +1178,7 @@ private ExprResult handleOr(ExprResult pRes1, ExprResult pRes2, Scope pCur) thro
       var = (PrimitiveVariable)v;
       MemoryBlock b = var.getAddress().getMemoryBlock();
       int offset = var.getAddress().getOffset();
-      if(b.getAddress(offset).getMemoryBlock()!=null){
+      if(b.getAddress(offset,pel).getMemoryBlock()!=null){
         return new ExprResult(BigInteger.ONE);
       }else{
         return new ExprResult(BigInteger.ZERO);
@@ -1203,17 +1203,17 @@ private ExprResult handleOr(ExprResult pRes1, ExprResult pRes2, Scope pCur) thro
 
 
 
-private ExprResult  handleNot(ExprResult res) throws Exception {
+private ExprResult  handleNot(ExprResult res, InterpreterElement pel) throws Exception {
   switch(res.getResultType()){
   case Addr:
     throw new Exception("inversion of addresses not allowed");
 
   case Var:
     Variable v = res.getVariable();
-    switch(v.getTypeClass()){
+    switch(v.getTypeClass(pel)){
     case PRIMITIVE:
       PrimitiveVariable pvar = (PrimitiveVariable)v;
-      BigInteger big1= decodeVar(pvar);
+      BigInteger big1= decodeVar(pvar,pel);
       if(big1.compareTo(BigInteger.ZERO)==0){
         return new ExprResult(BigInteger.ONE);
       }else{
@@ -1245,7 +1245,7 @@ private ExprResult  handleNot(ExprResult res) throws Exception {
 
 
 
-private ExprResult handleLessThan(ExprResult pRes1, ExprResult pRes2, Scope pCur) throws Exception {
+private ExprResult handleLessThan(ExprResult pRes1, ExprResult pRes2, Scope pCur, InterpreterElement pel) throws Exception {
   BigInteger big1;
   BigInteger big2;
   switch(pRes1.getResultType()){
@@ -1254,8 +1254,8 @@ private ExprResult handleLessThan(ExprResult pRes1, ExprResult pRes2, Scope pCur
     break;
   case Var:
     Variable v = pRes1.getVariable();
-    if(v.getTypeClass()== TypeClass.PRIMITIVE){
-      big1 = decodeVar((PrimitiveVariable)v);
+    if(v.getTypeClass(pel)== TypeClass.PRIMITIVE){
+      big1 = decodeVar((PrimitiveVariable)v,pel);
     }else{
       throw new Exception("less than does not support pointers");
     }
@@ -1270,8 +1270,8 @@ private ExprResult handleLessThan(ExprResult pRes1, ExprResult pRes2, Scope pCur
     break;
   case Var:
     Variable v = pRes2.getVariable();
-    if(v.getTypeClass()== TypeClass.PRIMITIVE){
-      big2 = decodeVar((PrimitiveVariable)v);
+    if(v.getTypeClass(pel)== TypeClass.PRIMITIVE){
+      big2 = decodeVar((PrimitiveVariable)v,pel);
     }else{
       throw new Exception("less than does not support pointers");
     }
@@ -1293,7 +1293,7 @@ private ExprResult handleLessThan(ExprResult pRes1, ExprResult pRes2, Scope pCur
 
 
 
-private ExprResult handleEquals(ExprResult pRes1, ExprResult pRes2, Scope pCur) throws Exception {
+private ExprResult handleEquals(ExprResult pRes1, ExprResult pRes2, Scope pCur,InterpreterElement pel) throws Exception {
 
 
 
@@ -1311,7 +1311,7 @@ private ExprResult handleEquals(ExprResult pRes1, ExprResult pRes2, Scope pCur) 
         }
 
     case Var:
-      return handleEquals(pRes2, pRes1, pCur);
+      return handleEquals(pRes2, pRes1, pCur,pel);
       /*Variable v = pRes2.getVariable();
       if(v.getTypeClass()==TypeClass.PRIMITIVE){
         BigInteger big2 = decodeVar((PrimitiveVariable)v);
@@ -1340,21 +1340,21 @@ private ExprResult handleEquals(ExprResult pRes1, ExprResult pRes2, Scope pCur) 
   case Var:
     Variable v = pRes1.getVariable();
 
-    if(v.getTypeClass()==TypeClass.PRIMITIVE){
+    if(v.getTypeClass(pel)==TypeClass.PRIMITIVE){
       PrimitiveVariable pvar =(PrimitiveVariable)v;
-      BigInteger big1 = decodeVar(pvar);
+      BigInteger big1 = decodeVar(pvar,pel);
       ExprResult res1 = new ExprResult(big1);
-      return handleEquals(pRes2, res1,  pCur);
-    }else if(v.getTypeClass() == TypeClass.POINTER){
+      return handleEquals(pRes2, res1,  pCur,pel);
+    }else if(v.getTypeClass(pel) == TypeClass.POINTER){
       PointerVariable pvar =(PointerVariable)v;
      ExprResult res1 = new ExprResult(pvar.getAddress(), pvar.getBaseType(), pvar.getlevel());
-      return handleEquals(pRes2,res1,pCur);
-    }else if(v.getTypeClass() == TypeClass.PRIMITIVEPNT){
+      return handleEquals(pRes2,res1,pCur,pel);
+    }else if(v.getTypeClass(pel) == TypeClass.PRIMITIVEPNT){
       PrimitiveVariable pvar =(PrimitiveVariable)v;
       MemoryBlock b = pvar.getAddress().getMemoryBlock();
       int offset = pvar.getAddress().getOffset();
-      ExprResult res1 = new ExprResult(b.getAddress(offset), pvar.getType(), 1);
-       return handleEquals(pRes2,res1,pCur);
+      ExprResult res1 = new ExprResult(b.getAddress(offset,pel), pvar.getType(), 1);
+       return handleEquals(pRes2,res1,pCur,pel);
      }
 
 
@@ -1375,12 +1375,12 @@ private ExprResult handleEquals(ExprResult pRes1, ExprResult pRes2, Scope pCur) 
       }
 
     case Var:
-      return handleEquals(pRes2, pRes1, pCur);
+      return handleEquals(pRes2, pRes1, pCur,pel);
     case Num:
       MemoryBlock block = pRes1.getAddress().getMemoryBlock();
       int offset = pRes1.getAddress().getOffset();
-      if(block.getCellType(offset)==CellType.ADDR){
-        if(block.getAddress(offset).getMemoryBlock()== null){
+      if(block.getCellType(offset,pel)==CellType.ADDR){
+        if(block.getAddress(offset,pel).getMemoryBlock()== null){
           if(pRes2.getnumber().compareTo(BigInteger.ZERO)==0){
             return new ExprResult(BigInteger.ONE);
 
@@ -1405,7 +1405,7 @@ private ExprResult handleEquals(ExprResult pRes1, ExprResult pRes2, Scope pCur) 
 }
 
 private ExprResult handleBinaryAND(ExprResult pRes1, ExprResult pRes2,
-    Scope pCur) throws Exception {
+    Scope pCur, InterpreterElement pel) throws Exception {
   BigInteger big1;
   BigInteger big2;
   switch(pRes1.getResultType()){
@@ -1414,10 +1414,10 @@ private ExprResult handleBinaryAND(ExprResult pRes1, ExprResult pRes2,
     break;
   case Var:
     Variable v = pRes1.getVariable();
-    switch(v.getTypeClass()){
+    switch(v.getTypeClass(pel)){
     case PRIMITIVE:
       PrimitiveVariable pvar = (PrimitiveVariable)v;
-      big1 = decodeVar(pvar);
+      big1 = decodeVar(pvar,pel);
       break;
     default:
       throw new Exception("Binaryand not for complex data types");
@@ -1434,10 +1434,10 @@ private ExprResult handleBinaryAND(ExprResult pRes1, ExprResult pRes2,
     break;
   case Var:
     Variable v = pRes2.getVariable();
-    switch(v.getTypeClass()){
+    switch(v.getTypeClass(pel)){
     case PRIMITIVE:
       PrimitiveVariable pvar = (PrimitiveVariable)v;
-      big2 = decodeVar(pvar);
+      big2 = decodeVar(pvar,pel);
       break;
     default:
       throw new Exception("Binaryand not for complex data types");
@@ -1453,27 +1453,27 @@ private ExprResult handleBinaryAND(ExprResult pRes1, ExprResult pRes2,
 }
 
 private ExprResult handleLeftSide(IASTExpression pLeft,
-    Scope cur,InterpreterElement el) throws Exception {
+    Scope cur,InterpreterElement pel) throws Exception {
     ExprResult res;
     if(pLeft instanceof IASTIdExpression){
-      Address z = cur.getVariable(((IASTIdExpression) pLeft).getName(),el).getAddress();
-      return new ExprResult(cur.getVariable(((IASTIdExpression) pLeft).getName(),el));
+      Address z = cur.getVariable(((IASTIdExpression) pLeft).getName(),pel).getAddress();
+      return new ExprResult(cur.getVariable(((IASTIdExpression) pLeft).getName(),pel));
     }
     if(pLeft instanceof IASTUnaryExpression){
       IASTUnaryExpression uexp = (IASTUnaryExpression) pLeft;
       switch(uexp.getOperator()){
       case STAR:
-          res = handleLeftSide(uexp.getOperand(),cur,el);
+          res = handleLeftSide(uexp.getOperand(),cur,pel);
           switch(res.getResultType()){
           case Var:
 
             PointerVariable var = (PointerVariable)res.getVariable();
             MemoryBlock b =  var.getAddress().getMemoryBlock();
             int offset = var.getAddress().getOffset();
-            return new ExprResult(b.getAddress(offset),var.getBaseType(),var.getlevel()-1);
+            return new ExprResult(b.getAddress(offset,pel),var.getBaseType(),var.getlevel()-1);
           case Addr:
             b= res.getAddress().getMemoryBlock();
-            return new ExprResult(b.getAddress(res.getAddress().getOffset()),res.getDataType(),res.getLevelofIndirection()-1);
+            return new ExprResult(b.getAddress(res.getAddress().getOffset(),pel),res.getDataType(),res.getLevelofIndirection()-1);
 
 
           default:
@@ -1487,8 +1487,8 @@ private ExprResult handleLeftSide(IASTExpression pLeft,
     if(pLeft instanceof IASTCastExpression){
       IASTCastExpression expr = (IASTCastExpression)pLeft;
       IType type = expr.getExpressionType();
-      Type p = handleRightCast(type,cur,el);
-      ExprResult res1 = handleLeftSide(expr.getOperand(),cur,el);
+      Type p = handleRightCast(type,cur,pel);
+      ExprResult res1 = handleLeftSide(expr.getOperand(),cur,pel);
       switch(p.getTypeClass()){
       case POINTER:
         PointerType pnt= (PointerType)p;
@@ -1523,7 +1523,7 @@ private Type handleRightCast(IType pExpressionType, Scope pCur,InterpreterElemen
 }
 
 private ExprResult handleBinaryOP(ExprResult pRes1, ExprResult pRes2,
-    Scope pCur,NumOP op) throws Exception {
+    Scope pCur,NumOP op, InterpreterElement pel) throws Exception {
   BigInteger big1,big2;
   switch(pRes1.getResultType()){
   case Num:
@@ -1531,15 +1531,15 @@ private ExprResult handleBinaryOP(ExprResult pRes1, ExprResult pRes2,
     break;
   case Var:
     Variable v = pRes1.getVariable();
-    switch(v.getTypeClass()){
+    switch(v.getTypeClass(pel)){
     case PRIMITIVE:
       PrimitiveVariable var = (PrimitiveVariable) v;
-      big1 = decodeVar(var);
+      big1 = decodeVar(var,pel);
       break;
     case POINTER:
     case PRIMITIVEPNT:
       if(op== NumOP.PLUS || op== NumOP.MINUS)
-        return handlePntOP(pRes1.getVariable(),pRes2,op);
+        return handlePntOP(pRes1.getVariable(),pRes2,op,pel);
       else
         throw new Exception("Pnt arithmetik only supported for +/-");
 
@@ -1551,7 +1551,7 @@ private ExprResult handleBinaryOP(ExprResult pRes1, ExprResult pRes2,
     break;
   case Addr:
     if(op== NumOP.PLUS || op== NumOP.MINUS)
-      return handleAddrPntOP(pRes1.getAddress(),pRes1.getDataType(),pRes2,op,pRes1.getLevelofIndirection());
+      return handleAddrPntOP(pRes1.getAddress(),pRes1.getDataType(),pRes2,op,pRes1.getLevelofIndirection(),pel);
     else
       throw new Exception("Pnt arithmetik only supported for +/-");
 
@@ -1566,15 +1566,15 @@ private ExprResult handleBinaryOP(ExprResult pRes1, ExprResult pRes2,
     break;
   case Var:
     Variable v = pRes2.getVariable();
-    switch(v.getTypeClass()){
+    switch(v.getTypeClass(pel)){
     case PRIMITIVE:
       PrimitiveVariable var = (PrimitiveVariable) v;
-      big2 = decodeVar(var);
+      big2 = decodeVar(var,pel);
       break;
     case POINTER:
     case PRIMITIVEPNT:
       if(op== NumOP.PLUS || op== NumOP.MINUS)
-        return handlePntOP(pRes2.getVariable(),pRes1,op);
+        return handlePntOP(pRes2.getVariable(),pRes1,op,pel);
       else
         throw new Exception("Pnt arithmetik only supported for +/-");
 
@@ -1585,7 +1585,7 @@ private ExprResult handleBinaryOP(ExprResult pRes1, ExprResult pRes2,
     break;
   case Addr:
     if(op== NumOP.PLUS || op== NumOP.MINUS)
-      return handleAddrPntOP(pRes2.getAddress(),pRes2.getDataType(),pRes1,op,pRes2.getLevelofIndirection());
+      return handleAddrPntOP(pRes2.getAddress(),pRes2.getDataType(),pRes1,op,pRes2.getLevelofIndirection(),pel);
     else
       throw new Exception("Pnt arithmetik only supported for +/-");
 
@@ -1598,15 +1598,15 @@ private ExprResult handleBinaryOP(ExprResult pRes1, ExprResult pRes2,
 }
 
 private ExprResult handleAddrPntOP(Address pAddress, Type pType,
-    ExprResult pRes1, NumOP op, int level) throws Exception {
+    ExprResult pRes1, NumOP op, int level, InterpreterElement pel) throws Exception {
 
 
 
   switch(pRes1.getResultType()){
   case Var:
     PrimitiveVariable var = (PrimitiveVariable)pRes1.getVariable();
-    ExprResult expr = new ExprResult(decodeVar(var));
-    return handleAddrPntOP(pAddress,pType, expr,op,level);
+    ExprResult expr = new ExprResult(decodeVar(var,pel));
+    return handleAddrPntOP(pAddress,pType, expr,op,level,pel);
   case Num:
     Address v = new Address(pAddress.getMemoryBlock(),op.performCalc(pAddress.getOffset(), pRes1.getnumber().intValue()));
     return new ExprResult(v,pType,level);
@@ -1618,19 +1618,19 @@ private ExprResult handleAddrPntOP(Address pAddress, Type pType,
 
 
 
-private ExprResult handlePntOP(Variable pV, ExprResult pRes2, NumOP op) throws Exception {
+private ExprResult handlePntOP(Variable pV, ExprResult pRes2, NumOP op, InterpreterElement pel) throws Exception {
 
   Address addr = pV.getAddress();
   switch(pRes2.getResultType()){
   case Var:
     PrimitiveVariable var = (PrimitiveVariable)pRes2.getVariable();
-    ExprResult expr = new ExprResult(decodeVar(var));
-    return handlePntOP(pV, expr,op);
+    ExprResult expr = new ExprResult(decodeVar(var,pel));
+    return handlePntOP(pV, expr,op,pel);
   case Num:
     Address naddr;
     int big1 =pRes2.getnumber().intValue();
     int pnt=big1;
-    if (pV.getTypeClass() == TypeClass.POINTER){
+    if (pV.getTypeClass(pel) == TypeClass.POINTER){
       PointerVariable pvar = (PointerVariable)pV;
       //PointerVariable pvar = (PointerVariable)pV;
       if(pvar.getlevel()>1){
@@ -1639,11 +1639,11 @@ private ExprResult handlePntOP(Variable pV, ExprResult pRes2, NumOP op) throws E
         pnt = big1*pvar.getBaseType().sizeOf();
       }
     }
-    int base =addr.getMemoryBlock().getAddress(addr.getOffset()).getOffset();
-    naddr = new Address(addr.getMemoryBlock().getAddress(addr.getOffset()).getMemoryBlock(),op.performCalc(base, pnt));
-    if(pV.getTypeClass()==TypeClass.PRIMITIVEPNT){
+    int base =addr.getMemoryBlock().getAddress(addr.getOffset(),pel).getOffset();
+    naddr = new Address(addr.getMemoryBlock().getAddress(addr.getOffset(),pel).getMemoryBlock(),op.performCalc(base, pnt));
+    if(pV.getTypeClass(pel)==TypeClass.PRIMITIVEPNT){
       return new ExprResult(naddr,pV.getType(),1);
-    }else if(pV.getTypeClass() == TypeClass.POINTER){
+    }else if(pV.getTypeClass(pel) == TypeClass.POINTER){
       return new ExprResult(naddr,((PointerVariable)pV).getBaseType(),((PointerVariable)pV).getlevel());
     }
   default:
@@ -1653,7 +1653,7 @@ private ExprResult handlePntOP(Variable pV, ExprResult pRes2, NumOP op) throws E
 
 }
 
-private void copyVar(Address pAddress, Address pAddress2, int pSize) throws Exception {
+private void copyVar(Address pAddress, Address pAddress2, int pSize,InterpreterElement pel) throws Exception {
     int offset, offset2;
     MemoryBlock block, block2;
 
@@ -1663,19 +1663,19 @@ private void copyVar(Address pAddress, Address pAddress2, int pSize) throws Exce
     block = pAddress.getMemoryBlock();
     block2 = pAddress2.getMemoryBlock();
     for(int x=0;x<pSize;x++){
-      switch(block2.getCellType(offset2+x)){
+      switch(block2.getCellType(offset2+x,pel)){
       case EMPTY:
         //TODO: analyze behavior of composite variables
         break;
       case DATA:
-        block.setData(offset+x, block2.getData(offset2+x));
+        block.setData(offset+x, block2.getData(offset2+x,pel),pel);
 
         break;
       case ADDR:
-        block.setAddress(offset+x, block2.getAddress(offset2+x));
+        block.setAddress(offset+x, block2.getAddress(offset2+x,pel),pel);
         break;
       case FUNC:
-        block.setFunctionPointer(offset+x, block2.getFunctionPointer(offset2+x));
+        block.setFunctionPointer(offset+x, block2.getFunctionPointer(offset2+x,pel),pel);
         break;
       default:
       throw new Exception("not supported yet");
@@ -1696,7 +1696,7 @@ private boolean checkType(Type pTyp, Type pTyp2) {
 
 }
 
-private void writePrimVar(PrimitiveType pTyp, Address pAddr, BigInteger pGetnumber) {
+private void writePrimVar(PrimitiveType pTyp, Address pAddr, BigInteger pGetnumber,InterpreterElement pel) {
   int exp;
   exp = pTyp.sizeOf();
   BigInteger numb = BigInteger.valueOf(2);
@@ -1714,7 +1714,7 @@ private void writePrimVar(PrimitiveType pTyp, Address pAddr, BigInteger pGetnumb
   for(int x =0; x<exp;x++){
     BigInteger tmp = pGetnumber.and(BigInteger.valueOf(255));
     try {
-      block.setData(offset+x,  tmp.byteValue());
+      block.setData(offset+x,  tmp.byteValue(),pel);
     } catch (MemoryException e) {
       e.printStackTrace();
     }
@@ -1726,13 +1726,13 @@ private void writePrimVar(PrimitiveType pTyp, Address pAddr, BigInteger pGetnumb
 }
 
 //TODO:test method
-private BigInteger decodeVar(PrimitiveVariable pVar) {
+private BigInteger decodeVar(PrimitiveVariable pVar, InterpreterElement pel) {
   byte data[] = new byte[pVar.getSize()];
   MemoryBlock mem = pVar.getAddress().getMemoryBlock();
   int offset = pVar.getAddress().getOffset();
   for(int x=0;x<data.length;x++){
     try {
-      data[x]= mem.getData(x+offset);
+      data[x]= mem.getData(x+offset,pel);
     } catch (MemoryException e) {
 
       e.printStackTrace();
@@ -1836,24 +1836,24 @@ private void handleTypeDecl(String name, InterpreterElement pElement,
 
 
 
-private void handleDynVarDef(String name, String label, InterpreterElement pElement,boolean isConst) throws Exception {
+private void handleDynVarDef(String name, String label, InterpreterElement pel,boolean isConst) throws Exception {
 
-  CompositeType comp = pElement.getCurrentScope().getCurrentTypeLibrary().getType(label);
+  CompositeType comp = pel.getCurrentScope().getCurrentTypeLibrary().getType(label);
   if(comp == null){
     System.out.println("Forward declaration");
     return;
   }
   int size = comp.sizeOf();
-  MemoryBlock data = pElement.getFactory().allocateMemoryBlock(size);
+  MemoryBlock data = pel.getFactory().allocateMemoryBlock(size,pel);
   Address addr = new Address(data,0);
   switch(comp.getTypeClass()){
   case STRUCT:
     DynVariable var = new DynVariable(name,addr,comp,isConst,dyntypes.STRUCT);
-    pElement.getCurrentScope().addVariable(var,pElement);
+    pel.getCurrentScope().addVariable(var,pel);
     break;
   case UNION:
     var = new DynVariable(name,addr,comp,isConst,dyntypes.UNION);
-    pElement.getCurrentScope().addVariable(var,pElement);
+    pel.getCurrentScope().addVariable(var,pel);
     break;
    default:
      throw new Exception("Not supported dynamic variable type");
@@ -1905,34 +1905,34 @@ private CompositeType allocateDynType(IASTCompositeTypeSpecifier pComptyp,
 
 
 private void handleArrayDecl(IASTArrayTypeSpecifier pTyp, String pName,
-    InterpreterElement pElement) throws Exception {
-    ArrayType typ=getArrayType(pTyp,pElement.getCurrentScope(),pElement);
+    InterpreterElement pel) throws Exception {
+    ArrayType typ=getArrayType(pTyp,pel.getCurrentScope(),pel);
     int length = typ.length();
-    MemoryBlock b = pElement.getFactory().allocateMemoryBlock(typ.sizeOf());
+    MemoryBlock b = pel.getFactory().allocateMemoryBlock(typ.sizeOf(),pel);
     Address addr = new Address(b,0);
     ArrayVariable var = new ArrayVariable(pName, addr, length, typ, typ.getType());
 
-    pElement.getCurrentScope().addVariable(var,pElement);
+    pel.getCurrentScope().addVariable(var,pel);
 
 }
 
 
 
 private void handlePointerDecl(IASTPointerTypeSpecifier pTyp,
-    String pName, InterpreterElement pElement) throws Exception{
+    String pName, InterpreterElement pel) throws Exception{
 
 
 
 
-    PointerType typ = getPointerType(pTyp,pElement.getCurrentScope(),pElement);
-    MemoryBlock block = pElement.getFactory().allocateMemoryBlock(4);
+    PointerType typ = getPointerType(pTyp,pel.getCurrentScope(),pel);
+    MemoryBlock block = pel.getFactory().allocateMemoryBlock(4,pel);
     Address addr = new Address(block, 0);
     if(typ.getTargetType() instanceof FunctionType){
       FuncPointerVariable var = new FuncPointerVariable(pName, addr, typ.getTargetType(), typ, typ.getLevelOfIndirection());
-      pElement.getCurrentScope().addVariable(var,pElement);
+      pel.getCurrentScope().addVariable(var,pel);
     }else{
       PointerVariable var = new PointerVariable(pName, addr, typ.getTargetType(), typ, typ.getLevelOfIndirection());
-      pElement.getCurrentScope().addVariable(var,pElement);
+      pel.getCurrentScope().addVariable(var,pel);
     }
     return;
 
@@ -1940,7 +1940,7 @@ private void handlePointerDecl(IASTPointerTypeSpecifier pTyp,
 }
 
 public void handleSimpleDecl(IASTSimpleDeclSpecifier pTyp,
-    String name, InterpreterElement pElement) {
+    String name, InterpreterElement pel) {
   Address addr;
   MemoryBlock block;
   PrimitiveVariable pVar;
@@ -1948,11 +1948,11 @@ public void handleSimpleDecl(IASTSimpleDeclSpecifier pTyp,
 
   PrimitiveType ptyp = getPrimitiveType(pTyp);
   if(ptyp.getPrimitive() != null){
-    block = pElement.getFactory().allocateMemoryBlock(ptyp.getPrimitive().sizeOf());
+    block = pel.getFactory().allocateMemoryBlock(ptyp.getPrimitive().sizeOf(),pel);
     addr = new Address(block,0);
 
     pVar = new PrimitiveVariable(name, addr,  ptyp, ptyp.isSigned(),ptyp.isConst());
-    pElement.getCurrentScope().addVariable(pVar,pElement);
+    pel.getCurrentScope().addVariable(pVar,pel);
   }else{
     try {
       throw new Exception("Unsupported primitive Data Type");
@@ -1985,9 +1985,9 @@ private ArrayType getArrayType(IASTArrayTypeSpecifier pTyp,
       break;
     case Var:
       Variable v = res.getVariable();
-      switch(v.getTypeClass()){
+      switch(v.getTypeClass(pel)){
         case PRIMITIVE:
-            x= decodeVar((PrimitiveVariable)v).intValue();
+            x= decodeVar((PrimitiveVariable)v,pel).intValue();
             break;
         default:
           throw new Exception("unknown index field: variable type not allowed");

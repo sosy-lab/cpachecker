@@ -12,7 +12,16 @@ int test(int a , int b )
   return (a - b);
 }
 }
-#line 10 "funcpnt2.c"
+#line 9 "funcpnt2.c"
+int test2(int a , int b ) 
+{ 
+
+  {
+#line 10
+  return (a + b);
+}
+}
+#line 14 "funcpnt2.c"
 int main(void) 
 { f pnt[2] ;
   f *p ;
@@ -23,34 +32,53 @@ int main(void)
   f __cil_tmp7 ;
   unsigned int __cil_tmp8 ;
   unsigned int __cil_tmp9 ;
-  f __cil_tmp10 ;
+  unsigned int __cil_tmp10 ;
+  unsigned int __cil_tmp11 ;
+  f __cil_tmp12 ;
+  unsigned int __cil_tmp13 ;
+  unsigned int __cil_tmp14 ;
+  f __cil_tmp15 ;
 
   {
-#line 13
-  __cil_tmp3 = 0 * 4U;
-#line 13
-  __cil_tmp4 = (unsigned int )(pnt) + __cil_tmp3;
-#line 13
-  *((f *)__cil_tmp4) = & test;
-#line 14
-  __cil_tmp5 = 0 * 4U;
-#line 14
-  __cil_tmp6 = (unsigned int )(pnt) + __cil_tmp5;
-#line 14
-  __cil_tmp7 = *((f *)__cil_tmp6);
-#line 14
-  (*__cil_tmp7)(3, 4);
-#line 15
-  __cil_tmp8 = 0 * 4U;
-#line 15
-  __cil_tmp9 = (unsigned int )(pnt) + __cil_tmp8;
-#line 15
-  p = (f *)__cil_tmp9;
-#line 16
-  __cil_tmp10 = *p;
-#line 16
-  (*__cil_tmp10)(3, 4);
 #line 18
+  __cil_tmp3 = 0 * 4U;
+#line 18
+  __cil_tmp4 = (unsigned int )(pnt) + __cil_tmp3;
+#line 18
+  *((f *)__cil_tmp4) = & test;
+#line 19
+  __cil_tmp5 = 0 * 4U;
+#line 19
+  __cil_tmp6 = (unsigned int )(pnt) + __cil_tmp5;
+#line 19
+  __cil_tmp7 = *((f *)__cil_tmp6);
+#line 19
+  (*__cil_tmp7)(3, 4);
+#line 20
+  __cil_tmp8 = 1 * 4U;
+#line 20
+  __cil_tmp9 = (unsigned int )(pnt) + __cil_tmp8;
+#line 20
+  *((f *)__cil_tmp9) = & test2;
+#line 21
+  __cil_tmp10 = 1 * 4U;
+#line 21
+  __cil_tmp11 = (unsigned int )(pnt) + __cil_tmp10;
+#line 21
+  __cil_tmp12 = *((f *)__cil_tmp11);
+#line 21
+  (*__cil_tmp12)(3, 9);
+#line 22
+  __cil_tmp13 = 0 * 4U;
+#line 22
+  __cil_tmp14 = (unsigned int )(pnt) + __cil_tmp13;
+#line 22
+  p = (f *)__cil_tmp14;
+#line 23
+  __cil_tmp15 = *p;
+#line 23
+  (*__cil_tmp15)(3, 4);
+#line 26
   return (0);
 }
 }

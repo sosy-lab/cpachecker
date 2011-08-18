@@ -74,7 +74,7 @@ public class FuncPointerVariable implements Variable {
   }
 
   @Override
-  public TypeClass getTypeClass() {
+  public TypeClass getTypeClass(InterpreterElement pel) {
     // TODO Auto-generated method stub
     return TypeClass.FUNCPOINTER;
   }
@@ -119,7 +119,7 @@ public class FuncPointerVariable implements Variable {
     // TODO Auto-generated method stub
     return isConst;
   }
-  @Override
+  /*@Override
   public FuncPointerVariable clone(){
     if(clone==null){
       Address v = addr.clone();
@@ -127,13 +127,13 @@ public class FuncPointerVariable implements Variable {
       clone= new FuncPointerVariable(name, v, basetyp, typ,level,isNULLPointer);
     }
     return clone;
-  }
+  }*/
 
 
   @Override
   public void copyVar(String pname, InterpreterElement el) throws Exception {
     // TODO Auto-generated method stub
-    MemoryBlock b =el.getFactory().allocateMemoryBlock(this.getSize());
+    MemoryBlock b =el.getFactory().allocateMemoryBlock(this.getSize(),el);
     Address naddr = new Address(b, 0);
 
     FuncPointerVariable nvar = new FuncPointerVariable(pname, naddr, basetyp, typ, level );
@@ -141,11 +141,11 @@ public class FuncPointerVariable implements Variable {
     int of= addr.getOffset();
 
     for(int x=0; x<nvar.getSize();x++){
-      MemoryCell data = oldb.getMemoryCell(of+x);
+      MemoryCell data = oldb.getMemoryCell(of+x,el);
       if(data != null && data instanceof AddrMemoryCell){
         data = data.copy();
       }
-      b.setMemoryCell(data,x);
+      b.setMemoryCell(data,x,el);
 
     }
     el.getCurrentScope().addVariable(nvar,el);
@@ -157,10 +157,10 @@ public class FuncPointerVariable implements Variable {
        return isNULLPointer;
   }
 
-  public void setNullPointer(boolean isnull){
+  public void setNullPointer(boolean isnull, InterpreterElement pel){
     if(isnull){
       try {
-        addr.getMemoryBlock().setAddress(addr.getOffset(), new Address(null,0));
+        addr.getMemoryBlock().setAddress(addr.getOffset(), new Address(null,0),pel);
       } catch (MemoryException e) {
         // TODO Auto-generated catch block
         e.printStackTrace();

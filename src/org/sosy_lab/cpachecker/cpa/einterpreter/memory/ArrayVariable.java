@@ -52,7 +52,7 @@ public class ArrayVariable  implements Variable{
 
 
   @Override
-  public TypeClass getTypeClass() {
+  public TypeClass getTypeClass(InterpreterElement pel) {
     return TypeClass.ARRAY;
   }
 
@@ -82,7 +82,7 @@ public class ArrayVariable  implements Variable{
 
   @Override
   public void copyVar(String pname, InterpreterElement el) throws Exception {
-    MemoryBlock b =el.getFactory().allocateMemoryBlock(this.getSize());
+    MemoryBlock b =el.getFactory().allocateMemoryBlock(this.getSize(),el);
     Address naddr = new Address(b, 0);
 
     ArrayVariable nvar = new ArrayVariable(pname, naddr,length,type,baseType );
@@ -90,11 +90,11 @@ public class ArrayVariable  implements Variable{
     int of= addr.getOffset();
 
     for(int x=0; x<nvar.getSize();x++){
-      MemoryCell data = oldb.getMemoryCell(of+x);
+      MemoryCell data = oldb.getMemoryCell(of+x,el);
       if(data != null && data instanceof AddrMemoryCell){
         data = data.copy();
       }
-      b.setMemoryCell(data,x);
+      b.setMemoryCell(data,x,el);
 
     }
     el.getCurrentScope().addVariable(nvar,el);
@@ -107,7 +107,7 @@ public class ArrayVariable  implements Variable{
     return false;
   }
 
-  @Override
+  /*@Override
   public ArrayVariable clone(){
     if(clone==null){
       Address v = addr.clone();
@@ -115,7 +115,7 @@ public class ArrayVariable  implements Variable{
       clone= new ArrayVariable(name, v,this.length,type,baseType);
     }
     return clone;
-  }
+  }*/
 
 
 

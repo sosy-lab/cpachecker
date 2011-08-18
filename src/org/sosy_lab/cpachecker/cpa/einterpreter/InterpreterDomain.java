@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.einterpreter;
 
-import java.util.Map;
+
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -55,7 +55,7 @@ public class InterpreterDomain implements AbstractDomain {
         }
       }
       return new InterpreterElement(newConstantsMap, explicitAnalysisElement2.getPreviousElement());*/
-      
+
       throw new UnsupportedOperationException();
   }
 }

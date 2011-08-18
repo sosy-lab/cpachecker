@@ -23,23 +23,35 @@
  */
 package org.sosy_lab.cpachecker.cpa.einterpreter.memory;
 
+import java.util.HashMap;
+
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cpa.einterpreter.InterpreterElement;
 
 public class FuncMemoryCell implements MemoryCell {
 
- private CFAFunctionDefinitionNode func;
- private FuncMemoryCell clone = null;
+ private HashMap<InterpreterElement,CFAFunctionDefinitionNode> func;
 
 
-  public FuncMemoryCell(CFAFunctionDefinitionNode paddr){
-    func = paddr;
+
+  public FuncMemoryCell(CFAFunctionDefinitionNode paddr,InterpreterElement pel){
+    func= new HashMap<InterpreterElement, CFAFunctionDefinitionNode>();
+    func.put(pel, paddr);
   }
 
-  void setFunctionPoint(CFAFunctionDefinitionNode paddr){
-    func = paddr;
+  @SuppressWarnings("unchecked")
+  private FuncMemoryCell(HashMap<InterpreterElement, CFAFunctionDefinitionNode> paddr){
+    func = (HashMap<InterpreterElement, CFAFunctionDefinitionNode>) paddr.clone();
   }
-  CFAFunctionDefinitionNode getFunctionPoint(){
-    return func;
+
+  void setFunctionPoint(CFAFunctionDefinitionNode paddr, InterpreterElement pel){
+    func.put(pel,paddr);
+  }
+  CFAFunctionDefinitionNode getFunctionPoint(InterpreterElement pel){
+    while(func.containsKey(pel)== false && pel.getprev()!=null){
+      pel =pel.getprev();
+    }
+    return func.get(pel);
   }
 
 
@@ -48,7 +60,7 @@ public class FuncMemoryCell implements MemoryCell {
     return CellType.FMC;
   }
 
-  @Override
+  /*@Override
   public FuncMemoryCell clone(){
     if(clone != null){
       return clone;
@@ -56,7 +68,7 @@ public class FuncMemoryCell implements MemoryCell {
       clone = new FuncMemoryCell(func);
       return clone;
     }
-  }
+  }*/
   @Override
   public FuncMemoryCell copy(){
 

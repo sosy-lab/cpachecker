@@ -23,20 +23,33 @@
  */
 package org.sosy_lab.cpachecker.cpa.einterpreter.memory;
 
+import java.util.HashMap;
+
+import org.sosy_lab.cpachecker.cpa.einterpreter.InterpreterElement;
+
 public class AddrMemoryCell implements MemoryCell {
- private Address addr;
+ private HashMap<InterpreterElement, Address> addr;
  private AddrMemoryCell clone = null;
 
 
-  public AddrMemoryCell(Address paddr){
-    addr = paddr;
+  public AddrMemoryCell(Address paddr,InterpreterElement pel){
+    addr = new HashMap<InterpreterElement, Address>();
+    addr.put(pel,paddr);
   }
 
-  void setAddress(Address paddr){
-    addr = paddr;
+  @SuppressWarnings("unchecked")
+  private AddrMemoryCell(HashMap<InterpreterElement,Address> map){
+    addr = (HashMap<InterpreterElement, Address>) map.clone();
   }
-  Address getAddress(){
-    return addr;
+
+  void setAddress(Address paddr,InterpreterElement pel){
+    addr.put(pel, paddr);
+  }
+  Address getAddress(InterpreterElement pel){
+    while(addr.containsKey(pel)== false && pel.getprev()!=null){
+      pel = pel.getprev();
+    }
+    return addr.get(pel);
   }
 
 
@@ -45,7 +58,7 @@ public class AddrMemoryCell implements MemoryCell {
     return CellType.AMC;
   }
 
-  @Override
+ /* @Override
   public AddrMemoryCell clone(){
     if(clone != null){
       return clone;
@@ -53,7 +66,7 @@ public class AddrMemoryCell implements MemoryCell {
       clone = new AddrMemoryCell(addr.clone());
       return clone;
     }
-  }
+  }*/
   @Override
   public AddrMemoryCell copy(){
 

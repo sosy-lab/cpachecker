@@ -65,7 +65,7 @@ public class PointerVariable implements Variable {
 
 
   @Override
-  public TypeClass getTypeClass() {
+  public TypeClass getTypeClass(InterpreterElement pel) {
     // TODO Auto-generated method stub
     return TypeClass.POINTER;
   }
@@ -117,7 +117,7 @@ public class PointerVariable implements Variable {
   @Override
   public void copyVar(String pname, InterpreterElement el) throws Exception {
     // TODO Auto-generated method stub
-    MemoryBlock b =el.getFactory().allocateMemoryBlock(this.getSize());
+    MemoryBlock b =el.getFactory().allocateMemoryBlock(this.getSize(),el);
     Address naddr = new Address(b, 0);
 
     PointerVariable nvar = new PointerVariable(pname, naddr, basetyp, typ, level );
@@ -125,11 +125,11 @@ public class PointerVariable implements Variable {
     int of= addr.getOffset();
 
     for(int x=0; x<nvar.getSize();x++){
-      MemoryCell data = oldb.getMemoryCell(of+x);
+      MemoryCell data = oldb.getMemoryCell(of+x,el);
       if(data != null && data instanceof AddrMemoryCell){
         data = data.copy();
       }
-      b.setMemoryCell(data,x);
+      b.setMemoryCell(data,x,el);
 
     }
     el.getCurrentScope().addVariable(nvar,el);
@@ -137,14 +137,14 @@ public class PointerVariable implements Variable {
 
 
 
-  public boolean isNullPointer() throws MemoryException{
-       return addr.getMemoryBlock().getAddress(addr.getOffset()).getMemoryBlock()==null;
+  public boolean isNullPointer(InterpreterElement pel) throws MemoryException{
+       return addr.getMemoryBlock().getAddress(addr.getOffset(),pel).getMemoryBlock()==null;
   }
 
-  public void setNullPointer(){
+  public void setNullPointer(InterpreterElement pel){
 
     try {
-        addr.getMemoryBlock().setAddress(addr.getOffset(), new Address(null,0));
+        addr.getMemoryBlock().setAddress(addr.getOffset(), new Address(null,0),pel);
     } catch (MemoryException e) {
         // TODO Auto-generated catch block
         e.printStackTrace();

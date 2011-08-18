@@ -40,9 +40,9 @@ public class Address {
   public int getOffset(){
     return offset;
   }
-
+  /*
   @Override
-  public  Address clone(){
+   public  Address clone(){
     if(clone != null){
       return clone;
     }else{
@@ -54,7 +54,7 @@ public class Address {
       }
       return clone;
     }
-  }
+  }*/
 
 
 }

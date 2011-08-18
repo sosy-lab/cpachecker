@@ -7,6 +7,6 @@ public interface MemoryCell {
     AMC, DMC, FMC
   }
   CellType getType();
-  MemoryCell clone();
+
   MemoryCell copy();
 }

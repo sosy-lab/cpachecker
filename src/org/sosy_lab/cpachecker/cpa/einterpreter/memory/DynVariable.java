@@ -48,7 +48,7 @@ public class DynVariable implements Variable{
     dyn = pdyn;
   }
   @Override
-  public TypeClass getTypeClass() {
+  public TypeClass getTypeClass(InterpreterElement pel) {
     // TODO Auto-generated method stub
     if(dyn == dyntypes.STRUCT)
       return TypeClass.STRUCT;
@@ -83,16 +83,16 @@ public class DynVariable implements Variable{
   @Override
   public void copyVar(String pPname, InterpreterElement pEl) throws Exception {
 
-    MemoryBlock b = pEl.getFactory().allocateMemoryBlock(type.sizeOf());
+    MemoryBlock b = pEl.getFactory().allocateMemoryBlock(type.sizeOf(),pEl);
     Address naddr = new Address(b,0);
     MemoryBlock o=addr.getMemoryBlock();
     int offset = addr.getOffset();
     for(int x=0;x<type.sizeOf();x++){
-      MemoryCell tmp = o.getMemoryCell(offset +x);
+      MemoryCell tmp = o.getMemoryCell(offset +x,pEl);
       if(tmp!=null){
         tmp.copy();
       }
-      b.setMemoryCell(tmp, x);
+      b.setMemoryCell(tmp, x,pEl);
     }
 
     DynVariable tmp = new DynVariable(pPname,naddr,type,isConst,dyn );
@@ -106,7 +106,7 @@ public class DynVariable implements Variable{
     // TODO Auto-generated method stub
     return isConst;
   }
-
+/*
   @Override
   public DynVariable clone(){
     if(clone ==null){
@@ -116,7 +116,7 @@ public class DynVariable implements Variable{
 
     return clone;
   }
-
+*/
 
 
 }

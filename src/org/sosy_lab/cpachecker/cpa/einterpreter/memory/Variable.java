@@ -7,7 +7,7 @@ import org.sosy_lab.cpachecker.cpa.einterpreter.memory.Type.TypeClass;
 
 
 public interface Variable {
-    TypeClass getTypeClass();
+    TypeClass getTypeClass(InterpreterElement pel);
     Type getType();
 
     String getName();

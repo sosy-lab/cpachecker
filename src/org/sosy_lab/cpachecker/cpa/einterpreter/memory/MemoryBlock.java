@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.einterpreter.memory;
 
+import java.util.HashMap;
+
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cpa.einterpreter.InterpreterElement;
 
 
 public class MemoryBlock {
@@ -34,31 +37,36 @@ public class MemoryBlock {
     EMPTY,
     FUNC
   }
-  MemoryCell block[];
+  HashMap<InterpreterElement,  MemoryCell[]> blocks;
   MemoryBlock clone = null;
   boolean free = false;
-  protected MemoryBlock(int n){
-    block = new MemoryCell[n];
-
+  int size;
+  protected MemoryBlock(int n,InterpreterElement pel){
+    blocks = new HashMap<InterpreterElement, MemoryCell[]>();
+    MemoryCell tmp [] = new MemoryCell[n];
+    blocks.put(pel, tmp);
+    size = n;
   }
 
-  private MemoryBlock(MemoryCell[] pblock,boolean pfree){
-    block = pblock;
+  /*private MemoryBlock(HashMap<InterpreterElement, MemoryCell[]> pblock,boolean pfree){
+    blocks = pblock;
 
     free = pfree;
-  }
+  }*/
 
-  MemoryCell [] getMemory(int poffset, int psize){
+  /*MemoryCell [] getMemory(int poffset, int psize){
     MemoryCell tmp[] = new MemoryCell[psize];
     for(int i =0;i<psize;i++){
       tmp[i]=block[poffset + i];
     }
     return tmp;
-  }
+  }*/
 
 
 
-    public byte getData(int poffset) throws MemoryException{
+    public byte getData(int poffset,InterpreterElement el) throws MemoryException{
+      MemoryCell [] block = getMemoryBlock(el);
+
       if(free){
         throw new MemoryException("can not access memory memory has been freed");
       }
@@ -68,7 +76,7 @@ public class MemoryBlock {
       MemoryCell c = block[poffset];
       switch(c.getType()){
         case DMC:
-          return ((DataMemoryCell)c).getData();
+          return ((DataMemoryCell)c).getData(el);
 
         case AMC:
           throw new MemoryException("can not access AMC for Data");
@@ -80,18 +88,38 @@ public class MemoryBlock {
     }
 
 
-    public void setData(int poffset,byte pdata) throws MemoryException{
+    private MemoryCell[] getMemoryBlock(InterpreterElement pEl) {
+    if(blocks.isEmpty()){
+      MemoryCell tmp[] = new MemoryCell[size];
+      blocks.put(pEl, tmp);
+      return tmp;
+    }
+    while(blocks.containsKey(pEl)==false && pEl.getprev()!=null){
+
+      pEl = pEl.getprev();
+
+    }
+
+
+    return blocks.get(pEl);
+  }
+
+    public void setData(int poffset,byte pdata, InterpreterElement el) throws MemoryException{
+      MemoryCell [] block = getMemoryBlock(el);
+
       if(free){
         throw new MemoryException("can not access memory memory has been freed");
       }
 
       if(block[poffset] == null){
-        block[poffset] = new DataMemoryCell();
+        block = block.clone();
+        block[poffset] = new DataMemoryCell(el);
+        blocks.put(el, block);
       }
       MemoryCell c = block[poffset];
       switch(c.getType()){
         case DMC:
-          ((DataMemoryCell)c).setData(pdata);
+          ((DataMemoryCell)c).setData(pdata,el);
           break;
         case AMC:
           throw new MemoryException("can not write byte in AMC");
@@ -102,7 +130,8 @@ public class MemoryBlock {
 
     }
 
-    public Address getAddress(int poffset)throws MemoryException{
+    public Address getAddress(int poffset, InterpreterElement el)throws MemoryException{
+      MemoryCell [] block = getMemoryBlock(el);
       if(free){
         throw new MemoryException("can not access memory memory has been freed");
       }
@@ -114,25 +143,29 @@ public class MemoryBlock {
           throw new MemoryException("can not access DMC for Address");
 
         case AMC:
-          return ((AddrMemoryCell)c).getAddress();
+          return ((AddrMemoryCell)c).getAddress(el);
 
         default:
           throw new MemoryException("error reading MemoryCell");
       }
     }
-    public void setAddress(int poffset,Address paddr)throws MemoryException{
+    public void setAddress(int poffset,Address paddr, InterpreterElement el)throws MemoryException{
+      MemoryCell [] block = getMemoryBlock(el);
       if(free){
         throw new MemoryException("can not access memory memory has been freed");
       }
-      if(block[poffset] == null)
-        block[poffset] = new AddrMemoryCell(paddr);
+      if(block[poffset] == null){
+        block = block.clone();
+        block[poffset] = new AddrMemoryCell(paddr,el);
+        blocks.put(el, block);
+      }
       MemoryCell c = block[poffset];
       switch(c.getType()){
         case DMC:
           throw new MemoryException("can not access DMC for Address");
 
         case AMC:
-          ((AddrMemoryCell)c).setAddress(paddr);
+          ((AddrMemoryCell)c).setAddress(paddr,el);
           break;
         default:
           throw new MemoryException("error reading MemoryCell");
@@ -141,7 +174,8 @@ public class MemoryBlock {
 
 
 
-    public  CFAFunctionDefinitionNode getFunctionPointer(int poffset)throws MemoryException{
+    public  CFAFunctionDefinitionNode getFunctionPointer(int poffset, InterpreterElement el)throws MemoryException{
+      MemoryCell [] block = getMemoryBlock(el);
       if(free){
         throw new MemoryException("can not access memory memory has been freed");
       }
@@ -155,18 +189,22 @@ public class MemoryBlock {
         case AMC:
           throw new MemoryException("can not access AMC for function pointer");
         case FMC:
-           return ((FuncMemoryCell)c).getFunctionPoint();
+           return ((FuncMemoryCell)c).getFunctionPoint(el);
 
         default:
           throw new MemoryException("error reading MemoryCell");
       }
     }
-    public void setFunctionPointer(int poffset,CFAFunctionDefinitionNode func)throws MemoryException{
+    public void setFunctionPointer(int poffset,CFAFunctionDefinitionNode func, InterpreterElement el)throws MemoryException{
+      MemoryCell [] block = getMemoryBlock(el);
       if(free){
         throw new MemoryException("can not access memory memory has been freed");
       }
-      if(block[poffset] == null)
-        block[poffset] = new FuncMemoryCell(func);
+      if(block[poffset] == null){
+        block = block.clone();
+        block[poffset] = new FuncMemoryCell(func,el);
+        blocks.put(el, block);
+      }
       MemoryCell c = block[poffset];
       switch(c.getType()){
         case DMC:
@@ -175,7 +213,7 @@ public class MemoryBlock {
         case AMC:
           throw new MemoryException("can not access DMC for FuncPnt");
         case FMC:
-          ((FuncMemoryCell)c).setFunctionPoint(func);
+          ((FuncMemoryCell)c).setFunctionPoint(func,el);
           return;
         default:
           throw new MemoryException("error reading MemoryCell");
@@ -193,7 +231,8 @@ public class MemoryBlock {
 
 
 
-    public MemoryCell getMemoryCell(int poffset){
+    public MemoryCell getMemoryCell(int poffset, InterpreterElement el){
+      MemoryCell [] block = getMemoryBlock(el);
       return block[poffset];
     }
 
@@ -207,7 +246,8 @@ public class MemoryBlock {
     }
   }*/
 
-    public CellType getCellType(int offset){
+    public CellType getCellType(int offset, InterpreterElement el){
+      MemoryCell [] block = getMemoryBlock(el);
       if(block[offset]!=null && block[offset] instanceof DataMemoryCell){
           return CellType.DATA;
       }
@@ -224,42 +264,24 @@ public class MemoryBlock {
     }
 
 
-    @Override
-    public MemoryBlock clone(){
-      if(clone != null){
-        return clone;
-      }else{
 
-        MemoryCell v[] = new MemoryCell[block.length];
-          for(int x=0;x <block.length;x++){
-            if(block[x] instanceof AddrMemoryCell){
-              v[x]=((AddrMemoryCell)block[x]).clone();
-
-            }else if(block[x] instanceof DataMemoryCell){
-              v[x]=((DataMemoryCell)block[x]).clone();
-            }else if (block[x] instanceof FuncMemoryCell){
-              v[x] = ((FuncMemoryCell)block[x]).clone();
-            }
-          }
-
-
-        clone = new MemoryBlock(v,free);
-        return clone;
-      }
-    }
 
     public int getBlockSize(){
-      return block.length;
+       return size;
     }
 
-    public void setMemoryCell(MemoryCell pClone, int pX) throws Exception {
+    public void setMemoryCell(MemoryCell pClone, int pX, InterpreterElement el) throws Exception {
+      MemoryCell [] block = getMemoryBlock(el);
+      block = block.clone();
+      blocks.put(el, block);
       if(free){
         throw new MemoryException("can not access memory; memory has been freed");
       }
       block[pX]= pClone;
 
     }
-    public void free(){
+    public void free(InterpreterElement el){ //
+      MemoryCell [] block = getMemoryBlock(el);
       free = true;
       for(int x=0; x< block.length;x++){
         block[x]=null;

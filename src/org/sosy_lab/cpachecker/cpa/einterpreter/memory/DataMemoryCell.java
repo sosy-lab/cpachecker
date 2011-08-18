@@ -23,27 +23,37 @@
  */
 package org.sosy_lab.cpachecker.cpa.einterpreter.memory;
 
+import java.util.HashMap;
+
+import org.sosy_lab.cpachecker.cpa.einterpreter.InterpreterElement;
+
 public class DataMemoryCell implements MemoryCell{
-  private byte data;
+  private HashMap<InterpreterElement,Byte> data;
   private DataMemoryCell clone = null;
 
 
-  public DataMemoryCell( ){
-    data =0;
+  public DataMemoryCell( InterpreterElement el){
+    data = new HashMap<InterpreterElement, Byte>();
+    data.put(el, (byte) 0);
 
-
-  }
-  private DataMemoryCell(byte pvalue){
-    data=pvalue;
 
 
   }
+  private DataMemoryCell(HashMap<InterpreterElement,Byte> pvalue){
+    data=(HashMap<InterpreterElement, Byte>) pvalue.clone();
 
-  public byte getData(){
-    return data;
+
   }
-  public void setData(byte pdata){
-    data = pdata;
+
+  public byte getData(InterpreterElement pel){
+    while(data.containsKey(pel)==false && pel.getprev()!= null){
+      pel = pel.getprev();
+    }
+    return data.get(pel);
+  }
+  public void setData(byte pdata,InterpreterElement pel){
+
+    data.put(pel, pdata);
 
   }
 

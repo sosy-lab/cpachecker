@@ -80,8 +80,8 @@ public class PrimitiveVariable implements Variable{
 
 
   @Override
-  public TypeClass getTypeClass() {
-    if(memorylocation.getMemoryBlock().getCellType(memorylocation.getOffset()) == CellType.ADDR){
+  public TypeClass getTypeClass(InterpreterElement pel) {
+    if(memorylocation.getMemoryBlock().getCellType(memorylocation.getOffset(),pel) == CellType.ADDR){
       return TypeClass.PRIMITIVEPNT;
     }else{
       return TypeClass.PRIMITIVE;
@@ -115,18 +115,18 @@ public class PrimitiveVariable implements Variable{
   public void copyVar(String pname,InterpreterElement el) throws Exception {
     // TODO Auto-generated method stub
 
-    MemoryBlock b =el.getFactory().allocateMemoryBlock(this.getSize());
+    MemoryBlock b =el.getFactory().allocateMemoryBlock(this.getSize(),el);
     Address addr = new Address(b, 0);
     PrimitiveVariable nvar = new PrimitiveVariable(pname, addr,type , isSigned, isConst);
     MemoryBlock oldb=memorylocation.getMemoryBlock();
     int of= memorylocation.getOffset();
 
     for(int x=0; x<nvar.getSize();x++){
-      MemoryCell data = oldb.getMemoryCell(of+x);
+      MemoryCell data = oldb.getMemoryCell(of+x,el);
       if(data != null){
         data = data.copy();
       }
-      b.setMemoryCell(data,x);
+      b.setMemoryCell(data,x,el);
 
     }
     el.getCurrentScope().addVariable(nvar,el);
