@@ -117,7 +117,7 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
 
   private final Set<String> allVariables = new HashSet<String>();
 
-  public Map<CFAEdge, Map<String, Long>> assumptions;
+  public Map<CFAEdge, Map<String, Long>> assumptions = new HashMap<CFAEdge, Map<String, Long>>();
 
   private Path previousPath;
 
@@ -268,6 +268,8 @@ System.out.println("\nrefining ...");
 
 //System.out.println(path);
 
+//System.out.println("current precision is " + oldPrecision.getWhiteList());
+
     // get the predicates ...
     List<Collection<AbstractionPredicate>> pathPredicates = pInfo.getPredicatesForRefinement();
 
@@ -276,14 +278,12 @@ System.out.println("\nrefining ...");
     // however, cutting all facts after firstInterpolationPoint would be safe, right?
     //facts.clear();
 
+    PredicateMap pm = new PredicateMap(pathPredicates, path);
+
     // ... and, out of these, determine the initial set of variables to track
+    assumptions = pm.getAssumptions(assumptions);
 
-    assumptions = extractAssumptions(pathPredicates, path);
-
-
-    Set<String> variableNames = new HashSet<String>();
-    for(Map<String, Long> entry : assumptions.values())
-        variableNames.addAll(entry.keySet());
+    Set<String> variableNames = pm.getReferencedVariables();
 
     Pair<ARTElement, CFAEdge> firstInterpolationPoint = getFirstInterpolationPoint(variableNames, path);
 
@@ -291,9 +291,6 @@ System.out.println("\nrefining ...");
     //System.out.println("firstInterpolationPoint is: " + firstInterpolationPoint);
 
     allVariables.addAll(variableNames);
-
-    //System.out.println("current precision is " + oldPrecision.getWhiteList());
-    //System.out.println("new predicates are " + currentVariables);
 
     // collect variables on error path, on which the found ones depend on
     CollectVariablesVisitor visitor = new CollectVariablesVisitor(allVariables);
@@ -422,7 +419,7 @@ System.out.println("\nrefining ...");
             }
             else
             {
-              System.out.println("can't extract fact from expression " + assume);
+//System.out.println("can't extract fact from expression " + assume);
 
               throw new RefinementFailedException(Reason.InterpolationFailed, path);
             }
@@ -628,7 +625,7 @@ System.out.println("\nrefining ...");
   private boolean extractVariables(CFAEdge edge, CollectVariablesVisitor visitor)
   {
     boolean extracted = false;
-    visitor.setScope(edge.getPredecessor().getFunctionName());
+    visitor.setCurrentScope(edge);
 
     switch(edge.getEdgeType())
     {
@@ -655,17 +652,11 @@ System.out.println("\nrefining ...");
 //System.out.println("     -> interesting: collecting remaining variables");
           exp.getRightHandSide().accept(visitor);
 
-          // TODO: when setting scope, maybe only pass edge, then this can be done within visitor
-          FunctionDefinitionNode functionEntryNode = functionCallEdge.getSuccessor();
-          for(String formalParameter : functionEntryNode.getFunctionParameterNames())
-            visitor.collect(functionEntryNode.getFunctionName(), formalParameter);
-
           extracted = true;
         }
       }
 
       break;
-
 
     case StatementEdge:
       StatementEdge statementEdge = (StatementEdge)edge;
@@ -716,27 +707,58 @@ System.out.println("\nrefining ...");
     return lVariables;
   }
 
-  // TODO: copy & paste code
+  /**
+   * visitor that collects identifiers denoting variables, that show up in given IASTExpressions
+   */
   private class CollectVariablesVisitor extends
       DefaultExpressionVisitor<Void, RuntimeException> implements
       RightHandSideVisitor<Void, RuntimeException> {
 
-    private boolean doLookAhead = false;
+    /**
+     * the current cfa edge
+     */
+    private CFAEdge edge = null;
 
-    private String scope = "";
-
+    /**
+     * the set of collected variables
+     */
     private final Set<String> collectedVariables = new HashSet<String>();
 
+    /**
+     * the set of variables collected during look-ahead-run
+     */
     private final Set<String> lookAheadVariables = new HashSet<String>();
+
+    /**
+     * flag that determines whether or not the visitor is in look-ahead-mode
+     */
+    private boolean inLookAheadMode = false;
 
     public CollectVariablesVisitor(Collection<String> collectedVariables)
     {
       this.collectedVariables.addAll(collectedVariables);
     }
 
-    public boolean hasCollected(String variable)
+    /**
+     * This method adds a given variable into the appropriate collection
+     *
+     * @param cfaNode the current cfa node
+     * @param variableName the name of the variable
+     */
+    private void collect(CFANode cfaNode, String variableName)
     {
-      String scopedVariableName = getScopedVariableName(variable);
+      if(!globalVars.contains(variableName))
+        variableName = getScopedVariableName(cfaNode, variableName);
+
+      if(inLookAheadMode)
+        lookAheadVariables.add(variableName);
+      else
+        collectedVariables.add(variableName);
+    }
+
+    public boolean hasCollected(String variableName)
+    {
+      String scopedVariableName = getScopedVariableName(edge.getPredecessor(), variableName);
 
       return collectedVariables.contains(scopedVariableName);
     }
@@ -746,21 +768,58 @@ System.out.println("\nrefining ...");
       return collectedVariables;
     }
 
-    public void collect(String functionName, String variableName)
+    public void setCurrentScope(CFAEdge currentEdge)
     {
-        collectedVariables.add(functionName + "::" + variableName);
+      edge = currentEdge;
+    }
+
+    /**
+     * This method starts the look-ahead-mode, which is only necessary for inspecting assume edges
+     */
+    public void startLookAhead()
+    {
+      inLookAheadMode = true;
+
+      lookAheadVariables.clear();
+    }
+
+    /**
+     * This method ends the look-ahead-mode, which is only necessary for inspecting assume edges
+     */
+    public boolean endLookAhead()
+    {
+      boolean ofInterest = false;
+
+      for(String lookAheadVariable : lookAheadVariables)
+      {
+        if(collectedVariables.contains(lookAheadVariable))
+        {
+          ofInterest = true;
+          break;
+        }
+      }
+
+      if(ofInterest)
+        collectedVariables.addAll(lookAheadVariables);
+
+      inLookAheadMode = false;
+
+      return ofInterest;
+    }
+
+    private String getScopedVariableName(CFANode cfaNode, String variableName)
+    {
+      if(globalVars.contains(variableName))
+         return variableName;
+
+      else
+        return cfaNode.getFunctionName() + "::" + variableName;
     }
 
     @Override
     public Void visit(IASTIdExpression idExpression)
     {
-      String scopedVariableName = getScopedVariableName(idExpression.getName());
-
-      if(doLookAhead)
-        lookAheadVariables.add(scopedVariableName);
-
-      else
-          collectedVariables.add(scopedVariableName);
+      collect(edge.getPredecessor(), idExpression.getName());
 
       return null;
     }
@@ -802,12 +861,14 @@ System.out.println("\nrefining ...");
     @Override
     public Void visit(IASTFunctionCallExpression functionCallExpression)
     {
-      // do not visit the function name identifier ...
-      //functionCallExpression.getFunctionNameExpression().accept(this);
-
-      // ... but only the parameter expressions
+      // do not visit the function name identifier but only the actual parameter expressions
       for(IASTExpression param : functionCallExpression.getParameterExpressions())
         param.accept(this);
+
+      // also, add the formal parameters
+      FunctionDefinitionNode functionEntryNode = ((FunctionCallEdge)edge).getSuccessor();
+      for(String formalParameter : functionEntryNode.getFunctionParameterNames())
+        collect(functionEntryNode, formalParameter);
 
       return null;
     }
@@ -825,47 +886,102 @@ System.out.println("\nrefining ...");
     {
       return null;
     }
+  }
 
-    private String getScopedVariableName(String variableName)
+  private class PredicateMap
+  {
+    private Map<CFAEdge, Set<AbstractionPredicate>> predicateMap;
+
+    public PredicateMap(List<Collection<AbstractionPredicate>> pathPredicates, Path path)
     {
-      if(globalVars.contains(variableName))
-         return variableName;
+      predicateMap = new HashMap<CFAEdge, Set<AbstractionPredicate>>();
 
-      else
-        return scope + "::" + variableName;
-    }
-
-    public void setScope(String functionName)
-    {
-      scope = functionName;
-    }
-
-    public void startLookAhead()
-    {
-      doLookAhead = !doLookAhead;
-    }
-
-    public boolean endLookAhead()
-    {
-      boolean ofInterest = false;
-
-      for(String lookAheadVariable : lookAheadVariables)
+      int i = 0;
+      for(Collection<AbstractionPredicate> predicates : pathPredicates)
       {
-        if(collectedVariables.contains(lookAheadVariable))
+        if(predicates.size() > 0)
         {
-          ofInterest = true;
-          break;
+          CFAEdge currentEdge = path.get(i).getSecond();
+
+          Set<AbstractionPredicate> assumptionsAtEdge = predicateMap.get(currentEdge);
+
+          if(assumptionsAtEdge == null)
+            predicateMap.put(currentEdge, assumptionsAtEdge = new HashSet<AbstractionPredicate>());
+
+          for(AbstractionPredicate predicate : predicates)
+            assumptionsAtEdge.add(predicate);
+        }
+
+        i++;
+      }
+    }
+
+    public Set<String> getReferencedVariables()
+    {
+      Set<String> variables = new HashSet<String>();
+
+      for(Set<AbstractionPredicate> predicates : predicateMap.values())
+      {
+        for(AbstractionPredicate predicate : predicates)
+        {
+          Collection<String> atoms = getVariables(((MathsatFormula)predicate.getSymbolicAtom()).getTerm());
+
+          for(String atom : atoms)
+            variables.add(atom);
         }
       }
 
-      if(ofInterest)
-        collectedVariables.addAll(lookAheadVariables);
+      return variables;
+    }
 
-      lookAheadVariables.clear();
+    public Map<CFAEdge, Map<String, Long>> getAssumptions(Map<CFAEdge, Map<String, Long>> assumptions)
+    {
+      //Map<CFAEdge, Map<String, Long>> assumptions = new HashMap<CFAEdge, Map<String, Long>>();
 
-      doLookAhead = !doLookAhead;
+      for(Map.Entry<CFAEdge, Set<AbstractionPredicate>> entry : predicateMap.entrySet())
+      {
+        Map<String, Long> assumes = assumptions.get(entry.getKey());
 
-      return ofInterest;
+        for(AbstractionPredicate predicate : entry.getValue())
+        {
+          Collection<String> atoms = getVariables(((MathsatFormula)predicate.getSymbolicAtom()).getTerm());
+
+          // if there is only one atom ...
+          // TODO: this needs cleanup!
+          if(atoms.size() == 1)
+          {
+            if(assumes == null)
+              assumptions.put(entry.getKey(), assumes = new HashMap<String, Long>());
+
+            String assume = predicate.getSymbolicAtom().toString().replace("(", "").replace(")", "");
+
+            String[] splits = assume.split(" = ");
+
+            // ... and it is compared to a constant ...
+            if(splits.length == 2)
+            {
+              // ... add it as a fact
+              try
+              {
+                Long constant = Long.parseLong(splits[1]);
+//System.out.println("added fact " + atoms.toArray(new String[atoms.size()])[0] + " = " + splits[1] + " for expression " + predicate.getSymbolicAtom());
+
+                assumes.put(atoms.toArray(new String[atoms.size()])[0], constant);
+              }
+              catch(NumberFormatException nfe)
+              {
+//System.out.println(splits[1] + " is not a number - no fact to add for expression " + predicate.getSymbolicAtom());
+              }
+            }
+            else
+            {
+              System.out.println("can't extract fact from expression " + assume);
+            }
+          }
+        }
+      }
+
+      return assumptions;
     }
   }
 }
