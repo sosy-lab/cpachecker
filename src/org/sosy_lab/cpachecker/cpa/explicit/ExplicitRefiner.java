@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -75,6 +74,8 @@ import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefinementManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
@@ -88,11 +89,6 @@ import com.google.common.collect.Iterables;
 
 @Options(prefix="cpa.predicate")
 public class ExplicitRefiner extends AbstractARTBasedRefiner {
-
-  @Option(name="refinement.addPredicatesGlobally",
-      description="refinement will add all discovered predicates "
-        + "to all the locations in the abstract trace")
-  private boolean addPredicatesGlobally = false;
 
   @Option(name="errorPath.export",
       description="export one satisfying assignment for the error path")
@@ -121,7 +117,7 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
 
   private final Set<String> allVariables = new HashSet<String>();
 
-  public final Map<CFAEdge, Map<String, Integer>> facts = new HashMap<CFAEdge, Map<String, Integer>>();
+  public Map<CFAEdge, Map<String, Long>> assumptions;
 
   private Path previousPath;
 
@@ -273,7 +269,7 @@ System.out.println("\nrefining ...");
 //System.out.println(path);
 
     // get the predicates ...
-    List<Collection<AbstractionPredicate>> newPredicates = pInfo.getPredicatesForRefinement();
+    List<Collection<AbstractionPredicate>> pathPredicates = pInfo.getPredicatesForRefinement();
 
     // could we actually keep facts from previous iterations?
     // new paths would result in new facts, right, so delete old facts
@@ -281,39 +277,33 @@ System.out.println("\nrefining ...");
     //facts.clear();
 
     // ... and, out of these, determine the initial set of variables to track
-    HashSet<String> currentVariables = new HashSet<String>();
-    int i = 0;
-    for(Collection<AbstractionPredicate> predicate : newPredicates)
-    {
-      if(predicate.size() > 0)
-        currentVariables.addAll(predicateToVariable(predicate, path.get(i)));
 
-      i++;
-    }
+    assumptions = extractAssumptions(pathPredicates, path);
 
-    allVariables.addAll(currentVariables);
+
+    Set<String> variableNames = new HashSet<String>();
+    for(Map<String, Long> entry : assumptions.values())
+        variableNames.addAll(entry.keySet());
+
+    Pair<ARTElement, CFAEdge> firstInterpolationPoint = getFirstInterpolationPoint(variableNames, path);
+
+    assert firstInterpolationPoint != null;
+    //System.out.println("firstInterpolationPoint is: " + firstInterpolationPoint);
+
+    allVariables.addAll(variableNames);
 
     //System.out.println("current precision is " + oldPrecision.getWhiteList());
     //System.out.println("new predicates are " + currentVariables);
 
-
     // collect variables on error path, on which the found ones depend on
     CollectVariablesVisitor visitor = new CollectVariablesVisitor(allVariables);
-    Pair<ARTElement, CFAEdge> firstInterpolationPoint = null;
-    Iterator<Pair<ARTElement, CFAEdge>> iterator = path.descendingIterator();
+    Iterator<Pair<ARTElement, CFAEdge>>  iterator = path.descendingIterator();
     while(iterator.hasNext())
     {
       Pair<ARTElement, CFAEdge> element = iterator.next();
 
-      if(extractVariables(element.getSecond(), visitor))
-      {
-        firstInterpolationPoint = element;
-        //System.out.println("resetting firstInterpolationPoint to: " + firstInterpolationPoint);
-      }
+      extractVariables(element.getSecond(), visitor);
     }
-
-    assert firstInterpolationPoint != null;
-    System.out.println("firstInterpolationPoint is: " + firstInterpolationPoint);
 
     Set<String> newWhiteList = new HashSet<String>();
     //newWhiteList.addAll(oldPrecision.getWhiteList());
@@ -322,11 +312,10 @@ System.out.println("\nrefining ...");
 
     //System.out.println("new precision is: " + newWhiteList);
 
-    boolean madeProgress = madeProgress(path, oldPrecision.getWhiteList(), newWhiteList);
-    //System.out.println("madeProgress " + madeProgress);
+    madeProgress(path, oldPrecision.getWhiteList(), newWhiteList);
 
     ExplicitPrecision newPrecision = new ExplicitPrecision(oldPrecision.getBlackListPattern(), newWhiteList);
-    newPrecision.setFacts(facts);
+    newPrecision.setFacts(assumptions);
 
     // We have two different strategies for the refinement root: set it to
     // the firstInterpolationPoint or set it to highest location in the ART
@@ -366,7 +355,89 @@ System.out.println("\nrefining ...");
     return Pair.of(root, newPrecision);
   }
 
-  private boolean madeProgress(Path path, Set<String> oldWhiteList, Set<String> newWhiteList)
+  private Pair<ARTElement, CFAEdge> getFirstInterpolationPoint(Collection<String> currentVariables, Path path)
+  {
+    CollectVariablesVisitor visitor = new CollectVariablesVisitor(currentVariables);
+
+    Pair<ARTElement, CFAEdge> firstInterpolationPoint = null;
+
+    Iterator<Pair<ARTElement, CFAEdge>> iterator = path.descendingIterator();
+    while(iterator.hasNext())
+    {
+      Pair<ARTElement, CFAEdge> element = iterator.next();
+
+      if(extractVariables(element.getSecond(), visitor))
+        firstInterpolationPoint = element;
+    }
+
+    return firstInterpolationPoint;
+  }
+
+  private Map<CFAEdge, Map<String, Long>> extractAssumptions(List<Collection<AbstractionPredicate>> pathPredicates, Path path) throws RefinementFailedException
+  {
+    Map<CFAEdge, Map<String, Long>> assumptions = new HashMap<CFAEdge, Map<String, Long>>();
+
+    int i = 0;
+    for(Collection<AbstractionPredicate> predicates : pathPredicates)
+    {
+      if(predicates.size() > 0)
+      {
+        CFAEdge currentEdge = path.get(i).getSecond();
+
+        Map<String, Long> assumptionsAtEdge = assumptions.get(currentEdge);
+
+        if(assumptionsAtEdge == null)
+          assumptions.put(currentEdge, assumptionsAtEdge = new HashMap<String, Long>());
+
+        for(AbstractionPredicate predicate : predicates)
+        {
+          Collection<String> atoms = getVariables(((MathsatFormula)predicate.getSymbolicAtom()).getTerm());
+
+          for(String atom : atoms)
+            assumptionsAtEdge.put(atom, null);
+
+          // if there is only one atom ...
+          // TODO: this needs cleanup!
+          if(atoms.size() == 1)
+          {
+            String assume = predicate.getSymbolicAtom().toString().replace("(", "").replace(")", "");
+
+            String[] splits = assume.split(" = ");
+
+            // ... and it is compared to a constant ...
+            if(splits.length == 2)
+            {
+              // ... add it as a fact
+              try
+              {
+                Long constant = Long.parseLong(splits[1]);
+//System.out.println("added fact " + atoms.toArray(new String[atoms.size()])[0] + " = " + splits[1] + " for expression " + predicate.getSymbolicAtom());
+
+                assumptionsAtEdge.put(atoms.toArray(new String[atoms.size()])[0], constant);
+              }
+              catch(NumberFormatException nfe)
+              {
+//System.out.println(splits[1] + " is not a number - no fact to add for expression " + predicate.getSymbolicAtom());
+              }
+            }
+            else
+            {
+              System.out.println("can't extract fact from expression " + assume);
+
+              throw new RefinementFailedException(Reason.InterpolationFailed, path);
+            }
+          }
+        }
+      }
+
+      i++;
+    }
+
+    return assumptions;
+  }
+
+
+  private boolean madeProgress(Path path, Set<String> oldWhiteList, Set<String> newWhiteList) throws RefinementFailedException
   {
     boolean madeProgress = false;
 
@@ -441,59 +512,9 @@ System.out.println("\nrefining ...");
     }
 
     if(!madeProgress)
-      assert(false);
+      throw new RefinementFailedException(Reason.RepeatedCounterexample, path);
 
     return madeProgress;
-  }
-
-  private Collection<String> predicateToVariable(Collection<AbstractionPredicate> predicates, Pair<ARTElement, CFAEdge> pathElement)
-  {
-    Collection<String> preds = new ArrayList<String>(predicates.size());
-
-    for(AbstractionPredicate absPredicate : predicates)
-    {
-//System.out.println(absPredicate.getSymbolicAtom());
-      Collection<String> atoms = getVariables(absPredicate.getSymbolicAtom());
-
-      preds.addAll(atoms);
-
-      if(atoms.size() == 1)
-      {
-          String s = absPredicate.getSymbolicAtom().toString();
-
-          s = s.replace("(", "");
-          s = s.replace(")", "");
-//System.out.println(s);
-          String[] splits = s.split(" = ");
-
-          if(splits.length == 2)
-          {
-            try
-            {
-              int constant = Integer.parseInt(splits[1]);
-              //System.out.println(splits[1] + ": added fact for expression " + absPredicate.getSymbolicAtom());
-
-              Map<String, Integer> assumesAtLocation = facts.get(pathElement.getSecond());
-
-              if(assumesAtLocation == null)
-                assumesAtLocation = new HashMap<String, Integer>();
-
-              if(assumesAtLocation.get(splits[0]) != null)
-                System.out.println("overwriting " + splits[0] + " = " + assumesAtLocation.get(splits[0]) + " with " + splits[0] + " = " + constant);
-
-              assumesAtLocation.put(splits[0], constant);
-
-              facts.put(pathElement.getSecond(), assumesAtLocation);
-            }
-            catch(NumberFormatException nfe)
-            {
-//System.out.println(splits[1] + " is not a number - no fact to add for expression " + absPredicate.getSymbolicAtom());
-            }
-          }
-      }
-    }
-
-    return preds;
   }
 
   @Override
@@ -504,7 +525,6 @@ System.out.println("\nrefining ...");
     }
     return targetPath;
   }
-
 
   private Path createPathFromPredicateValues(Path pPath, Map<Integer, Boolean> preds) {
 
@@ -613,38 +633,18 @@ System.out.println("\nrefining ...");
     switch(edge.getEdgeType())
     {
     case AssumeEdge:
-      AssumeEdge assumeEdge = (AssumeEdge)edge;
+//System.out.println("inspecting AssumeEdge " + ((AssumeEdge)edge).getRawStatement());
 
-      //System.out.println("\n\ninsepcting AssumeEdge " + assumeEdge.getRawStatement());
+      visitor.startLookAhead();
+      ((AssumeEdge)edge).getExpression().accept(visitor);
+      extracted = visitor.endLookAhead();
 
-      CollectVariablesVisitor tmpVisitor = new CollectVariablesVisitor(new HashSet<String>());
-      tmpVisitor.debuggin = false;
-      tmpVisitor.setScope(edge.getPredecessor().getFunctionName());
-      assumeEdge.getExpression().accept(tmpVisitor);
-
-      //System.out.println("tmpVisitor.getCollectedVariables() = " + tmpVisitor.getCollectedVariables());
-      //System.out.println("visitor.getCollectedVariables() = " + visitor.getCollectedVariables());
-
-      for(String collectedVar : tmpVisitor.getCollectedVariables())
-      {
-        if(visitor.hasCollected(collectedVar, false))
-        {
-          extracted = true;
-          //System.out.println("     -> interesting: collecting remaining variables");
-          break;
-        }
-      }
-
-      if(extracted)
-        extractVariables(assumeEdge.getExpression(), visitor);
-      else
-        ;//System.out.println("     -> skip remaining variables");
       break;
 
     case FunctionCallEdge:
       FunctionCallEdge functionCallEdge = (FunctionCallEdge)edge;
 
-      //System.out.println("insepcting FunctionCallEdge " + functionCallEdge.getRawStatement());
+//System.out.println("inspecting FunctionCallEdge " + functionCallEdge.getRawStatement());
 
       if(functionCallEdge.getRawAST() instanceof IASTFunctionCallAssignmentStatement)
       {
@@ -652,12 +652,11 @@ System.out.println("\nrefining ...");
 
         if(visitor.hasCollected(exp.getLeftHandSide().getRawSignature()))
         {
-          //System.out.println("     -> interesting: collecting remaining variables");
-          for(IASTExpression actualParameter : functionCallEdge.getArguments())
-            extractVariables(actualParameter, visitor);
+//System.out.println("     -> interesting: collecting remaining variables");
+          exp.getRightHandSide().accept(visitor);
 
+          // TODO: when setting scope, maybe only pass edge, then this can be done within visitor
           FunctionDefinitionNode functionEntryNode = functionCallEdge.getSuccessor();
-
           for(String formalParameter : functionEntryNode.getFunctionParameterNames())
             visitor.collect(functionEntryNode.getFunctionName(), formalParameter);
 
@@ -665,17 +664,15 @@ System.out.println("\nrefining ...");
         }
       }
 
-      if(!extracted)
-        ;//System.out.println("     -> skip remaining variables");
       break;
 
 
     case StatementEdge:
       StatementEdge statementEdge = (StatementEdge)edge;
 
-      //System.out.println("insepcting StatementEdge " + statementEdge.getRawStatement());
+//System.out.println("inspecting StatementEdge " + statementEdge.getRawStatement());
 
-      if (statementEdge.getStatement() instanceof IASTAssignment)
+      if(statementEdge.getStatement() instanceof IASTAssignment)
       {
         IASTAssignment assignment = (IASTAssignment)statementEdge.getStatement();
 
@@ -683,45 +680,19 @@ System.out.println("\nrefining ...");
 
         if(visitor.hasCollected(assignedVariable))
         {
-          //System.out.println("     -> interesting: collecting remaining variables");
-          extractVariables(assignment.getRightHandSide(), visitor);
+          assignment.getRightHandSide().accept(visitor);
 
           extracted = true;
         }
-        else
-        {
-          //System.out.println(assignedVariable + " was NOT collected -> discard right hand side");
-        }
-
       }
-      if(!extracted)
-        ;//System.out.println("     -> skip remaining variables");
       break;
     }
 
     return extracted;
   }
 
-  private void extractVariables(IASTRightHandSide pNode, CollectVariablesVisitor visitor)
-  {
-    pNode.accept(visitor);
-  }
-
   // TODO: copy & paste code from branches/fshell3/src/org/sosy_lab/cpachecker/util/predicates/mathsat/MathsatFormulaManager.java
-  public Collection<String> getVariables(Formula pFormula) {
-    long lTerm = getTerm(pFormula);
-
-    Collection<String> lVariables = getVariables(lTerm);
-
-    return lVariables;
-  }
-
-  static long getTerm(Formula f) {
-    return ((MathsatFormula)f).getTerm();
-  }
-
-  // TODO: copy & paste code from branches/fshell3/src/org/sosy_lab/cpachecker/util/predicates/mathsat/MathsatFormulaManager.java
-  public Collection<String> getVariables(long pTerm) {
+  private Collection<String> getVariables(long pTerm) {
     HashSet<String> lVariables = new HashSet<String>();
 
     LinkedList<Long> lWorklist = new LinkedList<Long>();
@@ -750,39 +721,27 @@ System.out.println("\nrefining ...");
       DefaultExpressionVisitor<Void, RuntimeException> implements
       RightHandSideVisitor<Void, RuntimeException> {
 
-    public boolean debuggin = true;
+    private boolean doLookAhead = false;
 
     private String scope = "";
 
-    private final Set<String> collectedVariables;
+    private final Set<String> collectedVariables = new HashSet<String>();
 
-    public CollectVariablesVisitor(Set<String> collectedVariables)
+    private final Set<String> lookAheadVariables = new HashSet<String>();
+
+    public CollectVariablesVisitor(Collection<String> collectedVariables)
     {
-      this.collectedVariables = collectedVariables;
+      this.collectedVariables.addAll(collectedVariables);
     }
 
     public boolean hasCollected(String variable)
     {
       String scopedVariableName = getScopedVariableName(variable);
 
-      //System.out.println("hasCollected variable " + variable + " / " + scopedVariableName + " = " + collectedVariables.contains(scopedVariableName));
-
       return collectedVariables.contains(scopedVariableName);
     }
 
-    public boolean hasCollected(String variable, boolean scopeIt)
-    {
-      if(scopeIt)
-        return hasCollected(variable);
-
-      else
-      {
-        //System.out.println("hasCollected variable " + variable + collectedVariables.contains(variable));
-        return collectedVariables.contains(variable);
-      }
-    }
-
-    public Set<String> getCollectedVariables()
+    public Collection<String> getCollectedVariables()
     {
       return collectedVariables;
     }
@@ -793,62 +752,77 @@ System.out.println("\nrefining ...");
     }
 
     @Override
-    public Void visit(IASTIdExpression pE)
+    public Void visit(IASTIdExpression idExpression)
     {
-      String scopedVariableName = getScopedVariableName(pE.getName());
-      if(collectedVariables.add(scopedVariableName))
-      {
-        //if(debuggin)System.out.println("extracted depending variable " + scopedVariableName);
-      }
+      String scopedVariableName = getScopedVariableName(idExpression.getName());
+
+      if(doLookAhead)
+        lookAheadVariables.add(scopedVariableName);
+
       else
-        ;//if(debuggin)System.out.println("NOT added: " + scopedVariableName + " - already collected");
+          collectedVariables.add(scopedVariableName);
 
       return null;
     }
 
     @Override
-    public Void visit(IASTArraySubscriptExpression pE) {
-      pE.getArrayExpression().accept(this);
-      pE.getSubscriptExpression().accept(this);
+    public Void visit(IASTArraySubscriptExpression arraySubscriptExpression)
+    {
+      arraySubscriptExpression.getArrayExpression().accept(this);
+      arraySubscriptExpression.getSubscriptExpression().accept(this);
+
       return null;
     }
 
     @Override
-    public Void visit(IASTBinaryExpression pE) {
-      pE.getOperand1().accept(this);
-      pE.getOperand2().accept(this);
+    public Void visit(IASTBinaryExpression binaryExpression)
+    {
+      binaryExpression.getOperand1().accept(this);
+      binaryExpression.getOperand2().accept(this);
+
       return null;
     }
 
     @Override
-    public Void visit(IASTCastExpression pE) {
-      pE.getOperand().accept(this);
+    public Void visit(IASTCastExpression castExpression)
+    {
+      castExpression.getOperand().accept(this);
+
       return null;
     }
 
     @Override
-    public Void visit(IASTFieldReference pE) {
-      pE.getFieldOwner().accept(this);
+    public Void visit(IASTFieldReference fieldReference)
+    {
+      fieldReference.getFieldOwner().accept(this);
+
       return null;
     }
 
     @Override
-    public Void visit(IASTFunctionCallExpression pE) {
-      pE.getFunctionNameExpression().accept(this);
-      for (IASTExpression param : pE.getParameterExpressions()) {
+    public Void visit(IASTFunctionCallExpression functionCallExpression)
+    {
+      // do not visit the function name identifier ...
+      //functionCallExpression.getFunctionNameExpression().accept(this);
+
+      // ... but only the parameter expressions
+      for(IASTExpression param : functionCallExpression.getParameterExpressions())
         param.accept(this);
-      }
+
       return null;
     }
 
     @Override
-    public Void visit(IASTUnaryExpression pE) {
-      pE.getOperand().accept(this);
+    public Void visit(IASTUnaryExpression unaryExpression)
+    {
+      unaryExpression.getOperand().accept(this);
+
       return null;
     }
 
     @Override
-    protected Void visitDefault(IASTExpression pExp) {
+    protected Void visitDefault(IASTExpression expression)
+    {
       return null;
     }
 
@@ -864,6 +838,34 @@ System.out.println("\nrefining ...");
     public void setScope(String functionName)
     {
       scope = functionName;
+    }
+
+    public void startLookAhead()
+    {
+      doLookAhead = !doLookAhead;
+    }
+
+    public boolean endLookAhead()
+    {
+      boolean ofInterest = false;
+
+      for(String lookAheadVariable : lookAheadVariables)
+      {
+        if(collectedVariables.contains(lookAheadVariable))
+        {
+          ofInterest = true;
+          break;
+        }
+      }
+
+      if(ofInterest)
+        collectedVariables.addAll(lookAheadVariables);
+
+      lookAheadVariables.clear();
+
+      doLookAhead = !doLookAhead;
+
+      return ofInterest;
     }
   }
 }

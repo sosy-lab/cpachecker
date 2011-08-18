@@ -120,18 +120,18 @@ public class ExplicitTransferRelation implements TransferRelation {
 
     if(precision.facts.get(cfaEdge) != null)
     {
-      Map<String, Integer> factsAtLocation = precision.facts.get(cfaEdge);
+      Map<String, Long> factsAtLocation = precision.facts.get(cfaEdge);
 
-      for(Map.Entry<String, Integer> factAtLocation : factsAtLocation.entrySet())
+      for(Map.Entry<String, Long> factAtLocation : factsAtLocation.entrySet())
       {
         if(!explicitElement.contains(factAtLocation.getKey()))
         {
           String factName = factAtLocation.getKey();
-          Integer factValue = factAtLocation.getValue();
+          Long factValue = factAtLocation.getValue();
 
           //System.out.println("at edge " + cfaEdge + " setting " + factName + " to " + factValue);
-
-          explicitElement.assignConstant(factName, (long)factValue, this.threshold);
+          if(factValue != null)
+            explicitElement.assignConstant(factName, factValue, this.threshold);
         }
       }
     }

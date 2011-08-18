@@ -36,9 +36,9 @@ public class ExplicitPrecision implements Precision {
 
   final Set<String> whiteList;
 
-  public Map<CFAEdge, Map<String, Integer>> facts = new HashMap<CFAEdge, Map<String, Integer>>();
+  public Map<CFAEdge, Map<String, Long>> facts = new HashMap<CFAEdge, Map<String, Long>>();
 
-  public void setFacts(Map<CFAEdge, Map<String, Integer>> f)
+  public void setFacts(Map<CFAEdge, Map<String, Long>> f)
   {
     facts = f;
   }
