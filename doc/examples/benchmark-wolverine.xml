@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<!-- Example file that demonstrates the use of SATABS. -->
+<!-- Example file that demonstrates the use of Wolverine. -->
 
 <benchmark tool="wolverine" timelimit="10" memlimit="100">
   <test>
