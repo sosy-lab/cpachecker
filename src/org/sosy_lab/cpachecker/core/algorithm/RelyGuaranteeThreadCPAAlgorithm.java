@@ -75,9 +75,12 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
   private static class RelyGuaranteeThreadStatitics implements Statistics {
 
     private Timer totalTimer         = new Timer();
+    private Timer envPrecisionTimer  = new Timer();
     private Timer precisionTimer     = new Timer();
     private Timer transferTimer      = new Timer();
+    private Timer envMergeTimer      = new Timer();
     private Timer mergeTimer         = new Timer();
+    private Timer envStopTimer       = new Timer();
     private Timer stopTimer          = new Timer();
     private Timer envGenTimer        = new Timer();
 
@@ -103,6 +106,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
       out.println("Max size of waitlist:            " + maxWaitlistSize);
       out.println("Average size of waitlist:        " + countWaitlistSize
           / countIterations);
+      out.println();
       out.println("No of environmental successors:  " + countEnvSuccessors);
       out.println("No of all successors:            " + countSuccessors);
       out.println("Max successors for one element:  " + maxSuccessors);
@@ -111,12 +115,15 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
       out.println("Number of environmetal stops:    " + countEnvStop);
       out.println("Number of all stops:             " + countStop);
       out.println();
-      out.println("Time for precision adjustment:  " + precisionTimer);
-      out.println("Time for transfer relation:     " + transferTimer);
-      out.println("Time for env. transitions:      " + envGenTimer);
-      out.println("Time for merge operator:        " + mergeTimer);
-      out.println("Time for stop operator:         " + stopTimer);
-      out.println("Total time for CPA algorithm:   " + totalTimer);
+      out.println("Time for generating env. transitions:" + envGenTimer);
+      out.println("Time for transfer relation:          " + transferTimer);
+      out.println("Time for env. precision adjustment:  " + envPrecisionTimer);
+      out.println("Time for precision adjustment:       " + precisionTimer);
+      out.println("Time for env. merge operator:        " + envMergeTimer);
+      out.println("Time for merge operator:             " + mergeTimer);
+      out.println("Time for env. stop operator:         " + envStopTimer);
+      out.println("Time for stop operator:              " + stopTimer);
+      out.println("Total time for CPA algorithm:        " + totalTimer);
     }
   }
 
@@ -173,7 +180,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
       logger.log(Level.ALL, "Current element is", element, "with precision",
           precision);
 
-      stats.transferTimer.start();
+
 
       ARTElement aElement = (ARTElement) element;
       if (debug){
@@ -185,10 +192,9 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
         System.out.println("@ Successor of '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+" id:"+aElement.getElementId()+" at "+loc);
       }
 
+      stats.transferTimer.start();
       Collection<? extends AbstractElement> successors = transferRelation.getAbstractSuccessors(element, precision, null);
       stats.transferTimer.stop();
-
-
 
       // create and environmental edge and add it the global storage
       stats.envGenTimer.start();
@@ -197,8 +203,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
       stats.envGenTimer.stop();
 
       int numSuccessors = successors.size();
-      logger.log(Level.FINER, "Current element has", numSuccessors,
-      "successors");
+      logger.log(Level.FINER, "Current element has", numSuccessors,"successors");
       stats.countSuccessors += numSuccessors;
       stats.maxSuccessors = Math.max(numSuccessors, stats.maxSuccessors);
 
@@ -215,9 +220,13 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
         logger.log(Level.ALL, "Successor of", element, "\nis", successor);
 
         stats.precisionTimer.start();
+        if (byEnvEdge){
+          stats.envPrecisionTimer.start();
+        }
         Triple<AbstractElement, Precision, Action> precAdjustmentResult =
           precisionAdjustment.prec(successor, precision, reachedSet);
         stats.precisionTimer.stop();
+        stats.envPrecisionTimer.stop();
 
         successor = precAdjustmentResult.getFirst();
         Precision successorPrecision = precAdjustmentResult.getSecond();
@@ -245,14 +254,16 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
 
         if (mergeOperator != MergeSepOperator.getInstance() && !reached.isEmpty()) {
           stats.mergeTimer.start();
+          if (byEnvEdge){
+            stats.envMergeTimer.start();
+          }
 
           List<AbstractElement> toRemove = new ArrayList<AbstractElement>();
           List<Pair<AbstractElement, Precision>> toAdd =
             new ArrayList<Pair<AbstractElement, Precision>>();
 
 
-          logger.log(Level.FINER, "Considering", reached.size(),
-          "elements from reached set for merge");
+          logger.log(Level.FINER, "Considering", reached.size(), "elements from reached set for merge");
           for (AbstractElement reachedElement : reached) {
 
 
@@ -263,8 +274,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
 
               logger.log(Level.FINER,
               "Successor was merged with element from reached set");
-              logger.log(Level.ALL, "Merged", successor, "\nand",
-                  reachedElement, "\n-->", mergedElement);
+              logger.log(Level.ALL, "Merged", successor, "\nand",reachedElement, "\n-->", mergedElement);
               stats.countMerge++;
 
               if (byEnvEdge){
@@ -284,14 +294,18 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
           reachedSet.addAll(toAdd);
 
           stats.mergeTimer.stop();
+          stats.envMergeTimer.stop();
         }
 
 
 
         stats.stopTimer.start();
-        boolean stop =
-          stopOperator.stop(successor, reached, successorPrecision);
+        if (byEnvEdge){
+          stats.envStopTimer.start();
+        }
+        boolean stop = stopOperator.stop(successor, reached, successorPrecision);
         stats.stopTimer.stop();
+        stats.envStopTimer.stop();
 
         if (stop) {
           logger.log(Level.FINER,

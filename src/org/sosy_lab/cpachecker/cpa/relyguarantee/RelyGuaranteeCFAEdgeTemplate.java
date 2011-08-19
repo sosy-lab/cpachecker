@@ -128,51 +128,40 @@ public class RelyGuaranteeCFAEdgeTemplate{
    * @param other
    */
   public void coveredBy(RelyGuaranteeCFAEdgeTemplate other) {
+
     assert other != null;
     assert other != this;
+    assert !other.covers.contains(this);
     assert other.localEdge.equals(this.localEdge);
-    coveredBy  = other;
-    other.covers.add(this);
+    // TODO change it - only null should be allowed
+    if (coveredBy == null){
+      coveredBy  = other;
+      other.covers.add(this);
+    } else {
+      coveredBy.covers.remove(this);
+      coveredBy  = other;
+      other.covers.add(this);
+    }
+
   }
 
   /**
    * This edge is not valid anymore.
    */
-  public void unvalidateEdge(){
+  public void killValidEdge(){
     assert coveredBy == null;
     for ( RelyGuaranteeCFAEdgeTemplate child : covers){
+      assert child.coveredBy == this;
       child.coveredBy = null;
     }
     covers.clear();
   }
 
-  /*
-  public boolean equals(Object other){
-    if (!(other instanceof RelyGuaranteeCFAEdgeTemplate)){
-      return false;
-    }
-    RelyGuaranteeCFAEdgeTemplate rgOther = (RelyGuaranteeCFAEdgeTemplate) other;
-    if (!rgOther.localEdge.equals(this.localEdge)){
-      return false;
-    }
-    if (!rgOther.pathFormulaWrapper.equals(this.pathFormulaWrapper)){
-      return false;
-    }
-    if (!rgOther.sourceARTElementWrapper.equals(rgOther.sourceARTElementWrapper)){
-      return false;
-    }
-
-    return true;
-  }*/
-
-
-
-
   /**
    * Called on a covered edge, which source element has been removed. The edge that covers this object will directly cover the elements
    * are covered by the object.
    */
-  public void recoverChildren() {
+  public void killCoveredEdge() {
     if (coveredBy == null){
       System.out.println("DEBUG: "+this);
     }

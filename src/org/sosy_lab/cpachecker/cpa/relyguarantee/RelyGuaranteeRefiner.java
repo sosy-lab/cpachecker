@@ -105,6 +105,7 @@ public class RelyGuaranteeRefiner{
     protected Timer totalTimer          = new Timer();
     public    Timer interpolationTimer  = new Timer();
     public    Timer formulaTimer        = new Timer();
+    protected Timer   restartingTimer     = new Timer();
 
     public  int formulaNo               = 0;
     public int unsatChecks              = 0;
@@ -120,7 +121,21 @@ public class RelyGuaranteeRefiner{
    */
   public class RelyGuaranteeRefinerRestartingStatistics extends RelyGuaranteeRefinerStatistics {
 
-    private Timer restartingTimer     = new Timer();
+    public void printStatistics(PrintStream out, Result pResult,ReachedSet pReached){
+      out.println("Interpolation fomulas:           " + formulaNo);
+      out.println("Unsat checks:                    " + unsatChecks);
+      out.println();
+      out.println("Time on constructing formulas:   " + formulaTimer);
+      out.println("Total time on interpolation:     " + interpolationTimer+" (max: "+interpolationTimer.printMaxTime()+")");
+      out.println("Time on restarting analysis:     " + restartingTimer);
+      out.println("Total time on refinement:        " + totalTimer);
+    }
+  }
+
+  /**
+   * Information about a lazy refinement.
+   */
+  public class RelyGuaranteeRefinerLazyStatistics extends RelyGuaranteeRefinerStatistics {
 
     public void printStatistics(PrintStream out, Result pResult,ReachedSet pReached){
       out.println("Interpolation fomulas:           " + formulaNo);
@@ -134,7 +149,7 @@ public class RelyGuaranteeRefiner{
   }
 
 
-  private RelyGuaranteeRefinerRestartingStatistics stats;
+  private RelyGuaranteeRefinerStatistics stats;
   private RelyGuaranteeRefinementManager manager;
   private final ARTCPA[] artCpas;
   private static RelyGuaranteeRefiner rgRefiner;
@@ -205,9 +220,11 @@ public class RelyGuaranteeRefiner{
    */
   public boolean performRefinment(ReachedSet[] reachedSets, RelyGuaranteeEnvironment environment, int errorThr) throws InterruptedException, CPAException {
 
-    // use statistics appriopriate to refinement method: lazy or restarting
+    // use statistics appropriate to refinement method: lazy or restarting
     if (restartAnalysis){
       stats = new RelyGuaranteeRefinerRestartingStatistics();
+    } else {
+      stats = new RelyGuaranteeRefinerLazyStatistics();
     }
 
     stats.totalTimer.start();
@@ -279,7 +296,6 @@ public class RelyGuaranteeRefiner{
         for (int i=0; i<reachedSets.length;i++){
           assert reachedSets[i].getReached().size()==1;
         }
-
       } else {
         // kill the env transitions that were generated in the drop ARTs
         // if they killed transitions covered some other transitions, then make them valid again
@@ -440,40 +456,66 @@ public class RelyGuaranteeRefiner{
 
       // get new precision for the cutoff nodes;
       // precision of a cut-off node should include the precision of the elements below
-      for (ARTNode node : cutoffNodes) {
+
+      for (ARTNode coNode : cutoffNodes) {
+        boolean newPredicate = false;
         ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
-        // add precision of the dropped element
-        ARTElement artCutoffElement = node.getArtElement();
-        Precision prec = reachedSets[tid].getPrecision(artCutoffElement);
-        RelyGuaranteePrecision rgPrecision = Precisions.extractPrecisionByType(prec, RelyGuaranteePrecision.class);
-        pmapBuilder.putAll(rgPrecision.getPredicateMap());
 
         // in the error thread, add the precision of the error element
         // TODO necessary?
-        if (tid == errorThr){
+        /* if (tid == errorThr){
           AbstractElement targetElement = reachedSets[errorThr].getLastElement();
           Precision oldPrecision = reachedSets[tid].getPrecision(targetElement);
           RelyGuaranteePrecision oldRgPrecision = Precisions.extractPrecisionByType(oldPrecision, RelyGuaranteePrecision.class);
           pmapBuilder.putAll(oldRgPrecision.getPredicateMap());
+        }*/
+
+
+        // add precision of the cut-off node
+        ARTElement artCoElement = coNode.getArtElement();
+        Precision oldCoPrec = reachedSets[tid].getPrecision(artCoElement);
+        RelyGuaranteePrecision oldCoRgPrec = Precisions.extractPrecisionByType(oldCoPrec, RelyGuaranteePrecision.class);
+        SetMultimap<CFANode, AbstractionPredicate> oldCoPredmap = oldCoRgPrec.getPredicateMap();
+        pmapBuilder.putAll(oldCoPredmap);
+        // add the interpolant for the cut-off node
+        Collection<AbstractionPredicate> newCoPreds = info.getPredicatesForRefinement(artCoElement);
+        CFANode coLoc = AbstractElements.extractLocation(artCoElement);
+        pmapBuilder.putAll(coLoc, newCoPreds);
+
+        if (debug){
+          if (!oldCoPredmap.get(coLoc).containsAll(newCoPreds)){
+            newPredicate = true;
+            System.out.println("New predicate is in "+newCoPreds+" for "+coLoc);
+          }
         }
 
-        // add old precision of the nodes below the cut-off node
-        for (ARTElement artElement : node.getARTSubtree()){
-          Precision oldPrecision = reachedSets[tid].getPrecision(artElement);
-          RelyGuaranteePrecision oldRgPrecision = Precisions.extractPrecisionByType(oldPrecision, RelyGuaranteePrecision.class);
-          pmapBuilder.putAll(oldRgPrecision.getPredicateMap());
-
+        // add old precisions and new predicates of  the nodes below the cut-off node
+        for (ARTElement artElement : coNode.getARTProperSubtree()){
           // add the new interpolants
           Collection<AbstractionPredicate> newpreds = info.getPredicatesForRefinement(artElement);
           CFANode loc = AbstractElements.extractLocation(artElement);
           pmapBuilder.putAll(loc, newpreds);
+
+          if (debug){
+            if (!oldCoPredmap.get(loc).containsAll(newpreds)){
+              newPredicate = true;
+              System.out.println("New predicate is in "+newpreds+" for "+loc);
+            }
+          }
+
+          // TODO need it?
+          //Precision oldPrecision = reachedSets[tid].getPrecision(artElement);
+          //RelyGuaranteePrecision oldRgPrecision = Precisions.extractPrecisionByType(oldPrecision, RelyGuaranteePrecision.class);
+          //pmapBuilder.putAll(oldRgPrecision.getPredicateMap());
         }
+
         RelyGuaranteePrecision newPrecision = new RelyGuaranteePrecision(pmapBuilder.build(), new HashSet<AbstractionPredicate>());
-        refinementMap.put(tid, Pair.of(artCutoffElement, newPrecision));
+        refinementMap.put(tid, Pair.of(artCoElement, newPrecision));
 
         if (debug){
+          assert newPredicate;
           System.out.println();
-          System.out.println("Thread "+tid+": cut-off node id:"+node.getArtElement().getElementId()+" precision "+newPrecision);
+          System.out.println("Thread "+tid+": cut-off node id:"+coNode.getArtElement().getElementId()+" precision "+newPrecision);
         }
       }
     }
@@ -521,7 +563,7 @@ public class RelyGuaranteeRefiner{
         // node belongs to some cut-off node
         boolean belongs=false;
         for (ARTNode cutNode : cutoffNodes){
-          if (cutNode.getARTSubtree().contains(node.getArtElement())){
+          if (cutNode.getARTProperSubtree().contains(node.getArtElement())){
             belongs = true;
             break;
           }
@@ -609,11 +651,11 @@ class ARTNode{
     children.add(child);
   }
 
-  public Set<ARTElement> getARTSubtree() {
+  public Set<ARTElement> getARTProperSubtree() {
     Set<ARTElement> reached = new HashSet<ARTElement>();
-    reached.add(artElement);
     for (ARTNode child : children){
-      reached.addAll(child.getARTSubtree());
+      reached.add(child.artElement);
+      reached.addAll(child.getARTProperSubtree());
     }
     return reached;
   }

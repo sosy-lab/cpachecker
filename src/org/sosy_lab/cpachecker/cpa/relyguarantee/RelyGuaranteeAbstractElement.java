@@ -263,7 +263,8 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
 
   @Override
   public int hashCode() {
-    return (19 * abstractionFormula.hashCode()) + 37 * pathFormula.hashCode();
+    return (83 * abstractionFormula.hashCode()) +pathFormula.hashCode();
+    //return abstractionFormula.hashCode();
   }
 
 

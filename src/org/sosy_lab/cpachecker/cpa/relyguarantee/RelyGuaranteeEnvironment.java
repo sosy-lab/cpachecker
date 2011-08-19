@@ -623,8 +623,8 @@ public class RelyGuaranteeEnvironment {
 
   /**
    * Looks for env. edges generated in threads on the list and checks if their source elements have been destroyed.
-   * Their  path formula is set to false and they are not
-   * valid any more. Transitions covered by them will be valid again, unless they have also been  killed.
+   * Their  path formula is set to false and they are not valid any more. Transitions covered by them will be valid
+   * again, unless they have also been  killed.
    * @param artReachedSets
    * @param tid
    */
@@ -649,8 +649,6 @@ public class RelyGuaranteeEnvironment {
       dropped = dropApplications(artReachedSets);
     }
 
-
-
     // kill unapplied  env. edges
     killUnapplied();
     // drop unprocess transitions that were generated in the subtree
@@ -669,7 +667,6 @@ public class RelyGuaranteeEnvironment {
    * - remove them for the list
    * - push one level up env. edges that they cover
    * - make them false
-   * - remove from envTransProcessedBeforeFromThread so it can be generated again
    * @param pRoot
    */
   private void killCovered(int tid) {
@@ -677,9 +674,8 @@ public class RelyGuaranteeEnvironment {
     for (RelyGuaranteeCFAEdgeTemplate rgEdge : coveredEnvEdgesFromThread[tid]){
       if (rgEdge.getSourceARTElement().isDestroyed()){
         // rgEdge belongs to a dropped subtree
-        //removeFromProcessedBefore(rgEdge, tid);
         toDelete.add(rgEdge);
-        rgEdge.recoverChildren();
+        rgEdge.killCoveredEdge();
 
         makeRelyGuaranteeEnvEdgeFalse(rgEdge);
       }
@@ -700,7 +696,6 @@ public class RelyGuaranteeEnvironment {
    * - remove from the list
    * - make them false
    * - revert covered transitions
-   * - remove from envTransProcessedBeforeFromThread so it can be generated again
    * @param root
    * @param tid
    * @param artReachedSets
@@ -709,23 +704,27 @@ public class RelyGuaranteeEnvironment {
     Vector<RelyGuaranteeCFAEdgeTemplate> toDelete = new Vector<RelyGuaranteeCFAEdgeTemplate>();
     for (RelyGuaranteeCFAEdgeTemplate rgEdge : validEnvEdgesFromThread[tid]){
       if (rgEdge.getSourceARTElement().isDestroyed()){
-        // rgEdge belongs to the dropped subtree
-        //removeFromProcessedBefore(rgEdge, tid);
+        // rgEdge belongs to a dropped subtree
         toDelete.add(rgEdge);
         makeRelyGuaranteeEnvEdgeFalse(rgEdge);
       }
     }
+
     if (debug){
       printEdges("Valid env. edge killed in thread "+tid+" :",toDelete);
     }
 
-
     validEnvEdgesFromThread[tid].removeAll(toDelete);
     // see if some transitions that were covered by rgEdge can become valid
-    // they could be covered by some other valid transition
+    // they could also be covered by some other valid transition
     for (RelyGuaranteeCFAEdgeTemplate rgEdge : toDelete){
       List<RelyGuaranteeCFAEdgeTemplate> covered = new Vector<RelyGuaranteeCFAEdgeTemplate>(rgEdge.getCovers());
-      rgEdge.unvalidateEdge();
+
+      rgEdge.killValidEdge();
+
+      for (RelyGuaranteeCFAEdgeTemplate edge : covered){
+        assert edge.getCoveredBy() == null;
+      }
 
       Pair<Vector<RelyGuaranteeCFAEdgeTemplate>, Vector<RelyGuaranteeCFAEdgeTemplate>> pair = semanticCoverageCheck(covered, tid);
       validEnvEdgesFromThread[tid].addAll(pair.getFirst());

@@ -117,10 +117,10 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
   private Set<String> globalVarsSet;
 
   // managers
-  private PathFormulaManager pfManager;
-  private FormulaManager     fManager;
-  private TheoremProver      tProver;
-  private RegionManager rManager = BDDRegionManager.getInstance();
+  private PathFormulaManager  pfManager;
+  private FormulaManager      fManager;
+  private TheoremProver       tProver;
+  private RegionManager       rManager    =   BDDRegionManager.getInstance();
 
   // stores information about environmental transitions
   private RelyGuaranteeEnvironment environment;
@@ -233,12 +233,11 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
             ARTElement artElement = (ARTElement) ae;
             List<RelyGuaranteeCFAEdge> envEdges = artElement.getEnvEdgesToBeApplied();
             assert envEdges == null;
-            if (envEdges == null){
-              envEdges = new Vector<RelyGuaranteeCFAEdge>();
-            }
+            envEdges = new Vector<RelyGuaranteeCFAEdge>();
             envEdges.addAll(envEdgesMap.get(node));
             artElement.setEnvEdgesToBeApplied(envEdges);
             reachedSet.reAddToWaitlist(ae);
+
           }
         }
       }
