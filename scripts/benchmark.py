@@ -316,6 +316,8 @@ class OutputHandler:
             return "SatAbs"
         elif self.benchmark.tool.lower() == "blast":
             return "BLAST"
+        elif self.benchmark.tool.lower() == "wolverine":
+            return "WOLVERINE"
         else:
             return str(self.benchmark.tool)
 
@@ -359,6 +361,11 @@ class OutputHandler:
             exe = findExecutable("satabs", None)
             version = subprocess.Popen([exe, '--version'],
                               stdout=subprocess.PIPE).communicate()[0].strip()
+
+        elif (tool == "wolverine"):
+            exe = findExecutable("wolverine", None)
+            version = subprocess.Popen([exe, '--version'],
+                              stdout=subprocess.PIPE).communicate()[0].split()[1].strip()
 
         elif (tool == "blast"):
             exe = findExecutable("pblast.opt", None)
@@ -888,9 +895,38 @@ def run_satabs(options, sourcefile, columns, rlimits):
     args = [exe] + options + [sourcefile]
     (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
     if "VERIFICATION SUCCESSFUL" in output:
+        assert returncode == 0
         status = "SAFE"
     elif "VERIFICATION FAILED" in output:
+        assert returncode == 10
         status = "UNSAFE"
+    elif returncode == -9:
+        status = "TIMEOUT"
+    elif returncode == -6:
+        status = "OUT OF MEMORY"
+    elif returncode == 1 and "PARSING ERROR" in output:
+        status = "PARSING ERROR"
+    else:
+        status = "FAILURE"
+    return (status, cpuTimeDelta, wallTimeDelta, output, args)
+
+
+def run_wolverine(options, sourcefile, columns, rlimits):
+    exe = findExecutable("wolverine", None)
+    args = [exe] + options + [sourcefile]
+    (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
+    if "VERIFICATION SUCCESSFUL" in output:
+        assert returncode == 0
+        status = "SAFE"
+    elif "VERIFICATION FAILED" in output:
+        assert returncode == 10
+        status = "UNSAFE"
+    elif returncode == -9:
+        status = "TIMEOUT"
+    elif returncode == -6 or (returncode == 6 and "Out of memory" in output):
+        status = "OUT OF MEMORY"
+    elif returncode == 6 and "PARSING ERROR" in output:
+        status = "PARSING ERROR"
     else:
         status = "FAILURE"
     return (status, cpuTimeDelta, wallTimeDelta, output, args)
@@ -1074,7 +1110,7 @@ def run_blast(options, sourcefile, columns, rlimits):
 def runBenchmark(benchmarkFile):
     benchmark = Benchmark(benchmarkFile)
 
-    assert benchmark.tool in ["cbmc", "satabs", "cpachecker", "blast", "acsar"]
+    assert benchmark.tool in ["cbmc", "satabs", "cpachecker", "blast", "acsar", "wolverine"]
     run_func = eval("run_" + benchmark.tool)
 
     if len(benchmark.tests) == 1:
