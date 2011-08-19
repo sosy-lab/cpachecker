@@ -36,6 +36,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -222,6 +223,104 @@ public class CFA {
     }
   }
 
+  /**
+   * Gathers information about CFANodes that lay between statement edges "_START_NOENV" and "_END_NOENV".
+   * In rely-guarantee analysis, no enviormental information can be applied to such nodes. These tags cannot
+   * be nested and have to properly enclose nodes.
+   */
+  public static class NoEnvNodes {
+
+    /**
+     * Returns CFANode between edges "_START_NOENV" and "_END_NOENV". The start not should not be
+     * between such two edges. Exepction is thrown if tags do not properly encolse nodes.
+     *
+     * @param start
+     * @return
+     */
+    public static Set<CFANode> getNoEnvNodes(CFANode start) throws ParserException{
+
+      // edges before "_START_NOENV" or after "_END_NOENV"
+      Deque<CFANode> toProcessEnv = new ArrayDeque<CFANode>();
+      Set<CFANode> seenEnv = new HashSet<CFANode>();
+      // edges after "_START_NOENV", but before "_END_NOENV".
+      Deque<CFANode> toProcessNoEnv = new ArrayDeque<CFANode>();
+      Set<CFANode> seenNoEnv = new HashSet<CFANode>();
+
+      toProcessEnv.push(start);
+      while (!toProcessEnv.isEmpty() || !toProcessNoEnv.isEmpty()){
+        // search "no env" edges
+        while (!toProcessNoEnv.isEmpty()) {
+          CFANode n  = toProcessNoEnv.pop();
+          seenNoEnv.add(n);
+          if (seenEnv.contains(n)){
+            throw new ParserException("Mismatched _START_NOENV and _ENV_NOENV tags.");
+          }
+
+          for (int i = 0; i < n.getNumLeavingEdges(); ++i) {
+            CFAEdge e = n.getLeavingEdge(i);
+            CFANode s = e.getSuccessor();
+            if (!seenNoEnv.contains(s)){
+              if (e.getEdgeType() == CFAEdgeType.BlankEdge){
+                if (e.getRawStatement().contains("_END_NOENV")){
+                  toProcessEnv.push(s);
+                } else if (e.getRawStatement().contains("_START_NOENV")){
+                  throw new ParserException("Mismatched _START_NOENV and _ENV_NOENV tags.");
+                } else {
+                  toProcessNoEnv.push(s);
+                }
+              } else {
+                toProcessNoEnv.push(s);
+              }
+
+            }
+          }
+          if (n.getLeavingSummaryEdge() != null) {
+            CFANode s = n.getLeavingSummaryEdge().getSuccessor();
+            if (!seenEnv.contains(s)) {
+              toProcessNoEnv.push(s);
+            }
+          }
+        }
+        // search for edges outside the keywords
+        while (!toProcessEnv.isEmpty()) {
+          CFANode n = toProcessEnv.pop();
+          seenEnv.add(n);
+          if (seenNoEnv.contains(n)){
+            throw new ParserException("Mismatched _START_NOENV and _ENV_NOENV tags.");
+          }
+
+          for (int i = 0; i < n.getNumLeavingEdges(); ++i) {
+            CFAEdge e = n.getLeavingEdge(i);
+            CFANode s = e.getSuccessor();
+            if (!seenEnv.contains(s)){
+              if (e.getEdgeType() == CFAEdgeType.BlankEdge){
+                if (e.getRawStatement().contains("_START_NOENV")){
+                  toProcessNoEnv.push(s);
+                } else if (e.getRawStatement().contains("_NO_NOENV")){
+                  throw new ParserException("Mismatched _START_NOENV and _ENV_NOENV tags.");
+                } else {
+                  toProcessEnv.push(s);
+                }
+              } else {
+                toProcessEnv.push(s);
+              }
+            }
+
+
+          }
+          if (n.getLeavingSummaryEdge() != null) {
+            CFANode s = n.getLeavingSummaryEdge().getSuccessor();
+            if (!seenEnv.contains(s)) {
+              toProcessEnv.push(s);
+            }
+          }
+        }
+      }
+
+      return seenNoEnv;
+    }
+  }
+
   public static class Loop {
 
     // loopHeads is a sub-set of nodes such that all infinite paths through
@@ -239,9 +338,9 @@ public class CFA {
     public Loop(CFANode loopHead, Set<CFANode> pNodes) {
       loopHeads = ImmutableSet.of(loopHead);
       nodes = ImmutableSortedSet.<CFANode>naturalOrder()
-                                .addAll(pNodes)
-                                .add(loopHead)
-                                .build();
+      .addAll(pNodes)
+      .add(loopHead)
+      .build();
     }
 
     private void computeSets() {
@@ -274,9 +373,9 @@ public class CFA {
 
     void addNodes(Loop l) {
       nodes = ImmutableSortedSet.<CFANode>naturalOrder()
-                                .addAll(nodes)
-                                .addAll(l.nodes)
-                                .build();
+      .addAll(nodes)
+      .addAll(l.nodes)
+      .build();
 
       innerLoopEdges = null;
       incomingEdges = null;
@@ -300,7 +399,7 @@ public class CFA {
       other.computeSets();
 
       return this.innerLoopEdges.containsAll(other.incomingEdges)
-          && this.innerLoopEdges.containsAll(other.outgoingEdges);
+      && this.innerLoopEdges.containsAll(other.outgoingEdges);
     }
 
     public ImmutableSortedSet<CFANode> getLoopNodes() {
@@ -325,9 +424,9 @@ public class CFA {
     public String toString() {
       computeSets();
       return "Loop with heads " + loopHeads + "\n"
-           + "  incoming: " + incomingEdges + "\n"
-           + "  outgoing: " + outgoingEdges + "\n"
-           + "  nodes:    " + nodes;
+      + "  incoming: " + incomingEdges + "\n"
+      + "  outgoing: " + outgoingEdges + "\n"
+      + "  nodes:    " + nodes;
     }
   }
 
@@ -436,98 +535,98 @@ public class CFA {
 
     boolean changed = false;
 
-      // merge nodes with their neighbors, if possible
-      Iterator<CFANode> it = nodes.iterator();
-      while (it.hasNext()) {
-        final CFANode currentNode = it.next();
-        final int current = currentNode.getNodeNumber() - offset;
+    // merge nodes with their neighbors, if possible
+    Iterator<CFANode> it = nodes.iterator();
+    while (it.hasNext()) {
+      final CFANode currentNode = it.next();
+      final int current = currentNode.getNodeNumber() - offset;
 
-        // find edges of current
-        final int predecessor = findSingleIncomingEdgeOfNode(current, edges);
-        final int successor   = findSingleOutgoingEdgeOfNode(current, edges);
+      // find edges of current
+      final int predecessor = findSingleIncomingEdgeOfNode(current, edges);
+      final int successor   = findSingleOutgoingEdgeOfNode(current, edges);
 
-        if ((predecessor == -1) && (successor == -1)) {
-          // no edges, eliminate node
-          it.remove(); // delete currentNode
+      if ((predecessor == -1) && (successor == -1)) {
+        // no edges, eliminate node
+        it.remove(); // delete currentNode
 
-        } else if ((predecessor == -1) && (successor > -1)) {
-          // no incoming edges, one outgoing edge
-          final int successor2 = findSingleOutgoingEdgeOfNode(successor, edges);
-          if (successor2 == -1) {
-            // the current node is a source that is only connected with a sink
-            // we can remove it
-            edges[current][successor] = null;
-            it.remove(); // delete currentNode
-          }
-
-        } else if ((successor == -1) && (predecessor > -1)) {
-          // one incoming edge, no outgoing edges
-          final int predecessor2 = findSingleIncomingEdgeOfNode(predecessor, edges);
-          if (predecessor2 == -1) {
-            // the current node is a sink that is only connected with a source
-            // we can remove it
-            edges[predecessor][current] =  null;
-            it.remove(); // delete currentNode
-          }
-
-        } else if ((predecessor > -1) && (successor != -1)) {
-          // current has a single incoming edge from predecessor and is no sink, eliminate current
-          changed = true;
-
-          // copy all outgoing edges (current,j) to (predecessor,j)
-          for (int j = 0; j < size; j++) {
-            if (edges[current][j] != null) {
-              // combine three edges (predecessor,current) (current,j) and (predecessor,j)
-              // into a single edge (predecessor,j)
-              Edge targetEdge = getEdge(predecessor, j, edges);
-              targetEdge.add(edges[predecessor][current]);
-              targetEdge.add(edges[current][j]);
-              targetEdge.add(currentNode);
-              edges[current][j] = null;
-            }
-          }
-
-          // delete from graph
-          edges[predecessor][current] = null;
-          it.remove(); // delete currentNode
-
-          // now predecessor node might have gained a self-edge
-          if (edges[predecessor][predecessor] != null) {
-            CFANode pred = nodesArray[predecessor];
-            handleLoop(pred, predecessor, edges, loops);
-          }
-
-
-        } else if (reverseMerge && (successor > -1) && (predecessor != -1)) {
-          // current has a single outgoing edge to successor and is no source, eliminate current
-          changed = true;
-
-          // copy all incoming edges (j,current) to (j,successor)
-          for (int j = 0; j < size; j++) {
-            if (edges[j][current] != null) {
-              // combine three edges (j,current) (current,successor) and (j,successor)
-              // into a single edge (j,successor)
-              Edge targetEdge = getEdge(j, successor, edges);
-              targetEdge.add(edges[j][current]);
-              targetEdge.add(edges[current][successor]);
-              targetEdge.add(currentNode);
-              edges[j][current] = null;
-            }
-          }
-
-          // delete from graph
+      } else if ((predecessor == -1) && (successor > -1)) {
+        // no incoming edges, one outgoing edge
+        final int successor2 = findSingleOutgoingEdgeOfNode(successor, edges);
+        if (successor2 == -1) {
+          // the current node is a source that is only connected with a sink
+          // we can remove it
           edges[current][successor] = null;
           it.remove(); // delete currentNode
+        }
 
-          // now successor node might have gained a self-edge
-          if (edges[successor][successor] != null) {
-            CFANode succ = nodesArray[successor];
-            handleLoop(succ, successor, edges, loops);
+      } else if ((successor == -1) && (predecessor > -1)) {
+        // one incoming edge, no outgoing edges
+        final int predecessor2 = findSingleIncomingEdgeOfNode(predecessor, edges);
+        if (predecessor2 == -1) {
+          // the current node is a sink that is only connected with a source
+          // we can remove it
+          edges[predecessor][current] =  null;
+          it.remove(); // delete currentNode
+        }
+
+      } else if ((predecessor > -1) && (successor != -1)) {
+        // current has a single incoming edge from predecessor and is no sink, eliminate current
+        changed = true;
+
+        // copy all outgoing edges (current,j) to (predecessor,j)
+        for (int j = 0; j < size; j++) {
+          if (edges[current][j] != null) {
+            // combine three edges (predecessor,current) (current,j) and (predecessor,j)
+            // into a single edge (predecessor,j)
+            Edge targetEdge = getEdge(predecessor, j, edges);
+            targetEdge.add(edges[predecessor][current]);
+            targetEdge.add(edges[current][j]);
+            targetEdge.add(currentNode);
+            edges[current][j] = null;
           }
         }
-      }
 
-      return changed;
+        // delete from graph
+        edges[predecessor][current] = null;
+        it.remove(); // delete currentNode
+
+        // now predecessor node might have gained a self-edge
+        if (edges[predecessor][predecessor] != null) {
+          CFANode pred = nodesArray[predecessor];
+          handleLoop(pred, predecessor, edges, loops);
+        }
+
+
+      } else if (reverseMerge && (successor > -1) && (predecessor != -1)) {
+        // current has a single outgoing edge to successor and is no source, eliminate current
+        changed = true;
+
+        // copy all incoming edges (j,current) to (j,successor)
+        for (int j = 0; j < size; j++) {
+          if (edges[j][current] != null) {
+            // combine three edges (j,current) (current,successor) and (j,successor)
+            // into a single edge (j,successor)
+            Edge targetEdge = getEdge(j, successor, edges);
+            targetEdge.add(edges[j][current]);
+            targetEdge.add(edges[current][successor]);
+            targetEdge.add(currentNode);
+            edges[j][current] = null;
+          }
+        }
+
+        // delete from graph
+        edges[current][successor] = null;
+        it.remove(); // delete currentNode
+
+        // now successor node might have gained a self-edge
+        if (edges[successor][successor] != null) {
+          CFANode succ = nodesArray[successor];
+          handleLoop(succ, successor, edges, loops);
+        }
+      }
+    }
+
+    return changed;
   }
 
   // get edge from edges array, ensuring that it is added if it does not exist yet

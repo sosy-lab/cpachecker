@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFA.Loop;
+import org.sosy_lab.cpachecker.util.CFA.NoEnvNodes;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -210,6 +211,18 @@ public class CFACreator {
         // don't abort here, because if the analysis doesn't need the loop information, we can continue
         logger.log(Level.WARNING, e.getMessage());
       }
+
+      // get information about nodes where between _START_NOENV and _END_NOENV statement edges
+      // at these nodes no rely-guarantee environmetal edges can be applied
+      assert mainFunction.getNumLeavingEdges() == 1;
+      CFAEdge firstEdge = mainFunction.getLeavingEdge(0);
+      assert firstEdge instanceof BlankEdge && !firstEdge.isJumpEdge();
+      CFANode secondNode = firstEdge.getSuccessor();
+      Set<CFANode> noenvNodes = NoEnvNodes.getNoEnvNodes(secondNode);
+      for (CFANode node : noenvNodes){
+        node.setEnvAllowed(false);
+      }
+
 
       // Insert call and return edges and build the supergraph
       if (interprocedural) {

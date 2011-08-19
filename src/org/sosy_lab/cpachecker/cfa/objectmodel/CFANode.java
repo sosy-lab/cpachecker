@@ -41,6 +41,9 @@ public class CFANode implements Comparable<CFANode> {
   // is start node of a loop?
   private boolean             isLoopStart         = false;
 
+  // can rely-guarantee environmental edges be applied to this node?
+  private boolean             isEnvAllowed            = true;
+
   // in which function is that node?
   private final String        functionName;
 
@@ -112,7 +115,6 @@ public class CFANode implements Comparable<CFANode> {
         return edge;
       }
     }
-
     throw new IllegalArgumentException();
   }
 
@@ -141,6 +143,15 @@ public class CFANode implements Comparable<CFANode> {
 
   public boolean isLoopStart() {
     return isLoopStart;
+  }
+
+
+  public boolean isEnvAllowed() {
+    return isEnvAllowed;
+  }
+
+  public void setEnvAllowed(boolean pIsEnv) {
+    isEnvAllowed = pIsEnv;
   }
 
   public String getFunctionName() {

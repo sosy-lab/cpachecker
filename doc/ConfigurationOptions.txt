@@ -60,6 +60,9 @@ analysis.useGlobalVars = true
 # Currently all refiner require the use of the ARTCPA.
 analysis.useRefinement = false
 
+# use experimental rely-guarantee CEGAR loop
+analysis.useRelyGuaranteeRefinement = false
+
 # write collected assumptions as automaton to file
 assumptions.automatonFile = "AssumptionAutomaton.txt"
 
@@ -136,6 +139,11 @@ counterexample.checker.config = "test/config/explicitAnalysisInf.properties"
 # continue analysis after an counterexample was found that was denied by the
 # second check
 counterexample.continueAfterInfeasibleError = true
+
+# If continueAfterInfeasibleError is true, remove the infeasible
+# counterexample before continuing.Setting this to false may prevent a lot of
+# similar infeasible counterexamples to get discovered, but is unsound
+counterexample.removeInfeasibleErrors = false
 
 # CPA to use (see HowToConfiguration.txt for more documentation on this)
 cpa = CompositeCPA.class.getCanonicalName()
@@ -269,10 +277,6 @@ cpa.predicate.abstraction.initialPredicates =
 # which solver to use?
 cpa.predicate.abstraction.solver = "MATHSAT"
   allowed values: [MATHSAT, YICES]
-
-# when transforming code to formula, add predicates that help producing more
-# precise error paths (not necessary for SBE)
-cpa.predicate.addBranchingInformation = true
 
 # force abstractions on function call/return
 cpa.predicate.blk.functions = true
@@ -410,6 +414,89 @@ cpa.predicate.useBitwiseAxioms = false
 
 # add special information to formulas about non-deterministic functions
 cpa.predicate.useNondetFlags = false
+
+# get an initial set of predicates from a file in MSAT format
+cpa.relyguarantee.abstraction.initialPredicates0 = 
+cpa.relyguarantee.abstraction.initialPredicates1 = 
+
+# which solver to use?
+cpa.relyguarantee.abstraction.solver = "MATHSAT"
+  allowed values: [MATHSAT, YICES]
+
+# maximum number of atoms in a path formula before abstraction is forced
+# (non-negative number, special values: 0 = don't check threshold, 1 = SBE)
+cpa.relyguarantee.blk.atomThreshold = 0
+
+# force abstractions on function call/return
+cpa.relyguarantee.blk.functions = true
+
+# force abstractions for each loop iteration
+cpa.relyguarantee.blk.loops = true
+
+# require that both the threshold and (functions or loops) have to be
+# fulfilled to compute an abstraction
+cpa.relyguarantee.blk.requireThresholdAndLBE = false
+
+# maximum blocksize before abstraction is forced
+# (non-negative number, special values: 0 = don't check threshold, 1 = SBE)
+cpa.relyguarantee.blk.threshold = 0
+
+# use caching of path formulas
+cpa.relyguarantee.blk.useCache = true
+
+# always check satisfiability at end of block, even if precision is empty
+cpa.relyguarantee.checkBlockFeasibility = false
+
+# Print debugging info?
+cpa.relyguarantee.debug = true
+
+# export one satisfying assignment for the error path
+cpa.relyguarantee.errorPath.export = true
+cpa.relyguarantee.errorPath.file = "ErrorPathAssignment.txt"
+
+# List of variables global to multiple threads
+cpa.relyguarantee.globalVariables = {}
+
+# which interpolating solver to use for interpolant generation?
+cpa.relyguarantee.interpolatingProver = "MATHSAT"
+  allowed values: [MATHSAT, CSISAT]
+
+# try second interpolating solver if the first takes too long
+cpa.relyguarantee.interpolation.changesolverontimeout = false
+
+# export final predicate map, if the error location is not reached
+cpa.relyguarantee.predmap.export = true
+cpa.relyguarantee.predmap.file = "predmap.txt"
+
+# refinement will add all discovered predicates to all the locations in the
+# abstract trace
+cpa.relyguarantee.refinement.addPredicatesGlobally = false
+
+# which interpolating solver to use for interpolant generation?
+cpa.relyguarantee.refinement.interpolatingProver = "MATHSAT"
+  allowed values: [MATHSAT, CSISAT]
+
+# where to dump the counterexample formula in case the error location is
+# reached
+cpa.relyguarantee.refinement.msatCexFile = "counterexample.msat"
+
+# restart analysis after refinement
+cpa.relyguarantee.refinement.restartAnalysis = false
+
+# split arithmetic equalities when extracting predicates from interpolants
+cpa.relyguarantee.refinement.splitItpAtoms = false
+
+# maximum blocksize before a satisfiability check is done
+# (non-negative number, 0 means never, if positive should be smaller than
+# blocksize)
+cpa.relyguarantee.satCheck = 0
+
+# Use a theorem prover to remove covered environemtal transitions if false
+# perform only a syntatic check for equivalence
+cpa.relyguarantee.symbolicCoverageCheck = true
+
+# check satisfiability when a target state has been found (should be true)
+cpa.relyguarantee.targetStateSatCheck = true
 
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"

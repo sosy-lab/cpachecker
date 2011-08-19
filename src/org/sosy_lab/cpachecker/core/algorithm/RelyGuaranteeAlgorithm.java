@@ -43,9 +43,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.RelyGuaranteeCFA;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -70,6 +67,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 
@@ -294,18 +292,21 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
   }
 
   /**
-   * Apply env transitions to CFA no. i and return true if at least one node has been applied
+   * Apply env transitions to CFA of thread i.
    */
   private ListMultimap<CFANode, RelyGuaranteeCFAEdge> addEnvTransitionsToCFA(int i) {
     ListMultimap<CFANode, RelyGuaranteeCFAEdge> envEdgesMap = ArrayListMultimap.create();
 
     RelyGuaranteeCFA cfa = cfas[i];
-    Multimap<CFANode, String> map = cfa.getRhsVariables();
+    Multimap<CFANode, String> lhsVars = cfa.getLhsVariables();
+    Multimap<CFANode, String> rhsVars = cfa.getRhsVariables();
+    Multimap<CFANode, String> allVars = HashMultimap.create(lhsVars);
+    allVars.putAll(rhsVars);
     // remove old environmental edges
     removeRGEdges(i);
     this.dumpDot(i, "test/output/revertedCFA"+i+".dot");
     // iterate over both new and old env edges
-    // TODO extend to mutliple threds
+    // TODO extend to mutliple threads
     int j = (i==1 ? 0 : 1);
     List<RelyGuaranteeCFAEdgeTemplate> valid = environment.getValidEnvEdgesFromThread(j);
     List<RelyGuaranteeCFAEdgeTemplate> unapplied = environment.getUnappliedEnvEdgesForThread(i);
@@ -315,17 +316,22 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
       System.out.println("Env edges applied at CFA "+i);
     }
 
-    // apply all env transitions to CFA nodes that have an outgoing edge that reads from a global varialbe
+    // apply all env transitions to CFA nodes that have an outgoing edge that reads from or writes to a global variable
     for(Entry<String, CFANode> entry :   cfa.getCFANodes().entries()){
       CFANode node = entry.getValue();
-      boolean globalRead = false;
-      for (String var : map.get(node)){
-        if (this.globalVarsSet.contains(var)){
-          globalRead = true;
+      // check if env transition can be applied at the node
+      if (!node.isEnvAllowed()){
+        continue;
+      }
+
+      boolean applEnv = false;
+      for (String var : allVars.get(node)){
+        if (globalVarsSet.contains(var)){
+          applEnv = true;
           break;
         }
       }
-      if (globalRead){
+      if (applEnv){
         for (RelyGuaranteeCFAEdgeTemplate envTransition : valid){
           RelyGuaranteeCFAEdge edge = envTransition.instantiate();
           addEnvTransitionToNode(node, edge);
@@ -346,27 +352,12 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     return envEdgesMap;
   }
 
-  /**
-   * Get the variable in the lhs of an expression or return null
-   */
-  private String getLhsVariable(CFAEdge edge){
-    IASTNode node = edge.getRawAST();
-    if (node instanceof IASTExpressionAssignmentStatement) {
-      IASTExpressionAssignmentStatement stmNode = (IASTExpressionAssignmentStatement) node;
-      if (stmNode.getLeftHandSide() instanceof IASTIdExpression) {
-        IASTIdExpression idExp = (IASTIdExpression) stmNode.getLeftHandSide();
-        return new String(idExp.getName());
-      }
-    }
-    return null;
-  }
 
   /**
    * Remove old environmental edges.
    */
   private void removeRGEdges(int i) {
     RelyGuaranteeCFA cfa = this.cfas[i];
-    Multimap<CFANode, String> map = cfa.getRhsVariables();
     List<CFAEdge> toRemove = new Vector<CFAEdge>();
     // remove old env edges from the CFA
     for (CFANode node : cfa.getCFANodes().values()){

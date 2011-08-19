@@ -24,9 +24,11 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
@@ -45,6 +47,8 @@ import com.google.common.collect.Multimap;
 public class RelyGuaranteeCFA extends CFA {
 
   private final Multimap<CFANode, String> rhsVariables;
+  private final Multimap<CFANode, String> lhsVariables;
+  private final List<CFANode> noEnvList;
 
   /*public RelyGuaranteeCFA(Map<String, CFAFunctionDefinitionNode> pFunctions, SortedSetMultimap<String, CFANode> pCfaNodes, List<IASTDeclaration> pGlobalDeclarations) {
     super(pFunctions, pCfaNodes, pGlobalDeclarations);
@@ -55,24 +59,33 @@ public class RelyGuaranteeCFA extends CFA {
     super(other);
 
     rhsVariables = HashMultimap.create();
+    lhsVariables = HashMultimap.create();
+    noEnvList = new Vector<CFANode>();
     for (CFANode node : other.cfaNodes.values()){
       for (int i=0; i<node.getNumLeavingEdges(); i++) {
         CFAEdge edge = node.getLeavingEdge(i);
         if (edge.getEdgeType() == CFAEdgeType.StatementEdge || edge.getEdgeType() == CFAEdgeType.AssumeEdge ) {
-          Set<String> vars = getReadVariables(edge.getRawAST());
-          rhsVariables.putAll(node, vars);
+          Triple<Set<String>, Set<String>, Boolean> vars = getReadWriteVariables(edge.getRawAST());
+          lhsVariables.putAll(node, vars.getFirst());
+          rhsVariables.putAll(node, vars.getSecond());
         }
       }
     }
-
   }
 
 
-  private Set<String> getReadVariables(IASTNode exp) throws UnrecognizedCFAEdgeException {
+  private Triple<Set<String>, Set<String>, Boolean> getReadWriteVariables(IASTNode exp) throws UnrecognizedCFAEdgeException {
     Vector<IASTExpression> toProcess = new Vector<IASTExpression>();
-    Set<String> result = new HashSet<String>();
+    Set<String> rhsVars = new HashSet<String>();
+    Set<String> lhsVars = new HashSet<String>();
+    boolean isNoEnvLabel = false;
+
     if (exp instanceof IASTExpressionAssignmentStatement){
-      IASTExpression rhs = ((IASTExpressionAssignmentStatement) exp).getRightHandSide();
+      IASTExpressionAssignmentStatement e = (IASTExpressionAssignmentStatement) exp;
+      IASTExpression rhs = e.getRightHandSide();
+      IASTExpression lhs = e.getLeftHandSide();
+      String lhsVar = ((IASTIdExpression) lhs).getName();
+      lhsVars.add(lhsVar);
       toProcess.add(rhs);
     } else if (exp instanceof IASTBinaryExpression) {
       toProcess.add((IASTBinaryExpression)exp);
@@ -82,7 +95,7 @@ public class RelyGuaranteeCFA extends CFA {
       IASTExpression e = toProcess.remove(0);
       if (e instanceof IASTIdExpression){
         String var = ((IASTIdExpression) e).getName();
-        result.add(var);
+        rhsVars.add(var);
       }
       else if (e instanceof IASTBinaryExpression){
         IASTBinaryExpression bin = (IASTBinaryExpression) e;
@@ -95,12 +108,19 @@ public class RelyGuaranteeCFA extends CFA {
       }
     }
 
-    return result;
+    return Triple.of(lhsVars, rhsVars, Boolean.FALSE);
   }
+
 
   public Multimap<CFANode, String> getRhsVariables() {
     return rhsVariables;
   }
+
+  public Multimap<CFANode, String> getLhsVariables() {
+    return lhsVariables;
+  }
+
+
 
 
 }
