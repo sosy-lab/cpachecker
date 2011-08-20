@@ -260,7 +260,7 @@ public class CFA {
             CFAEdge e = n.getLeavingEdge(i);
             CFANode s = e.getSuccessor();
             if (!seenNoEnv.contains(s)){
-              if (e.getEdgeType() == CFAEdgeType.BlankEdge){
+              if (e.getEdgeType() == CFAEdgeType.StatementEdge){
                 if (e.getRawStatement().contains("_END_NOENV")){
                   toProcessEnv.push(s);
                 } else if (e.getRawStatement().contains("_START_NOENV")){
@@ -293,7 +293,7 @@ public class CFA {
             CFAEdge e = n.getLeavingEdge(i);
             CFANode s = e.getSuccessor();
             if (!seenEnv.contains(s)){
-              if (e.getEdgeType() == CFAEdgeType.BlankEdge){
+              if (e.getEdgeType() == CFAEdgeType.StatementEdge){
                 if (e.getRawStatement().contains("_START_NOENV")){
                   toProcessNoEnv.push(s);
                 } else if (e.getRawStatement().contains("_NO_NOENV")){

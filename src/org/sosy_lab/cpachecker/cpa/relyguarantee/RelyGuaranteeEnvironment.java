@@ -558,7 +558,7 @@ public class RelyGuaranteeEnvironment {
    */
   private boolean isLocalAssigment(CFAEdge edge) {
     String var = getLhsVariable(edge);
-    if (var != null && !globalVarsSet.contains(var)){
+    if (var == null || !globalVarsSet.contains(var)){
       return true;
     }
     return false;

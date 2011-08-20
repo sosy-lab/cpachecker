@@ -35,9 +35,9 @@ void main(void)
 	while_1_break: /* CIL Label */ ;
 	}
 #line 11
-      _START_NOENV_:
+	_START_NOENV_;
 	lock = 2;
-      _END_NOENV_:
+	_END_NOENV_;
 #line 12
 	cs2 = 1;
 #line 13
