@@ -118,19 +118,28 @@ html,body {
 #tabContent iframe {
     width: 100%;
     height: 100%;
-    overflow: auto;
+    overflow: none;
     background: #ddc;
     border: 0px;
 }
 
 #tab_cfa,#tab_art {
     position: absolute;
-    top: 27px;
+    top: 0px;
     bottom: 0px;
     left: 0px;
     right: 0px;
     overflow: hidden;
     background: white;
+}
+
+#tab_cfa .iframeWrapper, #tab_art .iframeWrapper {
+    position: absolute;
+    top: 26px;
+    bottom: 0px;
+    left: 0px;
+    right: 0px;
+    overflow: none;
 }
 
 #tab_log,#tab_stats,#tab_conf,#tab_cil {
@@ -182,23 +191,24 @@ a.action:hover {
     margin: 0px;
 }
 
-#zoomSlider {
+.zoomSliderContainer {
     position: absolute;
-    top: 41px;
+    top: 0px;
     left: 0px;
     right: 0px;
     height: 25px;
     z-index: 2; /* slider is over content */
     border-bottom: 1px solid black;
     float: right;
+    background-color: #eed;
 }
 
-#zoomSlider #zoomLevelLabel {
+#zoomLabel_tab_art, #zoomLabel_tab_cfa {
     float: right;
     line-height: 25px;
 }
 
-#zoomSlider #zoomSliderContainer { /* DO NOT CHANGE, USED FOR CALCULATION */
+#zoomSlider_tab_art, #zoomSlider_tab_cfa { /* DO NOT CHANGE, USED FOR CALCULATION */
     width: 400px;
     overflow-x: scroll;
     overflow-y: hidden;
@@ -206,12 +216,12 @@ a.action:hover {
     float: right;
 }
 
-#zoomSlider #zoomSliderContent { /* DO NOT CHANGE, USED FOR CALCULATION */
+.zoomSliderContainer .zoomSliderContent { /* DO NOT CHANGE, USED FOR CALCULATION */
     width: 2300px;
     height: 18px;
 }
 
-#zoomSlider #functionSelector {
+#functionSelector {
     float: left;
     line-height: 25px;
 }
@@ -239,7 +249,7 @@ a.action:hover {
         </div>
 
         <div id="rightContent">
-            <div class="toolbar" onclick="setActiveWindow(event);">
+            <div class="toolbar">
                 <a class="action" id="show_cfa">CFA</a>
                 <a class="action" id="show_art">ART</a>
                 <a class="action" id="show_cil">CIL</a>
@@ -248,23 +258,37 @@ a.action:hover {
                 <a class="action" id="show_conf">Configuration</a> 
             </div>
 
-            <div id="zoomSlider">
-                <div id="zoomSliderContainer" onmousemove="setZoomLevel();" onmouseup="setZoomLevel();zoom();">
-                    <div id="zoomSliderContent"></div>
-                </div>
-                <div id="zoomLevelLabel">100 %</div>
-                <div id="functionSelector">
-                    <span>Displayed CFA </span>
-                    <select id="functionselect"></select>
-                </div>
-            </div>
-
             <div id="tabContent">
                 <div id="tab_cfa">
-                    <iframe name="tab_cfa" src="about:blank"></iframe>
+                    <div class="zoomSliderContainer">
+                        <div id="zoomSlider_tab_cfa"
+							 onmousemove="setZoomLevel(this.id);" 
+                        	 onmouseup="setZoomLevel(this.id);zoom(this.id);">
+                            <div class="zoomSliderContent"></div>
+                        </div>
+                        <div id="zoomLabel_tab_cfa">100 %</div>
+                        <div id="functionSelector">
+                            <span>Displayed CFA </span>
+                            <select id="functionselect"></select>
+                        </div>
+                    </div>
+                    <div class="iframeWrapper">
+                        <iframe name="tab_cfa" src="about:blank"></iframe>
+                    </div>
                 </div>
+
                 <div id="tab_art">
-                    <iframe name="tab_art" src="ART.svg"></iframe>
+                    <div class="zoomSliderContainer">
+                        <div id="zoomSlider_tab_art"
+                        	 onmousemove="setZoomLevel(this.id);" 
+                        	 onmouseup="setZoomLevel(this.id);zoom(this.id);">
+                            <div class="zoomSliderContent"></div>
+                        </div>
+                        <div id="zoomLabel_tab_art">100 %</div>
+                    </div>
+                    <div class="iframeWrapper">
+						<iframe name="tab_art" src="ART.svg"></iframe>
+					</div>
                 </div>
                 <div id="tab_cil">
                     {{{formatted_cil}}}
@@ -376,8 +400,6 @@ a.action:hover {
         </script>
 
         <script>
-        
-	       	var activeWindow    = "tab_cfa";
 
 			var zoomLevel		= new Array();
 			zoomLevel["tab_cfa"]	= 100;
@@ -386,49 +408,18 @@ a.action:hover {
 			var scrOffset		= new Array();
 			scrOffset["tab_cfa"]	= 0;
 			scrOffset["tab_art"]	= 0;
-			
-			function setActiveWindow(event)
-			{
-				if(event.target.className != 'action')
-					return;
 
-				slider = document.getElementById('zoomSlider');
-				sliderScroller = document.getElementById('zoomSliderContainer');
-				
-				win = 'none';
-				if(event.target.id == "show_cfa")
-					win = "tab_cfa";
-				else if(event.target.id == "show_art")
-					win = "tab_art";
-
-				if(win == 'none')
-				  slider.style.display = "none";
-				
-				else
-				{
-				  activeWindow = win;
-
-				  slider.style.display = "block";
-				
-				  sliderScroller.scrollLeft = 2000 - zoomLevel[activeWindow] * 20; // inverse function from 5 lines below
-				
-				  setZoomLevel();
-				}
-			}
-
-		    function setZoomLevel() {
-		      zoomLevel[activeWindow] = 100 - (document.getElementById('zoomSliderContainer').scrollLeft / 20);
-		      document.getElementById('zoomLevelLabel').innerHTML =  Math.round(zoomLevel[activeWindow]) + ' %';
+		    function setZoomLevel(sliderId) {
+		      tabId = sliderId.substring(11);
+		      zoomLevel[tabId] = 100 - (document.getElementById(sliderId).scrollLeft / 20);
+		      document.getElementById('zoomLabel_' + tabId).innerHTML =  Math.round(zoomLevel[tabId]) + ' %';
 		    }
 
-            function zoom()
-            {
-			  graph = window.frames[activeWindow].document.getElementsByClassName("graph")[0];
-
+            function zoom(sliderId) {
+		      tabId = sliderId.substring(11);
+			  graph = window.frames[tabId].document.getElementsByClassName("graph")[0];
 			  transforms = graph.getAttribute("transform").split(" ");
-
-			  newScale = Math.round(zoomLevel[activeWindow]) / 100;
-			  
+			  newScale = Math.round(zoomLevel[tabId]) / 100;
 			  graph.setAttribute("transform", "scale(" + newScale + ") " + transforms[1] + " " + transforms[2] + transforms[3]);
             }
 
