@@ -1,4 +1,5 @@
 // #include <assert.h> //CP: gcc preprocessor inlines the assert
+#include <assert.h>
 // #include <pthread.h>
 
 int idx; // bit idx = 0; controls which of the two elements ctr1 or ctr2 will be used by readers

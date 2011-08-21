@@ -2,7 +2,7 @@
 int w, r, x, y;
 
 void main() { //reader
-  assert(w==0);
+  while(w!=0);
   r = r+1;
   y = x;
   assert(y == x);

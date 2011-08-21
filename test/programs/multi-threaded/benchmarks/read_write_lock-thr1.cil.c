@@ -19,19 +19,23 @@ void main(void)
 { 
 
   {
+  {
 #line 5
-  if (w == 0) {
+  while (1) {
+    while_0_continue: /* CIL Label */ ;
+#line 5
+    if (w != 0) {
 
-  } else {
-    {
-#line 5
-    __assert_fail("w==0", "read_write_lock-thr1.c", 5U, "main");
+    } else {
+      goto while_0_break;
     }
   }
+  while_0_break: /* CIL Label */ ;
+  }
 #line 6
-  START_NOENV;
+  _START_NOENV;
   r = r + 1;
-  ENV_NOENV;
+  _ENV_NOENV;
 #line 7
   y = x;
 #line 8

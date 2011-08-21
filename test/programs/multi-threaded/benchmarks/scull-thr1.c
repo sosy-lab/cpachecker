@@ -282,7 +282,7 @@ inline int scull_ioctl(inode i, file filp,
 		if (retval == 0)
 			retval = __put_user(tmp, arg);
 		break;
-
+n
 	  case SCULL_IOCHQUANTUM: /* sHift: like Tell + Query */
 		tmp = scull_quantum;
 		scull_quantum = arg;
