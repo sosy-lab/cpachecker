@@ -345,7 +345,7 @@ public class CtoFormulaConverter {
     String function = null;
     if (edge.getPredecessor() != null){
         if (tid != null){
-          function = "thread"+tid+"_"+edge.getPredecessor().getFunctionName();
+          function = "t"+tid+"_"+edge.getPredecessor().getFunctionName();
         } else {
           function = edge.getPredecessor().getFunctionName();
         }
