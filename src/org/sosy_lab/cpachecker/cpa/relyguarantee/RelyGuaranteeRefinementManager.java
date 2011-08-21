@@ -209,7 +209,12 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     if (debug){
       System.out.println("The error trace in thread "+threadNo+" is:\n"+cfaPath);
-      System.out.println("Abstraction elements are: ");
+      System.out.print("Abstraction elements are: ");
+      if (path.isEmpty()){
+        System.out.println("none");
+      } else {
+        System.out.println();
+      }
       for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement> triple : path){
         System.out.println("- id:"+triple.getFirst().getElementId()+" at loc "+triple.getSecond());
       }
@@ -223,21 +228,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       ARTElement artElement = triple.getFirst();
       assert triple.getThird() instanceof AbstractionElement;
       AbstractionElement rgElement = (AbstractionElement) triple.getThird();
-
-      // get list of env edges applied to this block
-      /* List<RelyGuaranteeEnvTransitionBuilder> rgEdges = pathFormulaConstructor.getEnvironmetalTransitions(builder);
-      for (RelyGuaranteeEnvTransitionBuilder etb : rgEdges){
-        assert rgElement.getOldblockEnvEdges().contains(etb.getEnvEdge());
-      }
-      for (RelyGuaranteeCFAEdge edge : rgElement.getOldblockEnvEdges()){
-        boolean contains = false;
-        for (RelyGuaranteeEnvTransitionBuilder etb : rgEdges){
-          if (edge == etb.getEnvEdge()){
-            contains = true;
-          }
-        }
-        assert contains;
-      }*/
 
       if (debug){
         printEnvEdgesApplied(artElement, rgElement.getOldPrimedMap().values());
@@ -262,15 +252,9 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         // prime the blocks so paths paths are unique
         Pair<Integer, List<InterpolationBlock>> pair = primeInterpolationBlocks(envPF, offset);
         envPF = pair.getSecond();
-        //InterpolationBlock lastBlock = envPF.remove(envPF.size()-1);
-        // the top block should be enough to construct a correct local path
-        //envTopMap.put(envBuilder, lastBlock.getPathFormula());
         // remember the remaining blocks
-        //envRestMap.put(envBuilder, envPF);
         rgResult.addAll(envPF);
-        // extend the scope this env. transition
-        // scope.addAll(lastBlock.getScope());
-        offset = pair.getFirst();
+        offset = Math.max(offset, pair.getFirst());
       }
 
       PathFormula currentPF = rgElement.getAbstractionFormula().getBlockPathFormula();

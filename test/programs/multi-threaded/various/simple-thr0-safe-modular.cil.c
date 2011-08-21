@@ -6,37 +6,39 @@ extern  __attribute__((__nothrow__, __noreturn__)) void __assert_fail(char const
                                                                       char const   *__file ,
                                                                       unsigned int __line ,
                                                                       char const   *__function ) ;
-#line 3 "simple-thr1-safe2.c"
+#line 3 "simple-thr0-safe-modular.c"
 int g  =    0;
-#line 4 "simple-thr1-safe2.c"
+#line 4 "simple-thr0-safe-modular.c"
 int cs1  =    0;
-#line 5 "simple-thr1-safe2.c"
+#line 5 "simple-thr0-safe-modular.c"
 int cs2  =    0;
-#line 6 "simple-thr1-safe2.c"
-int pc1  =    0;
-#line 8 "simple-thr1-safe2.c"
-void main(void) 
-{ 
+#line 7 "simple-thr0-safe-modular.c"
+void main(void)
+{ int tmp ;
 
   {
 #line 9
-  cs1 = 1;
+    tmp = 0;
 #line 10
-  if (cs2 == 0) {
-
-  } else {
-    {
-#line 10
-    __assert_fail("cs2 == 0", "simple-thr1-safe2.c", 10U, "main");
-    }
-  }
+    cs1 = 1;
 #line 11
-  cs1 = 0;
+    if (cs2 == 0) {
+
+    } else {
+      {
+#line 11
+        __assert_fail("cs2 == 0", "simple-thr0-safe-modular.c", 11U, "main");
+      }
+    }
 #line 12
-  pc1 = 1;
+    cs1 = 0;
 #line 13
-  g = 1;
+    tmp = 1;
 #line 14
-  return;
-}
+    g = 1;
+#line 15
+    g = 0;
+#line 16
+    return;
+  }
 }

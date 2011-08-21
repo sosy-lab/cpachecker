@@ -29,7 +29,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -93,8 +92,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdge;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeFormulaTemplate;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -335,7 +332,7 @@ public class CtoFormulaConverter {
   }
 
 //  @Override
-  public Triple<Formula, SSAMap, Integer> makeAnd2(PathFormula localF, CFAEdge edge )    throws CPATransferException {
+  public Triple<Formula, SSAMap, Integer> makeAnd2(PathFormula localF, CFAEdge edge, Integer tid)    throws CPATransferException {
     // this is where the "meat" is... We have to parse the statement
     // attached to the edge, and convert it to the appropriate formula
 
@@ -345,8 +342,14 @@ public class CtoFormulaConverter {
       return new Triple<Formula, SSAMap, Integer> (fmgr.makeTrue(), localF.getSsa(), localF.getLength());
     }
 
-    String function = (edge.getPredecessor() != null)
-                          ? edge.getPredecessor().getFunctionName() : null;
+    String function = null;
+    if (edge.getPredecessor() != null){
+        if (tid != null){
+          function = "thread"+tid+"_"+edge.getPredecessor().getFunctionName();
+        } else {
+          function = edge.getPredecessor().getFunctionName();
+        }
+    }
 
     SSAMapBuilder ssa = localF.getSsa().builder();
 
@@ -432,14 +435,21 @@ public class CtoFormulaConverter {
     return new Triple<Formula, SSAMap, Integer>(edgeFormula, newSsa, newLength);
   }
 
-  public PathFormula makeAnd(PathFormula localF, CFAEdge edge )    throws CPATransferException{
-    Triple<Formula, SSAMap, Integer> data = makeAnd2(localF, edge);
+  public PathFormula makeAnd(PathFormula localF, CFAEdge edge, Integer tid )    throws CPATransferException{
+    Triple<Formula, SSAMap, Integer> data = makeAnd2(localF, edge, tid);
 
     Formula newFormula = fmgr.makeAnd(localF.getFormula(), data.getFirst());
     return new PathFormula(newFormula, data.getSecond(), data.getThird(), localF.getPrimedNo());
   }
 
-  public Pair<PathFormula, RelyGuaranteeFormulaTemplate> makeTemplateAnd(PathFormula oldLocalF, CFAEdge edge, RelyGuaranteeFormulaTemplate oldTemplate) throws CPATransferException{
+  public PathFormula makeAnd(PathFormula localF, CFAEdge edge)    throws CPATransferException{
+    Triple<Formula, SSAMap, Integer> data = makeAnd2(localF, edge, null);
+
+    Formula newFormula = fmgr.makeAnd(localF.getFormula(), data.getFirst());
+    return new PathFormula(newFormula, data.getSecond(), data.getThird(), localF.getPrimedNo());
+  }
+
+  /*public Pair<PathFormula, RelyGuaranteeFormulaTemplate> makeTemplateAnd(PathFormula oldLocalF, CFAEdge edge, RelyGuaranteeFormulaTemplate oldTemplate) throws CPATransferException{
     Triple<Formula, SSAMap, Integer> data;
     RelyGuaranteeFormulaTemplate newTemplate;
 
@@ -478,7 +488,7 @@ public class CtoFormulaConverter {
     PathFormula newLocalPF = new PathFormula(newLocalF, data.getSecond(), data.getThird(), oldLocalF.getPrimedNo());
 
     return new Pair<PathFormula, RelyGuaranteeFormulaTemplate>(newLocalPF, newTemplate);
-  }
+  }*/
 
 
 

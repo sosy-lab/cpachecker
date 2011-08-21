@@ -3,9 +3,10 @@
 int g = 0;
 int cs1 = 0;
 int cs2 = 0;
-int pc1 = 0;
 
 void main() {
+  int tmp;
+  tmp = 0;
   while (g != 1);
   g = 0;
   cs2 = 1;

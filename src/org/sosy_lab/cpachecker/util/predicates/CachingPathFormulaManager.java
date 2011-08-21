@@ -32,7 +32,6 @@ import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeFormulaTemplate;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
@@ -53,8 +52,8 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
   private final PathFormulaManager delegate;
 
-  private final Map<Pair<PathFormula, CFAEdge>, PathFormula> pathFormulaCache
-            = new HashMap<Pair<PathFormula, CFAEdge>, PathFormula>();
+  private final Map<Triple<PathFormula, CFAEdge, Integer>, PathFormula> pathFormulaCache
+            = new HashMap<Triple<PathFormula, CFAEdge, Integer>, PathFormula>();
 
   private final Map<Pair<PathFormula, PathFormula>, PathFormula> mergeCache
             = new HashMap<Pair<PathFormula, PathFormula>, PathFormula>();
@@ -77,18 +76,24 @@ public class CachingPathFormulaManager implements PathFormulaManager {
     emptyFormula = delegate.makeEmptyPathFormula();
   }
 
+
   @Override
   public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException {
+    return makeAnd(pOldFormula, pEdge, null);
+  }
 
-    final Pair<PathFormula, CFAEdge> formulaCacheKey = Pair.of(pOldFormula, pEdge);
+
+  @Override
+  public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge, Integer tid) throws CPATransferException {
+
+    final Triple<PathFormula, CFAEdge, Integer> formulaCacheKey = Triple.of(pOldFormula, pEdge, tid);
     PathFormula result = pathFormulaCache.get(formulaCacheKey);
     if (result == null) {
       pathFormulaComputationTimer.start();
       // compute new pathFormula with the operation on the edge
-      result = delegate.makeAnd(pOldFormula, pEdge);
+      result = delegate.makeAnd(pOldFormula, pEdge, tid);
       pathFormulaComputationTimer.stop();
       pathFormulaCache.put(formulaCacheKey, result);
-
     } else {
       pathFormulaCacheHits++;
     }
@@ -189,10 +194,6 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
 
-  @Override
-  public Pair<PathFormula, RelyGuaranteeFormulaTemplate> makeTemplateAnd(PathFormula pOldLocalF, CFAEdge pEdge, RelyGuaranteeFormulaTemplate pOldTemplate) throws CPATransferException {
-    return delegate.makeTemplateAnd(pOldLocalF, pEdge, pOldTemplate);
-  }
 
 
   @Override
@@ -206,11 +207,6 @@ public class CachingPathFormulaManager implements PathFormulaManager {
     return delegate.buildEqualitiesOverVariables(pPf1, pPf2, pVariableSet);
   }
 
-
-  @Override
-  public Triple<Formula, SSAMap, Integer> makeAnd2(PathFormula pLocalF,CFAEdge pEdge) throws CPATransferException {
-    return delegate.makeAnd2(pLocalF, pEdge);
-  }
 
 
   @Override
@@ -229,9 +225,6 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   public PathFormula adjustPrimedNo(PathFormula pPathFormula, Map<Integer, Integer> pPrimedMap) {
     return delegate.adjustPrimedNo(pPathFormula, pPrimedMap);
   }
-
-
-
 
 
 

@@ -6,46 +6,46 @@ extern  __attribute__((__nothrow__, __noreturn__)) void __assert_fail(char const
                                                                       char const   *__file ,
                                                                       unsigned int __line ,
                                                                       char const   *__function ) ;
-#line 3 "simple-thr2-safe2.c"
+#line 3 "simple-thr1-safe-modular.c"
 int g  =    0;
-#line 4 "simple-thr2-safe2.c"
+#line 4 "simple-thr1-safe-modular.c"
 int cs1  =    0;
-#line 5 "simple-thr2-safe2.c"
+#line 5 "simple-thr1-safe-modular.c"
 int cs2  =    0;
-#line 6 "simple-thr2-safe2.c"
-int pc1  =    0;
-#line 8 "simple-thr2-safe2.c"
-void main(void) 
-{ 
+#line 7 "simple-thr1-safe-modular.c"
+void main(void)
+{ int tmp ;
 
   {
-  {
 #line 9
-  while (1) {
-    while_0_continue: /* CIL Label */ ;
-#line 9
-    if (g != 1) {
+    tmp = 0;
+    {
+#line 10
+      while (1) {
+      while_0_continue: /* CIL Label */ ;
+#line 10
+        if (g != 1) {
+
+        } else {
+          goto while_0_break;
+        }
+      }
+    while_0_break: /* CIL Label */ ;
+    }
+#line 11
+    g = 0;
+#line 12
+    cs2 = 1;
+#line 13
+    if (cs1 == 0) {
 
     } else {
-      goto while_0_break;
-    }
-  }
-  while_0_break: /* CIL Label */ ;
-  }
-#line 10
-  g = 0;
-#line 11
-  cs2 = 1;
-#line 12
-  if (cs1 == 0) {
-
-  } else {
-    {
-#line 12
-    __assert_fail("cs1 == 0", "simple-thr2-safe2.c", 12U, "main");
-    }
-  }
+      {
 #line 13
-  return;
-}
+        __assert_fail("cs1 == 0", "simple-thr1-safe-modular.c", 13U, "main");
+      }
+    }
+#line 14
+    return;
+  }
 }

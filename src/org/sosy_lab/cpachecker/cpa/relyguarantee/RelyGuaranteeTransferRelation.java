@@ -216,7 +216,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
       assert !rgEdge.toString().contains("dummy");
       newPathFormula = handleEnvFormula(oldPathFormula, rgEdge);
     } else {
-      newPathFormula = this.pathFormulaManager.makeAnd(oldPathFormula, edge);
+      newPathFormula = pathFormulaManager.makeAnd(oldPathFormula, edge, cpa.getThreadId());
     }
 
 
