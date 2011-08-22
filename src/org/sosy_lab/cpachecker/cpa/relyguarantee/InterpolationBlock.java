@@ -34,20 +34,20 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
  */
 class InterpolationBlock {
 
-  private final int primedNo;
+  private final int scope;
   private final ARTElement artElement;
   private final PathFormula pf;
 
   public InterpolationBlock(PathFormula pf, int primedNo, ARTElement artElement){
     this.pf = pf;
-    this.primedNo = primedNo;
+    this.scope = primedNo;
     this.artElement = artElement;
   }
 
 
 
-  public int getPrimedNo() {
-    return primedNo;
+  public int getScope() {
+    return scope;
   }
 
 
@@ -65,6 +65,6 @@ class InterpolationBlock {
 
   @Override
   public String toString(){
-    return "["+primedNo+"- id:"+artElement.getElementId()+"]: "+pf;
+    return "["+scope+"- id:"+artElement.getElementId()+"]: "+pf;
   }
 }

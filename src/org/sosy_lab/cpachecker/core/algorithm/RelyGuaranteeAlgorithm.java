@@ -264,10 +264,10 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
    */
   private int pickThread(ReachedSet[] reached) {
     int i=0;
-    while(i<this.threadNo && reached[i].getWaitlistSize() == 0 && environment.getUnappliedEnvEdgesForThread(i).isEmpty()){
+    while(i < threadNo && reached[i].getWaitlistSize() == 0 && environment.getUnappliedEnvEdgesForThread(i).isEmpty()){
       i++;
     }
-    if (i==this.threadNo){
+    if (i == threadNo){
       return -1;
     }
     else {
@@ -307,8 +307,13 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     this.dumpDot(i, "test/output/revertedCFA"+i+".dot");
     // iterate over both new and old env edges
     // TODO extend to mutliple threads
-    int j = (i==1 ? 0 : 1);
-    List<RelyGuaranteeCFAEdgeTemplate> valid = environment.getValidEnvEdgesFromThread(j);
+    List<RelyGuaranteeCFAEdgeTemplate> valid = new Vector<RelyGuaranteeCFAEdgeTemplate>();
+    for (int j=0; j<threadNo; j++){
+      if (j!=i){
+        valid.addAll(environment.getValidEnvEdgesFromThread(j));
+      }
+    }
+
     List<RelyGuaranteeCFAEdgeTemplate> unapplied = environment.getUnappliedEnvEdgesForThread(i);
 
     if (debug){
@@ -341,7 +346,6 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
           }
           if (unapplied.contains(envTransition)){
             envEdgesMap.put(node, edge);
-
           }
         }
       }

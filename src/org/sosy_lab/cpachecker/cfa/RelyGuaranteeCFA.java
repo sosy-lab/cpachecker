@@ -30,11 +30,13 @@ import java.util.Vector;
 
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -101,8 +103,15 @@ public class RelyGuaranteeCFA extends CFA {
         IASTBinaryExpression bin = (IASTBinaryExpression) e;
         toProcess.add(bin.getOperand1());
         toProcess.add(bin.getOperand2());
+      } else if (e instanceof IASTUnaryExpression){
+        IASTUnaryExpression unary = (IASTUnaryExpression) e;
+        toProcess.add(unary.getOperand());
       }
       else if (e instanceof IASTIntegerLiteralExpression){}
+      else if (e instanceof IASTCastExpression){
+        IASTCastExpression cast = (IASTCastExpression) e;
+        toProcess.add(cast.getOperand());
+      }
       else {
         throw new UnrecognizedCFAEdgeException("Unrecognized AST type: "+e.getClass());
       }

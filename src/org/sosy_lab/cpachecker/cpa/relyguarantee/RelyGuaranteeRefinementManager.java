@@ -251,6 +251,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         }
         // prime the blocks so paths paths are unique
         Pair<Integer, List<InterpolationBlock>> pair = primeInterpolationBlocks(envPF, offset);
+        System.out.println("DEBUG: primeNo for f. at id:"+sourceElement.getElementId()+" is "+pair.getFirst());
         envPF = pair.getSecond();
         // remember the remaining blocks
         rgResult.addAll(envPF);
@@ -284,10 +285,10 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     List<InterpolationBlock> primedBlocks = new Vector<InterpolationBlock>();
     for (InterpolationBlock ib : envPF){
       PathFormula newPF = pmgr.primePathFormula(ib.getPathFormula(), offset);
-      int newPrimedNo = ib.getPrimedNo()+offset;
-      maximumPrimedNo = Math.max(maximumPrimedNo, newPrimedNo);
+      int newScope = ib.getScope()+offset;
+      maximumPrimedNo = Math.max(maximumPrimedNo, newPF.getPrimedNo());
       ARTElement artElement = ib.getArtElement();
-      primedBlocks.add(new InterpolationBlock(newPF, newPrimedNo, artElement));
+      primedBlocks.add(new InterpolationBlock(newPF, newScope, artElement));
     }
     return Pair.of(maximumPrimedNo, primedBlocks);
   }
@@ -353,7 +354,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     int mark = 0;
     for (int i=0; i<interpolationBlocks.size()-1; i++ ){
       InterpolationBlock ib = interpolationBlocks.get(i);
-      Integer primedNo = ib.getPrimedNo();
+      Integer primedNo = ib.getScope();
       ARTElement artElement = ib.getArtElement();
 
       if (primedNo < mark){
@@ -562,7 +563,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
 
         InterpolationBlock ib = interpolationBlocks.get(i);
-        Integer primedNo = ib.getPrimedNo();
+        Integer primedNo = ib.getScope();
         ARTElement artElement = ib.getArtElement();
         // TODO DEBUG
         CFANode loc = AbstractElements.extractLocation(artElement);

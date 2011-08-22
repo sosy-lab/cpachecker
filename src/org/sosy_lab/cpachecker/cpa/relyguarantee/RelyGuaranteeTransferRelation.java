@@ -138,6 +138,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
         return Collections.emptySet();
       }
 
+
       // calculate strongest post
       PathFormula newPF = convertEdgeToPathFormula(element, edge);
       logger.log(Level.ALL, "New path formula is", newPF);

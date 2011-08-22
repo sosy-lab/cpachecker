@@ -45,7 +45,7 @@ void main(int fd , int bytes , int op )
               switch_0_0: /* CIL Label */
 #line 24
                 err = -1;
-                goto ErrorExit;
+                goto PseudoErrorExit;
                 goto switch_0_break;
               switch_0_1: /* CIL Label */
               switch_0_2: /* CIL Label */
@@ -107,7 +107,7 @@ void main(int fd , int bytes , int op )
             if (err != 0) {
 #line 70
               if (err != -1) {
-                goto ErrorExit;
+                goto PseudoErrorExit;
               } else {
 
               }
@@ -131,7 +131,7 @@ void main(int fd , int bytes , int op )
     }
 #line 88
     if (err != 0) {
-      goto ErrorExit;
+      goto PseudoErrorExit;
     } else {
 
     }
@@ -139,7 +139,7 @@ void main(int fd , int bytes , int op )
     if (err != 0) {
 #line 91
       if (err != -1) {
-        goto ErrorExit;
+        goto PseudoErrorExit;
       } else {
 
       }
@@ -148,7 +148,7 @@ void main(int fd , int bytes , int op )
     }
 #line 94
     return;
-  ErrorExit:
+  PseudoErrorExit:
 #line 98
     return;
   }

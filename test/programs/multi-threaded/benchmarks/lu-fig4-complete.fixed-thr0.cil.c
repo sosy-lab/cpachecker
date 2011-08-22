@@ -15,7 +15,7 @@ extern int ( /* missing proto */  puts)() ;
 #line 68
 __inline int PBReadSync(int i ) ;
 #line 8 "lu-fig4-complete.fixed-thr0.c"
-void main(int fd , int bytes , int op ) 
+void main(int fd , int bytes , int op )
 { int refNum ;
   int err ;
   int pbAsync_pb ;
@@ -25,145 +25,149 @@ void main(int fd , int bytes , int op )
 
   {
 #line 18
-  if (refNum >= 0) {
+    if (refNum >= 0) {
 #line 18
-    if (refNum < 3) {
+      if (refNum < 3) {
 #line 22
-      if (refNum == 0) {
-        goto switch_0_0;
-      } else {
-#line 27
-        if (refNum == 1) {
-          goto switch_0_1;
+        if (refNum == 0) {
+          goto switch_0_0;
         } else {
-#line 28
-          if (refNum == 2) {
+#line 27
+          if (refNum == 1) {
             goto switch_0_1;
           } else {
-#line 20
-            if (0) {
-              switch_0_0: /* CIL Label */ 
-#line 24
-              err = -1;
-              goto ErrorExit;
-              goto switch_0_break;
-              switch_0_1: /* CIL Label */ 
-              switch_0_2: /* CIL Label */ 
-              {
-#line 29
-              puts();
-              }
-              goto switch_0_break;
+#line 28
+            if (refNum == 2) {
+              goto switch_0_1;
             } else {
+#line 20
+              if (0) {
+              switch_0_0: /* CIL Label */
+#line 24
+                err = -1;
+                goto PseudoErrorExit;
+                goto switch_0_break;
+              switch_0_1: /* CIL Label */
+              switch_0_2: /* CIL Label */
+                {
+#line 29
+                  puts();
+                }
+                goto switch_0_break;
+              } else {
               switch_0_break: /* CIL Label */ ;
+              }
             }
           }
         }
-      }
 #line 33
-      return;
-    } else {
-      goto _L;
-    }
-  } else {
-    _L: /* CIL Label */ 
-#line 37
-    doingAsync = 0;
-#line 46
-    if (op == 1) {
-      {
-#line 52
-      __cil_tmp9 = (long )bytes;
-#line 52
-      if (__cil_tmp9 > 20480L) {
-#line 54
-        doingAsync = 1;
-#line 55
-        if (__COUNT__ == 0) {
-#line 56
-          me_io_pending = 1;
-#line 57
-          __COUNT__ = __COUNT__ + 1;
-        } else {
-          {
-#line 59
-          __assert_fail("0", "lu-fig4-complete.fixed-thr0.c", 59U, "main");
-          }
-        }
-#line 61
-        __START_ASYNC__ = 1;
+        return;
       } else {
+        goto _L;
+      }
+    } else {
+    _L: /* CIL Label */
+#line 37
+      doingAsync = 0;
+#line 46
+      if (op == 1) {
         {
-#line 66
-        me_io_pending = 0;
-#line 68
-        err = PBReadSync(pbAsync_pb);
-        }
-#line 69
-        if (err != 0) {
-#line 69
-          if (err != -1) {
-            goto ErrorExit;
+#line 52
+          __cil_tmp9 = (long )bytes;
+#line 52
+          if (__cil_tmp9 > 20480L) {
+#line 54
+            doingAsync = 1;
+#line 55
+            if (__COUNT__ == 0) {
+#line 56
+              _START_NOENV;
+              me_io_pending = 1;
+#line 57
+              __COUNT__ = __COUNT__ + 1;
+              _END_NOENV;
+            } else {
+              {
+#line 59
+                _START_NOENV;
+                __assert_fail("0", "lu-fig4-complete.fixed-thr0.c", 59U, "main");
+                _END_NOENV;
+              }
+            }
+#line 61
+            __START_ASYNC__ = 1;
           } else {
+            {
+#line 66
+              me_io_pending = 0;
+#line 68
+              err = PBReadSync(pbAsync_pb);
+            }
+#line 69
+            if (err != 0) {
+#line 69
+              if (err != -1) {
+                goto PseudoErrorExit;
+              } else {
 
+              }
+            } else {
+
+            }
           }
-        } else {
-
         }
-      }
-      }
-    } else {
+      } else {
 #line 75
-      doingAsync = 1;
+        doingAsync = 1;
 #line 76
-      me_io_pending = 1;
-    }
+        me_io_pending = 1;
+      }
 #line 82
-    if (doingAsync) {
+      if (doingAsync) {
 
-    } else {
+      } else {
 
+      }
     }
-  }
 #line 87
-  if (err != 0) {
-    goto ErrorExit;
-  } else {
-
-  }
-#line 90
-  if (err != 0) {
-#line 90
-    if (err != -1) {
-      goto ErrorExit;
+    if (err != 0) {
+      goto PseudoErrorExit;
     } else {
 
     }
-  } else {
+#line 90
+    if (err != 0) {
+#line 90
+      if (err != -1) {
+        goto PseudoErrorExit;
+      } else {
 
-  }
+      }
+    } else {
+
+    }
 #line 93
-  return;
-  ErrorExit: 
+    return;
+  PseudoErrorExit:
 #line 97
-  return;
-}
+    return;
+  }
 }
 #line 100 "lu-fig4-complete.fixed-thr0.c"
-__inline int PBReadSync(int i ) 
-{ 
+__inline int PBReadSync(int i )
+{
 
   {
 #line 100
-  return (0);
-}
+    return (0);
+  }
 }
 #line 106 "lu-fig4-complete.fixed-thr0.c"
-__inline int _PR_MD_GET_INTSOFF(void) 
-{ 
+__inline int _PR_MD_GET_INTSOFF(void)
+{
 
   {
 #line 106
-  return (0);
-}
+    return (0);
+  }
 }

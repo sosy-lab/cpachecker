@@ -275,6 +275,7 @@ public class RelyGuaranteeRefiner{
             }
           }
 
+          // TODO why does it take so long?
           artReachedSets[tid].removeSubtree(root, precision);
 
           if (debug){

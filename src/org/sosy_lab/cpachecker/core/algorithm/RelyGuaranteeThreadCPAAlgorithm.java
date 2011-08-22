@@ -187,9 +187,16 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
         // pretty printing
         RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(element, RelyGuaranteeAbstractElement.class);
         CFANode loc = AbstractElements.extractLocation(element);
-        Precision prec = reachedSet.getPrecision(element);
+       /* Precision prec = reachedSet.getPrecision(element);
+        RelyGuaranteePrecision rgPrec = Precisions.extractPrecisionByType(prec, RelyGuaranteePrecision.class);*/
+
         System.out.println();
-        System.out.println("@ Successor of '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+" id:"+aElement.getElementId()+" at "+loc);
+        System.out.println("@ Successor of '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+" id:"+aElement.getElementId()+" at "+loc+" with SSAmap "+rgElement.getPathFormula().getSsa());
+
+      }
+
+      if (((ARTElement)element).getElementId() == 304803){
+        System.out.println();
       }
 
       stats.transferTimer.start();

@@ -61,14 +61,18 @@ __inline void DoneWaitingOnThisThread(int thread )
   {
 #line 34
   if (__COUNT__ == 1) {
+    _START_NOENV;
 #line 35
     thread_io_pending = 0;
 #line 36
     __COUNT__ = __COUNT__ + 1;
+    _END_NOENV;
   } else {
     {
 #line 38
+      _START_NOENV;
     __assert_fail("0", "lu-fig4-complete.fixed-thr1.c", 38U, "DoneWaitingOnThisThread");
+    _END_NOENV;
     }
   }
 #line 45
