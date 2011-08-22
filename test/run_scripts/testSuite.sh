@@ -1,0 +1,50 @@
+#!/bin/bash
+
+testsPositive="benchmarks/lu-fig2.fixed-restarting.sh benchmarks/lu-fig4-complete.fixed-restarting.sh benchmarks/read_write_lock-restarting.sh  benchmarks/naivebakery-restarting.sh"
+testsNegative="benchmarks/lu-fig2-restarting.sh bechmarks/lu-fig4-complete-restarting.sh"
+
+positiveMsg='NO, the system is considered safe by the chosen CPAs'
+negativeMsg='YES there is a BUG!'
+
+for test in $testsPositive
+do
+    echo "Running $test > out 2>/dev/null"
+    $test > out 2>/dev/null
+    grep  "$positiveMsg" out >/dev/null
+    if [ $? -ne 0 ]; then
+	echo "Error: test $test failed"
+	exit 1
+    fi
+done;
+
+for test in $testsNegative
+do
+    echo "Running $test > out 2>/dev/null"
+    $test > out 2>/dev/null
+    grep "$negativeMsg" out >/dev/null
+    if [ $? -eq 0 ]; then
+	echo "Error: test $test failed"
+	exit 1
+    fi
+done;
+
+rm out
+echo ""
+echo "All test passed"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
