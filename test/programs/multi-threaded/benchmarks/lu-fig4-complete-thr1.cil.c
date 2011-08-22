@@ -15,72 +15,76 @@ __inline int _PR_MD_GET_INTSOFF(void) ;
 #line 19
 __inline void DoneWaitingOnThisThread(int thread ) ;
 #line 9 "lu-fig4-complete-thr1.c"
-void main(int pbAsyncPtr_thread ) 
+void main(int pbAsyncPtr_thread )
 { int thread ;
   int tmp ;
 
   {
-  {
+    {
 #line 11
-  while (1) {
-    while_0_continue: /* CIL Label */ ;
+      while (1) {
+      while_0_continue: /* CIL Label */ ;
 #line 11
-    if (__START_ASYNC__ == 0) {
+        if (__START_ASYNC__ == 0) {
 
-    } else {
-      goto while_0_break;
+        } else {
+          goto while_0_break;
+        }
+      }
+    while_0_break: /* CIL Label */ ;
     }
-  }
-  while_0_break: /* CIL Label */ ;
-  }
-  {
+    {
 #line 12
-  thread = pbAsyncPtr_thread;
+      thread = pbAsyncPtr_thread;
 #line 14
-  tmp = _PR_MD_GET_INTSOFF();
-  }
+      tmp = _PR_MD_GET_INTSOFF();
+    }
 #line 14
-  if (tmp) {
+    if (tmp) {
 #line 15
-    return;
-  } else {
+      return;
+    } else {
 
-  }
-  {
+    }
+    {
 #line 19
-  DoneWaitingOnThisThread(thread);
-  }
+      DoneWaitingOnThisThread(thread);
+    }
 #line 23
-  return;
-}
+    return;
+  }
 }
 #line 25 "lu-fig4-complete-thr1.c"
-__inline void DoneWaitingOnThisThread(int thread ) 
+__inline void DoneWaitingOnThisThread(int thread )
 { int thread_io_pending ;
 
   {
 #line 35
-  if (__COUNT__ == 1) {
+    if (__COUNT__ == 1) {
 #line 36
-    thread_io_pending = 0;
+      _START_NOENV;
+      thread_io_pending = 0;
 #line 37
-    __COUNT__ = __COUNT__ + 1;
-  } else {
-    {
+      __COUNT__ = __COUNT__ + 1;
+      _END_NOENV;
+    } else {
+      {
 #line 39
-    __assert_fail("0", "lu-fig4-complete-thr1.c", 39U, "DoneWaitingOnThisThread");
+        _START_NOENV;
+        __assert_fail("0", "lu-fig4-complete-thr1.c", 39U, "DoneWaitingOnThisThread");
+        _END_NOENV;
+      }
     }
-  }
 #line 46
-  return;
-}
+    return;
+  }
 }
 #line 48 "lu-fig4-complete-thr1.c"
-__inline int _PR_MD_GET_INTSOFF(void) 
-{ 
+__inline int _PR_MD_GET_INTSOFF(void)
+{
 
   {
 #line 48
-  return (0);
-}
+    return (0);
+  }
 }
