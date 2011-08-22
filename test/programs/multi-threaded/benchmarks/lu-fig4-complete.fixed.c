@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "lu-fig4.h"
 
 bool __START_ASYNC__ = False; // models if the second thread can start
