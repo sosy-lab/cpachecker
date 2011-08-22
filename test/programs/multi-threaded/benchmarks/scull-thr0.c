@@ -6,32 +6,13 @@
    ===================================================== */
 inode i;
 int lock = FILE_WITH_LOCK_UNLOCKED;
-int NONDET;
+int __BLAST_NONDET;
 
-void loader() {
+void main() {
   scull_init_module();
   scull_cleanup_module();
 }
 
-void thread1() {
-  file filp;
-  char buf;
-  size_t count = 10;
-  loff_t off = 0;
-  scull_open(tid1, i, filp);
-  scull_read(tid1, filp, buf, count, off);
-  scull_release(i, filp);
-}
-
-void thread2() {
-  file filp;
-  char buf;
-  size_t count = 10;
-  loff_t off = 0;
-  scull_open(tid2, i, filp);
-  scull_write(tid2, filp, buf, count, off);
-  scull_release(i, filp);
-}
 
 /* =====================================================
    Model for the Linux kernel API
@@ -53,22 +34,22 @@ inline int down_interruptible(int tid) {
 
 inline unsigned_long copy_to_user(char to, char from, unsigned_long n) {
   to = from;
-  return NONDET;
+  return __BLAST_NONDET;
 }
 
 inline unsigned_long copy_from_user(char to, char from, unsigned_long n) {
   to = from;
-  return NONDET;
+  return __BLAST_NONDET;
 }
 
 inline int __get_user(int size, void_ptr ptr)
 {
-  return NONDET;
+  return __BLAST_NONDET;
 }
 
 inline int __put_user(int size, void_ptr ptr)
 {
-    return NONDET;
+    return __BLAST_NONDET;
 } 
 
 
@@ -143,7 +124,7 @@ inline int scull_open(int tid, inode i, file filp)
  * Follow the list
  */
 inline scull_qset_type scull_follow(scull_dev dev, int n) {
-  return NONDET;
+  return __BLAST_NONDET;
 }
 
 /*

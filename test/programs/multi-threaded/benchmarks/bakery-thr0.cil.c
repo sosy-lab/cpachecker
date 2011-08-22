@@ -18,15 +18,15 @@ int number2  =    0;
 int x  ;
 #line 6 "bakery-thr0.c"
 void main(void) 
-{ int tmp0 ;
+{ int tmp ;
 
   {
 #line 8
   choosing1 = 1;
 #line 9
-  tmp0 = number2 + 1;
+  tmp = number2 + 1;
 #line 10
-  number1 = tmp0;
+  number1 = tmp;
 #line 11
   choosing1 = 0;
   {
