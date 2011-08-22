@@ -63,8 +63,7 @@
  * not printed in the book, and there's no need to have all six.
  * (The previous stuff was only there to show different ways to do it.
  */
-#define SCULL_P_IOCTSIZE _IO(SC
-ULL_IOC_MAGIC,   13)
+#define SCULL_P_IOCTSIZE _IO(SCULL_IOC_MAGIC,   13)
 #define SCULL_P_IOCQSIZE _IO(SCULL_IOC_MAGIC,   14)
 /* ... more to come */
 

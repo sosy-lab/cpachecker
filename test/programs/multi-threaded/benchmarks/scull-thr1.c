@@ -1,19 +1,18 @@
 #include <assert.h>
 #include "scull.h"
 
+
+#define scull_release(i, filp) 0
+
 /* =====================================================
    User program calling functions from the device driver
    ===================================================== */
 inode i;
 int lock = FILE_WITH_LOCK_UNLOCKED;
-int NONDET;
+int __BLAST_NONDET;
 
-void loader() {
-  scull_init_module();
-  scull_cleanup_module();
-}
 
-void thread1() {
+void main() {
   file filp;
   char buf;
   size_t count = 10;
@@ -23,52 +22,40 @@ void thread1() {
   scull_release(i, filp);
 }
 
-void thread2() {
-  file filp;
-  char buf;
-  size_t count = 10;
-  loff_t off = 0;
-  scull_open(tid2, i, filp);
-  scull_write(tid2, filp, buf, count, off);
-  scull_release(i, filp);
-}
-
 /* =====================================================
    Model for the Linux kernel API
    ===================================================== */
 #define acquire_thread_id(tid, l) \
-  { __blockattribute__((atomic)) \
     while(l!=0); \
-    l = tid; \
-  } \
+    l = tid
  
 inline int down_interruptible(int tid) {
   acquire_thread_id(tid, lock);
   return 0; // lock is held
 }
 
-#define up() release(lock)
+#define up() lock = 0
 
 #define container_of(dev) dev
 
 inline unsigned_long copy_to_user(char to, char from, unsigned_long n) {
   to = from;
-  return NONDET;
+  return __BLAST_NONDET;
 }
 
 inline unsigned_long copy_from_user(char to, char from, unsigned_long n) {
   to = from;
-  return NONDET;
+  return __BLAST_NONDET;
 }
 
 inline int __get_user(int size, void_ptr ptr)
 {
-  return NONDET;
+  return __BLAST_NONDET;
 }
 
 inline int __put_user(int size, void_ptr ptr)
 {
-    return NONDET;
+    return __BLAST_NONDET;
 } 
 
 
@@ -137,13 +124,12 @@ inline int scull_open(int tid, inode i, file filp)
   return 0;          /* success */
 }
 
-#define scull_release(i, filp) 0
 
 /*
  * Follow the list
  */
 inline scull_qset_type scull_follow(scull_dev dev, int n) {
-  return NONDET;
+  return __BLAST_NONDET;
 }
 
 /*
@@ -243,116 +229,9 @@ inline ssize_t scull_write(int tid, file filp, char buf, size_t count,
   return retval;
 }
 
-/*
- * The ioctl() implementation
- */
-
-inline int scull_ioctl(inode i, file filp,
-                 unsigned_int cmd, unsigned_long arg)
-{
-
-	int err = 0, tmp;
-	int retval = 0;
-    
-	switch(cmd) {
-
-	  case SCULL_IOCRESET:
-		scull_quantum = SCULL_QUANTUM;
-		scull_qset = SCULL_QSET;
-		break;
-        
-	  case SCULL_IOCSQUANTUM: /* Set: arg points to the value */
-		retval = __get_user(scull_quantum, arg);
-		break;
-
-	  case SCULL_IOCTQUANTUM: /* Tell: arg is the value */
-		scull_quantum = arg;
-		break;
-
-	  case SCULL_IOCGQUANTUM: /* Get: arg is pointer to result */
-		retval = __put_user(scull_quantum, arg);
-		break;
-
-	  case SCULL_IOCQQUANTUM: /* Query: return it (it's positive) */
-		return scull_quantum;
-
-	  case SCULL_IOCXQUANTUM: /* eXchange: use arg as pointer */
-		tmp = scull_quantum;
-		retval = __get_user(scull_quantum, arg);
-		if (retval == 0)
-			retval = __put_user(tmp, arg);
-		break;
-
-	  case SCULL_IOCHQUANTUM: /* sHift: like Tell + Query */
-		tmp = scull_quantum;
-		scull_quantum = arg;
-		return tmp;
-        
-	  case SCULL_IOCSQSET:
-		retval = __get_user(scull_qset, arg);
-		break;
-
-	  case SCULL_IOCTQSET:
-		scull_qset = arg;
-		break;
-
-	  case SCULL_IOCGQSET:
-		retval = __put_user(scull_qset, arg);
-		break;
-
-	  case SCULL_IOCQQSET:
-		return scull_qset;
-
-	  case SCULL_IOCXQSET:
-		tmp = scull_qset;
-		retval = __get_user(scull_qset, arg);
-		if (retval == 0)
-			retval = put_user(tmp, arg);
-		break;
-
-	  case SCULL_IOCHQSET:
-		tmp = scull_qset;
-		scull_qset = arg;
-		return tmp;
 
 
-	  default:  /* redundant, as cmd was checked against MAXNR */
-		return -ENOTTY;
-	}
-	return retval;
 
-}
-
-
-/*
- * The "extended" operations -- only seek
- */
-
-inline loff_t scull_llseek(file filp, loff_t off, int whence)
-{
-  scull_dev dev = filp; // dev->private_data;
-  loff_t newpos;
-
-  switch(whence) {
-  case 0: /* SEEK_SET */
-    newpos = off;
-    break;
-
-  case 1: /* SEEK_CUR */
-    newpos = filp + f_pos + off;
-    break;
-
-  case 2: /* SEEK_END */
-    newpos = dev_size + off;
-    break;
-
-  default: /* can't happen */
-    return -EINVAL;
-  }
-  if (newpos < 0) return -EINVAL;
-  filp = newpos;
-  return newpos;
-}
 
 /*
  * Finally, the module stuff
