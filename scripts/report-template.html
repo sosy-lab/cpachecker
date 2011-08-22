@@ -479,28 +479,6 @@ a.action:hover {
                 elem.className = elem.className.replace(re, ' ');                
             }
           
-            //adjust height of components (used for errpathwin, tab_cil and tab_log to get around layout issues)
-            function HeightFix(hint, ids) {
-                var self = this;
-                self.ids = ids;
-                self.hint = hint;
-                self.refnode = document.getElementById(self.hint);
-                self.nodes = [];
-                for (var i = 0; i < self.ids.length; i++) {
-                    self.nodes.push(document.getElementById(self.ids[i]));
-                }
-                
-                function adjust_height() {
-                    var height = self.refnode.contentWindow.innerHeight - 5;
-                    for (var i = 0; i < self.nodes.length; i++) {
-                        self.nodes[i].style.height = '' + height + 'px';
-                    }
-                }
-                
-                window.onresize = adjust_height;
-                adjust_height();
-            };
-            
             //the report viewer            
             var viewer = {};
             
@@ -1038,9 +1016,6 @@ a.action:hover {
             }, 1000);
             
             viewer.windows.functionselector.init();
-
-            var hfix = new HeightFix('resizehint', ['errpathwin', 'tab_cil', 'tab_log', 'tab_stats', 'tab_conf']);
-            
             viewer.windows.cfawin.load('main');
 
         </script>
