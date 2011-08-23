@@ -43,8 +43,10 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -54,6 +56,8 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement.Ab
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdgeTemplate.ARTElementWrapper;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdgeTemplate.PathFormulaWrapper;
 import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
@@ -64,7 +68,9 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
 
 /**
  * Stores information about environmental edges.
@@ -626,9 +632,10 @@ public class RelyGuaranteeEnvironment {
    * Their  path formula is set to false and they are not valid any more. Transitions covered by them will be valid
    * again, unless they have also been  killed.
    * @param artReachedSets
+   * @param refinementResult
    * @param tid
    */
-  public void killEnvironmetalEdges(Iterable<Integer> tids, ARTReachedSet[] artReachedSets) {
+  public void killEnvironmetalEdges(Iterable<Integer> tids, ARTReachedSet[] artReachedSets, Multimap<Integer, Pair<ARTElement, RelyGuaranteePrecision>> refinementResult) {
     System.out.println();
     System.out.println("\t\t\t ----- Killing environemtal edges ------");
     for (Integer tid : tids){
@@ -638,7 +645,7 @@ public class RelyGuaranteeEnvironment {
       killValid(tid);
     }
     // propagate drop trees
-    Set<Integer> dropped = dropApplications(artReachedSets);
+    Set<Integer> dropped = dropApplications(artReachedSets, refinementResult);
     while (!dropped.isEmpty()){
       for (Integer tid : dropped){
         // remove covered transitions that belong to the subtree
@@ -646,7 +653,7 @@ public class RelyGuaranteeEnvironment {
         // kill valid and processed env. edges
         killValid(tid);
       }
-      dropped = dropApplications(artReachedSets);
+      dropped = dropApplications(artReachedSets, refinementResult);
     }
 
     // kill unapplied  env. edges
@@ -778,7 +785,7 @@ public class RelyGuaranteeEnvironment {
 
 
 
-  private Set<Integer> dropApplications(ARTReachedSet[] artReachedSets) {
+  private Set<Integer> dropApplications(ARTReachedSet[] artReachedSets, Multimap<Integer, Pair<ARTElement, RelyGuaranteePrecision>> refinementResult) {
     //List<Pair<Integer, ARTElement>> toDrop = new Vector<Pair<Integer, ARTElement>>();
     Multimap<Integer, ARTElement> toDrop = HashMultimap.create();
     for (int i=0; i<threadNo; i++){
@@ -803,11 +810,34 @@ public class RelyGuaranteeEnvironment {
     System.out.println();
     System.out.println("Removing subtree because of dead env. edges:");
     for (Integer tid : toDrop.keySet()){
+      // add the precision after interpolation to the dropped elements - without the same refinement pattern between threads may repeat forever
+      Collection<Pair<ARTElement, RelyGuaranteePrecision>> precisions = refinementResult.get(tid);
+      assert precisions.size() <= 1;
+      SetMultimap<CFANode, AbstractionPredicate> oldPreds = null;
+      for (Pair<ARTElement, RelyGuaranteePrecision> pair : precisions){
+        oldPreds = pair.getSecond().getPredicateMap();
+      }
+
+      System.out.println("Interpolation precision for thread "+tid+" is: "+oldPreds);
+
       for (ARTElement artElement : toDrop.get(tid)){
-        System.out.println("- ART element id:"+artElement.getElementId()+" in thread "+tid);
         if (!artElement.isDestroyed()){
-          artReachedSets[tid].removeSubtree(artElement);
+          ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
+          // add the interpolation precision, if any
+          if (oldPreds != null){
+            pmapBuilder.putAll(oldPreds);
+          };
+
+          Precision prec = artReachedSets[tid].getPrecision(artElement);
+          RelyGuaranteePrecision rgPrec = Precisions.extractPrecisionByType(prec, RelyGuaranteePrecision.class);
+          pmapBuilder.putAll(rgPrec.getPredicateMap());
+          RelyGuaranteePrecision newRgPrec = new RelyGuaranteePrecision(pmapBuilder.build(), rgPrec.getGlobalPredicates());
+
+          System.out.println("- ART element id:"+artElement.getElementId()+" in thread "+tid+" new prec: "+newRgPrec.getPredicateMap());
+          artReachedSets[tid].removeSubtree(artElement, newRgPrec);
+
         }
+
       }
     }
 

@@ -326,11 +326,12 @@ public class RelyGuaranteeRefiner{
           environment.printUnprocessedTransitions();
         }
 
-        environment.killEnvironmetalEdges(refinementResult.keySet(), artReachedSets);
+
+        environment.killEnvironmetalEdges(refinementResult.keySet(), artReachedSets, refinementResult);
         // process the remaining environmental transition
         environment.processEnvTransitions(errorThr);
-        System.out.println();
-        /* System.out.println("Wait lists after processing environment");
+        /* System.out.println();
+        System.out.println("Wait lists after processing environment");
         for (int i=0; i<reachedSets.length; i++){
           System.out.println("For thread "+i);
           for (AbstractElement element : reachedSets[i].getWaitlist()){
