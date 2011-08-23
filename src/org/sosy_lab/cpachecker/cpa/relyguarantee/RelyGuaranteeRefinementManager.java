@@ -207,6 +207,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     Path cfaPath = computePath(target, reachedSets[threadNo]);
     List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> path = transformPath(cfaPath);
 
+
     if (debug){
       System.out.println("The error trace in thread "+threadNo+" is:\n"+cfaPath);
       System.out.print("Abstraction elements are: ");

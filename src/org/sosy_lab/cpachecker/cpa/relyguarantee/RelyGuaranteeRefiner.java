@@ -259,6 +259,16 @@ public class RelyGuaranteeRefiner{
         refinementResult = lazyRefinement(reachedSets, mCounterexampleTraceInfo, errorThr);
       }
 
+
+      /*System.out.println("Wait lists before refinement");
+      for (int i=0; i<reachedSets.length; i++){
+        System.out.println("For thread "+i);
+        for (AbstractElement element : reachedSets[i].getWaitlist()){
+          ARTElement artElement = (ARTElement) element;
+          System.out.println("\t - id:"+artElement.getElementId());
+        }
+      }*/
+
       // drop subtrees and change precision
       for(int tid : refinementResult.keySet()){
         for(Pair<ARTElement, RelyGuaranteePrecision> pair : refinementResult.get(tid)){
@@ -298,6 +308,16 @@ public class RelyGuaranteeRefiner{
           assert reachedSets[i].getReached().size()==1;
         }
       } else {
+
+        /* System.out.println("Wait lists after refinement");
+        for (int i=0; i<reachedSets.length; i++){
+          System.out.println("For thread "+i);
+          for (AbstractElement element : reachedSets[i].getWaitlist()){
+            ARTElement artElement = (ARTElement) element;
+            System.out.println("\t - id:"+artElement.getElementId());
+          }
+        }*/
+
         // kill the env transitions that were generated in the drop ARTs
         // if they killed transitions covered some other transitions, then make them valid again
         System.out.println("\t\t\t --- Processing env transitions ---");
@@ -309,6 +329,17 @@ public class RelyGuaranteeRefiner{
         environment.killEnvironmetalEdges(refinementResult.keySet(), artReachedSets);
         // process the remaining environmental transition
         environment.processEnvTransitions(errorThr);
+        System.out.println();
+        /* System.out.println("Wait lists after processing environment");
+        for (int i=0; i<reachedSets.length; i++){
+          System.out.println("For thread "+i);
+          for (AbstractElement element : reachedSets[i].getWaitlist()){
+            ARTElement artElement = (ARTElement) element;
+            System.out.println("\t - id:"+artElement.getElementId());
+          }
+
+        }*/
+
       }
 
       stats.totalTimer.stop();
@@ -416,18 +447,27 @@ public class RelyGuaranteeRefiner{
         nodes.add(node);
       }
 
+      System.out.println();
+      System.out.println("Looking for cut-off nodes.");
+
       List<ARTNode> covered = new Vector<ARTNode>(artElements.size());
       for (ARTNode nodeA : nodes){
         CFANode loc = AbstractElements.extractLocation(nodeA.getArtElement());
+        System.out.println("Location "+loc);
         Precision prec = reachedSets[tid].getPrecision(nodeA.getArtElement());
         RelyGuaranteePrecision rgPrec = Precisions.extractPrecisionByType(prec, RelyGuaranteePrecision.class);
         SetMultimap<CFANode, AbstractionPredicate> oldPredmap = rgPrec.getPredicateMap();
         Set<AbstractionPredicate> oldPreds = oldPredmap.get(loc);
+        System.out.println("Old preds "+oldPreds);
+
         Collection<AbstractionPredicate> newPreds = info.getPredicatesForRefinement(nodeA.getArtElement());
-        if (!oldPreds.containsAll(newPreds)){
+        System.out.println("New preds"+newPreds);
+        // skip nodes that don't have interpolants
+        if (!newPreds.isEmpty()){
           for  (ARTNode nodeB : nodes){
             if (nodeA != nodeB && !covered.contains(nodeB)){
               if (belongsToProperSubtree(nodeA.getArtElement(),nodeB.getArtElement())){
+                System.out.println("ART element id:"+nodeA+" is above id:"+nodeB);
                 nodeA.addChild(nodeB);
                 covered.add(nodeB);
               }
@@ -436,6 +476,8 @@ public class RelyGuaranteeRefiner{
         }
       }
 
+
+
       // ART element unreachable by other elements are the cut-off node
       Vector<ARTNode> cutoffNodes = new Vector<ARTNode>();
       for (ARTNode node : nodes){
@@ -443,12 +485,24 @@ public class RelyGuaranteeRefiner{
         Precision prec = reachedSets[tid].getPrecision(node.getArtElement());
         RelyGuaranteePrecision rgPrec = Precisions.extractPrecisionByType(prec, RelyGuaranteePrecision.class);
         SetMultimap<CFANode, AbstractionPredicate> oldPredmap = rgPrec.getPredicateMap();
-        Set<AbstractionPredicate> oldPreds = oldPredmap.get(loc);
         Collection<AbstractionPredicate> newPreds = info.getPredicatesForRefinement(node.getArtElement());
-        if (node.getParent() == null && !oldPreds.containsAll(newPreds)){
+        /*Set<AbstractionPredicate> oldPreds = oldPredmap.get(loc);
+        Collection<AbstractionPredicate> newPreds = info.getPredicatesForRefinement(node.getArtElement());*/
+        if (node.getParent() == null && !newPreds.isEmpty()){
           cutoffNodes.add(node);
         }
       }
+
+      System.out.println();
+      if (cutoffNodes.isEmpty()){
+        System.out.println("Cut-off nodes:\tnone");
+      } else {
+        System.out.println("Cut-off nodes:");
+        for (ARTNode node : cutoffNodes){
+          System.out.println("\t- id:"+node.getArtElement().getElementId());
+        }
+      }
+
 
       // correctness assertion
       if (debug){
@@ -505,16 +559,16 @@ public class RelyGuaranteeRefiner{
           }
 
           // TODO need it?
-          //Precision oldPrecision = reachedSets[tid].getPrecision(artElement);
-          //RelyGuaranteePrecision oldRgPrecision = Precisions.extractPrecisionByType(oldPrecision, RelyGuaranteePrecision.class);
-          //pmapBuilder.putAll(oldRgPrecision.getPredicateMap());
+          Precision oldPrecision = reachedSets[tid].getPrecision(artElement);
+          RelyGuaranteePrecision oldRgPrecision = Precisions.extractPrecisionByType(oldPrecision, RelyGuaranteePrecision.class);
+          pmapBuilder.putAll(oldRgPrecision.getPredicateMap());
         }
 
         RelyGuaranteePrecision newPrecision = new RelyGuaranteePrecision(pmapBuilder.build(), new HashSet<AbstractionPredicate>());
         refinementMap.put(tid, Pair.of(artCoElement, newPrecision));
 
         if (debug){
-          assert newPredicate;
+          //assert newPredicate;
           System.out.println();
           System.out.println("Thread "+tid+": cut-off node id:"+coNode.getArtElement().getElementId()+" precision "+newPrecision);
         }
@@ -547,7 +601,7 @@ public class RelyGuaranteeRefiner{
 
 
       if (cutoffNodes.contains(node)){
-        assert (!oldPreds.containsAll(newPreds));
+        //assert (!oldPreds.containsAll(newPreds));
       } else {
         // node is independent if it has no predictates and no cut-off node can reach it
         boolean indi=false;

@@ -57,7 +57,7 @@ public class ARTTransferRelation implements TransferRelation {
       for (RelyGuaranteeCFAEdge rgEdge : element.getEnvEdgesToBeApplied()){
         allSucc.addAll(transferRelation.getAbstractSuccessors(wrappedElement, pPrecision, rgEdge));
       }
-      element.setEnvEdgesToBeApplied(null);
+      element.getEnvEdgesToBeApplied().clear();
       successors = allSucc;
     } else {
       successors = transferRelation.getAbstractSuccessors(wrappedElement, pPrecision, pCfaEdge);

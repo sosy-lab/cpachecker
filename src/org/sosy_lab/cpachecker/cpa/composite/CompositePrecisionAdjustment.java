@@ -116,6 +116,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
       AbstractElement newElement = out.getFirst();
       Precision newPrecision = out.getSecond();
       if (out.getThird() == Action.BREAK) {
+        System.out.println("DEBUG: "+precisionAdjustment.getClass()+" gave BREAK");
         action = Action.BREAK;
       }
 

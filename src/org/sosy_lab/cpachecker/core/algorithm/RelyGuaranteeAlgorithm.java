@@ -228,14 +228,18 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
       for (AbstractElement ae : relevant){
         if (AbstractElements.extractLocation(ae).equals(node)){
           if (!reachedSet.getWaitlist().contains(relevant)){
+            // set the env. edges as the only ones to be applied at this element
+            // if there are remaining unnaplied edges, then replace them
             ARTElement artElement = (ARTElement) ae;
             List<RelyGuaranteeCFAEdge> envEdges = artElement.getEnvEdgesToBeApplied();
-            assert envEdges == null;
-            envEdges = new Vector<RelyGuaranteeCFAEdge>();
+            if (envEdges == null){
+              envEdges = new Vector<RelyGuaranteeCFAEdge>();
+              artElement.setEnvEdgesToBeApplied(envEdges);
+            } else {
+              envEdges.clear();
+            }
             envEdges.addAll(envEdgesMap.get(node));
-            artElement.setEnvEdgesToBeApplied(envEdges);
             reachedSet.reAddToWaitlist(ae);
-
           }
         }
       }

@@ -62,8 +62,10 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdge;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvironment;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvironmentalTransition;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 
 @Options(prefix="cpa.relyguarantee")
@@ -187,16 +189,10 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
         // pretty printing
         RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(element, RelyGuaranteeAbstractElement.class);
         CFANode loc = AbstractElements.extractLocation(element);
-       /* Precision prec = reachedSet.getPrecision(element);
-        RelyGuaranteePrecision rgPrec = Precisions.extractPrecisionByType(prec, RelyGuaranteePrecision.class);*/
-
+        Precision prec = reachedSet.getPrecision(element);
+        RelyGuaranteePrecision rgPrec = Precisions.extractPrecisionByType(prec, RelyGuaranteePrecision.class);
         System.out.println();
-        System.out.println("@ Successor of '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+" id:"+aElement.getElementId()+" at "+loc+" with SSAmap "+rgElement.getPathFormula().getSsa());
-
-      }
-
-      if (((ARTElement)element).getElementId() == 304803){
-        System.out.println();
+        System.out.println("@ Successor of '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+" id:"+aElement.getElementId()+" at "+loc);
       }
 
       stats.transferTimer.start();
@@ -248,7 +244,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
           // successors left that otherwise would be forgotten
           reachedSet.reAddToWaitlist(element);
           reachedSet.add(successor, successorPrecision);
-
+          System.out.println("DEBUG: Break");
           stats.totalTimer.stop();
           return true;
         }
@@ -371,7 +367,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     else if (rgElement.getParentEdge().getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
       RelyGuaranteeCFAEdge rgEdge = (RelyGuaranteeCFAEdge) rgElement.getParentEdge();
       int atomNo = fManager.countAtoms(rgEdge.getPathFormula().getFormula());
-      System.out.println("- by env. edge '"+rgEdge.getLocalEdge().getRawStatement()+"','"+rgEdge.getPathFormula());
+      System.out.println("- by env. edge '"+rgEdge);
     } else {
       System.out.println("- by local edge "+rgElement.getParentEdge().getRawStatement());
     }

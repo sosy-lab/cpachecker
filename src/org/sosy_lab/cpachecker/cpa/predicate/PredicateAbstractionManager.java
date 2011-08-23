@@ -361,7 +361,6 @@ class PredicateAbstractionManager {
 
     // the formula is (abstractionFormula & pathFormula & predDef)
     Formula fm = fmgr.makeAnd(f, predDef);
-
     logger.log(Level.ALL, "COMPUTING ALL-SMT ON FORMULA: ", fm);
 
     stats.abstractionTime.startOuter();
