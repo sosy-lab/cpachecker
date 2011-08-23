@@ -262,7 +262,7 @@ a.action:hover {
                 <div id="tab_cfa">
                     <div class="zoomSliderContainer">
                         <div id="zoomSlider_tab_cfa"
-							 onmousemove="setZoomLevel(this.id);" 
+                             onmousemove="setZoomLevel(this.id);" 
                         	 onmouseup="setZoomLevel(this.id);zoom(this.id);">
                             <div class="zoomSliderContent"></div>
                         </div>
@@ -366,6 +366,8 @@ a.action:hover {
         </script>
 
         <script>
+            /* script for moving the middleline to left and right. */
+
             /* add listeners for mouseMove and mouseUp, for changing the size,
             add functions for not selecting text while moving the mouse. */
             function changeWidthMouseDown() {
@@ -400,29 +402,73 @@ a.action:hover {
         </script>
 
         <script>
+            /* script for zooming SVGs. */
 
-			var zoomLevel		= new Array();
-			zoomLevel["tab_cfa"]	= 100;
-			zoomLevel["tab_art"]	= 100;
-			
-			var scrOffset		= new Array();
-			scrOffset["tab_cfa"]	= 0;
-			scrOffset["tab_art"]	= 0;
-
-		    function setZoomLevel(sliderId) {
-		      tabId = sliderId.substring(11);
-		      zoomLevel[tabId] = 100 - (document.getElementById(sliderId).scrollLeft / 20);
-		      document.getElementById('zoomLabel_' + tabId).innerHTML =  Math.round(zoomLevel[tabId]) + ' %';
-		    }
-
-            function zoom(sliderId) {
-		      tabId = sliderId.substring(11);
-			  graph = window.frames[tabId].document.getElementsByClassName("graph")[0];
-			  transforms = graph.getAttribute("transform").split(" ");
-			  newScale = Math.round(zoomLevel[tabId]) / 100;
-			  graph.setAttribute("transform", "scale(" + newScale + ") " + transforms[1] + " " + transforms[2] + transforms[3]);
+            function zoomValues() {
+                this.zoomLevel = 100;
+                this.prevZoomLevel = 100; // used for calculation
+                this.width = 0;
+                this.height = 0;
             }
 
+            var zoomData = new Object;
+            zoomData["tab_cfa"] = new zoomValues;
+            zoomData["tab_art"] = new zoomValues;
+
+            /* This function reads the position of a slider and calculates the zoomLevel. */
+            function setZoomLevel(sliderId) {
+              var tabId = sliderId.substring(11);
+              zoomData[tabId].zoomLevel = Math.round(100 - (document.getElementById(sliderId).scrollLeft / 20));
+              document.getElementById('zoomLabel_' + tabId).innerHTML =  zoomData[tabId].zoomLevel + ' %';
+            }
+
+            /* This function reads the zoomLevel and changes the size of an image. */
+            function zoom(sliderId) {
+              var tabId = sliderId.substring(11);
+              var svg = window.frames[tabId].document.getElementsByTagName('svg')[0];
+              var data = zoomData[tabId];
+
+              // store original values, remove 'pt' from values
+              if (!zoomData[tabId].width) {
+                  var widthPx = svg.getAttribute('width')
+                  data.width = parseInt(widthPx.substring(0, widthPx.length - 2));
+              }
+              if (!zoomData[tabId].height) {
+                  var heightPx = svg.getAttribute('height')
+                  data.height = parseInt(heightPx.substring(0, heightPx.length - 2));
+              }
+
+              // get current position of view, this must be done BEFORE resizing the SVG!
+              var oldTop = window.frames[tabId].pageYOffset;
+              var oldLeft = window.frames[tabId].pageXOffset;
+              var newTop = Math.round(oldTop * data.zoomLevel / data.prevZoomLevel);
+              var newLeft = Math.round(oldLeft * data.zoomLevel / data.prevZoomLevel);
+
+              // resize SVG
+              var newWidth = Math.round(data.zoomLevel / 100 * data.width);
+              var newHeight = Math.round(data.zoomLevel / 100 * data.height);
+              console.log(tabId + ' size: ' + svg.getAttribute('width') + '/' +
+                  svg.getAttribute('height') + ' --> ' + newWidth + 'pt/' + newHeight + 'pt');
+              svg.setAttribute('width', newWidth + 'pt');
+              svg.setAttribute('height', newHeight + 'pt');
+
+              // scroll to old position, this must be done AFTER resizing the SVG!
+              window.frames[tabId].scrollTo(newLeft, newTop);
+
+              console.log(tabId + ' top: ' + oldTop + ' --> ' + newTop + 
+                  ', left: ' + oldLeft + ' --> ' + newLeft);
+              data.prevZoomLevel = data.zoomLevel;
+            }
+
+            /* This function reverts/clears zoomData of a tab. */
+            function clearZoom(tabId) {
+                zoomData[tabId] = new zoomValues;
+                document.getElementById('zoomSlider_' + tabId).scrollLeft = 0;
+                document.getElementById('zoomLabel_' + tabId).innerHTML =  '100 %';
+            }
+        </script>
+
+        <script>
             // ignore console.log and console.debug when firebug is turned off or not installed
             if (!window.console) {
                 window.console = {
@@ -478,7 +524,9 @@ a.action:hover {
                 var re = new RegExp('\\b' + cssclass + '\\b');
                 elem.className = elem.className.replace(re, ' ');                
             }
-          
+        </script>
+
+        <script>
             //the report viewer            
             var viewer = {};
             
@@ -547,6 +595,9 @@ a.action:hover {
                     console.log('cfawin -- onload');
                     self.label.innerHTML = self.active_function;
                     self.svgdoc = self.frame.document;
+
+                    clearZoom('tab_cfa');
+
                     index_svg();
                     self.handlers.fire('cfa_loaded', self.active_function);
                 }                
