@@ -694,7 +694,13 @@ private void handleAssignment(ExprResult res1, ExprResult res2, InterpreterEleme
 
 
 
-         }else{
+         }else  if(pvar.getPrimitiveType()== Primitive.LONGLONG){
+           pvar.setPnt();
+
+
+
+         }
+         else{
            throw new Exception("only int can be used in pointer calcs");
          }
        }
@@ -801,6 +807,8 @@ private ExprResult handleRightSide(IASTExpression pRight,
               if(var.getlevel()!=2)
                 throw new Exception("Error with dereference");
               return new ExprResult(addr.getMemoryBlock().getFunctionPointer(addr.getOffset(),pel));
+            }else if (addr.getMemoryBlock().getCellType(addr.getOffset(),pel)== CellType.EMPTY){
+                throw new Exception("Can not deref empty Cell");
             }
           }else{
             switch(var.getBaseType().getTypeClass()){
@@ -1821,7 +1829,20 @@ private void handleTypeDecl(String name, InterpreterElement pElement,
 
   if(typ instanceof IASTElaboratedTypeSpecifier){//defintion von struct variablen
     IASTElaboratedTypeSpecifier def = (IASTElaboratedTypeSpecifier)typ;
-    handleDynVarDef(name,((IASTElaboratedTypeSpecifier) typ).getName(),pElement,typ.isConst());
+    CompositeType comp = pElement.getCurrentScope().getCurrentTypeLibrary().getType(((IASTElaboratedTypeSpecifier) typ).getName());
+    if(comp == null){
+      System.out.println("Forward declaration");
+      if(def.getKind()==1){
+        StructType k = new StructType(((IASTElaboratedTypeSpecifier) typ).getName(),false);
+        pElement.getCurrentScope().getCurrentTypeLibrary().addType(k);
+      }else if(def.getKind()==2){
+        UnionType k = new UnionType(((IASTElaboratedTypeSpecifier) typ).getName(),false);
+        pElement.getCurrentScope().getCurrentTypeLibrary().addType(k);
+      }
+      return;
+    }
+    if(comp.getMembers().size()>0)
+      handleDynVarDef(name,((IASTElaboratedTypeSpecifier) typ).getName(),pElement,typ.isConst());
 
   }
 
@@ -1829,6 +1850,7 @@ private void handleTypeDecl(String name, InterpreterElement pElement,
     IASTNamedTypeSpecifier ntyp = (IASTNamedTypeSpecifier)typ;
     IType def =pElement.getCurrentScope().getCurrentDefinitions().getDefinition(ntyp.getName());
     handleTypeDecl(name, pElement, def);
+
   }
 
 
@@ -1837,12 +1859,8 @@ private void handleTypeDecl(String name, InterpreterElement pElement,
 
 
 private void handleDynVarDef(String name, String label, InterpreterElement pel,boolean isConst) throws Exception {
-
   CompositeType comp = pel.getCurrentScope().getCurrentTypeLibrary().getType(label);
-  if(comp == null){
-    System.out.println("Forward declaration");
-    return;
-  }
+
   int size = comp.sizeOf();
   MemoryBlock data = pel.getFactory().allocateMemoryBlock(size,pel);
   Address addr = new Address(data,0);
@@ -1866,13 +1884,17 @@ private void handleDynVarDef(String name, String label, InterpreterElement pel,b
 private CompositeType allocateDynType(IASTCompositeTypeSpecifier pComptyp,
     InterpreterElement pElement) throws Exception {
   CompositeType tmp;
-  if( pComptyp.getKey() == IASTCompositeTypeSpecifier.k_struct){
+  tmp = pElement.getCurrentScope().getCurrentTypeLibrary().getType(pComptyp.getName());
+  if(tmp == null){
+    if( pComptyp.getKey() == IASTCompositeTypeSpecifier.k_struct){
 
-    tmp= new StructType(pComptyp.getName(),false);
-  }else {
-    tmp = new UnionType(pComptyp.getName(),false);
+      tmp= new StructType(pComptyp.getName(),false);
+    }else {
+      tmp = new UnionType(pComptyp.getName(),false);
+    }
+    pElement.getCurrentScope().getCurrentTypeLibrary().addType(tmp);
   }
-  pElement.getCurrentScope().getCurrentTypeLibrary().addType(tmp);
+
   Iterator<IASTCompositeTypeMemberDeclaration> it = pComptyp.getMembers().iterator();
   while(it.hasNext()){
     Type cur;

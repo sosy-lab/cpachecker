@@ -57,7 +57,7 @@ public class Scope {
   }
   @SuppressWarnings("unchecked")
   public Variable getVariable(String pname , InterpreterElement tmp){
-
+      //TODO: globale Variablen richtig handeln
       HashMap<String, Variable> vtmp = variables.get(tmp);
       InterpreterElement itmp= tmp;
       while(vtmp == null && itmp != null){
@@ -66,8 +66,8 @@ public class Scope {
       }
       Variable k = vtmp.get(pname);
       Scope s = this;
-      if(k==null){
-        while(s.parent != null){
+      if(k==null& s.parent.name.equals("main")){
+        while(s.parent.name.equals("main")){
           s = s.parent;
         }
 
