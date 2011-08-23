@@ -32,12 +32,15 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ProgressObserverPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -106,13 +109,16 @@ public class RestartWithConditionsAlgorithm implements Algorithm, StatisticsProv
 
   private boolean adjustThresholds(List<AbstractElement> pElementsWithAssumptions, ReachedSet pReached) {
     boolean precisionAdjusted = false;
+    ARTCPA artCpa = ((AbstractSingleWrapperCPA) getCPA()).retrieveWrappedCpa(ARTCPA.class);
+    ARTReachedSet reached = new ARTReachedSet(pReached, artCpa);
     for(AbstractElement e: pElementsWithAssumptions){
       ARTElement artElement = (ARTElement)e;
       Set<ARTElement> parents = artElement.getParents();
-      pReached.remove(e);
-      for(AbstractElement parent: parents){
+      //pReached.remove(e);
+      for(ARTElement parent: parents){
         precisionAdjusted |= adjustThreshold(parent, pReached);
-        pReached.reAddToWaitlist(parent);
+        reached.removeSubtree(parent);
+        //pReached.reAddToWaitlist(parent);
       }
     }
     return precisionAdjusted;
