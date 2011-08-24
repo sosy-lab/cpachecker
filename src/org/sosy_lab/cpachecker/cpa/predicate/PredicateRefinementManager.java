@@ -203,11 +203,6 @@ public class PredicateRefinementManager extends PredicateAbstractionManager {
       executor = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setDaemon(true).build());
     }
 
-    if (formulaDumpFilePattern == null) {
-      // output files were disable
-      dumpInterpolationProblems = false;
-    }
-
     if (wellScopedPredicates) {
       throw new InvalidConfigurationException("wellScopePredicates are currently disabled");
     }
@@ -659,9 +654,8 @@ public class PredicateRefinementManager extends PredicateAbstractionManager {
       refStats.cexAnalysisSolverTimer.stop();
 
       if (dumpInterpolationProblems) {
-        String dumpFile = String.format(formulaDumpFilePattern,
-                "interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "interpolant", i);
-        dumpFormulaToFile(itp, new File(dumpFile));
+        File dumpFile = formatFormulaOutputFile("interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "interpolant", i);
+        dumpFormulaToFile(itp, dumpFile);
       }
 
       Collection<AbstractionPredicate> preds;
@@ -720,8 +714,7 @@ public class PredicateRefinementManager extends PredicateAbstractionManager {
         "predicates", preds);
 
     if (dumpInterpolationProblems) {
-      String dumpFile = String.format(formulaDumpFilePattern,
-                  "interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "atoms", index);
+      File dumpFile = formatFormulaOutputFile("interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "atoms", index);
       Collection<Formula> atoms = Collections2.transform(preds,
           new Function<AbstractionPredicate, Formula>(){
                 @Override
@@ -729,7 +722,7 @@ public class PredicateRefinementManager extends PredicateAbstractionManager {
                   return pArg0.getSymbolicAtom();
                 }
           });
-      printFormulasToFile(atoms, new File(dumpFile));
+      printFormulasToFile(atoms, dumpFile);
     }
     return preds;
   }
@@ -794,10 +787,8 @@ public class PredicateRefinementManager extends PredicateAbstractionManager {
       logger.log(Level.WARNING, "Could not get precise error path information because of inconsistent reachingPathsFormula!");
 
       dumpInterpolationProblem(f);
-      String dumpFile =
-          String.format(formulaDumpFilePattern, "interpolation",
-              refStats.cexAnalysisTimer.getNumberOfIntervals(), "formula", f.size());
-      dumpFormulaToFile(branchingFormula, new File(dumpFile));
+      File dumpFile = formatFormulaOutputFile("interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "formula", f.size());
+      dumpFormulaToFile(branchingFormula, dumpFile);
 
       return new CounterexampleTraceInfo(f, new Model(fmgr), Collections.<Integer, Boolean>emptyMap());
     }
@@ -919,9 +910,8 @@ public class PredicateRefinementManager extends PredicateAbstractionManager {
   private void dumpInterpolationProblem(List<Formula> f) {
     int k = 0;
     for (Formula formula : f) {
-      String dumpFile = String.format(formulaDumpFilePattern,
-                  "interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "formula", k++);
-      dumpFormulaToFile(formula, new File(dumpFile));
+      File dumpFile = formatFormulaOutputFile("interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "formula", k++);
+      dumpFormulaToFile(formula, dumpFile);
     }
   }
 }

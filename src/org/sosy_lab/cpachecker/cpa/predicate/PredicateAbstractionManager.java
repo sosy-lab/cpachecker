@@ -97,7 +97,7 @@ class PredicateAbstractionManager {
   @Option(name="formulaDumpFilePattern", type=Option.Type.OUTPUT_FILE,
       description="where to dump interpolation and abstraction problems (format string)")
   private File formulaDumpFile = new File("%s%04d-%s%03d.msat");
-  protected final String formulaDumpFilePattern; // = formulaDumpFile.getAbsolutePath()
+  private final String formulaDumpFilePattern; // = formulaDumpFile.getAbsolutePath()
 
   @Option(description="try to add some useful static-learning-like axioms for "
     + "bitwise operations (which are encoded as UFs): essentially, "
@@ -377,17 +377,16 @@ class PredicateAbstractionManager {
     // TODO dump hard abst
     if (solveTime > 10000 && dumpHardAbstractions) {
       // we want to dump "hard" problems...
-      String dumpFile = String.format(formulaDumpFilePattern,
-                               "abstraction", stats.numCallsAbstraction, "input", 0);
-      dumpFormulaToFile(f, new File(dumpFile));
+      File dumpFile;
 
-      dumpFile = String.format(formulaDumpFilePattern,
-                               "abstraction", stats.numCallsAbstraction, "predDef", 0);
-      dumpFormulaToFile(predDef, new File(dumpFile));
+      dumpFile = formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "input", 0);
+      dumpFormulaToFile(f, dumpFile);
 
-      dumpFile = String.format(formulaDumpFilePattern,
-                               "abstraction", stats.numCallsAbstraction, "predVars", 0);
-      printFormulasToFile(predVars, new File(dumpFile));
+      dumpFile = formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predDef", 0);
+      dumpFormulaToFile(predDef, dumpFile);
+
+      dumpFile = formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predVars", 0);
+      printFormulasToFile(predVars, dumpFile);
     }
 
     Region result = allSatResult.getResult();
@@ -456,21 +455,33 @@ class PredicateAbstractionManager {
     }
   }
 
+  protected File formatFormulaOutputFile(String function, int call, String formula, int index) {
+    if (formulaDumpFilePattern == null) {
+      return null;
+    }
+
+    return new File(String.format(formulaDumpFilePattern, function, call, formula, index));
+  }
+
   protected void dumpFormulaToFile(Formula f, File outputFile) {
-    try {
-      Files.writeFile(outputFile, fmgr.dumpFormula(f));
-    } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "Failed to save formula to file");
+    if (outputFile != null) {
+      try {
+        Files.writeFile(outputFile, fmgr.dumpFormula(f));
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Failed to save formula to file");
+      }
     }
   }
 
   private static final Joiner LINE_JOINER = Joiner.on('\n');
 
   protected void printFormulasToFile(Iterable<Formula> f, File outputFile) {
-    try {
-      Files.writeFile(outputFile, LINE_JOINER.join(f));
-    } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "Failed to save formula to file");
+    if (outputFile != null) {
+      try {
+        Files.writeFile(outputFile, LINE_JOINER.join(f));
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Failed to save formula to file");
+      }
     }
   }
 
