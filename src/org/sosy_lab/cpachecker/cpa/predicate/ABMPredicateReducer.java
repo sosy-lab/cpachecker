@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
@@ -59,13 +60,15 @@ public class ABMPredicateReducer implements Reducer {
 
   private final RegionManager rmgr;
   private final FormulaManager fmgr;
-  private final PredicateAbstractionManager pmgr;
+  private final PathFormulaManager pmgr;
+  private final PredicateAbstractionManager pamgr;
   private final RelevantPredicatesComputer relevantComputer;
 
   public ABMPredicateReducer(ABMPredicateCPA cpa) {
     this.rmgr = cpa.getRegionManager();
     this.fmgr = cpa.getFormulaManager();
-    this.pmgr = cpa.getPredicateManager();
+    this.pmgr = cpa.getPathFormulaManager();
+    this.pamgr = cpa.getPredicateManager();
     this.relevantComputer = cpa.getRelevantPredicatesComputer();
   }
 
@@ -88,7 +91,7 @@ public class ABMPredicateReducer implements Reducer {
       Region oldRegion = predicateElement.getAbstractionFormula().asRegion();
 
       Collection<AbstractionPredicate> predicates =
-          pmgr.extractPredicates(abstractionFormula.asRegion());
+          pamgr.extractPredicates(abstractionFormula.asRegion());
       Collection<AbstractionPredicate> removePredicates =
           relevantComputer.getIrrelevantPredicates(pContext, predicates);
 
@@ -103,7 +106,7 @@ public class ABMPredicateReducer implements Reducer {
 
       PathFormula pathFormula = predicateElement.getPathFormula();
       Formula newFormula =
-          fmgr.instantiate(pmgr.toConcrete(newRegion), pathFormula.getSsa());
+          fmgr.instantiate(pamgr.toConcrete(newRegion), pathFormula.getSsa());
 
       //System.out.println("New formula: " + newFormula);
       AbstractionFormula newAbstractionFormula =
@@ -134,7 +137,7 @@ public class ABMPredicateReducer implements Reducer {
           rootElement.getAbstractionFormula();
 
       Collection<AbstractionPredicate> rootPredicates =
-          pmgr.extractPredicates(rootElementAbstractionFormula.asRegion());
+          pamgr.extractPredicates(rootElementAbstractionFormula.asRegion());
       Collection<AbstractionPredicate> relevantRootPredicates =
           relevantComputer.getRelevantPredicates(pReducedContext, rootPredicates);
       //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedElements region
@@ -166,10 +169,10 @@ public class ABMPredicateReducer implements Reducer {
         }
       }
       SSAMap newSSA = builder.build();
-      pathFormula = pmgr.getPathFormulaManager().makeNewPathFormula(pathFormula, newSSA);
+      pathFormula = pmgr.makeNewPathFormula(pathFormula, newSSA);
 
       Formula newFormula =
-          fmgr.instantiate(pmgr.toConcrete(expandedRegion),
+          fmgr.instantiate(pamgr.toConcrete(expandedRegion),
               pathFormula.getSsa());
       Formula blockFormula =
           reducedElement.getAbstractionFormula().getBlockFormula();

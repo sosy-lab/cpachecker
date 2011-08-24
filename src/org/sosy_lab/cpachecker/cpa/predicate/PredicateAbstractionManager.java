@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
@@ -77,7 +76,6 @@ class PredicateAbstractionManager {
 
   private final LogManager logger;
   private final FormulaManager fmgr;
-  private final PathFormulaManager pmgr;
   private final AbstractionManager amgr;
   private final TheoremProver thmProver;
 
@@ -113,7 +111,6 @@ class PredicateAbstractionManager {
   public PredicateAbstractionManager(
       RegionManager pRmgr,
       FormulaManager pFmgr,
-      PathFormulaManager pPmgr,
       TheoremProver pThmProver,
       Configuration config,
       LogManager pLogger) throws InvalidConfigurationException {
@@ -129,7 +126,6 @@ class PredicateAbstractionManager {
     stats = new Stats();
     logger = pLogger;
     fmgr = pFmgr;
-    pmgr = pPmgr;
     amgr = new AbstractionManagerImpl(pRmgr, pFmgr, config, pLogger);
     thmProver = pThmProver;
 
@@ -490,9 +486,5 @@ class PredicateAbstractionManager {
   public AbstractionFormula makeTrueAbstractionFormula(
       Formula pPreviousBlockFormula) {
     return amgr.makeTrueAbstractionFormula(pPreviousBlockFormula);
-  }
-
-  public PathFormulaManager getPathFormulaManager() {
-    return pmgr;
   }
 }

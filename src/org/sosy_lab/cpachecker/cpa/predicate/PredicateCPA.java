@@ -127,7 +127,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       throw new InternalError("Update list of allowed solvers!");
     }
 
-    predicateManager = new PredicateAbstractionManager(regionManager, formulaManager, pathFormulaManager, theoremProver, config, logger);
+    predicateManager = new PredicateAbstractionManager(regionManager, formulaManager, theoremProver, config, logger);
     transfer = new PredicateTransferRelation(this);
 
     topElement = new PredicateAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null));
