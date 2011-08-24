@@ -23,8 +23,6 @@ path *  CPAchecker is a tool for configurable software verification.
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
-import static mathsat.api.*;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -33,7 +31,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -77,13 +74,11 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormula;
 
 import com.google.common.collect.Iterables;
 
@@ -102,6 +97,10 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
       description="where to dump the counterexample formula in case the error location is reached")
   private File dumpCexFile = new File("counterexample.msat");
 
+  @Option(name="refinement.useGlobalInterpolationPoint",
+      description="use global interpolation point")
+  private boolean useGlobalInterpolationPoint = true;
+
   final Timer totalRefinement = new Timer();
   final Timer precisionUpdate = new Timer();
   final Timer artUpdate = new Timer();
@@ -115,7 +114,7 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
 
   private final Set<String> globalVars;
 
-  private final Set<String> allVariables = new HashSet<String>();
+  private final Set<String> allReferencedVariables = new HashSet<String>();
 
   public Map<CFAEdge, Map<String, Long>> assumptions = new HashMap<CFAEdge, Map<String, Long>>();
 
@@ -261,39 +260,33 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
     return formulas;
   }
 
+  private static int refinementCounter = 0;
   private Pair<ARTElement, ExplicitPrecision> performRefinement(ExplicitPrecision oldPrecision,
       Path path,
       CounterexampleTraceInfo pInfo) throws CPAException {
-System.out.println("\nrefining ...");
 
+//System.out.println("\n" + (++refinementCounter) + ". refining ...");
 //System.out.println(path);
-
-//System.out.println("current precision is " + oldPrecision.getWhiteList());
+//System.out.println("old: " + oldPrecision.getWhiteList());
 
     // get the predicates ...
-    List<Collection<AbstractionPredicate>> pathPredicates = pInfo.getPredicatesForRefinement();
-
-    // could we actually keep facts from previous iterations?
-    // new paths would result in new facts, right, so delete old facts
-    // however, cutting all facts after firstInterpolationPoint would be safe, right?
-    //facts.clear();
-
-    PredicateMap pm = new PredicateMap(pathPredicates, path);
+    PredicateMap predicates = new PredicateMap(pInfo.getPredicatesForRefinement(), path);
 
     // ... and, out of these, determine the initial set of variables to track
-    assumptions = pm.getAssumptions(assumptions);
+    Set<String> referencedVariables = predicates.getReferencedVariables();
 
-    Set<String> variableNames = pm.getReferencedVariables();
+    // add the newly found referenced variables to those found in previous iteration
+    allReferencedVariables.addAll(referencedVariables);
 
-    Pair<ARTElement, CFAEdge> firstInterpolationPoint = getFirstInterpolationPoint(variableNames, path);
+    // when only passing referencedVariables, the same precision is passed in twice (refinement #9, refinement #10) with diskperf_simpl !?!?!?
+    // get the top-most interpolation point
+    Pair<ARTElement, CFAEdge> firstInterpolationPoint = getFirstInterpolationPoint(useGlobalInterpolationPoint ? allReferencedVariables : referencedVariables, path);
 
     assert firstInterpolationPoint != null;
-    //System.out.println("firstInterpolationPoint is: " + firstInterpolationPoint);
-
-    allVariables.addAll(variableNames);
+//System.out.println("firstInterpolationPoint is: " + firstInterpolationPoint);
 
     // collect variables on error path, on which the found ones depend on
-    CollectVariablesVisitor visitor = new CollectVariablesVisitor(allVariables);
+    CollectVariablesVisitor visitor = new CollectVariablesVisitor(allReferencedVariables/*referencedVariables*/);
     Iterator<Pair<ARTElement, CFAEdge>>  iterator = path.descendingIterator();
     while(iterator.hasNext())
     {
@@ -302,17 +295,21 @@ System.out.println("\nrefining ...");
       extractVariables(element.getSecond(), visitor);
     }
 
-    Set<String> newWhiteList = new HashSet<String>();
-    //newWhiteList.addAll(oldPrecision.getWhiteList());
-    //newWhiteList.addAll(currentVariables);
-    newWhiteList.addAll(visitor.getCollectedVariables());
+    allReferencedVariables.addAll(visitor.getCollectedVariables());
+    Set<String> newWhiteList = new HashSet<String>(allReferencedVariables);
 
-    //System.out.println("new precision is: " + newWhiteList);
-
-    madeProgress(path, oldPrecision.getWhiteList(), newWhiteList);
+    //madeProgress(path, oldPrecision.getWhiteList(), newWhiteList);
 
     ExplicitPrecision newPrecision = new ExplicitPrecision(oldPrecision.getBlackListPattern(), newWhiteList);
-    newPrecision.setFacts(assumptions);
+//System.out.println("newWhiteList = " + newWhiteList);
+    // would not use old facts
+    //assumptions = new HashMap<CFAEdge, Map<String, Long>>();
+
+    // can we actually keep facts from previous iterations?
+    // new paths would result in new facts, right, so delete old facts
+    // however, cutting all facts after firstInterpolationPoint would be safe, right?
+    // for now, all facts are kept
+    newPrecision.setFacts(assumptions = predicates.getAssumptions(assumptions));
 
     // We have two different strategies for the refinement root: set it to
     // the firstInterpolationPoint or set it to highest location in the ART
@@ -369,70 +366,6 @@ System.out.println("\nrefining ...");
 
     return firstInterpolationPoint;
   }
-
-  private Map<CFAEdge, Map<String, Long>> extractAssumptions(List<Collection<AbstractionPredicate>> pathPredicates, Path path) throws RefinementFailedException
-  {
-    Map<CFAEdge, Map<String, Long>> assumptions = new HashMap<CFAEdge, Map<String, Long>>();
-
-    int i = 0;
-    for(Collection<AbstractionPredicate> predicates : pathPredicates)
-    {
-      if(predicates.size() > 0)
-      {
-        CFAEdge currentEdge = path.get(i).getSecond();
-
-        Map<String, Long> assumptionsAtEdge = assumptions.get(currentEdge);
-
-        if(assumptionsAtEdge == null)
-          assumptions.put(currentEdge, assumptionsAtEdge = new HashMap<String, Long>());
-
-        for(AbstractionPredicate predicate : predicates)
-        {
-          Collection<String> atoms = getVariables(((MathsatFormula)predicate.getSymbolicAtom()).getTerm());
-
-          for(String atom : atoms)
-            assumptionsAtEdge.put(atom, null);
-
-          // if there is only one atom ...
-          // TODO: this needs cleanup!
-          if(atoms.size() == 1)
-          {
-            String assume = predicate.getSymbolicAtom().toString().replace("(", "").replace(")", "");
-
-            String[] splits = assume.split(" = ");
-
-            // ... and it is compared to a constant ...
-            if(splits.length == 2)
-            {
-              // ... add it as a fact
-              try
-              {
-                Long constant = Long.parseLong(splits[1]);
-//System.out.println("added fact " + atoms.toArray(new String[atoms.size()])[0] + " = " + splits[1] + " for expression " + predicate.getSymbolicAtom());
-
-                assumptionsAtEdge.put(atoms.toArray(new String[atoms.size()])[0], constant);
-              }
-              catch(NumberFormatException nfe)
-              {
-//System.out.println(splits[1] + " is not a number - no fact to add for expression " + predicate.getSymbolicAtom());
-              }
-            }
-            else
-            {
-//System.out.println("can't extract fact from expression " + assume);
-
-              throw new RefinementFailedException(Reason.InterpolationFailed, path);
-            }
-          }
-        }
-      }
-
-      i++;
-    }
-
-    return assumptions;
-  }
-
 
   private boolean madeProgress(Path path, Set<String> oldWhiteList, Set<String> newWhiteList) throws RefinementFailedException
   {
@@ -682,31 +615,6 @@ System.out.println("\nrefining ...");
     return extracted;
   }
 
-  // TODO: copy & paste code from branches/fshell3/src/org/sosy_lab/cpachecker/util/predicates/mathsat/MathsatFormulaManager.java
-  private Collection<String> getVariables(long pTerm) {
-    HashSet<String> lVariables = new HashSet<String>();
-
-    LinkedList<Long> lWorklist = new LinkedList<Long>();
-    lWorklist.add(pTerm);
-
-    while (!lWorklist.isEmpty()) {
-      long lTerm = lWorklist.removeFirst();
-
-      if (msat_term_is_variable(lTerm) != 0) {
-        lVariables.add(msat_term_repr(lTerm));
-      }
-      else {
-        int lArity = msat_term_arity(lTerm);
-        for (int i = 0; i < lArity; i++) {
-          long lSubterm = msat_term_get_arg(lTerm, i);
-          lWorklist.add(lSubterm);
-        }
-      }
-    }
-
-    return lVariables;
-  }
-
   /**
    * visitor that collects identifiers denoting variables, that show up in given IASTExpressions
    */
@@ -734,9 +642,9 @@ System.out.println("\nrefining ...");
      */
     private boolean inLookAheadMode = false;
 
-    public CollectVariablesVisitor(Collection<String> collectedVariables)
+    public CollectVariablesVisitor(Collection<String> initialVariables)
     {
-      this.collectedVariables.addAll(collectedVariables);
+      this.collectedVariables.addAll(initialVariables);
     }
 
     /**
@@ -747,8 +655,7 @@ System.out.println("\nrefining ...");
      */
     private void collect(CFANode cfaNode, String variableName)
     {
-      if(!globalVars.contains(variableName))
-        variableName = getScopedVariableName(cfaNode, variableName);
+      variableName = getScopedVariableName(cfaNode, variableName);
 
       if(inLookAheadMode)
         lookAheadVariables.add(variableName);
@@ -758,9 +665,9 @@ System.out.println("\nrefining ...");
 
     public boolean hasCollected(String variableName)
     {
-      String scopedVariableName = getScopedVariableName(edge.getPredecessor(), variableName);
+      variableName = getScopedVariableName(edge.getPredecessor(), variableName);
 
-      return collectedVariables.contains(scopedVariableName);
+      return collectedVariables.contains(variableName);
     }
 
     public Collection<String> getCollectedVariables()
@@ -885,103 +792,6 @@ System.out.println("\nrefining ...");
     protected Void visitDefault(IASTExpression expression)
     {
       return null;
-    }
-  }
-
-  private class PredicateMap
-  {
-    private Map<CFAEdge, Set<AbstractionPredicate>> predicateMap;
-
-    public PredicateMap(List<Collection<AbstractionPredicate>> pathPredicates, Path path)
-    {
-      predicateMap = new HashMap<CFAEdge, Set<AbstractionPredicate>>();
-
-      int i = 0;
-      for(Collection<AbstractionPredicate> predicates : pathPredicates)
-      {
-        if(predicates.size() > 0)
-        {
-          CFAEdge currentEdge = path.get(i).getSecond();
-
-          Set<AbstractionPredicate> assumptionsAtEdge = predicateMap.get(currentEdge);
-
-          if(assumptionsAtEdge == null)
-            predicateMap.put(currentEdge, assumptionsAtEdge = new HashSet<AbstractionPredicate>());
-
-          for(AbstractionPredicate predicate : predicates)
-            assumptionsAtEdge.add(predicate);
-        }
-
-        i++;
-      }
-    }
-
-    public Set<String> getReferencedVariables()
-    {
-      Set<String> variables = new HashSet<String>();
-
-      for(Set<AbstractionPredicate> predicates : predicateMap.values())
-      {
-        for(AbstractionPredicate predicate : predicates)
-        {
-          Collection<String> atoms = getVariables(((MathsatFormula)predicate.getSymbolicAtom()).getTerm());
-
-          for(String atom : atoms)
-            variables.add(atom);
-        }
-      }
-
-      return variables;
-    }
-
-    public Map<CFAEdge, Map<String, Long>> getAssumptions(Map<CFAEdge, Map<String, Long>> assumptions)
-    {
-      //Map<CFAEdge, Map<String, Long>> assumptions = new HashMap<CFAEdge, Map<String, Long>>();
-
-      for(Map.Entry<CFAEdge, Set<AbstractionPredicate>> entry : predicateMap.entrySet())
-      {
-        Map<String, Long> assumes = assumptions.get(entry.getKey());
-
-        for(AbstractionPredicate predicate : entry.getValue())
-        {
-          Collection<String> atoms = getVariables(((MathsatFormula)predicate.getSymbolicAtom()).getTerm());
-
-          // if there is only one atom ...
-          // TODO: this needs cleanup!
-          if(atoms.size() == 1)
-          {
-            if(assumes == null)
-              assumptions.put(entry.getKey(), assumes = new HashMap<String, Long>());
-
-            String assume = predicate.getSymbolicAtom().toString().replace("(", "").replace(")", "");
-
-            String[] splits = assume.split(" = ");
-
-            // ... and it is compared to a constant ...
-            if(splits.length == 2)
-            {
-              // ... add it as a fact
-              try
-              {
-                Long constant = Long.parseLong(splits[1]);
-//System.out.println("added fact " + atoms.toArray(new String[atoms.size()])[0] + " = " + splits[1] + " for expression " + predicate.getSymbolicAtom());
-
-                assumes.put(atoms.toArray(new String[atoms.size()])[0], constant);
-              }
-              catch(NumberFormatException nfe)
-              {
-//System.out.println(splits[1] + " is not a number - no fact to add for expression " + predicate.getSymbolicAtom());
-              }
-            }
-            else
-            {
-              System.out.println("can't extract fact from expression " + assume);
-            }
-          }
-        }
-      }
-
-      return assumptions;
     }
   }
 }

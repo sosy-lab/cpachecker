@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -34,7 +36,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 public class ExplicitPrecision implements Precision {
   final Pattern blackListPattern;
 
-  final Set<String> whiteList;
+  final Set<String> whiteList = new HashSet<String>();
 
   public Map<CFAEdge, Map<String, Long>> facts = new HashMap<CFAEdge, Map<String, Long>>();
 
@@ -47,176 +49,35 @@ public class ExplicitPrecision implements Precision {
 
     blackListPattern = Pattern.compile(variableBlacklist);
 
-    this.whiteList = whiteList;
-/*
-    System.out.println("\n\ncreating new precision containing:");
+    if(whiteList != null)
+      this.whiteList.addAll(whiteList);
 
-    System.out.println(getWhiteListAsString());
-
-    this.whiteList.add("CdAudio535DeviceControl::__retval__");
-    this.whiteList.add("main::devobj");
-    this.whiteList.add("IofCallDriver::Irp");
-    this.whiteList.add("SendSrbSynchronous::status");
-    this.whiteList.add("CdAudio535DeviceControl::__cil_tmp70");
-    this.whiteList.add("AG_SetStatusAndReturn::__retval__");
-    this.whiteList.add("CdAudio435DeviceControl::deviceExtension");
-    this.whiteList.add("AG_SetStatusAndReturn::deviceExtension__TargetDeviceObject");
-    this.whiteList.add("PoCallDriver::nondet_int");
-    this.whiteList.add("PoCallDriver::__retval__");
-    this.whiteList.add("CdAudioSendToNextDriver::DeviceObject");
-    this.whiteList.add("CdAudio535DeviceControl::currentIrpStack__Parameters__DeviceIoControl__IoControlCode");
-    this.whiteList.add("CdAudio535DeviceControl::sizeof__SUB_Q_CURRENT_POSITION");
-    this.whiteList.add("CdAudioStartDevice::status");
-    this.whiteList.add("CdAudioSendToNextDriver::Irp");
-    this.whiteList.add("HPCdrCompletion::Irp");
-    this.whiteList.add("CdAudio435DeviceControl::__cil_tmp52");
-    this.whiteList.add("SendSrbSynchronous::__cil_tmp18");
-    this.whiteList.add("CdAudioPnp::__retval__");
-    this.whiteList.add("setEventCalled");
-    this.whiteList.add("main::irp_choice");
-    this.whiteList.add("CdAudioForwardIrpSynchronous::DeviceObject");
-    this.whiteList.add("CdAudio435DeviceControl::__cil_tmp57");
-    this.whiteList.add("CdAudioPower::Irp");
-    this.whiteList.add("IofCallDriver::Irp__PendingReturned");
-    this.whiteList.add("CdAudio535DeviceControl::DeviceObject");
-    this.whiteList.add("CdAudioStartDevice::DeviceObject");
-    this.whiteList.add("CdAudioForwardIrpSynchronous::deviceExtension__TargetDeviceObject");
-    this.whiteList.add("CdAudioPower::tmp");
-    this.whiteList.add("CdAudioStartDevice::Irp");
-    this.whiteList.add("SKIP1");
-    this.whiteList.add("CdAudioForwardIrpSynchronous::Irp");
-    this.whiteList.add("SKIP2");
-    this.whiteList.add("CdAudio435DeviceControl::__cil_tmp42");
-    this.whiteList.add("CdAudio535DeviceControl::tmp___5");
-    this.whiteList.add("CdAudio435DeviceControl::__cil_tmp47");
-    this.whiteList.add("NP");
-    this.whiteList.add("CdAudioPower::DeviceObject");
-    this.whiteList.add("AG_SetStatusAndReturn::status");
-    this.whiteList.add("compRegistered");
-    this.whiteList.add("main::we_should_unload");
-    this.whiteList.add("IofCallDriver::lcontext");
-    this.whiteList.add("IofCallDriver::compRetStatus");
-    this.whiteList.add("AG_SetStatusAndReturn::__cil_tmp4");
-    this.whiteList.add("CdAudioSendToNextDriver::deviceExtension__TargetDeviceObject");
-    this.whiteList.add("main::irp");
-    this.whiteList.add("CdAudioHPCdrDeviceControl::currentIrpStack__Parameters__DeviceIoControl__IoControlCode");
-    this.whiteList.add("IofCallDriver::__cil_tmp8");
-    this.whiteList.add("SendSrbSynchronous::Extension");
-    this.whiteList.add("IPC");
-    this.whiteList.add("CdAudioDeviceControl::DeviceObject");
-    this.whiteList.add("CdAudio435DeviceControl::Irp");
-    this.whiteList.add("HPCdrCompletion::DeviceObject");
-    this.whiteList.add("CdAudio435DeviceControl::__cil_tmp37");
-    this.whiteList.add("s");
-    this.whiteList.add("CdAudio435DeviceControl::__retval__");
-    this.whiteList.add("CdAudio535DeviceControl::status");
-    this.whiteList.add("MPR3");
-    this.whiteList.add("CdAudioDeviceControl::status");
-    this.whiteList.add("MPR1");
-    this.whiteList.add("lowerDriverReturn");
-    this.whiteList.add("SendSrbSynchronous::irp");
-    this.whiteList.add("CdAudio435DeviceControl::srb");
-    this.whiteList.add("IofCallDriver::__retval__");
-    this.whiteList.add("SendSrbSynchronous::Buffer");
-    this.whiteList.add("CdAudio535DeviceControl::Irp");
-    this.whiteList.add("CdAudioPnp::DeviceObject");
-    this.whiteList.add("pirp");
-    this.whiteList.add("HPCdrCompletion::Context");
-    this.whiteList.add("DeviceUsageTypePaging");
-    this.whiteList.add("IofCallDriver::returnVal2");
-    this.whiteList.add("pended");
-    this.whiteList.add("HPCdrCompletion::Irp__PendingReturned");
-    this.whiteList.add("CdAudioPower::__retval__");
-    this.whiteList.add("CdAudioPower::deviceExtension__TargetDeviceObject");
-    this.whiteList.add("customIrp");
-    this.whiteList.add("CdAudioSendToNextDriver::__retval__");
-    this.whiteList.add("CdAudioDeviceControl::__retval__");
-    this.whiteList.add("CdAudio435DeviceControl::__cil_tmp104");
-    this.whiteList.add("PoCallDriver::DeviceObject");
-    this.whiteList.add("CdAudio435DeviceControl::__cil_tmp103");
-    this.whiteList.add("CdAudio435DeviceControl::__cil_tmp106");
-    this.whiteList.add("main::tmp_ndt_3");
-    this.whiteList.add("main::tmp_ndt_2");
-    this.whiteList.add("CdAudioDeviceControl::deviceExtension__Active");
-    this.whiteList.add("CdAudioPnp::irpSp__MinorFunction");
-    this.whiteList.add("SendSrbSynchronous::BufferLength");
-    this.whiteList.add("CdAudio535DeviceControl::SubQPtr");
-    this.whiteList.add("main::tmp_ndt_1");
-    this.whiteList.add("IofCallDriver::DeviceObject");
-    this.whiteList.add("CdAudioDeviceControl::Irp");
-    this.whiteList.add("AG_SetStatusAndReturn::Irp");
-    this.whiteList.add("CdAudioSendToNextDriver::tmp");
-    this.whiteList.add("CdAudio435DeviceControl::SubQPtr");
-    this.whiteList.add("CdAudio435DeviceControl::DeviceObject");
-    this.whiteList.add("CdAudioSignalCompletion::DeviceObject");
-    this.whiteList.add("CdAudioHPCdrDeviceControl::__cil_tmp12");
-    this.whiteList.add("routine");
-    this.whiteList.add("CdAudio435DeviceControl::status");
-    this.whiteList.add("CdAudioPnp::tmp");
-    this.whiteList.add("CdAudioPnp::irpSp__Parameters__UsageNotification__Type");
-    this.whiteList.add("CdAudioSignalCompletion::Irp");
-    this.whiteList.add("PoCallDriver::tmp_ndt_8");
-    this.whiteList.add("CdAudio435DeviceControl::currentIrpStack__Parameters__DeviceIoControl__IoControlCode");
-    this.whiteList.add("CdAudioPnp::Irp");
-    this.whiteList.add("PoCallDriver::Irp");
-    this.whiteList.add("CdAudio535DeviceControl::__cil_tmp62");
-    this.whiteList.add("CdAudioForwardIrpSynchronous::status");
-    this.whiteList.add("CdAudioSignalCompletion::Event");
-    this.whiteList.add("SendSrbSynchronous::Srb");
-    this.whiteList.add("CdAudio535DeviceControl::deviceExtension__TargetDeviceObject");
-    this.whiteList.add("main::status");
-    this.whiteList.add("PoCallDriver::returnVal");
-    this.whiteList.add("CdAudio535DeviceControl::currentIrpStack__Parameters__DeviceIoControl__OutputBufferLength");
-    this.whiteList.add("DC");
-    this.whiteList.add("CdAudio535DeviceControl::__cil_tmp65");
-    this.whiteList.add("compFptr");
-    this.whiteList.add("myStatus");
-    this.whiteList.add("UNLOADED");
-    this.whiteList.add("main::nondet_int");
-
-*/
+    //initConstant();
   }
 
   public ExplicitPrecision(ExplicitPrecision precision, Set<String> whiteList) {
 
     blackListPattern = precision.blackListPattern;
 
-    this.whiteList = whiteList;
-/*
-    System.out.println("\n\ncreating new precision containing:");
+    if(whiteList != null)
+      this.whiteList.addAll(whiteList);
 
-    System.out.println(getWhiteListAsString());*/
+    //initConstant();
   }
 
-  private String getWhiteListAsString()
+  boolean isOnBlacklist(String variable)
   {
-    String result = "";
-
-    if(whiteList.size() > 0)
-    {
-      for(String entry : whiteList)
-      {
-       result = result + "\n" + entry;
-      }
-    }
-    else
-      result = "nothing";
-
-    return result;
-  }
-
-  boolean isOnBlacklist(String variable) {
     return this.blackListPattern.matcher(variable).matches();
   }
 
-  boolean isOnWhitelist(String variable) {
+  boolean isOnWhitelist(String variable)
+  {
     return whiteList == null || whiteList.contains(variable);
   }
 
   public boolean isTracking(String variable)
   {
-    return isOnWhitelist(variable)
-      && !blackListPattern.matcher(variable).matches();
+    return isOnWhitelist(variable) && !blackListPattern.matcher(variable).matches();
   }
 
   public boolean isNotTracking(String variable)
@@ -226,11 +87,101 @@ public class ExplicitPrecision implements Precision {
 
   public Set<String> getWhiteList()
   {
-    return whiteList;
+    return Collections.unmodifiableSet(whiteList);
   }
 
   public String getBlackListPattern()
   {
     return blackListPattern.pattern();
+  }
+
+  private void initConstant()
+  {
+    this.whiteList.add("lowerDriverReturn");
+        this.whiteList.add("IofCallDriver::__retval__");
+        this.whiteList.add("main::devobj");
+        this.whiteList.add("IofCallDriver::Irp");
+        this.whiteList.add("DiskPerfDeviceControl::deviceExtension__TargetDeviceObject");
+        this.whiteList.add("DiskPerfForwardIrpSynchronous::__retval__");
+        this.whiteList.add("DiskPerfDispatchPower::DeviceObject");
+        this.whiteList.add("PoCallDriver::__retval__");
+        this.whiteList.add("pirp");
+        this.whiteList.add("DiskPerfIrpCompletion::Context");
+        this.whiteList.add("DiskPerfStartDevice::Irp");
+        this.whiteList.add("DiskPerfIrpCompletion::__retval__");
+        this.whiteList.add("IofCallDriver::returnVal2");
+        this.whiteList.add("pended");
+        this.whiteList.add("DiskPerfStartDevice::status");
+        this.whiteList.add("DiskPerfForwardIrpSynchronous::__cil_tmp15");
+        this.whiteList.add("DiskPerfRegisterDevice::event");
+        this.whiteList.add("customIrp");
+        this.whiteList.add("IoBuildDeviceIoControlRequest::Event");
+        this.whiteList.add("DiskPerfIrpCompletion::Irp");
+        this.whiteList.add("DiskPerfDispatchPnp::__retval__");
+        this.whiteList.add("setEventCalled");
+        this.whiteList.add("PoCallDriver::DeviceObject");
+        this.whiteList.add("DiskPerfDeviceControl::DeviceObject");
+        this.whiteList.add("DiskPerfDeviceControl::Irp");
+        this.whiteList.add("IoBuildDeviceIoControlRequest::OutputBufferLength");
+        this.whiteList.add("DiskPerfDispatchPower::__retval__");
+        this.whiteList.add("IoBuildDeviceIoControlRequest::InternalDeviceIoControl");
+        this.whiteList.add("DiskPerfDispatchPower::Irp");
+        this.whiteList.add("DiskPerfForwardIrpSynchronous::Irp");
+        this.whiteList.add("IoBuildDeviceIoControlRequest::InputBuffer");
+        this.whiteList.add("DiskPerfDispatchPower::tmp");
+        this.whiteList.add("IofCallDriver::DeviceObject");
+        this.whiteList.add("DiskPerfDeviceControl::status");
+        this.whiteList.add("DiskPerfRegisterDevice::sizeof__number");
+        this.whiteList.add("DiskPerfDeviceControl::tmp");
+        this.whiteList.add("SKIP1");
+        this.whiteList.add("SKIP2");
+        this.whiteList.add("DiskPerfRegisterDevice::number");
+        this.whiteList.add("DiskPerfRegisterDevice::status");
+        this.whiteList.add("DiskPerfRegisterDevice::deviceExtension__TargetDeviceObject");
+        this.whiteList.add("DiskPerfRemoveDevice::status");
+        this.whiteList.add("DiskPerfForwardIrpSynchronous::DeviceObject");
+        this.whiteList.add("DiskPerfRegisterDevice::outputSize");
+        this.whiteList.add("DiskPerfDispatchPnp::status");
+        this.whiteList.add("routine");
+        this.whiteList.add("DiskPerfIrpCompletion::DeviceObject");
+        this.whiteList.add("NP");
+        this.whiteList.add("DiskPerfRegisterDevice::irp");
+        this.whiteList.add("DiskPerfRegisterDevice::output");
+        this.whiteList.add("DiskPerfRemoveDevice::Irp");
+        this.whiteList.add("compRegistered");
+        this.whiteList.add("IofCallDriver::lcontext");
+        this.whiteList.add("IofCallDriver::compRetStatus");
+        this.whiteList.add("DiskPerfRegisterDevice::ioStatus");
+        this.whiteList.add("DiskPerfForwardIrpSynchronous::status");
+        this.whiteList.add("main::irp");
+        this.whiteList.add("IoBuildDeviceIoControlRequest::IoControlCode");
+        this.whiteList.add("IoBuildDeviceIoControlRequest::OutputBuffer");
+        this.whiteList.add("DiskPerfRemoveDevice::__retval__");
+        this.whiteList.add("DiskPerfRegisterDevice::__cil_tmp23");
+        this.whiteList.add("PoCallDriver::Irp");
+        this.whiteList.add("DiskPerfRegisterDevice::__cil_tmp26");
+        this.whiteList.add("IofCallDriver::__cil_tmp7");
+        this.whiteList.add("DiskPerfRegisterDevice::__cil_tmp22");
+        this.whiteList.add("DiskPerfDispatchPower::deviceExtension__TargetDeviceObject");
+        this.whiteList.add("DiskPerfDeviceControl::__retval__");
+        this.whiteList.add("IoBuildDeviceIoControlRequest::IoStatusBlock");
+        this.whiteList.add("DiskPerfRegisterDevice::sizeof__MOUNTDEV_NAME");
+        this.whiteList.add("IPC");
+        this.whiteList.add("PoCallDriver::returnVal");
+        this.whiteList.add("main::status");
+        this.whiteList.add("DiskPerfDispatchPnp::Irp");
+        this.whiteList.add("DC");
+        this.whiteList.add("IoBuildDeviceIoControlRequest::InputBufferLength");
+        this.whiteList.add("IoBuildDeviceIoControlRequest::DeviceObject");
+        this.whiteList.add("compFptr");
+        this.whiteList.add("DiskPerfForwardIrpSynchronous::deviceExtension__TargetDeviceObject");
+        this.whiteList.add("DiskPerfDispatchPnp::DeviceObject");
+        this.whiteList.add("DiskPerfRemoveDevice::DeviceObject");
+        this.whiteList.add("s");
+        this.whiteList.add("myStatus");
+        this.whiteList.add("DiskPerfStartDevice::DeviceObject");
+        this.whiteList.add("UNLOADED");
+        this.whiteList.add("MPR3");
+        this.whiteList.add("MPR1");
   }
 }
