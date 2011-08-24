@@ -83,7 +83,7 @@ class PredicateAbstractionManager {
   protected final LogManager logger;
   protected final FormulaManager fmgr;
   protected final PathFormulaManager pmgr;
-  protected final AbstractionManager amgr;
+  private final AbstractionManager amgr;
   protected final TheoremProver thmProver;
 
   @Option(name="abstraction.cartesian",
@@ -503,6 +503,10 @@ class PredicateAbstractionManager {
 
   public AbstractionPredicate makeFalsePredicate() {
     return amgr.makeFalsePredicate();
+  }
+
+  public AbstractionPredicate makePredicate(Formula f) {
+    return amgr.makePredicate(f);
   }
 
   public AbstractionFormula makeTrueAbstractionFormula(

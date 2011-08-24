@@ -703,7 +703,7 @@ public class PredicateRefinementManager extends PredicateAbstractionManager {
 
     Collection<AbstractionPredicate> preds;
     if (interpolant.isFalse()) {
-      preds = ImmutableSet.of(amgr.makeFalsePredicate());
+      preds = ImmutableSet.of(makeFalsePredicate());
     } else {
       preds = getAtomsAsPredicates(interpolant);
     }
@@ -731,7 +731,7 @@ public class PredicateRefinementManager extends PredicateAbstractionManager {
    * Create predicates for all atoms in a formula.
    */
   @SuppressWarnings("deprecation")
-  public List<AbstractionPredicate> getAtomsAsPredicates(Formula f) {
+  private List<AbstractionPredicate> getAtomsAsPredicates(Formula f) {
     Collection<Formula> atoms;
     if (atomicPredicates) {
       atoms = fmgr.extractAtoms(f, splitItpAtoms, false);
@@ -742,7 +742,7 @@ public class PredicateRefinementManager extends PredicateAbstractionManager {
     List<AbstractionPredicate> preds = new ArrayList<AbstractionPredicate>(atoms.size());
 
     for (Formula atom : atoms) {
-      preds.add(amgr.makePredicate(atom));
+      preds.add(makePredicate(atom));
     }
     return preds;
   }

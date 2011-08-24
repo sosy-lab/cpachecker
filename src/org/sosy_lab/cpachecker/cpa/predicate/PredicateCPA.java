@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.logging.Level;
 
@@ -136,18 +137,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     prec = new PredicatePrecisionAdjustment(this);
     stop = new StopSepOperator(domain);
 
-    Collection<AbstractionPredicate> predicates = null;
-    if (predicatesFile != null) {
-      try {
-        String fileContent = Files.toString(predicatesFile, Charset.defaultCharset());
-        Formula f = formulaManager.parse(fileContent);
-        predicates = predicateManager.getAtomsAsPredicates(f);
-      } catch (IllegalArgumentException e) {
-        logger.logUserException(Level.WARNING, e, "Could not read predicates from file " + predicatesFile);
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Could not read predicates from file");
-      }
-    }
+    Collection<AbstractionPredicate> predicates = readPredicatesFromFile();
 
     if (checkBlockFeasibility) {
       AbstractionPredicate p = predicateManager.makeFalsePredicate();
@@ -160,6 +150,31 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     initialPrecision = new PredicatePrecision(predicates);
 
     stats = createStatistics();
+  }
+
+  private Collection<AbstractionPredicate> readPredicatesFromFile() {
+    if (predicatesFile != null) {
+        try {
+        String fileContent = Files.toString(predicatesFile, Charset.defaultCharset());
+        Formula f = formulaManager.parse(fileContent);
+
+        Collection<Formula> atoms = formulaManager.extractAtoms(f, false, false);
+
+        Collection<AbstractionPredicate> predicates = new ArrayList<AbstractionPredicate>(atoms.size());
+
+        for (Formula atom : atoms) {
+          predicates.add(predicateManager.makePredicate(atom));
+        }
+        return predicates;
+
+      } catch (IllegalArgumentException e) {
+        logger.logUserException(Level.WARNING, e, "Could not read predicates from file " + predicatesFile);
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not read predicates from file");
+      }
+    }
+
+    return null;
   }
 
   protected PredicateCPAStatistics createStatistics() throws InvalidConfigurationException {
