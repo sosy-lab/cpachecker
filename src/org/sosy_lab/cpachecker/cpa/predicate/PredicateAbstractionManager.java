@@ -36,7 +36,6 @@ import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -69,7 +68,6 @@ class PredicateAbstractionManager {
 
     public long allSatCount = 0;
     public int maxAllSatCount = 0;
-    public Timer extractTimer = new Timer();
   }
 
   final Stats stats;
@@ -466,13 +464,7 @@ class PredicateAbstractionManager {
   }
 
   public Collection<AbstractionPredicate> extractPredicates(Region pRegion) {
-    stats.extractTimer.start();
-    try {
-      return amgr.extractPredicates(pRegion);
-    }
-    finally {
-      stats.extractTimer.stop();
-    }
+    return amgr.extractPredicates(pRegion);
   }
 
   public AbstractionPredicate makeFalsePredicate() {

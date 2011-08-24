@@ -138,7 +138,6 @@ class PredicateCPAStatistics implements Statistics {
         out.println("  Times precision was empty:       " + as.numSymbolicAbstractions + " (" + toPercent(as.numSymbolicAbstractions, as.numCallsAbstraction) + ")");
         out.println("  Times precision was {false}:     " + as.numSatCheckAbstractions + " (" + toPercent(as.numSatCheckAbstractions, as.numCallsAbstraction) + ")");
         out.println("  Times result was 'false':        " + prec.numAbstractionsFalse + " (" + toPercent(prec.numAbstractionsFalse, prec.numAbstractions) + ")");
-        out.println("  Extract predicates timer: " + as.extractTimer);
       }
       if (trans.satCheckTimer.getNumberOfIntervals() > 0) {
         out.println("Number of satisfiability checks:   " + trans.satCheckTimer.getNumberOfIntervals());

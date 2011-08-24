@@ -53,8 +53,13 @@ public class ABMPredicateCPAStatistics extends PredicateCPAStatistics {
   public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
     super.printStatistics(out, pResult, pReached);
 
+    out.println();
+    out.println("Reduce elements:            " + ABMPredicateReducer.reduceTimer);
+    out.println("Expand elements:            " + ABMPredicateReducer.expandTimer);
+    out.println("Extract predicates:         " + ABMPredicateReducer.extractTimer);
+
     if (refiner != null) {
-      out.println("SSA renaming:                        " + refiner.ssaRenamingTimer);
+      out.println("SSA renaming:               " + refiner.ssaRenamingTimer);
     }
   }
 }

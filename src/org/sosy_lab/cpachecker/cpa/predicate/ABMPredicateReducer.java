@@ -57,6 +57,7 @@ public class ABMPredicateReducer implements Reducer {
 
   static final Timer reduceTimer = new Timer();
   static final Timer expandTimer = new Timer();
+  static final Timer extractTimer = new Timer();
 
   private final RegionManager rmgr;
   private final FormulaManager fmgr;
@@ -91,7 +92,7 @@ public class ABMPredicateReducer implements Reducer {
       Region oldRegion = predicateElement.getAbstractionFormula().asRegion();
 
       Collection<AbstractionPredicate> predicates =
-          pamgr.extractPredicates(abstractionFormula.asRegion());
+          extractPredicates(abstractionFormula.asRegion());
       Collection<AbstractionPredicate> removePredicates =
           relevantComputer.getIrrelevantPredicates(pContext, predicates);
 
@@ -137,7 +138,7 @@ public class ABMPredicateReducer implements Reducer {
           rootElement.getAbstractionFormula();
 
       Collection<AbstractionPredicate> rootPredicates =
-          pamgr.extractPredicates(rootElementAbstractionFormula.asRegion());
+          extractPredicates(rootElementAbstractionFormula.asRegion());
       Collection<AbstractionPredicate> relevantRootPredicates =
           relevantComputer.getRelevantPredicates(pReducedContext, rootPredicates);
       //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedElements region
@@ -184,6 +185,16 @@ public class ABMPredicateReducer implements Reducer {
           newAbstractionFormula);
     } finally {
       expandTimer.stop();
+    }
+  }
+
+  private Collection<AbstractionPredicate> extractPredicates(Region pRegion) {
+    extractTimer.start();
+    try {
+      return pamgr.extractPredicates(pRegion);
+    }
+    finally {
+      extractTimer.stop();
     }
   }
 
