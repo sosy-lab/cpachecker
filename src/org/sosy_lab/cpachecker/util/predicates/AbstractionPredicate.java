@@ -37,7 +37,7 @@ public class AbstractionPredicate {
   private final Formula symbolicVariable;
   private final Formula symbolicAtom;
 
-  public AbstractionPredicate(Region pAbstractVariable,
+  AbstractionPredicate(Region pAbstractVariable,
       Formula pSymbolicVariable, Formula pSymbolicAtom) {
     abstractVariable = Preconditions.checkNotNull(pAbstractVariable);
     symbolicVariable = Preconditions.checkNotNull(pSymbolicVariable);

@@ -41,11 +41,10 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -124,7 +123,7 @@ class PredicateAbstractionManager {
     stats = new Stats();
     logger = pLogger;
     fmgr = pFmgr;
-    amgr = new AbstractionManagerImpl(pRmgr, pFmgr, config, pLogger);
+    amgr = new AbstractionManager(pRmgr, pFmgr, config, pLogger);
     thmProver = pThmProver;
 
     if (useCache) {
@@ -423,6 +422,13 @@ class PredicateAbstractionManager {
     }
   }
 
+  public AbstractionFormula makeTrueAbstractionFormula(Formula pPreviousBlockFormula) {
+    if (pPreviousBlockFormula == null) {
+      pPreviousBlockFormula = fmgr.makeTrue();
+    }
+    return new AbstractionFormula(amgr.getRegionManager().makeTrue(), fmgr.makeTrue(), pPreviousBlockFormula);
+  }
+
   protected boolean useBitwiseAxioms() {
     return useBitwiseAxioms;
   }
@@ -473,10 +479,5 @@ class PredicateAbstractionManager {
 
   public AbstractionPredicate makePredicate(Formula f) {
     return amgr.makePredicate(f);
-  }
-
-  public AbstractionFormula makeTrueAbstractionFormula(
-      Formula pPreviousBlockFormula) {
-    return amgr.makeTrueAbstractionFormula(pPreviousBlockFormula);
   }
 }

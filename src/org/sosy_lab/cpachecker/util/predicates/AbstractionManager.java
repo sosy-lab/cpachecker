@@ -38,7 +38,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -47,13 +46,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import com.google.common.base.Joiner;
 
 /**
- * Class implementing the FormulaManager interface,
- * providing some commonly used stuff which is independent from specific libraries.
- *
- * This class inherits from CtoFormulaConverter to import the stuff there.
+ * This class stores a mapping between abstract regions and the corresponding
+ * symbolic formula. It is therefore the bridge between the abstract and the
+ * symbolic "worlds".
+ * It is also responsible for the creation of {@link AbstractionPredicate}s.
  */
 @Options(prefix="cpa.predicate")
-public class AbstractionManagerImpl implements AbstractionManager {
+public final class AbstractionManager {
 
   public static interface AbstractionPredicatesMXBean {
     int getNumberOfPredicates();
@@ -92,9 +91,9 @@ public class AbstractionManagerImpl implements AbstractionManager {
 
   private final Map<Region, Formula> toConcreteCache;
 
-  public AbstractionManagerImpl(RegionManager pRmgr, FormulaManager pFmgr,
+  public AbstractionManager(RegionManager pRmgr, FormulaManager pFmgr,
       Configuration config, LogManager pLogger) throws InvalidConfigurationException {
-    config.inject(this, AbstractionManagerImpl.class);
+    config.inject(this, AbstractionManager.class);
     logger = pLogger;
     rmgr = pRmgr;
     fmgr = pFmgr;
@@ -111,7 +110,10 @@ public class AbstractionManagerImpl implements AbstractionManager {
     new AbstractionPredicatesMBean(); // don't store it, we wouldn't know when to unregister anyway
   }
 
-  @Override
+  /**
+   * creates a Predicate from the Boolean symbolic variable (var) and
+   * the atom that defines it
+   */
   public AbstractionPredicate makePredicate(Formula atom) {
     Formula var = fmgr.createPredicateVariable(atom);
     AbstractionPredicate result = symbVarToPredicate.get(var);
@@ -129,12 +131,18 @@ public class AbstractionManagerImpl implements AbstractionManager {
     return result;
   }
 
-  @Override
+  /**
+   * creates a Predicate that represents "false"
+   */
   public AbstractionPredicate makeFalsePredicate() {
     return makePredicate(fmgr.makeFalse());
   }
 
-  @Override
+  /**
+   * Get predicate corresponding to a variable.
+   * @param var A symbolic formula representing the variable. The same formula has to been passed to makePredicate earlier.
+   * @return a Predicate
+   */
   public AbstractionPredicate getPredicate(Formula var) {
     AbstractionPredicate result = symbVarToPredicate.get(var);
     if (result == null) {
@@ -143,7 +151,11 @@ public class AbstractionManagerImpl implements AbstractionManager {
     return result;
   }
 
-  @Override
+  /**
+   * Given an abstract formula (which is a BDD over the predicates), build
+   * its concrete representation (which is a symbolic formula corresponding
+   * to the BDD, in which each predicate is replaced with its definition)
+   */
   public Formula toConcrete(Region af) {
 
     Map<Region, Formula> cache;
@@ -204,7 +216,6 @@ public class AbstractionManagerImpl implements AbstractionManager {
     return result;
   }
 
-  @Override
   public Collection<AbstractionPredicate> extractPredicates(Region af) {
     Collection<AbstractionPredicate> vars = new HashSet<AbstractionPredicate>();
 
@@ -239,15 +250,6 @@ public class AbstractionManagerImpl implements AbstractionManager {
     return vars;
   }
 
-  @Override
-  public AbstractionFormula makeTrueAbstractionFormula(Formula previousBlockFormula) {
-    if (previousBlockFormula == null) {
-      previousBlockFormula = fmgr.makeTrue();
-    }
-    return new AbstractionFormula(rmgr.makeTrue(), fmgr.makeTrue(), previousBlockFormula);
-  }
-
-  @Override
   public RegionManager getRegionManager() {
     return rmgr;
   }

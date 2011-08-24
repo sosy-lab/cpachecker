@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 import java.util.Collection;
 
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 
 public interface TheoremProver {
