@@ -78,7 +78,7 @@ class PredicateCPAStatistics implements Statistics {
 
     @Override
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-      PredicateRefinementManager amgr = cpa.getPredicateManager();
+      PredicateAbstractionManager amgr = cpa.getPredicateManager();
 
       Multimap<CFANode, AbstractionPredicate> predicates = HashMultimap.create();
 
@@ -121,7 +121,6 @@ class PredicateCPAStatistics implements Statistics {
       int allDistinctPreds = (new HashSet<AbstractionPredicate>(predicates.values())).size();
 
       PredicateAbstractionManager.Stats as = amgr.stats;
-      PredicateRefinementManager.Stats bs = amgr.refStats;
       PredicateAbstractDomain domain = cpa.getAbstractDomain();
       PredicateTransferRelation trans = cpa.getTransferRelation();
       PredicatePrecisionAdjustment prec = cpa.getPrecisionAdjustment();
@@ -195,6 +194,8 @@ class PredicateCPAStatistics implements Statistics {
         out.println("  Time for symbolic coverage checks: " + domain.bddCoverageCheckTimer);
       }
       if (refiner != null && refiner.totalRefinement.getSumTime() > 0) {
+        PredicateRefinementManager.Stats bs = refiner.getRefinementManager().refStats;
+
         out.println("Time for refinement:                 " + refiner.totalRefinement);
         out.println("  Counterexample analysis:           " + bs.cexAnalysisTimer + " (Max: " + bs.cexAnalysisTimer.printMaxTime() + ", Calls: " + bs.cexAnalysisTimer.getNumberOfIntervals() + ")");
         if (bs.cexAnalysisGetUsefulBlocksTimer.getMaxTime() != 0) {

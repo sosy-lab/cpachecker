@@ -27,7 +27,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,12 +41,9 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.AbstractionManager;
@@ -60,7 +56,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver.AllSatResult;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableMap;
 
 
 @Options(prefix="cpa.predicate")
@@ -80,11 +75,11 @@ class PredicateAbstractionManager {
 
   final Stats stats;
 
-  protected final LogManager logger;
-  protected final FormulaManager fmgr;
-  protected final PathFormulaManager pmgr;
+  private final LogManager logger;
+  private final FormulaManager fmgr;
+  private final PathFormulaManager pmgr;
   private final AbstractionManager amgr;
-  protected final TheoremProver thmProver;
+  private final TheoremProver thmProver;
 
   @Option(name="abstraction.cartesian",
       description="whether to use Boolean (false) or Cartesian (true) abstraction")
@@ -103,7 +98,7 @@ class PredicateAbstractionManager {
     + "bitwise operations (which are encoded as UFs): essentially, "
     + "we simply collect all the numbers used in bitwise operations, "
     + "and add axioms like (0 & n = 0)")
-  protected boolean useBitwiseAxioms = false;
+  private boolean useBitwiseAxioms = false;
 
   @Option(name="abs.useCache", description="use caching of abstractions")
   private boolean useCache = true;
@@ -434,25 +429,8 @@ class PredicateAbstractionManager {
     }
   }
 
-  public CounterexampleTraceInfo checkPath(List<CFAEdge> pPath) throws CPATransferException {
-    PathFormula pathFormula = pmgr.makeEmptyPathFormula();
-    for (CFAEdge edge : pPath) {
-      pathFormula = pmgr.makeAnd(pathFormula, edge);
-    }
-    Formula f = pathFormula.getFormula();
-    // ignore reachingPathsFormula here because it is just a simple path
-
-    thmProver.init();
-    try {
-      thmProver.push(f);
-      if (thmProver.isUnsat(fmgr.makeTrue())) {
-        return new CounterexampleTraceInfo();
-      } else {
-        return new CounterexampleTraceInfo(Collections.singletonList(f), thmProver.getModel(), ImmutableMap.<Integer, Boolean>of());
-      }
-    } finally {
-      thmProver.reset();
-    }
+  protected boolean useBitwiseAxioms() {
+    return useBitwiseAxioms;
   }
 
   protected File formatFormulaOutputFile(String function, int call, String formula, int index) {

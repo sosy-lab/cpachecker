@@ -99,7 +99,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final FormulaManager formulaManager;
   private final PathFormulaManager pathFormulaManager;
   private final TheoremProver theoremProver;
-  private final PredicateRefinementManager predicateManager;
+  private final PredicateAbstractionManager predicateManager;
   private final PredicateCPAStatistics stats;
   private final AbstractElement topElement;
 
@@ -127,7 +127,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       throw new InternalError("Update list of allowed solvers!");
     }
 
-    predicateManager = new PredicateRefinementManager(regionManager, formulaManager, pathFormulaManager, theoremProver, config, logger);
+    predicateManager = new PredicateAbstractionManager(regionManager, formulaManager, pathFormulaManager, theoremProver, config, logger);
     transfer = new PredicateTransferRelation(this);
 
     topElement = new PredicateAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null));
@@ -205,7 +205,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return regionManager;
   }
 
-  PredicateRefinementManager getPredicateManager() {
+  PredicateAbstractionManager getPredicateManager() {
     return predicateManager;
   }
 

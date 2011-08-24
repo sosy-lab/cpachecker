@@ -111,7 +111,14 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
 
     predicateCpa.getConfiguration().inject(this, PredicateRefiner.class);
     logger = predicateCpa.getLogger();
-    formulaManager = predicateCpa.getPredicateManager();
+
+    formulaManager = new PredicateRefinementManager(predicateCpa.getFormulaManager(),
+                                                    predicateCpa.getPathFormulaManager(),
+                                                    predicateCpa.getTheoremProver(),
+                                                    predicateCpa.getPredicateManager(),
+                                                    predicateCpa.getConfiguration(),
+                                                    logger);
+
     predicateCpa.getStats().addRefiner(this);
   }
 
@@ -454,4 +461,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     return mCounterexampleTraceInfo;
   }
 
+  PredicateRefinementManager getRefinementManager() {
+    return formulaManager;
+  }
 }
