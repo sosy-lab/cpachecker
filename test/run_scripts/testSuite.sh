@@ -9,8 +9,9 @@ negativeMsg='YES there is a BUG!'
 
 for test in $testsPositive
 do
-    echo "Running $test..."
+    echo -n "Running $test..."
     $test > out 2>/dev/null
+    grep 'Time for Analysis:' out | cut -d':' -f2-
     grep  "$positiveMsg" out >/dev/null
     if [ $? -ne 0 ]; then
 	echo "Error: test $test failed"
@@ -20,8 +21,9 @@ done;
 
 for test in $testsNegative
 do
-    echo "Running $test..."
+    echo -n "Running $test..."
     $test > out 2>/dev/null
+    grep 'Time for Analysis:' out | cut -d':' -f2-
     grep "$negativeMsg" out >/dev/null
     if [ $? -eq 0 ]; then
 	echo "Error: test $test failed"
