@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdge;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCombinedCFAEdge;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvironment;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvironmentalTransition;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteePrecision;
@@ -366,9 +367,13 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     }
     else if (rgElement.getParentEdge().getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
       RelyGuaranteeCFAEdge rgEdge = (RelyGuaranteeCFAEdge) rgElement.getParentEdge();
-      int atomNo = fManager.countAtoms(rgEdge.getPathFormula().getFormula());
       System.out.println("- by env. edge '"+rgEdge);
-    } else {
+    }
+    else if (rgElement.getParentEdge().getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge){
+      RelyGuaranteeCombinedCFAEdge rgEdge = (RelyGuaranteeCombinedCFAEdge) rgElement.getParentEdge();
+      System.out.println("- by combined env. edge '"+rgEdge);
+    }
+    else {
       System.out.println("- by local edge "+rgElement.getParentEdge().getRawStatement());
     }
     int atomNo2 = fManager.countAtoms(rgElement.getPathFormula().getFormula());

@@ -27,44 +27,52 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
 /**
- * Contains three pieces of information:
- * - path formula for interpolation
- * - ART element that is the abstraction point for the formula
- * - primed no which identified formula trace.
+ * Contains four pieces of information:
+ * - path formula for interpolation,
+ * - ART element that is the abstraction point for the formula,
+ * - trace no which identifies formula trace,
+ * - no of the outer trace, if any
  */
 class InterpolationBlock {
 
-  private final int scope;
+  // traceNo is the lowest number of primes in the path formula - it identifies the formula trace
+  private final int traceNo;
+  // context is the no. of the trace that encapsulated current trance and null if the current trance is not nested
+  private Integer context;
+  // ART element, where the path formula was abstracted
   private final ARTElement artElement;
   private final PathFormula pf;
 
-  public InterpolationBlock(PathFormula pf, int primedNo, ARTElement artElement){
+  public InterpolationBlock(PathFormula pf, int primedNo, ARTElement artElement, Integer context){
     this.pf = pf;
-    this.scope = primedNo;
+    this.traceNo = primedNo;
     this.artElement = artElement;
+    this.context = context;
   }
 
 
-
-  public int getScope() {
-    return scope;
+  public void setContext(Integer pContext) {
+    context = pContext;
   }
 
+  public Integer getContext() {
+    return context;
+  }
 
+  public int getTraceNo() {
+    return traceNo;
+  }
 
   public ARTElement getArtElement() {
     return artElement;
   }
 
-
-
   public PathFormula getPathFormula() {
     return pf;
   }
 
-
   @Override
   public String toString(){
-    return "["+scope+"- id:"+artElement.getElementId()+"]: "+pf;
+    return "[tn:"+traceNo+", c:"+context+", id:"+artElement.getElementId()+"]: "+pf;
   }
 }

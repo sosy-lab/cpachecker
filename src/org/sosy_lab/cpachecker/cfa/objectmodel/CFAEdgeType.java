@@ -33,5 +33,6 @@ public enum CFAEdgeType
     FunctionCallEdge,
     FunctionReturnEdge,
     CallToReturnEdge,
-    RelyGuaranteeCFAEdge
+    RelyGuaranteeCFAEdge,
+    RelyGuaranteeCombinedCFAEdge,
 }

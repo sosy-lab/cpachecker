@@ -70,7 +70,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
   @Option(name="blk.threshold",
       description="maximum blocksize before abstraction is forced\n"
         + "(non-negative number, special values: 0 = don't check threshold, 1 = SBE)")
-  private int absBlockSize = 0;
+        private int absBlockSize = 0;
 
   @Option(description="Print debugging info?")
   private boolean debug=true;
@@ -79,25 +79,25 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
   @Option(name="blk.atomThreshold",
       description="maximum number of atoms in a path formula before abstraction is forced\n"
         + "(non-negative number, special values: 0 = don't check threshold, 1 = SBE)")
-  private int atomThreshold = 0;
+        private int atomThreshold = 0;
 
   @Option(name="blk.functions",
       description="force abstractions on function call/return")
-  private boolean absOnFunction = true;
+      private boolean absOnFunction = true;
 
   @Option(name="blk.loops",
       description="force abstractions for each loop iteration")
-  private boolean absOnLoop = true;
+      private boolean absOnLoop = true;
 
   @Option(name="blk.requireThresholdAndLBE",
       description="require that both the threshold and (functions or loops) "
         + "have to be fulfilled to compute an abstraction")
-  private boolean absOnlyIfBoth = false;
+        private boolean absOnlyIfBoth = false;
 
   @Option(name="satCheck",
       description="maximum blocksize before a satisfiability check is done\n"
         + "(non-negative number, 0 means never, if positive should be smaller than blocksize)")
-  private int satCheckBlockSize = 0;
+        private int satCheckBlockSize = 0;
 
   @Option(description="check satisfiability when a target state has been found (should be true)")
   private boolean targetStateSatCheck = true;
@@ -145,7 +145,13 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
 
       Map<Integer, RelyGuaranteeCFAEdge> primedMap = new HashMap<Integer, RelyGuaranteeCFAEdge>(element.getPrimedMap());
       if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
-       primedMap.put(element.getPathFormula().getPrimedNo()+1, ((RelyGuaranteeCFAEdge)edge));
+        primedMap.put(element.getPathFormula().getPrimedNo()+1, ((RelyGuaranteeCFAEdge)edge));
+      }
+      else if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge){
+        RelyGuaranteeCombinedCFAEdge rgEdge = (RelyGuaranteeCombinedCFAEdge) edge;
+        for (int i=0; i<rgEdge.getEdgeNo(); i++){
+          primedMap.put(i+1, rgEdge.getEnvEdges().get(i));
+        }
       }
 
       // check whether to do abstraction
@@ -216,7 +222,12 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
       RelyGuaranteeCFAEdge rgEdge = (RelyGuaranteeCFAEdge) edge;
       assert !rgEdge.toString().contains("dummy");
       newPathFormula = handleEnvFormula(oldPathFormula, rgEdge);
-    } else {
+    }
+    else if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge){
+      RelyGuaranteeCombinedCFAEdge rgEdge = (RelyGuaranteeCombinedCFAEdge) edge;
+      newPathFormula = handleCombinedEnvFormula(oldPathFormula, rgEdge);
+    }
+    else {
       newPathFormula = pathFormulaManager.makeAnd(oldPathFormula, edge, cpa.getThreadId());
     }
 
@@ -227,24 +238,62 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
 
   // Create a path formula from an env. edge and a local pathFormula
   private PathFormula  handleEnvFormula(PathFormula localPF, RelyGuaranteeCFAEdge edge) throws CPATransferException {
-   PathFormula envPF = edge.getPathFormula();
-   // prime the env. path formula so it does not collide with the local path formula
-   int offset = localPF.getPrimedNo() + 1;
-   PathFormula primedEnvPF = pathFormulaManager.primePathFormula(envPF, offset);
-   // make equalities between the last global values in the local and env. path formula
-   PathFormula matchedPF = pathFormulaManager.matchPaths(localPF, primedEnvPF, this.cpa.globalVariablesSet, offset);
+    PathFormula envPF = edge.getPathFormula();
+    // prime the env. path formula so it does not collide with the local path formula
+    int offset = localPF.getPrimedNo() + 1;
+    PathFormula primedEnvPF = pathFormulaManager.primePathFormula(envPF, offset);
+    // make equalities between the last global values in the local and env. path formula
+    PathFormula matchedPF = pathFormulaManager.matchPaths(localPF, primedEnvPF, cpa.globalVariablesSet, offset);
 
-   pathFormulaManager.inject(edge.getLocalEdge(), this.cpa.globalVariablesSet, offset, primedEnvPF.getSsa());
-   // apply the strongest postcondition
-   PathFormula finalPF = pathFormulaManager.makeAnd(matchedPF, edge.getLocalEdge());
+    pathFormulaManager.inject(edge.getLocalEdge(), cpa.globalVariablesSet, offset, primedEnvPF.getSsa());
+    // apply the strongest postcondition
+    PathFormula finalPF = pathFormulaManager.makeAnd(matchedPF, edge.getLocalEdge());
 
-   if (debug){
-     System.out.println("\tby pf '"+finalPF+"'");
-   }
-
+    if (debug){
+      System.out.println("\tby pf '"+finalPF+"'");
+    }
 
     return finalPF;
   }
+
+  // Create a path formula from multiple env. edges
+  private PathFormula  handleCombinedEnvFormula(PathFormula localPF, RelyGuaranteeCombinedCFAEdge edge) throws CPATransferException {
+    // holds if env. applications are abstracted
+    assert localPF.getPrimedNo() == 0;
+    assert edge.getEnvEdges().size() >= 1;
+
+    // construct path formulas after applying env. transitions and merge them
+    PathFormula combinedPF = null;
+    for (int i=0; i<edge.getEdgeNo(); i++){
+      RelyGuaranteeCFAEdge rgEdge = edge.getEnvEdges().get(i);
+      PathFormula envPF = rgEdge.getPathFormula();
+      // prime the env. path formula so it does not collide with the local path formula
+      PathFormula primedEnvPF = pathFormulaManager.primePathFormula(envPF, i+1);
+      // make equalities between the last global values in the local and env. path formula
+      PathFormula matchedPF = pathFormulaManager.matchPaths(localPF, primedEnvPF, cpa.globalVariablesSet, i+1);
+
+      pathFormulaManager.inject(rgEdge.getLocalEdge(), cpa.globalVariablesSet, i+1, primedEnvPF.getSsa());
+      // apply the strongest postcondition
+      PathFormula appPF = pathFormulaManager.makeAnd(matchedPF, rgEdge.getLocalEdge());
+      // merge path formulas
+      if (combinedPF == null){
+        combinedPF = appPF;
+      }
+      else {
+        combinedPF = pathFormulaManager.makeRelyGuaranteeOr(combinedPF, appPF);
+
+      }
+    }
+
+    if (debug){
+      System.out.println("\tby pf '"+combinedPF+"'");
+    }
+
+    return combinedPF;
+  }
+
+
+
 
   /**
    * Check whether an abstraction should be computed.
@@ -261,7 +310,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
   protected boolean isBlockEnd(CFANode succLoc, PathFormula pf, CFAEdge edge) {
     boolean result = false;
 
-    if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
+    if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge || edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge){
       return true;
     }
 
@@ -273,8 +322,8 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
     }
     if (absOnFunction) {
       boolean function =
-               (succLoc instanceof CFAFunctionDefinitionNode) // function call edge
-            || (succLoc.getEnteringSummaryEdge() != null); // function return edge
+        (succLoc instanceof CFAFunctionDefinitionNode) // function call edge
+        || (succLoc.getEnteringSummaryEdge() != null); // function return edge
       if (function) {
         result = true;
         numBlkFunctions++;
@@ -329,7 +378,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
           element = strengthen(element, (AssumptionStorageElement)lElement);
         }
 
-   /*     if (lElement instanceof ConstrainedAssumeElement) {
+        /*     if (lElement instanceof ConstrainedAssumeElement) {
           element = strengthen(edge.getSuccessor(), element, (ConstrainedAssumeElement)lElement);
         }*/
 
@@ -378,7 +427,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
 
     return replacePathFormula(pElement, pf);
   }
-/*
+  /*
   private PredicateAbstractElement strengthen(CFANode pNode, RelyGuaranteeAbstractElement pElement, ConstrainedAssumeElement pAssumeElement) throws CPATransferException {
     AssumeEdge lEdge = new AssumeEdge(pAssumeElement.getExpression().getRawSignature(), pNode.getLineNumber(), pNode, pNode, pAssumeElement.getExpression(), true);
 

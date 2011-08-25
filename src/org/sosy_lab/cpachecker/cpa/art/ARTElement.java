@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdge;
 
 import com.google.common.base.Preconditions;
 
@@ -46,7 +45,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
   private final Set<ARTElement> parents; // more than one parent if joining elements
 
   // TODO for rely-guarantee
-  private List<RelyGuaranteeCFAEdge> envEdgesToBeApplied;
+  private List<CFAEdge> envEdgesToBeApplied;
 
   private ARTElement mCoveredBy = null;
   private Set<ARTElement> mCoveredByThis = null; // lazy initialization because rarely needed
@@ -247,12 +246,12 @@ public class ARTElement extends AbstractSingleWrapperElement {
     return destroyed;
   }
 
-  public List<RelyGuaranteeCFAEdge> getEnvEdgesToBeApplied() {
+  public List<CFAEdge> getEnvEdgesToBeApplied() {
     return envEdgesToBeApplied;
   }
 
-  public void setEnvEdgesToBeApplied(List<RelyGuaranteeCFAEdge> pEnvEdgesToBeApplied) {
-    envEdgesToBeApplied = pEnvEdgesToBeApplied;
+  public void setEnvEdgesToBeApplied(List<CFAEdge> pEnvEdges) {
+    envEdgesToBeApplied = pEnvEdges;
   }
 
 }

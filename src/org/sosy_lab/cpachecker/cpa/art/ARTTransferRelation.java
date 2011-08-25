@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class ARTTransferRelation implements TransferRelation {
@@ -54,8 +53,8 @@ public class ARTTransferRelation implements TransferRelation {
     Collection<? extends AbstractElement> successors = null;
     if (pCfaEdge == null && element.getEnvEdgesToBeApplied() != null && !element.getEnvEdgesToBeApplied().isEmpty()){
       Vector<AbstractElement> allSucc = new Vector<AbstractElement>();
-      for (RelyGuaranteeCFAEdge rgEdge : element.getEnvEdgesToBeApplied()){
-        allSucc.addAll(transferRelation.getAbstractSuccessors(wrappedElement, pPrecision, rgEdge));
+      for (CFAEdge edge : element.getEnvEdgesToBeApplied()){
+        allSucc.addAll(transferRelation.getAbstractSuccessors(wrappedElement, pPrecision, edge));
       }
       element.getEnvEdgesToBeApplied().clear();
       successors = allSucc;

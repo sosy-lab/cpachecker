@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdge;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdgeTemplate;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCombinedCFAEdge;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvironment;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -179,7 +180,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
       while(i != -1 && !error) {
 
         // apply all valid env. edges to CFA
-        ListMultimap<CFANode, RelyGuaranteeCFAEdge> envEdgesMap = addEnvTransitionsToCFA(i);
+        ListMultimap<CFANode, CFAEdge> envEdgesMap = addEnvTransitionsToCFA(i);
         // add relevant states to the wait list
         setWaitlist(reached[i], envEdgesMap);
         // run the thread
@@ -220,10 +221,10 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
 
   /**
    * Put relevant states into the waitlist
-   * @param envEdgesMap
+   * @param pEnvEdgesMap
    */
-  private void setWaitlist(ReachedSet reachedSet, ListMultimap<CFANode, RelyGuaranteeCFAEdge> envEdgesMap) {
-    for (CFANode node : envEdgesMap.keySet()){
+  private void setWaitlist(ReachedSet reachedSet, ListMultimap<CFANode, CFAEdge> pEnvEdgesMap) {
+    for (CFANode node : pEnvEdgesMap.keySet()){
       Set<AbstractElement> relevant = reachedSet.getReached(node);
       for (AbstractElement ae : relevant){
         if (AbstractElements.extractLocation(ae).equals(node)){
@@ -231,14 +232,14 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
             // set the env. edges as the only ones to be applied at this element
             // if there are remaining unnaplied edges, then replace them
             ARTElement artElement = (ARTElement) ae;
-            List<RelyGuaranteeCFAEdge> envEdges = artElement.getEnvEdgesToBeApplied();
+            List<CFAEdge> envEdges = artElement.getEnvEdgesToBeApplied();
             if (envEdges == null){
-              envEdges = new Vector<RelyGuaranteeCFAEdge>();
+              envEdges = new Vector<CFAEdge>();
               artElement.setEnvEdgesToBeApplied(envEdges);
             } else {
               envEdges.clear();
             }
-            envEdges.addAll(envEdgesMap.get(node));
+            envEdges.addAll(pEnvEdgesMap.get(node));
             reachedSet.reAddToWaitlist(ae);
           }
         }
@@ -298,8 +299,8 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
   /**
    * Apply env transitions to CFA of thread i.
    */
-  private ListMultimap<CFANode, RelyGuaranteeCFAEdge> addEnvTransitionsToCFA(int i) {
-    ListMultimap<CFANode, RelyGuaranteeCFAEdge> envEdgesMap = ArrayListMultimap.create();
+  private ListMultimap<CFANode, CFAEdge> addEnvTransitionsToCFA(int i) {
+    ListMultimap<CFANode, CFAEdge> envEdgesMap = ArrayListMultimap.create();
 
     RelyGuaranteeCFA cfa = cfas[i];
     Multimap<CFANode, String> lhsVars = cfa.getLhsVariables();
@@ -310,7 +311,6 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     removeRGEdges(i);
     this.dumpDot(i, "test/output/revertedCFA"+i+".dot");
     // iterate over both new and old env edges
-    // TODO extend to mutliple threads
     List<RelyGuaranteeCFAEdgeTemplate> valid = new Vector<RelyGuaranteeCFAEdgeTemplate>();
     for (int j=0; j<threadNo; j++){
       if (j!=i){
@@ -318,11 +318,23 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
       }
     }
 
+    if (valid.isEmpty()){
+      return envEdgesMap;
+    }
+
     List<RelyGuaranteeCFAEdgeTemplate> unapplied = environment.getUnappliedEnvEdgesForThread(i);
+    // true iff some env. edges hasn't been applied before
+    boolean someUnapplied = false;
+    for (RelyGuaranteeCFAEdgeTemplate envEdge : valid){
+      if (unapplied.contains(envEdge)){
+        someUnapplied = true;
+        break;
+      }
+    }
 
     if (debug){
       System.out.println();
-      System.out.println("Env edges applied at CFA "+i);
+      System.out.println("Env edges applied at CFA "+i+" :");
     }
 
     // apply all env transitions to CFA nodes that have an outgoing edge that reads from or writes to a global variable
@@ -341,16 +353,17 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
         }
       }
       if (applEnv){
-        for (RelyGuaranteeCFAEdgeTemplate envTransition : valid){
-          RelyGuaranteeCFAEdge edge = envTransition.instantiate();
-          addEnvTransitionToNode(node, edge);
+        // combine all valid edges into one
+        RelyGuaranteeCombinedCFAEdge combined = new RelyGuaranteeCombinedCFAEdge(valid);
 
-          if (debug){
-            System.out.println("\t-node "+node+" applied "+edge);
-          }
-          if (unapplied.contains(envTransition)){
-            envEdgesMap.put(node, edge);
-          }
+        addEnvTransitionToNode(node, combined);
+
+        if (debug){
+          System.out.println("\t-node "+node+" applied "+combined);
+        }
+
+        if (someUnapplied){
+          envEdgesMap.put(node, combined);
         }
       }
     }
@@ -371,7 +384,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     for (CFANode node : cfa.getCFANodes().values()){
       for (int j=0; j<node.getNumLeavingEdges(); j++) {
         CFAEdge edge = node.getLeavingEdge(j);
-        if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
+        if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge || edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge){
           toRemove.add(edge);
         }
       }
@@ -389,6 +402,16 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
    * Add the env transition to the CFA node
    */
   private void addEnvTransitionToNode(CFANode pNode, RelyGuaranteeCFAEdge pEnvTransition) {
+    pEnvTransition.setPredecessor(pNode);
+    pEnvTransition.setSuccessor(pNode);
+    pNode.addLeavingEdge(pEnvTransition);
+    pNode.addEnteringEdge(pEnvTransition);
+  }
+
+  /**
+   * Add the env transition to the CFA node
+   */
+  private void addEnvTransitionToNode(CFANode pNode, RelyGuaranteeCombinedCFAEdge pEnvTransition) {
     pEnvTransition.setPredecessor(pNode);
     pEnvTransition.setSuccessor(pNode);
     pNode.addLeavingEdge(pEnvTransition);

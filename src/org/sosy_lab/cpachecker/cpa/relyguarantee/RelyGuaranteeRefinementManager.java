@@ -82,9 +82,13 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       description="which interpolating solver to use for interpolant generation?")
       private String whichItpProver = "MATHSAT";
 
+  @Option(name="refinement.itpEnvSkip",
+      description="Detect and skip interpolation branches that don't give new predicates.")
+      private boolean itpEnvSkip = true;
+
   @Option(name="refinement.splitItpAtoms",
-    description="split arithmetic equalities when extracting predicates from interpolants")
-  private boolean splitItpAtoms = false;
+      description="split arithmetic equalities when extracting predicates from interpolants")
+      private boolean splitItpAtoms = false;
 
   @Option(description="Print debugging info?")
   private boolean debug=true;
@@ -177,6 +181,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
    * @param target
    * @param reachedSets
    * @param threadNo
+   * @param context
    * @return
    * @throws CPAException
    * @throws InterruptedException
@@ -263,7 +268,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       if (!adjustmentMap.isEmpty()){
         currentPF = pmgr.adjustPrimedNo(currentPF, adjustmentMap);
       }
-      InterpolationBlock currentBlock = new InterpolationBlock(currentPF, 0, artElement);
+      InterpolationBlock currentBlock = new InterpolationBlock(currentPF, 0, artElement, null);
       rgResult.add(currentBlock);
 
       // if the were no env. transitions and primeNo is zero, then the result should be equal to path formula constructed in the ordinary way{
@@ -286,10 +291,17 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     List<InterpolationBlock> primedBlocks = new Vector<InterpolationBlock>();
     for (InterpolationBlock ib : envPF){
       PathFormula newPF = pmgr.primePathFormula(ib.getPathFormula(), offset);
-      int newScope = ib.getScope()+offset;
+      int newTraceNo = ib.getTraceNo()+offset;
+      Integer oldContext = ib.getContext();
+      Integer newContext;
+      if (oldContext == null){
+        newContext = 0;
+      } else {
+        newContext = oldContext + offset;
+      }
       maximumPrimedNo = Math.max(maximumPrimedNo, newPF.getPrimedNo());
       ARTElement artElement = ib.getArtElement();
-      primedBlocks.add(new InterpolationBlock(newPF, newScope, artElement));
+      primedBlocks.add(new InterpolationBlock(newPF, newTraceNo, artElement, newContext));
     }
     return Pair.of(maximumPrimedNo, primedBlocks);
   }
@@ -334,7 +346,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     // List<ARTElement> abstractTrace = new Vector<ARTElement>(interpolationPathFormulas.size());
     if (debug){
       System.out.println();
-      System.out.println("Interpolation scopes/formulas:");
+      System.out.println("Interpolation traces/formulas:");
       int j=0;
       for (InterpolationBlock ib : interpolationBlocks){
         System.out.println("\t- "+j+" "+ib);
@@ -349,13 +361,13 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     // CSISAT doesn't support groupping of formulas, so to obtain well-scopped predicates for environmetal formula trace
     // we have to create a separate list of formulas in the correct order
 
-    // map from scope (number of primes) to  sets of formula in the correct with a map of interpolants
+    // map from trace (which is the lowest number of primes) to  sets of formula in the correct with a map of interpolants
     Map<Integer, InterpolationMap> interpolationMaps = new HashMap<Integer, InterpolationMap>();
 
     int mark = 0;
     for (int i=0; i<interpolationBlocks.size()-1; i++ ){
       InterpolationBlock ib = interpolationBlocks.get(i);
-      Integer primedNo = ib.getScope();
+      Integer primedNo = ib.getTraceNo();
       ARTElement artElement = ib.getArtElement();
 
       if (primedNo < mark){
@@ -393,7 +405,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     boolean spurious = true;
     CounterexampleTraceInfo info = new CounterexampleTraceInfo();
     Map<ARTElement, Pair<Formula, Set<AbstractionPredicate>>> printingPredicates = new HashMap<ARTElement, Pair<Formula, Set<AbstractionPredicate>>>();
-    // get interpolants for each scope
+    // get interpolants for each trace
     for (InterpolationMap interpolationMap : interpolationMaps.values()) {
       itpProver.init();
 
@@ -425,7 +437,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       for (Integer idx : interpolationMap.intMap.keySet()){
         // get the interpolants
         Formula itp = itpProver.getInterpolant(formulaIds.subList(0, idx+1));
-        Set<AbstractionPredicate> preds = getPrecisionForElements(itp);
+        Set<AbstractionPredicate> preds = getPredicates(itp);
         // add interpolants to the result
         ARTElement artElement = interpolationMap.intMap.get(idx);
         printingPredicates.put(artElement, Pair.of(itp, preds));
@@ -501,7 +513,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     if (debug){
       System.out.println();
-      System.out.println("Interpolation block/[scope - abstraction element]/formulas:");
+      System.out.println("Interpolation block [trace no, context no, abstraction element]: formulas:");
       int j=0;
       for (InterpolationBlock ib : interpolationBlocks){
         System.out.println("\t- blk "+j+" "+ib);
@@ -546,30 +558,30 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
        */
 
       info = new CounterexampleTraceInfo();
-      // the last formula trace scope
+      // the last formula's trace no.
       int previousPrimedNo = 0;
       // how shorter is the current formula list compared to the original one
       int offset = 0;
-      // map: scope below the current one -> last interpolant from that scope
+      // itpContext stores last interpolants from other traces
+      // map: trace no. -> last interpolant from that trace
       SortedMap<Integer, Formula> itpContext = new TreeMap<Integer, Formula>();
-      Formula lastItp = null;
+      Formula lastItp = fmgr.makeTrue();
 
       if (debug){
         System.out.println();
         System.out.println("Interpolants/predicates after blocks:");
       }
 
-
-      for (int i=0; i<interpolationBlocks.size()-1; i++ ){
-
+      // block index
+      int i=0;
+      while (i<interpolationBlocks.size()-1) {
 
         InterpolationBlock ib = interpolationBlocks.get(i);
-        Integer primedNo = ib.getScope();
+        Integer primedNo = ib.getTraceNo();
         ARTElement artElement = ib.getArtElement();
-        // TODO DEBUG
         CFANode loc = AbstractElements.extractLocation(artElement);
 
-        if (lastItp!= null && lastItp.isFalse()){
+        if (i > 0 && lastItp.isFalse()){
           // if the last interpolant was false, then the interpolants below are empty
           itpContext.clear();
           Set<AbstractionPredicate> predicates = new HashSet<AbstractionPredicate>();
@@ -580,9 +592,9 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
           info.addPredicatesForRefinement(artElement, predicates);
         } else if (primedNo == previousPrimedNo){
-          // we continue in the same branch - take the next formula from the current context
+          // we continue in the same branch - take the next interpolant from the current formula list
           lastItp = itpProver.getInterpolant(interpolationIds.subList(itpContext.size(), i-offset+1));
-          Set<AbstractionPredicate> predicates = getPrecisionForElements(lastItp);
+          Set<AbstractionPredicate> predicates = getPredicates(lastItp);
 
           if (debug){
             System.out.println("\t- blk "+i+" ["+loc+"]: "+lastItp+",\t"+predicates);
@@ -590,10 +602,14 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
           info.addPredicatesForRefinement(artElement, predicates);
         } else if (primedNo < previousPrimedNo){
-          // we return to a previous branch - the formula list remains the same, but interpolant gets possibly smaller
-          itpContext.remove(primedNo);
+          // we return to a previous trace - the formula list remains the same, but context gets possibly smaller
+
+          // remove all contexts between from previousPrimeNo downto primedNo
+          for (int j=previousPrimedNo; j >= primedNo; j--){
+            itpContext.remove(j);
+          }
           lastItp = itpProver.getInterpolant(interpolationIds.subList(itpContext.size(), i-offset+1));
-          Set<AbstractionPredicate> predicates = getPrecisionForElements(lastItp);
+          Set<AbstractionPredicate> predicates = getPredicates(lastItp);
 
           if (debug){
             System.out.println("\t- blk "+i+" ["+loc+"]: "+lastItp+",\t"+predicates);
@@ -601,7 +617,17 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
           info.addPredicatesForRefinement(artElement, predicates);
         } else {
-          // we switch to an environmental branch - the context get bigger and a new formula list is required
+          // we switch to an new, possibly parallel, trace - the context gets bigger and the list of formulas for interpolation changes
+
+          if (itpEnvSkip) {
+            // detect branches that may be skipped and generate empty predicates for them
+            Integer skip = skipUselessBranches(i, interpolationBlocks, previousPrimedNo, lastItp, info, itpProver, interpolationIds, itpContext, offset);
+            if (skip!=null){
+              // skip blocks
+              i = skip;
+              continue;
+            }
+          }
 
           itpProver.reset();
           stats.interpolationTimer.stop();
@@ -633,7 +659,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
           stats.unsatChecks++;
 
           lastItp = itpProver.getInterpolant(interpolationIds.subList(itpContext.size(), i-offset+1));
-          Set<AbstractionPredicate> predicates = getPrecisionForElements(lastItp);
+          Set<AbstractionPredicate> predicates = getPredicates(lastItp);
 
           if (debug){
             System.out.println("\t- blk "+i+" ["+loc+"]: "+lastItp+",\t"+predicates);
@@ -642,6 +668,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
           info.addPredicatesForRefinement(artElement, predicates);
         }
         previousPrimedNo = primedNo;
+        i++;
       }
       assert itpContext.isEmpty();
     }
@@ -657,13 +684,72 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     return info;
   }
 
+
+  /**
+   *
+   * @param <T>
+   * @param i
+   * @param interpolationBlocks
+   * @param previousPrimedNo
+   * @param lastItp
+   * @param info
+   * @param itpProver
+   * @param interpolationIds
+   * @return
+   */
+  private <T> Integer  skipUselessBranches(int i, List<InterpolationBlock> interpolationBlocks, int previousPrimedNo, Formula lastItp, CounterexampleTraceInfo info, InterpolatingTheoremProver<T> itpProver, List<T> interpolationIds, SortedMap<Integer, Formula> itpContext, int offset ) {
+
+    Integer returnBlock = null;
+    for (int j=i+1; j<interpolationBlocks.size()-1; j++){
+      InterpolationBlock fb = interpolationBlocks.get(j);
+      if (fb.getTraceNo() == previousPrimedNo){
+        returnBlock = j;
+        break;
+      }
+    }
+    System.out.println("The return for blk "+i+" is blk "+returnBlock);
+    if (returnBlock != null){
+      Formula itp = itpProver.getInterpolant(interpolationIds.subList(itpContext.size(), returnBlock-offset+1));
+      //System.out.println("\tInterpolant for ["+itpContext.size()+","+(returnBlock-offset)+"] is "+itp);
+      // check if lastItp => itp, then the branch does not give any usefull predicates
+      Formula check = fmgr.makeNot(itp);
+      check = fmgr.makeAnd(lastItp, check);
+
+      thmProver.init();
+      boolean valid = thmProver.isUnsat(check);
+      thmProver.reset();
+
+      if (valid){
+        // lastItp => itp, so  the branches does not give any usefull predicates
+        // skip to block (returnBlock+1) and put empty predicates in between
+        System.out.println("Skip to blk "+(returnBlock+1)+" since " + lastItp +" => "+itp);
+        for (int j=i; j<returnBlock; j++){
+          ARTElement jARTElement = interpolationBlocks.get(j).getArtElement();
+          CFANode jLoc = AbstractElements.extractLocation(jARTElement);
+          Set<AbstractionPredicate> predicates = new HashSet<AbstractionPredicate>();
+
+          if (debug){
+            System.out.println("\t- blk "+j+" ["+jLoc+"]: skip,\t"+predicates);
+          }
+
+          info.addPredicatesForRefinement(jARTElement, predicates);
+        }
+      }
+      else {
+        returnBlock = null;
+      }
+
+    }
+    return returnBlock;
+  }
+
   /**
    * Divides the interpolant into atom formulas un unprimes them.
    * @param itp
    * @param ib
    * @return
    */
-  private Set<AbstractionPredicate> getPrecisionForElements(Formula itp) {
+  private Set<AbstractionPredicate> getPredicates(Formula itp) {
 
     Set <AbstractionPredicate> result = new HashSet<AbstractionPredicate>();
     // TODO maybe handling of non-atomic predicates
@@ -705,5 +791,33 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
 
 }
+
+// Old, but useful code
+/*if (lastItp != null){
+
+ *  An optimization - if interpolants before and after environmental trace are the same, then they can taken as true
+ *  e.g. if interpolant for (A, B^C^D) <=> interpolant for (A^B, C^D) , then interpolant for B can be taken as true.
+ *  We find the block, where traces return the trace we where before (identified by previousPrimedNo). The block after
+ *  the return point satisfies one of three conditions: 1) its context is null, 2) its context is lower than previousPrimedNo
+ *  or 3) its context is like previousPrimedNo, but the trace no. increases.
+
+
+  // returnI is the number of the last block, before the traces returns
+  int returnBlock = -1;
+
+  int jTraceNo = primedNo;
+  for (int j=i; j<interpolationBlocks.size()-1; j++){
+    InterpolationBlock fb = interpolationBlocks.get(j+1);
+
+    if (fb.getContext() == null || fb.getContext() < previousPrimedNo || (fb.getContext() == previousPrimedNo && fb.getTraceNo() > jTraceNo) ){
+      returnBlock = j;
+      break;
+    }
+
+    jTraceNo = fb.getTraceNo();
+  }
+  assert returnBlock >= i;
+  System.out.println("The return for blk "+i+" is blk "+returnBlock);
+}*/
 
 

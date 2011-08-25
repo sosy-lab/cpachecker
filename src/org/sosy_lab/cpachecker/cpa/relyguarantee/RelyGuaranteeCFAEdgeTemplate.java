@@ -61,6 +61,7 @@ public class RelyGuaranteeCFAEdgeTemplate{
     this.coveredBy = null;
     this.covers = new HashSet<RelyGuaranteeCFAEdgeTemplate>();
   }
+
   // instantiate
   public RelyGuaranteeCFAEdge instantiate(){
     RelyGuaranteeCFAEdge edge = new RelyGuaranteeCFAEdge(this.localEdge, this.pathFormulaWrapper, this.sourceTid, this.sourceARTElementWrapper, this.sourceEnvTransition, this);

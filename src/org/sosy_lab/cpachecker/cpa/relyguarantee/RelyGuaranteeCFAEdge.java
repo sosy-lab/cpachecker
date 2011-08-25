@@ -50,6 +50,7 @@ public class RelyGuaranteeCFAEdge implements CFAEdge{
     this.template = template;
   }
 
+
   public ARTElement getSourceARTElement() {
     return this.sourceARTElementWrapper.artElement;
   }
