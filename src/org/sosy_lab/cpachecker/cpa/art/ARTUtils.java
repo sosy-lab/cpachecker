@@ -215,19 +215,16 @@ public class ARTUtils {
    * AssumeEdges should be taken.
    *
    * @param root The root element of the ART (where to start the path)
-   * @param target The target element (where to end the path, needs to be a target element)
    * @param art All elements in the ART or a subset thereof (elements outside this set will be ignored).
    * @param branchingInformation A map from ART element ids to boolean values indicating the outgoing direction.
    * @return A path through the ART from root to target.
    * @throws IllegalArgumentException If the direction information doesn't match the ART or the ART is inconsistent.
    */
   public static Path getPathFromBranchingInformation(
-      ARTElement root, ARTElement target, Collection<? extends AbstractElement> art,
+      ARTElement root, Collection<? extends AbstractElement> art,
       Map<Integer, Boolean> branchingInformation) throws IllegalArgumentException {
 
     checkArgument(art.contains(root));
-    checkArgument(art.contains(target));
-    checkArgument(target.isTarget());
 
     Path result = new Path();
     ARTElement currentElement = root;
@@ -301,9 +298,6 @@ public class ARTUtils {
       currentElement = child;
     }
 
-    if (currentElement != target) {
-      throw new IllegalArgumentException("ART target path reached the wrong target element!");
-    }
 
     // need to add another pair with target element and one (arbitrary) outgoing edge
     CFANode loc = currentElement.retrieveLocationElement().getLocationNode();
@@ -311,7 +305,36 @@ public class ARTUtils {
     if (loc.getNumLeavingEdges() > 0) {
       lastEdge = loc.getLeavingEdge(0);
     }
-    result.add(Pair.of(target, lastEdge));
+    result.add(Pair.of(currentElement, lastEdge));
+
+    return result;
+  }
+
+  /**
+   * Find a path in the ART. The necessary information to find the path is a
+   * boolean value for each branching situation that indicates which of the two
+   * AssumeEdges should be taken.
+   * This method checks that the path ends in a certain element.
+   *
+   * @param root The root element of the ART (where to start the path)
+   * @param target The target element (where to end the path, needs to be a target element)
+   * @param art All elements in the ART or a subset thereof (elements outside this set will be ignored).
+   * @param branchingInformation A map from ART element ids to boolean values indicating the outgoing direction.
+   * @return A path through the ART from root to target.
+   * @throws IllegalArgumentException If the direction information doesn't match the ART or the ART is inconsistent.
+   */
+  public static Path getPathFromBranchingInformation(
+      ARTElement root, ARTElement target, Collection<? extends AbstractElement> art,
+      Map<Integer, Boolean> branchingInformation) throws IllegalArgumentException {
+
+    checkArgument(art.contains(target));
+    checkArgument(target.isTarget());
+
+    Path result = getPathFromBranchingInformation(root, art, branchingInformation);
+
+    if (result.getLast().getFirst() != target) {
+      throw new IllegalArgumentException("ART target path reached the wrong target element!");
+    }
 
     return result;
   }

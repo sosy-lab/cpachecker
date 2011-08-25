@@ -145,7 +145,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     return targetPath;
   }
 
-  void setTargetPath(Path pTargetPath) {
+  public void setTargetPath(Path pTargetPath) {
     targetPath = pTargetPath;
   }
 }

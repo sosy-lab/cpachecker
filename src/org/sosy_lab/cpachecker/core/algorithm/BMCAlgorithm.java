@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -66,14 +67,19 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
+import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.CFA.Loop;
+import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -216,6 +222,11 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         boolean safe = checkTargetStates(pReachedSet);
         logger.log(Level.FINER, "Program is safe?:", safe);
 
+        if (!safe) {
+          createErrorPath(pReachedSet);
+        }
+
+        prover.pop(); // remove program formula from solver stack
 
         // second check soundness
         boolean sound = false;
@@ -243,6 +254,58 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
+  /**
+   * This method tries to find a feasible path to (one of) the target element(s).
+   * It does so by asking the solver for a satisfying assignment.
+   */
+  private void createErrorPath(final ReachedSet pReachedSet) throws CPATransferException {
+    if (!(getCPA() instanceof ARTCPA)) {
+      logger.log(Level.INFO, "ARTCPA not enabled, cannot create error path");
+      return;
+    }
+
+    Iterable<ARTElement> art = Iterables.filter(pReachedSet.getReached(), ARTElement.class);
+
+    // get the branchingFormula
+    // this formula contains predicates for all branches we took
+    // this way we can figure out which branches make a feasible path
+    Formula branchingFormula = pmgr.buildBranchingFormula(art);
+
+    if (branchingFormula.isTrue()) {
+      logger.log(Level.WARNING, "Could not create error path because of missing branching informating");
+      return;
+    }
+
+    // add formula to solver environment
+    prover.push(branchingFormula);
+
+    // need to ask solver for satisfiability again,
+    // otherwise model doesn't contain new predicates
+    boolean stillSatisfiable = !prover.isUnsat();
+
+    if (!stillSatisfiable) {
+      // should not occur
+      logger.log(Level.WARNING, "Could not create error path information because of inconsistent branching information!");
+      return;
+    }
+
+    Model model = prover.getModel();
+    prover.pop(); // remove branchingFormula
+
+    Map<Integer, Boolean> branchingInformation = pmgr.getBranchingPredicateValuesFromModel(model);
+    ARTElement root = (ARTElement)pReachedSet.getFirstElement();
+
+    Path targetPath;
+    try {
+      targetPath = ARTUtils.getPathFromBranchingInformation(root, pReachedSet.getReached(), branchingInformation);
+    } catch (IllegalArgumentException e) {
+      logger.logUserException(Level.WARNING, e, "Could not create error path");
+      return;
+    }
+
+    ((ARTCPA)getCPA()).setTargetPath(targetPath);
+  }
+
   private boolean checkTargetStates(final ReachedSet pReachedSet) {
     if (checkTargetStates) {
 
@@ -254,7 +317,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
       logger.log(Level.INFO, "Starting satisfiability check...");
       stats.satCheck.start();
-      boolean safe = prover.isUnsat(program);
+      prover.push(program);
+      boolean safe = prover.isUnsat();
+      // leave program formula on solver stack
       stats.satCheck.stop();
 
       if (safe) {
