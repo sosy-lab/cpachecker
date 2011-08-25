@@ -23,8 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
+import java.util.Map;
+import java.util.Set;
+
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 
@@ -51,4 +56,31 @@ public interface PathFormulaManager {
   PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge) throws CPATransferException;
 
   PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM);
+
+  /**
+   * Build a formula containing a predicate for all branching situations in the
+   * ART. If a satisfying assignment is created for this formula, it can be used
+   * to find out which paths in the ART are feasible.
+   *
+   * This method may be called with an empty set, in which case it does nothing
+   * and returns the formula "true".
+   *
+   * @param elementsOnPath The ART elements that should be considered.
+   * @return A formula containing a predicate for each branching.
+   * @throws CPATransferException
+   */
+  Formula buildBranchingFormula(Iterable<ARTElement> pElementsOnPath)
+      throws CPATransferException;
+
+  /**
+   * Extract the information about the branching predicates created by
+   * {@link #buildBranchingFormula(Set)} from a satisfying assignment.
+   *
+   * A map is created that stores for each ARTElement (using its element id as
+   * the map key) which edge was taken (the positive or the negated one).
+   *
+   * @param model A satisfying assignment that should contain values for branching predicates.
+   * @return A map from ART element id to a boolean value indicating direction.
+   */
+  Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Model pModel);
 }
