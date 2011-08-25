@@ -52,6 +52,9 @@ class Benchmark:
         # get benchmark-name
         self.name = os.path.basename(benchmarkFile)[:-4] # remove ending ".xml"
 
+        # get current date as String to avoid problems, if script runs over midnight
+        self.date = str(date.today())
+
         # get tool
         self.tool = root.get("tool")
         logging.debug("The tool to be benchmarked is {0}.".format(repr(self.tool)))
@@ -207,7 +210,7 @@ class OutputHandler:
         # if the folder exists, it will be used.
         # if there are files in the folder (with the same name than the testfiles), 
         # they will be OVERWRITTEN without a message!
-        self.logFolder = OUTPUT_PATH + self.benchmark.name + "." + str(date.today()) + ".logfiles/"
+        self.logFolder = OUTPUT_PATH + self.benchmark.name + "." + self.benchmark.date + ".logfiles/"
         if not os.path.isdir(self.logFolder):
             os.mkdir(self.logFolder)
 
@@ -244,7 +247,7 @@ class OutputHandler:
 
         # store benchmarkInfo in XML
         self.XMLHeader = ET.Element("test",
-                    {"benchmarkname": self.benchmark.name, "date": str(date.today()),
+                    {"benchmarkname": self.benchmark.name, "date": self.benchmark.date,
                      "tool": self.getToolnameForPrinting(), "version": version})
         if memlimit is not None:
             self.XMLHeader.set("memlimit", memlimit)
@@ -285,7 +288,7 @@ class OutputHandler:
     
         header = "   BENCHMARK INFORMATION\n"\
                 + "benchmark:".ljust(columnWidth) + self.benchmark.name + "\n"\
-                + "date:".ljust(columnWidth) + str(date.today()) + "\n"\
+                + "date:".ljust(columnWidth) + self.benchmark.date + "\n"\
                 + "tool:".ljust(columnWidth) + self.getToolnameForPrinting()\
                 + " " + version + "\n"
     
@@ -689,7 +692,7 @@ class OutputHandler:
         '''
 
         fileName = OUTPUT_PATH + self.benchmark.name + "." \
-                    + str(date.today()) + ".results."
+                    + self.benchmark.date + ".results."
 
         if testname is not None:
             fileName += testname + "."
@@ -1202,8 +1205,6 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, signal_handler_ignore)
     try:
         sys.exit(main())
-    except LookupError as e:
-        print(e)
     except KeyboardInterrupt:
 
         try:
