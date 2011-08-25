@@ -97,17 +97,16 @@ public class ARTStatistics implements Statistics {
     }
 
     Path targetPath = null;
-    ARTElement lastElement = (ARTElement)pReached.getLastElement();
-    if (lastElement != null && lastElement.isTarget()) {
 
-      // use target path stored at CPA if present
+    if (pResult == Result.UNSAFE) {
       targetPath = cpa.getTargetPath();
-      if (targetPath != null) {
-        // target path has to be the path to the current target element
-       // assert targetPath.getLast().getFirst() == lastElement;
-      } else {
-        // otherwise create one
-        targetPath = ARTUtils.getOnePathTo(lastElement);
+
+      if (targetPath == null) {
+        // try to find one
+        ARTElement lastElement = (ARTElement)pReached.getLastElement();
+        if (lastElement != null && lastElement.isTarget()) {
+          targetPath = ARTUtils.getOnePathTo(lastElement);
+        }
       }
 
       if (exportErrorPath && errorPathFile != null) {
