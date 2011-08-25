@@ -184,7 +184,7 @@ class PredicateAbstractionManager {
       abs = buildBooleanAbstraction(f, pathFormula.getSsa(), predicates);
     }
 
-    Formula symbolicAbs = fmgr.instantiate(amgr.toConcrete(abs), pathFormula.getSsa());
+    Formula symbolicAbs = toConcrete(abs, pathFormula.getSsa());
     AbstractionFormula result = new AbstractionFormula(abs, symbolicAbs, pathFormula.getFormula());
 
     if (useCache) {
@@ -383,6 +383,13 @@ class PredicateAbstractionManager {
   }
 
   /**
+   * Checks if a1 => a2
+   */
+  public boolean checkCoverage(AbstractionFormula a1, AbstractionFormula a2) {
+    return amgr.getRegionManager().entails(a1.asRegion(), a2.asRegion());
+  }
+
+  /**
    * Checks if (a1 & p1) => a2
    */
   public boolean checkCoverage(AbstractionFormula a1, PathFormula p1, AbstractionFormula a2) {
@@ -429,6 +436,13 @@ class PredicateAbstractionManager {
     return new AbstractionFormula(amgr.getRegionManager().makeTrue(), fmgr.makeTrue(), pPreviousBlockFormula);
   }
 
+  /**
+   * Build the symbolic representation (with indexed variables) of a region.
+   */
+  public Formula toConcrete(Region pRegion, SSAMap ssa) {
+    return fmgr.instantiate(amgr.toConcrete(pRegion), ssa);
+  }
+
   protected boolean useBitwiseAxioms() {
     return useBitwiseAxioms;
   }
@@ -464,10 +478,6 @@ class PredicateAbstractionManager {
   }
 
   // delegate methods
-
-  public Formula toConcrete(Region pRegion) {
-    return amgr.toConcrete(pRegion);
-  }
 
   public Collection<AbstractionPredicate> extractPredicates(Region pRegion) {
     return amgr.extractPredicates(pRegion);

@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
@@ -60,14 +59,12 @@ public class ABMPredicateReducer implements Reducer {
   static final Timer extractTimer = new Timer();
 
   private final RegionManager rmgr;
-  private final FormulaManager fmgr;
   private final PathFormulaManager pmgr;
   private final PredicateAbstractionManager pamgr;
   private final RelevantPredicatesComputer relevantComputer;
 
   public ABMPredicateReducer(ABMPredicateCPA cpa) {
     this.rmgr = cpa.getRegionManager();
-    this.fmgr = cpa.getFormulaManager();
     this.pmgr = cpa.getPathFormulaManager();
     this.pamgr = cpa.getPredicateManager();
     this.relevantComputer = cpa.getRelevantPredicatesComputer();
@@ -102,7 +99,7 @@ public class ABMPredicateReducer implements Reducer {
       PathFormula pathFormula = predicateElement.getPathFormula();
       assert pathFormula.getFormula().isTrue();
 
-      Formula newFormula = fmgr.instantiate(pamgr.toConcrete(newRegion), pathFormula.getSsa());
+      Formula newFormula = pamgr.toConcrete(newRegion, pathFormula.getSsa());
 
       AbstractionFormula newAbstraction =
             new AbstractionFormula(newRegion, newFormula, oldAbstraction.getBlockFormula());
@@ -160,7 +157,7 @@ public class ABMPredicateReducer implements Reducer {
       SSAMap newSSA = builder.build();
       PathFormula newPathFormula = pmgr.makeNewPathFormula(oldPathFormula, newSSA);
 
-      Formula newFormula = fmgr.instantiate(pamgr.toConcrete(expandedRegion), newSSA);
+      Formula newFormula = pamgr.toConcrete(expandedRegion, newSSA);
       Formula blockFormula = reducedElement.getAbstractionFormula().getBlockFormula();
 
       AbstractionFormula newAbstractionFormula =

@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
 @Options(prefix="cpa.predicate")
 public class PredicateAbstractDomain implements AbstractDomain {
@@ -45,12 +44,10 @@ public class PredicateAbstractDomain implements AbstractDomain {
   public final Timer bddCoverageCheckTimer = new Timer();
   public final Timer symbolicCoverageCheckTimer = new Timer();
 
-  private final RegionManager mRegionManager;
   private final PredicateAbstractionManager mgr;
 
   public PredicateAbstractDomain(PredicateCPA pCpa) throws InvalidConfigurationException {
     pCpa.getConfiguration().inject(this, PredicateAbstractDomain.class);
-    mRegionManager = pCpa.getRegionManager();
     mgr = pCpa.getPredicateManager();
   }
 
@@ -78,7 +75,7 @@ public class PredicateAbstractDomain implements AbstractDomain {
       bddCoverageCheckTimer.start();
 
       // if e1's predicate abstraction entails e2's pred. abst.
-      boolean result = mRegionManager.entails(e1.getAbstractionFormula().asRegion(), e2.getAbstractionFormula().asRegion());
+      boolean result = mgr.checkCoverage(e1.getAbstractionFormula(), e2.getAbstractionFormula());
 
       bddCoverageCheckTimer.stop();
       return result;
