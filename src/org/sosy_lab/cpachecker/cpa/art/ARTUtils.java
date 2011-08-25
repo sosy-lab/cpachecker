@@ -23,20 +23,27 @@
 */
 package org.sosy_lab.cpachecker.cpa.art;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
 import org.sosy_lab.cpachecker.util.AbstractElements;
+
+import com.google.common.collect.Iterables;
 
 /**
  * Helper class with collection of ART related utility methods.
@@ -200,5 +207,112 @@ public class ARTUtils {
     sb.append(edges);
     sb.append("}\n");
     return sb.toString();
+  }
+
+  /**
+   * Find a path in the ART. The necessary information to find the path is a
+   * boolean value for each branching situation that indicates which of the two
+   * AssumeEdges should be taken.
+   *
+   * @param root The root element of the ART (where to start the path)
+   * @param target The target element (where to end the path, needs to be a target element)
+   * @param art All elements in the ART or a subset thereof (elements outside this set will be ignored).
+   * @param branchingInformation A map from ART element ids to boolean values indicating the outgoing direction.
+   * @return A path through the ART from root to target.
+   * @throws IllegalArgumentException If the direction information doesn't match the ART or the ART is inconsistent.
+   */
+  public static Path getPathFromBranchingInformation(
+      ARTElement root, ARTElement target, Collection<? extends AbstractElement> art,
+      Map<Integer, Boolean> branchingInformation) throws IllegalArgumentException {
+
+    checkArgument(art.contains(root));
+    checkArgument(art.contains(target));
+    checkArgument(target.isTarget());
+
+    Path result = new Path();
+    ARTElement currentElement = root;
+    while (!currentElement.isTarget()) {
+      Set<ARTElement> children = currentElement.getChildren();
+
+      ARTElement child;
+      CFAEdge edge;
+      switch (children.size()) {
+
+      case 0:
+        throw new IllegalArgumentException("ART target path terminates without reaching target element!");
+
+      case 1: // only one successor, easy
+        child = Iterables.getOnlyElement(children);
+        edge = currentElement.getEdgeToChild(child);
+        break;
+
+      case 2: // branch
+        // first, find out the edges and the children
+        CFAEdge trueEdge = null;
+        CFAEdge falseEdge = null;
+        ARTElement trueChild = null;
+        ARTElement falseChild = null;
+
+        for (ARTElement currentChild : children) {
+          CFAEdge currentEdge = currentElement.getEdgeToChild(currentChild);
+          if (!(currentEdge instanceof AssumeEdge)) {
+            throw new IllegalArgumentException("ART branches where there is no AssumeEdge!");
+          }
+
+          if (((AssumeEdge)currentEdge).getTruthAssumption()) {
+            trueEdge = currentEdge;
+            trueChild = currentChild;
+          } else {
+            falseEdge = currentEdge;
+            falseChild = currentChild;
+          }
+        }
+        if (trueEdge == null || falseEdge == null) {
+          throw new IllegalArgumentException("ART branches with non-complementary AssumeEdges!");
+        }
+        assert trueChild != null;
+        assert falseChild != null;
+
+        // search first idx where we have a predicate for the current branching
+        Boolean predValue = branchingInformation.get(currentElement.getElementId());
+        if (predValue == null) {
+          throw new IllegalArgumentException("ART branches without direction information!");
+        }
+
+        // now select the right edge
+        if (predValue) {
+          edge = trueEdge;
+          child = trueChild;
+        } else {
+          edge = falseEdge;
+          child = falseChild;
+        }
+        break;
+
+      default:
+        throw new IllegalArgumentException("ART splits with more than two branches!");
+      }
+
+      if (!art.contains(child)) {
+        throw new IllegalArgumentException("ART and direction information from solver disagree!");
+      }
+
+      result.add(Pair.of(currentElement, edge));
+      currentElement = child;
+    }
+
+    if (currentElement != target) {
+      throw new IllegalArgumentException("ART target path reached the wrong target element!");
+    }
+
+    // need to add another pair with target element and one (arbitrary) outgoing edge
+    CFANode loc = currentElement.retrieveLocationElement().getLocationNode();
+    CFAEdge lastEdge = null;
+    if (loc.getNumLeavingEdges() > 0) {
+      lastEdge = loc.getLeavingEdge(0);
+    }
+    result.add(Pair.of(target, lastEdge));
+
+    return result;
   }
 }

@@ -42,9 +42,7 @@ import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
@@ -66,7 +64,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
@@ -170,35 +167,10 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     } else {
       // we have a real error
       logger.log(Level.FINEST, "Error trace is not spurious");
-      errorPathProcessing.start();
-
-      boolean preciseInfo = false;
-      Map<Integer, Boolean> preds = mCounterexampleTraceInfo.getBranchingPredicates();
-      if (preds.isEmpty()) {
-        logger.log(Level.WARNING, "No information about ART branches available!");
-      } else {
-        targetPath = createPathFromPredicateValues(pPath, preds);
-
-        if (targetPath != null) {
-          // try to create a better satisfying assignment by replaying this single path
-          try {
-            CounterexampleTraceInfo info2 = formulaManager.checkPath(targetPath.asEdgesList());
-            if (info2.isSpurious()) {
-              logger.log(Level.WARNING, "Inconsistent replayed error path!");
-            } else {
-              mCounterexampleTraceInfo = info2;
-              preciseInfo = true;
-            }
-          } catch (CPATransferException e) {
-            // path is now suddenly a problem
-            logger.logUserException(Level.WARNING, e, "Could not replay error path");
-          }
-        }
-      }
-      errorPathProcessing.stop();
+      boolean precisePath = findPreciseErrorPath(pPath);
 
       if (exportErrorPath && exportFile != null) {
-        if (!preciseInfo) {
+        if (!precisePath) {
           logger.log(Level.WARNING, "The produced satisfying assignment is imprecise!");
         }
 
@@ -363,98 +335,53 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     return targetPath;
   }
 
-  private Path createPathFromPredicateValues(Path pPath, Map<Integer, Boolean> preds) {
+  private boolean findPreciseErrorPath(Path pPath) {
+    errorPathProcessing.start();
+    try {
 
-    ARTElement errorElement = pPath.getLast().getFirst();
-    Set<ARTElement> errorPathElements = ARTUtils.getAllElementsOnPathsTo(errorElement);
-
-    Path result = new Path();
-    ARTElement currentElement = pPath.getFirst().getFirst();
-    while (!currentElement.isTarget()) {
-      Set<ARTElement> children = currentElement.getChildren();
-
-      ARTElement child;
-      CFAEdge edge;
-      switch (children.size()) {
-
-      case 0:
-        logger.log(Level.WARNING, "ART target path terminates without reaching target element!");
-        return null;
-
-      case 1: // only one successor, easy
-        child = Iterables.getOnlyElement(children);
-        edge = currentElement.getEdgeToChild(child);
-        break;
-
-      case 2: // branch
-        // first, find out the edges and the children
-        CFAEdge trueEdge = null;
-        CFAEdge falseEdge = null;
-        ARTElement trueChild = null;
-        ARTElement falseChild = null;
-
-        for (ARTElement currentChild : children) {
-          CFAEdge currentEdge = currentElement.getEdgeToChild(currentChild);
-          if (!(currentEdge instanceof AssumeEdge)) {
-            logger.log(Level.WARNING, "ART branches where there is no AssumeEdge!");
-            return null;
-          }
-
-          if (((AssumeEdge)currentEdge).getTruthAssumption()) {
-            trueEdge = currentEdge;
-            trueChild = currentChild;
-          } else {
-            falseEdge = currentEdge;
-            falseChild = currentChild;
-          }
-        }
-        if (trueEdge == null || falseEdge == null) {
-          logger.log(Level.WARNING, "ART branches with non-complementary AssumeEdges!");
-          return null;
-        }
-        assert trueChild != null;
-        assert falseChild != null;
-
-        // search first idx where we have a predicate for the current branching
-        Boolean predValue = preds.get(currentElement.getElementId());
-        if (predValue == null) {
-          logger.log(Level.WARNING, "ART branches without direction information from solver!");
-          return null;
-        }
-
-        // now select the right edge
-        if (predValue) {
-          edge = trueEdge;
-          child = trueChild;
-        } else {
-          edge = falseEdge;
-          child = falseChild;
-        }
-        break;
-
-      default:
-        logger.log(Level.WARNING, "ART splits with more than two branches!");
-        return null;
+      Map<Integer, Boolean> preds = mCounterexampleTraceInfo.getBranchingPredicates();
+      if (preds.isEmpty()) {
+        logger.log(Level.WARNING, "No information about ART branches available!");
+        return false;
       }
 
-      if (!errorPathElements.contains(child)) {
-        logger.log(Level.WARNING, "ART and direction information from solver disagree!");
-        return null;
+      // find correct path
+      try {
+        ARTElement root = pPath.getFirst().getFirst();
+        ARTElement target = pPath.getLast().getFirst();
+        Set<ARTElement> pathElements = ARTUtils.getAllElementsOnPathsTo(target);
+
+        targetPath = ARTUtils.getPathFromBranchingInformation(root, target,
+            pathElements, preds);
+
+      } catch (IllegalArgumentException e) {
+        logger.logUserException(Level.WARNING, e, null);
+        return false;
       }
 
-      result.add(Pair.of(currentElement, edge));
-      currentElement = child;
-    }
+      // try to create a better satisfying assignment by replaying this single path
+      CounterexampleTraceInfo info2;
+      try {
+        info2 = formulaManager.checkPath(targetPath.asEdgesList());
 
-    // need to add another pair with target element and outgoing edge
-    Pair<ARTElement, CFAEdge> lastPair = pPath.getLast();
-    if (currentElement != lastPair.getFirst()) {
-      logger.log(Level.WARNING, "ART target path reached the wrong target element!");
-      return null;
-    }
-    result.add(lastPair);
+      } catch (CPATransferException e) {
+        // path is now suddenly a problem
+        logger.logUserException(Level.WARNING, e, "Could not replay error path");
+        return false;
+      }
 
-    return result;
+      if (info2.isSpurious()) {
+        logger.log(Level.WARNING, "Inconsistent replayed error path!");
+        return false;
+
+      } else {
+        mCounterexampleTraceInfo = info2;
+        return true;
+      }
+
+    } finally {
+      errorPathProcessing.stop();
+    }
   }
 
   public CounterexampleTraceInfo getCounterexampleTraceInfo() {
