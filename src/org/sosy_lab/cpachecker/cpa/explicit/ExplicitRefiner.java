@@ -101,6 +101,10 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
       description="use global interpolation point")
   private boolean useGlobalInterpolationPoint = true;
 
+  @Option(name="refinement.useGlobalAssumptions",
+      description="use global assumption")
+  private boolean useGlobalAssumption = true;
+
   final Timer totalRefinement = new Timer();
   final Timer precisionUpdate = new Timer();
   final Timer artUpdate = new Timer();
@@ -303,13 +307,14 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
     ExplicitPrecision newPrecision = new ExplicitPrecision(oldPrecision.getBlackListPattern(), newWhiteList);
 //System.out.println("newWhiteList = " + newWhiteList);
     // would not use old facts
-    //assumptions = new HashMap<CFAEdge, Map<String, Long>>();
+    if(!useGlobalAssumption)
+      assumptions = new HashMap<CFAEdge, Map<String, Long>>();
 
     // can we actually keep facts from previous iterations?
     // new paths would result in new facts, right, so delete old facts
     // however, cutting all facts after firstInterpolationPoint would be safe, right?
     // for now, all facts are kept
-newPrecision.setFacts(assumptions = predicates.getAssumptions(assumptions));
+    newPrecision.setFacts(assumptions = predicates.getAssumptions(assumptions));
 
     // We have two different strategies for the refinement root: set it to
     // the firstInterpolationPoint or set it to highest location in the ART
