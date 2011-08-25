@@ -86,36 +86,28 @@ public class ABMPredicateReducer implements Reducer {
 
     reduceTimer.start();
     try {
-      AbstractionFormula abstractionFormula =
-          predicateElement.getAbstractionFormula();
+      AbstractionFormula oldAbstraction = predicateElement.getAbstractionFormula();
 
-      Region oldRegion = predicateElement.getAbstractionFormula().asRegion();
+      Region oldRegion = oldAbstraction.asRegion();
 
-      Collection<AbstractionPredicate> predicates =
-          extractPredicates(abstractionFormula.asRegion());
+      Collection<AbstractionPredicate> predicates = extractPredicates(oldRegion);
       Collection<AbstractionPredicate> removePredicates =
           relevantComputer.getIrrelevantPredicates(pContext, predicates);
-
-      //System.out.println("=> Removing the following predicates: " + removePredicates);
 
       Region newRegion = oldRegion;
       for (AbstractionPredicate predicate : removePredicates) {
         newRegion = rmgr.makeExists(newRegion, predicate.getAbstractVariable());
       }
 
-      //System.out.println("Resulting region: " + newRegion);
-
       PathFormula pathFormula = predicateElement.getPathFormula();
-      Formula newFormula =
-          fmgr.instantiate(pamgr.toConcrete(newRegion), pathFormula.getSsa());
+      assert pathFormula.getFormula().isTrue();
 
-      //System.out.println("New formula: " + newFormula);
-      AbstractionFormula newAbstractionFormula =
-            new AbstractionFormula(newRegion, newFormula, predicateElement
-                .getAbstractionFormula().getBlockFormula());
+      Formula newFormula = fmgr.instantiate(pamgr.toConcrete(newRegion), pathFormula.getSsa());
 
-      return new PredicateAbstractElement.AbstractionElement(pathFormula,
-            newAbstractionFormula);
+      AbstractionFormula newAbstraction =
+            new AbstractionFormula(newRegion, newFormula, oldAbstraction.getBlockFormula());
+
+      return new PredicateAbstractElement.AbstractionElement(pathFormula, newAbstraction);
     } finally {
       reduceTimer.stop();
     }
@@ -134,17 +126,13 @@ public class ABMPredicateReducer implements Reducer {
     expandTimer.start();
     try {
 
-      AbstractionFormula rootElementAbstractionFormula =
-          rootElement.getAbstractionFormula();
+      Region rootRegion = rootElement.getAbstractionFormula().asRegion();
+      Region reducedRegion = reducedElement.getAbstractionFormula().asRegion();
 
-      Collection<AbstractionPredicate> rootPredicates =
-          extractPredicates(rootElementAbstractionFormula.asRegion());
+      Collection<AbstractionPredicate> rootPredicates = extractPredicates(rootRegion);
       Collection<AbstractionPredicate> relevantRootPredicates =
           relevantComputer.getRelevantPredicates(pReducedContext, rootPredicates);
       //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedElements region
-
-      Region reducedRegion = reducedElement.getAbstractionFormula().asRegion();
-      Region rootRegion = rootElement.getAbstractionFormula().asRegion();
 
       Region removedInformationRegion = rootRegion;
       for (AbstractionPredicate predicate : relevantRootPredicates) {
@@ -152,36 +140,33 @@ public class ABMPredicateReducer implements Reducer {
                                                    predicate.getAbstractVariable());
       }
 
-      //System.out.println("Removed information region: " + removedInformationRegion);
-
       Region expandedRegion = rmgr.makeAnd(reducedRegion, removedInformationRegion);
 
-      PathFormula pathFormula = reducedElement.getPathFormula();
+      PathFormula oldPathFormula = reducedElement.getPathFormula();
+      assert oldPathFormula.getFormula().isTrue();
+      SSAMap oldSSA = oldPathFormula.getSsa();
 
       //pathFormula.getSSa() might not contain index for the newly added variables in predicates; while the actual index is not really important at this point,
       //there still should be at least _some_ index for each variable of the abstraction formula.
-      SSAMapBuilder builder = pathFormula.getSsa().builder();
-      for (String var : rootElement.getPathFormula().getSsa().allVariables()) {
+      SSAMapBuilder builder = oldSSA.builder();
+      SSAMap rootSSA = rootElement.getPathFormula().getSsa();
+      for (String var : rootSSA.allVariables()) {
         //if we do not have the index in the reduced map..
-        if (pathFormula.getSsa().getIndex(var) == -1) {
+        if (oldSSA.getIndex(var) == -1) {
           //add an index (with the value of rootSSA)
-          builder.setIndex(var,
-              rootElement.getPathFormula().getSsa().getIndex(var));
+          builder.setIndex(var, rootSSA.getIndex(var));
         }
       }
       SSAMap newSSA = builder.build();
-      pathFormula = pmgr.makeNewPathFormula(pathFormula, newSSA);
+      PathFormula newPathFormula = pmgr.makeNewPathFormula(oldPathFormula, newSSA);
 
-      Formula newFormula =
-          fmgr.instantiate(pamgr.toConcrete(expandedRegion),
-              pathFormula.getSsa());
-      Formula blockFormula =
-          reducedElement.getAbstractionFormula().getBlockFormula();
+      Formula newFormula = fmgr.instantiate(pamgr.toConcrete(expandedRegion), newSSA);
+      Formula blockFormula = reducedElement.getAbstractionFormula().getBlockFormula();
 
       AbstractionFormula newAbstractionFormula =
           new AbstractionFormula(expandedRegion, newFormula, blockFormula);
 
-      return new PredicateAbstractElement.AbstractionElement(pathFormula,
+      return new PredicateAbstractElement.AbstractionElement(newPathFormula,
           newAbstractionFormula);
     } finally {
       expandTimer.stop();
