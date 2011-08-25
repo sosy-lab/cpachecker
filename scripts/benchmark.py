@@ -791,7 +791,7 @@ def findExecutable(program, default):
     if default is not None and isExecutable(default):
         return default
     
-    raise LookupError("Could not find %s executable" % program) 
+    sys.exit("ERROR: Could not find %s executable" % program)
 
 
 def run(args, rlimits):
