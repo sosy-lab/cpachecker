@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -32,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Pair;
@@ -43,17 +41,14 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver.AllSatResult;
-
-import com.google.common.base.Joiner;
-
 
 @Options(prefix="cpa.predicate")
 class PredicateAbstractionManager {
@@ -72,7 +67,7 @@ class PredicateAbstractionManager {
   final Stats stats;
 
   private final LogManager logger;
-  private final FormulaManager fmgr;
+  private final ExtendedFormulaManager fmgr;
   private final AbstractionManager amgr;
   private final TheoremProver thmProver;
 
@@ -83,17 +78,6 @@ class PredicateAbstractionManager {
   @Option(name="abstraction.dumpHardQueries",
       description="dump the abstraction formulas if they took to long")
   private boolean dumpHardAbstractions = false;
-
-  @Option(name="formulaDumpFilePattern", type=Option.Type.OUTPUT_FILE,
-      description="where to dump interpolation and abstraction problems (format string)")
-  private File formulaDumpFile = new File("%s%04d-%s%03d.msat");
-  private final String formulaDumpFilePattern; // = formulaDumpFile.getAbsolutePath()
-
-  @Option(description="try to add some useful static-learning-like axioms for "
-    + "bitwise operations (which are encoded as UFs): essentially, "
-    + "we simply collect all the numbers used in bitwise operations, "
-    + "and add axioms like (0 & n = 0)")
-  private boolean useBitwiseAxioms = false;
 
   @Option(name="abs.useCache", description="use caching of abstractions")
   private boolean useCache = true;
@@ -107,18 +91,12 @@ class PredicateAbstractionManager {
 
   public PredicateAbstractionManager(
       RegionManager pRmgr,
-      FormulaManager pFmgr,
+      ExtendedFormulaManager pFmgr,
       TheoremProver pThmProver,
       Configuration config,
       LogManager pLogger) throws InvalidConfigurationException {
-    config.inject(this, PredicateAbstractionManager.class);
 
-    if (formulaDumpFile != null) {
-      formulaDumpFilePattern = formulaDumpFile.getAbsolutePath();
-    } else {
-      dumpHardAbstractions = false;
-      formulaDumpFilePattern = null;
-    }
+    config.inject(this, PredicateAbstractionManager.class);
 
     stats = new Stats();
     logger = pLogger;
@@ -299,7 +277,7 @@ class PredicateAbstractionManager {
 
   private Formula buildFormula(Formula symbFormula) {
 
-    if (useBitwiseAxioms) {
+    if (fmgr.useBitwiseAxioms()) {
       Formula bitwiseAxioms = fmgr.getBitwiseAxioms(symbFormula);
       if (!bitwiseAxioms.isTrue()) {
         symbFormula = fmgr.makeAnd(symbFormula, bitwiseAxioms);
@@ -367,14 +345,14 @@ class PredicateAbstractionManager {
       // we want to dump "hard" problems...
       File dumpFile;
 
-      dumpFile = formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "input", 0);
-      dumpFormulaToFile(f, dumpFile);
+      dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "input", 0);
+      fmgr.dumpFormulaToFile(f, dumpFile);
 
-      dumpFile = formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predDef", 0);
-      dumpFormulaToFile(predDef, dumpFile);
+      dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predDef", 0);
+      fmgr.dumpFormulaToFile(predDef, dumpFile);
 
-      dumpFile = formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predVars", 0);
-      printFormulasToFile(predVars, dumpFile);
+      dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predVars", 0);
+      fmgr.printFormulasToFile(predVars, dumpFile);
     }
 
     Region result = allSatResult.getResult();
@@ -443,39 +421,7 @@ class PredicateAbstractionManager {
     return fmgr.instantiate(amgr.toConcrete(pRegion), ssa);
   }
 
-  protected boolean useBitwiseAxioms() {
-    return useBitwiseAxioms;
-  }
 
-  protected File formatFormulaOutputFile(String function, int call, String formula, int index) {
-    if (formulaDumpFilePattern == null) {
-      return null;
-    }
-
-    return new File(String.format(formulaDumpFilePattern, function, call, formula, index));
-  }
-
-  protected void dumpFormulaToFile(Formula f, File outputFile) {
-    if (outputFile != null) {
-      try {
-        Files.writeFile(outputFile, fmgr.dumpFormula(f));
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Failed to save formula to file");
-      }
-    }
-  }
-
-  private static final Joiner LINE_JOINER = Joiner.on('\n');
-
-  protected void printFormulasToFile(Iterable<Formula> f, File outputFile) {
-    if (outputFile != null) {
-      try {
-        Files.writeFile(outputFile, LINE_JOINER.join(f));
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Failed to save formula to file");
-      }
-    }
-  }
 
   // delegate methods
 

@@ -47,10 +47,10 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
@@ -96,7 +96,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final StopOperator stop;
   private final PredicatePrecision initialPrecision;
   private final RegionManager regionManager;
-  private final FormulaManager formulaManager;
+  private final ExtendedFormulaManager formulaManager;
   private final PathFormulaManager pathFormulaManager;
   private final TheoremProver theoremProver;
   private final PredicateAbstractionManager predicateManager;
@@ -111,7 +111,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     regionManager = BDDRegionManager.getInstance();
     MathsatFormulaManager mathsatFormulaManager = MathsatFactory.createFormulaManager(config, logger);
-    formulaManager = mathsatFormulaManager;
+    formulaManager = new ExtendedFormulaManager(mathsatFormulaManager, config, logger);
 
     PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger);
     if (useCache) {
@@ -209,7 +209,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return predicateManager;
   }
 
-  public FormulaManager getFormulaManager() {
+  public ExtendedFormulaManager getFormulaManager() {
     return formulaManager;
   }
 

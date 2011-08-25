@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CSIsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.util.predicates.Model.TermType;
@@ -97,7 +98,7 @@ class PredicateRefinementManager {
   final Stats refStats;
 
   private final LogManager logger;
-  private final FormulaManager fmgr;
+  private final ExtendedFormulaManager fmgr;
   private final PathFormulaManager pmgr;
   private final TheoremProver thmProver;
   private final PredicateAbstractionManager amgr;
@@ -164,13 +165,12 @@ class PredicateRefinementManager {
   private final ExecutorService executor;
 
   public PredicateRefinementManager(
-      FormulaManager pFmgr,
+      ExtendedFormulaManager pFmgr,
       PathFormulaManager pPmgr,
       TheoremProver pThmProver,
       PredicateAbstractionManager pAmgr,
       Configuration config,
       LogManager pLogger) throws InvalidConfigurationException {
-
     config.inject(this, PredicateRefinementManager.class);
 
     refStats = new Stats();
@@ -181,11 +181,12 @@ class PredicateRefinementManager {
     amgr = pAmgr;
 
     // create solvers
+    FormulaManager realFormulaManager = fmgr.getDelegate();
     if (whichItpProver.equals("MATHSAT")) {
-      if (!(pFmgr instanceof MathsatFormulaManager)) {
+      if (!(realFormulaManager instanceof MathsatFormulaManager)) {
         throw new InvalidConfigurationException("Need to use Mathsat as solver if Mathsat should be used for interpolation");
       }
-      firstItpProver = new MathsatInterpolatingProver((MathsatFormulaManager) pFmgr, false);
+      firstItpProver = new MathsatInterpolatingProver((MathsatFormulaManager) realFormulaManager, false);
 
     } else if (whichItpProver.equals("CSISAT")) {
       firstItpProver = new CSIsatInterpolatingProver(pFmgr, logger);
@@ -198,10 +199,10 @@ class PredicateRefinementManager {
       if (whichItpProver.equals("MATHSAT")) {
         secondItpProver = new CSIsatInterpolatingProver(pFmgr, logger);
       } else {
-        if (!(pFmgr instanceof MathsatFormulaManager)) {
+        if (!(realFormulaManager instanceof MathsatFormulaManager)) {
           throw new InvalidConfigurationException("Need to use Mathsat as solver if Mathsat should be used for interpolation");
         }
-        secondItpProver = new MathsatInterpolatingProver((MathsatFormulaManager) pFmgr, false);
+        secondItpProver = new MathsatInterpolatingProver((MathsatFormulaManager) realFormulaManager, false);
       }
     } else {
       secondItpProver = null;
@@ -224,7 +225,7 @@ class PredicateRefinementManager {
   }
 
   public void dumpCounterexampleToFile(CounterexampleTraceInfo cex, File file) {
-    amgr.dumpFormulaToFile(makeConjunction(cex.getCounterExampleFormulas()), file);
+    fmgr.dumpFormulaToFile(fmgr.makeConjunction(cex.getCounterExampleFormulas()), file);
   }
 
   /**
@@ -308,7 +309,7 @@ class PredicateRefinementManager {
       // Final adjustments to the list of formulas
       List<Formula> f = new ArrayList<Formula>(pFormulas); // copy because we will change the list
 
-      if (amgr.useBitwiseAxioms()) {
+      if (fmgr.useBitwiseAxioms()) {
         addBitwiseAxioms(f);
       }
 
@@ -321,7 +322,7 @@ class PredicateRefinementManager {
 
       // Check if refinement problem is not too big
       if (maxRefinementSize > 0) {
-        int size = fmgr.dumpFormula(makeConjunction(f)).length();
+        int size = fmgr.dumpFormula(fmgr.makeConjunction(f)).length();
         if (size > maxRefinementSize) {
           logger.log(Level.FINEST, "Skipping refinement because input formula is", size, "bytes large.");
           throw new RefinementFailedException(Reason.TooMuchUnrolling, null);
@@ -665,8 +666,8 @@ class PredicateRefinementManager {
       refStats.cexAnalysisSolverTimer.stop();
 
       if (dumpInterpolationProblems) {
-        File dumpFile = amgr.formatFormulaOutputFile("interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "interpolant", i);
-        amgr.dumpFormulaToFile(itp, dumpFile);
+        File dumpFile = formatFormulaOutputFile("interpolant", i);
+        fmgr.dumpFormulaToFile(itp, dumpFile);
       }
 
       Collection<AbstractionPredicate> preds;
@@ -725,7 +726,7 @@ class PredicateRefinementManager {
         "predicates", preds);
 
     if (dumpInterpolationProblems) {
-      File dumpFile = amgr.formatFormulaOutputFile("interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "atoms", index);
+      File dumpFile = formatFormulaOutputFile("atoms", index);
       Collection<Formula> atoms = Collections2.transform(preds,
           new Function<AbstractionPredicate, Formula>(){
                 @Override
@@ -733,7 +734,7 @@ class PredicateRefinementManager {
                   return pArg0.getSymbolicAtom();
                 }
           });
-      amgr.printFormulasToFile(atoms, dumpFile);
+      fmgr.printFormulasToFile(atoms, dumpFile);
     }
     return preds;
   }
@@ -798,8 +799,8 @@ class PredicateRefinementManager {
       logger.log(Level.WARNING, "Could not get precise error path information because of inconsistent reachingPathsFormula!");
 
       dumpInterpolationProblem(f);
-      File dumpFile = amgr.formatFormulaOutputFile("interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "formula", f.size());
-      amgr.dumpFormulaToFile(branchingFormula, dumpFile);
+      File dumpFile = formatFormulaOutputFile("formula", f.size());
+      fmgr.dumpFormulaToFile(branchingFormula, dumpFile);
 
       return new CounterexampleTraceInfo(f, new Model(fmgr), Collections.<Integer, Boolean>emptyMap());
     }
@@ -927,24 +928,18 @@ class PredicateRefinementManager {
   }
 
   /**
-   * Helper method to create the conjunction of all formulas in a list.
-   */
-  private Formula makeConjunction(List<Formula> f) {
-    Formula result = fmgr.makeTrue();
-    for (Formula formula : f) {
-      result = fmgr.makeAnd(result, formula);
-    }
-    return result;
-  }
-
-  /**
    * Helper method to dump a list of formulas to files.
    */
   private void dumpInterpolationProblem(List<Formula> f) {
     int k = 0;
     for (Formula formula : f) {
-      File dumpFile = amgr.formatFormulaOutputFile("interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), "formula", k++);
-      amgr.dumpFormulaToFile(formula, dumpFile);
+      File dumpFile = formatFormulaOutputFile("formula", k++);
+      fmgr.dumpFormulaToFile(formula, dumpFile);
     }
   }
+
+  private File formatFormulaOutputFile(String formula, int index) {
+    return fmgr.formatFormulaOutputFile("interpolation", refStats.cexAnalysisTimer.getNumberOfIntervals(), formula, index);
+  }
+
 }
