@@ -52,12 +52,21 @@ public class MathsatTheoremProver implements TheoremProver {
   }
 
   @Override
-  public boolean isUnsat(Formula f) {
-    push(f);
+  public boolean isUnsat() {
     int res = msat_solve(curEnv);
-    pop();
     assert(res != MSAT_UNKNOWN);
     return res == MSAT_UNSAT;
+  }
+
+  @Override
+  public boolean isUnsat(Formula f) {
+    push(f);
+    try {
+      return isUnsat();
+
+    } finally {
+      pop();
+    }
   }
 
   @Override

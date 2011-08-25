@@ -433,10 +433,9 @@ class PredicateRefinementManager {
     logger.log(Level.ALL, "DEBUG_1", "Calling getUsefulBlocks on path",
         "of length:", f.size());
 
-    Formula trueFormula = fmgr.makeTrue();
     Formula[] needed = new Formula[f.size()];
     for (int i = 0; i < needed.length; ++i) {
-      needed[i] = trueFormula;
+      needed[i] = fmgr.makeTrue();
     }
     int pos = suffixTrace ? f.size()-1 : 0;
     int incr = suffixTrace ? -1 : 1;
@@ -452,7 +451,7 @@ class PredicateRefinementManager {
         }
       }
       // 2. if needed is inconsistent, then return it
-      if (thmProver.isUnsat(trueFormula)) {
+      if (thmProver.isUnsat()) {
         f = Arrays.asList(needed);
         break;
       }
@@ -471,7 +470,7 @@ class PredicateRefinementManager {
           Formula t = f.get(i);
           thmProver.push(t);
           ++toPop;
-          if (thmProver.isUnsat(trueFormula)) {
+          if (thmProver.isUnsat()) {
             // add this block to the needed ones, and repeat
             needed[i] = t;
             logger.log(Level.ALL, "DEBUG_1",
@@ -494,7 +493,7 @@ class PredicateRefinementManager {
           Formula t = f.get(i);
           thmProver.push(t);
           ++toPop;
-          if (thmProver.isUnsat(trueFormula)) {
+          if (thmProver.isUnsat()) {
             // add this block to the needed ones, and repeat
             needed[i] = t;
             logger.log(Level.ALL, "DEBUG_1",
@@ -917,7 +916,7 @@ class PredicateRefinementManager {
     thmProver.init();
     try {
       thmProver.push(f);
-      if (thmProver.isUnsat(fmgr.makeTrue())) {
+      if (thmProver.isUnsat()) {
         return new CounterexampleTraceInfo();
       } else {
         return new CounterexampleTraceInfo(Collections.singletonList(f), thmProver.getModel(), ImmutableMap.<Integer, Boolean>of());

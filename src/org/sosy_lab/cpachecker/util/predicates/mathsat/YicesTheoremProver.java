@@ -368,6 +368,11 @@ public class YicesTheoremProver implements TheoremProver {
     public void init() {}
 
     @Override
+    public boolean isUnsat() {
+        return yicesInconsistent();
+    }
+
+    @Override
     public boolean isUnsat(Formula f) {
         push(f);
         boolean res = yicesInconsistent();

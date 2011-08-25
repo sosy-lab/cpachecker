@@ -180,13 +180,14 @@ class PredicateAbstractionManager {
 
     thmProver.init();
     try {
+      thmProver.push(f);
 
       boolean feasibility;
       if (useCache && feasibilityCache.containsKey(f)) {
         feasibility = feasibilityCache.get(f);
 
       } else {
-        feasibility = !thmProver.isUnsat(f);
+        feasibility = !thmProver.isUnsat();
         if (useCache) {
           feasibilityCache.put(f, feasibility);
         }
@@ -197,7 +198,6 @@ class PredicateAbstractionManager {
         return rmgr.makeFalse();
       }
 
-      thmProver.push(f);
       try {
         Region absbdd = rmgr.makeTrue();
 
