@@ -274,7 +274,7 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
 
     // ... and, out of these, determine the initial set of variables to track
     Set<String> referencedVariables = predicates.getReferencedVariables();
-
+//System.out.println("referencedVariables: " + referencedVariables);
     // add the newly found referenced variables to those found in previous iteration
     allReferencedVariables.addAll(referencedVariables);
 
@@ -309,7 +309,7 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
     // new paths would result in new facts, right, so delete old facts
     // however, cutting all facts after firstInterpolationPoint would be safe, right?
     // for now, all facts are kept
-    newPrecision.setFacts(assumptions = predicates.getAssumptions(assumptions));
+newPrecision.setFacts(assumptions = predicates.getAssumptions(assumptions));
 
     // We have two different strategies for the refinement root: set it to
     // the firstInterpolationPoint or set it to highest location in the ART

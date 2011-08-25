@@ -209,8 +209,6 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
   }
 
   void forget(String assignedVar) {
-    /*if(true)
-      return;*/
     if(constantsMap.containsKey(assignedVar)){
       constantsMap.remove(assignedVar);
     }

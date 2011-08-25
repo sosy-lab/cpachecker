@@ -129,7 +129,7 @@ public class ExplicitTransferRelation implements TransferRelation {
           String factName = factAtLocation.getKey();
           Long factValue = factAtLocation.getValue();
 
-          //System.out.println("at edge " + cfaEdge + " setting " + factName + " to " + factValue);
+//System.out.println("at edge " + cfaEdge + " setting " + factName + " to " + factValue);
           if(factValue != null)
             explicitElement.assignConstant(factName, factValue, this.threshold);
         }
@@ -397,7 +397,8 @@ public class ExplicitTransferRelation implements TransferRelation {
       // [literal]
       if(op2 == null && opType == null){
         String varName = op1.getRawSignature();
-        if (!newElement.contains(getvarName(varName, functionName))/*precision.isNotTracking(getvarName(varName, functionName))*/)
+        if(!newElement.contains(getvarName(varName, functionName)))
+        //if(precision.isNotTracking(getvarName(varName, functionName)))
           return element;
         if(truthValue) {
           if(newElement.contains(getvarName(varName, functionName))){
@@ -425,7 +426,9 @@ public class ExplicitTransferRelation implements TransferRelation {
       {
         IASTLiteralExpression lop2 = (IASTLiteralExpression)op2;
         String varName = op1.getRawSignature();
-        if (!newElement.contains(getvarName(varName, functionName))/*precision.isNotTracking(getvarName(varName, functionName))*/)
+
+        //if(!newElement.contains(getvarName(varName, functionName)))
+        if(precision.isNotTracking(getvarName(varName, functionName)))
           return element;
         int typeOfLiteral = lop2.getKind();
         if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant
@@ -601,7 +604,8 @@ public class ExplicitTransferRelation implements TransferRelation {
       {
         String leftVarName = op1.getRawSignature();
         String rightVarName = op2.getRawSignature();
-        if (!newElement.contains(getvarName(leftVarName, functionName)) || !newElement.contains(getvarName(rightVarName, functionName))/*precision.isNotTracking(getvarName(leftVarName, functionName)) || precision.isNotTracking(getvarName(rightVarName, functionName))*/)
+        if (!newElement.contains(getvarName(leftVarName, functionName)) || !newElement.contains(getvarName(rightVarName, functionName)))
+        //if(precision.isNotTracking(getvarName(leftVarName, functionName)) || precision.isNotTracking(getvarName(rightVarName, functionName)))
           return element;
         // a == b
         if(opType == BinaryOperator.EQUALS)
@@ -731,7 +735,8 @@ public class ExplicitTransferRelation implements TransferRelation {
       else if(op2 instanceof IASTUnaryExpression)
       {
         String varName = op1.getRawSignature();
-        if (!newElement.contains(getvarName(varName, functionName))/*precision.isNotTracking(getvarName(varName, functionName))*/)
+        if(!newElement.contains(getvarName(varName, functionName)))
+        //if(precision.isNotTracking(getvarName(varName, functionName)))
           return element;
         IASTUnaryExpression unaryExp = (IASTUnaryExpression)op2;
         IASTExpression unaryExpOp = unaryExp.getOperand();
@@ -867,7 +872,8 @@ public class ExplicitTransferRelation implements TransferRelation {
       }
       else if(op2 instanceof IASTBinaryExpression){
         String varName = op1.getRawSignature();
-        if (!newElement.contains(getvarName(varName, functionName))/*precision.isNotTracking(getvarName(varName, functionName))*/)
+        if(!newElement.contains(getvarName(varName, functionName)))
+        //if(precision.isNotTracking(getvarName(varName, functionName)))
           return element;
         // TODO forgetting
         newElement.forget(varName);
@@ -891,9 +897,9 @@ public class ExplicitTransferRelation implements TransferRelation {
     }
     else{
       String varName = op1.getRawSignature();
-      if (!newElement.contains(getvarName(varName, functionName))/*precision.isNotTracking(getvarName(varName, functionName))*/) {
+      if(!newElement.contains(getvarName(varName, functionName)))
+      //if(precision.isNotTracking(getvarName(varName, functionName)))
         return element;
-      }
       // TODO forgetting
       newElement.forget(varName);
       //      throw new UnrecognizedCFAEdgeException("Unhandled case " );

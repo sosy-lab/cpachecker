@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 
-<benchmark tool="cpachecker" timelimit="60" memlimit="10240">
+<benchmark tool="cpachecker" timelimit="900" memlimit="10240">
 	<option name="-setprop">output.disable=true</option>
 
 	<!-- Set the java heap size. -->

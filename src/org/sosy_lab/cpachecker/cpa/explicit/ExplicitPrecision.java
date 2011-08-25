@@ -34,9 +34,9 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 public class ExplicitPrecision implements Precision {
-  final Pattern blackListPattern;
+  private final Pattern blackListPattern;
 
-  final Set<String> whiteList = new HashSet<String>();
+  private Set<String> whiteList = null;
 
   public Map<CFAEdge, Map<String, Long>> facts = new HashMap<CFAEdge, Map<String, Long>>();
 
@@ -50,7 +50,7 @@ public class ExplicitPrecision implements Precision {
     blackListPattern = Pattern.compile(variableBlacklist);
 
     if(whiteList != null)
-      this.whiteList.addAll(whiteList);
+      this.whiteList = new HashSet<String>(whiteList);
 
     //initConstant();
   }
@@ -60,7 +60,7 @@ public class ExplicitPrecision implements Precision {
     blackListPattern = precision.blackListPattern;
 
     if(whiteList != null)
-      this.whiteList.addAll(whiteList);
+      this.whiteList = new HashSet<String>(whiteList);
 
     //initConstant();
   }
