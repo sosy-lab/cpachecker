@@ -38,6 +38,7 @@ import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.abm.AbstractABMBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
@@ -82,15 +83,10 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
   }
 
   @Override
-  protected final boolean performRefinement0(ARTReachedSet pReached, Path pPath)
+  protected final CounterexampleInfo performRefinement0(ARTReachedSet pReached, Path pPath)
       throws CPAException, InterruptedException {
 
     return refiner.performRefinement(pReached, pPath);
-  }
-
-  @Override
-  protected final Path getTargetPath(Path pPath) {
-    return refiner.getTargetPath(pPath);
   }
 
   /**
@@ -115,14 +111,14 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
     }
 
     @Override
-    protected final boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
-      boolean result = super.performRefinement(pReached, pPath);
+    protected final CounterexampleInfo performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
+      CounterexampleInfo counterexample = super.performRefinement(pReached, pPath);
 
-      if (result) {
+      if (counterexample.isSpurious()) {
         lastErrorPath = null; // TODO why this?
       }
 
-      return result;
+      return counterexample;
     }
 
     @Override

@@ -43,6 +43,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
@@ -94,8 +95,6 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
 
   private final LogManager logger;
   private final PredicateRefinementManager formulaManager;
-  private CounterexampleTraceInfo mCounterexampleTraceInfo;
-  private Path targetPath;
   protected List<CFANode> lastErrorPath = null;
 
   public PredicateRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
@@ -120,7 +119,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
   }
 
   @Override
-  protected boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
+  protected CounterexampleInfo performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
     totalRefinement.start();
 
     Set<ARTElement> elementsOnPath = ARTUtils.getAllElementsOnPathsTo(pPath.getLast().getFirst()); // TODO: make this lazy?
@@ -138,11 +137,10 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     assert path.size() == formulas.size();
 
     // build the counterexample
-    mCounterexampleTraceInfo = formulaManager.buildCounterexampleTrace(formulas, elementsOnPath);
-    targetPath = null;
+    CounterexampleTraceInfo counterexample = formulaManager.buildCounterexampleTrace(formulas, elementsOnPath);
 
     // if error is spurious refine
-    if (mCounterexampleTraceInfo.isSpurious()) {
+    if (counterexample.isSpurious()) {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
       precisionUpdate.start();
 
@@ -154,7 +152,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
       }
 
       Pair<ARTElement, PredicatePrecision> refinementResult =
-              performRefinement(oldPredicatePrecision, path, mCounterexampleTraceInfo);
+              performRefinement(oldPredicatePrecision, path, counterexample);
       precisionUpdate.stop();
 
       artUpdate.start();
@@ -163,26 +161,33 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
 
       artUpdate.stop();
       totalRefinement.stop();
-      return true;
+      return CounterexampleInfo.spurious();
     } else {
       // we have a real error
       logger.log(Level.FINEST, "Error trace is not spurious");
-      boolean precisePath = findPreciseErrorPath(pPath);
+      Pair<Path, CounterexampleTraceInfo> preciseCounterexample = findPreciseErrorPath(pPath, counterexample);
+
+      Path targetPath;
+      if (preciseCounterexample == null) {
+        logger.log(Level.WARNING, "The error path and the satisfying assignment may be imprecise!");
+        targetPath = pPath;
+
+      } else {
+        targetPath = preciseCounterexample.getFirst();
+        counterexample = preciseCounterexample.getSecond();
+      }
 
       if (exportErrorPath && exportFile != null) {
-        if (!precisePath) {
-          logger.log(Level.WARNING, "The produced satisfying assignment is imprecise!");
-        }
+        formulaManager.dumpCounterexampleToFile(counterexample, dumpCexFile);
 
-        formulaManager.dumpCounterexampleToFile(mCounterexampleTraceInfo, dumpCexFile);
         try {
-          Files.writeFile(exportFile, mCounterexampleTraceInfo.getCounterexample());
+          Files.writeFile(exportFile, counterexample.getCounterexample());
         } catch (IOException e) {
           logger.logUserException(Level.WARNING, e, "Could not write satisfying assignment for error path to file");
         }
       }
       totalRefinement.stop();
-      return false;
+      return CounterexampleInfo.feasible(targetPath, counterexample.getCounterexample());
     }
   }
 
@@ -326,26 +331,18 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     return Pair.of(root, newPrecision);
   }
 
-  @Override
-  protected Path getTargetPath(Path pPath) {
-    if (targetPath == null) {
-      logger.log(Level.WARNING, "The produced error path is imprecise!");
-      return pPath;
-    }
-    return targetPath;
-  }
-
-  private boolean findPreciseErrorPath(Path pPath) {
+  private Pair<Path, CounterexampleTraceInfo> findPreciseErrorPath(Path pPath, CounterexampleTraceInfo counterexample) {
     errorPathProcessing.start();
     try {
 
-      Map<Integer, Boolean> preds = mCounterexampleTraceInfo.getBranchingPredicates();
+      Map<Integer, Boolean> preds = counterexample.getBranchingPredicates();
       if (preds.isEmpty()) {
         logger.log(Level.WARNING, "No information about ART branches available!");
-        return false;
+        return null;
       }
 
       // find correct path
+      Path targetPath;
       try {
         ARTElement root = pPath.getFirst().getFirst();
         ARTElement target = pPath.getLast().getFirst();
@@ -356,7 +353,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
 
       } catch (IllegalArgumentException e) {
         logger.logUserException(Level.WARNING, e, null);
-        return false;
+        return null;
       }
 
       // try to create a better satisfying assignment by replaying this single path
@@ -367,25 +364,20 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
       } catch (CPATransferException e) {
         // path is now suddenly a problem
         logger.logUserException(Level.WARNING, e, "Could not replay error path");
-        return false;
+        return null;
       }
 
       if (info2.isSpurious()) {
         logger.log(Level.WARNING, "Inconsistent replayed error path!");
-        return false;
+        return null;
 
       } else {
-        mCounterexampleTraceInfo = info2;
-        return true;
+        return Pair.of(targetPath, info2);
       }
 
     } finally {
       errorPathProcessing.stop();
     }
-  }
-
-  public CounterexampleTraceInfo getCounterexampleTraceInfo() {
-    return mCounterexampleTraceInfo;
   }
 
   PredicateRefinementManager getRefinementManager() {

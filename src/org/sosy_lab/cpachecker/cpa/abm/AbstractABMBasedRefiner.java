@@ -30,6 +30,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -72,12 +73,12 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
    * When inheriting from this class, implement this method instead of
    * {@link #performRefinement(ReachedSet)}.
    */
-  protected abstract boolean performRefinement0(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException;
+  protected abstract CounterexampleInfo performRefinement0(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException;
 
   @Override
-  protected final boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
+  protected final CounterexampleInfo performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
     if (pPath == null) {
-      return true;
+      return CounterexampleInfo.spurious();
     } else {
       return performRefinement0(new ABMReachedSet(transfer, pReached, pPath, pathElementToReachedElement), pPath);
     }

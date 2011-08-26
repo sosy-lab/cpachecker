@@ -42,12 +42,14 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
+import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
@@ -84,7 +86,6 @@ import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.util.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.util.ecp.translators.InverseGuardedEdgeLabel;
 import org.sosy_lab.cpachecker.util.ecp.translators.ToGuardedAutomatonTranslator;
-import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 
 /*
  * TODO AutomatonBuilder <- integrate State-Pool there to ensure correct time
@@ -348,10 +349,10 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
 
       boolean lReachableViaIntervalAnalysis = reach_intervalCPA(lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
 
-      CounterexampleTraceInfo lCounterexampleTraceInfo = null;
+      CounterexampleInfo lCounterexampleInfo = null;
 
       if (lReachableViaIntervalAnalysis) {
-        lCounterexampleTraceInfo = reach2(lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
+        lCounterexampleInfo = reach2(lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
       }
       else {
         lNumberOfCFAInfeasibleGoals++;
@@ -359,7 +360,7 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
 
       lTimeReach.pause();
 
-      if (lCounterexampleTraceInfo == null || lCounterexampleTraceInfo.isSpurious()) {
+      if (lCounterexampleInfo == null || lCounterexampleInfo.isSpurious()) {
         System.out.println("Goal #" + lIndex + " is infeasible!");
 
         if (lIsCovered) {
@@ -375,7 +376,7 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
       else {
         lTimeCover.proceed();
 
-        TestCase lTestCase = TestCase.fromCounterexample(lCounterexampleTraceInfo, mLogManager);
+        TestCase lTestCase = TestCase.fromCounterexample(lCounterexampleInfo, mLogManager);
 
         if (lTestCase.isPrecise()) {
           CFAEdge[] lCFAPath = null;
@@ -448,7 +449,7 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
     return lResult;
   }
 
-  private CounterexampleTraceInfo reach2(GuardedEdgeAutomatonCPA pAutomatonCPA, CFAFunctionDefinitionNode pEntryNode, GuardedEdgeAutomatonCPA pPassingCPA) {
+  private CounterexampleInfo reach2(GuardedEdgeAutomatonCPA pAutomatonCPA, CFAFunctionDefinitionNode pEntryNode, GuardedEdgeAutomatonCPA pPassingCPA) {
     mTimeInReach.proceed();
     mTimesInReach++;
 
@@ -502,7 +503,7 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
 
     CPAAlgorithm lBasicAlgorithm = new CPAAlgorithm(lARTCPA, mLogManager);
 
-    PredicateRefiner lRefiner;
+    Refiner lRefiner;
     try {
       lRefiner = new PredicateRefiner(lBasicAlgorithm.getCPA());
     } catch (CPAException e) {
@@ -547,7 +548,7 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
 
     mTimeInReach.pause();
 
-    return lRefiner.getCounterexampleTraceInfo();
+    return lAlgorithm.getLastCounterexample();
   }
 
   private boolean checkCoverage(TestCase pTestCase, CFAFunctionDefinitionNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
