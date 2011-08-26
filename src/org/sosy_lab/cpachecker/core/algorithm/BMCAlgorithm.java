@@ -169,6 +169,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   @Option(description="try using induction to verify programs with loops")
   private boolean induction = false;
 
+  @Option(description="dump counterexample formula to file", type=Type.OUTPUT_FILE)
+  private File dumpCounterexampleFormula = new File("counterexample.msat");
+
   private final BMCStatistics stats = new BMCStatistics();
   private final Algorithm algorithm;
   private final InvariantGenerator invariantGenerator;
@@ -261,9 +264,11 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
    */
   private void createErrorPath(final ReachedSet pReachedSet) throws CPATransferException {
     if (!(getCPA() instanceof ARTCPA)) {
-      logger.log(Level.INFO, "ARTCPA not enabled, cannot create error path");
+      logger.log(Level.INFO, "Error found, but error path cannot be created without ARTCPA");
       return;
     }
+
+    logger.log(Level.INFO, "Error found, creating error path");
 
     Iterable<ARTElement> art = Iterables.filter(pReachedSet.getReached(), ARTElement.class);
 
@@ -293,6 +298,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     Model model = prover.getModel();
     prover.pop(); // remove branchingFormula
 
+
+    // get precise error path
     Map<Integer, Boolean> branchingInformation = pmgr.getBranchingPredicateValuesFromModel(model);
     ARTElement root = (ARTElement)pReachedSet.getFirstElement();
 
@@ -304,7 +311,25 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       return;
     }
 
+
+    // replay error path for a more precise satisfying assignment
+    Formula pathFormula = pmgr.makeFormulaForPath(targetPath.asEdgesList()).getFormula();
+    prover.reset();
+    prover.init();
+    prover.push(pathFormula);
+
+    if (prover.isUnsat()) {
+      logger.log(Level.WARNING, "Inconsistent replayed error path!");
+    } else {
+      model = prover.getModel();
+    }
+
+    // create and store CounterexampleInfo object
     CounterexampleInfo counterexample = CounterexampleInfo.feasible(targetPath, model);
+    if (pathFormula != null) {
+      counterexample.addFurtherInformation(pathFormula, dumpCounterexampleFormula);
+    }
+
     ((ARTCPA)getCPA()).setCounterexample(counterexample);
   }
 

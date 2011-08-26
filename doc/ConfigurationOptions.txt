@@ -79,6 +79,9 @@ bmc.boundingAssertions = true
 # discovered, which is done if cpa.predicate.targetStateSatCheck=true.
 bmc.checkTargetStates = true
 
+# dump counterexample formula to file
+bmc.dumpCounterexampleFormula = "counterexample.msat"
+
 # try using induction to verify programs with loops
 bmc.induction = false
 
