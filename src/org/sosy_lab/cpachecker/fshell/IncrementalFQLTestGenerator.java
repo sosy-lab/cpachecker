@@ -548,7 +548,7 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
 
     mTimeInReach.pause();
 
-    return lAlgorithm.getLastCounterexample();
+    return lARTCPA.getLastCounterexample();
   }
 
   private boolean checkCoverage(TestCase pTestCase, CFAFunctionDefinitionNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {

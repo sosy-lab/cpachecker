@@ -64,7 +64,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   private final Reducer reducer;
   private final Statistics stats;
 
-  private CounterexampleInfo counterexample = null;
+  private CounterexampleInfo lastCounterexample = null;
 
   private ARTCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger) throws InvalidConfigurationException {
     super(cpa);
@@ -144,12 +144,16 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     super.collectStatistics(pStatsCollection);
   }
 
-  CounterexampleInfo getCounterexample() {
-    return counterexample;
+  public CounterexampleInfo getLastCounterexample() {
+    return lastCounterexample;
+  }
+
+  public void clearCounterexample() {
+    lastCounterexample = null;
   }
 
   public void setCounterexample(CounterexampleInfo pCounterexample) {
     checkArgument(!pCounterexample.isSpurious());
-    counterexample = pCounterexample;
+    lastCounterexample = pCounterexample;
   }
 }

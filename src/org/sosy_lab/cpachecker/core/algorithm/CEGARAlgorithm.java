@@ -35,7 +35,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -135,8 +134,6 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   private final Algorithm algorithm;
   private final Refiner mRefiner;
 
-  private CounterexampleInfo lastCounterexample = null;
-
   public CEGARAlgorithm(Algorithm algorithm, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
     config.inject(this);
     this.algorithm = algorithm;
@@ -172,7 +169,6 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     boolean sound = true;
 
     stats.totalTimer.start();
-    lastCounterexample = null; // clear
 
     boolean continueAnalysis;
     do {
@@ -191,9 +187,9 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         sizeOfReachedSetBeforeRefinement = reached.size();
 
         stats.refinementTimer.start();
-        CounterexampleInfo counterexample;
+        boolean refinementResult;
         try {
-          counterexample = mRefiner.performRefinement(reached);
+          refinementResult = mRefiner.performRefinement(reached).isSpurious();
 
         } catch (RefinementFailedException e) {
           stats.countFailedRefinements++;
@@ -202,7 +198,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
           stats.refinementTimer.stop();
         }
 
-        if (counterexample.isSpurious()) {
+        if (refinementResult) {
           // successful refinement
 
           logger.log(Level.FINER, "Refinement successful");
@@ -219,7 +215,6 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         } else {
           // no refinement found, because the counterexample is not spurious
           logger.log(Level.FINER, "Refinement unsuccessful");
-          lastCounterexample = counterexample;
         }
       } // if lastElement is target element
 
@@ -227,10 +222,6 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
     stats.totalTimer.stop();
     return sound;
-  }
-
-  public CounterexampleInfo getLastCounterexample() {
-    return lastCounterexample;
   }
 
   private void runGC() {

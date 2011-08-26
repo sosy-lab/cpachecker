@@ -443,7 +443,7 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
 
     mTimeInReach.pause();
 
-    return lAlgorithm.getLastCounterexample();
+    return lARTCPA.getLastCounterexample();
   }
 
   private void removeCoveredGoals(Deque<Goal> pGoals, FShell3Result.Factory pResultFactory, TestCase pTestCase, Wrapper pWrapper, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA) throws ImpreciseExecutionException {

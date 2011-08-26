@@ -85,6 +85,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
   @Override
   public final CounterexampleInfo performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "Starting ART based refinement");
+    mArtCpa.clearCounterexample();
 
     assert checkART(pReached);
 

@@ -823,7 +823,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     mTimeInReach.pause();
 
-    return lAlgorithm.getLastCounterexample();
+    return lARTCPA.getLastCounterexample();
   }
 
   private void modifyReachedSet(ReachedSet pReachedSet, CFAFunctionDefinitionNode pEntryNode, ARTCPA pARTCPA, int pProductAutomatonIndex, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton) {

@@ -104,7 +104,7 @@ public class ARTStatistics implements Statistics {
     Path targetPath = null;
 
     if (pResult == Result.UNSAFE) {
-      CounterexampleInfo counterexample = cpa.getCounterexample();
+      CounterexampleInfo counterexample = cpa.getLastCounterexample();
       Object assignment = null;
 
       if (counterexample != null) {
