@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.common.Pair;
@@ -123,6 +124,11 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   @Override
   public PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM) {
     return delegate.makeNewPathFormula(pOldFormula, pM);
+  }
+
+  @Override
+  public PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException {
+    return delegate.makeFormulaForPath(pPath);
   }
 
   @Override

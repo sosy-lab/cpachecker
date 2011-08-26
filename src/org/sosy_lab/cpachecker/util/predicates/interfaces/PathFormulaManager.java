@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -56,6 +57,8 @@ public interface PathFormulaManager {
   PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge) throws CPATransferException;
 
   PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM);
+
+  PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException;
 
   /**
    * Build a formula containing a predicate for all branching situations in the
