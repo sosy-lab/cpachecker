@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
+import java.util.Deque;
+
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
@@ -37,25 +39,24 @@ class InterpolationBlock {
 
   // traceNo is the lowest number of primes in the path formula - it identifies the formula trace
   private final int traceNo;
-  // context is the no. of the trace that encapsulated current trance and null if the current trance is not nested
-  private Integer context;
+  // context is the sequence of trace no. trace that encapsulated the current trance
+  private final Deque<Integer> context;
   // ART element, where the path formula was abstracted
   private final ARTElement artElement;
-  private final PathFormula pf;
+  private final PathFormula pathFormula;
 
-  public InterpolationBlock(PathFormula pf, int primedNo, ARTElement artElement, Integer context){
-    this.pf = pf;
+  public InterpolationBlock(PathFormula pf, int primedNo, ARTElement artElement, Deque<Integer> context){
+    assert context != null;
+    this.pathFormula = pf;
     this.traceNo = primedNo;
     this.artElement = artElement;
     this.context = context;
   }
 
 
-  public void setContext(Integer pContext) {
-    context = pContext;
-  }
 
-  public Integer getContext() {
+
+  public Deque<Integer> getContext() {
     return context;
   }
 
@@ -68,11 +69,11 @@ class InterpolationBlock {
   }
 
   public PathFormula getPathFormula() {
-    return pf;
+    return pathFormula;
   }
 
   @Override
   public String toString(){
-    return "[tn:"+traceNo+", c:"+context+", id:"+artElement.getElementId()+"]: "+pf;
+    return "[tn:"+traceNo+", c:"+context+", id:"+artElement.getElementId()+"]: "+pathFormula;
   }
 }
