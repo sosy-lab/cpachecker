@@ -23,9 +23,16 @@
  */
 package org.sosy_lab.cpachecker.core;
 
-import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Preconditions.*;
 
+import java.io.File;
+import java.util.Collection;
+import java.util.Collections;
+
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cpa.art.Path;
+
+import com.google.common.collect.Lists;
 
 public class CounterexampleInfo {
 
@@ -34,12 +41,21 @@ public class CounterexampleInfo {
   private final Path targetPath;
   private final Object assignment;
 
+  // list with additional information about the counterexample
+  private final Collection<Pair<Object, File>> furtherInfo;
+
   private static final CounterexampleInfo SPURIOUS = new CounterexampleInfo(true, null, null);
 
   private CounterexampleInfo(boolean pSpurious, Path pTargetPath, Object pAssignment) {
     spurious = pSpurious;
     targetPath = pTargetPath;
     assignment = pAssignment;
+
+    if (!spurious) {
+      furtherInfo = Lists.newArrayListWithExpectedSize(1);
+    } else {
+      furtherInfo = null;
+    }
   }
 
   public static CounterexampleInfo spurious() {
@@ -64,5 +80,30 @@ public class CounterexampleInfo {
     checkState(!spurious);
 
     return assignment;
+  }
+
+  /**
+   * Add some additional information about the counterexample.
+   *
+   * @param info The information.
+   * @param dumpFile The file where "info.toString()" should be dumped (may be null).
+   */
+  public void addFurtherInformation(Object info, File dumpFile) {
+    checkState(!spurious);
+
+    furtherInfo.add(Pair.of(checkNotNull(info), dumpFile));
+  }
+
+  /**
+   * Get all additional information stored in this object.
+   * A file where to dump it may be associated with each object, but this part
+   * of the pair may be null.
+   *
+   * @return
+   */
+  public Collection<Pair<Object, File>> getAllFurtherInformation() {
+    checkState(!spurious);
+
+    return Collections.unmodifiableCollection(furtherInfo);
   }
 }

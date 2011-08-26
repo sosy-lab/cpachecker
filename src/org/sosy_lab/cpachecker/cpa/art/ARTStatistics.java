@@ -94,8 +94,8 @@ public class ARTStatistics implements Statistics {
   public void printStatistics(PrintStream pOut, Result pResult,
       ReachedSet pReached) {
 
-    if (   (!exportErrorPath || (errorPathFile == null))
-        && (!exportART       || (artFile == null))) {
+    if (   !exportErrorPath
+        && (!exportART || (artFile == null))) {
 
       // shortcut, avoid unnecessary creation of path etc.
       return;
@@ -120,27 +120,26 @@ public class ARTStatistics implements Statistics {
         }
       }
 
-      if (exportErrorPath && errorPathFile != null) {
-
+      if (exportErrorPath) {
         // the shrinked errorPath only includes the nodes,
         // that are important for the error, it is not a complete path,
         // only some nodes of the targetPath are part of it
         ErrorPathShrinker pathShrinker = new ErrorPathShrinker();
         Path shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath);
 
-        try {
-          Files.writeFile(errorPathFile, targetPath);
-          Files.writeFile(errorPathCoreFile, shrinkedErrorPath);
-          Files.writeFile(errorPathSourceFile, targetPath.toSourceCode());
-          Files.writeFile(errorPathJson, targetPath.toJSON());
+        writeErrorPathFile(errorPathFile, targetPath);
+        writeErrorPathFile(errorPathCoreFile, shrinkedErrorPath);
+        writeErrorPathFile(errorPathSourceFile, targetPath.toSourceCode());
+        writeErrorPathFile(errorPathJson, targetPath.toJSON());
 
-          if (assignment != null) {
-            Files.writeFile(errorPathAssignment, assignment);
+        if (assignment != null) {
+          writeErrorPathFile(errorPathAssignment, assignment);
+        }
+
+        if (counterexample != null) {
+          for (Pair<Object, File> info : counterexample.getAllFurtherInformation()) {
+            writeErrorPathFile(info.getSecond(), info.getFirst());
           }
-
-        } catch (IOException e) {
-          cpa.getLogger().logUserException(Level.WARNING, e,
-              "Could not write error path to file");
         }
       }
     }
@@ -150,6 +149,17 @@ public class ARTStatistics implements Statistics {
         Files.writeFile(artFile, ARTUtils.convertARTToDot(pReached, getEdgesOfPath(targetPath)));
       } catch (IOException e) {
         cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ART to file");
+      }
+    }
+  }
+
+  private void writeErrorPathFile(File file, Object content) {
+    if (file != null) {
+      try {
+        Files.writeFile(file, content);
+      } catch (IOException e) {
+        cpa.getLogger().logUserException(Level.WARNING, e,
+            "Could not information about the error path to file");
       }
     }
   }

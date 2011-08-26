@@ -304,7 +304,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       return;
     }
 
-    ((ARTCPA)getCPA()).setCounterexample(CounterexampleInfo.feasible(targetPath, model));
+    CounterexampleInfo counterexample = CounterexampleInfo.feasible(targetPath, model);
+    ((ARTCPA)getCPA()).setCounterexample(counterexample);
   }
 
   private boolean checkTargetStates(final ReachedSet pReachedSet) {

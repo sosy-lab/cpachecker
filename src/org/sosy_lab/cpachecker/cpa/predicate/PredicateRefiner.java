@@ -66,19 +66,14 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
-@Options(prefix="cpa.predicate")
+@Options(prefix="cpa.predicate.refinement")
 public class PredicateRefiner extends AbstractARTBasedRefiner {
 
-  @Option(name="refinement.addPredicatesGlobally",
-      description="refinement will add all discovered predicates "
-        + "to all the locations in the abstract trace")
+  @Option(description="refinement will add all discovered predicates "
+          + "to all the locations in the abstract trace")
   private boolean addPredicatesGlobally = false;
 
-  @Option(name="errorPath.export",
-      description="export one satisfying assignment for the error path")
-  private boolean exportErrorPath = true;
-
-  @Option(name="refinement.msatCexFile", type=Option.Type.OUTPUT_FILE,
+  @Option(name="msatCexFile", type=Option.Type.OUTPUT_FILE,
       description="where to dump the counterexample formula in case the error location is reached")
   private File dumpCexFile = new File("counterexample.msat");
 
@@ -171,11 +166,19 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
         counterexample = preciseCounterexample.getSecond();
       }
 
-      if (exportErrorPath && dumpCexFile != null) {
-        formulaManager.dumpCounterexampleToFile(counterexample, dumpCexFile);
-      }
+      CounterexampleInfo cex = CounterexampleInfo.feasible(targetPath, counterexample.getCounterexample());
+
+      final CounterexampleTraceInfo counterexample2 = counterexample;
+      cex.addFurtherInformation(new Object() {
+        // lazily call formulaManager.dumpCounterexample()
+        @Override
+        public String toString() {
+          return formulaManager.dumpCounterexample(counterexample2);
+        }
+      }, dumpCexFile);
+
       totalRefinement.stop();
-      return CounterexampleInfo.feasible(targetPath, counterexample.getCounterexample());
+      return cex;
     }
   }
 

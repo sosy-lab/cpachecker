@@ -210,8 +210,8 @@ class PredicateRefinementManager {
 //    }
   }
 
-  public void dumpCounterexampleToFile(CounterexampleTraceInfo cex, File file) {
-    fmgr.dumpFormulaToFile(fmgr.makeConjunction(cex.getCounterExampleFormulas()), file);
+  public String dumpCounterexample(CounterexampleTraceInfo cex) {
+    return fmgr.dumpFormula(fmgr.makeConjunction(cex.getCounterExampleFormulas()));
   }
 
   /**

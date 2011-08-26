@@ -160,6 +160,9 @@ cpa.abm.blockHeuristic = FunctionAndLoopPartitioning.class
 # the cause of the miss.
 cpa.abm.gatherCacheMissStatistics = false
 
+# export one variable assignment for error path to file, if one is found
+cpa.art.errorPath.assignment = "ErrorPathAssignment.txt"
+
 # export error path to file, if one is found
 cpa.art.errorPath.core = "ErrorPathCore.txt"
 cpa.art.errorPath.export = true
@@ -313,10 +316,6 @@ cpa.predicate.blk.useCache = true
 
 # always check satisfiability at end of block, even if precision is empty
 cpa.predicate.checkBlockFeasibility = false
-
-# export one satisfying assignment for the error path
-cpa.predicate.errorPath.export = true
-cpa.predicate.errorPath.file = "ErrorPathAssignment.txt"
 
 # where to dump interpolation and abstraction problems (format string)
 cpa.predicate.formulaDumpFilePattern = "%s%04d-%s%03d.msat"
