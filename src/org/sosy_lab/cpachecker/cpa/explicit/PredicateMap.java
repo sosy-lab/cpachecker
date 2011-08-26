@@ -127,7 +127,7 @@ public class PredicateMap
           }
           else
           {
-            System.out.println("can't extract fact from expression " + assume);
+//System.out.println("can't extract fact from expression " + assume);
           }
         }
       }

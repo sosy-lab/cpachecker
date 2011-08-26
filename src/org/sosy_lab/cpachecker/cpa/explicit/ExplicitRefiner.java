@@ -307,13 +307,28 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
     ExplicitPrecision newPrecision = new ExplicitPrecision(oldPrecision.getBlackListPattern(), newWhiteList);
 //System.out.println("newWhiteList = " + newWhiteList);
     // would not use old facts
+    // test_locks10: #ref = 20, time = 13,4 with cpa.predicate.refinement.useGlobalAssumptions=false
+    // test_locks10: #ref = 20, time = 3,0 with cpa.predicate.refinement.useGlobalAssumptions=true
     if(!useGlobalAssumption)
       assumptions = new HashMap<CFAEdge, Map<String, Long>>();
 
     // can we actually keep facts from previous iterations?
     // new paths would result in new facts, right, so delete old facts
     // however, cutting all facts after firstInterpolationPoint would be safe, right?
-    // for now, all facts are kept
+    else
+    {
+      boolean dropAssumptions = false;
+      // clear assumptions that are attached to cfa edges after first interpolation point
+      // I doubt this approach is entirely valid for loops, or gotos, or, most general, any sort of jumps!
+      for(Pair<ARTElement, CFAEdge> element : path)
+      {
+        dropAssumptions = dropAssumptions || element == firstInterpolationPoint;
+
+        if(dropAssumptions)
+          assumptions.remove(element.getSecond());
+      }
+    }
+
     newPrecision.setFacts(assumptions = predicates.getAssumptions(assumptions));
 
     // We have two different strategies for the refinement root: set it to
