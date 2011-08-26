@@ -149,17 +149,19 @@ class PredicateCPAStatistics implements Statistics {
       }
       out.println("Number of coverage checks:         " + domain.coverageCheckTimer.getNumberOfIntervals());
       out.println("  BDD entailment checks:           " + domain.bddCoverageCheckTimer.getNumberOfIntervals());
-      out.println("  Symbolic coverage check:         " + domain.symbolicCoverageCheckTimer.getNumberOfIntervals());
+      if (domain.symbolicCoverageCheckTimer.getNumberOfIntervals() > 0) {
+        out.println("  Symbolic coverage check:         " + domain.symbolicCoverageCheckTimer.getNumberOfIntervals());
+      }
       out.println();
       out.println("Max ABE block size:                       " + prec.maxBlockSize);
       out.println("Number of predicates discovered:          " + allDistinctPreds);
       out.println("Number of abstraction locations:          " + allLocs);
       out.println("Max number of predicates per location:    " + maxPredsPerLocation);
       out.println("Avg number of predicates per location:    " + avgPredsPerLocation);
-      out.println("Max number of predicates per abstraction: " + prec.maxPredsPerAbstraction);
-      out.println("Total number of models for allsat:        " + as.allSatCount);
-      out.println("Max number of models for allsat:          " + as.maxAllSatCount);
       if (as.numCallsAbstraction > 0) {
+        out.println("Max number of predicates per abstraction: " + prec.maxPredsPerAbstraction);
+        out.println("Total number of models for allsat:        " + as.allSatCount);
+        out.println("Max number of models for allsat:          " + as.maxAllSatCount);
         out.println("Avg number of models for allsat:          " + as.allSatCount / as.numCallsAbstraction);
       }
       out.println();
@@ -179,11 +181,15 @@ class PredicateCPAStatistics implements Statistics {
         out.println("  Time for satisfiability checks:    " + trans.satCheckTimer);
       }
       out.println("Time for strengthen operator:        " + trans.strengthenTimer);
-      out.println("  Time for satisfiability checks:    " + trans.strengthenCheckTimer);
-      out.println("Time for prec operator:             " + prec.totalPrecTime);
-      out.println("  Time for abstraction:              " + prec.computingAbstractionTime + " (Max: " + prec.computingAbstractionTime.printMaxTime() + ", Count: " + prec.computingAbstractionTime.getNumberOfIntervals() + ")");
-      out.println("    Solving time:                    " + as.abstractionTime.printOuterSumTime() + " (Max: " + as.abstractionTime.printOuterMaxTime() + ")");
-      out.println("    Time for BDD construction:       " + as.abstractionTime.printInnerSumTime()   + " (Max: " + as.abstractionTime.printInnerMaxTime() + ")");
+      if (trans.strengthenCheckTimer.getNumberOfIntervals() > 0) {
+        out.println("  Time for satisfiability checks:    " + trans.strengthenCheckTimer);
+      }
+      out.println("Time for prec operator:              " + prec.totalPrecTime);
+      if (prec.numAbstractions > 0) {
+        out.println("  Time for abstraction:              " + prec.computingAbstractionTime + " (Max: " + prec.computingAbstractionTime.printMaxTime() + ", Count: " + prec.computingAbstractionTime.getNumberOfIntervals() + ")");
+        out.println("    Solving time:                    " + as.abstractionTime.printOuterSumTime() + " (Max: " + as.abstractionTime.printOuterMaxTime() + ")");
+        out.println("    Time for BDD construction:       " + as.abstractionTime.printInnerSumTime()   + " (Max: " + as.abstractionTime.printInnerMaxTime() + ")");
+      }
       out.println("Time for merge operator:             " + cpa.getMergeOperator().totalMergeTime);
       out.println("Time for coverage check:             " + domain.coverageCheckTimer);
       if (domain.bddCoverageCheckTimer.getNumberOfIntervals() > 0) {
