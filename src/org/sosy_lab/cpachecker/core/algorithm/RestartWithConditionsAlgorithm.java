@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -113,7 +113,8 @@ public class RestartWithConditionsAlgorithm implements Algorithm, StatisticsProv
     ARTReachedSet reached = new ARTReachedSet(pReached, artCpa);
     for(AbstractElement e: pElementsWithAssumptions){
       ARTElement artElement = (ARTElement)e;
-      Set<ARTElement> parents = artElement.getParents();
+      List<ARTElement> parents = new ArrayList<ARTElement>();
+      parents.addAll(artElement.getParents());
       //pReached.remove(e);
       for(ARTElement parent: parents){
         precisionAdjusted |= adjustThreshold(parent, pReached);
