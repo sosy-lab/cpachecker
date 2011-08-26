@@ -28,14 +28,12 @@ import static com.google.common.collect.Lists.transform;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
@@ -79,10 +77,6 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
   @Option(name="errorPath.export",
       description="export one satisfying assignment for the error path")
   private boolean exportErrorPath = true;
-
-  @Option(name="errorPath.file", type=Option.Type.OUTPUT_FILE,
-      description="export one satisfying assignment for the error path")
-  private File exportFile = new File("ErrorPathAssignment.txt");
 
   @Option(name="refinement.msatCexFile", type=Option.Type.OUTPUT_FILE,
       description="where to dump the counterexample formula in case the error location is reached")
@@ -177,14 +171,8 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
         counterexample = preciseCounterexample.getSecond();
       }
 
-      if (exportErrorPath && exportFile != null) {
+      if (exportErrorPath && dumpCexFile != null) {
         formulaManager.dumpCounterexampleToFile(counterexample, dumpCexFile);
-
-        try {
-          Files.writeFile(exportFile, counterexample.getCounterexample());
-        } catch (IOException e) {
-          logger.logUserException(Level.WARNING, e, "Could not write satisfying assignment for error path to file");
-        }
       }
       totalRefinement.stop();
       return CounterexampleInfo.feasible(targetPath, counterexample.getCounterexample());

@@ -111,7 +111,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
 
       // set the path from the exception as the target path
       // so it can be used for debugging
-      mArtCpa.setTargetPath(e.getErrorPath());
+      mArtCpa.setCounterexample(CounterexampleInfo.feasible(e.getErrorPath(), null));
       throw e;
     }
 
@@ -124,10 +124,10 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
       assert targetPath.getFirst().getFirst() == path.getFirst().getFirst();
       assert targetPath.getLast().getFirst()  == path.getLast().getFirst();
 
-      mArtCpa.setTargetPath(targetPath);
+      mArtCpa.setCounterexample(counterexample);
     }
 
-    logger.log(Level.FINEST, "ART based refinement finished, result is", counterexample);
+    logger.log(Level.FINEST, "ART based refinement finished, result is", counterexample.isSpurious());
 
     return counterexample;
   }

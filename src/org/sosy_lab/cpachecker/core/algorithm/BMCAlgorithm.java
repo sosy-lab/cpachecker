@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -303,7 +304,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       return;
     }
 
-    ((ARTCPA)getCPA()).setTargetPath(targetPath);
+    ((ARTCPA)getCPA()).setCounterexample(CounterexampleInfo.feasible(targetPath, model));
   }
 
   private boolean checkTargetStates(final ReachedSet pReachedSet) {

@@ -40,6 +40,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
@@ -73,6 +74,10 @@ public class ARTStatistics implements Statistics {
       description="export error path to file, if one is found")
   private File errorPathJson = new File("ErrorPath.json");
 
+  @Option(name="errorPath.assignment", type=Option.Type.OUTPUT_FILE,
+      description="export one variable assignment for error path to file, if one is found")
+  private File errorPathAssignment = new File("ErrorPathAssignment.txt");
+
   private final ARTCPA cpa;
 
   public ARTStatistics(Configuration config, ARTCPA cpa) throws InvalidConfigurationException {
@@ -99,7 +104,13 @@ public class ARTStatistics implements Statistics {
     Path targetPath = null;
 
     if (pResult == Result.UNSAFE) {
-      targetPath = cpa.getTargetPath();
+      CounterexampleInfo counterexample = cpa.getCounterexample();
+      Object assignment = null;
+
+      if (counterexample != null) {
+        targetPath = counterexample.getTargetPath();
+        assignment = counterexample.getTargetPathAssignment();
+      }
 
       if (targetPath == null) {
         // try to find one
@@ -122,6 +133,10 @@ public class ARTStatistics implements Statistics {
           Files.writeFile(errorPathCoreFile, shrinkedErrorPath);
           Files.writeFile(errorPathSourceFile, targetPath.toSourceCode());
           Files.writeFile(errorPathJson, targetPath.toJSON());
+
+          if (assignment != null) {
+            Files.writeFile(errorPathAssignment, assignment);
+          }
 
         } catch (IOException e) {
           cpa.getLogger().logUserException(Level.WARNING, e,
