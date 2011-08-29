@@ -329,6 +329,8 @@ public class CPAMain {
       } else if (arg.equals("-nolog")) {
         putIfNotExistent(properties, "log.level", "off");
         putIfNotExistent(properties, "log.consoleLevel", "off");
+      } else if (arg.equals("-noout")) {
+        putIfNotExistent(properties, "output.disable", "true");
       } else if (arg.equals("-setprop")) {
         if (argsIt.hasNext()) {
           String[] bits = argsIt.next().split("=");
@@ -406,6 +408,7 @@ public class CPAMain {
     System.out.println(" -cbmc");
     System.out.println(" -stats");
     System.out.println(" -nolog");
+    System.out.println(" -noout");
     System.out.println(" -setprop");
     System.out.println(" -printOptions [-v|-verbose]");
     System.out.println(" -printUsedOptions");
