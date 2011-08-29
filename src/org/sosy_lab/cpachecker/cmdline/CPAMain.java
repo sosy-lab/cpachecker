@@ -301,11 +301,17 @@ public class CPAMain {
 
     while (argsIt.hasNext()) {
       String arg = argsIt.next();
-      if (   handleArgument1("-outputpath", "output.path", arg, argsIt, properties)
-          || handleArgument1("-logfile", "log.file", arg, argsIt, properties)
-          || handleArgument1("-entryfunction", "analysis.entryFunction", arg, argsIt, properties)
-          || handleArgument1("-config", CONFIGURATION_FILE_OPTION, arg, argsIt, properties)
-          || handleMultipleArgument1("-spec", SPECIFICATION_FILE_OPTION, arg, argsIt, properties)
+      if (   handleArgument0("-dfs",     "analysis.traversal.order", "dfs",     arg, properties)
+          || handleArgument0("-bfs",     "analysis.traversal.order", "bfs",     arg, properties)
+          || handleArgument0("-topsort", "analysis.traversal.order", "topsort", arg, properties)
+          || handleArgument0("-cbmc",    "analysis.useCBMC", "true",            arg, properties)
+          || handleArgument0("-stats",   "statistics.print", "true",            arg, properties)
+          || handleArgument0("-noout",   "output.disable",   "true",            arg, properties)
+          || handleArgument1("-outputpath",    "output.path",             arg, argsIt, properties)
+          || handleArgument1("-logfile",       "log.file",                arg, argsIt, properties)
+          || handleArgument1("-entryfunction", "analysis.entryFunction",  arg, argsIt, properties)
+          || handleArgument1("-config",        CONFIGURATION_FILE_OPTION, arg, argsIt, properties)
+          || handleMultipleArgument1("-spec",  SPECIFICATION_FILE_OPTION, arg, argsIt, properties)
       ) {
         // nothing left to do
 
@@ -316,27 +322,16 @@ public class CPAMain {
         } else {
           throw new InvalidCmdlineArgumentException("-cpas argument missing!");
         }
-      } else if (arg.equals("-dfs")) {
-        putIfNotExistent(properties, "analysis.traversal.order", "dfs");
-      } else if (arg.equals("-bfs")) {
-        putIfNotExistent(properties, "analysis.traversal.order", "bfs");
-      } else if (arg.equals("-topsort")) {
-        putIfNotExistent(properties, "analysis.traversal.order", "topsort");
-      } else if (arg.equals("-cbmc")) {
-        putIfNotExistent(properties, "analysis.useCBMC", "true");
-      } else if (arg.equals("-stats")) {
-        putIfNotExistent(properties, "statistics.print", "true");
+
       } else if (arg.equals("-nolog")) {
         putIfNotExistent(properties, "log.level", "off");
         putIfNotExistent(properties, "log.consoleLevel", "off");
-      } else if (arg.equals("-noout")) {
-        putIfNotExistent(properties, "output.disable", "true");
+
       } else if (arg.equals("-setprop")) {
         if (argsIt.hasNext()) {
           String[] bits = argsIt.next().split("=");
           if (bits.length != 2) {
-            throw new InvalidCmdlineArgumentException(
-                "-setprop argument must be a key=value pair!");
+            throw new InvalidCmdlineArgumentException("-setprop argument must be a key=value pair!");
           }
           putIfNotExistent(properties, bits[0], bits[1]);
         } else {
@@ -426,6 +421,19 @@ public class CPAMain {
     }
 
     properties.put(key, value);
+  }
+
+  /**
+   * Handle a command line argument with no value.
+   */
+  private static boolean handleArgument0(String arg, String option, String value, String currentArg,
+        Map<String, String> properties) throws InvalidCmdlineArgumentException {
+    if (currentArg.equals(arg)) {
+      putIfNotExistent(properties, option, value);
+      return true;
+    } else {
+      return false;
+    }
   }
 
   /**
