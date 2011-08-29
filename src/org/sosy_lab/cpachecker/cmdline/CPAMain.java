@@ -56,6 +56,12 @@ import com.google.common.io.Closeables;
 
 public class CPAMain {
 
+  /**
+   * The directory where to look for configuration files for options like
+   * "-predicateAbstraction" that get translated into a config file name.
+   */
+  private static final String DEFAULT_CONFIG_FILES_DIR = "test/config/%s.properties";
+
   private static final String CONFIGURATION_FILE_OPTION = "configuration.file";
   private static final String SPECIFICATION_FILE_OPTION = "specification";
 
@@ -357,9 +363,23 @@ public class CPAMain {
         printHelp();
 
       } else if (arg.startsWith("-") && !(new File(arg).exists())) {
-        System.out.println("Invalid option " + arg);
-        System.out.println("");
-        printHelp();
+        String argName = arg.substring(1); // remove "-"
+        File f = new File(String.format(DEFAULT_CONFIG_FILES_DIR, argName));
+
+        if (argName.matches("^[a-zA-Z0-9-]+$") && f.exists()) {
+          try {
+            Files.checkReadableFile(f);
+            putIfNotExistent(properties, CONFIGURATION_FILE_OPTION, f.getPath());
+          } catch (FileNotFoundException e) {
+            System.out.println("Invalid configuration " + argName + " (" + e.getMessage() + ")");
+            System.exit(0);
+          }
+
+        } else {
+          System.out.println("Invalid option " + arg);
+          System.out.println("");
+          printHelp();
+        }
 
       } else {
         programs.add(arg);

@@ -43,6 +43,8 @@ Running CPAchecker:
    The current directory should be the CPAchecker project directory.
    Additional command line switches are described in HowToConfiguration.txt.
    Example: scripts/cpa.sh -config test/config/explicitAnalysis.properties test/programs/simple/loop1.c
+   This example can also be abbreviated to:
+   scripts/cpa.sh -explicitAnalysis test/programs/simple/loop1.c
 9. Additionally to the console output, there will be several output files in test/output/:
      ART.dot: Visualization of abstract reachability tree (Graphviz format)
      cfa*.dot: Visualization of control flow automaton (Graphviz format)
