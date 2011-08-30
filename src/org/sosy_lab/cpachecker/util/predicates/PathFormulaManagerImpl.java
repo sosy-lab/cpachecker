@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -228,6 +229,15 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
       result = fmgr.makeAnd(result, e);
     }
     return result;
+  }
+
+  @Override
+  public PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException {
+    PathFormula pathFormula = makeEmptyPathFormula();
+    for (CFAEdge edge : pPath) {
+      pathFormula = makeAnd(pathFormula, edge);
+    }
+    return pathFormula;
   }
 
 

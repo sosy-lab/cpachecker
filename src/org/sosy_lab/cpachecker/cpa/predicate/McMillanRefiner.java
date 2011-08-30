@@ -34,6 +34,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
@@ -78,7 +79,7 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
   }
 
   @Override
-  public boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
+  public CounterexampleInfo performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
 
     logger.log(Level.FINEST, "Starting refinement for PredicateCPA");
 
@@ -118,11 +119,11 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
       performRefinement(pReached, pPath, info);
 
-      return true;
+      return CounterexampleInfo.spurious();
     } else {
       logger.log(Level.FINEST, "Error trace is not spurious");
       // we have a real error
-      return false;
+      return CounterexampleInfo.feasible(pPath, info.getCounterexample());
     }
   }
 

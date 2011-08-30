@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.util.predicates.CSIsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.Model;
-import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
@@ -210,8 +209,8 @@ class PredicateRefinementManager {
 //    }
   }
 
-  public void dumpCounterexampleToFile(CounterexampleTraceInfo cex, File file) {
-    fmgr.dumpFormulaToFile(fmgr.makeConjunction(cex.getCounterExampleFormulas()), file);
+  public String dumpCounterexample(CounterexampleTraceInfo cex) {
+    return fmgr.dumpFormula(fmgr.makeConjunction(cex.getCounterExampleFormulas()));
   }
 
   /**
@@ -793,12 +792,7 @@ class PredicateRefinementManager {
 
 
   public CounterexampleTraceInfo checkPath(List<CFAEdge> pPath) throws CPATransferException {
-    PathFormula pathFormula = pmgr.makeEmptyPathFormula();
-    for (CFAEdge edge : pPath) {
-      pathFormula = pmgr.makeAnd(pathFormula, edge);
-    }
-    Formula f = pathFormula.getFormula();
-    // ignore reachingPathsFormula here because it is just a simple path
+    Formula f = pmgr.makeFormulaForPath(pPath).getFormula();
 
     thmProver.init();
     try {

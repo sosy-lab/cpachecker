@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.art;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.Collection;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
@@ -61,7 +64,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   private final Reducer reducer;
   private final Statistics stats;
 
-  private Path targetPath = null;
+  private CounterexampleInfo lastCounterexample = null;
 
   private ARTCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger) throws InvalidConfigurationException {
     super(cpa);
@@ -141,11 +144,16 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     super.collectStatistics(pStatsCollection);
   }
 
-  Path getTargetPath() {
-    return targetPath;
+  public CounterexampleInfo getLastCounterexample() {
+    return lastCounterexample;
   }
 
-  public void setTargetPath(Path pTargetPath) {
-    targetPath = pTargetPath;
+  public void clearCounterexample() {
+    lastCounterexample = null;
+  }
+
+  public void setCounterexample(CounterexampleInfo pCounterexample) {
+    checkArgument(!pCounterexample.isSpurious());
+    lastCounterexample = pCounterexample;
   }
 }

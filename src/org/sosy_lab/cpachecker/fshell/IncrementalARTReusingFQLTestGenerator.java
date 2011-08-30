@@ -46,12 +46,14 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
+import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
@@ -93,7 +95,6 @@ import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.util.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.util.ecp.translators.InverseGuardedEdgeLabel;
 import org.sosy_lab.cpachecker.util.ecp.translators.ToGuardedAutomatonTranslator;
-import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 
 /*
  * TODO AutomatonBuilder <- integrate State-Pool there to ensure correct time
@@ -491,10 +492,10 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         }
       }
 
-      CounterexampleTraceInfo lCounterexampleTraceInfo = null;
+      CounterexampleInfo lCounterexampleInfo = null;
 
       if (lReachableViaGraphSearch) {
-        lCounterexampleTraceInfo = reach(lPredicateReachedSet, lPreviousGoalAutomaton, lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
+        lCounterexampleInfo = reach(lPredicateReachedSet, lPreviousGoalAutomaton, lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
 
         // lPredicateReachedSet and lPreviousGoalAutomaton have to be in-sync.
         lPreviousGoalAutomaton = lAutomatonCPA.getAutomaton();
@@ -505,7 +506,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
       lTimeReach.pause();
 
-      if (lCounterexampleTraceInfo == null || lCounterexampleTraceInfo.isSpurious()) {
+      if (lCounterexampleInfo == null || lCounterexampleInfo.isSpurious()) {
         System.out.println("Goal #" + lIndex + " is infeasible!");
 
         if (lIsCovered) {
@@ -521,7 +522,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       else {
         lTimeCover.proceed();
 
-        TestCase lTestCase = TestCase.fromCounterexample(lCounterexampleTraceInfo, mLogManager);
+        TestCase lTestCase = TestCase.fromCounterexample(lCounterexampleInfo, mLogManager);
 
         mTestSuite.add(lTestCase);
 
@@ -716,7 +717,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     return Pair.of(lF1, lF2);
   }
 
-  private CounterexampleTraceInfo reach(ReachedSet pReachedSet, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, GuardedEdgeAutomatonCPA pAutomatonCPA, CFAFunctionDefinitionNode pEntryNode, GuardedEdgeAutomatonCPA pPassingCPA) {
+  private CounterexampleInfo reach(ReachedSet pReachedSet, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, GuardedEdgeAutomatonCPA pAutomatonCPA, CFAFunctionDefinitionNode pEntryNode, GuardedEdgeAutomatonCPA pPassingCPA) {
     mTimeInReach.proceed();
     mTimesInReach++;
 
@@ -771,7 +772,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     CPAAlgorithm lBasicAlgorithm = new CPAAlgorithm(lARTCPA, mLogManager);
 
-    PredicateRefiner lRefiner;
+    Refiner lRefiner;
     try {
       lRefiner = new PredicateRefiner(lBasicAlgorithm.getCPA());
     } catch (CPAException e) {
@@ -822,7 +823,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     mTimeInReach.pause();
 
-    return lRefiner.getCounterexampleTraceInfo();
+    return lARTCPA.getLastCounterexample();
   }
 
   private void modifyReachedSet(ReachedSet pReachedSet, CFAFunctionDefinitionNode pEntryNode, ARTCPA pARTCPA, int pProductAutomatonIndex, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton) {

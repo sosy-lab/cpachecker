@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -126,6 +127,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   private class BMCStatistics implements Statistics {
 
     private final Timer satCheck = new Timer();
+    private final Timer errorPathCreation = new Timer();
     private final Timer assertionsCheck = new Timer();
 
     private final Timer inductionPreparation = new Timer();
@@ -136,6 +138,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
       if (satCheck.getNumberOfIntervals() > 0) {
         out.println("Time for final sat check:            " + satCheck);
+      }
+      if (errorPathCreation.getNumberOfIntervals() > 0) {
+        out.println("Time for error path creation:        " + errorPathCreation);
       }
       if (assertionsCheck.getNumberOfIntervals() > 0) {
         out.println("Time for bounding assertions check:  " + assertionsCheck);
@@ -167,6 +172,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(description="try using induction to verify programs with loops")
   private boolean induction = false;
+
+  @Option(description="dump counterexample formula to file", type=Type.OUTPUT_FILE)
+  private File dumpCounterexampleFormula = new File("counterexample.msat");
 
   private final BMCStatistics stats = new BMCStatistics();
   private final Algorithm algorithm;
@@ -260,50 +268,79 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
    */
   private void createErrorPath(final ReachedSet pReachedSet) throws CPATransferException {
     if (!(getCPA() instanceof ARTCPA)) {
-      logger.log(Level.INFO, "ARTCPA not enabled, cannot create error path");
+      logger.log(Level.INFO, "Error found, but error path cannot be created without ARTCPA");
       return;
     }
 
-    Iterable<ARTElement> art = Iterables.filter(pReachedSet.getReached(), ARTElement.class);
-
-    // get the branchingFormula
-    // this formula contains predicates for all branches we took
-    // this way we can figure out which branches make a feasible path
-    Formula branchingFormula = pmgr.buildBranchingFormula(art);
-
-    if (branchingFormula.isTrue()) {
-      logger.log(Level.WARNING, "Could not create error path because of missing branching informating");
-      return;
-    }
-
-    // add formula to solver environment
-    prover.push(branchingFormula);
-
-    // need to ask solver for satisfiability again,
-    // otherwise model doesn't contain new predicates
-    boolean stillSatisfiable = !prover.isUnsat();
-
-    if (!stillSatisfiable) {
-      // should not occur
-      logger.log(Level.WARNING, "Could not create error path information because of inconsistent branching information!");
-      return;
-    }
-
-    Model model = prover.getModel();
-    prover.pop(); // remove branchingFormula
-
-    Map<Integer, Boolean> branchingInformation = pmgr.getBranchingPredicateValuesFromModel(model);
-    ARTElement root = (ARTElement)pReachedSet.getFirstElement();
-
-    Path targetPath;
+    stats.errorPathCreation.start();
     try {
-      targetPath = ARTUtils.getPathFromBranchingInformation(root, pReachedSet.getReached(), branchingInformation);
-    } catch (IllegalArgumentException e) {
-      logger.logUserException(Level.WARNING, e, "Could not create error path");
-      return;
-    }
+      logger.log(Level.INFO, "Error found, creating error path");
 
-    ((ARTCPA)getCPA()).setTargetPath(targetPath);
+      Iterable<ARTElement> art = Iterables.filter(pReachedSet.getReached(), ARTElement.class);
+
+      // get the branchingFormula
+      // this formula contains predicates for all branches we took
+      // this way we can figure out which branches make a feasible path
+      Formula branchingFormula = pmgr.buildBranchingFormula(art);
+
+      if (branchingFormula.isTrue()) {
+        logger.log(Level.WARNING, "Could not create error path because of missing branching informating");
+        return;
+      }
+
+      // add formula to solver environment
+      prover.push(branchingFormula);
+
+      // need to ask solver for satisfiability again,
+      // otherwise model doesn't contain new predicates
+      boolean stillSatisfiable = !prover.isUnsat();
+
+      if (!stillSatisfiable) {
+        // should not occur
+        logger.log(Level.WARNING, "Could not create error path information because of inconsistent branching information!");
+        return;
+      }
+
+      Model model = prover.getModel();
+      prover.pop(); // remove branchingFormula
+
+
+      // get precise error path
+      Map<Integer, Boolean> branchingInformation = pmgr.getBranchingPredicateValuesFromModel(model);
+      ARTElement root = (ARTElement)pReachedSet.getFirstElement();
+
+      Path targetPath;
+      try {
+        targetPath = ARTUtils.getPathFromBranchingInformation(root, pReachedSet.getReached(), branchingInformation);
+      } catch (IllegalArgumentException e) {
+        logger.logUserException(Level.WARNING, e, "Could not create error path");
+        return;
+      }
+
+
+      // replay error path for a more precise satisfying assignment
+      Formula pathFormula = pmgr.makeFormulaForPath(targetPath.asEdgesList()).getFormula();
+      prover.reset();
+      prover.init();
+      prover.push(pathFormula);
+
+      if (prover.isUnsat()) {
+        logger.log(Level.WARNING, "Inconsistent replayed error path!");
+      } else {
+        model = prover.getModel();
+      }
+
+      // create and store CounterexampleInfo object
+      CounterexampleInfo counterexample = CounterexampleInfo.feasible(targetPath, model);
+      if (pathFormula != null) {
+        counterexample.addFurtherInformation(pathFormula, dumpCounterexampleFormula);
+      }
+
+      ((ARTCPA)getCPA()).setCounterexample(counterexample);
+
+    } finally {
+      stats.errorPathCreation.stop();
+    }
   }
 
   private boolean checkTargetStates(final ReachedSet pReachedSet) {

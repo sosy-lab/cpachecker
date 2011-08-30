@@ -40,6 +40,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
@@ -73,6 +74,10 @@ public class ARTStatistics implements Statistics {
       description="export error path to file, if one is found")
   private File errorPathJson = new File("ErrorPath.json");
 
+  @Option(name="errorPath.assignment", type=Option.Type.OUTPUT_FILE,
+      description="export one variable assignment for error path to file, if one is found")
+  private File errorPathAssignment = new File("ErrorPathAssignment.txt");
+
   private final ARTCPA cpa;
 
   public ARTStatistics(Configuration config, ARTCPA cpa) throws InvalidConfigurationException {
@@ -89,8 +94,8 @@ public class ARTStatistics implements Statistics {
   public void printStatistics(PrintStream pOut, Result pResult,
       ReachedSet pReached) {
 
-    if (   (!exportErrorPath || (errorPathFile == null))
-        && (!exportART       || (artFile == null))) {
+    if (   !exportErrorPath
+        && (!exportART || (artFile == null))) {
 
       // shortcut, avoid unnecessary creation of path etc.
       return;
@@ -99,7 +104,13 @@ public class ARTStatistics implements Statistics {
     Path targetPath = null;
 
     if (pResult == Result.UNSAFE) {
-      targetPath = cpa.getTargetPath();
+      CounterexampleInfo counterexample = cpa.getLastCounterexample();
+      Object assignment = null;
+
+      if (counterexample != null) {
+        targetPath = counterexample.getTargetPath();
+        assignment = counterexample.getTargetPathAssignment();
+      }
 
       if (targetPath == null) {
         // try to find one
@@ -109,23 +120,26 @@ public class ARTStatistics implements Statistics {
         }
       }
 
-      if (exportErrorPath && errorPathFile != null) {
-
+      if (exportErrorPath) {
         // the shrinked errorPath only includes the nodes,
         // that are important for the error, it is not a complete path,
         // only some nodes of the targetPath are part of it
         ErrorPathShrinker pathShrinker = new ErrorPathShrinker();
         Path shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath);
 
-        try {
-          Files.writeFile(errorPathFile, targetPath);
-          Files.writeFile(errorPathCoreFile, shrinkedErrorPath);
-          Files.writeFile(errorPathSourceFile, targetPath.toSourceCode());
-          Files.writeFile(errorPathJson, targetPath.toJSON());
+        writeErrorPathFile(errorPathFile, targetPath);
+        writeErrorPathFile(errorPathCoreFile, shrinkedErrorPath);
+        writeErrorPathFile(errorPathSourceFile, targetPath.toSourceCode());
+        writeErrorPathFile(errorPathJson, targetPath.toJSON());
 
-        } catch (IOException e) {
-          cpa.getLogger().logUserException(Level.WARNING, e,
-              "Could not write error path to file");
+        if (assignment != null) {
+          writeErrorPathFile(errorPathAssignment, assignment);
+        }
+
+        if (counterexample != null) {
+          for (Pair<Object, File> info : counterexample.getAllFurtherInformation()) {
+            writeErrorPathFile(info.getSecond(), info.getFirst());
+          }
         }
       }
     }
@@ -135,6 +149,17 @@ public class ARTStatistics implements Statistics {
         Files.writeFile(artFile, ARTUtils.convertARTToDot(pReached, getEdgesOfPath(targetPath)));
       } catch (IOException e) {
         cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ART to file");
+      }
+    }
+  }
+
+  private void writeErrorPathFile(File file, Object content) {
+    if (file != null) {
+      try {
+        Files.writeFile(file, content);
+      } catch (IOException e) {
+        cpa.getLogger().logUserException(Level.WARNING, e,
+            "Could not information about the error path to file");
       }
     }
   }

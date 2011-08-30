@@ -34,6 +34,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
+import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -83,7 +84,16 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
 
   @Override
   public final boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
+    return performRefinementWithInfo(pReached).isSpurious();
+  }
+
+  /**
+   * This method does the same as {@link #performRefinement(ReachedSet)},
+   * but it returns some more information about the refinement.
+   */
+  public final CounterexampleInfo performRefinementWithInfo(ReachedSet pReached) throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "Starting ART based refinement");
+    mArtCpa.clearCounterexample();
 
     assert checkART(pReached);
 
@@ -100,9 +110,9 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
           Joiner.on("\n ").skipNulls().join(Collections2.transform(path, pathToFunctionCalls)));
     }
 
-    boolean result;
+    CounterexampleInfo counterexample;
     try {
-      result = performRefinement(reached, path);
+      counterexample = performRefinement(reached, path);
     } catch (RefinementFailedException e) {
       if (e.getErrorPath() == null) {
         e.setErrorPath(path);
@@ -110,25 +120,25 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
 
       // set the path from the exception as the target path
       // so it can be used for debugging
-      mArtCpa.setTargetPath(e.getErrorPath());
+      mArtCpa.setCounterexample(CounterexampleInfo.feasible(e.getErrorPath(), null));
       throw e;
     }
 
     assert checkART(pReached);
 
-    if (!result) {
-      Path targetPath = getTargetPath(path);
+    if (!counterexample.isSpurious()) {
+      Path targetPath = counterexample.getTargetPath();
 
       // new targetPath must contain root and error node
       assert targetPath.getFirst().getFirst() == path.getFirst().getFirst();
       assert targetPath.getLast().getFirst()  == path.getLast().getFirst();
 
-      mArtCpa.setTargetPath(targetPath);
+      mArtCpa.setCounterexample(counterexample);
     }
 
-    logger.log(Level.FINEST, "ART based refinement finished, result is", result);
+    logger.log(Level.FINEST, "ART based refinement finished, result is", counterexample.isSpurious());
 
-    return result;
+    return counterexample;
   }
 
 
@@ -136,27 +146,11 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
    * Perform refinement.
    * @param pReached
    * @param pPath
-   * @return whether the refinement was successful
+   * @return Information about the counterexample.
    * @throws InterruptedException
    */
-  protected abstract boolean performRefinement(ARTReachedSet pReached, Path pPath)
+  protected abstract CounterexampleInfo performRefinement(ARTReachedSet pReached, Path pPath)
             throws CPAException, InterruptedException;
-
-  /**
-   * This method is intended to be overwritten if the implementation is able to
-   * provide a better target path than ARTCPA. This is probably the case when the
-   * ART is a DAG and not a tree.
-   *
-   * This method is called after {@link #performRefinement(ARTReachedSet, Path)}
-   * and only if the former method returned false. This method should then return
-   * the error path belonging to the latest call to performRefinement.
-   *
-   * @param pPath The target path.
-   * @return A path from the root node to the target node.
-   */
-  protected Path getTargetPath(Path pPath) {
-    return pPath;
-  }
 
   /**
    * This method may be overwritten if the standard behavior of <code>ARTUtils.getOnePathTo()</code> is not
