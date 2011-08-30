@@ -52,14 +52,15 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -271,20 +272,18 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
 
 //System.out.println("\n" + (++refinementCounter) + ". refining ...");
 //System.out.println(path);
-//System.out.println("old: " + oldPrecision.getWhiteList());
 
     // get the predicates ...
     PredicateMap predicates = new PredicateMap(pInfo.getPredicatesForRefinement(), path);
 
     // ... and, out of these, determine the initial set of variables to track
     Set<String> referencedVariables = predicates.getReferencedVariables();
-//System.out.println("referencedVariables: " + referencedVariables);
+//System.out.println("\nreferencedVariables: " + referencedVariables);
     // add the newly found referenced variables to those found in previous iteration
     allReferencedVariables.addAll(referencedVariables);
 
-    // when only passing referencedVariables, the same precision is passed in twice (refinement #9, refinement #10) with diskperf_simpl !?!?!?
     // get the top-most interpolation point
-    Pair<ARTElement, CFAEdge> firstInterpolationPoint = getFirstInterpolationPoint(useGlobalInterpolationPoint ? allReferencedVariables : referencedVariables, path);
+    Pair<ARTElement, CFAEdge> firstInterpolationPoint = getFirstInterpolationPoint(predicates, useGlobalInterpolationPoint ? allReferencedVariables : referencedVariables, path);
 
     assert firstInterpolationPoint != null;
 //System.out.println("firstInterpolationPoint is: " + firstInterpolationPoint);
@@ -304,11 +303,12 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
 
     //madeProgress(path, oldPrecision.getWhiteList(), newWhiteList);
 
+//System.out.println("\nold: " + oldPrecision.getWhiteList());
+//System.out.println("\nnew: " + newWhiteList);
+
     ExplicitPrecision newPrecision = new ExplicitPrecision(oldPrecision.getBlackListPattern(), newWhiteList);
-//System.out.println("newWhiteList = " + newWhiteList);
+
     // would not use old facts
-    // test_locks10: #ref = 20, time = 13,4 with cpa.predicate.refinement.useGlobalAssumptions=false
-    // test_locks10: #ref = 20, time = 3,0 with cpa.predicate.refinement.useGlobalAssumptions=true
     if(!useGlobalAssumption)
       assumptions = new HashMap<CFAEdge, Map<String, Long>>();
 
@@ -329,7 +329,12 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
       }
     }
 
-    newPrecision.setFacts(assumptions = predicates.getAssumptions(assumptions));
+//System.out.println("\nassumptions1: " + assumptions);
+    assumptions = predicates.getAssumptions(assumptions);
+//assumptions = new HashMap<CFAEdge, Map<String, Long>>();
+//System.out.println("\nassumptions2: " + assumptions);
+
+    newPrecision.setFacts(assumptions);
 
     // We have two different strategies for the refinement root: set it to
     // the firstInterpolationPoint or set it to highest location in the ART
@@ -369,7 +374,7 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
     return Pair.of(root, newPrecision);
   }
 
-  private Pair<ARTElement, CFAEdge> getFirstInterpolationPoint(Collection<String> currentVariables, Path path)
+  private Pair<ARTElement, CFAEdge> getFirstInterpolationPoint(PredicateMap predicates, Collection<String> currentVariables, Path path)
   {
     CollectVariablesVisitor visitor = new CollectVariablesVisitor(currentVariables);
 
@@ -380,7 +385,8 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
     {
       Pair<ARTElement, CFAEdge> element = iterator.next();
 
-      if(extractVariables(element.getSecond(), visitor))
+      // edge is a interpolation point if it has an interpolant attached or if variables of interpolants depend on variables in current statement
+      if(predicates.isInterpolationPoint(element.getSecond()) || extractVariables(element.getSecond(), visitor))
         firstInterpolationPoint = element;
     }
 
@@ -393,7 +399,7 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
 
     if(previousPath == null)
     {
-      //System.out.println("progress - previous path empty");
+//System.out.println("progress - previous path empty");
       madeProgress = true;
     }
 
@@ -401,16 +407,16 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
     {
       if(previousPath.toString().equals(path.toString()))
       {
-        //System.out.println("paths match !!!");
+//System.out.println("paths match !!!");
       }
       else
-        {
-        //System.out.println("paths DO NOT match !!!");
-        }
+      {
+//System.out.println("paths DO NOT match !!!");
+      }
 
       if(oldWhiteList.size() != newWhiteList.size())
       {
-        //System.out.println("progress - whitelist sizes differ");
+//System.out.println("progress - whitelist sizes differ");
         madeProgress = true;
       }
 
@@ -420,7 +426,7 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
         {
           if(!oldWhiteList.contains(entry))
           {
-            //System.out.println("progress - whitelists differ");
+//System.out.println("progress - whitelists differ");
             madeProgress = true;
             break;
           }
@@ -432,13 +438,13 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
     {
       if(previousPath.size() != path.size())
       {
-        //System.out.println("progress - path lengths differ");
+//System.out.println("progress - path lengths differ");
         madeProgress = true;
       }
 
       if(!previousPath.toString().equals(path.toString()))
       {
-        //System.out.println("progress - paths differ");
+//System.out.println("progress - paths differ");
         madeProgress = true;
       }
       /*
@@ -447,7 +453,7 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
       {
         if(!previousPath.get(i).equals(pathElement))
         {
-          System.out.println("progress - paths differ - " + previousPath.get(i) + " != " + pathElement);
+System.out.println("progress - paths differ - " + previousPath.get(i) + " != " + pathElement);
           madeProgress = true;
           break;
         }
@@ -793,9 +799,24 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
         param.accept(this);
 
       // also, add the formal parameters
-      FunctionDefinitionNode functionEntryNode = ((FunctionCallEdge)edge).getSuccessor();
-      for(String formalParameter : functionEntryNode.getFunctionParameterNames())
-        collect(functionEntryNode, formalParameter);
+      try
+      {
+/*
+        FunctionDefinitionNode functionEntryNode = ((FunctionCallEdge)edge).getSuccessor();
+
+        for(String formalParameter : functionEntryNode.getFunctionParameterNames())
+          collect(functionEntryNode, formalParameter);
+*/
+        List<IASTParameterDeclaration> parameters = ((IASTFunctionTypeSpecifier)functionCallExpression.getDeclaration().getDeclSpecifier()).getParameters();
+        for(IASTParameterDeclaration parameter : parameters)
+          collect(edge.getSuccessor(), parameter.getName());
+      }
+      catch(ClassCastException e)
+      {
+        System.out.println(e);
+        throw e;
+      }
+
 
       return null;
     }

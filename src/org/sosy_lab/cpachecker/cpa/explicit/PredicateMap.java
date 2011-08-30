@@ -43,6 +43,8 @@ public class PredicateMap
 {
   private Map<CFAEdge, Set<AbstractionPredicate>> predicateMap;
 
+  private Set<String> assumptions = new HashSet<String>();
+
   public PredicateMap(List<Collection<AbstractionPredicate>> pathPredicates, Path path)
   {
     predicateMap = new HashMap<CFAEdge, Set<AbstractionPredicate>>();
@@ -59,15 +61,27 @@ public class PredicateMap
 
         // if there are not any yet, create a new set
         if(predicatesAtEdge == null)
-          predicateMap.put(currentEdge, predicatesAtEdge = new HashSet<AbstractionPredicate>());
+          predicatesAtEdge = new HashSet<AbstractionPredicate>();
 
-        // add each predicate to the respective set of the predicate map
+        // add each non-trivial predicate to the respective set of the predicate map
         for(AbstractionPredicate predicate : predicates)
-          predicatesAtEdge.add(predicate);
+        {
+          if(!predicate.getSymbolicAtom().isFalse())
+            predicatesAtEdge.add(predicate);
+        }
+
+        // if non-trivial predicates are associated with the edge, add them to the map
+        if(predicatesAtEdge.size() > 0)
+          predicateMap.put(currentEdge, predicatesAtEdge);
       }
 
       i++;
     }
+  }
+
+  public boolean isInterpolationPoint(CFAEdge edge)
+  {
+    return predicateMap.containsKey(edge);
   }
 
   public Set<String> getReferencedVariables()
@@ -116,9 +130,11 @@ public class PredicateMap
             try
             {
               Long constant = Long.parseLong(splits[1]);
-//System.out.println("added fact " + atoms.toArray(new String[atoms.size()])[0] + " = " + splits[1] + " for expression " + predicate.getSymbolicAtom());
+//System.out.println("added fact " + atoms.toArray(new String[atoms.size()])[0] + " = " + splits[1] + " for expression " + predicate.getSymbolicAtom() + " at edge " + entry.getKey());
 
               assumes.put(atoms.toArray(new String[atoms.size()])[0], constant);
+
+              assumptions.add(assume);
             }
             catch(NumberFormatException nfe)
             {
