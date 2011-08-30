@@ -24,26 +24,45 @@
 package org.sosy_lab.cpachecker.cpa.einterpreter;
 
 
+import java.math.BigInteger;
+
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.MemoryFactory;
+import org.sosy_lab.cpachecker.cpa.einterpreter.memory.NonDetProvider;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.PersMemory;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.Scope;
 
 public class InterpreterElement implements AbstractElement {
-    InterpreterElement prev;
-    PersMemory mem;
+    private InterpreterElement prev;
+    private PersMemory mem;
+    private NonDetProvider provider;
 
-    InterpreterElement(){
+    InterpreterElement(int [] mInitialValuesForNondeterministicAssignments){
+      BigInteger data[];
+      if (mInitialValuesForNondeterministicAssignments == null) {
+        data = new BigInteger[0];
+      }else{
+
+        data = new BigInteger[mInitialValuesForNondeterministicAssignments.length];
+      }
+      for(int x =0;x<data.length;x++){
+        data[x]= BigInteger.valueOf(mInitialValuesForNondeterministicAssignments[x]);
+      }
+      provider = new NonDetProvider(data,this);
+
+
       mem = new PersMemory(this);
       prev = null;
     }
 
-    public InterpreterElement(PersMemory pMem) {
+    public InterpreterElement(PersMemory pMem, NonDetProvider prov) {
       mem = pMem;
+      provider = prov;
+
     }
 
     InterpreterElement copy(){
-        InterpreterElement h = new InterpreterElement(mem);
+        InterpreterElement h = new InterpreterElement(mem,provider);
         h.prev = this;
         return h;
     }
@@ -67,6 +86,11 @@ public class InterpreterElement implements AbstractElement {
 
     public InterpreterElement getprev(){
       return prev;
+    }
+
+    public BigInteger getNonDetNumber() {
+      // TODO Auto-generated method stub
+      return provider.getValue(this);
     }
 
 }

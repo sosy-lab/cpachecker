@@ -513,7 +513,7 @@ public static final class ArrayType extends AbstractType {
     public int sizeOf() {
       int result = 0;
       for (Type member : members.values()) {
-        result += Math.max(member.sizeOf(), result);
+        result = Math.max(member.sizeOf(), result);
       }
       return result;
     }

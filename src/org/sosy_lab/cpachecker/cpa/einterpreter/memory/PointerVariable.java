@@ -145,7 +145,7 @@ public class PointerVariable implements Variable {
 
     try {
         addr.getMemoryBlock().setAddress(addr.getOffset(), new Address(null,0),pel);
-    } catch (MemoryException e) {
+    } catch (RuntimeException e) {
         // TODO Auto-generated catch block
         e.printStackTrace();
     }

@@ -43,6 +43,10 @@ public class MemoryBlock {
   int size;
   protected MemoryBlock(int n,InterpreterElement pel){
     blocks = new HashMap<InterpreterElement, MemoryCell[]>();
+    if(n<0){
+      n+=1;
+      return;
+    }
     MemoryCell tmp [] = new MemoryCell[n];
     blocks.put(pel, tmp);
     size = n;
@@ -64,25 +68,25 @@ public class MemoryBlock {
 
 
 
-    public byte getData(int poffset,InterpreterElement el) throws MemoryException{
+    public byte getData(int poffset,InterpreterElement el) throws RuntimeException{
       MemoryCell [] block = getMemoryBlock(el);
 
       if(free){
-        throw new MemoryException("can not access memory memory has been freed");
+        throw new RuntimeException("can not access memory memory has been freed");
       }
 
       if(block[poffset] == null)
-        throw new MemoryException("uninitialized Data");
+        throw new RuntimeException("uninitialized Data");
       MemoryCell c = block[poffset];
       switch(c.getType()){
         case DMC:
           return ((DataMemoryCell)c).getData(el);
 
         case AMC:
-          throw new MemoryException("can not access AMC for Data");
+          throw new RuntimeException("can not access AMC for Data");
 
         default:
-          throw new MemoryException("error reading MemoryCell");
+          throw new RuntimeException("error reading MemoryCell");
       }
 
     }
@@ -104,11 +108,11 @@ public class MemoryBlock {
     return blocks.get(pEl);
   }
 
-    public void setData(int poffset,byte pdata, InterpreterElement el) throws MemoryException{
+    public void setData(int poffset,byte pdata, InterpreterElement el) throws RuntimeException{
       MemoryCell [] block = getMemoryBlock(el);
 
       if(free){
-        throw new MemoryException("can not access memory memory has been freed");
+        throw new RuntimeException("can not access memory memory has been freed");
       }
 
       if(block[poffset] == null){
@@ -118,41 +122,42 @@ public class MemoryBlock {
       }
       MemoryCell c = block[poffset];
       switch(c.getType()){
+        case AMC:
+        throw new RuntimeException("can not write byte in AMC");
+
         case DMC:
           ((DataMemoryCell)c).setData(pdata,el);
           break;
-        case AMC:
-          throw new MemoryException("can not write byte in AMC");
 
         default:
-          throw new MemoryException("error writing MemoryCell");
+          throw new RuntimeException("error writing MemoryCell");
       }
 
     }
 
-    public Address getAddress(int poffset, InterpreterElement el)throws MemoryException{
+    public Address getAddress(int poffset, InterpreterElement el)throws RuntimeException{
       MemoryCell [] block = getMemoryBlock(el);
       if(free){
-        throw new MemoryException("can not access memory memory has been freed");
+        throw new RuntimeException("can not access memory memory has been freed");
       }
       if(block[poffset] == null)
-        throw new MemoryException("uninitialized Data");
+        throw new RuntimeException("uninitialized Data");
       MemoryCell c = block[poffset];
       switch(c.getType()){
         case DMC:
-          throw new MemoryException("can not access DMC for Address");
+          throw new RuntimeException("can not access DMC for Address");
 
         case AMC:
           return ((AddrMemoryCell)c).getAddress(el);
 
         default:
-          throw new MemoryException("error reading MemoryCell");
+          throw new RuntimeException("error reading MemoryCell");
       }
     }
-    public void setAddress(int poffset,Address paddr, InterpreterElement el)throws MemoryException{
+    public void setAddress(int poffset,Address paddr, InterpreterElement el)throws RuntimeException{
       MemoryCell [] block = getMemoryBlock(el);
       if(free){
-        throw new MemoryException("can not access memory memory has been freed");
+        throw new RuntimeException("can not access memory memory has been freed");
       }
       if(block[poffset] == null){
         block = block.clone();
@@ -162,43 +167,48 @@ public class MemoryBlock {
       MemoryCell c = block[poffset];
       switch(c.getType()){
         case DMC:
-          throw new MemoryException("can not access DMC for Address");
-
+         // throw new MemoryException("can not access DMC for Address");
+          //TODO: eventuell ueberschreiben von memcells in allen schreibzugriffen zulassen
+          c = new AddrMemoryCell(paddr,el);
+          block  = block.clone();
+          block[poffset]= c;
+          blocks.put(el, block);
+          return;
         case AMC:
           ((AddrMemoryCell)c).setAddress(paddr,el);
           break;
         default:
-          throw new MemoryException("error reading MemoryCell");
+          throw new RuntimeException("error reading MemoryCell");
       }
     }
 
 
 
-    public  CFAFunctionDefinitionNode getFunctionPointer(int poffset, InterpreterElement el)throws MemoryException{
+    public  CFAFunctionDefinitionNode getFunctionPointer(int poffset, InterpreterElement el)throws RuntimeException{
       MemoryCell [] block = getMemoryBlock(el);
       if(free){
-        throw new MemoryException("can not access memory memory has been freed");
+        throw new RuntimeException("can not access memory memory has been freed");
       }
       if(block[poffset] == null)
-        throw new MemoryException("uninitialized Data");
+        throw new RuntimeException("uninitialized Data");
       MemoryCell c = block[poffset];
       switch(c.getType()){
         case DMC:
-          throw new MemoryException("can not access DMC for function pointer");
+          throw new RuntimeException("can not access DMC for function pointer");
 
         case AMC:
-          throw new MemoryException("can not access AMC for function pointer");
+          throw new RuntimeException("can not access AMC for function pointer");
         case FMC:
            return ((FuncMemoryCell)c).getFunctionPoint(el);
 
         default:
-          throw new MemoryException("error reading MemoryCell");
+          throw new RuntimeException("error reading MemoryCell");
       }
     }
-    public void setFunctionPointer(int poffset,CFAFunctionDefinitionNode func, InterpreterElement el)throws MemoryException{
+    public void setFunctionPointer(int poffset,CFAFunctionDefinitionNode func, InterpreterElement el)throws RuntimeException{
       MemoryCell [] block = getMemoryBlock(el);
       if(free){
-        throw new MemoryException("can not access memory memory has been freed");
+        throw new RuntimeException("can not access memory memory has been freed");
       }
       if(block[poffset] == null){
         block = block.clone();
@@ -208,15 +218,15 @@ public class MemoryBlock {
       MemoryCell c = block[poffset];
       switch(c.getType()){
         case DMC:
-          throw new MemoryException("can not access DMC for FuncPnt");
+          throw new RuntimeException("can not access DMC for FuncPnt");
 
         case AMC:
-          throw new MemoryException("can not access DMC for FuncPnt");
+          throw new RuntimeException("can not access DMC for FuncPnt");
         case FMC:
           ((FuncMemoryCell)c).setFunctionPoint(func,el);
           return;
         default:
-          throw new MemoryException("error reading MemoryCell");
+          throw new RuntimeException("error reading MemoryCell");
       }
     }
 

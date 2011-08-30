@@ -1113,7 +1113,7 @@ struct _VPB {
    struct _DEVICE_OBJECT *RealDevice ;
    ULONG SerialNumber ;
    ULONG ReferenceCount ;
-   WCHAR VolumeLabel[(32U * sizeof(WCHAR )) / sizeof(WCHAR )] ;
+   WCHAR VolumeLabel[(32U * 2) / 2] ;
 };
 #line 877 "kbfiltr.i.cil.c"
 typedef struct _VPB *PVPB;
@@ -2146,8 +2146,9 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject , PUNICODE_STRING RegistryPath 
   PDRIVER_EXTENSION __cil_tmp32 ;
   unsigned int __cil_tmp33 ;
   unsigned int __cil_tmp34 ;
-
+  
   {
+    i=0;
 #line 1683
   __cil_tmp4 = i * 4U;
 #line 1683
@@ -2218,6 +2219,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject , PUNICODE_STRING RegistryPath 
   __cil_tmp30 = (unsigned int )DriverObject;
 #line 1690
   __cil_tmp31 = __cil_tmp30 + 24;
+  *((PDRIVER_EXTENSION *)__cil_tmp31)= CPAmalloc(100);
 #line 1690
   __cil_tmp32 = *((PDRIVER_EXTENSION *)__cil_tmp31);
 #line 1690
@@ -2234,6 +2236,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject , PUNICODE_STRING RegistryPath 
 NTSTATUS KbFilter_AddDevice(PDRIVER_OBJECT Driver , PDEVICE_OBJECT PDO ) 
 { PDEVICE_EXTENSION devExt ;
   PDEVICE_OBJECT device ;
+  device = CPAmalloc(200);
   NTSTATUS status ;
   unsigned long __cil_tmp6 ;
   void *__cil_tmp7 ;
@@ -2293,7 +2296,7 @@ NTSTATUS KbFilter_AddDevice(PDRIVER_OBJECT Driver , PDEVICE_OBJECT PDO )
 #line 1702
   __cil_tmp8 = (UNICODE_STRING *)__cil_tmp7;
 #line 1702
-  status = IoCreateDevice(Driver, __cil_tmp6, __cil_tmp8, 11UL, 0UL, (unsigned char)0,
+  status = IoCreateDevice(Driver, __cil_tmp6, __cil_tmp8, 11UL, 0UL, 0,
                           & device);
   {
 #line 1705
@@ -2312,6 +2315,7 @@ NTSTATUS KbFilter_AddDevice(PDRIVER_OBJECT Driver , PDEVICE_OBJECT PDO )
   __cil_tmp12 = (unsigned int )__cil_tmp11;
 #line 1711
   __cil_tmp13 = __cil_tmp12 + 40;
+  *((PVOID *)__cil_tmp13) = CPAmalloc(200);
 #line 1711
   __cil_tmp14 = *((PVOID *)__cil_tmp13);
 #line 1711
@@ -2389,6 +2393,7 @@ NTSTATUS KbFilter_AddDevice(PDRIVER_OBJECT Driver , PDEVICE_OBJECT PDO )
 #line 1720
   __cil_tmp42 = __cil_tmp41 + 28;
 #line 1720
+  *((ULONG*)__cil_tmp42)=0;
   __cil_tmp43 = *((ULONG *)__cil_tmp42);
 #line 1720
   *((ULONG *)__cil_tmp38) = __cil_tmp43 | 8196UL;
@@ -2480,12 +2485,15 @@ NTSTATUS KbFilter_CreateClose(PDEVICE_OBJECT DeviceObject , PIRP Irp )
 #line 1746
   __cil_tmp13 = __cil_tmp12 + __cil_tmp11;
 #line 1746
+*((struct _IO_STACK_LOCATION **)__cil_tmp13) =  CPAmalloc(200);
+
   irpStack = *((struct _IO_STACK_LOCATION **)__cil_tmp13);
 #line 1747
   __cil_tmp14 = (unsigned int )DeviceObject;
 #line 1747
   __cil_tmp15 = __cil_tmp14 + 40;
 #line 1747
+	*((PVOID *)__cil_tmp15)= CPAmalloc(200);
   __cil_tmp16 = *((PVOID *)__cil_tmp15);
 #line 1747
   devExt = (struct _DEVICE_EXTENSION *)__cil_tmp16;
@@ -2499,6 +2507,7 @@ NTSTATUS KbFilter_CreateClose(PDEVICE_OBJECT DeviceObject , PIRP Irp )
   status = (long )myStatus;
   {
 #line 1750
+ *((UCHAR *)irpStack)=0;
   __cil_tmp19 = *((UCHAR *)irpStack);
 #line 1750
   __cil_tmp20 = (int )__cil_tmp19;
@@ -2526,6 +2535,7 @@ NTSTATUS KbFilter_CreateClose(PDEVICE_OBJECT DeviceObject , PIRP Irp )
 #line 1758
         __cil_tmp25 = __cil_tmp24 + __cil_tmp23;
 #line 1758
+	   *((PVOID *)__cil_tmp25) = CPAmalloc(200);
         __cil_tmp26 = *((PVOID *)__cil_tmp25);
 #line 1758
         __cil_tmp27 = (unsigned int )__cil_tmp26;
@@ -2545,7 +2555,7 @@ NTSTATUS KbFilter_CreateClose(PDEVICE_OBJECT DeviceObject , PIRP Irp )
 #line 1762
           __cil_tmp32 = (LONG *)__cil_tmp31;
 #line 1762
-          tmp = InterlockedIncrement(__cil_tmp32);
+          tmp = 0; //remove unknown function
 #line 1764
           if (1L == tmp) {
 
@@ -2639,6 +2649,7 @@ NTSTATUS KbFilter_DispatchPassThrough(PDEVICE_OBJECT DeviceObject , PIRP Irp )
 #line 1799
   irpStack = *((struct _IO_STACK_LOCATION **)__cil_tmp9);
 #line 1800
+  
   if (s == NP) {
 #line 1801
     s = SKIP1;
@@ -2655,6 +2666,7 @@ NTSTATUS KbFilter_DispatchPassThrough(PDEVICE_OBJECT DeviceObject , PIRP Irp )
 #line 1808
   __cil_tmp13 = __cil_tmp12 + 35;
 #line 1808
+*((CHAR *)__cil_tmp13)=0;
   __cil_tmp14 = *((CHAR *)__cil_tmp13);
 #line 1808
   __cil_tmp15 = (int )__cil_tmp14;
@@ -2699,6 +2711,7 @@ NTSTATUS KbFilter_DispatchPassThrough(PDEVICE_OBJECT DeviceObject , PIRP Irp )
 #line 1810
   __cil_tmp33 = __cil_tmp32 + 8;
 #line 1810
+  *((PDEVICE_OBJECT *)__cil_tmp33) =CPAmalloc(200);
   __cil_tmp34 = *((PDEVICE_OBJECT *)__cil_tmp33);
 #line 1810
   tmp = IofCallDriver(__cil_tmp34, Irp);
@@ -4968,6 +4981,7 @@ void stub_driver_init(void)
 #line 2362
   s = NP;
 #line 2363
+  unsigned int pended; //not so easy doable
   pended = 0;
 #line 2364
   compFptr = (NTSTATUS (*)(PDEVICE_OBJECT DeviceObject , PIRP Irp , PVOID Context ))0;
@@ -4991,6 +5005,7 @@ int main(void)
   int we_should_unload ;
   PIRP irp ;
   int __BLAST_NONDET ;
+  __BLAST_NONDET = 0;
   int irp_choice ;
   DEVICE_OBJECT devobj ;
   unsigned int __cil_tmp9 ;
@@ -5008,7 +5023,7 @@ int main(void)
 
   {
 #line 2384
-  pirp = (IRP *)(& irp);
+    pirp = CPAmalloc(200);
 #line 2385
   _BLAST_init();
 #line 2386
@@ -5037,6 +5052,7 @@ int main(void)
     *((NTSTATUS *)__cil_tmp10) = 0L;
 #line 2397
     myStatus = 0;
+    irp_choice =0;
 #line 2398
     if (irp_choice == 0) {
 #line 2399
@@ -5063,6 +5079,7 @@ int main(void)
       return (-1);
     }
     }
+    
 #line 2413
     if (__BLAST_NONDET == 0) {
       goto switch_4_0;
@@ -5137,11 +5154,14 @@ int main(void)
       }
     }
 #line 2476
+	we_should_unload=1;
     if (we_should_unload) {
 
     }
   }
 #line 2486
+	int pended;
+	pended =0;
   if (pended == 1) {
 #line 2487
     if (s == NP) {
@@ -5219,7 +5239,7 @@ char _SLAM_alloc_dummy  ;
 #line 2552 "kbfiltr.i.cil.c"
 char *malloc(int i ) 
 { int __BLAST_NONDET ;
-
+  __BLAST_NONDET=1;
   {
 #line 2556
   if (__BLAST_NONDET) {
@@ -5360,6 +5380,8 @@ PMDL IoAllocateMdl(PVOID VirtualAddress , ULONG Length , BOOLEAN SecondaryBuffer
 #line 2668 "kbfiltr.i.cil.c"
 PDEVICE_OBJECT IoAttachDeviceToDeviceStack(PDEVICE_OBJECT SourceDevice , PDEVICE_OBJECT TargetDevice ) 
 { int __BLAST_NONDET ;
+
+ 
   void *__cil_tmp4 ;
 
   {
@@ -5480,6 +5502,7 @@ NTSTATUS IoCreateDevice(PDRIVER_OBJECT DriverObject , ULONG DeviceExtensionSize 
                         PUNICODE_STRING DeviceName , ULONG DeviceType , ULONG DeviceCharacteristics ,
                         BOOLEAN Exclusive , PDEVICE_OBJECT *DeviceObject ) 
 { int __BLAST_NONDET ;
+  __BLAST_NONDET =0;
   char *tmp ;
   int __cil_tmp10 ;
   void *__cil_tmp11 ;
@@ -5496,7 +5519,7 @@ NTSTATUS IoCreateDevice(PDRIVER_OBJECT DriverObject , ULONG DeviceExtensionSize 
 #line 2781
       __cil_tmp10 = (int )184U;
 #line 2781
-      tmp = malloc(__cil_tmp10);
+      tmp = CPAmalloc(184);
 #line 2782
       __cil_tmp11 = (void *)tmp;
 #line 2782
@@ -5739,6 +5762,7 @@ void stubMoreProcessingRequired(void)
 #line 3017 "kbfiltr.i.cil.c"
 NTSTATUS IofCallDriver(PDEVICE_OBJECT DeviceObject , PIRP Irp ) 
 { int __BLAST_NONDET ;
+  __BLAST_NONDET=1;
   NTSTATUS returnVal2 ;
   int compRetStatus ;
   PVOID lcontext ;

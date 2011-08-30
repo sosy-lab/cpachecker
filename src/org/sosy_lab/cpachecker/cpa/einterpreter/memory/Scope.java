@@ -15,6 +15,8 @@ public class Scope {
 
 
   private DynamicTypes types;
+  private EnumTypes etypes;
+
   private TDef definition;
 
   private  IASTExpression returnexpr;
@@ -28,6 +30,7 @@ public class Scope {
     variables.put(el, variable);
     name = pname;
     types = new DynamicTypes();
+    etypes = new EnumTypes();
     definition = new TDef();
 
   }
@@ -40,10 +43,11 @@ public class Scope {
     if(parent!=null){
       types = parent.types;
       definition = parent.definition;
-
+      etypes = parent.etypes;
     }else{
       types = new DynamicTypes();
       definition = new TDef();
+      etypes = new EnumTypes();
     }
 
   }
@@ -66,8 +70,8 @@ public class Scope {
       }
       Variable k = vtmp.get(pname);
       Scope s = this;
-      if(k==null& s.parent.name.equals("main")){
-        while(s.parent.name.equals("main")){
+      if(k==null&& !s.name.equals("main")){
+        while(!s.name.equals("main")&& s.parent!=null){
           s = s.parent;
         }
 
@@ -76,8 +80,8 @@ public class Scope {
       }
 
       k = vtmp.get(pname);
-      if(k!=null){
-
+      if(k==null){
+        getVariable(pname,tmp);
       }
       return k;
 
@@ -119,6 +123,9 @@ public class Scope {
   public DynamicTypes getCurrentTypeLibrary(){
     return types;
 }
+  public EnumTypes getCurrentEnums(){
+    return etypes;
+  }
 
   public TDef getCurrentDefinitions(){
     return definition;

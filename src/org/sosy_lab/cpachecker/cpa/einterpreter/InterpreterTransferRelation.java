@@ -40,6 +40,8 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
@@ -80,16 +82,17 @@ import org.sosy_lab.cpachecker.cpa.einterpreter.memory.Address;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.ArrayVariable;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.DynVariable;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.DynVariable.dyntypes;
+import org.sosy_lab.cpachecker.cpa.einterpreter.memory.EnumVariable;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.FuncPointerVariable;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.MemoryBlock;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.MemoryBlock.CellType;
-import org.sosy_lab.cpachecker.cpa.einterpreter.memory.MemoryException;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.PointerVariable;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.PrimitiveVariable;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.Scope;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.Type;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.Type.ArrayType;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.Type.CompositeType;
+import org.sosy_lab.cpachecker.cpa.einterpreter.memory.Type.EnumType;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.Type.FunctionType;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.Type.PointerType;
 import org.sosy_lab.cpachecker.cpa.einterpreter.memory.Type.Primitive;
@@ -195,6 +198,7 @@ public class InterpreterTransferRelation implements TransferRelation {
         handleStatement(statementEdge,successor);
       } catch (Exception e) {
        e.printStackTrace();
+       System.exit(1);
       }
 
 
@@ -215,6 +219,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
         } catch (Exception e) {
          e.printStackTrace();
+         System.exit(1);
       }
       }
       // this statement is a function return, e.g. return (a);
@@ -234,6 +239,7 @@ public class InterpreterTransferRelation implements TransferRelation {
         handleDeclaration(declarationEdge,successor);
       } catch (Exception e) {
        e.printStackTrace();
+       System.exit(1);
       }
       check = successor;
       break;
@@ -242,7 +248,13 @@ public class InterpreterTransferRelation implements TransferRelation {
     // this is an assumption, e.g. if(a == b)
     case AssumeEdge: {
       AssumeEdge assumeEdge = (AssumeEdge) cfaEdge;
-      check = handleAssume(assumeEdge, successor);
+      try {
+        check = handleAssume(assumeEdge, successor);
+      } catch (Exception e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+        System.exit(1);
+      }
 
       break;
     }
@@ -258,6 +270,7 @@ public class InterpreterTransferRelation implements TransferRelation {
       handleFunctionCall(functionCallEdge.getRawAST(),functionCallEdge.getSuccessor(),functionCallEdge.getArguments(),successor);
     } catch (Exception e) {
      e.printStackTrace();
+     System.exit(1);
     }
     check = successor;
 
@@ -314,6 +327,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
        } catch (Exception e) {
         e.printStackTrace();
+        System.exit(1);
        }
 
 
@@ -346,8 +360,8 @@ public class InterpreterTransferRelation implements TransferRelation {
 
 
 private AbstractElement handleAssume(AssumeEdge pAssumeEdge,
-      InterpreterElement pel) {
-    try {
+      InterpreterElement pel) throws Exception{
+
       //System.out.println("TRUTH "+ pAssumeEdge.getTruthAssumption());
       //System.out.println("EXPRESSION "+ pAssumeEdge.getExpression().getRawSignature());
       ExprResult exp = handleRightSide(pAssumeEdge.getExpression(),pel.getCurrentScope(),pel);
@@ -363,7 +377,7 @@ private AbstractElement handleAssume(AssumeEdge pAssumeEdge,
         if(v.getTypeClass(pel) == TypeClass.PRIMITIVE){
           PrimitiveVariable pvar = (PrimitiveVariable)v;
           BigInteger big1 = decodeVar(pvar,pel);
-          System.out.println(big1);
+          //System.out.println(big1);
           if((big1.compareTo(BigInteger.ZERO)==0) ^ !pAssumeEdge.getTruthAssumption()){
             return InterpreterBottomElement.INSTANCE;
           }else{
@@ -386,10 +400,7 @@ private AbstractElement handleAssume(AssumeEdge pAssumeEdge,
         throw new Exception("NOt supported assume result");
       }
 
-    } catch (Exception e) {
-     e.printStackTrace();
-    }
-    return null;
+
   }
 
 
@@ -478,7 +489,13 @@ private void copyVars(InterpreterElement pelement, List<String> pList,
     varname = pList.get(x);
     IASTParameterDeclaration tmp = parlist.get(x);
     if(exp instanceof IASTLiteralExpression){
+      if(tmp.getDeclSpecifier() instanceof IASTNamedTypeSpecifier){
+        Type res = getNamedType(tmp.getDeclSpecifier(),  pelement.getCurrentScope(),pelement);
+        allocSimpleVar(tmp.getName(), (PrimitiveType) res, pelement);
+      }
+      else{
       handleSimpleDecl((IASTSimpleDeclSpecifier)tmp.getDeclSpecifier(),tmp.getName(),pelement);
+      }
       ExprResult res2 =handleRightSide(exp, pelement.getCurrentScope(), pelement);
       ExprResult res1 = new ExprResult(pelement.getCurrentScope().getVariable(tmp.getName(),pelement));
       handleAssignment(res1, res2,pelement);
@@ -501,7 +518,19 @@ private void copyVars(InterpreterElement pelement, List<String> pList,
          } catch (Exception e) {
           e.printStackTrace();
          }
-       }else{
+       }else if (typ instanceof IASTNamedTypeSpecifier){
+         Type res = getNamedType(typ, pelement.getCurrentScope(), pelement);
+         if(res instanceof PointerType){
+           allocatePointerVar(cpname, (PointerType)res, pelement);
+           ExprResult expr2 = new ExprResult(pelement.getCurrentScope().getVariable(cpname,pelement));
+           handleAssignment(expr2,expr,pelement);
+
+         }else{
+           throw new Exception("Only address assignment in function call supported");
+         }
+
+       }
+       else{
          throw new Exception("Only address assignment in function call supported");
        }
 
@@ -651,12 +680,18 @@ private void handleAssignment(ExprResult res1, ExprResult res2, InterpreterEleme
     }
     break;
   case Num:
+    if(typ instanceof EnumType  && level ==0)
+      writeEnumVar(addr,res2.getnumber(),pelement);
 
-    if(typ instanceof PrimitiveType  && level ==0)
+
+    else if(typ instanceof PrimitiveType  && level ==0)
       writePrimVar((PrimitiveType)typ,addr,res2.getnumber(),pelement);
-    else if(typ instanceof PointerType && res2.getnumber().compareTo(BigInteger.valueOf(0)) ==0){
+    else if(typ instanceof PointerType &&res2.getnumber().compareTo(BigInteger.valueOf(0)) ==0){
       if(res1.getResultType()==RType.Var){
-        ((PointerVariable)res1.getVariable()).setNullPointer(pelement);
+        if(((PointerType)typ).getTargetType()instanceof FunctionType)
+          ((FuncPointerVariable)res1.getVariable()).setNullPointer(true, pelement);
+        else
+          ((PointerVariable)res1.getVariable()).setNullPointer(pelement);
         return;
       }
       MemoryBlock block;
@@ -676,6 +711,15 @@ private void handleAssignment(ExprResult res1, ExprResult res2, InterpreterEleme
 
     break;
   case Var:
+
+    if( res2.getVariable().getName().equals("__BLAST_NONDET") ){
+      if(!(typ instanceof PrimitiveType)){
+        throw new Exception("Can blast nondet only assign to primitive variables");
+      }
+      writePrimVar((PrimitiveType) typ, addr, pelement.getNonDetNumber(), pelement);
+      return;
+    }
+
     Type typ2 = res2.getVariable().getType();
     Address addr2 = res2.getVariable().getAddress();
 
@@ -808,13 +852,16 @@ private ExprResult handleRightSide(IASTExpression pRight,
                 throw new Exception("Error with dereference");
               return new ExprResult(addr.getMemoryBlock().getFunctionPointer(addr.getOffset(),pel));
             }else if (addr.getMemoryBlock().getCellType(addr.getOffset(),pel)== CellType.EMPTY){
-                throw new Exception("Can not deref empty Cell");
+                throw new RuntimeException("Can not deref empty Cell");
             }
           }else{
             switch(var.getBaseType().getTypeClass()){
             case PRIMITIVE:
               PrimitiveVariable tmp = new PrimitiveVariable("tmp", addr,  (PrimitiveType)var.getBaseType(), false,false);//TODO: signed unsigned handeln
               return new ExprResult(decodeVar(tmp,pel));
+            case ENUM:
+              EnumVariable evar = new EnumVariable("tmp",addr,(EnumType)var.getBaseType(),false);
+              return new ExprResult(evar);
             default:
               throw new Exception("REF OF DATA TYPE NOT YET SUPPORTED");
             }
@@ -860,6 +907,9 @@ private ExprResult handleRightSide(IASTExpression pRight,
         case STRUCT:
           DynVariable svar = (DynVariable)res.getVariable();
           return new ExprResult(svar.getAddress(),svar.getType(),1);
+        case ENUM:
+         EnumVariable evar = (EnumVariable)res.getVariable();
+         return new ExprResult(evar.getAddress(),evar.getType(),1);
         default:
           throw new Exception("DEREF NOT YET SUPPORTED");
         }
@@ -961,8 +1011,14 @@ private ExprResult handleRightSide(IASTExpression pRight,
       }
 
     case BINARY_AND:
-      res = handleBinaryAND(res1,res2,currentScope,pel);
+      res = handleBinaryOP(res1,res2,currentScope,pel,BOP.AND);
       return res;
+
+    case BINARY_OR:
+      res = handleBinaryOP(res1,res2,currentScope,pel,BOP.OR);
+      return res;
+
+
     case PLUS:
        res = handleBinaryOP(res1,res2,currentScope,NumOP.PLUS,pel);
       return res;
@@ -1020,6 +1076,7 @@ private ExprResult handleRCast(IASTExpression pRight, Scope cur,
       return res;
     case Var:
       switch(res.getVariable().getTypeClass(pel)){
+      case ENUM:
       case PRIMITIVE:
 
         MemoryBlock block = pel.getFactory().allocateMemoryBlock(k.sizeOf(),pel);
@@ -1038,6 +1095,7 @@ private ExprResult handleRCast(IASTExpression pRight, Scope cur,
       case POINTER:
         //(int) pnt;
         return res;
+      case FUNCPOINTER:
       case ARRAY:
         tmp = null;
         block = pel.getFactory().allocateMemoryBlock(4,pel);
@@ -1046,6 +1104,7 @@ private ExprResult handleRCast(IASTExpression pRight, Scope cur,
         tmp = new PrimitiveVariable("tmpy",naddr,k,k.isSigned(),k.isConst());
         tmp.setPnt();
         return new ExprResult(tmp);
+
 
       default:
         throw new Exception("Conversion not yet considered");
@@ -1075,7 +1134,23 @@ private ExprResult handleRCast(IASTExpression pRight, Scope cur,
         case PRIMITIVE:
           ((PrimitiveVariable) res.getVariable()).setPnt();
 
+
         case PRIMITIVEPNT:
+          //NULLPOINTERASSIGNMENT
+          PrimitiveVariable var = (PrimitiveVariable)res.getVariable();
+          MemoryBlock mblock = var.getAddress().getMemoryBlock();
+          CellType ct = mblock.getCellType(var.getAddress().getOffset(), pel);
+          if(ct==CellType.DATA){
+            BigInteger val = decodeVar(var,pel);
+            //System.out.println(val);
+            if(val.longValue()==0){
+              return new ExprResult(val);
+            }else{
+              throw new Exception("cannot convert bytes in addresses");
+            }
+          }
+
+
           PointerVariable pvar = new PointerVariable("tmp_convz",v.getAddress(),pt.getTargetType(),pt,pt.getLevelOfIndirection());
           return new ExprResult(pvar);
         case STRUCT:
@@ -1100,7 +1175,13 @@ private ExprResult handleRCast(IASTExpression pRight, Scope cur,
 
     }
     break;
-
+  case ENUM:
+    res = handleRightSide(((IASTCastExpression)pRight).getOperand(), cur,pel);
+    if(res.getResultType()== RType.Num){
+      return res;
+    }else{
+      throw new Exception("not yet considered");
+    }
   default:
     throw new Exception("NOT SUPPORTED CONVERSION");
   }
@@ -1287,8 +1368,8 @@ private ExprResult handleLessThan(ExprResult pRes1, ExprResult pRes2, Scope pCur
   default:
     throw new Exception("addresses not supported in less");
   }
-  System.out.println(big1);
-  System.out.println(big2);
+  //System.out.println(big1);
+  //System.out.println(big2);
   if(big1.compareTo(big2)<0){
     return new ExprResult(BigInteger.ONE);
   }else{
@@ -1412,8 +1493,14 @@ private ExprResult handleEquals(ExprResult pRes1, ExprResult pRes2, Scope pCur,I
   return null;
 }
 
-private ExprResult handleBinaryAND(ExprResult pRes1, ExprResult pRes2,
-    Scope pCur, InterpreterElement pel) throws Exception {
+enum BOP{
+  AND,
+  OR
+}
+
+
+private ExprResult handleBinaryOP(ExprResult pRes1, ExprResult pRes2,
+    Scope pCur, InterpreterElement pel,BOP op) throws Exception {
   BigInteger big1;
   BigInteger big2;
   switch(pRes1.getResultType()){
@@ -1455,8 +1542,10 @@ private ExprResult handleBinaryAND(ExprResult pRes1, ExprResult pRes2,
       throw new Exception("Binaryand not for addresses");
 
     }
-
-  big1 = big1.and(big2);
+  if(op ==BOP.AND)
+    big1 = big1.and(big2);
+  else
+    big1  =big1.or(big2);
   return new ExprResult(big1);
 }
 
@@ -1527,6 +1616,10 @@ private Type handleRightCast(IType pExpressionType, Scope pCur,InterpreterElemen
   if(pExpressionType instanceof IASTPointerTypeSpecifier){
     return getPointerType((IASTPointerTypeSpecifier)pExpressionType,pCur,pel);
   }
+  if(pExpressionType instanceof IComplexType){
+    return pel.getCurrentScope().getCurrentEnums().getEnum(((IComplexType) pExpressionType).getName());
+  }
+  //System.out.println(pExpressionType);
   throw new Exception("Not supported");
 }
 
@@ -1601,7 +1694,7 @@ private ExprResult handleBinaryOP(ExprResult pRes1, ExprResult pRes2,
     throw new Exception("Unsupported");
   }
 
-  System.out.println(op.toString() +": "+ big1 + " and " + big2);
+  //System.out.println(op.toString() +": "+ big1 + " and " + big2);
   return new ExprResult( op.performCalc(big1, big2));
 }
 
@@ -1704,7 +1797,30 @@ private boolean checkType(Type pTyp, Type pTyp2) {
 
 }
 
-private void writePrimVar(PrimitiveType pTyp, Address pAddr, BigInteger pGetnumber,InterpreterElement pel) {
+private void writeEnumVar(Address pAddr, BigInteger pGetnumber,
+    InterpreterElement pel) {
+  // TODO Value Check
+  MemoryBlock block = pAddr.getMemoryBlock();
+  int offset = pAddr.getOffset();
+  byte []data = new byte[4];
+  for(int x =0; x<4;x++){
+    BigInteger tmp = pGetnumber.and(BigInteger.valueOf(255));
+    try {
+      block.setData(offset+x,  tmp.byteValue(),pel);
+    } catch (RuntimeException e) {
+      e.printStackTrace();
+    }
+    pGetnumber= pGetnumber.shiftRight(8);
+
+  }
+
+
+
+}
+
+
+
+private void writePrimVar(PrimitiveType pTyp, Address pAddr, BigInteger pGetnumber,InterpreterElement pel) throws Exception {
   int exp;
   exp = pTyp.sizeOf();
   BigInteger numb = BigInteger.valueOf(2);
@@ -1721,11 +1837,9 @@ private void writePrimVar(PrimitiveType pTyp, Address pAddr, BigInteger pGetnumb
   byte []data = new byte[exp];
   for(int x =0; x<exp;x++){
     BigInteger tmp = pGetnumber.and(BigInteger.valueOf(255));
-    try {
+
       block.setData(offset+x,  tmp.byteValue(),pel);
-    } catch (MemoryException e) {
-      e.printStackTrace();
-    }
+
     pGetnumber= pGetnumber.shiftRight(8);
 
   }
@@ -1734,17 +1848,17 @@ private void writePrimVar(PrimitiveType pTyp, Address pAddr, BigInteger pGetnumb
 }
 
 //TODO:test method
-private BigInteger decodeVar(PrimitiveVariable pVar, InterpreterElement pel) {
+private BigInteger decodeVar(PrimitiveVariable pVar, InterpreterElement pel) throws Exception{
+  if(pVar.getName().equals("__BLAST_NONDET")){
+    return pel.getNonDetNumber();
+  }
   byte data[] = new byte[pVar.getSize()];
   MemoryBlock mem = pVar.getAddress().getMemoryBlock();
   int offset = pVar.getAddress().getOffset();
   for(int x=0;x<data.length;x++){
-    try {
-      data[x]= mem.getData(x+offset,pel);
-    } catch (MemoryException e) {
 
-      e.printStackTrace();
-    }
+      data[x]= mem.getData(x+offset,pel);
+
   }
   BigInteger var;
   if(pVar.isSigned()){
@@ -1827,23 +1941,26 @@ private void handleTypeDecl(String name, InterpreterElement pElement,
 
   }
 
-  if(typ instanceof IASTElaboratedTypeSpecifier){//defintion von struct variablen
+  if(typ instanceof IASTElaboratedTypeSpecifier){
     IASTElaboratedTypeSpecifier def = (IASTElaboratedTypeSpecifier)typ;
-    CompositeType comp = pElement.getCurrentScope().getCurrentTypeLibrary().getType(((IASTElaboratedTypeSpecifier) typ).getName());
-    if(comp == null){
-      System.out.println("Forward declaration");
-      if(def.getKind()==1){
-        StructType k = new StructType(((IASTElaboratedTypeSpecifier) typ).getName(),false);
-        pElement.getCurrentScope().getCurrentTypeLibrary().addType(k);
-      }else if(def.getKind()==2){
-        UnionType k = new UnionType(((IASTElaboratedTypeSpecifier) typ).getName(),false);
-        pElement.getCurrentScope().getCurrentTypeLibrary().addType(k);
+    if(((IASTElaboratedTypeSpecifier) typ).getKind()>0){//defintion von struct variablen
+      CompositeType comp = pElement.getCurrentScope().getCurrentTypeLibrary().getType(((IASTElaboratedTypeSpecifier) typ).getName());
+      if(comp == null){
+        //System.out.println("Forward declaration");
+        if(def.getKind()==1){
+          StructType k = new StructType(((IASTElaboratedTypeSpecifier) typ).getName(),false);
+          pElement.getCurrentScope().getCurrentTypeLibrary().addType(k);
+        }else if(def.getKind()==2){
+          UnionType k = new UnionType(((IASTElaboratedTypeSpecifier) typ).getName(),false);
+          pElement.getCurrentScope().getCurrentTypeLibrary().addType(k);
+        }
+        return;
       }
-      return;
+      if(comp.getMembers().size()>0)
+        handleDynVarDef(name,((IASTElaboratedTypeSpecifier) typ).getName(),pElement,typ.isConst());
+    }else{//enum
+      handleEnumDef(name,((IASTElaboratedTypeSpecifier) typ).getName(),pElement,typ.isConst());
     }
-    if(comp.getMembers().size()>0)
-      handleDynVarDef(name,((IASTElaboratedTypeSpecifier) typ).getName(),pElement,typ.isConst());
-
   }
 
   if(typ instanceof IASTNamedTypeSpecifier){
@@ -1853,7 +1970,30 @@ private void handleTypeDecl(String name, InterpreterElement pElement,
 
   }
 
+  if(typ instanceof IASTEnumerationSpecifier ){
+    IASTEnumerationSpecifier etyp = (IASTEnumerationSpecifier)typ;
+    EnumType ntyp = new EnumType(etyp.getName(),false);
+    IASTEnumerator[] members = etyp.getEnumerators();
+    int x=0;
+    for(x=0;x<members.length;x++){
+      ntyp.addEnumerator(members[x].getName(), members[x].getValue());
+    }
+    pElement.getCurrentScope().getCurrentEnums().addEnum(etyp.getName(), ntyp);
 
+  }
+
+}
+
+
+
+private void handleEnumDef(String name, String label,
+    InterpreterElement pElement, boolean pConst) {
+  MemoryBlock data = pElement.getFactory().allocateMemoryBlock(4, pElement);
+  Address addr = new Address(data,0);
+
+  EnumType type = pElement.getCurrentScope().getCurrentEnums().getEnum(label);
+  EnumVariable variable = new EnumVariable(name, addr, type,pConst);
+  pElement.getCurrentScope().addVariable(variable, pElement);
 }
 
 
@@ -1861,6 +2001,10 @@ private void handleTypeDecl(String name, InterpreterElement pElement,
 private void handleDynVarDef(String name, String label, InterpreterElement pel,boolean isConst) throws Exception {
   CompositeType comp = pel.getCurrentScope().getCurrentTypeLibrary().getType(label);
 
+  if(name == null){
+    int size = comp.sizeOf();
+    return;
+  }
   int size = comp.sizeOf();
   MemoryBlock data = pel.getFactory().allocateMemoryBlock(size,pel);
   Address addr = new Address(data,0);
@@ -1909,7 +2053,12 @@ private CompositeType allocateDynType(IASTCompositeTypeSpecifier pComptyp,
    else if(memb instanceof IASTArrayTypeSpecifier){
      cur = getArrayType((IASTArrayTypeSpecifier) memb, pElement.getCurrentScope(),pElement);
    }else if(memb instanceof IASTElaboratedTypeSpecifier){
-     cur = pElement.getCurrentScope().getCurrentTypeLibrary().getType(((IASTElaboratedTypeSpecifier) memb).getName());
+     IASTElaboratedTypeSpecifier ememb = (IASTElaboratedTypeSpecifier)memb;
+     if(ememb.getKind()>0){
+     cur = pElement.getCurrentScope().getCurrentTypeLibrary().getType(ememb.getName());
+     }else{
+       cur = pElement.getCurrentScope().getCurrentEnums().getEnum(ememb.getName());
+     }
    }else if (memb instanceof IASTNamedTypeSpecifier){
 
      IASTNamedTypeSpecifier ntmp = (IASTNamedTypeSpecifier)memb;
@@ -1947,28 +2096,41 @@ private void handlePointerDecl(IASTPointerTypeSpecifier pTyp,
 
 
     PointerType typ = getPointerType(pTyp,pel.getCurrentScope(),pel);
-    MemoryBlock block = pel.getFactory().allocateMemoryBlock(4,pel);
-    Address addr = new Address(block, 0);
-    if(typ.getTargetType() instanceof FunctionType){
-      FuncPointerVariable var = new FuncPointerVariable(pName, addr, typ.getTargetType(), typ, typ.getLevelOfIndirection());
-      pel.getCurrentScope().addVariable(var,pel);
-    }else{
-      PointerVariable var = new PointerVariable(pName, addr, typ.getTargetType(), typ, typ.getLevelOfIndirection());
-      pel.getCurrentScope().addVariable(var,pel);
-    }
-    return;
+    allocatePointerVar(pName,typ,pel);
 
 
 }
 
+
+private void allocatePointerVar( String pName,PointerType typ,InterpreterElement pel){
+  MemoryBlock block = pel.getFactory().allocateMemoryBlock(4,pel);
+  Address addr = new Address(block, 0);
+  if(typ.getTargetType() instanceof FunctionType){
+    FuncPointerVariable var = new FuncPointerVariable(pName, addr, typ.getTargetType(), typ, typ.getLevelOfIndirection());
+    pel.getCurrentScope().addVariable(var,pel);
+  }else{
+    PointerVariable var = new PointerVariable(pName, addr, typ.getTargetType(), typ, typ.getLevelOfIndirection());
+    pel.getCurrentScope().addVariable(var,pel);
+  }
+  return;
+}
+
 public void handleSimpleDecl(IASTSimpleDeclSpecifier pTyp,
     String name, InterpreterElement pel) {
-  Address addr;
-  MemoryBlock block;
-  PrimitiveVariable pVar;
+
 
 
   PrimitiveType ptyp = getPrimitiveType(pTyp);
+  allocSimpleVar(name,ptyp,pel);
+
+
+}
+
+
+private void allocSimpleVar(String name,PrimitiveType ptyp,InterpreterElement pel){
+  Address addr;
+  MemoryBlock block;
+  PrimitiveVariable pVar;
   if(ptyp.getPrimitive() != null){
     block = pel.getFactory().allocateMemoryBlock(ptyp.getPrimitive().sizeOf(),pel);
     addr = new Address(block,0);
@@ -1983,8 +2145,6 @@ public void handleSimpleDecl(IASTSimpleDeclSpecifier pTyp,
       e.printStackTrace();
     }
   }
-
-
 }
 
 
@@ -2033,6 +2193,7 @@ private ArrayType getArrayType(IASTArrayTypeSpecifier pTyp,
   }else if(typ instanceof IASTPointerTypeSpecifier)
     basetype = getPointerType((IASTPointerTypeSpecifier) typ,scope,pel);
   else if (typ instanceof IASTNamedTypeSpecifier ){
+
     String name = ((IASTNamedTypeSpecifier)typ).getName();
     IType t  = scope.getCurrentDefinitions().getDefinition(name);
     basetype = getNamedType(t,scope,pel);
@@ -2047,7 +2208,8 @@ private ArrayType getArrayType(IASTArrayTypeSpecifier pTyp,
 
     throw new Exception("not yet supported");
   }
-  System.out.println("LENGTH " +length);
+
+  //System.out.println("LENGTH " +length);
   return new ArrayType(basetype,length);
 }
 
@@ -2068,7 +2230,11 @@ private Type getNamedType(IType t,Scope scope,InterpreterElement pel) throws Exc
     return scope.getCurrentTypeLibrary().getType(((IASTCompositeTypeSpecifier) t).getName());
   }
   if(t instanceof IASTElaboratedTypeSpecifier){
-    return scope.getCurrentTypeLibrary().getType(((IASTElaboratedTypeSpecifier) t).getName());
+    IASTElaboratedTypeSpecifier tt = (IASTElaboratedTypeSpecifier)t;
+    if(tt.getKind()>0)
+      return scope.getCurrentTypeLibrary().getType(tt.getName());
+    else
+      return scope.getCurrentEnums().getEnum(tt.getName());
   }
   if(t instanceof IASTNamedTypeSpecifier){
     String f =((IASTNamedTypeSpecifier) t).getName();
@@ -2076,7 +2242,7 @@ private Type getNamedType(IType t,Scope scope,InterpreterElement pel) throws Exc
     return getNamedType(def, scope,pel);
   }
 
- throw new Exception("could not handle definition");
+ throw new Exception("could not handle definition "+t.toASTString() );
 }
 
 
@@ -2129,13 +2295,19 @@ public PointerType getPointerType(IASTPointerTypeSpecifier pTyp, Scope scop,Inte
    return new PointerType(basetype, isConst, level);
 
   }else if (tmp instanceof IASTElaboratedTypeSpecifier){
+    Type basetype;
     IASTElaboratedTypeSpecifier ctmp = (IASTElaboratedTypeSpecifier)tmp;
-    Type basetype = scop.getCurrentTypeLibrary().getType(ctmp.getName());
-    if(basetype == null){
-      System.out.println("WHAT");
+    if(ctmp.getKind()>0){
+
+       basetype = scop.getCurrentTypeLibrary().getType(ctmp.getName());
+      if(basetype == null){
+        //System.out.println("WHAT");
+      }
+
+    }else{
+      basetype= scop.getCurrentEnums().getEnum(ctmp.getName());
     }
     return new PointerType(basetype, isConst, level);
-
 
   }else if (tmp instanceof IASTNamedTypeSpecifier){
     IASTNamedTypeSpecifier ntmp = (IASTNamedTypeSpecifier)tmp;
@@ -2149,6 +2321,7 @@ public PointerType getPointerType(IASTPointerTypeSpecifier pTyp, Scope scop,Inte
 
   }
   else if (tmp instanceof IComplexType){
+
     IComplexType ctmp = (IComplexType)tmp;
     Type basetype = scop.getCurrentTypeLibrary().getType(ctmp.getName());
     if(basetype == null){
@@ -2175,7 +2348,7 @@ public PointerType getPointerType(IASTPointerTypeSpecifier pTyp, Scope scop,Inte
     return new PointerType(basetype, isConst, level);
   }
   else{
-    System.out.println(tmp);
+    //System.out.println(tmp);
     throw new Exception("BASE TYpe not yet supported");
   }
 
@@ -2219,7 +2392,7 @@ public PrimitiveType getPrimitiveType(IASTSimpleDeclSpecifier pTyp){
     break;
   }
 
-  if(pTyp.isLong()){
+  if(pTyp.isLong()||pTyp.isLongLong()){
     typ = Primitive.LONGLONG;
 
   }else if(pTyp.isShort()){

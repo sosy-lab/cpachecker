@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.einterpreter.memory.NonDetProvider;
 
 public class InterpreterCPA implements ConfigurableProgramAnalysis {
 
@@ -49,15 +50,15 @@ public class InterpreterCPA implements ConfigurableProgramAnalysis {
   private PrecisionAdjustment precisionAdjustment;
   private int[] mInitialValuesForNondeterministicAssignments;
   private     Map<String, CFAFunctionDefinitionNode> lCFAMap;
+  private NonDetProvider provider;
+
   public InterpreterCPA(int[] pInitialValuesForNondeterministicAssignments,    Map<String, CFAFunctionDefinitionNode> plCFAMap) {
     this(pInitialValuesForNondeterministicAssignments, false,plCFAMap);
 
   }
 
   public InterpreterCPA(int[] pInitialValuesForNondeterministicAssignments, boolean pExtendInputs,Map<String, CFAFunctionDefinitionNode> plCFAMap) {
-    if (pInitialValuesForNondeterministicAssignments == null) {
-     // throw new IllegalArgumentException();
-    }
+    mInitialValuesForNondeterministicAssignments = pInitialValuesForNondeterministicAssignments;
     lCFAMap = plCFAMap;
     InterpreterDomain lDomain = new InterpreterDomain ();
     MergeOperator lMergeOp = MergeSepOperator.getInstance();
@@ -105,7 +106,7 @@ public class InterpreterCPA implements ConfigurableProgramAnalysis {
   @Override
   public AbstractElement getInitialElement (CFANode node)
   {
-    return new InterpreterElement();
+    return new InterpreterElement(mInitialValuesForNondeterministicAssignments);
   }
 
   @Override
