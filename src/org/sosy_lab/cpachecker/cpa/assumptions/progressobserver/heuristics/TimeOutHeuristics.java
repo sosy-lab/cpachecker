@@ -32,6 +32,8 @@ import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ReachedHeuristic
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristics;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsData;
 
+import sun.management.ManagementFactory;
+
 public class TimeOutHeuristics implements StopHeuristics<TimeOutHeuristicsData> {
 
   private TimeOutHeuristicsPrecision precision;
@@ -39,7 +41,7 @@ public class TimeOutHeuristics implements StopHeuristics<TimeOutHeuristicsData> 
   private long initialStartTime;
 
   public TimeOutHeuristics(Configuration config, LogManager pLogger)
-      throws InvalidConfigurationException {
+  throws InvalidConfigurationException {
     precision = new TimeOutHeuristicsPrecision(this, config, pLogger);
   }
 
@@ -62,21 +64,25 @@ public class TimeOutHeuristics implements StopHeuristics<TimeOutHeuristicsData> 
   @Override
   public TimeOutHeuristicsData processEdge(StopHeuristicsData pData, CFAEdge pEdge) {
     TimeOutHeuristicsData d = (TimeOutHeuristicsData)pData;
-    if (d == TimeOutHeuristicsData.BOTTOM)
+    if (d == TimeOutHeuristicsData.BOTTOM) {
       return d;
+    }
+
+    com.sun.management.OperatingSystemMXBean osbean = (com.sun.management.OperatingSystemMXBean)ManagementFactory.getOperatingSystemMXBean();
+    long cputime = osbean.getProcessCpuTime()/1000000;
+
+    if(precision.getHardLimitThreshold()!=-1 &&
+        cputime > precision.getHardLimitThreshold()){
+      precision.setShouldForceToStop();
+      d.setThreshold(precision.getHardLimitThreshold());
+      return TimeOutHeuristicsData.BOTTOM;
+    }
+    if (System.currentTimeMillis() > startTime + precision.getThreshold()) {
+      d.setThreshold(precision.getThreshold());
+      return TimeOutHeuristicsData.BOTTOM;
+    }
     else
-      if(precision.getHardLimitThreshold()!=-1 &&
-          System.currentTimeMillis() > initialStartTime + precision.getHardLimitThreshold()){
-        precision.setShouldForceToStop();
-        d.setThreshold(precision.getHardLimitThreshold());
-        return TimeOutHeuristicsData.BOTTOM;
-      }
-      if (System.currentTimeMillis() > startTime + precision.getThreshold()) {
-        d.setThreshold(precision.getThreshold());
-        return TimeOutHeuristicsData.BOTTOM;
-      }
-      else
-        return d;
+      return d;
   }
 
   public void resetStartTime() {
