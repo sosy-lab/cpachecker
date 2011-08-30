@@ -145,15 +145,15 @@ public class AlternatingRefiner implements Refiner {
   }
 
   @Override
-  public CounterexampleInfo performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
+  public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
 
-    CounterexampleInfo lTraceInfo = mPredicateRefiner.performRefinement(pReached);
+    CounterexampleInfo lTraceInfo = mPredicateRefiner.performRefinementWithInfo(pReached);
 
     if (lTraceInfo.isSpurious()) {
       // symbolic path is infeasible, we continue symbolic
       // exploration after the refinement
 
-      return lTraceInfo;
+      return true;
     }
 
     // symbolic path is feasible
@@ -245,7 +245,7 @@ public class AlternatingRefiner implements Refiner {
           mExecutionPath = lPathElement.toArray();
 
           // no refinement necessary, since test case covers
-          return lTraceInfo;
+          return false;
         }
         else {
           throw new RuntimeException();
@@ -367,7 +367,7 @@ public class AlternatingRefiner implements Refiner {
     }
 
     // continue with symbolic exploration
-    return CounterexampleInfo.spurious();
+    return true;
   }
 
 }

@@ -189,7 +189,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         stats.refinementTimer.start();
         boolean refinementResult;
         try {
-          refinementResult = mRefiner.performRefinement(reached).isSpurious();
+          refinementResult = mRefiner.performRefinement(reached);
 
         } catch (RefinementFailedException e) {
           stats.countFailedRefinements++;

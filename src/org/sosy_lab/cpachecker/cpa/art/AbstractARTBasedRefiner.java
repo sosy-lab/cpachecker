@@ -83,7 +83,15 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
   };
 
   @Override
-  public final CounterexampleInfo performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
+  public final boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
+    return performRefinementWithInfo(pReached).isSpurious();
+  }
+
+  /**
+   * This method does the same as {@link #performRefinement(ReachedSet)},
+   * but it returns some more information about the refinement.
+   */
+  public final CounterexampleInfo performRefinementWithInfo(ReachedSet pReached) throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "Starting ART based refinement");
     mArtCpa.clearCounterexample();
 
