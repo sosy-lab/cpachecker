@@ -11,8 +11,8 @@
       <includesfile>test/test-sets/systemc.set</includesfile>
       <includesfile>test/test-sets/nested.set</includesfile>
     </sourcefiles>
-    <option name="-setprop">output.disable=true</option>
-    <option name="-config">test/config/predicateAbstraction.properties</option>
+    <option name="-noout"/>
+    <option name="-predicateAbstraction"/>
     <option name="-heap">1200m</option>
   </test>
   <columns>

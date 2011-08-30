@@ -18,6 +18,7 @@ following arguments (see below to learn what the options mean):
 -outputpath <DIR>	sets "output.path = <DIR>"
 -logfile <FILE>		sets "log.file = <FILE>"
 -nolog			sets "log.level = OFF" and "log.consoleLevel = OFF"
+-noout			sets "output.disable=true"
 -stats			sets "statistics.print = true"
 -entryfunction <FUNC>	sets "analysis.entryFunction = <FUNC>"
 -dfs			sets "analysis.traversal.order = DFS"
@@ -26,6 +27,12 @@ following arguments (see below to learn what the options mean):
 -topsort		sets "analysis.traversal.order = TOPSORT"
 -rand           sets "analysis.traversal.order = RAND"
 -setprop <KEY>=<VALUE>	sets any option: "KEY = VALUE"
+
+The arguments "-config test/config/CONFIGFILE.properties" can be
+abbreviated to "-CONFIG". In other words, if CPAchecker finds an
+unknown command-line option, it checks if a file with this name
+and the ending ".properties" exists in the directory "test/config"
+and uses it as the configuration file.
 
 Either "-help", "-config" or "-cpas" has to be specified.
 

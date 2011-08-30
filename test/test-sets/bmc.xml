@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="1800" memlimit="1200">
-  <option name="-setprop">output.disable=true</option>
-  <option name="-config">test/config/bmc.properties</option>
+  <option name="-noout"/>
+  <option name="-bmc"/>
   <option name="-heap">1200m</option>
 
   <test name="k1">
