@@ -324,10 +324,12 @@ public final class DOTBuilder2 {
                             .replaceAll("<", "&lt;")
                             .replaceAll(">", "&gt;"));
           sb.append("</td></tr>");
-
-          node2combo.put(edge.getPredecessor().getNodeNumber(), firstNo);
         }
         sb.append("</table>>");
+      }
+
+      for (CFAEdge edge: combo) {
+        node2combo.put(edge.getPredecessor().getNodeNumber(), firstNo);
       }
 
       sb.append("];\n");
