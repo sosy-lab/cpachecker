@@ -78,10 +78,11 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
   @Option(description="Print debugging info?")
   private boolean debug=true;
 
-
   @Option(description="List of variables global to multiple threads")
   protected String[] globalVariables = {};
 
+  @Option(description="Combine all valid environmental edges for thread in two one edge?")
+  boolean combineEnvEdges = false;
 
   public class RelyGuaranteeAlgorithmStatistics implements Statistics {
     private Timer totalTimer = new Timer();
@@ -288,7 +289,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     try {
       fstream = new FileWriter(file);
       BufferedWriter out = new BufferedWriter(fstream);;
-      String s = DOTBuilder.generateDOT(this.cfas[pI].getFunctions().values(), this.mainFunctions[pI]);
+      String s = DOTBuilder.generateDOT(cfas[pI].getFunctions().values(), mainFunctions[pI]);
       out.write(s);
       out.close();
     } catch (IOException e) {
@@ -297,20 +298,29 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
   }
 
   /**
-   * Apply env transitions to CFA of thread i.
+   * Applies environmental edges to CFA i. Returns a map with env. edges that haven't
+   * been applied before. All env. edges :
+   * 1) are applied before global reads,
+   * 2) are applied before global writes,
+   * 3) are not applied where node.isEnvAllowed() is false.
+   *
+   * @param   i CFA number
+   * @return  multimap CFA nodes -> CFA edges
    */
   private ListMultimap<CFANode, CFAEdge> addEnvTransitionsToCFA(int i) {
-    ListMultimap<CFANode, CFAEdge> envEdgesMap = ArrayListMultimap.create();
 
+
+    ListMultimap<CFANode, CFAEdge> envEdgesMap = null;
     RelyGuaranteeCFA cfa = cfas[i];
-    Multimap<CFANode, String> lhsVars = cfa.getLhsVariables();
-    Multimap<CFANode, String> rhsVars = cfa.getRhsVariables();
-    Multimap<CFANode, String> allVars = HashMultimap.create(lhsVars);
-    allVars.putAll(rhsVars);
+
     // remove old environmental edges
     removeRGEdges(i);
-    this.dumpDot(i, "test/output/revertedCFA"+i+".dot");
-    // iterate over both new and old env edges
+
+    if (debug){
+      dumpDot(i, "test/output/revertedCFA"+i+".dot");
+    }
+
+    // sum up all valid edges from other threads
     List<RelyGuaranteeCFAEdgeTemplate> valid = new Vector<RelyGuaranteeCFAEdgeTemplate>();
     for (int j=0; j<threadNo; j++){
       if (j!=i){
@@ -319,40 +329,80 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     }
 
     if (valid.isEmpty()){
-      return envEdgesMap;
+      return ArrayListMultimap.create();
     }
 
-    List<RelyGuaranteeCFAEdgeTemplate> unapplied = environment.getUnappliedEnvEdgesForThread(i);
-    // true iff some env. edges hasn't been applied before
-    boolean someUnapplied = false;
-    for (RelyGuaranteeCFAEdgeTemplate envEdge : valid){
-      if (unapplied.contains(envEdge)){
-        someUnapplied = true;
-        break;
+    // check where to apply env. edges
+    Set<CFANode> toApply = new HashSet<CFANode>();
+
+    // apply all env transitions to CFA nodes that have an outgoing edge that reads from or writes to a global variable
+    Multimap<CFANode, String> lhsVars = cfa.getLhsVariables();
+    Multimap<CFANode, String> rhsVars = cfa.getRhsVariables();
+    Multimap<CFANode, String> allVars = HashMultimap.create(lhsVars);
+    allVars.putAll(rhsVars);
+
+    for(Entry<String, CFANode> entry :   cfa.getCFANodes().entries()){
+      CFANode node = entry.getValue();
+
+      if (!node.isEnvAllowed()){
+        continue;
+      }
+
+      for (String var : allVars.get(node)){
+        if (globalVarsSet.contains(var)){
+          toApply.add(node);
+          break;
+        }
       }
     }
+
+    // list of env. edges that haven't been applied before
+    List<RelyGuaranteeCFAEdgeTemplate> unapplied = environment.getUnappliedEnvEdgesForThread(i);
+
+    if(combineEnvEdges){
+      // valid env. edges are merged into one edge
+      envEdgesMap = addCombinedEnvTransitionsToCFA(i, toApply, valid, unapplied);
+    } else {
+      // valid env. edges are applied separately
+      envEdgesMap = addSeparateEnvTransitionsToCFA(i, toApply, valid, unapplied);
+    }
+
+    if (debug){
+      dumpDot(i, "test/output/newCFA"+i+".dot");
+    }
+
+    return envEdgesMap;
+  }
+
+
+  /**
+   * Combine environmental edges from valid and apply them to the nodes of CFA i, which belong to toApply.
+   * Returns Returns a map with env. edges that haven't been applied before.
+   *
+   * @param i
+   * @param toApply
+   * @param valid
+   * @param unapplied
+   * @return
+   */
+  private ListMultimap<CFANode, CFAEdge> addCombinedEnvTransitionsToCFA(int i, Set<CFANode> toApply, List<RelyGuaranteeCFAEdgeTemplate> valid, List<RelyGuaranteeCFAEdgeTemplate> unapplied) {
+
+    RelyGuaranteeCFA cfa = cfas[i];
+    ListMultimap<CFANode, CFAEdge> envEdgesMap = ArrayListMultimap.create();
+
+    // someUnapplied  iff some env. edges hasn't been applied before
+    boolean someUnapplied = !unapplied.isEmpty();
 
     if (debug){
       System.out.println();
       System.out.println("Env edges applied at CFA "+i+" :");
     }
 
-    // apply all env transitions to CFA nodes that have an outgoing edge that reads from or writes to a global variable
+    // apply env. edges
     for(Entry<String, CFANode> entry :   cfa.getCFANodes().entries()){
       CFANode node = entry.getValue();
-      // check if env transition can be applied at the node
-      if (!node.isEnvAllowed()){
-        continue;
-      }
 
-      boolean applEnv = false;
-      for (String var : allVars.get(node)){
-        if (globalVarsSet.contains(var)){
-          applEnv = true;
-          break;
-        }
-      }
-      if (applEnv){
+      if (toApply.contains(node)){
         // combine all valid edges into one
         RelyGuaranteeCombinedCFAEdge combined = new RelyGuaranteeCombinedCFAEdge(valid);
 
@@ -368,7 +418,54 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
       }
     }
 
-    this.dumpDot(i, "test/output/newCFA"+i+".dot");
+    return envEdgesMap;
+  }
+
+
+  /**
+   * Apply valid environmental edges to the nodes of CFA i, which belong to toApply.
+   * Returns Returns a map with env. edges that haven't been applied before.
+   *
+   * @param i
+   * @param toApply
+   * @param valid
+   * @param unapplied
+   * @return
+   */
+  private ListMultimap<CFANode, CFAEdge> addSeparateEnvTransitionsToCFA(int i, Set<CFANode> toApply, List<RelyGuaranteeCFAEdgeTemplate> valid, List<RelyGuaranteeCFAEdgeTemplate> unapplied) {
+
+    RelyGuaranteeCFA cfa = cfas[i];
+    ListMultimap<CFANode, CFAEdge> envEdgesMap = ArrayListMultimap.create();
+
+    // change unapplied to set, so its easier to decided membership
+    Set<RelyGuaranteeCFAEdgeTemplate> unappliedSet = new HashSet<RelyGuaranteeCFAEdgeTemplate>(unapplied);
+
+    if (debug){
+      System.out.println();
+      System.out.println("Env edges applied at CFA "+i+" :");
+    }
+
+    // apply env. edges
+    for(Entry<String, CFANode> entry :   cfa.getCFANodes().entries()){
+      CFANode node = entry.getValue();
+
+      if (toApply.contains(node)){
+        // apply edges
+
+        for (RelyGuaranteeCFAEdgeTemplate edge : valid){
+          RelyGuaranteeCFAEdge rgEdge = edge.instantiate();
+          addEnvTransitionToNode(node, rgEdge);
+
+          if (debug){
+            System.out.println("\t-node "+node+" applied "+rgEdge);
+          }
+
+          if (unappliedSet.contains(edge)){
+            envEdgesMap.put(node, rgEdge);
+          }
+        }
+      }
+    }
 
     return envEdgesMap;
   }

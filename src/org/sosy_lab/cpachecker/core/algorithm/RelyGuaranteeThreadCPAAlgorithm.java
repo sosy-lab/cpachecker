@@ -215,7 +215,8 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
         // TODO for statistics, could slower down the analysis
         RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(successor, RelyGuaranteeAbstractElement.class);
         boolean byEnvEdge = false;
-        if (rgElement.getParentEdge() != null && rgElement.getParentEdge().getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
+
+        if (rgElement.getParentEdge() != null && (rgElement.getParentEdge().getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge || rgElement.getParentEdge().getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge)){
           byEnvEdge = true;
           stats.countEnvSuccessors++;
         }
@@ -245,7 +246,6 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
           // successors left that otherwise would be forgotten
           reachedSet.reAddToWaitlist(element);
           reachedSet.add(successor, successorPrecision);
-          System.out.println("DEBUG: Break");
           stats.totalTimer.stop();
           return true;
         }

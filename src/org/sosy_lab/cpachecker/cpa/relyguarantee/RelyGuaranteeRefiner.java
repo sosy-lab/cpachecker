@@ -107,8 +107,9 @@ public class RelyGuaranteeRefiner{
     public    Timer formulaTimer        = new Timer();
     protected Timer   restartingTimer     = new Timer();
 
-    public  int formulaNo               = 0;
+    public int formulaNo                = 0;
     public int unsatChecks              = 0;
+    public int maxPredicatesPerLoc      = 0;
 
     @Override
     public String getName() {
@@ -124,6 +125,7 @@ public class RelyGuaranteeRefiner{
     public void printStatistics(PrintStream out, Result pResult,ReachedSet pReached){
       out.println("Interpolation fomulas:           " + formulaNo);
       out.println("Unsat checks:                    " + unsatChecks);
+      out.println("Max. predicates per location     " + maxPredicatesPerLoc);
       out.println();
       out.println("Time on constructing formulas:   " + formulaTimer);
       out.println("Total time on interpolation:     " + interpolationTimer+" (max: "+interpolationTimer.printMaxTime()+")");
@@ -402,9 +404,17 @@ public class RelyGuaranteeRefiner{
         }
       }
 
-      RelyGuaranteePrecision newPrecision = new RelyGuaranteePrecision(pmapBuilder.build(), rgPrecision.getGlobalPredicates());
+      ImmutableSetMultimap<CFANode, AbstractionPredicate> newPredMap = pmapBuilder.build();
+      RelyGuaranteePrecision newPrecision = new RelyGuaranteePrecision(newPredMap, rgPrecision.getGlobalPredicates());
+
+      // for statistics check the number of predicates per location
+      for (CFANode node : newPredMap.keySet()){
+        stats.maxPredicatesPerLoc = Math.max(stats.maxPredicatesPerLoc, newPredMap.get(node).size());
+      }
+
       for (ARTElement initChild : inital.getChildren()){
         refinementMap.put(tid, Pair.of(initChild, newPrecision));
+
         if (debug){
           System.out.println();
           System.out.println("Thread "+tid+": cut-off node id:"+initChild.getElementId()+" precision "+newPrecision);

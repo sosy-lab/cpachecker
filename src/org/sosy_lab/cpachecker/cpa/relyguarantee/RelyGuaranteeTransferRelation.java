@@ -224,6 +224,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
       newPathFormula = handleEnvFormula(oldPathFormula, rgEdge);
     }
     else if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge){
+
       RelyGuaranteeCombinedCFAEdge rgEdge = (RelyGuaranteeCombinedCFAEdge) edge;
       newPathFormula = handleCombinedEnvFormula(oldPathFormula, rgEdge);
     }

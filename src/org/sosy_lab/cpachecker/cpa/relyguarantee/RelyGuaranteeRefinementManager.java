@@ -86,7 +86,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
   @Option(name="refinement.itpEnvSkip",
       description="Detect and skip interpolation branches that don't give new predicates.")
-      private boolean itpEnvSkip = true;
+      private boolean itpEnvSkip = false;
 
   @Option(name="refinement.splitItpAtoms",
       description="split arithmetic equalities when extracting predicates from interpolants")
@@ -807,14 +807,15 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
      if (valid){
        // lastItp => itp, so  the branches does not give any usefull predicates
        // skip to block (returnBlock+1) and put empty predicates in between
-       //System.out.println("Skip to blk "+(returnBlock+1)+" since " + lastItp +" => "+itp);
+       System.out.println("Skip to blk "+(returnBlock+1)+" since " + lastItp +" => "+itp);
        for (int j=i; j<=returnBlock; j++){
          ARTElement jARTElement = interpolationBlocks.get(j).getArtElement();
          CFANode jLoc = AbstractElements.extractLocation(jARTElement);
-         Set<AbstractionPredicate> predicates = new HashSet<AbstractionPredicate>();
+         Formula skipItp = itpProver.getInterpolant(interpolationIds.subList(itpContext.size(), j-offset+1));
+         Set<AbstractionPredicate> predicates = getPredicates(skipItp);
 
          if (debug){
-           System.out.println("\t- blk "+j+" ["+jLoc+"]: skip,\t"+predicates);
+           System.out.println("\t- blk "+j+" ["+jLoc+"]: skip "+skipItp+",\t"+predicates);
          }
 
          info.addPredicatesForRefinement(jARTElement, predicates);
