@@ -1,0 +1,4 @@
+COVER "EDGES(ID)*".EDGES(@BASICBLOCKENTRY)."EDGES(ID)*"
+test/programs/fql/ssh-simplified/s3_srvr_2.cil.c
+main
+--withoutCilPreprocessing

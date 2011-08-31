@@ -1,0 +1,4 @@
+COVER "EDGES(ID)*".PATHS(ID, 3)."EDGES(ID)*"
+test/programs/fql/locks/test_locks_1.c
+main
+--withoutCilPreprocessing

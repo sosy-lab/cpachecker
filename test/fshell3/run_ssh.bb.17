@@ -1,0 +1,3 @@
+cd ../..
+java -cp bin org.sosy_lab.cpachecker.fshell.experiments.ExperimentsRunner test/fshell3/ssh.bb.17.fql
+cd test/fshell3

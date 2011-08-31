@@ -1,0 +1,4 @@
+COVER "EDGES(ID)*".EDGES(@BASICBLOCKENTRY)."EDGES(ID)*".EDGES(@BASICBLOCKENTRY)."EDGES(ID)*"
+test/programs/fql/locks/test_locks_5.c
+main
+--withoutCilPreprocessing
