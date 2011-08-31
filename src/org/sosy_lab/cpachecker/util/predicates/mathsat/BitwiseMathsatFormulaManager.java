@@ -96,7 +96,6 @@ public class BitwiseMathsatFormulaManager extends MathsatFormulaManager {
   @Override
   public Formula makeNumber(String i) {
     i = "0d" + bitWidth + "_" + i;
-    System.out.println(i);
     Formula result = encapsulate(msat_make_number(msatEnv, i));
     return result;
   }
