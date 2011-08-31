@@ -584,6 +584,7 @@ a.action:hover {
                         edges[edgeid] = svgedge;
                         
                         svgedge.onclick = edge_clickaction(edgeid);
+                        svgedge.setAttribute('cursor', 'pointer');
                     }
                     self.cfacache[self.active_function] = cfa;
                     self.active_cfa = cfa;
@@ -894,7 +895,8 @@ a.action:hover {
                 self.onready = function() {
                     var edges = self.svgdoc.getElementsByClassName('edge');
                     for (var i = 0; i < edges.length; i++) {
-                       edges[i].onclick = edge_clickaction;
+                        edges[i].onclick = edge_clickaction;
+                        edges[i].setAttribute('cursor', 'pointer');
                     }
                     
                 };
