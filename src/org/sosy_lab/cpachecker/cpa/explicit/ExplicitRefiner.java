@@ -244,7 +244,7 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
     }
     catch(InvalidConfigurationException e)
     {
-      //System.out.println("error when configuring CtoFormulaConverter");
+//System.out.println("error when configuring CtoFormulaConverter");
     }
 
     PathFormulaManager pathFormulaManager = explicitCPA.getPathFormulaManager();
@@ -271,15 +271,15 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
       Path path,
       CounterexampleTraceInfo pInfo) throws CPAException {
 
-System.out.println("\n" + (++refinementCounter) + ". refining ...");
-System.out.println(path);
+//System.out.println("\n" + (++refinementCounter) + ". refining ...");
+//System.out.println(path);
 
     // get the predicates ...
     PredicateMap predicates = new PredicateMap(pInfo.getPredicatesForRefinement(), path);
 
     // ... and, out of these, determine the initial set of variables to track
     Set<String> referencedVariables = predicates.getReferencedVariables();
-System.out.println("\nreferencedVariables: " + referencedVariables);
+//System.out.println("\nreferencedVariables: " + referencedVariables);
     // add the newly found referenced variables to those found in previous iteration
     allReferencedVariables.addAll(referencedVariables);
 
@@ -305,7 +305,7 @@ System.out.println("\nreferencedVariables: " + referencedVariables);
     //madeProgress(path, oldPrecision.getWhiteList(), newWhiteList);
 
 //System.out.println("\nold: " + oldPrecision.getWhiteList());
-System.out.println("\nnew: " + newWhiteList);
+//System.out.println("\nnew: " + newWhiteList);
 
     ExplicitPrecision newPrecision = new ExplicitPrecision(oldPrecision.getBlackListPattern(), newWhiteList);
 
@@ -800,32 +800,23 @@ System.out.println("progress - paths differ - " + previousPath.get(i) + " != " +
         param.accept(this);
 
       // also, add the formal parameters
-      try
+      // in a few cases, the edge is a statement edge here, so this would fail !?!?!
+      if(edge instanceof FunctionCallEdge)
       {
-        // in a few cases, the edge is a statement edge here, so this would fail !?!?!
-        if(edge instanceof FunctionCallEdge)
-        {
-          FunctionDefinitionNode functionEntryNode = ((FunctionCallEdge)edge).getSuccessor();
+        FunctionDefinitionNode functionEntryNode = ((FunctionCallEdge)edge).getSuccessor();
 
-          for(String formalParameter : functionEntryNode.getFunctionParameterNames())
-            collect(functionEntryNode, formalParameter);
-        }
-
-        // this does not wok in all cases either, as getDeclaration returns null sometimes !?!?!
-        else
-        {
-          List<IASTParameterDeclaration> parameters = ((IASTFunctionTypeSpecifier)functionCallExpression.getDeclaration().getDeclSpecifier()).getParameters();
-
-          for(IASTParameterDeclaration parameter : parameters)
-            collect(edge.getSuccessor(), parameter.getName());
-        }
-      }
-      catch(ClassCastException e)
-      {
-        System.out.println(e);
-        throw e;
+        for(String formalParameter : functionEntryNode.getFunctionParameterNames())
+          collect(functionEntryNode, formalParameter);
       }
 
+      // this does not wok in all cases either, as getDeclaration returns null sometimes !?!?!
+      else
+      {
+        List<IASTParameterDeclaration> parameters = ((IASTFunctionTypeSpecifier)functionCallExpression.getDeclaration().getDeclSpecifier()).getParameters();
+
+        for(IASTParameterDeclaration parameter : parameters)
+          collect(edge.getSuccessor(), parameter.getName());
+      }
 
       return null;
     }

@@ -51,7 +51,7 @@ public class ExplicitPrecision implements Precision {
 
     if(whiteList != null)
       this.whiteList = new HashSet<String>(whiteList);
-System.out.println("this.whiteList = " + this.whiteList);
+
     initConstant();
   }
 
@@ -61,7 +61,7 @@ System.out.println("this.whiteList = " + this.whiteList);
 
     if(whiteList != null)
       this.whiteList = new HashSet<String>(whiteList);
-    System.out.println("this.whiteList = " + this.whiteList);
+
     initConstant();
   }
 
@@ -82,7 +82,7 @@ System.out.println("this.whiteList = " + this.whiteList);
 
   public boolean isNotTracking(String variable)
   {
-    if(!isTracking(variable)) System.out.println("decided to not track " + variable);
+//if(!isTracking(variable)) System.out.println("decided to not track " + variable);
     return !isTracking(variable);
   }
 
