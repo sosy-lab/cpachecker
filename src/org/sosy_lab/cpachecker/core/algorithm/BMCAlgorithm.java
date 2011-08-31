@@ -320,8 +320,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
       // replay error path for a more precise satisfying assignment
       Formula pathFormula = pmgr.makeFormulaForPath(targetPath.asEdgesList()).getFormula();
-      prover.reset();
-      prover.init();
+      prover.pop(); // remove program formula
+
       prover.push(pathFormula);
 
       if (prover.isUnsat()) {
