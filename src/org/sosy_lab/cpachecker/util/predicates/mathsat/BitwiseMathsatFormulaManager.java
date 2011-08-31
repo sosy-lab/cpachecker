@@ -124,7 +124,7 @@ public class BitwiseMathsatFormulaManager extends MathsatFormulaManager {
     if (signed) {
       return encapsulate(msat_make_bv_sgt(msatEnv, getTerm(pF1), getTerm(pF2)));
     } else {
-      return encapsulate(msat_make_bv_sgt(msatEnv, getTerm(pF1), getTerm(pF2)));
+      return encapsulate(msat_make_bv_ugt(msatEnv, getTerm(pF1), getTerm(pF2)));
     }
   }
 
