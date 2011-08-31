@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define STR(x) #x
+#define INPUTFILE_STR(x) STR(x)
+
 int input()
 {
 	static FILE* testcase = NULL;
@@ -14,7 +17,7 @@ int input()
 		if (already_read)
 		{
           FILE* errorfile;
-          testcase = fopen(INPUTFILE, "r");
+          testcase = fopen(INPUTFILE_STR(INPUTFILE), "r");
           char errorfilename[] = "test/output/errorXXXXXX";
 
           mkstemp(errorfilename);
@@ -33,7 +36,7 @@ int input()
 		  exit(-1);
 		}
 
-		testcase = fopen(INPUTFILE, "r");
+		testcase = fopen(INPUTFILE_STR(INPUTFILE), "r");
 		
 		if (testcase == NULL)
 		{
