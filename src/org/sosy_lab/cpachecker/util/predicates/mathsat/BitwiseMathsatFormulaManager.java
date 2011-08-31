@@ -76,10 +76,10 @@ public class BitwiseMathsatFormulaManager extends MathsatFormulaManager {
     String term = matcher.group(1);
     long value = Long.valueOf(term);
 
-    if (signed) {
-      if ((value & (1<<bitWidth)) > 0) {
+    if (signed && (bitWidth <= 63)) {
+      if (value >= (1L << (bitWidth-1))) {
         // positive number that should be interpreted as negative
-        value = - (((long)Math.pow(2, bitWidth)) - value);
+        value = value - (1L << bitWidth);
       }
     }
 
