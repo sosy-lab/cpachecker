@@ -89,6 +89,11 @@ class ArithmeticMathsatFormulaManager extends MathsatFormulaManager {
     return env;
   }
 
+  @Override
+  long interpreteBitvector(long pBv) {
+    throw new UnsupportedOperationException("Bitvector not expected");
+  }
+
   // ----------------- Numeric formulas -----------------
 
   @Override

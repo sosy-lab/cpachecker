@@ -73,7 +73,7 @@ public class MathsatTheoremProver implements TheoremProver {
   public Model getModel() {
     Preconditions.checkState(curEnv != 0);
 
-    return MathsatModel.createMathsatModel(curEnv);
+    return MathsatModel.createMathsatModel(curEnv, mgr);
   }
 
   @Override

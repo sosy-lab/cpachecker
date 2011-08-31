@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
@@ -36,8 +33,6 @@ import org.sosy_lab.cpachecker.util.predicates.Model.Variable;
 import com.google.common.collect.ImmutableMap;
 
 public class MathsatModel {
-
-  private static Pattern BITVECTOR_PATTERN = Pattern.compile("^0d\\d+_(\\d+)$");
 
   private static TermType toMathsatType(int pTypeId) {
 
@@ -133,7 +128,7 @@ public class MathsatModel {
     }
   }
 
-  static Model createMathsatModel(long lMathsatEnvironmentID) {
+  static Model createMathsatModel(long lMathsatEnvironmentID, MathsatFormulaManager fmgr) {
     ImmutableMap.Builder<AssignableTerm, Object> model = ImmutableMap.builder();
     long modelFormula = mathsat.api.msat_make_true(lMathsatEnvironmentID);
 
@@ -194,15 +189,7 @@ public class MathsatModel {
         break;
 
       case Bitvector:
-        // the term is of the format "0d<WIDTH>_<VALUE>"
-        Matcher matcher =  BITVECTOR_PATTERN.matcher(lTermRepresentation);
-        if (matcher.matches()) {
-          String term = matcher.group(1);
-          lValue = Long.valueOf(term);
-
-        } else {
-          throw new NumberFormatException("Unknown bitvector format: " + lTermRepresentation);
-        }
+        lValue = fmgr.interpreteBitvector(lValueTerm);
         break;
 
       default:

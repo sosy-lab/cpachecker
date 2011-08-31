@@ -152,6 +152,7 @@ public abstract class MathsatFormulaManager implements FormulaManager {
     return Pair.of(s[0], Integer.parseInt(s[1]));
   }
 
+  abstract long interpreteBitvector(long bv);
 
   // ----------------- Boolean formulas -----------------
 

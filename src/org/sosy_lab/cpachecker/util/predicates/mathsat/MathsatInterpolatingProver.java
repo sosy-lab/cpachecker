@@ -107,7 +107,7 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
     public Model getModel() {
       Preconditions.checkState(env != 0);
 
-      return MathsatModel.createMathsatModel(env);
+      return MathsatModel.createMathsatModel(env, mgr);
     }
 
 }

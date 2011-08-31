@@ -25,6 +25,9 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat;
 
 import static mathsat.api.*;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -43,6 +46,8 @@ public class BitwiseMathsatFormulaManager extends MathsatFormulaManager {
   @Option(description="Whether to use signed or unsigned variables if useBitwise is true.")
   private boolean signed = true;
 
+  private static Pattern BITVECTOR_PATTERN = Pattern.compile("^0d\\d+_(\\d+)$");
+
   BitwiseMathsatFormulaManager(Configuration config, LogManager logger, int pBitWidth) throws InvalidConfigurationException {
     super(config, logger, MSAT_BV + pBitWidth);
     config.inject(this, BitwiseMathsatFormulaManager.class);
@@ -59,6 +64,28 @@ public class BitwiseMathsatFormulaManager extends MathsatFormulaManager {
     return env;
   }
 
+  @Override
+  long interpreteBitvector(long pBv) {
+    String lTermRepresentation = msat_term_repr(pBv);
+    // the term is of the format "0d<WIDTH>_<VALUE>"
+    Matcher matcher =  BITVECTOR_PATTERN.matcher(lTermRepresentation);
+    if (!matcher.matches()) {
+      throw new NumberFormatException("Unknown bitvector format: " + lTermRepresentation);
+    }
+
+    String term = matcher.group(1);
+    long value = Long.valueOf(term);
+
+    if (signed) {
+      if ((value & (1<<bitWidth)) > 0) {
+        // positive number that should be interpreted as negative
+        value = - (((long)Math.pow(2, bitWidth)) - value);
+      }
+    }
+
+    return value;
+  }
+
   // ----------------- Numeric formulas -----------------
 
   @Override
@@ -69,6 +96,7 @@ public class BitwiseMathsatFormulaManager extends MathsatFormulaManager {
   @Override
   public Formula makeNumber(String i) {
     i = "0d" + bitWidth + "_" + i;
+    System.out.println(i);
     Formula result = encapsulate(msat_make_number(msatEnv, i));
     return result;
   }
