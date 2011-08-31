@@ -88,4 +88,9 @@ public class ARTReducer implements Reducer {
     return wrappedReducer.getVariableExpandedPrecision(rootPrecision, rootContext, reducedPrecision);
   }
 
+  @Override
+  public int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
+    return wrappedReducer.measurePrecisionDifference(pPrecision, pOtherPrecision);
+  }
+
 }

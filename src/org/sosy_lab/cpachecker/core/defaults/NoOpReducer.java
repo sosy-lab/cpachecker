@@ -62,4 +62,9 @@ public class NoOpReducer implements Reducer {
    return reducedPrecision;
   }
 
+  @Override
+  public int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
+    return 0;
+  }
+
 }

@@ -113,4 +113,19 @@ public class CompositeReducer implements Reducer {
 
     return new CompositePrecision(result);
   }
+
+  @Override
+  public int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
+    List<Precision> precisions = ((CompositePrecision)pPrecision).getPrecisions();
+    List<Precision> otherPrecisions = ((CompositePrecision)pOtherPrecision).getPrecisions();
+
+    int i = 0;
+    int sum = 0;
+    for (Precision rootPrecision : precisions) {
+      sum += wrappedReducers.get(i).measurePrecisionDifference(rootPrecision, otherPrecisions.get(i));
+      i++;
+    }
+
+    return sum;
+  }
 }

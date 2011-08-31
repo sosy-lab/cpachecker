@@ -132,4 +132,9 @@ public class CallstackReducer implements Reducer {
   public Precision getVariableExpandedPrecision(Precision rootPrecision, Block rootContext, Precision reducedPrecision) {
     return reducedPrecision;
   }
+
+  @Override
+  public int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
+    return 0;
+  }
 }

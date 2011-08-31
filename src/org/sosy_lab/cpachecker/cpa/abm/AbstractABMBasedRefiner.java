@@ -40,9 +40,6 @@ import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.Precisions;
-
-import com.google.common.collect.Iterables;
 
 /**
  * This is an extension of {@link AbstractARTBasedRefiner} that takes care of
@@ -144,28 +141,7 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
 
     @Override
     public void removeSubtree(ARTElement element, Precision newPrecision) {
-      Precision oldPrecision = Precisions.extractPrecisionByType(getPrecision(getLastElement()), newPrecision.getClass());
-
-      if (newPrecision.equals(oldPrecision)) {
-        //Strategy 2
-        //restart the analysis
-        //TODO: this can be implemented less drastic -> only remove lazy caches (on path)
-        System.err.println("Warning: restarting analysis");
-        restartAnalysis();
-
-      } else {
-
-        transfer.removeSubtree(delegate, path, element, newPrecision, pathElementToReachedElement);
-      }
-    }
-
-    private void restartAnalysis() {
-
-      Precision precision = getPrecision(getLastElement());
-      ARTElement child = Iterables.getOnlyElement(getFirstElement().getChildren());
-      delegate.removeSubtree(child, precision);
-
-      transfer.clearCaches();
+      transfer.removeSubtree(delegate, path, element, newPrecision, pathElementToReachedElement);
     }
 
     @Override

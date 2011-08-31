@@ -38,4 +38,6 @@ public interface Reducer {
   Precision getVariableExpandedPrecision(Precision rootPrecision, Block rootContext, Precision reducedPrecision);
 
   Object getHashCodeForElement(AbstractElement elementKey, Precision precisionKey);
+
+  int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision);
 }

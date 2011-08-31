@@ -58,6 +58,9 @@ public class ABMARTUtils {
 
     while(worklist.size() != 0){
       ARTElement currentElement = worklist.removeLast();
+
+      assert reachedSet.contains(currentElement);
+
       if(processed.contains(currentElement)){
         continue;
       }
@@ -71,7 +74,10 @@ public class ABMARTUtils {
           gatherReachedSets(cpa, pair.getFirst(), pair.getSecond(), blockToReachedSet);
         }
         if(!worklist.contains(child)){
-          worklist.add(child);
+          if(reachedSet.contains(child)) {
+            //TODO: how can the child be not in the reachedSet if the parent is? ?_?
+            worklist.add(child);
+          }
         }
       }
     }

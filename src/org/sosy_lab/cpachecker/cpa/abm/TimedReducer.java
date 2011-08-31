@@ -97,4 +97,9 @@ class TimedReducer implements Reducer {
 
   }
 
+  @Override
+  public int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
+    return wrappedReducer.measurePrecisionDifference(pPrecision, pOtherPrecision);
+  }
+
 }

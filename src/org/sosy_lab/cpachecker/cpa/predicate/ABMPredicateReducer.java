@@ -353,5 +353,38 @@ public class ABMPredicateReducer implements Reducer {
       return evaluatedPredicateMap.hashCode();
     }
 
+    @Override
+    public String toString() {
+      if(evaluatedPredicateMap != null) {
+        return evaluatedPredicateMap.toString();
+      } else {
+        return "ReducedPredicatePrecision (view not computed yet)";
+      }
+    }
+
+  }
+
+  @Override
+  public int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
+    PredicatePrecision precision = (PredicatePrecision)pPrecision;
+    PredicatePrecision otherPrecision = (PredicatePrecision)pOtherPrecision;
+
+    int distance = 0;
+
+    for(AbstractionPredicate p : precision.getGlobalPredicates()) {
+      if(!otherPrecision.getGlobalPredicates().contains(p)) {
+        distance++;
+      }
+    }
+
+    for(CFANode node : precision.getPredicateMap().keySet()) {
+      for(AbstractionPredicate p : precision.getPredicateMap().get(node)) {
+        if(!otherPrecision.getPredicateMap().get(node).contains(p)) {
+          distance++;
+        }
+      }
+    }
+
+    return distance;
   }
 }
