@@ -51,7 +51,7 @@ public class ExplicitPrecision implements Precision {
 
     if(whiteList != null)
       this.whiteList = new HashSet<String>(whiteList);
-
+System.out.println("this.whiteList = " + this.whiteList);
     initConstant();
   }
 
@@ -61,7 +61,7 @@ public class ExplicitPrecision implements Precision {
 
     if(whiteList != null)
       this.whiteList = new HashSet<String>(whiteList);
-
+    System.out.println("this.whiteList = " + this.whiteList);
     initConstant();
   }
 
@@ -82,7 +82,7 @@ public class ExplicitPrecision implements Precision {
 
   public boolean isNotTracking(String variable)
   {
-    //if(!isTracking(variable)) System.out.println("decided to not track " + variable);
+    if(!isTracking(variable)) System.out.println("decided to not track " + variable);
     return !isTracking(variable);
   }
 
@@ -100,6 +100,9 @@ public class ExplicitPrecision implements Precision {
   {
     if(true)return;
     this.whiteList = new HashSet<String>();
+
+    // for ssh/s3_srvr.blast.06.BUG.i.cil.c
+    this.whiteList.add("ssl3_accept::s->state");
 
 /*
     // for ssh-simplified/s3_srvr_6.cil.c

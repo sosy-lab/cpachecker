@@ -130,7 +130,7 @@ public class PredicateMap
             try
             {
               Long constant = Long.parseLong(splits[1]);
-//System.out.println("added fact " + atoms.toArray(new String[atoms.size()])[0] + " = " + splits[1] + " for expression " + predicate.getSymbolicAtom() + " at edge " + entry.getKey());
+System.out.println("added fact " + atoms.toArray(new String[atoms.size()])[0] + " = " + splits[1] + " for expression " + predicate.getSymbolicAtom() + " at edge " + entry.getKey());
 
               assumes.put(atoms.toArray(new String[atoms.size()])[0], constant);
 
@@ -138,12 +138,12 @@ public class PredicateMap
             }
             catch(NumberFormatException nfe)
             {
-//System.out.println(splits[1] + " is not a number - no fact to add for expression " + predicate.getSymbolicAtom());
+System.out.println(splits[1] + " is not a number - no fact to add for expression " + predicate.getSymbolicAtom());
             }
           }
           else
           {
-//System.out.println("can't extract fact from expression " + assume);
+System.out.println("can't extract fact from expression " + assume);
           }
         }
       }

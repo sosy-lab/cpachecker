@@ -118,14 +118,17 @@ public class ExplicitTransferRelation implements TransferRelation {
     AbstractElement successor;
     ExplicitElement explicitElement = (ExplicitElement)element;
 
+    // is there a fact associated with the current edge ..?
     if(precision.facts.get(cfaEdge) != null)
     {
       Map<String, Long> factsAtLocation = precision.facts.get(cfaEdge);
 
       for(Map.Entry<String, Long> factAtLocation : factsAtLocation.entrySet())
       {
+        // ... and the variable associated with the fact is not already set ..?
         if(!explicitElement.contains(factAtLocation.getKey()))
         {
+          // ... then set it!
           String factName = factAtLocation.getKey();
           Long factValue = factAtLocation.getValue();
 
@@ -135,7 +138,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         }
       }
     }
-    //precision.facts.clear();
+//System.out.println("at edge " + cfaEdge.getRawStatement());
     // check the type of the edge
     switch (cfaEdge.getEdgeType ()) {
 

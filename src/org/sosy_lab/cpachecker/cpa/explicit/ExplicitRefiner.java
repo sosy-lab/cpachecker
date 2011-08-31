@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -270,15 +271,15 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
       Path path,
       CounterexampleTraceInfo pInfo) throws CPAException {
 
-//System.out.println("\n" + (++refinementCounter) + ". refining ...");
-//System.out.println(path);
+System.out.println("\n" + (++refinementCounter) + ". refining ...");
+System.out.println(path);
 
     // get the predicates ...
     PredicateMap predicates = new PredicateMap(pInfo.getPredicatesForRefinement(), path);
 
     // ... and, out of these, determine the initial set of variables to track
     Set<String> referencedVariables = predicates.getReferencedVariables();
-//System.out.println("\nreferencedVariables: " + referencedVariables);
+System.out.println("\nreferencedVariables: " + referencedVariables);
     // add the newly found referenced variables to those found in previous iteration
     allReferencedVariables.addAll(referencedVariables);
 
@@ -304,7 +305,7 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
     //madeProgress(path, oldPrecision.getWhiteList(), newWhiteList);
 
 //System.out.println("\nold: " + oldPrecision.getWhiteList());
-//System.out.println("\nnew: " + newWhiteList);
+System.out.println("\nnew: " + newWhiteList);
 
     ExplicitPrecision newPrecision = new ExplicitPrecision(oldPrecision.getBlackListPattern(), newWhiteList);
 
@@ -801,15 +802,23 @@ System.out.println("progress - paths differ - " + previousPath.get(i) + " != " +
       // also, add the formal parameters
       try
       {
-/*
-        FunctionDefinitionNode functionEntryNode = ((FunctionCallEdge)edge).getSuccessor();
+        // in a few cases, the edge is a statement edge here, so this would fail !?!?!
+        if(edge instanceof FunctionCallEdge)
+        {
+          FunctionDefinitionNode functionEntryNode = ((FunctionCallEdge)edge).getSuccessor();
 
-        for(String formalParameter : functionEntryNode.getFunctionParameterNames())
-          collect(functionEntryNode, formalParameter);
-*/
-        List<IASTParameterDeclaration> parameters = ((IASTFunctionTypeSpecifier)functionCallExpression.getDeclaration().getDeclSpecifier()).getParameters();
-        for(IASTParameterDeclaration parameter : parameters)
-          collect(edge.getSuccessor(), parameter.getName());
+          for(String formalParameter : functionEntryNode.getFunctionParameterNames())
+            collect(functionEntryNode, formalParameter);
+        }
+
+        // this does not wok in all cases either, as getDeclaration returns null sometimes !?!?!
+        else
+        {
+          List<IASTParameterDeclaration> parameters = ((IASTFunctionTypeSpecifier)functionCallExpression.getDeclaration().getDeclSpecifier()).getParameters();
+
+          for(IASTParameterDeclaration parameter : parameters)
+            collect(edge.getSuccessor(), parameter.getName());
+        }
       }
       catch(ClassCastException e)
       {
