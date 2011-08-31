@@ -81,7 +81,7 @@ public class Scope {
 
       k = vtmp.get(pname);
       if(k==null){
-        getVariable(pname,tmp);
+
       }
       return k;
 

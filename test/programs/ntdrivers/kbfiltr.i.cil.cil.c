@@ -5381,12 +5381,13 @@ PMDL IoAllocateMdl(PVOID VirtualAddress , ULONG Length , BOOLEAN SecondaryBuffer
 PDEVICE_OBJECT IoAttachDeviceToDeviceStack(PDEVICE_OBJECT SourceDevice , PDEVICE_OBJECT TargetDevice ) 
 { int __BLAST_NONDET ;
 
- 
+ 	int xx;
+ 	xx = __BLAST_NONDET;
   void *__cil_tmp4 ;
 
   {
 #line 2672
-  if (__BLAST_NONDET == 0) {
+  if (xx == 0) {
     goto switch_6_0;
   } else {
     goto switch_6_default;

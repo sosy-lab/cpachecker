@@ -1337,6 +1337,11 @@ int main(void)
   return (0);
 }
 }
+
+
+void test123(){
+
+}
 #line 1066 "s3_clnt.blast.01.i.cil.c"
 int ssl3_connect(SSL *s ) 
 { BUF_MEM *buf ;
@@ -1838,12 +1843,13 @@ int ssl3_connect(SSL *s )
 #line 1093
   __cil_tmp25 = (void *)0;
 #line 1093
-  cb = (void (*)())__cil_tmp25;
+  #cb = (void (*)())__cil_tmp25;
 #line 1094
   ret = -1;
 #line 1095
   skip = 0;
 #line 1096
+  tmp___0 = CPAmalloc(4);
   *tmp___0 = 0;
   {
 #line 1097
@@ -1855,6 +1861,7 @@ int ssl3_connect(SSL *s )
 #line 1097
   __cil_tmp29 = __cil_tmp28 + 192;
 #line 1097
+ *((void (**)())__cil_tmp29) = &(test123);
   __cil_tmp30 = *((void (**)())__cil_tmp29);
 #line 1097
   __cil_tmp31 = (unsigned long )__cil_tmp30;
@@ -1913,11 +1920,16 @@ int ssl3_connect(SSL *s )
 #line 1106
   __cil_tmp51 = __cil_tmp50 + 28;
 #line 1106
+ *((int *)__cil_tmp51) = __BLAST_NONDET;
   __cil_tmp52 = *((int *)__cil_tmp51);
 #line 1106
+
   *((int *)__cil_tmp49) = __cil_tmp52 + 1;
 #line 1107
+ tmp___1 = __BLAST_NONDET;
+ 
   if (tmp___1 & 12288) {
+  tmp___2 = __BLAST_NONDET;
 #line 1108
     if (tmp___2 & 16384) {
 
@@ -2316,6 +2328,7 @@ int ssl3_connect(SSL *s )
                                                                         __cil_tmp159 = (unsigned int )s;
 #line 1225
                                                                         __cil_tmp160 = __cil_tmp159 + 204;
+                                                                        *((SSL_CTX **)__cil_tmp160) = CPAmalloc(200);
 #line 1225
                                                                         __cil_tmp161 = *((SSL_CTX **)__cil_tmp160);
 #line 1225
@@ -2335,6 +2348,7 @@ int ssl3_connect(SSL *s )
 #line 1225
                                                                         __cil_tmp169 = __cil_tmp168 + __cil_tmp164;
 #line 1225
+																		*((int *)__cil_tmp169) = __BLAST_NONDET;
                                                                         __cil_tmp170 = *((int *)__cil_tmp169);
 #line 1225
                                                                         *((int *)__cil_tmp163) = __cil_tmp170 + 1;
@@ -2362,6 +2376,8 @@ int ssl3_connect(SSL *s )
                                                                         }
                                                                         {
 #line 1236
+																		
+																		*((int *)s)=__BLAST_NONDET;
                                                                         __cil_tmp176 = *((int *)s);
 #line 1236
                                                                         __cil_tmp177 = __cil_tmp176 & 65280;

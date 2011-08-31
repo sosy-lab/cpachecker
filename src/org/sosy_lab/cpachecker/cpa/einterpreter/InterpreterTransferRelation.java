@@ -1098,7 +1098,7 @@ private ExprResult handleRCast(IASTExpression pRight, Scope cur,
       case FUNCPOINTER:
       case ARRAY:
         tmp = null;
-        block = pel.getFactory().allocateMemoryBlock(4,pel);
+        block = pel.getFactory().allocateMemoryBlock(k.getPrimitive().sizeOf(),pel);
         block.setAddress(0, res.getVariable().getAddress(),pel);
         naddr = new Address(block,0);
         tmp = new PrimitiveVariable("tmpy",naddr,k,k.isSigned(),k.isConst());
@@ -1763,6 +1763,7 @@ private void copyVar(Address pAddress, Address pAddress2, int pSize,InterpreterE
 
     block = pAddress.getMemoryBlock();
     block2 = pAddress2.getMemoryBlock();
+
     for(int x=0;x<pSize;x++){
       switch(block2.getCellType(offset2+x,pel)){
       case EMPTY:
@@ -1789,6 +1790,8 @@ private void copyVar(Address pAddress, Address pAddress2, int pSize,InterpreterE
 private boolean checkType(Type pTyp, Type pTyp2) {
 
 
+  System.out.println(pTyp.getDefinition());
+  System.out.println(pTyp2.getDefinition());
 
   if(pTyp.getDefinition().compareTo(pTyp2.getDefinition())==0)
     return true;
@@ -2241,8 +2244,42 @@ private Type getNamedType(IType t,Scope scope,InterpreterElement pel) throws Exc
     IType def = scope.getCurrentDefinitions().getDefinition(f);
     return getNamedType(def, scope,pel);
   }
+  if (t instanceof IASTFunctionTypeSpecifier) {
+    IASTFunctionTypeSpecifier ft = (IASTFunctionTypeSpecifier) t;
+    return getFunctionType(ft,scope,pel);
+
+  }
 
  throw new Exception("could not handle definition "+t.toASTString() );
+}
+
+
+
+private FunctionType getFunctionType(IASTFunctionTypeSpecifier ft, Scope pscope,
+    InterpreterElement pel) throws Exception {
+  String funcname = ft.getName();
+  IType rettype = ft.getReturnType();
+  Type res;
+  if(rettype instanceof IASTSimpleDeclSpecifier){
+    res = getPrimitiveType((IASTSimpleDeclSpecifier) rettype);
+  }else if(rettype instanceof IASTPointerTypeSpecifier){
+    res = getPointerType((IASTPointerTypeSpecifier) rettype, pscope, pel);
+  }else if(rettype instanceof IASTArrayTypeSpecifier){
+    res = getArrayType((IASTArrayTypeSpecifier) rettype, pscope, pel);
+  }else  if(rettype instanceof IASTElaboratedTypeSpecifier){
+    IASTElaboratedTypeSpecifier tt = (IASTElaboratedTypeSpecifier)rettype;
+    if(tt.getKind()>0)
+      res= pscope.getCurrentTypeLibrary().getType(tt.getName());
+    else
+      res= pscope.getCurrentEnums().getEnum(tt.getName());
+  }else if(rettype instanceof IASTCompositeTypeSpecifier){
+    res =pscope.getCurrentTypeLibrary().getType(((IASTCompositeTypeSpecifier) rettype).getName());
+  }else{
+    throw new Exception("Not considered return type for a function");
+  }
+
+  FunctionType functype = new FunctionType(funcname,res,false);
+  return functype;
 }
 
 

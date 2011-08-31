@@ -24,42 +24,47 @@
 package org.sosy_lab.cpachecker.cpa.einterpreter.memory;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
 
 import org.sosy_lab.cpachecker.cpa.einterpreter.InterpreterElement;
 public class NonDetProvider {
-  private BigInteger values [];
+  private ArrayList<BigInteger> values;
   private HashMap<InterpreterElement, Integer>indexs=null;
   private Random rnd;
   public NonDetProvider(BigInteger pvalues[],InterpreterElement el){
     indexs = new HashMap<InterpreterElement, Integer>();
     indexs.put(el, 0);
-    values = pvalues;
+    values = new ArrayList<BigInteger>();
+    for(int x=0;x<pvalues.length;x++){
+      values.add(pvalues[x]);
+    }
     rnd = new Random();
   }
 
   public BigInteger getValue(InterpreterElement el){
     BigInteger numb;
-
+    InterpreterElement pel = el;
     Integer index = null;
-    while(index == null && el != null){
-      index = indexs.get(el);
-      el = el.getprev();
+    while(index == null && pel != null){
+      index = indexs.get(pel);
+      pel = pel.getprev();
     }
 
 
 
-    if(index < values.length){
-       numb = values[index];
+    if(index < values.size()){
+       numb = values.get(index);
        index++;
        indexs.put(el, index);
     }else{
-
       numb = BigInteger.valueOf(rnd.nextLong());
-
+      values.add(index, numb);
+      index++;
+      indexs.put(el,index);
     }
-
+    System.out.println("__BLAST_NONDET returns " + numb);
     return numb;
   }
 
