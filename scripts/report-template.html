@@ -939,8 +939,12 @@ a.action:hover {
                     };
                 };
             })();
-            
-            //allows to select the displayed cfa
+
+        </script>
+
+        <script>
+            /* this script generates a dropdown-menu to select a cfa */
+
             viewer.windows.functionselector = new (function() {
                 var self = this;
                 
@@ -953,23 +957,28 @@ a.action:hover {
                 self.init = function() {
                     self.box = document.getElementById('functionselect');
                     viewer.data.functionlist.sort();
+                    self.box.value = viewer.data.functionlist[0]; // select the first function
                     for (var i = 0; i < viewer.data.functionlist.length; i++) {
                         var func = viewer.data.functionlist[i];
                         var opt = document.createElement('option');
                         opt.text = func;
-                        opt.value = func;                        
+                        opt.value = func;
                         self.box.appendChild(opt);
+                        
+                        if (func == 'main') {
+                            self.box.value = 'main';                        	
+                        }
                     }
-                    self.box.value = 'main';
                     self.box.onchange = change;
                     viewer.windows.cfawin.handlers.add('cfa_loaded', function(evtname, funcname) {
                         self.box.value = funcname;
                     });
+
+                    // load initial cfa
+                    viewer.windows.cfawin.load(self.box.value);
                 };
             })();
-            
 
-            
         </script>
         
         <script>
@@ -1067,9 +1076,8 @@ a.action:hover {
                     viewer.windows.artwin.onready();
                 }
             }, 1000);
-            
+
             viewer.windows.functionselector.init();
-            viewer.windows.cfawin.load('main');
 
         </script>
     </body>
