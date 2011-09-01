@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.art;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -36,7 +33,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 public class ARTReducer implements Reducer {
 
   private final Reducer wrappedReducer;
-  private final Map<AbstractElement, AbstractElement> expandedToReducedCache = new HashMap<AbstractElement, AbstractElement>();
 
   public ARTReducer(Reducer pWrappedReducer) {
     wrappedReducer = pWrappedReducer;
@@ -47,16 +43,7 @@ public class ARTReducer implements Reducer {
       AbstractElement pExpandedElement, Block pContext,
       CFANode pLocation) {
 
-    AbstractElement reducedElement = expandedToReducedCache.get(pExpandedElement);
-    if(reducedElement != null) {
-      return reducedElement;
-    }
-
-    reducedElement = new ARTElement(wrappedReducer.getVariableReducedElement(((ARTElement)pExpandedElement).getWrappedElement(), pContext, pLocation), null);
-
-    expandedToReducedCache.put(pExpandedElement, reducedElement);
-
-    return reducedElement;
+    return new ARTElement(wrappedReducer.getVariableReducedElement(((ARTElement)pExpandedElement).getWrappedElement(), pContext, pLocation), null);
   }
 
   @Override
@@ -64,11 +51,7 @@ public class ARTReducer implements Reducer {
       AbstractElement pRootElement, Block pReducedContext,
       AbstractElement pReducedElement) {
 
-    AbstractElement expandedElement = new ARTElement(wrappedReducer.getVariableExpandedElement(((ARTElement)pRootElement).getWrappedElement(), pReducedContext, ((ARTElement)pReducedElement).getWrappedElement()), null);
-
-    expandedToReducedCache.put(expandedElement, pReducedElement);
-
-    return expandedElement;
+    return new ARTElement(wrappedReducer.getVariableExpandedElement(((ARTElement)pRootElement).getWrappedElement(), pReducedContext, ((ARTElement)pReducedElement).getWrappedElement()), null);
   }
 
   @Override

@@ -33,7 +33,6 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -130,10 +129,10 @@ public class ABMTransferRelation implements TransferRelation {
 
   private class Cache {
 
-    private final Map<AbstractElementHash, ReachedSet> preciseReachedCache = new LinkedHashMap<AbstractElementHash, ReachedSet>();
-    private final Map<AbstractElementHash, ReachedSet> unpreciseReachedCache = new LinkedHashMap<AbstractElementHash, ReachedSet>();
+    private final Map<AbstractElementHash, ReachedSet> preciseReachedCache = new HashMap<AbstractElementHash, ReachedSet>();
+    private final Map<AbstractElementHash, ReachedSet> unpreciseReachedCache = new HashMap<AbstractElementHash, ReachedSet>();
 
-    private final Map<AbstractElementHash, Collection<AbstractElement>> returnCache = new LinkedHashMap<AbstractElementHash, Collection<AbstractElement>>();
+    private final Map<AbstractElementHash, Collection<AbstractElement>> returnCache = new HashMap<AbstractElementHash, Collection<AbstractElement>>();
 
     private AbstractElementHash getHashCode(AbstractElement predicateKey, Precision precisionKey, Block context) {
       return new AbstractElementHash(predicateKey, precisionKey, context);
@@ -238,7 +237,7 @@ public class ABMTransferRelation implements TransferRelation {
       returnCache.clear();
     }
 
-    public boolean containsPreciseKey(AbstractElement predicateKey, Precision precisionKey, Block context) {
+    private boolean containsPreciseKey(AbstractElement predicateKey, Precision precisionKey, Block context) {
       AbstractElementHash hash = getHashCode(predicateKey, precisionKey, context);
       return preciseReachedCache.containsKey(hash);
     }
@@ -248,6 +247,7 @@ public class ABMTransferRelation implements TransferRelation {
   private final Cache artCache = new Cache();
 
   private final Map<AbstractElement, ReachedSet> abstractElementToReachedSet = new HashMap<AbstractElement, ReachedSet>();
+  private final Map<AbstractElement, AbstractElement> expandedToReducedCache = new HashMap<AbstractElement, AbstractElement>();
 
   private Block currentBlock;
   private BlockPartitioning partitioning;
@@ -355,6 +355,8 @@ public class ABMTransferRelation implements TransferRelation {
           Precision reducedPrecision = reducedPair.getSecond();
 
           ARTElement expandedElement = (ARTElement)wrappedReducer.getVariableExpandedElement(pElement, currentBlock, reducedElement);
+          expandedToReducedCache.put(expandedElement, reducedElement);
+
           Precision expandedPrecision = wrappedReducer.getVariableExpandedPrecision(pPrecision, outerSubtree, reducedPrecision);
 
           expandedElement.addParent((ARTElement)pElement);
@@ -478,7 +480,6 @@ public class ABMTransferRelation implements TransferRelation {
   }
 
   private ReachedSet createInitialReachedSet(AbstractElement initialElement, Precision initialPredicatePrecision) {
-    //TODO: might be needed to make a copy of initialElement here to avoid adding the same ARTElement to different ReachedSets..
     ReachedSet reached = reachedSetFactory.create();
     reached.add(initialElement, initialPredicatePrecision);
     return reached;
@@ -817,7 +818,6 @@ public class ABMTransferRelation implements TransferRelation {
     return root;
   }
 
-
   /**
    * This method looks for the reached set that belongs to (root, rootPrecision),
    * then looks for target in this reached set and constructs a tree from root to target
@@ -833,7 +833,7 @@ public class ABMTransferRelation implements TransferRelation {
 
     //we found the to the root and precision corresponding reach set
     //now try to find the target in the reach set
-    ARTElement targetARTElement = (ARTElement)wrappedReducer.getVariableReducedElement(pPathElementToReachedElement.get(newTreeTarget), rootSubtree, rootNode);
+    ARTElement targetARTElement = (ARTElement) expandedToReducedCache.get(pPathElementToReachedElement.get(newTreeTarget));
     if(targetARTElement.isDestroyed()) {
       logger.log(Level.FINE, "Target element refers to a destroyed ARTElement, i.e., the cached subtree is outdated. Updating it.");
       return null;

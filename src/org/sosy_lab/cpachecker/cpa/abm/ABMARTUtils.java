@@ -75,7 +75,6 @@ public class ABMARTUtils {
         }
         if(!worklist.contains(child)){
           if(reachedSet.contains(child)) {
-            //TODO: how can the child be not in the reachedSet if the parent is? ?_?
             worklist.add(child);
           }
         }
