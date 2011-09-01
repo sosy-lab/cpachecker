@@ -420,6 +420,9 @@ cpa.predicate.refinement.splitItpAtoms = false
 # time limit for refinement (0 is infinitely long)
 cpa.predicate.refinement.timelimit = 0
 
+# verify if the interpolants fulfill the interpolant properties
+cpa.predicate.refinement.verifyInterpolants = false
+
 # maximum blocksize before a satisfiability check is done
 # (non-negative number, 0 means never, if positive should be smaller than
 # blocksize)

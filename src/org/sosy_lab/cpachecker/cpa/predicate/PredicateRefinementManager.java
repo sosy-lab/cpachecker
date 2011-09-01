@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -54,6 +55,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CSIsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
@@ -72,6 +74,8 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 
@@ -82,6 +86,7 @@ class PredicateRefinementManager {
     public final Timer cexAnalysisTimer = new Timer();
     public final Timer cexAnalysisSolverTimer = new Timer();
     public final Timer cexAnalysisGetUsefulBlocksTimer = new Timer();
+    public final Timer interpolantVerificationTimer = new Timer();
   }
 
   final Stats refStats;
@@ -134,6 +139,9 @@ class PredicateRefinementManager {
 
   @Option(description="dump all interpolation problems")
   private boolean dumpInterpolationProblems = false;
+
+  @Option(description="verify if the interpolants fulfill the interpolant properties")
+  private boolean verifyInterpolants = false;
 
   @Option(name="timelimit",
       description="time limit for refinement (0 is infinitely long)")
@@ -354,7 +362,11 @@ class PredicateRefinementManager {
       CounterexampleTraceInfo info;
       if (spurious) {
 
-        info = getInterpolants(pItpProver, itpGroupsIds);
+        List<Formula> interpolants = getInterpolants(pItpProver, itpGroupsIds);
+        if (verifyInterpolants) {
+          verifyInterpolants(interpolants, f, pItpProver);
+        }
+        info = extractPredicates(interpolants);
 
       } else {
         // this is a real bug
@@ -613,17 +625,14 @@ class PredicateRefinementManager {
    *
    * @param pItpProver The solver.
    * @param itpGroupsIds The references to the interpolation groups
-   * @return Information about the counterexample, including the interpolants.
-   * @throws RefinementFailedException If there were no interpolants.
+   * @return A list of all the interpolants.
    */
-  private <T> CounterexampleTraceInfo getInterpolants(
-      InterpolatingTheoremProver<T> pItpProver, List<T> itpGroupsIds)
-      throws RefinementFailedException {
+  private <T> List<Formula> getInterpolants(
+      InterpolatingTheoremProver<T> pItpProver, List<T> itpGroupsIds) {
 
-    CounterexampleTraceInfo info = new CounterexampleTraceInfo();
+    List<Formula> interpolants = Lists.newArrayListWithExpectedSize(itpGroupsIds.size()-1);
 
-    // the counterexample is spurious. Extract the predicates from
-    // the interpolants
+    // The counterexample is spurious. Get the interpolants.
 
     // how to partition the trace into (A, B) depends on whether
     // there are function calls involved or not: in general, A
@@ -636,7 +645,6 @@ class PredicateRefinementManager {
       entryPoints = new ArrayDeque<Integer>();
       entryPoints.push(0);
     }
-    boolean foundPredicates = false;
 
     for (int i = 0; i < itpGroupsIds.size()-1; ++i) {
       // last iteration is left out because B would be empty
@@ -654,18 +662,7 @@ class PredicateRefinementManager {
         fmgr.dumpFormulaToFile(itp, dumpFile);
       }
 
-      Collection<AbstractionPredicate> preds;
-
-      if (itp.isTrue()) {
-        logger.log(Level.ALL, "For step", i, "got no interpolant.");
-        preds = Collections.emptySet();
-
-      } else {
-        foundPredicates = true;
-
-        preds = getPredicatesFromInterpolant(itp, i);
-      }
-      info.addPredicatesForRefinement(preds);
+      interpolants.add(itp);
 
       // TODO wellScopedPredicates have been disabled
 
@@ -681,6 +678,128 @@ class PredicateRefinementManager {
 //        if (wellScopedPredicates && e.getAbstractionLocation().getEnteringSummaryEdge() != null) {
 //          entryPoints.pop();
 //        }
+    }
+
+    return interpolants;
+  }
+
+  private <T> void verifyInterpolants(List<Formula> interpolants, List<Formula> formulas, InterpolatingTheoremProver<T> prover) throws SolverException, InterruptedException {
+    refStats.interpolantVerificationTimer.start();
+    try {
+
+      // first, check if the interpolants contains only the allowed variables
+      List<Set<String>> variablesInFormulas = Lists.newArrayListWithExpectedSize(formulas.size());
+      for (Formula f : formulas) {
+        variablesInFormulas.add(fmgr.extractVariables(f));
+      }
+
+      for (int i = 0; i < interpolants.size(); i++) {
+
+        Set<String> variablesInA = new HashSet<String>();
+        for (int j = 0; j <= i; j++) {
+          // formula i is in group A
+          variablesInA.addAll(variablesInFormulas.get(j));
+        }
+
+        Set<String> variablesInB = new HashSet<String>();
+        for (int j = i+1; j < formulas.size(); j++) {
+          // formula i is in group A
+          variablesInB.addAll(variablesInFormulas.get(j));
+        }
+
+        Set<String> allowedVariables = Sets.intersection(variablesInA, variablesInB).immutableCopy();
+        Set<String> variablesInInterpolant = fmgr.extractVariables(interpolants.get(i));
+
+        variablesInInterpolant.removeAll(allowedVariables);
+
+        if (!variablesInInterpolant.isEmpty()) {
+          throw new SolverException("Interpolant "  + interpolants.get(i) + " contains forbidden variable(s) " + variablesInInterpolant);
+        }
+      }
+
+
+      // second, check if each interpolant is implied by (previous itp & formula)
+      Formula lastInterpolant = fmgr.makeTrue();
+
+      for (int i = 0; i < interpolants.size(); i++) {
+        Formula f = fmgr.makeAnd(lastInterpolant, formulas.get(i));
+
+        Formula currentInterpolant = interpolants.get(i);
+        if (!checkImplication(f, currentInterpolant, prover)) {
+          throw new SolverException("Interpolant " + currentInterpolant + " is not implied by previous part of the path");
+        }
+
+        lastInterpolant = currentInterpolant;
+      }
+
+
+      // third, check if each interpolant makes remainder of formulas unsat
+      for (int i = 0; i < interpolants.size(); i++) {
+        Formula currentInterpolant = interpolants.get(i);
+        if (currentInterpolant.isFalse()) {
+          continue;
+        }
+
+        List<Formula> remainingFormulas = formulas.subList(i+1, formulas.size());
+        Formula f = fmgr.makeConjunction(remainingFormulas);
+        f = fmgr.makeAnd(currentInterpolant, f);
+        if (!checkUnsatisfiability(f, prover)) {
+          throw new SolverException("Interpolant " + currentInterpolant + " fails to make remainder of path infeasible");
+        }
+      }
+
+    } finally {
+      refStats.interpolantVerificationTimer.stop();
+    }
+  }
+
+  private <T> boolean checkImplication(Formula a, Formula b, InterpolatingTheoremProver<T> prover) throws InterruptedException {
+    // check unsatisfiability of negation of (a => b),
+    // i.e., check unsatisfiability of (a & !b)
+    Formula f = fmgr.makeAnd(a, fmgr.makeNot(b));
+    return checkUnsatisfiability(f, prover);
+  }
+
+  private <T> boolean checkUnsatisfiability(Formula f, InterpolatingTheoremProver<T> prover) throws InterruptedException {
+    prover.reset();
+    prover.init();
+
+    prover.addFormula(f);
+    boolean unsat = prover.isUnsat();
+    return unsat;
+  }
+
+  /**
+   * Get the predicates out of the interpolants.
+   *
+   * @param interpolants the interpolants
+   * @return Information about the counterexample, including the predicates.
+   * @throws RefinementFailedException If there were no predicates.
+   */
+  private <T> CounterexampleTraceInfo extractPredicates(
+      List<Formula> interpolants) throws RefinementFailedException {
+
+    // the counterexample is spurious. Extract the predicates from
+    // the interpolants
+
+    CounterexampleTraceInfo info = new CounterexampleTraceInfo();
+    boolean foundPredicates = false;
+
+    int i = 1;
+    for (Formula itp : interpolants) {
+      Collection<AbstractionPredicate> preds;
+
+      if (itp.isTrue()) {
+        logger.log(Level.ALL, "For step", i, "got no interpolant.");
+        preds = Collections.emptySet();
+
+      } else {
+        foundPredicates = true;
+
+        preds = getPredicatesFromInterpolant(itp, i);
+      }
+      info.addPredicatesForRefinement(preds);
+      i++;
     }
 
     if (!foundPredicates) {

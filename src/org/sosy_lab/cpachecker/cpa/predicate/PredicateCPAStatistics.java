@@ -207,6 +207,9 @@ class PredicateCPAStatistics implements Statistics {
           out.println("    Cex.focusing:                    " + bs.cexAnalysisGetUsefulBlocksTimer + " (Max: " + bs.cexAnalysisGetUsefulBlocksTimer.printMaxTime() + ")");
         }
         out.println("    Solving time only:               " + bs.cexAnalysisSolverTimer + " (Max: " + bs.cexAnalysisSolverTimer.printMaxTime() + ", Calls: " + bs.cexAnalysisSolverTimer.getNumberOfIntervals() + ")");
+        if (bs.interpolantVerificationTimer.getNumberOfIntervals() > 0) {
+          out.println("    Interpolant verification:        " + bs.interpolantVerificationTimer);
+        }
         out.println("  Precision update:                  " + refiner.precisionUpdate);
         out.println("  ART update:                        " + refiner.artUpdate);
         out.println("  Error path post-processing:        " + refiner.errorPathProcessing);
