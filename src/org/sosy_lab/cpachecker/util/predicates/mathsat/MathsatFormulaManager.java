@@ -547,17 +547,14 @@ public abstract class MathsatFormulaManager implements FormulaManager {
 
   @Override
   public Set<String> extractVariables(Formula f) {
-    Set<Formula> handled = new HashSet<Formula>();
+    Set<Formula> seen = new HashSet<Formula>();
     Set<String> vars = new HashSet<String>();
 
     Deque<Formula> toProcess = new ArrayDeque<Formula>();
     toProcess.push(f);
 
     while (!toProcess.isEmpty()) {
-      Formula tt = toProcess.pop();
-      long t = getTerm(tt);
-      assert !handled.contains(tt);
-      handled.add(tt);
+      long t = getTerm(toProcess.pop());
 
       if (msat_term_is_true(t) != 0 || msat_term_is_false(t) != 0) {
         continue;
@@ -570,7 +567,8 @@ public abstract class MathsatFormulaManager implements FormulaManager {
         // ok, go into this formula
         for (int i = 0; i < msat_term_arity(t); ++i){
           Formula c = encapsulate(msat_term_get_arg(t, i));
-          if (!handled.contains(c)) {
+
+          if (seen.add(c)) {
             toProcess.push(c);
           }
         }
