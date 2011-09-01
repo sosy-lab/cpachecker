@@ -103,7 +103,7 @@ public class ARTStatistics implements Statistics {
 
     Path targetPath = null;
 
-    if (pResult == Result.UNSAFE) {
+    if (pResult != Result.SAFE) {
       CounterexampleInfo counterexample = cpa.getLastCounterexample();
       Object assignment = null;
 
@@ -120,35 +120,38 @@ public class ARTStatistics implements Statistics {
         }
       }
 
-      if (exportErrorPath) {
-        // the shrinked errorPath only includes the nodes,
-        // that are important for the error, it is not a complete path,
-        // only some nodes of the targetPath are part of it
-        ErrorPathShrinker pathShrinker = new ErrorPathShrinker();
-        Path shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath);
+      if (targetPath != null) {
 
-        writeErrorPathFile(errorPathFile, targetPath);
-        writeErrorPathFile(errorPathCoreFile, shrinkedErrorPath);
-        writeErrorPathFile(errorPathSourceFile, targetPath.toSourceCode());
-        writeErrorPathFile(errorPathJson, targetPath.toJSON());
+        if (exportErrorPath) {
+          // the shrinked errorPath only includes the nodes,
+          // that are important for the error, it is not a complete path,
+          // only some nodes of the targetPath are part of it
+          ErrorPathShrinker pathShrinker = new ErrorPathShrinker();
+          Path shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath);
 
-        if (assignment != null) {
-          writeErrorPathFile(errorPathAssignment, assignment);
-        }
+          writeErrorPathFile(errorPathFile, targetPath);
+          writeErrorPathFile(errorPathCoreFile, shrinkedErrorPath);
+          writeErrorPathFile(errorPathSourceFile, targetPath.toSourceCode());
+          writeErrorPathFile(errorPathJson, targetPath.toJSON());
 
-        if (counterexample != null) {
-          for (Pair<Object, File> info : counterexample.getAllFurtherInformation()) {
-            writeErrorPathFile(info.getSecond(), info.getFirst());
+          if (assignment != null) {
+            writeErrorPathFile(errorPathAssignment, assignment);
+          }
+
+          if (counterexample != null) {
+            for (Pair<Object, File> info : counterexample.getAllFurtherInformation()) {
+              writeErrorPathFile(info.getSecond(), info.getFirst());
+            }
           }
         }
       }
-    }
 
-    if (exportART && artFile != null) {
-      try {
-        Files.writeFile(artFile, ARTUtils.convertARTToDot(pReached, getEdgesOfPath(targetPath)));
-      } catch (IOException e) {
-        cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ART to file");
+      if (exportART && artFile != null) {
+        try {
+          Files.writeFile(artFile, ARTUtils.convertARTToDot(pReached, getEdgesOfPath(targetPath)));
+        } catch (IOException e) {
+          cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ART to file");
+        }
       }
     }
   }
