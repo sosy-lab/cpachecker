@@ -1,0 +1,1023 @@
+#LyX 2.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 413
+\begin_document
+\begin_header
+\textclass article
+\begin_preamble
+\usepackage{amsfonts}%
+\usepackage{amssymb}%
+\usepackage{amsthm}
+\usepackage{makeidx} % index
+\usepackage{color} 
+\usepackage{graphicx} 
+\usepackage{booktabs} 
+\usepackage{multirow}
+\usepackage{enumitem}
+\usepackage{lscape}	% change to landscape on the fly
+\usepackage{latexsym}
+\usepackage{wasysym}
+\usepackage{savesym}
+\usepackage{babel}
+\usepackage{parskip}
+\usepackage{thmtools}
+\usepackage{algorithmic}
+\usepackage{stmaryrd}
+\usepackage{fullpage}
+\usepackage{url}
+\usepackage{proof}
+
+
+\usepackage{pgf}
+\usepackage{tikz}
+\usetikzlibrary{arrows,decorations.pathmorphing,backgrounds,positioning,fit,petri,automata}
+\usepgflibrary{shapes.geometric}
+\end_preamble
+\use_default_options false
+\begin_modules
+theorems-ams
+eqs-within-sections
+figs-within-sections
+\end_modules
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman lmodern
+\font_sans lmss
+\font_typewriter lmtt
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize 11
+\spacing single
+\use_hyperref false
+\papersize a4paper
+\use_geometry false
+\use_amsmath 1
+\use_esint 1
+\use_mhchem 1
+\use_mathdots 1
+\cite_engine basic
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\use_refstyle 0
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\paperwidth 12.5cm
+\paperheight 6cm
+\leftmargin 0cm
+\topmargin 0cm
+\rightmargin 0cm
+\bottommargin 0cm
+\secnumdepth 4
+\tocdepth 4
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Rely-Guarantee Program Verification with Large-Block Encoding 
+\end_layout
+
+\begin_layout Author
+Przemys
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+l
+\end_layout
+
+\end_inset
+
+ aw Daca
+\end_layout
+
+\begin_layout Section
+Goal
+\end_layout
+
+\begin_layout Standard
+This draft presents the design forrely-guaranratee verification with large-block
+ encoding.
+ Based on previous experiments, I have indetified three goals for the procedure:
+\end_layout
+
+\begin_layout Enumerate
+interpolation supports non-modular environmental transitions
+\end_layout
+
+\begin_layout Enumerate
+interpolation does not not interpolate the same same formula multiple times,
+ which lead to huge interpolation traces
+\end_layout
+
+\begin_layout Enumerate
+enviormental transitions have a precision, which can be increased.
+ 
+\end_layout
+
+\begin_layout Section
+Preliminaries, Semantics
+\begin_inset Note Note
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Formula $P$
+\end_inset
+
+ - program that consists of 
+\begin_inset Formula $N\geq1$
+\end_inset
+
+ threads
+\begin_inset Newline newline
+\end_inset
+
+CFA for thread 
+\begin_inset Formula $i$
+\end_inset
+
+ constists of 
+\begin_inset Formula $L$
+\end_inset
+
+ locations and 
+\begin_inset Formula $L\times Ops\times L$
+\end_inset
+
+ constrol-flow edges.
+\begin_inset Newline newline
+\end_inset
+
+ 
+\begin_inset Formula $V$
+\end_inset
+
+ - set of all variables that appear in a program
+\begin_inset Newline newline
+\end_inset
+
+
+\begin_inset Formula $V_{g}\subseteq V$
+\end_inset
+
+ - global variables
+\begin_inset Newline newline
+\end_inset
+
+
+\begin_inset Formula $V_{i}\subseteq V\backslash V_{g}$
+\end_inset
+
+ - set of all variables local to thread 
+\begin_inset Formula $i$
+\end_inset
+
+, including the program counter
+\begin_inset Newline newline
+\end_inset
+
+
+\begin_inset Formula $C$
+\end_inset
+
+ - set of all valuations of variables in 
+\begin_inset Formula $V$
+\end_inset
+
+
+\begin_inset Newline newline
+\end_inset
+
+
+\begin_inset Formula $C_{x}$
+\end_inset
+
+ - set of all valutinos of variables in 
+\begin_inset Formula $V_{x}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+Sets of concreate states are represented by first order formula with free
+ variables from 
+\begin_inset Formula $V$
+\end_inset
+
+.
+ Given formula 
+\begin_inset Formula $\varphi$
+\end_inset
+
+: 
+\begin_inset Formula $[\varphi]=\{\, c\in C\,|\, c\models\varphi\}$
+\end_inset
+
+.
+\begin_inset Newline newline
+\end_inset
+
+
+\begin_inset Formula $\varphi_{init}$
+\end_inset
+
+- global inital state of 
+\begin_inset Formula $P$
+\end_inset
+
+
+\begin_inset Newline newline
+\end_inset
+
+
+\begin_inset Formula $\varphi_{err}$
+\end_inset
+
+ - error states
+\end_layout
+
+\begin_layout Plain Layout
+In rely-guarantee reasoning, programs counters are treated like any other
+ variable and may appear in interpolants.
+ To avoid cluttering of notation, we assume that programs counters are tracted
+ in path formulas like other variables.
+ As a result the strongest postcondition 
+\begin_inset Formula $\mathrm{SP_{edge}}$
+\end_inset
+
+ is defined on CFA edges 
+\begin_inset Formula $edge\in L\times Ops\times L$
+\end_inset
+
+, rather thant operation only.
+ The strongest postcondition by an edge checks if the start location matches,
+ applies the operation itself and then updates the program counter.
+ Compared to For an assume edge 
+\begin_inset Formula $assume(p)$
+\end_inset
+
+ that goes from location 
+\begin_inset Formula $l$
+\end_inset
+
+ to 
+\begin_inset Formula $l^{\prime}$
+\end_inset
+
+, we have 
+\begin_inset Formula 
+\[
+SP_{l\xrightarrow{assume(p)}l^{\prime}}(\varphi)\,=\,\exists\overline{pc_{i}}\,:\,\,(pc_{i}=l\,\land\,\varphi\,\land\, p)_{[pc_{i}\mapsto\overline{pc_{i}}]}\,\land\, pc_{i}=l^{\prime}
+\]
+
+\end_inset
+
+For an assigment operation 
+\begin_inset Formula $l\xrightarrow{s:=e}l^{\prime}$
+\end_inset
+
+ in thread 
+\begin_inset Formula $i$
+\end_inset
+
+ we get
+\begin_inset Formula 
+\[
+SP_{l\xrightarrow{s:=e}l^{\prime}}(\varphi)\,=\,\exists\overline{s},\overline{pc_{i}}\,:\,(pc_{i}=l\,\land\,\varphi)_{[s\mapsto\overline{s},pc_{i}\mapsto\overline{pc_{i}}]}\,\land\, pc_{i}=l^{\prime}\,\land\, s=e_{[s\mapsto\overline{s},pc_{i}\mapsto\overline{pc_{i}}]}.
+\]
+
+\end_inset
+
+Note that if an edge is applied on a wrong location, then the resulting
+ formula is unsatisfiable.
+\end_layout
+
+\begin_layout Plain Layout
+We assume that programs have interleaving semantics, i.e the set off possible
+ formulas is defined inductivly be the following rules:
+\begin_inset Formula 
+\[
+\begin{array}{cl}
+1. & \varphi_{init}\in T\\
+ & \,\\
+2. & \infer[edge\in CFA_{i}]{\mathrm{SP}_{edge}(\varphi)\in T}{\varphi\in T}
+\end{array}
+\]
+
+\end_inset
+
+All reachable states can be obtain by aplying 
+\begin_inset Formula $[\ldotp]$
+\end_inset
+
+ on all the formulas in 
+\begin_inset Formula $T$
+\end_inset
+
+.
+ Note that formulas is in 
+\begin_inset Formula $T$
+\end_inset
+
+ that are not feasible this operation will give the empty set of concreate
+ states.
+ Program is 
+\emph on
+safe 
+\emph default
+iff there is no 
+\begin_inset Formula $\varphi\in T$
+\end_inset
+
+ such that 
+\begin_inset Formula $\varphi_{err}\land\varphi$
+\end_inset
+
+ is satisfiable.
+\end_layout
+
+\end_inset
+
+
+\begin_inset Note Note
+status collapsed
+
+\begin_layout Section*
+2 Rely-Guarantee CPA with Large-Block Encoding
+\end_layout
+
+\begin_layout Plain Layout
+We present in this section a CPA for rely-guarantee analysis.
+ For simplicity the CPA is restricted to two threads, by can be easily extended.
+\end_layout
+
+\begin_layout Enumerate
+The abstract domain is 
+\begin_inset Formula $D=(C,\mathcal{E},[\cdot])$
+\end_inset
+
+.
+ The concreate states were defined before.
+ The lattice is 
+\begin_inset Formula $\mathcal{E}=(E,\top,\sqsubseteq,\sqcup)$
+\end_inset
+
+.
+ The lattice elements are 
+\begin_inset Formula $E=A_{1}\times E_{1}\times A_{2}\times E_{2}$
+\end_inset
+
+, where 
+\begin_inset Formula $A_{1,2}$
+\end_inset
+
+ are standard predicate elements.
+ 
+\begin_inset Formula $E_{i}$
+\end_inset
+
+ contain environmental transitions generated by thread 
+\begin_inset Formula $i$
+\end_inset
+
+, which are of the form 
+\begin_inset Formula $(guard,update)$
+\end_inset
+
+.
+ Here, 
+\begin_inset Formula $guard$
+\end_inset
+
+ is a formula that describes 
+\end_layout
+
+\begin_layout Enumerate
+Transfer relation.
+ 
+\end_layout
+
+\end_inset
+
+
+\begin_inset Note Note
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Formula 
+\[
+\begin{array}{cl}
+1. & \varphi_{init}\in T_{i}\\
+ & \,\\
+2. & \infer[edge\in CFA_{i}]{SP_{edge}(\varphi)\in T_{i}}{\varphi\in T_{i}}\\
+ & \,\\
+3. & \infer[edge\in CFA_{i}]{(\psi,edge)\in E_{i}}{\varphi\in T_{i}\qquad\varphi\rightarrow\psi}\\
+ & \,\\
+4. & \infer[i\neq j]{SP_{edge}(\varphi\land\psi)\in T_{i}}{\varphi\in T_{i}\quad\quad(\psi,edge)\in E_{j}}
+\end{array}
+\]
+
+\end_inset
+
+Program is safe
+\emph on
+ with respect to rely-guarantee
+\emph default
+ iff there is no 
+\begin_inset Formula $\varphi\in T_{i}$
+\end_inset
+
+ such that 
+\begin_inset Formula $\varphi_{err}\land\varphi$
+\end_inset
+
+ is satisfiable.
+\end_layout
+
+\begin_layout Lemma
+If a program is safe, then it is safe w.r.t rely-guarantee.
+\end_layout
+
+\begin_layout Proof
+The proof is by counterpositive: if a program is unsafe w.r.t.
+ to rely-guarantee, then it is unsafe.
+ Assume that 
+\end_layout
+
+\begin_layout Lemma
+If a program is safe w.r.t.
+ rely-guarantee, then it is safe.
+\end_layout
+
+\begin_layout Proof
+Let's us prove the counterpositive statement: if a program is unsafe, then
+ it is unsafe w.r.t to rely-guarantee.
+ Unsafe program means that there exists a interleaving 
+\begin_inset Formula $\psi\in T$
+\end_inset
+
+ such that 
+\begin_inset Formula $\psi\land\varphi_{err}$
+\end_inset
+
+ is satisfiable.
+ It can be showed by induction that in this case it is possible to obtain
+ 
+\begin_inset Formula $\psi\in T_{i}$
+\end_inset
+
+.
+ The key point is to use 
+\begin_inset Formula $\varphi$
+\end_inset
+
+ as 
+\begin_inset Formula $\psi$
+\end_inset
+
+ in rule no.
+ 3.
+ 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Program counters
+\end_layout
+
+\begin_layout Standard
+Often the program counter is a distnguished variable that it is tracted
+ by a separate CPA.
+ In rely-guarantee method the program counters may appear in interpolatino
+ formulas, to detected cases where this information should be tracted by
+ other threads.
+ For simplicy, we assume that program counters appear in formulas, like
+ every other variable.
+ As a result the strongest postcondition 
+\begin_inset Formula $\mathrm{SP_{edge}}$
+\end_inset
+
+ is defined on CFA edges 
+\begin_inset Formula $edge\in L\times Ops\times L$
+\end_inset
+
+, rather thant operation only.
+ Strongest postcondition by an edge 
+\begin_inset Formula $(l,op,l^{\prime})$
+\end_inset
+
+ in thread 
+\begin_inset Formula $i$
+\end_inset
+
+ can be though of sequence of three operations: checking if the inital program
+ counter matches 
+\begin_inset Formula $l$
+\end_inset
+
+, executing the operation 
+\begin_inset Formula $op$
+\end_inset
+
+ itself and then, updating the program counter to 
+\begin_inset Formula $l^{\prime}$
+\end_inset
+
+.
+ More formally, if the 
+\begin_inset Formula $SP^{old}$
+\end_inset
+
+ is the 
+\begin_inset Quotes eld
+\end_inset
+
+traditional
+\begin_inset Quotes erd
+\end_inset
+
+ strongerst postcondition, as described in 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Beyer10"
+
+\end_inset
+
+, then our operator is 
+\begin_inset Formula 
+\[
+SP_{(l,op,l^{\prime})}\,=\, SP_{assume(pc_{i}=l)}^{old}\circ SP_{op}^{old}\circ SP_{pc_{i}=l^{\prime}}^{old}.
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+General algorithm
+\end_layout
+
+\begin_layout Standard
+Let us considerer a program that consists of 
+\begin_inset Formula $N$
+\end_inset
+
+ threads.
+ For each thread 
+\begin_inset Formula $i$
+\end_inset
+
+ we have a set 
+\begin_inset Formula $\mathcal{P}_{i}$
+\end_inset
+
+ of predicates and a set 
+\begin_inset Formula $R_{i}$
+\end_inset
+
+.
+ Similarly, for every pair 
+\begin_inset Formula $i\neq j$
+\end_inset
+
+ of threads there is a set 
+\begin_inset Formula $\mathcal{P}_{i\triangleright j}$
+\end_inset
+
+ of environemtal predicates and a set 
+\begin_inset Formula $E_{i\triangleright j}$
+\end_inset
+
+ of enviromental transitions.
+ If the sets of enviromental transitions are empty, then the standard LBE
+ analysis is conducted on each thread with the predicates from 
+\begin_inset Formula $\mathcal{P}_{i}$
+\end_inset
+
+.
+ 
+\end_layout
+
+\begin_layout Standard
+Enviromental transitions are of the form 
+\begin_inset Formula $(guard,edge)\in E_{i\triangleright j}$
+\end_inset
+
+, where 
+\begin_inset Formula $guard$
+\end_inset
+
+ is a formula and 
+\begin_inset Formula $edge$
+\end_inset
+
+ is an operation to be performed.
+ The guard works as a preconditions --- the edge may only be applied on
+ abstract states, whose valuations do not contradict the valuation of the
+ guard.
+ To apply an enviormental transition
+\family roman
+\series medium
+\shape up
+\size normal
+\emph off
+\bar no
+\strikeout off
+\uuline off
+\uwave off
+\noun off
+\color none
+ 
+\begin_inset Formula $(\phi,g)$
+\end_inset
+
+ on a some state 
+\begin_inset Formula $(\psi,\varphi)$
+\end_inset
+
+, we compute 
+\begin_inset Formula $(\psi,SP_{g}(\varphi\land\psi))$
+\end_inset
+
+ --- this will apply the operation 
+\begin_inset Formula $g$
+\end_inset
+
+ on the states that statisfy the guard.
+ For the sake of simplicity, we will often refer to enviromental transitinos
+ as simply 
+\family default
+\series default
+\shape default
+\size default
+\emph on
+\bar default
+\strikeout default
+\uuline default
+\uwave default
+\noun default
+\color inherit
+transitions
+\family roman
+\series medium
+\shape up
+\size normal
+\emph off
+\bar no
+\strikeout off
+\uuline off
+\uwave off
+\noun off
+\color none
+.
+\end_layout
+
+\begin_layout Standard
+If a CFA edge 
+\begin_inset Formula $g$
+\end_inset
+
+ is applied to an abstract state 
+\begin_inset Formula $(\psi,\varphi)$
+\end_inset
+
+, then an enviromental transition may generated.
+ We require that the guard overapproximates the formula 
+\begin_inset Formula $\psi\land\varphi$
+\end_inset
+
+.
+ In the simple case, the generated transition can be 
+\begin_inset Formula $(\psi\land\varphi,g)$
+\end_inset
+
+, which I have been doing so far.
+ However, the formula 
+\begin_inset Formula $\psi\land\varphi$
+\end_inset
+
+ may be uncessary precise and difficult to compute.
+ It may be beneficial to abstract the guard using the predicates 
+\family roman
+\series medium
+\shape up
+\size normal
+\emph off
+\bar no
+\strikeout off
+\uuline off
+\uwave off
+\noun off
+\color none
+from 
+\begin_inset Formula $\mathcal{P}_{i\triangleright j}$
+\end_inset
+
+, which inform us which part of guards are important.
+ The set 
+\begin_inset Formula $\mathcal{P}_{i\triangleright j}$
+\end_inset
+
+ can be enlarged by interpolation.
+ In general enviromental transition are applied frequently, so it is better
+ to have them as simple and as few as possible.
+ 
+\end_layout
+
+\begin_layout Subsection
+Approximation of operations
+\end_layout
+
+\begin_layout Standard
+In the paper by Gupta et al.
+ 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Gupta11"
+
+\end_inset
+
+, the operations are also abstracted, just like the guards.
+ We could take the same approach and intoduce a set of predicates for operation,
+ but the question whether this would be beneficial.
+ Operation have to be instanted to some concreate values, otherwise they
+ do have a meaning, e.g.
+ the edge 
+\begin_inset Formula $g$
+\end_inset
+
+ applied to an abstract state 
+\begin_inset Formula $(\psi,\varphi)$
+\end_inset
+
+ has a meaning only as 
+\begin_inset Formula $(\psi,SP_{g}(\varphi))$
+\end_inset
+
+.
+ But then, the same operation
+\end_layout
+
+\begin_layout Subsection
+Most general enviromental transitions
+\end_layout
+
+\begin_layout Standard
+Transition 
+\begin_inset Formula $(\phi_{1},g_{1})$
+\end_inset
+
+ is more general than 
+\begin_inset Formula $(\phi_{2},g_{2})$
+\end_inset
+
+ if the result of applying gives a biger overapproximation:
+\begin_inset Formula 
+\[
+(\phi_{1},g_{1})\sqsupseteq(\phi_{2},g_{2})\quad\text{iff}\quad\forall\varphi\in\mathscr{P}\,:\, SP_{g_{1}}(\varphi\land\phi_{1})\models SP_{g_{2}}(\varphi\land\phi_{2})
+\]
+
+\end_inset
+
+where 
+\begin_inset Formula $\mathscr{P}$
+\end_inset
+
+ is the set of all path formulas.
+ In order to have as few transitions as possible, only the most general
+ transition should be applied.
+ It remains an open question how to decided whether 
+\begin_inset Formula $(\phi_{1},g_{1})\sqsupseteq(\phi_{2},g_{2})$
+\end_inset
+
+ holds.
+\end_layout
+
+\begin_layout Subsection
+How to apply enviromental transitions
+\end_layout
+
+\begin_layout Standard
+Were interested in safety properties, therefore we apply enviormental transition
+ that would change the flow of the program.
+ These only can be assigments to global variables, since they could affect
+ the branches that are taken.
+ Assume edges do not affect other threads, so they do not generate enviormental
+ transitions.
+ The transition with global assigments do not have to be applied at every
+ abstract element of a thread, but it is enough to apply them before the
+ global variable is read.
+ In the terms of partial-order reduction, enviormental transitions and non-globa
+l reads are 
+\emph on
+independent
+\emph default
+.
+ In some cases enviromental transition can only be applied after some other
+ transitions updated the abstract state.
+ This implies, that before global reads it shoul be be possible to apply
+ all enviromental transition, even if they assigned to local variables.
+ Similarly, to get transitions with all possible guard statements, enviromental
+ transitinos should also be applied before edges that generate new transitions.
+\end_layout
+
+\begin_layout Standard
+To sumarize:
+\end_layout
+
+\begin_layout Enumerate
+enviromentaltransitions are generate by any assigments
+\end_layout
+
+\begin_layout Enumerate
+all enviromental transitions can be applied before global reads and any
+ assigments.
+ 
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+TODO
+\series default
+ write about combing
+\end_layout
+
+\begin_layout Subsection
+Static Single Assigment
+\end_layout
+
+\begin_layout Standard
+In 
+\shape smallcaps
+CPAchecker
+\shape default
+ formulas are skolemized with SSA indexes.
+ In our analysis every thread has an unique identifier, which is added to
+ all variables names that appear in its formulas, e.g.
+ variables in thread 
+\begin_inset Formula $1$
+\end_inset
+
+ are not primed, in thread two are primed once, etc.
+ This is necessary for working in formulas in SSA format, so that the old
+ values do not collide.
+ 
+\end_layout
+
+\begin_layout Standard
+Suppose that we have an abstract state an abstract state 
+\begin_inset Formula $(\psi,\varphi)$
+\end_inset
+
+ in thread 
+\begin_inset Formula $i$
+\end_inset
+
+ and an assigment edge 
+\begin_inset Formula $g$
+\end_inset
+
+.
+ To generate a transition we perform cartesian or boolean abstraction on
+ 
+\begin_inset Formula $\psi\land\varphi$
+\end_inset
+
+ with the predicates from 
+\begin_inset Formula $\mathcal{P}_{i\triangleright j}$
+\end_inset
+
+.
+ The transitions consists of the abstracted formula and the edge.
+ If we decide not use environmental predicates, then we take 
+\begin_inset Formula $\psi\land\varphi$
+\end_inset
+
+ as the guard
+\end_layout
+
+\begin_layout Standard
+Now, assume that we want to apply a transition 
+\begin_inset Formula $(\phi,g)$
+\end_inset
+
+ an an abstract state 
+\begin_inset Formula $(\psi,\varphi)$
+\end_inset
+
+.
+ By appling the guard 
+\begin_inset Formula $\phi$
+\end_inset
+
+, we want to get a path formula that describes valuations that are satisfied
+ by both 
+\begin_inset Formula $\varphi$
+\end_inset
+
+ and 
+\begin_inset Formula $\psi\land\phi$
+\end_inset
+
+.
+ Since they are in SSA form, so only the last indexes should match and others
+ should to be different.
+ We build equalities over the last indexes of corresponding variables in
+ 
+\begin_inset Formula $\varphi$
+\end_inset
+
+ and 
+\begin_inset Formula $\psi$
+\end_inset
+
+.
+ The old values of variables from different thread do not collide, because
+ of priming.
+ 
+\end_layout
+
+\begin_layout Standard
+If we do not abstract enviormental transitions, then the guard might have
+ colliding variables.
+ This may happen when a transition is made from thread A to B and from B
+ to A.
+ We can avoid this situation by using environemtnal predicates or abstracting
+ after each transition application.
+\end_layout
+
+\begin_layout Standard
+TODO write about possible benefits
+\end_layout
+
+\begin_layout Section
+Interpolation
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Subsection
+Three ways of generating env.
+ transitions
+\end_layout
+
+\begin_layout Subsection
+Most general
+\end_layout
+
+\begin_layout Subsection
+Avoiding blow-up
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset bibtex
+LatexCommand bibtex
+bibfiles "ref"
+options "ieeetr"
+
+\end_inset
+
+
+\end_layout
+
+\end_body
+\end_document
