@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
@@ -252,6 +253,11 @@ public class ForwardingFormulaManager implements FormulaManager {
   public Collection<Formula> extractAtoms(Formula pF,
       boolean pSplitArithEqualities, boolean pConjunctionsOnly) {
     return delegate.extractAtoms(pF, pSplitArithEqualities, pConjunctionsOnly);
+  }
+
+  @Override
+  public Set<String> extractVariables(Formula pF) {
+    return delegate.extractVariables(pF);
   }
 
   @Override
