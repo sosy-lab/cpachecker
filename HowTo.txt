@@ -78,11 +78,13 @@ Building and running CPAchecker from within Eclipse:
    URL for anonymous checkout: http://cpachecker.googlecode.com/svn/trunk
 3. Ignore warnings "Unsatisfied version constraint: 'org.eclipse.cdt.core ...'"
    and "Bundle 'org.eclipse.cdt.core' cannot be resolved'".
-4. Follow the instructions in section "Running CPAchecker", but instead of step 8
-   create an Eclipse run configuration with main class "org.sosy_lab.cpachecker.cmdline.CPAMain",
-   program arguments "[ -config <CONFIG_FILE> ] [ -spec <SPEC_FILE> ] <SOURCE_FILE>"
-   and VM arguments "-Djava.library.path=lib/native/<ENVIRONMENT>"
-   Replace <ENVIRONMENT> with one of the following depending on your system:
+4. In order to run CPAchecker, use one of the supplied launch configurations
+   or create your own.
+   To select the configuration, specification, and program files use the
+   text box "program arguments" in the launch configuration editor.
+   Step 8 of the section "Running CPAchecker" above describes what can be entered here.
+   The text box "VM arguments" needs to contain "-Djava.library.path=lib/native/<ENVIRONMENT>",
+   where <ENVIRONMENT> is replaced with one of the following depending on your system:
    		ppc-macosx, x86_64-linux, x86-linux, x86-macosx,  x86-win32
 
 5. Optional, only for CPAchecker developers:
