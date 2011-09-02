@@ -43,8 +43,6 @@ public class PredicateMap
 {
   private Map<CFAEdge, Set<AbstractionPredicate>> predicateMap;
 
-  private Set<String> assumptions = new HashSet<String>();
-
   public PredicateMap(List<Collection<AbstractionPredicate>> pathPredicates, Path path)
   {
     predicateMap = new HashMap<CFAEdge, Set<AbstractionPredicate>>();
@@ -106,60 +104,6 @@ public class PredicateMap
 
     return variables;
   }
-
-  public Map<CFAEdge, Map<String, Long>> getAssumptions(Map<CFAEdge, Map<String, Long>> initalAssumptions)
-  {
-    for(Map.Entry<CFAEdge, Set<AbstractionPredicate>> entry : predicateMap.entrySet())
-    {
-      Map<String, Long> assumes = initalAssumptions.get(entry.getKey());
-
-      for(AbstractionPredicate predicate : entry.getValue())
-      {
-        Collection<String> atoms = extractVariables(((MathsatFormula)predicate.getSymbolicAtom()).getTerm());
-
-        // if there is only one atom ...
-        // TODO: this needs cleanup!
-        if(atoms.size() == 1)
-        {
-          if(assumes == null)
-            initalAssumptions.put(entry.getKey(), assumes = new HashMap<String, Long>());
-
-          String assume = predicate.getSymbolicAtom().toString().replace("(", "").replace(")", "");
-
-          String[] splits = assume.split(" = ");
-
-          // ... and it is compared to a constant ...
-          if(splits.length == 2)
-          {
-            // ... add it as a fact
-            try
-            {
-              Long constant = Long.parseLong(splits[1]);
-//System.out.println("added fact " + atoms.toArray(new String[atoms.size()])[0] + " = " + splits[1] + " for expression " + predicate.getSymbolicAtom() + " at edge " + entry.getKey());
-
-              assumes.put(atoms.toArray(new String[atoms.size()])[0], constant);
-
-              assumptions.add(assume);
-            }
-            catch(NumberFormatException nfe)
-            {
-//System.out.println(splits[1] + " is not a number - no fact to add for expression " + predicate.getSymbolicAtom());
-            }
-          }
-          else
-          {
-//System.out.println("can't extract fact from expression " + assume);
-          }
-        }
-      }
-    }
-
-//System.out.println("\nassumptions: " + assumptions);
-
-    return initalAssumptions;
-  }
-
-
 
   // TODO: copy & paste code from branches/fshell3/src/org/sosy_lab/cpachecker/util/predicates/mathsat/MathsatFormulaManager.java
   private static Collection<String> extractVariables(long pTerm) {

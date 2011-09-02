@@ -27,7 +27,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
@@ -103,8 +102,6 @@ public class ExplicitTransferRelation implements TransferRelation {
   private String missingInformationLeftPointer  = null;
   private IASTRightHandSide missingInformationRightExpression = null;
 
-  public static ExplicitPrecision currentPrecision = null;
-
   public ExplicitTransferRelation(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
   }
@@ -117,33 +114,9 @@ public class ExplicitTransferRelation implements TransferRelation {
     }
     ExplicitPrecision precision = (ExplicitPrecision) pPrecision;
 
-    currentPrecision = precision;
-
     AbstractElement successor;
     ExplicitElement explicitElement = (ExplicitElement)element;
 
-    // is there a fact associated with the current edge ..?
-    if(precision.facts.get(cfaEdge) != null)
-    {
-//System.out.println("having fact at edge " + cfaEdge + ", namely " + precision.facts.get(cfaEdge));
-      Map<String, Long> factsAtLocation = precision.facts.get(cfaEdge);
-
-      for(Map.Entry<String, Long> factAtLocation : factsAtLocation.entrySet())
-      {
-        // ... and the variable associated with the fact is not already set ..?
-        if(!explicitElement.contains(factAtLocation.getKey()))
-        {
-          // ... then set it!
-          String factName = factAtLocation.getKey();
-          Long factValue = factAtLocation.getValue();
-//if(true)break;
-//System.out.println("at edge " + cfaEdge + " setting " + factName + " to " + factValue);
-          //if(factValue != null)
-          //  explicitElement.assignFact(factName, factValue);
-        }
-      }
-    }
-//System.out.println("   at edge [" + cfaEdge.getEdgeType() + "] " + cfaEdge.getRawStatement() + ", elem = " + explicitElement);
     // check the type of the edge
     switch (cfaEdge.getEdgeType ()) {
 
@@ -593,8 +566,6 @@ public class ExplicitTransferRelation implements TransferRelation {
           else if(opType == BinaryOperator.BINARY_AND)
           {
             if(!newElement.contains(getvarName(varName, functionName)))
-              return newElement;
-            else if(true)
               return newElement;
 
             Long r = newElement.getValueFor(getvarName(varName, functionName)) & valueOfLiteral;

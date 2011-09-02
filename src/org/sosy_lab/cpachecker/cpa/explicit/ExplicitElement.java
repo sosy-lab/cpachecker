@@ -117,22 +117,8 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
       CPAAlgorithm.CPAStatistics.numberOfUniqueAssigns++;
 
     CPAAlgorithm.CPAStatistics.maxConstantCount = Math.max(constantsMap.size(), CPAAlgorithm.CPAStatistics.maxConstantCount);
-
-    // very ugly temporary hack: reassigning a variable leads to deletion of existing facts for this variable
-    for(Map<String, Long> factsAtLocation : ExplicitTransferRelation.currentPrecision.facts.values())
-    {
-      if(factsAtLocation.containsKey(nameOfVar))
-      {
-//System.out.println("deleting fact for " + nameOfVar);
-        factsAtLocation.remove(nameOfVar);
-      }
-    }
   }
   private static Set<String> assigned = new HashSet<String>();
-
-  void assignFact(String nameOfVar, Long value){
-    constantsMap.put(nameOfVar, value);
-  }
 
   public Long getValueFor(String variableName){
     return checkNotNull(constantsMap.get(variableName));

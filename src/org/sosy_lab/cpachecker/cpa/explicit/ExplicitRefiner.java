@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -103,10 +102,6 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
       description="use global interpolation point")
   private boolean useGlobalInterpolationPoint = true;
 
-  @Option(name="refinement.useGlobalAssumptions",
-      description="use global assumption")
-  private boolean useGlobalAssumption = true;
-
   final Timer totalRefinement = new Timer();
   final Timer precisionUpdate = new Timer();
   final Timer artUpdate = new Timer();
@@ -121,8 +116,6 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
   private final Set<String> globalVars;
 
   private final Set<String> allReferencedVariables = new HashSet<String>();
-
-  public Map<CFAEdge, Map<String, Long>> assumptions = new HashMap<CFAEdge, Map<String, Long>>();
 
   private Path previousPath;
 
@@ -308,34 +301,6 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
 //System.out.println("\nnew: " + newWhiteList);
 
     ExplicitPrecision newPrecision = new ExplicitPrecision(oldPrecision.getBlackListPattern(), newWhiteList);
-
-    // would not use old facts
-    if(!useGlobalAssumption)
-      assumptions = new HashMap<CFAEdge, Map<String, Long>>();
-
-    // can we actually keep facts from previous iterations?
-    // new paths would result in new facts, right, so delete old facts
-    // however, cutting all facts after firstInterpolationPoint would be safe, right?
-    else
-    {
-      boolean dropAssumptions = false;
-      // clear assumptions that are attached to cfa edges after first interpolation point
-      // I doubt this approach is entirely valid for loops, or gotos, or, most general, any sort of jumps!
-      for(Pair<ARTElement, CFAEdge> element : path)
-      {
-        dropAssumptions = dropAssumptions || element == firstInterpolationPoint;
-
-        if(dropAssumptions)
-          assumptions.remove(element.getSecond());
-      }
-    }
-
-//System.out.println("\nassumptions0: " + assumptions);
-    assumptions = predicates.getAssumptions(assumptions);
-//assumptions = new HashMap<CFAEdge, Map<String, Long>>();
-//System.out.println("\nassumptions: " + assumptions);
-
-    newPrecision.setFacts(assumptions);
 
     // We have two different strategies for the refinement root: set it to
     // the firstInterpolationPoint or set it to highest location in the ART
