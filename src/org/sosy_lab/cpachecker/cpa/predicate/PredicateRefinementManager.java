@@ -687,7 +687,36 @@ class PredicateRefinementManager {
     refStats.interpolantVerificationTimer.start();
     try {
 
-      // first, check if the interpolants contains only the allowed variables
+      final int n = interpolants.size();;
+      assert n == (formulas.size() - 1);
+
+      // The following three properties need to be checked:
+      // (A)                          true      & f_0 => itp_0
+      // (B) \forall i \in [1..n-1] : itp_{i-1} & f_i => itp_i
+      // (C)                          itp_{n-1} & f_n => false
+
+      // Check (A)
+      if (!checkImplication(formulas.get(0), interpolants.get(0), prover)) {
+        throw new SolverException("First interpolant is not implied by first formula");
+      }
+
+      // Check (B).
+      for (int i = 1; i <= (n-1); i++) {
+        Formula conjunct = fmgr.makeAnd(interpolants.get(i-1), formulas.get(i));
+
+        if (!checkImplication(conjunct, interpolants.get(i), prover)) {
+          throw new SolverException("Interpolant " + interpolants.get(i) + " is not implied by previous part of the path");
+        }
+      }
+
+      // Check (C).
+      Formula conjunct = fmgr.makeAnd(interpolants.get(n-1), formulas.get(n));
+      if (!checkImplication(conjunct, fmgr.makeFalse(), prover)) {
+        throw new SolverException("Last interpolant fails to prove infeasibility of the path");
+      }
+
+
+      // Furthermore, check if the interpolants contains only the allowed variables
       List<Set<String>> variablesInFormulas = Lists.newArrayListWithExpectedSize(formulas.size());
       for (Formula f : formulas) {
         variablesInFormulas.add(fmgr.extractVariables(f));
@@ -717,37 +746,6 @@ class PredicateRefinementManager {
         }
       }
 
-
-      // second, check if each interpolant is implied by (previous itp & formula)
-      Formula lastInterpolant = fmgr.makeTrue();
-
-      for (int i = 0; i < interpolants.size(); i++) {
-        Formula f = fmgr.makeAnd(lastInterpolant, formulas.get(i));
-
-        Formula currentInterpolant = interpolants.get(i);
-        if (!checkImplication(f, currentInterpolant, prover)) {
-          throw new SolverException("Interpolant " + currentInterpolant + " is not implied by previous part of the path");
-        }
-
-        lastInterpolant = currentInterpolant;
-      }
-
-
-      // third, check if each interpolant makes remainder of formulas unsat
-      for (int i = 0; i < interpolants.size(); i++) {
-        Formula currentInterpolant = interpolants.get(i);
-        if (currentInterpolant.isFalse()) {
-          continue;
-        }
-
-        List<Formula> remainingFormulas = formulas.subList(i+1, formulas.size());
-        Formula f = fmgr.makeConjunction(remainingFormulas);
-        f = fmgr.makeAnd(currentInterpolant, f);
-        if (!checkUnsatisfiability(f, prover)) {
-          throw new SolverException("Interpolant " + currentInterpolant + " fails to make remainder of path infeasible");
-        }
-      }
-
     } finally {
       refStats.interpolantVerificationTimer.stop();
     }
@@ -757,10 +755,6 @@ class PredicateRefinementManager {
     // check unsatisfiability of negation of (a => b),
     // i.e., check unsatisfiability of (a & !b)
     Formula f = fmgr.makeAnd(a, fmgr.makeNot(b));
-    return checkUnsatisfiability(f, prover);
-  }
-
-  private <T> boolean checkUnsatisfiability(Formula f, InterpolatingTheoremProver<T> prover) throws InterruptedException {
     prover.reset();
     prover.init();
 
