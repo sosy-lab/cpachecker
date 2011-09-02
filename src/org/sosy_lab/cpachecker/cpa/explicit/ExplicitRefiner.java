@@ -330,10 +330,10 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
       }
     }
 
-//System.out.println("\nassumptions1: " + assumptions);
+//System.out.println("\nassumptions0: " + assumptions);
     assumptions = predicates.getAssumptions(assumptions);
 //assumptions = new HashMap<CFAEdge, Map<String, Long>>();
-//System.out.println("\nassumptions2: " + assumptions);
+//System.out.println("\nassumptions: " + assumptions);
 
     newPrecision.setFacts(assumptions);
 

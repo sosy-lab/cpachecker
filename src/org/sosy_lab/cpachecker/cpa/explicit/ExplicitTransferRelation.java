@@ -103,6 +103,8 @@ public class ExplicitTransferRelation implements TransferRelation {
   private String missingInformationLeftPointer  = null;
   private IASTRightHandSide missingInformationRightExpression = null;
 
+  public static ExplicitPrecision currentPrecision = null;
+
   public ExplicitTransferRelation(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
   }
@@ -115,12 +117,15 @@ public class ExplicitTransferRelation implements TransferRelation {
     }
     ExplicitPrecision precision = (ExplicitPrecision) pPrecision;
 
+    currentPrecision = precision;
+
     AbstractElement successor;
     ExplicitElement explicitElement = (ExplicitElement)element;
 
     // is there a fact associated with the current edge ..?
     if(precision.facts.get(cfaEdge) != null)
     {
+//System.out.println("having fact at edge " + cfaEdge + ", namely " + precision.facts.get(cfaEdge));
       Map<String, Long> factsAtLocation = precision.facts.get(cfaEdge);
 
       for(Map.Entry<String, Long> factAtLocation : factsAtLocation.entrySet())
@@ -131,14 +136,14 @@ public class ExplicitTransferRelation implements TransferRelation {
           // ... then set it!
           String factName = factAtLocation.getKey();
           Long factValue = factAtLocation.getValue();
-
+//if(true)break;
 //System.out.println("at edge " + cfaEdge + " setting " + factName + " to " + factValue);
-          if(factValue != null)
-            explicitElement.assignConstant(factName, factValue, this.threshold);
+          //if(factValue != null)
+          //  explicitElement.assignFact(factName, factValue);
         }
       }
     }
-//System.out.println("at edge " + cfaEdge.getRawStatement());
+//System.out.println("   at edge [" + cfaEdge.getEdgeType() + "] " + cfaEdge.getRawStatement() + ", elem = " + explicitElement);
     // check the type of the edge
     switch (cfaEdge.getEdgeType ()) {
 
@@ -584,9 +589,34 @@ public class ExplicitTransferRelation implements TransferRelation {
             }
           }
 
+          // a & 9
+          else if(opType == BinaryOperator.BINARY_AND)
+          {
+            if(!newElement.contains(getvarName(varName, functionName)))
+              return newElement;
+            else if(true)
+              return newElement;
+
+            Long r = newElement.getValueFor(getvarName(varName, functionName)) & valueOfLiteral;
+            if((r == 0) == !truthValue)
+            {
+              System.out.println("return element");
+            }
+            else
+              System.out.println("return null");
+
+            if(((r != 0) && truthValue) || ((r == 0) && !truthValue))
+            {
+              return newElement;
+            }
+            else
+            {
+              return null;
+            }
+          }
+
           // TODO nothing
-          else if(opType == BinaryOperator.BINARY_AND ||
-              opType == BinaryOperator.BINARY_OR ||
+          else if(opType == BinaryOperator.BINARY_OR ||
               opType == BinaryOperator.BINARY_XOR){
             return newElement;
           }
@@ -1365,6 +1395,17 @@ public class ExplicitTransferRelation implements TransferRelation {
 
       default:
         throw new UnrecognizedCCodeException("unknown unary operator", null, unaryExpression);
+      }
+    }
+
+    @Override
+    public Long visit(IASTFieldReference fieldReferenceExpression) throws UnrecognizedCCodeException {
+
+      String varName = getvarName(fieldReferenceExpression.getRawSignature(), functionName);
+      if (element.contains(varName)) {
+        return element.getValueFor(varName);
+      } else {
+        return null;
       }
     }
   }

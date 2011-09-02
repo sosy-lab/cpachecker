@@ -56,6 +56,8 @@ public class PredicateMap
       {
         CFAEdge currentEdge = path.get(i).getSecond();
 
+//System.out.println("checking edge " + currentEdge + " for predicates ...");
+
         // get the predicates for the current edge from the predicate map
         Set<AbstractionPredicate> predicatesAtEdge = predicateMap.get(currentEdge);
 
@@ -67,7 +69,10 @@ public class PredicateMap
         for(AbstractionPredicate predicate : predicates)
         {
           if(!predicate.getSymbolicAtom().isFalse())
+          {
             predicatesAtEdge.add(predicate);
+//System.out.println("   adding predicate " + predicate + " to edge " + currentEdge);
+          }
         }
 
         // if non-trivial predicates are associated with the edge, add them to the map
@@ -148,6 +153,8 @@ public class PredicateMap
         }
       }
     }
+
+//System.out.println("\nassumptions: " + assumptions);
 
     return initalAssumptions;
   }
