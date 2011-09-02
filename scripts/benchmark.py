@@ -67,10 +67,13 @@ class Benchmark:
             limit = int(root.get("timelimit"))
             self.rlimits[resource.RLIMIT_CPU] = (limit, limit)
 
+        # get global files, they are tested in all tests
+        globalSourcefiles = getSourceFiles(root.findall("sourcefiles"))
+
         # get benchmarks
         self.tests = []
         for testTag in root.findall("test"):
-            self.tests.append(Test(testTag))
+            self.tests.append(Test(testTag, globalSourcefiles))
 
         # get columns
         self.columns = self.loadColumns(root.find("columns"))
@@ -101,7 +104,7 @@ class Test:
     The class Test manages the import of files and options of a test.
     """
 
-    def __init__(self, testTag):
+    def __init__(self, testTag, globalSourcefiles=[]):
         """
         The constructor of Test reads testname and the filenames from testTag.
         Filenames can be included or excluded, and imported from a list of 
@@ -113,68 +116,83 @@ class Test:
         self.name = testTag.get("name")
 
         # get all sourcefiles
-        self.sourcefiles = []
-        for sourcefilesTag in testTag.findall("sourcefiles"):
-            currentSourcefiles = []
-
-            # get included sourcefiles
-            for includedFiles in sourcefilesTag.findall("include"):
-                includedFilesList = self.getFileList(includedFiles.text)
-                currentSourcefiles += includedFilesList
-
-            # get sourcefiles from list in file
-            for includesFilesFile in sourcefilesTag.findall("includesfile"):
-
-                for file in self.getFileList(includesFilesFile.text):
-
-                    # read files from list
-                    fileWithList = open(file, "r")
-                    for line in fileWithList:
-                        # strip() removes 'newline' behind the line
-                        currentSourcefiles += self.getFileList(line.strip())
-                    fileWithList.close()
-
-            # remove excluded sourcefiles
-            for excludedFiles in sourcefilesTag.findall("exclude"):
-                excludedFilesList = self.getFileList(excludedFiles.text)
-                for file in excludedFilesList:
-                    while file in currentSourcefiles:
-                        currentSourcefiles.remove(file)
-
-            # collect all sourcefiles from all sourcefilesTags 
-            # and store file-specific options with filename
-            fileOptions = getOptions(sourcefilesTag)
-            self.sourcefiles += [(file, fileOptions) for file in currentSourcefiles]
+        self.sourcefiles = globalSourcefiles + \
+                           getSourceFiles(testTag.findall("sourcefiles"))
+        # print str(self.sourcefiles).replace('),', '),\n')
 
         # get all test-specific options from testTag
         self.options = getOptions(testTag)
 
 
-    def getFileList(self, shortFile):
-        """
-        The function getFileList expands a short filename to a sorted list 
-        of filenames. The short filename can contain variables and wildcards.
-        """
+def getSourceFiles(sourcefilesTagList):
+    '''
+    The function getSourceFiles returns a list of tuples (filename, options).
+    The files and their options are taken from the list of sourcefilesTags.
+    '''
+    sourcefiles = []
 
-        # expand tilde and variables
-        expandedFile = os.path.expandvars(os.path.expanduser(shortFile))
+    for sourcefilesTag in sourcefilesTagList:
+        currentSourcefiles = []
 
-        # expand wildcards
-        fileList = glob.glob(expandedFile)
+        # get included sourcefiles
+        for includedFiles in sourcefilesTag.findall("include"):
+            currentSourcefiles += getFileList(includedFiles.text)
 
-        # sort alphabetical, 
-        # if list is emtpy, sorting returns None, so better do not sort
-        if len(fileList) != 0:
-            fileList.sort()
+        # get sourcefiles from list in file
+        for includesFilesFile in sourcefilesTag.findall("includesfile"):
 
-        if expandedFile != shortFile:
-            logging.debug("I expanded a tilde and/or shell variables in expression {0} to {1}."
-                .format(repr(shortFile), repr(expandedFile))) 
-        if len(fileList) == 0:
-            logging.warning("I found no files matching {0}."
-                .format(repr(shortFile)))
+            for file in getFileList(includesFilesFile.text):
 
-        return fileList
+                # read files from list
+                fileWithList = open(file, "r")
+                for line in fileWithList:
+                    # strip() removes 'newline' behind the line
+                    currentSourcefiles += getFileList(line.strip())
+                fileWithList.close()
+
+        # remove excluded sourcefiles
+        for excludedFiles in sourcefilesTag.findall("exclude"):
+            excludedFilesList = getFileList(excludedFiles.text)
+            for excludedFile in excludedFilesList:
+                currentSourcefiles = removeAll(currentSourcefiles, excludedFile)
+
+        # get file-specific options for filenames
+        fileOptions = getOptions(sourcefilesTag)
+
+        sourcefiles.extend((file, fileOptions) for file in currentSourcefiles)
+
+    return sourcefiles
+
+
+def removeAll(list, elemToRemove):
+    return filter(lambda elem: elem != elemToRemove, list)
+
+
+def getFileList(shortFile):
+    """
+    The function getFileList expands a short filename to a sorted list 
+    of filenames. The short filename can contain variables and wildcards.
+    """
+
+    # expand tilde and variables
+    expandedFile = os.path.expandvars(os.path.expanduser(shortFile))
+
+    # expand wildcards
+    fileList = glob.glob(expandedFile)
+
+    # sort alphabetical,
+    # if list is emtpy, sorting returns None, so better do not sort
+    if len(fileList) != 0:
+        fileList.sort()
+
+    if expandedFile != shortFile:
+        logging.debug("I expanded a tilde and/or shell variables in expression {0} to {1}."
+            .format(repr(shortFile), repr(expandedFile))) 
+    if len(fileList) == 0:
+        logging.warning("I found no files matching {0}."
+            .format(repr(shortFile)))
+
+    return fileList
 
 
 class Column:
