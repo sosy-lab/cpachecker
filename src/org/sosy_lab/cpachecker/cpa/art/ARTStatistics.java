@@ -145,13 +145,13 @@ public class ARTStatistics implements Statistics {
           }
         }
       }
+    }
 
-      if (exportART && artFile != null) {
-        try {
-          Files.writeFile(artFile, ARTUtils.convertARTToDot(pReached, getEdgesOfPath(targetPath)));
-        } catch (IOException e) {
-          cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ART to file");
-        }
+    if (exportART && artFile != null) {
+      try {
+        Files.writeFile(artFile, ARTUtils.convertARTToDot(pReached, getEdgesOfPath(targetPath)));
+      } catch (IOException e) {
+        cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ART to file");
       }
     }
   }
