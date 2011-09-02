@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
     <head>       
-        <title>CPAchecker Report</title>
+        <title>CPAchecker Report - {{{sourcefile}}}</title>
         <style>
 .edge {
     cursor: pointer;
@@ -27,8 +27,13 @@ html,body {
     font-size: large;
 }
 
+#header h2 {
+    text-align: center;
+    margin: 0px;
+    font-size: medium;
+}
+
 #header small {
-    display: block;
     float: right;
 }
 
@@ -233,6 +238,7 @@ a.action:hover {
         <div class="toolbar" id="header">
             <h1>CPAchecker Report</h1>
             <small>Generated: {{{time_generated}}}</small>
+            <h2>{{{sourcefile}}}</h2>
             <h3 id="cfalabel" style="display:none;">main</h3>
         </div>
 

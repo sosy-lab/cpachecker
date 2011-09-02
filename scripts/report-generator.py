@@ -160,10 +160,6 @@ def main():
             call_dot(os.path.join(cpaoutdir, 'cfa__' + func + '.dot'), reportdir)
         return json.dumps(funclist, indent=4)
 
-
-    def gen_stats():
-        return filecontents(statsfile, encode=True)
-
     def format_cil():
         if not os.path.isfile(cilfile):
             return '<h3>CIL file not found.</h3>'
@@ -191,7 +187,7 @@ def main():
     t = Template(inf, outf)
     t.render(
         logfile=filecontents(logfile, encode=True),
-        statistics=gen_stats(),
+        statistics=filecontents(statsfile, encode=True),
         conffile=filecontents(conffile, encode=True),
         errorpath=filecontents(errorpath, fallback='[]'),
         functionlist=gen_functionlist,
@@ -200,6 +196,7 @@ def main():
         fcalledges=filecontents(fcalledges),
         time_generated=lambda: time_generated,
         formatted_cil=format_cil,
+        sourcefile=lambda: cilfile[cilfile.rfind('/') + 1:], # get filename without path
     )
   
     inf.close()
