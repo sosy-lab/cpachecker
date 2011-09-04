@@ -37,19 +37,47 @@ public class MeasureGCovCoverage {
 
   private static String INFO = "This program executes a given test suite on the given source and measures the achieved coverage with gcov.";
 
+  private static void printUsage() {
+    System.out.println("Usage: java org.sosy_lab.cpachecker.fshell.testcases.MeasureGCovCoverage [--fshell2] <source-file> <testsuite-file>");
+    System.out.println();
+    System.out.println(INFO);
+  }
+
   public static void main(String[] args) throws IOException, InterruptedException {
-    if (args.length != 2) {
-      System.out.println("Usage: java org.sosy_lab.cpachecker.fshell.testcases.MeasureGCovCoverage <source-file> <testsuite-file>");
-      System.out.println();
-      System.out.println(INFO);
+    if (args.length != 2 && args.length != 3) {
+      printUsage();
 
       return;
     }
 
+    String lSourceFileName;
+    String lTestsuiteFileName;
 
+    if (args.length == 2) {
+      lSourceFileName = args[0];
+      lTestsuiteFileName = args[1];
+    }
+    else {
+      if (!args[0].equals("--fshell2")) {
+        printUsage();
 
-    String lSourceFileName = args[0];
-    String lTestsuiteFileName = args[1];
+        return;
+      }
+
+      lSourceFileName = args[1];
+      lTestsuiteFileName = args[2];
+
+      File lTmpTestsuiteFile = File.createTempFile("testsuite.", ".tst");
+      lTmpTestsuiteFile.deleteOnExit();
+
+      System.out.print("Translate FShell2 output to FShell3 test case ... ");
+
+      FShell2ToFShell3.translateTestsuite(lTestsuiteFileName, lTmpTestsuiteFile.getAbsolutePath());
+
+      System.out.println("done.");
+
+      lTestsuiteFileName = lTmpTestsuiteFile.getAbsolutePath();
+    }
 
     File lSourceFile = new File(lSourceFileName);
     File lTestsuiteFile = new File(lTestsuiteFileName);
