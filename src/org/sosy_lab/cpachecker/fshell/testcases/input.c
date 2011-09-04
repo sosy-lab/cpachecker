@@ -40,7 +40,7 @@ int input()
 		
 		if (testcase == NULL)
 		{
-		  fprintf(stderr, "[ERROR] #2 Failed opening the testcase file.\n");
+		  fprintf(stderr, "[ERROR] #2 Failed opening the testcase file %s.\n", INPUTFILE_STR(INPUTFILE));
 		  exit(-1);
 		}
 		
@@ -70,6 +70,8 @@ int input()
     {
       next_value = atoi(line);
     }
+
+	//fprintf(stdout, "Read value %d.\n", current_value);
 		
 	return current_value;
 }

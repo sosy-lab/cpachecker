@@ -25,9 +25,12 @@ package org.sosy_lab.cpachecker.fshell.testcases;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.util.LinkedList;
 
 public class MeasureGCovCoverage {
@@ -81,7 +84,8 @@ public class MeasureGCovCoverage {
     File lTmpTestCaseFile = File.createTempFile("testcase.", ".tc");
     lTmpTestCaseFile.deleteOnExit();
 
-    lCompileInputO.add("-DINPUTFILE=\"" + lTmpTestCaseFile.getAbsolutePath() + "\"");
+    //lCompileInputO.add("-DINPUTFILE=\"" + lTmpTestCaseFile.getAbsolutePath() + "\"");
+    lCompileInputO.add("-DINPUTFILE=" + lTmpTestCaseFile.getAbsolutePath());
     lCompileInputO.add("src/org/sosy_lab/cpachecker/fshell/testcases/input.c");
 
     ProcessBuilder lBuilder = new ProcessBuilder();
@@ -89,19 +93,67 @@ public class MeasureGCovCoverage {
     lBuilder.command(lCompileInputO);
 
     Process lCompileInputOProcess = lBuilder.start();
-
     readInputStream(lCompileInputOProcess.getInputStream());
-
     int lReturnCode = lCompileInputOProcess.waitFor();
 
     System.out.println("done (" + lReturnCode + ").");
 
 
 
+    // pre-process source I)
+    System.out.print("Preprocess source step A ... ");
+
+    File lPreprocessedSourceFile = File.createTempFile("source.", ".c");
+    lPreprocessedSourceFile.deleteOnExit();
+
+    LinkedList<String> lPreprocessSource = new LinkedList<String>();
+    lPreprocessSource.add("gcc");
+    lPreprocessSource.add("-E");
+    lPreprocessSource.add("-D__CPROVER__"); // use input() function instead of __BLAST_NONDET, necessary for generic sources
+    lPreprocessSource.add("-o");
+    lPreprocessSource.add(lPreprocessedSourceFile.getAbsolutePath());
+    lPreprocessSource.add(lSourceFileName);
+
+    lBuilder.command(lPreprocessSource);
+
+    Process lPreprocessingProcess = lBuilder.start();
+    readInputStream(lPreprocessingProcess.getInputStream());
+    lReturnCode = lPreprocessingProcess.waitFor();
+
+    System.out.println("done (" + lReturnCode + ").");
+
+
+
+    // pre-process source II)
+    System.out.print("Preprocess source step B ... ");
+
+    File lPreprocessedSourceFile2 = File.createTempFile("source.", ".c");
+    lPreprocessedSourceFile2.deleteOnExit();
+
+    BufferedReader lReader = new BufferedReader(new InputStreamReader(new FileInputStream(lPreprocessedSourceFile)));
+
+    PrintWriter lWriter = new PrintWriter(new FileOutputStream(lPreprocessedSourceFile2));
+
+    String lLine = null;
+
+    while ((lLine = lReader.readLine()) != null) {
+      if (!lLine.startsWith("# ")) {
+        lWriter.println(lLine);
+      }
+    }
+
+    lReader.close();
+    lWriter.close();
+
+    System.out.println("done.");
+
+
+
     // compile source
     System.out.print("Compile source ... ");
 
-    File lObjectFile = File.createTempFile("source.", ".o");
+    //File lObjectFile = File.createTempFile("source.", ".o");
+    File lObjectFile = new File(lPreprocessedSourceFile2.getAbsolutePath().substring(0, lPreprocessedSourceFile2.getAbsolutePath().length() - 1)  + "o");
     lObjectFile.deleteOnExit();
 
     LinkedList<String> lCompileSource = new LinkedList<String>();
@@ -110,12 +162,10 @@ public class MeasureGCovCoverage {
     lCompileSource.add("-g");
     lCompileSource.add("-fprofile-arcs");
     lCompileSource.add("-ftest-coverage");
-    lCompileSource.add("-D__CPROVER__"); // use input() function instead of __BLAST_NONDET, necessary for generic sources
+    lCompileSource.add("-O0");
     lCompileSource.add("-o");
     lCompileSource.add(lObjectFile.getAbsolutePath());
-    lCompileSource.add(lSourceFileName);
-
-    System.out.println(lCompileSource);
+    lCompileSource.add(lPreprocessedSourceFile2.getAbsolutePath());
 
     lBuilder.command(lCompileSource);
 
@@ -124,6 +174,7 @@ public class MeasureGCovCoverage {
     lReturnCode = lCompileSourceProcess.waitFor();
 
     System.out.println("done (" + lReturnCode + ").");
+
 
 
     // building application
@@ -137,6 +188,7 @@ public class MeasureGCovCoverage {
     lCompileApplication.add("-g");
     lCompileApplication.add("-fprofile-arcs");
     lCompileApplication.add("-ftest-coverage");
+    lCompileApplication.add("-O0");
     lCompileApplication.add("-o");
     lCompileApplication.add(lTmpExecutable.getAbsolutePath());
     lCompileApplication.add(lObjectFile.getAbsolutePath());
@@ -147,7 +199,14 @@ public class MeasureGCovCoverage {
     readInputStream(lCompileApplicationProcess.getInputStream());
     lReturnCode = lCompileApplicationProcess.waitFor();
 
-    System.out.println("done (" + lReturnCode + ").");
+    if (lReturnCode != 0) {
+      System.err.println("failed (" + lReturnCode + ").");
+
+      return;
+    }
+    else {
+      System.out.println("done (" + lReturnCode + ").");
+    }
 
 
 
@@ -159,7 +218,11 @@ public class MeasureGCovCoverage {
     for (TestCase lTestCase : lTestSuite) {
       lTestCase.toInputFile(lTmpTestCaseFile);
 
-      Process lExecutionProcess = Runtime.getRuntime().exec(lTmpExecutable.getAbsolutePath());
+      LinkedList<String> lRunApplication = new LinkedList<String>();
+      lRunApplication.add(lTmpExecutable.getAbsolutePath());
+      lBuilder.command(lRunApplication);
+
+      Process lExecutionProcess = lBuilder.start();
       readInputStream(lExecutionProcess.getInputStream());
       lReturnCode = lExecutionProcess.waitFor();
 
@@ -177,9 +240,9 @@ public class MeasureGCovCoverage {
     lEvaluateCoverage.add("-b");
     lEvaluateCoverage.add("-o");
     lEvaluateCoverage.add(lObjectFile.getAbsolutePath());
-    lEvaluateCoverage.add(lSourceFile.getName());
+    lEvaluateCoverage.add(lPreprocessedSourceFile2.getAbsolutePath());
 
-    lBuilder.directory(lSourceFile.getParentFile());
+    lBuilder.directory(lPreprocessedSourceFile2.getParentFile().getAbsoluteFile());
     lBuilder.command(lEvaluateCoverage);
     Process lEvaluationProcess = lBuilder.start();
     readInputStream(lEvaluationProcess.getInputStream());
@@ -187,7 +250,7 @@ public class MeasureGCovCoverage {
     lReturnCode = lEvaluationProcess.waitFor();
     System.out.println("done (" + lReturnCode + ").");
 
-    File lGCovFile = new File(new File(lSourceFileName) + ".gcov");
+    File lGCovFile = new File(lPreprocessedSourceFile2.getAbsolutePath() + ".gcov");
     System.out.print("Deleting " + lGCovFile.getAbsolutePath() + " ... ");
     if (lGCovFile.delete()) {
       System.out.println("done.");
