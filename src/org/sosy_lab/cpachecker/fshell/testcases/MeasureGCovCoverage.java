@@ -96,38 +96,178 @@ public class MeasureGCovCoverage {
     lTestsuiteFileName = lTestsuiteFile.getAbsolutePath();
 
 
-
     // compile input.c to input.o
-    System.out.print("Compile input.c to input.o ... ");
-
-    File lTmpInputO = File.createTempFile("input.", ".o");
-    lTmpInputO.deleteOnExit();
-
-    LinkedList<String> lCompileInputO = new LinkedList<String>();
-    lCompileInputO.add("gcc");
-    lCompileInputO.add("-c");
-    lCompileInputO.add("-o");
-    lCompileInputO.add(lTmpInputO.getAbsolutePath());
-
+    // we use lTmpTestCaseFile to write the testcases into
     File lTmpTestCaseFile = File.createTempFile("testcase.", ".tc");
     lTmpTestCaseFile.deleteOnExit();
+    File lTmpInputO = compileInputFile(lTmpTestCaseFile);
 
-    //lCompileInputO.add("-DINPUTFILE=\"" + lTmpTestCaseFile.getAbsolutePath() + "\"");
-    lCompileInputO.add("-DINPUTFILE=" + lTmpTestCaseFile.getAbsolutePath());
-    lCompileInputO.add("src/org/sosy_lab/cpachecker/fshell/testcases/input.c");
+
+    // preprocess source file
+    File lPreprocessedSourceFile = preprocessSource(lSourceFileName);
+
+
+    // compile source
+    File lObjectFile = compileSource(lPreprocessedSourceFile);
+
+
+    // build application
+    File lTmpExecutable = buildApplication(lTmpInputO, lObjectFile);
+    if (lTmpExecutable == null) {
+      return;
+    }
+
+
+    // run testsuite
+    runTestsuite(lTmpExecutable, lTestsuiteFileName, lTmpTestCaseFile);
+
+
+    // evaluate coverage
+    evaluateCoverage(lPreprocessedSourceFile, lObjectFile);
+  }
+
+  public static void evaluateCoverage(File lPreprocessedSourceFile, File lObjectFile) throws IOException, InterruptedException {
+    // evaluate coverage
+    System.out.print("Evaluate coverage ... ");
+    LinkedList<String> lEvaluateCoverage = new LinkedList<String>();
+    lEvaluateCoverage.add("gcov");
+    lEvaluateCoverage.add("-b");
+    lEvaluateCoverage.add("-o");
+    lEvaluateCoverage.add(lObjectFile.getAbsolutePath());
+    lEvaluateCoverage.add(lPreprocessedSourceFile.getAbsolutePath());
 
     ProcessBuilder lBuilder = new ProcessBuilder();
     lBuilder.redirectErrorStream(true);
-    lBuilder.command(lCompileInputO);
+    lBuilder.directory(lPreprocessedSourceFile.getParentFile().getAbsoluteFile());
+    lBuilder.command(lEvaluateCoverage);
+    Process lEvaluationProcess = lBuilder.start();
+    readInputStream(lEvaluationProcess.getInputStream());
 
-    Process lCompileInputOProcess = lBuilder.start();
-    readInputStream(lCompileInputOProcess.getInputStream());
-    int lReturnCode = lCompileInputOProcess.waitFor();
+    int lReturnCode = lEvaluationProcess.waitFor();
+    System.out.println("done (" + lReturnCode + ").");
+
+    File lGCovFile = new File(lPreprocessedSourceFile.getAbsolutePath() + ".gcov");
+    System.out.print("Deleting " + lGCovFile.getAbsolutePath() + " ... ");
+    if (lGCovFile.delete()) {
+      System.out.println("done.");
+    }
+    else {
+      System.out.println("failed.");
+    }
+
+    File lGCdaFile = new File(lObjectFile.getAbsolutePath().substring(0, lObjectFile.getAbsolutePath().length() - 1) + "gcda");
+    System.out.print("Deleting " + lGCdaFile.getAbsolutePath() + " ... ");
+    if (lGCdaFile.delete()) {
+      System.out.println("done.");
+    }
+    else {
+      System.out.println("failed.");
+    }
+
+    File lGCnoFile = new File(lObjectFile.getAbsolutePath().substring(0, lObjectFile.getAbsolutePath().length() - 1) + "gcno");
+    System.out.print("Deleting " + lGCnoFile.getAbsolutePath() + " ... ");
+    if (lGCnoFile.delete()) {
+      System.out.println("done.");
+    }
+    else {
+      System.out.println("failed.");
+    }
+  }
+
+  public static void runTestsuite(File pExecutable, String pTestsuiteFileName, File pTestcaseFile) throws IOException, InterruptedException {
+    // run testsuite
+    System.out.print("Run testsuite ");
+
+    TestSuite lTestSuite = TestSuite.load(pTestsuiteFileName);
+
+    for (TestCase lTestCase : lTestSuite) {
+      lTestCase.toInputFile(pTestcaseFile);
+
+      LinkedList<String> lRunApplication = new LinkedList<String>();
+      lRunApplication.add(pExecutable.getAbsolutePath());
+      ProcessBuilder lBuilder = new ProcessBuilder();
+      lBuilder.redirectErrorStream(true);
+      lBuilder.command(lRunApplication);
+
+      Process lExecutionProcess = lBuilder.start();
+      readInputStream(lExecutionProcess.getInputStream());
+      lExecutionProcess.waitFor(); // the return code depends on the tested application
+
+      System.out.print(".");
+    }
+
+    System.out.println(" done.");
+  }
+
+  private static File buildApplication(File pInputObjectFile, File pSourceObjectFile) throws IOException, InterruptedException {
+    // building application
+    System.out.print("Building application ... ");
+
+    File lTmpExecutable = File.createTempFile("application", "");
+    lTmpExecutable.deleteOnExit();
+
+    LinkedList<String> lCompileApplication = new LinkedList<String>();
+    lCompileApplication.add("gcc");
+    lCompileApplication.add("-g");
+    lCompileApplication.add("-fprofile-arcs");
+    lCompileApplication.add("-ftest-coverage");
+    lCompileApplication.add("-O0");
+    lCompileApplication.add("-o");
+    lCompileApplication.add(lTmpExecutable.getAbsolutePath());
+    lCompileApplication.add(pSourceObjectFile.getAbsolutePath());
+    lCompileApplication.add(pInputObjectFile.getAbsolutePath());
+    ProcessBuilder lBuilder = new ProcessBuilder();
+    lBuilder.redirectErrorStream(true);
+    lBuilder.command(lCompileApplication);
+
+    Process lCompileApplicationProcess = lBuilder.start();
+    readInputStream(lCompileApplicationProcess.getInputStream());
+    int lReturnCode = lCompileApplicationProcess.waitFor();
+
+    if (lReturnCode != 0) {
+      System.err.println("failed (" + lReturnCode + ").");
+
+      return null;
+    }
+    else {
+      System.out.println("done (" + lReturnCode + ").");
+    }
+
+    return lTmpExecutable;
+  }
+
+  private static File compileSource(File pSourceFile) throws IOException, InterruptedException {
+    // compile source
+    System.out.print("Compile source ... ");
+
+    File lObjectFile = new File(pSourceFile.getAbsolutePath().substring(0, pSourceFile.getAbsolutePath().length() - 1)  + "o");
+    lObjectFile.deleteOnExit();
+
+    LinkedList<String> lCompileSource = new LinkedList<String>();
+    lCompileSource.add("gcc");
+    lCompileSource.add("-c");
+    lCompileSource.add("-g");
+    lCompileSource.add("-fprofile-arcs");
+    lCompileSource.add("-ftest-coverage");
+    lCompileSource.add("-O0");
+    lCompileSource.add("-o");
+    lCompileSource.add(lObjectFile.getAbsolutePath());
+    lCompileSource.add(pSourceFile.getAbsolutePath());
+
+    ProcessBuilder lBuilder = new ProcessBuilder();
+    lBuilder.redirectErrorStream(true);
+    lBuilder.command(lCompileSource);
+
+    Process lCompileSourceProcess = lBuilder.start();
+    readInputStream(lCompileSourceProcess.getInputStream());
+    int lReturnCode = lCompileSourceProcess.waitFor();
 
     System.out.println("done (" + lReturnCode + ").");
 
+    return lObjectFile;
+  }
 
-
+  private static File preprocessSource(String pSourceFileName) throws IOException, InterruptedException {
     // pre-process source I)
     System.out.print("Preprocess source step A ... ");
 
@@ -140,13 +280,15 @@ public class MeasureGCovCoverage {
     lPreprocessSource.add("-D__CPROVER__"); // use input() function instead of __BLAST_NONDET, necessary for generic sources
     lPreprocessSource.add("-o");
     lPreprocessSource.add(lPreprocessedSourceFile.getAbsolutePath());
-    lPreprocessSource.add(lSourceFileName);
+    lPreprocessSource.add(pSourceFileName);
 
+    ProcessBuilder lBuilder = new ProcessBuilder();
+    lBuilder.redirectErrorStream(true);
     lBuilder.command(lPreprocessSource);
 
     Process lPreprocessingProcess = lBuilder.start();
     readInputStream(lPreprocessingProcess.getInputStream());
-    lReturnCode = lPreprocessingProcess.waitFor();
+    int lReturnCode = lPreprocessingProcess.waitFor();
 
     System.out.println("done (" + lReturnCode + ").");
 
@@ -175,135 +317,37 @@ public class MeasureGCovCoverage {
 
     System.out.println("done.");
 
+    return lPreprocessedSourceFile2;
+  }
 
+  private static File compileInputFile(File pTestcaseFile) throws IOException, InterruptedException {
+    // compile input.c to input.o
+    System.out.print("Compile input.c to input.o ... ");
 
-    // compile source
-    System.out.print("Compile source ... ");
+    File lTmpInputO = File.createTempFile("input.", ".o");
+    lTmpInputO.deleteOnExit();
 
-    //File lObjectFile = File.createTempFile("source.", ".o");
-    File lObjectFile = new File(lPreprocessedSourceFile2.getAbsolutePath().substring(0, lPreprocessedSourceFile2.getAbsolutePath().length() - 1)  + "o");
-    lObjectFile.deleteOnExit();
+    LinkedList<String> lCompileInputO = new LinkedList<String>();
+    lCompileInputO.add("gcc");
+    lCompileInputO.add("-c");
+    lCompileInputO.add("-o");
+    lCompileInputO.add(lTmpInputO.getAbsolutePath());
 
-    LinkedList<String> lCompileSource = new LinkedList<String>();
-    lCompileSource.add("gcc");
-    lCompileSource.add("-c");
-    lCompileSource.add("-g");
-    lCompileSource.add("-fprofile-arcs");
-    lCompileSource.add("-ftest-coverage");
-    lCompileSource.add("-O0");
-    lCompileSource.add("-o");
-    lCompileSource.add(lObjectFile.getAbsolutePath());
-    lCompileSource.add(lPreprocessedSourceFile2.getAbsolutePath());
+    //lCompileInputO.add("-DINPUTFILE=\"" + pTestcaseFile.getAbsolutePath() + "\"");
+    lCompileInputO.add("-DINPUTFILE=" + pTestcaseFile.getAbsolutePath());
+    lCompileInputO.add("src/org/sosy_lab/cpachecker/fshell/testcases/input.c");
 
-    lBuilder.command(lCompileSource);
+    ProcessBuilder lBuilder = new ProcessBuilder();
+    lBuilder.redirectErrorStream(true);
+    lBuilder.command(lCompileInputO);
 
-    Process lCompileSourceProcess = lBuilder.start();
-    readInputStream(lCompileSourceProcess.getInputStream());
-    lReturnCode = lCompileSourceProcess.waitFor();
+    Process lCompileInputOProcess = lBuilder.start();
+    readInputStream(lCompileInputOProcess.getInputStream());
+    int lReturnCode = lCompileInputOProcess.waitFor();
 
     System.out.println("done (" + lReturnCode + ").");
 
-
-
-    // building application
-    System.out.print("Building application ... ");
-
-    File lTmpExecutable = File.createTempFile("application", "");
-    lTmpExecutable.deleteOnExit();
-
-    LinkedList<String> lCompileApplication = new LinkedList<String>();
-    lCompileApplication.add("gcc");
-    lCompileApplication.add("-g");
-    lCompileApplication.add("-fprofile-arcs");
-    lCompileApplication.add("-ftest-coverage");
-    lCompileApplication.add("-O0");
-    lCompileApplication.add("-o");
-    lCompileApplication.add(lTmpExecutable.getAbsolutePath());
-    lCompileApplication.add(lObjectFile.getAbsolutePath());
-    lCompileApplication.add(lTmpInputO.getAbsolutePath());
-    lBuilder.command(lCompileApplication);
-
-    Process lCompileApplicationProcess = lBuilder.start();
-    readInputStream(lCompileApplicationProcess.getInputStream());
-    lReturnCode = lCompileApplicationProcess.waitFor();
-
-    if (lReturnCode != 0) {
-      System.err.println("failed (" + lReturnCode + ").");
-
-      return;
-    }
-    else {
-      System.out.println("done (" + lReturnCode + ").");
-    }
-
-
-
-    // run testsuite
-    System.out.print("Run testsuite ");
-
-    TestSuite lTestSuite = TestSuite.load(lTestsuiteFileName);
-
-    for (TestCase lTestCase : lTestSuite) {
-      lTestCase.toInputFile(lTmpTestCaseFile);
-
-      LinkedList<String> lRunApplication = new LinkedList<String>();
-      lRunApplication.add(lTmpExecutable.getAbsolutePath());
-      lBuilder.command(lRunApplication);
-
-      Process lExecutionProcess = lBuilder.start();
-      readInputStream(lExecutionProcess.getInputStream());
-      lReturnCode = lExecutionProcess.waitFor();
-
-      System.out.print(".");
-    }
-
-    System.out.println(" done.");
-
-
-
-    // evaluate coverage
-    System.out.print("Evaluate coverage ... ");
-    LinkedList<String> lEvaluateCoverage = new LinkedList<String>();
-    lEvaluateCoverage.add("gcov");
-    lEvaluateCoverage.add("-b");
-    lEvaluateCoverage.add("-o");
-    lEvaluateCoverage.add(lObjectFile.getAbsolutePath());
-    lEvaluateCoverage.add(lPreprocessedSourceFile2.getAbsolutePath());
-
-    lBuilder.directory(lPreprocessedSourceFile2.getParentFile().getAbsoluteFile());
-    lBuilder.command(lEvaluateCoverage);
-    Process lEvaluationProcess = lBuilder.start();
-    readInputStream(lEvaluationProcess.getInputStream());
-
-    lReturnCode = lEvaluationProcess.waitFor();
-    System.out.println("done (" + lReturnCode + ").");
-
-    File lGCovFile = new File(lPreprocessedSourceFile2.getAbsolutePath() + ".gcov");
-    System.out.print("Deleting " + lGCovFile.getAbsolutePath() + " ... ");
-    if (lGCovFile.delete()) {
-      System.out.println("done.");
-    }
-    else {
-      System.out.println("failed.");
-    }
-
-    File lGCdaFile = new File(lObjectFile.getAbsolutePath().substring(0, lObjectFile.getAbsolutePath().length() - 1) + "gcda");
-    System.out.print("Deleting " + lGCdaFile.getAbsolutePath() + " ... ");
-    if (lGCdaFile.delete()) {
-      System.out.println("done.");
-    }
-    else {
-      System.out.println("failed.");
-    }
-
-    File lGCnoFile = new File(lObjectFile.getAbsolutePath().substring(0, lObjectFile.getAbsolutePath().length() - 1) + "gcno");
-    System.out.print("Deleting " + lGCnoFile.getAbsolutePath() + " ... ");
-    if (lGCnoFile.delete()) {
-      System.out.println("done.");
-    }
-    else {
-      System.out.println("failed.");
-    }
+    return lTmpInputO;
   }
 
   private static void readInputStream(InputStream lInputStream) throws IOException {
