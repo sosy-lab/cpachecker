@@ -123,30 +123,6 @@ l
 
 \begin_layout Section
 Goal
-\end_layout
-
-\begin_layout Standard
-This draft presents the design forrely-guaranratee verification with large-block
- encoding.
- Based on previous experiments, I have indetified three goals for the procedure:
-\end_layout
-
-\begin_layout Enumerate
-interpolation supports non-modular environmental transitions
-\end_layout
-
-\begin_layout Enumerate
-interpolation does not not interpolate the same same formula multiple times,
- which lead to huge interpolation traces
-\end_layout
-
-\begin_layout Enumerate
-enviormental transitions have a precision, which can be increased.
- 
-\end_layout
-
-\begin_layout Section
-Preliminaries, Semantics
 \begin_inset Note Note
 status collapsed
 
@@ -514,13 +490,18 @@ Let's us prove the counterpositive statement: if a program is unsafe, then
 \end_inset
 
 
+\begin_inset Note Note
+status collapsed
+
+\begin_layout Section
+Preliminaries, Semantics
 \end_layout
 
 \begin_layout Subsection
 Program counters
 \end_layout
 
-\begin_layout Standard
+\begin_layout Plain Layout
 Often the program counter is a distnguished variable that it is tracted
  by a separate CPA.
  In rely-guarantee method the program counters may appear in interpolatino
@@ -593,7 +574,7 @@ SP_{(l,op,l^{\prime})}\,=\, SP_{assume(pc_{i}=l)}^{old}\circ SP_{op}^{old}\circ 
 General algorithm
 \end_layout
 
-\begin_layout Standard
+\begin_layout Plain Layout
 Let us considerer a program that consists of 
 \begin_inset Formula $N$
 \end_inset
@@ -634,7 +615,7 @@ Let us considerer a program that consists of
  
 \end_layout
 
-\begin_layout Standard
+\begin_layout Plain Layout
 Enviromental transitions are of the form 
 \begin_inset Formula $(guard,edge)\in E_{i\triangleright j}$
 \end_inset
@@ -708,7 +689,7 @@ transitions
 .
 \end_layout
 
-\begin_layout Standard
+\begin_layout Plain Layout
 If a CFA edge 
 \begin_inset Formula $g$
 \end_inset
@@ -764,7 +745,7 @@ from
 Approximation of operations
 \end_layout
 
-\begin_layout Standard
+\begin_layout Plain Layout
 In the paper by Gupta et al.
  
 \begin_inset CommandInset citation
@@ -798,7 +779,7 @@ key "Gupta11"
 Most general enviromental transitions
 \end_layout
 
-\begin_layout Standard
+\begin_layout Plain Layout
 Transition 
 \begin_inset Formula $(\phi_{1},g_{1})$
 \end_inset
@@ -833,7 +814,7 @@ where
 How to apply enviromental transitions
 \end_layout
 
-\begin_layout Standard
+\begin_layout Plain Layout
 Were interested in safety properties, therefore we apply enviormental transition
  that would change the flow of the program.
  These only can be assigments to global variables, since they could affect
@@ -857,7 +838,7 @@ independent
  transitinos should also be applied before edges that generate new transitions.
 \end_layout
 
-\begin_layout Standard
+\begin_layout Plain Layout
 To sumarize:
 \end_layout
 
@@ -871,7 +852,7 @@ all enviromental transitions can be applied before global reads and any
  
 \end_layout
 
-\begin_layout Standard
+\begin_layout Plain Layout
 
 \series bold
 TODO
@@ -883,7 +864,7 @@ TODO
 Static Single Assigment
 \end_layout
 
-\begin_layout Standard
+\begin_layout Plain Layout
 In 
 \shape smallcaps
 CPAchecker
@@ -901,7 +882,7 @@ CPAchecker
  
 \end_layout
 
-\begin_layout Standard
+\begin_layout Plain Layout
 Suppose that we have an abstract state an abstract state 
 \begin_inset Formula $(\psi,\varphi)$
 \end_inset
@@ -933,7 +914,7 @@ Suppose that we have an abstract state an abstract state
  as the guard
 \end_layout
 
-\begin_layout Standard
+\begin_layout Plain Layout
 Now, assume that we want to apply a transition 
 \begin_inset Formula $(\phi,g)$
 \end_inset
@@ -974,7 +955,7 @@ Now, assume that we want to apply a transition
  
 \end_layout
 
-\begin_layout Standard
+\begin_layout Plain Layout
 If we do not abstract enviormental transitions, then the guard might have
  colliding variables.
  This may happen when a transition is made from thread A to B and from B
@@ -983,16 +964,12 @@ If we do not abstract enviormental transitions, then the guard might have
  after each transition application.
 \end_layout
 
-\begin_layout Standard
+\begin_layout Plain Layout
 TODO write about possible benefits
 \end_layout
 
 \begin_layout Section
 Interpolation
-\end_layout
-
-\begin_layout Standard
-
 \end_layout
 
 \begin_layout Subsection
@@ -1006,6 +983,200 @@ Most general
 
 \begin_layout Subsection
 Avoiding blow-up
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This draft presents the design for rely-guaranratee verification with large-bloc
+k encoding.
+ Based on previous experiments, I have indetified three goals for the design:
+\end_layout
+
+\begin_layout Enumerate
+interpolation supports non-modular environmental transitions
+\end_layout
+
+\begin_layout Enumerate
+interpolation does not not interpolate the same same formula multiple times,
+ which leads to huge numbers of interpolation formulas,
+\end_layout
+
+\begin_layout Enumerate
+small number of abstractions, since they are costly under LBE.
+\end_layout
+
+\begin_layout Section
+Interpolation
+\end_layout
+
+\begin_layout Standard
+In rely-gurantee method one block formulas may generate an enviormental
+ transitions, which is then applied mutliple times.
+ In the current interpolation procedure, each application of the enviromental
+ transition will have its own version of the block.
+ In this techqniue appling enviormental transitinos is treated as calling
+ a function, that does not take any formal arguments.
+ The details may be found in Section 5.2 of Henziger et al.
+ 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Henzinger:2004"
+
+\end_inset
+
+.
+ 
+\end_layout
+
+\begin_layout Standard
+This however may lead to exponental number of interpolation formulas.
+ If the block are not uniquelly renamed for each application, then the interpola
+nts may not be well-scoped, i.e.
+ the can refer to variables outside their scope.
+ As an example consider Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "itp_problem"
+
+\end_inset
+
+, where diamons denote abstraction points, horizontal lines are formulas
+ from thread 
+\begin_inset Formula $T0$
+\end_inset
+
+ and veritcal are from thread 
+\begin_inset Formula $T1$
+\end_inset
+
+.
+ 
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename Figs/itp_problem.pdf
+	scale 90
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Block 
+\begin_inset Formula $g=0$
+\end_inset
+
+ is used in three places, which causes interpolation problems.
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "itp_problem"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+Block 
+\begin_inset Formula $g=0$
+\end_inset
+
+ appears three times: once local and twice in enviormental transitions.
+ The current interpolation procedure will generate three uniquee version
+ of 
+\begin_inset Formula $g=0$
+\end_inset
+
+, so its applications have the correct information, but are still well-scoped.
+ For example the interpolant for block 
+\begin_inset Formula $x^{\prime}=g+1$
+\end_inset
+
+ is computed from 
+\begin_inset Formula 
+\[
+(g^{1}=0\land x^{\prime}=g^{1}+1,\, g^{0}=0\land g^{2}=0\land y^{\prime}=g^{2}-1\land x^{\prime}=y^{\prime}\land g=0)
+\]
+
+\end_inset
+
+which always gives a well-scoped predicate.
+ 
+\end_layout
+
+\begin_layout Standard
+The method works under the assumption that variables in a formula trance
+ and and enviromental transitions applied to it are renamed apart (see 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Henzinger:2004"
+
+\end_inset
+
+).
+ This implies that with an ordinary theorem prover the exponential blow-up
+ can always occure (I'd be very happy if the reader could falsify this statement
+).
+ 
+\end_layout
+
+\begin_layout Standard
+In Gupta et all.
+ 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Gupta11"
+
+\end_inset
+
+ an novel interpolatino method is used for such cases.
+ Block are modeled as Horn clauses and interpolants as unknown predicates.
+ For Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "itp_problem"
+
+\end_inset
+
+ the clauses are:
+\begin_inset Formula 
+\[
+\begin{array}{c}
+g=0\rightarrow\psi_{g=0}\\
+\psi_{g=0}\land x^{\prime}=g+1\rightarrow\psi_{x^{\prime}=g+1}\\
+\psi_{g=0}\land y^{\prime}=g-1\rightarrow\psi_{y^{\prime}=g-1}\\
+\psi_{g=0}\land\psi_{x^{\prime}=g+1}\land\psi_{y^{\prime}=g-1}\land x^{\prime}=y^{\prime}\land g=0\rightarrow false
+\end{array}
+\]
+
+\end_inset
+
+where 
+\begin_inset Formula $\psi$
+\end_inset
+
+-formulas are unknown predicates over 
+\begin_inset Formula $g,x^{\prime},y^{\prime}$
+\end_inset
+
+.
+ 
 \end_layout
 
 \begin_layout Standard
