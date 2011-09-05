@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.art;
 
 import java.util.Collection;
+import java.util.Collections;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -47,7 +48,7 @@ public class ARTStopSep implements StopOperator {
 
     for (AbstractElement reachedElement : pReached) {
       ARTElement artReachedElement = (ARTElement)reachedElement;
-      if (stop(artElement, artReachedElement)) {
+      if (stop(artElement, artReachedElement, pPrecision)) {
         return true;
       }
     }
@@ -55,7 +56,7 @@ public class ARTStopSep implements StopOperator {
 
   }
 
-  private boolean stop(ARTElement pElement, ARTElement pReachedElement)
+  private boolean stop(ARTElement pElement, ARTElement pReachedElement, Precision pPrecision)
                                                       throws CPAException {
 
     if (!pReachedElement.mayCover()) {
@@ -66,7 +67,7 @@ public class ARTStopSep implements StopOperator {
     AbstractElement wrappedReachedElement = pReachedElement.getWrappedElement();
 
     StopOperator stopOp = wrappedCpa.getStopOperator();
-    boolean stop = stopOp.stop(wrappedElement, wrappedReachedElement);
+    boolean stop = stopOp.stop(wrappedElement, Collections.singleton(wrappedReachedElement), pPrecision);
 
     if (stop) {
       if (pElement.getMergedWith() == pReachedElement) {
@@ -76,11 +77,5 @@ public class ARTStopSep implements StopOperator {
       }
     }
     return stop;
-  }
-
-  @Override
-  public boolean stop(AbstractElement pElement, AbstractElement pReachedElement)
-      throws CPAException {
-    return stop((ARTElement)pElement, (ARTElement)pReachedElement);
   }
 }

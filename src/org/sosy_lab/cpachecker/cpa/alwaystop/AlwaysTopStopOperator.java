@@ -46,13 +46,4 @@ enum AlwaysTopStopOperator implements StopOperator {
 
     return !pReached.isEmpty();
   }
-
-  @Override
-  public boolean stop(AbstractElement pElement, AbstractElement pReachedElement) {
-
-    assert pElement == AlwaysTopElement.INSTANCE;
-    assert pReachedElement == AlwaysTopElement.INSTANCE;
-    return true;
-  }
-
 }

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
+import java.util.Collections;
 import java.util.Iterator;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -64,7 +65,7 @@ public class CompositeMergeAgreeOperator implements MergeOperator {
     // Merge Sep Code
     CompositeElement comp1 = (CompositeElement) element1;
     CompositeElement comp2 = (CompositeElement) element2;
-    CompositePrecision prec = (CompositePrecision) precision;
+    CompositePrecision compositePrec = (CompositePrecision) precision;
 
     assert(comp1.getNumberofElements() == comp2.getNumberofElements());
 
@@ -72,19 +73,20 @@ public class CompositeMergeAgreeOperator implements MergeOperator {
     Iterator<StopOperator> stopIter = stopOperators.iterator();
     Iterator<AbstractElement> iter1 = comp1.getElements().iterator();
     Iterator<AbstractElement> iter2 = comp2.getElements().iterator();
-    Iterator<Precision> precIter = prec.getPrecisions().iterator();
+    Iterator<Precision> precIter = compositePrec.getPrecisions().iterator();
 
     boolean identicElements = true;
     for (MergeOperator mergeOp : mergeOperators) {
       AbstractElement absElem1 = iter1.next();
       AbstractElement absElem2 = iter2.next();
+      Precision prec = precIter.next();
       StopOperator stopOp = stopIter.next();
 
-      AbstractElement merged = mergeOp.merge(absElem1, absElem2, precIter.next());
+      AbstractElement merged = mergeOp.merge(absElem1, absElem2, prec);
 
       // check whether merged covers absElem1
       // by definition of MergeOperator, we know it covers absElem2
-      if (!stopOp.stop(absElem1, merged)) {
+      if (!stopOp.stop(absElem1, Collections.singleton(merged), prec)) {
         // the result of merge doesn't cover absElem1
         // (which is the successor element currently considered by the CPAAlgorithm
         // We prevent merging for all CPAs in this case, because the current

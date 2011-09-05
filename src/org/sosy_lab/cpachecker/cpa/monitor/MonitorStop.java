@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.monitor;
 
 import java.util.Collection;
+import java.util.Collections;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -44,34 +45,27 @@ public class MonitorStop implements StopOperator {
       Collection<AbstractElement> pReached, Precision pPrecision) throws CPAException {
 
     MonitorElement monitorElement = (MonitorElement)pElement;
-
-    for (AbstractElement reachedElement : pReached) {
-      MonitorElement monitorReachedElement = (MonitorElement)reachedElement;
-      if (stop(monitorElement, monitorReachedElement)) {
-        return true;
-      }
-    }
-    return false;
-
-  }
-
-  public boolean stop(MonitorElement pElement, MonitorElement pReachedElement)
-                                                      throws CPAException {
-
-    if (pElement.mustDumpAssumptionForAvoidance() || pReachedElement.mustDumpAssumptionForAvoidance()) {
+    if (monitorElement.mustDumpAssumptionForAvoidance()) {
       return false;
     }
 
-    AbstractElement wrappedElement = pElement.getWrappedElement();
-    AbstractElement wrappedReachedElement = pReachedElement.getWrappedElement();
+    AbstractElement wrappedElement = monitorElement.getWrappedElement();
     StopOperator stopOp = wrappedCpa.getStopOperator();
-    return stopOp.stop(wrappedElement, wrappedReachedElement);
-  }
 
-  @Override
-  public boolean stop(AbstractElement pElement, AbstractElement pReachedElement)
-      throws CPAException {
-    return stop((MonitorElement)pElement, (MonitorElement)pReachedElement);
-  }
+    for (AbstractElement reachedElement : pReached) {
 
+      MonitorElement monitorReachedElement = (MonitorElement)reachedElement;
+      if (monitorReachedElement.mustDumpAssumptionForAvoidance()) {
+        return false;
+      }
+
+      AbstractElement wrappedReachedElement = monitorReachedElement.getWrappedElement();
+
+      if (stopOp.stop(wrappedElement, Collections.singleton(wrappedReachedElement), pPrecision)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
 }
