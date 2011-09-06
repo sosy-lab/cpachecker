@@ -496,6 +496,8 @@ def toDecimal(s):
     s = s.strip()
     if s.endswith('s'): # '1.23s'
         s = s[:-1].strip() # remove last char
+    elif s == '-':
+        s = 0
     return Decimal(s)
 
 
