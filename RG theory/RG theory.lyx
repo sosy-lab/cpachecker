@@ -121,8 +121,7 @@ l
  aw Daca
 \end_layout
 
-\begin_layout Section
-Goal
+\begin_layout Standard
 \begin_inset Note Note
 status collapsed
 
@@ -988,32 +987,14 @@ Avoiding blow-up
 \end_inset
 
 
-\end_layout
-
-\begin_layout Standard
-This draft presents the design for rely-guaranratee verification with large-bloc
-k encoding.
- Based on previous experiments, I have indetified three goals for the design:
-\end_layout
-
-\begin_layout Enumerate
-interpolation supports non-modular environmental transitions
-\end_layout
-
-\begin_layout Enumerate
-interpolation does not not interpolate the same same formula multiple times,
- which leads to huge numbers of interpolation formulas,
-\end_layout
-
-\begin_layout Enumerate
-small number of abstractions, since they are costly under LBE.
-\end_layout
+\begin_inset Note Note
+status collapsed
 
 \begin_layout Section
 Interpolation
 \end_layout
 
-\begin_layout Standard
+\begin_layout Plain Layout
 In rely-gurantee method one block formulas may generate an enviormental
  transitions, which is then applied mutliple times.
  In the current interpolation procedure, each application of the enviromental
@@ -1032,7 +1013,7 @@ key "Henzinger:2004"
  
 \end_layout
 
-\begin_layout Standard
+\begin_layout Plain Layout
 This however may lead to exponental number of interpolation formulas.
  If the block are not uniquelly renamed for each application, then the interpola
 nts may not be well-scoped, i.e.
@@ -1113,7 +1094,7 @@ which always gives a well-scoped predicate.
  
 \end_layout
 
-\begin_layout Standard
+\begin_layout Plain Layout
 The method works under the assumption that variables in a formula trance
  and and enviromental transitions applied to it are renamed apart (see 
 \begin_inset CommandInset citation
@@ -1129,7 +1110,7 @@ key "Henzinger:2004"
  
 \end_layout
 
-\begin_layout Standard
+\begin_layout Plain Layout
 In Gupta et all.
  
 \begin_inset CommandInset citation
@@ -1172,6 +1153,11 @@ where
  
 \end_layout
 
+\end_inset
+
+
+\end_layout
+
 \begin_layout Section
 Generalized Enviorment
 \end_layout
@@ -1202,6 +1188,17 @@ key "Beyer10"
 
 .
  
+\end_layout
+
+\begin_layout Subsection
+Generating transitions
+\begin_inset CommandInset label
+LatexCommand label
+name "sub:Generating-transitions"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -1358,6 +1355,19 @@ We will investigate the implementation side of the problem, so let abstract
 .
  This is needed by interpolation to relate the creation and application
  formulas.
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+bigskip
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Example
@@ -1488,6 +1498,10 @@ The predicate
 \end_inset
 
  since it may or may not hold.
+\end_layout
+
+\begin_layout Subsection
+Application and interpolation
 \end_layout
 
 \begin_layout Example
@@ -1646,6 +1660,19 @@ For every variable
 \end_inset
 
  with new values of variables.
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+bigskip
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Example
@@ -1816,7 +1843,11 @@ reference "applicationIV"
 \end_inset
 
 .
- The instated formula 
+ 
+\end_layout
+
+\begin_layout Example
+The instatied formula 
 \begin_inset Formula $\dot{e_{1}}$
 \end_inset
 
@@ -1866,9 +1897,32 @@ reference "eq:e1_source"
 
  might violate the assertion, so interpolation is perfomed to check if the
  formula trace is feasible.
-\end_layout
+ We for the sake of simplicy, let us assume that there were not other formulas
+ involved besides 
+\begin_inset Formula $SP_{op}(\varphi)$
+\end_inset
 
-\begin_layout Example
+, 
+\begin_inset Formula $\psi^{\prime}$
+\end_inset
+
+ and the assertion.
+ Table 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "itp_problem"
+
+\end_inset
+
+ shows the interpolation formulas for the error trace.
+ 
+\begin_inset Float table
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
 \begin_inset Tabular
 <lyxtabular version="3" rows="3" columns="2">
 <features tabularvalignment="middle">
@@ -1919,7 +1973,7 @@ reference "eq:e1_source"
 \begin_layout Plain Layout
 \begin_inset Formula $\begin{array}{l}
 g^{2}@5=3\,\land\, pc_{2}^{2}@5=4\,\land\, y^{2}@5>0\,\land\\
-g^{2}@5=g^{1}@1\,\land\, pc_{1}^{2}@1=pc_{1}^{1}@1\,\land\, x^{2}@1=x^{1}@1\,\land\, pc_{2}^{2}@5=pc_{2}^{1}@1\,\land\, y^{2}@5=y^{1}@1\land\\
+g^{2}@5=g^{1}@1\,\land\, pc_{1}^{2}@1=pc_{1}^{1}@1\,\land\, x^{2}@1=x^{1}@1\,\land\, pc_{2}^{2}@5=pc_{2}^{1}@1\,\land\, y^{2}@5=y^{1}@1\\
 g^{1}@1=g^{1}@1\,\land\, pc_{1}^{1}@2\neq pc_{1}^{1}@1\,\land\, x^{1}@2\neq x^{1}@1\,\land\, x^{1}@1\geq5\,\land\\
 g^{2}@6=g^{1}@1\,\land\, pc_{1}^{2}@2=pc_{1}^{1}@2\,\land\, x^{2}@2=x^{1}@2\,\land
 \end{array}$
@@ -1961,7 +2015,615 @@ assert
 
 \end_layout
 
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Interpolation formulas for the 
+\begin_inset Formula $e_{1}$
+\end_inset
+
+ applied to 
+\begin_inset Formula $\psi$
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "itp_e1topsi"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+ The interpolant after 
+\begin_inset Formula $SP_{op}(\varphi)$
+\end_inset
+
+ could be 
+\begin_inset Formula $x^{1}@2>x^{1}@1$
+\end_inset
+
+.
+ Translating the SSA indeces of 
+\begin_inset Formula $\varphi$
+\end_inset
+
+ to unprimed variables and indeces of 
+\begin_inset Formula $SP_{op}(\varphi)$
+\end_inset
+
+ to primed variables, this interpolant can be expressed as 
+\begin_inset Formula $x^{\prime}>x$
+\end_inset
+
+.
+ Adding this predicate to 
+\begin_inset Formula $\mathcal{P}_{1\triangleright2}$
+\end_inset
+
+ and restarting the analysis, will make this error trace infeasible.
+ The details of refinement depent on the interpolation procedure.
+ 
+\end_layout
+
+\begin_layout Subsection
+Generalizing transitions
+\end_layout
+
 \begin_layout Standard
+Transitions generated in the presented waymay still be applied infinitly
+ many times.
+ Now, we present how the generalize several enviornmental transition into
+ one that can be applied only once.
+ 
+\end_layout
+
+\begin_layout Standard
+Let 
+\begin_inset Formula $\mathcal{B}(\mathcal{P}_{i\triangleright j})$
+\end_inset
+
+ be the set all Boolean combinations of predicates from 
+\begin_inset Formula $\mathcal{P}_{i\triangleright j}$
+\end_inset
+
+, which have diffent valuations, soo combanations 
+\begin_inset Formula $p\vee r$
+\end_inset
+
+, 
+\begin_inset Formula $r\vee p$
+\end_inset
+
+ and 
+\begin_inset Formula $p\vee p\vee r$
+\end_inset
+
+ are considered to be equal.
+ We define 
+\begin_inset Formula $L_{i\triangleright j}$
+\end_inset
+
+ as a complete lattice over the set 
+\begin_inset Formula $\mathcal{B}(\mathcal{P}_{i\triangleright j})$
+\end_inset
+
+, partially ordered by 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ , the least upper bound being 
+\begin_inset Formula $\vee$
+\end_inset
+
+ and the bottom element is formula 
+\begin_inset Formula $false$
+\end_inset
+
+.
+ We distungish element 
+\begin_inset Formula $e_{id}$
+\end_inset
+
+ which is a Boolean abstraction of 
+\begin_inset Formula $\bigwedge id_{V_{g}\cup V_{i}}$
+\end_inset
+
+ using the predicates 
+\begin_inset Formula $\mathcal{P}_{i\triangleright j}$
+\end_inset
+
+.
+ Transition 
+\begin_inset Formula $e_{12}$
+\end_inset
+
+ expresses that environment does not change anything.
+ Lattice 
+\begin_inset Formula $L_{i\triangleright j}$
+\end_inset
+
+ orders enviromental transitions by how much can they change, for example
+ the transitions 
+\begin_inset Formula $x^{\prime}=x\,\land\, x^{\prime}>0$
+\end_inset
+
+ can change less than 
+\begin_inset Formula $x^{\prime}=x$
+\end_inset
+
+.
+ A least upper bound of transitions gives a transitions that can do more
+ than all of them.
+ 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+bigskip
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Example
+Let there be only one variable 
+\begin_inset Formula $g$
+\end_inset
+
+.
+ Lattice 
+\begin_inset Formula $L_{1\triangleright2}$
+\end_inset
+
+ is based on the predicate set on the predicate set
+\begin_inset Formula 
+\[
+\mathcal{P}_{1\triangleright2}=\{g^{\prime}=g,\, g>0,\, g^{\prime}=g+1\}.
+\]
+
+\end_inset
+
+The bottom element of the lattice is a Boolean abstraction of 
+\begin_inset Formula $g^{\prime}=g$
+\end_inset
+
+
+\begin_inset Formula 
+\[
+e_{id}:\, g^{\prime}=g\,\land\, g^{\prime}\neq g+1.
+\]
+
+\end_inset
+
+Now cosider two transitions 
+\begin_inset Formula $e_{2}$
+\end_inset
+
+ and 
+\begin_inset Formula $e_{3}$
+\end_inset
+
+ 
+\begin_inset Formula 
+\[
+e_{2}:\, g>0\,\land\, g^{\prime}\neq g\,\land\, g^{\prime}=g+1
+\]
+
+\end_inset
+
+
+\begin_inset Formula 
+\[
+e_{3}:\, g\leq0\,\land\, g^{\prime}=g.
+\]
+
+\end_inset
+
+Transition 
+\begin_inset Formula $e_{2}$
+\end_inset
+
+ increments 
+\begin_inset Formula $g$
+\end_inset
+
+ when it is postive, while 
+\begin_inset Formula $e_{3}$
+\end_inset
+
+ changes the value of it is 
+\begin_inset Formula $g$
+\end_inset
+
+ is non-positive.
+ Transition 
+\begin_inset Formula $e_{2}\vee e_{3}\vee e_{id}$
+\end_inset
+
+ has the same effect as applying 
+\begin_inset Formula $e_{2}$
+\end_inset
+
+ or 
+\begin_inset Formula $e_{3}$
+\end_inset
+
+ or not applying any transition.
+\end_layout
+
+\begin_layout Standard
+Transitions can be applied one after another.
+ Let 
+\begin_inset Formula $\varphi[X\rightarrow\overline{X}]$
+\end_inset
+
+ denote an abstract state, where every occurence of 
+\begin_inset Formula $v\in X$
+\end_inset
+
+ has been replaced by a fresh variable 
+\begin_inset Formula $\overline{v}$
+\end_inset
+
+.
+ Moreover, let 
+\begin_inset Formula $\alpha_{X}(\varphi)$
+\end_inset
+
+ be the Boolean abstraction of 
+\begin_inset Formula $\varphi$
+\end_inset
+
+ with the predicates from 
+\begin_inset Formula $X$
+\end_inset
+
+.
+
+\emph on
+ Composition of transitions
+\emph default
+ 
+\begin_inset Formula $e^{\prime}$
+\end_inset
+
+ and 
+\begin_inset Formula $e$
+\end_inset
+
+, denoted by 
+\begin_inset Formula $e^{\prime}\circ e$
+\end_inset
+
+, is defined in the following way 
+\begin_inset Formula 
+\[
+e^{\prime}\circ e\,=\,\alpha_{\mathcal{P}_{i\triangleright j}}(e[V^{\prime}\rightarrow\overline{V}]\,\land\, e^{\prime}[V\rightarrow\overline{V}])
+\]
+
+\end_inset
+
+where the set of predicates 
+\begin_inset Formula $\mathcal{P}_{i\triangleright j}$
+\end_inset
+
+ should be clear from the context.
+ The composition 
+\begin_inset Formula $e^{\prime}\circ e$
+\end_inset
+
+ extracts the relation between the unprimed variables of 
+\begin_inset Formula $e$
+\end_inset
+
+ and primed variables of 
+\begin_inset Formula $e^{\prime}$
+\end_inset
+
+ linked by an intermediate result 
+\begin_inset Formula $\overline{V}$
+\end_inset
+
+.
+ Composition of two transition from 
+\begin_inset Formula $L_{i\triangleright j}$
+\end_inset
+
+ also belongs to the lattice.
+ 
+\end_layout
+
+\begin_layout Standard
+Suppose we have generated a set of transitions 
+\begin_inset Formula $E$
+\end_inset
+
+ and we want to create a single transitions that overapproximates their
+ effect.
+ This generalized transition should describe the effect of applying transitions
+ in a sequence or lack of any application.
+ We define a function 
+\begin_inset Formula $f_{E}\,:\, L_{i\triangleright j}\rightarrow L_{i\triangleright j}$
+\end_inset
+
+ on transitions
+\begin_inset Formula 
+\[
+f_{E}(e)\,=\,(\bigvee E)\circ e\,\vee\, e_{id}.
+\]
+
+\end_inset
+
+Given some transition 
+\begin_inset Formula $e$
+\end_inset
+
+, 
+\begin_inset Formula $f_{E}$
+\end_inset
+
+ will return the effect of applying any transition from 
+\begin_inset Formula $E$
+\end_inset
+
+ on 
+\begin_inset Formula $e$
+\end_inset
+
+, but not smaller then the identity transition 
+\begin_inset Formula $e_{id}$
+\end_inset
+
+.
+ For a fixed 
+\begin_inset Formula $E$
+\end_inset
+
+ the function is monotone.
+ The 
+\emph on
+generalized transition
+\emph default
+ 
+\begin_inset Formula $e_{g}$
+\end_inset
+
+ is the least fixed point of 
+\begin_inset Formula $f_{E}$
+\end_inset
+
+.
+ Since the lattice 
+\begin_inset Formula $L_{i\triangleright j}$
+\end_inset
+
+ has a finite size, the 
+\begin_inset Formula $e_{g}$
+\end_inset
+
+ can be obtained be iterating 
+\begin_inset Formula $f_{E}^{n}(false)$
+\end_inset
+
+ until it inevitably satibilizes.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+bigskip
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Example
+Let us continue from the previous example, but assume that 
+\begin_inset Formula $e_{2}$
+\end_inset
+
+ is the only transition, i.e.
+ 
+\begin_inset Formula $E=\{e_{1}\}$
+\end_inset
+
+.
+ Function 
+\begin_inset Formula $f_{E}(e)$
+\end_inset
+
+ becomes 
+\begin_inset Formula 
+\[
+f_{E}(e)\,=\, e_{2}\circ e\,\vee\, e_{id}.
+\]
+
+\end_inset
+
+Let us iterate over 
+\begin_inset Formula $f_{E}$
+\end_inset
+
+ until the least fixed point.
+ The first iteration gives the identity transition: 
+\begin_inset Formula 
+\[
+f_{E}^{1}(false)\,=\, e_{2}\circ false\,\vee\, e_{id}=e_{id}.
+\]
+
+\end_inset
+
+The second iteration is
+\begin_inset Formula 
+\[
+f_{E}^{2}(false)\,=\, f_{E}(e_{id})\,=\, e_{2}\circ e_{id}\,\vee\, e_{id}=
+\]
+
+\end_inset
+
+
+\begin_inset Formula 
+\[
+\text{\alpha}_{\mathcal{P}_{i\triangleright j}}(\overline{g}=g\,\land\,\overline{g}\neq g+1\land\overline{g}>0\,\land\, g^{\prime}\neq\overline{g}\,\land\, g^{\prime}=\overline{g}+1)\,\vee\, e_{id}=
+\]
+
+\end_inset
+
+
+\begin_inset Formula 
+\[
+(g>0\,\land g^{\prime}\neq g\,\land\, g^{\prime}=g+1)\,\vee\, e_{id}.
+\]
+
+\end_inset
+
+The result is weaker than 
+\begin_inset Formula $e_{id}$
+\end_inset
+
+, so we continue with 
+\begin_inset Formula $f_{E}^{3}(false)$
+\end_inset
+
+:
+\begin_inset Formula 
+\[
+f_{E}^{3}(false)\,=\, f_{E}(f_{E}^{2}(false))\,=\, e_{2}\circ f_{E}^{2}(false)\,\vee\, e_{id}=
+\]
+
+\end_inset
+
+
+\begin_inset Formula 
+\[
+\text{\alpha}_{\mathcal{P}_{i\triangleright j}}(((g>0\,\land\overline{g}\neq g\,\land\,\overline{g}=g+1)\vee(\overline{g}=g\,\land\,\overline{g}\neq g+1))\land\,\overline{g}>0\,\land\, g^{\prime}\neq\overline{g}\,\land\, g^{\prime}=\overline{g}+1)\,\vee\, e_{id}=
+\]
+
+\end_inset
+
+
+\begin_inset Formula 
+\[
+(g>0\,\land\, g^{\prime}\neq g)\,\vee\, e_{id}.
+\]
+
+\end_inset
+
+The fourth iteration is:
+\begin_inset Formula 
+\[
+f_{E}^{4}(false)\,=\, f_{E}(f_{E}^{3}(false))\,=
+\]
+
+\end_inset
+
+
+\begin_inset Formula 
+\[
+\text{\alpha}_{\mathcal{P}_{i\triangleright j}}(((g>0\,\land\,\overline{g}\neq g)\vee(\overline{g}=g\,\land\,\overline{g}\neq g+1))\land\,\overline{g}>0\,\land\, g^{\prime}\neq\overline{g}\,\land\, g^{\prime}=\overline{g}+1)\,\vee\, e_{id}=
+\]
+
+\end_inset
+
+
+\begin_inset Formula 
+\[
+g>0\,\vee\, e_{id}.
+\]
+
+\end_inset
+
+The last iteration gives 
+\begin_inset Formula 
+\[
+f_{E}^{5}(false)\,=\, f_{E}(f_{E}^{4}(false))\,=
+\]
+
+\end_inset
+
+
+\begin_inset Formula 
+\[
+\text{\alpha}_{\mathcal{P}_{i\triangleright j}}((g>0\,\vee\,(\overline{g}=g\,\land\,\overline{g}\neq g+1))\land\,\overline{g}>0\,\land\, g^{\prime}\neq\overline{g}\,\land\, g^{\prime}=\overline{g}+1)\,\vee\, e_{id}=
+\]
+
+\end_inset
+
+
+\begin_inset Formula 
+\[
+g>0\,\vee\, e_{id}.
+\]
+
+\end_inset
+
+The result has stabilised, therefore the generalized transition 
+\begin_inset Formula $e_{g}$
+\end_inset
+
+ is 
+\begin_inset Formula 
+\[
+g>0\,\vee\,(g\,\land\, g^{\prime}\neq g+1).
+\]
+
+\end_inset
+
+Notice that 
+\begin_inset Formula $f_{E}^{n}(false)$
+\end_inset
+
+ approxiamtes the effect of applying 
+\begin_inset Formula $e_{2}$
+\end_inset
+
+ less than 
+\begin_inset Formula $n$
+\end_inset
+
+ times.
+ The intiutive meanning is that 
+\begin_inset Formula $e_{g}$
+\end_inset
+
+ changes nothing or, if 
+\begin_inset Formula $g$
+\end_inset
+
+ is non-negative, it may set 
+\begin_inset Formula $g$
+\end_inset
+
+ to any value.
+ In LBE analysis, it is enough to apply 
+\begin_inset Formula $e_{g}$
+\end_inset
+
+ once, since subsequent application will give the same result.
+  
 \begin_inset CommandInset bibtex
 LatexCommand bibtex
 bibfiles "ref"
