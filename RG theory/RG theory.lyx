@@ -101,7 +101,7 @@ figs-within-sections
 \begin_body
 
 \begin_layout Title
-Rely-Guarantee Program Verification with Large-Block Encoding 
+Generalized Environment: A Draft
 \end_layout
 
 \begin_layout Author
@@ -754,9 +754,9 @@ key "Gupta11"
 \end_inset
 
 , the operations are also abstracted, just like the guards.
- We could take the same approach and intoduce a set of predicates for operation,
- but the question whether this would be beneficial.
- Operation have to be instanted to some concreate values, otherwise they
+ We could take the same approach and introduce a set of predicates for operation
+, but the question whether this would be beneficial.
+ Operation have to be instantiated to some concrete values, otherwise they
  do have a meaning, e.g.
  the edge 
 \begin_inset Formula $g$
@@ -775,7 +775,7 @@ key "Gupta11"
 \end_layout
 
 \begin_layout Subsection
-Most general enviromental transitions
+Most general environmental transitions
 \end_layout
 
 \begin_layout Plain Layout
@@ -787,7 +787,7 @@ Transition
 \begin_inset Formula $(\phi_{2},g_{2})$
 \end_inset
 
- if the result of applying gives a biger overapproximation:
+ if the result of applying gives a bigger over-approximation:
 \begin_inset Formula 
 \[
 (\phi_{1},g_{1})\sqsupseteq(\phi_{2},g_{2})\quad\text{iff}\quad\forall\varphi\in\mathscr{P}\,:\, SP_{g_{1}}(\varphi\land\phi_{1})\models SP_{g_{2}}(\varphi\land\phi_{2})
@@ -810,51 +810,51 @@ where
 \end_layout
 
 \begin_layout Subsection
-How to apply enviromental transitions
+How to apply environmental transitions
 \end_layout
 
 \begin_layout Plain Layout
-Were interested in safety properties, therefore we apply enviormental transition
- that would change the flow of the program.
- These only can be assigments to global variables, since they could affect
+Were interested in safety properties, therefore we apply environmental transitio
+n that would change the flow of the program.
+ These only can be assignments to global variables, since they could affect
  the branches that are taken.
- Assume edges do not affect other threads, so they do not generate enviormental
+ Assume edges do not affect other threads, so they do not generate environmental
  transitions.
- The transition with global assigments do not have to be applied at every
+ The transition with global assignments do not have to be applied at every
  abstract element of a thread, but it is enough to apply them before the
  global variable is read.
- In the terms of partial-order reduction, enviormental transitions and non-globa
-l reads are 
+ In the terms of partial-order reduction, environmental transitions and
+ non-globall reads are 
 \emph on
 independent
 \emph default
 .
- In some cases enviromental transition can only be applied after some other
+ In some cases environmental transition can only be applied after some other
  transitions updated the abstract state.
- This implies, that before global reads it shoul be be possible to apply
- all enviromental transition, even if they assigned to local variables.
- Similarly, to get transitions with all possible guard statements, enviromental
- transitinos should also be applied before edges that generate new transitions.
+ This implies, that before global reads it should be be possible to apply
+ all environmental transition, even if they assigned to local variables.
+ Similarly, to get transitions with all possible guard statements, environmental
+ transitions should also be applied before edges that generate new transitions.
 \end_layout
 
 \begin_layout Plain Layout
-To sumarize:
+To summarize:
 \end_layout
 
 \begin_layout Enumerate
-enviromentaltransitions are generate by any assigments
+environmental transitions are generate by any assignments
 \end_layout
 
 \begin_layout Enumerate
-all enviromental transitions can be applied before global reads and any
- assigments.
+all environmental transitions can be applied before global reads and any
+ assignments.
  
 \end_layout
 
 \begin_layout Plain Layout
 
 \series bold
-TODO
+TO DO
 \series default
  write about combing
 \end_layout
@@ -890,12 +890,12 @@ Suppose that we have an abstract state an abstract state
 \begin_inset Formula $i$
 \end_inset
 
- and an assigment edge 
+ and an assignment edge 
 \begin_inset Formula $g$
 \end_inset
 
 .
- To generate a transition we perform cartesian or boolean abstraction on
+ To generate a transition we perform Cartesian or Boolean abstraction on
  
 \begin_inset Formula $\psi\land\varphi$
 \end_inset
@@ -923,7 +923,7 @@ Now, assume that we want to apply a transition
 \end_inset
 
 .
- By appling the guard 
+ By applying the guard 
 \begin_inset Formula $\phi$
 \end_inset
 
@@ -955,11 +955,11 @@ Now, assume that we want to apply a transition
 \end_layout
 
 \begin_layout Plain Layout
-If we do not abstract enviormental transitions, then the guard might have
+If we do not abstract environmental transitions, then the guard might have
  colliding variables.
  This may happen when a transition is made from thread A to B and from B
  to A.
- We can avoid this situation by using environemtnal predicates or abstracting
+ We can avoid this situation by using environmental predicates or abstracting
  after each transition application.
 \end_layout
 
@@ -995,11 +995,11 @@ Interpolation
 \end_layout
 
 \begin_layout Plain Layout
-In rely-gurantee method one block formulas may generate an enviormental
- transitions, which is then applied mutliple times.
- In the current interpolation procedure, each application of the enviromental
+In rely-guarantee method one block formulas may generate an environmental
+ transitions, which is then applied multiple times.
+ In the current interpolation procedure, each application of the environmental
  transition will have its own version of the block.
- In this techqniue appling enviormental transitinos is treated as calling
+ In this technique applying environmental transitions is treated as calling
  a function, that does not take any formal arguments.
  The details may be found in Section 5.2 of Henziger et al.
  
@@ -1014,9 +1014,9 @@ key "Henzinger:2004"
 \end_layout
 
 \begin_layout Plain Layout
-This however may lead to exponental number of interpolation formulas.
- If the block are not uniquelly renamed for each application, then the interpola
-nts may not be well-scoped, i.e.
+This however may lead to exponential number of interpolation formulas.
+ If the block are not uniquely renamed for each application, then the interpolan
+ts may not be well-scoped, i.e.
  the can refer to variables outside their scope.
  As an example consider Figure 
 \begin_inset CommandInset ref
@@ -1071,14 +1071,14 @@ Block
 \begin_inset Formula $g=0$
 \end_inset
 
- appears three times: once local and twice in enviormental transitions.
- The current interpolation procedure will generate three uniquee version
+ appears three times: once local and twice in environmental transitions.
+ The current interpolation procedure will generate three unique version
  of 
 \begin_inset Formula $g=0$
 \end_inset
 
 , so its applications have the correct information, but are still well-scoped.
- For example the interpolant for block 
+ For example the interpolants for block 
 \begin_inset Formula $x^{\prime}=g+1$
 \end_inset
 
@@ -1096,7 +1096,8 @@ which always gives a well-scoped predicate.
 
 \begin_layout Plain Layout
 The method works under the assumption that variables in a formula trance
- and and enviromental transitions applied to it are renamed apart (see 
+ and and environmental transitions applied to it are renamed apart (see
+ 
 \begin_inset CommandInset citation
 LatexCommand cite
 key "Henzinger:2004"
@@ -1105,8 +1106,7 @@ key "Henzinger:2004"
 
 ).
  This implies that with an ordinary theorem prover the exponential blow-up
- can always occure (I'd be very happy if the reader could falsify this statement
-).
+ can always occur (I'd be very happy if the reader could falsify this statement).
  
 \end_layout
 
@@ -1163,23 +1163,19 @@ Generalized Enviorment
 \end_layout
 
 \begin_layout Standard
-Test have proved that the best combination for software verifications is
- single-block encoding with Cartesian abstraction or large-block encoding
- with boolean abstraction.
- In rely-guarantee method an enviromental transition can be applied any
+In rely-guarantee method an environmental transition can be applied any
  number of times, e.g.
- a transition which increments some variable and can be applied anywhere.
+ a transition which increments some variable.
  In LBE, where operations simply extend the path formula, such transitions
- could be applied infintly many times, each time giving a distinct path
+ could be applied infinitely many times, each time giving a distinct path
  formula.
- The cut this chain of application, at some point the formula has to be
- abstracted.
+ To cut this chain of application at some point the formula has to be abstracted.
  The abstraction is at the same location, so unless covered, the transitions
  can be applied again.
  As a result, the locations where environmental transitions can be applied
  become abstraction points.
- As test have showed, boolean abstraction with many abstractions points
- decreases performance 
+ As test have showed, Boolean abstraction with many abstractions points
+ exhibits low performance 
 \begin_inset CommandInset citation
 LatexCommand cite
 key "Beyer10"
@@ -1188,6 +1184,28 @@ key "Beyer10"
 
 .
  
+\end_layout
+
+\begin_layout Standard
+A promising solution is to create a single transition that over-approximates
+ the overall effect of the environment.
+ It would be enough to apply the transition only once, if subsequent application
+ would not give more valuations.
+ LBE analysis could treat the environment as yet another transition and
+ there would be less abstraction locations.
+ The precision of the environment applied to thread 
+\begin_inset Formula $j$
+\end_inset
+
+ and generated by thread 
+\begin_inset Formula $i$
+\end_inset
+
+ would be controlled by a set 
+\begin_inset Formula $\mathcal{P}_{i\triangleright j}$
+\end_inset
+
+ of predicates.
 \end_layout
 
 \begin_layout Subsection
@@ -1202,29 +1220,9 @@ name "sub:Generating-transitions"
 \end_layout
 
 \begin_layout Standard
-A promising solution is to create a single transitions that overapproximates
- the overall effect of the enviroment.
- It would be enough to apply the transiton only once --- subsquent application
- would not give more values.
- LBE analysis could treat the environment as yet another transition and
- would not have to abstract at these locations.
- The precision of a transition generated by thread 
-\begin_inset Formula $i$
-\end_inset
-
- to be applied to thread 
-\begin_inset Formula $j$
-\end_inset
-
- would be controlled a set 
-\begin_inset Formula $\mathcal{P}_{i\triangleright j}$
-\end_inset
-
- of predicates.
-\end_layout
-
-\begin_layout Standard
-Let 
+In this section, we show how transitions can be generated from abstract
+ states.
+ Let 
 \begin_inset Formula $V$
 \end_inset
 
@@ -1232,7 +1230,7 @@ Let
 \begin_inset Formula $V_{g}$
 \end_inset
 
- be global variables,
+ be global variables and let 
 \begin_inset Formula $V_{i}$
 \end_inset
 
@@ -1249,8 +1247,8 @@ Let
 \begin_inset Formula $X$
 \end_inset
 
- with its elements primed.
- is The predicates in 
+ with all its elements primed.
+ The predicates in 
 \begin_inset Formula $\mathcal{P}_{i\triangleright j}$
 \end_inset
 
@@ -1259,13 +1257,13 @@ Let
 \end_inset
 
 .
- The unprimed variables refer to state before the transition and primed
- elements are the values after applying the transitions.
+ The unprimed variables refer to the state before the environmental transition
+ and primed elements are the values after applying the transitions.
  We use 
 \begin_inset Formula $id_{X}$
 \end_inset
 
- to denote the set of equlaties 
+ to denote the set of equalities 
 \begin_inset Formula 
 \[
 id_{X}=\{v=v^{\prime}\,|\, v\in X\}
@@ -1287,13 +1285,13 @@ We will investigate the implementation side of the problem, so let abstract
 \begin_inset Formula $V$
 \end_inset
 
- in static single assigment format.
- We also assume that variables in each thread have an unique label.
+ in static single assignment form.
+ We also assume that variables in each thread have unique labelS.
  Let 
 \begin_inset Formula $SP_{op}(\varphi)$
 \end_inset
 
- be a successor of abstract state 
+ be the successor of abstract state 
 \begin_inset Formula $\varphi$
 \end_inset
 
@@ -1306,7 +1304,7 @@ We will investigate the implementation side of the problem, so let abstract
 \begin_inset Formula $\mathcal{P}_{i\triangleright j}$
 \end_inset
 
- we instatiate unprimed variable to the last SSA index in 
+ we instantiate the unprimed variable to the last SSA index in 
 \begin_inset Formula $\varphi$
 \end_inset
 
@@ -1315,11 +1313,11 @@ We will investigate the implementation side of the problem, so let abstract
 \end_inset
 
 .
- For every instance 
+ For every predicate instance 
 \begin_inset Formula $i$
 \end_inset
 
- a fresh propositional variable 
+, a fresh propositional variable 
 \begin_inset Formula $p_{i}$
 \end_inset
 
@@ -1327,14 +1325,14 @@ We will investigate the implementation side of the problem, so let abstract
 \begin_inset Formula $i\longleftrightarrow p_{i}$
 \end_inset
 
- is appedned to the formula.
- The Boolean predicate abstraction is constructed by enumarting all models
+ is appended to the formula.
+ The Boolean predicate abstraction is constructed by enumerating all models
  of the fresh variables in the extended formula.
  For a variable 
 \begin_inset Formula $v$
 \end_inset
 
- that have not been changed by 
+ that has not been changed by 
 \begin_inset Formula $op$
 \end_inset
 
@@ -1343,18 +1341,17 @@ We will investigate the implementation side of the problem, so let abstract
 \end_inset
 
  will follow.
- The unprimed variables of a transitions are assosiated with SSA map of
+ The unprimed variables of a transition are associated with th SSA map of
  
 \begin_inset Formula $\varphi$
 \end_inset
 
-, while primed variables are assosiated with SSA map of 
+, while primed variables are associated with the SSA map of 
 \begin_inset Formula $SP_{op}(\varphi)$
 \end_inset
 
 .
- This is needed by interpolation to relate the creation and application
- formulas.
+ This is needed by interpolation to relate the source and application formulas.
 \begin_inset ERT
 status open
 
@@ -1392,12 +1389,12 @@ Threads
 \end_inset
 
 .
- Additionally, variables in 
+ Variables in 
 \begin_inset Formula $T_{1}$
 \end_inset
 
- have an unpper index 
-\begin_inset Formula $1$
+ have an upper index 
+\begin_inset Formula $^{1}$
 \end_inset
 
 , while in 
@@ -1405,11 +1402,11 @@ Threads
 \end_inset
 
  they have index 
-\begin_inset Formula $2$
+\begin_inset Formula $^{2}$
 \end_inset
 
 .
- Suppose that the environemtal predicates are
+ Suppose that the environmental predicates are
 \begin_inset Formula 
 \[
 \mathcal{P}_{1\triangleright2}=\{g^{\prime}=g,\, pc_{1}^{\prime}=pc_{1},\, x^{\prime}=x,\, x\geq5,\, g^{\prime}=x+1\}.
@@ -1417,7 +1414,7 @@ Threads
 
 \end_inset
 
-Image that we have abstract state in 
+Imagine that we have an abstract state in 
 \begin_inset Formula $T_{1}$
 \end_inset
 
@@ -1453,8 +1450,8 @@ The abstraction formula for
 \begin_inset Formula 
 \[
 \begin{array}{c}
-x^{1}@1=5\,\land\, pc_{1}^{1}@1=2\,\land\, g^{1}@1<10\,\land\, y^{1}@1\neq x^{1}@1\,\land\, x^{1}@2=6\,\land\, pc_{1}^{1}@2=3\,\land\,\\
-p_{1}\leftrightarrow g^{1}@1=g^{1}@1\,\land\, p_{2}\leftrightarrow pc_{1}^{1}@2=pc_{1}^{1}@1\,\land\, p_{3}\leftrightarrow x^{1}@2=x^{1}@1\,\land\,\\
+x^{1}@1=5\,\land\, pc_{1}^{1}@1=2\,\land\, g^{1}@1<10\,\land\, y^{1}@1\neq x^{1}@1\,\land\, x^{1}@2=6\,\land\, pc_{1}^{1}@2=3\\
+\,\land\, p_{1}\leftrightarrow g^{1}@1=g^{1}@1\,\land\, p_{2}\leftrightarrow pc_{1}^{1}@2=pc_{1}^{1}@1\,\land\, p_{3}\leftrightarrow x^{1}@2=x^{1}@1\,\land\,\\
 p_{4}\leftrightarrow x^{1}@1\geq5\,\land\, p_{5}\leftrightarrow g^{1}@2=x^{1}@1+1.
 \end{array}
 \]
@@ -1473,7 +1470,7 @@ e_{1}\,:\, g^{\prime}=g\,\land\, pc_{1}^{\prime}\neq pc_{1}\,\land\, x^{\prime}\
 
 \end_inset
 
-The assiosiated SSA map for unprimed variables is 
+The associated SSA map for unprimed variables is 
 \begin_inset Formula 
 \[
 \{x^{1}\mapsto1,pc_{1}^{1}\mapsto1,g^{1}\mapsto1,y^{1}\mapsto1\}
@@ -1504,7 +1501,7 @@ The predicate
 Application and interpolation
 \end_layout
 
-\begin_layout Example
+\begin_layout Standard
 Suppose we have a transition 
 \begin_inset Formula $e$
 \end_inset
@@ -1513,7 +1510,7 @@ Suppose we have a transition
 \begin_inset Formula $i$
 \end_inset
 
- we want to apply it on a abstract formula 
+ and we want to apply it to an abstract formula 
 \begin_inset Formula $\psi$
 \end_inset
 
@@ -1525,12 +1522,12 @@ Suppose we have a transition
  The procedure is:
 \end_layout
 
-\begin_layout Enumerate
+\begin_layout Standard
 For every variable 
 \begin_inset Formula $v\in V$
 \end_inset
 
- we appeand an equality 
+ we append an equality 
 \begin_inset Formula $v^{i}=v^{j}$
 \end_inset
 
@@ -1575,8 +1572,8 @@ latest version of
 \begin_inset Quotes erd
 \end_inset
 
- we mean the one with the highest index modulo the unqiee thread labels.
- The equalities will relate valuations of 
+ we mean the one with the highest index modulo unique thread labels.
+ These equalities will relate valuations of 
 \begin_inset Formula $\psi$
 \end_inset
 
@@ -1587,29 +1584,29 @@ latest version of
 .
 \end_layout
 
-\begin_layout Enumerate
+\begin_layout Standard
 Transition 
 \begin_inset Formula $e$
 \end_inset
 
- is instantiated with the two assosiated SSA maps: unprimed variables with
+ is instantiated with the two associated SSA maps: unprimed variables with
  the first map and primed with the other.
- This gives an abstract formula that is weaker then the foruma that generated
+ This gives an abstract formula that is weaker then the formula that generated
  the transition.
- Since threads have unique labels,the instatited formula does not overlapp
+ Since threads have unique labels, the instantiated formula does not overlap
  with 
 \begin_inset Formula $\psi$
 \end_inset
 
 .
- The instance is appeanded to 
+ The instance is appended to 
 \begin_inset Formula $\psi$
 \end_inset
 
 .
 \end_layout
 
-\begin_layout Enumerate
+\begin_layout Standard
 For every variable 
 \begin_inset Formula $v$
 \end_inset
@@ -1626,7 +1623,7 @@ For every variable
 \begin_inset Formula $w^{i}=w^{j}$
 \end_inset
 
- is appeaned to 
+ is append to 
 \begin_inset Formula $\varphi$
 \end_inset
 
@@ -1655,7 +1652,7 @@ For every variable
 \end_inset
 
 .
- These related the primed variables of 
+ These relate the primed variables of 
 \begin_inset Formula $e$
 \end_inset
 
@@ -1680,7 +1677,7 @@ Let us apply transition
 \begin_inset Formula $e_{1}$
 \end_inset
 
- from the previous example on a state 
+ from the previous example to a state 
 \begin_inset Formula $\psi$
 \end_inset
 
@@ -1755,11 +1752,11 @@ Note that it holds that
 
 .
  In step 3.
- the following equalites link the the lastest values of 
+ the following equalities link the the latest values of 
 \begin_inset Formula $\dot{e_{1}}$
 \end_inset
 
- with new valuations of 
+ with the new valuations of 
 \begin_inset Formula $\psi$
 \end_inset
 
@@ -1775,7 +1772,7 @@ The new formula
 \begin_inset Formula $\psi^{\prime}$
 \end_inset
 
-is conjuction of 
+ is a conjunction of 
 \begin_inset CommandInset ref
 LatexCommand eqref
 reference "eq:applicationI"
@@ -1812,12 +1809,12 @@ reference "applicationIV"
 \begin_inset Formula $y$
 \end_inset
 
-, which are local to 
+ which are local to 
 \begin_inset Formula $T_{2}$
 \end_inset
 
 , remain unchanged by the application.
- On the other hand, variables 
+ Variables 
 \begin_inset Formula $g$
 \end_inset
 
@@ -1825,11 +1822,11 @@ reference "applicationIV"
 \begin_inset Formula $pc_{1}$
 \end_inset
 
-, 
+ and 
 \begin_inset Formula $x$
 \end_inset
 
- get new values specified by the constraint of 
+ receive new values specified by the constraint of 
 \begin_inset Formula $e$
 \end_inset
 
@@ -1847,7 +1844,7 @@ reference "applicationIV"
 \end_layout
 
 \begin_layout Example
-The instatied formula 
+The instantiated formula 
 \begin_inset Formula $\dot{e_{1}}$
 \end_inset
 
@@ -1858,7 +1855,11 @@ reference "applicationIII"
 
 \end_inset
 
- related the application to formula 
+ relates the application 
+\begin_inset Formula $\psi^{\prime}$
+\end_inset
+
+ to formula 
 \begin_inset CommandInset ref
 LatexCommand eqref
 reference "eq:e1_source"
@@ -1869,7 +1870,7 @@ reference "eq:e1_source"
 \begin_inset Formula $e_{1}$
 \end_inset
 
-, which is necessary for interpolation.
+ --- this is necessary for interpolation.
  Image that after the application of 
 \begin_inset Formula $e_{1}$
 \end_inset
@@ -1879,7 +1880,7 @@ reference "eq:e1_source"
 \end_inset
 
  there is an assertion that 
-\begin_inset Formula $x^{2}\neq5$
+\begin_inset Formula $x\neq5$
 \end_inset
 
  (let us skip over the detail that 
@@ -1895,9 +1896,9 @@ reference "eq:e1_source"
 \begin_inset Formula $\psi^{\prime}$
 \end_inset
 
- might violate the assertion, so interpolation is perfomed to check if the
- formula trace is feasible.
- We for the sake of simplicy, let us assume that there were not other formulas
+ might violate the assertion, so interpolation is performed to check if
+ the formula trace is feasible.
+ We for the sake of simplicity, let us assume that there are no other formulas
  involved besides 
 \begin_inset Formula $SP_{op}(\varphi)$
 \end_inset
@@ -2053,15 +2054,15 @@ name "itp_e1topsi"
 \end_inset
 
 .
- Translating the SSA indeces of 
+ Translating the SSA indexes of 
 \begin_inset Formula $\varphi$
 \end_inset
 
- to unprimed variables and indeces of 
+ to unprimed variables and indexes of 
 \begin_inset Formula $SP_{op}(\varphi)$
 \end_inset
 
- to primed variables, this interpolant can be expressed as 
+ to primed variables, this interpolants can be expressed as 
 \begin_inset Formula $x^{\prime}>x$
 \end_inset
 
@@ -2070,8 +2071,8 @@ name "itp_e1topsi"
 \begin_inset Formula $\mathcal{P}_{1\triangleright2}$
 \end_inset
 
- and restarting the analysis, will make this error trace infeasible.
- The details of refinement depent on the interpolation procedure.
+ and restarting the analysis will make this error trace infeasible.
+ The details of refinement depend on the interpolation procedure.
  
 \end_layout
 
@@ -2080,10 +2081,10 @@ Generalizing transitions
 \end_layout
 
 \begin_layout Standard
-Transitions generated in the presented waymay still be applied infinitly
+Transitions generated in the presented way may still be applied infinitely
  many times.
- Now, we present how the generalize several enviornmental transition into
- one that can be applied only once.
+ Now, we present how the generalize several environmental transition into
+ one that may be applied only once.
  
 \end_layout
 
@@ -2096,7 +2097,7 @@ Let
 \begin_inset Formula $\mathcal{P}_{i\triangleright j}$
 \end_inset
 
-, which have diffent valuations, soo combanations 
+ that have different valuations, so combinations 
 \begin_inset Formula $p\vee r$
 \end_inset
 
@@ -2121,39 +2122,21 @@ Let
 \begin_inset Formula $\rightarrow$
 \end_inset
 
- , the least upper bound being 
+, the least upper bound being 
 \begin_inset Formula $\vee$
 \end_inset
 
- and the bottom element is formula 
+ and formula 
 \begin_inset Formula $false$
 \end_inset
 
-.
- We distungish element 
-\begin_inset Formula $e_{id}$
-\end_inset
-
- which is a Boolean abstraction of 
-\begin_inset Formula $\bigwedge id_{V_{g}\cup V_{i}}$
-\end_inset
-
- using the predicates 
-\begin_inset Formula $\mathcal{P}_{i\triangleright j}$
-\end_inset
-
-.
- Transition 
-\begin_inset Formula $e_{12}$
-\end_inset
-
- expresses that environment does not change anything.
+ asthe bottom element.
  Lattice 
 \begin_inset Formula $L_{i\triangleright j}$
 \end_inset
 
- orders enviromental transitions by how much can they change, for example
- the transitions 
+ orders transitions by how much they can change, for example the transition
+ 
 \begin_inset Formula $x^{\prime}=x\,\land\, x^{\prime}>0$
 \end_inset
 
@@ -2162,8 +2145,26 @@ Let
 \end_inset
 
 .
- A least upper bound of transitions gives a transitions that can do more
- than all of them.
+ The least upper bound of transitions gives a transitions that can do more
+ than any of them.
+ We distinguish element 
+\begin_inset Formula $e_{id}$
+\end_inset
+
+ which is a Boolean abstraction of 
+\begin_inset Formula $\bigwedge id_{V_{g}\cup V_{i}}$
+\end_inset
+
+ with the predicates 
+\begin_inset Formula $\mathcal{P}_{i\triangleright j}$
+\end_inset
+
+.
+ Transition 
+\begin_inset Formula $e_{id}$
+\end_inset
+
+ expresses that environment does not change anything.
  
 \begin_inset ERT
 status open
@@ -2181,16 +2182,16 @@ bigskip
 \end_layout
 
 \begin_layout Example
-Let there be only one variable 
+Let 
 \begin_inset Formula $g$
 \end_inset
 
-.
+ be the only variable.
  Lattice 
 \begin_inset Formula $L_{1\triangleright2}$
 \end_inset
 
- is based on the predicate set on the predicate set
+ is based on the following predicate set 
 \begin_inset Formula 
 \[
 \mathcal{P}_{1\triangleright2}=\{g^{\prime}=g,\, g>0,\, g^{\prime}=g+1\}.
@@ -2198,11 +2199,7 @@ Let there be only one variable
 
 \end_inset
 
-The bottom element of the lattice is a Boolean abstraction of 
-\begin_inset Formula $g^{\prime}=g$
-\end_inset
-
-
+The identity transition is
 \begin_inset Formula 
 \[
 e_{id}:\, g^{\prime}=g\,\land\, g^{\prime}\neq g+1.
@@ -2210,7 +2207,7 @@ e_{id}:\, g^{\prime}=g\,\land\, g^{\prime}\neq g+1.
 
 \end_inset
 
-Now cosider two transitions 
+Now, consider transitions 
 \begin_inset Formula $e_{2}$
 \end_inset
 
@@ -2229,7 +2226,7 @@ e_{2}:\, g>0\,\land\, g^{\prime}\neq g\,\land\, g^{\prime}=g+1
 
 \begin_inset Formula 
 \[
-e_{3}:\, g\leq0\,\land\, g^{\prime}=g.
+e_{3}:\, g\leq0\,\land\, g^{\prime}\neq g.
 \]
 
 \end_inset
@@ -2242,15 +2239,15 @@ Transition
 \begin_inset Formula $g$
 \end_inset
 
- when it is postive, while 
+ when it is positive, while 
 \begin_inset Formula $e_{3}$
 \end_inset
 
- changes the value of it is 
+ gives some new value to 
 \begin_inset Formula $g$
 \end_inset
 
- is non-positive.
+ if it is non-positive.
  Transition 
 \begin_inset Formula $e_{2}\vee e_{3}\vee e_{id}$
 \end_inset
@@ -2272,7 +2269,7 @@ Transitions can be applied one after another.
 \begin_inset Formula $\varphi[X\rightarrow\overline{X}]$
 \end_inset
 
- denote an abstract state, where every occurence of 
+ denote an abstract state, where every occurrence of 
 \begin_inset Formula $v\in X$
 \end_inset
 
@@ -2302,7 +2299,11 @@ Transitions can be applied one after another.
 \begin_inset Formula $e^{\prime}$
 \end_inset
 
- and 
+ 
+\emph on
+and
+\emph default
+ 
 \begin_inset Formula $e$
 \end_inset
 
@@ -2340,7 +2341,7 @@ where the set of predicates
 \end_inset
 
 .
- Composition of two transition from 
+ Composition of two transitions from 
 \begin_inset Formula $L_{i\triangleright j}$
 \end_inset
 
@@ -2353,10 +2354,10 @@ Suppose we have generated a set of transitions
 \begin_inset Formula $E$
 \end_inset
 
- and we want to create a single transitions that overapproximates their
+ and we want to create a single transitions that over-approximates their
  effect.
  This generalized transition should describe the effect of applying transitions
- in a sequence or lack of any application.
+ in an arbitrary sequence or lack of any application.
  We define a function 
 \begin_inset Formula $f_{E}\,:\, L_{i\triangleright j}\rightarrow L_{i\triangleright j}$
 \end_inset
@@ -2412,15 +2413,15 @@ generalized transition
 \begin_inset Formula $L_{i\triangleright j}$
 \end_inset
 
- has a finite size, the 
+ has a finite size, therefore 
 \begin_inset Formula $e_{g}$
 \end_inset
 
- can be obtained be iterating 
+ can be obtained be iterating over 
 \begin_inset Formula $f_{E}^{n}(false)$
 \end_inset
 
- until it inevitably satibilizes.
+ until it inevitably stabilizes.
  
 \end_layout
 
@@ -2441,7 +2442,7 @@ bigskip
 \end_layout
 
 \begin_layout Example
-Let us continue from the previous example, but assume that 
+Let us continue with the previous example, but assume that 
 \begin_inset Formula $e_{2}$
 \end_inset
 
@@ -2467,7 +2468,7 @@ Let us iterate over
 \begin_inset Formula $f_{E}$
 \end_inset
 
- until the least fixed point.
+ until the least fixed point is reached.
  The first iteration gives the identity transition: 
 \begin_inset Formula 
 \[
@@ -2580,7 +2581,7 @@ g>0\,\vee\, e_{id}.
 
 \end_inset
 
-The result has stabilised, therefore the generalized transition 
+The result has stabilized, therefore the generalized transition 
 \begin_inset Formula $e_{g}$
 \end_inset
 
@@ -2596,8 +2597,8 @@ Notice that
 \begin_inset Formula $f_{E}^{n}(false)$
 \end_inset
 
- approxiamtes the effect of applying 
-\begin_inset Formula $e_{2}$
+ over-approximates the effect of applying transitions from 
+\begin_inset Formula $E$
 \end_inset
 
  less than 
@@ -2605,7 +2606,7 @@ Notice that
 \end_inset
 
  times.
- The intiutive meanning is that 
+ The intuitive meaning is that 
 \begin_inset Formula $e_{g}$
 \end_inset
 
