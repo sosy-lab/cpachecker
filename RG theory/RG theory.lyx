@@ -1159,19 +1159,20 @@ where
 \end_layout
 
 \begin_layout Section
-Generalized Enviorment
+Generalized Environment
 \end_layout
 
 \begin_layout Standard
 In rely-guarantee method an environmental transition can be applied any
  number of times, e.g.
- a transition which increments some variable.
+ a transition that increments some variable.
  In LBE, where operations simply extend the path formula, such transitions
  could be applied infinitely many times, each time giving a distinct path
  formula.
- To cut this chain of application at some point the formula has to be abstracted.
- The abstraction is at the same location, so unless covered, the transitions
- can be applied again.
+ To cut this chain of applications the formula has to be abstracted at some
+ point.
+ The abstraction is at the same location as applications, so unless covered,
+ the transitions can be applied again.
  As a result, the locations where environmental transitions can be applied
  become abstraction points.
  As test have showed, Boolean abstraction with many abstractions points
@@ -1189,9 +1190,9 @@ key "Beyer10"
 \begin_layout Standard
 A promising solution is to create a single transition that over-approximates
  the overall effect of the environment.
- It would be enough to apply the transition only once, if subsequent application
- would not give more valuations.
- LBE analysis could treat the environment as yet another transition and
+ It would be enough to apply the transition only once provided that subsequent
+ application would not give more valuations.
+ LBE analysis could treat the environment as yet another transition, so
  there would be less abstraction locations.
  The precision of the environment applied to thread 
 \begin_inset Formula $j$
@@ -1243,7 +1244,7 @@ In this section, we show how transitions can be generated from abstract
 \begin_inset Formula $X^{\prime}$
 \end_inset
 
- that set 
+ be the set 
 \begin_inset Formula $X$
 \end_inset
 
@@ -1266,17 +1267,20 @@ In this section, we show how transitions can be generated from abstract
  to denote the set of equalities 
 \begin_inset Formula 
 \[
-id_{X}=\{v=v^{\prime}\,|\, v\in X\}
+id_{X}=\{v=v^{\prime}\,|\, v\in X\}.
 \]
 
 \end_inset
 
 and we require that 
-\begin_inset Formula $\mathcal{P}_{i\triangleright j}\supseteq id_{V_{g}\cup V_{i}}$
+\begin_inset Formula 
+\[
+\mathcal{P}_{i\triangleright j}\supseteq id_{V_{g}\cup V_{i}}.
+\]
+
 \end_inset
 
-.
- 
+
 \end_layout
 
 \begin_layout Standard
@@ -1286,7 +1290,7 @@ We will investigate the implementation side of the problem, so let abstract
 \end_inset
 
  in static single assignment form.
- We also assume that variables in each thread have unique labelS.
+ We also assume that variables in each thread have unique labels.
  Let 
 \begin_inset Formula $SP_{op}(\varphi)$
 \end_inset
@@ -1304,11 +1308,12 @@ We will investigate the implementation side of the problem, so let abstract
 \begin_inset Formula $\mathcal{P}_{i\triangleright j}$
 \end_inset
 
- we instantiate the unprimed variable to the last SSA index in 
+ we instantiate the unprimed variables in the predicate to the last SSA
+ indexes in 
 \begin_inset Formula $\varphi$
 \end_inset
 
- and the primed version to the last index in 
+ and the primed variables to the last indexes in 
 \begin_inset Formula $SP_{op}(\varphi)$
 \end_inset
 
@@ -1336,17 +1341,17 @@ We will investigate the implementation side of the problem, so let abstract
 \begin_inset Formula $op$
 \end_inset
 
- the primed and unprimed versions will be the same, so the predicate 
+, the primed and unprimed versions will be the same, so the predicate 
 \begin_inset Formula $v^{\prime}=v$
 \end_inset
 
  will follow.
- The unprimed variables of a transition are associated with th SSA map of
- 
+ In a transition, we implicitly asociate the unprimed variables with the
+ SSA map of 
 \begin_inset Formula $\varphi$
 \end_inset
 
-, while primed variables are associated with the SSA map of 
+ and primed variables with the SSA map of 
 \begin_inset Formula $SP_{op}(\varphi)$
 \end_inset
 
@@ -1401,7 +1406,7 @@ Threads
 \begin_inset Formula $T_{2}$
 \end_inset
 
- they have index 
+ they have an index 
 \begin_inset Formula $^{2}$
 \end_inset
 
@@ -1452,13 +1457,22 @@ The abstraction formula for
 \begin{array}{c}
 x^{1}@1=5\,\land\, pc_{1}^{1}@1=2\,\land\, g^{1}@1<10\,\land\, y^{1}@1\neq x^{1}@1\,\land\, x^{1}@2=6\,\land\, pc_{1}^{1}@2=3\\
 \,\land\, p_{1}\leftrightarrow g^{1}@1=g^{1}@1\,\land\, p_{2}\leftrightarrow pc_{1}^{1}@2=pc_{1}^{1}@1\,\land\, p_{3}\leftrightarrow x^{1}@2=x^{1}@1\,\land\,\\
-p_{4}\leftrightarrow x^{1}@1\geq5\,\land\, p_{5}\leftrightarrow g^{1}@2=x^{1}@1+1.
+p_{4}\leftrightarrow x^{1}@1\geq5\,\land\, p_{5}\leftrightarrow g^{1}@2=x^{1}@1+1
 \end{array}
 \]
 
 \end_inset
 
-After abstraction the environmental transition 
+where 
+\begin_inset Formula $p_{1\ldots5}$
+\end_inset
+
+ are related to the predicates in 
+\begin_inset Formula $\mathcal{P}_{1\triangleright j}$
+\end_inset
+
+.
+ After abstraction the environmental transition 
 \begin_inset Formula $e_{1}$
 \end_inset
 
@@ -1522,7 +1536,7 @@ Suppose we have a transition
  The procedure is:
 \end_layout
 
-\begin_layout Standard
+\begin_layout Enumerate
 For every variable 
 \begin_inset Formula $v\in V$
 \end_inset
@@ -1577,21 +1591,21 @@ latest version of
 \begin_inset Formula $\psi$
 \end_inset
 
- with the unprimed variables in 
+ to the unprimed variables in 
 \begin_inset Formula $e$
 \end_inset
 
 .
 \end_layout
 
-\begin_layout Standard
+\begin_layout Enumerate
 Transition 
 \begin_inset Formula $e$
 \end_inset
 
- is instantiated with the two associated SSA maps: unprimed variables with
+ is instantiated using the two associated SSA maps: unprimed variables with
  the first map and primed with the other.
- This gives an abstract formula that is weaker then the formula that generated
+ This gives an abstract formula that is weaker than the formula that generated
  the transition.
  Since threads have unique labels, the instantiated formula does not overlap
  with 
@@ -1606,7 +1620,7 @@ Transition
 .
 \end_layout
 
-\begin_layout Standard
+\begin_layout Enumerate
 For every variable 
 \begin_inset Formula $v$
 \end_inset
@@ -1615,7 +1629,7 @@ For every variable
 \begin_inset Formula $i$
 \end_inset
 
-, that is by 
+, that is for 
 \begin_inset Formula $v\in V_{g}\cup V_{i}$
 \end_inset
 
@@ -1656,7 +1670,7 @@ For every variable
 \begin_inset Formula $e$
 \end_inset
 
- with new values of variables.
+ with the new values of variables.
 \begin_inset ERT
 status open
 
@@ -1752,7 +1766,7 @@ Note that it holds that
 
 .
  In step 3.
- the following equalities link the the latest values of 
+ the following equalities link the latest versions of 
 \begin_inset Formula $\dot{e_{1}}$
 \end_inset
 
@@ -1805,7 +1819,7 @@ reference "applicationIV"
 \begin_inset Formula $pc_{2}$
 \end_inset
 
-, 
+ and 
 \begin_inset Formula $y$
 \end_inset
 
@@ -1898,7 +1912,7 @@ reference "eq:e1_source"
 
  might violate the assertion, so interpolation is performed to check if
  the formula trace is feasible.
- We for the sake of simplicity, let us assume that there are no other formulas
+ For the sake of simplicity let us assume that there are no other formulas
  involved besides 
 \begin_inset Formula $SP_{op}(\varphi)$
 \end_inset
@@ -1911,7 +1925,7 @@ reference "eq:e1_source"
  Table 
 \begin_inset CommandInset ref
 LatexCommand ref
-reference "itp_problem"
+reference "itp_e1topsi"
 
 \end_inset
 
@@ -2020,7 +2034,7 @@ assert
 \begin_inset Caption
 
 \begin_layout Plain Layout
-Interpolation formulas for the 
+Interpolation formulas for 
 \begin_inset Formula $e_{1}$
 \end_inset
 
@@ -2028,7 +2042,7 @@ Interpolation formulas for the
 \begin_inset Formula $\psi$
 \end_inset
 
-.
+ and an assertion.
 \end_layout
 
 \end_inset
@@ -2072,7 +2086,7 @@ name "itp_e1topsi"
 \end_inset
 
  and restarting the analysis will make this error trace infeasible.
- The details of refinement depend on the interpolation procedure.
+ Details of refinement depend on the interpolation procedure.
  
 \end_layout
 
@@ -2097,7 +2111,7 @@ Let
 \begin_inset Formula $\mathcal{P}_{i\triangleright j}$
 \end_inset
 
- that have different valuations, so combinations 
+ that have different valuations, so combinations like 
 \begin_inset Formula $p\vee r$
 \end_inset
 
@@ -2114,7 +2128,7 @@ Let
 \begin_inset Formula $L_{i\triangleright j}$
 \end_inset
 
- as a complete lattice over the set 
+ as the complete lattice over the set 
 \begin_inset Formula $\mathcal{B}(\mathcal{P}_{i\triangleright j})$
 \end_inset
 
@@ -2130,13 +2144,13 @@ Let
 \begin_inset Formula $false$
 \end_inset
 
- asthe bottom element.
+ as the bottom element.
  Lattice 
 \begin_inset Formula $L_{i\triangleright j}$
 \end_inset
 
- orders transitions by how much they can change, for example the transition
- 
+ orders transitions by how much their application can change, for example
+ the transition 
 \begin_inset Formula $x^{\prime}=x\,\land\, x^{\prime}>0$
 \end_inset
 
@@ -2145,9 +2159,9 @@ Let
 \end_inset
 
 .
- The least upper bound of transitions gives a transitions that can do more
- than any of them.
- We distinguish element 
+ The least upper bound of transitions gives a transitions that can change
+ more than any of them.
+ We distinguish the element 
 \begin_inset Formula $e_{id}$
 \end_inset
 
@@ -2336,7 +2350,7 @@ where the set of predicates
 \begin_inset Formula $e^{\prime}$
 \end_inset
 
- linked by an intermediate result 
+ linked by an intermediate variables in 
 \begin_inset Formula $\overline{V}$
 \end_inset
 
@@ -2350,14 +2364,13 @@ where the set of predicates
 \end_layout
 
 \begin_layout Standard
-Suppose we have generated a set of transitions 
+Suppose that we have generated a set of transitions 
 \begin_inset Formula $E$
 \end_inset
 
- and we want to create a single transitions that over-approximates their
- effect.
- This generalized transition should describe the effect of applying transitions
- in an arbitrary sequence or lack of any application.
+ and we want to create a single transition that over-approximates them.
+ This generalized transition should describe the effect of applying the
+ transitions in an arbitrary sequence or lack of any application.
  We define a function 
 \begin_inset Formula $f_{E}\,:\, L_{i\triangleright j}\rightarrow L_{i\triangleright j}$
 \end_inset
@@ -2378,11 +2391,11 @@ Given some transition
 \begin_inset Formula $f_{E}$
 \end_inset
 
- will return the effect of applying any transition from 
-\begin_inset Formula $E$
+ will return the composition of 
+\begin_inset Formula $\bigvee E$
 \end_inset
 
- on 
+ with 
 \begin_inset Formula $e$
 \end_inset
 
