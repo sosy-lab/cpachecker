@@ -55,6 +55,9 @@ public abstract class MathsatFormulaManager implements FormulaManager {
   @Option(description="use a combination of theories (this is incomplete)")
   private boolean useDtc = false;
 
+  @Option(description="Use UIFs (recommended because its more precise)")
+  private boolean useUIFs = true;
+
   // the MathSAT environment in which all terms are created
   // default visibility because its heavily used in sub-classes
   final long msatEnv;
@@ -74,6 +77,10 @@ public abstract class MathsatFormulaManager implements FormulaManager {
 
   // the character for separating name and index of a value
   private static final String INDEX_SEPARATOR = "@";
+
+  // variable name and index that is used for replacing UIFs when they are disabled
+  private static final String UIF_VARIABLE = "__uif__";
+  private int uifVariableCounter = 0;
 
   // various caches for speeding up expensive tasks
   //
@@ -200,13 +207,35 @@ public abstract class MathsatFormulaManager implements FormulaManager {
   // ----------------- Uninterpreted functions -----------------
 
   private long buildMsatUF(String name, long[] args) {
+    if (!useUIFs) {
+      return buildMsatUfReplacement(); // shortcut
+    }
+
     int[] tp = new int[args.length];
     Arrays.fill(tp, msatVarType);
     long decl = msat_declare_uif(msatEnv, name, msatVarType, tp.length, tp);
     if (MSAT_ERROR_DECL(decl)) {
       return MSAT_MAKE_ERROR_TERM();
     }
-    return msat_make_uif(msatEnv, decl, args);
+    return buildMsatUF(decl, args);
+  }
+
+  /**
+   * Replacement for msat_make_uif, never call that method directly!
+   */
+  protected long buildMsatUF(long func, long[] args) {
+    if (useUIFs) {
+      return msat_make_uif(msatEnv, func, args);
+    } else {
+      return buildMsatUfReplacement();
+    }
+  }
+
+  private long buildMsatUfReplacement() {
+    // just create a fresh variable
+    String var = makeName(UIF_VARIABLE, ++uifVariableCounter);
+    long decl = msat_declare_variable(msatEnv, var, msatVarType);
+    return msat_make_variable(msatEnv, decl);
   }
 
   @Override
@@ -225,8 +254,7 @@ public abstract class MathsatFormulaManager implements FormulaManager {
   public Formula makeString(int i) {
     long n = msat_make_number(msatEnv, Integer.toString(i));
 
-    return encapsulate(msat_make_uif(msatEnv,
-        stringLitUfDecl, new long[]{n}));
+    return encapsulate(buildMsatUF(stringLitUfDecl, new long[]{n}));
   }
 
   private long buildMsatVariable(String var, int type) {
