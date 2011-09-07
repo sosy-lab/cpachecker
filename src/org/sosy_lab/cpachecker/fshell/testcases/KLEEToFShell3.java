@@ -139,7 +139,7 @@ public class KLEEToFShell3 {
           lTmpValue |= (lFirstByteValue << 4);
           lTmpValue |= lSecondByteValue;
 
-          lResultValue |= (lTmpValue << (8 * (4 - i)));
+          lResultValue |= (lTmpValue << (8 * (i - 1)));
         }
 
         lInputValues.add(lResultValue);
