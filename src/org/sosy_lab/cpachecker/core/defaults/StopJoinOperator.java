@@ -56,10 +56,4 @@ public class StopJoinOperator implements StopOperator {
 
     return domain.isLessOrEqual(element, joinedElement);
   }
-
-  @Override
-  public boolean stop(AbstractElement element, AbstractElement reachedElement)
-                      throws CPAException {
-    return domain.isLessOrEqual(element, reachedElement);
-  }
 }

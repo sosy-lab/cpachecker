@@ -55,12 +55,4 @@ public class ProgressObserverStop implements StopOperator {
     ProgressObserverElement observerElement = (ProgressObserverElement)pElement;
     return !observerElement.mustDumpAssumptionForAvoidance();
   }
-
-  @Override
-  public boolean stop(AbstractElement pElement, AbstractElement pReachedElement)
-      throws CPAException {
-    ProgressObserverElement observerElement = (ProgressObserverElement)pElement;
-    return !observerElement.mustDumpAssumptionForAvoidance();
-  }
-
 }
