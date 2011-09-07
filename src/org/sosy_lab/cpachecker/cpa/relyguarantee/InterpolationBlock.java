@@ -38,15 +38,15 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 class InterpolationBlock {
 
   // traceNo is the lowest number of primes in the path formula - it identifies the formula trace
-  private final int traceNo;
+  protected final int traceNo;
   // context is the sequence of trace no. trace that encapsulated the current trance
-  private final Deque<Integer> context;
+  protected final Deque<Integer> context;
   // ART element, where the path formula was abstracted
-  private final ARTElement artElement;
-  private final PathFormula pathFormula;
+  protected final ARTElement artElement;
+  protected final PathFormula pathFormula;
 
   public InterpolationBlock(PathFormula pf, int primedNo, ARTElement artElement, Deque<Integer> context){
-    assert context != null;
+    //assert context != null;
     this.pathFormula = pf;
     this.traceNo = primedNo;
     this.artElement = artElement;
@@ -76,4 +76,5 @@ class InterpolationBlock {
   public String toString(){
     return "[tn:"+traceNo+", c:"+context+", id:"+artElement.getElementId()+"]: "+pathFormula;
   }
+
 }
