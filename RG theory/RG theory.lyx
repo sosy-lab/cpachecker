@@ -2404,6 +2404,30 @@ Given some transition
 \end_inset
 
 .
+ Function 
+\begin_inset Formula $f_{E}(e)(\varphi)$
+\end_inset
+
+ may be read as 
+\begin_inset Quotes eld
+\end_inset
+
+apply 
+\begin_inset Formula $e$
+\end_inset
+
+ to 
+\begin_inset Formula $\varphi$
+\end_inset
+
+ and then apply any transition from 
+\begin_inset Formula $E$
+\end_inset
+
+ or do not apply anything.
+\begin_inset Quotes erd
+\end_inset
+
  For a fixed 
 \begin_inset Formula $E$
 \end_inset
