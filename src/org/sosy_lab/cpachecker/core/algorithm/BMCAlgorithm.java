@@ -247,7 +247,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
           // try to prove program safety via induction
           if (induction) {
-            sound = sound || checkWithInduction(pReachedSet);
+            sound = sound || checkWithInduction();
           }
         }
 
@@ -406,7 +406,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     return f;
   }
 
-  private boolean checkWithInduction(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
+  private boolean checkWithInduction() throws CPAException, InterruptedException {
     // Induction is currently only possible if there is a single loop.
     // This check can be weakend in the future,
     // e.g. it is ok if there is only a single loop on each path.

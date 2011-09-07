@@ -349,6 +349,9 @@ cpa.predicate.mathsat.useDtc = false
 # split negated equalities
 cpa.predicate.mathsat.useIntegers = false
 
+# Use UIFs (recommended because its more precise)
+cpa.predicate.mathsat.useUIFs = true
+
 # if initAllVars is true, we get rid of all non-determinism. This might not
 # be desirable. If the following property is set to a non-empty value, all
 # variables starting with this prefix will not be initialized automatically

@@ -143,7 +143,7 @@ class ArithmeticMathsatFormulaManager extends MathsatFormulaManager {
       t2 = msat_make_number(msatEnv, n);
       result = msat_make_times(msatEnv, t2, t1);
     } else {
-      result = msat_make_uif(msatEnv, divUfDecl, new long[]{t1, t2});
+      result = buildMsatUF(divUfDecl, new long[]{t1, t2});
     }
     return encapsulate(result);
   }
@@ -164,7 +164,7 @@ class ArithmeticMathsatFormulaManager extends MathsatFormulaManager {
     } else if (msat_term_is_number(t2) != 0) {
       result = msat_make_times(msatEnv, t2, t1);
     } else {
-      result = msat_make_uif(msatEnv, multUfDecl, new long[]{t1, t2});
+      result = buildMsatUF(multUfDecl, new long[]{t1, t2});
     }
 
     return encapsulate(result);
@@ -203,7 +203,7 @@ class ArithmeticMathsatFormulaManager extends MathsatFormulaManager {
   public Formula makeBitwiseNot(Formula f) {
     long[] args = {getTerm(f)};
 
-    return encapsulate(msat_make_uif(msatEnv, bitwiseNotUfDecl, args));
+    return encapsulate(buildMsatUF(bitwiseNotUfDecl, args));
   }
 
   @Override
@@ -237,7 +237,7 @@ class ArithmeticMathsatFormulaManager extends MathsatFormulaManager {
   private Formula makeUIFforBinaryOperator(Formula f1, Formula f2, long uifDecl) {
     long[] args = {getTerm(f1), getTerm(f2)};
 
-    return encapsulate(msat_make_uif(msatEnv, uifDecl, args));
+    return encapsulate(buildMsatUF(uifDecl, args));
   }
 
 
@@ -285,8 +285,8 @@ class ArithmeticMathsatFormulaManager extends MathsatFormulaManager {
       long z = msat_make_number(msatEnv, "0");
       for (Formula nn : allLiterals) {
         long n = getTerm(nn);
-        long u1 = msat_make_uif(msatEnv, bitwiseAndUfDecl, new long[]{n, z});
-        long u2 = msat_make_uif(msatEnv, bitwiseAndUfDecl, new long[]{z, n});
+        long u1 = buildMsatUF(bitwiseAndUfDecl, new long[]{n, z});
+        long u2 = buildMsatUF(bitwiseAndUfDecl, new long[]{z, n});
         long e1 = msat_make_equal(msatEnv, u1, z);
         long e2 = msat_make_equal(msatEnv, u2, z);
         long a = msat_make_and(msatEnv, e1, e2);
