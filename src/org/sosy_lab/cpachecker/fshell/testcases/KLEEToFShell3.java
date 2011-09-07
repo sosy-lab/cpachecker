@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.fshell.testcases;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,6 +42,26 @@ public class KLEEToFShell3 {
     READ_NAME,
     READ_SIZE,
     READ_DATA
+  }
+
+  public static TestSuite translateTestSuite(File pDirectory) throws IOException {
+    if (!pDirectory.isDirectory()) {
+      throw new IllegalArgumentException("Given file " + pDirectory.getAbsolutePath() + " is not a directory!");
+    }
+
+    TestSuite lTestSuite = new TestSuite();
+
+    for (File lFile : pDirectory.listFiles()) {
+      if (lFile.getName().endsWith(".ktest.txt")) {
+        lTestSuite.add(translate(lFile));
+      }
+    }
+
+    return lTestSuite;
+  }
+
+  public static TestCase translate(File pFile) throws IOException {
+    return translate(new FileInputStream(pFile));
   }
 
   public static TestCase translate(String pFileName) throws IOException {
@@ -218,15 +239,23 @@ public class KLEEToFShell3 {
    */
   public static void main(String[] args) throws IOException {
     if (args.length != 1) {
-      System.err.println("Usage: java " + KLEEToFShell3.class.getCanonicalName() + " <ktest-output-file>");
+      System.err.println("Usage: java " + KLEEToFShell3.class.getCanonicalName() + " <ktest-output-file/directory>");
 
       return;
     }
 
     String lTestCaseFile = args[0];
 
-    TestCase lFShell3TestCase = translate(lTestCaseFile);
-    System.out.println(lFShell3TestCase);
+    File lFile = new File(args[0]);
+
+    if (lFile.isDirectory()) {
+      TestSuite lTestSuite = translateTestSuite(lFile);
+      System.out.println(lTestSuite);
+    }
+    else {
+      TestCase lFShell3TestCase = translate(lTestCaseFile);
+      System.out.println(lFShell3TestCase);
+    }
   }
 
 }

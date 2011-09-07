@@ -70,4 +70,15 @@ public class TestSuite implements Iterable<TestCase> {
     return mTestSuite.iterator();
   }
 
+  @Override
+  public String toString() {
+    StringBuilder lBuilder = new StringBuilder();
+
+    for (TestCase lTestCase : this) {
+      lBuilder.append(lTestCase.toString() + "\n");
+    }
+
+    return lBuilder.toString();
+  }
+
 }
