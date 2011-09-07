@@ -55,6 +55,17 @@ int ssl3_accept(int initial_state )
   int tmp___9 ;
   int tmp___10 ;
   int blastFlag ;
+  int __cil_tmp55 ;
+  unsigned long __cil_tmp56 ;
+  unsigned long __cil_tmp57 ;
+  unsigned long __cil_tmp58 ;
+  unsigned long __cil_tmp59 ;
+  int __cil_tmp60 ;
+  unsigned long __cil_tmp61 ;
+
+  {
+#line 60
+  s__state = initial_state;
 #line 61
   blastFlag = 0;
 #line 62
