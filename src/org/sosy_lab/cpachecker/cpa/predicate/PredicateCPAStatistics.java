@@ -60,14 +60,14 @@ class PredicateCPAStatistics implements Statistics {
     private File file = new File("predmap.txt");
 
     private final PredicateCPA cpa;
-    private PredicateRefiner refiner = null;
+    private AbstractInterpolationBasedRefiner refiner = null;
 
     public PredicateCPAStatistics(PredicateCPA cpa) throws InvalidConfigurationException {
       this.cpa = cpa;
       cpa.getConfiguration().inject(this, PredicateCPAStatistics.class);
     }
 
-    void addRefiner(PredicateRefiner ref) {
+    void addRefiner(AbstractInterpolationBasedRefiner ref) {
       refiner = ref;
     }
 
@@ -212,8 +212,10 @@ class PredicateCPAStatistics implements Statistics {
         if (bs.interpolantVerificationTimer.getNumberOfIntervals() > 0) {
           out.println("    Interpolant verification:        " + bs.interpolantVerificationTimer);
         }
-        out.println("  Precision update:                  " + refiner.precisionUpdate);
-        out.println("  ART update:                        " + refiner.artUpdate);
+        if (refiner instanceof PredicateRefiner) {
+          out.println("  Precision update:                  " + ((PredicateRefiner)refiner).precisionUpdate);
+          out.println("  ART update:                        " + ((PredicateRefiner)refiner).artUpdate);
+        }
         out.println("  Error path post-processing:        " + refiner.errorPathProcessing);
       }
     }

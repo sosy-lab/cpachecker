@@ -66,8 +66,11 @@ import com.google.common.collect.Lists;
  *                         |
  *           +-------------+-------------+
  *           |                           |
- * AbstractABMBasedRefiner        PredicateRefiner
+ * AbstractABMBasedRefiner   AbstractInterpolationBasedRefiner
  *           ^                           ^
+ *           |                           |
+ *           |                    PredicateRefiner
+ *           |                           ^
  *           |                           |
  *   ABMPredicateRefiner ---> ExtendedPredicateRefiner
  *
@@ -101,11 +104,6 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
 
     private ExtendedPredicateRefiner(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
       super(pCpa);
-
-      ABMPredicateCPA predicateCpa = this.getArtCpa().retrieveWrappedCpa(ABMPredicateCPA.class);
-      if (predicateCpa == null) {
-        throw new CPAException(getClass().getSimpleName() + " needs a PredicateCPA");
-      }
 
       this.pfmgr = predicateCpa.getPathFormulaManager();
     }

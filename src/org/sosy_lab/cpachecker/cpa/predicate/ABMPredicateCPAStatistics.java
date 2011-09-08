@@ -41,7 +41,7 @@ public class ABMPredicateCPAStatistics extends PredicateCPAStatistics {
   }
 
   @Override
-  void addRefiner(PredicateRefiner pRef) {
+  void addRefiner(AbstractInterpolationBasedRefiner pRef) {
     checkState(refiner == null);
     if (pRef instanceof ExtendedPredicateRefiner) {
       refiner = (ExtendedPredicateRefiner)pRef;
