@@ -166,7 +166,9 @@ class PredicateCPAStatistics implements Statistics {
       }
       out.println();
       if (pfMgr != null) {
-        out.println("Number of path formula cache hits:   " + pfMgr.pathFormulaCacheHits + " (" + toPercent(pfMgr.pathFormulaCacheHits, pfMgr.pathFormulaComputationTimer.getNumberOfIntervals()) + ")");
+        int pathFormulaCacheHits = pfMgr.pathFormulaCacheHits;
+        int totalPathFormulaComputations = pfMgr.pathFormulaComputationTimer.getNumberOfIntervals() + pathFormulaCacheHits;
+        out.println("Number of path formula cache hits:   " + pathFormulaCacheHits + " (" + toPercent(pathFormulaCacheHits, totalPathFormulaComputations) + ")");
       }
       if (as.numCallsAbstraction > 0) {
         out.println("Number of abstraction cache hits:    " + as.numCallsAbstractionCached + " (" + toPercent(as.numCallsAbstractionCached, as.numCallsAbstraction) + ")");
