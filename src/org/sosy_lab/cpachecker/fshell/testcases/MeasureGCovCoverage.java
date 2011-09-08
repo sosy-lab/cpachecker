@@ -87,6 +87,19 @@ public class MeasureGCovCoverage {
 
         lTestsuiteFileName = lTmpTestsuiteFile.getAbsolutePath();
       }
+      else if (args[0].equals("--crest")) {
+        File lTmpTestsuiteFile = File.createTempFile("testsuite.", ".tst");
+        lTmpTestsuiteFile.deleteOnExit();
+
+        System.out.print("Translate CREST test suite to FShell3 test suite ... ");
+
+        TestSuite lTestSuite = CRESTToFShell3.translateTestSuite(args[2]);
+        lTestSuite.write(lTmpTestsuiteFile);
+
+        System.out.println("done.");
+
+        lTestsuiteFileName = lTmpTestsuiteFile.getAbsolutePath();
+      }
       else {
         printUsage();
 
