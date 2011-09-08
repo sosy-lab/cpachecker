@@ -27,6 +27,9 @@ import static com.google.common.collect.Iterables.skip;
 import static com.google.common.collect.Lists.transform;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -94,6 +97,10 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
   @Option(name="refinement.DAGRefinement",
       description="Extracts interpolants from a DAG representation of threads and environmental transitions.")
       private boolean DAGRefinement = true;
+
+  @Option(name="refinement.dumpDAGfile",
+      description="Dump a DAG representation of interpolation formulas to the choosen file. Valid only with DAGRefinement")
+      private String dumpDAGfile = "test/output/itpDAG.dot";
 
   @Option(name="refinement.splitItpAtoms",
       description="split arithmetic equalities when extracting predicates from interpolants")
@@ -299,6 +306,22 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
   }
 
   /**
+   * Writes a DOT file for DAG representation of ARTs and environemntal transitions.
+   */
+  private void dumpDag(List<InterpolationDagNode> roots, String file) {
+    FileWriter fstream;
+    try {
+      fstream = new FileWriter(file);
+      BufferedWriter out = new BufferedWriter(fstream);;
+      String s = DOTDagBuilder.generateDOT(roots);
+      out.write(s);
+      out.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
+  /**
    * Returns a DAG representation of the formula trances that are involved in reaching the target state.
    * @param errorElement
    * @param reachedSets
@@ -312,6 +335,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     Multimap<Integer, Integer> traceMap = HashMultimap.create();
     return getDagForElement(errorElement, reachedSets, errorTid, nodeMap, traceMap).getFirst();
   }
+
 
   /**
    * Returns a DAG representation of the formula trances that are involved in reaching the target state.
@@ -398,7 +422,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
         List<InterpolationDagNode> children = new Vector<InterpolationDagNode>();
         PathFormula pf = rgElement.getAbstractionFormula().getBlockPathFormula();
-        node = new InterpolationDagNode(pf, traceNo, artElement, children);
+        node = new InterpolationDagNode(pf, traceNo, artElement, children, tid);
         nodeMap.put(dagkey, node);
 
         // if node is a root, then add it to 'roots' list
@@ -512,7 +536,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     assert roots.size() <= reachedSets.length;
 
     if (debug){
-      dagAssertions(roots);
       System.out.println();
     }
 
@@ -533,6 +556,9 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       PathFormula pf = node.getPathFormula();
       // check if the traceNo is OK
       if (traceNo > 0){
+        if (!pf.getFormula().isFalse() && !pf.getFormula().isTrue() && !pf.toString().contains("^"+traceNo)){
+          System.out.println("DEBUG: node id:"+node.getArtElement().getElementId()+" tn:"+node.getTraceNo()+" pf "+pf);
+        }
         assert pf.getFormula().isFalse() || pf.getFormula().isTrue() || pf.toString().contains("^"+traceNo);
         // check if traceNo appears in the children of node
         for (InterpolationDagNode child : node.getChildren()){
@@ -637,6 +663,11 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     // get the rely guarantee path for the element
     stats.formulaTimer.start();
     List<InterpolationDagNode> roots = getDagForElement(targetElement, reachedSets, tid);
+    assert roots.size() >= 1 && roots.size() <= reachedSets.length;
+    if (debug){
+      dumpDag(roots, dumpDAGfile);
+      dagAssertions(roots);
+    }
 
     List<InterpolationBlock> interpolationBlocks = getTreeForElement(targetElement, reachedSets, tid);
 
@@ -1204,6 +1235,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       intMap = new HashMap<Integer, ARTElement>();
     }
   }
+
 
 
 }

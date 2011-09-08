@@ -35,10 +35,12 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 public class InterpolationDagNode extends InterpolationBlock{
 
   private final List<InterpolationDagNode> children;
+  private final int tid;
 
-  public InterpolationDagNode(PathFormula pf, int primedNo, ARTElement artElement, List<InterpolationDagNode> children) {
+  public InterpolationDagNode(PathFormula pf, int primedNo, ARTElement artElement, List<InterpolationDagNode> children, int tid) {
     super(pf, primedNo, artElement, null);
     this.children = children;
+    this.tid      = tid;
   }
 
   public List<InterpolationDagNode> getChildren() {
@@ -49,5 +51,11 @@ public class InterpolationDagNode extends InterpolationBlock{
     RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(artElement, RelyGuaranteeAbstractElement.class);
     return "InterpolationDagNode element thread:"+rgElement.getTid()+" id:"+artElement.getElementId()+", trace:"+traceNo;
   }
+
+  public int getTid() {
+    return tid;
+  }
+
+
 
 }
