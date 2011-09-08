@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.collect.Iterables.getOnlyElement;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -54,72 +54,59 @@ public class McMillanRefiner extends AbstractInterpolationBasedRefiner {
 
   @Override
   protected void performRefinement(ARTReachedSet pReached,
-      List<Pair<ARTElement, CFANode>> pArtPath,
+      List<Pair<ARTElement, CFANode>> pPath,
       CounterexampleTraceInfo pInfo) throws CPAException {
+
+    List<Collection<AbstractionPredicate>> newPreds = pInfo.getPredicatesForRefinement();
+
+    // target element is not really an interpolation point, exclude it
+    List<Pair<ARTElement, CFANode>> interpolationPoints = pPath.subList(0, pPath.size()-1);
+    assert interpolationPoints.size() == newPreds.size();
 
     // the first element on the path which was discovered to be not reachable
     ARTElement root = null;
 
-    // those elements where predicates have been added
-//    Collection<ARTElement> strengthened = new ArrayList<ARTElement>();
+    int i = 0;
+    for (Pair<ARTElement, CFANode> interpolationPoint : interpolationPoints) {
+      Collection<AbstractionPredicate> localPreds = newPreds.get(i++);
 
-    boolean foundInterpolant = false;
-    for (Pair<ARTElement, CFANode> artPair : pArtPath) {
-      ARTElement ae = artPair.getFirst();
-      PredicateAbstractElement e = extractElementByType(ae, PredicateAbstractElement.class);
-
-      assert e instanceof AbstractionElement;
-
-      // TODO get predicates from pInfo.getPredicatesForRefinement() list
-      //Collection<AbstractionPredicate> newpreds = pInfo.getPredicatesForRefinement(e);
-      Collection<AbstractionPredicate> newpreds = new ArrayList<AbstractionPredicate>();
-
-      if (newpreds.size() == 0) {
-        if (foundInterpolant) {
-          // no predicates after some interpolants have been found means we have
-          // reached that part of the path which is not reachable
-          // (interpolant is false)
-
-          root = ae;
-          break;
-        }
+      if (localPreds.isEmpty()) {
 
         // no predicates on the beginning of the path means the interpolant is true,
         // do nothing
         continue;
-
-      } else {
-        foundInterpolant = true;
       }
 
-      Region abs = e.getAbstractionFormula().asRegion();
+      if ((localPreds.size() == 1)
+          && getOnlyElement(localPreds).getSymbolicAtom().isFalse()) {
 
-      boolean newPred = false;
-
-      for (AbstractionPredicate p : newpreds) {
-        Region f = p.getAbstractVariable();
-        if (f.isFalse()) {
-          assert newpreds.size() == 1;
-
-          root = ae;
-
-        } else if (!regionManager.entails(abs, f)) {
-          newPred = true;
-          abs = regionManager.makeAnd(abs, p.getAbstractVariable());
-        }
-      }
-
-      if (root != null) {
-        // from here on, all elements will have the interpolant false
-        // they will be removed from ART and reached set
+        // we have reached the part of the path that is infeasible
+        root = interpolationPoint.getFirst();
         break;
       }
 
+      ARTElement ae = interpolationPoint.getFirst();
+      PredicateAbstractElement e = extractElementByType(ae, PredicateAbstractElement.class);
+
+      assert e instanceof AbstractionElement;
+
+      Region abs = e.getAbstractionFormula().asRegion();
+      Region newAbs = abs;
+
+      boolean newPred = false;
+
+      for (AbstractionPredicate p : localPreds) {
+        Region f = p.getAbstractVariable();
+
+        if (!regionManager.entails(abs, f)) {
+          newPred = true;
+          newAbs = regionManager.makeAnd(newAbs, f);
+        }
+      }
+
       if (newPred) {
-        throw new UnsupportedOperationException("TODO");
-/*        e.setAbstraction(abs);
+//        e.setAbstraction(newAbs);
         pReached.removeCoverage(ae);
-//        strengthened.add(ae);
 
         if (pReached.checkForCoveredBy(ae)) {
           // this element is now covered by another element
@@ -127,12 +114,11 @@ public class McMillanRefiner extends AbstractInterpolationBasedRefiner {
 
           return;
         }
-*/
+        throw new UnsupportedOperationException("TODO");
       }
     }
     assert root != null : "Infeasible path without interpolant false at some time cannot exist";
 
-//    pReached.removeCoverage(strengthened);
     pReached.replaceWithBottom(root);
   }
 }
