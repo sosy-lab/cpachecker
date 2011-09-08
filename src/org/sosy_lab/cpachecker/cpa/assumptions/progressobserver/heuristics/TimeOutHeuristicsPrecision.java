@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.heuristics;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -48,17 +47,17 @@ public class TimeOutHeuristicsPrecision implements HeuristicPrecision {
 
   private final TimeOutHeuristics timeOutHeuristics;
 
-  public TimeOutHeuristicsPrecision(TimeOutHeuristics pTimeOutHeuristics, Configuration pConfig, LogManager pLogger)
-  throws InvalidConfigurationException{
+  public TimeOutHeuristicsPrecision(TimeOutHeuristics pTimeOutHeuristics, Configuration pConfig)
+      throws InvalidConfigurationException {
     pConfig.inject(this);
     timeOutHeuristics = pTimeOutHeuristics;
   }
 
-  public int getThreshold() {
+  int getThreshold() {
     return threshold;
   }
 
-  public int getHardLimitThreshold() {
+  int getHardLimitThreshold() {
     return hardLimitThreshold;
   }
 
@@ -72,7 +71,7 @@ public class TimeOutHeuristicsPrecision implements HeuristicPrecision {
     return true;
   }
 
-  public void setShouldForceToStop() {
+  void setShouldForceToStop() {
     shouldForceToStop = true;
   }
 

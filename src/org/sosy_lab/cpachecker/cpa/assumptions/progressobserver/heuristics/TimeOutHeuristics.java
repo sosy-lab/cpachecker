@@ -23,6 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.heuristics;
 
+import java.lang.management.ManagementFactory;
+import java.util.logging.Level;
+
+import javax.management.JMException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -32,17 +40,31 @@ import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ReachedHeuristic
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristics;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsData;
 
-import sun.management.ManagementFactory;
-
 public class TimeOutHeuristics implements StopHeuristics<TimeOutHeuristicsData> {
 
-  private TimeOutHeuristicsPrecision precision;
+  private final TimeOutHeuristicsPrecision precision;
   private long startTime;
-  private long initialStartTime;
 
-  public TimeOutHeuristics(Configuration config, LogManager pLogger)
-  throws InvalidConfigurationException {
-    precision = new TimeOutHeuristicsPrecision(this, config, pLogger);
+  private final LogManager logger;
+
+  // necessary stuff to query the OperatingSystemMBean for the process cpu time
+  private final MBeanServer mbeanServer;
+  private final ObjectName osMbean;
+  private static final String PROCESS_CPU_TIME = "ProcessCpuTime";
+
+  private boolean disabled = false;
+
+  public TimeOutHeuristics(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+    precision = new TimeOutHeuristicsPrecision(this, config);
+    logger = pLogger;
+
+    mbeanServer = ManagementFactory.getPlatformMBeanServer();
+    try {
+      osMbean = new ObjectName("java.lang", "type", "OperatingSystem");
+    } catch (MalformedObjectNameException e) {
+      // the name is hard-coded, so this exception should never occur
+      throw new AssertionError(e);
+    }
   }
 
   @Override
@@ -53,13 +75,9 @@ public class TimeOutHeuristics implements StopHeuristics<TimeOutHeuristicsData> 
   @Override
   public TimeOutHeuristicsData getInitialData(CFANode pNode) {
     resetStartTime();
-    setInitialStartTime();
     return new TimeOutHeuristicsData(false);
   }
 
-  private void setInitialStartTime() {
-    initialStartTime = startTime;
-  }
 
   @Override
   public TimeOutHeuristicsData processEdge(StopHeuristicsData pData, CFAEdge pEdge) {
@@ -68,24 +86,46 @@ public class TimeOutHeuristics implements StopHeuristics<TimeOutHeuristicsData> 
       return d;
     }
 
-    com.sun.management.OperatingSystemMXBean osbean = (com.sun.management.OperatingSystemMXBean)ManagementFactory.getOperatingSystemMXBean();
-    long cputime = osbean.getProcessCpuTime()/1000000;
-
-    if(precision.getHardLimitThreshold()!=-1 &&
-        cputime > precision.getHardLimitThreshold()){
-      precision.setShouldForceToStop();
-      d.setThreshold(precision.getHardLimitThreshold());
-      return TimeOutHeuristicsData.BOTTOM;
-    }
     if (System.currentTimeMillis() > startTime + precision.getThreshold()) {
       d.setThreshold(precision.getThreshold());
       return TimeOutHeuristicsData.BOTTOM;
     }
-    else
+
+    if (disabled || precision.getHardLimitThreshold() == -1) {
       return d;
+    }
+
+
+    Object cputimeObject;
+    try {
+      cputimeObject = mbeanServer.getAttribute(osMbean, PROCESS_CPU_TIME);
+    } catch (JMException e) {
+      logger.logDebugException(e, "Querying process cpu time failed");
+      logger.log(Level.WARNING, "Your Java VM does not support measuring the cpu time, TimeOutHeuristics.hardLimitThreshold disabled");
+
+      disabled = true;
+      return d;
+    }
+
+    if (!(cputimeObject instanceof Long)) {
+      logger.log(Level.WARNING, "Invalid value received for cpu time: " + cputimeObject + ", TimeOutHeuristics.hardLimitThreshold disabled");
+
+      disabled = true;
+      return d;
+    }
+
+    long cputime = ((Long)cputimeObject) / 1000000;
+
+    if (cputime > precision.getHardLimitThreshold()) {
+      precision.setShouldForceToStop();
+      d.setThreshold(precision.getHardLimitThreshold());
+      return TimeOutHeuristicsData.BOTTOM;
+    }
+
+    return d;
   }
 
-  public void resetStartTime() {
+  void resetStartTime() {
     startTime = System.currentTimeMillis();
   }
 
