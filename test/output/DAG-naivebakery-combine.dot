@@ -1,0 +1,85 @@
+digraph G {
+
+subgraph cluster_T0 {
+	node [style=filled,fillcolor=white];
+	label = "T0";
+	"1" -> "4509";
+	"4509" -> "4514";
+	"4514" -> "4779";
+	"4779" -> "4872";
+	"4872" -> "4879";
+	"4879" -> "4885";
+	"4885" -> "4889";
+	"4889" -> "4905";
+	"4905" -> "4913";
+	"4913" -> "5013";
+	"5013" -> "5077";
+	"5077" -> "5103";
+}
+
+subgraph cluster_T1 {
+	node [style=filled,fillcolor=lightgrey];
+	label = "T1";
+	"2" -> "4542";
+	"4542" -> "4547";
+	"4542" -> "4555";
+	"4547" -> "4550";
+	"4555" -> "4645";
+	"4550" -> "4559";
+	"4645" -> "4652";
+}
+
+	"4509" -> "4547"[color=chocolate];
+	"4509" -> "4550"[color=chocolate];
+	"4514" -> "4547"[color=chocolate];
+	"4514" -> "4550"[color=chocolate];
+	"4542" -> "4779"[color=chocolate];
+	"4542" -> "4885"[color=chocolate];
+	"4542" -> "4889"[color=chocolate];
+	"4542" -> "4905"[color=chocolate];
+	"4542" -> "4913"[color=chocolate];
+	"4542" -> "5013"[color=chocolate];
+	"4542" -> "5077"[color=chocolate];
+	"4547" -> "4779"[color=chocolate];
+	"4547" -> "4885"[color=chocolate];
+	"4547" -> "4889"[color=chocolate];
+	"4547" -> "4905"[color=chocolate];
+	"4547" -> "4913"[color=chocolate];
+	"4547" -> "5013"[color=chocolate];
+	"4547" -> "5077"[color=chocolate];
+	"4555" -> "4779"[color=chocolate];
+	"4555" -> "4885"[color=chocolate];
+	"4555" -> "4889"[color=chocolate];
+	"4555" -> "4905"[color=chocolate];
+	"4555" -> "4913"[color=chocolate];
+	"4555" -> "5013"[color=chocolate];
+	"4555" -> "5077"[color=chocolate];
+	"4550" -> "4779"[color=chocolate];
+	"4550" -> "4885"[color=chocolate];
+	"4550" -> "4889"[color=chocolate];
+	"4550" -> "4905"[color=chocolate];
+	"4550" -> "4913"[color=chocolate];
+	"4550" -> "5013"[color=chocolate];
+	"4550" -> "5077"[color=chocolate];
+	"4645" -> "4779"[color=chocolate];
+	"4645" -> "4885"[color=chocolate];
+	"4645" -> "4889"[color=chocolate];
+	"4645" -> "4905"[color=chocolate];
+	"4645" -> "4913"[color=chocolate];
+	"4645" -> "5013"[color=chocolate];
+	"4645" -> "5077"[color=chocolate];
+	"4559" -> "4779"[color=chocolate];
+	"4559" -> "4885"[color=chocolate];
+	"4559" -> "4889"[color=chocolate];
+	"4559" -> "4905"[color=chocolate];
+	"4559" -> "4913"[color=chocolate];
+	"4559" -> "5013"[color=chocolate];
+	"4559" -> "5077"[color=chocolate];
+	"4652" -> "4779"[color=chocolate];
+	"4652" -> "4885"[color=chocolate];
+	"4652" -> "4889"[color=chocolate];
+	"4652" -> "4905"[color=chocolate];
+	"4652" -> "4913"[color=chocolate];
+	"4652" -> "5013"[color=chocolate];
+	"4652" -> "5077"[color=chocolate];
+}
