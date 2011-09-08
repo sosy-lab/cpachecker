@@ -44,6 +44,10 @@ public class KLEEToFShell3 {
     READ_DATA
   }
 
+  public static TestSuite translateTestSuite(String pDirectoryName) throws IOException {
+    return translateTestSuite(new File(pDirectoryName));
+  }
+
   public static TestSuite translateTestSuite(File pDirectory) throws IOException {
     if (!pDirectory.isDirectory()) {
       throw new IllegalArgumentException("Given file " + pDirectory.getAbsolutePath() + " is not a directory!");

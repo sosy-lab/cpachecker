@@ -38,7 +38,7 @@ public class MeasureGCovCoverage {
   private static String INFO = "This program executes a given test suite on the given source and measures the achieved coverage with gcov.";
 
   private static void printUsage() {
-    System.out.println("Usage: java org.sosy_lab.cpachecker.fshell.testcases.MeasureGCovCoverage [--fshell2] <source-file> <testsuite-file>");
+    System.out.println("Usage: java org.sosy_lab.cpachecker.fshell.testcases.MeasureGCovCoverage [--fshell2|--klee] <source-file> <testsuite-file>");
     System.out.println();
     System.out.println(INFO);
   }
@@ -58,25 +58,40 @@ public class MeasureGCovCoverage {
       lTestsuiteFileName = args[1];
     }
     else {
-      if (!args[0].equals("--fshell2")) {
+      lSourceFileName = args[1];
+
+      if (args[0].equals("--fshell2")) {
+        lTestsuiteFileName = args[2];
+
+        File lTmpTestsuiteFile = File.createTempFile("testsuite.", ".tst");
+        lTmpTestsuiteFile.deleteOnExit();
+
+        System.out.print("Translate FShell2 output to FShell3 test suite ... ");
+
+        FShell2ToFShell3.translateTestsuite(lTestsuiteFileName, lTmpTestsuiteFile.getAbsolutePath());
+
+        System.out.println("done.");
+
+        lTestsuiteFileName = lTmpTestsuiteFile.getAbsolutePath();
+      }
+      else if (args[0].equals("--klee")) {
+        File lTmpTestsuiteFile = File.createTempFile("testsuite.", ".tst");
+        lTmpTestsuiteFile.deleteOnExit();
+
+        System.out.print("Translate KLEE test suite to FShell3 test suite ... ");
+
+        TestSuite lTestSuite = KLEEToFShell3.translateTestSuite(args[2]);
+        lTestSuite.write(lTmpTestsuiteFile);
+
+        System.out.println("done.");
+
+        lTestsuiteFileName = lTmpTestsuiteFile.getAbsolutePath();
+      }
+      else {
         printUsage();
 
         return;
       }
-
-      lSourceFileName = args[1];
-      lTestsuiteFileName = args[2];
-
-      File lTmpTestsuiteFile = File.createTempFile("testsuite.", ".tst");
-      lTmpTestsuiteFile.deleteOnExit();
-
-      System.out.print("Translate FShell2 output to FShell3 test case ... ");
-
-      FShell2ToFShell3.translateTestsuite(lTestsuiteFileName, lTmpTestsuiteFile.getAbsolutePath());
-
-      System.out.println("done.");
-
-      lTestsuiteFileName = lTmpTestsuiteFile.getAbsolutePath();
     }
 
     File lSourceFile = new File(lSourceFileName);
