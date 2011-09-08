@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
@@ -101,9 +102,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
   @Option(description="Print debugging info?")
   private boolean debug=false;
 
-
-
-
   private Set<String> globalVariables;
 
 
@@ -137,6 +135,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       LogManager pLogger, Set<String> globalVariables) throws InvalidConfigurationException {
     super(pRmgr, pFmgr, pPmgr, pThmProver, pItpProver, pAltItpProver, pConfig, pLogger);
     pConfig.inject(this, RelyGuaranteeRefinementManager.class);
+    assert globalVariables != null;
     this.globalVariables = globalVariables;
   }
 
@@ -169,6 +168,21 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
   protected Path computePath(ARTElement pLastElement, ReachedSet pReached) throws InterruptedException, CPAException {
     return ARTUtils.getOnePathTo(pLastElement);
+  }
+
+  protected List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> transformFullPath(Path pPath) throws CPATransferException {
+    List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> result = Lists.newArrayList();
+
+    for (ARTElement ae : transform(pPath, Pair.<ARTElement>getProjectionToFirst())) {
+      RelyGuaranteeAbstractElement pe = extractElementByType(ae, RelyGuaranteeAbstractElement.class);
+      if (pe instanceof AbstractionElement) {
+        CFANode loc = AbstractElements.extractLocation(ae);
+        result.add(Triple.of(ae, loc, pe));
+      }
+    }
+
+    //assert  pPath.getLast().getFirst() == result.get(result.size()-1).getFirst();
+    return result;
   }
 
   protected List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> transformPath(Path pPath) throws CPATransferException {
@@ -309,13 +323,13 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
    * @throws CPAException
    * @throws InterruptedException
    */
-  public Pair<List<InterpolationDagNode>, ARTElement> getDagForElement(ARTElement target, ReachedSet[] reachedSets, Integer tid, Map<Pair<Integer, Integer>, InterpolationDagNode> nodeMap, Multimap<Integer, Integer> traceMap) throws InterruptedException, CPAException{
+  public Triple<List<InterpolationDagNode>, ARTElement, Integer> getDagForElement(ARTElement target, ReachedSet[] reachedSets, Integer tid, Map<Pair<Integer, Integer>, InterpolationDagNode> nodeMap, Multimap<Integer, Integer> traceMap) throws InterruptedException, CPAException{
 
     assert !target.isDestroyed() && reachedSets[tid].contains(target);
 
     if (debug){
       System.out.println();
-      System.out.println("--> Constructing DAG for id:"+target.getElementId()+" in thread "+tid+" <----");
+      System.out.println("Constructing DAG for id:"+target.getElementId()+" in thread "+tid);
     }
 
     // the result
@@ -323,10 +337,10 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     // get the abstraction elements on the path from the root to the target
     Path cfaPath = computePath(target, reachedSets[tid]);
-    List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> path = transformPath(cfaPath);
+    List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> path = transformFullPath(cfaPath);
 
     InterpolationDagNode predecessorNode = null;
-    // true iff the node branches out from a formula trace that has been previously discovered
+
     boolean newBranch = false;
     // id of the current trace
     Integer traceNo = null;
@@ -340,8 +354,11 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       assert triple.getThird() instanceof AbstractionElement;
       AbstractionElement rgElement = (AbstractionElement) triple.getThird();
 
-      // add the element to the DAG, if it's not there already
       InterpolationDagNode node = null;
+      // specifies how to change prime numbers in path formulas
+      Map<Integer, Integer> adjustmentMap = new HashMap<Integer, Integer>(rgElement.getPrimedMap().size());
+
+      // add the element to the DAG, if it's not there already
       Pair<Integer,Integer> dagkey = new Pair<Integer,Integer>(tid,artElement.getElementId());
 
       if (nodeMap.containsKey(dagkey)){
@@ -350,18 +367,32 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         newBranch = true;
         traceNo = node.getTraceNo();
 
+        // if node is a root, then add it to 'roots' list
+        if (predecessorNode == null){
+          roots.add(node);
+        }
+
         if(debug){
           System.out.println("\t-"+node.toString()+" (cached)");
         }
 
       } else {
         // create a new node
-        if (predecessorNode == null || newBranch){
+
+        if (predecessorNode == null){
           // this is the first branch discovered in this thread or new have branched from another thread
           traceNo = traceMap.values().size();
           traceMap.put(tid, traceNo);
-          newBranch = false;
+        } else if (newBranch){
+          // branching-out
+          traceNo = traceMap.values().size();
+          traceMap.put(tid, traceNo);
+        } else {
+          // we continue in the same branch
         }
+
+        // formulas with 0 primes, becomes 'traceNo' times primed
+        adjustmentMap.put(0, traceNo);
 
         assert traceNo != null;
 
@@ -385,45 +416,93 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
           System.out.println("\t-"+node.toString()+" (new)");
         }
 
-      }
-
-
-
-      if (debug && !rgElement.getOldPrimedMap().values().isEmpty() ){
-        for(RelyGuaranteeCFAEdge rgEdge : rgElement.getOldPrimedMap().values()){
-          ARTElement sourceARTElement = rgEdge.getSourceARTElement();
-          System.out.println("\t env. tr. from id:"+sourceARTElement.getElementId()+" was applied");
-        }
-      }
-
-      // get the node source element for the environmental transitions applied
-      for(RelyGuaranteeCFAEdge rgEdge : rgElement.getOldPrimedMap().values()){
-        ARTElement sourceARTElement = rgEdge.getSourceARTElement();
-        Integer sourceTid = rgEdge.getSourceTid();
-
-
-
-        // recursively call  getDagForElement to get the DAG source of the transition
-        Pair<List<InterpolationDagNode>, ARTElement> envPair = getDagForElement(sourceARTElement, reachedSets, sourceTid, nodeMap, traceMap);
-        List<InterpolationDagNode> envRoots = envPair.getFirst();
-        ARTElement sourceAbstractionElement = envPair.getSecond();
-
-        // add new roots
-        for (InterpolationDagNode root : envRoots){
-          if (!roots.contains(root)){
-            roots.add(root);
+        if (debug && !rgElement.getOldPrimedMap().values().isEmpty() ){
+          for(RelyGuaranteeCFAEdge rgEdge : rgElement.getOldPrimedMap().values()){
+            ARTElement sourceARTElement = rgEdge.getSourceARTElement();
+            System.out.println("\t env. tr. from id:"+sourceARTElement.getElementId()+" was applied");
           }
         }
 
-        // get the node that created the transition
-        Pair<Integer, Integer> key = Pair.of(sourceTid, sourceAbstractionElement.getElementId());
-        InterpolationDagNode sourceNode = nodeMap.get(key);
-        assert sourceNode != null;
+        // get the node source element for the environmental transitions applied
+        // envPrimeNo is the prime number of the environmental path formula fragment in the current formula block
+        for(Integer envPrimeNo : rgElement.getOldPrimedMap().keySet()){
+          RelyGuaranteeCFAEdge rgEdge = rgElement.getOldPrimedMap().get(envPrimeNo);
+          ARTElement sourceARTElement = rgEdge.getSourceARTElement();
+          Integer sourceTid           = rgEdge.getSourceTid();
 
-        // make an edge from the source node to the application
-        List<InterpolationDagNode> children = sourceNode.getChildren();
-        if (!children.contains(node)){
-          children.add(node);
+          // recursively call  getDagForElement to get the DAG source of the transition
+          Triple<List<InterpolationDagNode>, ARTElement, Integer> envPair = getDagForElement(sourceARTElement, reachedSets, sourceTid, nodeMap, traceMap);
+          List<InterpolationDagNode> envRoots = envPair.getFirst();
+          ARTElement sourceAbstractionElement = envPair.getSecond();
+          Integer envTraceNo                  = envPair.getThird();
+
+          // add new roots
+          for (InterpolationDagNode root : envRoots){
+            if (!roots.contains(root)){
+              roots.add(root);
+            }
+          }
+
+          // get the node that created the transition
+          Pair<Integer, Integer> key      = Pair.of(sourceTid, sourceAbstractionElement.getElementId());
+          InterpolationDagNode sourceNode = nodeMap.get(key);
+          assert sourceNode != null;
+
+          // make an edge from the source node to the application
+          List<InterpolationDagNode> envChildren = sourceNode.getChildren();
+          if (!envChildren.contains(node)){
+            envChildren.add(node);
+          }
+
+          // change envPrimeNo to envTraceNo
+          adjustmentMap.put(envPrimeNo, envTraceNo);
+        }
+
+        // adjust the prime numbers
+        System.out.println("\t a. map for id:"+artElement.getElementId()+" is "+adjustmentMap);
+        PathFormula adjustedPf = pmgr.adjustPrimedNo(node.getPathFormula(), adjustmentMap);
+
+        // if is an new branch then add equalities that link the last indexes in the previous node
+        // with the these values in the new branch
+        if (newBranch){
+          assert traceNo > 0;
+          assert predecessorNode != null;
+          newBranch = false;
+          PathFormula predPf  = predecessorNode.getPathFormula();
+          Integer predTraceNo = predecessorNode.getTraceNo();
+
+          SSAMapBuilder ssaBuilder = adjustedPf.getSsa().builder();
+          // formula with equalities
+          Formula eq  = fmgr.makeTrue();
+          // get the equalities
+          for (String pVarName : predPf.getSsa().allVariables()){
+            Pair<String, Integer> data = PathFormula.getPrimeData(pVarName);
+            if (data.getSecond() == predTraceNo){
+              Integer idx     = predPf.getSsa().getIndex(pVarName);
+              String  varName = data.getFirst()+"^"+traceNo;
+              Formula pVar    = fmgr.makeVariable(pVarName, idx);
+              Formula var     = fmgr.makeVariable(varName, idx);
+              Formula newEq   = fmgr.makeEqual(pVar, var);
+              eq              = fmgr.makeAnd(eq, newEq);
+
+              // add SSA index if necessary
+              assert ssaBuilder.getIndex(pVarName) == -1;
+              ssaBuilder.setIndex(pVarName, idx);
+            }
+          }
+
+          PathFormula eqPf  = new PathFormula(eq, ssaBuilder.build(), 0);
+          adjustedPf        = pmgr.makeAnd(adjustedPf, eqPf);
+
+          if (debug){
+            System.out.println("\t equalities "+eqPf);
+          }
+        }
+
+        node.setPathFormula(adjustedPf);
+
+        if (debug && traceNo>0){
+          assert adjustedPf.getFormula().isFalse() || adjustedPf.getFormula().isTrue() || adjustedPf.toString().contains("^"+traceNo);
         }
       }
 
@@ -432,10 +511,41 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     assert roots.size() <= reachedSets.length;
 
-    return Pair.of(roots, predecessorNode.getArtElement());
+    if (debug){
+      dagAssertions(roots);
+      System.out.println();
+    }
+
+    assert (!roots.isEmpty() && predecessorNode != null && traceNo != null);
+
+    return Triple.of(roots, predecessorNode.getArtElement(), traceNo);
+
+
   }
 
-
+  /**
+   * Check the correctness of the Dag
+   * @param roots
+   */
+  void dagAssertions(List<InterpolationDagNode> roots){
+    for (InterpolationDagNode node : roots){
+      Integer traceNo = node.getTraceNo();
+      PathFormula pf = node.getPathFormula();
+      // check if the traceNo is OK
+      if (traceNo > 0){
+        assert pf.getFormula().isFalse() || pf.getFormula().isTrue() || pf.toString().contains("^"+traceNo);
+        // check if traceNo appears in the children of node
+        for (InterpolationDagNode child : node.getChildren()){
+          if (!child.getPathFormula().toString().contains("^"+traceNo)){
+            System.out.println("DEBUG: node id:"+node.getArtElement().getElementId()+" tn:"+node.getTraceNo()+" child id:"+child.getArtElement().getElementId()+" tn:"+child.getTraceNo()+" child pf"+child.getPathFormula());
+          }
+          PathFormula childPf = child.getPathFormula();
+          assert childPf.getFormula().isFalse() || childPf.getFormula().isTrue() || childPf.toString().contains("^"+traceNo);
+        }
+      }
+      dagAssertions(node.getChildren());
+    }
+  }
 
   /**
    * Prime interpolation block given number of times. Returns prime blocks and the maximum prime number after the operation.

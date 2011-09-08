@@ -487,6 +487,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     return new PathFormula(f, matchedSSA.build(), length,  envPF.getPrimedNo());
   }
 
+
   /**
    * Generate equalities over last indexes of specified variables. Path formula pf1 should be unprimed.
    * @param pf1
@@ -503,7 +504,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     // unprimed variables in env should have offset x primes
     int offset = pf1.getPrimedNo()+1;
     // build equalities for globalVariables variables
-    for (String var : globalVariablesSet) {
+    for (String var : variableSet) {
       int lidx = pf1.getSsa().getIndex(var);
       int eidx = pf2.getSsa().getIndex(var+PathFormula.PRIME_SYMBOL+offset);
       if (lidx == -1) {
@@ -557,9 +558,9 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
       Pair<String, Integer> data = PathFormula.getPrimeData(var);
       if (primedMap.containsKey(data.getSecond())){
         int newPrimedNo = primedMap.get(data.getSecond());
-        if (newPrimedNo == 0){
+        if (newPrimedNo == 0 && ssaBuilder.getIndex(data.getFirst()) == -1){
           ssaBuilder.setIndex(data.getFirst(), ssa.getIndex(var));
-        } else {
+        } else if (ssaBuilder.getIndex(data.getFirst()+PathFormula.PRIME_SYMBOL+newPrimedNo) == -1) {
           ssaBuilder.setIndex(data.getFirst()+PathFormula.PRIME_SYMBOL+newPrimedNo, ssa.getIndex(var));
         }
         maxPrimed = Math.max(maxPrimed, newPrimedNo);
