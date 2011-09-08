@@ -168,7 +168,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
         }
       }
     }
-    if (rmgr.isFalse(result.getRegion())) {
+    if (result.getRegion().isFalse()) {
       return null; // assumption is not fulfilled / not possible
     } else {
       return result;
@@ -180,7 +180,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
       FeatureVarsPrecision precision) throws UnrecognizedCCodeException {
     String functionName = cfaEdge.getPredecessor().getFunctionName();
     FeatureVarsElement result = handleBooleanExpression(element, expression, functionName, truthValue, precision);
-    if (rmgr.isFalse(result.getRegion())) {
+    if (result.getRegion().isFalse()) {
       return null; // assumption is not fulfilled / not possible
     } else {
       return result;

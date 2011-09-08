@@ -59,25 +59,25 @@ class FeatureVarsManager {
   public String regionToString(Region r) {
     if (regionMap.containsValue(r)) {
       return regionMap.inverse().get(r);
-    } else if (manager.isFalse(r))
+    } else if (r.isFalse())
       return "FALSE";
-    else if (manager.isTrue(r))
+    else if (r.isTrue())
       return "TRUE";
     else {
       Triple<Region, Region, Region> triple = manager.getIfThenElse(r);
       String predName = regionMap.inverse().get(triple.getFirst());
       String ifTrue = "";
-      if (manager.isFalse(triple.getSecond())) {
+      if (triple.getSecond().isFalse()) {
         // omit
-      } else if (manager.isTrue(triple.getSecond())) {
+      } else if (triple.getSecond().isTrue()) {
         ifTrue = predName;
       } else {
         ifTrue = predName + " & " + regionToString(triple.getSecond());
       }
       String ifFalse = "";
-      if (manager.isFalse(triple.getThird())) {
+      if (triple.getThird().isFalse()) {
         // omit
-      } else if (manager.isTrue(triple.getThird())) {
+      } else if (triple.getThird().isTrue()) {
         ifFalse = "!" + predName;
       } else {
         ifFalse = "!" + predName + " & " + regionToString(triple.getThird());

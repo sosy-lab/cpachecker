@@ -171,7 +171,7 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
 
       for (AbstractionPredicate p : newpreds) {
         Region f = p.getAbstractVariable();
-        if (regionManager.isFalse(f)) {
+        if (f.isFalse()) {
           assert newpreds.size() == 1;
 
           root = ae;

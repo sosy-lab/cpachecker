@@ -56,7 +56,7 @@ public class FeatureVarsDomain implements AbstractDomain {
       FeatureVarsElement fv1 = (FeatureVarsElement)element1;
       FeatureVarsElement fv2 = (FeatureVarsElement)element2;
       // TODO: check if this implementation is efficient
-      if (rmgr.equalRegions(fv1.getRegion(), fv2.getRegion()))
+      if (fv1.getRegion().equals(fv2.getRegion()))
         return fv2;
       else
         return new FeatureVarsElement(rmgr.makeOr(fv1.getRegion(), fv2.getRegion()), fmgr);
