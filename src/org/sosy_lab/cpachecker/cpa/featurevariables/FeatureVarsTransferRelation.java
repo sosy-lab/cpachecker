@@ -27,7 +27,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
@@ -49,20 +48,17 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
 import com.google.common.base.Preconditions;
 
 public class FeatureVarsTransferRelation implements TransferRelation {
 
-  private final FeatureVarsManager fmgr;
-  private final RegionManager rmgr;
+  private final NamedRegionManager rmgr;
 
-  public FeatureVarsTransferRelation(FeatureVarsManager manager)
-      throws InvalidConfigurationException {
-    this.fmgr = manager;
-    this.rmgr = manager.getRegionManager();
+  public FeatureVarsTransferRelation(NamedRegionManager manager) {
+    this.rmgr = manager;
   }
 
   /* (non-Javadoc)
@@ -159,11 +155,11 @@ public class FeatureVarsTransferRelation implements TransferRelation {
            */
 
           if (value.trim().equals("0")) {
-            Region operand = rmgr.makeNot(fmgr.getVariableRegion(varName));
-            result = new FeatureVarsElement(rmgr.makeAnd(element.getRegion(), operand), fmgr);
+            Region operand = rmgr.makeNot(rmgr.createPredicate(varName));
+            result = new FeatureVarsElement(rmgr.makeAnd(element.getRegion(), operand), rmgr);
           } else {
-            Region operand = fmgr.getVariableRegion(varName);
-            result = new FeatureVarsElement(rmgr.makeAnd(element.getRegion(), operand), fmgr);
+            Region operand = rmgr.createPredicate(varName);
+            result = new FeatureVarsElement(rmgr.makeAnd(element.getRegion(), operand), rmgr);
           }
         }
       }
@@ -203,7 +199,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
           rmgr.makeAnd(element.getRegion(),
                 rmgr.makeNot(operand));
       }
-      return new FeatureVarsElement(newRegion, fmgr);
+      return new FeatureVarsElement(newRegion, rmgr);
     }
   }
 
@@ -215,7 +211,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
         || op instanceof IASTArraySubscriptExpression) {
       String varName = op.getRawSignature();//this.getvarName(op.getRawSignature(), functionName);
       if (!precision.isOnWhitelist(varName)) return null;
-      operand = fmgr.getVariableRegion(varName);
+      operand = rmgr.createPredicate(varName);
     } else if (op instanceof IASTUnaryExpression) {
       operand =
           propagateUnaryBooleanExpression(element, ((IASTUnaryExpression) op)
@@ -240,7 +236,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
         || op instanceof IASTArraySubscriptExpression) {
       String varName = op.getRawSignature();//this.getvarName(op.getRawSignature(), functionName);
       if (!precision.isOnWhitelist(varName)) return null;
-      operand = fmgr.getVariableRegion(varName);
+      operand = rmgr.createPredicate(varName);
     } else if (op instanceof IASTUnaryExpression) {
       operand =
           propagateUnaryBooleanExpression(element, ((IASTUnaryExpression) op)
@@ -279,7 +275,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
         || op1 instanceof IASTArraySubscriptExpression) {
       String varName = op1.getRawSignature();// this.getvarName(op1.getRawSignature(), functionName);
       if (!precision.isOnWhitelist(varName)) return null;
-      operand1 = fmgr.getVariableRegion(varName);
+      operand1 = rmgr.createPredicate(varName);
     } else if (op1 instanceof IASTUnaryExpression) {
       operand1 =
           propagateUnaryBooleanExpression(element, ((IASTUnaryExpression) op1)
@@ -298,7 +294,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
         || op2 instanceof IASTArraySubscriptExpression) {
       String varName = op2.getRawSignature(); //this.getvarName(op2.getRawSignature(), functionName);
       if (!precision.isOnWhitelist(varName)) return null;
-      operand2 = fmgr.getVariableRegion(varName);
+      operand2 = rmgr.createPredicate(varName);
     } else if (op2 instanceof IASTUnaryExpression) {
       operand2 =
           propagateUnaryBooleanExpression(element, ((IASTUnaryExpression) op2)
