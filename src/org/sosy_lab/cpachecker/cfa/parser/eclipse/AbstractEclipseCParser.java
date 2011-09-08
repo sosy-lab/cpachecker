@@ -141,7 +141,7 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
     }
   }
 
-  protected abstract IASTTranslationUnit getASTTranslationUnit(T code) throws CFAGenerationRuntimeException, CoreException;
+  protected abstract IASTTranslationUnit getASTTranslationUnit(T code) throws ParserException, CFAGenerationRuntimeException, CoreException;
 
   private CFA buildCFA(IASTTranslationUnit ast) throws ParserException {
     cfaTimer.start();
