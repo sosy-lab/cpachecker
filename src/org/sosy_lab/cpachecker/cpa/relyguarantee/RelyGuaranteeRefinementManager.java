@@ -428,8 +428,9 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         assert traceNo != null;
 
         List<InterpolationDagNode> children = new Vector<InterpolationDagNode>();
+        List<InterpolationDagNode> parents = new Vector<InterpolationDagNode>();
         PathFormula pf = rgElement.getAbstractionFormula().getBlockPathFormula();
-        node = new InterpolationDagNode(pf, traceNo, artElement, children, tid);
+        node = new InterpolationDagNode(pf, traceNo, artElement, children, parents, tid);
         nodeMap.put(dagkey, node);
 
         // if node is a root, then add it to 'roots' list
@@ -441,6 +442,8 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         if (predecessorNode != null) {
           assert !predecessorNode.getChildren().contains(node);
           predecessorNode.getChildren().add(node);
+          assert !node.getParents().contains(predecessorNode);
+          node.getParents().add(predecessorNode);
         }
 
         if(debug){
@@ -483,6 +486,8 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
           List<InterpolationDagNode> envChildren = sourceNode.getChildren();
           if (!envChildren.contains(node)){
             envChildren.add(node);
+            assert !node.getParents().contains(sourceNode);
+            node.getParents().add(sourceNode);
           }
 
           // change envPrimeNo to envTraceNo
@@ -577,6 +582,11 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
           assert childPf.getFormula().isFalse() || childPf.getFormula().isTrue() || childPf.toString().contains("^"+traceNo);
         }
       }
+      // check parent - children relationships
+      for (InterpolationDagNode child : node.getChildren()){
+        assert child.getParents().contains(node);
+      }
+
       dagAssertions(node.getChildren());
     }
   }
@@ -682,6 +692,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     }
 
     // get the nodes in topological order
+    //List<InterpolationDagNode> topNodes = topSortDag(roots);
     List<InterpolationDagNode> topNodes = topSortDag(roots);
 
     stats.formulaTimer.stop();
@@ -699,61 +710,122 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     refStats.cexAnalysisSolverTimer.start();
 
-    // prepare the initial list of formulas
-    stats.interpolationTimer.start();
-    itpProver.init();
-    List<T> interpolationIds= new Vector<T>(topNodes.size());
-    for (InterpolationDagNode node : topNodes){
-      T id = itpProver.addFormula(node.getPathFormula().getFormula());
-      interpolationIds.add(id);
+    CounterexampleTraceInfo info  = null;
+    List<T> interpolationIds      = new Vector<T>(topNodes.size());
+    boolean spurious  = false;
+
+    if (debug){
+      System.out.println();
+      System.out.println("Interpolants, predicates:");
     }
 
-    CounterexampleTraceInfo info;
-    boolean spurious = itpProver.isUnsat();
-    stats.unsatChecks++;
+    // get interpolants in the order of topological sort
+    for (InterpolationDagNode node : topNodes){
+      // get formula list, where
+      Pair<List<InterpolationDagNode>, Integer> pair = parentSortDag(roots, node);
 
-    if (spurious){
-      /* Here interpolants are computed.*/
-
-      info = new CounterexampleTraceInfo();
-
-      if (debug){
-        System.out.println();
-        System.out.println("Interpolants/predicates:");
+      // prepare formula list
+      stats.interpolationTimer.start();
+      itpProver.init();
+      for (InterpolationDagNode itpNode : pair.getFirst()){
+        T id = itpProver.addFormula(itpNode.getPathFormula().getFormula());
+        interpolationIds.add(id);
       }
 
+      // check if spurious
+      spurious = itpProver.isUnsat();
+      stats.unsatChecks++;
 
-      // block index
-      int i=0;
-      while (i<topNodes.size()-1) {
-        InterpolationDagNode node = topNodes.get(i);
+      if (!spurious){
+        // feasbile error path
+        assert info == null;
+        info = new CounterexampleTraceInfo(false);
+        itpProver.reset();
+        stats.interpolationTimer.stop();
+
+        if (debug){
+          System.out.println("\tFeasbile error trace.");
+        }
+        break;
+
+      } else {
+        // spurious counterexample, get interpolants for 'node'
         ARTElement artElement = node.getArtElement();
         CFANode loc = AbstractElements.extractLocation(artElement);
+        int idx = pair.getSecond();
 
-        Formula itp = itpProver.getInterpolant(interpolationIds.subList(0, i+1));
-
+        Formula itp = itpProver.getInterpolant(interpolationIds.subList(0, idx+1));
         Set<AbstractionPredicate> predicates = getDagPredicates(itp, traceMap);
+
+        itpProver.reset();
+        stats.interpolationTimer.stop();
+
         if (debug){
-          System.out.println("\t-id:"+artElement.getElementId()+" ["+loc+"]: "+itp+",\t"+predicates);
+          System.out.println("\t-id:"+artElement.getElementId()+"\t ["+loc+"]: "+itp+",\t"+predicates);
+        }
+
+        if (info == null){
+          info = new CounterexampleTraceInfo();
         }
 
         info.addPredicatesForRefinement(artElement, predicates);
 
-        i++;
+        roots = replaceDag(roots, node, itp);
       }
     }
-    else {
-      // this is a real bug, notify the user
-      info = new CounterexampleTraceInfo(false);
-    }
 
-    itpProver.reset();
-    stats.interpolationTimer.stop();
     refStats.cexAnalysisTimer.stop();
 
     return info;
   }
 
+
+  List<InterpolationDagNode> replaceDag(List<InterpolationDagNode> roots, InterpolationDagNode node, Formula itp){
+    // get parents
+    List<InterpolationDagNode> parents = new Vector<InterpolationDagNode>();
+    parents.addAll(node.getParents());
+
+    int i=0;
+    while(i<parents.size()){
+      InterpolationDagNode n = parents.get(i);
+      for (InterpolationDagNode parent : n.getParents()){
+        if (!parents.contains(parent)){
+          parents.add(parent);
+        }
+      }
+      i++;
+    }
+
+
+    // remove parents
+    for (InterpolationDagNode n: parents){
+      for (InterpolationDagNode child : n.getChildren()){
+        child.getParents().remove(n);
+      }
+      n.getChildren().clear();
+    }
+
+    // replace node by itp
+    PathFormula oldPf = node.getPathFormula();
+    PathFormula newPf = new PathFormula(itp, oldPf.getSsa(), oldPf.getLength());
+    node.setPathFormula(newPf);
+
+    // exchange roots
+    List<InterpolationDagNode> newRoots = new Vector<InterpolationDagNode>(roots.size());
+    for (InterpolationDagNode root : roots){
+      if (parents.contains(root) && !newRoots.contains(node)){
+        newRoots.add(node);
+      } else {
+        newRoots.add(root);
+      }
+    }
+
+    if (debug){
+      dagAssertions(newRoots);
+    }
+
+    return newRoots;
+  }
 
   /**
    * Return the nodes of the DAG in topogical order.
@@ -768,7 +840,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     while(i<topList.size()){
       InterpolationDagNode node = topList.get(i);
       for (InterpolationDagNode child : node.getChildren()){
-        if (!visited.contains(child)){
+        if (!visited.contains(child) && topList.containsAll(child.getParents())){
           visited.add(child);
           topList.add(child);
         }
@@ -777,6 +849,104 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     }
 
     return topList;
+  }
+
+  /**
+   *
+   * @param roots
+   * @param target
+   * @return
+   */
+  private Pair<List<InterpolationDagNode>, Integer> parentSortDag(List<InterpolationDagNode> roots, InterpolationDagNode target) {
+
+    List<InterpolationDagNode> pcList = new Vector<InterpolationDagNode>();
+    Set<InterpolationDagNode> visited = new HashSet<InterpolationDagNode>();
+
+    if (roots.isEmpty()) {
+      return Pair.of(pcList, -1);
+    }
+
+    pcList.add(target);
+    visited.add(target);
+
+    // add the target and its parents
+    int i=0;
+    while(i<pcList.size()){
+      InterpolationDagNode node = pcList.get(i);
+      for (InterpolationDagNode parent : node.getParents()){
+        if (!visited.contains(parent)){
+          visited.add(parent);
+          pcList.add(parent);
+        }
+      }
+      i++;
+    }
+
+    // add the rest of nodes in any order
+    List<InterpolationDagNode> toProcess  = new Vector<InterpolationDagNode>();
+    toProcess.addAll(roots);
+    int j=0;
+    while(j<toProcess.size()){
+      InterpolationDagNode next = toProcess.get(j);
+      if (!pcList.contains(next)){
+        pcList.add(next);
+      }
+      for (InterpolationDagNode child : next.getChildren()){
+        toProcess.add(child);
+      }
+      j++;
+    }
+
+    return Pair.of(pcList, i-1);
+  }
+
+
+
+
+  /**
+   * Return the nodes of the DAG in topogical order.
+   */
+  private Pair<List<InterpolationDagNode>, Integer> pcSortDag(List<InterpolationDagNode> roots) {
+
+    List<InterpolationDagNode> pcList = new Vector<InterpolationDagNode>();
+    if (roots.isEmpty()) {
+      return Pair.of(pcList, 0);
+    }
+
+    InterpolationDagNode node = roots.get(0);
+
+    Integer tid = roots.get(0).getTid();
+    int i=0;
+    while(node!=null){
+      // check if all parents belong to the same thread
+      boolean breakWhile = false;
+      for (InterpolationDagNode parent : node.getParents()){
+        if (parent.getTid() != tid){
+          breakWhile = true;
+          break;
+        }
+      }
+
+      if(breakWhile){
+        break;
+      }
+
+      pcList.add(node);
+
+      // parent are OK, add the first child
+      InterpolationDagNode nextNode = null;
+      if (!node.getChildren().isEmpty()){
+        nextNode = node.getChildren().get(0);
+      }
+
+      node = nextNode;
+
+      i++;
+    }
+
+
+
+    return Pair.of(pcList, i-1);
   }
 
   /**
