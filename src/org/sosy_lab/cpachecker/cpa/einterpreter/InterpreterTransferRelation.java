@@ -130,7 +130,10 @@ public class InterpreterTransferRelation implements TransferRelation {
     map = pmap;
   }
 
-
+/*
+ * NumOP enum is used during evaluation of an lexpr or rexpr in handleBinaryOP
+ * currently contains method for perfoming binary numeric ops with data types integer and BigInteger
+ */
   enum NumOP{
     PLUS,
     MINUS,
@@ -207,7 +210,8 @@ public class InterpreterTransferRelation implements TransferRelation {
       check = successor;
       break;
     }
-
+    // here the return value of a function is passed to the left hand side variable if there is one
+    // e.g. a= test(b);
     case ReturnStatementEdge: {
       ReturnStatementEdge returnEdge = (ReturnStatementEdge)cfaEdge;
       IASTExpression exp = successor.getCurrentScope().getReturnExpression();
@@ -220,7 +224,7 @@ public class InterpreterTransferRelation implements TransferRelation {
         } catch (Exception e) {
          e.printStackTrace();
          System.exit(1);
-      }
+        }
       }
       // this statement is a function return, e.g. return (a);
       // note that this is different from return edge
@@ -263,7 +267,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
       break;
     }
-
+    // handles FunctionCalls like a=test(b);
     case FunctionCallEdge: {
       FunctionCallEdge functionCallEdge = (FunctionCallEdge) cfaEdge;
      try {
@@ -287,6 +291,7 @@ public class InterpreterTransferRelation implements TransferRelation {
       check = successor;
       break;
     }
+    //handles the return
     case FunctionPntReturnEdge:
       check = InterpreterBottomElement.INSTANCE;
       FunctionPntReturnEdge fpredge = (FunctionPntReturnEdge) cfaEdge;
@@ -297,6 +302,7 @@ public class InterpreterTransferRelation implements TransferRelation {
         successor.redScope();
       }
       break;
+    // handles function calls thru a function pointer like a=(*test)(b);
     case FunctionPntCallEdge:
       check = InterpreterBottomElement.INSTANCE;
       ExprResult res;
@@ -358,7 +364,12 @@ public class InterpreterTransferRelation implements TransferRelation {
   }
 
 
-
+/*
+ * function which evaluates an expr and checks if the result of the evaluation
+ * corresponds to the TruthAssumption or not.
+ * Returns the interpreterElement if they coincide and the BottomElement if not.
+ *
+ */
 private AbstractElement handleAssume(AssumeEdge pAssumeEdge,
       InterpreterElement pel) throws Exception{
 
@@ -374,7 +385,7 @@ private AbstractElement handleAssume(AssumeEdge pAssumeEdge,
         }
       case Var:
         Variable v = exp.getVariable();
-        if(v.getTypeClass(pel) == TypeClass.PRIMITIVE){
+        if(v.getTypeClass(pel) == TypeClass.PRIMITIVE){ //if the variable is a primitive variable
           PrimitiveVariable pvar = (PrimitiveVariable)v;
           BigInteger big1 = decodeVar(pvar,pel);
           //System.out.println(big1);
@@ -383,7 +394,7 @@ private AbstractElement handleAssume(AssumeEdge pAssumeEdge,
           }else{
             return pel;
           }
-        }else if (v.getTypeClass(pel) == TypeClass.POINTER || v.getTypeClass(pel) == TypeClass.PRIMITIVEPNT){
+        }else if (v.getTypeClass(pel) == TypeClass.POINTER || v.getTypeClass(pel) == TypeClass.PRIMITIVEPNT){ // NULL Pointer Check
           MemoryBlock block = v.getAddress().getMemoryBlock();
           int offset = v.getAddress().getOffset();
           if(block.getAddress(offset,pel).getMemoryBlock()==null ^ !pAssumeEdge.getTruthAssumption()){
@@ -405,8 +416,13 @@ private AbstractElement handleAssume(AssumeEdge pAssumeEdge,
 
 
 
-
-
+/*
+ * this function handles function calls with the following steps:
+ * 1. get the lefthand expr
+ * 2. a new scope with the name of the function is set up
+ * 3. pass the lefthandexpr to the scope so that the return value can be parsed to it
+ * 4. create the parameter variables and pass the value of the arguments to them
+ */
 private void handleFunctionCall(IASTStatement f ,  FunctionDefinitionNode functiondef ,List<IASTExpression> args,InterpreterElement pelement) throws Exception {
 
   //IASTStatement f;
@@ -430,7 +446,9 @@ private void handleFunctionCall(IASTStatement f ,  FunctionDefinitionNode functi
 }
 
 
-
+/*
+ * handles AssignStatements and function calls which are unknown like CPAmalloc and CPAfree
+ */
 private void handleStatement(StatementEdge pStatementEdge,
     InterpreterElement pelement) throws Exception {
 
@@ -450,7 +468,10 @@ private void handleStatement(StatementEdge pStatementEdge,
 
 }
 
-
+/*
+ * handles CPAmalloc defines a empty memoryblock with size defined by CPAmalloc
+ *
+ */
 
 private void handleUnknownFunctionCall(IASTFunctionCallAssignmentStatement pstatement, InterpreterElement pelement) throws Exception {
   //handle CPAmalloc
@@ -459,6 +480,8 @@ private void handleUnknownFunctionCall(IASTFunctionCallAssignmentStatement pstat
   if(nameexpr instanceof IASTIdExpression){
     String funcname = ((IASTIdExpression) nameexpr).getName();
     if(funcname.compareTo("CPAmalloc")==0){
+      if(mcall.getFunctionCallExpression().getParameterExpressions().size()!=1)
+        throw new Exception("CPAmalloc not properly used: arguments do not match");
       IASTExpression sizeexp = mcall.getFunctionCallExpression().getParameterExpressions().get(0);
       ExprResult expr= handleRightSide(sizeexp, pelement.getCurrentScope(),pelement);
       int size = expr.getnumber().intValue();
@@ -469,17 +492,20 @@ private void handleUnknownFunctionCall(IASTFunctionCallAssignmentStatement pstat
       handleAssignment(res2,res1,pelement);
 
 
-    }else{
+    }else{ //unknown function
       throw new Exception("Unknown function");
     }
-  }else{
+  }else{//unknown function pointer??
     throw new Exception("Unknown function type");
   }
 
 }
 
-
-
+/*
+ * creates Variable during a function call according to the parameter list
+ * and copies the values of the arguments passes during the function call
+ * to the newly created Variables
+ */
 private void copyVars(InterpreterElement pelement, List<String> pList,
     List<IASTExpression> pArgs, List<IASTParameterDeclaration> parlist) throws Exception {
   for(int x=0;x<pArgs.size();x++){
@@ -488,29 +514,29 @@ private void copyVars(InterpreterElement pelement, List<String> pList,
     exp = pArgs.get(x);
     varname = pList.get(x);
     IASTParameterDeclaration tmp = parlist.get(x);
-    if(exp instanceof IASTLiteralExpression){
-      if(tmp.getDeclSpecifier() instanceof IASTNamedTypeSpecifier){
+    if(exp instanceof IASTLiteralExpression){ // number in argument
+      if(tmp.getDeclSpecifier() instanceof IASTNamedTypeSpecifier){//typedef is handled here
         Type res = getNamedType(tmp.getDeclSpecifier(),  pelement.getCurrentScope(),pelement);
         allocSimpleVar(tmp.getName(), (PrimitiveType) res, pelement);
       }
-      else{
+      else{//primitve variable
       handleSimpleDecl((IASTSimpleDeclSpecifier)tmp.getDeclSpecifier(),tmp.getName(),pelement);
       }
       ExprResult res2 =handleRightSide(exp, pelement.getCurrentScope(), pelement);
       ExprResult res1 = new ExprResult(pelement.getCurrentScope().getVariable(tmp.getName(),pelement));
       handleAssignment(res1, res2,pelement);
-    }else if(exp instanceof IASTIdExpression){
+    }else if(exp instanceof IASTIdExpression){ //variable in argument - look up value und pass to new variable
       String cname = ((IASTIdExpression) exp).getName();
       Variable cvar = pelement.getCurrentScope().getParentScope().getVariable(cname,pelement);
       cvar.copyVar(varname, pelement);
-    }else if (exp instanceof IASTUnaryExpression){
+    }else if (exp instanceof IASTUnaryExpression){ //handling deref of variable
 
        ExprResult expr = handleRightSide(exp, pelement.getCurrentScope().getParentScope(),pelement);
        IASTParameterDeclaration pardef = parlist.get(x);
        String cpname = pardef.getName();
        IType  typ = pardef.getDeclSpecifier();
 
-       if(typ instanceof IASTPointerTypeSpecifier){
+       if(typ instanceof IASTPointerTypeSpecifier){ //parameter Pointer
          try {
            handlePointerDecl((IASTPointerTypeSpecifier)typ,cpname ,pelement);
            ExprResult expr2 = new ExprResult(pelement.getCurrentScope().getVariable(cpname,pelement));
@@ -518,7 +544,7 @@ private void copyVars(InterpreterElement pelement, List<String> pList,
          } catch (Exception e) {
           e.printStackTrace();
          }
-       }else if (typ instanceof IASTNamedTypeSpecifier){
+       }else if (typ instanceof IASTNamedTypeSpecifier){ //parameter typedef variable
          Type res = getNamedType(typ, pelement.getCurrentScope(), pelement);
          if(res instanceof PointerType){
            allocatePointerVar(cpname, (PointerType)res, pelement);
@@ -526,12 +552,12 @@ private void copyVars(InterpreterElement pelement, List<String> pList,
            handleAssignment(expr2,expr,pelement);
 
          }else{
-           throw new Exception("Only address assignment in function call supported");
+           throw new Exception("Only address assignment in function call supported or typedefs");
          }
 
        }
        else{
-         throw new Exception("Only address assignment in function call supported");
+         throw new Exception("Only address assignment in function call supported or typedefs");
        }
 
     }else{
@@ -545,7 +571,10 @@ private void copyVars(InterpreterElement pelement, List<String> pList,
 }
 
 
-
+/*
+ * free memoryblocks by setting flags in the memory thus that a memory exception
+ * is thrown if the memoryblock is being accessed again
+ */
 private void handleFree(IASTFunctionCallStatement pStatement,
     InterpreterElement pel) throws Exception {
   IASTFunctionCallExpression mcall = pStatement.getFunctionCallExpression();
@@ -577,7 +606,10 @@ private void handleFree(IASTFunctionCallStatement pStatement,
 }
 
 
-
+/*
+ *  handles assigment of the form lexpr = rexpr;
+ *  first lexpr and rexpr are evaluated then the assigment is done
+ */
 private void handleAssignStatement(
     IASTExpressionAssignmentStatement pStatement, InterpreterElement pelement) throws Exception {
      IASTExpression left = pStatement.getLeftHandSide();
@@ -597,7 +629,11 @@ private void handleAssignStatement(
 }
 
 
-
+/*
+ * handles the assignment
+ * Takes the address of ExprResult res1 and writes the values
+ * of ExprResult res2 into it
+ */
 private void handleAssignment(ExprResult res1, ExprResult res2, InterpreterElement pelement) throws Exception{
 
 
@@ -605,7 +641,7 @@ private void handleAssignment(ExprResult res1, ExprResult res2, InterpreterEleme
   Type typ;
   Address addr;
   int level;
-  switch(res1.getResultType()){
+  switch(res1.getResultType()){ //get data typ address and level
   case Var:
     typ = res1.getVariable().getType();
     addr = res1.getVariable().getAddress();
@@ -634,7 +670,7 @@ private void handleAssignment(ExprResult res1, ExprResult res2, InterpreterEleme
     bl.setFunctionPointer(offst,res2.getFunctionPnt(),pelement);
     return;
 
-  case Addr:
+  case Addr: //data to be written into memblock is address
     if(res2.getLevelofIndirection()==-1){ //malloc
       int offset =  addr.getOffset();
       MemoryBlock block = addr.getMemoryBlock();
@@ -646,6 +682,7 @@ private void handleAssignment(ExprResult res1, ExprResult res2, InterpreterEleme
         if(v instanceof PointerVariable){
           PointerVariable pvar = (PointerVariable)v;
 
+          //if base types and level coincide write address to memory otherwise throw exception
           if(checkType(pvar.getBaseType(),res2.getDataType())&& (pvar.getlevel() == res2.getLevelofIndirection())){
             int offset = pvar.getAddress().getOffset();
             MemoryBlock block = pvar.getAddress().getMemoryBlock();
@@ -657,7 +694,7 @@ private void handleAssignment(ExprResult res1, ExprResult res2, InterpreterEleme
 
 
 
-        }else if(v instanceof PrimitiveVariable){
+        }else if(v instanceof PrimitiveVariable){ //primitive variable used in pointercalc
            PrimitiveVariable pvar = (PrimitiveVariable)v;
            pvar.setPnt();
            int offset = pvar.getAddress().getOffset();
@@ -679,14 +716,14 @@ private void handleAssignment(ExprResult res1, ExprResult res2, InterpreterEleme
 
     }
     break;
-  case Num:
+  case Num: //rexpr result is a number
     if(typ instanceof EnumType  && level ==0)
       writeEnumVar(addr,res2.getnumber(),pelement);
 
 
     else if(typ instanceof PrimitiveType  && level ==0)
       writePrimVar((PrimitiveType)typ,addr,res2.getnumber(),pelement);
-    else if(typ instanceof PointerType &&res2.getnumber().compareTo(BigInteger.valueOf(0)) ==0){
+    else if(typ instanceof PointerType &&res2.getnumber().compareTo(BigInteger.valueOf(0)) ==0){ //set NULL POINTER
       if(res1.getResultType()==RType.Var){
         if(((PointerType)typ).getTargetType()instanceof FunctionType)
           ((FuncPointerVariable)res1.getVariable()).setNullPointer(true, pelement);
@@ -701,7 +738,7 @@ private void handleAssignment(ExprResult res1, ExprResult res2, InterpreterEleme
       block.setAddress(offset, new Address(null,0),pelement);
 
     }
-    else if(level >0 && res2.getnumber().compareTo(BigInteger.ZERO)==0){
+    else if(level >0 && res2.getnumber().compareTo(BigInteger.ZERO)==0){ //set NULL POINTER with address result for res1
       addr.getMemoryBlock().setAddress(addr.getOffset(), new Address(null,0),pelement);
     }else{
       //System.out.println(typ.getTypeClass());
@@ -710,7 +747,7 @@ private void handleAssignment(ExprResult res1, ExprResult res2, InterpreterEleme
     }
 
     break;
-  case Var:
+  case Var: //result is a variable
 
     if( res2.getVariable().getName().equals("__BLAST_NONDET") ){
       if(!(typ instanceof PrimitiveType)){
@@ -723,14 +760,14 @@ private void handleAssignment(ExprResult res1, ExprResult res2, InterpreterEleme
     Type typ2 = res2.getVariable().getType();
     Address addr2 = res2.getVariable().getAddress();
 
-    if(checkType(typ,typ2)){
+    if(checkType(typ,typ2)){ //if types coincide
       if(res1.getResultType()== RType.Var){
         copyVar(res1.getVariable().getAddress(),res2.getVariable().getAddress(),res2.getVariable().getSize(),pelement);
 
       }else if(res1.getResultType()== RType.Addr){
         copyVar(res1.getAddress(),res2.getVariable().getAddress(),res2.getVariable().getSize(),pelement);
       }
-    }else if(typ instanceof PrimitiveType && typ2 instanceof PointerType){
+    }else if(typ instanceof PrimitiveType && typ2 instanceof PointerType){ //using primvariable for Pointercalc
        if (res1.getResultType()==RType.Var){
          PrimitiveVariable  pvar = (PrimitiveVariable) res1.getVariable();
          if(pvar.getPrimitiveType()== Primitive.LONG){
@@ -751,11 +788,11 @@ private void handleAssignment(ExprResult res1, ExprResult res2, InterpreterEleme
        copyVar(addr,res2.getVariable().getAddress(), res2.getVariable().getSize(),pelement );
 
     }
-    else if(typ instanceof PointerType && typ2 instanceof PrimitiveType){
+    /*else if(typ instanceof PointerType && typ2 instanceof PrimitiveType){
 
 
       copyVar(res1.getVariable().getAddress(),res2.getVariable().getAddress(),res2.getVariable().getSize(),pelement);
-    }
+    }*/
 
     else{
 
@@ -770,11 +807,13 @@ private void handleAssignment(ExprResult res1, ExprResult res2, InterpreterEleme
 
 
 }
-
+/*
+ * evaluates the right hand side of an assignment recursively
+ */
 private ExprResult handleRightSide(IASTExpression pRight,
     Scope currentScope,InterpreterElement pel ) throws Exception {
 
-  if(pRight instanceof IASTLiteralExpression){
+  if(pRight instanceof IASTLiteralExpression){ //if right side is a number
     switch(((IASTLiteralExpression) pRight).getKind()){
     case IASTLiteralExpression.lk_float_constant:
       throw new RuntimeException("floating point operations not supported");
@@ -794,7 +833,7 @@ private ExprResult handleRightSide(IASTExpression pRight,
       break;
     }
   }
-  if(pRight instanceof IASTIdExpression){
+  if(pRight instanceof IASTIdExpression){// if right side is a variable or funcpointer
     String var =((IASTIdExpression) pRight).getName();
     CFAFunctionDefinitionNode func = map.get(var);
     if(func != null){
@@ -806,6 +845,7 @@ private ExprResult handleRightSide(IASTExpression pRight,
   }
   if(pRight instanceof IASTUnaryExpression){
     IASTUnaryExpression unaryexp= (IASTUnaryExpression) pRight;
+    //recursive call for rexpr of form rexpr => op rexpr;
     ExprResult res =handleRightSide(unaryexp.getOperand(),currentScope,pel);
     UnaryOperator op = unaryexp.getOperator();
     switch(op){
@@ -842,13 +882,14 @@ private ExprResult handleRightSide(IASTExpression pRight,
 
 
           Address addr = b.getAddress(0,pel);
-          if(var.getlevel()>1 ){
+          if(var.getlevel()>1 ){ //read address in memorycell and decrease lvl by 1
             if(addr.getMemoryBlock().getCellType(addr.getOffset(),pel)==CellType.ADDR){
               Address addr2 = addr.getMemoryBlock().getAddress(addr.getOffset(),pel);
 
               return new ExprResult(addr2,var.getBaseType(),var.getlevel()-1);
-            }else if(addr.getMemoryBlock().getCellType(addr.getOffset(),pel)==CellType.FUNC){ //TODO: PointerVariable used in Cast should be FuncPointerVariable (either extend cast or merge VariableTypes)
-              if(var.getlevel()!=2)
+            }else if(addr.getMemoryBlock().getCellType(addr.getOffset(),pel)==CellType.FUNC){
+
+              if(var.getlevel()!=2) //funcpointer has at least level 1 so pointer must have level 2
                 throw new Exception("Error with dereference");
               return new ExprResult(addr.getMemoryBlock().getFunctionPointer(addr.getOffset(),pel));
             }else if (addr.getMemoryBlock().getCellType(addr.getOffset(),pel)== CellType.EMPTY){
@@ -891,7 +932,7 @@ private ExprResult handleRightSide(IASTExpression pRight,
         throw new Exception("STAR only on var and addr applicable");
       }
 
-    case AMPER:
+    case AMPER: // deref of a var e.g a = &x;
       switch(res.getResultType()){
       case Addr:
         //struct data->a might return address
@@ -924,7 +965,7 @@ private ExprResult handleRightSide(IASTExpression pRight,
         break;
       }
       break;
-    case TILDE:
+    case TILDE: //binary negate e.g. 00000000 =>11111111
       switch(res.getResultType()){
       case Addr:
         throw new Exception("inversion of addresses not allowed");
@@ -953,7 +994,7 @@ private ExprResult handleRightSide(IASTExpression pRight,
         break;
       }
 
-    case NOT:
+    case NOT: //handle logical not e.g 33=>0 0=>1
       ExprResult expr =handleNot(res,pel);
       return expr;
     case SIZEOF:
@@ -1050,7 +1091,7 @@ private ExprResult handleRightSide(IASTExpression pRight,
     }
   }
 
-  if(pRight instanceof IASTCastExpression){
+  if(pRight instanceof IASTCastExpression){ //conversions are handled here
     return handleRCast(pRight,currentScope,pel);
      }
 
@@ -1064,7 +1105,7 @@ private ExprResult handleRightSide(IASTExpression pRight,
 
 private ExprResult handleRCast(IASTExpression pRight, Scope cur,
     InterpreterElement pel) throws Exception {
-  Type z= handleRightCast(pRight.getExpressionType(),cur,pel);
+  Type z= getTypeCast(pRight.getExpressionType(),cur,pel); //get conversion type
   ExprResult res;
   switch(z.getTypeClass()){
   case PRIMITIVE:
@@ -1078,7 +1119,7 @@ private ExprResult handleRCast(IASTExpression pRight, Scope cur,
       switch(res.getVariable().getTypeClass(pel)){
       case ENUM:
       case PRIMITIVE:
-
+        //create tmp variable with new size and copy value of variable res to tmp
         MemoryBlock block = pel.getFactory().allocateMemoryBlock(k.sizeOf(),pel);
         Address naddr = new Address(block,0);
         if(k.sizeOf()<res.getVariable().getSize()){
@@ -1097,6 +1138,7 @@ private ExprResult handleRCast(IASTExpression pRight, Scope cur,
         return res;
       case FUNCPOINTER:
       case ARRAY:
+        //write the address of the array or funcpointer in a new block and create an temporary primitivevariable used for pntcalc
         tmp = null;
         block = pel.getFactory().allocateMemoryBlock(k.getPrimitive().sizeOf(),pel);
         block.setAddress(0, res.getVariable().getAddress(),pel);
@@ -1136,11 +1178,11 @@ private ExprResult handleRCast(IASTExpression pRight, Scope cur,
 
 
         case PRIMITIVEPNT:
-          //NULLPOINTERASSIGNMENT
+
           PrimitiveVariable var = (PrimitiveVariable)res.getVariable();
           MemoryBlock mblock = var.getAddress().getMemoryBlock();
           CellType ct = mblock.getCellType(var.getAddress().getOffset(), pel);
-          if(ct==CellType.DATA){
+          if(ct==CellType.DATA){ //must contain value 0 otherwise conversion not feasible
             BigInteger val = decodeVar(var,pel);
             //System.out.println(val);
             if(val.longValue()==0){
@@ -1189,10 +1231,12 @@ private ExprResult handleRCast(IASTExpression pRight, Scope cur,
   return null;
 }
 
-
+/*
+ * handle logical or
+ */
 
 private ExprResult handleOr(ExprResult pRes1, ExprResult pRes2, Scope pCur,InterpreterElement pel) throws Exception{
-  // TODO Auto-generated method stub
+  //if first operand >1 return 1
   switch(pRes1.getResultType()){
   case Num:
     if(pRes1.getnumber().compareTo(BigInteger.ZERO)>0){
@@ -1290,7 +1334,9 @@ private ExprResult handleOr(ExprResult pRes1, ExprResult pRes2, Scope pCur,Inter
 
 }
 
-
+/*
+ * handles logical not return 1 if the value of res is 0 and 1 if the value of res is greater than 0
+ */
 
 private ExprResult  handleNot(ExprResult res, InterpreterElement pel) throws Exception {
   switch(res.getResultType()){
@@ -1332,7 +1378,9 @@ private ExprResult  handleNot(ExprResult res, InterpreterElement pel) throws Exc
 
 }
 
-
+/*
+ * handles arithmetical "<"
+ */
 
 private ExprResult handleLessThan(ExprResult pRes1, ExprResult pRes2, Scope pCur, InterpreterElement pel) throws Exception {
   BigInteger big1;
@@ -1346,7 +1394,7 @@ private ExprResult handleLessThan(ExprResult pRes1, ExprResult pRes2, Scope pCur
     if(v.getTypeClass(pel)== TypeClass.PRIMITIVE){
       big1 = decodeVar((PrimitiveVariable)v,pel);
     }else{
-      throw new Exception("less than does not support pointers");
+      throw new Exception("less than does not support pointers currently");
     }
     break;
   default:
@@ -1400,7 +1448,9 @@ private ExprResult handleEquals(ExprResult pRes1, ExprResult pRes2, Scope pCur,I
         }
 
     case Var:
-      return handleEquals(pRes2, pRes1, pCur,pel);
+      return handleEquals(pRes2, pRes1, pCur,pel); //recursive call in order to decode variable without duplication of code
+
+
       /*Variable v = pRes2.getVariable();
       if(v.getTypeClass()==TypeClass.PRIMITIVE){
         BigInteger big2 = decodeVar((PrimitiveVariable)v);
@@ -1426,7 +1476,7 @@ private ExprResult handleEquals(ExprResult pRes1, ExprResult pRes2, Scope pCur,I
       throw new Exception("Error in equality");
     }
 
-  case Var:
+  case Var: //decoding of variables regarding of argument position occur here (recursive call if position does not match)
     Variable v = pRes1.getVariable();
 
     if(v.getTypeClass(pel)==TypeClass.PRIMITIVE){
@@ -1492,17 +1542,23 @@ private ExprResult handleEquals(ExprResult pRes1, ExprResult pRes2, Scope pCur,I
   }
   return null;
 }
-
+/*
+ * used to distinguish BINARY OPERATIONS
+ */
 enum BOP{
   AND,
   OR
 }
 
-
+/*
+ * function for binary "or" and binary "and" using BOP
+ */
 private ExprResult handleBinaryOP(ExprResult pRes1, ExprResult pRes2,
     Scope pCur, InterpreterElement pel,BOP op) throws Exception {
   BigInteger big1;
   BigInteger big2;
+
+  //get Result1 as BIGInteger
   switch(pRes1.getResultType()){
   case Num:
     big1 = pRes1.getnumber();
@@ -1523,6 +1579,7 @@ private ExprResult handleBinaryOP(ExprResult pRes1, ExprResult pRes2,
 
     }
 
+  //get Result2 as BigInteger
   switch(pRes2.getResultType()){
   case Num:
     big2 = pRes2.getnumber();
@@ -1542,6 +1599,7 @@ private ExprResult handleBinaryOP(ExprResult pRes1, ExprResult pRes2,
       throw new Exception("Binaryand not for addresses");
 
     }
+  //depending on opcode
   if(op ==BOP.AND)
     big1 = big1.and(big2);
   else
@@ -1549,6 +1607,10 @@ private ExprResult handleBinaryOP(ExprResult pRes1, ExprResult pRes2,
   return new ExprResult(big1);
 }
 
+/*
+ * used to evaluate the lefthande side expr of an assignment
+ * should either return a variable or a address but not data
+ */
 private ExprResult handleLeftSide(IASTExpression pLeft,
     Scope cur,InterpreterElement pel) throws Exception {
     ExprResult res;
@@ -1581,13 +1643,15 @@ private ExprResult handleLeftSide(IASTExpression pLeft,
         throw new Exception("Operation not supported");
       }
     }
+
+    //conversion happen here
     if(pLeft instanceof IASTCastExpression){
       IASTCastExpression expr = (IASTCastExpression)pLeft;
       IType type = expr.getExpressionType();
-      Type p = handleRightCast(type,cur,pel);
+      Type p = getTypeCast(type,cur,pel); //used to retrieve the target type of the conversion
       ExprResult res1 = handleLeftSide(expr.getOperand(),cur,pel);
       switch(p.getTypeClass()){
-      case POINTER:
+      case POINTER: //only conversions in pointer interesting
         PointerType pnt= (PointerType)p;
         switch(res1.getResultType()){
         case Var:
@@ -1608,8 +1672,10 @@ private ExprResult handleLeftSide(IASTExpression pLeft,
 
   return null;
 }
-
-private Type handleRightCast(IType pExpressionType, Scope pCur,InterpreterElement pel) throws Exception {
+/*
+ * used to retrieve Type information for a cast
+ */
+private Type getTypeCast(IType pExpressionType, Scope pCur,InterpreterElement pel) throws Exception {
   if(pExpressionType instanceof IASTSimpleDeclSpecifier){
       return getPrimitiveType((IASTSimpleDeclSpecifier)pExpressionType);
   }
@@ -1623,6 +1689,12 @@ private Type handleRightCast(IType pExpressionType, Scope pCur,InterpreterElemen
   throw new Exception("Not supported");
 }
 
+
+/*
+ * function is used for binary arithemtik operations like +,-,*,/
+ * provides functionality for simple arithmetic operations or pointer calc
+ * depending on Input
+ */
 private ExprResult handleBinaryOP(ExprResult pRes1, ExprResult pRes2,
     Scope pCur,NumOP op, InterpreterElement pel) throws Exception {
   BigInteger big1,big2;
@@ -1697,7 +1769,9 @@ private ExprResult handleBinaryOP(ExprResult pRes1, ExprResult pRes2,
   //System.out.println(op.toString() +": "+ big1 + " and " + big2);
   return new ExprResult( op.performCalc(big1, big2));
 }
-
+/*
+ * performs point calc on Address input
+ */
 private ExprResult handleAddrPntOP(Address pAddress, Type pType,
     ExprResult pRes1, NumOP op, int level, InterpreterElement pel) throws Exception {
 
@@ -1706,8 +1780,8 @@ private ExprResult handleAddrPntOP(Address pAddress, Type pType,
   switch(pRes1.getResultType()){
   case Var:
     PrimitiveVariable var = (PrimitiveVariable)pRes1.getVariable();
-    ExprResult expr = new ExprResult(decodeVar(var,pel));
-    return handleAddrPntOP(pAddress,pType, expr,op,level,pel);
+    pRes1= new ExprResult(decodeVar(var,pel));
+    //return handleAddrPntOP(pAddress,pType, expr,op,level,pel);
   case Num:
     Address v = new Address(pAddress.getMemoryBlock(),op.performCalc(pAddress.getOffset(), pRes1.getnumber().intValue()));
     return new ExprResult(v,pType,level);
@@ -1717,8 +1791,9 @@ private ExprResult handleAddrPntOP(Address pAddress, Type pType,
 
 }
 
-
-
+/*
+ * performs pointercalc on variable as input
+ */
 private ExprResult handlePntOP(Variable pV, ExprResult pRes2, NumOP op, InterpreterElement pel) throws Exception {
 
   Address addr = pV.getAddress();
@@ -1731,12 +1806,13 @@ private ExprResult handlePntOP(Variable pV, ExprResult pRes2, NumOP op, Interpre
     Address naddr;
     int big1 =pRes2.getnumber().intValue();
     int pnt=big1;
-    if (pV.getTypeClass(pel) == TypeClass.POINTER){
+    //depending on data type perform offset calc in bytes
+    if (pV.getTypeClass(pel) == TypeClass.POINTER){ //pointer has size 4
       PointerVariable pvar = (PointerVariable)pV;
       //PointerVariable pvar = (PointerVariable)pV;
       if(pvar.getlevel()>1){
         pnt= big1*4;
-      }else{
+      }else{ //pointing to non-pointer var get size of var and perform offest calc
         pnt = big1*pvar.getBaseType().sizeOf();
       }
     }
@@ -1753,7 +1829,9 @@ private ExprResult handlePntOP(Variable pV, ExprResult pRes2, NumOP op, Interpre
   //TODO: ADD integrity check
 
 }
-
+/*
+ * used to copy the first pSize bytes of var1 to var2
+ */
 private void copyVar(Address pAddress, Address pAddress2, int pSize,InterpreterElement pel) throws Exception {
     int offset, offset2;
     MemoryBlock block, block2;
@@ -1786,12 +1864,13 @@ private void copyVar(Address pAddress, Address pAddress2, int pSize,InterpreterE
 
 
 }
-
+/*
+ * checks if 2 types do coincide by comparing their designated string
+ */
 private boolean checkType(Type pTyp, Type pTyp2) {
 
 
-  System.out.println(pTyp.getDefinition());
-  System.out.println(pTyp2.getDefinition());
+
 
   if(pTyp.getDefinition().compareTo(pTyp2.getDefinition())==0)
     return true;
@@ -1800,6 +1879,9 @@ private boolean checkType(Type pTyp, Type pTyp2) {
 
 }
 
+/*
+ * used to write a integervalue into a enum memblock
+ */
 private void writeEnumVar(Address pAddr, BigInteger pGetnumber,
     InterpreterElement pel) {
   // TODO Value Check
@@ -1822,13 +1904,16 @@ private void writeEnumVar(Address pAddr, BigInteger pGetnumber,
 }
 
 
-
+/*
+ * writes a number into a primitive memblock location
+ */
 private void writePrimVar(PrimitiveType pTyp, Address pAddr, BigInteger pGetnumber,InterpreterElement pel) throws Exception {
   int exp;
   exp = pTyp.sizeOf();
   BigInteger numb = BigInteger.valueOf(2);
   numb =numb.pow(exp*8);
 
+ //TODO: verify  signed unsigned behavior
   if(pTyp.isSigned()){
     pGetnumber = pGetnumber.remainder(numb);
   }else{
@@ -1850,7 +1935,9 @@ private void writePrimVar(PrimitiveType pTyp, Address pAddr, BigInteger pGetnumb
 
 }
 
-//TODO:test method
+/*
+ * used to read a integer value of a primitive var location
+ */
 private BigInteger decodeVar(PrimitiveVariable pVar, InterpreterElement pel) throws Exception{
   if(pVar.getName().equals("__BLAST_NONDET")){
     return pel.getNonDetNumber();
@@ -1895,9 +1982,13 @@ private BigInteger decodeVar(PrimitiveVariable pVar, InterpreterElement pel) thr
   return var;
 }
 
-
+/*
+ * main entry point for variable declaration
+ */
 public void handleDeclaration(DeclarationEdge pDeclarationEdge,
     InterpreterElement pElement) throws Exception{
+
+  //typedef declaration is handled here
   if(pDeclarationEdge.getStorageClass().name().compareTo("TYPEDEF")==0){
     String tmp = pDeclarationEdge.getName();
     IType spec = pDeclarationEdge.getDeclSpecifier();
@@ -1915,7 +2006,16 @@ public void handleDeclaration(DeclarationEdge pDeclarationEdge,
 
 
 }
-
+/*
+ * handles:
+ * 1. SimpleDecl (PrimitiveVariables)
+ * 2. ArrayDecl
+ * 3. StructUnionDecl
+ * 4. StructUnionVariable Declaration
+ * 5. Enum
+ * 6. EnumVariable declaration
+ * 7. PointerDeclarations
+ */
 private void handleTypeDecl(String name, InterpreterElement pElement,
     IType typ) throws Exception {
   if(typ instanceof  IASTSimpleDeclSpecifier){
@@ -1949,7 +2049,7 @@ private void handleTypeDecl(String name, InterpreterElement pElement,
     if(((IASTElaboratedTypeSpecifier) typ).getKind()>0){//defintion von struct variablen
       CompositeType comp = pElement.getCurrentScope().getCurrentTypeLibrary().getType(((IASTElaboratedTypeSpecifier) typ).getName());
       if(comp == null){
-        //System.out.println("Forward declaration");
+        //Forward declaration are handled here, empty Struct Types are added to the TypeLibary which holds structs and unions
         if(def.getKind()==1){
           StructType k = new StructType(((IASTElaboratedTypeSpecifier) typ).getName(),false);
           pElement.getCurrentScope().getCurrentTypeLibrary().addType(k);
@@ -1961,19 +2061,19 @@ private void handleTypeDecl(String name, InterpreterElement pElement,
       }
       if(comp.getMembers().size()>0)
         handleDynVarDef(name,((IASTElaboratedTypeSpecifier) typ).getName(),pElement,typ.isConst());
-    }else{//enum
-      handleEnumDef(name,((IASTElaboratedTypeSpecifier) typ).getName(),pElement,typ.isConst());
+    }else{//enumvar defintion
+      handleEnumVarDef(name,((IASTElaboratedTypeSpecifier) typ).getName(),pElement,typ.isConst());
     }
   }
 
-  if(typ instanceof IASTNamedTypeSpecifier){
+  if(typ instanceof IASTNamedTypeSpecifier){ //used for Typedefs
     IASTNamedTypeSpecifier ntyp = (IASTNamedTypeSpecifier)typ;
     IType def =pElement.getCurrentScope().getCurrentDefinitions().getDefinition(ntyp.getName());
     handleTypeDecl(name, pElement, def);
 
   }
 
-  if(typ instanceof IASTEnumerationSpecifier ){
+  if(typ instanceof IASTEnumerationSpecifier ){ //Enum definition
     IASTEnumerationSpecifier etyp = (IASTEnumerationSpecifier)typ;
     EnumType ntyp = new EnumType(etyp.getName(),false);
     IASTEnumerator[] members = etyp.getEnumerators();
@@ -1989,20 +2089,22 @@ private void handleTypeDecl(String name, InterpreterElement pElement,
 
 
 
-private void handleEnumDef(String name, String label,
+private void handleEnumVarDef(String name, String label,
     InterpreterElement pElement, boolean pConst) {
   MemoryBlock data = pElement.getFactory().allocateMemoryBlock(4, pElement);
   Address addr = new Address(data,0);
 
-  EnumType type = pElement.getCurrentScope().getCurrentEnums().getEnum(label);
+  EnumType type = pElement.getCurrentScope().getCurrentEnums().getEnum(label); //lookup enum type
   EnumVariable variable = new EnumVariable(name, addr, type,pConst);
   pElement.getCurrentScope().addVariable(variable, pElement);
 }
 
 
-
+/*
+ * used to define the variable for struct and unions
+ */
 private void handleDynVarDef(String name, String label, InterpreterElement pel,boolean isConst) throws Exception {
-  CompositeType comp = pel.getCurrentScope().getCurrentTypeLibrary().getType(label);
+  CompositeType comp = pel.getCurrentScope().getCurrentTypeLibrary().getType(label);//Type lookingup in currenttypelibary
 
   if(name == null){
     int size = comp.sizeOf();
@@ -2027,12 +2129,14 @@ private void handleDynVarDef(String name, String label, InterpreterElement pel,b
 }
 
 
-
+/*
+ * used to fully register struct and union types (opposion to forward decl)
+ */
 private CompositeType allocateDynType(IASTCompositeTypeSpecifier pComptyp,
     InterpreterElement pElement) throws Exception {
   CompositeType tmp;
   tmp = pElement.getCurrentScope().getCurrentTypeLibrary().getType(pComptyp.getName());
-  if(tmp == null){
+  if(tmp == null){ //if not forward decl create type
     if( pComptyp.getKey() == IASTCompositeTypeSpecifier.k_struct){
 
       tmp= new StructType(pComptyp.getName(),false);
@@ -2041,7 +2145,7 @@ private CompositeType allocateDynType(IASTCompositeTypeSpecifier pComptyp,
     }
     pElement.getCurrentScope().getCurrentTypeLibrary().addType(tmp);
   }
-
+  //add members types to dyn data structure
   Iterator<IASTCompositeTypeMemberDeclaration> it = pComptyp.getMembers().iterator();
   while(it.hasNext()){
     Type cur;
@@ -2057,9 +2161,9 @@ private CompositeType allocateDynType(IASTCompositeTypeSpecifier pComptyp,
      cur = getArrayType((IASTArrayTypeSpecifier) memb, pElement.getCurrentScope(),pElement);
    }else if(memb instanceof IASTElaboratedTypeSpecifier){
      IASTElaboratedTypeSpecifier ememb = (IASTElaboratedTypeSpecifier)memb;
-     if(ememb.getKind()>0){
+     if(ememb.getKind()>0){ //>0 struct and unions
      cur = pElement.getCurrentScope().getCurrentTypeLibrary().getType(ememb.getName());
-     }else{
+     }else{ //=0 enums
        cur = pElement.getCurrentScope().getCurrentEnums().getEnum(ememb.getName());
      }
    }else if (memb instanceof IASTNamedTypeSpecifier){
@@ -2076,7 +2180,9 @@ private CompositeType allocateDynType(IASTCompositeTypeSpecifier pComptyp,
   return tmp;
 }
 
-
+/*
+ * used to handle the declaration of an array
+ */
 
 private void handleArrayDecl(IASTArrayTypeSpecifier pTyp, String pName,
     InterpreterElement pel) throws Exception {
@@ -2090,13 +2196,12 @@ private void handleArrayDecl(IASTArrayTypeSpecifier pTyp, String pName,
 
 }
 
-
+/*
+ * used to handle the declaration of a pointer
+ */
 
 private void handlePointerDecl(IASTPointerTypeSpecifier pTyp,
     String pName, InterpreterElement pel) throws Exception{
-
-
-
 
     PointerType typ = getPointerType(pTyp,pel.getCurrentScope(),pel);
     allocatePointerVar(pName,typ,pel);
@@ -2104,7 +2209,10 @@ private void handlePointerDecl(IASTPointerTypeSpecifier pTyp,
 
 }
 
-
+/*
+ * used to declare a pointer variable (functionpointer and datapointer) given a certain pointer type
+ * also used during copying of variables
+ */
 private void allocatePointerVar( String pName,PointerType typ,InterpreterElement pel){
   MemoryBlock block = pel.getFactory().allocateMemoryBlock(4,pel);
   Address addr = new Address(block, 0);
@@ -2118,6 +2226,9 @@ private void allocatePointerVar( String pName,PointerType typ,InterpreterElement
   return;
 }
 
+/*
+ * used to declare primitive variables like int or long
+ */
 public void handleSimpleDecl(IASTSimpleDeclSpecifier pTyp,
     String name, InterpreterElement pel) {
 
@@ -2160,6 +2271,7 @@ private ArrayType getArrayType(IASTArrayTypeSpecifier pTyp,
   int dim=0;
   int x=1;
   ExprResult res = null;
+  //used to determine the size and dimension of the memory block
   while(typ instanceof IASTArrayTypeSpecifier){
     tmp = (IASTArrayTypeSpecifier)typ;
 
@@ -2190,7 +2302,7 @@ private ArrayType getArrayType(IASTArrayTypeSpecifier pTyp,
   }
 
   Type basetype;
-
+  //here the base type of the array is determined
   if(typ instanceof IASTSimpleDeclSpecifier){
     basetype = getPrimitiveType((IASTSimpleDeclSpecifier) typ);
   }else if(typ instanceof IASTPointerTypeSpecifier)
@@ -2204,7 +2316,7 @@ private ArrayType getArrayType(IASTArrayTypeSpecifier pTyp,
       length *= ((ArrayType)basetype).length();
     }
 
-  }else if(typ instanceof IASTElaboratedTypeSpecifier){
+  }else if(typ instanceof IASTElaboratedTypeSpecifier){ //TODO:Enums
     basetype = scope.getCurrentTypeLibrary().getType(((IASTElaboratedTypeSpecifier) typ).getName());
 
   }else{
@@ -2217,7 +2329,9 @@ private ArrayType getArrayType(IASTArrayTypeSpecifier pTyp,
 }
 
 
-
+/*
+ * used for typedefs makes use of all getType functions
+ */
 private Type getNamedType(IType t,Scope scope,InterpreterElement pel) throws Exception {
 
   if(t instanceof IASTArrayTypeSpecifier){
@@ -2229,22 +2343,22 @@ private Type getNamedType(IType t,Scope scope,InterpreterElement pel) throws Exc
   if(t instanceof IASTPointerTypeSpecifier){
     return getPointerType((IASTPointerTypeSpecifier) t, scope,pel);
   }
-  if(t instanceof IASTCompositeTypeSpecifier){
+  if(t instanceof IASTCompositeTypeSpecifier){ //struct and unions
     return scope.getCurrentTypeLibrary().getType(((IASTCompositeTypeSpecifier) t).getName());
   }
   if(t instanceof IASTElaboratedTypeSpecifier){
     IASTElaboratedTypeSpecifier tt = (IASTElaboratedTypeSpecifier)t;
-    if(tt.getKind()>0)
+    if(tt.getKind()>0) //struct and unions
       return scope.getCurrentTypeLibrary().getType(tt.getName());
-    else
+    else //enum
       return scope.getCurrentEnums().getEnum(tt.getName());
   }
-  if(t instanceof IASTNamedTypeSpecifier){
+  if(t instanceof IASTNamedTypeSpecifier){ //recursive typedef
     String f =((IASTNamedTypeSpecifier) t).getName();
     IType def = scope.getCurrentDefinitions().getDefinition(f);
     return getNamedType(def, scope,pel);
   }
-  if (t instanceof IASTFunctionTypeSpecifier) {
+  if (t instanceof IASTFunctionTypeSpecifier) { //function
     IASTFunctionTypeSpecifier ft = (IASTFunctionTypeSpecifier) t;
     return getFunctionType(ft,scope,pel);
 
@@ -2260,6 +2374,8 @@ private FunctionType getFunctionType(IASTFunctionTypeSpecifier ft, Scope pscope,
   String funcname = ft.getName();
   IType rettype = ft.getReturnType();
   Type res;
+
+  //get the return type
   if(rettype instanceof IASTSimpleDeclSpecifier){
     res = getPrimitiveType((IASTSimpleDeclSpecifier) rettype);
   }else if(rettype instanceof IASTPointerTypeSpecifier){
@@ -2334,22 +2450,22 @@ public PointerType getPointerType(IASTPointerTypeSpecifier pTyp, Scope scop,Inte
   }else if (tmp instanceof IASTElaboratedTypeSpecifier){
     Type basetype;
     IASTElaboratedTypeSpecifier ctmp = (IASTElaboratedTypeSpecifier)tmp;
-    if(ctmp.getKind()>0){
+    if(ctmp.getKind()>0){ //structs and unions
 
        basetype = scop.getCurrentTypeLibrary().getType(ctmp.getName());
       if(basetype == null){
         //System.out.println("WHAT");
       }
 
-    }else{
+    }else{ //enum
       basetype= scop.getCurrentEnums().getEnum(ctmp.getName());
     }
     return new PointerType(basetype, isConst, level);
 
-  }else if (tmp instanceof IASTNamedTypeSpecifier){
+  }else if (tmp instanceof IASTNamedTypeSpecifier){ //typedef
     IASTNamedTypeSpecifier ntmp = (IASTNamedTypeSpecifier)tmp;
     Type basetype = getNamedType(scop.getCurrentDefinitions().getDefinition(ntmp.getName()), scop, pel);
-    while(basetype instanceof PointerType){
+    while(basetype instanceof PointerType){ //if basetype is pointer recalc level and get new basetype
       level +=((PointerType) basetype).getLevelOfIndirection();
       basetype = ((PointerType) basetype).getTargetType();
 
@@ -2357,7 +2473,7 @@ public PointerType getPointerType(IASTPointerTypeSpecifier pTyp, Scope scop,Inte
     return new PointerType(basetype, isConst,level);
 
   }
-  else if (tmp instanceof IComplexType){
+  else if (tmp instanceof IComplexType){ //used for unions struct and typedefs
 
     IComplexType ctmp = (IComplexType)tmp;
     Type basetype = scop.getCurrentTypeLibrary().getType(ctmp.getName());
@@ -2365,7 +2481,7 @@ public PointerType getPointerType(IASTPointerTypeSpecifier pTyp, Scope scop,Inte
        IType xx = scop.getCurrentDefinitions().getDefinition(ctmp.getName());
 
        basetype = getNamedType(xx, scop, pel);
-       while(basetype instanceof PointerType){
+       while(basetype instanceof PointerType){//if basetype is pointer recalc level and get new basetype
          level +=((PointerType) basetype).getLevelOfIndirection();
          basetype = ((PointerType) basetype).getTargetType();
 
@@ -2403,7 +2519,7 @@ public PrimitiveType getPrimitiveType(IASTSimpleDeclSpecifier pTyp){
   switch(pTyp.getType()){
 
   case INT:
-
+    //TODO:LONG and LONGLONG what is what?
     typ = Primitive.LONG;
 
     break;
