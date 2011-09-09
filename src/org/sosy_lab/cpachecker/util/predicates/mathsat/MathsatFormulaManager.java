@@ -948,6 +948,9 @@ public class MathsatFormulaManager implements FormulaManager  {
     return cache.get(formula);
   }
 
+
+
+
   @Override
   // primed the variables inside the formula given number of times
   public Formula primeFormula(Formula f, int howManyPrimes) {
@@ -1229,6 +1232,9 @@ public class MathsatFormulaManager implements FormulaManager  {
     assert result != null;
     return result;
   }
+
+
+
 
 
 

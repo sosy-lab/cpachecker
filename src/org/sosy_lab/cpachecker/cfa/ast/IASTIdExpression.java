@@ -30,7 +30,8 @@ public class IASTIdExpression extends IASTExpression {
   private final String name;
   private final IASTSimpleDeclaration declaration;
   // for relyguarantee prototype
-  private Pair<String, Integer> primed = null;
+  private Pair<String, Integer> primed  = null;
+  private Integer tid = null;
 
   public IASTIdExpression(final String pRawSignature,
       final IASTFileLocation pFileLocation, final IType pType,
@@ -78,8 +79,23 @@ public class IASTIdExpression extends IASTExpression {
   public void setPrimed(String name, int index) {
     this.primed = new Pair<String, Integer>(name, index);
   }
+
   // for relyguarantee prototype
   public Pair<String, Integer> getPrimed() {
     return this.primed;
   }
+
+  // for relyguarantee prototype
+  public Integer getTid() {
+    return tid;
+  }
+
+  // for relyguarantee prototype
+  public void setTid(Integer pTid) {
+    tid = pTid;
+  }
+
+
+
+
 }

@@ -79,7 +79,7 @@ public interface PathFormulaManager {
   // for testing...
   Formula buildLvalueTerm(IASTExpression exp, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException;
 
-  void inject(CFAEdge pLocalEdge, Set<String> pGlobalVariablesSet, int pOffset, SSAMap pSsa) throws CPATransferException;
+  void inject(CFAEdge localEdge, Set<String> globalVariablesSet, int offset, Integer tid, SSAMap pSsa) throws CPATransferException;
 
   PathFormula normalize(PathFormula pNewPF);
 

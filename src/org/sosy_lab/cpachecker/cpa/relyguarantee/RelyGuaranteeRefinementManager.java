@@ -330,10 +330,10 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
    * @throws InterruptedException
    * @throws CPAException
    */
-  public List<InterpolationDagNode> getDagForElement(ARTElement errorElement, ReachedSet[] reachedSets, Integer errorTid) throws InterruptedException, CPAException {
+  public Pair<List<InterpolationDagNode>,  Multimap<Integer, Integer>> getDagForElement(ARTElement errorElement, ReachedSet[] reachedSets, Integer errorTid) throws InterruptedException, CPAException {
     Map<Pair<Integer, Integer>, InterpolationDagNode> nodeMap = new HashMap<Pair<Integer, Integer>, InterpolationDagNode>();
     Multimap<Integer, Integer> traceMap = HashMultimap.create();
-    return getDagForElement(errorElement, reachedSets, errorTid, nodeMap, traceMap).getFirst();
+    return Pair.of(getDagForElement(errorElement, reachedSets, errorTid, nodeMap, traceMap).getFirst(), traceMap);
   }
 
 
@@ -363,14 +363,14 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     Path cfaPath = computePath(target, reachedSets[tid]);
     List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> path = transformFullPath(cfaPath);
 
-    InterpolationDagNode predecessorNode = null;
-
-    boolean newBranch = false;
+    InterpolationDagNode predecessorNode  = null;
+    boolean predecessorCached             = false;
+    boolean newBranch                     = false;
     // id of the current trace
     Integer traceNo = null;
 
     if (debug){
-      System.out.println("Elements of the path:");
+      System.out.println("Elements on the path:");
     }
 
     for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement> triple : path) {
@@ -386,9 +386,10 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       Pair<Integer,Integer> dagkey = new Pair<Integer,Integer>(tid,artElement.getElementId());
 
       if (nodeMap.containsKey(dagkey)){
-        // use the existing node, which means the formula trace for the target branches at some point
+        // use the existing node,
         node = nodeMap.get(dagkey);
-        newBranch = true;
+
+        predecessorCached = true;
         traceNo = node.getTraceNo();
 
         // if node is a root, then add it to 'roots' list
@@ -402,18 +403,24 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
       } else {
         // create a new node
-
         if (predecessorNode == null){
           // this is the first branch discovered in this thread or new have branched from another thread
           traceNo = traceMap.values().size();
           traceMap.put(tid, traceNo);
-        } else if (newBranch){
-          // branching-out
-          traceNo = traceMap.values().size();
-          traceMap.put(tid, traceNo);
+        } else if (predecessorCached){
+          // create a new branch if the predecessor was cached and it already has some children in the same thread
+          for (InterpolationDagNode child : predecessorNode.getChildren()){
+            if (child.getTid() == tid){
+              traceNo   = traceMap.values().size();
+              traceMap.put(tid, traceNo);
+              newBranch = true;
+            }
+          }
         } else {
           // we continue in the same branch
         }
+
+        predecessorCached = false;
 
         // formulas with 0 primes, becomes 'traceNo' times primed
         adjustmentMap.put(0, traceNo);
@@ -491,7 +498,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         if (newBranch){
           assert traceNo > 0;
           assert predecessorNode != null;
-          newBranch = false;
+          predecessorCached = false;
           PathFormula predPf  = predecessorNode.getPathFormula();
           Integer predTraceNo = predecessorNode.getTraceNo();
 
@@ -531,6 +538,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       }
 
       predecessorNode = node;
+      newBranch       = false;
     }
 
     assert roots.size() <= reachedSets.length;
@@ -660,27 +668,31 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
   private <T> CounterexampleTraceInfo interpolateDagMathsat(ARTElement targetElement,  ReachedSet[] reachedSets, int tid , InterpolatingTheoremProver<T> itpProver, RelyGuaranteeRefinerStatistics stats) throws CPAException, InterruptedException{
     logger.log(Level.FINEST, "Building counterexample trace");
 
-    // get the rely guarantee path for the element
+    // get the DAG representation of the abstractions and env. transitions involved
     stats.formulaTimer.start();
-    List<InterpolationDagNode> roots = getDagForElement(targetElement, reachedSets, tid);
+    Pair<List<InterpolationDagNode>, Multimap<Integer, Integer>> dag = getDagForElement(targetElement, reachedSets, tid);
+    List<InterpolationDagNode> roots = dag.getFirst();
+    Multimap<Integer, Integer> traceMap = dag.getSecond();
+
     assert roots.size() >= 1 && roots.size() <= reachedSets.length;
+
     if (debug){
       dumpDag(roots, dumpDAGfile);
       dagAssertions(roots);
     }
 
-    List<InterpolationBlock> interpolationBlocks = getTreeForElement(targetElement, reachedSets, tid);
-
+    // get the nodes in topological order
+    List<InterpolationDagNode> topNodes = topSortDag(roots);
 
     stats.formulaTimer.stop();
-    stats.formulaNo = interpolationBlocks.size();
+    stats.formulaNo = topNodes.size();
 
     if (debug){
       System.out.println();
-      System.out.println("Interpolation block [trace no, context no, abstraction element]: formulas:");
+      System.out.println("Interpolation formulas abstract element id [thread, trace]: formula");
       int j=0;
-      for (InterpolationBlock ib : interpolationBlocks){
-        System.out.println("\t- blk "+j+" "+ib);
+      for (InterpolationDagNode node : topNodes){
+        System.out.println("\t-id:"+node.getArtElement().getElementId()+" [t"+node.getTid()+", "+node.getTraceNo()+"]: "+node.getPathFormula());
         j++;
       }
     }
@@ -690,9 +702,9 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     // prepare the initial list of formulas
     stats.interpolationTimer.start();
     itpProver.init();
-    List<T> interpolationIds= new Vector<T>(interpolationBlocks.size());
-    for (InterpolationBlock ib : interpolationBlocks){
-      T id = itpProver.addFormula(ib.getPathFormula().getFormula());
+    List<T> interpolationIds= new Vector<T>(topNodes.size());
+    for (InterpolationDagNode node : topNodes){
+      T id = itpProver.addFormula(node.getPathFormula().getFormula());
       interpolationIds.add(id);
     }
 
@@ -701,149 +713,34 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     stats.unsatChecks++;
 
     if (spurious){
-      /* Here interpolants are computed.
-       *
-       * To obtain well-scoped predicates, we use the technique described in Section 5.2 of
-       * "Predicates from Proofs" by Henzinger et al. The prover may not generate the
-       * strongest interpolants, therefore when we switch to an environmental formula trace,
-       * we substitute the part of the main trace covered so far by the the interpolant at
-       * the end of the part.
-       *
-       * In the example below, Psi is the interpolant for (A, B^C^D). Then, the interpolant
-       * for B is computed as (B, Psi^C^D) and for C is (A^B^C, D) or equivalently (B^Psi^C, D).
-       *
-       *                 |
-       *                 B  environmental thread
-       *                 |
-       *                ---
-       *                 |
-       *         --D--|--C--|--A-- main thread
-       *                   Psi
-       */
+      /* Here interpolants are computed.*/
 
       info = new CounterexampleTraceInfo();
-      // the last formula's trace no.
-      int previousPrimedNo = 0;
-      // how shorter is the current formula list compared to the original one
-      int offset = 0;
-      // itpContext stores last interpolants from other traces
-      // map: trace no. -> last interpolant from that trace
-      SortedMap<Integer, Formula> itpContext = new TreeMap<Integer, Formula>();
-      Formula lastItp = fmgr.makeTrue();
-
-      Deque<Integer> outerContext = null;
-      Deque<Integer> previousContext = new ArrayDeque<Integer>();
 
       if (debug){
         System.out.println();
-        System.out.println("Interpolants/predicates after blocks:");
+        System.out.println("Interpolants/predicates:");
       }
 
 
       // block index
       int i=0;
-      while (i<interpolationBlocks.size()-1) {
-
-        InterpolationBlock ib = interpolationBlocks.get(i);
-        Integer primedNo = ib.getTraceNo();
-        Deque<Integer> context = ib.getContext();
-        ARTElement artElement = ib.getArtElement();
+      while (i<topNodes.size()-1) {
+        InterpolationDagNode node = topNodes.get(i);
+        ARTElement artElement = node.getArtElement();
         CFANode loc = AbstractElements.extractLocation(artElement);
 
-        if (i > 0 && lastItp.isFalse()){
-          // if the last interpolant was false, then the interpolants below are empty
-          itpContext.clear();
-          Set<AbstractionPredicate> predicates = new HashSet<AbstractionPredicate>();
+        Formula itp = itpProver.getInterpolant(interpolationIds.subList(0, i+1));
 
-          if (debug){
-            System.out.println("\t- blk "+i+" ["+loc+"]: "+lastItp+",\t"+predicates);
-          }
-
-          info.addPredicatesForRefinement(artElement, predicates);
-        } else if (primedNo == previousPrimedNo){
-          // we continue in the same branch - take the next interpolant from the current formula list
-          lastItp = itpProver.getInterpolant(interpolationIds.subList(itpContext.size(), i-offset+1));
-          Set<AbstractionPredicate> predicates = getPredicates(lastItp);
-
-          if (debug){
-            System.out.println("\t- blk "+i+" ["+loc+"]: "+lastItp+",\t"+predicates);
-          }
-
-          info.addPredicatesForRefinement(artElement, predicates);
-        } else if (primedNo < previousPrimedNo){
-          // we return to a previous trace - the formula list remains the same, but context gets possibly smaller
-
-          // remove all contexts between from previousPrimeNo downto primedNo
-          for (int j=previousPrimedNo; j >= primedNo; j--){
-            itpContext.remove(j);
-          }
-          lastItp = itpProver.getInterpolant(interpolationIds.subList(itpContext.size(), i-offset+1));
-          Set<AbstractionPredicate> predicates = getPredicates(lastItp);
-
-          if (debug){
-            System.out.println("\t- blk "+i+" ["+loc+"]: "+lastItp+",\t"+predicates);
-          }
-
-          info.addPredicatesForRefinement(artElement, predicates);
-        } else {
-          // we switch to an new, possibly parallel, trace - the context gets bigger and the list of formulas for interpolation changes
-
-
-          if (itpEnvSkip && i>0) {
-            // detect branches that may be skipped and generate empty predicates for them
-            Integer skip = skipUselessBranches2(i, interpolationBlocks, previousPrimedNo, lastItp, info, itpProver, interpolationIds, itpContext, offset);
-            if (skip!=null){
-              // skip blocks
-              i = skip;
-              continue;
-            }
-          }
-
-          itpProver.reset();
-          stats.interpolationTimer.stop();
-          stats.interpolationTimer.start();
-          itpProver.init();
-
-          // adjust the context and the offset
-          if (lastItp!=null){
-            itpContext.put(previousPrimedNo, lastItp);
-          }
-          offset = i-itpContext.size();
-
-          // build a new formula list, where interpolants are used instead of covered formulas
-          interpolationIds.clear();
-          for (Formula f : itpContext.values()){
-            T id = itpProver.addFormula(f);
-            interpolationIds.add(id);
-          }
-          for (int k=i; k<interpolationBlocks.size(); k++){
-            Formula f = interpolationBlocks.get(k).getPathFormula().getFormula();
-            T id = itpProver.addFormula(f);
-            interpolationIds.add(id);
-          }
-          assert interpolationIds.size()-itpContext.size()+i == interpolationBlocks.size();
-
-          // get the interpolant
-          spurious = itpProver.isUnsat();
-          assert spurious;
-          stats.unsatChecks++;
-
-          lastItp = itpProver.getInterpolant(interpolationIds.subList(itpContext.size(), i-offset+1));
-          Set<AbstractionPredicate> predicates = getPredicates(lastItp);
-
-          if (debug){
-            System.out.println("\t- blk "+i+" ["+loc+"]: "+lastItp+",\t"+predicates);
-          }
-
-          info.addPredicatesForRefinement(artElement, predicates);
+        Set<AbstractionPredicate> predicates = getDagPredicates(itp, traceMap);
+        if (debug){
+          System.out.println("\t-id:"+artElement.getElementId()+" ["+loc+"]: "+itp+",\t"+predicates);
         }
 
+        info.addPredicatesForRefinement(artElement, predicates);
 
-
-        previousPrimedNo = primedNo;
         i++;
       }
-      assert itpContext.isEmpty();
     }
     else {
       // this is a real bug, notify the user
@@ -855,6 +752,31 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     refStats.cexAnalysisTimer.stop();
 
     return info;
+  }
+
+
+  /**
+   * Return the nodes of the DAG in topogical order.
+   */
+  private List<InterpolationDagNode> topSortDag(List<InterpolationDagNode> roots) {
+
+    Set<InterpolationDagNode> visited = new HashSet<InterpolationDagNode>();
+    List<InterpolationDagNode> topList = new Vector<InterpolationDagNode>();
+    topList.addAll(roots);
+
+    int i=0;
+    while(i<topList.size()){
+      InterpolationDagNode node = topList.get(i);
+      for (InterpolationDagNode child : node.getChildren()){
+        if (!visited.contains(child)){
+          visited.add(child);
+          topList.add(child);
+        }
+      }
+      i++;
+    }
+
+    return topList;
   }
 
   /**
@@ -1191,7 +1113,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
   }
 
   /**
-   * Divides the interpolant into atom formulas un unprimes them.
+   * Divides the interpolant into atom formulas and unprimes them.
    * @param itp
    * @param ib
    * @return
@@ -1219,6 +1141,38 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     }
     return result;
   }
+
+
+  /**
+   * Divides the interpolant into atom formulas and renames them according to traceMap
+   * @param itp
+   * @param traceMap
+   * @return
+   */
+  private Set<AbstractionPredicate> getDagPredicates(Formula itp, Multimap<Integer, Integer> traceMap) {
+
+    Set <AbstractionPredicate> result = new HashSet<AbstractionPredicate>();
+    // TODO maybe handling of non-atomic predicates
+    if (!itp.isTrue()){
+      if (itp.isFalse()){
+        // add false
+        AbstractionPredicate atomPredicate = amgr.makeFalsePredicate();
+        result.add(atomPredicate);
+      }
+      else {
+        Collection<Formula> atoms = null;
+        atoms = fmgr.extractAtoms(itp, splitItpAtoms, false);
+
+        for (Formula atom : atoms){
+          Formula unprimedAtom = fmgr.unprimeFormula(atom);
+          AbstractionPredicate atomPredicate = amgr.makePredicate(unprimedAtom);
+          result.add(atomPredicate);
+        }
+      }
+    }
+    return result;
+  }
+
 
   /**
    * Contains interpolation formula in correct order and a map from interpolant number to ART element.

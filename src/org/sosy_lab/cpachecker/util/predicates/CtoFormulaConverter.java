@@ -200,7 +200,13 @@ public class CtoFormulaConverter {
     Pair<String, Integer> data = var.getPrimed();
     if (data!=null){
       name = data.getFirst();
+
+      Integer tid = null;
+      if (tid != null){
+        name = name + PathFormula.THREAD_SYMBOL + tid;
+      }
     }
+
 
     if (isGlobal) {
       return name;
@@ -1031,7 +1037,7 @@ public class CtoFormulaConverter {
         return makeFreshVariable(NONDET_VARIABLE, ssa);
 
       } else {
-        // TODO for prototing rely-guarantee
+        // TODO for prototyping rely-guarantee
         Pair<String, Integer> data = idExp.getPrimed();
         if (data!=null){
           return makeVariablePrimed(scopedIfNecessary(idExp, function), data.getSecond());
@@ -1420,16 +1426,16 @@ public class CtoFormulaConverter {
   }
 
 
-  public void inject(CFAEdge localEdge, Set<String> globalVariablesSet, int offset, SSAMap pSsa) throws CPATransferException {
+  public void inject(CFAEdge localEdge, Set<String> globalVariablesSet, int offset, Integer tid, SSAMap pSsa) throws CPATransferException {
     if (!(localEdge.getRawAST() instanceof IASTExpressionAssignmentStatement)) {
       return;
     }
     IASTExpression rhs = ((IASTExpressionAssignmentStatement) localEdge.getRawAST()).getRightHandSide();
 
-    inject(rhs, globalVariablesSet, offset, pSsa);
+    inject(rhs, globalVariablesSet, offset, tid, pSsa);
   }
 
-  private void inject(IASTExpression exp, Set<String> globalVariablesSet, int offset, SSAMap pSsa) throws UnrecognizedCFAEdgeException {
+  private void inject(IASTExpression exp, Set<String> globalVariablesSet, int offset, Integer tid, SSAMap pSsa) throws UnrecognizedCFAEdgeException {
     if (exp instanceof IASTIdExpression){
       IASTIdExpression id = (IASTIdExpression) exp;
       String var = id.getName();
@@ -1439,11 +1445,12 @@ public class CtoFormulaConverter {
       String primedName = var+PathFormula.PRIME_SYMBOL+offset;
       int idx = pSsa.getIndex(primedName);
       id.setPrimed(primedName, idx);
+      id.setTid(tid);
     }
     else if (exp instanceof IASTBinaryExpression){
       IASTBinaryExpression bin = (IASTBinaryExpression) exp;
-      inject(bin.getOperand1(), globalVariablesSet, offset, pSsa);
-      inject(bin.getOperand2(), globalVariablesSet, offset, pSsa);
+      inject(bin.getOperand1(), globalVariablesSet, offset, tid, pSsa);
+      inject(bin.getOperand2(), globalVariablesSet, offset, tid, pSsa);
     }
     else if (exp instanceof IASTIntegerLiteralExpression){
       return;

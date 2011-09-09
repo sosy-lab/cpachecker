@@ -102,6 +102,10 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
   @Option(description="check satisfiability when a target state has been found (should be true)")
   private boolean targetStateSatCheck = true;
 
+  @Option(name="refinement.DAGRefinement",
+      description="Extracts interpolants from a DAG representation of threads and environmental transitions.")
+      private boolean DAGRefinement = true;
+
   // statistics
 
   private final LogManager logger;
@@ -246,7 +250,12 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
     // make equalities between the last global values in the local and env. path formula
     PathFormula matchedPF = pathFormulaManager.matchPaths(localPF, primedEnvPF, cpa.globalVariablesSet, offset);
 
-    pathFormulaManager.inject(edge.getLocalEdge(), cpa.globalVariablesSet, offset, primedEnvPF.getSsa());
+    if (this.DAGRefinement){
+      pathFormulaManager.inject(edge.getLocalEdge(), cpa.globalVariablesSet, offset, cpa.getThreadId(), primedEnvPF.getSsa());
+    } else {
+      pathFormulaManager.inject(edge.getLocalEdge(), cpa.globalVariablesSet, offset, null, primedEnvPF.getSsa());
+    }
+
     // apply the strongest postcondition
     PathFormula finalPF = pathFormulaManager.makeAnd(matchedPF, edge.getLocalEdge());
 
@@ -273,7 +282,12 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
       // make equalities between the last global values in the local and env. path formula
       PathFormula matchedPF = pathFormulaManager.matchPaths(localPF, primedEnvPF, cpa.globalVariablesSet, i+1);
 
-      pathFormulaManager.inject(rgEdge.getLocalEdge(), cpa.globalVariablesSet, i+1, primedEnvPF.getSsa());
+      if (DAGRefinement){
+        pathFormulaManager.inject(rgEdge.getLocalEdge(), cpa.globalVariablesSet, i+1, cpa.getThreadId(), primedEnvPF.getSsa());
+      } else {
+        pathFormulaManager.inject(rgEdge.getLocalEdge(), cpa.globalVariablesSet, i+1, null, primedEnvPF.getSsa());
+      }
+
       // apply the strongest postcondition
       PathFormula appPF = pathFormulaManager.makeAnd(matchedPF, rgEdge.getLocalEdge());
       // merge path formulas

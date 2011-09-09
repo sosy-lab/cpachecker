@@ -247,4 +247,6 @@ public interface FormulaManager {
     public Formula unprimeFormula(Formula pUnprimedAtom);
 
     public Formula adjustedPrimedNo(Formula pFormula, Map<Integer, Integer> pPrimedMap);
+
+
 }

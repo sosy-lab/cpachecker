@@ -38,7 +38,8 @@ public class PathFormula {
   // how many times a formula has been primed
   private int primedNo;
   // for RelyGuarantee
-  public static final String PRIME_SYMBOL = "^";
+  public static final String PRIME_SYMBOL   = "^";
+  public static final String THREAD_SYMBOL  = "$";
 
 
 
