@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.util.predicates.mathsat;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static mathsat.api.*;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager.*;
+import static org.sosy_lab.cpachecker.util.predicates.mathsat.NativeApi.*;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -141,7 +141,7 @@ public class MathsatTheoremProver implements TheoremProver {
   /**
    * callback used to build the predicate abstraction of a formula
    */
-  static class MathsatAllSatCallback implements mathsat.AllSatModelCallback, TheoremProver.AllSatResult {
+  static class MathsatAllSatCallback implements NativeApi.AllSatModelCallback, TheoremProver.AllSatResult {
     private final AbstractionManager amgr;
     private final RegionManager rmgr;
 

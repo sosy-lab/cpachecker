@@ -34,7 +34,7 @@ public class MathsatFormula implements Formula {
     private final long msatTerm;
 
     public MathsatFormula(long t) {
-        if (mathsat.api.MSAT_ERROR_TERM(t)) {
+        if (NativeApi.MSAT_ERROR_TERM(t)) {
           throw new IllegalArgumentException("Error term is not a valid formula");
         }
         msatTerm = t;
@@ -42,17 +42,17 @@ public class MathsatFormula implements Formula {
 
     @Override
     public boolean isFalse() {
-        return mathsat.api.msat_term_is_false(msatTerm) != 0;
+        return NativeApi.msat_term_is_false(msatTerm) != 0;
     }
 
     @Override
     public boolean isTrue() {
-        return mathsat.api.msat_term_is_true(msatTerm) != 0;
+        return NativeApi.msat_term_is_true(msatTerm) != 0;
     }
 
     @Override
     public String toString() {
-        return mathsat.api.msat_term_repr(msatTerm);
+        return NativeApi.msat_term_repr(msatTerm);
     }
 
     @Override

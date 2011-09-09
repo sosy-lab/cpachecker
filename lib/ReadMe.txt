@@ -76,7 +76,7 @@ with the Eclipse PDE wizard!
   Apache License 2.0: ../License_Apache-2.0.txt
   Used for dumping verification result as JSON for report builder.
 
-- mathsat.jar, libmathsatj.so: Mathsat4
+- libmathsatj.so: Mathsat4
   http://mathsat4.disi.unitn.it/
   CPAchecker-specific license: license-libmathsatj.txt
   SMT-solver for predicate analysis.
