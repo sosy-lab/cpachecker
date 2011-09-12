@@ -30,6 +30,9 @@ import java.util.Map;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Multimap;
+
 
 
 
@@ -247,6 +250,16 @@ public interface FormulaManager {
     public Formula unprimeFormula(Formula pUnprimedAtom);
 
     public Formula adjustedPrimedNo(Formula pFormula, Map<Integer, Integer> pPrimedMap);
+
+    public Formula extractNonmodularFormula(Formula pFr, Integer pTid, Multimap<Integer, Integer> pTraceMap);
+
+    public Map<String, Integer> getNonModularData(Formula pSymbolicAtom);
+
+    public List<Formula> nonModularInstances(Formula formula, ListMultimap<String, Integer> pEnvMap);
+
+    public Formula primeFormula(Formula pFormula, int pOffset, SSAMap pSsa);
+
+
 
 
 }

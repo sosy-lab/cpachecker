@@ -25,10 +25,14 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -38,8 +42,12 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
-
+@Options(prefix="cpa.relyguarantee")
 public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustment {
+
+  @Option(name="refinement.DAGRefinement",
+      description="Extracts interpolants from a DAG representation of threads and environmental transitions.")
+      private boolean DAGRefinement = true;
 
   private RelyGuaranteeCPA cpa;
 
@@ -49,6 +57,11 @@ public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustme
 
   public RelyGuaranteePrecisionAdjustment(RelyGuaranteeCPA pCpa) {
     super(pCpa.getLogger(), pCpa.getPredicateManager(), pCpa.getPathFormulaManager() );
+    try {
+      pCpa.getConfiguration().inject(this, RelyGuaranteePrecisionAdjustment.class);
+    } catch (InvalidConfigurationException e) {
+      e.printStackTrace();
+    }
     this.cpa = pCpa;
   }
 
@@ -104,7 +117,7 @@ public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustme
 
     // compute new abstraction
     AbstractionFormula newAbstractionFormula = computeAbstraction(
-        abstractionFormula, pathFormula, preds, loc);
+        abstractionFormula, pathFormula, preds, loc, element.getPrimedMap());
 
     computingAbstractionTime.stop();
 
@@ -123,9 +136,14 @@ public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustme
     return new RelyGuaranteeAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula, element.getParentEdge(),this.cpa.getThreadId(), element.getPrimedMap());
   }
 
-  @Override
-  protected AbstractionFormula computeAbstraction(AbstractionFormula pAbstractionFormula, PathFormula pPathFormula, Collection<AbstractionPredicate> pPreds, CFANode node) {
-    return formulaManager.buildAbstraction(pAbstractionFormula, pPathFormula, pPreds);
+
+  protected AbstractionFormula computeAbstraction(AbstractionFormula pAbstractionFormula, PathFormula pPathFormula, Collection<AbstractionPredicate> pPreds, CFANode node, Map<Integer, RelyGuaranteeCFAEdge> pMap) {
+    if (DAGRefinement){
+      return formulaManager.buildNonModularAbstraction(pAbstractionFormula, pPathFormula, pPreds, pMap);
+    } else {
+      return formulaManager.buildAbstraction(pAbstractionFormula, pPathFormula, pPreds);
+    }
+
   }
 
   @Override

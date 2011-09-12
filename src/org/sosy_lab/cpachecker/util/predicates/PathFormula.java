@@ -47,6 +47,7 @@ public class PathFormula {
   //private static Pattern primeRegex = Pattern.compile("(.+)"+PRIME_SYMBOL+"(\\d+)$");
   // regural expression that groups proper variable name and the number of primes. Works on uninstantiated variables.
   private static Pattern primeRegex = Pattern.compile("(.+)\\^(\\d+)$");
+  private static Pattern nonModularRegex = Pattern.compile("(.+)\\$(\\d+)$");
 
   public PathFormula(Formula pf, SSAMap ssa, int pLength) {
     this.formula = pf;
@@ -122,6 +123,25 @@ public class PathFormula {
     }
 
     return new Pair<String, Integer>(bareName, currentPrime);
+  }
+
+
+
+  // returns (unprimed name, number of primes)
+  public static Pair<String, Integer> getNonModularData(String pFirst) {
+    Integer foreignThread;
+    String bareName;
+    Matcher m = nonModularRegex.matcher(pFirst);
+    if(m.find()) {
+      bareName = m.group(1);
+      String currentPrimeStr = m.group(2);
+      foreignThread = Integer.parseInt(currentPrimeStr);
+    } else {
+      foreignThread = null;
+      bareName = pFirst;
+    }
+
+    return new Pair<String, Integer>(bareName, foreignThread);
   }
 
   // primes a variable given number of times

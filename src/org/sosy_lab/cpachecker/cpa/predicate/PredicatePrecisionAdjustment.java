@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
+
 public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
   // statistics

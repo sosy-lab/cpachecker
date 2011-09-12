@@ -87,5 +87,7 @@ public interface PathFormulaManager {
 
   PathFormula adjustPrimedNo(PathFormula pathFormula, Map<Integer, Integer> primedMap);
 
+  PathFormula primePathFormula(PathFormula pEnvPF, int pOffset, SSAMap pSsa);
+
 
 }

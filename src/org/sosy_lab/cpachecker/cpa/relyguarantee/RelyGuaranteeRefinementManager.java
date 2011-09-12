@@ -570,16 +570,16 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       // check if the traceNo is OK
       if (traceNo > 0){
         if (!pf.getFormula().isFalse() && !pf.getFormula().isTrue() && !pf.toString().contains("^"+traceNo)){
-          System.out.println("DEBUG: node id:"+node.getArtElement().getElementId()+" tn:"+node.getTraceNo()+" pf "+pf);
+          System.out.println("WARNING: node id:"+node.getArtElement().getElementId()+" tn:"+node.getTraceNo()+" pf "+pf);
         }
-        assert pf.getFormula().isFalse() || pf.getFormula().isTrue() || pf.toString().contains("^"+traceNo);
+        //assert pf.getFormula().isFalse() || pf.getFormula().isTrue() || pf.toString().contains("^"+traceNo);
         // check if traceNo appears in the children of node
         for (InterpolationDagNode child : node.getChildren()){
           if (!child.getPathFormula().toString().contains("^"+traceNo)){
-            System.out.println("DEBUG: node id:"+node.getArtElement().getElementId()+" tn:"+node.getTraceNo()+" child id:"+child.getArtElement().getElementId()+" tn:"+child.getTraceNo()+" child pf"+child.getPathFormula());
+            System.out.println("WARNING: node id:"+node.getArtElement().getElementId()+" tn:"+node.getTraceNo()+" child id:"+child.getArtElement().getElementId()+" tn:"+child.getTraceNo()+" child pf"+child.getPathFormula());
           }
           PathFormula childPf = child.getPathFormula();
-          assert childPf.getFormula().isFalse() || childPf.getFormula().isTrue() || childPf.toString().contains("^"+traceNo);
+          //assert childPf.getFormula().isFalse() || childPf.getFormula().isTrue() || childPf.toString().contains("^"+traceNo);
         }
       }
       // check parent - children relationships
@@ -720,7 +720,10 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     }
 
     // get interpolants in the order of topological sort
-    for (InterpolationDagNode node : topNodes){
+    int i=0;
+    while(i<topNodes.size()){
+      InterpolationDagNode node = topNodes.get(i);
+
       // get formula list, where
       Pair<List<InterpolationDagNode>, Integer> pair = parentSortDag(roots, node);
 
@@ -737,7 +740,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       stats.unsatChecks++;
 
       if (!spurious){
-        // feasbile error path
+        // Feasible error path
         assert info == null;
         info = new CounterexampleTraceInfo(false);
         itpProver.reset();
@@ -755,7 +758,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         int idx = pair.getSecond();
 
         Formula itp = itpProver.getInterpolant(interpolationIds.subList(0, idx+1));
-        Set<AbstractionPredicate> predicates = getDagPredicates(itp, traceMap);
+        Set<AbstractionPredicate> predicates = getDagPredicates(itp, node.getTid(), traceMap);
 
         itpProver.reset();
         stats.interpolationTimer.stop();
@@ -770,7 +773,12 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
         info.addPredicatesForRefinement(artElement, predicates);
 
-        roots = replaceDag(roots, node, itp);
+        if (itp.isFalse()){
+          i = topNodes.size();
+        } else {
+          roots = replaceDag(roots, node, itp);
+        }
+        i++;
       }
     }
 
@@ -779,8 +787,16 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     return info;
   }
 
-
   List<InterpolationDagNode> replaceDag(List<InterpolationDagNode> roots, InterpolationDagNode node, Formula itp){
+    // replace node by itp
+    PathFormula oldPf = node.getPathFormula();
+    PathFormula newPf = new PathFormula(itp, oldPf.getSsa(), oldPf.getLength());
+    node.setPathFormula(newPf);
+
+    return roots;
+  }
+
+  List<InterpolationDagNode> replaceDag2(List<InterpolationDagNode> roots, InterpolationDagNode node, Formula itp){
     // get parents
     List<InterpolationDagNode> parents = new Vector<InterpolationDagNode>();
     parents.addAll(node.getParents());
@@ -813,8 +829,10 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     // exchange roots
     List<InterpolationDagNode> newRoots = new Vector<InterpolationDagNode>(roots.size());
     for (InterpolationDagNode root : roots){
-      if (parents.contains(root) && !newRoots.contains(node)){
-        newRoots.add(node);
+      if (parents.contains(root)){
+        if (!newRoots.contains(node)){
+          newRoots.add(node);
+        }
       } else {
         newRoots.add(root);
       }
@@ -1319,7 +1337,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
    * @param traceMap
    * @return
    */
-  private Set<AbstractionPredicate> getDagPredicates(Formula itp, Multimap<Integer, Integer> traceMap) {
+  private Set<AbstractionPredicate> getDagPredicates(Formula itp, Integer tid,  Multimap<Integer, Integer> traceMap) {
 
     Set <AbstractionPredicate> result = new HashSet<AbstractionPredicate>();
     // TODO maybe handling of non-atomic predicates
@@ -1333,9 +1351,9 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         Collection<Formula> atoms = null;
         atoms = fmgr.extractAtoms(itp, splitItpAtoms, false);
 
-        for (Formula atom : atoms){
-          Formula unprimedAtom = fmgr.unprimeFormula(atom);
-          AbstractionPredicate atomPredicate = amgr.makePredicate(unprimedAtom);
+        for (Formula fr : atoms){
+          Formula atom = fmgr.extractNonmodularFormula(fr, tid, traceMap);
+          AbstractionPredicate atomPredicate = amgr.makePredicate(atom);
           result.add(atomPredicate);
         }
       }

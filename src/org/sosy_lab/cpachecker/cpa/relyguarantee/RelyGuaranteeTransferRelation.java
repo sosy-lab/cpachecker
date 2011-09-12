@@ -246,7 +246,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
     PathFormula envPF = edge.getPathFormula();
     // prime the env. path formula so it does not collide with the local path formula
     int offset = localPF.getPrimedNo() + 1;
-    PathFormula primedEnvPF = pathFormulaManager.primePathFormula(envPF, offset);
+    PathFormula primedEnvPF = pathFormulaManager.primePathFormula(envPF, offset, localPF.getSsa());
     // make equalities between the last global values in the local and env. path formula
     PathFormula matchedPF = pathFormulaManager.matchPaths(localPF, primedEnvPF, cpa.globalVariablesSet, offset);
 
@@ -278,7 +278,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
       RelyGuaranteeCFAEdge rgEdge = edge.getEnvEdges().get(i);
       PathFormula envPF = rgEdge.getPathFormula();
       // prime the env. path formula so it does not collide with the local path formula
-      PathFormula primedEnvPF = pathFormulaManager.primePathFormula(envPF, i+1);
+      PathFormula primedEnvPF = pathFormulaManager.primePathFormula(envPF, i+1, localPF.getSsa());
       // make equalities between the last global values in the local and env. path formula
       PathFormula matchedPF = pathFormulaManager.matchPaths(localPF, primedEnvPF, cpa.globalVariablesSet, i+1);
 
@@ -296,7 +296,6 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
       }
       else {
         combinedPF = pathFormulaManager.makeRelyGuaranteeOr(combinedPF, appPF);
-
       }
     }
 

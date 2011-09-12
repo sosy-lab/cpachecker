@@ -227,5 +227,11 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
 
+  @Override
+  public PathFormula primePathFormula(PathFormula pEnvPF, int pOffset,   SSAMap pSsa) {
+    return delegate.primePathFormula(pEnvPF, pOffset, pSsa);
+  }
+
+
 
 }
