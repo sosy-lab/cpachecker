@@ -30,6 +30,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -40,8 +41,12 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvironment;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-@Options(prefix="rely-guarantee cegar")
+
+@Options(prefix="cpa.relyguarantee.refinement")
 public class RelyGuaranteeCEGARAlgorithm implements ConcurrentAlgorithm,  StatisticsProvider {
+
+  @Option(description="If true, the analysis continues in the previous thread. If false, the first thread is analysed first.")
+  private boolean continueThread = false;
 
   public class RelyGuaranteeCEGARStatistics implements Statistics {
 
@@ -82,7 +87,7 @@ public class RelyGuaranteeCEGARAlgorithm implements ConcurrentAlgorithm,  Statis
     this.logger = pLogger;
     this.stats  = new RelyGuaranteeCEGARStatistics();
 
-
+    pConfig.inject(this, RelyGuaranteeCEGARAlgorithm.class);
     // TODO for now only rg refiner is available
     refiner = RelyGuaranteeRefiner.getInstance(algorithm.getCPAs(), pConfig);
   }
@@ -105,6 +110,7 @@ public class RelyGuaranteeCEGARAlgorithm implements ConcurrentAlgorithm,  Statis
       System.out.println();
       System.out.println("------------------------ Rely-guarantee algorithm - run "+refinmentNo+" -------------------------");
       stats.totalRGAlg.start();
+      runThread = continueThread ? runThread : 0;
       runThread = algorithm.run(reachedSets, runThread);
       stats.totalRGAlg.stop();
       algorithm.printStatitics();
