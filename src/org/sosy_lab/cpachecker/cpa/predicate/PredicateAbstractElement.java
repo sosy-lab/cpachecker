@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
@@ -164,7 +166,7 @@ public abstract class PredicateAbstractElement implements AbstractElement, Parti
   private final PathFormula pathFormula;
 
   /** The abstraction which is updated only on abstraction locations */
-  private final AbstractionFormula abstractionFormula;
+  private AbstractionFormula abstractionFormula;
 
   private PredicateAbstractElement(PathFormula pf, AbstractionFormula a) {
     this.pathFormula = pf;
@@ -183,6 +185,21 @@ public abstract class PredicateAbstractElement implements AbstractElement, Parti
 
   public AbstractionFormula getAbstractionFormula() {
     return abstractionFormula;
+  }
+
+  /**
+   * Replace the abstraction formula part of this element.
+   * THIS IS POTENTIALLY UNSOUND!
+   *
+   * Call this function only during refinement if you also change all successor
+   * elements and consider the coverage relation.
+   */
+  void setAbstraction(AbstractionFormula pAbstractionFormula) {
+    if (isAbstractionElement()) {
+      abstractionFormula = checkNotNull(pAbstractionFormula);
+    } else {
+      throw new UnsupportedOperationException("Changing abstraction formula is only supported for abstraction elements");
+    }
   }
 
   public PathFormula getPathFormula() {

@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.collect.Iterables.getOnlyElement;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
 
 import java.util.Collection;
@@ -36,19 +35,29 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
+import com.google.common.collect.Iterables;
+
 public class McMillanRefiner extends AbstractInterpolationBasedRefiner {
 
+  private int i = 0;
+
   private final RegionManager regionManager;
+  private final PredicateAbstractionManager abstractionManager;
 
   public McMillanRefiner(final ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException, CPAException {
     super(pCpa);
 
     regionManager = predicateCpa.getRegionManager();
+    abstractionManager = predicateCpa.getPredicateManager();
   }
 
   @Override
@@ -70,17 +79,21 @@ public class McMillanRefiner extends AbstractInterpolationBasedRefiner {
       Collection<AbstractionPredicate> localPreds = newPreds.get(i++);
 
       if (localPreds.isEmpty()) {
-
         // no predicates on the beginning of the path means the interpolant is true,
         // do nothing
         continue;
       }
+      if (localPreds.size() > 1) {
+        throw new CPAException("Lazy Interpolation does not work with atomic predicates, set cpa.predicate.refinement.atomicPredicates=false");
+      }
 
-      if ((localPreds.size() == 1)
-          && getOnlyElement(localPreds).getSymbolicAtom().isFalse()) {
+      AbstractionPredicate pred = Iterables.getOnlyElement(localPreds);
+
+      if (pred.getSymbolicAtom().isFalse()) {
 
         // we have reached the part of the path that is infeasible
         root = interpolationPoint.getFirst();
+        pReached.replaceWithBottom(root);
         break;
       }
 
@@ -89,35 +102,27 @@ public class McMillanRefiner extends AbstractInterpolationBasedRefiner {
 
       assert e.isAbstractionElement();
 
-      Region abs = e.getAbstractionFormula().asRegion();
-      Region newAbs = abs;
+      Region oldAbs = e.getAbstractionFormula().asRegion();
+      Region newAbs = regionManager.makeAnd(oldAbs, pred.getAbstractVariable());
 
-      boolean newPred = false;
+      if (!newAbs.equals(oldAbs)) {
+        Formula symbNewAbs = abstractionManager.toConcrete(newAbs, e.getPathFormula().getSsa());
+        e.setAbstraction(new AbstractionFormula(newAbs, symbNewAbs, e.getAbstractionFormula().getBlockFormula()));
 
-      for (AbstractionPredicate p : localPreds) {
-        Region f = p.getAbstractVariable();
-
-        if (!regionManager.entails(abs, f)) {
-          newPred = true;
-          newAbs = regionManager.makeAnd(newAbs, f);
-        }
-      }
-
-      if (newPred) {
-//        e.setAbstraction(newAbs);
         pReached.removeCoverage(ae);
 
-        if (pReached.checkForCoveredBy(ae)) {
-          // this element is now covered by another element
-          // the whole subtree has been removed
-
-          return;
-        }
-        throw new UnsupportedOperationException("TODO");
+        // TODO not sure why this was here
+//        if (pReached.checkForCoveredBy(ae)) {
+//          // this element is now covered by another element
+//          // the whole subtree has been removed
+//
+//          return;
+//        }
       }
     }
-    assert root != null : "Infeasible path without interpolant false at some time cannot exist";
 
-    pReached.replaceWithBottom(root);
+    ARTElement lastElement = pPath.get(pPath.size()-1).getFirst();
+    assert !pReached.asReachedSet().contains(lastElement);
+    if (++this.i == 10) throw new RefinementFailedException(Reason.InterpolationFailed, null);
   }
 }
