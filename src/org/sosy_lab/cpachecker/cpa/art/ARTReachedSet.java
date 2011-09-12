@@ -53,6 +53,7 @@ import com.google.common.collect.ImmutableList;
 public class ARTReachedSet {
 
   private final ReachedSet mReached;
+  private final UnmodifiableReachedSet mUnmodifiableReached;
   private final ARTCPA mCpa;
 
   public ARTReachedSet(ReachedSet pReached) {
@@ -61,23 +62,12 @@ public class ARTReachedSet {
 
   public ARTReachedSet(ReachedSet pReached, ARTCPA pCpa) {
     mReached = checkNotNull(pReached);
+    mUnmodifiableReached = new UnmodifiableReachedSetWrapper(mReached);
     mCpa = pCpa;
   }
 
   public UnmodifiableReachedSet asReachedSet() {
-    return new UnmodifiableReachedSetWrapper(mReached);
-  }
-
-  public ARTElement getFirstElement() {
-    return (ARTElement)mReached.getFirstElement();
-  }
-
-  public ARTElement getLastElement() {
-    return (ARTElement)mReached.getLastElement();
-  }
-
-  public Precision getPrecision(ARTElement e) {
-    return mReached.getPrecision(e);
+    return mUnmodifiableReached;
   }
 
   /**
@@ -121,7 +111,7 @@ public class ARTReachedSet {
    * @return The adapted precision.
    */
   private Precision adaptPrecision(ARTElement pARTElement, Precision pNewPrecision) {
-    Precision lOldPrecision = getPrecision(pARTElement);
+    Precision lOldPrecision = mReached.getPrecision(pARTElement);
 
     return Precisions.replaceByType(lOldPrecision, pNewPrecision, pNewPrecision.getClass());
   }
@@ -317,21 +307,6 @@ public class ARTReachedSet {
     @Override
     public boolean checkForCoveredBy(ARTElement pElement) throws CPAException {
       return delegate.checkForCoveredBy(pElement);
-    }
-
-    @Override
-    public ARTElement getFirstElement() {
-      return delegate.getFirstElement();
-    }
-
-    @Override
-    public ARTElement getLastElement() {
-      return delegate.getLastElement();
-    }
-
-    @Override
-    public Precision getPrecision(ARTElement pE) {
-      return delegate.getPrecision(pE);
     }
 
     @Override

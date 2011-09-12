@@ -38,6 +38,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -79,7 +80,8 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner {
     precisionUpdate.start();
 
     // get previous precision
-    Precision oldPrecision = pReached.getPrecision(pReached.getLastElement());
+    UnmodifiableReachedSet reached = pReached.asReachedSet();
+    Precision oldPrecision = reached.getPrecision(reached.getLastElement());
     PredicatePrecision oldPredicatePrecision = Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
     if (oldPredicatePrecision == null) {
       throw new IllegalStateException("Could not find the PredicatePrecision for the error element");

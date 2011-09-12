@@ -794,7 +794,7 @@ public class ABMTransferRelation implements TransferRelation {
           //this is a summarized call and thus an direct edge could not be found
           //we have the transfer function to handle this case, as our reachSet is wrong
           //(we have to use the cached ones)
-          ARTElement innerTree = computeCounterexampleSubgraph(parent, reachedSet.getPrecision(parent), elementsMap.get(currentElement), pPathElementToReachedElement);
+          ARTElement innerTree = computeCounterexampleSubgraph(parent, reachedSet.asReachedSet().getPrecision(parent), elementsMap.get(currentElement), pPathElementToReachedElement);
           if(innerTree == null) {
             removeSubtree(reachedSet, parent);
             return null;
