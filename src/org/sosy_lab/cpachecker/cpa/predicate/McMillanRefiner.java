@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
@@ -88,7 +87,7 @@ public class McMillanRefiner extends AbstractInterpolationBasedRefiner {
       ARTElement ae = interpolationPoint.getFirst();
       PredicateAbstractElement e = extractElementByType(ae, PredicateAbstractElement.class);
 
-      assert e instanceof AbstractionElement;
+      assert e.isAbstractionElement();
 
       Region abs = e.getAbstractionFormula().asRegion();
       Region newAbs = abs;

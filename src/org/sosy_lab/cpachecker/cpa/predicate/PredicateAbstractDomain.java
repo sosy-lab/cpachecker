@@ -29,7 +29,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 @Options(prefix="cpa.predicate")
@@ -71,7 +70,7 @@ public class PredicateAbstractDomain implements AbstractDomain {
   ++stats.numCoverageChecks;
      */
 
-    if (e1 instanceof AbstractionElement && e2 instanceof AbstractionElement) {
+    if (e1.isAbstractionElement() && e2.isAbstractionElement()) {
       bddCoverageCheckTimer.start();
 
       // if e1's predicate abstraction entails e2's pred. abst.
@@ -80,7 +79,7 @@ public class PredicateAbstractDomain implements AbstractDomain {
       bddCoverageCheckTimer.stop();
       return result;
 
-    } else if (e2 instanceof AbstractionElement) {
+    } else if (e2.isAbstractionElement()) {
       if (symbolicCoverageCheck) {
         symbolicCoverageCheckTimer.start();
 
@@ -93,7 +92,7 @@ public class PredicateAbstractDomain implements AbstractDomain {
         return false;
       }
 
-    } else if (e1 instanceof AbstractionElement) {
+    } else if (e1.isAbstractionElement()) {
       return false;
 
     } else {

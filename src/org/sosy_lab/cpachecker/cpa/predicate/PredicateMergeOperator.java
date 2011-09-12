@@ -30,7 +30,6 @@ import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
@@ -64,7 +63,7 @@ public class PredicateMergeOperator implements MergeOperator {
     // this will be the merged element
     PredicateAbstractElement merged;
 
-    if (elem1 instanceof AbstractionElement || elem2 instanceof AbstractionElement) {
+    if (elem1.isAbstractionElement() || elem2.isAbstractionElement()) {
       // we don't merge if this is an abstraction location
       merged = elem2;
     } else {
@@ -82,7 +81,7 @@ public class PredicateMergeOperator implements MergeOperator {
 
         logger.log(Level.ALL, "New path formula is", pathFormula);
 
-        merged = new PredicateAbstractElement(pathFormula, elem1.getAbstractionFormula());
+        merged = PredicateAbstractElement.nonAbstractionElement(pathFormula, elem1.getAbstractionFormula());
 
         // now mark elem1 so that coverage check can find out it was merged
         elem1.setMergedInto(merged);

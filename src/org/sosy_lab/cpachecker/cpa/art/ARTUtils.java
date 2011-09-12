@@ -155,8 +155,8 @@ public class ARTUtils {
         } else if (currentElement.isTarget()) {
           color = "red";
         } else {
-          AbstractElement abselem = AbstractElements.extractElementByType(currentElement, PredicateAbstractElement.AbstractionElement.class);
-          if (abselem != null) {
+          PredicateAbstractElement abselem = AbstractElements.extractElementByType(currentElement, PredicateAbstractElement.class);
+          if (abselem != null && abselem.isAbstractionElement()) {
             color = "blue";
           } else {
             color = "white";

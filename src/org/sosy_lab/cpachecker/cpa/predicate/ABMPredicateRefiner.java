@@ -170,7 +170,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
         assert currentFormulas.size() >= 1;
 
         PredicateAbstractElement predicateElement = extractElementByType(currentElement, PredicateAbstractElement.class);
-        if (predicateElement instanceof PredicateAbstractElement.AbstractionElement) {
+        if (predicateElement.isAbstractionElement()) {
           // abstraction element
           PathFormula currentFormula = getOnlyElement(currentFormulas);
           abstractionFormulas.add(currentFormula.getFormula());

@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.cpa.assume.ConstrainedAssumeElement;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonPredicateElement;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonElement;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.ComputeAbstractionElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -177,7 +176,7 @@ public class PredicateTransferRelation implements TransferRelation {
 
     // create the new abstract element for non-abstraction location
     return Collections.singleton(
-        new PredicateAbstractElement(pathFormula, abstractionFormula));
+        PredicateAbstractElement.nonAbstractionElement(pathFormula, abstractionFormula));
   }
 
   /**
@@ -256,7 +255,7 @@ public class PredicateTransferRelation implements TransferRelation {
     try {
 
       PredicateAbstractElement element = (PredicateAbstractElement)pElement;
-      if (element instanceof AbstractionElement) {
+      if (element.isAbstractionElement()) {
         // can't do anything with this object because the path formula of
         // abstraction elements has to stay "true"
         return Collections.singleton(element);
@@ -358,8 +357,8 @@ public class PredicateTransferRelation implements TransferRelation {
       CFANode loc = ((ComputeAbstractionElement) oldElement).getLocation();
       return new ComputeAbstractionElement(newPathFormula, oldElement.getAbstractionFormula(), loc);
     } else {
-      assert !(oldElement instanceof AbstractionElement);
-      return new PredicateAbstractElement(newPathFormula, oldElement.getAbstractionFormula());
+      assert !oldElement.isAbstractionElement();
+      return PredicateAbstractElement.nonAbstractionElement(newPathFormula, oldElement.getAbstractionFormula());
     }
   }
 
@@ -385,7 +384,7 @@ public class PredicateTransferRelation implements TransferRelation {
 
       PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula);
 
-      return new PredicateAbstractElement.AbstractionElement(newPathFormula, abs);
+      return PredicateAbstractElement.abstractionElement(newPathFormula, abs);
     }
   }
 }

@@ -77,7 +77,7 @@ public class ABMPredicateReducer implements Reducer {
 
     PredicateAbstractElement predicateElement = (PredicateAbstractElement)pExpandedElement;
 
-    if (!(predicateElement instanceof PredicateAbstractElement.AbstractionElement)) {
+    if (!predicateElement.isAbstractionElement()) {
       return predicateElement;
     }
 
@@ -104,7 +104,7 @@ public class ABMPredicateReducer implements Reducer {
       AbstractionFormula newAbstraction =
             new AbstractionFormula(newRegion, newFormula, oldAbstraction.getBlockFormula());
 
-      return new PredicateAbstractElement.AbstractionElement(pathFormula, newAbstraction);
+      return PredicateAbstractElement.abstractionElement(pathFormula, newAbstraction);
     } finally {
       reduceTimer.stop();
     }
@@ -118,7 +118,7 @@ public class ABMPredicateReducer implements Reducer {
     PredicateAbstractElement rootElement = (PredicateAbstractElement)pRootElement;
     PredicateAbstractElement reducedElement = (PredicateAbstractElement)pReducedElement;
 
-    if (!(reducedElement instanceof PredicateAbstractElement.AbstractionElement)) { return reducedElement; }
+    if (!reducedElement.isAbstractionElement()) { return reducedElement; }
     //Note: ABM might introduce some additional abstraction if root region is not a cube
     expandTimer.start();
     try {
@@ -163,7 +163,7 @@ public class ABMPredicateReducer implements Reducer {
       AbstractionFormula newAbstractionFormula =
           new AbstractionFormula(expandedRegion, newFormula, blockFormula);
 
-      return new PredicateAbstractElement.AbstractionElement(newPathFormula,
+      return PredicateAbstractElement.abstractionElement(newPathFormula,
           newAbstractionFormula);
     } finally {
       expandTimer.stop();

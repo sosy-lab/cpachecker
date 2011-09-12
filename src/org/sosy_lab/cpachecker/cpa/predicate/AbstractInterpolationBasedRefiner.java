@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
 import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.art.Path;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -178,7 +177,7 @@ abstract class AbstractInterpolationBasedRefiner extends AbstractARTBasedRefiner
 
     for (ARTElement ae : skip(transform(pPath, Pair.<ARTElement>getProjectionToFirst()), 1)) {
       PredicateAbstractElement pe = extractElementByType(ae, PredicateAbstractElement.class);
-      if (pe instanceof AbstractionElement) {
+      if (pe.isAbstractionElement()) {
         CFANode loc = AbstractElements.extractLocation(ae);
         result.add(Pair.of(ae, loc));
       }
@@ -192,7 +191,7 @@ abstract class AbstractInterpolationBasedRefiner extends AbstractARTBasedRefiner
                 = new Function<PredicateAbstractElement, Formula>() {
                     @Override
                     public Formula apply(PredicateAbstractElement e) {
-                      assert e instanceof AbstractionElement;
+                      assert e.isAbstractionElement();
                       return e.getAbstractionFormula().getBlockFormula();
                     };
                   };
