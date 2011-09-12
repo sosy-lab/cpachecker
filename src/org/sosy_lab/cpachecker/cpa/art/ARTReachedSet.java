@@ -184,6 +184,7 @@ public class ARTReachedSet {
 
     workList.addAll(e.getChildren());
     removedElements.add(e);
+    removeCoverage(e);
     e.removeFromART();
 
     while (!workList.isEmpty()) {
@@ -194,16 +195,14 @@ public class ARTReachedSet {
         if (removedElements.add(currentElement)) {
           // not yet handled
           workList.addAll(currentElement.getChildren());
+          removeCoverage(currentElement);
+
           currentElement.removeFromART();
         }
       }
     }
 
     mReached.removeAll(removedElements);
-
-    for (ARTElement removedElement : removedElements) {
-      removeCoverage(removedElement);
-    }
   }
 
   /**

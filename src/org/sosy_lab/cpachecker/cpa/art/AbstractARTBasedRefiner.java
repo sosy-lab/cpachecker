@@ -176,6 +176,8 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     workList.add(pReached.getFirstElement());
     while (!workList.isEmpty()) {
       ARTElement currentElement = (ARTElement)workList.removeFirst();
+      assert !currentElement.isDestroyed();
+
       for (ARTElement parent : currentElement.getParents()) {
         assert parent.getChildren().contains(currentElement);
       }
