@@ -98,9 +98,9 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
       else {
         otherTid = 0;
       }
-     if(!var.contains("_"+otherTid)) {
-       cleanMap.setIndex(var, oldFormula.getSsa().getIndex(var));
-     }
+      if(!var.contains("_"+otherTid)) {
+        cleanMap.setIndex(var, oldFormula.getSsa().getIndex(var));
+      }
 
     }
 
@@ -191,7 +191,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
    * @return A pair (Formula, SSAMap)
    */
   public Pair<Pair<Formula, Formula>, SSAMap> mergeSSAMaps(
-    SSAMap ssa1, SSAMap ssa2) {
+      SSAMap ssa1, SSAMap ssa2) {
     SSAMap result = SSAMap.merge(ssa1, ssa2);
     Formula mt1 = fmgr.makeTrue();
     Formula mt2 = fmgr.makeTrue();
@@ -390,7 +390,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     return lShiftedFormula;
   }*/
 
- /* @Override
+  /* @Override
   public PathFormula makeAnd(PathFormula localPathFormula, PathFormula envPathFormula,  int myTid, int sourceTid) {
     // hardcoded
 
@@ -459,23 +459,26 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
   public PathFormula primePathFormula(PathFormula envPF, int offset, SSAMap ssa) {
 
     // prime the formula
-    Formula primedF = fmgr.primeFormula(envPF.getFormula(), offset, ssa);
+    Pair<Formula, Map<String, Integer>> ppair = fmgr.primeFormula(envPF.getFormula(), offset, ssa);
+    Map<String, Integer> nmSSA = ppair.getSecond();
+    Formula primedF = ppair.getFirst();
     // build a new SSAMAP
     SSAMapBuilder primedSSA = SSAMap.emptySSAMap().builder();
     for (String var : envPF.getSsa().allVariables()) {
-      if (var.contains(PathFormula.THREAD_SYMBOL)){
-        Pair<String, Integer> pair = PathFormula.getNonModularData(var);
-        String bareName = pair.getFirst();
-        int idx = ssa.getIndex(bareName);
-        primedSSA.setIndex(var, idx);
-      } else {
-        Pair<String, Integer> data = PathFormula.getPrimeData(var);
-        String bareName = data.getFirst();
-        int primeNo = data.getSecond() + offset;
-        int idx = envPF.getSsa().getIndex(var);
-        primedSSA.setIndex(bareName+PathFormula.PRIME_SYMBOL+primeNo, idx);
-      }
+      Pair<String, Integer> data = PathFormula.getPrimeData(var);
+      String bareName = data.getFirst();
+      int primeNo = data.getSecond() + offset;
+      int idx = envPF.getSsa().getIndex(var);
+      primedSSA.setIndex(bareName+PathFormula.PRIME_SYMBOL+primeNo, idx);
+    }
 
+    for (String var : nmSSA.keySet()){
+      int eidx = nmSSA.get(var);
+      int lidx = ssa.getIndex(var);
+      if (eidx > lidx){
+        primedF = fmgr.makeFalse();
+        System.out.println("-> Falsified by non-modular variable "+var);
+      }
     }
 
     return new PathFormula(primedF, primedSSA.build(), envPF.getLength(), envPF.getPrimedNo()+offset);

@@ -399,7 +399,7 @@ class PredicateAbstractionManager {
 
     for (AbstractionPredicate p : predicates) {
 
-      if (p.getSymbolicAtom().toString().contains("$")){
+      if (p.getSymbolicAtom().toString().contains(PathFormula.THREAD_SYMBOL)){
         // TODO extend to several threads
         //get the tid of the nonmodular predicate
         Map<String, Integer> nmData = fmgr.getNonModularData(p.getSymbolicAtom());

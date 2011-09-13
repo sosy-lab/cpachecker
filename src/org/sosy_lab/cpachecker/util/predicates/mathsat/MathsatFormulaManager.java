@@ -705,6 +705,8 @@ public class MathsatFormulaManager implements FormulaManager  {
     return result;
   }
 
+
+
   // returns a formula with some "static learning" about some bitwise
   // operations, so that they are (a bit) "less uninterpreted"
   // Currently it add's the following formulas for each number literal n that
@@ -779,6 +781,73 @@ public class MathsatFormulaManager implements FormulaManager  {
 
       if (msat_term_is_atom(t) != 0) {
         tt = uninstantiate(tt);
+        t = getTerm(tt);
+
+        if (   splitArithEqualities
+            && (msat_term_is_equal(t) != 0)
+            && isPurelyArithmetic(tt)) {
+          long a1 = msat_term_get_arg(t, 0);
+          long a2 = msat_term_get_arg(t, 1);
+          long t1 = msat_make_leq(msatEnv, a1, a2);
+          //long t2 = msat_make_leq(msatEnv, a2, a1);
+          Formula tt1 = encapsulate(t1);
+          //SymbolicFormula tt2 = encapsulate(t2);
+          cache.add(tt1);
+          //cache.add(tt2);
+          atoms.add(tt1);
+          //atoms.add(tt2);
+          atoms.add(tt);
+        } else {
+          atoms.add(tt);
+        }
+
+      } else if (conjunctionsOnly
+          && !((msat_term_is_not(t) != 0) || (msat_term_is_and(t) != 0))) {
+        // conjunctions only, but formula is neither "not" nor "and"
+        // treat this as atomic
+        atoms.add(uninstantiate(tt));
+
+      } else {
+        // ok, go into this formula
+        for (int i = 0; i < msat_term_arity(t); ++i){
+          Formula c = encapsulate(msat_term_get_arg(t, i));
+          if (!cache.contains(c)) {
+            toProcess.push(c);
+          }
+        }
+      }
+    }
+
+    return atoms;
+  }
+
+  @Override
+  public Collection<Formula> extractNonModularAtoms(Formula f, boolean splitArithEqualities, boolean conjunctionsOnly,Integer tid, Multimap<Integer, Integer> traceMap) {
+    Set<Formula> cache = new HashSet<Formula>();
+    List<Formula> atoms = new ArrayList<Formula>();
+    // trace -> thread
+    Map<Integer, Integer> rTraceMap = new HashMap<Integer, Integer>();
+    for (Integer thread : traceMap.keySet()){
+      for (Integer trace : traceMap.get(thread)){
+        rTraceMap.put(trace, thread);
+      }
+    }
+
+    Deque<Formula> toProcess = new ArrayDeque<Formula>();
+    toProcess.push(f);
+
+    while (!toProcess.isEmpty()) {
+      Formula tt = toProcess.pop();
+      long t = getTerm(tt);
+      assert !cache.contains(tt);
+      cache.add(tt);
+
+      if (msat_term_is_true(t) != 0 || msat_term_is_false(t) != 0) {
+        continue;
+      }
+
+      if (msat_term_is_atom(t) != 0) {
+        tt = extractNonModularFormula(tt, tid, rTraceMap);
         t = getTerm(tt);
 
         if (   splitArithEqualities
@@ -956,7 +1025,87 @@ public class MathsatFormulaManager implements FormulaManager  {
     return cache.get(formula);
   }
 
+  /**
+   * Converts instantied and primed formula into non-modular format.
+   */
+  public Formula extractNonModularFormula(Formula f, Integer tid, Map<Integer, Integer> rTraceMap) {
+    Map<Formula, Formula> cache = new HashMap<Formula, Formula>();
+    Deque<Formula> toProcess = new ArrayDeque<Formula>();
+
+    toProcess.push(f);
+    while (!toProcess.isEmpty()) {
+      final Formula tt = toProcess.peek();
+      if (cache.containsKey(tt)) {
+        toProcess.pop();
+        continue;
+      }
+      final long t = getTerm(tt);
+
+      if (msat_term_is_variable(t) != 0) {
+        String name;
+        String var = msat_term_repr(t);
+        Pair<String, Integer> pair = parseName(var);
+        String bareName = pair.getFirst();
+        Pair<String, Integer> nmPair = PathFormula.getPrimeData(bareName);
+        Integer traceNo = nmPair.getSecond();
+        Integer sTid    = rTraceMap.get(traceNo);
+        assert sTid != null;
+        if (sTid != tid){
+          name = nmPair.getFirst()+INDEX_SEPARATOR+pair.getSecond()+PathFormula.THREAD_SYMBOL+sTid;
+        } else {
+          name = nmPair.getFirst();
+        }
+
+        long newt = buildMsatVariable(name, msat_term_get_type(t));
+        cache.put(tt, encapsulate(newt));
+
+      } else {
+        boolean childrenDone = true;
+        long[] newargs = new long[msat_term_arity(t)];
+        for (int i = 0; i < newargs.length; ++i) {
+          Formula c = encapsulate(msat_term_get_arg(t, i));
+          Formula newC = cache.get(c);
+          if (newC != null) {
+            newargs[i] = getTerm(newC);
+          } else {
+            toProcess.push(c);
+            childrenDone = false;
+          }
+        }
+
+        if (childrenDone) {
+          toProcess.pop();
+          long newt;
+          if (msat_term_is_uif(t) != 0) {
+            String name = msat_decl_get_name(msat_term_get_decl(t));
+            assert name != null;
+
+            if (ufCanBeLvalue(name)) {
+              name = parseName(name).getFirst();
+
+              newt = buildMsatUF(name, newargs);
+            } else {
+              newt = msat_replace_args(msatEnv, t, newargs);
+            }
+          } else {
+            newt = msat_replace_args(msatEnv, t, newargs);
+          }
+
+          cache.put(tt, encapsulate(newt));
+        }
+      }
+    }
+
+    Formula result = cache.get(f);
+    assert result != null;
+    return result;
+  }
+
+
   @Override
+  /**
+   * Converts uninstantied, but primedformula into non-modular format.
+   */
   public Formula extractNonmodularFormula(Formula formula, Integer tid, Multimap<Integer, Integer> traceMap) {
     Map<Triple<Formula, Integer, Multimap<Integer, Integer>>, Formula> cache = unprimingNmCache;
     Deque<Formula> toProcess = new ArrayDeque<Formula>();
@@ -1104,10 +1253,11 @@ public class MathsatFormulaManager implements FormulaManager  {
   }
 
   @Override
-  public Formula primeFormula(Formula f, int howManyPrimes, SSAMap ssa) {
+  public Pair<Formula, Map<String, Integer>> primeFormula(Formula f, int howManyPrimes, SSAMap ssa) {
     Map<Triple<Formula, Integer, SSAMap>, Formula> cache = new HashMap<Triple<Formula, Integer, SSAMap>, Formula>();
     Deque<Formula> toProcess = new ArrayDeque<Formula>();
     Pair<Formula, Integer> key = null;
+    Map<String, Integer> nmSSA = new HashMap<String, Integer>();
 
     toProcess.push(f);
     while (!toProcess.isEmpty()) {
@@ -1123,13 +1273,10 @@ public class MathsatFormulaManager implements FormulaManager  {
         toProcess.pop();
         String repr = msat_term_repr(t);
         if (repr.contains(PathFormula.THREAD_SYMBOL)){
-          Pair<String, Integer> pair = PathFormula.getNonModularData(repr);
-          String name = pair.getFirst();
-          Integer idx = ssa.getIndex(name);
-          if (idx == null || idx < 1){
-            idx = 1;
-          }
-          long newt = buildMsatVariable(makeName(name, idx), msat_term_get_type(t));
+          Pair<String, Integer> pairNm = PathFormula.getNonModularData(repr);
+          Pair<String, Integer> pair = this.parseName(pairNm.getFirst());
+          nmSSA.put(pair.getFirst(), pair.getSecond());
+          long newt = buildMsatVariable(pairNm.getFirst(), msat_term_get_type(t));
           cache.put(Triple.of(tt, howManyPrimes, ssa), encapsulate(newt));
         } else {
           Pair<String, Integer> lVariable = parseName(repr);
@@ -1176,7 +1323,7 @@ public class MathsatFormulaManager implements FormulaManager  {
 
     Formula result = cache.get(Triple.of(f, howManyPrimes, ssa));
     assert result != null;
-    return result;
+    return Pair.of(result, nmSSA);
   }
 
   // count the number of atoms in the formula
@@ -1411,10 +1558,11 @@ public class MathsatFormulaManager implements FormulaManager  {
       final long t = getTerm(tt);
 
       if (msat_term_is_variable(t) != 0) {
-        Pair<String, Integer> data = PathFormula.getNonModularData(msat_term_repr(t));
+        String var = msat_term_repr(t);
+        Pair<String, Integer> data = PathFormula.getNonModularData(var);
         long newt = buildMsatVariable(data.getFirst(), msat_term_get_type(t));
         Map<String, Integer> val = new HashMap<String, Integer>();
-        val.put(data.getFirst(), data.getSecond());
+        val.put(var, data.getSecond());
         cache.put(tt, val);
         toProcess.pop();
       } else {
@@ -1471,17 +1619,18 @@ public class MathsatFormulaManager implements FormulaManager  {
 
       if (msat_term_is_variable(t) != 0) {
         toProcess.pop();
-        Pair<String, Integer> pair = PathFormula.getNonModularData(msat_term_repr(t));
-        Integer sTid = pair.getSecond();
+        String var = msat_term_repr(t);
+        Pair<String, Integer> pairNm = PathFormula.getNonModularData(var);
+        Integer sTid = pairNm.getSecond();
         assert sTid == null || sTid >= 0;
         if (sTid == null){
           cache.put(Pair.of(tt, envMap), tt);
         } else {
-          String var = pair.getFirst();
           // create instances
+          Pair<String, Integer> pair = parseName(pairNm.getFirst());
           for (Integer primeNo : envMap.get(var)){
-            String name = pair.getFirst()+"^"+primeNo;
-            long newt = buildMsatVariable(name, msat_term_get_type(t));
+            String name = pair.getFirst()+PathFormula.PRIME_SYMBOL+primeNo;
+            long newt = buildMsatVariable(makeName(name, pair.getSecond()), msat_term_get_type(t));
             cache.put(Pair.of(tt, envMap), encapsulate(newt));
           }
           assert cache.get(Pair.of(tt, envMap)) != null;

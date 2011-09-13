@@ -257,9 +257,8 @@ public interface FormulaManager {
 
     public List<Formula> nonModularInstances(Formula formula, ListMultimap<String, Integer> pEnvMap);
 
-    public Formula primeFormula(Formula pFormula, int pOffset, SSAMap pSsa);
+    public Pair<Formula, Map<String, Integer>> primeFormula(Formula f, int howManyPrimes, SSAMap ssa);
 
-
-
+    public Collection<Formula> extractNonModularAtoms(Formula f, boolean splitArithEqualities, boolean conjunctionsOnly,Integer tid, Multimap<Integer, Integer> traceMap);
 
 }
