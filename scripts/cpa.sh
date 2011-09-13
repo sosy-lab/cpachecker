@@ -27,6 +27,9 @@ case "$arch-$platform" in
   x86_64-Linux)
     arch_platform="x86_64-linux"
     ;;
+  x86_64-Darwin)
+    arch_platform="x86_64-macosx"
+    ;;
   i386-Darwin)
     arch_platform="x86-macosx"
     ;;
