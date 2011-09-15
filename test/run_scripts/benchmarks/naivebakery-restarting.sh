@@ -4,5 +4,5 @@ if [ -z "$CPAchecker_mt" ]; then
     exit 1
 fi  
 cd $CPAchecker_mt
-scripts/cpa.sh -concurrent -config test/config/various/rg-cegar-naivebackery-restarting.properties test/programs/multi-threaded/benchmarks/bakery.simple-thr0.cil.c  test/programs/multi-threaded/benchmarks/bakery.simple-thr1.cil.c
+scripts/cpa.sh -concurrent -config test/config/various/rg-cegar-naivebackery-restarting.properties test/programs/multi-threaded/benchmarks/bakery.simple.cil.c
 

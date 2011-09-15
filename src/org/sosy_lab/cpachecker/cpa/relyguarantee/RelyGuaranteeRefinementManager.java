@@ -495,7 +495,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         }
 
         // adjust the prime numbers
-        System.out.println("\t a. map for id:"+artElement.getElementId()+" is "+adjustmentMap);
         PathFormula adjustedPf = pmgr.adjustPrimedNo(node.getPathFormula(), adjustmentMap);
 
         // if is an new branch then add equalities that link the last indexes in the previous node

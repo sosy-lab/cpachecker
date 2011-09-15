@@ -5,4 +5,4 @@ if [ -z "$CPAchecker_mt" ]; then
 fi  
 cd $CPAchecker_mt
 
-scripts/cpa.sh -concurrent -config test/config/various/rg-cegar-lu-fig2-restarting.properties test/programs/multi-threaded/benchmarks/lu-fig2-thr0.cil.c test/programs/multi-threaded/benchmarks/lu-fig2-thr1.cil.c
+scripts/cpa.sh -concurrent -config test/config/various/rg-cegar-lu-fig2-restarting.properties test/programs/multi-threaded/benchmarks/lu-fig2.cil.c

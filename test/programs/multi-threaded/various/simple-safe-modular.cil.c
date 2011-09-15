@@ -11,7 +11,7 @@ int cs2  =    0;
 
 /* Thread 0 */
 void thread0(void)
-{ int tmp = 5;
+{ int tmp ;
   {
     tmp = 0;
     cs1 = 1;

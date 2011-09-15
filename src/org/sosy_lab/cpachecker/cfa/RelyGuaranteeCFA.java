@@ -26,16 +26,20 @@ package org.sosy_lab.cpachecker.cfa;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.Vector;
 
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
@@ -52,10 +56,6 @@ public class RelyGuaranteeCFA extends CFA {
   private final Multimap<CFANode, String> lhsVariables;
   private final List<CFANode> noEnvList;
 
-  /*public RelyGuaranteeCFA(Map<String, CFAFunctionDefinitionNode> pFunctions, SortedSetMultimap<String, CFANode> pCfaNodes, List<IASTDeclaration> pGlobalDeclarations) {
-    super(pFunctions, pCfaNodes, pGlobalDeclarations);
-    originalNodes = TreeMultimap.create(pCfaNodes);
-  }*/
 
   public RelyGuaranteeCFA(CFA other) throws UnrecognizedCFAEdgeException{
     super(other);
@@ -80,7 +80,6 @@ public class RelyGuaranteeCFA extends CFA {
     Vector<IASTExpression> toProcess = new Vector<IASTExpression>();
     Set<String> rhsVars = new HashSet<String>();
     Set<String> lhsVars = new HashSet<String>();
-    boolean isNoEnvLabel = false;
 
     if (exp instanceof IASTExpressionAssignmentStatement){
       IASTExpressionAssignmentStatement e = (IASTExpressionAssignmentStatement) exp;
@@ -127,6 +126,18 @@ public class RelyGuaranteeCFA extends CFA {
 
   public Multimap<CFANode, String> getLhsVariables() {
     return lhsVariables;
+  }
+
+  public  SortedSet<String> getGlobalVariables() {
+    SortedSet<String> gvars = new TreeSet<String>();
+
+    for (IASTDeclaration gd : getGlobalDeclarations()){
+      if (gd.getDeclSpecifier() != null && gd.getDeclSpecifier() instanceof IASTSimpleDeclSpecifier){
+        gvars.add(gd.getName());
+      }
+    }
+
+    return gvars;
   }
 
 

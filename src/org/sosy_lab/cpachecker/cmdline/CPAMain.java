@@ -171,7 +171,7 @@ public class CPAMain {
     Runtime.getRuntime().addShutdownHook(shutdownHook);
 
     // run analysis
-    CPAcheckerResult result = cpachecker.run(cFilePaths);
+    CPAcheckerResult result = cpachecker.runAny(cFilePaths[0]);
 
     shutdownHook.setResult(result);
 

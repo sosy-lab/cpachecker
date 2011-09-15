@@ -23,14 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 import com.google.common.collect.SortedSetMultimap;
+import com.google.common.collect.TreeMultimap;
 
 /**
  * Class representing the result of parsing a C file before function calls
@@ -60,9 +63,9 @@ public class CFA {
   }
 
   public CFA(CFA other){
-    functions = other.functions;
-    cfaNodes = other.cfaNodes;
-    globalDeclarations = other.globalDeclarations;
+    functions = new HashMap<String, CFAFunctionDefinitionNode>(other.functions);
+    cfaNodes  = TreeMultimap.create(other.cfaNodes);
+    globalDeclarations = new Vector<IASTDeclaration>(other.globalDeclarations);
   }
 
 
