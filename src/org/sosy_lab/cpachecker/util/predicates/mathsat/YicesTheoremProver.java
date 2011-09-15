@@ -51,18 +51,18 @@ import com.google.common.base.Joiner;
 
 public class YicesTheoremProver implements TheoremProver {
 
-    private Map<Long, String> msatVarToYicesVar;
-    private Map<Long, String> msatToYicesCache;
-    private Map<String, Long> yicesPredToMsat;
+    private final Map<Long, String> msatVarToYicesVar;
+    private final Map<Long, String> msatToYicesCache;
+    private final Map<String, Long> yicesPredToMsat;
     private int curVarIndex;
-    private int yicesContext;
-    private yices.YicesLite yicesManager;
-    private FormulaManager smgr;
+    private final int yicesContext;
+    private final yices.YicesLite yicesManager;
+    private final FormulaManager smgr;
 
-    private Deque<Collection<String>> declStack;
-    private Set<String> globalDecls;
+    private final Deque<Collection<String>> declStack;
+    private final Set<String> globalDecls;
 
-    int curLevel = 0;
+    private int curLevel = 0;
 
     // TODO
     // restart yices every once in a while, otherwise it starts eating too

@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterators;
 
@@ -68,14 +67,6 @@ public class UnmodifiableReachedSetView
               mapPrecisionFunction.apply(from.getSecond()));
         }
       };
-  }
-
-  public UnmodifiableReachedSetView(UnmodifiableReachedSet pUnderlyingSet)
-  {
-    underlying = pUnderlyingSet;
-    mapElementFunction = Functions.<AbstractElement>identity();
-    mapPrecisionFunction = Functions.<Precision>identity();
-    mapElementAndPrecisionFunction = Functions.<Pair<AbstractElement, Precision>>identity();
   }
 
   @Override

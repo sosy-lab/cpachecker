@@ -75,10 +75,6 @@ public class AbstractionFormula {
     return blockFormula;
   }
 
-  public int getId() {
-    return id;
-  }
-
   @Override
   public String toString() {
     return "ABS" + id + ": " + formula;

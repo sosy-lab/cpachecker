@@ -47,11 +47,10 @@ import com.google.common.collect.Iterables;
  * <code>PartitioningHeuristic</code> that creates blocks for each loop- and function-body.
  */
 public class LoopPartitioning extends PartitioningHeuristic {
-  protected final LogManager logger;
+
   private Map<CFANode, Set<CFANode>> loopHeaderToLoopBody;
 
   public LoopPartitioning(LogManager pLogger) {
-    this.logger = pLogger;
     this.loopHeaderToLoopBody = null;
   }
 

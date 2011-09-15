@@ -82,13 +82,6 @@ public final class IASTSimpleDeclSpecifier extends IType {
     return isLongLong;
   }
 
-  public static final int t_unspecified = 0;
-  public static final int t_void = 1;
-  public static final int t_char = 2;
-  public static final int t_int = 3;
-  public static final int t_float = 4;
-  public static final int t_double = 5;
-
   @Override
   public String toASTString() {
     StringBuilder lASTString = new StringBuilder();
