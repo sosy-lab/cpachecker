@@ -712,7 +712,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     CounterexampleTraceInfo info  = null;
     List<T> interpolationIds      = new Vector<T>(topNodes.size());
-    List<T> parentIds             = new Vector<T>(topNodes.size());
     boolean spurious  = false;
 
     if (debug){
@@ -720,73 +719,69 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       System.out.println("Interpolants, predicates:");
     }
 
-    // prepare formula list
-    stats.interpolationTimer.start();
-    itpProver.init();
-    stats.unsatChecks++;
-    for (InterpolationDagNode itpNode : topNodes){
-      T id = itpProver.addFormula(itpNode.getPathFormula().getFormula());
-      interpolationIds.add(id);
-    }
+    // get interpolants in the order of topological sort
+    int i=0;
+    while(i<topNodes.size()){
+      InterpolationDagNode node = topNodes.get(i);
 
-    // check if spurious
-    spurious = itpProver.isUnsat();
+      // get formula list, where
+      Pair<List<InterpolationDagNode>, Integer> pair = parentSortDag(roots, node);
 
-    if (!spurious){
-      // Feasible error path
-      assert info == null;
-      info = new CounterexampleTraceInfo(false);
-
-      if (debug){
-        System.out.println("\tFeasbile error trace.");
+      // prepare formula list
+      stats.interpolationTimer.start();
+      itpProver.init();
+      for (InterpolationDagNode itpNode : pair.getFirst()){
+        T id = itpProver.addFormula(itpNode.getPathFormula().getFormula());
+        interpolationIds.add(id);
       }
 
-    } else {
-      // spurious counterexample - get interpolants
-      info = new CounterexampleTraceInfo();
+      // check if spurious
+      spurious = itpProver.isUnsat();
+      stats.unsatChecks++;
 
-      int i=0;
-      while(i<topNodes.size()){
-        InterpolationDagNode node = topNodes.get(i);
+      if (!spurious){
+        // Feasible error path
+        assert info == null;
+        info = new CounterexampleTraceInfo(false);
+        itpProver.reset();
+        stats.interpolationTimer.stop();
+
+        if (debug){
+          System.out.println("\tFeasbile error trace.");
+        }
+        break;
+
+      } else {
+        // spurious counterexample, get interpolants for 'node'
         ARTElement artElement = node.getArtElement();
         CFANode loc = AbstractElements.extractLocation(artElement);
+        int idx = pair.getSecond();
 
-        // get the list of elements that are parents of node plus the node itself
-        List<Integer> indexes  = parentIndexes(topNodes, node);
-        parentIds.clear();
-        for (Integer idx : indexes){
-          parentIds.add(interpolationIds.get(idx));
-        }
-
-        Formula itp = itpProver.getInterpolant(parentIds);
+        Formula itp = itpProver.getInterpolant(interpolationIds.subList(0, idx+1));
         Set<AbstractionPredicate> predicates = getDagPredicates(itp, node.getTid(), traceMap);
 
-
+        itpProver.reset();
+        stats.interpolationTimer.stop();
 
         if (debug){
           System.out.println("\t-id:"+artElement.getElementId()+"\t ["+loc+"]: "+itp+",\t"+predicates);
         }
 
-        // TODO debug
-       /* RelyGuaranteeAbstractElement rgae= AbstractElements.extractElementByType(artElement, RelyGuaranteeAbstractElement.class);
-        Formula f1 = rgae.getAbstractionFormula().asFormula();
-        Formula f2 = fmgr.makeNot(itp);
-        Formula fimpl = fmgr.makeAnd(f1, f2);
-        thmProver.init();
-        boolean implies = thmProver.isUnsat(fimpl);
-        thmProver.reset();
-        if (debug & implies){
-          System.out.println("Abstraction -> interpolants");
-        }*/
+        if (info == null){
+          info = new CounterexampleTraceInfo();
+        }
 
         info.addPredicatesForRefinement(artElement, predicates);
 
+        if (itp.isFalse()){
+          i = topNodes.size();
+        } else {
+          roots = replaceDag(roots, node, itp);
+        }
         i++;
       }
     }
 
-    itpProver.reset();
-    stats.interpolationTimer.stop();
     refStats.cexAnalysisTimer.stop();
 
     return info;
@@ -799,6 +794,55 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     node.setPathFormula(newPf);
 
     return roots;
+  }
+
+  List<InterpolationDagNode> replaceDag2(List<InterpolationDagNode> roots, InterpolationDagNode node, Formula itp){
+    // get parents
+    List<InterpolationDagNode> parents = new Vector<InterpolationDagNode>();
+    parents.addAll(node.getParents());
+
+    int i=0;
+    while(i<parents.size()){
+      InterpolationDagNode n = parents.get(i);
+      for (InterpolationDagNode parent : n.getParents()){
+        if (!parents.contains(parent)){
+          parents.add(parent);
+        }
+      }
+      i++;
+    }
+
+
+    // remove parents
+    for (InterpolationDagNode n: parents){
+      for (InterpolationDagNode child : n.getChildren()){
+        child.getParents().remove(n);
+      }
+      n.getChildren().clear();
+    }
+
+    // replace node by itp
+    PathFormula oldPf = node.getPathFormula();
+    PathFormula newPf = new PathFormula(itp, oldPf.getSsa(), oldPf.getLength());
+    node.setPathFormula(newPf);
+
+    // exchange roots
+    List<InterpolationDagNode> newRoots = new Vector<InterpolationDagNode>(roots.size());
+    for (InterpolationDagNode root : roots){
+      if (parents.contains(root)){
+        if (!newRoots.contains(node)){
+          newRoots.add(node);
+        }
+      } else {
+        newRoots.add(root);
+      }
+    }
+
+    if (debug){
+      dagAssertions(newRoots);
+    }
+
+    return newRoots;
   }
 
   /**
@@ -823,30 +867,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     }
 
     return topList;
-  }
-
-
-  List<Integer> parentIndexes(List<InterpolationDagNode> topNodes, InterpolationDagNode target){
-    assert topNodes.contains(target);
-
-    List<Integer> indexes = new Vector<Integer>();
-    Set<InterpolationDagNode> visited = new HashSet<InterpolationDagNode>();
-
-    indexes.add(topNodes.indexOf(target));
-    // add the target and its parents
-    int i=0;
-    while(i<indexes.size()){
-      InterpolationDagNode node = topNodes.get(indexes.get(i));
-      for (InterpolationDagNode parent : node.getParents()){
-        if (!visited.contains(parent)){
-          visited.add(parent);
-          indexes.add(topNodes.indexOf(parent));
-        }
-      }
-      i++;
-    }
-
-    return indexes;
   }
 
   /**
@@ -1329,10 +1349,10 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       }
       else {
         Collection<Formula> atoms = null;
-        atoms = fmgr.extractNonModularAtoms(itp, splitItpAtoms, false, tid, traceMap);
+        atoms = fmgr.extractAtoms(itp, splitItpAtoms, false);
 
-        for (Formula atom : atoms){
-          //Formula atom = fmgr.extractNonmodularFormula(fr, tid, traceMap);
+        for (Formula fr : atoms){
+          Formula atom = fmgr.extractNonmodularFormula(fr, tid, traceMap);
           AbstractionPredicate atomPredicate = amgr.makePredicate(atom);
           result.add(atomPredicate);
         }

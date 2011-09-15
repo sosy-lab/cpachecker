@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class RelyGuaranteeCEGARAlgorithm implements ConcurrentAlgorithm,  StatisticsProvider {
 
   @Option(description="If true, the analysis continues in the previous thread. If false, the first thread is analysed first.")
-  private boolean continueThread = false;
+  private boolean continueThread = true;
 
   public class RelyGuaranteeCEGARStatistics implements Statistics {
 

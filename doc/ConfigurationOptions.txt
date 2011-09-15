@@ -124,6 +124,16 @@ cfa.exportPerFunction = true
 
 # export CFA as .dot file
 cfa.file = "cfa.dot"
+cfa.relyguarantee.export = true
+
+# export individual CFAs for function as .dot files
+cfa.relyguarantee.exportPerFunction = true
+
+# File path template for exporting  thread CFA to .dot files
+cfa.relyguarantee.file = "test/output/cfa_"
+
+# Names of main functions for threads. They ought to be uniquee.
+cfa.relyguarantee.threadFunctions = {"thread0", "thread1", "thread3", "thread4", "thread5", "thread6", "thread7", "thread8", "thread9"}
 
 # remove paths from CFA that cannot lead to a error location
 cfa.removeIrrelevantForErrorLocations = false
@@ -445,9 +455,15 @@ cpa.relyguarantee.blk.threshold = 0
 cpa.relyguarantee.blk.useCache = true
 
 # always check satisfiability at end of block, even if precision is empty
-cpa.relyguarantee.checkBlockFeasibility = false
+cpa.relyguarantee.checkBlockFeasibility = true
+
+# Combine all valid environmental edges for thread in two one edge?
+cpa.relyguarantee.combineEnvEdges = true
 
 # Print debugging info?
+cpa.relyguarantee.debug = true
+cpa.relyguarantee.debug = true
+cpa.relyguarantee.debug = false
 cpa.relyguarantee.debug = true
 
 # export one satisfying assignment for the error path
@@ -468,13 +484,28 @@ cpa.relyguarantee.interpolation.changesolverontimeout = false
 cpa.relyguarantee.predmap.export = true
 cpa.relyguarantee.predmap.file = "predmap.txt"
 
+# Extracts interpolants from a DAG representation of threads and
+# environmental transitions.
+cpa.relyguarantee.refinement.DAGRefinement = true
+
 # refinement will add all discovered predicates to all the locations in the
 # abstract trace
 cpa.relyguarantee.refinement.addPredicatesGlobally = false
 
+# If true, the analysis continues in the previous thread. If false, the first
+# thread is analysed first.
+cpa.relyguarantee.refinement.continueThread = true
+
+# Dump a DAG representation of interpolation formulas to the choosen file.
+# Valid only with DAGRefinement
+cpa.relyguarantee.refinement.dumpDAGfile = "test/output/itpDAG.dot"
+
 # which interpolating solver to use for interpolant generation?
 cpa.relyguarantee.refinement.interpolatingProver = "MATHSAT"
   allowed values: [MATHSAT, CSISAT]
+
+# Detect and skip interpolation branches that don't give new predicates.
+cpa.relyguarantee.refinement.itpEnvSkip = false
 
 # where to dump the counterexample formula in case the error location is
 # reached
