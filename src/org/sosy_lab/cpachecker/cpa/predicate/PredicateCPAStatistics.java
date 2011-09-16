@@ -60,10 +60,12 @@ class PredicateCPAStatistics implements Statistics {
     private File file = new File("predmap.txt");
 
     private final PredicateCPA cpa;
+    private final BlockOperator blk;
     private AbstractInterpolationBasedRefiner refiner = null;
 
-    public PredicateCPAStatistics(PredicateCPA cpa) throws InvalidConfigurationException {
+    public PredicateCPAStatistics(PredicateCPA cpa, BlockOperator blk) throws InvalidConfigurationException {
       this.cpa = cpa;
+      this.blk = blk;
       cpa.getConfiguration().inject(this, PredicateCPAStatistics.class);
     }
 
@@ -132,9 +134,9 @@ class PredicateCPAStatistics implements Statistics {
 
       out.println("Number of abstractions:            " + prec.numAbstractions + " (" + toPercent(prec.numAbstractions, trans.postTimer.getNumberOfIntervals()) + " of all post computations)");
       if (prec.numAbstractions > 0) {
-        out.println("  Because of function entry/exit:  " + trans.numBlkFunctions + " (" + toPercent(trans.numBlkFunctions, prec.numAbstractions) + ")");
-        out.println("  Because of loop head:            " + trans.numBlkLoops + " (" + toPercent(trans.numBlkLoops, prec.numAbstractions) + ")");
-        out.println("  Because of threshold:            " + trans.numBlkThreshold + " (" + toPercent(trans.numBlkThreshold, prec.numAbstractions) + ")");
+        out.println("  Because of function entry/exit:  " + blk.numBlkFunctions + " (" + toPercent(blk.numBlkFunctions, prec.numAbstractions) + ")");
+        out.println("  Because of loop head:            " + blk.numBlkLoops + " (" + toPercent(blk.numBlkLoops, prec.numAbstractions) + ")");
+        out.println("  Because of threshold:            " + blk.numBlkThreshold + " (" + toPercent(blk.numBlkThreshold, prec.numAbstractions) + ")");
         out.println("  Times precision was empty:       " + as.numSymbolicAbstractions + " (" + toPercent(as.numSymbolicAbstractions, as.numCallsAbstraction) + ")");
         out.println("  Times precision was {false}:     " + as.numSatCheckAbstractions + " (" + toPercent(as.numSatCheckAbstractions, as.numCallsAbstraction) + ")");
         out.println("  Times result was 'false':        " + prec.numAbstractionsFalse + " (" + toPercent(prec.numAbstractionsFalse, prec.numAbstractions) + ")");

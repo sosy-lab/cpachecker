@@ -36,8 +36,8 @@ public class ABMPredicateCPAStatistics extends PredicateCPAStatistics {
 
   private ExtendedPredicateRefiner refiner = null;
 
-  public ABMPredicateCPAStatistics(ABMPredicateCPA pCpa) throws InvalidConfigurationException {
-    super(pCpa);
+  public ABMPredicateCPAStatistics(ABMPredicateCPA pCpa, BlockOperator blk) throws InvalidConfigurationException {
+    super(pCpa, blk);
   }
 
   @Override

@@ -69,7 +69,7 @@ import com.google.common.io.Files;
 public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(PredicateCPA.class);
+    return AutomaticCPAFactory.forType(PredicateCPA.class).withOptions(BlockOperator.class);
   }
 
   @Option(name="abstraction.solver", toUppercase=true, values={"MATHSAT", "YICES"},
@@ -103,7 +103,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicateCPAStatistics stats;
   private final AbstractElement topElement;
 
-  protected PredicateCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  protected PredicateCPA(Configuration config, LogManager logger, BlockOperator blk) throws InvalidConfigurationException {
     config.inject(this, PredicateCPA.class);
 
     this.config = config;
@@ -128,7 +128,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
 
     predicateManager = new PredicateAbstractionManager(regionManager, formulaManager, theoremProver, config, logger);
-    transfer = new PredicateTransferRelation(this);
+    transfer = new PredicateTransferRelation(this, blk);
 
     topElement = PredicateAbstractElement.abstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null));
     domain = new PredicateAbstractDomain(this);
@@ -149,7 +149,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     initialPrecision = new PredicatePrecision(predicates);
 
-    stats = createStatistics();
+    stats = createStatistics(blk);
   }
 
   private Collection<AbstractionPredicate> readPredicatesFromFile() {
@@ -177,8 +177,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return null;
   }
 
-  protected PredicateCPAStatistics createStatistics() throws InvalidConfigurationException {
-    return new PredicateCPAStatistics(this);
+  protected PredicateCPAStatistics createStatistics(BlockOperator blk) throws InvalidConfigurationException {
+    return new PredicateCPAStatistics(this, blk);
   }
 
   @Override

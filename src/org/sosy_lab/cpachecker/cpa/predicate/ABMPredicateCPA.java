@@ -28,6 +28,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
@@ -45,19 +46,19 @@ import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicat
 public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgramAnalysisWithABM {
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(ABMPredicateCPA.class);
+    return AutomaticCPAFactory.forType(ABMPredicateCPA.class).withOptions(ABMBlockOperator.class);
   }
 
   private final RelevantPredicatesComputer relevantPredicatesComputer;
   private final ABMPredicateReducer reducer;
-  private final ABMPredicateTransferRelation transfer;
+  private final ABMBlockOperator blk;
 
   @Option(description="whether to use auxiliary predidates for reduction")
   private boolean auxiliaryPredicateComputer = true;
 
 
-  private ABMPredicateCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
-    super(config, logger);
+  private ABMPredicateCPA(Configuration config, LogManager logger, ABMBlockOperator pBlk) throws InvalidConfigurationException {
+    super(config, logger, pBlk);
 
     config.inject(this, ABMPredicateCPA.class);
 
@@ -68,12 +69,12 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
     }
 
     reducer = new ABMPredicateReducer(this);
-    transfer = new ABMPredicateTransferRelation(this);
+    blk = pBlk;
   }
 
   @Override
-  protected PredicateCPAStatistics createStatistics() throws InvalidConfigurationException {
-    return new ABMPredicateCPAStatistics(this);
+  protected PredicateCPAStatistics createStatistics(BlockOperator blk) throws InvalidConfigurationException {
+    return new ABMPredicateCPAStatistics(this, blk);
   }
 
   @Override
@@ -95,8 +96,7 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
     return relevantPredicatesComputer;
   }
 
-  @Override
-  public ABMPredicateTransferRelation getTransferRelation() {
-    return transfer;
+  public void setPartitioning(BlockPartitioning partitioning) {
+    blk.setPartitioning(partitioning);
   }
 }

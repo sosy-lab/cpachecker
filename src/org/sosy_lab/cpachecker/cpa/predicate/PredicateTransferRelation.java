@@ -34,7 +34,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -63,24 +62,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 @Options(prefix="cpa.predicate")
 public class PredicateTransferRelation implements TransferRelation {
 
-  @Option(name="blk.threshold",
-      description="maximum blocksize before abstraction is forced\n"
-        + "(non-negative number, special values: 0 = don't check threshold, 1 = SBE)")
-  private int absBlockSize = 0;
-
-  @Option(name="blk.functions",
-      description="force abstractions on function call/return")
-  private boolean absOnFunction = true;
-
-  @Option(name="blk.loops",
-      description="force abstractions for each loop iteration")
-  private boolean absOnLoop = true;
-
-  @Option(name="blk.requireThresholdAndLBE",
-      description="require that both the threshold and (functions or loops) "
-        + "have to be fulfilled to compute an abstraction")
-  private boolean absOnlyIfBoth = false;
-
   @Option(name="satCheck",
       description="maximum blocksize before a satisfiability check is done\n"
         + "(non-negative number, 0 means never, if positive should be smaller than blocksize)")
@@ -96,9 +77,6 @@ public class PredicateTransferRelation implements TransferRelation {
   final Timer strengthenTimer = new Timer();
   final Timer strengthenCheckTimer = new Timer();
 
-  int numBlkFunctions = 0;
-  int numBlkLoops = 0;
-  int numBlkThreshold = 0;
   int numSatChecksFalse = 0;
   int numStrengthenChecksFalse = 0;
 
@@ -106,12 +84,15 @@ public class PredicateTransferRelation implements TransferRelation {
   private final PredicateAbstractionManager formulaManager;
   private final PathFormulaManager pathFormulaManager;
 
-  public PredicateTransferRelation(PredicateCPA pCpa) throws InvalidConfigurationException {
+  private final BlockOperator blk;
+
+  public PredicateTransferRelation(PredicateCPA pCpa, BlockOperator pBlk) throws InvalidConfigurationException {
     pCpa.getConfiguration().inject(this, PredicateTransferRelation.class);
 
     logger = pCpa.getLogger();
     formulaManager = pCpa.getPredicateManager();
     pathFormulaManager = pCpa.getPathFormulaManager();
+    blk = pBlk;
   }
 
   @Override
@@ -135,7 +116,7 @@ public class PredicateTransferRelation implements TransferRelation {
       logger.log(Level.ALL, "New path formula is", pathFormula);
 
       // check whether to do abstraction
-      boolean doAbstraction = isBlockEnd(loc, pathFormula);
+      boolean doAbstraction = blk.isBlockEnd(loc, pathFormula);
 
       if (doAbstraction) {
         return Collections.singleton(
@@ -198,53 +179,6 @@ public class PredicateTransferRelation implements TransferRelation {
     } finally {
       pathFormulaTimer.stop();
     }
-  }
-
-  /**
-   * Check whether an abstraction should be computed.
-   *
-   * This method implements the blk operator from the paper
-   * "Adjustable Block-Encoding" [Beyer/Keremoglu/Wendler FMCAD'10].
-   *
-   * @param succLoc successor CFA location.
-   * @param thresholdReached if the maximum block size has been reached
-   * @return true if succLoc is an abstraction location. For now a location is
-   * an abstraction location if it has an incoming loop-back edge, if it is
-   * the start node of a function or if it is the call site from a function call.
-   */
-  protected boolean isBlockEnd(CFANode succLoc, PathFormula pf) {
-    boolean result = false;
-
-    if (absOnLoop) {
-      result = succLoc.isLoopStart();
-      if (result) {
-        numBlkLoops++;
-      }
-    }
-    if (absOnFunction) {
-      boolean function =
-               (succLoc instanceof CFAFunctionDefinitionNode) // function call edge
-            || (succLoc.getEnteringSummaryEdge() != null); // function return edge
-      if (function) {
-        result = true;
-        numBlkFunctions++;
-      }
-    }
-
-    if (absBlockSize > 0) {
-      boolean threshold = (pf.getLength() >= absBlockSize);
-      if (threshold) {
-        numBlkThreshold++;
-      }
-
-      if (absOnlyIfBoth) {
-        result = result && threshold;
-      } else {
-        result = result || threshold;
-      }
-    }
-
-    return result;
   }
 
   @Override
