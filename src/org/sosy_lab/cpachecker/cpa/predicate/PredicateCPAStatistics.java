@@ -45,6 +45,8 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.AbstractInterpolationBasedRefiner;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
@@ -62,7 +64,7 @@ class PredicateCPAStatistics implements Statistics {
 
     private final PredicateCPA cpa;
     private final BlockOperator blk;
-    private AbstractInterpolationBasedRefiner refiner = null;
+    private AbstractInterpolationBasedRefiner<?> refiner = null;
 
     public PredicateCPAStatistics(PredicateCPA cpa, BlockOperator blk) throws InvalidConfigurationException {
       this.cpa = cpa;
@@ -70,7 +72,7 @@ class PredicateCPAStatistics implements Statistics {
       cpa.getConfiguration().inject(this, PredicateCPAStatistics.class);
     }
 
-    void addRefiner(AbstractInterpolationBasedRefiner ref) {
+    void addRefiner(AbstractInterpolationBasedRefiner<?> ref) {
       refiner = ref;
     }
 
@@ -209,7 +211,7 @@ class PredicateCPAStatistics implements Statistics {
         out.println("  Time for symbolic coverage checks: " + domain.bddCoverageCheckTimer);
       }
       if (refiner != null && refiner.totalRefinement.getSumTime() > 0) {
-        PredicateRefinementManager.Stats bs = refiner.getRefinementManager().refStats;
+        InterpolationManager.Stats bs = refiner.getStats2();
 
         out.println("Time for refinement:                 " + refiner.totalRefinement);
         out.println("  Counterexample analysis:           " + bs.cexAnalysisTimer + " (Max: " + bs.cexAnalysisTimer.printMaxTime() + ", Calls: " + bs.cexAnalysisTimer.getNumberOfIntervals() + ")");

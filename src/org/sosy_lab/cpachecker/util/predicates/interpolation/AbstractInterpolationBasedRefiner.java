@@ -21,11 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.predicate;
-
-import static com.google.common.collect.Iterables.skip;
-import static com.google.common.collect.Lists.transform;
-import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
+package org.sosy_lab.cpachecker.util.predicates.interpolation;
 
 import java.io.File;
 import java.util.List;
@@ -36,6 +32,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -49,16 +46,10 @@ import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.AbstractElements;
-import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.collect.Lists;
-
 /**
- * This class provides a basic refiner implementation for PredicateCPA.
+ * This class provides a basic refiner implementation for predicate analysis.
  * When a counterexample is found, it creates a path for it and checks it for
  * feasibiltiy, getting the interpolants if possible.
  *
@@ -68,42 +59,28 @@ import com.google.common.collect.Lists;
  * It does, however, produce a nice error path in case of a feasible counterexample.
  */
 @Options(prefix="cpa.predicate.refinement")
-abstract class AbstractInterpolationBasedRefiner extends AbstractARTBasedRefiner {
+public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARTBasedRefiner {
 
   @Option(name="msatCexFile", type=Option.Type.OUTPUT_FILE,
       description="where to dump the counterexample formula in case the error location is reached")
   private File dumpCexFile = new File("counterexample.msat");
 
-  final Timer totalRefinement = new Timer();
-  final Timer errorPathProcessing = new Timer();
+  public final Timer totalRefinement = new Timer();
+  public final Timer errorPathProcessing = new Timer();
 
   protected final LogManager logger;
-  protected final PredicateCPA predicateCpa;
 
-  private final PredicateRefinementManager formulaManager;
+  private final InterpolationManager<I> formulaManager;
 
   // TODO: this should be private
   protected List<CFANode> lastErrorPath = null;
 
-  protected AbstractInterpolationBasedRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
+  protected AbstractInterpolationBasedRefiner(final Configuration config, LogManager pLogger, final ConfigurableProgramAnalysis pCpa, InterpolationManager<I> pInterpolationManager) throws CPAException, InvalidConfigurationException {
     super(pCpa);
+    config.inject(this, AbstractInterpolationBasedRefiner.class);
 
-    predicateCpa = this.getArtCpa().retrieveWrappedCpa(PredicateCPA.class);
-    if (predicateCpa == null) {
-      throw new InvalidConfigurationException(getClass().getSimpleName() + " needs a PredicateCPA");
-    }
-
-    predicateCpa.getConfiguration().inject(this, AbstractInterpolationBasedRefiner.class);
-    logger = predicateCpa.getLogger();
-
-    formulaManager = new PredicateRefinementManager(predicateCpa.getFormulaManager(),
-                                                    predicateCpa.getPathFormulaManager(),
-                                                    predicateCpa.getTheoremProver(),
-                                                    predicateCpa.getPredicateManager(),
-                                                    predicateCpa.getConfiguration(),
-                                                    logger);
-
-    predicateCpa.getStats().addRefiner(this);
+    logger = pLogger;
+    formulaManager = pInterpolationManager;
   }
 
   @Override
@@ -125,7 +102,7 @@ abstract class AbstractInterpolationBasedRefiner extends AbstractARTBasedRefiner
     assert path.size() == formulas.size();
 
     // build the counterexample
-    CounterexampleTraceInfo counterexample = formulaManager.buildCounterexampleTrace(formulas, elementsOnPath);
+    CounterexampleTraceInfo<I> counterexample = formulaManager.buildCounterexampleTrace(formulas, elementsOnPath);
 
     // if error is spurious refine
     if (counterexample.isSpurious()) {
@@ -139,7 +116,7 @@ abstract class AbstractInterpolationBasedRefiner extends AbstractARTBasedRefiner
     } else {
       // we have a real error
       logger.log(Level.FINEST, "Error trace is not spurious");
-      Pair<Path, CounterexampleTraceInfo> preciseCounterexample = findPreciseErrorPath(pPath, counterexample);
+      Pair<Path, CounterexampleTraceInfo<I>> preciseCounterexample = findPreciseErrorPath(pPath, counterexample);
 
       Path targetPath;
       if (preciseCounterexample == null) {
@@ -153,7 +130,7 @@ abstract class AbstractInterpolationBasedRefiner extends AbstractARTBasedRefiner
 
       CounterexampleInfo cex = CounterexampleInfo.feasible(targetPath, counterexample.getCounterexample());
 
-      final CounterexampleTraceInfo counterexample2 = counterexample;
+      final CounterexampleTraceInfo<I> counterexample2 = counterexample;
       cex.addFurtherInformation(new Object() {
         // lazily call formulaManager.dumpCounterexample()
         @Override
@@ -167,34 +144,7 @@ abstract class AbstractInterpolationBasedRefiner extends AbstractARTBasedRefiner
     }
   }
 
-  protected abstract void performRefinement(ARTReachedSet pReached,
-      List<Pair<ARTElement, CFANode>> path,
-      CounterexampleTraceInfo counterexample) throws CPAException;
-
-
-  private List<Pair<ARTElement, CFANode>> transformPath(Path pPath) throws CPATransferException {
-    List<Pair<ARTElement, CFANode>> result = Lists.newArrayList();
-
-    for (ARTElement ae : skip(transform(pPath, Pair.<ARTElement>getProjectionToFirst()), 1)) {
-      PredicateAbstractElement pe = extractElementByType(ae, PredicateAbstractElement.class);
-      if (pe.isAbstractionElement()) {
-        CFANode loc = AbstractElements.extractLocation(ae);
-        result.add(Pair.of(ae, loc));
-      }
-    }
-
-    assert pPath.getLast().getFirst() == result.get(result.size()-1).getFirst();
-    return result;
-  }
-
-  private static final Function<PredicateAbstractElement, Formula> GET_BLOCK_FORMULA
-                = new Function<PredicateAbstractElement, Formula>() {
-                    @Override
-                    public Formula apply(PredicateAbstractElement e) {
-                      assert e.isAbstractionElement();
-                      return e.getAbstractionFormula().getBlockFormula();
-                    };
-                  };
+  protected abstract List<Pair<ARTElement, CFANode>> transformPath(Path pPath);
 
   /**
    * Get the block formulas from a path.
@@ -203,19 +153,13 @@ abstract class AbstractInterpolationBasedRefiner extends AbstractARTBasedRefiner
    * @return A list of block formulas for this path.
    * @throws CPATransferException
    */
-  protected List<Formula> getFormulasForPath(List<Pair<ARTElement, CFANode>> path, ARTElement initialElement) throws CPATransferException {
+  protected abstract List<Formula> getFormulasForPath(List<Pair<ARTElement, CFANode>> path, ARTElement initialElement) throws CPATransferException;
 
-    List<Formula> formulas = transform(path,
-        Functions.compose(
-            GET_BLOCK_FORMULA,
-        Functions.compose(
-            AbstractElements.extractElementByTypeFunction(PredicateAbstractElement.class),
-            Pair.<ARTElement>getProjectionToFirst())));
+  protected abstract void performRefinement(ARTReachedSet pReached,
+      List<Pair<ARTElement, CFANode>> path,
+      CounterexampleTraceInfo<I> counterexample) throws CPAException;
 
-    return formulas;
-  }
-
-  private Pair<Path, CounterexampleTraceInfo> findPreciseErrorPath(Path pPath, CounterexampleTraceInfo counterexample) {
+  private Pair<Path, CounterexampleTraceInfo<I>> findPreciseErrorPath(Path pPath, CounterexampleTraceInfo<I> counterexample) {
     errorPathProcessing.start();
     try {
 
@@ -241,7 +185,7 @@ abstract class AbstractInterpolationBasedRefiner extends AbstractARTBasedRefiner
       }
 
       // try to create a better satisfying assignment by replaying this single path
-      CounterexampleTraceInfo info2;
+      CounterexampleTraceInfo<I> info2;
       try {
         info2 = formulaManager.checkPath(targetPath.asEdgesList());
 
@@ -264,7 +208,7 @@ abstract class AbstractInterpolationBasedRefiner extends AbstractARTBasedRefiner
     }
   }
 
-  PredicateRefinementManager getRefinementManager() {
-    return formulaManager;
+  public InterpolationManager.Stats getStats2() {
+    return formulaManager.refStats;
   }
 }

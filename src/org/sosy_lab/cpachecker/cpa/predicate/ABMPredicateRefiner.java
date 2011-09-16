@@ -33,12 +33,15 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.cpa.abm.AbstractABMBasedRefiner;
@@ -79,15 +82,37 @@ import com.google.common.collect.Lists;
  */
 public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
 
-  private final PredicateRefiner refiner;
+  private final ExtendedPredicateRefiner refiner;
+
 
   public static Refiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     return new ABMPredicateRefiner(pCpa);
   }
 
   public ABMPredicateRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
+
     super(pCpa);
-    this.refiner = new ExtendedPredicateRefiner(pCpa);
+
+    if (!(pCpa instanceof AbstractSingleWrapperCPA)) {
+      throw new InvalidConfigurationException(ABMPredicateRefiner.class.getSimpleName() + " could not find the PredicateCPA");
+    }
+
+    ABMPredicateCPA predicateCpa = ((AbstractSingleWrapperCPA)pCpa).retrieveWrappedCpa(ABMPredicateCPA.class);
+    if (predicateCpa == null) {
+      throw new InvalidConfigurationException(ABMPredicateRefiner.class.getSimpleName() + " needs an ABMPredicateCPA");
+    }
+
+    LogManager logger = predicateCpa.getLogger();
+
+    PredicateRefinementManager manager = new PredicateRefinementManager(predicateCpa.getFormulaManager(),
+                                          predicateCpa.getPathFormulaManager(),
+                                          predicateCpa.getTheoremProver(),
+                                          predicateCpa.getPredicateManager(),
+                                          predicateCpa.getConfiguration(),
+                                          logger);
+
+    this.refiner = new ExtendedPredicateRefiner(predicateCpa.getConfiguration(),
+        logger, pCpa, predicateCpa, manager);
   }
 
   @Override
@@ -107,15 +132,16 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
 
     private final PathFormulaManager pfmgr;
 
-    private ExtendedPredicateRefiner(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
-      super(pCpa);
+    private ExtendedPredicateRefiner(final Configuration config, final LogManager logger,
+        final ConfigurableProgramAnalysis pCpa,
+        final ABMPredicateCPA predicateCpa,
+        final PredicateRefinementManager pInterpolationManager) throws CPAException, InvalidConfigurationException {
 
-      this.pfmgr = predicateCpa.getPathFormulaManager();
+      super(config, logger, pCpa, pInterpolationManager);
 
-      if (!(predicateCpa instanceof ABMPredicateCPA)) {
-        throw new InvalidConfigurationException(ABMPredicateRefiner.class.getSimpleName() + " needs an ABMPredicateCPA");
-      }
-      ((ABMPredicateCPA)predicateCpa).getABMStats().addRefiner(this);
+      pfmgr = predicateCpa.getPathFormulaManager();
+
+      predicateCpa.getABMStats().addRefiner(this);
     }
 
     @Override

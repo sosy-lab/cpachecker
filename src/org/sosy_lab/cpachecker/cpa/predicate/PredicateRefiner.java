@@ -23,33 +23,45 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.collect.Iterables.skip;
 import static com.google.common.collect.Lists.transform;
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
+import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.AbstractInterpolationBasedRefiner;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 /**
@@ -58,7 +70,7 @@ import com.google.common.collect.Multimap;
  * and removing the relevant parts of the ART).
  */
 @Options(prefix="cpa.predicate.refinement")
-public class PredicateRefiner extends AbstractInterpolationBasedRefiner {
+public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collection<AbstractionPredicate>> {
 
   @Option(description="refinement will add all discovered predicates "
           + "to all the locations in the abstract trace")
@@ -67,20 +79,81 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner {
   final Timer precisionUpdate = new Timer();
   final Timer artUpdate = new Timer();
 
-  public static Refiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
-    return new PredicateRefiner(pCpa);
+  public static PredicateRefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
+    if (!(pCpa instanceof AbstractSingleWrapperCPA)) {
+      throw new InvalidConfigurationException(PredicateRefiner.class.getSimpleName() + " could not find the PredicateCPA");
+    }
+
+    PredicateCPA predicateCpa = ((AbstractSingleWrapperCPA)pCpa).retrieveWrappedCpa(PredicateCPA.class);
+    if (predicateCpa == null) {
+      throw new InvalidConfigurationException(PredicateRefiner.class.getSimpleName() + " needs a PredicateCPA");
+    }
+
+    LogManager logger = predicateCpa.getLogger();
+
+    PredicateRefinementManager manager = new PredicateRefinementManager(predicateCpa.getFormulaManager(),
+                                          predicateCpa.getPathFormulaManager(),
+                                          predicateCpa.getTheoremProver(),
+                                          predicateCpa.getPredicateManager(),
+                                          predicateCpa.getConfiguration(),
+                                          logger);
+
+    PredicateRefiner refiner = new PredicateRefiner(predicateCpa.getConfiguration(), logger, pCpa, manager);
+    predicateCpa.getStats().addRefiner(refiner);
+    return refiner;
   }
 
-  public PredicateRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
-    super(pCpa);
+  protected PredicateRefiner(final Configuration config, final LogManager logger,
+      final ConfigurableProgramAnalysis pCpa,
+      final PredicateRefinementManager pInterpolationManager) throws CPAException, InvalidConfigurationException {
 
-    predicateCpa.getConfiguration().inject(this, PredicateRefiner.class);
+    super(config, logger, pCpa, pInterpolationManager);
+
+    config.inject(this, PredicateRefiner.class);
+  }
+
+  @Override
+  protected final List<Pair<ARTElement, CFANode>> transformPath(Path pPath) {
+    List<Pair<ARTElement, CFANode>> result = Lists.newArrayList();
+
+    for (ARTElement ae : skip(transform(pPath, Pair.<ARTElement>getProjectionToFirst()), 1)) {
+      PredicateAbstractElement pe = extractElementByType(ae, PredicateAbstractElement.class);
+      if (pe.isAbstractionElement()) {
+        CFANode loc = AbstractElements.extractLocation(ae);
+        result.add(Pair.of(ae, loc));
+      }
+    }
+
+    assert pPath.getLast().getFirst() == result.get(result.size()-1).getFirst();
+    return result;
+  }
+
+  private static final Function<PredicateAbstractElement, Formula> GET_BLOCK_FORMULA
+                = new Function<PredicateAbstractElement, Formula>() {
+                    @Override
+                    public Formula apply(PredicateAbstractElement e) {
+                      assert e.isAbstractionElement();
+                      return e.getAbstractionFormula().getBlockFormula();
+                    };
+                  };
+
+  @Override
+  protected List<Formula> getFormulasForPath(List<Pair<ARTElement, CFANode>> path, ARTElement initialElement) throws CPATransferException {
+
+    List<Formula> formulas = transform(path,
+        Functions.compose(
+            GET_BLOCK_FORMULA,
+        Functions.compose(
+            AbstractElements.extractElementByTypeFunction(PredicateAbstractElement.class),
+            Pair.<ARTElement>getProjectionToFirst())));
+
+    return formulas;
   }
 
   @Override
   protected void performRefinement(ARTReachedSet pReached,
       List<Pair<ARTElement, CFANode>> pPath,
-      CounterexampleTraceInfo pCounterexample) throws CPAException {
+      CounterexampleTraceInfo<Collection<AbstractionPredicate>> pCounterexample) throws CPAException {
 
     precisionUpdate.start();
 
@@ -105,7 +178,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner {
 
   private Pair<ARTElement, PredicatePrecision> performRefinement(PredicatePrecision oldPrecision,
       List<Pair<ARTElement, CFANode>> pPath,
-      CounterexampleTraceInfo pInfo) throws CPAException {
+      CounterexampleTraceInfo<Collection<AbstractionPredicate>> pInfo) throws CPAException {
 
     List<Collection<AbstractionPredicate>> newPreds = pInfo.getPredicatesForRefinement();
 

@@ -505,7 +505,7 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
 
     Refiner lRefiner;
     try {
-      lRefiner = new PredicateRefiner(lBasicAlgorithm.getCPA());
+      lRefiner = PredicateRefiner.create(lBasicAlgorithm.getCPA());
     } catch (CPAException e) {
       throw new RuntimeException(e);
     } catch (InvalidConfigurationException e) {

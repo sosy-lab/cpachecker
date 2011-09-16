@@ -23,78 +23,138 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.collect.Iterables.skip;
+import static com.google.common.collect.Lists.transform;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
 
-import java.util.Collection;
 import java.util.List;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
+import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.AbstractInterpolationBasedRefiner;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.DefaultInterpolationManager;
 
-import com.google.common.collect.Iterables;
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
+import com.google.common.collect.Lists;
 
-public class McMillanRefiner extends AbstractInterpolationBasedRefiner {
+public class McMillanRefiner extends AbstractInterpolationBasedRefiner<Formula> {
 
   private int i = 0;
 
-  private final RegionManager regionManager;
-  private final PredicateAbstractionManager abstractionManager;
+//  private final RegionManager regionManager;
+//  private final PredicateAbstractionManager abstractionManager;
 
   public static Refiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
-    return new McMillanRefiner(pCpa);
+    if (!(pCpa instanceof AbstractSingleWrapperCPA)) {
+      throw new InvalidConfigurationException(McMillanRefiner.class.getSimpleName() + " could not find the PredicateCPA");
+    }
+
+    PredicateCPA predicateCpa = ((AbstractSingleWrapperCPA)pCpa).retrieveWrappedCpa(PredicateCPA.class);
+    if (predicateCpa == null) {
+      throw new InvalidConfigurationException(McMillanRefiner.class.getSimpleName() + " needs a PredicateCPA");
+    }
+
+    LogManager logger = predicateCpa.getLogger();
+
+    DefaultInterpolationManager manager = new DefaultInterpolationManager(predicateCpa.getFormulaManager(),
+                                          predicateCpa.getPathFormulaManager(),
+                                          predicateCpa.getTheoremProver(),
+                                          predicateCpa.getConfiguration(),
+                                          logger);
+
+    return new McMillanRefiner(predicateCpa.getConfiguration(), logger, pCpa, predicateCpa, manager);
   }
 
-  public McMillanRefiner(final ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException, CPAException {
-    super(pCpa);
+  protected McMillanRefiner(final Configuration config, final LogManager logger,
+      final ConfigurableProgramAnalysis pCpa,
+      final PredicateCPA predicateCpa, final DefaultInterpolationManager pInterpolationManager) throws CPAException, InvalidConfigurationException {
 
-    regionManager = predicateCpa.getRegionManager();
-    abstractionManager = predicateCpa.getPredicateManager();
+    super(config, logger, pCpa, pInterpolationManager);
+
+//    regionManager = predicateCpa.getRegionManager();
+//    abstractionManager = predicateCpa.getPredicateManager();
+  }
+
+
+  @Override
+  protected final List<Pair<ARTElement, CFANode>> transformPath(Path pPath) {
+    List<Pair<ARTElement, CFANode>> result = Lists.newArrayList();
+
+    for (ARTElement ae : skip(transform(pPath, Pair.<ARTElement>getProjectionToFirst()), 1)) {
+      PredicateAbstractElement pe = extractElementByType(ae, PredicateAbstractElement.class);
+      if (pe.isAbstractionElement()) {
+        CFANode loc = AbstractElements.extractLocation(ae);
+        result.add(Pair.of(ae, loc));
+      }
+    }
+
+    assert pPath.getLast().getFirst() == result.get(result.size()-1).getFirst();
+    return result;
+  }
+
+  private static final Function<PredicateAbstractElement, Formula> GET_BLOCK_FORMULA
+                = new Function<PredicateAbstractElement, Formula>() {
+                    @Override
+                    public Formula apply(PredicateAbstractElement e) {
+                      assert e.isAbstractionElement();
+                      return e.getAbstractionFormula().getBlockFormula();
+                    };
+                  };
+
+  @Override
+  protected List<Formula> getFormulasForPath(List<Pair<ARTElement, CFANode>> path, ARTElement initialElement) throws CPATransferException {
+
+    List<Formula> formulas = transform(path,
+        Functions.compose(
+            GET_BLOCK_FORMULA,
+        Functions.compose(
+            AbstractElements.extractElementByTypeFunction(PredicateAbstractElement.class),
+            Pair.<ARTElement>getProjectionToFirst())));
+
+    return formulas;
   }
 
   @Override
   protected void performRefinement(ARTReachedSet pReached,
       List<Pair<ARTElement, CFANode>> pPath,
-      CounterexampleTraceInfo pInfo) throws CPAException {
+      CounterexampleTraceInfo<Formula> pInfo) throws CPAException {
 
-    List<Collection<AbstractionPredicate>> newPreds = pInfo.getPredicatesForRefinement();
+    List<Formula> itps = pInfo.getPredicatesForRefinement();
 
     // target element is not really an interpolation point, exclude it
     List<Pair<ARTElement, CFANode>> interpolationPoints = pPath.subList(0, pPath.size()-1);
-    assert interpolationPoints.size() == newPreds.size();
+    assert interpolationPoints.size() == itps.size();
 
     // the first element on the path which was discovered to be not reachable
     ARTElement root = null;
 
     int i = 0;
     for (Pair<ARTElement, CFANode> interpolationPoint : interpolationPoints) {
-      Collection<AbstractionPredicate> localPreds = newPreds.get(i++);
+      Formula localItp = itps.get(i++);
 
-      if (localPreds.isEmpty()) {
-        // no predicates on the beginning of the path means the interpolant is true,
+      if (localItp.isTrue()) {
         // do nothing
         continue;
       }
-      if (localPreds.size() > 1) {
-        throw new CPAException("Lazy Interpolation does not work with atomic predicates, set cpa.predicate.refinement.atomicPredicates=false");
-      }
 
-      AbstractionPredicate pred = Iterables.getOnlyElement(localPreds);
-
-      if (pred.getSymbolicAtom().isFalse()) {
+      if (localItp.isFalse()) {
 
         // we have reached the part of the path that is infeasible
         root = interpolationPoint.getFirst();
@@ -106,7 +166,8 @@ public class McMillanRefiner extends AbstractInterpolationBasedRefiner {
       PredicateAbstractElement e = extractElementByType(ae, PredicateAbstractElement.class);
 
       assert e.isAbstractionElement();
-
+      throw new UnsupportedOperationException();
+/*
       Region oldAbs = e.getAbstractionFormula().asRegion();
       Region newAbs = regionManager.makeAnd(oldAbs, pred.getAbstractVariable());
 
@@ -124,6 +185,7 @@ public class McMillanRefiner extends AbstractInterpolationBasedRefiner {
 //          return;
 //        }
       }
+*/
     }
 
     ARTElement lastElement = pPath.get(pPath.size()-1).getFirst();
