@@ -2,22 +2,22 @@ CPAChecker Report Generator
 ---------------------------
 
 The report generator can be used to compile an interactive analysis-report of a CPAChecker run.
-The report is in HTML format. Currently, the only supported browser is Firefox(tested on 3.6.8),
+The report is in HTML format. Currently, the only supported browser is Firefox (tested with 3.6.8),
 mainly because of problems accessing local resources via Javascript in other browsers.
 If the file is hosted on a server, Google Chrome/Chromium should also work with some quirks
 (the focused SVG element does not scroll into view).
 
 
-Generate and a report
+Generate a Report
 ---------------------
 
-0) put dot on your PATH
+0) Make sure 'dot' is on your PATH
 
-1) run CPAChecker like so:
+1) Run CPAchecker as follows:
 
-scripts/cpa.sh -config test/config/predicateAbstraction.properties path/to/my.cil.c
+scripts/cpa.sh -config test/config/predicateAnalysis.properties path/to/my.cil.c
 
-2) after CPAChecker has completed, generate the report:
+2) After CPAchecker has completed, generate the report:
 
 python scripts/report-generator.py path/to/my.cil.c
 
