@@ -49,7 +49,6 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
     return AutomaticCPAFactory.forType(ABMPredicateCPA.class).withOptions(ABMBlockOperator.class);
   }
 
-  private final RelevantPredicatesComputer relevantPredicatesComputer;
   private final ABMPredicateReducer reducer;
   private final ABMBlockOperator blk;
 
@@ -62,13 +61,15 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
 
     config.inject(this, ABMPredicateCPA.class);
 
+    RelevantPredicatesComputer relevantPredicatesComputer;
     if (auxiliaryPredicateComputer) {
-      relevantPredicatesComputer = new CachingRelevantPredicatesComputer(new AuxiliaryComputer());
+      relevantPredicatesComputer = new AuxiliaryComputer();
     } else {
-      relevantPredicatesComputer = new CachingRelevantPredicatesComputer(new OccurrenceComputer());
+      relevantPredicatesComputer = new OccurrenceComputer();
     }
+    relevantPredicatesComputer = new CachingRelevantPredicatesComputer(relevantPredicatesComputer);
 
-    reducer = new ABMPredicateReducer(this);
+    reducer = new ABMPredicateReducer(this, relevantPredicatesComputer);
     blk = pBlk;
   }
 
@@ -78,22 +79,8 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
   }
 
   @Override
-  protected Configuration getConfiguration() {
-    return super.getConfiguration();
-  }
-
-  @Override
-  public LogManager getLogger() {
-    return super.getLogger();
-  }
-
-  @Override
   public Reducer getReducer() {
     return reducer;
-  }
-
-  public RelevantPredicatesComputer getRelevantPredicatesComputer() {
-    return relevantPredicatesComputer;
   }
 
   public void setPartitioning(BlockPartitioning partitioning) {

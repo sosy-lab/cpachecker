@@ -63,11 +63,11 @@ public class ABMPredicateReducer implements Reducer {
   private final PredicateAbstractionManager pamgr;
   private final RelevantPredicatesComputer relevantComputer;
 
-  public ABMPredicateReducer(ABMPredicateCPA cpa) {
+  public ABMPredicateReducer(ABMPredicateCPA cpa, RelevantPredicatesComputer pRelevantPredicatesComputer) {
     this.rmgr = cpa.getRegionManager();
     this.pmgr = cpa.getPathFormulaManager();
     this.pamgr = cpa.getPredicateManager();
-    this.relevantComputer = cpa.getRelevantPredicatesComputer();
+    this.relevantComputer = pRelevantPredicatesComputer;
   }
 
   @Override
