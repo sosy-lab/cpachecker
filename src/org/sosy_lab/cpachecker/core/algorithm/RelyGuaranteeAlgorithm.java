@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdge;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdgeTemplate;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCombinedCFAEdge;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvironment;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeVariables;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -138,7 +139,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     try {
       config.inject(this, RelyGuaranteeAlgorithm.class);
       for (int i=0; i<threadNo; i++) {
-        cfas[i] = new RelyGuaranteeCFA(pCfas[i]);
+        cfas[i] = new RelyGuaranteeCFA(pCfas[i], i);
       }
     } catch (InvalidConfigurationException e) {
       e.printStackTrace();
@@ -147,11 +148,20 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
       e.printStackTrace();
     }
 
+
+
     // create a set of global variables
     globalVarsSet = new HashSet<String>();
     for (String var : globalVariables) {
       globalVarsSet.add(var);
     }
+
+    RelyGuaranteeVariables vars = new RelyGuaranteeVariables(cfas);
+    System.out.println("1: "+globalVarsSet);
+    System.out.println("1: "+vars.allVars);
+
+    assert vars.allVars.containsAll(globalVarsSet);
+    assert globalVarsSet.containsAll(vars.allVars);
 
     for (int i=0; i< this.threadNo; i++){
       threadCPA[i] = new RelyGuaranteeThreadCPAAlgorithm(cpas[i],environment,config, logger, i);

@@ -23,11 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
-import java.util.List;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.RelyGuaranteeCFA;
+
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableList.Builder;
 
 /**
@@ -36,37 +37,44 @@ import com.google.common.collect.ImmutableList.Builder;
 public class RelyGuaranteeVariables {
 
   public final int threadNo;
-  public final ImmutableSortedSet<String> globalVars;
-  public final ImmutableList<ImmutableSortedSet<String>> localVars;
+  public final ImmutableSet<String> globalVars;
+  public final ImmutableList<ImmutableSet<String>> localVars;
+  public final ImmutableSet<String> allVars;
 
-  /*public RelyGuaranteeVariables(RelyGuaranteeCFA[] cfas){
+  public RelyGuaranteeVariables(RelyGuaranteeCFA[] cfas){
     assert cfas.length > 0;
 
-   this.threadNo = cfas.length;
-    this.globalVars = ImmutableSortedSet.copyOf(cfas[0].getGlobalVariables());
-    Builder<ImmutableSortedSet<String>> lb = new ImmutableList.Builder<ImmutableSortedSet<String>>();
+    this.threadNo = cfas.length;
+    this.globalVars = ImmutableSet.copyOf(cfas[0].getGlobalVariables());
+
+    Builder<ImmutableSet<String>> lb = new ImmutableList.Builder<ImmutableSet<String>>();
     for (RelyGuaranteeCFA cfa : cfas){
-      Collection<String> localVars = cfa.getLhsVariables().values();
-      localVars.removeAll(this.globalVars);
-      lb.add(ImmutableSortedSet.copyOf(localVars));
+      lb.add(ImmutableSet.copyOf(cfa.getScopedLocalVars()));
+    }
+    this.localVars = lb.build();
+
+    com.google.common.collect.ImmutableSet.Builder<String> avb = new ImmutableSet.Builder<String>();
+    avb.addAll(globalVars);
+    for (Set<String> lv : localVars){
+      avb.addAll(lv);
+    }
+    this.allVars = avb.build();
+
+    assert this.localVars.size() == this.threadNo;
+  }
+
+  /*public RelyGuaranteeVariables(int threadNo, Set<String> globalVars, List<Set<String>> localVars) {
+    assert threadNo > 0;
+    assert localVars.size() == threadNo;
+
+    this.threadNo = threadNo;
+    this.globalVars = ImmutableSet.copyOf(globalVars);
+    Builder<ImmutableSet<String>> lb = new ImmutableList.Builder<ImmutableSet<String>>();
+    for (Set<String> set : localVars) {
+      lb.add(ImmutableSet.copyOf(set));
     }
     this.localVars = lb.build();
 
     assert this.localVars.size() == this.threadNo;
   }*/
-
-  public RelyGuaranteeVariables(int threadNo, Set<String> globalVars, List<Set<String>> localVars) {
-    assert threadNo > 0;
-    assert localVars.size() == threadNo;
-
-    this.threadNo = threadNo;
-    this.globalVars = ImmutableSortedSet.copyOf(globalVars);
-    Builder<ImmutableSortedSet<String>> lb = new ImmutableList.Builder<ImmutableSortedSet<String>>();
-    for (Set<String> set : localVars) {
-      lb.add(ImmutableSortedSet.copyOf(set));
-    }
-    this.localVars = lb.build();
-
-    assert this.localVars.size() == this.threadNo;
-  }
 }

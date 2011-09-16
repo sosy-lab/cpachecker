@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
 import com.google.common.collect.HashMultimap;
@@ -54,18 +55,29 @@ public class RelyGuaranteeCFA extends CFA {
 
   private final Multimap<CFANode, String> rhsVariables;
   private final Multimap<CFANode, String> lhsVariables;
+  private final Set<String> scopedLocalVars;
   private final List<CFANode> noEnvList;
 
 
-  public RelyGuaranteeCFA(CFA other) throws UnrecognizedCFAEdgeException{
+  public RelyGuaranteeCFA(CFA other, int tid) throws UnrecognizedCFAEdgeException{
     super(other);
 
     rhsVariables = HashMultimap.create();
     lhsVariables = HashMultimap.create();
+    scopedLocalVars = new HashSet<String>();
     noEnvList = new Vector<CFANode>();
     for (CFANode node : other.cfaNodes.values()){
       for (int i=0; i<node.getNumLeavingEdges(); i++) {
         CFAEdge edge = node.getLeavingEdge(i);
+        if (edge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+          DeclarationEdge de = (DeclarationEdge) edge;
+          if (!de.isGlobal() && de.getDeclSpecifier() instanceof IASTSimpleDeclSpecifier){
+            // TODO use some method
+            String function = edge.getPredecessor().getFunctionName();
+            String name = "t"+tid+"_"+function+"::"+de.getName();
+            scopedLocalVars.add(name);
+          }
+        }
         if (edge.getEdgeType() == CFAEdgeType.StatementEdge || edge.getEdgeType() == CFAEdgeType.AssumeEdge ) {
           Triple<Set<String>, Set<String>, Boolean> vars = getReadWriteVariables(edge.getRawAST());
           lhsVariables.putAll(node, vars.getFirst());
@@ -127,6 +139,11 @@ public class RelyGuaranteeCFA extends CFA {
   public Multimap<CFANode, String> getLhsVariables() {
     return lhsVariables;
   }
+
+  public Set<String> getScopedLocalVars() {
+    return scopedLocalVars;
+  }
+
 
   public  SortedSet<String> getGlobalVariables() {
     SortedSet<String> gvars = new TreeSet<String>();

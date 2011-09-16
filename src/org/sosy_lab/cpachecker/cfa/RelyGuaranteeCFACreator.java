@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.CFA.findLoops;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -244,6 +245,21 @@ public class RelyGuaranteeCFACreator {
 
         CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(tCfaFunctions);
         Set<String> calledFunctions = spbuilder.insertCallEdgesRecursively(mainFunctionName);
+
+        // remove subtrees which are not called by the function
+        Set<String> funcToRemove = new HashSet<String>(tCfaFunctions.keySet());
+        funcToRemove.removeAll(calledFunctions);
+        for (String name : funcToRemove){
+          CFAFunctionDefinitionNode node = tCfaFunctions.get(name);
+          // remove incoming edges
+          for (int j=0; j<node.getNumEnteringEdges(); j++){
+            CFAEdge edge = node.getEnteringEdge(j);
+            CFANode pred = edge.getPredecessor();
+            pred.removeLeavingEdge(edge);
+          }
+          // remove the node
+          tCfaNodes.removeAll(name);
+        }
         tCfaFunctions.keySet().retainAll(calledFunctions);
 
         // add global declarations
