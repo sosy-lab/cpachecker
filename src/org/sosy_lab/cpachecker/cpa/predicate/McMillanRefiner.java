@@ -32,6 +32,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -52,6 +53,10 @@ public class McMillanRefiner extends AbstractInterpolationBasedRefiner {
 
   private final RegionManager regionManager;
   private final PredicateAbstractionManager abstractionManager;
+
+  public static Refiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
+    return new McMillanRefiner(pCpa);
+  }
 
   public McMillanRefiner(final ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException, CPAException {
     super(pCpa);

@@ -24,11 +24,15 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import java.io.PrintStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.Classes;
+import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
@@ -47,6 +51,7 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 
 @Options(prefix="cegar")
 public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
@@ -134,15 +139,55 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   private final Algorithm algorithm;
   private final Refiner mRefiner;
 
+  // TODO Copied from CPABuilder, should be refactored into a generic implementation
+  private Refiner createInstance(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
+
+    // get factory method
+    Method factoryMethod;
+    try {
+      factoryMethod = refiner.getMethod("create", ConfigurableProgramAnalysis.class);
+    } catch (NoSuchMethodException e) {
+      throw new CPAException("Each Refiner class has to offer a public static method \"create\" with one parameters, but " + refiner.getSimpleName() + " does not!");
+    }
+
+    // verify signature
+    if (!Modifier.isStatic(factoryMethod.getModifiers())) {
+      throw new CPAException("The factory method of the refiner " + refiner.getSimpleName() + " is not static!");
+    }
+
+    String exception = Classes.verifyDeclaredExceptions(factoryMethod, CPAException.class, InvalidConfigurationException.class);
+    if (exception != null) {
+      throw new CPAException("The factory method of the refiner " + refiner.getSimpleName() + " declares the unsupported checked exception: " + exception);
+    }
+
+    // invoke factory method
+    Object refinerObj;
+    try {
+      refinerObj = factoryMethod.invoke(null, pCpa);
+
+    } catch (IllegalAccessException e) {
+      throw new CPAException("The factory method of the refiner " + refiner.getSimpleName() + " is not public!");
+
+    } catch (InvocationTargetException e) {
+      Throwable cause = e.getCause();
+      Throwables.propagateIfPossible(cause, CPAException.class, InvalidConfigurationException.class);
+
+      throw new UnexpectedCheckedException("instantiation of refiner " + refiner.getSimpleName(), cause);
+    }
+
+    if ((refinerObj == null) || !(refinerObj instanceof Refiner)) {
+      throw new CPAException("The factory method of the refiner " + refiner.getSimpleName() + " didn't return a Refiner!");
+    }
+
+    return (Refiner)refinerObj;
+  }
+
   public CEGARAlgorithm(Algorithm algorithm, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
     config.inject(this);
     this.algorithm = algorithm;
     this.logger = logger;
 
-    Class<?>[] argumentTypes = {ConfigurableProgramAnalysis.class};
-    Object[] argumentValues = {algorithm.getCPA()};
-
-    mRefiner = Classes.createInstance(Refiner.class, refiner, argumentTypes, argumentValues, CPAException.class);
+    mRefiner = createInstance(algorithm.getCPA());
     new CEGARMBean(); // don't store it because we wouldn't know when to unregister anyway
   }
 
