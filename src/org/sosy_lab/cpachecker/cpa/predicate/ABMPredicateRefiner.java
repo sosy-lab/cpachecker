@@ -106,6 +106,11 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
       super(pCpa);
 
       this.pfmgr = predicateCpa.getPathFormulaManager();
+
+      if (!(predicateCpa instanceof ABMPredicateCPA)) {
+        throw new InvalidConfigurationException(ABMPredicateRefiner.class.getSimpleName() + " needs an ABMPredicateCPA");
+      }
+      ((ABMPredicateCPA)predicateCpa).getABMStats().addRefiner(this);
     }
 
     @Override

@@ -27,33 +27,27 @@ import static com.google.common.base.Preconditions.checkState;
 
 import java.io.PrintStream;
 
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.ABMPredicateRefiner.ExtendedPredicateRefiner;
 
-public class ABMPredicateCPAStatistics extends PredicateCPAStatistics {
+class ABMPredicateCPAStatistics implements Statistics {
 
   private ExtendedPredicateRefiner refiner = null;
 
-  public ABMPredicateCPAStatistics(ABMPredicateCPA pCpa, BlockOperator blk) throws InvalidConfigurationException {
-    super(pCpa, blk);
+  @Override
+  public String getName() {
+    return null; // because we don't want our own heading in the statistics
   }
 
-  @Override
-  void addRefiner(AbstractInterpolationBasedRefiner pRef) {
+  void addRefiner(ExtendedPredicateRefiner pRef) {
     checkState(refiner == null);
-    if (pRef instanceof ExtendedPredicateRefiner) {
-      refiner = (ExtendedPredicateRefiner)pRef;
-    }
-    super.addRefiner(pRef);
+    refiner = pRef;
   }
 
   @Override
   public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
-    super.printStatistics(out, pResult, pReached);
-
-    out.println();
     out.println("Reduce elements:            " + ABMPredicateReducer.reduceTimer);
     out.println("Expand elements:            " + ABMPredicateReducer.expandTimer);
     out.println("Extract predicates:         " + ABMPredicateReducer.extractTimer);
@@ -61,5 +55,7 @@ public class ABMPredicateCPAStatistics extends PredicateCPAStatistics {
     if (refiner != null) {
       out.println("SSA renaming:               " + refiner.ssaRenamingTimer);
     }
+    out.println();
   }
+
 }

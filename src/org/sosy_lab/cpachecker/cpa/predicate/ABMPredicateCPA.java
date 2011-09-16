@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import java.util.Collection;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -33,6 +35,7 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.AuxiliaryComputer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.CachingRelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.OccurrenceComputer;
@@ -51,6 +54,7 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
 
   private final ABMPredicateReducer reducer;
   private final ABMBlockOperator blk;
+  private final ABMPredicateCPAStatistics stats;
 
   @Option(description="whether to use auxiliary predidates for reduction")
   private boolean auxiliaryPredicateComputer = true;
@@ -71,11 +75,7 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
 
     reducer = new ABMPredicateReducer(this, relevantPredicatesComputer);
     blk = pBlk;
-  }
-
-  @Override
-  protected PredicateCPAStatistics createStatistics(BlockOperator blk) throws InvalidConfigurationException {
-    return new ABMPredicateCPAStatistics(this, blk);
+    stats = new ABMPredicateCPAStatistics();
   }
 
   @Override
@@ -85,5 +85,15 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
 
   public void setPartitioning(BlockPartitioning partitioning) {
     blk.setPartitioning(partitioning);
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    super.collectStatistics(pStatsCollection);
+    pStatsCollection.add(stats);
+  }
+
+  ABMPredicateCPAStatistics getABMStats() {
+    return stats;
   }
 }

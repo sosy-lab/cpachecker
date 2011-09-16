@@ -149,7 +149,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     initialPrecision = new PredicatePrecision(predicates);
 
-    stats = createStatistics(blk);
+    stats = new PredicateCPAStatistics(this, blk);
   }
 
   private Collection<AbstractionPredicate> readPredicatesFromFile() {
@@ -175,10 +175,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
 
     return null;
-  }
-
-  protected PredicateCPAStatistics createStatistics(BlockOperator blk) throws InvalidConfigurationException {
-    return new PredicateCPAStatistics(this, blk);
   }
 
   @Override
