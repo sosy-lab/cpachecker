@@ -38,6 +38,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
@@ -194,7 +195,12 @@ class PredicateCPAStatistics implements Statistics {
         out.println("    Solving time:                    " + as.abstractionTime.printOuterSumTime() + " (Max: " + as.abstractionTime.printOuterMaxTime() + ")");
         out.println("    Time for BDD construction:       " + as.abstractionTime.printInnerSumTime()   + " (Max: " + as.abstractionTime.printInnerMaxTime() + ")");
       }
-      out.println("Time for merge operator:             " + cpa.getMergeOperator().totalMergeTime);
+
+      MergeOperator merge = cpa.getMergeOperator();
+      if (merge instanceof PredicateMergeOperator) {
+        out.println("Time for merge operator:             " + ((PredicateMergeOperator)merge).totalMergeTime);
+      }
+
       out.println("Time for coverage check:             " + domain.coverageCheckTimer);
       if (domain.bddCoverageCheckTimer.getNumberOfIntervals() > 0) {
         out.println("  Time for BDD entailment checks:    " + domain.bddCoverageCheckTimer);

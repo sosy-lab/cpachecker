@@ -37,10 +37,12 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -86,12 +88,16 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Option(name="blk.useCache", description="use caching of path formulas")
   private boolean useCache = true;
 
+  @Option(name="merge", values={"SEP", "ABE"}, toUppercase=true,
+      description="which merge operator to use for predicate cpa (usually ABE should be used)")
+  private String mergeType = "ABE";
+
   private final Configuration config;
   private final LogManager logger;
 
   private final PredicateAbstractDomain domain;
   private final PredicateTransferRelation transfer;
-  private final PredicateMergeOperator merge;
+  private final MergeOperator merge;
   private final PredicatePrecisionAdjustment prec;
   private final StopOperator stop;
   private final PredicatePrecision initialPrecision;
@@ -133,7 +139,14 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     topElement = PredicateAbstractElement.abstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null));
     domain = new PredicateAbstractDomain(this);
 
-    merge = new PredicateMergeOperator(this);
+    if (mergeType.equals("SEP")) {
+      merge = MergeSepOperator.getInstance();
+    } else if (mergeType.equals("ABE")) {
+      merge = new PredicateMergeOperator(this);
+    } else {
+      throw new InternalError("Update list of allowed merge operators");
+    }
+
     prec = new PredicatePrecisionAdjustment(this);
     stop = new StopSepOperator(domain);
 
@@ -188,7 +201,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public PredicateMergeOperator getMergeOperator() {
+  public MergeOperator getMergeOperator() {
     return merge;
   }
 
