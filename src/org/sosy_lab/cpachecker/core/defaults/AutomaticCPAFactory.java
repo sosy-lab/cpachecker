@@ -269,7 +269,7 @@ public class AutomaticCPAFactory implements CPAFactory {
     Configuration config = get(Configuration.class);
     checkState(config != null, "Configuration object needed to create CPA");
 
-    config.inject(options);
+    config.recursiveInject(options);
     set(options, optionsClass);
 
     return super.createInstance();

@@ -433,6 +433,26 @@ public class Configuration {
   }
 
   /**
+   * Call {@link #inject(Object, Class)} for this object with its actual class
+   * and all super class that have an {@link Options} annotation.
+   *
+   * @param obj The object in which the configuration options should be injected.
+   * @throws InvalidConfigurationException If the user specified configuration is wrong.
+   */
+  public void recursiveInject(Object obj) throws InvalidConfigurationException {
+    Class<?> cls = obj.getClass();
+    Preconditions.checkNotNull(cls.getAnnotation(Options.class), "Class must have @Options annotation.");
+
+    do {
+      if (cls.getAnnotation(Options.class) != null) {
+        inject(obj, cls);
+      }
+
+      cls = cls.getSuperclass();
+    } while (cls != null);
+  }
+
+  /**
    * @see #inject(Object)
    *
    * Use this method if the calling class is likely to be sub-classed, so that
