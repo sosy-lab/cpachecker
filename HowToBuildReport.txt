@@ -1,7 +1,7 @@
-CPAChecker Report Generator
+CPAchecker Report Generator
 ---------------------------
 
-The report generator can be used to compile an interactive analysis-report of a CPAChecker run.
+The report generator can be used to compile an interactive analysis report of a CPAchecker run.
 The report is in HTML format. Currently, the only supported browser is Firefox (tested with 3.6.8),
 mainly because of problems accessing local resources via Javascript in other browsers.
 If the file is hosted on a server, Google Chrome/Chromium should also work with some quirks
@@ -59,7 +59,7 @@ Quick Reference to use the report
       
     - Log Tab
     
-      - Displays the output of CPAChecker
+      - Displays the output of CPAchecker
       
 
 Known Problems

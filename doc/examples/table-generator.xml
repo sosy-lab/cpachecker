@@ -2,7 +2,7 @@
 
 <table>
 
-<!-- a list of testfiles, a file is created automatically by benchmark.py for each test-->
+<!-- a list of testfiles, where each file was created automatically by benchmark.py for a test -->
 
   <test filename="test/results/benchmark-cpachecker.2011-??-??.results.xml">
     <!-- columns "status" and "cputime" of the testfile will be part of the table -->
