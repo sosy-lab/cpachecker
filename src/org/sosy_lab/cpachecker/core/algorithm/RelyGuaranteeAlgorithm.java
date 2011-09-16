@@ -125,10 +125,14 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
 
   // stores information about environmental transitions
   private RelyGuaranteeEnvironment environment;
+  // data on variables
+  public RelyGuaranteeVariables variables;
 
-  public RelyGuaranteeAlgorithm(CFA[] pCfas, CFAFunctionDefinitionNode[] pMainFunctions, ConfigurableProgramAnalysis[] pCpas, Configuration config, LogManager logger) {
+
+  public RelyGuaranteeAlgorithm(CFA[] pCfas, CFAFunctionDefinitionNode[] pMainFunctions, ConfigurableProgramAnalysis[] pCpas, RelyGuaranteeVariables vars, Configuration config, LogManager logger) {
     this.threadNo = pCfas.length;
     this.mainFunctions = pMainFunctions;
+    this.variables = vars;
     this.cpas = pCpas;
     this.logger = logger;
 
@@ -148,17 +152,11 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
       e.printStackTrace();
     }
 
-
-
     // create a set of global variables
     globalVarsSet = new HashSet<String>();
     for (String var : globalVariables) {
       globalVarsSet.add(var);
     }
-
-    RelyGuaranteeVariables vars = new RelyGuaranteeVariables(cfas);
-    System.out.println("1: "+globalVarsSet);
-    System.out.println("1: "+vars.allVars);
 
     assert vars.allVars.containsAll(globalVarsSet);
     assert globalVarsSet.containsAll(vars.allVars);
@@ -171,12 +169,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     for (int i=0; i< this.threadNo; i++){
       dumpDot(i, "test/output/oldCFA"+i+".dot");
     }
-
-
-
   }
-
-
 
   /**
    * Returns -1 if no error is found or the thread no with an error

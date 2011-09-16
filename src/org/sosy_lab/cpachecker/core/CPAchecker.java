@@ -38,6 +38,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.EmptyCFAException;
+import org.sosy_lab.cpachecker.cfa.RelyGuaranteeCFA;
 import org.sosy_lab.cpachecker.cfa.RelyGuaranteeCFACreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -60,8 +61,10 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCPA;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeVariables;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 
 import com.google.common.base.Joiner;
@@ -197,19 +200,24 @@ public class CPAchecker {
       stats.creationTime.start();
 
       // get main functions and CFA
-      Pair<CFAFunctionDefinitionNode[], CFA[]> tuple = getMainFunctionsAndCfas(filename);
+      Pair<CFAFunctionDefinitionNode[], RelyGuaranteeCFA[]> tuple = getMainFunctionsAndCfas(filename);
       CFAFunctionDefinitionNode[] mainFunctions = tuple.getFirst();
-      CFA[] cfas = tuple.getSecond();
+      RelyGuaranteeCFA[] cfas = tuple.getSecond();
 
       int threadNo = mainFunctions.length;
 
       cpas  = new ConfigurableProgramAnalysis[threadNo];
+
+      // extract variables
+      RelyGuaranteeVariables vars = new RelyGuaranteeVariables(cfas);
+
       // create a cpa for each thread
       for(int i=0; i<threadNo; i++){
         ConfigurableProgramAnalysis cpa = createCPA(stats);
         WrapperCPA wCPA = (WrapperCPA) cpa;
         RelyGuaranteeCPA rgCPA = wCPA.retrieveWrappedCpa(RelyGuaranteeCPA.class);
-        rgCPA.setThreadId(i);
+        rgCPA.setTid(i);
+        rgCPA.setVariables(vars);
         //rgCPA.useHardcodedPredicates();
         cpas[i] = cpa;
       }
@@ -218,6 +226,8 @@ public class CPAchecker {
       // TODO quick & dirty solution
       stats.getSubStatistics().clear();
 
+
+
       // get the initial reached sets
       initalReachedSets = new ReachedSet[threadNo];
       for(int i=0; i<threadNo; i++){
@@ -225,7 +235,7 @@ public class CPAchecker {
       }
 
       // TODO handle only with ConcurrentAlgorithm
-      RelyGuaranteeAlgorithm rgAlgorithm = new RelyGuaranteeAlgorithm(cfas, mainFunctions, cpas, config, logger);
+      RelyGuaranteeAlgorithm rgAlgorithm = new RelyGuaranteeAlgorithm(cfas, mainFunctions, cpas, vars, config, logger);
       ConcurrentAlgorithm algorithm;
 
       if (options.useRelyGuaranteeRefinement) {
@@ -639,7 +649,7 @@ public class CPAchecker {
   }
 
   // returns main functions and CFA from the given file names
-  private Pair<CFAFunctionDefinitionNode[], CFA[]> getMainFunctionsAndCfas(String filename) throws InvalidConfigurationException, IOException, ParserException, InterruptedException, EmptyCFAException{
+  private Pair<CFAFunctionDefinitionNode[], RelyGuaranteeCFA[]> getMainFunctionsAndCfas(String filename) throws InvalidConfigurationException, IOException, ParserException, InterruptedException, EmptyCFAException, UnrecognizedCFAEdgeException{
 
     RelyGuaranteeCFACreator creator = new RelyGuaranteeCFACreator(config, logger);
     creator.parseFileAndCreateCFA(filename);
@@ -647,9 +657,13 @@ public class CPAchecker {
     List<CFAFunctionDefinitionNode> funs = creator.getMainFunctions();
     CFAFunctionDefinitionNode[] funsArr = funs.toArray(new CFAFunctionDefinitionNode[funs.size()]);
     List<CFA> cfas = creator.getCfas();
-    CFA[] cfasArr = cfas.toArray(new CFA[cfas.size()]);
+    RelyGuaranteeCFA[] rgCfas = new RelyGuaranteeCFA[cfas.size()];
+    for (int i=0; i<cfas.size(); i++){
+      RelyGuaranteeCFA rgCfa = new RelyGuaranteeCFA(cfas.get(i),i);
+      rgCfas[i] = rgCfa;
+    }
 
-    return Pair.of(funsArr, cfasArr);
+    return Pair.of(funsArr, rgCfas);
   }
 
   // returns main functions and CFA from the given file names

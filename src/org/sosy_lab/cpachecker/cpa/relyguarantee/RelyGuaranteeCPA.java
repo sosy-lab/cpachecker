@@ -24,13 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -60,7 +57,6 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.YicesTheoremProver;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.io.Files;
 
 
 
@@ -105,6 +101,7 @@ public class RelyGuaranteeCPA extends PredicateCPA{
   private static TheoremProver  tProver;
   private RelyGuaranteeCPAStatistics stats;
   private int tid;
+  public RelyGuaranteeVariables variables;
 
 
   public static TheoremProver getTheoremProver(Configuration config, LogManager logger,String type) throws InvalidConfigurationException{
@@ -114,7 +111,6 @@ public class RelyGuaranteeCPA extends PredicateCPA{
     }
     return tProver;
   }
-
 
   public RelyGuaranteeCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     super();
@@ -169,118 +165,26 @@ public class RelyGuaranteeCPA extends PredicateCPA{
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
-    //this.predicateManager = new RelyGuaranteeRefinementManager<Integer, Integer>(regionManager, formulaManager, pathFormulaManager, theoremProver, itpProver, alternativeItpProver, config, logger, globalVariablesSet);
-    this.predicateManager = RelyGuaranteeRefinementManager.getInstance(regionManager, formulaManager, pathFormulaManager, theoremProver, itpProver, alternativeItpProver, config, logger, globalVariablesSet);
 
+    this.predicateManager = RelyGuaranteeRefinementManager.getInstance(regionManager, formulaManager, pathFormulaManager, theoremProver, itpProver, alternativeItpProver, config, logger);
     this.transfer = new RelyGuaranteeTransferRelation(this);
-
-    this.topElement = new RelyGuaranteeAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null), tid, new HashMap<Integer, RelyGuaranteeCFAEdge>());
     this.domain = new RelyGuaranteeAbstractDomain(this);
-
     this.merge = new RelyGuaranteeMergeOperator(this);
     this.prec = new RelyGuaranteePrecisionAdjustment(this);
     this.stop = new StopSepOperator(domain);
-
-    File predicatesFile;
-    if (this.tid==0){
-      predicatesFile = this.predicatesFile0;
-    } else if (this.tid==1) {
-      predicatesFile = this.predicatesFile1;
-    }
-    else {
-      predicatesFile = null;
-    }
-    Collection<AbstractionPredicate> predicates = null;
-    /*if (predicatesFile != null) {
-      try {
-        String fileContent = Files.toString(predicatesFile, Charset.defaultCharset());
-        Formula f = mathsatFormulaManager.parse(fileContent);
-        predicates = this.predicateManager.getAtomsAsPredicates(f);
-      } catch (IllegalArgumentException e) {
-        logger.log(Level.WARNING, "Could not read predicates from file", predicatesFile,
-            "(" + e.getMessage() + ")");
-      } catch (IOException e) {
-        logger.log(Level.WARNING, "Could not read predicates from file", predicatesFile,
-            "(" + e.getMessage() + ")");
-      }
-    }*/
-/*
-    if (checkBlockFeasibility) {
-      AbstractionPredicate p = this.predicateManager.makeFalsePredicate();
-      predicates = ImmutableSet.of(p);
-      predicates.add(p);
-    }*/
-
-    // hardcode predicates
-    this.initialPrecision= new RelyGuaranteePrecision(predicates);
-    //this.initialPrecision = null;
-
     this.stats = new RelyGuaranteeCPAStatistics(this);
 
   }
 
-  private RelyGuaranteePrecision hardcodedPredicates() {
-    Formula fVariable=null;
-    Collection<AbstractionPredicate> predicates=null;
-    if (this.tid == 0){
-      fVariable = this.formulaManager.makeVariable("g",2);
-    }
-    else if (this.tid == 1){
-      fVariable = this.formulaManager.makeVariable("g",2);
-    }
-    Formula fNumeral0 = this.formulaManager.makeNumber(0);
-    Formula fNumeral1 = this.formulaManager.makeNumber(1);
-    Formula fNumeral2 = this.formulaManager.makeNumber(2);
-    Formula fNumeral3 = this.formulaManager.makeNumber(3);
 
 
-    Formula fPred0 = this.formulaManager.makeEqual(fVariable, fNumeral0);
-    Formula fPred1 = this.formulaManager.makeEqual(fVariable, fNumeral1);
-    Formula fPred2 = this.formulaManager.makeEqual(fVariable, fNumeral2);
-    Formula fPred3 = this.formulaManager.makeEqual(fVariable, fNumeral3);
-
-    Formula fPredAnd1 = this.formulaManager.makeAnd(fPred0, fPred1);
-    Formula fPredAnd2 = this.formulaManager.makeAnd(fPredAnd1, fPred2);
-    Formula fPredAnd3 = this.formulaManager.makeAnd(fPredAnd2, fPred3);
-    predicates = this.predicateManager.getAtomsAsPredicates(fPredAnd1);
-
-    return new RelyGuaranteePrecision(predicates);
-  }
-
-
-  public void setThreadId(int tid){
+  public void setTid(int tid){
     this.tid = tid;
-    File predicatesFile;
-    if (this.tid==0){
-      predicatesFile = this.predicatesFile0;
-    } else if (this.tid==1) {
-      predicatesFile = this.predicatesFile1;
-    }
-    else {
-      predicatesFile = null;
-    }
     Collection<AbstractionPredicate> predicates = null;
-    if (predicatesFile != null) {
-      try {
-        String fileContent = Files.toString(predicatesFile, Charset.defaultCharset());
-        Formula f = this.formulaManager.parse(fileContent);
-        predicates = this.predicateManager.getAtomsAsPredicates(f);
-      } catch (IllegalArgumentException e) {
-        logger.log(Level.WARNING, "Could not read predicates from file", predicatesFile,
-            "(" + e.getMessage() + ")");
-      } catch (IOException e) {
-        logger.log(Level.WARNING, "Could not read predicates from file", predicatesFile,
-            "(" + e.getMessage() + ")");
-      }
-    }
 
     if (checkBlockFeasibility) {
       AbstractionPredicate p = predicateManager.makeFalsePredicate();
-      if (predicates == null) {
-        predicates = ImmutableSet.of(p);
-      } else {
-        predicates.add(p);
-      }
+      predicates = ImmutableSet.of(p);
     }
     // TODO make-shift solution
     this.topElement = new RelyGuaranteeAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null),  tid, new HashMap<Integer, RelyGuaranteeCFAEdge>());
@@ -289,13 +193,16 @@ public class RelyGuaranteeCPA extends PredicateCPA{
 
   }
 
-  public void useHardcodedPredicates() {
-    this.initialPrecision = this.hardcodedPredicates();
-  }
-
   public int getThreadId(){
     return this.tid;
   }
+
+  public void setVariables(RelyGuaranteeVariables pVariables) {
+    variables = pVariables;
+    assert globalVariablesSet.containsAll(variables.allVars);
+    assert variables.allVars.containsAll(globalVariablesSet);
+  }
+
 
   // set the inital predicates as a formula
   // TODO for debugging

@@ -109,7 +109,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
   @Option(description="Print debugging info?")
   private boolean debug=false;
 
-  private Set<String> globalVariables;
 
 
   private static RelyGuaranteeRefinementManager<?,?> rgRefManager;
@@ -130,20 +129,18 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
    */
   public static RelyGuaranteeRefinementManager<?, ?> getInstance(RegionManager pRmgr, FormulaManager pFmgr, PathFormulaManager pPmgr, TheoremProver pThmProver,
       InterpolatingTheoremProver<?> pItpProver, InterpolatingTheoremProver<?> pAltItpProver, Configuration pConfig,
-      LogManager pLogger, Set<String> globalVariables) throws InvalidConfigurationException {
+      LogManager pLogger) throws InvalidConfigurationException {
     if (rgRefManager == null){
-      rgRefManager = new RelyGuaranteeRefinementManager(pRmgr, pFmgr, pPmgr, pThmProver, pItpProver, pAltItpProver, pConfig, pLogger, globalVariables);
+      rgRefManager = new RelyGuaranteeRefinementManager(pRmgr, pFmgr, pPmgr, pThmProver, pItpProver, pAltItpProver, pConfig, pLogger);
     }
     return rgRefManager;
   }
 
   public RelyGuaranteeRefinementManager(RegionManager pRmgr, FormulaManager pFmgr, PathFormulaManager pPmgr, TheoremProver pThmProver,
       InterpolatingTheoremProver<T1> pItpProver, InterpolatingTheoremProver<T2> pAltItpProver, Configuration pConfig,
-      LogManager pLogger, Set<String> globalVariables) throws InvalidConfigurationException {
+      LogManager pLogger) throws InvalidConfigurationException {
     super(pRmgr, pFmgr, pPmgr, pThmProver, pItpProver, pAltItpProver, pConfig, pLogger);
     pConfig.inject(this, RelyGuaranteeRefinementManager.class);
-    assert globalVariables != null;
-    this.globalVariables = globalVariables;
   }
 
 
