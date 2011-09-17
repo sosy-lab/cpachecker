@@ -12,7 +12,7 @@
       <includesfile>test/test-sets/nested.set</includesfile>
     </sourcefiles>
     <option name="-noout"/>
-    <option name="-predicateAbstraction-lbe"/>
+    <option name="-predicateAnalysis"/>
     <option name="-heap">1200m</option>
   </test>
   <columns>

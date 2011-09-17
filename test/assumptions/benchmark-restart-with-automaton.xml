@@ -7,7 +7,7 @@
       <include>test/programs/systemc/mem_slave_tlm.*.cil.c</include>
       <include>test/programs/systemc/toy.cil.c</include>
     </sourcefiles>
-    <option name="-config">test/config/predicateAbstraction-lbe-cbmc.properties</option>
+    <option name="-config">test/config/predicateAnalysis-lbe-cbmc.properties</option>
     <option name="-setprop">output.disable=true</option>
     <option name="-heap">4000m</option>
   </test>

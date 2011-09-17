@@ -132,7 +132,7 @@ def main():
     fcalledges = os.path.join(reportdir, 'fcalledges.json')
     logfile = options.logfile or os.path.join(cpaoutdir, 'CPALog.txt')
     statsfile = options.statsfile or os.path.join(cpaoutdir, 'Statistics.txt')
-    conffile = options.conffile or os.path.join(cpacheckerdir, 'test', 'config', 'predicateAbstraction.properties')
+    conffile = options.conffile or os.path.join(cpacheckerdir, 'test', 'config', 'predicateAnalysis.properties')
     cilfile = args[0]
     time_generated = time.strftime("%a, %d %b %Y %H:%M", time.localtime())
 

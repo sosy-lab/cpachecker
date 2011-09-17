@@ -1,5 +1,5 @@
    BENCHMARK INFORMATION
-benchmark:          predicateAbstraction
+benchmark:          predicateAnalysis
 date:               2011-04-20
 tool:               CPAchecker r3332
 memlimit:           14000 MB
@@ -16,7 +16,7 @@ ram:                16208800 kB
 
 
 
-test 1 of 1 with options: -setprop output.disable=true -config test/config/predicateAbstraction.properties -heap 12000m
+test 1 of 1 with options: -setprop output.disable=true -config test/config/predicateAnalysis.properties -heap 12000m
 
 sourcefile                                                     status     cpu time  wall time     total   reached  abstractions  refinements
 --------------------------------------------------------------------------------------------------------------------------------------------
