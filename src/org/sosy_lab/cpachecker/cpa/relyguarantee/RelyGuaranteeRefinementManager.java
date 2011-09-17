@@ -353,6 +353,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       System.out.println("Constructing DAG for id:"+target.getElementId()+" in thread "+tid);
     }
 
+    // TODO change roots to a set
     // the result
     List<InterpolationDagNode> roots = new Vector<InterpolationDagNode>(1);
 
@@ -372,7 +373,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement> triple : path) {
       ARTElement artElement = triple.getFirst();
-      assert triple.getThird() instanceof AbstractionElement;
       AbstractionElement rgElement = (AbstractionElement) triple.getThird();
 
       InterpolationDagNode node = null;
@@ -401,7 +401,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       } else {
         // create a new node
         if (predecessorNode == null){
-          // this is the first branch discovered in this thread or new have branched from another thread
+          // this is the first branch discovered in this thread or we have branched from another thread
           traceNo = traceMap.values().size();
           traceMap.put(tid, traceNo);
         } else if (predecessorCached){
@@ -419,7 +419,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
         predecessorCached = false;
 
-        // formulas with 0 primes, becomes 'traceNo' times primed
+        // formulas with no primes becomes 'traceNo' times primed
         adjustmentMap.put(0, traceNo);
 
         assert traceNo != null;
@@ -435,7 +435,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
           roots.add(node);
         }
 
-        // add the current node as the child to the predecessor
+        // add the current node as a child to the predecessor
         if (predecessorNode != null) {
           assert !predecessorNode.getChildren().contains(node);
           predecessorNode.getChildren().add(node);
@@ -454,14 +454,20 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
           }
         }
 
-        // get the node source element for the environmental transitions applied
+        // remove parts of env. transitions other than the highest index for each variable,
+        // since lower indexes are already in the transitions' source nodes
+        Map<Integer, RelyGuaranteeCFAEdge> primedMap = rgElement.getOldPrimedMap();
+        PathFormula reducedPf = pmgr.removePrimed(node.getPathFormula(), primedMap.keySet());
+        node.setPathFormula(reducedPf);
+
+        // get a node for every source of environmental transitions applied
         // envPrimeNo is the prime number of the environmental path formula fragment in the current formula block
         for(Integer envPrimeNo : rgElement.getOldPrimedMap().keySet()){
           RelyGuaranteeCFAEdge rgEdge = rgElement.getOldPrimedMap().get(envPrimeNo);
           ARTElement sourceARTElement = rgEdge.getSourceARTElement();
           Integer sourceTid           = rgEdge.getSourceTid();
 
-          // recursively call  getDagForElement to get the DAG source of the transition
+          // recursively call getDagForElement to get the DAG source of the transition
           Triple<List<InterpolationDagNode>, ARTElement, Integer> envPair = getDagForElement(sourceARTElement, reachedSets, sourceTid, nodeMap, traceMap);
           List<InterpolationDagNode> envRoots = envPair.getFirst();
           ARTElement sourceAbstractionElement = envPair.getSecond();
@@ -494,8 +500,9 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         // adjust the prime numbers
         PathFormula adjustedPf = pmgr.adjustPrimedNo(node.getPathFormula(), adjustmentMap);
 
-        // if is an new branch then add equalities that link the last indexes in the previous node
-        // with the these values in the new branch
+        // TODO put in path formula manager
+        // if it is an new branch then add equalities that link the last indexes in the previous node
+        // with the the variables in the new branch
         if (newBranch){
           assert traceNo > 0;
           assert predecessorNode != null;

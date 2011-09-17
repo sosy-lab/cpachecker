@@ -98,9 +98,9 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
       else {
         otherTid = 0;
       }
-     if(!var.contains("_"+otherTid)) {
-       cleanMap.setIndex(var, oldFormula.getSsa().getIndex(var));
-     }
+      if(!var.contains("_"+otherTid)) {
+        cleanMap.setIndex(var, oldFormula.getSsa().getIndex(var));
+      }
 
     }
 
@@ -191,7 +191,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
    * @return A pair (Formula, SSAMap)
    */
   public Pair<Pair<Formula, Formula>, SSAMap> mergeSSAMaps(
-    SSAMap ssa1, SSAMap ssa2) {
+      SSAMap ssa1, SSAMap ssa2) {
     SSAMap result = SSAMap.merge(ssa1, ssa2);
     Formula mt1 = fmgr.makeTrue();
     Formula mt2 = fmgr.makeTrue();
@@ -390,7 +390,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     return lShiftedFormula;
   }*/
 
- /* @Override
+  /* @Override
   public PathFormula makeAnd(PathFormula localPathFormula, PathFormula envPathFormula,  int myTid, int sourceTid) {
     // hardcoded
 
@@ -602,10 +602,22 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     return new PathFormula(adjustedF, ssaBuilder.build(), pathFormula.getLength(), maxPrimed);
   }
 
+  @Override
+  public PathFormula removePrimed(PathFormula pf, Set<Integer> primesToRemove) {
+    Formula reducedF = fmgr.removePrimed(pf.getFormula(), primesToRemove);
 
+    // remove primed entries from the SSA map
+    SSAMap ssa = pf.getSsa();
+   /* SSAMapBuilder ssaBldr = SSAMap.emptySSAMap().builder();
+    for (String var : ssa.allVariables()){
+      Integer pn = PathFormula.getPrimeData(var).getSecond();
+      if (!primesToRemove.contains(pn)){
+        ssaBldr.setIndex(var, ssa.getIndex(var));
+      }
+    }*/
 
-
-
-
+    // TODO returning the same primed no is safe but imprecise
+    return new PathFormula(reducedF, ssa, pf.getLength(), pf.getPrimedNo());
+  }
 
 }

@@ -233,5 +233,11 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
 
+  @Override
+  public PathFormula removePrimed(PathFormula pPathFormula,Set<Integer> pPrimedNo) {
+    return delegate.removePrimed(pPathFormula, pPrimedNo);
+  }
+
+
 
 }

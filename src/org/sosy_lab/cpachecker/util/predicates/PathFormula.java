@@ -107,8 +107,14 @@ public class PathFormula {
     return (formula.hashCode() * 17 + ssa.hashCode()) * 31 + length;
   }
 
-  // TODO maybe some caching?
-  // returns (unprimed name, number of primes)
+
+
+  /**
+   * Returns unprimed variable name and the primed no. If the variable is
+   * not primed, then the primed no is 0. Works only on uninstantiated variables.
+   * @param pFirst
+   * @return (unprimed variable name, primed no)
+   */
   public static Pair<String, Integer> getPrimeData(String pFirst) {
     Integer currentPrime;
     String bareName;
@@ -124,6 +130,8 @@ public class PathFormula {
 
     return new Pair<String, Integer>(bareName, currentPrime);
   }
+//TODO maybe some caching?
+  // returns (unprimed name, number of primes)
 
 
 

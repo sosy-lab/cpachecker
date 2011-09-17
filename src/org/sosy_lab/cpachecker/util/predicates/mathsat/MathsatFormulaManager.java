@@ -1582,6 +1582,138 @@ public class MathsatFormulaManager implements FormulaManager  {
   }
 
 
+  @Override
+  public Formula removePrimed(Formula formula,  Set<Integer> primesToRemove) {
+
+    if (primesToRemove.isEmpty()){
+      return formula;
+    }
+
+    // TODO maybe cache?
+    Map<Pair<Formula, Set<Integer>>, Formula> cache = new HashMap<Pair<Formula, Set<Integer>>, Formula>();
+    // formulas that have to be removed
+    Set<Formula> toRemove = new HashSet<Formula>();
+    // formulas that mustn't be removed
+    Set<Formula> mustStay = new HashSet<Formula>();
+    Deque<Formula> toProcess = new ArrayDeque<Formula>();
+    toProcess.push(formula);
+
+    while (!toProcess.isEmpty()) {
+      final Formula tt = toProcess.peek();
+      if (cache.containsKey(Pair.of(tt, primesToRemove))) {
+        toProcess.pop();
+        continue;
+      }
+      final long t = getTerm(tt);
+
+      if (msat_term_is_variable(t) != 0) {
+        toProcess.pop();
+        Pair<String, Integer> lVariable = parseName(msat_term_repr(t));
+        String name = lVariable.getFirst();
+        Pair<String, Integer> data = PathFormula.getPrimeData(name);
+        Integer primedNo = data.getSecond();
+        if (primesToRemove.contains(primedNo)){
+          toRemove.add(tt);
+        } else {
+          mustStay.add(tt);
+        }
+        cache.put(Pair.of(tt, primesToRemove), tt);
+      }
+      else {
+        boolean childrenDone    = true;
+        // at least one argument can be removed
+        boolean argToRemove     = false;
+        // al least one argument should stay
+        boolean argToStay       = false;
+        // all arguments can be removed (true if no arguments)
+        boolean allArgToRemove  = true;
+        boolean termArg         = false;
+
+        int arity = msat_term_arity(t);
+        long[] newargs = new long[arity];
+        for (int i = 0; i < newargs.length; ++i) {
+          long tc = msat_term_get_arg(t, i);
+          Formula c = encapsulate(tc);
+
+          if (msat_term_get_type(tc) == MSAT_INT || msat_term_get_type(tc) == MSAT_REAL){
+            termArg = true;
+          }
+
+          if (toRemove.contains(c)){
+            argToRemove = true;
+          }
+          else if (mustStay.contains(c)) {
+            argToStay = true;
+            allArgToRemove = false;
+          }
+          else {
+            allArgToRemove = false;
+          }
+
+          Formula newC = cache.get(Pair.of(c, primesToRemove));
+          if (newC != null) {
+            newargs[i] = getTerm(newC);
+          } else {
+            toProcess.push(c);
+            childrenDone = false;
+          }
+        }
+
+        if (childrenDone) {
+          toProcess.pop();
+          Formula newF = null;
+
+          if(!termArg){
+            if (allArgToRemove && argToRemove){
+              newF = makeTrue();
+              toRemove.add(tt);
+            }
+            else {
+              // replace
+              long newt = 0;
+              if (msat_term_is_uif(t) != 0) {
+                String name = msat_decl_get_name(msat_term_get_decl(t));
+                assert name != null;
+
+                if (ufCanBeLvalue(name)) {
+                  name = parseName(name).getFirst();
+
+                  newt = buildMsatUF(name, newargs);
+                } else {
+                  newt = msat_replace_args(msatEnv, t, newargs);
+                }
+              } else {
+                newt = msat_replace_args(msatEnv, t, newargs);
+              }
+              newF = encapsulate(newt);
+            }
+          }
+          else {
+            if (argToRemove && !argToStay){
+              newF = makeTrue();
+              toRemove.add(tt);
+            }
+            else if (!argToRemove && !argToStay){
+              newF = tt;
+            } else {
+              newF = tt;
+              mustStay.add(tt);
+            }
+          }
+
+          assert newF != null;
+          cache.put(Pair.of(tt, primesToRemove), newF);
+        }
+      }
+    }
+
+    Formula result = cache.get(Pair.of(formula, primesToRemove));
+    System.out.println(formula+"\t\t->\t\t"+result);
+    assert result != null;
+    return result;
+  }
+
+
 
 
 }

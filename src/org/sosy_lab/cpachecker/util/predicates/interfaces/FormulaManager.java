@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
@@ -258,6 +259,14 @@ public interface FormulaManager {
     public List<Formula> nonModularInstances(Formula formula, ListMultimap<String, Integer> pEnvMap);
 
     public Formula primeFormula(Formula pFormula, int pOffset, SSAMap pSsa);
+
+    /**
+     * Remove atoms that consists only of primed variables.
+     * @param formula
+     * @param primedNo primed numbers to be removed
+     * @return reduced formula
+     */
+    Formula removePrimed(Formula formula,  Set<Integer> primedNo);
 
 
 

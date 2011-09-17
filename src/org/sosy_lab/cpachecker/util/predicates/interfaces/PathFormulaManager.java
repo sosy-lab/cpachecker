@@ -89,5 +89,13 @@ public interface PathFormulaManager {
 
   PathFormula primePathFormula(PathFormula pEnvPF, int pOffset, SSAMap pSsa);
 
+  /**
+   * Remove atoms that consists only of primed variables.
+   * @param pathFormula
+   * @param primedNo
+   * @return
+   */
+  PathFormula removePrimed(PathFormula pathFormula, Set<Integer> primedNo);
+
 
 }
