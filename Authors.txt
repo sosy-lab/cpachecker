@@ -7,6 +7,7 @@ Contributors:
   Gregor Endler (2009 - 2010)
   Alberto Griggio (2008 - 2009)
   Andreas Holzer (2008 - 2010)
+  Steven Kieffer (2011)
   Stefan Löwe (2010)
   Alexander von Rhein (2010)
   Michael Tautschnig (2008 - 2009)
