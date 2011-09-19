@@ -42,8 +42,6 @@ import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.impact.ImpactAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -57,8 +55,6 @@ import com.google.common.base.Functions;
 import com.google.common.collect.Lists;
 
 public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> {
-
-  private int i = 0;
 
   private final FormulaManager fmgr;
 
@@ -190,6 +186,5 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> {
 
     ARTElement lastElement = pPath.get(pPath.size()-1).getFirst();
     assert !pReached.asReachedSet().contains(lastElement);
-    if (++this.i == 10) throw new RefinementFailedException(Reason.InterpolationFailed, null);
   }
 }
