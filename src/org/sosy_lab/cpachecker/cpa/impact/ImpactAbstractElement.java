@@ -29,6 +29,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
+import com.google.common.base.Preconditions;
+
 abstract class ImpactAbstractElement implements AbstractElement {
 
   private final PathFormula pathFormula;
@@ -44,6 +46,14 @@ abstract class ImpactAbstractElement implements AbstractElement {
   public abstract boolean isAbstractionElement();
 
   public abstract Formula getStateFormula();
+
+  static AbstractionElement getLastAbstraction(ImpactAbstractElement element) {
+    if (element.isAbstractionElement()) {
+      return (AbstractionElement)element;
+    } else {
+      return ((NonAbstractionElement)element).getLastAbstraction();
+    }
+  }
 
   static class AbstractionElement extends ImpactAbstractElement {
 
@@ -80,6 +90,7 @@ abstract class ImpactAbstractElement implements AbstractElement {
   static class NonAbstractionElement extends ImpactAbstractElement {
 
     private final AbstractionElement lastAbstraction;
+    private ImpactAbstractElement mergedInto = null;
 
     public NonAbstractionElement(PathFormula pPathFormula, AbstractionElement pLastAbstraction) {
       super(pPathFormula);
@@ -93,6 +104,15 @@ abstract class ImpactAbstractElement implements AbstractElement {
 
     public AbstractionElement getLastAbstraction() {
       return lastAbstraction;
+    }
+
+    ImpactAbstractElement getMergedInto() {
+      return mergedInto;
+    }
+
+    void setMergedInto(ImpactAbstractElement pMergedInto) {
+      Preconditions.checkNotNull(pMergedInto);
+      mergedInto = pMergedInto;
     }
 
     @Override

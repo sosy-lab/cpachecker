@@ -80,18 +80,10 @@ class ImpactTransferRelation implements TransferRelation {
       newElement = new AbstractionElement(newPathFormula, fmgr.makeTrue(), blockFormula);
 
     } else {
-      newElement = new NonAbstractionElement(newPathFormula, getLastAbstraction(element));
+      newElement = new NonAbstractionElement(newPathFormula, ImpactAbstractElement.getLastAbstraction(element));
     }
 
     return Collections.singleton(newElement);
-  }
-
-  private AbstractionElement getLastAbstraction(ImpactAbstractElement element) {
-    if (element.isAbstractionElement()) {
-      return (AbstractionElement)element;
-    } else {
-      return ((NonAbstractionElement)element).getLastAbstraction();
-    }
   }
 
   @Override

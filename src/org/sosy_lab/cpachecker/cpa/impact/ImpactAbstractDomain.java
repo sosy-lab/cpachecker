@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.impact;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.cpa.impact.ImpactAbstractElement.NonAbstractionElement;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
@@ -58,6 +59,12 @@ class ImpactAbstractDomain implements AbstractDomain {
 
     ImpactAbstractElement element1 = (ImpactAbstractElement)pElement1;
     ImpactAbstractElement element2 = (ImpactAbstractElement)pElement2;
+
+    if (element1 instanceof NonAbstractionElement) {
+      if (((NonAbstractionElement)element1).getMergedInto() == element2) {
+        return true;
+      }
+    }
 
     Formula f1 = fmgr.makeAnd(element1.getStateFormula(), element1.getPathFormula().getFormula());
     Formula f2 = fmgr.makeAnd(element2.getStateFormula(), element2.getPathFormula().getFormula());

@@ -28,7 +28,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -63,8 +62,10 @@ public class ImpactCPA implements ConfigurableProgramAnalysis {
   private final PathFormulaManager pfmgr;
   private final TheoremProver prover;
 
-  private final ImpactAbstractDomain abstractDomain;
-  private final ImpactTransferRelation transferRelation;
+  private final AbstractDomain abstractDomain;
+  private final MergeOperator mergeOperator;
+  private final StopOperator stopOperator;
+  private final TransferRelation transferRelation;
 
   private ImpactCPA(Configuration pConfig, LogManager pLogger, BlockOperator blk) throws InvalidConfigurationException {
     config = pConfig;
@@ -77,6 +78,8 @@ public class ImpactCPA implements ConfigurableProgramAnalysis {
     prover = new MathsatTheoremProver(msatFmgr);
 
     abstractDomain = new ImpactAbstractDomain(fmgr, prover);
+    mergeOperator = new ImpactMergeOperator(logger, pfmgr);
+    stopOperator = new StopSepOperator(abstractDomain);
     transferRelation = new ImpactTransferRelation(logger, blk, fmgr, pfmgr, prover);
   }
 
@@ -112,12 +115,12 @@ public class ImpactCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public MergeOperator getMergeOperator() {
-    return MergeSepOperator.getInstance();
+    return mergeOperator;
   }
 
   @Override
   public StopOperator getStopOperator() {
-    return new StopSepOperator(abstractDomain);
+    return stopOperator;
   }
 
   @Override
