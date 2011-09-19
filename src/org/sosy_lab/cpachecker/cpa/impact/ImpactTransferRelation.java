@@ -26,7 +26,9 @@ package org.sosy_lab.cpachecker.cpa.impact;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -37,19 +39,27 @@ import org.sosy_lab.cpachecker.cpa.predicate.BlockOperator;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
 class ImpactTransferRelation implements TransferRelation {
+
+  private final LogManager logger;
 
   private final BlockOperator blk;
   private final FormulaManager fmgr;
   private final PathFormulaManager pfmgr;
+  private final TheoremProver prover;
 
-  public ImpactTransferRelation(FormulaManager pFmgr, PathFormulaManager pPfmgr, BlockOperator pBlk) {
+  public ImpactTransferRelation(LogManager pLogger, BlockOperator pBlk,
+      FormulaManager pFmgr, PathFormulaManager pPfmgr, TheoremProver pProver) {
+    logger = pLogger;
+    blk = pBlk;
     fmgr = pFmgr;
     pfmgr = pPfmgr;
-    blk = pBlk;
+    prover = pProver;
   }
 
   @Override
@@ -98,14 +108,39 @@ class ImpactTransferRelation implements TransferRelation {
     for (AbstractElement lElement : pOtherElements) {
       if (AbstractElements.isTargetElement(lElement)) {
 
-        // force abstraction at target states
-        PathFormula blockFormula = element.getPathFormula();
-        PathFormula newPathFormula = pfmgr.makeEmptyPathFormula(blockFormula);
-
-        return Collections.singleton(new AbstractionElement(newPathFormula, fmgr.makeTrue(), blockFormula));
+        return strengthenSatCheck(element);
       }
     }
 
     return null;
+  }
+
+  private Collection<? extends AbstractElement> strengthenSatCheck(ImpactAbstractElement pElement) {
+    logger.log(Level.FINEST, "Checking for feasibility of path because error has been found");
+
+    Formula f = fmgr.makeAnd(pElement.getStateFormula(), pElement.getPathFormula().getFormula());
+
+    boolean unsat;
+    try {
+      prover.init();
+      unsat = prover.isUnsat(f);
+    } finally {
+      prover.reset();
+    }
+
+    if (unsat) {
+      logger.log(Level.FINEST, "Path is infeasible.");
+      return Collections.emptySet();
+
+    } else {
+      // although this is not an abstraction location, we fake an abstraction
+      // because refinement code expects it to be like this
+      logger.log(Level.FINEST, "Last part of the path is not infeasible.");
+
+      // set abstraction to true (we don't know better)
+      PathFormula blockFormula = pElement.getPathFormula();
+      PathFormula newPathFormula = pfmgr.makeEmptyPathFormula(blockFormula);
+      return Collections.singleton(new AbstractionElement(newPathFormula, fmgr.makeTrue(), blockFormula));
+    }
   }
 }

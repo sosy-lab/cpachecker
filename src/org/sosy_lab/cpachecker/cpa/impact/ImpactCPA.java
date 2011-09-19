@@ -77,7 +77,7 @@ public class ImpactCPA implements ConfigurableProgramAnalysis {
     prover = new MathsatTheoremProver(msatFmgr);
 
     abstractDomain = new ImpactAbstractDomain(fmgr, prover);
-    transferRelation = new ImpactTransferRelation(fmgr, pfmgr, blk);
+    transferRelation = new ImpactTransferRelation(logger, blk, fmgr, pfmgr, prover);
   }
 
   LogManager getLogManager() {
