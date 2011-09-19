@@ -36,6 +36,7 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -485,6 +486,22 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
           InterpolationDagNode sourceNode = nodeMap.get(key);
           assert sourceNode != null;
 
+          /*  The env. transition's source element could be after the source abstraction element.
+           *  In such case, add the path formula of the source as a side formula for interpolation.  */
+          if (sourceARTElement != sourceAbstractionElement){
+            RelyGuaranteeAbstractElement rgSource = AbstractElements.extractElementByType(sourceARTElement, RelyGuaranteeAbstractElement.class);
+            assert !(rgSource instanceof AbstractionElement);
+            PathFormula envPF = rgSource.getPathFormula();
+
+            // prime the envPF according to its traceNo
+            Map<Integer, Integer> envAdjustmentMap = new HashMap<Integer, Integer>(1);
+            envAdjustmentMap.put(0, envTraceNo);
+            envPF = pmgr.adjustPrimedNo(envPF, envAdjustmentMap);
+            if (!sourceNode.getEnvPathFormulas().contains(envPF)){
+              sourceNode.getEnvPathFormulas().add(envPF);
+            }
+          }
+
           // make an edge from the source node to the application
           List<InterpolationDagNode> envChildren = sourceNode.getChildren();
           if (!envChildren.contains(node)){
@@ -703,10 +720,13 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     if (debug){
       System.out.println();
-      System.out.println("Interpolation formulas abstract element id [thread, trace]: formula");
+      System.out.println("Interpolation formulas - element id [thread, trace]: formula, env. formulas");
       int j=0;
       for (InterpolationDagNode node : topNodes){
         System.out.println("\t-id:"+node.getArtElement().getElementId()+" [t"+node.getTid()+", "+node.getTraceNo()+"]: "+node.getPathFormula());
+        if (!node.getEnvPathFormulas().isEmpty()){
+          System.out.println("\t "+node.getEnvPathFormulas());
+        }
         j++;
       }
     }
@@ -728,13 +748,14 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       InterpolationDagNode node = topNodes.get(i);
 
       // get formula list, where
-      Pair<List<InterpolationDagNode>, Integer> pair = parentSortDag(roots, node);
+      //Pair<List<InterpolationDagNode>, Integer> pair = parentSortDag(roots, node);
+      Pair<List<Formula>, Integer> pair = parentSortDag2(roots, node);
 
       // prepare formula list
       stats.interpolationTimer.start();
       itpProver.init();
-      for (InterpolationDagNode itpNode : pair.getFirst()){
-        T id = itpProver.addFormula(itpNode.getPathFormula().getFormula());
+      for (Formula fr : pair.getFirst()){
+        T id = itpProver.addFormula(fr);
         interpolationIds.add(id);
       }
 
@@ -871,6 +892,79 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     return topList;
   }
+
+
+  /**
+  *
+  * @param roots
+  * @param target
+  * @return
+  */
+ private Pair<List<Formula>, Integer> parentSortDag2(List<InterpolationDagNode> roots, InterpolationDagNode target) {
+
+   List<Formula> pcList = new Vector<Formula>();
+   Set<InterpolationDagNode> visitedUpTo = new HashSet<InterpolationDagNode>();
+   Deque<InterpolationDagNode> toProcess = new LinkedList<InterpolationDagNode>();
+   int idx = -1;
+
+
+   toProcess.addLast(target);;
+
+   // add the target and its parents
+   while(!toProcess.isEmpty()){
+     InterpolationDagNode node = toProcess.poll();
+     if (!visitedUpTo.contains(node)){
+       visitedUpTo.add(node);
+       // add block path formula
+       pcList.add(node.getPathFormula().getFormula());
+       idx++;
+       // add env. formulas if it's not the target
+       if (node != target){
+         for (PathFormula envPF : node.getEnvPathFormulas()){
+           pcList.add(envPF.getFormula());
+           idx++;
+         }
+       }
+
+       // process parents
+       for (InterpolationDagNode parent : node.getParents()){
+         toProcess.addLast(parent);
+       }
+     }
+   }
+
+
+   // add the rest of the nodes
+   toProcess.clear();
+   toProcess.addAll(roots);
+   Set<InterpolationDagNode> visitedAfter = new HashSet<InterpolationDagNode>();
+
+   // add the env. formulas of the target
+   for (PathFormula envPF : target.getEnvPathFormulas()){
+     pcList.add(envPF.getFormula());
+   }
+
+   while(!toProcess.isEmpty()){
+     InterpolationDagNode node = toProcess.poll();
+     if (!visitedAfter.contains(node)){
+       visitedAfter.add(node);
+
+       if (!visitedUpTo.contains(node)){
+         pcList.add(node.getPathFormula().getFormula());
+         for (PathFormula envPF : node.getEnvPathFormulas()){
+           pcList.add(envPF.getFormula());
+         }
+       }
+
+       for (InterpolationDagNode child : node.getChildren()){
+         toProcess.addLast(child);
+       }
+     }
+   }
+
+
+   return Pair.of(pcList, idx);
+ }
 
   /**
    *

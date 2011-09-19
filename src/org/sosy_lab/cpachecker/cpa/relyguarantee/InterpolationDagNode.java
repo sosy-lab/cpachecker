@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
 import java.util.List;
+import java.util.Vector;
 
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -37,18 +38,19 @@ public class InterpolationDagNode extends InterpolationBlock{
   private final List<InterpolationDagNode> children;
   private final List<InterpolationDagNode> parents;
   private final int tid;
+  private final List<PathFormula> envPathFormulas;
 
   public InterpolationDagNode(PathFormula pf, int primedNo, ARTElement artElement, List<InterpolationDagNode> children, List<InterpolationDagNode> parents, int tid) {
     super(pf, primedNo, artElement, null);
     this.children = children;
     this.parents  = parents;
     this.tid      = tid;
+    this.envPathFormulas = new Vector<PathFormula>();
   }
 
   public List<InterpolationDagNode> getChildren() {
     return children;
   }
-
 
 
   public List<InterpolationDagNode> getParents() {
@@ -64,6 +66,8 @@ public class InterpolationDagNode extends InterpolationBlock{
     return tid;
   }
 
-
+  public List<PathFormula> getEnvPathFormulas() {
+    return envPathFormulas;
+  }
 
 }

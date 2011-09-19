@@ -33,6 +33,8 @@ import java.util.Set;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -109,27 +111,44 @@ public class ARTUtils {
   }
 
 
-  public static Set<ARTElement> getAllElementsOnPathsBetweem(ARTElement start, ARTElement end) {
+  /**
+   * Create a path from the ART root to the first rely-guarantee
+   * abstraction element after the target element.
+   *
+   * @param target
+   * @return
+   */
+  public static Path getPathToRGAbstraction(ARTElement target){
+    // get the path up to the target
+    Path pathTo = getOnePathTo(target);
+    // find the first abstraction element after the target.
 
-    Set<ARTElement> result = new HashSet<ARTElement>();
-    Deque<ARTElement> waitList = new ArrayDeque<ARTElement>();
-
-    result.add(end);
-    waitList.add(end);
-
-    while (!waitList.isEmpty()) {
-      ARTElement currentElement = waitList.poll();
-      if (currentElement == start){
-        continue;
+    ARTDijkstrasTermination trm = new ARTDijkstrasTermination() {
+      @Override
+      public boolean isTarget(ARTElement e) {
+        RelyGuaranteeAbstractElement rgElem = AbstractElements.extractElementByType(e, RelyGuaranteeAbstractElement.class);
+        return rgElem instanceof RelyGuaranteeAbstractElement.AbstractionElement;
       }
-      for (ARTElement parent : currentElement.getParents()) {
-        if (result.add(parent)) {
-          waitList.push(parent);
-        }
-      }
+    };
+
+
+    // TODO correctness check
+    RelyGuaranteeAbstractElement rgElem = AbstractElements.extractElementByType(target, RelyGuaranteeAbstractElement.class);
+    if (!(rgElem instanceof RelyGuaranteeAbstractElement.AbstractionElement)){
+      System.out.println();
     }
-    return result;
+
+    Path pathFrom = ARTDijkstrasAlgorithm.shortestPath(target, trm);
+    assert !(rgElem instanceof RelyGuaranteeAbstractElement.AbstractionElement) || pathFrom.isEmpty();
+
+    pathTo.addAll(pathFrom);
+
+    return pathTo;
   }
+
+
+
+
 
 
 
@@ -183,8 +202,6 @@ public class ARTUtils {
           parentElement = newParentElement;
         }
       }
-
-
 
       CFAEdge edge = parentElement.getEdgeToChild(currentARTElement);
       path.addFirst(Pair.of(parentElement, edge));
