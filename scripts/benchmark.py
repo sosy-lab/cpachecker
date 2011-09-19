@@ -142,12 +142,17 @@ def getSourceFiles(sourcefilesTagList):
         for includesFilesFile in sourcefilesTag.findall("includesfile"):
 
             for file in getFileList(includesFilesFile.text):
+                fileDir = os.path.dirname(file)
 
                 # read files from list
                 fileWithList = open(file, "r")
                 for line in fileWithList:
-                    # strip() removes 'newline' behind the line
-                    currentSourcefiles += getFileList(line.strip())
+                    
+                    # ignore comments
+                    if not line.startswith("#") and not line.startswith("//"):
+                        # strip() removes 'newline' behind the line
+                        currentSourcefiles += getFileList(line.strip(), fileDir)
+
                 fileWithList.close()
 
         # remove excluded sourcefiles
@@ -168,11 +173,18 @@ def removeAll(list, elemToRemove):
     return filter(lambda elem: elem != elemToRemove, list)
 
 
-def getFileList(shortFile):
+def getFileList(shortFile, root=""):
     """
     The function getFileList expands a short filename to a sorted list 
     of filenames. The short filename can contain variables and wildcards.
+    If root is given and shortFile is not absolute, root and shortFile are joined.
     """
+    # store shortFile for fallback
+    shortFileFallback = shortFile
+
+    # 'join' ignores root, if shortFile is absolute.
+    # 'normpath' replaces 'A/foo/../B' with 'A/B', for pretty printing only
+    shortFile = os.path.normpath(os.path.join(root, shortFile))
 
     # expand tilde and variables
     expandedFile = os.path.expandvars(os.path.expanduser(shortFile))
@@ -187,10 +199,21 @@ def getFileList(shortFile):
 
     if expandedFile != shortFile:
         logging.debug("Expanded tilde and/or shell variables in expression {0} to {1}."
-            .format(repr(shortFile), repr(expandedFile))) 
+            .format(repr(shortFile), repr(expandedFile)))
+
     if len(fileList) == 0:
-        logging.warning("No files found matching {0}."
-            .format(repr(shortFile)))
+
+        if root == "":
+            logging.warning("No files found matching {0}."
+                            .format(repr(shortFile)))
+
+        else: # Fallback for older test-sets
+            logging.warning("Perpaps old or invalid test-set. Trying fallback for {0}."
+                            .format(repr(shortFileFallback)))
+            fileList = getFileList(shortFileFallback)
+            if len(fileList) != 0:
+                logging.warning("Fallback has found some files for {0}."
+                            .format(repr(shortFileFallback)))
 
     return fileList
 
