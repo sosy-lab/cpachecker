@@ -89,7 +89,7 @@ public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARTBa
 
     Set<ARTElement> elementsOnPath = ARTUtils.getAllElementsOnPathsTo(pPath.getLast().getFirst()); // TODO: make this lazy?
 
-    logger.log(Level.FINEST, "Starting refinement for PredicateCPA");
+    logger.log(Level.FINEST, "Starting interpolation-based refinement");
 
     // create path with all abstraction location elements (excluding the initial element)
     // the last element is the element corresponding to the error location
