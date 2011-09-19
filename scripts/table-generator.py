@@ -12,9 +12,14 @@ from decimal import *
 
 OUTPUT_PATH = "test/results/"
 
-LOGFILES_IN_HTML = True # create links to logfiles in hmtl
+LOGFILES_IN_HTML = True # create links to logfiles in html
 
 CSV_SEPARATOR = '\t'
+
+
+# string searched in filenames to determine correct or incorrect status.
+# use lower case!
+BUG_SUBSTRING_LIST = ['bug', 'unsafe']
 
 
 DOCTYPE = '''
@@ -388,7 +393,7 @@ def getTableBody(listOfTests):
     fileList = listOfTests[0][0].findall('sourcefile')
     rowsForStats = [['<td>total sum</td>'],
                     ['<td title="(no bug exists + result is SAFE) OR ' + \
-                     '(bug exists + result is UNSAFE)">correct result</td>'],
+                     '(bug exists + result is UNSAFE)">correct results</td>'],
                     ['<td title="bug exists + result is SAFE">false positives</td>'],
                     ['<td title="no bug exists + result is UNSAFE">false negatives</td>'],
                     ['<td>score ({0} files)</td>'.format(len(fileList))]]
@@ -462,8 +467,8 @@ def getValuesOfFileXTest(currentFile, listOfColumns):
                 if columnTitle == 'status':
                     # different colors for correct and incorrect results
                     status = value.lower()
-                    fileName = currentFile.get('name')
-                    isSafeFile = fileName.lower().find('bug') == -1
+                    fileName = currentFile.get('name').lower()
+                    isSafeFile = not containsAny(fileName, BUG_SUBSTRING_LIST)
 
                     if status == 'safe':
                         if isSafeFile:
@@ -490,6 +495,16 @@ def getValuesOfFileXTest(currentFile, listOfColumns):
                 break
 
     return (valuesForHTML, valuesForCSV)
+
+
+def containsAny(text, list):
+    '''
+    This function returns True, iff any string in list is a substring of text.
+    '''
+    for elem in list:
+        if text.find(elem) != -1:
+            return True
+    return False
 
 
 def toDecimal(s):
