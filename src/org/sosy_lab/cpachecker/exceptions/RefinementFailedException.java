@@ -35,6 +35,7 @@ public class RefinementFailedException extends CPAException {
 
   public static enum Reason {
     InterpolationFailed("Interpolation failed"),
+    InvariantRefinementFailed("Could not find invariant"),
     RepeatedCounterexample("Counterexample could not be ruled out and was found again"),
     TooMuchUnrolling("Too much unrolling"),
     InfeasibleCounterexample("External tool verified counterexample as infeasible"),
