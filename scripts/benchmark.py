@@ -186,10 +186,10 @@ def getFileList(shortFile):
         fileList.sort()
 
     if expandedFile != shortFile:
-        logging.debug("I expanded a tilde and/or shell variables in expression {0} to {1}."
+        logging.debug("Expanded tilde and/or shell variables in expression {0} to {1}."
             .format(repr(shortFile), repr(expandedFile))) 
     if len(fileList) == 0:
-        logging.warning("I found no files matching {0}."
+        logging.warning("No files found matching {0}."
             .format(repr(shortFile)))
 
     return fileList
