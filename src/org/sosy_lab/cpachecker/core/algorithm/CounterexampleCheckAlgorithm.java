@@ -125,12 +125,12 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
         boolean feasibility = checker.checkCounterexample(rootElement, errorElement, elementsOnErrorPath);
 
         if (feasibility) {
-          logger.log(Level.INFO, "Bug found which was confirmed by counterexample check with " + checkerName);
+          logger.log(Level.INFO, "Error path found and confirmed by counterexample check with " + checkerName + ".");
           return sound;
 
         } else {
           numberOfInfeasiblePaths++;
-          logger.log(Level.INFO, "Bug found which was denied by counterexample check.");
+          logger.log(Level.INFO, "Error path found, but identified as infeasible by counterexample check with " + checkerName + ".");
 
           if (continueAfterInfeasibleError) {
             // This counterexample is infeasible, so usually we would remove it
@@ -148,8 +148,8 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
             if (removeInfeasibleErrors) {
               sound &= handleInfeasibleCounterexample(reached, elementsOnErrorPath);
 
-            } else {
-              logger.log(Level.WARNING, "Analysis unsound because infeasible counterexample was not removed from the reached set.");
+            } else if (sound) {
+              logger.log(Level.WARNING, "Infeasible counterexample found, but could not remove it from the ART. Therefore, we cannot prove safety.");
               sound = false;
             }
 
