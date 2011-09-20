@@ -227,7 +227,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
       // if the element is a target element do refinement
       if (AbstractElements.isTargetElement(lastElement)) {
 
-        logger.log(Level.FINER, "Error found, performing CEGAR");
+        logger.log(Level.FINE, "Error found, performing CEGAR");
         stats.countRefinements++;
         sizeOfReachedSetBeforeRefinement = reached.size();
 
@@ -246,7 +246,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         if (refinementResult) {
           // successful refinement
 
-          logger.log(Level.FINER, "Refinement successful");
+          logger.log(Level.FINE, "Refinement successful");
           stats.countSuccessfulRefinements++;
 
           if (restartOnRefinement) {
@@ -259,7 +259,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
         } else {
           // no refinement found, because the counterexample is not spurious
-          logger.log(Level.FINER, "Refinement unsuccessful");
+          logger.log(Level.FINE, "Refinement unsuccessful");
         }
       } // if lastElement is target element
 
