@@ -95,11 +95,11 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     logger.log(Level.FINEST, "Starting ART based refinement");
     mArtCpa.clearCounterexample();
 
-    assert checkART(pReached);
+    assert checkART(pReached) : "ART and reached set do not match before refinement";
 
     AbstractElement lastElement = pReached.getLastElement();
-    assert lastElement instanceof ARTElement;
-    assert ((ARTElement)lastElement).isTarget();
+    assert lastElement instanceof ARTElement : "Element in reached set which is not an ARTElement";
+    assert ((ARTElement)lastElement).isTarget() : "Last element in reached is not a target element before refinement";
     ARTReachedSet reached = new ARTReachedSet(pReached, mArtCpa);
 
     Path path = computePath((ARTElement)lastElement, reached);
@@ -124,14 +124,14 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
       throw e;
     }
 
-    assert checkART(pReached);
+    assert checkART(pReached) : "ART and reached set do not match after refinement";
 
     if (!counterexample.isSpurious()) {
       Path targetPath = counterexample.getTargetPath();
 
       // new targetPath must contain root and error node
-      assert targetPath.getFirst().getFirst() == path.getFirst().getFirst();
-      assert targetPath.getLast().getFirst()  == path.getLast().getFirst();
+      assert targetPath.getFirst().getFirst() == path.getFirst().getFirst() : "Target path from refiner does not contain root node";
+      assert targetPath.getLast().getFirst()  == path.getLast().getFirst() : "Target path from refiner does not contain target state";
 
       mArtCpa.setCounterexample(counterexample);
     }
@@ -179,15 +179,15 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
       assert !currentElement.isDestroyed();
 
       for (ARTElement parent : currentElement.getParents()) {
-        assert parent.getChildren().contains(currentElement);
+        assert parent.getChildren().contains(currentElement) : "Reference from parent to child is missing in ART";
       }
       for (ARTElement child : currentElement.getChildren()) {
-        assert child.getParents().contains(currentElement);
+        assert child.getParents().contains(currentElement) : "Reference from child to parent is missing in ART";
       }
 
       // check if (e \in ART) => (e \in Reached ^ e.isCovered())
       if (currentElement.isCovered()) {
-        assert !pReached.contains(currentElement);
+        assert !pReached.contains(currentElement) : "Reached set contains covered element";
 
       } else {
         // There is a special case here:
@@ -196,7 +196,8 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
         // But in this case its parent is in the waitlist.
 
         assert pReached.contains(currentElement)
-            || pReached.getWaitlist().containsAll(currentElement.getParents());
+            || pReached.getWaitlist().containsAll(currentElement.getParents())
+            : "Element in ART but not in reached set";
       }
 
       if (art.add(currentElement)) {
@@ -205,7 +206,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     }
 
     // check if (e \in Reached) => (e \in ART)
-    assert art.containsAll(pReached.getReached()) : "Element in reached but not in ART";
+    assert art.containsAll(pReached.getReached()) : "Element in reached set but not in ART";
 
     return true;
   }
