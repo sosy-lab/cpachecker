@@ -195,6 +195,8 @@ public class ARTReachedSet {
         if (removedElements.add(currentElement)) {
           // not yet handled
           workList.addAll(currentElement.getChildren());
+
+          removedElements.addAll(currentElement.getCoveredByThis());
           removeCoverage(currentElement);
 
           currentElement.removeFromART();
