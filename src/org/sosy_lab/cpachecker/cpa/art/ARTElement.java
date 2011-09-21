@@ -71,14 +71,14 @@ public class ARTElement extends AbstractSingleWrapperElement {
   }
 
   public void addParent(ARTElement pOtherParent){
-    assert !destroyed;
+    assert !destroyed : "Don't use destroyed ARTElements!";
     if(parents.add(pOtherParent)){
       pOtherParent.children.add(this);
     }
   }
 
   public Set<ARTElement> getChildren() {
-    assert !destroyed;
+    assert !destroyed : "Don't use destroyed ARTElements!";
     return children;
   }
 
@@ -95,7 +95,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
   }
 
   public boolean isCovered() {
-    assert !destroyed;
+    assert !destroyed : "Don't use destroyed ARTElements!";
     return mCoveredBy != null;
   }
 
@@ -105,7 +105,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
   }
 
   public Set<ARTElement> getCoveredByThis() {
-    assert !destroyed;
+    assert !destroyed : "Don't use destroyed ARTElements!";
     if (mCoveredByThis == null) {
       return Collections.emptySet();
     } else {
@@ -114,7 +114,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
   }
 
   protected void setMergedWith(ARTElement pMergedWith) {
-    assert !destroyed;
+    assert !destroyed : "Don't use destroyed ARTElements!";
     assert mergedWith == null;
 
     mergedWith = pMergedWith;
@@ -129,7 +129,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
   }
 
   public void setNotCovering() {
-    assert !isCovered();
+    assert !destroyed : "Don't use destroyed ARTElements!";
     mayCover = false;
   }
 
@@ -162,7 +162,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
 
   // TODO check
   public Set<ARTElement> getSubtree() {
-    assert !destroyed;
+    assert !destroyed : "Don't use destroyed ARTElements!";
     Set<ARTElement> result = new HashSet<ARTElement>();
     Deque<ARTElement> workList = new ArrayDeque<ARTElement>();
 
@@ -190,7 +190,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
    * elements will not be removed from the covered set.
    */
   public void removeFromART() {
-    assert !destroyed;
+    assert !destroyed : "Don't use destroyed ARTElements!";
 
     // clear children
     for (ARTElement child : children) {
