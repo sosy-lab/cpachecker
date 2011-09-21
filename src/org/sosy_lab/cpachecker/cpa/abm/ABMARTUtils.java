@@ -24,10 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.abm;
 
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
@@ -37,16 +35,23 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+
 public class ABMARTUtils {
   private ABMARTUtils() {}
 
-  public static Map<Block, ReachedSet> gatherReachedSets(ABMCPA cpa, ReachedSet finalReachedSet) {
-    Map<Block, ReachedSet> result = new HashMap<Block, ReachedSet>();
+  public static Multimap<Block, ReachedSet> gatherReachedSets(ABMCPA cpa, ReachedSet finalReachedSet) {
+    Multimap<Block, ReachedSet> result = HashMultimap.create();
     gatherReachedSets(cpa, cpa.getBlockPartitioning().getMainBlock(), finalReachedSet, result);
     return result;
   }
 
-  private static void gatherReachedSets(ABMCPA cpa, Block block, ReachedSet reachedSet, Map<Block, ReachedSet> blockToReachedSet) {
+  private static void gatherReachedSets(ABMCPA cpa, Block block, ReachedSet reachedSet, Multimap<Block, ReachedSet> blockToReachedSet) {
+    if(blockToReachedSet.containsEntry(block, reachedSet)) {
+      return; //avoid looping in recursive block calls
+    }
+
     blockToReachedSet.put(block, reachedSet);
 
     ARTElement firstElement = (ARTElement)reachedSet.getFirstElement();

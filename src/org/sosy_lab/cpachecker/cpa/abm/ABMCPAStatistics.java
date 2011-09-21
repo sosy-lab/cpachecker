@@ -60,6 +60,7 @@ class ABMCPAStatistics implements Statistics {
       TimedReducer reducer = cpa.getReducer();
 
       int sumCalls = transferRelation.cacheMisses + transferRelation.partialCacheHits + transferRelation.fullCacheHits;
+
       int sumARTElemets = 0;
       for(ReachedSet subreached : ABMARTUtils.gatherReachedSets(cpa, reached).values()) {
         sumARTElemets += subreached.size();
