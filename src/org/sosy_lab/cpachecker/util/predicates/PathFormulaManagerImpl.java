@@ -484,7 +484,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
 
   @Override
-  // merge two possibly primed formulas and add  equalities for their final values
+  // merge two possibly primed formulas and add  equalities over their last values
   public PathFormula matchPaths(PathFormula localPF, PathFormula envPF, Set<String> globalVariablesSet, int offset) {
     assert offset > 0;
 

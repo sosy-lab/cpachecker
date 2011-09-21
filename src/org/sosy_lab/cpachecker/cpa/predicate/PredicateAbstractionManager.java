@@ -186,7 +186,7 @@ class PredicateAbstractionManager {
 
       if (result != null) {
         // create new abstraction object to have a unique abstraction id
-        result = new AbstractionFormula(result.asRegion(), result.asFormula(), pathFormula);
+        result = new AbstractionFormula(result.asRegion(), result.asPathFormula(), pathFormula);
         logger.log(Level.ALL, "Abstraction was cached, result is", result);
         stats.numCallsAbstractionCached++;
         return result;
@@ -201,7 +201,8 @@ class PredicateAbstractionManager {
     }
 
     Formula symbolicAbs = fmgr.instantiate(amgr.toConcrete(abs), pathFormula.getSsa());
-    AbstractionFormula result = new AbstractionFormula(abs, symbolicAbs, pathFormula);
+    PathFormula symbolicPathAbs = new PathFormula(symbolicAbs, pathFormula.getSsa(), 0);
+    AbstractionFormula result = new AbstractionFormula(abs, symbolicPathAbs, pathFormula);
 
     if (useCache) {
       abstractionCache.put(absKey, result);
@@ -241,7 +242,7 @@ class PredicateAbstractionManager {
 
       if (result != null) {
         // create new abstraction object to have a unique abstraction id
-        result = new AbstractionFormula(result.asRegion(), result.asFormula(), pathFormula);
+        result = new AbstractionFormula(result.asRegion(), result.asPathFormula(), pathFormula);
         logger.log(Level.ALL, "Abstraction was cached, result is", result);
         stats.numCallsAbstractionCached++;
         return result;
@@ -256,7 +257,8 @@ class PredicateAbstractionManager {
     }
 
     Formula symbolicAbs = fmgr.instantiate(amgr.toConcrete(abs), pathFormula.getSsa());
-    AbstractionFormula result = new AbstractionFormula(abs, symbolicAbs, pathFormula);
+    PathFormula symbolicPathAbs = new PathFormula(symbolicAbs, pathFormula.getSsa(), 0);
+    AbstractionFormula result = new AbstractionFormula(abs, symbolicPathAbs, pathFormula);
 
     if (useCache) {
       abstractionCache.put(absKey, result);
@@ -456,6 +458,9 @@ class PredicateAbstractionManager {
 
     // the formula is (abstractionFormula & pathFormula & predDef)
     Formula fm = fmgr.makeAnd(f, predDef);
+    System.out.println();
+    System.out.println("fm: "+fm);
+    System.out.println();
     logger.log(Level.ALL, "COMPUTING ALL-SMT ON FORMULA: ", fm);
 
     stats.abstractionTime.startOuter();

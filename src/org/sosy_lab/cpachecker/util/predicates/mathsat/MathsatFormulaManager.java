@@ -55,6 +55,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
 
 @Options(prefix="cpa.predicate.mathsat")
 public class MathsatFormulaManager implements FormulaManager  {
@@ -116,7 +117,7 @@ public class MathsatFormulaManager implements FormulaManager  {
 
 
   // Formula -> how many times the variables are primed in the formula
-  private Multimap<Formula, Integer> howManyPrimesCache = HashMultimap.create();
+  private SetMultimap<Formula, Integer> howManyPrimesCache = HashMultimap.create();
 
   private Map<Pair<Formula, Map<Integer, Integer>>, Formula> adjustingCache = new HashMap<Pair<Formula, Map<Integer, Integer>>, Formula>();
 
@@ -848,9 +849,9 @@ public class MathsatFormulaManager implements FormulaManager  {
 
   // gives the number of times that the variables in the formula are prime
   // works only on unistanitated variables
-  public Collection<Integer> howManyPrimes(Formula f){
+  public Set<Integer> howManyPrimes(Formula f){
     // TODO caching
-    Multimap<Formula, Integer> cache = this.howManyPrimesCache;
+    SetMultimap<Formula, Integer> cache = this.howManyPrimesCache;
     Deque<Formula> toProcess = new ArrayDeque<Formula>();
 
     toProcess.push(f);
@@ -868,7 +869,7 @@ public class MathsatFormulaManager implements FormulaManager  {
         toProcess.pop();
       }
       else if(msat_term_is_number(t) != 0) {
-        cache.put(tt, 0);
+        cache.put(tt, null);
         toProcess.pop();
       }
       else {

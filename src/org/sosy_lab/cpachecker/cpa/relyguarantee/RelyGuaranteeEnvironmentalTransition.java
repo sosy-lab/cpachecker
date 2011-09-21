@@ -29,14 +29,13 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 /**
  * Stores information about environmental transition
  */
 public class RelyGuaranteeEnvironmentalTransition {
 
-  private final Formula formula;
+  private final PathFormula abstractionPathFormula;
   private final PathFormula pathFormula;
   private final CFAEdge edge;
   private final int sourceThread;
@@ -55,20 +54,24 @@ public class RelyGuaranteeEnvironmentalTransition {
     CFANode node = cElement.retrieveLocationElement().getLocationNode();
     RelyGuaranteeAbstractElement predElement = AbstractElements.extractElementByType(cElement, RelyGuaranteeAbstractElement.class);
 
-    this.formula = predElement.getAbstractionFormula().asFormula();
+    this.abstractionPathFormula = predElement.getAbstractionFormula().asPathFormula();
     this.pathFormula = predElement.getPathFormula();
     this.edge = edge;
     this.sourceThread = tid;
     this.sourceARTElement = aElement;
   }
 
-  public Formula getFormula() {
-    return formula;
-  }
 
   public PathFormula getPathFormula() {
     return pathFormula;
   }
+
+
+
+  public PathFormula getAbstractionPathFormula() {
+    return abstractionPathFormula;
+  }
+
 
   public CFAEdge getEdge() {
     return edge;
@@ -89,7 +92,7 @@ public class RelyGuaranteeEnvironmentalTransition {
   }
 
   public String toString() {
-    return "RelyGuaranteeEnvironemtalTransition from "+this.sourceThread+": "+edge.getRawStatement()+",'"+this.formula+"','"+this.pathFormula+"'";
+    return "RelyGuaranteeEnvironemtalTransition from "+this.sourceThread+": "+edge.getRawStatement()+",'"+this.abstractionPathFormula+"','"+this.pathFormula+"'";
   }
 
   // returns true if 'other' is syntactially equivalent to this env transtion
@@ -97,7 +100,7 @@ public class RelyGuaranteeEnvironmentalTransition {
     if (! this.getEdge().equals(other.getEdge())) {
       return false;
     }
-    if (! this.formula.equals(other.formula)){
+    if (! this.abstractionPathFormula.equals(other.abstractionPathFormula)){
       return false;
     }
     if (! this.pathFormula.equals(other.pathFormula)){

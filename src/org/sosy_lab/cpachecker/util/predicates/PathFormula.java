@@ -56,7 +56,7 @@ public class PathFormula {
     this.primedNo = 0;
   }
 
-  protected PathFormula(Formula pf, SSAMap ssa, int pLength, int pPrimedNo) {
+  public PathFormula(Formula pf, SSAMap ssa, int pLength, int pPrimedNo) {
     this.formula = pf;
     this.ssa = ssa;
     this.length = pLength;

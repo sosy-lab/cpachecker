@@ -154,7 +154,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
       else if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge){
         RelyGuaranteeCombinedCFAEdge rgEdge = (RelyGuaranteeCombinedCFAEdge) edge;
         for (int i=0; i<rgEdge.getEdgeNo(); i++){
-          primedMap.put(i+1, rgEdge.getEnvEdges().get(i));
+          primedMap.put(2*i+1, rgEdge.getEnvEdges().get(i));
         }
       }
 
@@ -278,14 +278,14 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
       RelyGuaranteeCFAEdge rgEdge = edge.getEnvEdges().get(i);
       PathFormula envPF = rgEdge.getPathFormula();
       // prime the env. path formula so it does not collide with the local path formula
-      PathFormula primedEnvPF = pathFormulaManager.primePathFormula(envPF, i+1, localPF.getSsa());
+      PathFormula primedEnvPF = pathFormulaManager.primePathFormula(envPF, (2*i)+1, localPF.getSsa());
       // make equalities between the last global values in the local and env. path formula
-      PathFormula matchedPF = pathFormulaManager.matchPaths(localPF, primedEnvPF, cpa.globalVariablesSet, i+1);
+      PathFormula matchedPF = pathFormulaManager.matchPaths(localPF, primedEnvPF, cpa.globalVariablesSet, (2*i)+1);
 
       if (DAGRefinement){
-        pathFormulaManager.inject(rgEdge.getLocalEdge(), cpa.globalVariablesSet, i+1, cpa.getThreadId(), primedEnvPF.getSsa());
+        pathFormulaManager.inject(rgEdge.getLocalEdge(), cpa.globalVariablesSet, 2*i+1, cpa.getThreadId(), primedEnvPF.getSsa());
       } else {
-        pathFormulaManager.inject(rgEdge.getLocalEdge(), cpa.globalVariablesSet, i+1, null, primedEnvPF.getSsa());
+        pathFormulaManager.inject(rgEdge.getLocalEdge(), cpa.globalVariablesSet, 2*i+1, null, primedEnvPF.getSsa());
       }
 
       // apply the strongest postcondition
@@ -305,9 +305,6 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
 
     return combinedPF;
   }
-
-
-
 
   /**
    * Check whether an abstraction should be computed.

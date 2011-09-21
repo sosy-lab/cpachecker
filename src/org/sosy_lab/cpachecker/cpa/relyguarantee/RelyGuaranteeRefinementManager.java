@@ -76,6 +76,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
@@ -455,11 +457,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
           }
         }
 
-        // remove parts of env. transitions other than the highest index for each variable,
-        // since lower indexes are already in the transitions' source nodes
-        Map<Integer, RelyGuaranteeCFAEdge> primedMap = rgElement.getOldPrimedMap();
-        PathFormula reducedPf = pmgr.removePrimed(node.getPathFormula(), primedMap.keySet());
-        node.setPathFormula(reducedPf);
 
         // get a node for every source of environmental transitions applied
         // envPrimeNo is the prime number of the environmental path formula fragment in the current formula block
@@ -486,21 +483,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
           InterpolationDagNode sourceNode = nodeMap.get(key);
           assert sourceNode != null;
 
-          /*  The env. transition's source element could be after the source abstraction element.
-           *  In such case, add the path formula of the source as a side formula for interpolation.  */
-          if (sourceARTElement != sourceAbstractionElement){
-            RelyGuaranteeAbstractElement rgSource = AbstractElements.extractElementByType(sourceARTElement, RelyGuaranteeAbstractElement.class);
-            assert !(rgSource instanceof AbstractionElement);
-            PathFormula envPF = rgSource.getPathFormula();
-
-            // prime the envPF according to its traceNo
-            Map<Integer, Integer> envAdjustmentMap = new HashMap<Integer, Integer>(1);
-            envAdjustmentMap.put(0, envTraceNo);
-            envPF = pmgr.adjustPrimedNo(envPF, envAdjustmentMap);
-            if (!sourceNode.getEnvPathFormulas().contains(envPF)){
-              sourceNode.getEnvPathFormulas().add(envPF);
-            }
-          }
 
           // make an edge from the source node to the application
           List<InterpolationDagNode> envChildren = sourceNode.getChildren();
@@ -510,11 +492,20 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
             node.getParents().add(sourceNode);
           }
 
-          // change envPrimeNo to envTraceNo
-          adjustmentMap.put(envPrimeNo, envTraceNo);
+          // TODO write comment
+          assert !rgElement.getOldPrimedMap().containsKey(envPrimeNo+1);
+          adjustmentMap.put(envPrimeNo+1, envTraceNo);
+
+          int freshTraceNo = traceMap.values().size();
+          traceMap.put(tid, freshTraceNo);
+          adjustmentMap.put(envPrimeNo, freshTraceNo);
         }
 
         // adjust the prime numbers
+        System.out.println("\t a.map "+adjustmentMap);
+        System.out.println("\t a.pf. "+node.getPathFormula());
+        System.out.println("\t ssa "+node.getPathFormula().getSsa());
+        System.out.println("\t primeMap "+rgElement.getOldPrimedMap());
         PathFormula adjustedPf = pmgr.adjustPrimedNo(node.getPathFormula(), adjustmentMap);
 
         // TODO put in path formula manager
@@ -750,6 +741,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       // get formula list, where
       //Pair<List<InterpolationDagNode>, Integer> pair = parentSortDag(roots, node);
       Pair<List<Formula>, Integer> pair = parentSortDag2(roots, node);
+      //Pair<List<Formula>, Integer> pair = childrenSortDag(roots, node);
 
       // prepare formula list
       stats.interpolationTimer.start();
@@ -782,20 +774,37 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         int idx = pair.getSecond();
 
         Formula itp = itpProver.getInterpolant(interpolationIds.subList(0, idx+1));
-        Set<AbstractionPredicate> predicates = getDagPredicates(itp, node.getTid(), traceMap);
+        // non-modular predicates
+        // Set<AbstractionPredicate> predicates = getDagPredicates(itp, node.getTid(), traceMap);
+        // try-to-be modular predicates
+         ListMultimap<ARTElement, AbstractionPredicate> predMap = getModularDagPredicates(itp, node);
 
         itpProver.reset();
         stats.interpolationTimer.stop();
 
         if (debug){
-          System.out.println("\t-id:"+artElement.getElementId()+"\t ["+loc+"]: "+itp+",\t"+predicates);
+          //System.out.println("\t-id:"+artElement.getElementId()+"\t ["+loc+"]: "+itp+",\t"+predicates);
+
+          if (predMap.keySet().isEmpty()){
+            System.out.println("\t-id:"+artElement.getElementId()+" itp "+itp);
+          } else {
+            System.out.println("\t-id:"+artElement.getElementId()+" itp "+itp+"  predicates: ");
+          }
+          for (ARTElement artElem : predMap.keySet()){
+            System.out.println("\t\tid:"+artElem.getElementId()+", "+loc+", "+predMap.get(artElem));
+          }
         }
+
 
         if (info == null){
           info = new CounterexampleTraceInfo();
         }
 
-        info.addPredicatesForRefinement(artElement, predicates);
+       // info.addPredicatesForRefinement(artElement, predicates);
+        for (ARTElement artElem : predMap.keySet()){
+          info.addPredicatesForRefinement(artElem, predMap.get(artElem));
+        }
+
 
         if (itp.isFalse()){
           i = topNodes.size();
@@ -810,6 +819,8 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     return info;
   }
+
+
 
   List<InterpolationDagNode> replaceDag(List<InterpolationDagNode> roots, InterpolationDagNode node, Formula itp){
     // replace node by itp
@@ -894,77 +905,168 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
   }
 
 
-  /**
-  *
-  * @param roots
-  * @param target
-  * @return
-  */
- private Pair<List<Formula>, Integer> parentSortDag2(List<InterpolationDagNode> roots, InterpolationDagNode target) {
 
-   List<Formula> pcList = new Vector<Formula>();
-   Set<InterpolationDagNode> visitedUpTo = new HashSet<InterpolationDagNode>();
-   Deque<InterpolationDagNode> toProcess = new LinkedList<InterpolationDagNode>();
-   int idx = -1;
+  private Pair<List<Formula>, Integer> childrenSortDag(List<InterpolationDagNode> roots, InterpolationDagNode target){
 
+    List<InterpolationDagNode> children = new Vector<InterpolationDagNode>();
+    Set<InterpolationDagNode> visisted = new HashSet<InterpolationDagNode>();
+    Deque<InterpolationDagNode> toProcess = new LinkedList<InterpolationDagNode>();
+    List<Formula> formulas = new Vector<Formula>();
+    Integer idx = null;
 
-   toProcess.addLast(target);;
-
-   // add the target and its parents
-   while(!toProcess.isEmpty()){
-     InterpolationDagNode node = toProcess.poll();
-     if (!visitedUpTo.contains(node)){
-       visitedUpTo.add(node);
-       // add block path formula
-       pcList.add(node.getPathFormula().getFormula());
-       idx++;
-       // add env. formulas if it's not the target
-       if (node != target){
-         for (PathFormula envPF : node.getEnvPathFormulas()){
-           pcList.add(envPF.getFormula());
-           idx++;
-         }
-       }
-
-       // process parents
-       for (InterpolationDagNode parent : node.getParents()){
-         toProcess.addLast(parent);
-       }
-     }
-   }
+    toProcess.addAll(target.getChildren());
+    // find all nodes that can be reached from target
+    while(!toProcess.isEmpty()){
+      InterpolationDagNode node = toProcess.poll();
+      if (!visisted.contains(node)){
+        visisted.add(node);
+        children.add(node);
+        for (InterpolationDagNode child : node.getChildren()){
+          toProcess.add(child);
+        }
+      }
+    }
 
 
-   // add the rest of the nodes
-   toProcess.clear();
-   toProcess.addAll(roots);
-   Set<InterpolationDagNode> visitedAfter = new HashSet<InterpolationDagNode>();
+    idx = children.size()-1;
 
-   // add the env. formulas of the target
-   for (PathFormula envPF : target.getEnvPathFormulas()){
-     pcList.add(envPF.getFormula());
-   }
-
-   while(!toProcess.isEmpty()){
-     InterpolationDagNode node = toProcess.poll();
-     if (!visitedAfter.contains(node)){
-       visitedAfter.add(node);
-
-       if (!visitedUpTo.contains(node)){
-         pcList.add(node.getPathFormula().getFormula());
-         for (PathFormula envPF : node.getEnvPathFormulas()){
-           pcList.add(envPF.getFormula());
-         }
-       }
-
-       for (InterpolationDagNode child : node.getChildren()){
-         toProcess.addLast(child);
-       }
-     }
-   }
+    // add children
+    if (false){
+      System.out.println();
+      System.out.println("Children of "+target.getArtElement().getElementId()+": ");
+      for (InterpolationDagNode child : children){
+        System.out.print("["+child.getArtElement().getElementId()+"], ");
+      }
+      System.out.println();
+      System.out.println("Rest: ");
+    }
 
 
-   return Pair.of(pcList, idx);
- }
+    // add the rest of the nodes
+    visisted.clear();
+    assert toProcess.isEmpty();
+    toProcess.addAll(roots);
+
+    while (!toProcess.isEmpty()){
+      InterpolationDagNode node = toProcess.poll();
+      if (!visisted.contains(node)){
+        visisted.add(node);
+
+        if (!children.contains(node)){
+          if (false){
+            System.out.print("["+node.getArtElement().getElementId()+"], ");
+          }
+
+          formulas.add(node.getPathFormula().getFormula());
+        }
+
+        for (InterpolationDagNode child : node.getChildren()){
+          toProcess.add(child);
+        }
+      }
+    }
+
+    if (false){
+      System.out.println();
+    }
+
+
+    idx = formulas.size() - 1;
+
+    // add children
+
+    for (InterpolationDagNode child : children){
+      formulas.add(child.getPathFormula().getFormula());
+    }
+
+
+
+
+    return Pair.of(formulas, idx);
+  }
+
+
+
+  private Pair<List<Formula>, Integer> parentSortDag2(List<InterpolationDagNode> roots, InterpolationDagNode target) {
+    boolean print = false && debug;
+
+    List<Formula> pcList = new Vector<Formula>();
+    Set<InterpolationDagNode> visitedUpTo = new HashSet<InterpolationDagNode>();
+    Deque<InterpolationDagNode> toProcess = new LinkedList<InterpolationDagNode>();
+    int idx = -1;
+
+    if (print){
+      System.out.print("(");
+    }
+
+    toProcess.addLast(target);;
+    // add the target and its parents
+    while(!toProcess.isEmpty()){
+      InterpolationDagNode node = toProcess.poll();
+      if (!visitedUpTo.contains(node)){
+        visitedUpTo.add(node);
+        // add block path formula
+        pcList.add(node.getPathFormula().getFormula());
+        if (print){
+          System.out.print(node.getArtElement().getElementId()+" ");
+        }
+        idx++;
+        // add env. formulas if it's not the target
+        if (node != target){
+          for (PathFormula envPF : node.getEnvPathFormulas()){
+            pcList.add(envPF.getFormula());
+            idx++;
+          }
+        }
+
+        // process parents
+        for (InterpolationDagNode parent : node.getParents()){
+          toProcess.addLast(parent);
+        }
+      }
+    }
+    if (print){
+      System.out.print("), (");
+    }
+
+
+    // add the rest of the nodes
+    toProcess.clear();
+    toProcess.addAll(roots);
+    Set<InterpolationDagNode> visitedAfter = new HashSet<InterpolationDagNode>();
+
+    // add the env. formulas of the target
+    for (PathFormula envPF : target.getEnvPathFormulas()){
+      pcList.add(envPF.getFormula());
+    }
+
+    while(!toProcess.isEmpty()){
+      InterpolationDagNode node = toProcess.poll();
+      if (!visitedAfter.contains(node)){
+        visitedAfter.add(node);
+
+        if (!visitedUpTo.contains(node)){
+          pcList.add(node.getPathFormula().getFormula());
+          if (print){
+            System.out.print(node.getArtElement().getElementId()+" ");
+          }
+          for (PathFormula envPF : node.getEnvPathFormulas()){
+
+            pcList.add(envPF.getFormula());
+          }
+        }
+
+        for (InterpolationDagNode child : node.getChildren()){
+          toProcess.addLast(child);
+        }
+      }
+    }
+
+    if (print){
+      System.out.println(")");
+    }
+    return Pair.of(pcList, idx);
+  }
 
   /**
    *
@@ -1456,6 +1558,55 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       }
     }
     return result;
+  }
+
+  private ListMultimap<ARTElement, AbstractionPredicate> getModularDagPredicates(Formula itp, InterpolationDagNode node) {
+
+    ListMultimap<ARTElement, AbstractionPredicate> predMap = LinkedListMultimap.create();
+    // we assume that false is already in global predicates
+
+    if (!itp.isTrue()){
+      Collection<Formula> atoms = fmgr.extractAtoms(itp, splitItpAtoms, false);
+
+      for (Formula atom : atoms){
+        Set<Integer> primes = fmgr.howManyPrimes(atom);
+        if (primes.size() != 2){
+          System.out.println("DEBUG: "+itp);
+        }
+        assert primes.size() == 2;
+        Integer primeNo = null;
+        for (Integer pn : primes){
+          if (pn!=null){
+            primeNo = pn;
+            break;
+          }
+        }
+
+        List<ARTElement> sourceART = new Vector<ARTElement>();
+        // find the source ARTElement
+        if (node.getTraceNo() == primeNo){
+          sourceART.add(node.getArtElement());
+        } else {
+          for (InterpolationDagNode parent : node.getParents()){
+            if (parent.getTraceNo() == primeNo){
+              sourceART.add(parent.getArtElement());
+            }
+          }
+        }
+
+        assert sourceART != null;
+
+        Formula unprimedAtom = fmgr.unprimeFormula(atom);
+        AbstractionPredicate atomPredicate = amgr.makePredicate(unprimedAtom);
+        for (ARTElement artElem : sourceART){
+          predMap.put(artElem, atomPredicate);
+        }
+
+      }
+
+    }
+
+    return predMap;
   }
 
 

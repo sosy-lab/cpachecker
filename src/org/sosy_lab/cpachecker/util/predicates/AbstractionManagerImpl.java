@@ -245,7 +245,7 @@ public class AbstractionManagerImpl implements AbstractionManager {
     if (previousBlockFormula == null) {
       previousBlockFormula = new PathFormula(fmgr.makeTrue(), SSAMap.emptySSAMap(), 0);
     }
-    return new AbstractionFormula(rmgr.makeTrue(), fmgr.makeTrue(), previousBlockFormula);
+    return new AbstractionFormula(rmgr.makeTrue(), previousBlockFormula, previousBlockFormula);
   }
 
   @Override

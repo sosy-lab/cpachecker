@@ -66,6 +66,7 @@ public class InterpolationDagNode extends InterpolationBlock{
     return tid;
   }
 
+  // TODO remove
   public List<PathFormula> getEnvPathFormulas() {
     return envPathFormulas;
   }

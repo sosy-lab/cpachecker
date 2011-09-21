@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 public class AbstractionFormula {
 
 
-
+  private final PathFormula pathformula;
   private final Region region;
   private final Formula formula;
   /**
@@ -56,9 +56,15 @@ public class AbstractionFormula {
     this.region = pFirst;
     this.formula = pSecond;
     this.blockPathFormula = pBlocPathFormula;
+    this.pathformula = null;
   }
 
-
+  public AbstractionFormula(Region pFirst, PathFormula pSecond, PathFormula pBlocPathFormula) {
+    this.region = pFirst;
+    this.formula = pSecond.getFormula();
+    this.blockPathFormula = pBlocPathFormula;
+    this.pathformula = pSecond;
+  }
 
 
 
@@ -76,6 +82,10 @@ public class AbstractionFormula {
 
   public Formula asFormula() {
     return formula;
+  }
+
+  public PathFormula asPathFormula() {
+    return pathformula;
   }
 
   public Formula getBlockFormula() {

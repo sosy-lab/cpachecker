@@ -246,7 +246,7 @@ public interface FormulaManager {
     //
     public Pair<Formula,Map<String, Integer>>  normalize(Formula formula);
 
-    public Collection<Integer> howManyPrimes(Formula f);
+    public Set<Integer> howManyPrimes(Formula f);
 
     public Formula unprimeFormula(Formula pUnprimedAtom);
 
