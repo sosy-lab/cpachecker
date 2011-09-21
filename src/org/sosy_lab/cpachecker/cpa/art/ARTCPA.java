@@ -90,7 +90,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     } else {
       mergeOperator = new ARTMergeJoin(wrappedMerge);
     }
-    stopOperator = new ARTStopSep(getWrappedCpa());
+    stopOperator = new ARTStopSep(getWrappedCpa().getStopOperator(), logger);
     stats = new ARTStatistics(config, this);
   }
 
