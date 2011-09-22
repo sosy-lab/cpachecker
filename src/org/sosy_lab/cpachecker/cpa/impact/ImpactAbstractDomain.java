@@ -66,17 +66,22 @@ class ImpactAbstractDomain implements AbstractDomain {
       }
     }
 
-    Formula f1 = fmgr.makeAnd(element1.getStateFormula(), element1.getPathFormula().getFormula());
-    Formula f2 = fmgr.makeAnd(element2.getStateFormula(), element2.getPathFormula().getFormula());
+    if (element1.isAbstractionElement() && element2.isAbstractionElement()) {
 
-    Formula implication = fmgr.makeAnd(f1, fmgr.makeNot(f2));
+      Formula f1 = element1.getStateFormula();
+      Formula f2 = element2.getStateFormula();
 
-    prover.init();
-    try {
-      return prover.isUnsat(implication);
-    } finally {
-      prover.reset();
+      Formula implication = fmgr.makeAnd(f1, fmgr.makeNot(f2));
+
+      prover.init();
+      try {
+        return prover.isUnsat(implication);
+      } finally {
+        prover.reset();
+      }
     }
+
+    return false;
   }
 
 }
