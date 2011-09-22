@@ -25,9 +25,9 @@
       The order of these three tags is not important.
      -->
     <sourcefiles>
-      <include>test/programs/locks/*.c</include>
-      <exclude>test/programs/locks/test_locks_1?.c</exclude>
-      <includesfile>test/test-sets/ssh-simplifiedd.set</includesfile>
+      <include>test/programs/benchmarks/locks/*.c</include>
+      <exclude>test/programs/benchmarks/locks/test_locks_1?.c</exclude>
+      <includesfile>test/test-sets/ssh-simplified.set</includesfile>
     </sourcefiles>
 
     <!-- 

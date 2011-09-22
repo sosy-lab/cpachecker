@@ -9,10 +9,10 @@
 
     <test name="acsar test">
         <sourcefiles>
-            <include>test/programs/ssh-simplified/s3_clnt_1.cil.c</include>
-            <include>test/programs/ssh-simplified/s3_clnt_2.cil.c</include>
-            <include>test/programs/ssh-simplified/s3_clnt_3.cil.c</include>
-            <include>test/programs/ssh-simplified/s3_clnt_3_BUG.cil.c</include>
+            <include>test/programs/benchmarks/ssh-simplified/s3_clnt_1.cil.c</include>
+            <include>test/programs/benchmarks/ssh-simplified/s3_clnt_2.cil.c</include>
+            <include>test/programs/benchmarks/ssh-simplified/s3_clnt_3.cil.c</include>
+            <include>test/programs/benchmarks/ssh-simplified/s3_clnt_3_BUG.cil.c</include>
         </sourcefiles>
     </test>
 
