@@ -141,8 +141,12 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> {
     List<Pair<ARTElement, CFANode>> interpolationPoints = pPath.subList(0, pPath.size()-1);
     assert interpolationPoints.size() == itps.size();
 
+    final ARTElement lastElement = pPath.get(pPath.size()-1).getFirst();
+    assert lastElement.isTarget();
+
     // the first element on the path which was discovered to be not reachable
-    ARTElement root = null;
+    // default to the target element
+    ARTElement infeasiblePartOfART = lastElement;
 
     int i = 0;
     for (Pair<ARTElement, CFANode> interpolationPoint : interpolationPoints) {
@@ -156,8 +160,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> {
       if (itp.isFalse()) {
 
         // we have reached the part of the path that is infeasible
-        root = interpolationPoint.getFirst();
-        pReached.replaceWithBottom(root);
+        infeasiblePartOfART = interpolationPoint.getFirst();
         break;
       }
 
@@ -184,7 +187,8 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> {
       }
     }
 
-    ARTElement lastElement = pPath.get(pPath.size()-1).getFirst();
+    pReached.replaceWithBottom(infeasiblePartOfART);
+
     assert !pReached.asReachedSet().contains(lastElement);
   }
 }
