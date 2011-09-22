@@ -660,7 +660,7 @@ def main(args=None):
         else:
             createTable(options.xmltablefile, True)
 
-    elif len(args) > 0:
+    elif len(args) > 1:
         createTable(args[1:])
 
     else: # default case
