@@ -368,7 +368,10 @@ cpa.predicate.noAutoInitPrefix = "__BLAST_NONDET"
 # specify them explicitly if you need them. Mentioning a function in this
 # list has only an effect, if it is an 'external function', i.e., no source
 # is given in the code for this function.
-cpa.predicate.nondetFunctions = {"int_nondet", "malloc", "nondet_int", "random"}
+cpa.predicate.nondetFunctions = {
+      "int_nondet", "malloc", "nondet_int", "random", "__VERIFIER_nondet_int",
+      "__VERIFIER_nondet_short", "__VERIFIER_nondet_char", "__VERIFIER_nondet_float"
+      }
 
 # export final predicate map, if the error location is not reached
 cpa.predicate.predmap.export = true

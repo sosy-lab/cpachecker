@@ -131,7 +131,10 @@ public class CtoFormulaConverter {
     + "to the list, so you need to specify them explicitly if you need them. "
     + "Mentioning a function in this list has only an effect, if it is an "
     + "'external function', i.e., no source is given in the code for this function.")
-  private Set<String> nondetFunctions = ImmutableSet.of("int_nondet", "malloc", "nondet_int", "random");
+  private Set<String> nondetFunctions = ImmutableSet.of(
+      "int_nondet", "malloc", "nondet_int", "random", "__VERIFIER_nondet_int",
+      "__VERIFIER_nondet_short", "__VERIFIER_nondet_char", "__VERIFIER_nondet_float"
+      );
 
   // list of functions that are pure (no side-effects)
   private static final Set<String> PURE_EXTERNAL_FUNCTIONS
