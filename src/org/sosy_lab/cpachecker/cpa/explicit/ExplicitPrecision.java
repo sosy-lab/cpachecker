@@ -24,26 +24,16 @@
 package org.sosy_lab.cpachecker.cpa.explicit;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 public class ExplicitPrecision implements Precision {
   private final Pattern blackListPattern;
 
   private Set<String> whiteList = null;
-
-  public Map<CFAEdge, Map<String, Long>> facts = new HashMap<CFAEdge, Map<String, Long>>();
-
-  public void setFacts(Map<CFAEdge, Map<String, Long>> f)
-  {
-    facts = f;
-  }
 
   public ExplicitPrecision(String variableBlacklist, Set<String> whiteList) {
 

@@ -75,6 +75,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -264,8 +265,10 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
       Path path,
       CounterexampleTraceInfo pInfo) throws CPAException {
 
-//System.out.println("\n" + (++refinementCounter) + ". refining ...");
+System.out.println("\n" + (++refinementCounter) + ". refining ...");
 //System.out.println(path);
+
+List<Collection<AbstractionPredicate>> pathPredicates = pInfo.getPredicatesForRefinement();
 
     // get the predicates ...
     PredicateMap predicates = new PredicateMap(pInfo.getPredicatesForRefinement(), path);
@@ -291,8 +294,9 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
 
       extractVariables(element.getSecond(), visitor);
     }
-
-    allReferencedVariables.addAll(visitor.getCollectedVariables());
+//System.out.println("allReferencedVariables = " + allReferencedVariables);
+//System.out.println("visitor.getCollectedVariables() = " + visitor.getCollectedVariables());
+    //allReferencedVariables.addAll(visitor.getCollectedVariables());
     Set<String> newWhiteList = new HashSet<String>(allReferencedVariables);
 
     //madeProgress(path, oldPrecision.getWhiteList(), newWhiteList);
