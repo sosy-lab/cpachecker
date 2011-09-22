@@ -1,2 +1,2 @@
-test/programs/locks/test_locks_?.c
-test/programs/locks/test_locks_??.c
+test/programs/benchmarks/locks/test_locks_?.c
+test/programs/benchmarks/locks/test_locks_??.c

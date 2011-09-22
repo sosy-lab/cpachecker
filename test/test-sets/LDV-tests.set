@@ -1,1 +1,1 @@
-test/programs/LDV-tests/*.cil.c
+test/programs/benchmarks/LDV-tests/*.cil.c
