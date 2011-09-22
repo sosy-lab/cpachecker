@@ -6,6 +6,7 @@ import glob
 import shutil
 import optparse
 import time
+import sys
 
 from datetime import date
 from decimal import *
@@ -638,6 +639,9 @@ def createTable(file, filesFromXML=False):
 
 def main(args=None):
 
+    if args is None:
+        args = sys.argv
+
     parser = optparse.OptionParser('%prog [options] sourcefile')
     parser.add_option("-x", "--xml", 
         action="store", 
@@ -645,10 +649,7 @@ def main(args=None):
         dest="xmltablefile",
         help="xmlfile for table. If this option is used, other args are ignored."
     )
-    options, args = parser.parse_args()
-
-    if args is None:
-        args = sys.argv    
+    options, args = parser.parse_args(args)
 
     if options.xmltablefile:
         print ("reading table definition from '" + options.xmltablefile + "'...")
@@ -660,7 +661,7 @@ def main(args=None):
             createTable(options.xmltablefile, True)
 
     elif len(args) > 0:
-        createTable(args)
+        createTable(args[1:])
 
     else: # default case
         print ("searching resultfiles in '" + OUTPUT_PATH + "'...")

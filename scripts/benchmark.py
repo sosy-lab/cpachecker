@@ -25,6 +25,7 @@ CSV_SEPARATOR = "\t"
 # for the other columns it can be configured in the xml-file
 TIME_PRECISION = 2
 
+USE_ONLY_DATE = True # use date or date+time for filenames
 
 class Benchmark:
     """
@@ -53,7 +54,10 @@ class Benchmark:
         self.name = os.path.basename(benchmarkFile)[:-4] # remove ending ".xml"
 
         # get current date as String to avoid problems, if script runs over midnight
-        self.date = str(date.today())
+        if USE_ONLY_DATE:
+            self.date = str(date.today())
+        else:
+            self.date = time.strftime("%y-%m-%d.%H%M", time.localtime())
 
         # get tool
         self.tool = root.get("tool")
@@ -253,7 +257,7 @@ class OutputHandler:
         # they will be OVERWRITTEN without a message!
         self.logFolder = OUTPUT_PATH + self.benchmark.name + "." + self.benchmark.date + ".logfiles/"
         if not os.path.isdir(self.logFolder):
-            os.mkdir(self.logFolder)
+            os.makedirs(self.logFolder)
 
         # get information about computer
         (opSystem, cpuModel, numberOfCores, maxFrequency, memory) = self.getSystemInfo()
