@@ -344,7 +344,9 @@ public class PointerTransferRelation implements TransferRelation {
       return;
     }
 
-    if (specifier instanceof IASTElaboratedTypeSpecifier && name == null) {
+    if (name == null
+        && (specifier instanceof IASTElaboratedTypeSpecifier
+            || specifier instanceof IASTCompositeTypeSpecifier)) {
       // ignore struct prototypes
       return;
     }
