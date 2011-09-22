@@ -136,6 +136,9 @@ public class CtoFormulaConverter {
       "__VERIFIER_nondet_short", "__VERIFIER_nondet_char", "__VERIFIER_nondet_float"
       );
 
+  @Option(description = "the machine model used for functions sizeof and alignof")
+  private String machineModel = "32-Linux";
+
   // list of functions that are pure (no side-effects)
   private static final Set<String> PURE_EXTERNAL_FUNCTIONS
       = ImmutableSet.of("__assert_fail", "printf", "puts");
@@ -660,6 +663,15 @@ public class CtoFormulaConverter {
     return f;
   }
 
+  private MachineModel getMachineModel() {
+    if (this.machineModel.equals("32-Linux")) {
+      return new MachineModel();
+    } else {
+      logger.log(Level.SEVERE, "Unknown machine model. Falling back to default.");
+      return new MachineModel();
+    }
+  }
+
   private class ExpressionToFormulaVisitor extends DefaultExpressionVisitor<Formula, UnrecognizedCCodeException> {
 
     private final String function;
@@ -853,12 +865,73 @@ public class CtoFormulaConverter {
 
       case AMPER:
       case STAR:
-      case SIZEOF:
         return visitDefault(exp);
+
+      case SIZEOF:
+        return handleSizeof(exp);
 
       default:
         throw new UnrecognizedCCodeException("Unknown unary operator", null, exp);
       }
+    }
+
+    private Formula handleSizeof(IASTUnaryExpression exp)
+        throws UnrecognizedCCodeException {
+
+      if (exp.getOperand() instanceof IASTIdExpression) {
+        IType lIType =
+            ((IASTIdExpression) exp.getOperand()).getExpressionType();
+
+        if (lIType instanceof IASTSimpleDeclSpecifier) {
+          IASTSimpleDeclSpecifier lSimpleDeclSpec =
+              (IASTSimpleDeclSpecifier) lIType;
+          MachineModel lMachineModel = getMachineModel();
+
+          switch (lSimpleDeclSpec.getType()) {
+          case UNSPECIFIED: {
+            return visitDefault(exp);
+          }
+          case VOID: {
+            return fmgr.makeNumber(lMachineModel.getSizeofVoid());
+          }
+          case BOOL: {
+            return fmgr.makeNumber(lMachineModel.getSizeofBool());
+          }
+          case CHAR: {
+            return fmgr.makeNumber(lMachineModel.getSizeofChar());
+          }
+          case INT: {
+            if (lSimpleDeclSpec.isLongLong()) {
+              return fmgr.makeNumber(lMachineModel.getSizeofLongLong());
+            } else if (lSimpleDeclSpec.isLong()) {
+              return fmgr.makeNumber(lMachineModel.getSizeofLong());
+            } else if (lSimpleDeclSpec.isShort()) {
+              return fmgr.makeNumber(lMachineModel.getSizeofShort());
+            } else {
+              return fmgr.makeNumber(lMachineModel.getSizeofInt());
+            }
+          }
+          case FLOAT: {
+            return fmgr.makeNumber(lMachineModel.getSizeofFloat());
+          }
+          case DOUBLE: {
+            if (lSimpleDeclSpec.isLong()) {
+              return fmgr.makeNumber(lMachineModel.getSizeofLongDouble());
+            } else {
+              return fmgr.makeNumber(lMachineModel.getSizeofDouble());
+            }
+          }
+          }
+        }
+
+      } else if (exp.getOperand() instanceof IASTFieldReference) {
+        System.out.println("FieldReference: "
+            + exp.getOperand().getRawSignature() + "\n");
+      } else {
+        System.out.println(exp.getOperand().getClass() + "\n");
+      }
+
+      return visitDefault(exp);
     }
   }
 
@@ -1155,6 +1228,65 @@ public class CtoFormulaConverter {
 
       return fmgr.makeUIF(ufname, args, idx);
 
+    }
+  }
+
+  /**
+   * Default machine model representing a 32bit Linux machine
+   */
+  private class MachineModel {
+    // numeric types
+    protected int     mSizeofShort      = 2;
+    protected int     mSizeofInt        = 4;
+    protected int     mSizeofLong       = 4;
+    protected int     mSizeofLongLong   = 8;
+    protected int     mSizeofFloat      = 4;
+    protected int     mSizeofDouble     = 8;
+    protected int     mSizeofLongDouble = 12;
+
+    // other
+    protected int     mSizeofVoid       = 1;
+    protected int     mSizeofBool       = 1;
+    private final int mSizeofChar       = 1;
+
+    public int getSizeofShort() {
+      return mSizeofShort;
+    }
+
+    public int getSizeofInt() {
+      return mSizeofInt;
+    }
+
+    public int getSizeofLong() {
+      return mSizeofLong;
+    }
+
+    public int getSizeofLongLong() {
+      return mSizeofLongLong;
+    }
+
+    public int getSizeofFloat() {
+      return mSizeofFloat;
+    }
+
+    public int getSizeofDouble() {
+      return mSizeofDouble;
+    }
+
+    public int getSizeofLongDouble() {
+      return mSizeofLongDouble;
+    }
+
+    public int getSizeofVoid() {
+      return mSizeofVoid;
+    }
+
+    public int getSizeofBool() {
+      return mSizeofBool;
+    }
+
+    public int getSizeofChar() {
+      return mSizeofChar;
     }
   }
 }
