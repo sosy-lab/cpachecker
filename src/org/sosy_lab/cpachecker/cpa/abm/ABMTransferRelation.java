@@ -123,8 +123,6 @@ public class ABMTransferRelation implements TransferRelation {
           + context + ", predicateKey=" + predicateKey + ", precisionKey="
           + precisionKey + "]";
     }
-
-
   }
 
   private class Cache {
@@ -240,6 +238,15 @@ public class ABMTransferRelation implements TransferRelation {
     private boolean containsPreciseKey(AbstractElement predicateKey, Precision precisionKey, Block context) {
       AbstractElementHash hash = getHashCode(predicateKey, precisionKey, context);
       return preciseReachedCache.containsKey(hash);
+    }
+
+    public void updatePrecisionForEntry(AbstractElement predicateKey, Precision precisionKey, Block context, Precision newPrecisionKey) {
+      AbstractElementHash hash = getHashCode(predicateKey, precisionKey, context);
+      ReachedSet reachedSet = preciseReachedCache.get(hash);
+      if(reachedSet != null) {
+        preciseReachedCache.remove(hash);
+        preciseReachedCache.put(getHashCode(predicateKey, newPrecisionKey, context), reachedSet);
+      }
     }
   }
 
@@ -643,20 +650,33 @@ public class ABMTransferRelation implements TransferRelation {
 
       assert !removeElement.getParents().isEmpty();
 
-      artCache.removeReturnEntry(reducedRootElement, reachedSet.getPrecision(reachedSet.getFirstElement()), rootSubtree);
+      Precision reducedRootPrecision = reachedSet.getPrecision(reachedSet.getFirstElement());
+      artCache.removeReturnEntry(reducedRootElement, reducedRootPrecision, rootSubtree);
 
       logger.log(Level.FINEST, "Removing subtree, adding a new cached entry, and removing the former cached entries");
 
-      removeSubtree(reachedSet, removeElement, newReducedRemovePrecision);
+      if(removeSubtree(reachedSet, removeElement, newReducedRemovePrecision)) {
+        artCache.updatePrecisionForEntry(reducedRootElement, reducedRootPrecision, rootSubtree, newReducedRemovePrecision);
+      }
+
     }
     finally {
       removeCachedSubtreeTimer.stop();
     }
   }
 
-  private static void removeSubtree(ReachedSet reachedSet, ARTElement artElement, Precision newPrecision) {
+  /**
+   *
+   * @param reachedSet
+   * @param artElement
+   * @param newPrecision
+   * @return <code>true</code>, if the precision of the first element of the given reachedSet changed by this operation; <code>false</code>, otherwise.
+   */
+  private static boolean removeSubtree(ReachedSet reachedSet, ARTElement artElement, Precision newPrecision) {
     ARTReachedSet artReachSet = new ARTReachedSet(reachedSet);
+    boolean updateCacheNeeded = artElement.getParents().contains(reachedSet.getFirstElement());
     removeSubtree(artReachSet, artElement, newPrecision);
+    return updateCacheNeeded;
   }
 
   private static void removeSubtree(ARTReachedSet reachedSet, ARTElement artElement) {
