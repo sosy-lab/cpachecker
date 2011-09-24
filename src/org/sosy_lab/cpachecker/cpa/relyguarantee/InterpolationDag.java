@@ -1,0 +1,397 @@
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2011  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
+package org.sosy_lab.cpachecker.cpa.relyguarantee;
+
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Vector;
+
+import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+
+/**
+ * Directed acyclic graph representing ART and env. transitions.
+ */
+public class InterpolationDag {
+
+  private final List<InterpolationDagNode> roots;
+  private final Map<Pair<Integer, Integer>, InterpolationDagNode> nodeMap;
+
+  /**
+   * Makes a deep copy of the DAG.
+   * @param oldDag
+   */
+  public InterpolationDag(InterpolationDag oldDag){
+    this.roots = new Vector<InterpolationDagNode>(oldDag.roots.size());
+    this.nodeMap = new HashMap<Pair<Integer, Integer>, InterpolationDagNode>();
+
+    Deque<InterpolationDagNode> toProcess = new LinkedList<InterpolationDagNode>();
+
+    // copy roots
+    for (InterpolationDagNode oldRoot : oldDag.roots){
+      InterpolationDagNode newRoot = new InterpolationDagNode(oldRoot);
+      this.roots.add(newRoot);
+      this.nodeMap.put(Pair.of(oldRoot.tid, oldRoot.artElement.getElementId()), newRoot);
+
+      for (InterpolationDagNode oldChild : oldRoot.children){
+        if (!toProcess.contains(oldChild)){
+          toProcess.addLast(oldChild);
+        }
+      }
+    }
+
+    while(!toProcess.isEmpty()){
+      InterpolationDagNode oldNode = toProcess.poll();
+      InterpolationDagNode newNode = new InterpolationDagNode(oldNode);
+
+      for (InterpolationDagNode oldParent : oldNode.getParents()){
+        InterpolationDagNode newParent = this.nodeMap.get(Pair.of(oldParent.tid, oldParent.artElement.getElementId()));
+        assert newParent != null;
+        newParent.children.add(newNode);
+        newNode.parents.add(newParent);
+      }
+
+      this.nodeMap.put(Pair.of(newNode.tid, newNode.artElement.getElementId()), newNode);
+
+      for (InterpolationDagNode child : oldNode.children){
+       // if (!this.nodeMap.containsKey(Pair.of(child.tid, child.artElement.getElementId()))){
+          boolean parentsDone = true;
+          for (InterpolationDagNode parent : child.getParents()){
+            if (!this.nodeMap.containsKey(Pair.of(parent.tid, parent.artElement.getElementId()))){
+              parentsDone = false;
+              break;
+            }
+          }
+          if (parentsDone){
+            toProcess.addLast(child);
+          }
+
+        //}
+      }
+    }
+
+    assert dagAssertions();
+  }
+
+  public InterpolationDag(){
+    this.roots = new Vector<InterpolationDagNode>();
+    this.nodeMap = new HashMap<Pair<Integer, Integer>, InterpolationDagNode>();
+  }
+
+  public InterpolationDag(List<InterpolationDagNode> roots){
+    this.roots = roots;
+    this.nodeMap = new HashMap<Pair<Integer, Integer>, InterpolationDagNode>();
+    this.getDagFromRoots(roots);
+  }
+
+  public void getDagFromRoots(List<InterpolationDagNode> roots){
+    Deque<InterpolationDagNode> toProcess = new LinkedList<InterpolationDagNode>();
+    toProcess.addAll(roots);
+
+    while (!toProcess.isEmpty()){
+      InterpolationDagNode node = toProcess.poll();
+      nodeMap.put(Pair.of(node.getTid(), node.getArtElement().getElementId()), node);
+      toProcess.addAll(node.getChildren());
+    }
+  }
+
+  /**
+   * Returns a path from the root to the target element.
+   * The path goes only through the thread of the target.
+   * @param target
+   * @return
+   */
+  public List<Pair<Integer, Integer>> getModularPathToNode(InterpolationDagNode target){
+    assert nodeMap.containsValue(target);
+
+    List<Pair<Integer, Integer>> path = new Vector<Pair<Integer, Integer>>();
+    InterpolationDagNode toProcess = target;
+    int tid = target.getTid();
+
+    while(toProcess != null){
+      InterpolationDagNode node = toProcess;
+      toProcess = null;
+      path.add(0, Pair.of(node.tid, node.artElement.getElementId()));
+      for (InterpolationDagNode parent : node.getParents()){
+        if (parent.getTid() == tid){
+          toProcess = parent;
+          break;
+        }
+      }
+    }
+
+    return path;
+  }
+
+  /**
+   * In the threadremoves all nodes that are not in the collection.
+   * @param retain
+   * @return
+   */
+  public void retainNodesInThread(Collection<Pair<Integer, Integer>> retain, int tid){
+
+    Deque<InterpolationDagNode> toProcess = new LinkedList<InterpolationDagNode>();
+    for (InterpolationDagNode root : roots){
+      if (root.getTid() == tid){
+        toProcess.add(root);
+      }
+    }
+
+    while(!toProcess.isEmpty()){
+      InterpolationDagNode node = toProcess.poll();
+
+      for (InterpolationDagNode child : node.getChildren()){
+        if (child.getTid() == tid){
+          toProcess.addLast(child);
+        }
+      }
+
+      if (!retain.contains(Pair.of(node.tid, node.artElement.getElementId()))){
+        removeNode(node);
+      }
+    }
+
+    assert dagAssertions();
+  }
+
+  /**
+   * Removes a non-root node from the DAG.
+   * @param node
+   */
+  public void removeNode(InterpolationDagNode node){
+    assert nodeMap.containsValue(node);
+
+    if (roots.contains(node)){
+      roots.remove(node);
+    }
+
+    for (InterpolationDagNode parent : node.getParents()){
+      boolean succ = parent.getChildren().remove(node);
+      assert succ;
+    }
+
+    for (InterpolationDagNode child : node.getChildren()){
+      boolean succ = child.getParents().remove(node);
+      if (!succ){
+        System.out.println();
+      }
+      assert succ;
+      if (child.getParents().isEmpty()){
+        roots.add(child);
+      }
+    }
+
+    nodeMap.remove(Pair.of(node.getTid(), node.getArtElement().getElementId()));
+  }
+
+  public List<InterpolationDagNode> getRoots() {
+    return roots;
+  }
+
+  public  Map<Pair<Integer, Integer>, InterpolationDagNode> getNodeMap() {
+    return nodeMap;
+  }
+
+  public InterpolationDagNode getNode(Integer tid, Integer elementId){
+    return nodeMap.get(Pair.of(tid, elementId));
+  }
+
+  /**
+   * Writes a DOT file for DAG representation of ARTs and environmental transitions.
+   */
+  public void writeToDOT(String file) {
+    FileWriter fstream;
+    try {
+      fstream = new FileWriter(file);
+      BufferedWriter out = new BufferedWriter(fstream);;
+      String s = DOTDagBuilder.generateDOT(roots);
+      out.write(s);
+      out.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
+  /**
+   * Get a list of branches (lists of nodes keys) in the thread tid.
+   * @param tid
+   * @return
+   */
+  public List<List<Pair<Integer, Integer>>> getBranchesInThread(int tid) {
+
+    InterpolationDagNode root = null;
+
+    // search starting from every root in thread tid
+    for (InterpolationDagNode node : roots){
+      if (node.getTid() == tid){
+        root = node;
+        break;
+      }
+    }
+    assert root != null;
+
+    List<Pair<Integer, Integer>> path = new Vector<Pair<Integer, Integer>>();
+    List<List<Pair<Integer, Integer>>>  branches = dfsAddBranch(root, path);
+
+    return branches;
+  }
+
+  private List<List<Pair<Integer, Integer>>> dfsAddBranch(InterpolationDagNode node, List<Pair<Integer, Integer>> path){
+    path.add(Pair.of(node.tid, node.artElement.getElementId()));
+
+    List<List<Pair<Integer, Integer>>> branches = new Vector<List<Pair<Integer, Integer>>>();
+
+    boolean hasChildren = false;
+    for (InterpolationDagNode child : node.getChildren()){
+      if (child.getTid() == node.getTid()){
+        branches.addAll(dfsAddBranch(child, path));
+        hasChildren = true;
+      }
+    }
+
+    if (!hasChildren){
+      /*System.out.print("Added branch: ");
+      for (InterpolationDagNode bn : path){
+        System.out.println(bn.getArtElement().getElementId()+" ");
+      }*/
+      System.out.println();
+      List<Pair<Integer, Integer>> branch = new Vector<Pair<Integer, Integer>>(path);
+      branches.add(branch);
+    }
+
+    path.remove(path.size()-1);
+
+    return branches;
+
+  }
+
+  /**
+   * Replaces a node with a new one with the given path formula. Returns the new node.
+   * @param node
+   * @param newPf
+   */
+  public InterpolationDagNode replacePathFormulaInNode(InterpolationDagNode node, PathFormula newPf) {
+    assert nodeMap.values().contains(node);
+    InterpolationDagNode newNode = new InterpolationDagNode(newPf, node.traceNo, node.artElement, node.children, node.parents, node.tid);
+
+    for (InterpolationDagNode parent : node.parents){
+      boolean succ = parent.children.remove(node);
+      assert succ;
+      parent.children.add(newNode);
+    }
+
+    for (InterpolationDagNode child : node.children){
+      boolean succ = child.parents.remove(node);
+      assert succ;
+      child.parents.add(newNode);
+    }
+
+    boolean succ = roots.remove(node);
+    if (succ){
+      roots.add(newNode);
+    }
+
+    Pair<Integer, Integer> key = null;
+    for (Pair<Integer, Integer> pair: nodeMap.keySet()){
+      if (nodeMap.get(pair) == node){
+        key = pair;
+        break;
+      }
+    }
+    assert key != null;
+    nodeMap.put(key, newNode);
+    // TODO remove
+    dagAssertions();
+
+    return newNode;
+  }
+
+
+  /**
+   * Check the correctness of the DAG.
+   * @param roots
+   */
+  public boolean dagAssertions(){
+
+    for (InterpolationDagNode root : roots){
+      if (!root.children.isEmpty()){
+        return false;
+      }
+    }
+
+    return dagAssertions(roots);
+  }
+
+
+  private boolean dagAssertions(List<InterpolationDagNode> nodes){
+    for (InterpolationDagNode node : nodes){
+
+      if (!nodeMap.containsValue(node)){
+        return false;
+      }
+
+      for (InterpolationDagNode child : node.getChildren()){
+        if (!child.getParents().contains(node)){
+          System.out.println();
+        }
+         if(!child.getParents().contains(node)){
+           return false;
+         }
+      }
+
+      return dagAssertions(node.getChildren());
+    }
+    return true;
+  }
+
+  class InterpolationDagNodeKey{
+
+    protected final Pair<Integer, Integer> key;
+
+    public InterpolationDagNodeKey(Integer tid, Integer artElementId){
+      this.key = Pair.of(tid, artElementId);
+    }
+
+    public Pair<Integer, Integer> getKey() {
+      return key;
+    }
+
+    public Integer getTid(){
+      return key.getFirst();
+    }
+
+    public Integer getARTElementId(){
+      return key.getSecond();
+    }
+
+  }
+
+}

@@ -239,5 +239,11 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
 
+  @Override
+  public PathFormula makePrimedEqualities(PathFormula pPf, int pI) {
+    return delegate.makePrimedEqualities(pPf, pI);
+  }
+
+
 
 }

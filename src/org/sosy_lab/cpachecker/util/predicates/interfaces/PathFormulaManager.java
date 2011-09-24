@@ -97,5 +97,14 @@ public interface PathFormulaManager {
    */
   PathFormula removePrimed(PathFormula pathFormula, Set<Integer> primedNo);
 
+  /**
+   * Make conjunction of equalities v@x <-> v'@x, where x>0 is the last index of
+   * an unprimed variable  v in the path formula and v' is v primed i times.
+   * @param pf
+   * @param i
+   * @return
+   */
+  PathFormula makePrimedEqualities(PathFormula pf, int i);
+
 
 }

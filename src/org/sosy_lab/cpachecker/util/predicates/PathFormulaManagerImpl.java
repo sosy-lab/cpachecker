@@ -608,7 +608,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
     // remove primed entries from the SSA map
     SSAMap ssa = pf.getSsa();
-   /* SSAMapBuilder ssaBldr = SSAMap.emptySSAMap().builder();
+    /* SSAMapBuilder ssaBldr = SSAMap.emptySSAMap().builder();
     for (String var : ssa.allVariables()){
       Integer pn = PathFormula.getPrimeData(var).getSecond();
       if (!primesToRemove.contains(pn)){
@@ -618,6 +618,33 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
     // TODO returning the same primed no is safe but imprecise
     return new PathFormula(reducedF, ssa, pf.getLength(), pf.getPrimedNo());
+  }
+
+  @Override
+  public PathFormula makePrimedEqualities(PathFormula af, int i) {
+
+    Formula alleq = fmgr.makeTrue();
+    SSAMap ssa = af.getSsa();
+    SSAMapBuilder newssa = ssa.builder();
+
+    for (String varName : ssa.allVariables()){
+      Pair<String, Integer> data = PathFormula.getPrimeData(varName);
+      if (data.getSecond() == 0){
+        Integer idx     = ssa.getIndex(varName);
+        assert idx > 0;
+        Formula uf  = fmgr.makeVariable(data.getFirst(), idx);
+        String pVar = data.getFirst()+PathFormula.PRIME_SYMBOL+i;
+        Formula pf  = fmgr.makeVariable(pVar, idx);
+        Formula eq  = fmgr.makeEqual(uf, pf);
+        alleq       = fmgr.makeAnd(alleq, eq);
+
+        if (newssa.getIndex(pVar) < idx){
+          newssa.setIndex(pVar, idx);
+        }
+      }
+    }
+
+    return new PathFormula (alleq, newssa.build(), af.getLength());
   }
 
 }

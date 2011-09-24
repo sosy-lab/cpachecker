@@ -278,9 +278,9 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
       RelyGuaranteeCFAEdge rgEdge = edge.getEnvEdges().get(i);
       PathFormula envPF = rgEdge.getPathFormula();
       // prime the env. path formula so it does not collide with the local path formula
-      PathFormula primedEnvPF = pathFormulaManager.primePathFormula(envPF, (2*i)+1, localPF.getSsa());
+      PathFormula primedEnvPF = pathFormulaManager.primePathFormula(envPF, 2*i+1, localPF.getSsa());
       // make equalities between the last global values in the local and env. path formula
-      PathFormula matchedPF = pathFormulaManager.matchPaths(localPF, primedEnvPF, cpa.globalVariablesSet, (2*i)+1);
+      PathFormula matchedPF = pathFormulaManager.matchPaths(localPF, primedEnvPF, cpa.globalVariablesSet, 2*i+1);
 
       if (DAGRefinement){
         pathFormulaManager.inject(rgEdge.getLocalEdge(), cpa.globalVariablesSet, 2*i+1, cpa.getThreadId(), primedEnvPF.getSsa());
@@ -305,6 +305,9 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
 
     return combinedPF;
   }
+
+
+
 
   /**
    * Check whether an abstraction should be computed.

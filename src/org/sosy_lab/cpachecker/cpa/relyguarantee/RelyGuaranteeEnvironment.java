@@ -62,7 +62,6 @@ import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
@@ -231,9 +230,9 @@ public class RelyGuaranteeEnvironment {
   }
 
   /**
-   * Convert environmental transitions from thread i to CFA edges.
+   * Convert environmental transitions from thread i into relevant CFA edges.
    * Remove edges that are useless, have been applied before or are covered.
-   * @param i   thread that generated the transitions
+   * @param i   thread that generate the transitions
    */
   public void processEnvTransitions(int i) {
     processStats = new RelyGuaranteeEnvironmentProcessStatistics();
@@ -245,51 +244,17 @@ public class RelyGuaranteeEnvironment {
     Vector<RelyGuaranteeCFAEdgeTemplate> rgEdges = new Vector<RelyGuaranteeCFAEdgeTemplate>();
     for (RelyGuaranteeEnvironmentalTransition  et: unprocessedTransitions){
       //assert envTransProcessedBeforeFromThread[i].containsValue(et);
-      PathFormula abstractionPf = et.getAbstractionPathFormula();
+      int tid = et.getSourceThread();
+      PathFormula af = et.getAbstractionPathFormula();
       PathFormula pf = et.getPathFormula();
+      PathFormula newPF = pfManager.makeAnd(af, pf);
+      PathFormula eq = pfManager.makePrimedEqualities(af, 1);
+      newPF = pfManager.makeAnd(newPF, eq);
+      // make equalities before last indexes in af and the same variables primes 2*tid+1 times
 
-      // TODO put in pathformula manager
-      SSAMapBuilder ssaBuilder = SSAMap.emptySSAMap().builder();
-      // formula with equalities
-      Formula eq  = fManager.makeTrue();
-      // remove index for primed variables
-      for (String var : pf.getSsa().allVariables()){
-        Pair<String, Integer> data = PathFormula.getPrimeData(var);
-        if (data.getSecond() == 0){
-          ssaBuilder.setIndex(var, pf.getSsa().getIndex(var));
-        }
-      }
 
-      System.out.println("DEBUG: "+ssaBuilder.build());
-
-      // get the equalities
-      for (String pVarName : abstractionPf.getSsa().allVariables()){
-        Pair<String, Integer> data = PathFormula.getPrimeData(pVarName);
-        if (data.getSecond() == 0){
-          Integer pidx     = abstractionPf.getSsa().getIndex(pVarName);
-          assert pidx > 0;
-          Integer idx     = pf.getSsa().getIndex(data.getFirst());
-          idx = idx > 0 ? idx : 1;
-          String  varName = data.getFirst()+"^1";
-          Formula pVar    = fManager.makeVariable(pVarName, pidx);
-          Formula var     = fManager.makeVariable(varName, pidx);
-          Formula newEq   = fManager.makeEqual(pVar, var);
-          eq              = fManager.makeAnd(eq, newEq);
-
-          assert ssaBuilder.getIndex(varName) == -1;
-          ssaBuilder.setIndex(varName, pidx);
-
-        }
-      }
-
-      System.out.println("DEBUG: "+ssaBuilder.build());
-      PathFormula eqPf  = new PathFormula(eq, ssaBuilder.build(), 1);
-
-      PathFormula newPf = pfManager.makeAnd(abstractionPf, eqPf);
-      newPf = pfManager.makeAnd(newPf, pf);
-      newPf = new PathFormula(newPf.getFormula(), ssaBuilder.build(), newPf.getLength(), 1);
       //newPF = pfManager.normalize(newPF);
-      RelyGuaranteeCFAEdgeTemplate rgEdge = new RelyGuaranteeCFAEdgeTemplate(et.getEdge(), newPf, et.getSourceThread(), et.getSourceARTElement(), et);
+      RelyGuaranteeCFAEdgeTemplate rgEdge = new RelyGuaranteeCFAEdgeTemplate(et.getEdge(), newPF, et.getSourceThread(), et.getSourceARTElement(), et);
       rgEdges.add(rgEdge);
     }
     unprocessedTransitions.clear();
@@ -401,7 +366,7 @@ public class RelyGuaranteeEnvironment {
       System.out.println(string);
     }
     for (RelyGuaranteeCFAEdgeTemplate edge : rgEdges){
-      System.out.println("\t-"+edge+" "+edge.getPathFormula().getSsa());
+      System.out.println("\t-"+edge);
     }
   }
 
@@ -443,7 +408,7 @@ public class RelyGuaranteeEnvironment {
 
 
     for (RelyGuaranteeEnvironmentalTransition  et: unprocessedTransitions){
-      Formula f = et.getAbstractionPathFormula().getFormula();
+      Formula f = et.getPathFormula().getFormula();
       PathFormula pf = et.getPathFormula();
       CFAEdge localEdge = et.getEdge();
       // don't generate transition with 'false' or transitions that assign to local variables

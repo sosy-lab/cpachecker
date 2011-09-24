@@ -43,7 +43,8 @@ class InterpolationBlock {
   protected final Deque<Integer> context;
   // ART element, where the path formula was abstracted
   protected final ARTElement artElement;
-  protected PathFormula pathFormula;
+  // TODO make pathFormula final
+  protected final PathFormula pathFormula;
 
   public InterpolationBlock(PathFormula pf, int primedNo, ARTElement artElement, Deque<Integer> context){
     //assert context != null;
@@ -71,13 +72,6 @@ class InterpolationBlock {
   public PathFormula getPathFormula() {
     return pathFormula;
   }
-
-  public void setPathFormula(PathFormula pPathFormula) {
-    pathFormula = pPathFormula;
-  }
-
-
-
 
   @Override
   public String toString(){

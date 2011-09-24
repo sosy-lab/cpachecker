@@ -36,6 +36,7 @@ public class DOTDagBuilder {
   private static String tLabel     = "T";
   private static String[] tColors  = {"white", "lightgrey", "blue"};
   private static String envColor   = "chocolate";
+  private static String errorColor = "red";
 
 
   public static String generateDOT(List<InterpolationDagNode> roots){
@@ -99,6 +100,13 @@ public class DOTDagBuilder {
 
     while(!queue.isEmpty()){
       InterpolationDagNode node = queue.removeFirst();
+
+      if (node.getChildren().isEmpty()){
+        sb.append("\t");
+        sb.append(generateARTElement(node.getArtElement()));
+        sb.append(" [fillcolor="+errorColor+"];\n");
+      }
+
       for (InterpolationDagNode child : node.getChildren()){
         if (child.getTid() == root.getTid()){
           sb.append("\t");

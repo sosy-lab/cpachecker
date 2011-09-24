@@ -35,13 +35,34 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
  */
 public class InterpolationDagNode extends InterpolationBlock{
 
-  private final List<InterpolationDagNode> children;
-  private final List<InterpolationDagNode> parents;
-  private final int tid;
-  private final List<PathFormula> envPathFormulas;
+  protected final List<InterpolationDagNode> children;
+  protected final List<InterpolationDagNode> parents;
+  protected final int tid;
+  // TODO remove
+  protected final List<PathFormula> envPathFormulas;
 
-  public InterpolationDagNode(PathFormula pf, int primedNo, ARTElement artElement, List<InterpolationDagNode> children, List<InterpolationDagNode> parents, int tid) {
-    super(pf, primedNo, artElement, null);
+  /**
+   * Deep copy of the node, except for children and parents.
+   * @param node
+   */
+  public InterpolationDagNode(InterpolationDagNode node){
+    super(node.pathFormula, node.traceNo, node.artElement, null);
+    this.children = new Vector<InterpolationDagNode>();
+    this.parents  = new Vector<InterpolationDagNode>();
+    this.tid      = node.tid;
+    this.envPathFormulas = new Vector<PathFormula>();
+  }
+
+  public InterpolationDagNode(PathFormula pf, int traceNo, ARTElement artElement, int tid){
+    super(pf, traceNo, artElement, null);
+    this.children = new Vector<InterpolationDagNode>();
+    this.parents  = new Vector<InterpolationDagNode>();
+    this.tid      = tid;
+    this.envPathFormulas = new Vector<PathFormula>();
+  }
+
+  public InterpolationDagNode(PathFormula pf, int traceNo, ARTElement artElement, List<InterpolationDagNode> children, List<InterpolationDagNode> parents, int tid) {
+    super(pf, traceNo, artElement, null);
     this.children = children;
     this.parents  = parents;
     this.tid      = tid;
@@ -59,7 +80,7 @@ public class InterpolationDagNode extends InterpolationBlock{
 
   public String toString() {
     RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(artElement, RelyGuaranteeAbstractElement.class);
-    return "InterpolationDagNode element thread:"+rgElement.getTid()+" id:"+artElement.getElementId()+", trace:"+traceNo;
+    return "InterpolationDagNode element thread:"+rgElement.getTid()+" id:"+artElement.getElementId()+", trace:"+traceNo+", "+this.hashCode();
   }
 
   public int getTid() {
