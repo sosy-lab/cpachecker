@@ -106,5 +106,15 @@ public interface PathFormulaManager {
    */
   PathFormula makePrimedEqualities(PathFormula pf, int i);
 
+  /**
+   * Builds unsatisfiable constraints for variables indexes that are between ssa and ssatop maps.
+   * Only variables primed tid times are considered.
+   * @param ssatop
+   * @param ssa
+   * @param tid
+   * @return
+   */
+  PathFormula makeUnsatisifiableConstraintsForRedundantIndexes(SSAMap ssatop, SSAMap ssa, int tid);
+
 
 }

@@ -330,7 +330,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
    * @throws InterruptedException
    * @throws CPAException
    */
-  public List<InterpolationDag> getDags(ReachedSet[] reachedSets, ARTElement errorElem, int tid ) throws InterruptedException, CPAException {
+  public List<InterpolationDag> getDags(ReachedSet[] reachedSets, ARTElement errorElem, int tid) throws InterruptedException, CPAException {
 
     List<InterpolationDag> dags = new Vector<InterpolationDag>();
 
@@ -345,6 +345,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     // get node on the path from the root to the error element
     InterpolationDagNode errorNode = mainDag.getNode(tid, errorElem.getElementId());
+
     List<Pair<Integer, Integer>> errorPath = mainDag.getModularPathToNode(errorNode);
 
     // remove all node for thread tid, that are not on the error path
@@ -358,18 +359,35 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     int otherTid = tid == 0 ? 1 : 0;
     List<List<Pair<Integer, Integer>>> branches = mainDag.getBranchesInThread(otherTid);
 
+ /*   // get the highest variable index by otherTid
+    SSAMapBuilder ssatopBldr = SSAMap.emptySSAMap().builder();
+    for (List<Pair<Integer, Integer>> branch : branches){
+      InterpolationDagNode lastNode = mainDag.getNode(branch.get(branch.size()-1));
+      SSAMap ssa = lastNode.getPathFormula().getSsa();
+      for (String variable : ssa.allVariables()){
+        Pair<String, Integer> data = PathFormula.getPrimeData(variable);
+        int idx = ssa.getIndex(variable);
+        if (idx > ssatopBldr.getIndex(variable) && data.getSecond() == otherTid){
+          ssatopBldr.setIndex(variable, idx);
+        }
+      }
+    }
+
+    SSAMap ssatop = ssatopBldr.build();*/
+
+
+
     for (int i=0; i<branches.size(); i++){
       List<Pair<Integer, Integer>> branch = branches.get(i);
       InterpolationDag dag = new InterpolationDag(mainDag);
-      dag.writeToDOT("test/output/debug"+i+".dot");
       dag.retainNodesInThread(branch, otherTid);
-      dag.writeToDOT("test/output/debug"+i+".dot");
       dags.add(dag);
     }
 
+
+
     return dags;
   }
-
 
 
   // Construct a DAG for the given element and return the roots of the DAG.
@@ -873,6 +891,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         }
       } else {
         info = new CounterexampleTraceInfo(false);
+        break;
       }
 
       i++;
@@ -892,9 +911,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       for (InterpolationDagNode node : topNodes){
         CFANode loc = AbstractElements.extractLocation(node.getArtElement());
         System.out.println("\t-id:"+node.getArtElement().getElementId()+" [t"+node.getTid()+", "+node.getTraceNo()+", "+loc+"]:\t"+node.getPathFormula());
-        if (!node.getEnvPathFormulas().isEmpty()){
-          System.out.println("\t "+node.getEnvPathFormulas());
-        }
         j++;
       }
     }
@@ -1025,9 +1041,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       int j=0;
       for (InterpolationDagNode node : topNodes){
         System.out.println("\t-id:"+node.getArtElement().getElementId()+" [t"+node.getTid()+", "+node.getTraceNo()+"]: "+node.getPathFormula());
-        if (!node.getEnvPathFormulas().isEmpty()){
-          System.out.println("\t "+node.getEnvPathFormulas());
-        }
         j++;
       }
     }
@@ -1322,13 +1335,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
           System.out.print(node.getArtElement().getElementId()+" ");
         }
         idx++;
-        // add env. formulas if it's not the target
-        if (node != target){
-          for (PathFormula envPF : node.getEnvPathFormulas()){
-            pcList.add(envPF.getFormula());
-            idx++;
-          }
-        }
 
         // process parents
         for (InterpolationDagNode parent : node.getParents()){
@@ -1346,10 +1352,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     toProcess.addAll(roots);
     Set<InterpolationDagNode> visitedAfter = new HashSet<InterpolationDagNode>();
 
-    // add the env. formulas of the target
-    for (PathFormula envPF : target.getEnvPathFormulas()){
-      pcList.add(envPF.getFormula());
-    }
 
     while(!toProcess.isEmpty()){
       InterpolationDagNode node = toProcess.poll();
@@ -1360,10 +1362,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
           pcList.add(node.getPathFormula().getFormula());
           if (print){
             System.out.print(node.getArtElement().getElementId()+" ");
-          }
-          for (PathFormula envPF : node.getEnvPathFormulas()){
-
-            pcList.add(envPF.getFormula());
           }
         }
 

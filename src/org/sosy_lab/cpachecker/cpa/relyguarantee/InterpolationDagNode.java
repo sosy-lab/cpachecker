@@ -38,8 +38,6 @@ public class InterpolationDagNode extends InterpolationBlock{
   protected final List<InterpolationDagNode> children;
   protected final List<InterpolationDagNode> parents;
   protected final int tid;
-  // TODO remove
-  protected final List<PathFormula> envPathFormulas;
 
   /**
    * Deep copy of the node, except for children and parents.
@@ -50,7 +48,6 @@ public class InterpolationDagNode extends InterpolationBlock{
     this.children = new Vector<InterpolationDagNode>();
     this.parents  = new Vector<InterpolationDagNode>();
     this.tid      = node.tid;
-    this.envPathFormulas = new Vector<PathFormula>();
   }
 
   public InterpolationDagNode(PathFormula pf, int traceNo, ARTElement artElement, int tid){
@@ -58,7 +55,6 @@ public class InterpolationDagNode extends InterpolationBlock{
     this.children = new Vector<InterpolationDagNode>();
     this.parents  = new Vector<InterpolationDagNode>();
     this.tid      = tid;
-    this.envPathFormulas = new Vector<PathFormula>();
   }
 
   public InterpolationDagNode(PathFormula pf, int traceNo, ARTElement artElement, List<InterpolationDagNode> children, List<InterpolationDagNode> parents, int tid) {
@@ -66,7 +62,6 @@ public class InterpolationDagNode extends InterpolationBlock{
     this.children = children;
     this.parents  = parents;
     this.tid      = tid;
-    this.envPathFormulas = new Vector<PathFormula>();
   }
 
   public List<InterpolationDagNode> getChildren() {
@@ -85,11 +80,6 @@ public class InterpolationDagNode extends InterpolationBlock{
 
   public int getTid() {
     return tid;
-  }
-
-  // TODO remove
-  public List<PathFormula> getEnvPathFormulas() {
-    return envPathFormulas;
   }
 
 }

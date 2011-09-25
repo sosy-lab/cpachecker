@@ -647,4 +647,29 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     return new PathFormula (alleq, newssa.build(), af.getLength());
   }
 
+  @Override
+  public PathFormula makeUnsatisifiableConstraintsForRedundantIndexes(SSAMap ssatop, SSAMap ssa, int tid) {
+    Formula all = fmgr.makeTrue();
+    Formula f0  = fmgr.makeNumber(0);
+    Formula f1  = fmgr.makeNumber(1);
+    for (String var : ssatop.allVariables()){
+      Pair<String, Integer> data = PathFormula.getPrimeData(var);
+      if (data.getSecond() == tid){
+        int topIdx = ssatop.getIndex(var);
+        int idx     = ssa.getIndex(var);
+        idx         = idx < 1 ? 1 : idx;
+        // make unstafiable constraint: v@x=1 & v@x=0
+        for (int i=idx+1; i <= topIdx; i++){
+         Formula fv   = fmgr.makeVariable(var, i);
+         Formula fv0  = fmgr.makeEqual(fv, f0);
+         Formula fv1  = fmgr.makeEqual(fv, f1);
+         all          = fmgr.makeAnd(all, fv0);
+         all          = fmgr.makeAnd(all, fv1);
+        }
+      }
+    }
+
+    return new PathFormula(all, ssatop, 0);
+  }
+
 }

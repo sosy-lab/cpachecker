@@ -224,6 +224,10 @@ public class InterpolationDag {
     return nodeMap.get(Pair.of(tid, elementId));
   }
 
+  public InterpolationDagNode getNode(Pair<Integer, Integer> key){
+    return nodeMap.get(key);
+  }
+
   /**
    * Writes a DOT file for DAG representation of ARTs and environmental transitions.
    */
@@ -342,7 +346,7 @@ public class InterpolationDag {
   public boolean dagAssertions(){
 
     for (InterpolationDagNode root : roots){
-      if (!root.children.isEmpty()){
+      if (!root.parents.isEmpty()){
         return false;
       }
     }
@@ -392,6 +396,28 @@ public class InterpolationDag {
       return key.getSecond();
     }
 
+  }
+
+  /**
+   * Make n1 parent of n2. n2 should be in the DAG.
+   * @param parent
+   * @param child
+   */
+  public void makeParentOf(InterpolationDagNode n1, InterpolationDagNode n2) {
+    assert !n1.children.contains(n2);
+    assert !n2.parents.contains(n1);
+    assert nodeMap.containsValue(n2);
+    n1.children.add(n2);
+    n2.parents.add(n1);
+
+    if (!nodeMap.containsKey(Pair.of(n1.tid, n1.artElement.getElementId()))){
+      nodeMap.put(Pair.of(n1.tid, n1.artElement.getElementId()), n1);
+    }
+
+    if (roots.contains(n2)){
+      roots.remove(n2);
+      roots.add(n1);
+    }
   }
 
 }

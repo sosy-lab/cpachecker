@@ -245,5 +245,11 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
 
+  @Override
+  public PathFormula makeUnsatisifiableConstraintsForRedundantIndexes(SSAMap pSsatop, SSAMap pSsa, int pOtherTid) {
+    return delegate.makeUnsatisifiableConstraintsForRedundantIndexes(pSsatop, pSsa, pOtherTid);
+  }
+
+
 
 }
