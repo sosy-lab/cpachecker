@@ -152,7 +152,13 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     return reducer;
   }
 
-  public BlockPartitioning getBlockPartitioning() {
+  @Override
+  protected ConfigurableProgramAnalysis getWrappedCpa() {
+    // override for visibility
+    return super.getWrappedCpa();
+  }
+
+  BlockPartitioning getBlockPartitioning() {
     checkState(blockPartitioning != null);
     return blockPartitioning;
   }

@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
-public class ABMARTUtils {
+class ABMARTUtils {
   private ABMARTUtils() {}
 
   public static Multimap<Block, ReachedSet> gatherReachedSets(ABMCPA cpa, ReachedSet finalReachedSet) {

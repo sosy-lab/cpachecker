@@ -68,7 +68,7 @@ public abstract class AbstractSingleWrapperCPA implements ConfigurableProgramAna
     wrappedCpa = pCpa;
   }
 
-  public ConfigurableProgramAnalysis getWrappedCpa() {
+  protected ConfigurableProgramAnalysis getWrappedCpa() {
     return wrappedCpa;
   }
 
