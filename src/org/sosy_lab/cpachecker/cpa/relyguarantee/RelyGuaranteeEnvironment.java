@@ -88,6 +88,8 @@ public class RelyGuaranteeEnvironment {
   @Option(description="List of variables global to multiple threads")
   protected String[] globalVariables = {};
 
+  private int uniquePrime;
+
 
   /**
    * Statiscs about processing env transitions transitions.
@@ -179,6 +181,7 @@ public class RelyGuaranteeEnvironment {
     }
 
     this.threadNo = threadNo;
+    this.uniquePrime = threadNo;
     unprocessedTransitions = new Vector<RelyGuaranteeEnvironmentalTransition>();
     //envTransProcessedBeforeFromThread = new Multimap[threadNo];
     validEnvEdgesFromThread = new Vector[threadNo];
@@ -245,19 +248,17 @@ public class RelyGuaranteeEnvironment {
     for (RelyGuaranteeEnvironmentalTransition  et: unprocessedTransitions){
       //assert envTransProcessedBeforeFromThread[i].containsValue(et);
 
-      // clean ssa map from primed variables
-
       int tid = et.getSourceThread();
-      Formula af = et.getAbstractionPathFormula().getFormula();
-      PathFormula pf = et.getPathFormula();
-      PathFormula newPF = pfManager.makeAnd(pf, af);
-      PathFormula eq = pfManager.makePrimedEqualities(et.getAbstractionPathFormula(), 1);
-      newPF = pfManager.makeAnd(newPF, eq);
-      // make equalities before last indexes in af and the same variables primes 2*tid+1 times
-
+      PathFormula af = pfManager.primePathFormula(et.getAbstractionPathFormula(), uniquePrime);
+      PathFormula pf = pfManager.primePathFormula(et.getPathFormula(), uniquePrime);
+      // TODO clean up ssa map in a nicer way.
+      PathFormula newPf = new PathFormula(fManager.makeAnd(af.getFormula(), pf.getFormula()), pf.getSsa(), pf.getLength(), uniquePrime);
+      PathFormula eq = pfManager.makePrimedEqualities(af, uniquePrime, tid);
+      newPf = pfManager.makeAnd(newPf, eq);
 
       //newPF = pfManager.normalize(newPF);
-      RelyGuaranteeCFAEdgeTemplate rgEdge = new RelyGuaranteeCFAEdgeTemplate(et.getEdge(), newPF, et.getSourceThread(), et.getSourceARTElement(), et);
+      RelyGuaranteeCFAEdgeTemplate rgEdge = new RelyGuaranteeCFAEdgeTemplate(et.getEdge(), newPf, et.getSourceThread(), et.getSourceARTElement(), et, uniquePrime);
+      uniquePrime++;
       rgEdges.add(rgEdge);
     }
     unprocessedTransitions.clear();

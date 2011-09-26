@@ -111,7 +111,7 @@ public class PathFormula {
 
   /**
    * Returns unprimed variable name and the primed no. If the variable is
-   * not primed, then the primed no is 0. Works only on uninstantiated variables.
+   * not primed, then the primed no is null. Works only on uninstantiated variables.
    * @param pFirst
    * @return (unprimed variable name, primed no)
    */
@@ -124,7 +124,7 @@ public class PathFormula {
       String currentPrimeStr = m.group(2);
       currentPrime = Integer.parseInt(currentPrimeStr);
     } else {
-      currentPrime = 0;
+      currentPrime = null;
       bareName = pFirst;
     }
 
@@ -156,6 +156,7 @@ public class PathFormula {
   public static String primeVariable(String pFirst, int pHowManyPrimes) {
     // get the current number of primes
     Pair<String, Integer> data = getPrimeData(pFirst);
-    return data.getFirst()+PRIME_SYMBOL+(data.getSecond()+pHowManyPrimes);
+    Integer currentPrimed = data.getSecond() == null ? 0 : data.getSecond();
+    return data.getFirst()+PRIME_SYMBOL+(currentPrimed+pHowManyPrimes);
   }
 }

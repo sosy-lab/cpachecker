@@ -98,13 +98,14 @@ public interface PathFormulaManager {
   PathFormula removePrimed(PathFormula pathFormula, Set<Integer> primedNo);
 
   /**
-   * Make conjunction of equalities v@x <-> v'@x, where x>0 is the last index of
-   * an unprimed variable  v in the path formula and v' is v primed i times.
+   * Makes conjunction of equalities v^i@x <-> v^j@x, where x>0 is the last index of
+   * variable v^i in the path formula and v^j is v primed j times.
    * @param pf
    * @param i
+   * @param pUniquePrime
    * @return
    */
-  PathFormula makePrimedEqualities(PathFormula pf, int i);
+  PathFormula makePrimedEqualities(PathFormula pf, int i, int j);
 
   /**
    * Builds unsatisfiable constraints for variables indexes that are between ssa and ssatop maps.
@@ -115,6 +116,16 @@ public interface PathFormulaManager {
    * @return
    */
   PathFormula makeUnsatisifiableConstraintsForRedundantIndexes(SSAMap ssatop, SSAMap ssa, int tid);
+
+  /**
+   * Makes conjunction of equalities v^i@x <-> v^j@y, where x>0 is the last index of
+   *  variable v^i in the pf1 and y>0 is the last index of v^j in pf2.
+   * @param pf
+   * @param i
+   * @param pUniquePrime
+   * @return
+   */
+  PathFormula makePrimedEqualities(PathFormula pf1, int i, PathFormula pf2, int j);
 
 
 }

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -90,21 +91,16 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
   public PathFormula makeEmptyPathFormula(PathFormula oldFormula, int tid) {
     //
     int otherTid = 0;
+    SSAMap oldssa = oldFormula.getSsa();
     SSAMapBuilder cleanMap = SSAMap.emptySSAMap().builder();
-    for(String var : oldFormula.getSsa().allVariables()){
-      if (tid==0){
-        otherTid = 1;
-      }
-      else {
-        otherTid = 0;
-      }
-      if(!var.contains("_"+otherTid)) {
-        cleanMap.setIndex(var, oldFormula.getSsa().getIndex(var));
-      }
 
+    for (String var : oldssa.allVariables()){
+      Pair<String, Integer> data = PathFormula.getPrimeData(var);
+      if (data.getSecond() == tid){
+        cleanMap.setIndex(var, oldssa.getIndex(var));
+      }
     }
-
-    return new PathFormula(fmgr.makeTrue(), cleanMap.build(), 0, 0);
+    return new PathFormula(fmgr.makeTrue(), cleanMap.build(), 0, tid);
   }
 
   @Override
@@ -621,25 +617,26 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
   }
 
   @Override
-  public PathFormula makePrimedEqualities(PathFormula af, int i) {
+  public PathFormula makePrimedEqualities(PathFormula af, int i, int j) {
 
     Formula alleq = fmgr.makeTrue();
     SSAMap ssa = af.getSsa();
     SSAMapBuilder newssa = SSAMap.emptySSAMap().builder();
 
-    for (String varName : ssa.allVariables()){
-      Pair<String, Integer> data = PathFormula.getPrimeData(varName);
-      if (data.getSecond() == 0){
-        Integer idx     = ssa.getIndex(varName);
+    for (String var : ssa.allVariables()){
+      Pair<String, Integer> data = PathFormula.getPrimeData(var);
+      if (data.getSecond() == i){
+        Integer idx     = ssa.getIndex(var);
         assert idx > 0;
-        Formula uf  = fmgr.makeVariable(data.getFirst(), idx);
-        String pVar = data.getFirst()+PathFormula.PRIME_SYMBOL+i;
+        Formula uf  = fmgr.makeVariable(var, idx);
+        String pVar = data.getFirst()+PathFormula.PRIME_SYMBOL+j;
         Formula pf  = fmgr.makeVariable(pVar, idx);
         Formula eq  = fmgr.makeEqual(uf, pf);
         alleq       = fmgr.makeAnd(alleq, eq);
 
+        newssa.setIndex(var, idx);
         newssa.setIndex(pVar, idx);
-        newssa.setIndex(varName, idx);
+
       }
     }
 
@@ -647,28 +644,72 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
   }
 
   @Override
-  public PathFormula makeUnsatisifiableConstraintsForRedundantIndexes(SSAMap ssatop, SSAMap ssa, int tid) {
-    Formula all = fmgr.makeTrue();
-    Formula f0  = fmgr.makeNumber(0);
-    Formula f1  = fmgr.makeNumber(1);
-    for (String var : ssatop.allVariables()){
+  public PathFormula makePrimedEqualities(PathFormula pf1, int i, PathFormula pf2, int j) {
+
+    Set<String> allUnprimedVars = new HashSet<String>();
+
+    for (String var : pf1.getSsa().allVariables()){
       Pair<String, Integer> data = PathFormula.getPrimeData(var);
-      if (data.getSecond() == tid){
-        int topIdx = ssatop.getIndex(var);
-        int idx     = ssa.getIndex(var);
-        idx         = idx < 1 ? 1 : idx;
-        // make unstafiable constraint: v@x=1 & v@x=0
-        for (int i=idx+1; i <= topIdx; i++){
-         Formula fv   = fmgr.makeVariable(var, i);
-         Formula fv0  = fmgr.makeEqual(fv, f0);
-         Formula fv1  = fmgr.makeEqual(fv, f1);
-         all          = fmgr.makeAnd(all, fv0);
-         all          = fmgr.makeAnd(all, fv1);
-        }
-      }
+      allUnprimedVars.add(data.getFirst());
     }
 
-    return new PathFormula(all, ssatop, 0);
+    for (String var : pf2.getSsa().allVariables()){
+      Pair<String, Integer> data = PathFormula.getPrimeData(var);
+      allUnprimedVars.add(data.getFirst());
+    }
+
+    Formula alleq = fmgr.makeTrue();
+    SSAMap ssa = pf1.getSsa();
+    SSAMapBuilder newssa = SSAMap.emptySSAMap().builder();
+
+    for (String var : allUnprimedVars){
+      String var1 = var+PathFormula.PRIME_SYMBOL+i;
+      int idx1    = pf1.getSsa().getIndex(var1);
+      idx1        = idx1 > 0 ? idx1 : 1;
+
+      String var2 = var+PathFormula.PRIME_SYMBOL+j;
+      int idx2    = pf2.getSsa().getIndex(var2);
+      idx2        = idx2 > 0 ? idx2 : 1;
+
+      Formula fv1   = fmgr.makeVariable(var1, idx1);
+      Formula fv2   = fmgr.makeVariable(var2, idx2);
+      Formula feq   = fmgr.makeEqual(fv1, fv2);
+      alleq         = fmgr.makeAnd(alleq, feq);
+
+
+      newssa.setIndex(var1, idx1);
+      newssa.setIndex(var2, idx2);
+    }
+
+  return new PathFormula (alleq, newssa.build(), 0, Math.max(i, j));
+}
+
+
+@Override
+public PathFormula makeUnsatisifiableConstraintsForRedundantIndexes(SSAMap ssatop, SSAMap ssa, int tid) {
+  Formula all = fmgr.makeTrue();
+  Formula f0  = fmgr.makeNumber(0);
+  Formula f1  = fmgr.makeNumber(1);
+  for (String var : ssatop.allVariables()){
+    Pair<String, Integer> data = PathFormula.getPrimeData(var);
+    if (data.getSecond() == tid){
+      int topIdx = ssatop.getIndex(var);
+      int idx     = ssa.getIndex(var);
+      idx         = idx < 1 ? 1 : idx;
+      // make unstafiable constraint: v@x=1 & v@x=0
+      for (int i=idx+1; i <= topIdx; i++){
+        Formula fv   = fmgr.makeVariable(var, i);
+        Formula fv0  = fmgr.makeEqual(fv, f0);
+        Formula fv1  = fmgr.makeEqual(fv, f1);
+        all          = fmgr.makeAnd(all, fv0);
+        all          = fmgr.makeAnd(all, fv1);
+      }
+    }
   }
+
+  return new PathFormula(all, ssatop, 0);
+}
+
+
 
 }

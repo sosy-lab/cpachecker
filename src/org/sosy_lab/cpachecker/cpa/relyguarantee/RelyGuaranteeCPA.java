@@ -194,7 +194,7 @@ public class RelyGuaranteeCPA extends PredicateCPA{
 
   }
 
-  public int getThreadId(){
+  public int getTid(){
     return this.tid;
   }
 

@@ -240,14 +240,20 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
 
   @Override
-  public PathFormula makePrimedEqualities(PathFormula pPf, int pI) {
-    return delegate.makePrimedEqualities(pPf, pI);
+  public PathFormula makePrimedEqualities(PathFormula pPf, int pI, int pJ) {
+    return delegate.makePrimedEqualities(pPf, pI, pJ);
   }
 
 
   @Override
   public PathFormula makeUnsatisifiableConstraintsForRedundantIndexes(SSAMap pSsatop, SSAMap pSsa, int pOtherTid) {
     return delegate.makeUnsatisifiableConstraintsForRedundantIndexes(pSsatop, pSsa, pOtherTid);
+  }
+
+
+  @Override
+  public PathFormula makePrimedEqualities(PathFormula pPf1, int pI,PathFormula pPf2, int pJ) {
+    return delegate.makePrimedEqualities(pPf1, pI, pPf2, pJ);
   }
 
 

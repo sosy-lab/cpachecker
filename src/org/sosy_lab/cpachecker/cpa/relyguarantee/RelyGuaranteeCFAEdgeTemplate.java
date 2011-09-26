@@ -50,9 +50,12 @@ public class RelyGuaranteeCFAEdgeTemplate{
   private RelyGuaranteeCFAEdgeTemplate coveredBy;
   // unkilled env. edges that are less general that this one
   private final Set<RelyGuaranteeCFAEdgeTemplate> covers;
+  // part of the env. transition that should always be unique
+  private final Integer uniquePrime;
 
 
-  public RelyGuaranteeCFAEdgeTemplate(CFAEdge pEdge, PathFormula pPathFormula, int sourceTid, ARTElement sourceARTElement, RelyGuaranteeEnvironmentalTransition sourceEnvTransition){
+
+  public RelyGuaranteeCFAEdgeTemplate(CFAEdge pEdge, PathFormula pPathFormula, int sourceTid, ARTElement sourceARTElement, RelyGuaranteeEnvironmentalTransition sourceEnvTransition, Integer uniquePrime){
     this.localEdge = pEdge;
     this.pathFormulaWrapper = new PathFormulaWrapper(pPathFormula);
     this.sourceARTElementWrapper = new ARTElementWrapper(sourceARTElement);
@@ -60,11 +63,12 @@ public class RelyGuaranteeCFAEdgeTemplate{
     this.sourceEnvTransition = sourceEnvTransition;
     this.coveredBy = null;
     this.covers = new HashSet<RelyGuaranteeCFAEdgeTemplate>();
+    this.uniquePrime = uniquePrime;
   }
 
   // instantiate
   public RelyGuaranteeCFAEdge instantiate(){
-    RelyGuaranteeCFAEdge edge = new RelyGuaranteeCFAEdge(this.localEdge, this.pathFormulaWrapper, this.sourceTid, this.sourceARTElementWrapper, this.sourceEnvTransition, this);
+    RelyGuaranteeCFAEdge edge = new RelyGuaranteeCFAEdge(this.localEdge, this.pathFormulaWrapper, this.sourceTid, this.sourceARTElementWrapper, this.sourceEnvTransition, this, this.uniquePrime);
     return edge;
   }
 
@@ -123,6 +127,9 @@ public class RelyGuaranteeCFAEdgeTemplate{
     return covers;
   }
 
+  public Integer getUniquePrime() {
+    return uniquePrime;
+  }
 
   /**
    * Remember that environmental edge 'other' is more general than this one.

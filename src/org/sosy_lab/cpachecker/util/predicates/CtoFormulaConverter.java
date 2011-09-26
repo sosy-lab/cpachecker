@@ -349,39 +349,52 @@ public class CtoFormulaConverter {
     }
 
     String function = null;
-    if (edge.getPredecessor() != null){
+   /* if (edge.getPredecessor() != null){
         if (tid != null){
           function = "t"+tid+"_"+edge.getPredecessor().getFunctionName();
         } else {
           function = edge.getPredecessor().getFunctionName();
         }
+    }*/
+    if (edge.getPredecessor() != null){
+      function = edge.getPredecessor().getFunctionName();
     }
 
-    SSAMapBuilder ssa = localF.getSsa().builder();
+
+    // TODO make-shift solution
+    SSAMapBuilder ssaLocalUnprimed = SSAMap.emptySSAMap().builder();
+    for (String var : localF.getSsa().allVariables()){
+      Pair<String, Integer> data = PathFormula.getPrimeData(var);
+      if (data.getSecond() == tid){
+        ssaLocalUnprimed.setIndex(data.getFirst(), localF.getSsa().getIndex(var));
+      } else {
+        ssaLocalUnprimed.setIndex(var, localF.getSsa().getIndex(var));
+      }
+    }
 
     Formula edgeFormula;
     switch (edge.getEdgeType()) {
     case StatementEdge: {
       StatementEdge statementEdge = (StatementEdge)edge;
-      StatementToFormulaVisitor v = new StatementToFormulaVisitor(function, ssa);
+      StatementToFormulaVisitor v = new StatementToFormulaVisitor(function, ssaLocalUnprimed);
       edgeFormula = statementEdge.getStatement().accept(v);
       break;
     }
 
     case ReturnStatementEdge: {
       ReturnStatementEdge returnEdge = (ReturnStatementEdge)edge;
-      edgeFormula = makeReturn(returnEdge.getExpression(), function, ssa);
+      edgeFormula = makeReturn(returnEdge.getExpression(), function, ssaLocalUnprimed);
       break;
     }
 
     case DeclarationEdge: {
       DeclarationEdge d = (DeclarationEdge)edge;
-      edgeFormula = makeDeclaration(d.getDeclSpecifier(), d.isGlobal(), d, function, ssa);
+      edgeFormula = makeDeclaration(d.getDeclSpecifier(), d.isGlobal(), d, function, ssaLocalUnprimed);
       break;
     }
 
     case AssumeEdge: {
-      edgeFormula = makeAssume((AssumeEdge)edge, function, ssa);
+      edgeFormula = makeAssume((AssumeEdge)edge, function, ssaLocalUnprimed);
       break;
     }
 
@@ -392,7 +405,7 @@ public class CtoFormulaConverter {
     }
 
     case FunctionCallEdge: {
-      edgeFormula = makeFunctionCall((FunctionCallEdge)edge, function, ssa);
+      edgeFormula = makeFunctionCall((FunctionCallEdge)edge, function, ssaLocalUnprimed);
       break;
     }
 
@@ -400,7 +413,7 @@ public class CtoFormulaConverter {
       // get the expression from the summary edge
       CFANode succ = edge.getSuccessor();
       CallToReturnEdge ce = succ.getEnteringSummaryEdge();
-      edgeFormula = makeExitFunction(ce, function, ssa);
+      edgeFormula = makeExitFunction(ce, function, ssaLocalUnprimed);
       break;
     }
 
@@ -408,9 +421,13 @@ public class CtoFormulaConverter {
       throw new UnrecognizedCFAEdgeException(edge);
     }
 
+    if (tid!=null){
+      edgeFormula = fmgr.primeFormula(edgeFormula, tid);
+    }
+
     if (useNondetFlags) {
-      int lNondetIndex = ssa.getIndex(NONDET_VARIABLE);
-      int lFlagIndex = ssa.getIndex(NONDET_FLAG_VARIABLE);
+      int lNondetIndex = ssaLocalUnprimed.getIndex(NONDET_VARIABLE);
+      int lFlagIndex = ssaLocalUnprimed.getIndex(NONDET_FLAG_VARIABLE);
 
       if (lNondetIndex != lFlagIndex) {
         if (lFlagIndex < 0) {
@@ -423,11 +440,30 @@ public class CtoFormulaConverter {
         }
 
         // update ssa index of nondet flag
-        ssa.setIndex(NONDET_FLAG_VARIABLE, lNondetIndex);
+        ssaLocalUnprimed.setIndex(NONDET_FLAG_VARIABLE, lNondetIndex);
       }
     }
 
+    // get ssa map with correctly primed local variables
+    SSAMapBuilder ssa = null;
+    if (tid != null){
+      SSAMap currentSSA = ssaLocalUnprimed.build();
+      ssa = SSAMap.emptySSAMap().builder();
+      for (String var : currentSSA.allVariables()){
+        Pair<String, Integer> data = PathFormula.getPrimeData(var);
+        if (data.getSecond() == null){
+          String pVar = data.getFirst() + PathFormula.PRIME_SYMBOL + tid;
+          ssa.setIndex(pVar, currentSSA.getIndex(var));
+        } else {
+          ssa.setIndex(var, currentSSA.getIndex(var));
+        }
+
+      }
+    } else {
+      ssa = ssaLocalUnprimed;
+    }
     SSAMap newSsa = ssa.build();
+
     if (edgeFormula.isTrue() && (newSsa == localF.getSsa())) {
       // formula is just "true" and SSAMap is identical
       // i.e. no writes to SSAMap, no branching and length should stay the same

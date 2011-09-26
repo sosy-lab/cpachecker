@@ -41,13 +41,15 @@ public class RelyGuaranteeCFAEdge implements CFAEdge{
   private CFANode predecessor;
   private CFANode successor;
   private final RelyGuaranteeCFAEdgeTemplate template;
+  private final Integer uniquePrime;
 
-  protected RelyGuaranteeCFAEdge(CFAEdge pEdge, PathFormulaWrapper pathFormulaWrapper, int sourceTid, ARTElementWrapper sourceARTElementWrapper, RelyGuaranteeEnvironmentalTransition sourceEnvTransition, RelyGuaranteeCFAEdgeTemplate template){
+  protected RelyGuaranteeCFAEdge(CFAEdge pEdge, PathFormulaWrapper pathFormulaWrapper, int sourceTid, ARTElementWrapper sourceARTElementWrapper, RelyGuaranteeEnvironmentalTransition sourceEnvTransition, RelyGuaranteeCFAEdgeTemplate template, Integer uniquePrime){
     this.localEdge = pEdge;
     this.pathFormulaWrapper = pathFormulaWrapper;
     this.sourceARTElementWrapper = sourceARTElementWrapper;
     this.sourceTid = sourceTid;
     this.template = template;
+    this.uniquePrime = uniquePrime;
   }
 
 
@@ -119,6 +121,13 @@ public class RelyGuaranteeCFAEdge implements CFAEdge{
   public RelyGuaranteeCFAEdgeTemplate getTemplate() {
     return template;
   }
+
+
+
+  public Integer getUniquePrime() {
+    return uniquePrime;
+  }
+
 
   public int hashCode() {
     return 31 * sourceARTElementWrapper.artElement.hashCode()  + pathFormulaWrapper.pathFormula.hashCode();
