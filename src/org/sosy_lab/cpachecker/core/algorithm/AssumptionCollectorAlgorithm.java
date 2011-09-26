@@ -376,33 +376,6 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     }
   }
 
-  protected List<AbstractElement> getElementsWithAssumptions(ReachedSet reached){
-
-    List<AbstractElement> retList = new ArrayList<AbstractElement>();
-
-    for (AbstractElement element : reached) {
-
-      // TODO do we need target elements?
-//      if (AbstractElements.isTargetElement(element)) {
-//        // create assumptions for target element
-//        retList.add(element);
-//
-//      } else {
-        // get stored assumption
-
-        AssumptionStorageElement e = AbstractElements.extractElementByType(element, AssumptionStorageElement.class);
-
-        Formula assumption = formulaManager.makeAnd(e.getAssumption(), e.getStopFormula());
-
-        if (!assumption.isTrue()) {
-          retList.add(element);
-        }
-//      }
-    }
-
-    return retList;
-  }
-
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     if (innerAlgorithm instanceof StatisticsProvider) {

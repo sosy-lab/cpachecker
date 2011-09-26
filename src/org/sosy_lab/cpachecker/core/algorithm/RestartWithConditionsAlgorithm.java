@@ -24,54 +24,59 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
+import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ProgressObserverCPA;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ProgressObserverPrecision;
+import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
+import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.Precisions;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
-@Options(prefix="adjustableconditions")
-public class RestartWithConditionsAlgorithm implements Algorithm, StatisticsProvider {
+public class RestartWithConditionsAlgorithm implements Algorithm {
 
-  private final AssumptionCollectorAlgorithm innerAlgorithm;
-  private final ConfigurableProgramAnalysis cpa;
+  private final Algorithm innerAlgorithm;
+  private final ARTCPA cpa;
   private final LogManager logger;
 
-  public RestartWithConditionsAlgorithm(Algorithm algorithm, ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger) throws InvalidConfigurationException
-  {
-    config.inject(this);
-    this.logger = logger;
-    if (!(algorithm instanceof AssumptionCollectorAlgorithm)) {
-      throw new InvalidConfigurationException("Assumption Algorithm needed for RestartWithConditionsAlgorithm");
+  public RestartWithConditionsAlgorithm(Algorithm pAlgorithm,
+        ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger)
+        throws InvalidConfigurationException {
+
+    logger = pLogger;
+    innerAlgorithm = pAlgorithm;
+
+    if (!(pCpa instanceof ARTCPA)) {
+      throw new InvalidConfigurationException("ARTCPA needed for RestartWithConditionsAlgorithm");
     }
-    innerAlgorithm = (AssumptionCollectorAlgorithm)algorithm;
-    cpa = pCpa;
+    cpa = (ARTCPA)pCpa;
+    if (cpa.retrieveWrappedCpa(AssumptionStorageCPA.class) == null) {
+      throw new InvalidConfigurationException("AssumptionStorageCPA needed for RestartWithConditionsAlgorithm");
+    }
+    if (cpa.retrieveWrappedCpa(ProgressObserverCPA.class) == null) {
+      throw new InvalidConfigurationException("ProgressObserverCPA needed for RestartWithConditionsAlgorithm");
+    }
   }
 
   @Override
-  public boolean run(ReachedSet pReached) throws CPAException,
-  InterruptedException {
+  public boolean run(ReachedSet pReached) throws CPAException, InterruptedException {
     boolean sound = true;
 
-    boolean restartCPA = false;
+    boolean restartCPA;
 
     // loop if restartCPA is set to false
     do {
@@ -79,22 +84,22 @@ public class RestartWithConditionsAlgorithm implements Algorithm, StatisticsProv
       // run the inner algorithm to fill the reached set
       sound &= innerAlgorithm.run(pReached);
 
-      List<AbstractElement> elementsWithAssumptions = innerAlgorithm.getElementsWithAssumptions(pReached);
-
       if (Iterables.any(pReached, AbstractElements.IS_TARGET_ELEMENT)) {
         return sound;
       }
 
+      List<AbstractElement> elementsWithAssumptions = getElementsWithAssumptions(pReached);
+
       // if there are elements that an assumption is generated for
-      if(elementsWithAssumptions.size() > 0) {
+      if (!elementsWithAssumptions.isEmpty()) {
         logger.log(Level.INFO, "Adjusting heuristics thresholds.");
         // if any of the elements' threshold is adjusted
-        if(adjustThresholds(elementsWithAssumptions, pReached)){
+        if (adjustThresholds(elementsWithAssumptions, pReached)){
           restartCPA = true;
-        }
-        // no elements adjusted but there are elements with assumptions
-        // the analysis should report UNSOUND
-        else{
+
+        } else {
+          // no elements adjusted but there are elements with assumptions
+          // the analysis should report UNSOUND
           sound = false;
         }
       }
@@ -104,19 +109,42 @@ public class RestartWithConditionsAlgorithm implements Algorithm, StatisticsProv
     return sound;
   }
 
+  private List<AbstractElement> getElementsWithAssumptions(ReachedSet reached) {
+
+    List<AbstractElement> retList = new ArrayList<AbstractElement>();
+
+    for (AbstractElement element : reached) {
+
+      // TODO do we need target elements?
+//      if (AbstractElements.isTargetElement(element)) {
+//        // create assumptions for target element
+//        retList.add(element);
+//
+//      } else {
+
+        // check if stored assumption is not "true"
+        AssumptionStorageElement e = AbstractElements.extractElementByType(element, AssumptionStorageElement.class);
+
+        if (!e.getAssumption().isTrue()
+            || !e.getStopFormula().isTrue()) {
+
+          retList.add(element);
+        }
+    }
+
+    return retList;
+  }
+
   private boolean adjustThresholds(List<AbstractElement> pElementsWithAssumptions, ReachedSet pReached) {
     boolean precisionAdjusted = false;
-    ARTCPA artCpa = ((AbstractSingleWrapperCPA) cpa).retrieveWrappedCpa(ARTCPA.class);
-    ARTReachedSet reached = new ARTReachedSet(pReached, artCpa);
-    for(AbstractElement e: pElementsWithAssumptions){
+
+    ARTReachedSet reached = new ARTReachedSet(pReached, cpa);
+    for (AbstractElement e: pElementsWithAssumptions) {
       ARTElement artElement = (ARTElement)e;
-      List<ARTElement> parents = new ArrayList<ARTElement>();
-      parents.addAll(artElement.getParents());
-      //pReached.remove(e);
-      for(ARTElement parent: parents){
+
+      for (ARTElement parent : ImmutableSet.copyOf(artElement.getParents())){
         precisionAdjusted |= adjustThreshold(parent, pReached);
         reached.removeSubtree(parent);
-        //pReached.reAddToWaitlist(parent);
       }
     }
     return precisionAdjusted;
@@ -125,11 +153,5 @@ public class RestartWithConditionsAlgorithm implements Algorithm, StatisticsProv
   private boolean adjustThreshold(AbstractElement pParent, ReachedSet pReached) {
     ProgressObserverPrecision observerPrecision = Precisions.extractPrecisionByType(pReached.getPrecision(pParent), ProgressObserverPrecision.class);
     return observerPrecision.adjustPrecisions();
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    // TODO Auto-generated method stub
-
   }
 }
