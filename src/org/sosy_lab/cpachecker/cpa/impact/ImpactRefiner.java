@@ -34,8 +34,8 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.Path;
@@ -59,11 +59,11 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> {
   private final FormulaManager fmgr;
 
   public static ImpactRefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
-    if (!(pCpa instanceof AbstractSingleWrapperCPA)) {
+    if (!(pCpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(PredicateRefiner.class.getSimpleName() + " could not find the PredicateCPA");
     }
 
-    ImpactCPA impactCpa = ((AbstractSingleWrapperCPA)pCpa).retrieveWrappedCpa(ImpactCPA.class);
+    ImpactCPA impactCpa = ((WrapperCPA)pCpa).retrieveWrappedCpa(ImpactCPA.class);
     if (impactCpa == null) {
       throw new InvalidConfigurationException(PredicateRefiner.class.getSimpleName() + " needs a PredicateCPA");
     }

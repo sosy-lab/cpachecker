@@ -41,9 +41,9 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.cpa.abm.AbstractABMBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
@@ -93,11 +93,11 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
 
     super(pCpa);
 
-    if (!(pCpa instanceof AbstractSingleWrapperCPA)) {
+    if (!(pCpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(ABMPredicateRefiner.class.getSimpleName() + " could not find the PredicateCPA");
     }
 
-    ABMPredicateCPA predicateCpa = ((AbstractSingleWrapperCPA)pCpa).retrieveWrappedCpa(ABMPredicateCPA.class);
+    ABMPredicateCPA predicateCpa = ((WrapperCPA)pCpa).retrieveWrappedCpa(ABMPredicateCPA.class);
     if (predicateCpa == null) {
       throw new InvalidConfigurationException(ABMPredicateRefiner.class.getSimpleName() + " needs an ABMPredicateCPA");
     }

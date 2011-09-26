@@ -34,9 +34,9 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.Path;
@@ -62,11 +62,11 @@ public class McMillanRefiner extends AbstractInterpolationBasedRefiner<Formula> 
 //  private final PredicateAbstractionManager abstractionManager;
 
   public static Refiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
-    if (!(pCpa instanceof AbstractSingleWrapperCPA)) {
+    if (!(pCpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(McMillanRefiner.class.getSimpleName() + " could not find the PredicateCPA");
     }
 
-    PredicateCPA predicateCpa = ((AbstractSingleWrapperCPA)pCpa).retrieveWrappedCpa(PredicateCPA.class);
+    PredicateCPA predicateCpa = ((WrapperCPA)pCpa).retrieveWrappedCpa(PredicateCPA.class);
     if (predicateCpa == null) {
       throw new InvalidConfigurationException(McMillanRefiner.class.getSimpleName() + " needs a PredicateCPA");
     }
