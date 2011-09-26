@@ -178,6 +178,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   private final BMCStatistics stats = new BMCStatistics();
   private final Algorithm algorithm;
+  private final ConfigurableProgramAnalysis cpa;
   private final InvariantGenerator invariantGenerator;
 
   private final FormulaManager fmgr;
@@ -187,17 +188,19 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   private final LogManager logger;
   private final ReachedSetFactory reachedSetFactory;
 
-  public BMCAlgorithm(Algorithm algorithm, Configuration config, LogManager logger,
+  public BMCAlgorithm(Algorithm algorithm, ConfigurableProgramAnalysis pCpa,
+                      Configuration config, LogManager logger,
                       ReachedSetFactory pReachedSetFactory)
                       throws InvalidConfigurationException, CPAException {
     config.inject(this);
     this.algorithm = algorithm;
+    this.cpa = pCpa;
     this.logger = logger;
     reachedSetFactory = pReachedSetFactory;
 
     invariantGenerator = new InvariantGenerator(config, logger);
 
-    PredicateCPA predCpa = ((WrapperCPA)getCPA()).retrieveWrappedCpa(PredicateCPA.class);
+    PredicateCPA predCpa = ((WrapperCPA)cpa).retrieveWrappedCpa(PredicateCPA.class);
     if (predCpa == null) {
       throw new InvalidConfigurationException("PredicateCPA needed for BMCAlgorithm");
     }
@@ -267,7 +270,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
    * It does so by asking the solver for a satisfying assignment.
    */
   private void createErrorPath(final ReachedSet pReachedSet) throws CPATransferException {
-    if (!(getCPA() instanceof ARTCPA)) {
+    if (!(cpa instanceof ARTCPA)) {
       logger.log(Level.INFO, "Error found, but error path cannot be created without ARTCPA");
       return;
     }
@@ -336,7 +339,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         counterexample.addFurtherInformation(pathFormula, dumpCounterexampleFormula);
       }
 
-      ((ARTCPA)getCPA()).setCounterexample(counterexample);
+      ((ARTCPA)cpa).setCounterexample(counterexample);
 
     } finally {
       stats.errorPathCreation.stop();
@@ -489,7 +492,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
 
     // Create initial reached set
-    ConfigurableProgramAnalysis cpa = getCPA();
     ReachedSet reached = reachedSetFactory.create();
     reached.add(cpa.getInitialElement(loopHead), cpa.getInitialPrecision(loopHead));
 
@@ -709,11 +711,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         invariantGeneration.start();
       }
     }
-  }
-
-  @Override
-  public ConfigurableProgramAnalysis getCPA() {
-    return algorithm.getCPA();
   }
 
   @Override

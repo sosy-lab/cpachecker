@@ -40,7 +40,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CBMCDummyErrorElement;
 import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CBMCExecutor;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -81,11 +80,6 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     this.fileName = fileName;
     this.logger = logger;
     config.inject(this);
-  }
-
-  @Override
-  public ConfigurableProgramAnalysis getCPA() {
-    return null;
   }
 
   @Override

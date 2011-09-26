@@ -126,23 +126,18 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   // store only the ids, not the elements in order to prevent memory leaks
   private final Set<Integer> exceptionElements = new HashSet<Integer>();
 
-  public AssumptionCollectorAlgorithm(Algorithm algo, Configuration config, LogManager logger) throws InvalidConfigurationException
+  public AssumptionCollectorAlgorithm(Algorithm algo, ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger) throws InvalidConfigurationException
   {
     config.inject(this);
 
     this.logger = logger;
     innerAlgorithm = algo;
-    cpa = ((WrapperCPA)getCPA()).retrieveWrappedCpa(AssumptionStorageCPA.class);
+    cpa = ((WrapperCPA)pCpa).retrieveWrappedCpa(AssumptionStorageCPA.class);
     if (cpa == null) {
       throw new InvalidConfigurationException("AssumptionStorageCPA needed for AssumptionCollectionAlgorithm");
     }
     formulaManager = cpa.getFormulaManager();
     exceptionAssumptions = new AssumptionWithLocation(formulaManager);
-  }
-
-  @Override
-  public ConfigurableProgramAnalysis getCPA() {
-    return innerAlgorithm.getCPA();
   }
 
   @Override

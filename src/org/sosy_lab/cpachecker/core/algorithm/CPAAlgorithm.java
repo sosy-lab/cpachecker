@@ -234,11 +234,6 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public ConfigurableProgramAnalysis getCPA() {
-    return cpa;
-  }
-
-  @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
   }

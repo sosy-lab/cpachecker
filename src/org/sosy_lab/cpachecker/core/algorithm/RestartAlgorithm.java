@@ -127,11 +127,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public ConfigurableProgramAnalysis getCPA() {
-    return currentAlgorithm.getCPA();
-  }
-
-  @Override
   public boolean run(ReachedSet pReached) throws CPAException, InterruptedException {
     checkArgument(pReached instanceof ForwardingReachedSet, "RestartAlgorithm needs ForwardingReachedSet");
     checkArgument(pReached.size() <= 1, "RestartAlgorithm does not support being called several times with the same reached set");
@@ -297,19 +292,19 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     Algorithm algorithm = new CPAAlgorithm(cpa, logger);
 
     if (pOptions.useRefinement) {
-      algorithm = new CEGARAlgorithm(algorithm, pConfig, logger);
+      algorithm = new CEGARAlgorithm(algorithm, cpa, pConfig, logger);
     }
 
     if (pOptions.useBMC) {
-      algorithm = new BMCAlgorithm(algorithm, pConfig, logger, singleReachedSetFactory);
+      algorithm = new BMCAlgorithm(algorithm, cpa, pConfig, logger, singleReachedSetFactory);
     }
 
     if (pOptions.useCBMC) {
-      algorithm = new CounterexampleCheckAlgorithm(algorithm, pConfig, logger);
+      algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, pConfig, logger);
     }
 
     if (pOptions.useAssumptionCollector) {
-      algorithm = new AssumptionCollectorAlgorithm(algorithm, pConfig, logger);
+      algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, pConfig, logger);
     }
 
     return algorithm;

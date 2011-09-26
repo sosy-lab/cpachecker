@@ -182,12 +182,12 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     return (Refiner)refinerObj;
   }
 
-  public CEGARAlgorithm(Algorithm algorithm, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
+  public CEGARAlgorithm(Algorithm algorithm, ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
     config.inject(this);
     this.algorithm = algorithm;
     this.logger = logger;
 
-    mRefiner = createInstance(algorithm.getCPA());
+    mRefiner = createInstance(pCpa);
     new CEGARMBean(); // don't store it because we wouldn't know when to unregister anyway
   }
 
@@ -276,11 +276,6 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
       gcCounter = 0;
       stats.gcTimer.stop();
     }
-  }
-
-  @Override
-  public ConfigurableProgramAnalysis getCPA() {
-    return algorithm.getCPA();
   }
 
   @Override

@@ -52,9 +52,10 @@ import com.google.common.collect.Iterables;
 public class RestartWithConditionsAlgorithm implements Algorithm, StatisticsProvider {
 
   private final AssumptionCollectorAlgorithm innerAlgorithm;
+  private final ConfigurableProgramAnalysis cpa;
   private final LogManager logger;
 
-  public RestartWithConditionsAlgorithm(Algorithm algorithm, Configuration config, LogManager logger) throws InvalidConfigurationException
+  public RestartWithConditionsAlgorithm(Algorithm algorithm, ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger) throws InvalidConfigurationException
   {
     config.inject(this);
     this.logger = logger;
@@ -62,11 +63,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm, StatisticsProv
       throw new InvalidConfigurationException("Assumption Algorithm needed for RestartWithConditionsAlgorithm");
     }
     innerAlgorithm = (AssumptionCollectorAlgorithm)algorithm;
-  }
-
-  @Override
-  public ConfigurableProgramAnalysis getCPA() {
-    return innerAlgorithm.getCPA();
+    cpa = pCpa;
   }
 
   @Override
@@ -109,7 +106,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm, StatisticsProv
 
   private boolean adjustThresholds(List<AbstractElement> pElementsWithAssumptions, ReachedSet pReached) {
     boolean precisionAdjusted = false;
-    ARTCPA artCpa = ((AbstractSingleWrapperCPA) getCPA()).retrieveWrappedCpa(ARTCPA.class);
+    ARTCPA artCpa = ((AbstractSingleWrapperCPA) cpa).retrieveWrappedCpa(ARTCPA.class);
     ARTReachedSet reached = new ARTReachedSet(pReached, artCpa);
     for(AbstractElement e: pElementsWithAssumptions){
       ARTElement artElement = (ARTElement)e;

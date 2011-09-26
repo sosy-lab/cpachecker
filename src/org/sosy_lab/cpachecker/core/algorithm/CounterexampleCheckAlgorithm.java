@@ -78,12 +78,12 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
               + "Setting this to false may prevent a lot of similar infeasible counterexamples to get discovered, but is unsound")
   private boolean removeInfeasibleErrors = false;
 
-  public CounterexampleCheckAlgorithm(Algorithm algorithm, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
+  public CounterexampleCheckAlgorithm(Algorithm algorithm, ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
     this.algorithm = algorithm;
     this.logger = logger;
     config.inject(this);
 
-    if (!(algorithm.getCPA() instanceof ARTCPA)) {
+    if (!(pCpa instanceof ARTCPA)) {
       throw new InvalidConfigurationException("ART CPA needed for counterexample check");
     }
 
@@ -281,11 +281,6 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
     assert errorElement.isDestroyed() : "errorElement is not the child of its parent";
     assert !reached.contains(errorElement) : "reached.remove() didn't work";
     return sound;
-  }
-
-  @Override
-  public ConfigurableProgramAnalysis getCPA() {
-    return algorithm.getCPA();
   }
 
   @Override

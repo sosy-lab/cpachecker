@@ -351,23 +351,23 @@ public class CPAchecker {
       algorithm = new CPAAlgorithm(cpa, logger);
 
       if (options.useRefinement) {
-        algorithm = new CEGARAlgorithm(algorithm, config, logger);
+        algorithm = new CEGARAlgorithm(algorithm, cpa, config, logger);
       }
 
       if (options.useBMC) {
-        algorithm = new BMCAlgorithm(algorithm, config, logger, reachedSetFactory);
+        algorithm = new BMCAlgorithm(algorithm, cpa, config, logger, reachedSetFactory);
       }
 
       if (options.useCBMC) {
-        algorithm = new CounterexampleCheckAlgorithm(algorithm, config, logger);
+        algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, config, logger);
       }
 
       if (options.useAssumptionCollector) {
-        algorithm = new AssumptionCollectorAlgorithm(algorithm, config, logger);
+        algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, config, logger);
       }
 
       if (options.useAdjustableConditions) {
-        algorithm = new RestartWithConditionsAlgorithm(algorithm, config, logger);
+        algorithm = new RestartWithConditionsAlgorithm(algorithm, cpa, config, logger);
       }
 
     }

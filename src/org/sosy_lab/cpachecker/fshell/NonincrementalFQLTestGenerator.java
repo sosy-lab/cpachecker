@@ -400,7 +400,7 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
 
     Refiner lRefiner;
     try {
-      lRefiner = PredicateRefiner.create(lBasicAlgorithm.getCPA());
+      lRefiner = PredicateRefiner.create(lARTCPA);
     } catch (CPAException e) {
       throw new RuntimeException(e);
     } catch (InvalidConfigurationException e) {
