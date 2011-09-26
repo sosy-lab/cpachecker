@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 
-from string import Template
-from xml.etree.ElementTree import ElementTree
-from xml.parsers.expat import ExpatError
 from datetime import date
 
 import time
