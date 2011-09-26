@@ -29,13 +29,18 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+
+import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.ListMultimap;
 
 /**
  * Directed acyclic graph representing ART and env. transitions.
@@ -304,7 +309,7 @@ public class InterpolationDag {
    */
   public InterpolationDagNode replacePathFormulaInNode(InterpolationDagNode node, PathFormula newPf) {
     assert nodeMap.values().contains(node);
-    InterpolationDagNode newNode = new InterpolationDagNode(newPf, node.traceNo, node.artElement, node.children, node.parents, node.tid);
+    InterpolationDagNode newNode = new InterpolationDagNode(newPf, node.traceNo, node.artElement, node.children, node.parents, node.tid, node.envPrimes);
 
     for (InterpolationDagNode parent : node.parents){
       boolean succ = parent.children.remove(node);
@@ -376,27 +381,7 @@ public class InterpolationDag {
     return true;
   }
 
-  class InterpolationDagNodeKey{
 
-    protected final Pair<Integer, Integer> key;
-
-    public InterpolationDagNodeKey(Integer tid, Integer artElementId){
-      this.key = Pair.of(tid, artElementId);
-    }
-
-    public Pair<Integer, Integer> getKey() {
-      return key;
-    }
-
-    public Integer getTid(){
-      return key.getFirst();
-    }
-
-    public Integer getARTElementId(){
-      return key.getSecond();
-    }
-
-  }
 
   /**
    * Make n1 parent of n2. n2 should be in the DAG.
@@ -419,5 +404,50 @@ public class InterpolationDag {
       roots.add(n1);
     }
   }
+
+  /**
+   * Return the first root of thread tid.
+   * @param tid
+   * @return
+   */
+  public InterpolationDagNode getRootForThread(int tid){
+    InterpolationDagNode root = null;
+    for (InterpolationDagNode node : roots){
+      if (node.tid == tid){
+        root = node;
+        break;
+      }
+    }
+    return root;
+  }
+
+  public  ListMultimap<InterpolationDagNode, RelyGuaranteeCFAEdge> getAppliedEnvEdges(int td) {
+    ListMultimap<InterpolationDagNode, RelyGuaranteeCFAEdge> appliedMap = LinkedListMultimap.create();
+
+    // get all env. transitions applied to nodes in thread td
+    Deque<InterpolationDagNode> toProcess = new LinkedList<InterpolationDagNode>();
+    Set<InterpolationDagNode> visisted    = new HashSet<InterpolationDagNode>();
+    InterpolationDagNode root = getRootForThread(td);
+    toProcess.add(root);
+
+    while(!toProcess.isEmpty()){
+      InterpolationDagNode node = toProcess.poll();
+      if (!visisted.contains(node)){
+        visisted.add(node);
+
+        for (RelyGuaranteeCFAEdge edge :  node.getEnvPrimes().keySet()){
+          appliedMap.put(node, edge);
+        }
+
+        toProcess.addAll(node.children);
+      }
+    }
+
+    return appliedMap;
+  }
+
+
+
+
 
 }

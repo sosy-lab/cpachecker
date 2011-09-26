@@ -69,19 +69,22 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
   public static class AbstractionElement extends RelyGuaranteeAbstractElement {
 
     private final Map<Integer, RelyGuaranteeCFAEdge> oldPrimedMap;
+    private final Map<RelyGuaranteeCFAEdge, PathFormula> oldEdgeMap;
 
 
-    public AbstractionElement(PathFormula pf, AbstractionFormula pA,  int tid, Map<Integer, RelyGuaranteeCFAEdge> oldPrimedMap) {
-      super(pf, pA, tid, new HashMap<Integer, RelyGuaranteeCFAEdge>());
+    public AbstractionElement(PathFormula pf, AbstractionFormula pA,  int tid, Map<Integer, RelyGuaranteeCFAEdge> oldPrimedMap, Map<RelyGuaranteeCFAEdge, PathFormula> oldEdgeMap) {
+      super(pf, pA, tid, new HashMap<Integer, RelyGuaranteeCFAEdge>(), new HashMap<RelyGuaranteeCFAEdge, PathFormula>());
       this.oldPrimedMap = oldPrimedMap;
+      this.oldEdgeMap = oldEdgeMap;
       // Check whether the pathFormula of an abstraction element is just "true".
       // partialOrder relies on this for optimization.
     }
 
 
-    public AbstractionElement(PathFormula pf, AbstractionFormula pA, CFAEdge edge, int tid, Map<Integer, RelyGuaranteeCFAEdge> oldPrimedMap) {
-      super(pf, pA, edge, tid, new HashMap<Integer, RelyGuaranteeCFAEdge>());
+    public AbstractionElement(PathFormula pf, AbstractionFormula pA, CFAEdge edge, int tid, Map<Integer, RelyGuaranteeCFAEdge> oldPrimedMap, Map<RelyGuaranteeCFAEdge, PathFormula> oldEdgeMap) {
+      super(pf, pA, edge, tid, new HashMap<Integer, RelyGuaranteeCFAEdge>(), new HashMap<RelyGuaranteeCFAEdge, PathFormula>());
       this.oldPrimedMap = oldPrimedMap;
+      this.oldEdgeMap = oldEdgeMap;
       // Check whether the pathFormula of an abstraction element is just "true".
       // partialOrder relies on this for optimization.
 
@@ -104,6 +107,10 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
 
     public Map<Integer, RelyGuaranteeCFAEdge> getOldPrimedMap() {
       return oldPrimedMap;
+    }
+
+    public Map<RelyGuaranteeCFAEdge, PathFormula> getOldEdgeMap() {
+      return oldEdgeMap;
     }
 
 
@@ -135,13 +142,13 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
      location = pLoc;
    }*/
 
-    public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc,  int tid,  Map<Integer, RelyGuaranteeCFAEdge> primedMap) {
-      super(pf, pA,  tid,  primedMap);
+    public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc,  int tid,  Map<Integer, RelyGuaranteeCFAEdge> primedMap, Map<RelyGuaranteeCFAEdge, PathFormula> oldEdgeMap) {
+      super(pf, pA,  tid,  primedMap, oldEdgeMap);
       location = pLoc;
     }
 
-    public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc, CFAEdge edge,  int tid, Map<Integer, RelyGuaranteeCFAEdge> primedMap  ) {
-      super(pf, pA, edge,  tid, primedMap);
+    public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc, CFAEdge edge,  int tid, Map<Integer, RelyGuaranteeCFAEdge> primedMap, Map<RelyGuaranteeCFAEdge, PathFormula> oldEdgeMap) {
+      super(pf, pA, edge,  tid, primedMap, oldEdgeMap);
       location = pLoc;
     }
 
@@ -177,6 +184,7 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
 
 
   private final Map<Integer, RelyGuaranteeCFAEdge> primedMap;
+  private final Map<RelyGuaranteeCFAEdge, PathFormula> edgeMap;
 
   /* public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a) {
    this.pathFormula = pf;
@@ -193,21 +201,23 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
    this.rgFormulaTemplate = null;
  }*/
 
-  public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a,  int tid, Map<Integer, RelyGuaranteeCFAEdge> primedMap) {
+  public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a,  int tid, Map<Integer, RelyGuaranteeCFAEdge> primedMap, Map<RelyGuaranteeCFAEdge, PathFormula> edgeMap) {
     this.pathFormula = pf;
     this.abstractionFormula = a;
     this.tid = RelyGuaranteeAbstractElement.UNKOWN;
     this.tid = tid;
     this.primedMap = primedMap;
+    this.edgeMap   = edgeMap;
   }
 
-  public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a, CFAEdge edge,   int tid,  Map<Integer, RelyGuaranteeCFAEdge> primedMap) {
+  public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a, CFAEdge edge,   int tid,  Map<Integer, RelyGuaranteeCFAEdge> primedMap, Map<RelyGuaranteeCFAEdge, PathFormula> edgeMap) {
     this.pathFormula = pf;
     this.abstractionFormula = a;
     this.tid = RelyGuaranteeAbstractElement.UNKOWN;
     this.parentEdge = edge;
     this.tid = tid;
     this.primedMap = primedMap;
+    this.edgeMap   = edgeMap;
   }
 
 
@@ -259,6 +269,12 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
 
   public Map<Integer, RelyGuaranteeCFAEdge> getPrimedMap() {
     return primedMap;
+  }
+
+
+
+  public Map<RelyGuaranteeCFAEdge, PathFormula> getEdgeMap() {
+    return edgeMap;
   }
 
   @Override

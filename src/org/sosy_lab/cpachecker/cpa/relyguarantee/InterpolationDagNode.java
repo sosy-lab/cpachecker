@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -38,6 +41,7 @@ public class InterpolationDagNode extends InterpolationBlock{
   protected final List<InterpolationDagNode> children;
   protected final List<InterpolationDagNode> parents;
   protected final int tid;
+  protected final Map<RelyGuaranteeCFAEdge, Integer> envPrimes;
 
   /**
    * Deep copy of the node, except for children and parents.
@@ -45,23 +49,35 @@ public class InterpolationDagNode extends InterpolationBlock{
    */
   public InterpolationDagNode(InterpolationDagNode node){
     super(node.pathFormula, node.traceNo, node.artElement, null);
-    this.children = new Vector<InterpolationDagNode>();
-    this.parents  = new Vector<InterpolationDagNode>();
-    this.tid      = node.tid;
+    this.children   = new Vector<InterpolationDagNode>();
+    this.parents    = new Vector<InterpolationDagNode>();
+    this.tid        = node.tid;
+    this.envPrimes  = new HashMap<RelyGuaranteeCFAEdge, Integer>(node.envPrimes);
   }
 
   public InterpolationDagNode(PathFormula pf, int traceNo, ARTElement artElement, int tid){
     super(pf, traceNo, artElement, null);
-    this.children = new Vector<InterpolationDagNode>();
-    this.parents  = new Vector<InterpolationDagNode>();
-    this.tid      = tid;
+    this.children   = new Vector<InterpolationDagNode>();
+    this.parents    = new Vector<InterpolationDagNode>();
+    this.tid        = tid;
+    this.envPrimes  = new HashMap<RelyGuaranteeCFAEdge, Integer>();
   }
+
 
   public InterpolationDagNode(PathFormula pf, int traceNo, ARTElement artElement, List<InterpolationDagNode> children, List<InterpolationDagNode> parents, int tid) {
     super(pf, traceNo, artElement, null);
     this.children = children;
     this.parents  = parents;
     this.tid      = tid;
+    this.envPrimes  = new HashMap<RelyGuaranteeCFAEdge, Integer>();
+  }
+
+  public InterpolationDagNode(PathFormula pf, int traceNo, ARTElement artElement, List<InterpolationDagNode> children, List<InterpolationDagNode> parents, int tid, Map<RelyGuaranteeCFAEdge, Integer> envPrimes) {
+    super(pf, traceNo, artElement, null);
+    this.children = children;
+    this.parents  = parents;
+    this.tid      = tid;
+    this.envPrimes  = envPrimes;
   }
 
   public List<InterpolationDagNode> getChildren() {
@@ -80,6 +96,36 @@ public class InterpolationDagNode extends InterpolationBlock{
 
   public int getTid() {
     return tid;
+  }
+
+  public Map<RelyGuaranteeCFAEdge, Integer> getEnvPrimes() {
+    return envPrimes;
+  }
+
+
+
+
+
+  class InterpolationDagNodeKey{
+
+    protected final Pair<Integer, Integer> key;
+
+    public InterpolationDagNodeKey(Integer tid, Integer artElementId){
+      this.key = Pair.of(tid, artElementId);
+    }
+
+    public Pair<Integer, Integer> getKey() {
+      return key;
+    }
+
+    public Integer getTid(){
+      return key.getFirst();
+    }
+
+    public Integer getARTElementId(){
+      return key.getSecond();
+    }
+
   }
 
 }

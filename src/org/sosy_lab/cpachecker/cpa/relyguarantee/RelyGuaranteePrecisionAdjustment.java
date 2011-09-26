@@ -133,7 +133,7 @@ public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustme
     PathFormula newPathFormula = this.pathFormulaManager.makeEmptyPathFormula(pathFormula);
 
 
-    return new RelyGuaranteeAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula, element.getParentEdge(),this.cpa.getThreadId(), element.getPrimedMap());
+    return new RelyGuaranteeAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula, element.getParentEdge(),this.cpa.getThreadId(), element.getPrimedMap(), element.getEdgeMap());
   }
 
 

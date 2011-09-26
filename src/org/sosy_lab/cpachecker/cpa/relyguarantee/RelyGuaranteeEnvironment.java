@@ -244,11 +244,14 @@ public class RelyGuaranteeEnvironment {
     Vector<RelyGuaranteeCFAEdgeTemplate> rgEdges = new Vector<RelyGuaranteeCFAEdgeTemplate>();
     for (RelyGuaranteeEnvironmentalTransition  et: unprocessedTransitions){
       //assert envTransProcessedBeforeFromThread[i].containsValue(et);
+
+      // clean ssa map from primed variables
+
       int tid = et.getSourceThread();
-      PathFormula af = et.getAbstractionPathFormula();
+      Formula af = et.getAbstractionPathFormula().getFormula();
       PathFormula pf = et.getPathFormula();
-      PathFormula newPF = pfManager.makeAnd(af, pf);
-      PathFormula eq = pfManager.makePrimedEqualities(af, 1);
+      PathFormula newPF = pfManager.makeAnd(pf, af);
+      PathFormula eq = pfManager.makePrimedEqualities(et.getAbstractionPathFormula(), 1);
       newPF = pfManager.makeAnd(newPF, eq);
       // make equalities before last indexes in af and the same variables primes 2*tid+1 times
 

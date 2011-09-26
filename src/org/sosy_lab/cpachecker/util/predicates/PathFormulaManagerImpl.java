@@ -64,8 +64,8 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     Formula dummy = fmgr.makePredicateVariable("dummy", 0);
     Formula not_dummy = fmgr.makeNot(dummy);
     Formula fancyFalse = fmgr.makeAnd(dummy, not_dummy);
-    //falsePathFormula = new PathFormula(fmgr.makeFalse(), emptyBuilder.build(), 0);
-    falsePathFormula = new PathFormula(fancyFalse, emptyBuilder.build(), 0);
+    falsePathFormula = new PathFormula(fmgr.makeFalse(), emptyBuilder.build(), 0);
+    //falsePathFormula = new PathFormula(fancyFalse, emptyBuilder.build(), 0);
   }
 
 
@@ -625,7 +625,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
     Formula alleq = fmgr.makeTrue();
     SSAMap ssa = af.getSsa();
-    SSAMapBuilder newssa = ssa.builder();
+    SSAMapBuilder newssa = SSAMap.emptySSAMap().builder();
 
     for (String varName : ssa.allVariables()){
       Pair<String, Integer> data = PathFormula.getPrimeData(varName);
@@ -638,9 +638,8 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
         Formula eq  = fmgr.makeEqual(uf, pf);
         alleq       = fmgr.makeAnd(alleq, eq);
 
-        if (newssa.getIndex(pVar) < idx){
-          newssa.setIndex(pVar, idx);
-        }
+        newssa.setIndex(pVar, idx);
+        newssa.setIndex(varName, idx);
       }
     }
 
