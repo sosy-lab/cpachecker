@@ -141,7 +141,8 @@ public class CtoFormulaConverter {
 
   // list of functions that are pure (no side-effects)
   private static final Set<String> PURE_EXTERNAL_FUNCTIONS
-      = ImmutableSet.of("__assert_fail", "printf", "puts", "printk");
+      = ImmutableSet.of("__assert_fail", "printf", "puts", "printk",
+          "strcasecmp", "strchr", "strcmp", "strlen", "strncmp", "strrchr", "strstr");
 
   //names for special variables needed to deal with functions
   private static final String VAR_RETURN_NAME = "__retval__";
