@@ -136,7 +136,8 @@ public class CtoFormulaConverter {
       "__VERIFIER_nondet_short", "__VERIFIER_nondet_char", "__VERIFIER_nondet_float"
       );
 
-  @Option(description = "the machine model used for functions sizeof and alignof")
+  @Option(description = "the machine model used for functions sizeof and alignof",
+          values="32-Linux")
   private String machineModel = "32-Linux";
 
   // list of functions that are pure (no side-effects)
