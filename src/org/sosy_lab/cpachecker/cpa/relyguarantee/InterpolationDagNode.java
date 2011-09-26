@@ -91,7 +91,7 @@ public class InterpolationDagNode extends InterpolationBlock{
 
   public String toString() {
     RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(artElement, RelyGuaranteeAbstractElement.class);
-    return "InterpolationDagNode element thread:"+rgElement.getTid()+" id:"+artElement.getElementId()+", trace:"+traceNo+", "+this.hashCode();
+    return "DAG node ("+rgElement.getTid()+", "+artElement.getElementId()+") : "+pathFormula;
   }
 
   public int getTid() {

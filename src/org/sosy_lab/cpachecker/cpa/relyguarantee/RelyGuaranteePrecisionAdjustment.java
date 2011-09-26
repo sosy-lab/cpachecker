@@ -138,11 +138,12 @@ public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustme
 
 
   protected AbstractionFormula computeAbstraction(AbstractionFormula pAbstractionFormula, PathFormula pPathFormula, Collection<AbstractionPredicate> pPreds, CFANode node, Map<Integer, RelyGuaranteeCFAEdge> pMap) {
-    if (DAGRefinement){
+    return formulaManager.buildAbstraction(pAbstractionFormula, pPathFormula, pPreds);
+    /* if (DAGRefinement){
       return formulaManager.buildNonModularAbstraction(pAbstractionFormula, pPathFormula, pPreds, pMap);
     } else {
       return formulaManager.buildAbstraction(pAbstractionFormula, pPathFormula, pPreds);
-    }
+    }*/
 
   }
 

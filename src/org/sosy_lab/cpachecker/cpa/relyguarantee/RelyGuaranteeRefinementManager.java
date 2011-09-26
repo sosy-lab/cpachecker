@@ -340,6 +340,13 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     IntegerWrapper newUnique = new IntegerWrapper(reachedSets.length);
     getRootsForElement(reachedSets, errorElem, tid, mainDag, newUnique);
 
+    System.out.println();
+    System.out.println("Main DAG:");
+    for (Pair<Integer, Integer> key : mainDag.getNodeMap().keySet()){
+      System.out.println(mainDag.getNodeMap().get(key));
+    }
+
+
     if (debug){
       mainDag.writeToDOT(dagFilePredix+"_main.dot");
     }
@@ -511,7 +518,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
       // how to rename variables in the path formula
       Map<Integer, Integer> adjustmentMap = new HashMap<Integer, Integer>();
-      adjustmentMap.put(0, tid);
 
       if (debug && !rgElement.getOldPrimedMap().values().isEmpty() ){
         System.out.print("\t env. tr. from id:");
@@ -548,17 +554,14 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
           node.getParents().add(envNode);
         }
 
-        // primed envPrimedNo+1 -> source tid, envPrimedNo > unique
-        adjustmentMap.put(envPrimeNo, newUnique.getValue());
-        adjustmentMap.put(envPrimeNo+1, sourceTid);
-        // rember the uniquee numbers
-        node.getEnvPrimes().put(rgEdge, newUnique.getValue());
+        int currentUnique = rgEdge.getUniquePrime();
+        adjustmentMap.put(currentUnique, newUnique.getValue());
         newUnique.setValue(newUnique.getValue()+1);
 
       }
 
       // rename the formula if the node is new
-      if (newNode){
+      if (newNode && !adjustmentMap.isEmpty()){
         PathFormula adjustedPf = pmgr.adjustPrimedNo(rgElement.getAbstractionFormula().getBlockPathFormula(), adjustmentMap);
         node = dag.replacePathFormulaInNode(node, adjustedPf);
 
@@ -1975,8 +1978,8 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
         for (Formula fr : atoms){
           //System.out.println("atom "+fr);
-          Formula atom = fmgr.extractNonmodularFormula(fr, tid, traceMap);
-          AbstractionPredicate atomPredicate = amgr.makePredicate(atom);
+          //Formula atom = fmgr.extractNonmodularFormula(fr, tid, traceMap);
+          AbstractionPredicate atomPredicate = amgr.makePredicate(fr);
           result.add(atomPredicate);
         }
       }
