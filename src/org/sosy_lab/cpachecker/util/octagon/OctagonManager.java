@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.octagon;
 
 public class OctagonManager {
 
-  static OctWrapper wrapper = new OctWrapper();
+  private static final OctWrapper wrapper = new OctWrapper();
 
   /* Initialization */
   public static boolean init(){

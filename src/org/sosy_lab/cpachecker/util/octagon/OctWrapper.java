@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.octagon;
 
-public class OctWrapper {
+class OctWrapper {
 
 	/* Initialization */
 	public native boolean J_init ();  			//int oct_init()

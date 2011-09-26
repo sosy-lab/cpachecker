@@ -27,11 +27,11 @@ public class NumArray {
 
   private final long array;
 
-  public NumArray(long l){
+  NumArray(long l){
     array = l;
   }
 
-  public long getArray() {
+  long getArray() {
     return array;
   }
 
