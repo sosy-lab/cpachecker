@@ -41,7 +41,7 @@ import org.eclipse.cdt.core.parser.ParserFactory;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
-import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
@@ -83,13 +83,13 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
   protected abstract T wrapFile(String pFilename) throws IOException;
 
   @Override
-  public CFA parseFile(String pFilename) throws ParserException, IOException {
+  public ParseResult parseFile(String pFilename) throws ParserException, IOException {
 
     return buildCFA(parse(wrapFile(pFilename)));
   }
 
   @Override
-  public CFA parseString(String pCode) throws ParserException {
+  public ParseResult parseString(String pCode) throws ParserException {
 
     return buildCFA(parse(wrapCode(pCode)));
   }
@@ -143,7 +143,7 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
 
   protected abstract IASTTranslationUnit getASTTranslationUnit(T code) throws ParserException, CFAGenerationRuntimeException, CoreException;
 
-  private CFA buildCFA(IASTTranslationUnit ast) throws ParserException {
+  private ParseResult buildCFA(IASTTranslationUnit ast) throws ParserException {
     cfaTimer.start();
     try {
       CFABuilder builder = new CFABuilder(logger, ignoreCasts);
@@ -153,7 +153,7 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
         throw new ParserException(e);
       }
 
-      return new CFA(builder.getCFAs(), builder.getCFANodes(), builder.getGlobalDeclarations());
+      return new ParseResult(builder.getCFAs(), builder.getCFANodes(), builder.getGlobalDeclarations());
     } finally {
       cfaTimer.stop();
     }

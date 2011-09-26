@@ -43,7 +43,7 @@ import com.google.common.collect.SortedSetMultimap;
  * It is recommended to use it only as a "transport" data class, not for
  * permanent storage.
  */
-public class CFA {
+public class ParseResult {
 
   private final Map<String, CFAFunctionDefinitionNode> functions;
 
@@ -51,7 +51,7 @@ public class CFA {
 
   private final List<IASTDeclaration> globalDeclarations;
 
-  public CFA(Map<String, CFAFunctionDefinitionNode> pFunctions,
+  public ParseResult(Map<String, CFAFunctionDefinitionNode> pFunctions,
       SortedSetMultimap<String, CFANode> pCfaNodes,
       List<IASTDeclaration> pGlobalDeclarations) {
     functions = pFunctions;

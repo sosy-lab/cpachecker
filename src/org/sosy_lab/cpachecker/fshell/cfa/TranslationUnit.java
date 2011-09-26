@@ -31,7 +31,7 @@ import java.util.Map;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.CFASecondPassBuilder;
 import org.sosy_lab.cpachecker.cfa.CFATopologicalSort;
 import org.sosy_lab.cpachecker.cfa.CParser;
@@ -95,7 +95,7 @@ class TranslationUnit {
   }
 
   public static TranslationUnit parseString(String pSource, LogManager pLogManager) {
-    CFA c;
+    ParseResult c;
     try {
       CParser parser = CParser.Factory.getParser(pLogManager, CParser.Factory.getDefaultOptions());
       c = parser.parseString(pSource);

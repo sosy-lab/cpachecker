@@ -167,7 +167,7 @@ public class CFACreator {
     try {
 
       logger.log(Level.FINE, "Starting parsing of file");
-      CFA c = parser.parseFile(filename);
+      ParseResult c = parser.parseFile(filename);
       logger.log(Level.FINE, "Parser Finished");
 
       final Map<String, CFAFunctionDefinitionNode> cfas = c.getFunctions();
