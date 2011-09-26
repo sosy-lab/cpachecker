@@ -12,5 +12,9 @@ STATE USEFIRST Init :
 
   -> ERROR;
 
+     MATCH {assert($?)}
+  -> PRINT "WARNING: Function assert() detected. You need to run the C preprocessor or CIL on this file if you want to check the assertions!"
+     GOTO Init;
+
 
 END AUTOMATON
