@@ -148,11 +148,14 @@ def getSourceFiles(sourcefilesTagList):
                 # read files from list
                 fileWithList = open(file, "r")
                 for line in fileWithList:
-                    
-                    # ignore comments
-                    if not line.startswith("#") and not line.startswith("//"):
-                        # strip() removes 'newline' behind the line
-                        currentSourcefiles += getFileList(line.strip(), fileDir)
+
+                    # strip() removes 'newline' behind the line
+                    line = line.strip()
+
+                    # ignore comments and empty lines
+                    if line and not line.startswith("#") \
+                            and not line.startswith("//"):
+                        currentSourcefiles += getFileList(line, fileDir)
 
                 fileWithList.close()
 
