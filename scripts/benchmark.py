@@ -17,6 +17,8 @@ OUTPUT_PATH = "./test/results/"
 
 CSV_SEPARATOR = "\t"
 
+BUG_SUBSTRING_LIST = ['bug', 'unsafe']
+
 
 # the number of digits after the decimal separator of the time column,
 # for the other columns it can be configured in the xml-file
@@ -250,6 +252,7 @@ class OutputHandler:
         """
 
         self.benchmark = benchmark
+        self.statistics = Statistics()
 
         # create folder for file-specific log-files.
         # if the folder exists, it will be used.
@@ -650,6 +653,8 @@ class OutputHandler:
                 + [column.value for column in self.benchmark.columns])
         self.CSVFiles[self.getFileName(self.test.name, "csv")].append(CSVLine + "\n")
 
+        self.statistics.addResult(sourcefile, status)
+
 
     def outputAfterTest(self, cpuTimeTest, wallTimeTest):
         """
@@ -716,6 +721,10 @@ class OutputHandler:
         return outputLine
 
 
+    def outputAfterBenchmark(self):
+        self.statistics.printToTerminal()
+
+
     def formatNumber(self, number, numberOfDigits):
             """
             The function formatNumber() return a string-representation of a number
@@ -743,6 +752,58 @@ class OutputHandler:
             fileName += testname + "."
 
         return fileName + fileExtension
+
+
+class Statistics:
+
+    def __init__(self):
+        self.counter = 0
+        self.correctSafe = 0
+        self.correctUnsafe = 0
+        self.unknown = 0
+        self.wrongUnsafe = 0
+        self.wrongSafe = 0
+
+
+    def addResult(self, filename, status):
+        self.counter += 1
+
+        status = status.lower()
+        isSafeFile = not self.containsAny(filename.lower(), BUG_SUBSTRING_LIST)
+
+        if status == 'safe':
+            if isSafeFile:
+                self.correctSafe += 1
+            else:
+                self.wrongSafe += 1
+        elif status == 'unsafe':
+            if isSafeFile:
+                self.wrongUnsafe += 1
+            else:
+                self.correctUnsafe += 1
+        else:
+                self.unknown += 1
+
+
+    def printToTerminal(self):
+        print '\n'.join(['\nStatistics:' + str(self.counter).rjust(13) + ' Files',
+                 '    correct:        ' + str(self.correctSafe + self.correctUnsafe).rjust(4),
+                 '    unknown:        ' + str(self.unknown).rjust(4),
+                 '    false negatives:' + str(self.wrongUnsafe).rjust(4) + \
+                 '        (file is safe, result is unsafe)',
+                 '    false positives:' + str(self.wrongSafe).rjust(4) + \
+                 '        (file is unsafe, result is safe)',
+                 ''])
+
+
+    def containsAny(self, text, list):
+        '''
+        This function returns True, iff any string in list is a substring of text.
+        '''
+        for elem in list:
+            if text.find(elem) != -1:
+                return True
+        return False
 
 
 def getOptions(optionsTag):
@@ -1203,6 +1264,8 @@ def runBenchmark(benchmarkFile):
             - (ruBefore.ru_utime + ruBefore.ru_stime)
     
             outputHandler.outputAfterTest(cpuTimeTest, wallTimeTest)
+
+    outputHandler.outputAfterBenchmark()
 
 
 def main(argv=None):
