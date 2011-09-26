@@ -48,6 +48,7 @@ public class TemplateFormulaManager implements FormulaManager {
 
   // ----------------- Boolean formulas -----------------
 
+  @Override
   public boolean isBoolean(Formula pF) {
     // For TemplateFormulas, to be boolean is to be a subclass of
     // TemplateConjunction.
@@ -57,6 +58,7 @@ public class TemplateFormulaManager implements FormulaManager {
   /**
    * @return a Formula representing logical truth
    */
+  @Override
   public Formula makeTrue() {
     return new TemplateTrue();
   }
@@ -64,6 +66,7 @@ public class TemplateFormulaManager implements FormulaManager {
   /**
    * @return a Formula representing logical falsity
    */
+  @Override
   public Formula makeFalse() {
     return new TemplateFalse();
   }
@@ -73,6 +76,7 @@ public class TemplateFormulaManager implements FormulaManager {
    * @param f a Formula
    * @return (!f1)
    */
+  @Override
   public Formula makeNot(Formula f) {
     NonTemplate NT = null;
     try {
@@ -90,6 +94,7 @@ public class TemplateFormulaManager implements FormulaManager {
    * @param f2 a Formula
    * @return (f1 & f2)
    */
+  @Override
   public Formula makeAnd(Formula f1, Formula f2) {
     Formula F = null;
     // Old method:
@@ -127,6 +132,7 @@ public class TemplateFormulaManager implements FormulaManager {
    * @param f2 a Formula
    * @return (f1 | f2)
    */
+  @Override
   public Formula makeOr(Formula f1, Formula f2) {
     // We do not allow disjunctions in templates.
     return new NonTemplate();
@@ -138,6 +144,7 @@ public class TemplateFormulaManager implements FormulaManager {
    * @param f2 a Formula
    * @return (f1 <-> f2)
    */
+  @Override
   public Formula makeEquivalence(Formula f1, Formula f2) {
     // We do not allow equivalences in templates.
     return new NonTemplate();
@@ -151,6 +158,7 @@ public class TemplateFormulaManager implements FormulaManager {
    * @return (IF atom THEN f1 ELSE f2)
    */
 
+  @Override
   public Formula makeIfThenElse(Formula cond,
                 Formula f1, Formula f2) {
     // We do not allow ifthenelse structures in templates.
@@ -160,6 +168,7 @@ public class TemplateFormulaManager implements FormulaManager {
 
   // ----------------- Numeric formulas -----------------
 
+  @Override
   public Formula makeNumber(int pI) {
     TemplateNumber N = new TemplateNumber(pI);
     TemplateTerm T = new TemplateTerm();
@@ -167,6 +176,7 @@ public class TemplateFormulaManager implements FormulaManager {
     return T;
   }
 
+  @Override
   public Formula makeNumber(String pI) {
     TemplateNumber N = new TemplateNumber(pI);
     TemplateTerm T = new TemplateTerm();
@@ -174,6 +184,7 @@ public class TemplateFormulaManager implements FormulaManager {
     return T;
   }
 
+  @Override
   public Formula makeNegate(Formula pF) {
     TemplateFormula tf = null;
     try {
@@ -185,6 +196,7 @@ public class TemplateFormulaManager implements FormulaManager {
     return tf;
   }
 
+  @Override
   public Formula makePlus(Formula pF1, Formula pF2) {
     Formula F = null;
     try {
@@ -198,6 +210,7 @@ public class TemplateFormulaManager implements FormulaManager {
     return F;
   }
 
+  @Override
   public Formula makeMinus(Formula pF1, Formula pF2) {
     Formula F = null;
     try {
@@ -211,6 +224,7 @@ public class TemplateFormulaManager implements FormulaManager {
     return F;
   }
 
+  @Override
   public Formula makeDivide(Formula pF1, Formula pF2) {
     Formula F = null;
     try {
@@ -224,10 +238,12 @@ public class TemplateFormulaManager implements FormulaManager {
     return F;
   }
 
+  @Override
   public Formula makeModulo(Formula pF1, Formula pF2) {
     return new NonTemplate();
   }
 
+  @Override
   public Formula makeMultiply(Formula pF1, Formula pF2) {
     Formula F = null;
     try {
@@ -243,6 +259,7 @@ public class TemplateFormulaManager implements FormulaManager {
 
   // ----------------- Numeric relations -----------------
 
+  @Override
   public Formula makeEqual(Formula pF1, Formula pF2) {
     Formula F = null;
     try {
@@ -256,11 +273,13 @@ public class TemplateFormulaManager implements FormulaManager {
     return F;
   }
 
+  @Override
   public Formula makeGt(Formula pF1, Formula pF2) {
     // For now, we do not allow strict inequalities.
     return new NonTemplate();
   }
 
+  @Override
   public Formula makeGeq(Formula pF1, Formula pF2) {
     Formula F = null;
     try {
@@ -274,11 +293,13 @@ public class TemplateFormulaManager implements FormulaManager {
     return F;
   }
 
+  @Override
   public Formula makeLt(Formula pF1, Formula pF2) {
     // For now, we do not allow strict inequalities.
     return new NonTemplate();
   }
 
+  @Override
   public Formula makeLeq(Formula pF1, Formula pF2) {
     Formula F = null;
     try {
@@ -294,32 +315,39 @@ public class TemplateFormulaManager implements FormulaManager {
 
   // ----------------- Bit-manipulation functions -----------------
 
+  @Override
   public Formula makeBitwiseNot(Formula pF) {
     return new NonTemplate();
   }
 
+  @Override
   public Formula makeBitwiseAnd(Formula pF1, Formula pF2) {
     return new NonTemplate();
   }
 
+  @Override
   public Formula makeBitwiseOr(Formula pF1, Formula pF2) {
     return new NonTemplate();
   }
 
+  @Override
   public Formula makeBitwiseXor(Formula pF1, Formula pF2) {
     return new NonTemplate();
   }
 
+  @Override
   public Formula makeShiftLeft(Formula pF1, Formula pF2) {
     return new NonTemplate();
   }
 
+  @Override
   public Formula makeShiftRight(Formula pF1, Formula pF2) {
     return new NonTemplate();
   }
 
   // ----------------- Uninterpreted functions -----------------
 
+  @Override
   public Formula makeUIF(String pName, FormulaList pArgs) {
     Formula F = null;
     try {
@@ -336,6 +364,7 @@ public class TemplateFormulaManager implements FormulaManager {
     return F;
   }
 
+  @Override
   public Formula makeUIF(String pName, FormulaList pArgs, int pIdx)
   {
     Formula F = null;
@@ -355,6 +384,7 @@ public class TemplateFormulaManager implements FormulaManager {
 
   // ----------------- Other formulas -----------------
 
+  @Override
   public Formula makeString(int pI) {
     return new NonTemplate();
   }
@@ -362,11 +392,13 @@ public class TemplateFormulaManager implements FormulaManager {
   /**
    * See declaration of TemplateParseMode enum type.
    */
+  @Override
   public Formula makeVariable(String pVar, int pIdx) {
     Integer i = new Integer(pIdx);
     return makeVariable(pVar, i);
   }
 
+  @Override
   public Formula makeVariable(String pVar) {
     return makeVariable(pVar, null);
   }
@@ -396,10 +428,12 @@ public class TemplateFormulaManager implements FormulaManager {
     return T;
   }
 
+  @Override
   public Formula makePredicateVariable(String pVar, int pIdx) {
     return new NonTemplate();
   }
 
+  @Override
   public Formula makeAssignment(Formula pF1, Formula pF2) {
     Formula F = null;
     try {
@@ -415,16 +449,19 @@ public class TemplateFormulaManager implements FormulaManager {
 
   // ----------------- Convert to list -----------------
 
+  @Override
   public FormulaList makeList(Formula pF) {
     Formula[] fs = {pF};
     return new TemplateFormulaList(fs);
   }
 
+  @Override
   public FormulaList makeList(Formula pF1, Formula pF2) {
     Formula[] fs = {pF1, pF2};
     return new TemplateFormulaList(fs);
   }
 
+  @Override
   public FormulaList makeList(List<Formula> pFs) {
     return new TemplateFormulaList(pFs);
   }
@@ -443,6 +480,7 @@ public class TemplateFormulaManager implements FormulaManager {
    * @return The same formula in the internal representation.
    * @throws IllegalArgumentException If the string cannot be parsed.
    */
+  @Override
   public Formula parseInfix(String s) throws IllegalArgumentException {
     return null;
   }
@@ -452,6 +490,7 @@ public class TemplateFormulaManager implements FormulaManager {
    * @return The same formula in the internal representation.
    * @throws IllegalArgumentException If the string cannot be parsed.
    */
+  @Override
   public Formula parse(String s) throws IllegalArgumentException {
     return null;
   }
@@ -465,6 +504,7 @@ public class TemplateFormulaManager implements FormulaManager {
    * @return a copy of f in which every "generic" variable is replaced by the
    * corresponding "SSA instance"
    */
+  @Override
   public Formula instantiate(Formula f, SSAMap ssa) {
     return null;
   }
@@ -474,6 +514,7 @@ public class TemplateFormulaManager implements FormulaManager {
    * which all the variables are "generic" ones. This is the inverse of the
    * instantiate() method above
    */
+  @Override
   @Deprecated
     public Formula uninstantiate(Formula pF) { return null; }
 
@@ -489,6 +530,7 @@ public class TemplateFormulaManager implements FormulaManager {
    *                         instead of [a, b, c]
    * @return a collection of (atomic) formulas
    */
+  @Override
   public Collection<Formula> extractAtoms(Formula f,
     boolean splitArithEqualities, boolean conjunctionsOnly) {
 
@@ -510,12 +552,14 @@ public class TemplateFormulaManager implements FormulaManager {
    * Create string representation of a formula in a format which may be dumped
    * to a file.
    */
+  @Override
   public String dumpFormula(Formula pT) { return null; }
 
   /**
    * Looks for uninterpreted functions in the formula and adds bitwise
    * axioms for them.
    */
+  @Override
   public Formula getBitwiseAxioms(Formula f) { return null; }
 
   /**
@@ -523,6 +567,7 @@ public class TemplateFormulaManager implements FormulaManager {
    * be any tracking of the correspondence between the atom and the variable,
    * if it is not done by the caller of this method.
    */
+  @Override
   public Formula createPredicateVariable(Formula pAtom) {
     return null;
   }

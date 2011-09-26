@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.util.invariants.templates.VariableWriteMode;
 
 public interface GeneralVariable {
 
+  @Override
   public String toString();
 
   public String toString(VariableWriteMode vwm);

@@ -250,14 +250,17 @@ public class TemplateConstraint extends TemplateConjunction implements Constrain
     return false;
   }
 
+  @Override
   public List<Coeff> getNormalFormCoeffs(VariableManager vmgr, VariableWriteMode vwm) {
     return LHS.getCoeffsWithParams(vwm, vmgr);
   }
 
+  @Override
   public Coeff getNormalFormConstant(VariableWriteMode vwm) {
     return new Coeff(RHS.toString(vwm));
   }
 
+  @Override
   public InfixReln getInfixReln() {
     return reln;
   }

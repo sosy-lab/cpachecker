@@ -213,8 +213,10 @@ public class TemplateFormula implements Formula, Template {
 
   public void negate() {}
 
+  @Override
   public boolean isTrue() { return false; }
 
+  @Override
   public boolean isFalse() { return false; }
 
   @Override

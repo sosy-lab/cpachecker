@@ -65,6 +65,7 @@ public class TemplateVariableManager implements VariableManager {
   /**
    * @return an iterator over the variables
    */
+  @Override
   public Iterator<GeneralVariable> iterator() {
     Vector<GeneralVariable> gvars = new Vector<GeneralVariable>();
     GeneralVariable GV;
@@ -79,6 +80,7 @@ public class TemplateVariableManager implements VariableManager {
    * @param v the Variable to find
    * @return -1 if the variable is not found, else its index
    */
+  @Override
   public int find(GeneralVariable v) {
     return vars.indexOf(v);
   }
@@ -86,6 +88,7 @@ public class TemplateVariableManager implements VariableManager {
   /**
    * @return the number of variables
    */
+  @Override
   public int getNumVars() {
     return vars.size();
   }
