@@ -322,7 +322,9 @@ public final class DOTBuilder2 {
                             .replaceAll("\\|", "&#124;")
                             .replaceAll("&", "&amp;")
                             .replaceAll("<", "&lt;")
-                            .replaceAll(">", "&gt;"));
+                            .replaceAll(">", "&gt;")
+                            .replaceAll("\\{", "&#123;")
+                            .replaceAll("\\}", "&#125;"));
           sb.append("</td></tr>");
         }
         sb.append("</table>>");
