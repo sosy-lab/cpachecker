@@ -209,11 +209,6 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
 
 
-  @Override
-  public PathFormula makeRelyGuaranteeOr(PathFormula pF1, PathFormula pF2) {
-    return delegate.makeRelyGuaranteeOr(pF1, pF2);
-  }
-
 
   @Override
   public PathFormula makeFalsePathFormula() {
@@ -254,6 +249,12 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   @Override
   public PathFormula makePrimedEqualities(PathFormula pPf1, int pI,PathFormula pPf2, int pJ) {
     return delegate.makePrimedEqualities(pPf1, pI, pPf2, pJ);
+  }
+
+
+  @Override
+  public PathFormula makeRelyGuaranteeOr(PathFormula pf1, PathFormula pf2, int i) {
+    return delegate.makeRelyGuaranteeOr(pf1, pf2, i);
   }
 
 

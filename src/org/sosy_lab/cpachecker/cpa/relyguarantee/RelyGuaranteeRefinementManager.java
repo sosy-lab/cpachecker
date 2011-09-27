@@ -31,7 +31,6 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
@@ -41,9 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.TreeMap;
 import java.util.Vector;
-import java.util.logging.Level;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
@@ -68,7 +65,6 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
@@ -164,7 +160,8 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       if (this.DAGRefinement){
         return interpolateDagsMathsat(targetElement,  reachedSets, tid, firstItpProver, stats);
       } else {
-        return interpolateTreeMathsat(targetElement,  reachedSets, tid, firstItpProver, stats);
+        //return interpolateTreeMathsat(targetElement,  reachedSets, tid, firstItpProver, stats);
+        throw new InterruptedException("Curretly only DAG refinement is supported.");
       }
 
     } else {
@@ -218,7 +215,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
    * @throws CPAException
    * @throws InterruptedException
    */
-  public List<InterpolationBlock> getTreeForElement(ARTElement target, ReachedSet[] reachedSets, int threadNo) throws InterruptedException, CPAException{
+  /*public List<InterpolationBlock> getTreeForElement(ARTElement target, ReachedSet[] reachedSets, int threadNo) throws InterruptedException, CPAException{
 
     if (debug){
       System.out.println();
@@ -230,15 +227,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     List<InterpolationBlock> rgResult = new ArrayList<InterpolationBlock>();
 
-    /*if (target.isDestroyed()){
-      // the env transition was generate in a part of ART that has been dropped by refinement, so return a false formula
-      PathFormula falsePf = pmgr.makeFalsePathFormula();
-      Set<InterpolationBlockScope> ibSet = new HashSet<InterpolationBlockScope>(1);
-      ibSet.add(new InterpolationBlockScope(0, target));
-      InterpolationBlock ib = new InterpolationBlock(falsePf, ibSet);
-      rgResult.add(ib);
-      return rgResult;
-    }*/
 
     // get the set of ARTElement that have been abstracted
     Path cfaPath = computePath(target, reachedSets[threadNo]);
@@ -265,11 +253,11 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       AbstractionElement rgElement = (AbstractionElement) triple.getThird();
 
       if (debug){
-        printEnvEdgesApplied(artElement, rgElement.getOldPrimedMap().values());
+        printEnvEdgesApplied(artElement, rgElement.getOldEdgeMap().keySet());
       }
 
       // map : env edge applied -> the rest path formula of the env. trace
-      Map<Integer, Integer> adjustmentMap = new HashMap<Integer, Integer>(rgElement.getPrimedMap().size());
+      Map<Integer, Integer> adjustmentMap = new HashMap<Integer, Integer>();
 
       // get the blocks for environmental transitions
       for(Integer primedNo: rgElement.getOldPrimedMap().keySet()){
@@ -304,7 +292,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     }
     return rgResult;
-  }
+  }*/
 
   /**
    * Writes a DOT file for DAG representation of ARTs and environemntal transitions.
@@ -518,9 +506,9 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       // how to rename variables in the path formula
       Map<Integer, Integer> adjustmentMap = new HashMap<Integer, Integer>();
 
-      if (debug && !rgElement.getOldPrimedMap().values().isEmpty() ){
+      if (debug && !rgElement.getOldEdgeMap().keySet().isEmpty() ){
         System.out.print("\t env. tr. from id:");
-        for(RelyGuaranteeCFAEdge rgEdge : rgElement.getOldPrimedMap().values()){
+        for(RelyGuaranteeCFAEdge rgEdge : rgElement.getOldEdgeMap().keySet()){
           ARTElement sourceARTElement = rgEdge.getSourceARTElement();
           System.out.print(sourceARTElement.getElementId()+" ");
         }
@@ -528,8 +516,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       }
 
       // rename env. transitions to their source thread numbers
-      for(Integer envPrimeNo : rgElement.getOldPrimedMap().keySet()){
-        RelyGuaranteeCFAEdge rgEdge = rgElement.getOldPrimedMap().get(envPrimeNo);
+      for(RelyGuaranteeCFAEdge rgEdge : rgElement.getEdgeMap().keySet()){
         ARTElement sourceARTElement = rgEdge.getSourceARTElement();
         Integer sourceTid           = rgEdge.getSourceTid();
         assert sourceTid != tid;
@@ -602,11 +589,11 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
    * @throws InterruptedException
    * @throws CPAException
    */
-  public Pair<List<InterpolationDagNode>,  Multimap<Integer, Integer>> getDagForElement(ARTElement errorElement, ReachedSet[] reachedSets, Integer errorTid) throws InterruptedException, CPAException {
+ /* public Pair<List<InterpolationDagNode>,  Multimap<Integer, Integer>> getDagForElement(ARTElement errorElement, ReachedSet[] reachedSets, Integer errorTid) throws InterruptedException, CPAException {
     Map<Pair<Integer, Integer>, InterpolationDagNode> nodeMap = new HashMap<Pair<Integer, Integer>, InterpolationDagNode>();
     Multimap<Integer, Integer> traceMap = HashMultimap.create();
     return Pair.of(getDagForElement(errorElement, reachedSets, errorTid, nodeMap, traceMap).getFirst(), traceMap);
-  }
+  }*/
 
 
   /**
@@ -619,7 +606,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
    * @throws CPAException
    * @throws InterruptedException
    */
-  public Triple<List<InterpolationDagNode>, ARTElement, Integer> getDagForElement(ARTElement target, ReachedSet[] reachedSets, Integer tid, Map<Pair<Integer, Integer>, InterpolationDagNode> nodeMap, Multimap<Integer, Integer> traceMap) throws InterruptedException, CPAException{
+ /* public Triple<List<InterpolationDagNode>, ARTElement, Integer> getDagForElement(ARTElement target, ReachedSet[] reachedSets, Integer tid, Map<Pair<Integer, Integer>, InterpolationDagNode> nodeMap, Multimap<Integer, Integer> traceMap) throws InterruptedException, CPAException{
 
     assert !target.isDestroyed() && reachedSets[tid].contains(target);
 
@@ -837,7 +824,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     return Triple.of(roots, predecessorNode.getArtElement(), traceNo);
 
 
-  }
+  }*/
 
   /**
    * Check the correctness of a Dag
@@ -1041,7 +1028,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         stats.interpolationTimer.stop();
 
         if (debug){
-          System.out.println("\tFeasbile error trace.");
+          System.out.println("\tFeasible error trace.");
         }
         break;
 
@@ -1097,7 +1084,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
    * @param pFirstItpProver
    * @return
    */
-  private <T> CounterexampleTraceInfo interpolateDagMathsat(ARTElement targetElement,  ReachedSet[] reachedSets, int tid , InterpolatingTheoremProver<T> itpProver, RelyGuaranteeRefinerStatistics stats) throws CPAException, InterruptedException{
+  /*private <T> CounterexampleTraceInfo interpolateDagMathsat(ARTElement targetElement,  ReachedSet[] reachedSets, int tid , InterpolatingTheoremProver<T> itpProver, RelyGuaranteeRefinerStatistics stats) throws CPAException, InterruptedException{
     logger.log(Level.FINEST, "Building counterexample trace");
 
     // get the DAG representation of the abstractions and env. transitions involved
@@ -1227,7 +1214,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     refStats.cexAnalysisTimer.stop();
 
     return info;
-  }
+  }*/
 
 
   // TODO do sth
@@ -1567,7 +1554,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
    * @param pFirstItpProver
    * @return
    */
-  private <T> CounterexampleTraceInfo interpolateTreeMathsat(ARTElement targetElement,  ReachedSet[] reachedSets, int threadNo , InterpolatingTheoremProver<T> itpProver, RelyGuaranteeRefinerStatistics stats) throws CPAException, InterruptedException{
+  /*private <T> CounterexampleTraceInfo interpolateTreeMathsat(ARTElement targetElement,  ReachedSet[] reachedSets, int threadNo , InterpolatingTheoremProver<T> itpProver, RelyGuaranteeRefinerStatistics stats) throws CPAException, InterruptedException{
     logger.log(Level.FINEST, "Building counterexample trace");
 
     // get the rely guarantee path for the element
@@ -1622,7 +1609,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
        *         --D--|--C--|--A-- main thread
        *                   Psi
        */
-
+/*
       info = new CounterexampleTraceInfo();
       // the last formula's trace no.
       int previousPrimedNo = 0;
@@ -1757,7 +1744,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     refStats.cexAnalysisTimer.stop();
 
     return info;
-  }
+  }*/
 
 
   /**

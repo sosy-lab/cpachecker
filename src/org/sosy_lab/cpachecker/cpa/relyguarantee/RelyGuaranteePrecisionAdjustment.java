@@ -118,7 +118,7 @@ public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustme
 
     // compute new abstraction
     AbstractionFormula newAbstractionFormula = computeAbstraction(
-        abstractionFormula, pathFormula, preds, loc, element.getPrimedMap());
+        abstractionFormula, pathFormula, preds, loc);
 
     computingAbstractionTime.stop();
 
@@ -139,7 +139,7 @@ public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustme
     }
 
 
-    return new RelyGuaranteeAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula, element.getParentEdge(),this.cpa.getTid(), element.getPrimedMap(), element.getEdgeMap());
+    return new RelyGuaranteeAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula, element.getParentEdge(),this.cpa.getTid(), element.getEdgeMap());
   }
 
 

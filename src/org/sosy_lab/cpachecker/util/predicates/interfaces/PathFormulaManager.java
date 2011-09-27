@@ -52,7 +52,15 @@ public interface PathFormulaManager {
    */
   PathFormula makeOr(PathFormula pF1, PathFormula pF2);
 
-  PathFormula makeRelyGuaranteeOr(PathFormula pF1, PathFormula pF2);
+  /**
+   * Creates a new path formula representing an OR of the two arguments.
+   * Variables primed i times are adjusted to the same index.
+   * @param pf1
+   * @param pf2
+   * @param i
+   * @return
+   */
+  PathFormula makeRelyGuaranteeOr(PathFormula pf1, PathFormula pf2, int i);
 
   PathFormula makeAnd(PathFormula pf1, PathFormula pf2);
 
@@ -119,7 +127,7 @@ public interface PathFormulaManager {
 
   /**
    * Makes conjunction of equalities v^i@x <-> v^j@y, where x>0 is the last index of
-   *  variable v^i in the pf1 and y>0 is the last index of v^j in pf2.
+   * variable v^i in pf1 and y>0 is the last index of v^j in pf2.
    * @param pf
    * @param i
    * @param pUniquePrime

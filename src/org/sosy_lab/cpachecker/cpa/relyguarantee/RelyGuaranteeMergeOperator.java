@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -101,7 +99,7 @@ public class RelyGuaranteeMergeOperator extends PredicateMergeOperator {
 
         logger.log(Level.FINEST, "Merging two non-abstraction nodes.");
 
-        int offset = elem1.getPathFormula().getPrimedNo()+1;
+        /*int offset = elem1.getPathFormula().getPrimedNo()+1;
         Map<Integer, RelyGuaranteeCFAEdge> mergedPrimedMap = new HashMap<Integer,RelyGuaranteeCFAEdge>(elem2.getPrimedMap().size()+elem1.getPrimedMap().size());
         Map<Integer, Integer> adjustedMap = new HashMap<Integer, Integer>(elem2.getPrimedMap().size());
         for (Integer primeNo : elem2.getPrimedMap().keySet()){
@@ -110,15 +108,15 @@ public class RelyGuaranteeMergeOperator extends PredicateMergeOperator {
         }
         mergedPrimedMap.putAll(elem1.getPrimedMap());
 
-        PathFormula adjustedPF = formulaManager.adjustPrimedNo(elem2.getPathFormula(), adjustedMap);
+        PathFormula adjustedPF = formulaManager.adjustPrimedNo(elem2.getPathFormula(), adjustedMap);*/
 
 
-        PathFormula pathFormula = formulaManager.makeRelyGuaranteeOr(elem1.getPathFormula(), adjustedPF);
+        PathFormula pathFormula = formulaManager.makeRelyGuaranteeOr(elem1.getPathFormula(), elem2.getPathFormula(), cpa.getTid());
 
         logger.log(Level.ALL, "New path formula is", pathFormula);
 
         // TODO the edge map is not correct if don't abstract after merging
-        merged = new RelyGuaranteeAbstractElement(adjustedPF, elem1.getAbstractionFormula(), cpa.getTid(), mergedPrimedMap, elem1.getEdgeMap());
+        merged = new RelyGuaranteeAbstractElement(pathFormula, elem1.getAbstractionFormula(), cpa.getTid(), elem1.getEdgeMap());
 
         // now mark elem1 so that coverage check can find out it was merged
         elem1.setMergedInto(merged);

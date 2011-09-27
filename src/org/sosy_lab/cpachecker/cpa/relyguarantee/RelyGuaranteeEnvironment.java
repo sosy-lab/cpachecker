@@ -572,13 +572,23 @@ public class RelyGuaranteeEnvironment {
     }
     Formula f1 = env1.getPathFormula().getFormula();
     Formula f2 = env2.getPathFormula().getFormula();
-    SSAMap s1 = env1.getPathFormula().getSsa();
-    SSAMap s2 = env2.getPathFormula().getSsa();
     if (f1.isFalse() || f2.isTrue()) {
       return true;
     }
 
-    Formula nImpl = fManager.makeAnd(f1, fManager.makeNot(f2));
+    // unify unique prime numbers, so transitino can be directly compared
+    Map<Integer, Integer> adjustmentMap = new HashMap<Integer, Integer>();
+
+    Integer u1 = env1.getUniquePrime();
+    adjustmentMap.put(u1, 100);
+    Formula f1a = fManager.adjustedPrimedNo(f1, adjustmentMap);
+
+    adjustmentMap.clear();
+    Integer u2 = env2.getUniquePrime();
+    adjustmentMap.put(u2, 100);
+    Formula f2a =  fManager.adjustedPrimedNo(f2, adjustmentMap);
+
+    Formula nImpl = fManager.makeAnd(f1a, fManager.makeNot(f2a));
     tProver.init();
     try {
       return tProver.isUnsat(nImpl);

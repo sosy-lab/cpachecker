@@ -131,13 +131,13 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
   }
 
 
-  public PathFormula makeRelyGuaranteeOr(PathFormula pF1, PathFormula pF2) {
-    Formula formula1 = pF1.getFormula();
-    Formula formula2 = pF2.getFormula();
-    SSAMap ssa1 = pF1.getSsa();
-    SSAMap ssa2 = pF2.getSsa();
+  public PathFormula makeRelyGuaranteeOr(PathFormula pf1, PathFormula pf2, int tid) {
+    Formula formula1 = pf1.getFormula();
+    Formula formula2 = pf2.getFormula();
+    SSAMap ssa1 = pf1.getSsa();
+    SSAMap ssa2 = pf2.getSsa();
 
-    Pair<Pair<Formula, Formula>,SSAMap> pm = mergeRelyGuaranteeSSAMaps(ssa2, ssa1);
+    Pair<Pair<Formula, Formula>,SSAMap> pm = mergeRelyGuaranteeSSAMaps(ssa2, ssa1, tid);
 
     // do not swap these two lines, that makes a huge difference in performance!
     Formula newFormula2 = fmgr.makeAnd(formula2, pm.getFirst().getFirst());
@@ -146,8 +146,8 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     Formula newFormula = fmgr.makeOr(newFormula1, newFormula2);
     SSAMap newSsa = pm.getSecond();
 
-    int newLength = Math.max(pF1.getLength(), pF2.getLength());
-    int max_prime = Math.max(pF1.getPrimedNo(), pF2.getPrimedNo());
+    int newLength = Math.max(pf1.getLength(), pf2.getLength());
+    int max_prime = Math.max(pf1.getPrimedNo(), pf2.getPrimedNo());
 
 
     return new PathFormula(newFormula, newSsa, newLength, max_prime);
@@ -252,8 +252,8 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
   }
 
 
-  // like mergeSSAMaps, but equivalences are not build over primed variables
-  private Pair<Pair<Formula, Formula>, SSAMap> mergeRelyGuaranteeSSAMaps(SSAMap ssa1, SSAMap ssa2) {
+  // like mergeSSAMaps, but equivalences built over variables primed tid times
+  private Pair<Pair<Formula, Formula>, SSAMap> mergeRelyGuaranteeSSAMaps(SSAMap ssa1, SSAMap ssa2, int tid) {
 
     SSAMap result = SSAMap.merge(ssa1, ssa2);
     Formula mt1 = fmgr.makeTrue();
@@ -261,7 +261,8 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
     for (String var : result.allVariables()) {
       // don't buid equalities over primed varables
-      if (PathFormula.getPrimeData(var).getSecond() > 0) {
+      Pair<String, Integer> data = PathFormula.getPrimeData(var);
+      if (data.getSecond() == null || data.getSecond() != tid) {
         continue;
       }
       if (var.equals(CtoFormulaConverter.NONDET_VARIABLE)) {
@@ -709,6 +710,7 @@ public PathFormula makeUnsatisifiableConstraintsForRedundantIndexes(SSAMap ssato
 
   return new PathFormula(all, ssatop, 0);
 }
+
 
 
 
