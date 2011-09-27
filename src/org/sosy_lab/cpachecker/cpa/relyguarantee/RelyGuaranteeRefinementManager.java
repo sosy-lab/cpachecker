@@ -369,7 +369,13 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     int otherTid = tid == 0 ? 1 : 0;
     List<List<Pair<Integer, Integer>>> branches = mainDag.getBranchesInThread(otherTid);
 
-    for (int i=0; i<branches.size(); i++){
+
+    if (branches.isEmpty()){
+      // there is only the error thread
+      dags.add(mainDag);
+    }
+
+     for (int i=0; i<branches.size(); i++){
       List<Pair<Integer, Integer>> branch = branches.get(i);
       InterpolationDag dag = new InterpolationDag(mainDag);
       dag.retainNodesInThread(branch, otherTid);
@@ -383,15 +389,18 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       SSAMap ssa = dag.getNode(lastNode).getPathFormula().getSsa();
       List<RelyGuaranteeCFAEdge> toRemove = new Vector<RelyGuaranteeCFAEdge>();
       for (RelyGuaranteeCFAEdge edge : appliedMap.values()){
+        if (edge.getSourceTid() != otherTid){
+          continue;
+        }
         SSAMap edgessa = edge.getPathFormula().getSsa();
         boolean removeEdge = false;
         for (String var : edgessa.allVariables()){
           Pair<String, Integer> data = PathFormula.getPrimeData(var);
-          if (data.getSecond() == 1){
+          if (data.getSecond() == otherTid){
             int edgeIdx = edgessa.getIndex(var);
             // TODO correct this
-            String pVar =  otherTid > 0 ? data.getFirst()+PathFormula.PRIME_SYMBOL+otherTid : data.getFirst();
-            int branchIdx = ssa.getIndex(pVar);
+            //String pVar =  otherTid > 0 ? data.getFirst()+PathFormula.PRIME_SYMBOL+otherTid : data.getFirst();
+            int branchIdx = ssa.getIndex(var);
             if (edgeIdx > branchIdx){
               removeEdge = true;
               break;
@@ -411,29 +420,19 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         PathFormula allPf = pmgr.makeEmptyPathFormula();
         for (RelyGuaranteeCFAEdge edge : appliedMap.get(appNode)){
           if (toRemove.contains(edge)){
-         // reconstruct how env. edge looks like in the interpolated formula
-            Integer unique = appNode.getEnvPrimes().get(edge);
-            assert unique != null;
-            ARTElement artElem  = appNode.getArtElement();
-            AbstractionElement ae = AbstractElements.extractElementByType(artElem, AbstractionElement.class);
-            Integer envPrimedNo = null;
-            for (Integer u : ae.getOldPrimedMap().keySet()){
-              if (ae.getOldPrimedMap().get(u) == edge){
-                envPrimedNo = u;
-                break;
-              }
-            }
-            assert envPrimedNo != null;
-            PathFormula appPf     = ae.getOldEdgeMap().get(edge);
-            assert appPf != null;
+            // reconstruct how env. edge looks like in the interpolated formula
+            Integer oUnique = edge.getUniquePrime();
+            assert oUnique != null;
+            Integer nUnique = appNode.getEnvPrimes().get(edge);
+            assert nUnique != null;
+
             Map<Integer, Integer> adjustmentMap = new HashMap<Integer, Integer>();
-            adjustmentMap.put(envPrimedNo, unique);
-            adjustmentMap.put(envPrimedNo+1, otherTid);
-            adjustmentMap.put(0, tid);
-            appPf = pmgr.adjustPrimedNo(appPf, adjustmentMap);
-            System.out.println("dag "+i+" x "+appNode.getArtElement().getElementId()+" x "+edge+"\t->\t"+appPf);
+            adjustmentMap.put(oUnique, nUnique);
+            System.out.println("DEBUG: "+edge.getPathFormula()+" map "+adjustmentMap);
+            PathFormula appPf = pmgr.adjustPrimedNo(edge.getPathFormula(), adjustmentMap);
+            System.out.println("dag "+i+" x ("+appNode.getTid()+", "+appNode.getArtElement().getElementId()+") x "+edge+"\t->\t"+appPf);
             Formula eeF      = fmgr.makeNot(appPf.getFormula());
-            appPf             = new PathFormula(eeF,  appPf.getSsa(), appPf.getLength());
+            appPf            = new PathFormula(eeF,  appPf.getSsa(), appPf.getLength());
             allPf            = pmgr.makeAnd(allPf, appPf);
           }
         }
@@ -556,6 +555,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
         int currentUnique = rgEdge.getUniquePrime();
         adjustmentMap.put(currentUnique, newUnique.getValue());
+        node.getEnvPrimes().put(rgEdge, newUnique.getValue());
         newUnique.setValue(newUnique.getValue()+1);
 
       }
@@ -564,7 +564,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       if (newNode && !adjustmentMap.isEmpty()){
         PathFormula adjustedPf = pmgr.adjustPrimedNo(rgElement.getAbstractionFormula().getBlockPathFormula(), adjustmentMap);
         node = dag.replacePathFormulaInNode(node, adjustedPf);
-
       }
 
       lastNode = node;

@@ -90,7 +90,6 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
   // returns an empty path formula with a clean SSAMap from variables that do not belong to this thread
   public PathFormula makeEmptyPathFormula(PathFormula oldFormula, int tid) {
     //
-    int otherTid = 0;
     SSAMap oldssa = oldFormula.getSsa();
     SSAMapBuilder cleanMap = SSAMap.emptySSAMap().builder();
 
@@ -443,7 +442,8 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     for (String var : envPF.getSsa().allVariables()) {
       Pair<String, Integer> data = PathFormula.getPrimeData(var);
       String bareName = data.getFirst();
-      int primeNo = data.getSecond() + offset;
+      int currentPrime = data.getSecond() != null ? data.getSecond() : 0;
+      int primeNo = currentPrime + offset;
       int idx = envPF.getSsa().getIndex(var);
       primedSSA.setIndex(bareName+PathFormula.PRIME_SYMBOL+primeNo, idx);
     }

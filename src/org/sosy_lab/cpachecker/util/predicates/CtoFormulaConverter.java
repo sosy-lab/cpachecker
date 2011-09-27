@@ -481,7 +481,7 @@ public class CtoFormulaConverter {
     Triple<Formula, SSAMap, Integer> data = makeAnd2(localF, edge, tid);
 
     Formula newFormula = fmgr.makeAnd(localF.getFormula(), data.getFirst());
-    return new PathFormula(newFormula, data.getSecond(), data.getThird(), localF.getPrimedNo());
+    return new PathFormula(newFormula, data.getSecond(), data.getThird(), tid);
   }
 
   public PathFormula makeAnd(PathFormula localF, CFAEdge edge)    throws CPATransferException{

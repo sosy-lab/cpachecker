@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -131,6 +132,11 @@ public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustme
 
     // create new empty path formula
     PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula, cpa.getTid());
+
+    for (String var : newPathFormula.getSsa().allVariables()){
+      Pair<String, Integer> data = PathFormula.getPrimeData(var);
+      assert data.getSecond() == cpa.getTid();
+    }
 
 
     return new RelyGuaranteeAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula, element.getParentEdge(),this.cpa.getTid(), element.getPrimedMap(), element.getEdgeMap());

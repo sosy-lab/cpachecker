@@ -26,8 +26,10 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
@@ -62,6 +64,7 @@ import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
@@ -249,12 +252,27 @@ public class RelyGuaranteeEnvironment {
       //assert envTransProcessedBeforeFromThread[i].containsValue(et);
 
       int tid = et.getSourceThread();
-      PathFormula af = pfManager.primePathFormula(et.getAbstractionPathFormula(), uniquePrime);
-      PathFormula pf = pfManager.primePathFormula(et.getPathFormula(), uniquePrime);
-      // TODO clean up ssa map in a nicer way.
-      PathFormula newPf = new PathFormula(fManager.makeAnd(af.getFormula(), pf.getFormula()), pf.getSsa(), pf.getLength(), uniquePrime);
+      assert tid == i;
+      System.out.println("DEBUG: "+et.getAbstractionPathFormula());
+      Map<Integer, Integer> adjustmentMap = new HashMap<Integer, Integer>();
+      adjustmentMap.put(i, uniquePrime);
+      PathFormula af    = pfManager.adjustPrimedNo(et.getAbstractionPathFormula(), adjustmentMap);
+      PathFormula pf    =  pfManager.adjustPrimedNo(et.getPathFormula(), adjustmentMap);
+      PathFormula newPf = pfManager.makeAnd(af, pf);
       PathFormula eq = pfManager.makePrimedEqualities(af, uniquePrime, tid);
       newPf = pfManager.makeAnd(newPf, eq);
+
+      // clean SSA map - leave only variables for thread and the unique prime
+      SSAMapBuilder ssaBldr = SSAMap.emptySSAMap().builder();
+      for (String var : newPf.getSsa().allVariables()){
+        Pair<String, Integer> data = PathFormula.getPrimeData(var);
+        Integer primeNo = data.getSecond();
+        if (primeNo != null && (primeNo == 0 || primeNo == 1 || primeNo == uniquePrime)){
+          ssaBldr.setIndex(var, newPf.getSsa().getIndex(var));
+        }
+      }
+
+      newPf = new PathFormula(newPf.getFormula(), ssaBldr.build(), 0 , uniquePrime);
 
       //newPF = pfManager.normalize(newPF);
       RelyGuaranteeCFAEdgeTemplate rgEdge = new RelyGuaranteeCFAEdgeTemplate(et.getEdge(), newPf, et.getSourceThread(), et.getSourceARTElement(), et, uniquePrime);

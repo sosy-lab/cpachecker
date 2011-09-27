@@ -59,23 +59,29 @@ public class InterpolationDag {
     this.nodeMap = new HashMap<Pair<Integer, Integer>, InterpolationDagNode>();
 
     Deque<InterpolationDagNode> toProcess = new LinkedList<InterpolationDagNode>();
-
-    // copy roots
-    for (InterpolationDagNode oldRoot : oldDag.roots){
-      InterpolationDagNode newRoot = new InterpolationDagNode(oldRoot);
-      this.roots.add(newRoot);
-      this.nodeMap.put(Pair.of(oldRoot.tid, oldRoot.artElement.getElementId()), newRoot);
-
-      for (InterpolationDagNode oldChild : oldRoot.children){
-        if (!toProcess.contains(oldChild)){
-          toProcess.addLast(oldChild);
-        }
-      }
-    }
+    toProcess.addAll(oldDag.roots);
 
     while(!toProcess.isEmpty()){
       InterpolationDagNode oldNode = toProcess.poll();
+      boolean parentsDone = true;
+      for (InterpolationDagNode oldParent : oldNode.getParents()){
+        if (!this.nodeMap.containsKey(Pair.of(oldParent.tid, oldParent.artElement.getElementId()))){
+          parentsDone = false;
+          break;
+        }
+      }
+
+      if (!parentsDone){
+        continue;
+      }
+
       InterpolationDagNode newNode = new InterpolationDagNode(oldNode);
+      this.nodeMap.put(Pair.of(newNode.tid, newNode.artElement.getElementId()), newNode);
+
+      if (oldNode.getParents().isEmpty()){
+        assert oldDag.roots.contains(oldNode);
+        this.roots.add(newNode);
+      }
 
       for (InterpolationDagNode oldParent : oldNode.getParents()){
         InterpolationDagNode newParent = this.nodeMap.get(Pair.of(oldParent.tid, oldParent.artElement.getElementId()));
@@ -84,22 +90,8 @@ public class InterpolationDag {
         newNode.parents.add(newParent);
       }
 
-      this.nodeMap.put(Pair.of(newNode.tid, newNode.artElement.getElementId()), newNode);
-
-      for (InterpolationDagNode child : oldNode.children){
-       // if (!this.nodeMap.containsKey(Pair.of(child.tid, child.artElement.getElementId()))){
-          boolean parentsDone = true;
-          for (InterpolationDagNode parent : child.getParents()){
-            if (!this.nodeMap.containsKey(Pair.of(parent.tid, parent.artElement.getElementId()))){
-              parentsDone = false;
-              break;
-            }
-          }
-          if (parentsDone){
-            toProcess.addLast(child);
-          }
-
-        //}
+      for (InterpolationDagNode child : oldNode.getChildren()){
+        toProcess.addLast(child);
       }
     }
 
@@ -265,7 +257,6 @@ public class InterpolationDag {
         break;
       }
     }
-    assert root != null;
 
     List<Pair<Integer, Integer>> path = new Vector<Pair<Integer, Integer>>();
     List<List<Pair<Integer, Integer>>>  branches = dfsAddBranch(root, path);
@@ -274,9 +265,14 @@ public class InterpolationDag {
   }
 
   private List<List<Pair<Integer, Integer>>> dfsAddBranch(InterpolationDagNode node, List<Pair<Integer, Integer>> path){
+    List<List<Pair<Integer, Integer>>> branches = new Vector<List<Pair<Integer, Integer>>>();
+
+    if (node == null){
+      return branches;
+    }
+
     path.add(Pair.of(node.tid, node.artElement.getElementId()));
 
-    List<List<Pair<Integer, Integer>>> branches = new Vector<List<Pair<Integer, Integer>>>();
 
     boolean hasChildren = false;
     for (InterpolationDagNode child : node.getChildren()){

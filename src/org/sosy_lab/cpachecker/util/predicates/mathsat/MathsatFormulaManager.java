@@ -590,8 +590,10 @@ public class MathsatFormulaManager implements FormulaManager  {
           long newt = buildMsatVariable(makeName(name, idx), msat_term_get_type(t));
           cache.put(tt, encapsulate(newt));
         } else {
+          // TODO changes
           // the variable is not used in the SSA, keep it as is
-          cache.put(tt, tt);
+          long newt = buildMsatVariable(makeName(name, 1), msat_term_get_type(t));
+          cache.put(tt, encapsulate(newt));
         }
 
       } else {
