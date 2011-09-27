@@ -417,13 +417,17 @@ public class InterpolationDag {
     return root;
   }
 
-  public  ListMultimap<InterpolationDagNode, RelyGuaranteeCFAEdge> getAppliedEnvEdges(int td) {
+  /**
+   * Get all env. transitions applied to nodes in thread td
+   * @param tid
+   * @return
+   */
+  public  ListMultimap<InterpolationDagNode, RelyGuaranteeCFAEdge> getAppliedEnvEdges(int tid) {
     ListMultimap<InterpolationDagNode, RelyGuaranteeCFAEdge> appliedMap = LinkedListMultimap.create();
 
-    // get all env. transitions applied to nodes in thread td
     Deque<InterpolationDagNode> toProcess = new LinkedList<InterpolationDagNode>();
     Set<InterpolationDagNode> visisted    = new HashSet<InterpolationDagNode>();
-    InterpolationDagNode root = getRootForThread(td);
+    InterpolationDagNode root = getRootForThread(tid);
     toProcess.add(root);
 
     while(!toProcess.isEmpty()){
@@ -435,11 +439,50 @@ public class InterpolationDag {
           appliedMap.put(node, edge);
         }
 
-        toProcess.addAll(node.children);
+        for (InterpolationDagNode child : node.children){
+          if (child.tid == tid){
+            toProcess.addLast(child);
+          }
+        }
       }
     }
 
     return appliedMap;
+  }
+
+  /**
+   * List of leaves nodes in thread tid. Leaf is a node without any children in the same thread.
+   * @param tid
+   * @return
+   */
+  public List<InterpolationDagNode> getLeavesInThread(int tid) {
+
+    Deque<InterpolationDagNode> toProcess = new LinkedList<InterpolationDagNode>();
+    Set<InterpolationDagNode> visisted    = new HashSet<InterpolationDagNode>();
+    List<InterpolationDagNode> leaves     = new Vector<InterpolationDagNode>();
+    InterpolationDagNode root = getRootForThread(tid);
+    toProcess.add(root);
+
+    while(!toProcess.isEmpty()){
+      InterpolationDagNode node = toProcess.poll();
+      if (!visisted.contains(node)){
+        visisted.add(node);
+
+        boolean noTidChild = true;
+        for (InterpolationDagNode child : node.children){
+          if (child.tid == tid){
+            toProcess.addLast(child);
+            noTidChild = false;
+          }
+        }
+
+        if (noTidChild){
+          leaves.add(node);
+        }
+      }
+    }
+
+    return leaves;
   }
 
 

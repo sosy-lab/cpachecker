@@ -108,7 +108,6 @@ public class RelyGuaranteeCPA extends PredicateCPA{
   public static TheoremProver getTheoremProver(Configuration config, LogManager logger,String type) throws InvalidConfigurationException{
     if (tProver == null){
       MathsatFormulaManager msatFormulaManager =  MathsatFormulaManager.getInstance(config, logger);
-
     }
     return tProver;
   }

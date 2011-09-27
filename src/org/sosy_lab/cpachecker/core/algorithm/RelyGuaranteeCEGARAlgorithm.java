@@ -122,7 +122,7 @@ public class RelyGuaranteeCEGARAlgorithm implements ConcurrentAlgorithm,  Statis
         // the program is unsafe, so perform refinement
         try {
           System.out.println();
-          System.out.println("------------------------------- Performing refinment -------------------------------");
+          System.out.println("---------------------------- Performing refinment - run "+refinmentNo+" ----------------------------");
           stats.totalRefinement.start();
           continueAnalysis = refiner.performRefinment(reachedSets, algorithm.getRelyGuaranteeEnvironment(), runThread);
           stats.totalRefinement.stop();
