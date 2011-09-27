@@ -43,6 +43,7 @@ import org.sosy_lab.common.configuration.Option.Type;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
+import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -239,7 +240,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
         reached = createInitialReachedSetForRestart(cpa, mainFunction, singleReachedSetFactory);
       }
 
-      stopIfNecessary();
+      CPAchecker.stopIfNecessary();
 
     } catch (IOException e) {
       e.printStackTrace();
@@ -308,16 +309,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     return algorithm;
-  }
-
-  /**
-   * This method will throw an exception if the user has requested CPAchecker to
-   * stop immediately. This exception should not be caught by the caller.
-   */
-  public static void stopIfNecessary() throws InterruptedException {
-    if (Thread.interrupted()) {
-      throw new InterruptedException();
-    }
   }
 
   @Override
