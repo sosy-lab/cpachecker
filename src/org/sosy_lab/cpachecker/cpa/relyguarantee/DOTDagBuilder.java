@@ -47,11 +47,12 @@ public class DOTDagBuilder {
     sb.append("digraph "+graphName+" {\n\n");
 
     // the ARTs
-    for (int tid=0; tid<roots.size(); tid++){
+    for (InterpolationDagNode root : roots){
+      int tid = root.getTid();
       sb.append("subgraph cluster_"+tLabel+tid+" {\n");
       sb.append("\tnode [style=filled,fillcolor="+tColors[tid]+"];\n");
       sb.append("\tlabel = \""+tLabel+tid+"\";\n");
-      sb.append(generateART(roots.get(tid)));
+      sb.append(generateART(root));
       sb.append("}\n\n");
     }
 

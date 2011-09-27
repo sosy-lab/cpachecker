@@ -91,11 +91,13 @@ public class InterpolationDag {
       }
 
       for (InterpolationDagNode child : oldNode.getChildren()){
-        toProcess.addLast(child);
+        if (!toProcess.contains(child)){
+          toProcess.addLast(child);
+        }
       }
     }
 
-    assert dagAssertions();
+    dagAssertions();
   }
 
   public InterpolationDag(){
@@ -176,7 +178,7 @@ public class InterpolationDag {
       }
     }
 
-    assert dagAssertions();
+    dagAssertions();
   }
 
   /**
@@ -344,37 +346,35 @@ public class InterpolationDag {
    * Check the correctness of the DAG.
    * @param roots
    */
-  public boolean dagAssertions(){
+  public void dagAssertions(){
 
     for (InterpolationDagNode root : roots){
-      if (!root.parents.isEmpty()){
-        return false;
-      }
+      assert root.parents.isEmpty();
     }
 
-    return dagAssertions(roots);
+    dagAssertions(roots);
   }
 
 
-  private boolean dagAssertions(List<InterpolationDagNode> nodes){
+  private void dagAssertions(List<InterpolationDagNode> nodes){
     for (InterpolationDagNode node : nodes){
 
       if (!nodeMap.containsValue(node)){
-        return false;
+        System.out.println(node);
       }
+      assert nodeMap.containsValue(node);
+
 
       for (InterpolationDagNode child : node.getChildren()){
         if (!child.getParents().contains(node)){
           System.out.println();
         }
-         if(!child.getParents().contains(node)){
-           return false;
-         }
+
+        assert child.getParents().contains(node);
       }
 
-      return dagAssertions(node.getChildren());
+      dagAssertions(node.getChildren());
     }
-    return true;
   }
 
 
