@@ -35,6 +35,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 
+import com.google.common.collect.Sets;
+
 public class CFACheck {
 
   /**
@@ -64,7 +66,10 @@ public class CFACheck {
     }
 
     if (nodes != null) {
-      assert visitedNodes.equals(nodes);
+      if (!visitedNodes.equals(nodes)) {
+        assert false : "\nNodes in CFA but not reachable through traversal: " + Sets.difference(nodes, visitedNodes)
+                     + "\nNodes reached that are not in CFA: " + Sets.difference(visitedNodes, nodes);
+      }
     }
     return true;
   }
