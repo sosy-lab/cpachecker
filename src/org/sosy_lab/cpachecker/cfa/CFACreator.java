@@ -172,6 +172,11 @@ public class CFACreator {
 
       final Map<String, CFAFunctionDefinitionNode> cfas = c.getFunctions();
       final SortedSetMultimap<String, CFANode> cfaNodes = c.getCFANodes();
+
+      if (cfas.isEmpty()) {
+        throw new ParserException("No functions found in program");
+      }
+
       final CFAFunctionDefinitionNode mainFunction = getMainFunction(filename, cfas);
 
       checkTime.start();
