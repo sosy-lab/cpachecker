@@ -36,4 +36,8 @@ public class CPAException extends Exception {
   public CPAException(String msg) {
     super(msg);
   }
+
+  public CPAException(String msg, Throwable cause) {
+    super(msg, cause);
+  }
 }

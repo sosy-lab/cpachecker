@@ -61,4 +61,11 @@ public class UnrecognizedCCodeException extends CPATransferException {
   public UnrecognizedCCodeException(String msg) {
     super("Unrecognized C code (" + checkNotNull(msg) + ")");
   }
+
+  /**
+   * Constructor only for sub-classes that create their own message.
+   */
+  protected UnrecognizedCCodeException(String msg, Throwable cause) {
+    super(msg, cause);
+  }
 }

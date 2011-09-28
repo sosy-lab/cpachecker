@@ -23,18 +23,26 @@
  */
 package org.sosy_lab.cpachecker.exceptions;
 
+import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+
 /**
- * Super class for all exceptions thrown from transfer relation.
+ * Exception thrown when a CPA cannot handle some C code attached to a CFAEdge
+ * because it uses C features that are unsupported.
  */
-public abstract class CPATransferException extends CPAException {
+public class UnsupportedCCodeException extends UnrecognizedCCodeException {
 
-  private static final long serialVersionUID = -7851950254941139295L;
+  private static final long serialVersionUID = -8319167530363457020L;
 
-  protected CPATransferException(String msg) {
-    super(msg);
+  public UnsupportedCCodeException(String msg, CFAEdge edge, IASTNode astNode) {
+    super("Unsupported C feature"
+        + (msg != null ? " (" + msg + ") " : " ")
+        + "in line " + astNode.getFileLocation().getStartingLineNumber()
+        + ": " + astNode.getRawSignature(),
+        (Throwable)null);
   }
 
-  protected CPATransferException(String msg, Throwable cause) {
-    super(msg, cause);
+  public UnsupportedCCodeException(String msg, IASTNode astNode) {
+    this(msg, null, astNode);
   }
 }
