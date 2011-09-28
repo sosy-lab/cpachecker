@@ -105,6 +105,34 @@ public class PredicateMap
     return variables;
   }
 
+  public Map<CFAEdge, Set<String>> getPrecision()
+  {
+    Map<CFAEdge, Set<String>> precision = new HashMap<CFAEdge, Set<String>>();
+
+    for(Map.Entry<CFAEdge, Set<AbstractionPredicate>> predicatesAtEdge : predicateMap.entrySet())
+    {
+      CFAEdge currentNode = predicatesAtEdge.getKey();
+
+      for(AbstractionPredicate predicate : predicatesAtEdge.getValue())
+      {
+        // get the names of the variables referenced in the abstraction predicate
+        Collection<String> atoms = extractVariables(((MathsatFormula)predicate.getSymbolicAtom()).getTerm());
+
+        if(!atoms.isEmpty())
+        {
+          Set<String> variables = precision.get(currentNode);
+
+          if(variables == null)
+            precision.put(currentNode, variables = new HashSet<String>());
+
+          variables.addAll(atoms);
+        }
+      }
+    }
+
+    return precision;
+  }
+
   // TODO: copy & paste code from branches/fshell3/src/org/sosy_lab/cpachecker/util/predicates/mathsat/MathsatFormulaManager.java
   private static Collection<String> extractVariables(long pTerm) {
     HashSet<String> lVariables = new HashSet<String>();
@@ -128,5 +156,11 @@ public class PredicateMap
     }
 
     return lVariables;
+  }
+
+  @Override
+  public String toString()
+  {
+    return predicateMap.toString();
   }
 }

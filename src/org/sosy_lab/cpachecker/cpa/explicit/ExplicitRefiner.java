@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -75,7 +76,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -261,186 +261,89 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
   }
 
   private static int refinementCounter = 0;
+  Set<Integer> pathHashes = new HashSet<Integer>();
   private Pair<ARTElement, ExplicitPrecision> performRefinement(ExplicitPrecision oldPrecision,
       Path path,
       CounterexampleTraceInfo pInfo) throws CPAException {
 
-System.out.println("\n" + (++refinementCounter) + ". refining ...");
+//System.out.println("\n" + (++refinementCounter) + ". refining ...");
+//System.out.println("addin path with hash " + path.toString().hashCode());
 //System.out.println(path);
 
-List<Collection<AbstractionPredicate>> pathPredicates = pInfo.getPredicatesForRefinement();
 
     // get the predicates ...
     PredicateMap predicates = new PredicateMap(pInfo.getPredicatesForRefinement(), path);
 
-    // ... and, out of these, determine the initial set of variables to track
-    Set<String> referencedVariables = predicates.getReferencedVariables();
-//System.out.println("\nreferencedVariables: " + referencedVariables);
-    // add the newly found referenced variables to those found in previous iteration
-    allReferencedVariables.addAll(referencedVariables);
+//System.out.println("\nnew predicate map: " + predicates.toString());
 
-    // get the top-most interpolation point
-    Pair<ARTElement, CFAEdge> firstInterpolationPoint = getFirstInterpolationPoint(predicates, useGlobalInterpolationPoint ? allReferencedVariables : referencedVariables, path);
-
-    assert firstInterpolationPoint != null;
-//System.out.println("firstInterpolationPoint is: " + firstInterpolationPoint);
-
-    // collect variables on error path, on which the found ones depend on
-    CollectVariablesVisitor visitor = new CollectVariablesVisitor(allReferencedVariables/*referencedVariables*/);
-    Iterator<Pair<ARTElement, CFAEdge>>  iterator = path.descendingIterator();
-    while(iterator.hasNext())
-    {
-      Pair<ARTElement, CFAEdge> element = iterator.next();
-
-      extractVariables(element.getSecond(), visitor);
-    }
-//System.out.println("allReferencedVariables = " + allReferencedVariables);
-//System.out.println("visitor.getCollectedVariables() = " + visitor.getCollectedVariables());
-    //allReferencedVariables.addAll(visitor.getCollectedVariables());
-    Set<String> newWhiteList = new HashSet<String>(allReferencedVariables);
-
-    //madeProgress(path, oldPrecision.getWhiteList(), newWhiteList);
-
-//System.out.println("\nold: " + oldPrecision.getWhiteList());
-//System.out.println("\nnew: " + newWhiteList);
-
-    ExplicitPrecision newPrecision = new ExplicitPrecision(oldPrecision.getBlackListPattern(), newWhiteList);
-
-    // We have two different strategies for the refinement root: set it to
-    // the firstInterpolationPoint or set it to highest location in the ART
-    // where the same CFANode appears.
-    // Both work, so this is a heuristics question to get the best performance.
-    // My benchmark showed, that at least for the benchmarks-lbe examples it is
-    // best to use strategy one iff newPredicatesFound.
-
-    ARTElement root = null;
-    // new predicates were found
-    if (oldPrecision.getWhiteList().size() < newPrecision.getWhiteList().size()) {
-      root = firstInterpolationPoint.getFirst();
-
-      logger.log(Level.FINEST, "Found spurious counterexample,",
-          "trying strategy 1: remove everything below", root, "from ART.");
-
-    } else {
-
-      CFANode loc = firstInterpolationPoint.getSecond().getPredecessor();
-
-      logger.log(Level.FINEST, "Found spurious counterexample,",
-          "trying strategy 2: remove everything below node", loc, "from ART.");
-
-      // find first element in path with location == loc,
-      // this is not necessary equal to firstInterpolationPoint.getFirst()
-      for (Pair<ARTElement, CFAEdge> abstractionPoint : path) {
-        if (abstractionPoint.getSecond().getPredecessor().equals(loc)) {
-          root = abstractionPoint.getFirst();
-          break;
-        }
-      }
-      if (root == null) {
-        throw new CPAException("Inconsistent ART, did not find element for " + loc);
-      }
-    }
-
-    return Pair.of(root, newPrecision);
-  }
-
-  private Pair<ARTElement, CFAEdge> getFirstInterpolationPoint(PredicateMap predicates, Collection<String> currentVariables, Path path)
-  {
-    CollectVariablesVisitor visitor = new CollectVariablesVisitor(currentVariables);
+    // TODO: inline this, for debuggin only
+    Set<String> referencedVars = predicates.getReferencedVariables();
+//System.out.println("\nreferencedVariables: " + referencedVars);
+    allReferencedVariables.addAll(referencedVars);
 
     Pair<ARTElement, CFAEdge> firstInterpolationPoint = null;
+
+    // collect variables on error path, on which the found ones depend on
+    CollectVariablesVisitor visitor = new CollectVariablesVisitor(allReferencedVariables);
 
     Iterator<Pair<ARTElement, CFAEdge>> iterator = path.descendingIterator();
     while(iterator.hasNext())
     {
       Pair<ARTElement, CFAEdge> element = iterator.next();
 
-      // edge is a interpolation point if it has an interpolant attached or if variables of interpolants depend on variables in current statement
-      if(predicates.isInterpolationPoint(element.getSecond()) || extractVariables(element.getSecond(), visitor))
+      if(extractVariables(element.getSecond(), visitor))
         firstInterpolationPoint = element;
     }
 
-    return firstInterpolationPoint;
-  }
+    assert firstInterpolationPoint != null;
 
-  private boolean madeProgress(Path path, Set<String> oldWhiteList, Set<String> newWhiteList) throws RefinementFailedException
-  {
-    boolean madeProgress = false;
 
-    if(previousPath == null)
+    // the new whitelist is based on the old one
+    Map<CFAEdge, Set<String>> whiteList = oldPrecision.getWhiteList();
+    //Map<CFAEdge, Set<String>> whiteList = new HashMap<CFAEdge, Set<String>>();
+
+    // add variables of new predicates to precision, indexed by their respective CFAEdge
+    for(Map.Entry<CFAEdge, Set<String>> entry : predicates.getPrecision().entrySet())
     {
-//System.out.println("progress - previous path empty");
-      madeProgress = true;
+      Set<String> varss = whiteList.get(entry.getKey());
+      if(varss == null)
+      {
+        varss = new HashSet<String>();
+        whiteList.put(entry.getKey(), varss);
+      }
+
+      varss.addAll(entry.getValue());
+    }
+//System.out.println("\nnew whitelist: " + whiteList);
+    // new def-use
+    Map<CFAEdge, Set<String>> vars = visitor.getVariablesAtEdges();
+    for(Map.Entry<CFAEdge, Set<String>> entry : vars.entrySet())
+    {
+      Set<String> varss = whiteList.get(entry.getKey());
+      if(varss == null)
+      {
+        varss = new HashSet<String>();
+        whiteList.put(entry.getKey(), varss);
+      }
+
+      varss.addAll(entry.getValue());
     }
 
-    else
+//System.out.println("\nnew whitelist (all): " + whiteList);
+    ExplicitPrecision newPrecision = new ExplicitPrecision(oldPrecision.getBlackListPattern(), whiteList);
+
+
+    ARTElement root = firstInterpolationPoint.getFirst();
+
+    logger.log(Level.FINEST, "Found spurious counterexample,",
+          "trying strategy 1: remove everything below", root, "from ART.");
+
+    if(!pathHashes.add(path.toString().hashCode()))
     {
-      if(previousPath.toString().equals(path.toString()))
-      {
-//System.out.println("paths match !!!");
-      }
-      else
-      {
-//System.out.println("paths DO NOT match !!!");
-      }
-
-      if(oldWhiteList.size() != newWhiteList.size())
-      {
-//System.out.println("progress - whitelist sizes differ");
-        madeProgress = true;
-      }
-
-      else
-      {
-        for(String entry : newWhiteList)
-        {
-          if(!oldWhiteList.contains(entry))
-          {
-//System.out.println("progress - whitelists differ");
-            madeProgress = true;
-            break;
-          }
-        }
-      }
-    }
-
-    if(previousPath != null)
-    {
-      if(previousPath.size() != path.size())
-      {
-//System.out.println("progress - path lengths differ");
-        madeProgress = true;
-      }
-
-      if(!previousPath.toString().equals(path.toString()))
-      {
-//System.out.println("progress - paths differ");
-        madeProgress = true;
-      }
-      /*
-      int i = 0;
-      for(Pair<ARTElement, CFAEdge> pathElement : path)
-      {
-        if(!previousPath.get(i).equals(pathElement))
-        {
-System.out.println("progress - paths differ - " + previousPath.get(i) + " != " + pathElement);
-          madeProgress = true;
-          break;
-        }
-        i++;
-      }*/
-    }
-
-    previousPath = new Path();
-    for(Pair<ARTElement, CFAEdge> pathElement : path)
-    {
-      previousPath.add(pathElement);
-    }
-
-    if(!madeProgress)
       throw new RefinementFailedException(Reason.RepeatedCounterexample, path);
+    }
 
-    return madeProgress;
+    return Pair.of(root, newPrecision);
   }
 
   @Override
@@ -559,12 +462,13 @@ System.out.println("progress - paths differ - " + previousPath.get(i) + " != " +
     switch(edge.getEdgeType())
     {
     case AssumeEdge:
-//System.out.println("inspecting AssumeEdge " + ((AssumeEdge)edge).getRawStatement());
 
+//System.out.println("inspecting AssumeEdge " + ((AssumeEdge)edge).getRawStatement());
+/*
       visitor.startLookAhead();
       ((AssumeEdge)edge).getExpression().accept(visitor);
       extracted = visitor.endLookAhead();
-
+*/
       break;
 
     case FunctionCallEdge:
@@ -574,12 +478,16 @@ System.out.println("progress - paths differ - " + previousPath.get(i) + " != " +
 
       if(functionCallEdge.getRawAST() instanceof IASTFunctionCallAssignmentStatement)
       {
-        IASTFunctionCallAssignmentStatement exp = ((IASTFunctionCallAssignmentStatement)functionCallEdge.getRawAST());
+        IASTFunctionCallAssignmentStatement fcas = ((IASTFunctionCallAssignmentStatement)functionCallEdge.getRawAST());
 
-        if(visitor.hasCollected(exp.getLeftHandSide().getRawSignature()))
+        String assignedVariable = fcas.getLeftHandSide().getRawSignature();
+
+        if(visitor.hasCollected(assignedVariable))
         {
+          visitor.addToCurrentEdge(assignedVariable);
+
 //System.out.println("     -> interesting: collecting remaining variables");
-          exp.getRightHandSide().accept(visitor);
+          fcas.getRightHandSide().accept(visitor);
 
           extracted = true;
         }
@@ -595,15 +503,38 @@ System.out.println("progress - paths differ - " + previousPath.get(i) + " != " +
       if(statementEdge.getStatement() instanceof IASTAssignment)
       {
         IASTAssignment assignment = (IASTAssignment)statementEdge.getStatement();
-
         String assignedVariable = assignment.getLeftHandSide().getRawSignature();
 
         if(visitor.hasCollected(assignedVariable))
         {
+          visitor.addToCurrentEdge(assignedVariable);
+
           assignment.getRightHandSide().accept(visitor);
 
           extracted = true;
         }
+
+        CollectVariablesVisitor v = new CollectVariablesVisitor(new ArrayList<String>());
+        v.setCurrentScope(edge);
+        assignment.getRightHandSide().accept(v);
+        if(v.getVariablesAtEdges().get(edge) != null)
+        {
+          for(String var : v.getVariablesAtEdges().get(edge))
+          {
+//            System.out.println("var1 = " + var);
+            var = var.substring(var.lastIndexOf(":") + 1);
+//            System.out.println("var2 = " + var);
+            if(visitor.hasCollected(var))
+            {
+              visitor.addToCurrentEdge(assignedVariable);
+
+              extracted = true;
+
+              break;
+            }
+          }
+        }
+
       }
       break;
     }
@@ -627,6 +558,8 @@ System.out.println("progress - paths differ - " + previousPath.get(i) + " != " +
      * the set of collected variables
      */
     private final Set<String> collectedVariables = new HashSet<String>();
+
+    private final Map<CFAEdge, Set<String>> variablesAtEdges = new HashMap<CFAEdge, Set<String>>();
 
     /**
      * the set of variables collected during look-ahead-run
@@ -656,7 +589,11 @@ System.out.println("progress - paths differ - " + previousPath.get(i) + " != " +
       if(inLookAheadMode)
         lookAheadVariables.add(variableName);
       else
+      {
         collectedVariables.add(variableName);
+
+        addVariableToEdge(variableName);
+      }
     }
 
     public boolean hasCollected(String variableName)
@@ -666,48 +603,14 @@ System.out.println("progress - paths differ - " + previousPath.get(i) + " != " +
       return collectedVariables.contains(variableName);
     }
 
-    public Collection<String> getCollectedVariables()
+    public Map<CFAEdge, Set<String>> getVariablesAtEdges()
     {
-      return collectedVariables;
+      return variablesAtEdges;
     }
 
     public void setCurrentScope(CFAEdge currentEdge)
     {
       edge = currentEdge;
-    }
-
-    /**
-     * This method starts the look-ahead-mode, which is only necessary for inspecting assume edges
-     */
-    public void startLookAhead()
-    {
-      inLookAheadMode = true;
-
-      lookAheadVariables.clear();
-    }
-
-    /**
-     * This method ends the look-ahead-mode, which is only necessary for inspecting assume edges
-     */
-    public boolean endLookAhead()
-    {
-      boolean ofInterest = false;
-
-      for(String lookAheadVariable : lookAheadVariables)
-      {
-        if(collectedVariables.contains(lookAheadVariable))
-        {
-          ofInterest = true;
-          break;
-        }
-      }
-
-      if(ofInterest)
-        collectedVariables.addAll(lookAheadVariables);
-
-      inLookAheadMode = false;
-
-      return ofInterest;
     }
 
     private String getScopedVariableName(CFANode cfaNode, String variableName)
@@ -717,6 +620,25 @@ System.out.println("progress - paths differ - " + previousPath.get(i) + " != " +
 
       else
         return cfaNode.getFunctionName() + "::" + variableName;
+    }
+
+    public void addToCurrentEdge(String assignedVariable)
+    {
+      addVariableToEdge(getScopedVariableName(edge.getPredecessor(), assignedVariable));
+    }
+
+    private void addVariableToEdge(String variable)
+    {
+      Set<String> variablesAtEdge = variablesAtEdges.get(edge);
+
+      if(variablesAtEdge == null)
+      {
+        variablesAtEdge = new HashSet<String>();
+
+        variablesAtEdges.put(edge, variablesAtEdge);
+      }
+
+      variablesAtEdge.add(variable);
     }
 
     @Override
@@ -769,7 +691,7 @@ System.out.println("progress - paths differ - " + previousPath.get(i) + " != " +
         param.accept(this);
 
       // also, add the formal parameters
-      // in a few cases, the edge is a statement edge here, so this would fail !?!?!
+      // TODO: strange behaviour -> in a few cases, the edge is a statement edge here, so this would fail !?!?!
       if(edge instanceof FunctionCallEdge)
       {
         FunctionDefinitionNode functionEntryNode = ((FunctionCallEdge)edge).getSuccessor();
@@ -778,9 +700,14 @@ System.out.println("progress - paths differ - " + previousPath.get(i) + " != " +
           collect(functionEntryNode, formalParameter);
       }
 
-      // this does not wok in all cases either, as getDeclaration returns null sometimes !?!?!
+      // TODO: work-around for the above, however, this does not work in all cases either, as getDeclaration returns null sometimes !?!?!
       else
       {
+        if(functionCallExpression.getDeclaration() == null)
+            return null;
+        else if (((IASTFunctionTypeSpecifier)functionCallExpression.getDeclaration().getDeclSpecifier()) == null)
+          return null;
+
         List<IASTParameterDeclaration> parameters = ((IASTFunctionTypeSpecifier)functionCallExpression.getDeclaration().getDeclSpecifier()).getParameters();
 
         for(IASTParameterDeclaration parameter : parameters)
@@ -802,6 +729,56 @@ System.out.println("progress - paths differ - " + previousPath.get(i) + " != " +
     protected Void visitDefault(IASTExpression expression)
     {
       return null;
+    }
+
+    /**
+     * This method starts the look-ahead-mode, which is only necessary for inspecting assume edges
+     */
+    public void startLookAhead()
+    {
+      inLookAheadMode = true;
+
+      lookAheadVariables.clear();
+    }
+
+    /**
+     * This method ends the look-ahead-mode, which is only necessary for inspecting assume edges
+     */
+    public boolean endLookAhead()
+    {
+      boolean ofInterest = false;
+
+      for(String lookAheadVariable : lookAheadVariables)
+      {
+        if(collectedVariables.contains(lookAheadVariable))
+        {
+          ofInterest = true;
+          break;
+        }
+      }
+
+      if(ofInterest)
+      {
+        collectedVariables.addAll(lookAheadVariables);
+
+        // with precision per location - ugly hacks all over!
+        Set<String> variablesAtEdge = variablesAtEdges.get(edge);
+        if(variablesAtEdge == null)
+        {
+          variablesAtEdge = new HashSet<String>();
+          variablesAtEdges.put(edge, variablesAtEdge);
+        }
+
+        for(String lookAheadVariable : lookAheadVariables)
+        {
+System.out.println("adding " + lookAheadVariable + " from assume edge " + edge);
+          variablesAtEdge.add(lookAheadVariable);
+        }
+      }
+
+      inLookAheadMode = false;
+
+      return ofInterest;
     }
   }
 }

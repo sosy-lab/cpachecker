@@ -113,6 +113,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       throw new IllegalArgumentException("precision is no ExplicitPrecision");
     }
     ExplicitPrecision precision = (ExplicitPrecision) pPrecision;
+    precision.setEdge(cfaEdge);
 
     AbstractElement successor;
     ExplicitElement explicitElement = (ExplicitElement)element;
@@ -408,8 +409,9 @@ public class ExplicitTransferRelation implements TransferRelation {
         IASTLiteralExpression lop2 = (IASTLiteralExpression)op2;
         String varName = op1.getRawSignature();
 
-        //if(!newElement.contains(getvarName(varName, functionName)))
-        if(precision.isNotTracking(getvarName(varName, functionName)))
+        boolean skip = false;
+        if(skip && !newElement.contains(getvarName(varName, functionName)))
+          //if(precision.isNotTracking(getvarName(varName, functionName)))
           return element;
         int typeOfLiteral = lop2.getKind();
         if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant
@@ -427,7 +429,8 @@ public class ExplicitTransferRelation implements TransferRelation {
                 }
               }
               else{
-                newElement.assignConstant(getvarName(varName, functionName), valueOfLiteral, this.threshold);
+                if(precision.isTracking(getvarName(varName, functionName)))
+                  newElement.assignConstant(getvarName(varName, functionName), valueOfLiteral, this.threshold);
               }
             }
             // ! a == 9
