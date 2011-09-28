@@ -136,7 +136,7 @@ public class CtoFormulaConverter {
   private Set<String> nondetFunctions = ImmutableSet.of(
       "malloc", "__kmalloc", "kzalloc",
       "sscanf",
-      "int_nondet", "nondet_int", "random", "__VERIFIER_nondet_int",
+      "int_nondet", "nondet_int", "random", "__VERIFIER_nondet_int", "__VERIFIER_nondet_pointer",
       "__VERIFIER_nondet_short", "__VERIFIER_nondet_char", "__VERIFIER_nondet_float"
       );
 
