@@ -72,7 +72,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
@@ -1999,8 +1998,9 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         atoms = fmgr.extractAtoms(itp, splitItpAtoms, false);
 
         for (Formula fr : atoms){
-          Formula atom = fmgr.extractNonmodularFormula(fr, tid, traceMap);
-          AbstractionPredicate atomPredicate = amgr.makePredicate(atom);
+          // TODO fix
+          //   Formula atom = fmgr.extractNonmodularFormula(fr, tid, traceMap);
+          AbstractionPredicate atomPredicate = amgr.makePredicate(fr);
           result.add(atomPredicate);
         }
       }
@@ -2013,11 +2013,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
   private Set<AbstractionPredicate> getDagsPredicates(Formula itp, InterpolationDagNode node) {
 
     Set <AbstractionPredicate> result = new HashSet<AbstractionPredicate>();
-    Multimap<Integer, Integer> traceMap = HashMultimap.create();
-    traceMap.put(0, 0);
-    traceMap.put(1, 1);
-
-    int tid = node.getTid();
 
     // TODO maybe handling of non-atomic predicates
     if (!itp.isTrue()){
@@ -2027,12 +2022,10 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         result.add(atomPredicate);
       }
       else {
-        Collection<Formula> atoms = fmgr.extractAtoms(itp, splitItpAtoms, false);
+        List<Formula> atoms = fmgr.extractNonModularAtoms(itp, node.getTid());
 
-        for (Formula fr : atoms){
-          //System.out.println("atom "+fr);
-          //Formula atom = fmgr.extractNonmodularFormula(fr, tid, traceMap);
-          AbstractionPredicate atomPredicate = amgr.makePredicate(fr);
+        for (Formula atom : atoms){
+          AbstractionPredicate atomPredicate = amgr.makePredicate(atom);
           result.add(atomPredicate);
         }
       }

@@ -56,6 +56,8 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
@@ -149,7 +151,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
       PathFormula newPF = pair.getFirst();
       logger.log(Level.ALL, "New path formula is", newPF);
 
-     /*///Map<Integer, RelyGuaranteeCFAEdge> primedMap = new HashMap<Integer, RelyGuaranteeCFAEdge>(element.getPrimedMap());
+      /*///Map<Integer, RelyGuaranteeCFAEdge> primedMap = new HashMap<Integer, RelyGuaranteeCFAEdge>(element.getPrimedMap());
       if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
         primedMap.put(element.getPathFormula().getPrimedNo()+1, ((RelyGuaranteeCFAEdge)edge));
       }
@@ -286,17 +288,53 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
     for (int i=0; i<edge.getEdgeNo(); i++){
       RelyGuaranteeCFAEdge rgEdge = edge.getEnvEdges().get(i);
       PathFormula envPf = rgEdge.getPathFormula();
-      PathFormula eq    = pfManager.makePrimedEqualities(localPf, cpa.getTid(), envPf, rgEdge.getUniquePrime());
-      PathFormula appPf = pfManager.makeAnd(envPf, eq);
 
- /*     if (DAGRefinement){
-        pathFormulaManager.inject(rgEdge.getLocalEdge(), cpa.globalVariablesSet, 2*i+1, cpa.getTid(), primedEnvPF.getSsa());
-      } else {
-        pathFormulaManager.inject(rgEdge.getLocalEdge(), cpa.globalVariablesSet, 2*i+1, null, primedEnvPF.getSsa());
+      // if env. edge contains ssa index for this thread, then they have to match local path formula
+      PathFormula eq    = pfManager.makePrimedEqualities(localPf, cpa.getTid(), envPf, rgEdge.getUniquePrime());
+      PathFormula envEqPf = pfManager.makeAnd(envPf, eq);
+
+      // apply the strongest postcondition to env. thread.
+      PathFormula appPf = pfManager.makeAnd(envEqPf, rgEdge.getLocalEdge(), rgEdge.getUniquePrime());
+
+      // TODO make more effitive
+      // make equalite between the strongest postcondition in the source thread and in the local thread
+      SSAMap enveqssa = envEqPf.getSsa();
+      SSAMap appssa   = appPf.getSsa();
+      // bare name of the modified variable
+      String appVar   = null;
+
+      for (String var : appssa.allVariables()){
+        if (appssa.getIndex(var) > enveqssa.getIndex(var)){
+          Pair<String, Integer> data = PathFormula.getPrimeData(var);
+          assert data.getSecond().equals(rgEdge.getUniquePrime());
+          appVar = data.getFirst();
+          break;
+        }
       }
-*/
-      // apply the strongest postcondition
-      appPf = pfManager.makeAnd(appPf, rgEdge.getLocalEdge(), cpa.getTid());
+
+      if (appVar == null){
+        System.out.print("");
+      }
+      assert appVar != null;
+
+      String envVar = appVar + PathFormula.PRIME_SYMBOL + rgEdge.getUniquePrime();
+      int envIdx    = appssa.getIndex(envVar);
+      String lVar   = appVar + PathFormula.PRIME_SYMBOL + cpa.getTid();
+      int lIdx      = appssa.getIndex(lVar)+1;
+
+      Formula fenv  = manager.makeVariable(envVar, envIdx);
+      Formula fl    = manager.makeVariable(lVar, lIdx);
+      Formula feq   = manager.makeEqual(fenv, fl);
+      feq           = manager.makeAnd(appPf.getFormula(), feq);
+
+      SSAMapBuilder ssaBldr = appssa.builder();
+      ssaBldr.setIndex(lVar, lIdx);
+
+      appPf         = new PathFormula(feq, ssaBldr.build(), appPf.getLength(), appPf.getPrimedNo());
+
+
+
+      //appPf = pfManager.makeAnd(appPf, rgEdge.getLocalEdge(), cpa.getTid());
       edgeMap.put(rgEdge, appPf);
       // merge path formulas
       if (!combinedPf.getFormula().isTrue()){

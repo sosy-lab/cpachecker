@@ -365,7 +365,8 @@ public class CtoFormulaConverter {
     SSAMapBuilder ssaLocalUnprimed = SSAMap.emptySSAMap().builder();
     for (String var : localF.getSsa().allVariables()){
       Pair<String, Integer> data = PathFormula.getPrimeData(var);
-      if (data.getSecond() == tid){
+      assert data.getSecond() != null;
+      if (data.getSecond().equals(tid)){
         ssaLocalUnprimed.setIndex(data.getFirst(), localF.getSsa().getIndex(var));
       } else {
         ssaLocalUnprimed.setIndex(var, localF.getSsa().getIndex(var));

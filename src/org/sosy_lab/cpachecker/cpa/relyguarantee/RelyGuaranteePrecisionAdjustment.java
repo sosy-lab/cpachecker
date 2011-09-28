@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
 
 import java.util.Collection;
-import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -128,8 +127,6 @@ public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustme
       logger.log(Level.FINEST, "Abstraction is false, node is not reachable");
     }
 
-
-
     // create new empty path formula
     PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula, cpa.getTid());
 
@@ -143,13 +140,13 @@ public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustme
   }
 
 
-  protected AbstractionFormula computeAbstraction(AbstractionFormula pAbstractionFormula, PathFormula pPathFormula, Collection<AbstractionPredicate> pPreds, CFANode node, Map<Integer, RelyGuaranteeCFAEdge> pMap) {
-    return formulaManager.buildAbstraction(pAbstractionFormula, pPathFormula, pPreds);
-    /* if (DAGRefinement){
-      return formulaManager.buildNonModularAbstraction(pAbstractionFormula, pPathFormula, pPreds, pMap);
+  protected AbstractionFormula computeAbstraction(AbstractionFormula pAbstractionFormula, PathFormula pPathFormula, Collection<AbstractionPredicate> pPreds, CFANode node) {
+    //return formulaManager.buildAbstraction(pAbstractionFormula, pPathFormula, pPreds);
+     if (DAGRefinement){
+      return formulaManager.buildNonModularAbstraction(pAbstractionFormula, pPathFormula, pPreds, cpa.getTid());
     } else {
       return formulaManager.buildAbstraction(pAbstractionFormula, pPathFormula, pPreds);
-    }*/
+    }
 
   }
 

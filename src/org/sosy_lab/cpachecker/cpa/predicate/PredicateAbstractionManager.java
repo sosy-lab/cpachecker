@@ -43,7 +43,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManagerImpl;
@@ -51,6 +50,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -61,9 +61,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver.AllSatResult;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ListMultimap;
 
 
 @Options(prefix="cpa.predicate")
@@ -159,9 +157,7 @@ class PredicateAbstractionManager {
   /**
    * Abstract post operation.
    */
-  public AbstractionFormula buildAbstraction(
-      AbstractionFormula abstractionFormula, PathFormula pathFormula,
-      Collection<AbstractionPredicate> predicates) {
+  public AbstractionFormula buildAbstraction(AbstractionFormula abstractionFormula, PathFormula pathFormula, Collection<AbstractionPredicate> predicates) {
 
     stats.numCallsAbstraction++;
 
@@ -215,7 +211,7 @@ class PredicateAbstractionManager {
    * Abstract post operation.
    * @param pMap
    */
-  public AbstractionFormula buildNonModularAbstraction(AbstractionFormula abstractionFormula, PathFormula pathFormula,Collection<AbstractionPredicate> predicates, Map<Integer, RelyGuaranteeCFAEdge> pMap) {
+  public AbstractionFormula buildNonModularAbstraction(AbstractionFormula abstractionFormula, PathFormula pathFormula,Collection<AbstractionPredicate> predicates, int tid) {
 
     stats.numCallsAbstraction++;
 
@@ -223,8 +219,6 @@ class PredicateAbstractionManager {
       stats.numSymbolicAbstractions++;
       return makeTrueAbstractionFormula(pathFormula);
     }
-
-
 
     logger.log(Level.ALL, "Old abstraction:", abstractionFormula);
     logger.log(Level.ALL, "Path formula:", pathFormula);
@@ -253,11 +247,24 @@ class PredicateAbstractionManager {
     if (cartesianAbstraction) {
       abs = buildCartesianAbstraction(f, pathFormula.getSsa(), predicates);
     } else {
-      abs = buildNonModularBooleanAbstraction(f, pathFormula.getSsa(), predicates, pMap);
+      abs = buildNonModularBooleanAbstraction(f, pathFormula.getSsa(), predicates);
     }
 
-    Formula symbolicAbs = fmgr.instantiate(amgr.toConcrete(abs), pathFormula.getSsa());
-    PathFormula symbolicPathAbs = new PathFormula(symbolicAbs, pathFormula.getSsa(), 0);
+    // clean up the SSA map
+    SSAMap ssa            = pathFormula.getSsa();
+    SSAMapBuilder ssaBldr = SSAMap.emptySSAMap().builder();
+
+    for (String var : ssa.allVariables()){
+      Pair<String, Integer> data = PathFormula.getPrimeData(var);
+      if (data.getSecond()!=null && data.getSecond() == tid){
+        ssaBldr.setIndex(var, ssa.getIndex(var));
+      }
+    }
+
+    SSAMap newssa = ssaBldr.build();
+
+    Formula symbolicAbs = fmgr.instantiateModular(amgr.toConcrete(abs), newssa);
+    PathFormula symbolicPathAbs = new PathFormula(symbolicAbs, newssa, 0);
     AbstractionFormula result = new AbstractionFormula(abs, symbolicPathAbs, pathFormula);
 
     if (useCache) {
@@ -384,7 +391,7 @@ class PredicateAbstractionManager {
     return symbFormula;
   }
 
-  private Region buildNonModularBooleanAbstraction(Formula f, SSAMap ssa, Collection<AbstractionPredicate> predicates, Map<Integer, RelyGuaranteeCFAEdge> pMap) {
+  private Region buildNonModularBooleanAbstraction(Formula f, SSAMap ssa, Collection<AbstractionPredicate> predicates) {
 
     // first, create the new formula corresponding to
     // (symbFormula & edges from e to succ)
@@ -401,41 +408,6 @@ class PredicateAbstractionManager {
 
     for (AbstractionPredicate p : predicates) {
 
-      if (p.getSymbolicAtom().toString().contains("$")){
-        // TODO extend to several threads
-        //get the tid of the nonmodular predicate
-        Map<String, Integer> nmData = fmgr.getNonModularData(p.getSymbolicAtom());
-        assert !nmData.isEmpty();
-
-        // find matching env. transitions
-        // non-modular variable -> list of prime no.
-        ListMultimap<String, Integer> envMap = ArrayListMultimap.create();
-
-        for (Integer primeNo : pMap.keySet()){
-          RelyGuaranteeCFAEdge rgEdge = pMap.get(primeNo);
-          Integer sTid = rgEdge.getSourceTid();
-          for (String var : nmData.keySet()){
-            if (nmData.get(var) == sTid){
-              envMap.put(var, primeNo);
-            }
-          }
-        }
-
-        // create instances of non-modular predicates
-        List<Formula> definitions = fmgr.nonModularInstances(p.getSymbolicAtom(), envMap);
-        Formula var = p.getSymbolicVariable();
-
-        // for every env. transition applied, create a instance of nonmodular predicates
-        for (Formula def : definitions){
-          Formula idef = fmgr.instantiate(def, ssa);
-          Formula equiv = fmgr.makeEquivalence(var, idef);
-          predDef = fmgr.makeAnd(predDef, equiv);
-        }
-
-        if (!definitions.isEmpty()){
-          predVars.add(var);
-        }
-      } else {
         // get propositional variable and definition of predicate
         Formula var = p.getSymbolicVariable();
         Formula def = p.getSymbolicAtom();
@@ -443,13 +415,13 @@ class PredicateAbstractionManager {
         if (def.isFalse()) {
           continue;
         }
-        def = fmgr.instantiate(def, ssa);
+        def = fmgr.instantiateModular(def, ssa);
 
         // build the formula (var <-> def) and add it to the list of definitions
         Formula equiv = fmgr.makeEquivalence(var, def);
         predDef = fmgr.makeAnd(predDef, equiv);
         predVars.add(var);
-      }
+
 
     }
     if (predVars.isEmpty()) {

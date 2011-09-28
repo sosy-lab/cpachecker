@@ -32,7 +32,6 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 
 import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Multimap;
 
 
 
@@ -252,8 +251,6 @@ public interface FormulaManager {
 
     public Formula adjustedPrimedNo(Formula pFormula, Map<Integer, Integer> pPrimedMap);
 
-    public Formula extractNonmodularFormula(Formula pFr, Integer pTid, Multimap<Integer, Integer> pTraceMap);
-
     public Map<String, Integer> getNonModularData(Formula pSymbolicAtom);
 
     public List<Formula> nonModularInstances(Formula formula, ListMultimap<String, Integer> pEnvMap);
@@ -267,6 +264,25 @@ public interface FormulaManager {
      * @return reduced formula
      */
     Formula removePrimed(Formula formula,  Set<Integer> primedNo);
+
+    /**
+     * Extract non-modular atom predicates from an interpolant in thread tid.
+     * Atoms remain primed. Atoms that have primed number other than tid are
+     * non-modular and their are kept with indexes. Modular atoms are uninstantiated.
+     * @param itp interpolant
+     * @param tid thread number
+     * @return collection of predicates
+     */
+    public List<Formula> extractNonModularAtoms(Formula itp, int tid);
+
+    /**
+     * Instantiates uninstated formulas using the ssa map. Instantied variables
+     * remain unchanged.
+     * @param fr
+     * @param ssa
+     * @return
+     */
+    public Formula instantiateModular(Formula fr, SSAMap ssa);
 
 
 

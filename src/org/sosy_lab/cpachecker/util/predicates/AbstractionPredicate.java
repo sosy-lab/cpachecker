@@ -44,6 +44,7 @@ public class AbstractionPredicate {
     symbolicAtom = Preconditions.checkNotNull(pSymbolicAtom);
   }
 
+
   /**
    * Returns an formula representing this predicate.
    * @return an abstract formula
@@ -59,6 +60,7 @@ public class AbstractionPredicate {
   public Formula getSymbolicAtom() {
     return symbolicAtom;
   }
+
 
   @Override
   public boolean equals(Object pObj) {

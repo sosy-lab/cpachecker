@@ -108,7 +108,7 @@ public class PredicateTransferRelation implements TransferRelation {
 
   protected  LogManager logger;
   protected  PredicateAbstractionManager formulaManager;
-  protected PathFormulaManager pathFormulaManager;
+  protected   PathFormulaManager pathFormulaManager;
 
   protected  MathsatFormulaManager manager;
 

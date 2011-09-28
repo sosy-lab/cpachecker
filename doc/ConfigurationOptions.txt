@@ -494,11 +494,11 @@ cpa.relyguarantee.refinement.addPredicatesGlobally = false
 
 # If true, the analysis continues in the previous thread. If false, the first
 # thread is analysed first.
-cpa.relyguarantee.refinement.continueThread = true
+cpa.relyguarantee.refinement.continueThread = false
 
 # Dump a DAG representation of interpolation formulas to the choosen file.
 # Valid only with DAGRefinement
-cpa.relyguarantee.refinement.dumpDAGfile = "test/output/itpDAG.dot"
+cpa.relyguarantee.refinement.dumpDAGfile = "test/output/itpDAG"
 
 # which interpolating solver to use for interpolant generation?
 cpa.relyguarantee.refinement.interpolatingProver = "MATHSAT"
