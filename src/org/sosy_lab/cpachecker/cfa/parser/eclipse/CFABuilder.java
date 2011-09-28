@@ -132,7 +132,7 @@ class CFABuilder extends ASTVisitor
 
   public CFABuilder(LogManager logger, boolean pIgnoreCasts) {
     this.logger = logger;
-    astCreator = new ASTConverter(scope, pIgnoreCasts);
+    astCreator = new ASTConverter(scope, pIgnoreCasts, logger);
     if (pIgnoreCasts) {
       logger.log(Level.WARNING, "Ignoring all casts in the program because of user request!");
     }

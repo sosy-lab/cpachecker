@@ -30,7 +30,9 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.cfa.ast.BasicType;
@@ -88,13 +90,16 @@ import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 @SuppressWarnings("deprecation") // several methods are deprecated in CDT 7 but still working
 class ASTConverter {
 
+  private final LogManager logger;
+
   private final boolean ignoreCasts;
 
   private Scope scope;
 
-  public ASTConverter(Scope pScope, boolean pIgnoreCasts) {
+  public ASTConverter(Scope pScope, boolean pIgnoreCasts, LogManager pLogger) {
     scope = pScope;
     ignoreCasts = pIgnoreCasts;
+    logger = pLogger;
   }
 
   private static void check(boolean assertion, String msg, org.eclipse.cdt.core.dom.ast.IASTNode astNode) throws CFAGenerationRuntimeException {
@@ -1097,6 +1102,9 @@ class ASTConverter {
       return convert((org.eclipse.cdt.core.dom.ast.IASTInitializerList)i);
     } else if (i instanceof org.eclipse.cdt.core.dom.ast.IASTEqualsInitializer) {
       return convert((org.eclipse.cdt.core.dom.ast.IASTEqualsInitializer)i);
+    } else if (i instanceof org.eclipse.cdt.core.dom.ast.c.ICASTDesignatedInitializer) {
+      logger.log(Level.INFO, "Ignoring initializer part in line", i.getFileLocation().getStartingLineNumber() + ":", i.getRawSignature());
+      return null;
     } else {
       throw new CFAGenerationRuntimeException("unknown initializer: " + i.getClass().getSimpleName(), i);
     }
@@ -1105,7 +1113,6 @@ class ASTConverter {
   private IASTInitializerExpression convert(org.eclipse.cdt.core.dom.ast.IASTInitializerExpression i) {
     IASTNode initializer = convertExpressionWithSideEffects(i.getExpression());
     if (initializer != null && !(initializer instanceof IASTRightHandSide)) {
-      System.err.println(initializer.getClass().getSimpleName());
       throw new CFAGenerationRuntimeException("Initializer is not free of side-effects", i);
     }
 
@@ -1115,7 +1122,10 @@ class ASTConverter {
   private IASTInitializerList convert(org.eclipse.cdt.core.dom.ast.IASTInitializerList iList) {
     List<IASTInitializer> initializerList = new ArrayList<IASTInitializer>(iList.getInitializers().length);
     for (org.eclipse.cdt.core.dom.ast.IASTInitializer i : iList.getInitializers()) {
-      initializerList.add(convert(i));
+      IASTInitializer newI = convert(i);
+      if (newI != null) {
+        initializerList.add(newI);
+      }
     }
     return new IASTInitializerList(iList.getRawSignature(), convert(iList.getFileLocation()), initializerList);
   }
@@ -1127,7 +1137,6 @@ class ASTConverter {
 
       IASTNode initializer = convertExpressionWithSideEffects(e);
       if (initializer != null && !(initializer instanceof IASTRightHandSide)) {
-        System.err.println(initializer.getClass().getSimpleName());
         throw new CFAGenerationRuntimeException("Initializer is not free of side-effects", i);
       }
 

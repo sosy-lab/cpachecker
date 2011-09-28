@@ -41,8 +41,8 @@ import org.eclipse.cdt.core.parser.ParserFactory;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
-import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
@@ -119,7 +119,7 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
       throw new ParserException("Not exactly one statement in function body: " + body);
     }
 
-    return new ASTConverter(new Scope(), ignoreCasts).convert(statements[0]);
+    return new ASTConverter(new Scope(), ignoreCasts, logger).convert(statements[0]);
   }
 
   protected static final int PARSER_OPTIONS =
