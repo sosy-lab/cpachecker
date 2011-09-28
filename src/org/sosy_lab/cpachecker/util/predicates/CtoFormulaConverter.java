@@ -134,7 +134,9 @@ public class CtoFormulaConverter {
     + "Mentioning a function in this list has only an effect, if it is an "
     + "'external function', i.e., no source is given in the code for this function.")
   private Set<String> nondetFunctions = ImmutableSet.of(
-      "int_nondet", "malloc", "nondet_int", "random", "__VERIFIER_nondet_int",
+      "malloc", "__kmalloc", "kzalloc",
+      "sscanf",
+      "int_nondet", "nondet_int", "random", "__VERIFIER_nondet_int",
       "__VERIFIER_nondet_short", "__VERIFIER_nondet_char", "__VERIFIER_nondet_float"
       );
 
@@ -144,8 +146,10 @@ public class CtoFormulaConverter {
 
   // list of functions that are pure (no side-effects)
   private static final Set<String> PURE_EXTERNAL_FUNCTIONS
-      = ImmutableSet.of("__assert_fail", "printf", "puts", "printk",
-          "strcasecmp", "strchr", "strcmp", "strlen", "strncmp", "strrchr", "strstr");
+      = ImmutableSet.of("__assert_fail", "free", "kfree",
+          "fprintf", "printf", "puts", "printk", "sprintf", "swprintf",
+          "strcasecmp", "strchr", "strcmp", "strlen", "strncmp", "strrchr", "strstr"
+          );
 
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
