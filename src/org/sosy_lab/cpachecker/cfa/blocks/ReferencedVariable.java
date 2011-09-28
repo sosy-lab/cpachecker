@@ -35,7 +35,7 @@ public class ReferencedVariable {
   public ReferencedVariable(String pIdent, boolean pOccursInCondition,
       boolean pOccursOnLhs, ReferencedVariable pLhsVariable) {
     super();
-    ident = pIdent;
+    ident = pIdent.replaceAll("[ \n\t]", ""); //mimic behavior of CtoFormulaConverter.exprToVarName
     occursInCondition = pOccursInCondition;
     occursOnLhs = pOccursOnLhs;
     lhsVariable = pLhsVariable;

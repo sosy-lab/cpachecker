@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -132,15 +133,18 @@ public class ReferencedVariablesCollector {
       collectedVars = pCollectedVars;
     }
 
-    @Override
-    public Void visit(IASTIdExpression pE) {
-      String var = pE.getName();
+    private void collectVar(String var) {
       if(lhsVar == null) {
         collectedVars.add(scoped(new ReferencedVariable(var, true, false, null), currentFunction));
       }
       else {
         collectedVars.add(scoped(new ReferencedVariable(var, false, false, lhsVar), currentFunction));
       }
+    }
+
+    @Override
+    public Void visit(IASTIdExpression pE) {
+      collectVar(pE.getName());
       return null;
     }
 
@@ -181,7 +185,18 @@ public class ReferencedVariablesCollector {
 
     @Override
     public Void visit(IASTUnaryExpression pE) {
-      pE.getOperand().accept(this);
+      UnaryOperator op = pE.getOperator();
+
+      switch(op) {
+      case AMPER:
+      case STAR:
+        collectVar(pE.getRawSignature());
+        break;
+      default:
+        pE.getOperand().accept(this);
+      }
+
+
       return null;
     }
 
