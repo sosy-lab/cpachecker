@@ -348,7 +348,24 @@ class CFABuilder extends ASTVisitor
 
           // remove this dead code from CFA
           CFACreationUtils.removeChainOfNodesFromCFA(n);
+
+        } else if (n.getNumEnteringEdges() == 1) {
+          CFAEdge edge = n.getEnteringEdge(0);
+
+          if (edge.getPredecessor().equals(n)) {
+            // it's an unreachable self-loop, this happens in cases like
+            // if (0) { ERROR: goto ERROR; }
+            assert !isPathFromTo(new ArrayList<Integer>(), currentCFA, n);
+
+            logger.log(Level.INFO, "Dead code detected at line", n.getLineNumber() + ": Label", n.getLabel(), "is not reachable.");
+
+            // remove this dead code from CFA
+            n.removeEnteringEdge(edge);
+            CFACreationUtils.removeChainOfNodesFromCFA(n);
+          }
         }
+        // TODO handle other cases of unreachable labels
+        // probably its best to just check whether there is a path from the entry node to the label
       }
 
       labelMap.clear();
