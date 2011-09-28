@@ -29,9 +29,11 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.logging.Level;
 
@@ -355,7 +357,7 @@ class CFABuilder extends ASTVisitor
           if (edge.getPredecessor().equals(n)) {
             // it's an unreachable self-loop, this happens in cases like
             // if (0) { ERROR: goto ERROR; }
-            assert !isPathFromTo(new ArrayList<Integer>(), currentCFA, n);
+            assert !isPathFromTo(currentCFA, n);
 
             logger.log(Level.INFO, "Dead code detected at line", n.getLineNumber() + ": Label", n.getLabel(), "is not reachable.");
 
@@ -846,9 +848,7 @@ class CFABuilder extends ASTVisitor
        * If LabelNode has not been the start of a loop, Node labelNode can be
        * the start of a loop, so check if there is a path from labelNode to
        * the current Node through DFS-search */
-      ArrayList<Integer> visitedNodes = new ArrayList<Integer>();
-      if (!labelNode.isLoopStart()
-          && isPathFromTo(visitedNodes, labelNode, prevNode)) {
+      if (!labelNode.isLoopStart() && isPathFromTo(labelNode, prevNode)) {
         labelNode.setLoopStart();
       }
 
@@ -862,41 +862,41 @@ class CFABuilder extends ASTVisitor
     locStack.push(nextNode);
   }
 
-  /** isPathFromTo() makes a DSF-search from a given Node to search
+  /**
+   * isPathFromTo() makes a DFS-search from a given Node to search
    * if there is a way to the target Node.
    * the condition for this function is, that every Node has another NodeNumber
    *
    * The code for this function was taken from CFATopologicalSort.java and is modified.
    *
-   * @param pVisitedNodes needed for DSF-search
-   * @param fromNode starting node for DSF-search
+   * @param fromNode starting node for DFS-search
    * @param toNode target node for isPath
    */
-  private boolean isPathFromTo(ArrayList<Integer> pVisitedNodes,
-      CFANode fromNode, CFANode toNode) {
+  private boolean isPathFromTo(CFANode fromNode, CFANode toNode) {
+    return isPathFromTo0(new HashSet<CFANode>(), fromNode, toNode);
+  }
+
+  private boolean isPathFromTo0(Set<CFANode> pVisitedNodes, CFANode fromNode, CFANode toNode) {
+    // check if the target is reached
+    if (fromNode.equals(toNode)) {
+      return true;
+    }
 
     // add current node to visited nodes
-    pVisitedNodes.add(fromNode.getNodeNumber());
-    boolean isPath = false;
+    pVisitedNodes.add(fromNode);
 
-    // check if the target is reached
-    if (fromNode.getNodeNumber() == toNode.getNodeNumber()) {
-      isPath = true;
+    // DFS-search with the children of current node
+    for (int i = 0; i < fromNode.getNumLeavingEdges(); i++) {
+      CFANode successor = fromNode.getLeavingEdge(i).getSuccessor();
+      if (!pVisitedNodes.contains(successor)) {
 
-    } else {
-      // BSF-search with the children of current node
-      for (int i = 0; i < fromNode.getNumLeavingEdges(); i++) {
-        CFANode successor = fromNode.getLeavingEdge(i).getSuccessor();
-        if (!pVisitedNodes.contains(successor.getNodeNumber())) {
-          isPath = isPathFromTo(pVisitedNodes, successor, toNode);
-        }
-        // if there is a path, break the search and return isPath (=true)
-        if (isPath) {
-          break;
+        if (isPathFromTo0(pVisitedNodes, successor, toNode)) {
+          // if there is a path, break the search and return true
+          return true;
         }
       }
     }
-    return isPath;
+    return false;
   }
 
   private void handleReturnStatement (IASTReturnStatement returnStatement, IASTFileLocation fileloc)
