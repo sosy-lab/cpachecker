@@ -94,11 +94,13 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 /**
@@ -144,6 +146,11 @@ public class CtoFormulaConverter {
   private static final Set<String> PURE_EXTERNAL_FUNCTIONS
       = ImmutableSet.of("__assert_fail", "printf", "puts", "printk",
           "strcasecmp", "strchr", "strcmp", "strlen", "strncmp", "strrchr", "strstr");
+
+  // set of functions that may not appear in the source code
+  // the value of the map entry is the explanation for the user
+  private static final Map<String, String> UNSUPPORTED_FUNCTIONS
+      = ImmutableMap.of("pthread_create", "threads");
 
   //names for special variables needed to deal with functions
   private static final String VAR_RETURN_NAME = "__retval__";
@@ -1032,6 +1039,9 @@ public class CtoFormulaConverter {
           // function call like "random()"
           // ignore parameters and just create a fresh variable for it
           return makeFreshVariable(func, ssa);
+
+        } else if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
+          throw new UnsupportedCCodeException(UNSUPPORTED_FUNCTIONS.get(func), fexp);
 
         } else if (!PURE_EXTERNAL_FUNCTIONS.contains(func)) {
           if (pexps.isEmpty()) {
