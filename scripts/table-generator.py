@@ -43,6 +43,7 @@ CSS = '''
     tbody td:first-child { font-family: monospace; }
     #options td:not(:first-child) {  text-align:left; font-size: x-small; 
                                      font-family: monospace; }
+    #columnTitles td:first-child { font-family: monospace; font-size: x-small; }
     tbody tr:first-child td { border-top:3px solid black}
     tfoot tr:first-child td { border-top:3px solid black}
     .correctSafe, .correctUnsafe { text-align:center; color:green}
@@ -242,7 +243,13 @@ def getColumnsRowAndTestWidths(listOfTests):
     get columnsRow and testWidths, for all columns that should be shown
     '''
 
-    columnsTitles = []
+    # get common folder of sourcefiles
+    fileList = listOfTests[0][0].findall('sourcefile')
+    fileNames = [file.get("name") for file in fileList]
+    commonPrefix = os.path.commonprefix(fileNames) # maybe with parts of filename
+    commonPrefix = commonPrefix[: commonPrefix.rfind('/') + 1] # only foldername
+
+    columnsTitles = [commonPrefix]
     testWidths = []
     for testResult, columns in listOfTests:
         numberOfColumns = 0
@@ -255,8 +262,11 @@ def getColumnsRowAndTestWidths(listOfTests):
                     break
 
         testWidths.append(numberOfColumns)
-    
-    return ('<tr id="columnTitles"><td>' + '</td><td>'.join([' '] + columnsTitles) + '</td></tr>',
+
+
+    return ('<tr id="columnTitles"><td>' + \
+                '</td><td>'.join(columnsTitles) + \
+                '</td></tr>',
             testWidths,
             CSV_SEPARATOR.join(['filename'] + columnsTitles))
 
@@ -400,11 +410,18 @@ def getTableBody(listOfTests):
                     ['<td>score ({0} files)</td>'.format(len(fileList))]]
 
     # get filenames
-    for file in fileList:
-        fileName = file.get("name")
+    fileNames = [file.get("name") for file in fileList]
+
+    # get common folder
+    commonPrefix = os.path.commonprefix(fileNames) # maybe with parts of filename
+    commonPrefix = commonPrefix[: commonPrefix.rfind('/') + 1] # only foldername
+
+    # generate text for filenames
+    for fileName in fileNames:
         filePath = getPathOfSourceFile(fileName)
 
-        rowsForHTML.append(['<td><a href="{0}">{1}</a></td>'.format(filePath, fileName)])
+        rowsForHTML.append(['<td><a href="{0}">{1}</a></td>'.
+                            format(filePath, fileName.replace(commonPrefix, ''))])
         rowsForCSV.append([fileName])
 
     # get values for each test
@@ -442,8 +459,7 @@ def getPathOfSourceFile(filename):
     a filename, that is relative to CPAchackerDir, will get a prefix.
     '''
     if not filename.startswith('/'): # not absolute -> relative, TODO: windows?
-        filename = './' + '../'*OUTPUT_PATH.count("/") + filename
-
+        filename = os.path.relpath(filename, OUTPUT_PATH)
     return filename
 
 
