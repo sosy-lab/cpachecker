@@ -73,6 +73,8 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IComplexType;
@@ -881,70 +883,79 @@ public class CtoFormulaConverter {
         return visitDefault(exp);
 
       case SIZEOF:
-        return handleSizeof(exp);
+        if (exp.getOperand() instanceof IASTIdExpression) {
+          IType lIType =
+              ((IASTIdExpression) exp.getOperand()).getExpressionType();
+          return handleSizeof(exp, lIType);
+        } else {
+          return visitDefault(exp);
+        }
 
       default:
         throw new UnrecognizedCCodeException("Unknown unary operator", null, exp);
       }
     }
 
-    private Formula handleSizeof(IASTUnaryExpression exp)
+    @Override
+    public Formula visit(IASTTypeIdExpression tIdExp)
         throws UnrecognizedCCodeException {
 
-      if (exp.getOperand() instanceof IASTIdExpression) {
-        IType lIType =
-            ((IASTIdExpression) exp.getOperand()).getExpressionType();
+      if (tIdExp.getOperator() == TypeIdOperator.SIZEOF) {
+        IType lIType = tIdExp.getTypeId().getDeclSpecifier();
+        return handleSizeof(tIdExp, lIType);
+      } else {
+        return visitDefault(tIdExp);
+      }
+    }
 
-        if (lIType instanceof IASTSimpleDeclSpecifier) {
-          IASTSimpleDeclSpecifier lSimpleDeclSpec =
-              (IASTSimpleDeclSpecifier) lIType;
-          MachineModel lMachineModel = getMachineModel();
+    private Formula handleSizeof(IASTExpression pExp, IType pIType)
+        throws UnrecognizedCCodeException {
 
-          switch (lSimpleDeclSpec.getType()) {
-          case UNSPECIFIED: {
-            return visitDefault(exp);
-          }
-          case VOID: {
-            return fmgr.makeNumber(lMachineModel.getSizeofVoid());
-          }
-          case BOOL: {
-            return fmgr.makeNumber(lMachineModel.getSizeofBool());
-          }
-          case CHAR: {
-            return fmgr.makeNumber(lMachineModel.getSizeofChar());
-          }
-          case INT: {
-            if (lSimpleDeclSpec.isLongLong()) {
-              return fmgr.makeNumber(lMachineModel.getSizeofLongLong());
-            } else if (lSimpleDeclSpec.isLong()) {
-              return fmgr.makeNumber(lMachineModel.getSizeofLong());
-            } else if (lSimpleDeclSpec.isShort()) {
-              return fmgr.makeNumber(lMachineModel.getSizeofShort());
-            } else {
-              return fmgr.makeNumber(lMachineModel.getSizeofInt());
-            }
-          }
-          case FLOAT: {
-            return fmgr.makeNumber(lMachineModel.getSizeofFloat());
-          }
-          case DOUBLE: {
-            if (lSimpleDeclSpec.isLong()) {
-              return fmgr.makeNumber(lMachineModel.getSizeofLongDouble());
-            } else {
-              return fmgr.makeNumber(lMachineModel.getSizeofDouble());
-            }
-          }
+      if (pIType instanceof IASTSimpleDeclSpecifier) {
+        IASTSimpleDeclSpecifier lSimpleDeclSpec =
+            (IASTSimpleDeclSpecifier) pIType;
+        MachineModel lMachineModel = getMachineModel();
+
+        switch (lSimpleDeclSpec.getType()) {
+        case UNSPECIFIED: {
+          return visitDefault(pExp);
+        }
+        case VOID: {
+          return fmgr.makeNumber(lMachineModel.getSizeofVoid());
+        }
+        case BOOL: {
+          return fmgr.makeNumber(lMachineModel.getSizeofBool());
+        }
+        case CHAR: {
+          return fmgr.makeNumber(lMachineModel.getSizeofChar());
+        }
+        case INT: {
+          if (lSimpleDeclSpec.isLongLong()) {
+            return fmgr.makeNumber(lMachineModel.getSizeofLongLong());
+          } else if (lSimpleDeclSpec.isLong()) {
+            return fmgr.makeNumber(lMachineModel.getSizeofLong());
+          } else if (lSimpleDeclSpec.isShort()) {
+            return fmgr.makeNumber(lMachineModel.getSizeofShort());
+          } else {
+            return fmgr.makeNumber(lMachineModel.getSizeofInt());
           }
         }
-
-      } else if (exp.getOperand() instanceof IASTFieldReference) {
-        System.out.println("FieldReference: "
-            + exp.getOperand().getRawSignature() + "\n");
+        case FLOAT: {
+          return fmgr.makeNumber(lMachineModel.getSizeofFloat());
+        }
+        case DOUBLE: {
+          if (lSimpleDeclSpec.isLong()) {
+            return fmgr.makeNumber(lMachineModel.getSizeofLongDouble());
+          } else {
+            return fmgr.makeNumber(lMachineModel.getSizeofDouble());
+          }
+        }
+        default:
+          return visitDefault(pExp);
+        }
       } else {
-        System.out.println(exp.getOperand().getClass() + "\n");
+        return visitDefault(pExp);
       }
-
-      return visitDefault(exp);
     }
   }
 
