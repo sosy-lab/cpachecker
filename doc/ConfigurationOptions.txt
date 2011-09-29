@@ -328,7 +328,7 @@ cpa.predicate.initAllVars = false
 
 # the machine model used for functions sizeof and alignof
 cpa.predicate.machineModel = "32-Linux"
-  allowed values: [32-Linux]
+  allowed values: [32-Linux, 64-Linux]
 
 # With of the bitvectors if useBitwise is true.
 cpa.predicate.mathsat.bitWidth = 32
