@@ -23,13 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -42,7 +40,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-@Options(prefix="cpa.functionpointer")
 public class FunctionPointerCPA implements ConfigurableProgramAnalysis {
 
   private FunctionPointerDomain abstractDomain;
@@ -50,28 +47,16 @@ public class FunctionPointerCPA implements ConfigurableProgramAnalysis {
   private StopOperator stopOperator;
   private TransferRelation transferRelation;
   private PrecisionAdjustment precisionAdjustment;
-  private FunctionPointerPrecision precision;
-
-  @Option(name="merge", toUppercase=true, values={"SEP"},
-      description="which merge operator to use for FunctionPointerCPA")
-  private String mergeType = "SEP";
-
-  @Option(name="stop", toUppercase=true, values={"SEP"},
-      description="which stop operator to use for FunctionPointerCPA")
-  private String stopType = "SEP";
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(FunctionPointerCPA.class);
   }
 
-  private FunctionPointerCPA(Configuration config) throws InvalidConfigurationException {
-    config.inject(this);
-
-    this.precision = new FunctionPointerPrecision();
+  private FunctionPointerCPA() throws InvalidConfigurationException {
     this.abstractDomain = new FunctionPointerDomain();
     this.mergeOperator = MergeSepOperator.getInstance();
     this.stopOperator = new StopSepOperator(this.abstractDomain);
-    this.transferRelation = new FunctionPointerTransferRelation(config);
+    this.transferRelation = new FunctionPointerTransferRelation();
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
 
@@ -107,7 +92,6 @@ public class FunctionPointerCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public Precision getInitialPrecision(CFANode pNode) {
-    return precision;
+    return SingletonPrecision.getInstance();
   }
-
 }

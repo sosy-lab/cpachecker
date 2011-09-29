@@ -27,9 +27,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
@@ -62,12 +59,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
-@Options(prefix="cpa.functionpointer")
-public class FunctionPointerTransferRelation implements TransferRelation {
-
-  public FunctionPointerTransferRelation(Configuration config) throws InvalidConfigurationException {
-    config.inject(this);
-  }
+class FunctionPointerTransferRelation implements TransferRelation {
 
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(
@@ -76,17 +68,13 @@ public class FunctionPointerTransferRelation implements TransferRelation {
 
     final FunctionPointerElement oldState = (FunctionPointerElement)pElement;
     final FunctionPointerElement newState = oldState.createDuplicate();
-    final FunctionPointerPrecision precision = (FunctionPointerPrecision) pPrecision;
-
-    System.out.println(pCfaEdge.getRawStatement());
-    System.out.println(pCfaEdge.getEdgeType());
 
     switch(pCfaEdge.getEdgeType()) {
 
       // if edge is a statement edge, e.g. a = b + c
       case StatementEdge: {
         StatementEdge statementEdge = (StatementEdge) pCfaEdge;
-        handleStatement(newState, statementEdge.getStatement(), pCfaEdge, precision);
+        handleStatement(newState, statementEdge.getStatement(), pCfaEdge);
         break;
       }
 
@@ -119,13 +107,11 @@ public class FunctionPointerTransferRelation implements TransferRelation {
       // declaration of a function pointer.
       case DeclarationEdge: {
         DeclarationEdge decEdge = (DeclarationEdge) pCfaEdge;
-        if (pCfaEdge.getRawAST() instanceof IASTDeclaration) {
-          String insideFunctionName = pCfaEdge.getPredecessor().getFunctionName();
-          IASTDeclaration declaration = (IASTDeclaration) pCfaEdge.getRawAST();
+        String insideFunctionName = pCfaEdge.getPredecessor().getFunctionName();
+        IASTDeclaration declaration = decEdge.getRawAST();
 
-          // store declaration in abstract state
-          newState.declareNewVariable(insideFunctionName, declaration.getName());
-        }
+        // store declaration in abstract state
+        newState.declareNewVariable(insideFunctionName, declaration.getName());
 
         break;
       }
@@ -153,10 +139,10 @@ public class FunctionPointerTransferRelation implements TransferRelation {
 
   private void handleStatement(
       FunctionPointerElement pNewState, IASTStatement pStatement,
-      CFAEdge pCfaEdge, FunctionPointerPrecision pPrecision) throws UnrecognizedCCodeException {
+      CFAEdge pCfaEdge) throws UnrecognizedCCodeException {
     // expression is a binary operation, e.g. a = b;
     if (pStatement instanceof IASTAssignment) {
-      handleAssignmentStatement(pNewState, (IASTAssignment)pStatement, pCfaEdge, pPrecision);
+      handleAssignmentStatement(pNewState, (IASTAssignment)pStatement, pCfaEdge);
     }
     // external function call
     else if(pStatement instanceof IASTFunctionCallStatement){
@@ -173,7 +159,7 @@ public class FunctionPointerTransferRelation implements TransferRelation {
 
   private void handleAssignmentStatement(
       FunctionPointerElement pNewState,
-      IASTAssignment pStatement, CFAEdge pCfaEdge, FunctionPointerPrecision pPrecision)
+      IASTAssignment pStatement, CFAEdge pCfaEdge)
           throws UnrecognizedCCodeException {
 
     IASTExpression op1 = pStatement.getLeftHandSide();
@@ -223,8 +209,8 @@ public class FunctionPointerTransferRelation implements TransferRelation {
     } else if (expression instanceof IASTFunctionCallExpression) {
       // a = func()
 
-      IASTFunctionCallExpression funcExpression = (IASTFunctionCallExpression)expression;
-      String calledFunctionName = funcExpression.getFunctionNameExpression().getRawSignature();
+//      IASTFunctionCallExpression funcExpression = (IASTFunctionCallExpression)expression;
+//      String calledFunctionName = funcExpression.getFunctionNameExpression().getRawSignature();
 
       // TODO: Take return value of called function into account.
       pNewState.setVariableToTop(functionName, leftVarName);
@@ -273,9 +259,6 @@ public class FunctionPointerTransferRelation implements TransferRelation {
     String calledFunctionName = functionEntryNode.getFunctionName();
     String callerFunctionName = callEdge.getPredecessor().getFunctionName();
 
-    System.out.println("calledFunctionName: " + calledFunctionName);
-    System.out.println("callerFunctionName: " + callerFunctionName);
-
     List<IASTParameterDeclaration> paramDecs = functionEntryNode.getFunctionParameters();
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
     List<IASTExpression> arguments = callEdge.getArguments();
@@ -286,10 +269,8 @@ public class FunctionPointerTransferRelation implements TransferRelation {
       String paramName = paramNames.get(i);
       IASTParameterDeclaration paramDec = paramDecs.get(i);
 
-      System.out.println(paramDec);
       pNewState.declareNewVariable(calledFunctionName, paramName);
       // get value of actual parameter in caller function context
-      System.out.println(arguments.get(i).getClass().getCanonicalName());
       if (paramDec.getDeclSpecifier() instanceof IASTPointerTypeSpecifier) {
         if (((IASTPointerTypeSpecifier)paramDec.getDeclSpecifier()).getType() instanceof IASTFunctionTypeSpecifier) {
           if (arguments.get(i) instanceof IASTUnaryExpression) {
@@ -297,9 +278,6 @@ public class FunctionPointerTransferRelation implements TransferRelation {
             if (arguments.get(i).getExpressionType() instanceof IASTPointerTypeSpecifier) {
               if (argUnExpr.getOperator().equals(IASTUnaryExpression.UnaryOperator.AMPER)) {
                 pNewState.setVariablePointsTo(calledFunctionName, paramName, argUnExpr.getOperand().toASTString());
-                System.out.println("PointerTypeArgument!: " + paramName);
-                System.out.println("PointerTypeArgument!: " + argUnExpr.getOperand().toASTString());
-                System.out.println("PointerTypeArgument!: " + argUnExpr.getOperator().toString());
               }
             }
           } else if (arguments.get(i) instanceof IASTIdExpression) {

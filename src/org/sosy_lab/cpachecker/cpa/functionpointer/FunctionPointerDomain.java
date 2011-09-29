@@ -25,19 +25,16 @@ package org.sosy_lab.cpachecker.cpa.functionpointer;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class FunctionPointerDomain implements AbstractDomain {
+class FunctionPointerDomain implements AbstractDomain {
 
   @Override
-  public AbstractElement join(AbstractElement pElement1,
-      AbstractElement pElement2) throws CPAException {
-    return null;
+  public AbstractElement join(AbstractElement pElement1, AbstractElement pElement2) {
+    throw new UnsupportedOperationException();
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractElement pElement1,
-      AbstractElement pElement2) throws CPAException {
+  public boolean isLessOrEqual(AbstractElement pElement1, AbstractElement pElement2) {
     // returns true if element1 < element2 on lattice
 
     FunctionPointerElement elem1 = (FunctionPointerElement) pElement1;
@@ -45,5 +42,4 @@ public class FunctionPointerDomain implements AbstractDomain {
 
     return elem1.isLessOrEqualThan(elem2);
   }
-
 }

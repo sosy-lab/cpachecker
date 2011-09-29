@@ -30,9 +30,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
 /**
  * Represents one abstract state of the FunctionPointer CPA.
- * @author Andreas Stahlbauer <stahlbau fim uni-passau de>
  */
-public class FunctionPointerElement implements AbstractElement {
+class FunctionPointerElement implements AbstractElement {
 
   // java reference counting + immutable objects should help us
   // to reduce memory consumption.
@@ -81,16 +80,13 @@ public class FunctionPointerElement implements AbstractElement {
     }
   }
 
-  private Map<String,AbstractFunctionPointerTarget> pointerVariableValues = new HashMap<String,AbstractFunctionPointerTarget>();
+  private final Map<String,AbstractFunctionPointerTarget> pointerVariableValues = new HashMap<String,AbstractFunctionPointerTarget>();
 
   public FunctionPointerElement() {
   }
 
-  public FunctionPointerElement(FunctionPointerElement pCopyFromPreviousState) {
-    if (pCopyFromPreviousState != null) {
-      // should be ok because the values of the map are immutable.
-      this.pointerVariableValues.putAll(pCopyFromPreviousState.pointerVariableValues);
-    }
+  private FunctionPointerElement(FunctionPointerElement pCopyFromPreviousState) {
+    this.pointerVariableValues.putAll(pCopyFromPreviousState.pointerVariableValues);
   }
 
   public FunctionPointerElement createDuplicate() {
