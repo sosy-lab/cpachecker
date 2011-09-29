@@ -41,27 +41,19 @@ public class ExplicitDomain implements AbstractDomain {
         return false;
       }
 
-//      ("===============");
-//      System.out.println(ExplicitElementNew);
-//      System.out.println("---------------");
-//      SystemSystem.out.println.out.println(ExplicitElementReached);
-//      System.out.println("===============");
-//      System.exit(0);
-
       Map<String, Long> constantsMapNew = ExplicitElementNew.getConstantsMap();
       Map<String, Long> constantsMapReached = ExplicitElementReached.getConstantsMap();
 
-      if(constantsMapNew.size() < constantsMapReached.size()){
+      // check whether constantsMapReached contains a subset of the mappings of constantsMapNew
+
+      if (constantsMapNew.size() < constantsMapReached.size()) {
         return false;
       }
 
-      for(String key:constantsMapReached.keySet()){
-        if(!constantsMapNew.containsKey(key)){
-          return false;
-        }
-        long val1 = constantsMapNew.get(key).longValue();
-        long val2 = constantsMapReached.get(key).longValue();
-        if(val1 != val2){
+      for (Map.Entry<String, Long> entry : constantsMapReached.entrySet()) {
+        Long newVal = constantsMapNew.get(entry.getKey());
+
+        if (!entry.getValue().equals(newVal)) {
           return false;
         }
       }
@@ -79,23 +71,28 @@ public class ExplicitDomain implements AbstractDomain {
       Map<String, Integer> referencesMap1 = ExplicitElement1.getNoOfReferences();
       Map<String, Integer> referencesMap2 = ExplicitElement2.getNoOfReferences();
 
-      Map<String, Long> newConstantsMap = new HashMap<String, Long>();
-      Map<String, Integer> newReferencesMap = new HashMap<String, Integer>();
+      int size = Math.min(constantsMap1.size(), constantsMap2.size());
+
+      Map<String, Long> newConstantsMap = new HashMap<String, Long>(size);
+      Map<String, Integer> newReferencesMap = new HashMap<String, Integer>(size);
 
       newReferencesMap.putAll(referencesMap1);
 
-      for(String key:constantsMap2.keySet()){
-        // if there is the same variable
-        if(constantsMap1.containsKey(key)){
-          // if they have same values, set the value to it
-          if(constantsMap1.get(key).equals(constantsMap2.get(key))){
-            newConstantsMap.put(key, constantsMap1.get(key));
+      for (Map.Entry<String, Long> entry2 : constantsMap2.entrySet()) {
+        String key = entry2.getKey();
+        Long value1 = constantsMap1.get(key);
+
+        if (value1 != null) {
+          // if there is the same variable
+          if (value1.equals(entry2.getValue())) {
+            newConstantsMap.put(key, value1);
           }
+
           // update references map
           newReferencesMap.put(key, Math.max(referencesMap1.get(key), referencesMap2.get(key)));
-        }
-        // if the first map does not contain the variable
-        else {
+
+        } else {
+          // if the first map does not contain the variable
           newReferencesMap.put(key, referencesMap2.get(key));
         }
       }
