@@ -252,11 +252,13 @@ public class RelyGuaranteeEnvironment {
       //assert envTransProcessedBeforeFromThread[i].containsValue(et);
 
       int tid = et.getSourceThread();
+      int otherTid  = tid == 0 ? 1 : 0;
       assert tid == i;
-      System.out.println("DEBUG: "+et.getAbstractionPathFormula());
       Map<Integer, Integer> adjustmentMap = new HashMap<Integer, Integer>();
-      adjustmentMap.put(i, uniquePrime);
-      PathFormula af    = pfManager.adjustPrimedNo(et.getAbstractionPathFormula(), adjustmentMap);
+      adjustmentMap.put(tid, uniquePrime);
+      adjustmentMap.put(otherTid, uniquePrime+1);
+     // this.fManager.r
+      PathFormula af    =  pfManager.adjustPrimedNo(et.getAbstractionPathFormula(), adjustmentMap);
       PathFormula pf    =  pfManager.adjustPrimedNo(et.getPathFormula(), adjustmentMap);
       PathFormula newPf = pfManager.makeAnd(af, pf);
       PathFormula eq = pfManager.makePrimedEqualities(af, uniquePrime, tid);
@@ -267,16 +269,16 @@ public class RelyGuaranteeEnvironment {
       for (String var : newPf.getSsa().allVariables()){
         Pair<String, Integer> data = PathFormula.getPrimeData(var);
         Integer primeNo = data.getSecond();
-        if (primeNo != null && (primeNo == 0 || primeNo == 1 || primeNo == uniquePrime)){
+        if (primeNo != null && (primeNo == 0 || primeNo == 1 || primeNo == uniquePrime || primeNo == uniquePrime+1)){
           ssaBldr.setIndex(var, newPf.getSsa().getIndex(var));
         }
       }
 
-      newPf = new PathFormula(newPf.getFormula(), ssaBldr.build(), 0 , uniquePrime);
+      newPf = new PathFormula(newPf.getFormula(), ssaBldr.build(), 0 , uniquePrime+1);
 
       //newPF = pfManager.normalize(newPF);
-      RelyGuaranteeCFAEdgeTemplate rgEdge = new RelyGuaranteeCFAEdgeTemplate(et.getEdge(), newPf, et.getSourceThread(), et.getSourceARTElement(), et, uniquePrime);
-      uniquePrime++;
+      RelyGuaranteeCFAEdgeTemplate rgEdge = new RelyGuaranteeCFAEdgeTemplate(et.getEdge(), newPf, et.getSourceThread(), et.getSourceARTElement(), et, uniquePrime, uniquePrime+1);
+      uniquePrime = uniquePrime+2;
       rgEdges.add(rgEdge);
     }
     unprocessedTransitions.clear();
@@ -576,16 +578,20 @@ public class RelyGuaranteeEnvironment {
       return true;
     }
 
-    // unify unique prime numbers, so transitino can be directly compared
+    // unify unique prime numbers, so transitions can be directly compared
     Map<Integer, Integer> adjustmentMap = new HashMap<Integer, Integer>();
 
-    Integer u1 = env1.getUniquePrime();
-    adjustmentMap.put(u1, 100);
+    Integer u1this  = env1.getUniquePrimeThis();
+    Integer u1other = env1.getUniquePrimeOther();
+    adjustmentMap.put(u1this, 100);
+    adjustmentMap.put(u1other, 101);
     Formula f1a = fManager.adjustedPrimedNo(f1, adjustmentMap);
 
     adjustmentMap.clear();
-    Integer u2 = env2.getUniquePrime();
-    adjustmentMap.put(u2, 100);
+    Integer u2this  = env2.getUniquePrimeThis();
+    Integer u2other = env2.getUniquePrimeOther();
+    adjustmentMap.put(u2this, 100);
+    adjustmentMap.put(u2other, 101);
     Formula f2a =  fManager.adjustedPrimedNo(f2, adjustmentMap);
 
     Formula nImpl = fManager.makeAnd(f1a, fManager.makeNot(f2a));

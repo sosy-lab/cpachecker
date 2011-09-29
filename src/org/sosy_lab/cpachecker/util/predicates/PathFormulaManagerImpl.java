@@ -581,15 +581,13 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     // adjust the ssa map
     for (String var : ssa.allVariables()){
       Pair<String, Integer> data = PathFormula.getPrimeData(var);
-      if (primedMap.containsKey(data.getSecond())){
-        int newPrimedNo = primedMap.get(data.getSecond());
-        if (newPrimedNo == 0 && ssaBuilder.getIndex(data.getFirst()) == -1){
-          ssaBuilder.setIndex(data.getFirst(), ssa.getIndex(var));
-        } else if (ssaBuilder.getIndex(data.getFirst()+PathFormula.PRIME_SYMBOL+newPrimedNo) == -1) {
-          ssaBuilder.setIndex(data.getFirst()+PathFormula.PRIME_SYMBOL+newPrimedNo, ssa.getIndex(var));
-        }
-        maxPrimed = Math.max(maxPrimed, newPrimedNo);
-      } else {
+      assert data.getSecond() != null;
+      Integer newPrimedNo = primedMap.get(data.getSecond());
+      if (newPrimedNo != null){
+        String nVar   = data.getFirst() + PathFormula.PRIME_SYMBOL + newPrimedNo;
+        ssaBuilder.setIndex(nVar, ssa.getIndex(var));
+      }
+      else {
         ssaBuilder.setIndex(var, ssa.getIndex(var));
         maxPrimed = Math.max(maxPrimed, data.getSecond());
       }

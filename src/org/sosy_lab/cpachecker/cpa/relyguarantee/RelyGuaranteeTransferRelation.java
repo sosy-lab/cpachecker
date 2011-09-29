@@ -290,11 +290,11 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
       PathFormula envPf = rgEdge.getPathFormula();
 
       // if env. edge contains ssa index for this thread, then they have to match local path formula
-      PathFormula eq    = pfManager.makePrimedEqualities(localPf, cpa.getTid(), envPf, rgEdge.getUniquePrime());
+      PathFormula eq    = pfManager.makePrimedEqualities(localPf, cpa.getTid(), envPf, rgEdge.getUniquePrimeThis());
       PathFormula envEqPf = pfManager.makeAnd(envPf, eq);
 
       // apply the strongest postcondition to env. thread.
-      PathFormula appPf = pfManager.makeAnd(envEqPf, rgEdge.getLocalEdge(), rgEdge.getUniquePrime());
+      PathFormula appPf = pfManager.makeAnd(envEqPf, rgEdge.getLocalEdge(), rgEdge.getUniquePrimeThis());
 
       // TODO make more effitive
       // make equalite between the strongest postcondition in the source thread and in the local thread
@@ -306,7 +306,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
       for (String var : appssa.allVariables()){
         if (appssa.getIndex(var) > enveqssa.getIndex(var)){
           Pair<String, Integer> data = PathFormula.getPrimeData(var);
-          assert data.getSecond().equals(rgEdge.getUniquePrime());
+          assert data.getSecond().equals(rgEdge.getUniquePrimeThis());
           appVar = data.getFirst();
           break;
         }
@@ -317,7 +317,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
       }
       assert appVar != null;
 
-      String envVar = appVar + PathFormula.PRIME_SYMBOL + rgEdge.getUniquePrime();
+      String envVar = appVar + PathFormula.PRIME_SYMBOL + rgEdge.getUniquePrimeThis();
       int envIdx    = appssa.getIndex(envVar);
       String lVar   = appVar + PathFormula.PRIME_SYMBOL + cpa.getTid();
       int lIdx      = appssa.getIndex(lVar)+1;

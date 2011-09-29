@@ -390,6 +390,8 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       toRemove  = edgesOutOfThread(dag, tid);
       appliedMap = dag.getAppliedEnvEdges(otherTid);
 
+      System.out.println();
+      System.out.println("To remove "+toRemove);
       if (!toRemove.isEmpty()){
         System.out.println();
       }
@@ -473,13 +475,17 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       }
 
       // reconstruct how env. edge looks like in the node
-      Integer oUnique = edge.getUniquePrime();
-      assert oUnique != null;
-      Integer nUnique = node.getEnvPrimes().get(edge);
-      assert nUnique != null;
+      Integer oUniqueThis   = edge.getUniquePrimeThis();
+      Integer oUniqueOther  = edge.getUniquePrimeOther();
+      assert oUniqueThis    != null;
+      assert oUniqueOther   != null;
+      Integer nUniqueThis   = node.getEnvPrimes().get(edge);
+      assert  nUniqueThis   != null;
+      Integer nUniqueOther  = nUniqueThis+1;
 
       Map<Integer, Integer> adjustmentMap = new HashMap<Integer, Integer>();
-      adjustmentMap.put(oUnique, nUnique);
+      adjustmentMap.put(oUniqueThis, nUniqueThis);
+      adjustmentMap.put(oUniqueOther, nUniqueOther);
       PathFormula appPf = pmgr.adjustPrimedNo(edge.getPathFormula(), adjustmentMap);
 
       Formula eeF      = fmgr.makeNot(appPf.getFormula());
@@ -606,10 +612,12 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
           node.getParents().add(envNode);
         }
 
-        int currentUnique = rgEdge.getUniquePrime();
-        adjustmentMap.put(currentUnique, newUnique.getValue());
+        int currentUniqueThis   = rgEdge.getUniquePrimeThis();
+        int currentUniqueOther  = rgEdge.getUniquePrimeOther();
+        adjustmentMap.put(currentUniqueThis, newUnique.getValue());
+        adjustmentMap.put(currentUniqueOther, newUnique.getValue()+1);
         node.getEnvPrimes().put(rgEdge, newUnique.getValue());
-        newUnique.setValue(newUnique.getValue()+1);
+        newUnique.setValue(newUnique.getValue()+2);
 
       }
 
@@ -2014,6 +2022,9 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     Set <AbstractionPredicate> result = new HashSet<AbstractionPredicate>();
 
+    int tid = node.getTid();
+    int otherTid = tid == 0 ? 1 : 0;
+
     // TODO maybe handling of non-atomic predicates
     if (!itp.isTrue()){
       if (itp.isFalse()){
@@ -2025,6 +2036,10 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         List<Formula> atoms = fmgr.extractNonModularAtoms(itp, node.getTid());
 
         for (Formula atom : atoms){
+          if (atom.toString().contains("^"+otherTid)){
+            System.out.print("");
+          }
+
           AbstractionPredicate atomPredicate = amgr.makePredicate(atom);
           result.add(atomPredicate);
         }

@@ -51,11 +51,12 @@ public class RelyGuaranteeCFAEdgeTemplate{
   // unkilled env. edges that are less general that this one
   private final Set<RelyGuaranteeCFAEdgeTemplate> covers;
   // part of the env. transition that should always be unique
-  private final Integer uniquePrime;
+  private final Integer uniquePrimeThis;
+  private final Integer uniquePrimeOther;
 
 
 
-  public RelyGuaranteeCFAEdgeTemplate(CFAEdge pEdge, PathFormula pPathFormula, int sourceTid, ARTElement sourceARTElement, RelyGuaranteeEnvironmentalTransition sourceEnvTransition, Integer uniquePrime){
+  public RelyGuaranteeCFAEdgeTemplate(CFAEdge pEdge, PathFormula pPathFormula, int sourceTid, ARTElement sourceARTElement, RelyGuaranteeEnvironmentalTransition sourceEnvTransition, Integer uniquePrimeThis, Integer uniquePrimeOther){
     this.localEdge = pEdge;
     this.pathFormulaWrapper = new PathFormulaWrapper(pPathFormula);
     this.sourceARTElementWrapper = new ARTElementWrapper(sourceARTElement);
@@ -63,12 +64,13 @@ public class RelyGuaranteeCFAEdgeTemplate{
     this.sourceEnvTransition = sourceEnvTransition;
     this.coveredBy = null;
     this.covers = new HashSet<RelyGuaranteeCFAEdgeTemplate>();
-    this.uniquePrime = uniquePrime;
+    this.uniquePrimeThis  = uniquePrimeThis;
+    this.uniquePrimeOther = uniquePrimeOther;
   }
 
   // instantiate
   public RelyGuaranteeCFAEdge instantiate(){
-    RelyGuaranteeCFAEdge edge = new RelyGuaranteeCFAEdge(this.localEdge, this.pathFormulaWrapper, this.sourceTid, this.sourceARTElementWrapper, this.sourceEnvTransition, this, this.uniquePrime);
+    RelyGuaranteeCFAEdge edge = new RelyGuaranteeCFAEdge(this.localEdge, this.pathFormulaWrapper, this.sourceTid, this.sourceARTElementWrapper, this.sourceEnvTransition, this, this.uniquePrimeThis, this.uniquePrimeOther);
     return edge;
   }
 
@@ -127,8 +129,12 @@ public class RelyGuaranteeCFAEdgeTemplate{
     return covers;
   }
 
-  public Integer getUniquePrime() {
-    return uniquePrime;
+  public Integer getUniquePrimeThis() {
+    return uniquePrimeThis;
+  }
+
+  public Integer getUniquePrimeOther() {
+    return uniquePrimeOther;
   }
 
   /**
