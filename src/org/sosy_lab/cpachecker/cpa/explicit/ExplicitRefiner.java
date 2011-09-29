@@ -281,23 +281,6 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
 //System.out.println("\nreferencedVariables: " + referencedVars);
     allReferencedVariables.addAll(referencedVars);
 
-    Pair<ARTElement, CFAEdge> firstInterpolationPoint = null;
-
-    // collect variables on error path, on which the found ones depend on
-    CollectVariablesVisitor visitor = new CollectVariablesVisitor(allReferencedVariables);
-
-    Iterator<Pair<ARTElement, CFAEdge>> iterator = path.descendingIterator();
-    while(iterator.hasNext())
-    {
-      Pair<ARTElement, CFAEdge> element = iterator.next();
-
-      if(extractVariables(element.getSecond(), visitor))
-        firstInterpolationPoint = element;
-    }
-
-    assert firstInterpolationPoint != null;
-
-
     // the new whitelist is based on the old one
     Map<CFAEdge, Set<String>> whiteList = oldPrecision.getWhiteList();
     //Map<CFAEdge, Set<String>> whiteList = new HashMap<CFAEdge, Set<String>>();
@@ -314,6 +297,26 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
 
       varss.addAll(entry.getValue());
     }
+
+
+    Pair<ARTElement, CFAEdge> firstInterpolationPoint = null;
+
+    // collect variables on error path, on which the found ones depend on
+    CollectVariablesVisitor visitor = new CollectVariablesVisitor(allReferencedVariables);
+
+    Iterator<Pair<ARTElement, CFAEdge>> iterator = path.descendingIterator();
+    while(iterator.hasNext())
+    {
+      Pair<ARTElement, CFAEdge> element = iterator.next();
+
+      if(extractVariables(element.getSecond(), visitor) || whiteList.containsKey(element.getSecond()))
+        firstInterpolationPoint = element;
+    }
+
+    assert firstInterpolationPoint != null;
+
+
+
 //System.out.println("\nnew whitelist: " + whiteList);
     // new def-use
     Map<CFAEdge, Set<String>> vars = visitor.getVariablesAtEdges();
