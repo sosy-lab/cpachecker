@@ -23,10 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Strings.isNullOrEmpty;
+
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+
+import com.google.common.base.Objects;
 
 /**
  * Represents one abstract state of the FunctionPointer CPA.
@@ -35,52 +42,91 @@ class FunctionPointerElement implements AbstractElement {
 
   // java reference counting + immutable objects should help us
   // to reduce memory consumption.
-  private static abstract class AbstractFunctionPointerTarget {
+  static abstract class FunctionPointerTarget {
   }
 
-  public static boolean handleUndefinedAsTop = true;
+  static final class UnknownTarget extends FunctionPointerTarget {
+    private static final UnknownTarget instance = new UnknownTarget();
 
-  private static final class BottomTarget extends AbstractFunctionPointerTarget {
-    private static final BottomTarget instance = new BottomTarget();
+    private UnknownTarget() { }
 
     @Override
     public String toString() {
-      return "BOTTOM";
+      return "UNKNOWN";
     }
 
-    public static BottomTarget getInstance() {
+    public static UnknownTarget getInstance() {
       return instance;
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      return pObj instanceof UnknownTarget;
+    }
+
+    @Override
+    public int hashCode() {
+      return toString().hashCode();
     }
   }
 
-  private static final class TopTarget extends AbstractFunctionPointerTarget {
-    private static final TopTarget instance = new TopTarget();
+  static final class InvalidTarget extends FunctionPointerTarget {
+    private static final InvalidTarget instance = new InvalidTarget();
+
+    private InvalidTarget() { }
 
     @Override
     public String toString() {
-      return "TOP";
+      return "INVALID";
     }
 
-    public static TopTarget getInstance() {
+    public static InvalidTarget getInstance() {
       return instance;
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      return pObj instanceof InvalidTarget;
+    }
+
+    @Override
+    public int hashCode() {
+      return toString().hashCode();
     }
   }
 
-  private static final class NamedFunctionTarget extends AbstractFunctionPointerTarget {
+  static final class NamedFunctionTarget extends FunctionPointerTarget {
+
     private final String functionName;
+
     public NamedFunctionTarget(String pFunctionName) {
-      this.functionName = pFunctionName;
+      checkArgument(!isNullOrEmpty(pFunctionName));
+      functionName = pFunctionName;
     }
+
     public String getFunctionName() {
-      return this.functionName;
+      return functionName;
     }
+
     @Override
     public String toString() {
-      return this.getFunctionName();
+      return getFunctionName();
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      return pObj instanceof NamedFunctionTarget
+          && ((NamedFunctionTarget)pObj).functionName.equals(this.functionName);
+    }
+
+    @Override
+    public int hashCode() {
+      return functionName.hashCode();
     }
   }
 
-  private final Map<String,AbstractFunctionPointerTarget> pointerVariableValues = new HashMap<String,AbstractFunctionPointerTarget>();
+  // this map should never contain UnknownTargets
+  private final Map<String,FunctionPointerTarget> pointerVariableValues = new HashMap<String,FunctionPointerTarget>();
 
   public FunctionPointerElement() {
   }
@@ -97,94 +143,50 @@ class FunctionPointerElement implements AbstractElement {
   public String toString() {
     StringBuilder str = new StringBuilder();
     for (String variableName : pointerVariableValues.keySet()) {
-      AbstractFunctionPointerTarget target = pointerVariableValues.get(variableName);
+      FunctionPointerTarget target = pointerVariableValues.get(variableName);
       str.append(String.format("%s <= %s\n", variableName, target));
     }
 
     return str.toString();
   }
 
-  /**
-   * If a function pointer is not defined explicit it could point to any function.
-   * @return
-   */
-  private AbstractFunctionPointerTarget createUnknownTarget() {
-    if (handleUndefinedAsTop)
-      return TopTarget.getInstance();
-    else
-      return BottomTarget.getInstance();
+  public FunctionPointerTarget getTarget(String variableName) {
+    // default to UNKNOWN
+    return Objects.firstNonNull(pointerVariableValues.get(variableName), UnknownTarget.getInstance());
   }
 
-  public void declareNewVariable(String variableName) {
-    if (!pointerVariableValues.containsKey(variableName)) {
-      pointerVariableValues.put(variableName, createUnknownTarget());
+  public void setTarget(String variableName, FunctionPointerTarget target) {
+    if (target == UnknownTarget.getInstance()) {
+      pointerVariableValues.remove(variableName);
+    } else {
+      pointerVariableValues.put(variableName, target);
     }
   }
 
-  /**
-   * Add a function to the set of possible functions a specified pointer variable can point to.
-   * @param assignementInsideFunction
-   * @param pVariableName
-   * @param pFunctionName
-   */
-  public void setVariablePointsTo(String pVariableName, String pFunctionName) {
-    this.pointerVariableValues.put(pVariableName, new NamedFunctionTarget(pFunctionName));
-  }
+  public void clearVariablesWithPrefix(String prefix) {
+    Iterator<String> it = pointerVariableValues.keySet().iterator();
 
-  public void setVariableToBottom(String variableName) {
-    this.pointerVariableValues.put(variableName, BottomTarget.getInstance());
-  }
-
-  public void setVariableToTop(String variableName) {
-    this.pointerVariableValues.put(variableName, TopTarget.getInstance());
-  }
-
-  public void setVariableToUndefined(String variableName) {
-    if (handleUndefinedAsTop)
-      this.setVariableToTop(variableName);
-    else
-      this.setVariableToBottom(variableName);
-  }
-
-  public boolean getPointsToBottom(String variableName) {
-    AbstractFunctionPointerTarget target = this.pointerVariableValues.get(variableName);
-    return (target == null && !handleUndefinedAsTop) || target instanceof BottomTarget;
-  }
-
-  public boolean getPointsToTop(String variableName) {
-    AbstractFunctionPointerTarget target = this.pointerVariableValues.get(variableName);
-    return ((target == null && handleUndefinedAsTop) || target instanceof TopTarget);
-  }
-
-  public void assignVariableValueFromVariable(String targetVariable, String sourceVariable) {
-    AbstractFunctionPointerTarget target = pointerVariableValues.get(sourceVariable);
-    if (target != null) {
-      pointerVariableValues.put(targetVariable, target);
-    } else {
-      pointerVariableValues.remove(targetVariable);
+    while (it.hasNext()) {
+      if (it.next().startsWith(prefix)) {
+        it.remove();
+      }
     }
   }
 
   public boolean isLessOrEqualThan(FunctionPointerElement pElement) {
-    //TODO: Test this method!
+    // check if the other map is a subset of this map
 
-    for (String uniqueFnId: this.pointerVariableValues.keySet()) {
-      if (!pElement.pointerVariableValues.containsKey(uniqueFnId)) {
-        return false;
-      } else {
-        AbstractFunctionPointerTarget thisPointsTo = this.pointerVariableValues.get(uniqueFnId);
-        AbstractFunctionPointerTarget otherPointsTo = pElement.pointerVariableValues.get(uniqueFnId);
-        boolean thisPointsToTop = thisPointsTo instanceof TopTarget || (thisPointsTo == null && handleUndefinedAsTop);
-        boolean otherPointsToBottom = otherPointsTo instanceof BottomTarget || (otherPointsTo == null && !handleUndefinedAsTop);
-
-        if (thisPointsToTop && otherPointsTo instanceof NamedFunctionTarget)
-          return false;
-
-        if (thisPointsTo instanceof NamedFunctionTarget && otherPointsToBottom)
-          return false;
-      }
+    if (this.pointerVariableValues.size() < pElement.pointerVariableValues.size()) {
+      return false;
     }
 
+    for (Entry<String, FunctionPointerTarget> entry : pElement.pointerVariableValues.entrySet()) {
+      FunctionPointerTarget thisTarget = this.pointerVariableValues.get(entry.getKey());
+
+      if (!entry.getValue().equals(thisTarget)) {
+        return false;
+      }
+    }
 
     return true;
   }

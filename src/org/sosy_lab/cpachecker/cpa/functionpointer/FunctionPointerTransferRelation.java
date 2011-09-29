@@ -27,40 +27,54 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import org.sosy_lab.cpachecker.cfa.ast.DefaultExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerElement.FunctionPointerTarget;
+import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerElement.InvalidTarget;
+import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerElement.NamedFunctionTarget;
+import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerElement.UnknownTarget;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
 class FunctionPointerTransferRelation implements TransferRelation {
+
+  private static final String FUNCTION_RETURN_VARIABLE = "__cpachecker_return_var";
 
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(
@@ -72,6 +86,13 @@ class FunctionPointerTransferRelation implements TransferRelation {
 
     switch(pCfaEdge.getEdgeType()) {
 
+      // declaration of a function pointer.
+      case DeclarationEdge: {
+        DeclarationEdge declEdge = (DeclarationEdge) pCfaEdge;
+        handleDeclaration(newState, declEdge);
+        break;
+      }
+
       // if edge is a statement edge, e.g. a = b + c
       case StatementEdge: {
         StatementEdge statementEdge = (StatementEdge) pCfaEdge;
@@ -82,6 +103,12 @@ class FunctionPointerTransferRelation implements TransferRelation {
       case FunctionCallEdge: {
         FunctionCallEdge functionCallEdge = (FunctionCallEdge) pCfaEdge;
         handleFunctionCall(newState, functionCallEdge);
+        break;
+      }
+
+      case ReturnStatementEdge: {
+        ReturnStatementEdge returnStatementEdge = (ReturnStatementEdge)pCfaEdge;
+        handleReturnStatement(newState, returnStatementEdge.getExpression(), pCfaEdge);
         break;
       }
 
@@ -97,31 +124,8 @@ class FunctionPointerTransferRelation implements TransferRelation {
       }
 
       // nothing to do.
-      case BlankEdge: {
-        break;
-      }
-
+      case BlankEdge:
       case CallToReturnEdge: {
-        break;
-      }
-
-      // declaration of a function pointer.
-      case DeclarationEdge: {
-        DeclarationEdge decEdge = (DeclarationEdge) pCfaEdge;
-        IASTDeclaration declaration = decEdge.getRawAST();
-
-        // store declaration in abstract state
-        if (declaration.isGlobal()) {
-          newState.declareNewVariable(declaration.getName());
-        } else {
-          String insideFunctionName = pCfaEdge.getPredecessor().getFunctionName();
-          newState.declareNewVariable(scoped(declaration.getName(), insideFunctionName));
-        }
-
-        break;
-      }
-
-      case ReturnStatementEdge: {
         break;
       }
 
@@ -136,170 +140,222 @@ class FunctionPointerTransferRelation implements TransferRelation {
     }
   }
 
-  private void handleFunctionReturn(FunctionPointerElement pNewState,
-      FunctionReturnEdge pFunctionReturnEdge) {
-    // TODO Auto-generated method stub
+  private void handleDeclaration(FunctionPointerElement pNewState, DeclarationEdge declEdge) throws UnrecognizedCCodeException {
 
+    if (declEdge.getStorageClass() != StorageClass.AUTO) {
+      // not a variable declaration
+      return;
+    }
+
+    String functionName = declEdge.getPredecessor().getFunctionName();
+
+    // get name of declaration
+    String name = declEdge.getName();
+    if (name == null) {
+      // not a variable declaration
+      return;
+    }
+    if (!declEdge.isGlobal()) {
+      name = scoped(name, functionName);
+    }
+
+    // get initial value
+    FunctionPointerTarget initialValue = InvalidTarget.getInstance();
+    if (declEdge.getInitializer() != null) {
+      IASTInitializer init = declEdge.getInitializer();
+      if (init instanceof IASTInitializerExpression) {
+        initialValue = getValue(((IASTInitializerExpression) init).getExpression(), pNewState, functionName);
+      }
+    }
+
+    // store declaration in abstract state
+    pNewState.setTarget(name, initialValue);
   }
 
-  private void handleStatement(
-      FunctionPointerElement pNewState, IASTStatement pStatement,
-      CFAEdge pCfaEdge) throws UnrecognizedCCodeException {
-    // expression is a binary operation, e.g. a = b;
+  private void handleStatement(FunctionPointerElement pNewState, IASTStatement pStatement,
+        CFAEdge pCfaEdge) throws UnrecognizedCCodeException {
+
     if (pStatement instanceof IASTAssignment) {
-      handleAssignmentStatement(pNewState, (IASTAssignment)pStatement, pCfaEdge);
-    }
-    // external function call
-    else if(pStatement instanceof IASTFunctionCallStatement){
-      // TODO
-    }
-    // there is such a case
-    else if(pStatement instanceof IASTExpressionStatement){
-      // TODO
-    }
-    else{
+      // assignment like "a = b" or "a = foo()"
+      String functionName = pCfaEdge.getPredecessor().getFunctionName();
+
+      IASTAssignment assignment = (IASTAssignment)pStatement;
+      String varName = getLeftHandSide(assignment.getLeftHandSide(), functionName);
+
+      if (varName != null) {
+        FunctionPointerTarget target = getValue(assignment.getRightHandSide(), pNewState, functionName);
+        pNewState.setTarget(varName, target);
+      }
+
+    } else if (pStatement instanceof IASTFunctionCallStatement) {
+      // external function call without return value
+
+    } else if (pStatement instanceof IASTExpressionStatement) {
+      // side-effect free statement
+
+    } else {
       throw new UnrecognizedCCodeException(pCfaEdge, pStatement);
     }
   }
 
-  private void handleAssignmentStatement(
-      FunctionPointerElement pNewState,
-      IASTAssignment pStatement, CFAEdge pCfaEdge)
-          throws UnrecognizedCCodeException {
-
-    String functionName = pCfaEdge.getPredecessor().getFunctionName();
-    IASTExpression op1 = pStatement.getLeftHandSide();
-    IASTRightHandSide op2 = pStatement.getRightHandSide();
-
-    if(op1 instanceof IASTIdExpression) {
-      // a = ...
-      String varName = scopedIfNecessary((IASTIdExpression)op1, functionName);
-      handleAssignmentToVariable(pNewState, varName, op2, pCfaEdge);
-
-    } else if (op1 instanceof IASTUnaryExpression
-        && ((IASTUnaryExpression)op1).getOperator() == UnaryOperator.STAR) {
-      // *a = ...
-      // TODO: Support this statement.
-
-    } else if (op1 instanceof IASTFieldReference) {
-
-      //String functionName = pCfaEdge.getPredecessor().getFunctionName();
-      //handleAssignmentToVariable(op1.getRawSignature(), op2, v);
-
-      // TODO: Support this statement.
-    } else if (op1 instanceof IASTArraySubscriptExpression) {
-      // TODO assignment to array cell
-    } else {
-      throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", pCfaEdge, op1);
-    }
-  }
-
-  /**
-   * Handles an assignment, where the left-hand side is a pointer.
-   * If the right-hand side seems to not evaluate to a pointer, the left pointer
-   * is just set to unknown (no warning / error etc. is produced).
-   */
-  private void handleAssignmentToVariable(FunctionPointerElement pNewState,
-      String leftVarName, IASTRightHandSide expression, CFAEdge pCfaEdge)
-      throws UnrecognizedCCodeException {
-    String functionName = pCfaEdge.getPredecessor().getFunctionName();
-
-    if (expression instanceof IASTLiteralExpression) {
-      // a = 0
-      pNewState.setVariableToBottom(leftVarName);
-    } else if (expression instanceof IASTCastExpression) {
-      // a = (int*)b
-      // ignore cast, we do no type-checking
-      handleAssignmentToVariable(pNewState, leftVarName,
-                       ((IASTCastExpression)expression).getOperand(), pCfaEdge);
-
-    } else if (expression instanceof IASTFunctionCallExpression) {
-      // a = func()
-
-//      IASTFunctionCallExpression funcExpression = (IASTFunctionCallExpression)expression;
-//      String calledFunctionName = funcExpression.getFunctionNameExpression().getRawSignature();
-
-      // TODO: Take return value of called function into account.
-      pNewState.setVariableToTop(leftVarName);
-
-    } else if (expression instanceof IASTBinaryExpression) {
-      // a = b + c
-      pNewState.setVariableToUndefined(leftVarName);
-
-    } else if (expression instanceof IASTUnaryExpression) {
-      IASTUnaryExpression unaryExpression = (IASTUnaryExpression)expression;
-      UnaryOperator op = unaryExpression.getOperator();
-
-      if (op == UnaryOperator.AMPER) {
-        // a = &b
-        String pointerToFunction = unaryExpression.getOperand().getRawSignature();
-        pNewState.setVariablePointsTo(leftVarName, pointerToFunction);
-        //TODO: Take type of variables into account.
-
-      } else if (op == UnaryOperator.MINUS) {
-        pNewState.setVariableToUndefined(leftVarName);
-
-      } else if (op == UnaryOperator.STAR) {
-        // a = *b
-        pNewState.setVariableToUndefined(leftVarName);
-        //TODO: Implement handling of dereferencing.
-
-      } else {
-        throw new UnrecognizedCCodeException("not expected in CIL", pCfaEdge,
-            unaryExpression);
-      }
-
-    } else if (expression instanceof IASTIdExpression) {
-      // a = b
-      String rightVarName = scopedIfNecessary((IASTIdExpression)expression, functionName);
-      pNewState.assignVariableValueFromVariable(leftVarName, rightVarName);
-    } else {
-      throw new UnrecognizedCCodeException("not expected in CIL", pCfaEdge,
-          expression);
-    }
-  }
-
-  private void handleFunctionCall(FunctionPointerElement pNewState,
-      FunctionCallEdge callEdge)
-  throws UnrecognizedCCodeException {
+  private void handleFunctionCall(FunctionPointerElement pNewState, FunctionCallEdge callEdge) throws UnrecognizedCCodeException {
 
     FunctionDefinitionNode functionEntryNode = callEdge.getSuccessor();
     String calledFunctionName = functionEntryNode.getFunctionName();
     String callerFunctionName = callEdge.getPredecessor().getFunctionName();
 
-    List<IASTParameterDeclaration> paramDecs = functionEntryNode.getFunctionParameters();
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
     List<IASTExpression> arguments = callEdge.getArguments();
 
     assert (paramNames.size() == arguments.size());
 
+    // used to get value in caller context
+    ExpressionValueVisitor v = new ExpressionValueVisitor(pNewState, callerFunctionName);
+
     for (int i=0; i < arguments.size(); i++) {
       String paramName = scoped(paramNames.get(i), calledFunctionName);
-      IASTParameterDeclaration paramDec = paramDecs.get(i);
       IASTExpression actualArgument = arguments.get(i);
 
-      pNewState.declareNewVariable(paramName);
-      // get value of actual parameter in caller function context
-      if (paramDec.getDeclSpecifier() instanceof IASTPointerTypeSpecifier) {
-        if (((IASTPointerTypeSpecifier)paramDec.getDeclSpecifier()).getType() instanceof IASTFunctionTypeSpecifier) {
-          if (actualArgument instanceof IASTUnaryExpression) {
-            IASTUnaryExpression argUnExpr = (IASTUnaryExpression) actualArgument;
-            if (actualArgument.getExpressionType() instanceof IASTPointerTypeSpecifier) {
-              if (argUnExpr.getOperator().equals(IASTUnaryExpression.UnaryOperator.AMPER)) {
-                pNewState.setVariablePointsTo(paramName, argUnExpr.getOperand().toASTString());
-              }
-            }
-          } else if (actualArgument instanceof IASTIdExpression) {
-            String actualArgumentVariable = scopedIfNecessary((IASTIdExpression)actualArgument, callerFunctionName);
-            pNewState.assignVariableValueFromVariable(paramName, actualArgumentVariable);
-          }
-        }
+      FunctionPointerTarget target = actualArgument.accept(v);
+      pNewState.setTarget(paramName, target);
+
+      // TODO only do this if declared type is function pointer?
+    }
+  }
+
+  private void handleReturnStatement(FunctionPointerElement pNewState, IASTExpression returnValue,
+      CFAEdge pCfaEdge) throws UnrecognizedCCodeException {
+
+    String functionName = pCfaEdge.getPredecessor().getFunctionName();
+    FunctionPointerTarget target = getValue(returnValue, pNewState, functionName);
+
+    pNewState.setTarget(FUNCTION_RETURN_VARIABLE, target);
+  }
+
+
+  private void handleFunctionReturn(FunctionPointerElement pNewState, FunctionReturnEdge pFunctionReturnEdge) throws UnrecognizedCCodeException {
+    CallToReturnEdge summaryEdge = pFunctionReturnEdge.getSuccessor().getEnteringSummaryEdge();
+    assert summaryEdge != null;
+
+    IASTFunctionCall funcCall = summaryEdge.getExpression();
+    if (funcCall instanceof IASTFunctionCallAssignmentStatement) {
+
+      IASTExpression left = ((IASTFunctionCallAssignmentStatement)funcCall).getLeftHandSide();
+
+      String callerFunction = summaryEdge.getSuccessor().getFunctionName();
+      String varName = getLeftHandSide(left, callerFunction);
+
+      if (varName != null) {
+
+        FunctionPointerTarget target = pNewState.getTarget(FUNCTION_RETURN_VARIABLE);
+        pNewState.setTarget(varName, target);
       }
+    }
+
+    // clear special variable
+    pNewState.setTarget(FUNCTION_RETURN_VARIABLE, UnknownTarget.getInstance());
+
+    // clear all local variables of inner function
+    String calledFunction = pFunctionReturnEdge.getPredecessor().getFunctionName();
+    pNewState.clearVariablesWithPrefix(calledFunction + "::");
+  }
+
+  private String getLeftHandSide(IASTExpression lhsExpression, String functionName) throws UnrecognizedCCodeException {
+
+    if (lhsExpression instanceof IASTIdExpression) {
+      // a = ...
+      return scopedIfNecessary((IASTIdExpression)lhsExpression, functionName);
+
+    } else if (lhsExpression instanceof IASTUnaryExpression
+        && ((IASTUnaryExpression)lhsExpression).getOperator() == UnaryOperator.STAR) {
+      // *a = ...
+      // TODO: Support this statement.
+
+    } else if (lhsExpression instanceof IASTFieldReference) {
+
+      //String functionName = pCfaEdge.getPredecessor().getFunctionName();
+      //handleAssignmentToVariable(op1.getRawSignature(), op2, v);
+
+      // TODO: Support this statement.
+
+    } else if (lhsExpression instanceof IASTArraySubscriptExpression) {
+      // TODO assignment to array cell
+
+    } else {
+      throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", null, lhsExpression);
+    }
+    return null;
+  }
+
+  private FunctionPointerTarget getValue(IASTRightHandSide exp, FunctionPointerElement element, String function) throws UnrecognizedCCodeException {
+    return exp.accept(new ExpressionValueVisitor(element, function));
+  }
+
+  private static class ExpressionValueVisitor extends DefaultExpressionVisitor<FunctionPointerTarget, UnrecognizedCCodeException>
+                                              implements RightHandSideVisitor<FunctionPointerTarget, UnrecognizedCCodeException> {
+
+    private final FunctionPointerElement element;
+    private final String function;
+
+    private ExpressionValueVisitor(FunctionPointerElement pElement, String pFunction) {
+      element = pElement;
+      function = pFunction;
+    }
+
+    @Override
+    public FunctionPointerTarget visit(IASTUnaryExpression pE) {
+      if ((pE.getOperator() == UnaryOperator.AMPER) && (pE.getOperand() instanceof IASTIdExpression)) {
+        IASTIdExpression operand = (IASTIdExpression)pE.getOperand();
+        return new NamedFunctionTarget(operand.getName());
+
+      } else {
+        return visitDefault(pE);
+      }
+    }
+
+    @Override
+    public FunctionPointerTarget visit(IASTIdExpression pE) {
+      return element.getTarget(scopedIfNecessary(pE, function));
+    }
+
+    @Override
+    public FunctionPointerTarget visit(IASTCastExpression pE) throws UnrecognizedCCodeException {
+      return pE.getOperand().accept(this);
+    }
+
+    @Override
+    protected FunctionPointerTarget visitDefault(IASTExpression pExp) {
+      return UnknownTarget.getInstance();
+    }
+
+    @Override
+    public FunctionPointerTarget visit(IASTFunctionCallExpression pIastFunctionCallExpression) {
+      return UnknownTarget.getInstance();
+    }
+
+    @Override
+    public FunctionPointerTarget visit(IASTCharLiteralExpression pE) {
+      return InvalidTarget.getInstance();
+    }
+
+    @Override
+    public FunctionPointerTarget visit(IASTFloatLiteralExpression pE) {
+      return InvalidTarget.getInstance();
+    }
+
+    @Override
+    public FunctionPointerTarget visit(IASTIntegerLiteralExpression pE) {
+      return InvalidTarget.getInstance();
+    }
+
+    @Override
+    public FunctionPointerTarget visit(IASTStringLiteralExpression pE) {
+      return InvalidTarget.getInstance();
     }
   }
 
   // looks up the variable in the current namespace
-  private String scopedIfNecessary(IASTIdExpression var, String function) {
+  private static String scopedIfNecessary(IASTIdExpression var, String function) {
     IASTSimpleDeclaration decl = var.getDeclaration();
     boolean isGlobal = false;
     if (decl instanceof IASTDeclaration) {
