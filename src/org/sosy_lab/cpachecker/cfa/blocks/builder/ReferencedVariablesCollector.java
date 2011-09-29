@@ -75,6 +75,7 @@ public class ReferencedVariablesCollector {
 
   private void collectVars(CFAEdge edge, Set<ReferencedVariable> pCollectedVars) {
     String currentFunction = edge.getPredecessor().getFunctionName();
+
     switch(edge.getEdgeType()) {
     case AssumeEdge:
       AssumeEdge assumeEdge = (AssumeEdge)edge;
@@ -150,6 +151,7 @@ public class ReferencedVariablesCollector {
 
     @Override
     public Void visit(IASTArraySubscriptExpression pE) {
+      collectVar(pE.getRawSignature());
       pE.getArrayExpression().accept(this);
       pE.getSubscriptExpression().accept(this);
       return null;
@@ -170,6 +172,7 @@ public class ReferencedVariablesCollector {
 
     @Override
     public Void visit(IASTFieldReference pE) {
+      collectVar(pE.getRawSignature());
       pE.getFieldOwner().accept(this);
       return null;
     }
@@ -191,7 +194,6 @@ public class ReferencedVariablesCollector {
       case AMPER:
       case STAR:
         collectVar(pE.getRawSignature());
-        break;
       default:
         pE.getOperand().accept(this);
       }
