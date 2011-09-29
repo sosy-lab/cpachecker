@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 
 
@@ -64,7 +65,7 @@ public class ReferencedVariablesCollector {
     for(CFANode node : nodes) {
       for(int i = 0; i < node.getNumLeavingEdges(); i++) {
         CFAEdge leavingEdge = node.getLeavingEdge(i);
-        if(nodes.contains(leavingEdge.getSuccessor())) {
+        if(nodes.contains(leavingEdge.getSuccessor()) || (leavingEdge instanceof FunctionCallEdge)) {
           collectVars(leavingEdge, collectedVars);
         }
       }
@@ -97,6 +98,10 @@ public class ReferencedVariablesCollector {
       //putVariable(currentFunction, varName, pCollectedVars);
       break;
     case FunctionCallEdge:
+      FunctionCallEdge functionCallEdge = (FunctionCallEdge)edge;
+      for(IASTExpression argument : functionCallEdge.getArguments()) {
+        collectVars(currentFunction, argument, null, pCollectedVars);
+      }
       break;
     case ReturnStatementEdge:
       break;
