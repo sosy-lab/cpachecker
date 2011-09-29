@@ -105,19 +105,6 @@ class FunctionPointerElement implements AbstractElement {
   }
 
   /**
-   * Returns the unique, scoped identifier of a variable.
-   * @param declaredInsideFunctionName
-   * @param localVariableName
-   * @return
-   */
-  public String getUniqueVariableIdentifier(String declaredInsideFunctionName, String localVariableName) {
-    if (declaredInsideFunctionName == null || declaredInsideFunctionName.isEmpty())
-      return localVariableName;
-    else
-      return String.format("%s::%s", declaredInsideFunctionName, localVariableName);
-  }
-
-  /**
    * If a function pointer is not defined explicit it could point to any function.
    * @return
    */
@@ -128,38 +115,10 @@ class FunctionPointerElement implements AbstractElement {
       return BottomTarget.getInstance();
   }
 
-  public void declareNewVariable(String inScopeOfFunction, String variableName) {
-    String uniqueVarIdent = getUniqueVariableIdentifier(inScopeOfFunction, variableName);
-    if (!pointerVariableValues.containsKey(uniqueVarIdent)) {
-      pointerVariableValues.put(uniqueVarIdent, createUnknownTarget());
+  public void declareNewVariable(String variableName) {
+    if (!pointerVariableValues.containsKey(variableName)) {
+      pointerVariableValues.put(variableName, createUnknownTarget());
     }
-  }
-
-  public boolean isDeclaredLocalVariable (String inScopeOfFunction, String variableName) {
-    // TODO: Enhance. This is kind of a hack.
-    String uniqueLocalVarIdent = getUniqueVariableIdentifier(inScopeOfFunction, variableName);
-    return pointerVariableValues.containsKey(uniqueLocalVarIdent);
-  }
-
-  public boolean isGlobalVariable (String inScopeOfFunction, String variableName) {
-    // TODO: Enhance. This is kind of a hack.
-    return !isDeclaredLocalVariable(inScopeOfFunction, variableName);
-  }
-
-  /**
-   * Return the global identificator of a declared variable.
-   * Take into account that a variable with the same name may be declared
-   * global and local in a function.
-   * We only have to care about function scope (because of CIL).
-   * @param accessInScope
-   * @param variableName
-   * @return
-   */
-  public String getUniqueIdOfAccessedVariable (String accessInScope, String variableName) {
-    if (isDeclaredLocalVariable(accessInScope, variableName))
-      return getUniqueVariableIdentifier(accessInScope, variableName);
-    else
-      return getUniqueVariableIdentifier("", variableName);
   }
 
   /**
@@ -168,54 +127,41 @@ class FunctionPointerElement implements AbstractElement {
    * @param pVariableName
    * @param pFunctionName
    */
-  public void setVariablePointsTo(String assignementInsideFunction, String pVariableName, String pFunctionName) {
-    String uniqueVarIdent = getUniqueIdOfAccessedVariable(assignementInsideFunction, pVariableName);
-    this.pointerVariableValues.put(uniqueVarIdent, new NamedFunctionTarget(pFunctionName));
+  public void setVariablePointsTo(String pVariableName, String pFunctionName) {
+    this.pointerVariableValues.put(pVariableName, new NamedFunctionTarget(pFunctionName));
   }
 
-  public void setVariableToBottom (String assignementInsideFunction, String variableName) {
-    String uniqueVarIdent = getUniqueIdOfAccessedVariable(assignementInsideFunction, variableName);
-    this.pointerVariableValues.put(uniqueVarIdent, BottomTarget.getInstance());
+  public void setVariableToBottom(String variableName) {
+    this.pointerVariableValues.put(variableName, BottomTarget.getInstance());
   }
 
-  public void setVariableToTop (String assignementInsideFunction, String variableName) {
-    String uniqueVarIdent = getUniqueIdOfAccessedVariable(assignementInsideFunction, variableName);
-    this.pointerVariableValues.put(uniqueVarIdent, TopTarget.getInstance());
+  public void setVariableToTop(String variableName) {
+    this.pointerVariableValues.put(variableName, TopTarget.getInstance());
   }
 
-  public void setVariableToUndefined (String assignementInsideFunction, String variableName) {
+  public void setVariableToUndefined(String variableName) {
     if (handleUndefinedAsTop)
-      this.setVariableToTop(assignementInsideFunction, variableName);
+      this.setVariableToTop(variableName);
     else
-      this.setVariableToBottom(assignementInsideFunction, variableName);
+      this.setVariableToBottom(variableName);
   }
 
-  public boolean getPointsToBottom(String accessInsideFunction, String variableName) {
-    String uniqueVarIdent = this.getUniqueIdOfAccessedVariable(accessInsideFunction, variableName);
-    AbstractFunctionPointerTarget target = this.pointerVariableValues.get(uniqueVarIdent);
+  public boolean getPointsToBottom(String variableName) {
+    AbstractFunctionPointerTarget target = this.pointerVariableValues.get(variableName);
     return (target == null && !handleUndefinedAsTop) || target instanceof BottomTarget;
   }
 
-  public boolean getPointsToTop(String accessInsideFunction, String variableName) {
-    String uniqueVarIdent = this.getUniqueIdOfAccessedVariable(accessInsideFunction, variableName);
-    AbstractFunctionPointerTarget target = this.pointerVariableValues.get(uniqueVarIdent);
+  public boolean getPointsToTop(String variableName) {
+    AbstractFunctionPointerTarget target = this.pointerVariableValues.get(variableName);
     return ((target == null && handleUndefinedAsTop) || target instanceof TopTarget);
   }
 
-  public void assignVariableValueFromVariable(String inScopeOfFunction, String targetVariable, String sourceVariable) {
-    assignVariableValueFromVariable(inScopeOfFunction, targetVariable, inScopeOfFunction, sourceVariable);
-  }
-
-  public void assignVariableValueFromVariable(String targetFunctionScope, String targetVariable, String sourceFunctionScope, String sourceVariable) {
-    if (getPointsToBottom(sourceFunctionScope, sourceVariable)) {
-      setVariableToBottom(targetFunctionScope, targetVariable);
-    } else if (getPointsToTop(sourceFunctionScope, sourceVariable)) {
-      setVariableToTop(targetFunctionScope, targetVariable);
+  public void assignVariableValueFromVariable(String targetVariable, String sourceVariable) {
+    AbstractFunctionPointerTarget target = pointerVariableValues.get(sourceVariable);
+    if (target != null) {
+      pointerVariableValues.put(targetVariable, target);
     } else {
-      String uniqueTgtVarIdent = getUniqueIdOfAccessedVariable(targetFunctionScope, targetVariable);
-      String uniqueSrcVarIdent = getUniqueIdOfAccessedVariable(sourceFunctionScope, sourceVariable);
-
-      this.pointerVariableValues.put(uniqueTgtVarIdent, this.pointerVariableValues.get(uniqueSrcVarIdent));
+      pointerVariableValues.remove(targetVariable);
     }
   }
 

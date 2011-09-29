@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
@@ -107,11 +108,15 @@ class FunctionPointerTransferRelation implements TransferRelation {
       // declaration of a function pointer.
       case DeclarationEdge: {
         DeclarationEdge decEdge = (DeclarationEdge) pCfaEdge;
-        String insideFunctionName = pCfaEdge.getPredecessor().getFunctionName();
         IASTDeclaration declaration = decEdge.getRawAST();
 
         // store declaration in abstract state
-        newState.declareNewVariable(insideFunctionName, declaration.getName());
+        if (declaration.isGlobal()) {
+          newState.declareNewVariable(declaration.getName());
+        } else {
+          String insideFunctionName = pCfaEdge.getPredecessor().getFunctionName();
+          newState.declareNewVariable(scoped(declaration.getName(), insideFunctionName));
+        }
 
         break;
       }
@@ -162,12 +167,14 @@ class FunctionPointerTransferRelation implements TransferRelation {
       IASTAssignment pStatement, CFAEdge pCfaEdge)
           throws UnrecognizedCCodeException {
 
+    String functionName = pCfaEdge.getPredecessor().getFunctionName();
     IASTExpression op1 = pStatement.getLeftHandSide();
     IASTRightHandSide op2 = pStatement.getRightHandSide();
 
     if(op1 instanceof IASTIdExpression) {
       // a = ...
-      handleAssignmentToVariable(pNewState, op1.getRawSignature(), op2, pCfaEdge);
+      String varName = scopedIfNecessary((IASTIdExpression)op1, functionName);
+      handleAssignmentToVariable(pNewState, varName, op2, pCfaEdge);
 
     } else if (op1 instanceof IASTUnaryExpression
         && ((IASTUnaryExpression)op1).getOperator() == UnaryOperator.STAR) {
@@ -199,7 +206,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
 
     if (expression instanceof IASTLiteralExpression) {
       // a = 0
-      pNewState.setVariableToBottom(functionName, leftVarName);
+      pNewState.setVariableToBottom(leftVarName);
     } else if (expression instanceof IASTCastExpression) {
       // a = (int*)b
       // ignore cast, we do no type-checking
@@ -213,11 +220,11 @@ class FunctionPointerTransferRelation implements TransferRelation {
 //      String calledFunctionName = funcExpression.getFunctionNameExpression().getRawSignature();
 
       // TODO: Take return value of called function into account.
-      pNewState.setVariableToTop(functionName, leftVarName);
+      pNewState.setVariableToTop(leftVarName);
 
     } else if (expression instanceof IASTBinaryExpression) {
       // a = b + c
-      pNewState.setVariableToUndefined(functionName, leftVarName);
+      pNewState.setVariableToUndefined(leftVarName);
 
     } else if (expression instanceof IASTUnaryExpression) {
       IASTUnaryExpression unaryExpression = (IASTUnaryExpression)expression;
@@ -226,15 +233,15 @@ class FunctionPointerTransferRelation implements TransferRelation {
       if (op == UnaryOperator.AMPER) {
         // a = &b
         String pointerToFunction = unaryExpression.getOperand().getRawSignature();
-        pNewState.setVariablePointsTo(functionName, leftVarName, pointerToFunction);
+        pNewState.setVariablePointsTo(leftVarName, pointerToFunction);
         //TODO: Take type of variables into account.
 
       } else if (op == UnaryOperator.MINUS) {
-        pNewState.setVariableToUndefined(functionName, leftVarName);
+        pNewState.setVariableToUndefined(leftVarName);
 
       } else if (op == UnaryOperator.STAR) {
         // a = *b
-        pNewState.setVariableToUndefined(functionName, leftVarName);
+        pNewState.setVariableToUndefined(leftVarName);
         //TODO: Implement handling of dereferencing.
 
       } else {
@@ -244,7 +251,8 @@ class FunctionPointerTransferRelation implements TransferRelation {
 
     } else if (expression instanceof IASTIdExpression) {
       // a = b
-      pNewState.assignVariableValueFromVariable(functionName, leftVarName, expression.getRawSignature());
+      String rightVarName = scopedIfNecessary((IASTIdExpression)expression, functionName);
+      pNewState.assignVariableValueFromVariable(leftVarName, rightVarName);
     } else {
       throw new UnrecognizedCCodeException("not expected in CIL", pCfaEdge,
           expression);
@@ -266,38 +274,57 @@ class FunctionPointerTransferRelation implements TransferRelation {
     assert (paramNames.size() == arguments.size());
 
     for (int i=0; i < arguments.size(); i++) {
-      String paramName = paramNames.get(i);
+      String paramName = scoped(paramNames.get(i), calledFunctionName);
       IASTParameterDeclaration paramDec = paramDecs.get(i);
+      IASTExpression actualArgument = arguments.get(i);
 
-      pNewState.declareNewVariable(calledFunctionName, paramName);
+      pNewState.declareNewVariable(paramName);
       // get value of actual parameter in caller function context
       if (paramDec.getDeclSpecifier() instanceof IASTPointerTypeSpecifier) {
         if (((IASTPointerTypeSpecifier)paramDec.getDeclSpecifier()).getType() instanceof IASTFunctionTypeSpecifier) {
-          if (arguments.get(i) instanceof IASTUnaryExpression) {
-            IASTUnaryExpression argUnExpr = (IASTUnaryExpression) arguments.get(i);
-            if (arguments.get(i).getExpressionType() instanceof IASTPointerTypeSpecifier) {
+          if (actualArgument instanceof IASTUnaryExpression) {
+            IASTUnaryExpression argUnExpr = (IASTUnaryExpression) actualArgument;
+            if (actualArgument.getExpressionType() instanceof IASTPointerTypeSpecifier) {
               if (argUnExpr.getOperator().equals(IASTUnaryExpression.UnaryOperator.AMPER)) {
-                pNewState.setVariablePointsTo(calledFunctionName, paramName, argUnExpr.getOperand().toASTString());
+                pNewState.setVariablePointsTo(paramName, argUnExpr.getOperand().toASTString());
               }
             }
-          } else if (arguments.get(i) instanceof IASTIdExpression) {
-            pNewState.assignVariableValueFromVariable(calledFunctionName, paramName, callerFunctionName, ((IASTIdExpression)arguments.get(i)).toASTString());
+          } else if (actualArgument instanceof IASTIdExpression) {
+            String actualArgumentVariable = scopedIfNecessary((IASTIdExpression)actualArgument, callerFunctionName);
+            pNewState.assignVariableValueFromVariable(paramName, actualArgumentVariable);
           }
         }
       }
     }
   }
 
+  // looks up the variable in the current namespace
+  private String scopedIfNecessary(IASTIdExpression var, String function) {
+    IASTSimpleDeclaration decl = var.getDeclaration();
+    boolean isGlobal = false;
+    if (decl instanceof IASTDeclaration) {
+      isGlobal = ((IASTDeclaration)decl).isGlobal();
+    }
+
+    if (isGlobal) {
+      return var.getName();
+    } else {
+      return scoped(var.getName(), function);
+    }
+  }
+
+  // prefixes function to variable name
+  // Call only if you are sure you have a local variable!
+  private static String scoped(String var, String function) {
+    return function + "::" + var;
+  }
+
   @Override
   public Collection<? extends AbstractElement> strengthen(
       AbstractElement pElement, List<AbstractElement> pOtherElements,
-      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException,
-      InterruptedException {
+      CFAEdge pCfaEdge, Precision pPrecision) {
     // in this method we could access the abstract domains of other CPAs
     // if required.
     return null;
   }
-
-
-
 }
