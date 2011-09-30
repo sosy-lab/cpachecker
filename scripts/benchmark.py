@@ -24,7 +24,7 @@ BUG_SUBSTRING_LIST = ['bug', 'unsafe']
 # for the other columns it can be configured in the xml-file
 TIME_PRECISION = 2
 
-USE_ONLY_DATE = True # use date or date+time for filenames
+USE_ONLY_DATE = False # use date or date+time for filenames
 
 class Benchmark:
     """
