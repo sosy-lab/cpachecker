@@ -35,9 +35,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
@@ -47,6 +45,11 @@ import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.io.Closeables;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 
 /**
  * This class can be used to execute a separate process and read it's output in
@@ -72,10 +75,10 @@ public class ProcessExecutor<E extends Exception> {
 
   private final Writer in;
 
-  private final ExecutorService executor = Executors.newFixedThreadPool(3);
-  private final Future<?> outFuture;
-  private final Future<?> errFuture;
-  private final Future<Integer> processFuture;
+  private final ListeningExecutorService executor = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(3));
+  private final ListenableFuture<?> outFuture;
+  private final ListenableFuture<?> errFuture;
+  private final ListenableFuture<Integer> processFuture;
 
   private final List<String> output = new ArrayList<String>();
   private final List<String> errorOutput = new ArrayList<String>();
@@ -154,8 +157,7 @@ public class ProcessExecutor<E extends Exception> {
 
     // wrap both output handling callables in CancellingCallables so that
     // exceptions thrown by the handling methods terminate the process immediately
-    outFuture = executor.submit(new CancellingCallable<Void>(
-        new Callable<Void>() {
+    outFuture = executor.submit(new Callable<Void>() {
           @Override
           public Void call() throws E, IOException {
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
@@ -169,9 +171,9 @@ public class ProcessExecutor<E extends Exception> {
             }
             return null;
           }
-        }, processFuture));
+        });
 
-    errFuture = executor.submit(new CancellingCallable<Void>(new Callable<Void>() {
+    errFuture = executor.submit(new Callable<Void>() {
           @Override
           public Void call() throws E, IOException {
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
@@ -185,7 +187,28 @@ public class ProcessExecutor<E extends Exception> {
               Closeables.closeQuietly(reader);
             }
           }
-        }, processFuture));
+        });
+
+    FutureCallback<Object> cancelProcessOnFailure = new FutureCallback<Object>() {
+
+      @Override
+      public void onFailure(Throwable e) {
+        if (!processFuture.isCancelled()) {
+          logger.logUserException(Level.WARNING, e, "Killing " + name + " due to error in output handling");
+          processFuture.cancel(true);
+
+        } else {
+          logger.logDebugException(e, "Error in output handling after " + name + " was already killed");
+        }
+      }
+
+      @Override
+      public void onSuccess(Object pArg0) { }
+
+    };
+
+    Futures.addCallback(outFuture, cancelProcessOnFailure);
+    Futures.addCallback(errFuture, cancelProcessOnFailure);
 
     executor.shutdown(); // don't accept further tasks
   }
@@ -374,41 +397,5 @@ public class ProcessExecutor<E extends Exception> {
     checkState(finished, "Cannot get error output while process is not yet finished");
 
     return errorOutput;
-  }
-
-  /**
-   * This is a callable that delegates to another callable instance and cancels
-   * a certain future if the other callable terminates abnormally.
-   *
-   * TODO replace this with a ListenableFuture from Guava as soon as its available.
-   */
-  private static final class CancellingCallable<R> implements Callable<R> {
-
-    private final Callable<R> delegate;
-    private final Future<?> toCancel;
-
-    private CancellingCallable(Callable<R> pDelegate, Future<?> pToCancel) {
-      delegate = pDelegate;
-      toCancel = pToCancel;
-    }
-
-    @Override
-    public R call() throws Exception {
-      boolean exception = true;
-      try {
-
-        R result = delegate.call();
-
-        exception = false;
-        return result;
-
-      } finally {
-        if (exception) {
-          // we want to do this only in case of abnormal termination,
-          // but Java has no keyword for this
-          toCancel.cancel(true);
-        }
-      }
-    }
   }
 }
