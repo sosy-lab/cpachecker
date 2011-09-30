@@ -13,6 +13,8 @@ from decimal import *
 
 OUTPUT_PATH = "test/results/"
 
+NAME_START = "results" # first part of filename of html-table
+
 LOGFILES_IN_HTML = True # create links to logfiles in html
 
 CSV_SEPARATOR = '\t'
@@ -616,8 +618,8 @@ def createTable(file, filesFromXML=False):
     else:
         listOfTests = getListOfTests(file)
         timestamp = time.strftime("%y%m%d-%H%M", time.localtime())
-        HTMLOutFileName = OUTPUT_PATH + "results." + timestamp + ".table.html"
-        CSVOutFileName = OUTPUT_PATH + "results." + timestamp + ".table.csv"
+        HTMLOutFileName = OUTPUT_PATH + NAME_START + "." + timestamp + ".table.html"
+        CSVOutFileName = OUTPUT_PATH + NAME_START + "." + timestamp + ".table.csv"
 
     if len(listOfTests) == 0:
         print '\nError! No file with testresults found.\n' \
@@ -680,16 +682,13 @@ def main(args=None):
         createTable(args[1:])
 
     else: # default case
-        print ("searching resultfiles in '" + OUTPUT_PATH + "'...")
-        createTable([OUTPUT_PATH + '*.????-??-??.results*.xml'])
+        print ("searching resultfiles in '" + OUTPUT_PATH + "' ...")
+        createTable([OUTPUT_PATH + '*.results*.xml'])
 
 
 if __name__ == '__main__':
     try:
-        import sys
         sys.exit(main())
-    except LookupError as e:
-        print e
     except KeyboardInterrupt:
         print 'script was interrupted by user'
         pass
