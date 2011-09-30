@@ -31,7 +31,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
@@ -105,7 +104,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
     this.config.inject(this);
 
     if(this.config.getProperty("analysis.useRefinement") != null && this.config.getProperty("cegar.refiner").equals("cpa.explicit.ExplicitRefiner"))
-      precision = new ExplicitPrecision(variableBlacklist, new HashMap<CFAEdge, Set<String>>());
+      precision = new ExplicitPrecision(variableBlacklist, new HashMap<CFANode, Set<String>>());
     else
       precision = new ExplicitPrecision(variableBlacklist, null);
 

@@ -282,11 +282,11 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
     allReferencedVariables.addAll(referencedVars);
 
     // the new whitelist is based on the old one
-    Map<CFAEdge, Set<String>> whiteList = oldPrecision.getWhiteList();
+    Map<CFANode, Set<String>> whiteList = oldPrecision.getWhiteList();
     //Map<CFAEdge, Set<String>> whiteList = new HashMap<CFAEdge, Set<String>>();
 
     // add variables of new predicates to precision, indexed by their respective CFAEdge
-    for(Map.Entry<CFAEdge, Set<String>> entry : predicates.getPrecision().entrySet())
+    for(Map.Entry<CFANode, Set<String>> entry : predicates.getPrecision().entrySet())
     {
       Set<String> varss = whiteList.get(entry.getKey());
       if(varss == null)
@@ -319,8 +319,8 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
 
 //System.out.println("\nnew whitelist: " + whiteList);
     // new def-use
-    Map<CFAEdge, Set<String>> vars = visitor.getVariablesAtEdges();
-    for(Map.Entry<CFAEdge, Set<String>> entry : vars.entrySet())
+    Map<CFANode, Set<String>> vars = visitor.getVariablesAtEdges();
+    for(Map.Entry<CFANode, Set<String>> entry : vars.entrySet())
     {
       Set<String> varss = whiteList.get(entry.getKey());
       if(varss == null)
@@ -562,7 +562,7 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
      */
     private final Set<String> collectedVariables = new HashSet<String>();
 
-    private final Map<CFAEdge, Set<String>> variablesAtEdges = new HashMap<CFAEdge, Set<String>>();
+    private final Map<CFANode, Set<String>> variablesAtEdges = new HashMap<CFANode, Set<String>>();
 
     /**
      * the set of variables collected during look-ahead-run
@@ -606,7 +606,7 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
       return collectedVariables.contains(variableName);
     }
 
-    public Map<CFAEdge, Set<String>> getVariablesAtEdges()
+    public Map<CFANode, Set<String>> getVariablesAtEdges()
     {
       return variablesAtEdges;
     }
@@ -638,7 +638,7 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
       {
         variablesAtEdge = new HashSet<String>();
 
-        variablesAtEdges.put(edge, variablesAtEdge);
+        variablesAtEdges.put(edge.getPredecessor(), variablesAtEdge);
       }
 
       variablesAtEdge.add(variable);
@@ -769,7 +769,7 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
         if(variablesAtEdge == null)
         {
           variablesAtEdge = new HashSet<String>();
-          variablesAtEdges.put(edge, variablesAtEdge);
+          variablesAtEdges.put(edge.getPredecessor(), variablesAtEdge);
         }
 
         for(String lookAheadVariable : lookAheadVariables)

@@ -29,34 +29,35 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 public class ExplicitPrecision implements Precision {
   private final Pattern blackListPattern;
 
-  private Map<CFAEdge, Set<String>> whiteList = null;
+  private Map<CFANode, Set<String>> whiteList = null;
 
-  CFAEdge currentEdge = null;
+  CFANode currentEdge = null;
 
-  public ExplicitPrecision(String variableBlacklist, Map<CFAEdge, Set<String>> whiteList) {
+  public ExplicitPrecision(String variableBlacklist, Map<CFANode, Set<String>> whiteList) {
 
     blackListPattern = Pattern.compile(variableBlacklist);
 
     if(whiteList != null)
-      this.whiteList = new HashMap<CFAEdge, Set<String>>(whiteList);
+      this.whiteList = new HashMap<CFANode, Set<String>>(whiteList);
   }
 
-  public ExplicitPrecision(ExplicitPrecision precision, Map<CFAEdge, Set<String>> whiteList) {
+  public ExplicitPrecision(ExplicitPrecision precision, Map<CFANode, Set<String>> whiteList) {
 
     blackListPattern = precision.blackListPattern;
 
     if(whiteList != null)
-      this.whiteList = new HashMap<CFAEdge, Set<String>>(whiteList);
+      this.whiteList = new HashMap<CFANode, Set<String>>(whiteList);
   }
 
   public void setEdge(CFAEdge node)
   {
-    currentEdge = node;
+    currentEdge = node.getPredecessor();
   }
 
   boolean isOnBlacklist(String variable)
@@ -79,7 +80,7 @@ public class ExplicitPrecision implements Precision {
     return !isTracking(variable);
   }
 
-  public Map<CFAEdge, Set<String>> getWhiteList()
+  public Map<CFANode, Set<String>> getWhiteList()
   {
     return whiteList;
   }

@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormula;
@@ -41,18 +42,18 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormula;
 
 public class PredicateMap
 {
-  private Map<CFAEdge, Set<AbstractionPredicate>> predicateMap;
+  private Map<CFANode, Set<AbstractionPredicate>> predicateMap;
 
   public PredicateMap(List<Collection<AbstractionPredicate>> pathPredicates, Path path)
   {
-    predicateMap = new HashMap<CFAEdge, Set<AbstractionPredicate>>();
+    predicateMap = new HashMap<CFANode, Set<AbstractionPredicate>>();
 
     int i = 0;
     for(Collection<AbstractionPredicate> predicates : pathPredicates)
     {
       if(predicates.size() > 0)
       {
-        CFAEdge currentEdge = path.get(i).getSecond();
+        CFANode currentEdge = path.get(i).getSecond().getPredecessor();
 
 //System.out.println("checking edge " + currentEdge + " for predicates ...");
 
@@ -105,13 +106,13 @@ public class PredicateMap
     return variables;
   }
 
-  public Map<CFAEdge, Set<String>> getPrecision()
+  public Map<CFANode, Set<String>> getPrecision()
   {
-    Map<CFAEdge, Set<String>> precision = new HashMap<CFAEdge, Set<String>>();
+    Map<CFANode, Set<String>> precision = new HashMap<CFANode, Set<String>>();
 
-    for(Map.Entry<CFAEdge, Set<AbstractionPredicate>> predicatesAtEdge : predicateMap.entrySet())
+    for(Map.Entry<CFANode, Set<AbstractionPredicate>> predicatesAtEdge : predicateMap.entrySet())
     {
-      CFAEdge currentNode = predicatesAtEdge.getKey();
+      CFANode currentNode = predicatesAtEdge.getKey();
 
       for(AbstractionPredicate predicate : predicatesAtEdge.getValue())
       {
