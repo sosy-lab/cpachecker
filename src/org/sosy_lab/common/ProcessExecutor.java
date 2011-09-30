@@ -166,6 +166,17 @@ public class ProcessExecutor<E extends Exception> {
               while ((line = reader.readLine()) != null) {
                 handleOutput(line);
               }
+
+            } catch (IOException e) {
+              if (processFuture.isCancelled()) {
+                // IOExceptions after a killed process are no suprise
+                // Log and ignore so they don't mask the real cause
+                // why we killed the process.
+                logger.logDebugException(e, "IOException after process was killed");
+              } else {
+                throw e;
+              }
+
             } finally {
               Closeables.closeQuietly(reader);
             }
@@ -182,10 +193,21 @@ public class ProcessExecutor<E extends Exception> {
               while ((line = reader.readLine()) != null) {
                 handleErrorOutput(line);
               }
-              return null;
+
+            } catch (IOException e) {
+              if (processFuture.isCancelled()) {
+                // IOExceptions after a killed process are no suprise
+                // Log and ignore so they don't mask the real cause
+                // why we killed the process.
+                logger.logDebugException(e, "IOException after process was killed");
+              } else {
+                throw e;
+              }
+
             } finally {
               Closeables.closeQuietly(reader);
             }
+            return null;
           }
         });
 
