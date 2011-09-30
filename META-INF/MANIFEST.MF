@@ -10,7 +10,7 @@ Bundle-ClassPath: bin/,
  lib/yicesapijava.jar,
  .,
  lib/json_simple-1.1.jar,
- lib/guava-r09.jar,
+ lib/guava-10.0.jar,
  lib/eclipse-cdt6-parser.jar
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Export-Package: com.google.common.io,

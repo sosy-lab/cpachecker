@@ -6,7 +6,7 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry exported="true" kind="lib" path="bin/"/>
-	<classpathentry exported="true" kind="lib" path="lib/guava-r09.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/guava-10.0.jar"/>
 	<classpathentry kind="lib" path="lib/javabdd-1.0b2.jar"/>
 	<classpathentry kind="lib" path="lib/java-cup-11a.jar"/>
 	<classpathentry kind="lib" path="lib/yicesapijava.jar"/>
