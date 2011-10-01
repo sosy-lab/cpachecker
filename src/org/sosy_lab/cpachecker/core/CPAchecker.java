@@ -247,6 +247,10 @@ public class CPAchecker {
         logger.log(Level.SEVERE, "Error: The GNU Multiprecision arithmetic library is required, but missing on this system!\n"
             + "Please install libgmpxx.so.4 and try again.\n"
             + "On Ubuntu you need to install the package 'libgmpxx4ldbl'.");
+      } else if (e.getMessage().contains("libgmp.so.3")) {
+        logger.log(Level.SEVERE, "Error: The GNU Multiprecision arithmetic library is required, but missing on this system!\n"
+            + "Please install libgmp.so.3 and try again.\n"
+            + "On Ubuntu you need to install the package 'libgmp3c2'.");
       } else {
         logger.logException(Level.SEVERE, e, null);
       }
