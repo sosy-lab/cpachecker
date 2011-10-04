@@ -499,6 +499,12 @@ public class CtoFormulaConverter {
   //    m1 = new MathsatFormula(t);
   //    }
 
+        // just increment index of variable in SSAMap
+        // (a declaration contains an implicit assignment, even without initializer)
+        // In case of an existing initializer, we increment the index twice
+        // (here and below) so that the index 2 only occurs for uninitialized variables.
+        makeLvalIndex(var, ssa);
+
         // if there is an initializer associated to this variable,
         // take it into account
         IASTInitializer initializer = edge.getInitializer();
@@ -526,13 +532,8 @@ public class CtoFormulaConverter {
 
           } else {
             Formula minit = buildTerm(init, function, ssa);
-            Formula mvar = makeFreshVariable(var, ssa);
-            return fmgr.makeAssignment(mvar, minit);
+            return makeAssignment(var, minit, ssa);
           }
-        } else {
-          // just increment index of variable in SSAMap
-          // (a declaration contains an implicit assignment, even without initializer)
-          makeLvalIndex(var, ssa);
         }
       }
       return fmgr.makeTrue();
