@@ -25,11 +25,8 @@ package org.sosy_lab.cpachecker.cpa.functionpointer;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -39,8 +36,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 
-public class FunctionPointerCPA implements ConfigurableProgramAnalysis {
+public class FunctionPointerCPA extends AbstractSingleWrapperCPA {
 
   private FunctionPointerDomain abstractDomain;
   private MergeOperator mergeOperator;
@@ -49,15 +47,16 @@ public class FunctionPointerCPA implements ConfigurableProgramAnalysis {
   private PrecisionAdjustment precisionAdjustment;
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(FunctionPointerCPA.class);
+    return AutomaticCPAFactory.forType(ARTCPA.class);
   }
 
-  private FunctionPointerCPA() throws InvalidConfigurationException {
-    this.abstractDomain = new FunctionPointerDomain();
-    this.mergeOperator = MergeSepOperator.getInstance();
-    this.stopOperator = new StopSepOperator(this.abstractDomain);
-    this.transferRelation = new FunctionPointerTransferRelation();
-    this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+  private FunctionPointerCPA(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+    super(pCpa);
+    this.abstractDomain = new FunctionPointerDomain(pCpa.getAbstractDomain());
+    this.mergeOperator = new FunctionPointerMergeOperator(pCpa.getMergeOperator());
+    this.stopOperator = new FunctionPointerStopOperator(pCpa.getStopOperator());
+    this.transferRelation = new FunctionPointerTransferRelation(pCpa.getTransferRelation());
+    this.precisionAdjustment = new FunctionPointerPrecisionAdjustment(pCpa.getPrecisionAdjustment());
   }
 
   @Override
@@ -87,11 +86,11 @@ public class FunctionPointerCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractElement getInitialElement(CFANode pNode) {
-    return new FunctionPointerElement();
+    return new FunctionPointerElement(getWrappedCpa().getInitialElement(pNode));
   }
 
   @Override
   public Precision getInitialPrecision(CFANode pNode) {
-    return SingletonPrecision.getInstance();
+    return getWrappedCpa().getInitialPrecision(pNode);
   }
 }

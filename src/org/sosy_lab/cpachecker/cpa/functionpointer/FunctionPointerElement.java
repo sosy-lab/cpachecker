@@ -31,6 +31,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
 import com.google.common.base.Objects;
@@ -38,7 +39,7 @@ import com.google.common.base.Objects;
 /**
  * Represents one abstract state of the FunctionPointer CPA.
  */
-class FunctionPointerElement implements AbstractElement {
+class FunctionPointerElement extends AbstractSingleWrapperElement  {
 
   // java reference counting + immutable objects should help us
   // to reduce memory consumption.
@@ -128,15 +129,21 @@ class FunctionPointerElement implements AbstractElement {
   // this map should never contain UnknownTargets
   private final Map<String,FunctionPointerTarget> pointerVariableValues = new HashMap<String,FunctionPointerTarget>();
 
-  public FunctionPointerElement() {
+  public FunctionPointerElement(AbstractElement pWrappedElement) {
+    super(pWrappedElement);
   }
 
-  private FunctionPointerElement(FunctionPointerElement pCopyFromPreviousState) {
+  private FunctionPointerElement(FunctionPointerElement pCopyFromPreviousState, AbstractElement pWrappedElement) {
+    super(pWrappedElement);
     this.pointerVariableValues.putAll(pCopyFromPreviousState.pointerVariableValues);
   }
 
   public FunctionPointerElement createDuplicate() {
-    return new FunctionPointerElement(this);
+    return new FunctionPointerElement(this, getWrappedElement());
+  }
+
+  public FunctionPointerElement createDuplicateWithNewWrappedElement(AbstractElement pElement) {
+    return new FunctionPointerElement(this, pElement);
   }
 
   @Override

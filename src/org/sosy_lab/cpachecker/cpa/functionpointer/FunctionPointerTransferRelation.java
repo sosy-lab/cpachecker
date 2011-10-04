@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.DefaultExpressionVisitor;
@@ -76,13 +76,36 @@ class FunctionPointerTransferRelation implements TransferRelation {
 
   private static final String FUNCTION_RETURN_VARIABLE = "__cpachecker_return_var";
 
+  private final TransferRelation wrappedTransfer;
+
+  FunctionPointerTransferRelation(TransferRelation pWrappedTransfer) {
+    wrappedTransfer = pWrappedTransfer;
+  }
+
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
 
     final FunctionPointerElement oldState = (FunctionPointerElement)pElement;
-    final FunctionPointerElement newState = oldState.createDuplicate();
+    Collection<? extends AbstractElement> newWrappedStates = wrappedTransfer.getAbstractSuccessors(oldState.getWrappedElement(), pPrecision, pCfaEdge);
+
+    List<FunctionPointerElement> newElements = new ArrayList<FunctionPointerElement>(newWrappedStates.size());
+
+    for (AbstractElement newWrappedState : newWrappedStates) {
+      FunctionPointerElement newState = oldState.createDuplicateWithNewWrappedElement(newWrappedState);
+
+      newState = handleEdge(newState, pCfaEdge);
+
+      if (newState != null) {
+        newElements.add(newState);
+      }
+    }
+
+    return newElements;
+  }
+
+  private FunctionPointerElement handleEdge(FunctionPointerElement newState, CFAEdge pCfaEdge) throws CPATransferException {
 
     switch(pCfaEdge.getEdgeType()) {
 
@@ -133,11 +156,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
         throw new UnrecognizedCFAEdgeException(pCfaEdge);
     }
 
-    if (newState == null) {
-      return Collections.emptySet();
-    } else {
-      return Collections.singleton(newState);
-    }
+    return newState;
   }
 
   private void handleDeclaration(FunctionPointerElement pNewState, DeclarationEdge declEdge) throws UnrecognizedCCodeException {
