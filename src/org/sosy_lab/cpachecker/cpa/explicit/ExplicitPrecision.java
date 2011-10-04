@@ -64,6 +64,8 @@ public class ExplicitPrecision implements Precision {
     addToWhitelist(predicateInfo);
 
     addToWhitelist(pathInfo);
+
+//System.out.println("new whitelist: " + this.whiteList);
   }
 
   public void setLocation(CFANode node)

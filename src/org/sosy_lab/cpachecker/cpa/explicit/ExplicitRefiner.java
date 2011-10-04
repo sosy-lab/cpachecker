@@ -267,18 +267,18 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
       Path path,
       CounterexampleTraceInfo pInfo) throws CPAException {
 
-//System.out.println("\n" + (++refinementCounter) + ". refining ...");
-//System.out.println("addin path with hash " + path.toString().hashCode());
-//System.out.println(path);
-//ask predicate map for information, then pass information to precision object ... same for path analysis
-    // get the predicates ...
     PredicateMap predicates = new PredicateMap(pInfo.getPredicatesForRefinement(), path);
-//System.out.println("\nnew predicate map: " + predicates.toString());
 
     Map<CFANode, Set<String>> variablesFromPredicates = predicates.getVariablesFromPredicates();
 
-    //System.out.println("\nreferencedVariables: " + predicates.getReferencedVariables());
     allReferencedVariables.addAll(predicates.getReferencedVariables());
+
+//System.out.println("\n" + (++refinementCounter) + ". refining ...");
+//System.out.println("addin path with hash " + path.toString().hashCode());
+//System.out.println(path);
+//System.out.println("\nreferencedVariables: " + predicates.getReferencedVariables());
+//System.out.println("\nallReferencedVariables: " + allReferencedVariables);
+//System.out.println("\nnew predicate map: " + predicates.toString());
 
     Map<CFANode, Set<String>> relevantVariablesOnPath = getRelevantVariablesOnPath(path, predicates);
 
@@ -462,11 +462,10 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
 
         String assignedVariable = fcas.getLeftHandSide().getRawSignature();
 
-        if(visitor.hasCollected(assignedVariable))
+        if(visitor.hasCollected(assignedVariable, false))
         {
-          visitor.addToCurrentEdge(assignedVariable);
+          fcas.getLeftHandSide().accept(visitor);
 
-//System.out.println("     -> interesting: collecting remaining variables");
           fcas.getRightHandSide().accept(visitor);
 
           extracted = true;
@@ -485,28 +484,34 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
         IASTAssignment assignment = (IASTAssignment)statementEdge.getStatement();
         String assignedVariable = assignment.getLeftHandSide().getRawSignature();
 
-        if(visitor.hasCollected(assignedVariable))
+        // left-hand side was already collected -> collect identifiers from right-hand side as well
+        if(visitor.hasCollected(assignedVariable, false))
         {
-          visitor.addToCurrentEdge(assignedVariable);
+          // apply visitor to left side, as assigned variable has to be tracked here
+          assignment.getLeftHandSide().accept(visitor);
 
+          // apply visitor to right side, as the assigning of these variables must be handled as well (further up the path)
           assignment.getRightHandSide().accept(visitor);
 
           extracted = true;
         }
 
-        CollectVariablesVisitor v = new CollectVariablesVisitor(new ArrayList<String>());
-        v.setCurrentScope(edge);
-        assignment.getRightHandSide().accept(v);
-        if(v.getVariablesAtLocations().get(edge) != null)
+
+        // also inspect right-hand side, but with new temporary visitor ...
+        CollectVariablesVisitor tempVisitor = new CollectVariablesVisitor(new ArrayList<String>());
+        tempVisitor.setCurrentScope(edge);
+
+        assignment.getRightHandSide().accept(tempVisitor);
+        Set<String> variablesAtLocation = tempVisitor.getVariablesAtLocations().get(edge.getPredecessor());
+        if(variablesAtLocation != null)
         {
-          for(String var : v.getVariablesAtLocations().get(edge))
+          // for each variable in right-hand side ...
+          for(String variable : variablesAtLocation)
           {
-//            System.out.println("var1 = " + var);
-            var = var.substring(var.lastIndexOf(":") + 1);
-//            System.out.println("var2 = " + var);
-            if(visitor.hasCollected(var))
+            // ... was it already collected, also collect the left-hand side then
+            if(visitor.hasCollected(variable, true))
             {
-              visitor.addToCurrentEdge(assignedVariable);
+              assignment.getLeftHandSide().accept(visitor);
 
               extracted = true;
 
@@ -579,9 +584,10 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
       }
     }
 
-    public boolean hasCollected(String variableName)
+    public boolean hasCollected(String variableName, boolean isAlreadyScoped)
     {
-      variableName = getScopedVariableName(edge.getPredecessor(), variableName);
+      if(!isAlreadyScoped)
+        variableName = getScopedVariableName(edge.getPredecessor(), variableName);
 
       return collectedVariables.contains(variableName);
     }
@@ -603,11 +609,6 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
 
       else
         return cfaNode.getFunctionName() + "::" + variableName;
-    }
-
-    public void addToCurrentEdge(String assignedVariable)
-    {
-      addVariableToLocation(getScopedVariableName(edge.getPredecessor(), assignedVariable));
     }
 
     private void addVariableToLocation(String variable)
