@@ -113,7 +113,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       throw new IllegalArgumentException("precision is no ExplicitPrecision");
     }
     ExplicitPrecision precision = (ExplicitPrecision) pPrecision;
-    precision.setEdge(cfaEdge);
+    precision.setLocation(cfaEdge.getPredecessor());
 
     AbstractElement successor;
     ExplicitElement explicitElement = (ExplicitElement)element;

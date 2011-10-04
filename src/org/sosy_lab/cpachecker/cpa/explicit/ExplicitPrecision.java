@@ -24,11 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.explicit;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
@@ -37,7 +37,7 @@ public class ExplicitPrecision implements Precision {
 
   private Map<CFANode, Set<String>> whiteList = null;
 
-  CFANode currentEdge = null;
+  CFANode currentLocation = null;
 
   public ExplicitPrecision(String variableBlacklist, Map<CFANode, Set<String>> whiteList) {
 
@@ -55,9 +55,20 @@ public class ExplicitPrecision implements Precision {
       this.whiteList = new HashMap<CFANode, Set<String>>(whiteList);
   }
 
-  public void setEdge(CFAEdge node)
+  public ExplicitPrecision(ExplicitPrecision precision, Map<CFANode, Set<String>> predicateInfo, Map<CFANode, Set<String>> pathInfo) {
+
+    blackListPattern = precision.blackListPattern;
+
+    this.whiteList = new HashMap<CFANode, Set<String>>(precision.whiteList);
+
+    addToWhitelist(predicateInfo);
+
+    addToWhitelist(pathInfo);
+  }
+
+  public void setLocation(CFANode node)
   {
-    currentEdge = node.getPredecessor();
+    currentLocation = node;
   }
 
   boolean isOnBlacklist(String variable)
@@ -67,7 +78,7 @@ public class ExplicitPrecision implements Precision {
 
   boolean isOnWhitelist(String variable)
   {
-    return whiteList == null || (whiteList.containsKey(currentEdge) && whiteList.get(currentEdge).contains(variable));
+    return whiteList == null || (whiteList.containsKey(currentLocation) && whiteList.get(currentLocation).contains(variable));
   }
 
   public boolean isTracking(String variable)
@@ -88,5 +99,17 @@ public class ExplicitPrecision implements Precision {
   public String getBlackListPattern()
   {
     return blackListPattern.pattern();
+  }
+
+  private void addToWhitelist(Map<CFANode, Set<String>> additionalInfo)
+  {
+    for(Map.Entry<CFANode, Set<String>> entry : additionalInfo.entrySet())
+    {
+      Set<String> variablesAtLocation = whiteList.get(entry.getKey());
+      if(variablesAtLocation == null)
+        whiteList.put(entry.getKey(), variablesAtLocation = new HashSet<String>());
+
+      variablesAtLocation.addAll(entry.getValue());
+    }
   }
 }

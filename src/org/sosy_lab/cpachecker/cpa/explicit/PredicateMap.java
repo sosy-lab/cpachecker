@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -42,8 +41,24 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormula;
 
 public class PredicateMap
 {
+  /**
+   * the mapping from program location to a collection of predicates
+   */
   private Map<CFANode, Set<AbstractionPredicate>> predicateMap;
 
+  /**
+   * the set of variable names, that are referenced in the path predicates
+   */
+  private Set<String> referencedVariables = new HashSet<String>();
+
+  /**
+   * This method acts as the constructor of the class.
+   *
+   * Given a list of sets of predicates and a program path, it creates the mapping from program location to a collection of predicates.
+   *
+   * @param pathPredicates the predicates as returned from the refinement
+   * @param path the path to the error location
+   */
   public PredicateMap(List<Collection<AbstractionPredicate>> pathPredicates, Path path)
   {
     predicateMap = new HashMap<CFANode, Set<AbstractionPredicate>>();
@@ -53,12 +68,10 @@ public class PredicateMap
     {
       if(predicates.size() > 0)
       {
-        CFANode currentEdge = path.get(i).getSecond().getPredecessor();
+        CFANode currentLocation = path.get(i).getSecond().getPredecessor();
 
-//System.out.println("checking edge " + currentEdge + " for predicates ...");
-
-        // get the predicates for the current edge from the predicate map
-        Set<AbstractionPredicate> predicatesAtEdge = predicateMap.get(currentEdge);
+        // get the predicates for the current location from the predicate map
+        Set<AbstractionPredicate> predicatesAtEdge = predicateMap.get(currentLocation);
 
         // if there are not any yet, create a new set
         if(predicatesAtEdge == null)
@@ -68,73 +81,84 @@ public class PredicateMap
         for(AbstractionPredicate predicate : predicates)
         {
           if(!predicate.getSymbolicAtom().isFalse())
-          {
             predicatesAtEdge.add(predicate);
-//System.out.println("   adding predicate " + predicate + " to edge " + currentEdge);
-          }
         }
 
         // if non-trivial predicates are associated with the edge, add them to the map
         if(predicatesAtEdge.size() > 0)
-          predicateMap.put(currentEdge, predicatesAtEdge);
+          predicateMap.put(currentLocation, predicatesAtEdge);
       }
 
       i++;
     }
   }
 
-  public boolean isInterpolationPoint(CFAEdge edge)
+  /**
+   * This method decides whether or not the given location is a interpolation point or not.
+   *
+   * @param location the location for which to decide whether it is a interpolation point or not
+   * @return true if it is a interpolation point, else false
+   */
+  public boolean isInterpolationPoint(CFANode location)
   {
-    return predicateMap.containsKey(edge);
+    return predicateMap.containsKey(location);
   }
 
+  /**
+   * This method returns the set of variables referenced in the predicates. The return value is only valid after a call to getVariablesFromPredicates.
+   *
+   * @return the set of variables referenced in the predicates
+   */
   public Set<String> getReferencedVariables()
   {
-    Set<String> variables = new HashSet<String>();
-
-    for(Set<AbstractionPredicate> predicates : predicateMap.values())
-    {
-      for(AbstractionPredicate predicate : predicates)
-      {
-        Collection<String> atoms = extractVariables(((MathsatFormula)predicate.getSymbolicAtom()).getTerm());
-
-        for(String atom : atoms)
-          variables.add(atom);
-      }
-    }
-
-    return variables;
+    return referencedVariables;
   }
 
-  public Map<CFANode, Set<String>> getPrecision()
+  /**
+   * This method returns those variables that are reference in the predicates and groups them by program locations.
+   *
+   * @return a mapping from program locations to variables referenced in predicates at that program location
+   */
+  public Map<CFANode, Set<String>> getVariablesFromPredicates()
   {
-    Map<CFANode, Set<String>> precision = new HashMap<CFANode, Set<String>>();
+    Map<CFANode, Set<String>> locToVarsMap = new HashMap<CFANode, Set<String>>();
 
+    // for each program location in the mapping ...
     for(Map.Entry<CFANode, Set<AbstractionPredicate>> predicatesAtEdge : predicateMap.entrySet())
     {
       CFANode currentNode = predicatesAtEdge.getKey();
 
+      // ... and for each predicate in the set of that location ...
       for(AbstractionPredicate predicate : predicatesAtEdge.getValue())
       {
-        // get the names of the variables referenced in the abstraction predicate
+        // ... get the names of the variables referenced in that predicate ...
         Collection<String> atoms = extractVariables(((MathsatFormula)predicate.getSymbolicAtom()).getTerm());
 
+        // ... and add them to location-to-variables-mapping
         if(!atoms.isEmpty())
         {
-          Set<String> variables = precision.get(currentNode);
+          Set<String> variables = locToVarsMap.get(currentNode);
 
           if(variables == null)
-            precision.put(currentNode, variables = new HashSet<String>());
+            locToVarsMap.put(currentNode, variables = new HashSet<String>());
 
           variables.addAll(atoms);
+
+          referencedVariables.addAll(atoms);
         }
       }
     }
 
-    return precision;
+    return locToVarsMap;
   }
 
-  // TODO: copy & paste code from branches/fshell3/src/org/sosy_lab/cpachecker/util/predicates/mathsat/MathsatFormulaManager.java
+  /**
+   * This method extracts the variables in plain text from a MathSAT term.
+   *
+   * @todo: copy & paste code from branches/fshell3/src/org/sosy_lab/cpachecker/util/predicates/mathsat/MathsatFormulaManager.java
+   * @param pTerm the MathSAT term from which to extract the variables
+   * @return the collection of varaibles extracted from the MathSAT term
+   */
   private static Collection<String> extractVariables(long pTerm) {
     HashSet<String> lVariables = new HashSet<String>();
 

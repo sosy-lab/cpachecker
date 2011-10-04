@@ -113,6 +113,7 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
   private CounterexampleTraceInfo mCounterexampleTraceInfo;
   private Path targetPath;
   protected List<CFANode> lastErrorPath = null;
+  Pair<ARTElement, CFAEdge> firstInterpolationPoint = null;
 
   private final Set<String> globalVars;
 
@@ -269,72 +270,22 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
 //System.out.println("\n" + (++refinementCounter) + ". refining ...");
 //System.out.println("addin path with hash " + path.toString().hashCode());
 //System.out.println(path);
-
-
+//ask predicate map for information, then pass information to precision object ... same for path analysis
     // get the predicates ...
     PredicateMap predicates = new PredicateMap(pInfo.getPredicatesForRefinement(), path);
-
 //System.out.println("\nnew predicate map: " + predicates.toString());
 
-    // TODO: inline this, for debuggin only
-    Set<String> referencedVars = predicates.getReferencedVariables();
-//System.out.println("\nreferencedVariables: " + referencedVars);
-    allReferencedVariables.addAll(referencedVars);
+    Map<CFANode, Set<String>> variablesFromPredicates = predicates.getVariablesFromPredicates();
 
-    // the new whitelist is based on the old one
-    Map<CFANode, Set<String>> whiteList = oldPrecision.getWhiteList();
-    //Map<CFAEdge, Set<String>> whiteList = new HashMap<CFAEdge, Set<String>>();
+    //System.out.println("\nreferencedVariables: " + predicates.getReferencedVariables());
+    allReferencedVariables.addAll(predicates.getReferencedVariables());
 
-    // add variables of new predicates to precision, indexed by their respective CFAEdge
-    for(Map.Entry<CFANode, Set<String>> entry : predicates.getPrecision().entrySet())
-    {
-      Set<String> varss = whiteList.get(entry.getKey());
-      if(varss == null)
-      {
-        varss = new HashSet<String>();
-        whiteList.put(entry.getKey(), varss);
-      }
+    Map<CFANode, Set<String>> relevantVariablesOnPath = getRelevantVariablesOnPath(path, predicates);
 
-      varss.addAll(entry.getValue());
-    }
-
-
-    Pair<ARTElement, CFAEdge> firstInterpolationPoint = null;
-
-    // collect variables on error path, on which the found ones depend on
-    CollectVariablesVisitor visitor = new CollectVariablesVisitor(allReferencedVariables);
-
-    Iterator<Pair<ARTElement, CFAEdge>> iterator = path.descendingIterator();
-    while(iterator.hasNext())
-    {
-      Pair<ARTElement, CFAEdge> element = iterator.next();
-
-      if(extractVariables(element.getSecond(), visitor) || whiteList.containsKey(element.getSecond().getPredecessor()))
-        firstInterpolationPoint = element;
-    }
+    // create the new precision
+    ExplicitPrecision newPrecision = new ExplicitPrecision(oldPrecision, variablesFromPredicates, relevantVariablesOnPath);
 
     assert firstInterpolationPoint != null;
-
-
-
-//System.out.println("\nnew whitelist: " + whiteList);
-    // new def-use
-    Map<CFANode, Set<String>> vars = visitor.getVariablesAtEdges();
-    for(Map.Entry<CFANode, Set<String>> entry : vars.entrySet())
-    {
-      Set<String> varss = whiteList.get(entry.getKey());
-      if(varss == null)
-      {
-        varss = new HashSet<String>();
-        whiteList.put(entry.getKey(), varss);
-      }
-
-      varss.addAll(entry.getValue());
-    }
-
-//System.out.println("\nnew whitelist (all): " + whiteList);
-    ExplicitPrecision newPrecision = new ExplicitPrecision(oldPrecision.getBlackListPattern(), whiteList);
-
 
     ARTElement root = firstInterpolationPoint.getFirst();
 
@@ -347,6 +298,32 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
     }
 
     return Pair.of(root, newPrecision);
+  }
+
+  /**
+   * This method collects the variables on the error path, on which the variables referenced by predicates depend on. Furthermore, the top-most interpolation point is identified and set.
+   *
+   * @param errorPath the path to the found error location
+   * @param predicates the predicates from the refinement
+   * @return the variables on the error path, on which the variables referenced by predicates depend on
+   */
+  private Map<CFANode, Set<String>> getRelevantVariablesOnPath(Path errorPath, PredicateMap predicates)
+  {
+    CollectVariablesVisitor visitor = new CollectVariablesVisitor(allReferencedVariables);
+
+    Iterator<Pair<ARTElement, CFAEdge>> iterator = errorPath.descendingIterator();
+
+    while(iterator.hasNext())
+    {
+      Pair<ARTElement, CFAEdge> element = iterator.next();
+
+      CFAEdge edge = element.getSecond();
+
+      if(extractVariables(edge, visitor) || predicates.isInterpolationPoint(edge.getPredecessor()))
+        firstInterpolationPoint = element;
+    }
+
+    return visitor.getVariablesAtLocations();
   }
 
   @Override
@@ -520,9 +497,9 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
         CollectVariablesVisitor v = new CollectVariablesVisitor(new ArrayList<String>());
         v.setCurrentScope(edge);
         assignment.getRightHandSide().accept(v);
-        if(v.getVariablesAtEdges().get(edge) != null)
+        if(v.getVariablesAtLocations().get(edge) != null)
         {
-          for(String var : v.getVariablesAtEdges().get(edge))
+          for(String var : v.getVariablesAtLocations().get(edge))
           {
 //            System.out.println("var1 = " + var);
             var = var.substring(var.lastIndexOf(":") + 1);
@@ -562,7 +539,10 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
      */
     private final Set<String> collectedVariables = new HashSet<String>();
 
-    private final Map<CFANode, Set<String>> variablesAtEdges = new HashMap<CFANode, Set<String>>();
+    /**
+     * the mapping which locations reference which variables
+     */
+    private final Map<CFANode, Set<String>> variablesAtLocations = new HashMap<CFANode, Set<String>>();
 
     /**
      * the set of variables collected during look-ahead-run
@@ -595,7 +575,7 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
       {
         collectedVariables.add(variableName);
 
-        addVariableToEdge(variableName);
+        addVariableToLocation(variableName);
       }
     }
 
@@ -606,9 +586,9 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
       return collectedVariables.contains(variableName);
     }
 
-    public Map<CFANode, Set<String>> getVariablesAtEdges()
+    public Map<CFANode, Set<String>> getVariablesAtLocations()
     {
-      return variablesAtEdges;
+      return variablesAtLocations;
     }
 
     public void setCurrentScope(CFAEdge currentEdge)
@@ -627,21 +607,17 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
 
     public void addToCurrentEdge(String assignedVariable)
     {
-      addVariableToEdge(getScopedVariableName(edge.getPredecessor(), assignedVariable));
+      addVariableToLocation(getScopedVariableName(edge.getPredecessor(), assignedVariable));
     }
 
-    private void addVariableToEdge(String variable)
+    private void addVariableToLocation(String variable)
     {
-      Set<String> variablesAtEdge = variablesAtEdges.get(edge);
+      Set<String> variablesAtLocation = variablesAtLocations.get(edge);
 
-      if(variablesAtEdge == null)
-      {
-        variablesAtEdge = new HashSet<String>();
+      if(variablesAtLocation == null)
+        variablesAtLocations.put(edge.getPredecessor(), variablesAtLocation = new HashSet<String>());
 
-        variablesAtEdges.put(edge.getPredecessor(), variablesAtEdge);
-      }
-
-      variablesAtEdge.add(variable);
+      variablesAtLocation.add(variable);
     }
 
     @Override
@@ -765,11 +741,11 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
         collectedVariables.addAll(lookAheadVariables);
 
         // with precision per location - ugly hacks all over!
-        Set<String> variablesAtEdge = variablesAtEdges.get(edge);
+        Set<String> variablesAtEdge = variablesAtLocations.get(edge);
         if(variablesAtEdge == null)
         {
           variablesAtEdge = new HashSet<String>();
-          variablesAtEdges.put(edge.getPredecessor(), variablesAtEdge);
+          variablesAtLocations.put(edge.getPredecessor(), variablesAtEdge);
         }
 
         for(String lookAheadVariable : lookAheadVariables)
