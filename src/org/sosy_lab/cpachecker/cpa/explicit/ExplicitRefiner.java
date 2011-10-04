@@ -309,7 +309,7 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
     {
       Pair<ARTElement, CFAEdge> element = iterator.next();
 
-      if(extractVariables(element.getSecond(), visitor) || whiteList.containsKey(element.getSecond()))
+      if(extractVariables(element.getSecond(), visitor) || whiteList.containsKey(element.getSecond().getPredecessor()))
         firstInterpolationPoint = element;
     }
 
