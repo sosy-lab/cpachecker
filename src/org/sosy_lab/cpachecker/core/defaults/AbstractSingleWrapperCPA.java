@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.core.defaults;
 import java.util.Collection;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -39,26 +38,6 @@ import com.google.common.base.Preconditions;
  * Base class for CPAs which wrap exactly one other CPA.
  */
 public abstract class AbstractSingleWrapperCPA implements ConfigurableProgramAnalysis, WrapperCPA, StatisticsProvider {
-
-  protected abstract static class AbstractSingleWrapperCPAFactory extends AbstractCPAFactory {
-
-    private ConfigurableProgramAnalysis child = null;
-
-    public ConfigurableProgramAnalysis getChild() {
-      Preconditions.checkState(child != null, "Child CPA object needed to create CPA!");
-
-      return child;
-    }
-
-    @Override
-    public CPAFactory setChild(ConfigurableProgramAnalysis pChild) {
-      Preconditions.checkNotNull(pChild);
-      Preconditions.checkState(child == null, "setChild called twice on CPAFactory");
-
-      child = pChild;
-      return this;
-    }
-  }
 
   private final ConfigurableProgramAnalysis wrappedCpa;
 
