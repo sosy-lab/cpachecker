@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 
 public class FunctionPointerCPA extends AbstractSingleWrapperCPA {
 
@@ -47,7 +46,7 @@ public class FunctionPointerCPA extends AbstractSingleWrapperCPA {
   private PrecisionAdjustment precisionAdjustment;
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(ARTCPA.class);
+    return AutomaticCPAFactory.forType(FunctionPointerCPA.class);
   }
 
   private FunctionPointerCPA(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {

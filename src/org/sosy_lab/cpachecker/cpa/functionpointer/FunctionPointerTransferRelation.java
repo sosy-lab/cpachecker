@@ -95,6 +95,28 @@ class FunctionPointerTransferRelation implements TransferRelation {
       throws CPATransferException, InterruptedException {
 
     final FunctionPointerElement oldState = (FunctionPointerElement)pElement;
+    Collection<FunctionPointerElement> results;
+
+    if (pCfaEdge == null) {
+      CFANode node = oldState.retrieveLocationElement().getLocationNode();
+      results = new ArrayList<FunctionPointerElement>(node.getNumLeavingEdges());
+
+      for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges(); edgeIdx++) {
+        CFAEdge edge = node.getLeavingEdge(edgeIdx);
+        getAbstractSuccessorForEdge(oldState, pPrecision, edge, results);
+      }
+
+    } else {
+      results = new ArrayList<FunctionPointerElement>(1);
+      getAbstractSuccessorForEdge(oldState, pPrecision, pCfaEdge, results);
+
+    }
+    return results;
+  }
+
+  private void getAbstractSuccessorForEdge(
+      FunctionPointerElement oldState, Precision pPrecision, CFAEdge pCfaEdge, Collection<FunctionPointerElement> results)
+      throws CPATransferException, InterruptedException {
     CFAEdge cfaEdge;
 
     // first, check if this is a function pointer call
@@ -158,18 +180,15 @@ class FunctionPointerTransferRelation implements TransferRelation {
     // now handle the edge, whether it is real or not
     Collection<? extends AbstractElement> newWrappedStates = wrappedTransfer.getAbstractSuccessors(oldState.getWrappedElement(), pPrecision, cfaEdge);
 
-    List<FunctionPointerElement> newElements = new ArrayList<FunctionPointerElement>(newWrappedStates.size());
-
     for (AbstractElement newWrappedState : newWrappedStates) {
       FunctionPointerElement newState = oldState.createDuplicateWithNewWrappedElement(newWrappedState);
 
       newState = handleEdge(newState, cfaEdge);
 
       if (newState != null) {
-        newElements.add(newState);
+        results.add(newState);
       }
     }
-
 
     if (pCfaEdge instanceof FunctionPointerReturnEdge) {
       // We are returning from a function that was called via a function pointer
@@ -193,8 +212,6 @@ class FunctionPointerTransferRelation implements TransferRelation {
       callNode.removeLeavingSummaryEdge(summaryEdge);
       returnNode.removeLeavingSummaryEdge(summaryEdge);
     }
-
-    return newElements;
   }
 
   private String getFunctionPointerCall(CFAEdge pCfaEdge) throws UnrecognizedCCodeException {
