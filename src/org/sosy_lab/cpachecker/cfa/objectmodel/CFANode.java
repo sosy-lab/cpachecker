@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel;
 
+import static com.google.common.base.Preconditions.*;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -75,11 +77,13 @@ public class CFANode implements Comparable<CFANode> {
   }
 
   public void addLeavingEdge(CFAEdge newLeavingEdge) {
+    checkArgument(newLeavingEdge.getPredecessor() == this, "Cannot add edges to another node");
     leavingEdges.add(newLeavingEdge);
   }
 
-  public boolean removeLeavingEdge(CFAEdge edge) {
-    return leavingEdges.remove(edge);
+  public void removeLeavingEdge(CFAEdge edge) {
+    boolean removed = leavingEdges.remove(edge);
+    checkArgument(removed, "Cannot remove non-existing leaving edge");
   }
 
   public int getNumLeavingEdges() {
@@ -91,11 +95,13 @@ public class CFANode implements Comparable<CFANode> {
   }
 
   public void addEnteringEdge(CFAEdge enteringEdge) {
+    checkArgument(enteringEdge.getSuccessor() == this, "Cannot add edges to another node");
     enteringEdges.add(enteringEdge);
   }
 
-  public boolean removeEnteringEdge(CFAEdge edge) {
-    return enteringEdges.remove(edge);
+  public void removeEnteringEdge(CFAEdge edge) {
+    boolean removed = enteringEdges.remove(edge);
+    checkArgument(removed, "Cannot remove non-existing entering edge");
   }
 
   public int getNumEnteringEdges() {
@@ -128,13 +134,6 @@ public class CFANode implements Comparable<CFANode> {
     return hasEdge;
   }
 
-  public boolean hasJumpEdgeLeaving() {
-    for (CFAEdge edge : leavingEdges) {
-      if (edge.isJumpEdge()) return true;
-    }
-    return false;
-  }
-
   public void setLoopStart() {
     isLoopStart = true;
   }
@@ -148,10 +147,12 @@ public class CFANode implements Comparable<CFANode> {
   }
 
   public void addEnteringSummaryEdge(CallToReturnEdge edge) {
+    checkState(leavingSummaryEdge == null, "Cannot add two entering summary edge");
     enteringSummaryEdge = edge;
   }
 
   public void addLeavingSummaryEdge(CallToReturnEdge edge) {
+    checkState(leavingSummaryEdge == null, "Cannot add two leaving summary edge");
     leavingSummaryEdge = edge;
   }
 
@@ -161,6 +162,16 @@ public class CFANode implements Comparable<CFANode> {
 
   public CallToReturnEdge getLeavingSummaryEdge() {
     return leavingSummaryEdge;
+  }
+
+  public void removeEnteringSummaryEdge(CallToReturnEdge edge) {
+    checkArgument(enteringSummaryEdge == edge, "Cannot remove non-existing entering summary edge");
+    enteringSummaryEdge = null;
+  }
+
+  public void removeLeavingSummaryEdge(CallToReturnEdge edge) {
+    checkArgument(leavingSummaryEdge == edge, "Cannot remove non-existing leaving summary edge");
+    leavingSummaryEdge = null;
   }
 
   @Override
