@@ -86,7 +86,7 @@ public class FunctionPointerCPA extends AbstractSingleWrapperCPA {
 
   @Override
   public AbstractElement getInitialElement(CFANode pNode) {
-    return new FunctionPointerElement(getWrappedCpa().getInitialElement(pNode));
+    return FunctionPointerElement.createEmptyElement(getWrappedCpa().getInitialElement(pNode));
   }
 
   @Override
