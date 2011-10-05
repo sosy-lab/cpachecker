@@ -43,7 +43,7 @@ public class CFA {
   CFA(Map<String, CFAFunctionDefinitionNode> pFunctions, CFAFunctionDefinitionNode pMainFunction) {
     functions = ImmutableMap.copyOf(pFunctions);
     mainFunction = checkNotNull(pMainFunction);
-    checkArgument(functions.containsKey(mainFunction));
+    checkArgument(functions.get(mainFunction.getFunctionName()) == mainFunction);
   }
 
   private CFA() {
