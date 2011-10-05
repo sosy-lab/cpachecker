@@ -23,11 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
@@ -40,20 +43,19 @@ import com.google.common.base.Preconditions;
 public class LocationElement implements AbstractElementWithLocation, AbstractQueryableElement, Partitionable
 {
 
-  public static class LocationElementFactory {
-    private LocationElement[] elements = null;
+  static class LocationElementFactory {
+    private final LocationElement[] elements;
 
-    public void initialize(CFANode initialNode) {
-      if (elements != null) {
-        // multiple calls are allowed, but only with nodes of the same CFA
-        Preconditions.checkState(elements[initialNode.getNodeNumber()].getLocationNode().equals(initialNode));
-        return;
-      }
+    public LocationElementFactory(CFA pCfa) {
+      elements = initialize(checkNotNull(pCfa));
+    }
+
+    private static LocationElement[] initialize(CFA pCfa) {
 
       SortedSet<CFANode> seenNodes = new TreeSet<CFANode>();
       Deque<CFANode> waitlist = new ArrayDeque<CFANode>();
-      seenNodes.add(initialNode);
-      waitlist.add(initialNode);
+      seenNodes.addAll(pCfa.getAllFunctions().values());
+      waitlist.addAll(pCfa.getAllFunctions().values());
 
       while (!waitlist.isEmpty()) {
         CFANode n = waitlist.pop();
@@ -76,10 +78,12 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
       }
 
       int maxNodeNumber = seenNodes.last().getNodeNumber();
-      elements = new LocationElement[maxNodeNumber+1];
+      LocationElement[] elements = new LocationElement[maxNodeNumber+1];
       for (CFANode n : seenNodes) {
         elements[n.getNodeNumber()] = new LocationElement(n);
       }
+
+      return elements;
     }
 
     public LocationElement getElement(CFANode node) {
