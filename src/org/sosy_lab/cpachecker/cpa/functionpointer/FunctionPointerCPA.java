@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -49,12 +50,12 @@ public class FunctionPointerCPA extends AbstractSingleWrapperCPA {
     return AutomaticCPAFactory.forType(FunctionPointerCPA.class);
   }
 
-  private FunctionPointerCPA(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+  private FunctionPointerCPA(ConfigurableProgramAnalysis pCpa, CFA pCfa) throws InvalidConfigurationException {
     super(pCpa);
     this.abstractDomain = new FunctionPointerDomain(pCpa.getAbstractDomain());
     this.mergeOperator = new FunctionPointerMergeOperator(pCpa.getMergeOperator());
     this.stopOperator = new FunctionPointerStopOperator(pCpa.getStopOperator());
-    this.transferRelation = new FunctionPointerTransferRelation(pCpa.getTransferRelation());
+    this.transferRelation = new FunctionPointerTransferRelation(pCpa.getTransferRelation(), pCfa);
     this.precisionAdjustment = new FunctionPointerPrecisionAdjustment(pCpa.getPrecisionAdjustment());
   }
 

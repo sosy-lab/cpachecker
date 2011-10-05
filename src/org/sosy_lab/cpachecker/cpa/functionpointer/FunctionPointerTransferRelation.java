@@ -25,10 +25,9 @@ package org.sosy_lab.cpachecker.cpa.functionpointer;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.DefaultExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
@@ -83,10 +82,11 @@ class FunctionPointerTransferRelation implements TransferRelation {
   private static final String FUNCTION_RETURN_VARIABLE = "__cpachecker_return_var";
 
   private final TransferRelation wrappedTransfer;
-  private final Map<String, CFAFunctionDefinitionNode> functions = new HashMap<String, CFAFunctionDefinitionNode>();
+  private final CFA functions;
 
-  FunctionPointerTransferRelation(TransferRelation pWrappedTransfer) {
+  FunctionPointerTransferRelation(TransferRelation pWrappedTransfer, CFA pCfa) {
     wrappedTransfer = pWrappedTransfer;
+    functions = pCfa;
   }
 
   @Override
@@ -134,7 +134,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
         IASTFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
         String functionName = functionCallExpression.getFunctionNameExpression().getRawSignature();
         int lineNumber = edge.getLineNumber();
-        CFAFunctionDefinitionNode fDefNode = functions.get(functionName);
+        CFAFunctionDefinitionNode fDefNode = functions.getFunction(functionName);
         CFAFunctionExitNode fExitNode = fDefNode.getExitNode();
 
         List<IASTExpression> parameters = functionCallExpression.getParameterExpressions();
