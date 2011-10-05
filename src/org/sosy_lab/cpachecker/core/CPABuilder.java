@@ -109,7 +109,7 @@ public class CPABuilder {
           factory.setLogger(logger);
           factory.set(automaton, Automaton.class);
           cpas.add(factory.createInstance());
-          logger.log(Level.FINE, "Loaded Automaton\"" + automaton.getName() + "\"");
+          logger.log(Level.FINER, "Loaded Automaton\"" + automaton.getName() + "\"");
         }
       }
     }
@@ -131,6 +131,8 @@ public class CPABuilder {
     // first get instance of appropriate factory
 
     Class<?> cpaClass = getCPAClass(optionName, cpaName);
+
+    logger.log(Level.FINER, "Instantiating CPA " + cpaClass.getSimpleName() + " with alias " + cpaAlias);
 
     CPAFactory factory = getFactoryInstance(cpaName, cpaClass);
 
@@ -155,6 +157,7 @@ public class CPABuilder {
     } catch (IllegalStateException e) {
       throw new InvalidConfigurationException(e.getMessage(), e);
     }
+    logger.log(Level.FINER, "Sucessfully instantiated CPA " + cpaClass.getSimpleName() + " with alias " + cpaAlias);
     return cpa;
   }
 
@@ -257,6 +260,7 @@ public class CPABuilder {
       } catch (UnsupportedOperationException e) {
         throw new InvalidConfigurationException(cpaName + " is no wrapper CPA, but option " + childOptionName + " was specified!", e);
       }
+      logger.log(Level.FINER, "CPA " + cpaAlias + " got child " + childCpaName);
 
     } else if (childrenCpaNames != null) {
       // several children CPAs
@@ -275,6 +279,7 @@ public class CPABuilder {
       } catch (UnsupportedOperationException e) {
         throw new InvalidConfigurationException(cpaName + " is no wrapper CPA, but option " + childrenOptionName + " was specified!", e);
       }
+      logger.log(Level.FINER, "CPA " + cpaAlias + " got children " + childrenCpaNames);
     }
   }
 }
