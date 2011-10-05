@@ -29,7 +29,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.SortedSet;
 import java.util.logging.Level;
 
@@ -188,10 +187,7 @@ public class CFACreator {
         logger.log(Level.FINE, "Analysis is interprocedural, adding super edges");
 
         CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfas);
-        Set<String> calledFunctions = spbuilder.insertCallEdgesRecursively(mainFunction.getFunctionName());
-
-        // remove all functions which are never reached from cfas
-        cfas.keySet().retainAll(calledFunctions);
+        spbuilder.insertCallEdgesRecursively();
       }
 
       if (useGlobalVars){

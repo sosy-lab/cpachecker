@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
@@ -67,31 +66,15 @@ public class CFASecondPassBuilder {
   }
 
   /**
-   * Traverses a CFA and inserts call edges and return edges (@see {@link #insertCallEdges(CFANode)}.
-   * This method starts with a function and recursively acts on all functions
-   * reachable from the first one.
+   * Inserts call edges and return edges (@see {@link #insertCallEdges(CFANode)}
+   * in all functions.
    * @param functionName  The function where to start processing.
-   * @return A set of all functions reachable (including external functions and the function passed as argument).
    * @throws ParserException
    */
-  public Set<String> insertCallEdgesRecursively(String functionName) throws ParserException {
-    Deque<String> worklist = new ArrayDeque<String>();
-    worklist.addLast(functionName);
-    Set<String> reachedFunctions = new HashSet<String>();
-
-    while (!worklist.isEmpty()) {
-      String currentFunction = worklist.pollFirst();
-      if (!reachedFunctions.add(currentFunction)) {
-        // reachedFunctions already contained function
-        continue;
-      }
-      CFAFunctionDefinitionNode functionStartNode = cfas.get(currentFunction);
-      if (functionStartNode != null) {
-        // otherwise it's an external call
-        worklist.addAll(insertCallEdges(functionStartNode));
-      }
+  public void insertCallEdgesRecursively() throws ParserException {
+    for (CFAFunctionDefinitionNode functionStartNode : cfas.values()) {
+      insertCallEdges(functionStartNode);
     }
-    return reachedFunctions;
   }
 
   /**
@@ -99,14 +82,12 @@ public class CFASecondPassBuilder {
    * and return edges from the call site and to the return site of the function
    * call.
    * @param initialNode CFANode where to start processing
-   * @return a list of all function calls encountered (may contain duplicates)
    * @throws ParserException
    */
-  private List<String> insertCallEdges(CFAFunctionDefinitionNode initialNode) throws ParserException {
+  private void insertCallEdges(CFAFunctionDefinitionNode initialNode) throws ParserException {
     // we use a worklist algorithm
     Deque<CFANode> workList = new ArrayDeque<CFANode>();
     Set<CFANode> processed = new HashSet<CFANode>();
-    ArrayList<String> calledFunctions = new ArrayList<String>();
 
     workList.addLast(initialNode);
 
@@ -127,9 +108,7 @@ public class CFASecondPassBuilder {
 
           // if statement is of the form x = call(a,b); or call(a,b);
           if (shouldCreateCallEdges(expr)) {
-            IASTFunctionCall functionCall = (IASTFunctionCall)expr;
-            String functionName = createCallAndReturnEdges(statement, functionCall);
-            calledFunctions.add(functionName);
+            createCallAndReturnEdges(statement, (IASTFunctionCall)expr);
           }
 
         } else if (edge instanceof DeclarationEdge) {
@@ -155,7 +134,6 @@ public class CFASecondPassBuilder {
         }
       }
     }
-    return calledFunctions;
   }
 
   private boolean shouldCreateCallEdges(IASTStatement s) {
@@ -174,7 +152,7 @@ public class CFASecondPassBuilder {
    * this keeps only the function call expression, e.g. if statement is a = call(b);
    * then functionCall is call(b).
    */
-  private String createCallAndReturnEdges(StatementEdge edge, IASTFunctionCall functionCall) {
+  private void createCallAndReturnEdges(StatementEdge edge, IASTFunctionCall functionCall) {
     CFANode predecessorNode = edge.getPredecessor();
     CFANode successorNode = edge.getSuccessor();
     IASTFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
@@ -213,7 +191,5 @@ public class CFASecondPassBuilder {
       fExitNode.addLeavingEdge(returnEdge);
       successorNode.addEnteringEdge(returnEdge);
     }
-
-    return functionName;
   }
 }
