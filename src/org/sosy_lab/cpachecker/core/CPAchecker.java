@@ -169,21 +169,35 @@ public class CPAchecker {
     try {
       stats = new MainCPAStatistics(config, logger);
 
+      CFA cfa = null;
+
+      // parse file and create CFA
+      if (!options.runCBMCasExternalTool) {
+        CFACreator cfaCreator = new CFACreator(config, logger);
+        stats.setCFACreator(cfaCreator);
+
+        cfa = cfaCreator.parseFileAndCreateCFA(filename);
+
+        if (cfa.isEmpty()) {
+          // empty program, do nothing
+          return new CPAcheckerResult(Result.NOT_YET_STARTED, null, null);
+        }
+
+        stopIfNecessary();
+      }
+
+      // create cpa, algorithm, reached set
+      stats.creationTime.start();
       ConfigurableProgramAnalysis cpa = null;
       Algorithm algorithm;
-      CFACreator cfaCreator = null;
-
-      // create parser, cpa, algorithm, reached set
-      stats.creationTime.start();
 
       if (options.runCBMCasExternalTool) {
         algorithm = new ExternalCBMCAlgorithm(filename, config, logger);
 
       } else {
-        cfaCreator = new CFACreator(config, logger);
-        stats.setCFACreator(cfaCreator);
+        assert cfa != null;
 
-        cpa = createCPA(stats);
+        cpa = createCPA(stats, cfa);
 
         algorithm = createAlgorithm(cpa, stats, filename);
       }
@@ -195,6 +209,9 @@ public class CPAchecker {
         // the actual reached set instance on the fly
         reached = new ForwardingReachedSet(reached);
       }
+      if (!options.runCBMCasExternalTool) {
+        initializeReachedSet(reached, cpa, cfa.getMainFunction());
+      }
 
       Set<String> unusedProperties = config.getUnusedProperties();
       if (!unusedProperties.isEmpty()) {
@@ -205,22 +222,6 @@ public class CPAchecker {
       stats.creationTime.stop();
       stopIfNecessary();
       // now everything necessary has been instantiated
-
-
-      // parse file, create CFA and initialize reached set
-      if (!options.runCBMCasExternalTool) {
-        assert cfaCreator != null && cpa != null;
-        CFA cfa = cfaCreator.parseFileAndCreateCFA(filename);
-
-        if (cfa.isEmpty()) {
-          // empty program, do nothing
-          return new CPAcheckerResult(Result.NOT_YET_STARTED, null, null);
-        }
-
-        initializeReachedSet(reached, cpa, cfa.getMainFunction());
-
-        stopIfNecessary();
-      }
 
 
       // run analysis
@@ -318,7 +319,7 @@ public class CPAchecker {
     return Result.SAFE;
   }
 
-  private ConfigurableProgramAnalysis createCPA(MainCPAStatistics stats) throws InvalidConfigurationException, CPAException {
+  private ConfigurableProgramAnalysis createCPA(MainCPAStatistics stats, CFA cfa) throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
     stats.cpaCreationTime.start();
     try {
@@ -328,7 +329,7 @@ public class CPAchecker {
         return LocationCPA.factory().createInstance();
       }
 
-      CPABuilder builder = new CPABuilder(config, logger, reachedSetFactory);
+      CPABuilder builder = new CPABuilder(config, logger, reachedSetFactory, cfa);
       ConfigurableProgramAnalysis cpa = builder.buildCPAs();
 
       if (cpa instanceof StatisticsProvider) {

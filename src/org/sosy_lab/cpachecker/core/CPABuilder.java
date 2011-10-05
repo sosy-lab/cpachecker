@@ -40,6 +40,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
@@ -75,16 +76,18 @@ public class CPABuilder {
   private final Configuration config;
   private final LogManager logger;
   private final ReachedSetFactory reachedSetFactory;
+  private final CFA cfa;
 
-  public CPABuilder(Configuration pConfig, LogManager pLogger, ReachedSetFactory pReachedSetFactory) throws InvalidConfigurationException {
+  public CPABuilder(Configuration pConfig, LogManager pLogger, ReachedSetFactory pReachedSetFactory, CFA pCfa) throws InvalidConfigurationException {
     this.config = pConfig;
     this.logger = pLogger;
     this.reachedSetFactory = pReachedSetFactory;
+    this.cfa = pCfa;
     config.inject(this);
   }
 
   public CPABuilder(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
-    this(pConfig, pLogger, null);
+    this(pConfig, pLogger, null, null);
   }
 
   public ConfigurableProgramAnalysis buildCPAs() throws InvalidConfigurationException, CPAException {
@@ -142,6 +145,9 @@ public class CPABuilder {
     factory.setLogger(logger);
     if (reachedSetFactory != null) {
       factory.set(reachedSetFactory, ReachedSetFactory.class);
+    }
+    if (cfa != null) {
+      factory.set(cfa, CFA.class);
     }
 
     createAndSetChildrenCPAs(cpaName, cpaAlias, factory, usedAliases, cpas);
