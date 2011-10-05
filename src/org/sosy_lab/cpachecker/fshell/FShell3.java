@@ -260,14 +260,12 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
 
     // parse code file
     try {
-      lCFACreator.parseFileAndCreateCFA(pSourceFileName);
+      return lCFACreator.parseFileAndCreateCFA(pSourceFileName).getAllFunctions();
     } catch (Exception e) {
       e.printStackTrace();
 
       throw new RuntimeException(e);
     }
-
-    return lCFACreator.getFunctions();
   }
 
   public static ThreeValuedAnswer accepts(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, CFAEdge[] pCFAPath) {

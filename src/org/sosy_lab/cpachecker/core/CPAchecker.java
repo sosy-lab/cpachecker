@@ -33,6 +33,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -209,14 +210,14 @@ public class CPAchecker {
       // parse file, create CFA and initialize reached set
       if (!options.runCBMCasExternalTool) {
         assert cfaCreator != null && cpa != null;
-        cfaCreator.parseFileAndCreateCFA(filename);
+        CFA cfa = cfaCreator.parseFileAndCreateCFA(filename);
 
-        if (cfaCreator.getFunctions().isEmpty()) {
+        if (cfa.isEmpty()) {
           // empty program, do nothing
           return new CPAcheckerResult(Result.NOT_YET_STARTED, null, null);
         }
 
-        initializeReachedSet(reached, cpa, cfaCreator.getMainFunction());
+        initializeReachedSet(reached, cpa, cfa.getMainFunction());
 
         stopIfNecessary();
       }

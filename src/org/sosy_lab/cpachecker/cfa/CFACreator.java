@@ -49,8 +49,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFA.Loop;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.SortedSetMultimap;
@@ -59,8 +57,6 @@ import com.google.common.collect.SortedSetMultimap;
  * Class that encapsulates the whole CFA creation process.
  *
  * It is not thread-safe, but it may be re-used.
- * The get* methods return the result of the last call to {@link #parseFileAndCreateCFA(String)}
- * until this method is called again.
  */
 @Options
 public class CFACreator {
@@ -97,9 +93,6 @@ public class CFACreator {
   private final CParser parser;
   private final CFAReduction cfaReduction;
 
-  private Map<String, CFAFunctionDefinitionNode> functions;
-  private CFAFunctionDefinitionNode mainFunction;
-
   public static ImmutableMultimap<String, Loop> loops = null;
 
   public final Timer parserInstantiationTime = new Timer();
@@ -132,35 +125,16 @@ public class CFACreator {
   }
 
   /**
-   * Return an immutable map with all function CFAs that are the result of
-   * the last call to  {@link #parseFileAndCreateCFA(String)}.
-   * @throws IllegalStateException If called before parsing at least once.
-   */
-  public Map<String, CFAFunctionDefinitionNode> getFunctions() {
-    Preconditions.checkState(functions != null);
-    return functions;
-  }
-
-  /**
-   * Return the entry node of the CFA that is the result of
-   * the last call to  {@link #parseFileAndCreateCFA(String)}.
-   * @throws IllegalStateException If called before parsing at least once.
-   */
-  public CFAFunctionDefinitionNode getMainFunction() {
-    Preconditions.checkState(mainFunction != null);
-    return mainFunction;
-  }
-
-  /**
    * Parse a file and create a CFA, including all post-processing etc.
    *
    * @param filename  The file to parse.
+   * @return A representation of the CFA.
    * @throws InvalidConfigurationException If the main function that was specified in the configuration is not found.
    * @throws IOException If an I/O error occurs.
    * @throws ParserException If the parser or the CFA builder cannot handle the C code.
    * @throws InterruptedException
    */
-  public void parseFileAndCreateCFA(String filename)
+  public CFA parseFileAndCreateCFA(String filename)
           throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
     totalTime.start();
@@ -238,9 +212,7 @@ public class CFACreator {
                 + ", analysis not necessary. "
                 + "If the code contains no error location named ERROR, set the option cfa.removeIrrelevantForErrorLocations to false.");
 
-          this.functions = ImmutableMap.of();
-          this.mainFunction = null;
-          return;
+          return CFA.empty();
         }
       }
 
@@ -291,8 +263,7 @@ public class CFACreator {
 
       logger.log(Level.FINE, "DONE, CFA for", cfas.size(), "functions created");
 
-      this.functions = ImmutableMap.copyOf(cfas);
-      this.mainFunction = mainFunction;
+      return new CFA(cfas, mainFunction);
 
     } finally {
       totalTime.stop();
