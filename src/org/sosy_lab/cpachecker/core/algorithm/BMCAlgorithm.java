@@ -53,7 +53,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Option.Type;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
@@ -187,16 +187,18 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   private final LogManager logger;
   private final ReachedSetFactory reachedSetFactory;
+  private final CFA cfa;
 
   public BMCAlgorithm(Algorithm algorithm, ConfigurableProgramAnalysis pCpa,
                       Configuration config, LogManager logger,
-                      ReachedSetFactory pReachedSetFactory)
+                      ReachedSetFactory pReachedSetFactory, CFA pCfa)
                       throws InvalidConfigurationException, CPAException {
     config.inject(this);
     this.algorithm = algorithm;
     this.cpa = pCpa;
     this.logger = logger;
     reachedSetFactory = pReachedSetFactory;
+    cfa = pCfa;
 
     invariantGenerator = new InvariantGenerator(config, logger);
 
@@ -410,10 +412,15 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private boolean checkWithInduction() throws CPAException, InterruptedException {
+    if (!cfa.getLoopStructure().isPresent()) {
+      logger.log(Level.WARNING, "Could not use induction for proving program safety, loop structure of program could not be determined.");
+      return false;
+    }
+    Multimap<String, Loop> loops = cfa.getLoopStructure().get();
+
     // Induction is currently only possible if there is a single loop.
     // This check can be weakend in the future,
     // e.g. it is ok if there is only a single loop on each path.
-    Multimap<String, Loop> loops = CFACreator.loops;
     if (loops.size() > 1) {
       logger.log(Level.WARNING, "Could not use induction for proving program safety, program has too many loops");
       return false;

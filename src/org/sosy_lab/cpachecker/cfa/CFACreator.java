@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFA.Loop;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.SortedSetMultimap;
@@ -92,6 +93,7 @@ public class CFACreator {
   private final CParser parser;
   private final CFAReduction cfaReduction;
 
+  @Deprecated // use CFA#getLoopStructure() instead
   public static ImmutableMultimap<String, Loop> loops = null;
 
   public final Timer parserInstantiationTime = new Timer();
@@ -170,17 +172,20 @@ public class CFACreator {
       }
 
       // get loop information
+      Optional<ImmutableMultimap<String, Loop>> loopStructure;
       try {
         ImmutableMultimap.Builder<String, Loop> loops = ImmutableMultimap.builder();
         for (String functionName : cfaNodes.keySet()) {
           SortedSet<CFANode> nodes = cfaNodes.get(functionName);
           loops.putAll(functionName, findLoops(nodes));
         }
-        CFACreator.loops = loops.build();
+        loopStructure = Optional.of(loops.build());
       } catch (ParserException e) {
         // don't abort here, because if the analysis doesn't need the loop information, we can continue
         logger.logUserException(Level.WARNING, e, "Could not analyze loop structure of program");
+        loopStructure = Optional.absent();
       }
+      CFACreator.loops = loopStructure.orNull();
 
       // Insert call and return edges and build the supergraph
       if (interprocedural) {
@@ -259,7 +264,7 @@ public class CFACreator {
 
       logger.log(Level.FINE, "DONE, CFA for", cfas.size(), "functions created");
 
-      return new CFA(cfas, mainFunction);
+      return new CFA(cfas, mainFunction, loopStructure);
 
     } finally {
       totalTime.stop();

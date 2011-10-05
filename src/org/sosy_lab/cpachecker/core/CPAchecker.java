@@ -199,7 +199,7 @@ public class CPAchecker {
 
         cpa = createCPA(stats, cfa);
 
-        algorithm = createAlgorithm(cpa, stats, filename);
+        algorithm = createAlgorithm(cpa, stats, filename, cfa);
       }
 
       // create reached set
@@ -343,7 +343,7 @@ public class CPAchecker {
   }
 
   private Algorithm createAlgorithm(final ConfigurableProgramAnalysis cpa,
-        final MainCPAStatistics stats, final String filename)
+        final MainCPAStatistics stats, final String filename, CFA cfa)
         throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating algorithms");
 
@@ -351,7 +351,7 @@ public class CPAchecker {
 
     if (options.useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
-      algorithm = new RestartAlgorithm(config, logger, filename);
+      algorithm = new RestartAlgorithm(config, logger, filename, cfa);
 
     } else {
       algorithm = new CPAAlgorithm(cpa, logger);
@@ -361,7 +361,7 @@ public class CPAchecker {
       }
 
       if (options.useBMC) {
-        algorithm = new BMCAlgorithm(algorithm, cpa, config, logger, reachedSetFactory);
+        algorithm = new BMCAlgorithm(algorithm, cpa, config, logger, reachedSetFactory, cfa);
       }
 
       if (options.useCBMC) {

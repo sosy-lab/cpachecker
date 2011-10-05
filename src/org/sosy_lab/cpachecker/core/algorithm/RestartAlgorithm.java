@@ -41,6 +41,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Option.Type;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAchecker;
@@ -112,10 +113,11 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   private final LogManager logger;
   private final RestartAlgorithmStatistics stats;
   private final String filename;
+  private final CFA cfa;
 
   private Algorithm currentAlgorithm;
 
-  public RestartAlgorithm(Configuration config, LogManager pLogger, String pFilename) throws InvalidConfigurationException {
+  public RestartAlgorithm(Configuration config, LogManager pLogger, String pFilename, CFA pCfa) throws InvalidConfigurationException {
     config.inject(this);
 
     if (configFiles.isEmpty()) {
@@ -125,6 +127,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     this.stats = new RestartAlgorithmStatistics();
     this.logger = pLogger;
     this.filename = pFilename;
+    this.cfa = pCfa;
   }
 
   @Override
@@ -297,7 +300,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     if (pOptions.useBMC) {
-      algorithm = new BMCAlgorithm(algorithm, cpa, pConfig, logger, singleReachedSetFactory);
+      algorithm = new BMCAlgorithm(algorithm, cpa, pConfig, logger, singleReachedSetFactory, cfa);
     }
 
     if (pOptions.useCBMC) {

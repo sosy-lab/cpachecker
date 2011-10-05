@@ -28,8 +28,11 @@ import static com.google.common.base.Preconditions.*;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.util.CFA.Loop;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 
 /**
  * This class represents a CFA after it has been fully created (parsing, linking
@@ -37,18 +40,21 @@ import com.google.common.collect.ImmutableMap;
  */
 public class CFA {
 
-  private final Map<String, CFAFunctionDefinitionNode> functions;
+  private final ImmutableMap<String, CFAFunctionDefinitionNode> functions;
   private final CFAFunctionDefinitionNode mainFunction;
+  private final Optional<ImmutableMultimap<String, Loop>> loopStructure;
 
-  CFA(Map<String, CFAFunctionDefinitionNode> pFunctions, CFAFunctionDefinitionNode pMainFunction) {
+  CFA(Map<String, CFAFunctionDefinitionNode> pFunctions, CFAFunctionDefinitionNode pMainFunction, Optional<ImmutableMultimap<String, Loop>> pLoopStructure) {
     functions = ImmutableMap.copyOf(pFunctions);
     mainFunction = checkNotNull(pMainFunction);
     checkArgument(functions.get(mainFunction.getFunctionName()) == mainFunction);
+    loopStructure = pLoopStructure;
   }
 
   private CFA() {
     functions = ImmutableMap.of();
     mainFunction = null;
+    loopStructure = Optional.absent();
   }
 
   static CFA empty() {
@@ -63,11 +69,15 @@ public class CFA {
     return functions.get(name);
   }
 
-  public Map<String, CFAFunctionDefinitionNode> getAllFunctions() {
+  public ImmutableMap<String, CFAFunctionDefinitionNode> getAllFunctions() {
     return functions;
   }
 
   public CFAFunctionDefinitionNode getMainFunction() {
     return mainFunction;
+  }
+
+  public Optional<ImmutableMultimap<String, Loop>> getLoopStructure() {
+    return loopStructure;
   }
 }

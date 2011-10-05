@@ -32,7 +32,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
@@ -60,19 +60,13 @@ public class LoopstackTransferRelation implements TransferRelation {
 
   private Multimap<CFANode, Loop> loopHeads = null;
 
-  public LoopstackTransferRelation(Configuration config) throws InvalidConfigurationException {
+  public LoopstackTransferRelation(Configuration config, CFA pCfa) throws InvalidConfigurationException, InvalidCFAException {
     config.inject(this);
-  }
 
-  private void buildLoopInformation() throws InvalidCFAException {
-    if (loopHeads != null) {
-      return; // already done
-    }
-
-    Multimap<String, Loop> loops = CFACreator.loops;
-    if (loops == null) {
+    if (!pCfa.getLoopStructure().isPresent()) {
       throw new InvalidCFAException("LoopstackCPA does not work without loop information!");
     }
+    Multimap<String, Loop> loops = pCfa.getLoopStructure().get();
 
     ImmutableMap.Builder<CFAEdge, Loop> entryEdges = ImmutableMap.builder();
     ImmutableMap.Builder<CFAEdge, Loop> exitEdges  = ImmutableMap.builder();
@@ -106,8 +100,6 @@ public class LoopstackTransferRelation implements TransferRelation {
       // because our idea of a loop contains only those nodes within the same function
       return Collections.singleton(pElement);
     }
-
-    buildLoopInformation();
 
     CFANode loc = pCfaEdge.getSuccessor();
     LoopstackElement e = (LoopstackElement)pElement;
