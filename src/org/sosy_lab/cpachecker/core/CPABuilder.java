@@ -135,7 +135,7 @@ public class CPABuilder {
 
     Class<?> cpaClass = getCPAClass(optionName, cpaName);
 
-    logger.log(Level.FINER, "Instantiating CPA " + cpaClass.getSimpleName() + " with alias " + cpaAlias);
+    logger.log(Level.FINER, "Instantiating CPA " + cpaClass.getName() + " with alias " + cpaAlias);
 
     CPAFactory factory = getFactoryInstance(cpaName, cpaClass);
 
@@ -163,7 +163,7 @@ public class CPABuilder {
     } catch (IllegalStateException e) {
       throw new InvalidConfigurationException(e.getMessage(), e);
     }
-    logger.log(Level.FINER, "Sucessfully instantiated CPA " + cpaClass.getSimpleName() + " with alias " + cpaAlias);
+    logger.log(Level.FINER, "Sucessfully instantiated CPA " + cpa.getClass().getName() + " with alias " + cpaAlias);
     return cpa;
   }
 

@@ -34,6 +34,7 @@ import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 
 /**
@@ -149,11 +150,10 @@ class FunctionPointerElement extends AbstractSingleWrapperElement  {
   @Override
   public String toString() {
     StringBuilder str = new StringBuilder();
-    for (String variableName : pointerVariableValues.keySet()) {
-      FunctionPointerTarget target = pointerVariableValues.get(variableName);
-      str.append(String.format("%s <= %s\n", variableName, target));
-    }
-
+    str.append("\n FunctionPointerElement: [");
+    Joiner.on(", ").withKeyValueSeparator("=").appendTo(str, pointerVariableValues);
+    str.append("]\n ");
+    str.append(getWrappedElement());
     return str.toString();
   }
 
