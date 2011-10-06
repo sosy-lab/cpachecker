@@ -363,7 +363,8 @@ class CFABuilder extends ASTVisitor
 
             // remove this dead code from CFA
             n.removeEnteringEdge(edge);
-            CFACreationUtils.removeChainOfNodesFromCFA(n);
+            n.removeLeavingEdge(edge);
+            assert n.getNumLeavingEdges() == 0;
           }
         }
         // TODO handle other cases of unreachable labels
