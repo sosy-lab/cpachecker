@@ -323,6 +323,9 @@ cpa.predicate.checkBlockFeasibility = false
 # where to dump interpolation and abstraction problems (format string)
 cpa.predicate.formulaDumpFilePattern = "%s%04d-%s%03d.msat"
 
+# handle Pointers
+cpa.predicate.handlePointerAliasing = false
+
 # initialize all variables to 0 when they are declared
 cpa.predicate.initAllVars = false
 
@@ -373,7 +376,9 @@ cpa.predicate.noAutoInitPrefix = "__BLAST_NONDET"
 # list has only an effect, if it is an 'external function', i.e., no source
 # is given in the code for this function.
 cpa.predicate.nondetFunctions = {
-      "int_nondet", "malloc", "nondet_int", "random", "__VERIFIER_nondet_int",
+      "malloc", "__kmalloc", "kzalloc",
+      "sscanf",
+      "int_nondet", "nondet_int", "random", "__VERIFIER_nondet_int", "__VERIFIER_nondet_pointer",
       "__VERIFIER_nondet_short", "__VERIFIER_nondet_char", "__VERIFIER_nondet_float"
       }
 
