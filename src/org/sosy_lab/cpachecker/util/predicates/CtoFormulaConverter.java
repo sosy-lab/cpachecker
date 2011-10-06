@@ -724,8 +724,11 @@ public class CtoFormulaConverter {
    * This class tracks axioms which are created during AST traversal but
    * cannot be applied at the time of creation.
    */
-  private class Axioms {
+  protected class Axioms {
+
     private Formula axioms = fmgr.makeTrue();
+
+    public Axioms() {}
 
     private void addAxiom(Formula pAxiom) {
       if (axioms.isTrue()) {
@@ -739,7 +742,7 @@ public class CtoFormulaConverter {
      * Applies the axioms to a given Formula and returns the extended Formula.
      * This axiom container is cleared and set to TRUE.
      */
-    private Formula extend(Formula f) {
+    public Formula extend(Formula f) {
       if (axioms.isTrue()) {
         return f;
       } else {
