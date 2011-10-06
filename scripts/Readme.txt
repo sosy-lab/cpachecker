@@ -8,7 +8,13 @@ Supplied scripts:
           (see HowTo.txt)
 - report-generator.py: for building an interactive HTML report of a CPAchecker run
                        (set HowToBuildReport.txt)
-- table-generator.py: for creating tables that contain the output of several benchmark.py runs
+- table-generator.py: for creating tables that contain the output of several benchmark.py runs.
+                 as params you can either give names of result-files 
+                 or run the script without params (result-files will be searced in test/results/)
+- regression.py: creates a table, that shows differences (different status of a file) 
+                 between runs of a benchmark (i.e. SAFE vs UNSAFE).
+                 to run the script you have to give 2 (or more) result-files
+                 (i.e. "regression.py  oldResult.xml  newResult.xml").
 
 Further files:
 - benchmark.dtd: DTD for validating benchmark.py input files
