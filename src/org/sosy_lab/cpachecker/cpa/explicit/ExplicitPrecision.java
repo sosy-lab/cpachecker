@@ -68,6 +68,11 @@ public class ExplicitPrecision implements Precision {
 //System.out.println("new whitelist: " + this.whiteList);
   }
 
+  @Override
+  public String toString() {
+    return whiteList.toString();
+  }
+
   public void setLocation(CFANode node)
   {
     currentLocation = node;

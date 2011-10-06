@@ -286,7 +286,7 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
     ExplicitPrecision newPrecision = new ExplicitPrecision(oldPrecision, variablesFromPredicates, relevantVariablesOnPath);
 
     assert firstInterpolationPoint != null;
-
+//System.out.println("\nfirstInterpolationPoint = " + firstInterpolationPoint + "\n");
     ARTElement root = firstInterpolationPoint.getFirst();
 
     logger.log(Level.FINEST, "Found spurious counterexample,",
@@ -496,13 +496,13 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
           extracted = true;
         }
 
-
+/*
         // also inspect right-hand side, but with new temporary visitor ...
         CollectVariablesVisitor tempVisitor = new CollectVariablesVisitor(new ArrayList<String>());
         tempVisitor.setCurrentScope(edge);
 
         assignment.getRightHandSide().accept(tempVisitor);
-        Set<String> variablesAtLocation = tempVisitor.getVariablesAtLocations().get(edge.getPredecessor());
+        Set<String> variablesAtLocation = tempVisitor.getVariablesAtLocation(edge.getPredecessor());
         if(variablesAtLocation != null)
         {
           // for each variable in right-hand side ...
@@ -519,6 +519,7 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
             }
           }
         }
+*/
 
       }
       break;
@@ -597,6 +598,11 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
       return variablesAtLocations;
     }
 
+    public Set<String> getVariablesAtLocation(CFANode location)
+    {
+      return variablesAtLocations.get(location);
+    }
+
     public void setCurrentScope(CFAEdge currentEdge)
     {
       edge = currentEdge;
@@ -613,10 +619,10 @@ public class ExplicitRefiner extends AbstractARTBasedRefiner {
 
     private void addVariableToLocation(String variable)
     {
-      Set<String> variablesAtLocation = variablesAtLocations.get(edge);
+      Set<String> variablesAtLocation = variablesAtLocations.get(edge.getSuccessor());
 
       if(variablesAtLocation == null)
-        variablesAtLocations.put(edge.getPredecessor(), variablesAtLocation = new HashSet<String>());
+        variablesAtLocations.put(edge.getSuccessor(), variablesAtLocation = new HashSet<String>());
 
       variablesAtLocation.add(variable);
     }

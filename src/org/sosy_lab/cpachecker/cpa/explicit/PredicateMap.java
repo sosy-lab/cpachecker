@@ -68,7 +68,7 @@ public class PredicateMap
     {
       if(predicates.size() > 0)
       {
-        CFANode currentLocation = path.get(i).getSecond().getPredecessor();
+        CFANode currentLocation = path.get(i).getSecond().getSuccessor();
 
         // get the predicates for the current location from the predicate map
         Set<AbstractionPredicate> predicatesAtEdge = predicateMap.get(currentLocation);

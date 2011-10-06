@@ -113,10 +113,12 @@ public class ExplicitTransferRelation implements TransferRelation {
       throw new IllegalArgumentException("precision is no ExplicitPrecision");
     }
     ExplicitPrecision precision = (ExplicitPrecision) pPrecision;
-    precision.setLocation(cfaEdge.getPredecessor());
+    precision.setLocation(cfaEdge.getSuccessor());
 
     AbstractElement successor;
     ExplicitElement explicitElement = (ExplicitElement)element;
+
+    explicitElement = explicitElement.clone();
 
     // check the type of the edge
     switch (cfaEdge.getEdgeType ()) {
@@ -175,6 +177,8 @@ public class ExplicitTransferRelation implements TransferRelation {
     default:
       throw new UnrecognizedCFAEdgeException(cfaEdge);
     }
+
+//System.out.println("successor of " + cfaEdge + " is: " + successor);
 
     if (successor == null) {
       return Collections.emptySet();
@@ -381,7 +385,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         String varName = op1.getRawSignature();
         if(!newElement.contains(getvarName(varName, functionName)))
         //if(precision.isNotTracking(getvarName(varName, functionName)))
-          return element;
+          return newElement;
         if(truthValue) {
           if(newElement.contains(getvarName(varName, functionName))){
             if(newElement.getValueFor(getvarName(varName, functionName)) == 0){
@@ -412,7 +416,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         boolean skip = false;
         if(skip && !newElement.contains(getvarName(varName, functionName)))
           //if(precision.isNotTracking(getvarName(varName, functionName)))
-          return element;
+          return newElement;
         int typeOfLiteral = lop2.getKind();
         if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant
             || typeOfLiteral == IASTLiteralExpression.lk_float_constant
@@ -613,7 +617,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         String rightVarName = op2.getRawSignature();
         if (!newElement.contains(getvarName(leftVarName, functionName)) || !newElement.contains(getvarName(rightVarName, functionName)))
         //if(precision.isNotTracking(getvarName(leftVarName, functionName)) || precision.isNotTracking(getvarName(rightVarName, functionName)))
-          return element;
+          return newElement;
         // a == b
         if(opType == BinaryOperator.EQUALS)
         {
@@ -744,7 +748,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         String varName = op1.getRawSignature();
         if(!newElement.contains(getvarName(varName, functionName)))
         //if(precision.isNotTracking(getvarName(varName, functionName)))
-          return element;
+          return newElement;
         IASTUnaryExpression unaryExp = (IASTUnaryExpression)op2;
         IASTExpression unaryExpOp = unaryExp.getOperand();
 
@@ -881,7 +885,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         String varName = op1.getRawSignature();
         if(!newElement.contains(getvarName(varName, functionName)))
         //if(precision.isNotTracking(getvarName(varName, functionName)))
-          return element;
+          return newElement;
         // TODO forgetting
         newElement.forget(varName);
       }
@@ -906,7 +910,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       String varName = op1.getRawSignature();
       if(!newElement.contains(getvarName(varName, functionName)))
       //if(precision.isNotTracking(getvarName(varName, functionName)))
-        return element;
+        return newElement;
       // TODO forgetting
       newElement.forget(varName);
       //      throw new UnrecognizedCFAEdgeException("Unhandled case " );
@@ -1060,7 +1064,7 @@ public class ExplicitTransferRelation implements TransferRelation {
   throws UnrecognizedCCodeException {
     // expression is a binary operation, e.g. a = b;
     if (expression instanceof IASTAssignment) {
-      return handleAssignment(element, (IASTAssignment)expression, cfaEdge, precision);
+      return handleAssignment(element.clone(), (IASTAssignment)expression, cfaEdge, precision);
     }
     // external function call
     else if(expression instanceof IASTFunctionCallStatement){
