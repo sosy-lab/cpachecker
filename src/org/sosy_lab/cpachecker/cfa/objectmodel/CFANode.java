@@ -147,12 +147,12 @@ public class CFANode implements Comparable<CFANode> {
   }
 
   public void addEnteringSummaryEdge(CallToReturnEdge edge) {
-    checkState(leavingSummaryEdge == null, "Cannot add two entering summary edge");
+    checkState(leavingSummaryEdge == null, "Cannot add two entering summary edges");
     enteringSummaryEdge = edge;
   }
 
   public void addLeavingSummaryEdge(CallToReturnEdge edge) {
-    checkState(leavingSummaryEdge == null, "Cannot add two leaving summary edge");
+    checkState(leavingSummaryEdge == null, "Cannot add two leaving summary edges");
     leavingSummaryEdge = edge;
   }
 
