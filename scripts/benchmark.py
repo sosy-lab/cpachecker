@@ -387,13 +387,18 @@ class OutputHandler:
                 cpaFolder = subprocess.Popen(['which', exe],
                                   stdout=subprocess.PIPE).communicate()[0].strip('\n')
                 output = subprocess.Popen(['svn', 'info', cpaFolder],
-                                  stdout=subprocess.PIPE).communicate()[0]
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.STDOUT).communicate()[0]
 
                 # parse output and get revision
+                svnInfoList = [line for line in output.strip('\n').split('\n') 
+                               if ': ' in line]
                 svnInfo = dict(map(lambda str: tuple(str.split(': ')),
-                                   output.strip('\n').split('\n')))
+                                   svnInfoList))
                 if 'Revision' in svnInfo:
                     version = 'r' + svnInfo['Revision']
+                else:
+                    logging.warning('revision of CPAchecker could not be read.')
             except OSError:
                 pass
 
