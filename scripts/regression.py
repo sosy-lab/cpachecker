@@ -26,6 +26,71 @@ def generateHTML(fileList):
     tableGenerator.main([''] +  fileList)
 
 
+def getDiffXMLList(listOfTestTags):
+    '''
+    this function copies the header of each tests into the diff-files
+    '''
+    diffXMLList = []
+    emptyElemList = getEmptyElements(listOfTestTags)
+    for elem in listOfTestTags:
+        newElem = ET.Element('test', elem.attrib)
+        newElem.extend(elem.findall('systeminfo'))
+        newElem.extend(elem.findall('columns'))
+        newElem.extend(elem.findall('time'))
+        diffXMLList.append(newElem)
+    return diffXMLList
+
+
+def getEmptyElements(listOfTestTags):
+    '''
+    this function creates empty elements (dummies) for sourcefiles,
+    that do not appear in all xmlfiles
+    '''
+    emptyElemList = []
+    for elem in listOfTestTags:
+        emptyElem = ET.Element('sourcefile')
+        for column in elem.findall('sourcefile')[0].findall('column'):
+            colElem = ET.Element('column')
+            colElem.set('title', column.get('title'))
+            colElem.set('value', '-')
+            emptyElem.append(colElem)
+        emptyElemList.append(emptyElem)
+    return emptyElemList
+
+
+def getSourcefileDics(listOfSourcefileTags):
+    '''
+    this function return a list of dictionaries 
+    with key=filename and value=resultElem.
+    '''
+    listOfSourcefileDics = []
+    for sourcefileTags in listOfSourcefileTags:
+        dic = {}
+        for sourcefileTag in sourcefileTags:
+            filename = sourcefileTag.get('name')
+
+            if filename in dic: # file tested twice in benchmark, should not happen
+                print "file '{0}' is used twice. skipping file.".format(filename)
+            else:
+                dic[filename] = sourcefileTag
+
+        listOfSourcefileDics.append(dic)
+    return listOfSourcefileDics
+
+
+def getAllFilenames(listOfSourcefileDics):
+    '''
+    this function returns all filenames for a 'complete' diff, 
+    in alphabetical order.
+    '''
+    # casting to set and back to list removes doubles and mixes the filenames
+    allFilenames = list(set(filename 
+                            for sfDic in listOfSourcefileDics 
+                            for filename in sfDic))
+    allFilenames.sort()
+    return allFilenames
+
+
 def compareResults(xmlFiles):
     print '\ncomparing results ...'
     
@@ -39,20 +104,26 @@ def compareResults(xmlFiles):
                        for resultFile in resultFiles]
 
     # copy some info from original data
-    diffXMLList = []
-    for elem in listOfTestTags:
-        newElem = ET.Element("test", elem.attrib)
-        newElem.extend(elem.findall('systeminfo'))
-        newElem.extend(elem.findall('columns'))
-        newElem.extend(elem.findall('time'))
-        diffXMLList.append(newElem)
-
-    isDifferent = False
+    # collect all filenames for 'complete' diff
+    diffXMLList = getDiffXMLList(listOfTestTags)
+    emptyElemList = getEmptyElements(listOfTestTags)
     listOfSourcefileTags = [elem.findall('sourcefile') for elem in listOfTestTags]
     maxLen = max((len(file.get('name')) for file in listOfSourcefileTags[0]))
-    
+    listOfSourcefileDics = getSourcefileDics(listOfSourcefileTags)
+    allFilenames = getAllFilenames(listOfSourcefileDics)
+
     # iterate all results parallel
-    for sourcefileTags in zip(*listOfSourcefileTags):
+    isDifferent = False
+    for filename in allFilenames:
+        sourcefileTags = []
+        for dic, emptyElem in zip(listOfSourcefileDics, emptyElemList):
+            if filename in dic:
+                sourcefileTag = dic[filename]
+            else:
+                sourcefileTag = copyXMLElem(emptyElem) # make copy, because it is changed
+                sourcefileTag.set('name', filename)
+            sourcefileTags.append(sourcefileTag)
+
         (allEqual, oldStatus, newStatus) = allEqualResult(sourcefileTags)
         if not allEqual:
             isDifferent = True
@@ -71,11 +142,22 @@ def compareResults(xmlFiles):
             diffFiles.append(dir + os.path.basename(filename))
         for elem, diffFilename in zip(diffXMLList, diffFiles):
             file = open(diffFilename, 'w')
-            file.write(XMLtoString(elem))
+            file.write(XMLtoString(elem).replace('  \n', ''))
             file.close()
         generateHTML(diffFiles)
     else:
         print "\n---> NO DIFFERENCE FOUND IN COLUMN 'STATUS'"
+
+
+def copyXMLElem(elem):
+    '''
+    this function is needed for python < 2.7
+    '''
+    copy = ET.Element(elem.tag)
+    copy.extend(elem.getchildren())
+    for key, value in elem.attrib:
+        copy.set(key, value)
+    return copy
 
 
 def allEqualResult(sourcefileTags):
