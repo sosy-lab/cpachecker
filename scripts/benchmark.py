@@ -359,16 +359,15 @@ class OutputHandler:
 
 
     def getToolnameForPrinting(self):
-        if self.benchmark.tool.lower() == "cpachecker":
-            return "CPAchecker"
-        elif self.benchmark.tool.lower() == "cbmc":
-            return "CBMC"
-        elif self.benchmark.tool.lower() == "satabs":
-            return "SatAbs"
-        elif self.benchmark.tool.lower() == "blast":
-            return "BLAST"
-        elif self.benchmark.tool.lower() == "wolverine":
-            return "WOLVERINE"
+        tool = self.benchmark.tool.lower()
+        names = {'cpachecker': 'CPAchecker',
+                 'cbmc'      : 'CBMC',
+                 'satabs'    : 'SatAbs',
+                 'blast'     : 'BLAST',
+                 'wolverine' : 'WOLVERINE',
+                 'acsar'     : 'Acsar'}
+        if tool in names:
+            return names[tool]
         else:
             return str(self.benchmark.tool)
 
@@ -806,7 +805,7 @@ class Statistics:
         This function returns True, iff any string in list is a substring of text.
         '''
         for elem in list:
-            if text.find(elem) != -1:
+            if elem in text:
                 return True
         return False
 
@@ -1139,9 +1138,9 @@ def getCPAcheckerStatus(returncode, output):
     """
     
     def isOutOfMemory(line):
-        return ((line.find('java.lang.OutOfMemoryError') != -1)
-             or (line.find('std::bad_alloc')             != -1) # C++ out of memory exception
-             or (line.find('Cannot allocate memory')     != -1)
+        return ('java.lang.OutOfMemoryError' in line
+             or 'std::bad_alloc'             in line # C++ out of memory exception
+             or 'Cannot allocate memory'     in line
              or line.startswith('out of memory')
              )
 
@@ -1158,9 +1157,9 @@ def getCPAcheckerStatus(returncode, output):
     for line in output.splitlines():
         if isOutOfMemory(line):
             status = 'OUT OF MEMORY'
-        elif (line.find('SIGSEGV') != -1):
+        elif 'SIGSEGV' in line:
             status = 'SEGMENTATION FAULT'
-        elif (returncode == 0 or returncode == 1) and (line.find('Exception') != -1):
+        elif (returncode == 0 or returncode == 1) and ('Exception' in line):
             status = 'EXCEPTION'
         elif (status is None) and line.startswith('Verification result: '):
             line = line[21:].strip()
@@ -1192,7 +1191,7 @@ def getCPAcheckerColumns(output, columns):
         # stop after the first line, that contains the searched text
         column.value = "-" # default value
         for line in output.splitlines():
-            if (line.find(column.text) != -1):
+            if column.text in line:
                 startPosition = line.find(':') + 1
                 endPosition = line.find('(') # bracket maybe not found -> (-1)
                 if (endPosition == -1):
