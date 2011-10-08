@@ -372,6 +372,52 @@ class OutputHandler:
             return str(self.benchmark.tool)
 
 
+    def getVersionOfCPAchecker(self):
+        '''
+        get info about CPAchecker from local svn- or git-svn-directory
+        '''
+        version = ''
+        exe = findExecutable("cpachecker", "scripts/cpa.sh")
+        try:
+            cpaFolder = subprocess.Popen(['which', exe],
+                              stdout=subprocess.PIPE).communicate()[0].strip('\n')
+
+            # try to get revision with SVN
+            output = subprocess.Popen(['svn', 'info', cpaFolder],
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT).communicate()[0]
+
+            # parse output and get revision
+            svnInfoList = [line for line in output.strip('\n').split('\n') 
+                           if ': ' in line]
+            svnInfo = dict(map(lambda str: tuple(str.split(': ')),
+                               svnInfoList))
+
+            if 'Revision' in svnInfo: # revision from SVN successful
+                version = 'r' + svnInfo['Revision']
+
+            else: # try to get revision with GIT-SVN
+                output = subprocess.Popen(['git', 'svn', 'info'],
+                                  cwd=cpaFolder,
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.STDOUT).communicate()[0]
+    
+                # parse output and get revision
+                svnInfoList = [line for line in output.strip('\n').split('\n') 
+                               if ': ' in line]
+                svnInfo = dict(map(lambda str: tuple(str.split(': ')),
+                                   svnInfoList))
+
+                if 'Revision' in svnInfo: # revision from GIT-SVN successful
+                    version = 'r' + svnInfo['Revision']
+
+                else:
+                    logging.warning('revision of CPAchecker could not be read.')
+        except OSError:
+            pass
+        return version
+
+
     def getVersion(self, tool):
         """
         This function return a String representing the version of the tool.
@@ -379,27 +425,7 @@ class OutputHandler:
 
         version = ''
         if (tool == "cpachecker"):
-
-            # get info about the local svn-directory of CPAchecker
-            exe = findExecutable("cpachecker", "scripts/cpa.sh")
-            try:
-                cpaFolder = subprocess.Popen(['which', exe],
-                                  stdout=subprocess.PIPE).communicate()[0].strip('\n')
-                output = subprocess.Popen(['svn', 'info', cpaFolder],
-                                  stdout=subprocess.PIPE,
-                                  stderr=subprocess.STDOUT).communicate()[0]
-
-                # parse output and get revision
-                svnInfoList = [line for line in output.strip('\n').split('\n') 
-                               if ': ' in line]
-                svnInfo = dict(map(lambda str: tuple(str.split(': ')),
-                                   svnInfoList))
-                if 'Revision' in svnInfo:
-                    version = 'r' + svnInfo['Revision']
-                else:
-                    logging.warning('revision of CPAchecker could not be read.')
-            except OSError:
-                pass
+            version = self.getVersionOfCPAchecker()
 
         elif (tool == "cbmc"):
             defaultExe = None
