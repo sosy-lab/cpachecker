@@ -120,15 +120,44 @@ public class ExperimentsRunner {
 	 * @throws InterruptedException
 	 */
 	public static void main(String[] args) throws IOException, InterruptedException {
+
+	  boolean lUse64BitSetting = true;
+
+	  LinkedList<String> lTmpArguments = new LinkedList<String>();
+
+	  for (String lArgument : args) {
+	    if (lArgument.equals("--32")) {
+	      lUse64BitSetting = false;
+	    }
+	    else {
+	      lTmpArguments.add(lArgument);
+	    }
+	  }
+
+	  if (lTmpArguments.size() != args.length) {
+	    String[] lTmpArray = new String[lTmpArguments.size()];
+
+	    lTmpArguments.toArray(lTmpArray);
+
+	    args = lTmpArray;
+	  }
+
 		ProcessBuilder lBuilder = new ProcessBuilder();
 
 		Configuration lConfiguration = Configuration.read(new File(args[0]));
 
 		LinkedList<String> lCommand = new LinkedList<String>();
 		lCommand.add("java");
-		lCommand.add("-Xms10240M");
-		lCommand.add("-Xmx10240M");
-		lCommand.add("-Djava.library.path=lib/native/x86_64-linux");
+		if (lUse64BitSetting) {
+		  lCommand.add("-Xms10240M");
+	    lCommand.add("-Xmx10240M");
+	    lCommand.add("-Djava.library.path=lib/native/x86_64-linux");
+		}
+		else {
+		  lCommand.add("-Xms1024M");
+	    lCommand.add("-Xmx1024M");
+	    lCommand.add("-Djava.library.path=lib/native/x86-linux");
+		}
 		lCommand.add("-cp");
 		lCommand.add(ExperimentsRunner.CLASSPATH);
 		lCommand.add("org.sosy_lab.cpachecker.fshell.Main");
