@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -84,7 +85,11 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecisionAdjustment;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.fshell.cfa.Wrapper;
+import org.sosy_lab.cpachecker.fshell.clustering.ClusteredElementaryCoveragePattern;
+import org.sosy_lab.cpachecker.fshell.clustering.InfeasibilityPropagation;
+import org.sosy_lab.cpachecker.fshell.fql2.ast.Edges;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.FQLSpecification;
+import org.sosy_lab.cpachecker.fshell.fql2.translators.ecp.ClusteringCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.fshell.fql2.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.fshell.fql2.translators.ecp.IncrementalCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.fshell.interfaces.FQLTestGenerator;
@@ -426,9 +431,21 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     return lFoundTargetEdges;
   }
 
+  private enum INF_PREDICTION {
+    UNKNOWN,
+    INFEASIBLE
+  };
+
   private FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pCheckReachWhenCovered, boolean pPedantic) {
 
+    int lNumberOfTestGoals;
+
     FQLSpecification lFQLSpecification = getFQLSpecification(pFQLSpecification);
+
+    Pair<Boolean, LinkedList<Edges>> lInfeasibilityPropagation = InfeasibilityPropagation.canApplyInfeasibilityPropagation(lFQLSpecification);
+    //Pair<Boolean, LinkedList<Edges>> lInfeasibilityPropagation = Pair.of(Boolean.FALSE, null);
+
+    ElementaryCoveragePattern[] lGoalPatterns;
 
     GuardedEdgeAutomatonCPA lPassingCPA = getPassingCPA(lFQLSpecification);
 
@@ -441,38 +458,59 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     TimeAccumulator lTimeReach = new TimeAccumulator();
     TimeAccumulator lTimeCover = new TimeAccumulator();
 
-    IncrementalCoverageSpecificationTranslator lTranslator = new IncrementalCoverageSpecificationTranslator(mCoverageSpecificationTranslator.mPathPatternTranslator);
 
-    mOutput.println("Determining the number of test goals ...");
+    if (lInfeasibilityPropagation.getFirst()) {
+      CFANode lInitialNode = this.mAlphaLabel.getEdgeSet().iterator().next().getSuccessor();
 
-    int lNumberOfTestGoals = lTranslator.getNumberOfTestGoals(lFQLSpecification.getCoverageSpecification());
-    mOutput.println("Number of test goals: " + lNumberOfTestGoals);
+      ClusteringCoverageSpecificationTranslator lTranslator = new ClusteringCoverageSpecificationTranslator(mCoverageSpecificationTranslator.mPathPatternTranslator, lInfeasibilityPropagation.getSecond(), lInitialNode);
 
-    Iterator<ElementaryCoveragePattern> lGoalIterator = lTranslator.translate(lFQLSpecification.getCoverageSpecification());
+      lNumberOfTestGoals = lTranslator.getNumberOfTestGoals();
 
-    ElementaryCoveragePattern[] lGoalPatterns = new ElementaryCoveragePattern[lNumberOfTestGoals];
+      System.out.println("Number of Test Goals: " + lNumberOfTestGoals);
+      System.out.print("Generating Patterns ... ");
 
-    for (int lGoalIndex = 0; lGoalIndex < lNumberOfTestGoals; lGoalIndex++) {
-      lGoalPatterns[lGoalIndex] = lGoalIterator.next();
-    }
+      lGoalPatterns = lTranslator.createElementaryCoveragePatternsAndClusters();
 
-    // Experimental clustering
-    HashMap<CFAEdge, LinkedList<Integer>> lClusters = new HashMap<CFAEdge, LinkedList<Integer>>();
+      /*IncrementalCoverageSpecificationTranslator lTranslator2 = new IncrementalCoverageSpecificationTranslator(mCoverageSpecificationTranslator.mPathPatternTranslator);
+      Iterator<ElementaryCoveragePattern> lGoalIterator = lTranslator2.translate(lFQLSpecification.getCoverageSpecification());
+      for (int lGoalIndex = 0; lGoalIndex < lNumberOfTestGoals; lGoalIndex++) {
+        ClusteredElementaryCoveragePattern lGoal1 = (ClusteredElementaryCoveragePattern)lGoalPatterns[lGoalIndex];
+        ECPConcatenation lGoal2 = (ECPConcatenation)lGoalIterator.next();
 
-    if (mApplyBB2Heuristics) {
-      for (int lGoalIndex = 0; lGoalIndex < lGoalPatterns.length; lGoalIndex++) {
-        ElementaryCoveragePattern lGoalPattern = lGoalPatterns[lGoalIndex];
+        ECPConcatenation lGoal1Prime = (ECPConcatenation)lGoal1.getWrappedPattern();
 
-        CFAEdge lCFAEdge = getSingletonCFAEdge(lGoalPattern, 1);
-
-        LinkedList<Integer> lCluster = lClusters.get(lCFAEdge);
-
-        if (lCluster == null) {
-          lCluster = new LinkedList<Integer>();
-          lClusters.put(lCFAEdge, lCluster);
+        if (lGoal2.size() != lGoal1Prime.size()) {
+          System.out.println("sizes " + lGoal2.size() + " vs. " + lGoal1Prime.size());
+          //throw new RuntimeException("sizes " + lGoal2.size() + " vs. " + lGoal1Prime.size());
         }
 
-        lCluster.add(lGoalIndex);
+        for (int u = 0; u < lGoal2.size(); u++) {
+          if (!lGoal2.get(u).equals(lGoal1Prime.get(u))) {
+            throw new RuntimeException("moohoohoo");
+          }
+        }
+
+        if (!lGoal1Prime.equals(lGoal2)) {
+          throw new RuntimeException("unequality at index " + lGoalIndex);
+        }
+      }*/
+
+      System.out.println("done.");
+    }
+    else {
+      IncrementalCoverageSpecificationTranslator lTranslator = new IncrementalCoverageSpecificationTranslator(mCoverageSpecificationTranslator.mPathPatternTranslator);
+
+      mOutput.println("Determining the number of test goals ...");
+
+      lNumberOfTestGoals = lTranslator.getNumberOfTestGoals(lFQLSpecification.getCoverageSpecification());
+      mOutput.println("Number of test goals: " + lNumberOfTestGoals);
+
+      Iterator<ElementaryCoveragePattern> lGoalIterator = lTranslator.translate(lFQLSpecification.getCoverageSpecification());
+
+      lGoalPatterns = new ElementaryCoveragePattern[lNumberOfTestGoals];
+
+      for (int lGoalIndex = 0; lGoalIndex < lNumberOfTestGoals; lGoalIndex++) {
+        lGoalPatterns[lGoalIndex] = lGoalIterator.next();
       }
     }
 
@@ -492,11 +530,11 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     boolean pHadProgress = false;
 
     long[] lGoalRuntime = new long[lNumberOfTestGoals];
-    int[] lGoalPrediction = new int[lNumberOfTestGoals];
+    INF_PREDICTION[] lGoalPrediction = new INF_PREDICTION[lNumberOfTestGoals];
 
     for (int i = 0; i < lGoalRuntime.length; i++) {
       lGoalRuntime[i] = -1; // value indicating invalid value
-      lGoalPrediction[i] = -1; // value indicating unknown prediction
+      lGoalPrediction[i] = INF_PREDICTION.UNKNOWN; // value indicating unknown prediction
     }
 
     //while (lGoalIterator.hasNext()) {
@@ -528,7 +566,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       lIndex++;
 
 
-      if (lGoalPrediction[lIndex - 1] == 1) {
+      if (lGoalPrediction[lIndex - 1].equals(INF_PREDICTION.INFEASIBLE)) {
         mOutput.println("Predicted as infeasible!");
 
         mFeasibilityInformation.setStatus(lIndex, FeasibilityInformation.FeasibilityStatus.INFEASIBLE);
@@ -542,6 +580,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
       mOutput.println("Processing test goal #" + lIndex + " of " + lNumberOfTestGoals + " test goals.");
 
+      // TODO change while loop to for loop
       if (mMinIndex > lIndex) {
         mOutput.println("Skipped.");
         continue;
@@ -563,18 +602,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       Goal lGoal = new Goal(lGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel);
 
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton = optimizeAutomaton(lGoal.getAutomaton());
-
-      /*for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lEdge : lGoalAutomaton.getEdges()) {
-        GuardedEdgeLabel lLabel = lEdge.getLabel();
-
-        if (!(lLabel instanceof InverseGuardedEdgeLabel)) {
-          ECPEdgeSet lEdgeSet = lLabel.getEdgeSet();
-
-          if (lEdgeSet instanceof SingletonECPEdgeSet) {
-            System.out.println(((SingletonECPEdgeSet)lEdgeSet).getCFAEdge());
-          }
-        }
-      }*/
 
       lTimeAccu.proceed();
 
@@ -631,10 +658,10 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
         mFeasibilityInformation.setStatus(lIndex, FeasibilityInformation.FeasibilityStatus.FEASIBLE);
 
-        int lCurrentPrediction = lGoalPrediction[lIndex - 1];
+        INF_PREDICTION lCurrentPrediction = lGoalPrediction[lIndex - 1];
 
         switch (lCurrentPrediction) {
-        case -1:
+        case UNKNOWN:
           break;
         default:
           throw new RuntimeException("missmatching prediction: " + lCurrentPrediction);
@@ -699,162 +726,55 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
         lGoalRuntime[lIndex - 1] = lEndTime - lStartTime;
 
-        int lCurrentPrediction = lGoalPrediction[lIndex - 1];
+        if (lReachableViaGraphSearch && lInfeasibilityPropagation.getFirst()) {
+          HashSet<CFAEdge> lTargetEdges = new HashSet<CFAEdge>();
 
-        switch (lCurrentPrediction) {
-        case -1:
-        case 1:
-          break;
-        default:
-          throw new RuntimeException("missmatching prediction");
-        }
+          ClusteredElementaryCoveragePattern lClusteredPattern = (ClusteredElementaryCoveragePattern)lGoalPattern;
 
-        // TODO experimental setting ...
-        if (lReachableViaGraphSearch && (mApplyBBHeuristics || mApplyBB2Heuristics)) {
+          ListIterator<ClusteredElementaryCoveragePattern> lRemainingPatterns = lClusteredPattern.getRemainingElementsInCluster();
+
+          //int lTmpIndex = lIndex + 1;
+          // TODO check again!
+          int lTmpIndex = lIndex; // caution lIndex starts at 0
+
+          while (lRemainingPatterns.hasNext()) {
+            //System.out.println("lTmpIndex: " + lTmpIndex);
+
+            INF_PREDICTION lPrediction = lGoalPrediction[lTmpIndex];
+
+            ClusteredElementaryCoveragePattern lRemainingPattern = lRemainingPatterns.next();
+
+            if (lPrediction.equals(INF_PREDICTION.UNKNOWN)) {
+              lTargetEdges.add(lRemainingPattern.getLastSingletonCFAEdge());
+            }
+
+            lTmpIndex++;
+          }
+
+          Collection<CFAEdge> lFoundEdges = dfs2(lClusteredPattern.getCFANode(), lClusteredPattern.getLastSingletonCFAEdge(), lTargetEdges);
+
+          lRemainingPatterns = lClusteredPattern.getRemainingElementsInCluster();
+
+          //lTmpIndex = lIndex + 1;
+          lTmpIndex = lIndex;
+
           int lPredictedElements = 0;
 
-          System.out.print("Analyse this ... ");
+          while (lRemainingPatterns.hasNext()) {
+            INF_PREDICTION lPrediction = lGoalPrediction[lTmpIndex];
 
-          if (mApplyBBHeuristics) {
-            // BB case
-            CFAEdge lFirstSingletonCFAEdge = getSingletonCFAEdge(lGoalPattern, 1);
+            ClusteredElementaryCoveragePattern lRemainingPattern = lRemainingPatterns.next();
 
-            CFANode lInitialNode = this.mAlphaLabel.getEdgeSet().iterator().next().getSuccessor();
-
-            HashSet<CFAEdge> lTargetEdges = new HashSet<CFAEdge>();
-
-            for (int i = lIndex; i < lGoalPatterns.length; i++) {
-              int lPrediction = lGoalPrediction[i];
-
-              if (lPrediction == -1) {
-                CFAEdge lTargetCFAEdge = getSingletonCFAEdge(lGoalPatterns[i], 1);
-                lTargetEdges.add(lTargetCFAEdge);
+            if (lPrediction.equals(INF_PREDICTION.UNKNOWN)) {
+              if (!lFoundEdges.contains(lRemainingPattern.getLastSingletonCFAEdge())) {
+                lGoalPrediction[lTmpIndex] = INF_PREDICTION.INFEASIBLE;
+                lPredictedElements++;
               }
             }
 
-            Collection<CFAEdge> lFoundEdges = dfs2(lInitialNode, lFirstSingletonCFAEdge, lTargetEdges);
-
-            for (int i = lIndex; i < lGoalPatterns.length; i++) {
-              int lPrediction = lGoalPrediction[i];
-
-              if (lPrediction == -1) {
-                CFAEdge lTargetCFAEdge = getSingletonCFAEdge(lGoalPatterns[i], 1);
-
-                if (!lFoundEdges.contains(lTargetCFAEdge)) {
-                  switch (lPrediction) {
-                  case -1:
-                    lGoalPrediction[i] = 1;
-                    break;
-                  case 1:
-                    break;
-                  default:
-                    throw new RuntimeException();
-                  }
-
-                  lPredictedElements++;
-                }
-              }
-            }
+            lTmpIndex++;
           }
 
-          if (mApplyBB2Heuristics) {
-            // BB2 case
-            CFAEdge lFirstSingletonCFAEdge = getSingletonCFAEdge(lGoalPattern, 1);
-
-            // TODO change to extraction of all singleton CFA edges (non-skipable)
-            CFAEdge lSecondSingletonCFAEdge = getSingletonCFAEdge(lGoalPattern, 2);
-
-
-
-            CFANode lSuccessorNode = lFirstSingletonCFAEdge.getSuccessor();
-
-            LinkedList<Integer> lCluster = lClusters.get(lFirstSingletonCFAEdge);
-
-            //int lPastElements = 0;
-
-            HashSet<CFAEdge> lTargetEdges = new HashSet<CFAEdge>();
-
-            for (int lClusterElement : lCluster) {
-              int lPrediction = lGoalPrediction[lClusterElement];
-
-              if (lPrediction == -1) {
-                if (lClusterElement > lIndex - 1) {
-                  CFAEdge lTargetCFAEdge = getSingletonCFAEdge(lGoalPatterns[lClusterElement], 2);
-                  lTargetEdges.add(lTargetCFAEdge);
-                }
-              }
-            }
-
-            Collection<CFAEdge> lFoundEdges = dfs2(lSuccessorNode, lSecondSingletonCFAEdge, lTargetEdges);
-
-            for (int lClusterElement : lCluster) {
-              int lPrediction = lGoalPrediction[lClusterElement];
-
-              if (lPrediction == -1) {
-                if (lClusterElement > lIndex - 1) {
-                  CFAEdge lTargetCFAEdge = getSingletonCFAEdge(lGoalPatterns[lClusterElement], 2);
-
-                  if (!lFoundEdges.contains(lTargetCFAEdge)) {
-                    switch (lPrediction) {
-                    case -1:
-                      lGoalPrediction[lClusterElement] = 1;
-                      break;
-                    case 1:
-                      break;
-                    default:
-                      throw new RuntimeException();
-                    }
-
-                    lPredictedElements++;
-                  }
-                }
-              }
-            }
-          }
-
-
-          /*for (int lClusterElement : lCluster) {
-            int lPrediction = lGoalPrediction[lClusterElement];
-
-            if (lPrediction == -1) {
-              if (lClusterElement > lIndex - 1) {
-                CFAEdge lTargetCFAEdge = getSingletonCFAEdge(lGoalPatterns[lClusterElement], 2);
-
-                if (!dfs(lSuccessorNode, lSecondSingletonCFAEdge, lTargetCFAEdge)) {
-                  switch (lPrediction) {
-                  case -1:
-                    lGoalPrediction[lClusterElement] = 1;
-                    break;
-                  case 1:
-                    break;
-                  default:
-                    throw new RuntimeException();
-                  }
-
-                  lPredictedElements++;
-                }
-              }*/
-              /*else if (lClusterElement < lIndex - 1) {
-                CFAEdge lTargetCFAEdge = getSingletonCFAEdge(lGoalPatterns[lClusterElement], 2);
-
-                if (!dfs(lSuccessorNode, lSecondSingletonCFAEdge, lTargetCFAEdge)) {
-                  switch (lPrediction) {
-                  case -1:
-                    lGoalPrediction[lClusterElement] = 1;
-                    break;
-                  case 1:
-                    break;
-                  default:
-                    throw new RuntimeException();
-                  }
-
-                  lPastElements++;
-                }
-              }*/
-            /*}
-          }*/
-
-          //System.out.println("(" + lPredictedElements + "/" + lPastElements + ")");
           System.out.println("(" + lPredictedElements + ")");
         }
       }
@@ -897,11 +817,9 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
 
 
-            int lCurrentPrediction = lGoalPrediction[lIndex - 1];
-            switch (lCurrentPrediction) {
-            case -1:
-              break;
-            default:
+            INF_PREDICTION lCurrentPrediction = lGoalPrediction[lIndex - 1];
+
+            if (!lCurrentPrediction.equals(INF_PREDICTION.UNKNOWN)) {
               throw new RuntimeException("missmatching prediction");
             }
           }
@@ -912,13 +830,9 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
             mFeasibilityInformation.setStatus(lIndex, FeasibilityInformation.FeasibilityStatus.IMPRECISE);
 
+            INF_PREDICTION lCurrentPrediction = lGoalPrediction[lIndex - 1];
 
-
-            int lCurrentPrediction = lGoalPrediction[lIndex - 1];
-            switch (lCurrentPrediction) {
-            case -1:
-              break;
-            default:
+            if (!lCurrentPrediction.equals(INF_PREDICTION.UNKNOWN)) {
               throw new RuntimeException("missmatching prediction");
             }
           }
@@ -932,13 +846,17 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
 
 
-          int lCurrentPrediction = lGoalPrediction[lIndex - 1];
-          switch (lCurrentPrediction) {
-          case -1:
-            break;
-          default:
+          INF_PREDICTION lCurrentPrediction = lGoalPrediction[lIndex - 1];
+
+          if (!lCurrentPrediction.equals(INF_PREDICTION.UNKNOWN)) {
             throw new RuntimeException("missmatching prediction");
           }
+/*
+          if (!pPedantic) {
+          //if (true) {
+            // TODO implement reconstruction of path
+            throw new RuntimeException();
+          }*/
         }
 
         lTimeAccu.pause(lFeasibleTestGoalsTimeSlot);
@@ -1132,6 +1050,10 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       lARTCPAFactory.setLogger(mLogManager);
 
       lARTCPA = (ARTCPA)lARTCPAFactory.createInstance();
+/*
+      lARTCPA.precisionAdjustment.setCache(mInfeasibilityCache);
+      lARTCPA.precisionAdjustment.setPredicateCPAIndex(lPredicateCPAIndex);
+      lARTCPA.precisionAdjustment.setAutomatonCPAIndex(lProductAutomatonIndex);*/
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     } catch (CPAException e) {
@@ -1209,8 +1131,60 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     mTimeInReach.pause();
 
-    return lRefiner.getCounterexampleTraceInfo();
+    CounterexampleTraceInfo lCounterexampleTraceInfo = lRefiner.getCounterexampleTraceInfo();
+
+    /*if (lCounterexampleTraceInfo != null && lCounterexampleTraceInfo.isSpurious()) {
+      // TODO automaton index
+      InfeasibilityCacheEntry lEntry = new InfeasibilityCacheEntry(pAutomatonCPA.getAutomaton(), pReachedSet, lPredicateCPAIndex, lProductAutomatonIndex);
+
+      mInfeasibilityCache.add(lEntry);
+    }
+    else if (lCounterexampleTraceInfo != null) {
+      // TODO feasibility cache
+
+      ARTElement lLastElement = (ARTElement)pReachedSet.getLastElement();
+
+      // TODO how many abstraction points with state >= 5 are in the reached set?
+
+      throw new RuntimeException();
+    }*/
+
+    /*if (lCounterexampleTraceInfo != null) {
+      if (lCounterexampleTraceInfo.isSpurious()) {
+        System.out.println("SPURIOUS ************************");
+      }
+      else {
+        System.out.println("NOT SPURIOUS ********************");
+      }
+
+      for (AbstractElement lReachedElement : pReachedSet) {
+        ARTElement lARTElement = (ARTElement)lReachedElement;
+
+        CompositeElement lCompositeElement = (CompositeElement)lARTElement.getWrappedElement();
+
+        PredicateAbstractElement lPredicateElement = (PredicateAbstractElement)lCompositeElement.get(lPredicateCPAIndex);
+
+        if (lPredicateElement instanceof AbstractionElement) {
+          AbstractionElement lAbstractionElement = (AbstractionElement)lPredicateElement;
+
+          if (!lAbstractionElement.getAbstractionFormula().isFalse()) {
+            ProductAutomatonElement lProductAutomatonElement = (ProductAutomatonElement)lCompositeElement.get(lProductAutomatonIndex);
+
+            // TODO generalize
+            GuardedEdgeAutomatonStateElement lStateElement = (GuardedEdgeAutomatonStateElement)lProductAutomatonElement.get(0);
+
+            if (lStateElement.getAutomatonState().ID >= 5) {
+              System.out.println("ping");
+            }
+          }
+        }
+      }
+    }*/
+
+    return lCounterexampleTraceInfo;
   }
+
+  //HashSet<InfeasibilityCacheEntry> mInfeasibilityCache = new HashSet<InfeasibilityCacheEntry>();
 
   private static void printPredicateStatistics(ReachedSet pReachedSet, int lPredicateCPAIndex) {
 
@@ -1555,6 +1529,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       lARTCPAFactory.setLogger(mLogManager);
 
       lARTCPA = (ARTCPA)lARTCPAFactory.createInstance();
+      //lARTCPA.precisionAdjustment.deactivate();
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     } catch (CPAException e) {
