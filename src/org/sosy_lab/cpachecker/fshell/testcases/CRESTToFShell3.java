@@ -46,7 +46,7 @@ public class CRESTToFShell3 {
     TestSuite lTestSuite = new TestSuite();
 
     for (File lFile : pDirectory.listFiles()) {
-      if (lFile.getName().matches("input\\.(\\d)*") && !lFile.getName().equals("input.1")) { // input.1 does not contain any data (always?)
+      if (lFile.getName().matches("input\\.(\\d)*")) { // && !lFile.getName().equals("input.1")) { // input.1 does not contain any data (always?)
         lTestSuite.add(translate(lFile));
       }
     }
