@@ -300,15 +300,23 @@ cpa.predicate.abstraction.initialPredicates = no default value
 cpa.predicate.abstraction.solver = "MATHSAT"
   allowed values: [MATHSAT, YICES]
 
-# force abstractions on function call/return
-cpa.predicate.blk.functions = true
+# force abstractions immediately after threshold is reached (no effect if
+# threshold = 0)
+cpa.predicate.blk.alwaysAfterThreshold = true
 
-# force abstractions for each loop iteration
-cpa.predicate.blk.loops = true
+# force abstractions at each function calls/returns, regardless of threshold
+cpa.predicate.blk.alwaysAtFunctions = true
 
-# require that both the threshold and (functions or loops) have to be
-# fulfilled to compute an abstraction
-cpa.predicate.blk.requireThresholdAndLBE = false
+# force abstractions at loop heads, regardless of threshold
+cpa.predicate.blk.alwaysAtLoops = true
+
+# abstractions at function calls/returns if threshold has been reached (no
+# effect if threshold = 0)
+cpa.predicate.blk.functions = false
+
+# abstractions at loop heads if threshold has been reached (no effect if
+# threshold = 0)
+cpa.predicate.blk.loops = false
 
 # maximum blocksize before abstraction is forced
 # (non-negative number, special values: 0 = don't check threshold, 1 = SBE)

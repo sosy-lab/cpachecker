@@ -37,27 +37,30 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
  *
  * This operator is configurable by the user.
  */
-@Options(prefix="cpa.predicate")
+@Options(prefix="cpa.predicate.blk")
 public class BlockOperator {
 
-  @Option(name="blk.threshold",
+  @Option(
       description="maximum blocksize before abstraction is forced\n"
         + "(non-negative number, special values: 0 = don't check threshold, 1 = SBE)")
-  private int absBlockSize = 0;
+  private int threshold = 0;
 
-  @Option(name="blk.functions",
-      description="force abstractions on function call/return")
-  private boolean absOnFunction = true;
+  @Option(name="functions",
+      description="abstractions at function calls/returns if threshold has been reached (no effect if threshold = 0)")
+  private boolean absOnFunction = false;
 
-  @Option(name="blk.loops",
-      description="force abstractions for each loop iteration")
-  private boolean absOnLoop = true;
+  @Option(name="loops",
+      description="abstractions at loop heads if threshold has been reached (no effect if threshold = 0)")
+  private boolean absOnLoop = false;
 
-  @Option(name="blk.requireThresholdAndLBE",
-      description="require that both the threshold and (functions or loops) "
-        + "have to be fulfilled to compute an abstraction")
-  private boolean absOnlyIfBoth = false;
+  @Option(description="force abstractions immediately after threshold is reached (no effect if threshold = 0)")
+  private boolean alwaysAfterThreshold = true;
 
+  @Option(description="force abstractions at loop heads, regardless of threshold")
+  private boolean alwaysAtLoops = true;
+
+  @Option(description="force abstractions at each function calls/returns, regardless of threshold")
+  private boolean alwaysAtFunctions = true;
 
   int numBlkFunctions = 0;
   int numBlkLoops = 0;
@@ -73,37 +76,66 @@ public class BlockOperator {
    * the start node of a function or if it is the call site from a function call.
    */
   public boolean isBlockEnd(CFANode succLoc, PathFormula pf) {
-    boolean result = false;
-
-    if (absOnLoop) {
-      result = succLoc.isLoopStart();
-      if (result) {
-        numBlkLoops++;
-      }
+    if (alwaysAtFunctions && isFunctionCall(succLoc)) {
+      numBlkFunctions++;
+      return true;
     }
-    if (absOnFunction) {
-      boolean function =
-               (succLoc instanceof CFAFunctionDefinitionNode) // function call edge
-            || (succLoc.getEnteringSummaryEdge() != null); // function return edge
-      if (function) {
-        result = true;
+
+    if (alwaysAtLoops && isLoopHead(succLoc)) {
+      numBlkLoops++;
+      return true;
+    }
+
+    if (threshold > 0) {
+
+      if (isThresholdFulfilled(pf)) {
+
+        if (alwaysAfterThreshold) {
+          numBlkThreshold++;
+          return true;
+
+        } else if (absOnFunction && isFunctionCall(succLoc)) {
+          numBlkThreshold++;
+          numBlkFunctions++;
+          return true;
+
+        } else if (absOnLoop && isLoopHead(succLoc)) {
+          numBlkThreshold++;
+          numBlkLoops++;
+          return true;
+        }
+      }
+
+    } else {
+      assert threshold == 0;
+
+      // Specifying blk.functions and blk.loops does not make sense with threshold=0.
+      // For compatibility reasons, act as if blk.alwaysAtFunctions / blk.alwaysAtLoops
+      // was instead specified.
+      if (absOnFunction && isFunctionCall(succLoc)) {
         numBlkFunctions++;
+        return true;
+      }
+
+      if (absOnLoop && isLoopHead(succLoc)) {
+        numBlkLoops++;
+        return true;
       }
     }
 
-    if (absBlockSize > 0) {
-      boolean threshold = (pf.getLength() >= absBlockSize);
-      if (threshold) {
-        numBlkThreshold++;
-      }
+    return false;
+  }
 
-      if (absOnlyIfBoth) {
-        result = result && threshold;
-      } else {
-        result = result || threshold;
-      }
-    }
+  protected boolean isThresholdFulfilled(PathFormula pf) {
+    return pf.getLength() >= threshold;
+  }
 
-    return result;
+  protected boolean isLoopHead(CFANode succLoc) {
+    return succLoc.isLoopStart();
+  }
+
+  protected boolean isFunctionCall(CFANode succLoc) {
+    return (succLoc instanceof CFAFunctionDefinitionNode) // function call edge
+        || (succLoc.getEnteringSummaryEdge() != null); // function return edge
   }
 }
