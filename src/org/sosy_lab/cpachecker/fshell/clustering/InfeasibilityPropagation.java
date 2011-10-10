@@ -23,9 +23,13 @@
  */
 package org.sosy_lab.cpachecker.fshell.clustering;
 
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedList;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.Edges;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.Nodes;
@@ -41,6 +45,97 @@ import org.sosy_lab.cpachecker.fshell.fql2.ast.pathpattern.PathPatternVisitor;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.pathpattern.Repetition;
 
 public class InfeasibilityPropagation {
+
+  public static enum Prediction {
+    UNKNOWN,
+    INFEASIBLE
+  }
+
+  /*private CFAEdge getSingletonCFAEdge(ElementaryCoveragePattern pPattern, int pIndex) {
+    ECPConcatenation lConcatenation = (ECPConcatenation)pPattern;
+
+    int lIndex = 1;
+
+    for (ElementaryCoveragePattern lSubpattern : lConcatenation) {
+      if (lSubpattern instanceof SingletonECPEdgeSet) {
+        if (lIndex == pIndex) {
+          SingletonECPEdgeSet lSingletonSet = (SingletonECPEdgeSet)lSubpattern;
+          return lSingletonSet.getCFAEdge();
+        }
+        else {
+          lIndex++;
+        }
+      }
+    }
+
+    throw new RuntimeException("Unhandled case!");
+  }
+
+  private boolean dfs(CFANode pInitialCFANode, CFAEdge pForbiddenCFAEdge, CFAEdge pTargetCFAEdge) {
+    LinkedList<CFANode> lWorklist = new LinkedList<CFANode>();
+    lWorklist.add(pInitialCFANode);
+
+    HashSet<CFANode> lVisitedCFANodes = new HashSet<CFANode>();
+
+    while (!lWorklist.isEmpty()) {
+      CFANode lCurrentCFANode = lWorklist.poll();
+
+      if (lVisitedCFANodes.contains(lCurrentCFANode)) {
+        continue;
+      }
+
+      lVisitedCFANodes.add(lCurrentCFANode);
+
+      for (int lEdgeIndex = 0; lEdgeIndex < lCurrentCFANode.getNumLeavingEdges(); lEdgeIndex++) {
+        CFAEdge lCFAEdge = lCurrentCFANode.getLeavingEdge(lEdgeIndex);
+
+        if (!pForbiddenCFAEdge.equals(lCFAEdge)) {
+          if (lCFAEdge.equals(pTargetCFAEdge)) {
+            return true;
+          }
+
+          lWorklist.add(lCFAEdge.getSuccessor());
+        }
+      }
+    }
+
+    return false;
+  }*/
+
+  public static Collection<CFAEdge> dfs2(CFANode pInitialCFANode, CFAEdge pForbiddenCFAEdge, Collection<CFAEdge> pTargetEdges) {
+    HashSet<CFAEdge> lFoundTargetEdges = new HashSet<CFAEdge>();
+    HashSet<CFAEdge> lTargetEdges = new HashSet<CFAEdge>(pTargetEdges);
+
+    LinkedList<CFANode> lWorklist = new LinkedList<CFANode>();
+    lWorklist.add(pInitialCFANode);
+
+    HashSet<CFANode> lVisitedCFANodes = new HashSet<CFANode>();
+
+    while (!lWorklist.isEmpty() && !lTargetEdges.isEmpty()) {
+      CFANode lCurrentCFANode = lWorklist.poll();
+
+      if (lVisitedCFANodes.contains(lCurrentCFANode)) {
+        continue;
+      }
+
+      lVisitedCFANodes.add(lCurrentCFANode);
+
+      for (int lEdgeIndex = 0; lEdgeIndex < lCurrentCFANode.getNumLeavingEdges(); lEdgeIndex++) {
+        CFAEdge lCFAEdge = lCurrentCFANode.getLeavingEdge(lEdgeIndex);
+
+        if (!pForbiddenCFAEdge.equals(lCFAEdge)) {
+          if (lTargetEdges.contains(lCFAEdge)) {
+            lFoundTargetEdges.add(lCFAEdge);
+            lTargetEdges.remove(lCFAEdge);
+          }
+
+          lWorklist.add(lCFAEdge.getSuccessor());
+        }
+      }
+    }
+
+    return lFoundTargetEdges;
+  }
 
   public static Pair<Boolean, LinkedList<Edges>> canApplyInfeasibilityPropagation(FQLSpecification pFQLSpecification) {
     if (pFQLSpecification.hasPassingClause()) {

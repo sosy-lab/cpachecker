@@ -53,9 +53,6 @@ public class ClusteredElementaryCoveragePattern implements
   }
 
   public ListIterator<ClusteredElementaryCoveragePattern> getRemainingElementsInCluster() {
-    System.out.println("mPositionInCluster = " + mPositionInCluster);
-    System.out.println("mCluster.size() = " + mCluster.size());
-
     return mCluster.listIterator(mPositionInCluster + 1);
   }
 

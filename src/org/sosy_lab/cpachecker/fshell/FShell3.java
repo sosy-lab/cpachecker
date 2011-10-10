@@ -148,6 +148,8 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
 
   @Override
   public FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating) {
+    mOutput.println(pFQLSpecification);
+
     /*if (pGenerateTestGoalAutomataInAdvance) {
       return mNonincrementalTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
     }
