@@ -35,9 +35,9 @@ def getDiffXMLList(listOfTestTags):
     emptyElemList = getEmptyElements(listOfTestTags)
     for elem in listOfTestTags:
         newElem = ET.Element('test', elem.attrib)
-        newElem.extend(elem.findall('systeminfo'))
-        newElem.extend(elem.findall('columns'))
-        newElem.extend(elem.findall('time'))
+        extendXMLElem(newElem, elem.findall('systeminfo'))
+        extendXMLElem(newElem, elem.findall('columns'))
+        extendXMLElem(newElem, elem.findall('time'))
         diffXMLList.append(newElem)
     return diffXMLList
 
@@ -153,7 +153,8 @@ def compareResults(xmlFiles, compare):
             print '    difference found:  ' + \
                     sourcefileTags[0].get('name').ljust(maxLen+2) + \
                     oldStatus + ' --> ' + newStatus
-            map(ET.Element.append, diffXMLList, sourcefileTags)
+            for elem, tag in zip(diffXMLList, sourcefileTags):
+                elem.append(tag)
 
     # store result (differences) in xml-files
     if isDifferent:
@@ -177,10 +178,18 @@ def copyXMLElem(elem):
     this function is needed for python < 2.7
     '''
     copy = ET.Element(elem.tag)
-    copy.extend(elem.getchildren())
+    extendXMLElem(copy, elem.getchildren())
     for key, value in elem.attrib:
         copy.set(key, value)
     return copy
+
+
+def extendXMLElem(elem, list):
+    '''
+    this function is needed for python < 2.7
+    '''
+    for child in list:
+        elem.append(child)
 
 
 def allEqualResult(sourcefileTags):
