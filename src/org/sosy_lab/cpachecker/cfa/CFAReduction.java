@@ -87,7 +87,9 @@ public class CFAReduction {
       for (int i = mainFunction.getNumLeavingEdges() - 1; i >= 0; i--) {
         mainFunction.removeLeavingEdge(mainFunction.getLeavingEdge(i));
       }
-      mainFunction.addLeavingSummaryEdge(null);
+      if (mainFunction.getLeavingSummaryEdge() != null) {
+        mainFunction.removeLeavingSummaryEdge(mainFunction.getLeavingSummaryEdge());
+      }
       return;
     }
 
