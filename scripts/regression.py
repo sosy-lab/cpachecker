@@ -7,6 +7,7 @@ FileUtil = TableGenerator # only for different names in programm
 import xml.etree.ElementTree as ET
 import sys
 import os
+import optparse
 
 
 OUTPUT_PATH = 'test/results/'
@@ -91,7 +92,27 @@ def getAllFilenames(listOfSourcefileDics):
     return allFilenames
 
 
-def compareResults(xmlFiles):
+def getFilenameList(listOfSourcefileTags, listOfSourcefileDics, compare):
+    '''
+    this function return a list of sourcefiles.
+    the value 'compare' chooses the list to return:
+        'a'    -->  all sourcefiles in alphabetical order
+        number -->  sourcefiles from one resultfile
+    '''
+    if compare is None:
+        compare = '1' # default value, first resultfile
+
+    if compare.lower() == 'a':
+        return getAllFilenames(listOfSourcefileDics)
+    else:
+        numberOfList = int(compare) - 1 # lists start with position 0
+        if numberOfList < 0 or numberOfList >= len(listOfSourcefileTags):
+            print 'ERROR: number for list is invalid, give a number in range 1 to n'
+            sys.exit()
+        return [file.get('name') for file in listOfSourcefileTags[numberOfList]]
+
+
+def compareResults(xmlFiles, compare):
     print '\ncomparing results ...'
     
     resultFiles = FileUtil.extendFileList(xmlFiles)
@@ -110,11 +131,13 @@ def compareResults(xmlFiles):
     listOfSourcefileTags = [elem.findall('sourcefile') for elem in listOfTestTags]
     maxLen = max((len(file.get('name')) for file in listOfSourcefileTags[0]))
     listOfSourcefileDics = getSourcefileDics(listOfSourcefileTags)
-    allFilenames = getAllFilenames(listOfSourcefileDics)
+    
+    # get list of filenames for table
+    filenames = getFilenameList(listOfSourcefileTags, listOfSourcefileDics, compare)
 
     # iterate all results parallel
     isDifferent = False
-    for filename in allFilenames:
+    for filename in filenames:
         sourcefileTags = []
         for dic, emptyElem in zip(listOfSourcefileDics, emptyElemList):
             if filename in dic:
@@ -196,12 +219,20 @@ def main(args=None):
     
     if args is None:
         args = sys.argv
+        
+    parser = optparse.OptionParser('%prog [options] result_1.xml ... result_n.xml')
+    parser.add_option("-c", "--compare", 
+        action="store", type="string", dest="compare",
+        help="Which sourcefiles should be compared? " + \
+             "Use 'a' for 'all' or a number for the position."
+    )
+    options, args = parser.parse_args(args)
 
     if len(args) < 2:
         print 'xml-file needed'
         sys.exit()
-   
-    compareResults(args[1:])
+
+    compareResults(args[1:], options.compare)
 
 
 if __name__ == '__main__':
