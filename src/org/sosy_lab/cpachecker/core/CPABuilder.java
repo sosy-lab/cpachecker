@@ -86,10 +86,6 @@ public class CPABuilder {
     config.inject(this);
   }
 
-  public CPABuilder(Configuration pConfig, LogManager pLogger, CFA pCfa) throws InvalidConfigurationException {
-    this(pConfig, pLogger, null, pCfa);
-  }
-
   public ConfigurableProgramAnalysis buildCPAs() throws InvalidConfigurationException, CPAException {
     Set<String> usedAliases = new HashSet<String>();
 

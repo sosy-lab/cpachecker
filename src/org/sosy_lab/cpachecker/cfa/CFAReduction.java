@@ -40,8 +40,8 @@ import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
-import org.sosy_lab.cpachecker.core.waitlist.Waitlist.TraversalMethod;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -119,6 +119,8 @@ public class CFAReduction {
 
   private Set<CFANode> getErrorNodesWithCPA(CFA cfa, Set<CFANode> allNodes) throws InterruptedException {
     try {
+      ReachedSetFactory lReachedSetFactory = new ReachedSetFactory(Configuration.defaultConfiguration());
+
       // create new configuration based on existing config but with default set of CPAs
       Configuration lConfig = Configuration.builder()
                                            .copyFrom(config)
@@ -127,10 +129,11 @@ public class CFAReduction {
                                            .clearOption("cpas")
                                            .clearOption("CompositeCPA.cpas")
                                            .build();
-      CPABuilder lBuilder = new CPABuilder(lConfig, logger, cfa);
+
+      CPABuilder lBuilder = new CPABuilder(lConfig, logger, lReachedSetFactory, cfa);
       ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs();
       Algorithm lAlgorithm = new CPAAlgorithm(lCpas, logger);
-      PartitionedReachedSet lReached = new PartitionedReachedSet(TraversalMethod.DFS);
+      ReachedSet lReached = lReachedSetFactory.create();
       lReached.add(lCpas.getInitialElement(cfa.getMainFunction()), lCpas.getInitialPrecision(cfa.getMainFunction()));
 
       lAlgorithm.run(lReached);

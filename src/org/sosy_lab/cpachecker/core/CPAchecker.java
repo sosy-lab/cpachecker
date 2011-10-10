@@ -365,7 +365,7 @@ public class CPAchecker {
       }
 
       if (options.useCBMC) {
-        algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, config, logger, cfa);
+        algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, config, logger, reachedSetFactory, cfa);
       }
 
       if (options.useAssumptionCollector) {

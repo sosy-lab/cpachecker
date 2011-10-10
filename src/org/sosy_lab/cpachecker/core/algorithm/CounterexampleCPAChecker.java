@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.TraversalMethod;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -54,6 +55,7 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 public class CounterexampleCPAChecker implements CounterexampleChecker {
 
   private final LogManager logger;
+  private final ReachedSetFactory reachedSetFactory;
   private final CFA cfa;
 
   @Option(name="config",
@@ -61,9 +63,10 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       description="configuration file for counterexample checks with CPAchecker")
   private File configFile = new File("test/config/explicitAnalysis-no-cbmc.properties");
 
-  public CounterexampleCPAChecker(Configuration config, LogManager logger, CFA pCfa) throws InvalidConfigurationException {
+  public CounterexampleCPAChecker(Configuration config, LogManager logger, ReachedSetFactory pReachedSetFactory, CFA pCfa) throws InvalidConfigurationException {
     this.logger = logger;
     config.inject(this);
+    this.reachedSetFactory = pReachedSetFactory;
     this.cfa = pCfa;
   }
 
@@ -90,7 +93,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
               .setOption("specification", automatonFile.getAbsolutePath())
               .build();
 
-      CPABuilder lBuilder = new CPABuilder(lConfig, logger, cfa);
+      CPABuilder lBuilder = new CPABuilder(lConfig, logger, reachedSetFactory, cfa);
       ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs();
       Algorithm lAlgorithm = new CPAAlgorithm(lCpas, logger);
       PartitionedReachedSet lReached = new PartitionedReachedSet(TraversalMethod.DFS);
