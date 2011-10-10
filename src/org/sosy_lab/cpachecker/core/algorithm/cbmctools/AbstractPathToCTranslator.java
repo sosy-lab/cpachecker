@@ -410,12 +410,12 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
     }
     case CallToReturnEdge: {
       //          this should not have been taken
-      assert(false);
+      assert false : "CallToReturnEdge in counterexample path: " + pCFAEdge;
 
       break;
     }
     default: {
-      assert(false);
+      assert false  : "Unexpected edge " + pCFAEdge + " of type " + pCFAEdge.getEdgeType();
     }
     }
 
