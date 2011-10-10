@@ -205,7 +205,7 @@ public class CFACreator {
       // remove irrelevant locations
       if (cfaReduction != null) {
         pruningTime.start();
-        cfaReduction.removeIrrelevantForErrorLocations(mainFunction);
+        cfaReduction.removeIrrelevantForErrorLocations(new CFA(cfas, mainFunction, loopStructure));
         pruningTime.stop();
 
         if (mainFunction.getNumLeavingEdges() == 0) {

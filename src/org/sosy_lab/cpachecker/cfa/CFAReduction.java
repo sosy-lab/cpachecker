@@ -74,8 +74,9 @@ public class CFAReduction {
   }
 
 
-  public void removeIrrelevantForErrorLocations(final CFAFunctionDefinitionNode cfa) throws InterruptedException {
-    Set<CFANode> allNodes = CFAUtils.allNodes(cfa, true);
+  public void removeIrrelevantForErrorLocations(final CFA cfa) throws InterruptedException {
+    CFAFunctionDefinitionNode mainFunction = cfa.getMainFunction();
+    Set<CFANode> allNodes = CFAUtils.allNodes(mainFunction, true);
 
     Set<CFANode> errorNodes = getErrorNodesWithCPA(cfa, allNodes);
 
@@ -83,10 +84,10 @@ public class CFAReduction {
       // shortcut, all nodes are irrelevant
 
       // remove all outgoing edges of first node
-      for (int i = cfa.getNumLeavingEdges() - 1; i >= 0; i--) {
-        cfa.removeLeavingEdge(cfa.getLeavingEdge(i));
+      for (int i = mainFunction.getNumLeavingEdges() - 1; i >= 0; i--) {
+        mainFunction.removeLeavingEdge(mainFunction.getLeavingEdge(i));
       }
-      cfa.addLeavingSummaryEdge(null);
+      mainFunction.addLeavingSummaryEdge(null);
       return;
     }
 
@@ -114,7 +115,7 @@ public class CFAReduction {
     pruneIrrelevantNodes(allNodes, relevantNodes, errorNodes);
   }
 
-  private Set<CFANode> getErrorNodesWithCPA(CFAFunctionDefinitionNode cfa, Set<CFANode> allNodes) throws InterruptedException {
+  private Set<CFANode> getErrorNodesWithCPA(CFA cfa, Set<CFANode> allNodes) throws InterruptedException {
     try {
       // create new configuration based on existing config but with default set of CPAs
       Configuration lConfig = Configuration.builder()
@@ -124,11 +125,11 @@ public class CFAReduction {
                                            .clearOption("cpas")
                                            .clearOption("CompositeCPA.cpas")
                                            .build();
-      CPABuilder lBuilder = new CPABuilder(lConfig, logger);
+      CPABuilder lBuilder = new CPABuilder(lConfig, logger, cfa);
       ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs();
       Algorithm lAlgorithm = new CPAAlgorithm(lCpas, logger);
       PartitionedReachedSet lReached = new PartitionedReachedSet(TraversalMethod.DFS);
-      lReached.add(lCpas.getInitialElement(cfa), lCpas.getInitialPrecision(cfa));
+      lReached.add(lCpas.getInitialElement(cfa.getMainFunction()), lCpas.getInitialPrecision(cfa.getMainFunction()));
 
       lAlgorithm.run(lReached);
 

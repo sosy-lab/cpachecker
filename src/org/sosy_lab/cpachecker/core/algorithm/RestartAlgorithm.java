@@ -304,7 +304,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     if (pOptions.useCBMC) {
-      algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, pConfig, logger);
+      algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, pConfig, logger, cfa);
     }
 
     if (pOptions.useAssumptionCollector) {

@@ -37,6 +37,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Option.Type;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -53,15 +54,17 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 public class CounterexampleCPAChecker implements CounterexampleChecker {
 
   private final LogManager logger;
+  private final CFA cfa;
 
   @Option(name="config",
       type=Type.REQUIRED_INPUT_FILE,
       description="configuration file for counterexample checks with CPAchecker")
   private File configFile = new File("test/config/explicitAnalysis-no-cbmc.properties");
 
-  public CounterexampleCPAChecker(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  public CounterexampleCPAChecker(Configuration config, LogManager logger, CFA pCfa) throws InvalidConfigurationException {
     this.logger = logger;
     config.inject(this);
+    this.cfa = pCfa;
   }
 
   @Override
@@ -79,7 +82,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       throw new CPAException("Could not write automaton for explicit analysis check (" + e.getMessage() + ")");
     }
 
-    CFAFunctionDefinitionNode cfa = (CFAFunctionDefinitionNode)extractLocation(pRootElement);
+    CFAFunctionDefinitionNode entryNode = (CFAFunctionDefinitionNode)extractLocation(pRootElement);
 
     try {
       Configuration lConfig = Configuration.builder()
@@ -87,11 +90,11 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
               .setOption("specification", automatonFile.getAbsolutePath())
               .build();
 
-      CPABuilder lBuilder = new CPABuilder(lConfig, logger);
+      CPABuilder lBuilder = new CPABuilder(lConfig, logger, cfa);
       ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs();
       Algorithm lAlgorithm = new CPAAlgorithm(lCpas, logger);
       PartitionedReachedSet lReached = new PartitionedReachedSet(TraversalMethod.DFS);
-      lReached.add(lCpas.getInitialElement(cfa), lCpas.getInitialPrecision(cfa));
+      lReached.add(lCpas.getInitialElement(entryNode), lCpas.getInitialPrecision(entryNode));
 
       lAlgorithm.run(lReached);
 

@@ -38,6 +38,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CBMCChecker;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -78,7 +79,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
               + "Setting this to false may prevent a lot of similar infeasible counterexamples to get discovered, but is unsound")
   private boolean removeInfeasibleErrors = false;
 
-  public CounterexampleCheckAlgorithm(Algorithm algorithm, ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
+  public CounterexampleCheckAlgorithm(Algorithm algorithm, ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException, CPAException {
     this.algorithm = algorithm;
     this.logger = logger;
     config.inject(this);
@@ -90,7 +91,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
     if (checkerName.equals("CBMC")) {
       checker = new CBMCChecker(config, logger);
     } else if (checkerName.equals("CPACHECKER")) {
-      checker = new CounterexampleCPAChecker(config, logger);
+      checker = new CounterexampleCPAChecker(config, logger, cfa);
     } else {
       throw new AssertionError();
     }

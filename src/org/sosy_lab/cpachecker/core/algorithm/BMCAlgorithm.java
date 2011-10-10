@@ -200,7 +200,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     reachedSetFactory = pReachedSetFactory;
     cfa = pCfa;
 
-    invariantGenerator = new InvariantGenerator(config, logger);
+    invariantGenerator = new InvariantGenerator(config, logger, cfa);
 
     PredicateCPA predCpa = ((WrapperCPA)cpa).retrieveWrappedCpa(PredicateCPA.class);
     if (predCpa == null) {
@@ -626,7 +626,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     private ExecutorService executor = null;
     private Future<ReachedSet> invariantGenerationFuture = null;
 
-    public InvariantGenerator(Configuration config, LogManager pLogger) throws InvalidConfigurationException, CPAException {
+    public InvariantGenerator(Configuration config, LogManager pLogger, CFA cfa) throws InvalidConfigurationException, CPAException {
       config.inject(this);
       logger = pLogger;
 
@@ -640,7 +640,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
         }
 
-        invariantCPAs = new CPABuilder(invariantConfig, logger).buildCPAs();
+        invariantCPAs = new CPABuilder(invariantConfig, logger, cfa).buildCPAs();
         reached = new ReachedSetFactory(invariantConfig).create();
 
       } else {
