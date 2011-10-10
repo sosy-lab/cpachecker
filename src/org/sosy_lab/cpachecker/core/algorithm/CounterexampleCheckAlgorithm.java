@@ -160,11 +160,8 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
             throw new RefinementFailedException(Reason.InfeasibleCounterexample, path);
           }
         }
-      } catch (CPAException e){
-        logger.log(Level.WARNING, "Analysis unsound because CBMC returned no results for feasibility check.");
-        sound = false;
-      } catch (InterruptedException e){
-        logger.log(Level.WARNING, "Analysis unsound because CBMC interrupted during feasibility check.");
+      } catch (CPAException e) {
+        logger.logUserException(Level.WARNING, e, "Counterexample found, but feasibility could not be verified");
         sound = false;
       }
       finally {
@@ -198,7 +195,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
         // so this is a loop.
         // Don't add the element, because otherwise the loop would
         // get unrolled endlessly.
-        logger.log(Level.WARNING, "Analysis unsound because an infeasible counterexample could not get removed fully");
+        logger.log(Level.WARNING, "Infeasible counterexample found, but could not remove it from the ART due to loops in the counterexample path. Therefore, we cannot prove safety.");
         sound = false;
         continue;
       }
@@ -209,7 +206,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
           // we may not re-add this parent, because otherwise
           // the error-path will be re-discovered again
           // but not adding the parent is unsound
-          logger.log(Level.WARNING, "Analysis unsound because an infeasible counterexample could not get removed fully");
+          logger.log(Level.WARNING, "Infeasible counterexample found, but could not remove it from the ART. Therefore, we cannot prove safety.");
           sound = false;
 
         } else {
