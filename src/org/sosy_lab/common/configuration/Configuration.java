@@ -252,10 +252,7 @@ public class Configuration {
         // share the same set of unused properties
         newUnusedProperties = oldConfig.unusedProperties;
       } else {
-        newUnusedProperties = new HashSet<String>();
-        for (Object key : newProperties.keySet()) {
-          newUnusedProperties.add((String)key);
-        }
+        newUnusedProperties = new HashSet<String>(newProperties.keySet());
       }
 
       Configuration newConfig = new Configuration(newProperties, newPrefix, newUnusedProperties);
