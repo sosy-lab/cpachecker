@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
-public class FeatureVarsElement implements AbstractQueryableElement, Cloneable {
+public class FeatureVarsElement implements AbstractQueryableElement {
 
   private final Region currentState;
   private final NamedRegionManager manager;
