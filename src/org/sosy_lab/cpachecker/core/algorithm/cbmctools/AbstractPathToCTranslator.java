@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.util.CFA;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -86,7 +86,7 @@ public class AbstractPathToCTranslator {
     // providing location/successor information
     // TODO: this set of function declarations could perhaps be cached
 
-    Set<CFANode> allCFANodes = CFA.transitiveSuccessors(extractLocation(artRoot), true);
+    Set<CFANode> allCFANodes = CFAUtils.transitiveSuccessors(extractLocation(artRoot), true);
 
     for (CFAFunctionDefinitionNode node : Iterables.filter(allCFANodes, CFAFunctionDefinitionNode.class)) {
       // this adds the function declaration to mFunctionDecls

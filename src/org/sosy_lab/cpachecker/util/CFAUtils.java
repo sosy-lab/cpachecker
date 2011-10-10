@@ -47,7 +47,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Sets;
 
-public class CFA {
+public class CFAUtils {
 
   /**
    * Find all nodes of the CFA that are reachable from the given entry point.

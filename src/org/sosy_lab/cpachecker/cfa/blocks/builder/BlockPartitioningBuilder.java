@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.util.CFA;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 
 /**
@@ -70,7 +70,7 @@ public class BlockPartitioningBuilder {
           if(functionVars == null || functionBody == null) {
             assert functionVars == null && functionBody == null;
             //compute it only the fly
-            functionBody = CFA.exploreSubgraph(calledFun, ((CFAFunctionDefinitionNode)calledFun).getExitNode());
+            functionBody = CFAUtils.exploreSubgraph(calledFun, ((CFAFunctionDefinitionNode)calledFun).getExitNode());
             functionVars = collectReferencedVariables(functionBody);
             //and save it
             blockNodesMap.put(calledFun, functionBody);

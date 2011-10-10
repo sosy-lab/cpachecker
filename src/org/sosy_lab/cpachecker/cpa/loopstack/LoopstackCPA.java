@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.CFA.Loop;
+import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
 public class LoopstackCPA extends AbstractCPA {
 

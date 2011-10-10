@@ -28,7 +28,7 @@ import static com.google.common.base.Preconditions.*;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.util.CFA.Loop;
+import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import static org.sosy_lab.cpachecker.util.CFA.findLoops;
+import static org.sosy_lab.cpachecker.util.CFAUtils.findLoops;
 
 import java.io.File;
 import java.io.IOException;
@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.util.CFA.Loop;
+import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMultimap;

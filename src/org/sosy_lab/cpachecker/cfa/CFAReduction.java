@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.TraversalMethod;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.CFA;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -75,7 +75,7 @@ public class CFAReduction {
 
 
   public void removeIrrelevantForErrorLocations(final CFAFunctionDefinitionNode cfa) throws InterruptedException {
-    Set<CFANode> allNodes = CFA.allNodes(cfa, true);
+    Set<CFANode> allNodes = CFAUtils.allNodes(cfa, true);
 
     Set<CFANode> errorNodes = getErrorNodesWithCPA(cfa, allNodes);
 
@@ -98,7 +98,7 @@ public class CFAReduction {
     // backwards search to determine all relevant nodes
     Set<CFANode> relevantNodes = new HashSet<CFANode>();
     for (CFANode n : errorNodes) {
-      CFA.dfs(n, relevantNodes, true, true);
+      CFAUtils.dfs(n, relevantNodes, true, true);
     }
 
     assert allNodes.containsAll(relevantNodes) : "Inconsistent CFA";

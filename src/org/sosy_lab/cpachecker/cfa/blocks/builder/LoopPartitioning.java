@@ -37,8 +37,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.util.CFA;
-import org.sosy_lab.cpachecker.util.CFA.Loop;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
 import com.google.common.collect.Iterables;
 
@@ -101,7 +101,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
   protected Set<CFANode> getBlockForNode(CFANode pNode) {
     if(pNode instanceof CFAFunctionDefinitionNode) {
       CFAFunctionDefinitionNode functionNode = (CFAFunctionDefinitionNode) pNode;
-      return CFA.exploreSubgraph(functionNode, functionNode.getExitNode());
+      return CFAUtils.exploreSubgraph(functionNode, functionNode.getExitNode());
     }
     if(pNode.isLoopStart()) {
       Set<CFANode> loopBody = new HashSet<CFANode>();

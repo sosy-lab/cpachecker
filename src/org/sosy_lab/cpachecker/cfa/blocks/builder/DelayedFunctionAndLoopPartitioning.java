@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.util.CFA;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 
 /**
@@ -47,7 +47,7 @@ public class DelayedFunctionAndLoopPartitioning extends FunctionAndLoopPartition
   protected Set<CFANode> getBlockForNode(CFANode pNode) {
     if(pNode instanceof CFAFunctionDefinitionNode) {
       CFAFunctionDefinitionNode functionNode = (CFAFunctionDefinitionNode) pNode;
-      return removeInitialDeclarations(functionNode, CFA.exploreSubgraph(functionNode, functionNode.getExitNode()));
+      return removeInitialDeclarations(functionNode, CFAUtils.exploreSubgraph(functionNode, functionNode.getExitNode()));
     }
 
     return super.getBlockForNode(pNode);
