@@ -52,6 +52,13 @@ public class ARTMergeJoin implements MergeOperator {
       return pElement2;
     }
 
+    if (artElement1.getMergedWith() != null) {
+      // element was already merged into another element, don't try to widen artElement2
+      // TODO In the optimal case (if all merge & stop operators as well as the reached set partitioning fit well together)
+      // this case shouldn't happen, but it does sometimes (at least with ExplicitCPA+FeatureVarsCPA).
+      return pElement2;
+    }
+
     AbstractElement wrappedElement1 = artElement1.getWrappedElement();
     AbstractElement wrappedElement2 = artElement2.getWrappedElement();
     AbstractElement retElement = wrappedMerge.merge(wrappedElement1, wrappedElement2, pPrecision);
