@@ -414,6 +414,9 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
 
       break;
     }
+    case FunctionReturnEdge:
+      break;
+
     default: {
       assert false  : "Unexpected edge " + pCFAEdge + " of type " + pCFAEdge.getEdgeType();
     }
