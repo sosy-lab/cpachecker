@@ -1151,7 +1151,6 @@ public class ExplicitTransferRelation implements TransferRelation {
       IASTExpression rVarInBinaryExp = pE.getOperand2();
 
       switch (binaryOperator) {
-      case DIVIDE:
       case MODULO:
       case BINARY_AND:
       case BINARY_OR:
@@ -1160,6 +1159,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
       case PLUS:
       case MINUS:
+      case DIVIDE:
       case MULTIPLY: {
 
         Long lVal = lVarInBinaryExp.accept(this);
@@ -1179,6 +1179,13 @@ public class ExplicitTransferRelation implements TransferRelation {
 
         case MINUS:
           return lVal - rVal;
+
+        case DIVIDE:
+          if (rVal == 0) {
+            // TODO maybe we should signal a division by zero error?
+            return null;
+          }
+          return lVal / rVal;
 
         case MULTIPLY:
           return lVal * rVal;
