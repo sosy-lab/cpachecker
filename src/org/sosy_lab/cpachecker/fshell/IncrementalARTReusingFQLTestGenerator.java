@@ -145,6 +145,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
   private boolean mUseAutomatonOptimization = true;
   private boolean mUseGraphCPA = true;
   private boolean mReuseART = true;
+  private boolean mUseInfeasibilityPropagation = true;
 
   private boolean mPrintPredicateStatistics = false;
 
@@ -348,8 +349,14 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     FQLSpecification lFQLSpecification = getFQLSpecification(pFQLSpecification);
 
-    Pair<Boolean, LinkedList<Edges>> lInfeasibilityPropagation = InfeasibilityPropagation.canApplyInfeasibilityPropagation(lFQLSpecification);
-    //Pair<Boolean, LinkedList<Edges>> lInfeasibilityPropagation = Pair.of(Boolean.FALSE, null);
+    Pair<Boolean, LinkedList<Edges>> lInfeasibilityPropagation;
+
+    if (mUseInfeasibilityPropagation) {
+      lInfeasibilityPropagation = InfeasibilityPropagation.canApplyInfeasibilityPropagation(lFQLSpecification);
+    }
+    else {
+      lInfeasibilityPropagation = Pair.of(Boolean.FALSE, null);
+    }
 
     ElementaryCoveragePattern[] lGoalPatterns;
 
