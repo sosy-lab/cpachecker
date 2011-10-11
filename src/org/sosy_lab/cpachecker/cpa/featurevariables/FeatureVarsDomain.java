@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.featurevariables;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 public class FeatureVarsDomain implements AbstractDomain {
 
@@ -50,17 +51,16 @@ public class FeatureVarsDomain implements AbstractDomain {
 
   @Override
   public AbstractElement join(AbstractElement element1, AbstractElement element2) {
-    if (element1 instanceof FeatureVarsElement && element2 instanceof FeatureVarsElement){
-      FeatureVarsElement fv1 = (FeatureVarsElement)element1;
-      FeatureVarsElement fv2 = (FeatureVarsElement)element2;
-      // TODO: check if this implementation is efficient
-      if (fv1.getRegion().equals(fv2.getRegion()))
-        return fv2;
-      else
-        return new FeatureVarsElement(rmgr.makeOr(fv1.getRegion(), fv2.getRegion()), rmgr);
+    FeatureVarsElement fv1 = (FeatureVarsElement)element1;
+    FeatureVarsElement fv2 = (FeatureVarsElement)element2;
 
+    Region result = rmgr.makeOr(fv1.getRegion(), fv2.getRegion());
+    if (result.equals(fv2.getRegion())) {
+      return fv2;
+    } else if (result.equals(fv1.getRegion())) {
+      return fv1;
     } else {
-      throw new IllegalArgumentException("Called with non-FeatureVars-Elements");
+      return new FeatureVarsElement(result, rmgr);
     }
   }
 }
