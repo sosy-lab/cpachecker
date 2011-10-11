@@ -51,27 +51,26 @@ public class CBMCMergeNode {
     incomingElements.add(addedStackElement);
     Set<Integer> processedConditions = new HashSet<Integer>();
 
-    for(CBMCStackElement elementInStack: addedStackElement){
+    for (CBMCStackElement elementInStack: addedStackElement) {
       int idOfElementInStack = elementInStack.getElementId();
       boolean nextConditionValue = elementInStack.isCondition();
       boolean isClosedBefore = elementInStack.isClosedBefore();
 
       // if we already have a value for the same initial node of the condition
-      if(branchesMap.containsKey(idOfElementInStack)){
+      if (branchesMap.containsKey(idOfElementInStack)) {
         // if it was closed earlier somewhere else
         Pair<Boolean, Boolean> conditionPair = branchesMap.get(idOfElementInStack);
         boolean firstConditionValue = conditionPair.getFirst();
         boolean secondConditionValue = conditionPair.getSecond();
         // if this is the end of the branch
-        if(isClosedBefore || secondConditionValue ||
-            (firstConditionValue ^ nextConditionValue)){
+        if (isClosedBefore || secondConditionValue ||
+            (firstConditionValue ^ nextConditionValue)) {
 //          elementInStack.setClosedBefore(true);
           processedConditions.add(idOfElementInStack);
         }
         // else do nothing
-      }
-      // create the first entry in the map
-      else{
+      } else {
+        // create the first entry in the map
         branchesMap.put(idOfElementInStack, Pair.of(nextConditionValue, isClosedBefore));
       }
     }
@@ -82,9 +81,9 @@ public class CBMCMergeNode {
   }
 
   private void setProcessedElements(Set<Integer> pProcessedConditions) {
-    for(Stack<CBMCStackElement> stack: incomingElements){
-      for(CBMCStackElement elem: stack){
-        if(pProcessedConditions.contains(elem.getElementId())){
+    for (Stack<CBMCStackElement> stack: incomingElements) {
+      for (CBMCStackElement elem: stack) {
+        if (pProcessedConditions.contains(elem.getElementId())) {
           elem.setClosedBefore(true);
         }
       }
@@ -99,5 +98,4 @@ public class CBMCMergeNode {
   public String toString() {
     return "id: " + elementId + " >> " + branchesMap;
   }
-
 }
