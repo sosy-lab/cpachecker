@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -37,11 +38,13 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CBMCDummyErrorElement;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CBMCExecutor;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -50,7 +53,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
 
   private final String fileName;
   private final LogManager logger;
-  private final Timer cbmcTime = new Timer();
+  private final Stats stats = new Stats();
 
   @Option(name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$",
       description="entry function")
@@ -88,7 +91,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
 
     // run CBMC
     logger.log(Level.INFO, "Starting CBMC algorithm.");
-    cbmcTime.start();
+    stats.cbmcTime.start();
     CBMCExecutor cbmc;
     int exitCode;
     try {
@@ -106,7 +109,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
       return false;
 
     } finally {
-      cbmcTime.stop();
+      stats.cbmcTime.stop();
       logger.log(Level.INFO, "CBMC Algorithm finished.");
     }
 
@@ -125,7 +128,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
         return false;
       }
       else{
-        pReachedSet.add(new CBMCDummyErrorElement(), SingletonPrecision.getInstance());
+        pReachedSet.add(new DummyErrorElement(), SingletonPrecision.getInstance());
         assert pReachedSet.size() == 1 && pReachedSet.hasWaitingElement();
 
         // remove dummy element from waitlist
@@ -159,7 +162,29 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    // TODO Auto-generated method stub
+    pStatsCollection.add(stats);
   }
 
+  private static class Stats implements Statistics {
+
+    private final Timer cbmcTime = new Timer();
+
+    @Override
+    public String getName() {
+      return "CBMC";
+    }
+
+    @Override
+    public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
+      out.println("Time for running CBMC: " + cbmcTime);
+    }
+  }
+
+  private static class DummyErrorElement implements AbstractElement, Targetable {
+
+    @Override
+    public boolean isTarget() {
+      return true;
+    }
+  }
 }
