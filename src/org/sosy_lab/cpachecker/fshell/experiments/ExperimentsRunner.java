@@ -58,7 +58,7 @@ public class ExperimentsRunner {
 			String lLine;
 
 			while ((lLine = lReader.readLine()) != null) {
-				if (lLine.trim().equals("")) {
+				if (lLine.trim().equals("") || lLine.startsWith("#")) {
 					continue;
 				}
 
@@ -194,6 +194,7 @@ public class ExperimentsRunner {
 
 		long lTimeStampEnd = System.currentTimeMillis();
 
+		lPrintStream.println(args[0]);
 		lPrintStream.println("Time: " + (lTimeStampEnd - lTimeStampStart)/1000.0 + " s");
 		lPrintStream.println("Bye.");
 
