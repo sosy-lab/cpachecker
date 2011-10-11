@@ -81,8 +81,8 @@ public class CBMCStackElement {
     codeList.add(pStatement);
   }
 
-  public StringBuffer getCode() {
-    StringBuffer ret = new StringBuffer();
+  public StringBuilder getCode() {
+    StringBuilder ret = new StringBuilder();
 
     for (Object obj: codeList) {
       // check whether we have a simple statement

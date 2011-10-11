@@ -93,12 +93,12 @@ public class AbstractPathToCTranslator {
       translator.startFunction(node, false);
     }
 
-    List<StringBuffer> lTranslation = translator.translatePath(artRoot, elementsOnErrorPath);
+    List<String> lFunctionBodies = translator.translatePath(artRoot, elementsOnErrorPath);
 
     List<String> includeList = new ArrayList<String>();
     includeList.add("#include<stdlib.h>");
     includeList.add("#include<stdio.h>");
-    String ret = Joiner.on('\n').join(concat(includeList, translator.mGlobalDefinitionsList, translator.mFunctionDecls, lTranslation));
+    String ret = Joiner.on('\n').join(concat(includeList, translator.mGlobalDefinitionsList, translator.mFunctionDecls, lFunctionBodies));
 
     // replace nondet keyword with cbmc nondet keyword
     ret = ret.replaceAll("__BLAST_NONDET___0", "nondet_int()");
@@ -107,7 +107,7 @@ public class AbstractPathToCTranslator {
     return ret;
   }
 
-  private List<StringBuffer> translatePath(final ARTElement firstElement, Collection<ARTElement> pElementsOnPath) {
+  private List<String> translatePath(final ARTElement firstElement, Collection<ARTElement> pElementsOnPath) {
 
     // waitlist for the edges to be processed
     List<CBMCEdge> waitlist = new ArrayList<CBMCEdge>();
@@ -120,8 +120,8 @@ public class AbstractPathToCTranslator {
     {
       // the first element should have one child
       // TODO add more children support later
-      assert firstElement.getChildren().size() == 1;
-      ARTElement firstElementsChild = (ARTElement)firstElement.getChildren().toArray()[0];
+      ARTElement firstElementsChild = Iterables.getOnlyElement(firstElement.getChildren());
+
       // create the first stack element using the first element of the initiating function
       CBMCStackElement firstStackElement = new CBMCStackElement(firstElement.getElementId(),
           startFunction(firstElement.retrieveLocationElement().getLocationNode(), true));
@@ -138,7 +138,7 @@ public class AbstractPathToCTranslator {
       waitlist.add(firstEdge);
     }
 
-    while (waitlist.size() > 0) {
+    while (!waitlist.isEmpty()) {
       // we need to sort the list based on art element id because we have to process
       // the edges in topological sort
       Collections.sort(waitlist);
@@ -225,22 +225,7 @@ public class AbstractPathToCTranslator {
         }
       }
 
-      int sizeOfChildsChilds = childElement.getChildren().size();
-
-      List<ARTElement> relevantChildrenOfElement = new ArrayList<ARTElement>();
-
-      // if it has only one child it is on the path to error
-      if (sizeOfChildsChilds == 1) {
-        relevantChildrenOfElement.addAll(childElement.getChildren());
-
-      } else {
-        // else find out whether children are on the path to error
-        for (ARTElement child: childElement.getChildren()) {
-          if (pElementsOnPath.contains(child)) {
-            relevantChildrenOfElement.add(child);
-          }
-        }
-      }
+      List<ARTElement> relevantChildrenOfElement = getRelevantChildrenOfElement(childElement, pElementsOnPath);
 
       // if there is only one child on the path
       if (relevantChildrenOfElement.size() == 1) {
@@ -295,13 +280,32 @@ public class AbstractPathToCTranslator {
     }
 
 
-    List<StringBuffer> retList = new ArrayList<StringBuffer>();
+    List<String> retList = new ArrayList<String>();
 
     for (CBMCStackElement stackElem: functions) {
-      retList.add(stackElem.getCode().append("\n}"));
+      retList.add(stackElem.getCode().append("\n}").toString());
     }
 
     return retList;
+  }
+
+  private List<ARTElement> getRelevantChildrenOfElement(ARTElement pElement,
+      Collection<ARTElement> pElementsOnPath) {
+    List<ARTElement> relevantChildrenOfElement = new ArrayList<ARTElement>();
+
+    // if it has only one child it is on the path to error
+    if (pElement.getChildren().size() == 1) {
+      relevantChildrenOfElement.addAll(pElement.getChildren());
+
+    } else {
+      // else find out whether children are on the path to error
+      for (ARTElement child: pElement.getChildren()) {
+        if (pElementsOnPath.contains(child)) {
+          relevantChildrenOfElement.add(child);
+        }
+      }
+    }
+    return relevantChildrenOfElement;
   }
 
 
