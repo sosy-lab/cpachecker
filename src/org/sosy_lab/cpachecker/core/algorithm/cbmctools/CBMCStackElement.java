@@ -40,7 +40,7 @@ public class CBMCStackElement {
   // this is the code of this element
   private List<Object> codeList;
 
-  public CBMCStackElement(int pElementId, String pFunctionName){
+  public CBMCStackElement(int pElementId, String pFunctionName) {
     elementId = pElementId;
     codeList = new ArrayList<Object>();
     codeList.add(pFunctionName);
@@ -77,39 +77,34 @@ public class CBMCStackElement {
     isClosedBefore = pIsClosedBefore;
   }
 
-  public void write(Object pStatement){
+  public void write(Object pStatement) {
     codeList.add(pStatement);
   }
 
-  public StringBuffer getCode(){
+  public StringBuffer getCode() {
     StringBuffer ret = new StringBuffer();
 
-    for(Object obj: codeList){
+    for (Object obj: codeList) {
       // check whether we have a simple statement
       // or a conditional statement
-      if(obj instanceof String){
+      if (obj instanceof String) {
         ret.append((String)obj);
         ret.append("\n");
-      }
-      else if(obj instanceof CBMCLabelElement){
+      } else if (obj instanceof CBMCLabelElement) {
         ret.append(((CBMCLabelElement)obj).getCode());
-      }
-      else if(obj instanceof CBMCStackElement){
+      } else if (obj instanceof CBMCStackElement) {
         ret.append(((CBMCStackElement)obj).getCode());
         ret.append("\n");
-      }
-      else{
-        assert(false);
+      } else {
+        assert false;
       }
     }
 
     return ret;
-
   }
 
   @Override
   public String toString() {
     return "Element id: " + elementId + " Condition: " + condition + " .. is closed " + isClosedBefore;
   }
-
 }
