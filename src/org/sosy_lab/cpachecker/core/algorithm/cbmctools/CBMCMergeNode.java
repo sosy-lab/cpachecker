@@ -33,11 +33,11 @@ import java.util.Stack;
 
 import org.sosy_lab.common.Pair;
 
-public class CBMCMergeNode {
+class CBMCMergeNode {
 
-  private int elementId;
-  private Map<Integer, Pair<Boolean, Boolean>> branchesMap;
-  private List<Stack<CBMCStackElement>> incomingElements;
+  private final int elementId;
+  private final Map<Integer, Pair<Boolean, Boolean>> branchesMap;
+  private final List<Stack<CBMCStackElement>> incomingElements;
 
   public CBMCMergeNode(int pElementId) {
     elementId = pElementId;

@@ -28,17 +28,17 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 
-public class CBMCStackElement {
+class CBMCStackElement {
 
   // element id of the art element that has the conditional statement
-  private int elementId;
+  private final int elementId;
   // true for if, false for else
   private boolean condition;
   // was this condition closed by another merge node before?
   private boolean isClosedBefore = false;
 
   // this is the code of this element
-  private List<Object> codeList;
+  private final List<Object> codeList;
 
   public CBMCStackElement(int pElementId, String pFunctionName) {
     elementId = pElementId;
@@ -57,16 +57,8 @@ public class CBMCStackElement {
     return elementId;
   }
 
-  public void setElementId(int pElementId) {
-    elementId = pElementId;
-  }
-
   public boolean isCondition() {
     return condition;
-  }
-
-  public void setCondition(boolean pCondition) {
-    condition = pCondition;
   }
 
   public boolean isClosedBefore() {
