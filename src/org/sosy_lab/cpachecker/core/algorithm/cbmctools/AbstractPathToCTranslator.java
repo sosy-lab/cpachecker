@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -154,50 +153,51 @@ public class AbstractPathToCTranslator {
       // clone stack to have a different representation of the function calls and conditions
       // every element
       stack = cloneStack(stack);
+      CBMCStackElement lastStackElement = stack.peek().peek();
 
       // how many parents does the child have?
-      int sizeOfChildsParents = childElement.getParents().size();
+      int noOfParents = childElement.getParents().size();
+      assert noOfParents >= 1;
 
-      // if there is only one child this is not the end of the condition
-      if (sizeOfChildsParents == 1) {
-        CBMCStackElement lastStackElement = stack.peek().peek();
+      if (childElement.isTarget()) {
+        lastStackElement.write("assert(0); // target state ");
+        assert noOfParents == 1 : "Merging target states is not supported";
+      }
 
-        if (childElement.isTarget()) {
-          lastStackElement.write("assert(0); // target state ");
-        }
+      // handle the edge
 
+      if (edge instanceof FunctionCallEdge) {
         // if this is a function call edge we need to create a new element and push
         // it to the topmost stack to represent the function
-        if (edge instanceof FunctionCallEdge) {
-          // write summary edge to the caller site
-          lastStackElement.write(processFunctionCall(edge));
-          // create a new stack to save conditions in that function
-          Stack<CBMCStackElement> newFunctionStack = new Stack<CBMCStackElement>();
-          // create a new function
-          ARTElement firstFunctionElement = nextCBMCEdge.getChildElement();
-          CBMCStackElement firstFunctionStackElement = new CBMCStackElement(firstFunctionElement.getElementId(),
-              startFunction(firstFunctionElement.retrieveLocationElement().getLocationNode(), true));
-          functions.add(firstFunctionStackElement);
-          newFunctionStack.push(firstFunctionStackElement);
-          stack.push(newFunctionStack);
+        assert noOfParents == 1 : "Merging elements directly after function calls is not supported";
 
-        } else if (edge instanceof FunctionReturnEdge) {
-          stack.pop();
-        } else {
-          lastStackElement.write(processSimpleEdge(edge));
-        }
+        // write summary edge to the caller site
+        lastStackElement.write(processFunctionCall(edge));
+        // create a new stack to save conditions in that function
+        Stack<CBMCStackElement> newFunctionStack = new Stack<CBMCStackElement>();
+        // create a new function
+        ARTElement firstFunctionElement = nextCBMCEdge.getChildElement();
+        CBMCStackElement firstFunctionStackElement = new CBMCStackElement(firstFunctionElement.getElementId(),
+            startFunction(firstFunctionElement.retrieveLocationElement().getLocationNode(), true));
+        functions.add(firstFunctionStackElement);
+        newFunctionStack.push(firstFunctionStackElement);
+        stack.push(newFunctionStack);
 
-      } else if (sizeOfChildsParents > 1) {
-        // this is the end of the condition, determine whether we should continue or backtrack
-        CBMCStackElement lastStackElement = stack.peek().peek();
+      } else if (edge instanceof FunctionReturnEdge) {
+        assert noOfParents == 1 : "Merging elements directly after function returns is not supported";
+        stack.pop();
+
+      } else {
+        lastStackElement.write(processSimpleEdge(edge));
+      }
+
+      // handle merging if necessary
+
+      if (noOfParents > 1) {
+        // this is the end of a condition, determine whether we should continue or backtrack
+
         int elemId = childElement.getElementId();
-
-        if (!(edge instanceof BlankEdge)) {
-          lastStackElement.write(processSimpleEdge(edge));
-        }
-
         lastStackElement.write("goto label_" + elemId + ";");
-
 
         // get the merge node for that node
         CBMCMergeNode mergeNode = mergeNodes.get(elemId);
@@ -211,7 +211,7 @@ public class AbstractPathToCTranslator {
         int noOfProcessedBranches = mergeNode.addBranch(nextCBMCEdge);
 
         // if all edges are processed
-        if (sizeOfChildsParents == noOfProcessedBranches) {
+        if (noOfParents == noOfProcessedBranches) {
           // all branches are processed, now decide which nodes to remove from the stack
           List<Stack<CBMCStackElement>> incomingStacks = mergeNode.getIncomingElements();
 
@@ -224,6 +224,8 @@ public class AbstractPathToCTranslator {
           continue;
         }
       }
+
+      // find the next elements to add to the waitlist
 
       List<ARTElement> relevantChildrenOfElement = getRelevantChildrenOfElement(childElement, pElementsOnPath);
 
