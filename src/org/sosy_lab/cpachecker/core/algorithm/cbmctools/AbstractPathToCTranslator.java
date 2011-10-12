@@ -110,21 +110,14 @@ public class AbstractPathToCTranslator {
     List<CBMCStackElement> functions = new ArrayList<CBMCStackElement>();
 
     {
+      Stack<Stack<CBMCStackElement>> newStack = new Stack<Stack<CBMCStackElement>>();
+
+      // create the first function and put in into newStack
+      createFunction(firstElement, functions, newStack);
+
       // the first element should have one child
       // TODO add more children support later
       ARTElement firstElementsChild = Iterables.getOnlyElement(firstElement.getChildren());
-
-      // create the first stack element using the first element of the initiating function
-      FunctionDefinitionNode functionStartNode = (FunctionDefinitionNode)firstElement.retrieveLocationElement().getLocationNode();
-      String freshFunctionName = getFreshFunctionName(functionStartNode);
-      CBMCStackElement firstStackElement = new CBMCStackElement(firstElement.getElementId(),
-          startFunction(functionStartNode, freshFunctionName));
-      functions.add(firstStackElement);
-
-      Stack<Stack<CBMCStackElement>> newStack = new Stack<Stack<CBMCStackElement>>();
-      Stack<CBMCStackElement> newElementsStack = new Stack<CBMCStackElement>();
-      newElementsStack.add(firstStackElement);
-      newStack.add(newElementsStack);
 
       // add the first edge and the first stack element
       CBMCEdge firstEdge = new CBMCEdge(firstElement, firstElementsChild,
@@ -165,23 +158,13 @@ public class AbstractPathToCTranslator {
         // if this is a function call edge we need to create a new element and push
         // it to the topmost stack to represent the function
         assert noOfParents == 1 : "Merging elements directly after function calls is not supported";
-
-        // each function call gets a new name
-        FunctionDefinitionNode functionStartNode = ((FunctionCallEdge)edge).getSuccessor();
         ARTElement firstFunctionElement = nextCBMCEdge.getChildElement();
-        assert functionStartNode == firstFunctionElement.retrieveLocationElement().getLocationNode();
-        String freshFunctionName = getFreshFunctionName(functionStartNode);
 
-        // write summary edge to the caller site
+        // create function and put in onto stack
+        String freshFunctionName = createFunction(firstFunctionElement, functions, stack);
+
+        // write summary edge to the caller site (with the new unique function name)
         lastStackElement.write(processFunctionCall(edge, freshFunctionName));
-        // create a new stack to save conditions in that function
-        Stack<CBMCStackElement> newFunctionStack = new Stack<CBMCStackElement>();
-        // create a new function
-        CBMCStackElement firstFunctionStackElement = new CBMCStackElement(firstFunctionElement.getElementId(),
-            startFunction(functionStartNode, freshFunctionName));
-        functions.add(firstFunctionStackElement);
-        newFunctionStack.push(firstFunctionStackElement);
-        stack.push(newFunctionStack);
 
       } else if (edge instanceof FunctionReturnEdge) {
         assert noOfParents == 1 : "Merging elements directly after function returns is not supported";
@@ -289,6 +272,24 @@ public class AbstractPathToCTranslator {
     }
 
     return retList;
+  }
+
+  private String createFunction(ARTElement firstFunctionElement, List<CBMCStackElement> functions, Stack<Stack<CBMCStackElement>> currentStack) {
+    // create the first stack element using the first element of the function
+    FunctionDefinitionNode functionStartNode = (FunctionDefinitionNode) firstFunctionElement.retrieveLocationElement().getLocationNode();
+    String freshFunctionName = getFreshFunctionName(functionStartNode);
+
+    // create a new function
+    CBMCStackElement firstFunctionStackElement = new CBMCStackElement(firstFunctionElement.getElementId(),
+        startFunction(functionStartNode, freshFunctionName));
+
+    // create a new stack to save conditions in that function
+    Stack<CBMCStackElement> newFunctionStack = new Stack<CBMCStackElement>();
+    newFunctionStack.push(firstFunctionStackElement);
+
+    functions.add(firstFunctionStackElement); // register function in list
+    currentStack.push(newFunctionStack); // add function to current stack
+    return freshFunctionName;
   }
 
   private List<ARTElement> getRelevantChildrenOfElement(ARTElement pElement,
