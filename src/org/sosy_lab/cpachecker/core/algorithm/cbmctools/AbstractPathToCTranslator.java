@@ -69,14 +69,24 @@ public class AbstractPathToCTranslator {
     }
   };
 
+  // This set contains all ARTElements on the path(s) to the error
+  // (we ignore all other parts of the ART when creating the C program).
+  private final Set<ARTElement> elementsOnPath;
+
   private final List<String> mGlobalDefinitionsList = new ArrayList<String>();
   private final List<String> mFunctionDecls = new ArrayList<String>();
   private int mFunctionIndex = 0;
 
-  private AbstractPathToCTranslator() { }
+  // list of functions - a function is represented by its first stack element and we get
+  // the code for the function recursively starting from that node
+  private final List<FunctionBody> mFunctionBodies = new ArrayList<FunctionBody>();
+
+  private AbstractPathToCTranslator(Set<ARTElement> pElementsOnPath) {
+    elementsOnPath = pElementsOnPath;
+  }
 
   public static String translatePaths(CFA cfa, ARTElement artRoot, Set<ARTElement> elementsOnErrorPath) {
-    AbstractPathToCTranslator translator = new AbstractPathToCTranslator();
+    AbstractPathToCTranslator translator = new AbstractPathToCTranslator(elementsOnErrorPath);
 
     // Add the original function declarations to enable read-only use of function pointers;
     // there will be no code for these functions, so they can never be called via the function
@@ -90,12 +100,15 @@ public class AbstractPathToCTranslator {
       translator.mFunctionDecls.add(lFunctionHeader + ";");
     }
 
-    List<String> lFunctionBodies = translator.translatePath(artRoot, elementsOnErrorPath);
+    translator.translatePath(artRoot); // this fills all the lists in translator
 
     List<String> includeList = new ArrayList<String>();
     includeList.add("#include<stdlib.h>");
     includeList.add("#include<stdio.h>");
-    String ret = Joiner.on('\n').join(concat(includeList, translator.mGlobalDefinitionsList, translator.mFunctionDecls, lFunctionBodies));
+    String ret = Joiner.on('\n').join(concat(includeList,
+                                             translator.mGlobalDefinitionsList,
+                                             translator.mFunctionDecls,
+                                             translator.mFunctionBodies));
 
     // replace nondet keyword with cbmc nondet keyword
     ret = ret.replaceAll("__BLAST_NONDET___0", "nondet_int()");
@@ -104,23 +117,21 @@ public class AbstractPathToCTranslator {
     return ret;
   }
 
-  private List<String> translatePath(final ARTElement firstElement, Set<ARTElement> pElementsOnPath) {
-
+  private void translatePath(final ARTElement firstElement) {
     // waitlist for the edges to be processed
     List<CBMCEdge> waitlist = new ArrayList<CBMCEdge>();
+
     // map of nodes to check end of a condition
     Map<Integer, CBMCMergeNode> mergeNodes = new HashMap<Integer, CBMCMergeNode>();
-    // list of functions - a function is represented by its first stack element and we get
-    // the code for the function recursively starting from that node
-    List<CBMCStackElement> functions = new ArrayList<CBMCStackElement>();
 
+    // create initial element
     {
       Stack<Stack<CBMCStackElement>> newStack = new Stack<Stack<CBMCStackElement>>();
 
       // create the first function and put in into newStack
-      startFunction(firstElement, functions, newStack);
+      startFunction(firstElement, newStack);
 
-      waitlist.addAll(getRelevantChildrenOfElement(firstElement, newStack, pElementsOnPath));
+      waitlist.addAll(getRelevantChildrenOfElement(firstElement, newStack));
     }
 
     while (!waitlist.isEmpty()) {
@@ -131,93 +142,11 @@ public class AbstractPathToCTranslator {
       // get the first element in the list (this is the smallest element when topologically sorted)
       CBMCEdge nextCBMCEdge = waitlist.remove(0);
 
-      ARTElement childElement = nextCBMCEdge.getChildElement();
-      CFAEdge edge = nextCBMCEdge.getEdge();
-      Stack<Stack<CBMCStackElement>> stack = nextCBMCEdge.getStack();
-
-      // clone stack to have a different representation of the function calls and conditions
-      // every element
-      stack = cloneStack(stack);
-      CBMCStackElement lastStackElement = stack.peek().peek();
-
-      // how many parents does the child have?
-      int noOfParents = childElement.getParents().size();
-      assert noOfParents >= 1;
-
-      if (childElement.isTarget()) {
-        lastStackElement.write("assert(0); // target state ");
-        assert noOfParents == 1 : "Merging target states is not supported";
-      }
-
-      // handle the edge
-
-      if (edge instanceof FunctionCallEdge) {
-        // if this is a function call edge we need to create a new element and push
-        // it to the topmost stack to represent the function
-        assert noOfParents == 1 : "Merging elements directly after function calls is not supported";
-
-        // create function and put in onto stack
-        String freshFunctionName = startFunction(childElement, functions, stack);
-
-        // write summary edge to the caller site (with the new unique function name)
-        lastStackElement.write(processFunctionCall(edge, freshFunctionName));
-
-      } else if (edge instanceof FunctionReturnEdge) {
-        assert noOfParents == 1 : "Merging elements directly after function returns is not supported";
-        stack.pop();
-
-      } else {
-        lastStackElement.write(processSimpleEdge(edge));
-      }
-
-      // handle merging if necessary
-
-      if (noOfParents > 1) {
-        // this is the end of a condition, determine whether we should continue or backtrack
-
-        int elemId = childElement.getElementId();
-        lastStackElement.write("goto label_" + elemId + ";");
-
-        // get the merge node for that node
-        CBMCMergeNode mergeNode = mergeNodes.get(elemId);
-        // if null create new and put in the map
-        if (mergeNode == null) {
-          mergeNode = new CBMCMergeNode(elemId);
-          mergeNodes.put(elemId, mergeNode);
-        }
-
-        // this tells us the number of edges (entering that node) processed so far
-        int noOfProcessedBranches = mergeNode.addBranch(nextCBMCEdge);
-
-        // if all edges are processed
-        if (noOfParents == noOfProcessedBranches) {
-          // all branches are processed, now decide which nodes to remove from the stack
-          List<Stack<CBMCStackElement>> incomingStacks = mergeNode.getIncomingElements();
-
-          Stack<CBMCStackElement> lastStack = processIncomingStacks(incomingStacks);
-          stack.pop();
-          stack.push(lastStack);
-          lastStack.peek().write("label_" + elemId + ": ;");
-
-        } else {
-          continue;
-        }
-      }
-
-      waitlist.addAll(getRelevantChildrenOfElement(childElement, stack, pElementsOnPath));
+      waitlist.addAll(handleEdge(nextCBMCEdge, mergeNodes));
     }
-
-
-    List<String> retList = new ArrayList<String>();
-
-    for (CBMCStackElement stackElem: functions) {
-      retList.add(stackElem.getCode().append("\n}").toString());
-    }
-
-    return retList;
   }
 
-  private String startFunction(ARTElement firstFunctionElement, List<CBMCStackElement> functions, Stack<Stack<CBMCStackElement>> currentStack) {
+  private String startFunction(ARTElement firstFunctionElement, Stack<Stack<CBMCStackElement>> currentStack) {
     // create the first stack element using the first element of the function
     FunctionDefinitionNode functionStartNode = (FunctionDefinitionNode) firstFunctionElement.retrieveLocationElement().getLocationNode();
     String freshFunctionName = getFreshFunctionName(functionStartNode);
@@ -228,9 +157,6 @@ public class AbstractPathToCTranslator {
           freshFunctionName + "(");
     // lFunctionHeader is for example "void foo_99(int a)"
 
-    // register function declaration
-    mFunctionDecls.add(lFunctionHeader + ";");
-
     CBMCStackElement firstFunctionStackElement = new CBMCStackElement(firstFunctionElement.getElementId(),
         lFunctionHeader + " {\n");
 
@@ -238,17 +164,95 @@ public class AbstractPathToCTranslator {
     Stack<CBMCStackElement> newFunctionStack = new Stack<CBMCStackElement>();
     newFunctionStack.push(firstFunctionStackElement);
 
-    functions.add(firstFunctionStackElement); // register function in list
+    // register function
+    mFunctionDecls.add(lFunctionHeader + ";");
+    mFunctionBodies.add(new FunctionBody(firstFunctionStackElement));
     currentStack.push(newFunctionStack); // add function to current stack
     return freshFunctionName;
   }
 
+  private Collection<CBMCEdge> handleEdge(CBMCEdge nextCBMCEdge, Map<Integer, CBMCMergeNode> mergeNodes) {
+    ARTElement childElement = nextCBMCEdge.getChildElement();
+    CFAEdge edge = nextCBMCEdge.getEdge();
+    Stack<Stack<CBMCStackElement>> stack = nextCBMCEdge.getStack();
+
+    // clone stack to have a different representation of the function calls and conditions
+    // every element
+    stack = cloneStack(stack);
+    CBMCStackElement lastStackElement = stack.peek().peek();
+
+    // how many parents does the child have?
+    int noOfParents = childElement.getParents().size();
+    assert noOfParents >= 1;
+
+    if (childElement.isTarget()) {
+      lastStackElement.write("assert(0); // target state ");
+      assert noOfParents == 1 : "Merging target states is not supported";
+    }
+
+    // handle the edge
+
+    if (edge instanceof FunctionCallEdge) {
+      // if this is a function call edge we need to create a new element and push
+      // it to the topmost stack to represent the function
+      assert noOfParents == 1 : "Merging elements directly after function calls is not supported";
+
+      // create function and put in onto stack
+      String freshFunctionName = startFunction(childElement, stack);
+
+      // write summary edge to the caller site (with the new unique function name)
+      lastStackElement.write(processFunctionCall(edge, freshFunctionName));
+
+    } else if (edge instanceof FunctionReturnEdge) {
+      assert noOfParents == 1 : "Merging elements directly after function returns is not supported";
+      stack.pop();
+
+    } else {
+      lastStackElement.write(processSimpleEdge(edge));
+    }
+
+    // handle merging if necessary
+
+    if (noOfParents > 1) {
+      // this is the end of a condition, determine whether we should continue or backtrack
+
+      int elemId = childElement.getElementId();
+      lastStackElement.write("goto label_" + elemId + ";");
+
+      // get the merge node for that node
+      CBMCMergeNode mergeNode = mergeNodes.get(elemId);
+      // if null create new and put in the map
+      if (mergeNode == null) {
+        mergeNode = new CBMCMergeNode(elemId);
+        mergeNodes.put(elemId, mergeNode);
+      }
+
+      // this tells us the number of edges (entering that node) processed so far
+      int noOfProcessedBranches = mergeNode.addBranch(nextCBMCEdge);
+
+      // if all edges are processed
+      if (noOfParents == noOfProcessedBranches) {
+        // all branches are processed, now decide which nodes to remove from the stack
+        List<Stack<CBMCStackElement>> incomingStacks = mergeNode.getIncomingElements();
+
+        Stack<CBMCStackElement> lastStack = processIncomingStacks(incomingStacks);
+        stack.pop();
+        stack.push(lastStack);
+        lastStack.peek().write("label_" + elemId + ": ;");
+
+      } else {
+        return Collections.emptySet();
+      }
+    }
+
+    return getRelevantChildrenOfElement(childElement, stack);
+  }
+
   private Collection<CBMCEdge> getRelevantChildrenOfElement(
-      ARTElement currentElement, Stack<Stack<CBMCStackElement>> currentStack,
-      Set<ARTElement> pElementsOnPath) {
+      ARTElement currentElement, Stack<Stack<CBMCStackElement>> currentStack) {
     // find the next elements to add to the waitlist
 
-    Set<ARTElement> relevantChildrenOfElement = Sets.intersection(currentElement.getChildren(), pElementsOnPath).immutableCopy();
+    Set<ARTElement> relevantChildrenOfElement = Sets.intersection(currentElement.getChildren(), elementsOnPath).immutableCopy();
 
     // if there is only one child on the path
     if (relevantChildrenOfElement.size() == 1) {
@@ -444,5 +448,21 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
       ret.push(newRetStack);
     }
     return ret;
+  }
+
+
+  private static class FunctionBody {
+    // a function is represented by its first stack element and we get
+    // the code for the function recursively starting from that node
+    private final CBMCStackElement firstElement;
+
+    private FunctionBody(CBMCStackElement pFirstElement) {
+      firstElement = pFirstElement;
+    }
+
+    @Override
+    public String toString() {
+      return firstElement.getCode().append("\n}").toString();
+    }
   }
 }
