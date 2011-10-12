@@ -39,6 +39,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -54,6 +55,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class CBMCChecker implements CounterexampleChecker, Statistics {
 
   private final LogManager logger;
+  private final CFA cfa;
 
   private final Timer cbmcTime = new Timer();
 
@@ -66,8 +68,9 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
       description="maximum time limit for CBMC (0 is infinite)")
   private int timelimit = 0; // milliseconds
 
-  public CBMCChecker(Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
+  public CBMCChecker(Configuration config, LogManager logger, CFA pCfa) throws InvalidConfigurationException, CPAException {
     this.logger = logger;
+    this.cfa = pCfa;
     config.inject(this);
   }
 
@@ -77,7 +80,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
 
     String mainFunctionName = extractLocation(pRootElement).getFunctionName();
 
-    String pathProgram = AbstractPathToCTranslator.translatePaths(pRootElement, pErrorPathElements);
+    String pathProgram = AbstractPathToCTranslator.translatePaths(cfa, pRootElement, pErrorPathElements);
 
     // write program to disk
     File cFile = CBMCFile;
