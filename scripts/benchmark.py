@@ -1032,7 +1032,18 @@ def run_cbmc(options, sourcefile, columns, rlimits):
 def run_satabs(options, sourcefile, columns, rlimits):
     exe = findExecutable("satabs", None)
     args = [exe] + options + [sourcefile]
+
+    def doNothing(signum, frame):
+        pass
+
+    # on timeout of rlimit the signal SIGTERM is thrown, catch and ignore it
+    signal.signal(signal.SIGTERM, doNothing)
+
     (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
+
+    # reset signal-handler
+    signal.signal(signal.SIGTERM, signal_handler_ignore)
+
     if "VERIFICATION SUCCESSFUL" in output:
         assert returncode == 0
         status = "SAFE"
@@ -1042,7 +1053,10 @@ def run_satabs(options, sourcefile, columns, rlimits):
     elif returncode == -9:
         status = "TIMEOUT"
     elif returncode == -6:
-        status = "OUT OF MEMORY"
+        if "Assertion `!counterexample.steps.empty()' failed" in output:
+            status = 'COUNTEREXAMPLE FAILED' # TODO: other status?
+        else:
+            status = "OUT OF MEMORY"
     elif returncode == 1 and "PARSING ERROR" in output:
         status = "PARSING ERROR"
     else:
@@ -1240,6 +1254,8 @@ def run_blast(options, sourcefile, columns, rlimits):
             status = 'SAFE'
         elif (returncode == 2) and line.startswith('Fatal error: out of memory.'):
             status = 'OUT OF MEMORY'
+        elif (returncode == 2) and line.startswith('Fatal error: exception Sys_error("Broken pipe")'):
+            status = 'EXCEPTION'
         elif (returncode == 2) and line.startswith('Ack! The gremlins again!: Sys_error("Broken pipe")'):
             status = 'TIMEOUT'
 
