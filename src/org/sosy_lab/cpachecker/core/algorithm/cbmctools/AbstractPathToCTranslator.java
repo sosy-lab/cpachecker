@@ -33,6 +33,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
+import java.util.regex.Pattern;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
@@ -40,10 +41,8 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
-import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
@@ -83,7 +82,7 @@ public class AbstractPathToCTranslator {
     // providing location/successor information
     for (CFAFunctionDefinitionNode node : cfa.getAllFunctions().values()) {
       // this adds the function declaration to mFunctionDecls
-      translator.startFunction(node, false);
+      translator.startFunction((FunctionDefinitionNode)node, node.getFunctionName());
     }
 
     List<String> lFunctionBodies = translator.translatePath(artRoot, elementsOnErrorPath);
@@ -116,8 +115,10 @@ public class AbstractPathToCTranslator {
       ARTElement firstElementsChild = Iterables.getOnlyElement(firstElement.getChildren());
 
       // create the first stack element using the first element of the initiating function
+      FunctionDefinitionNode functionStartNode = (FunctionDefinitionNode)firstElement.retrieveLocationElement().getLocationNode();
+      String freshFunctionName = getFreshFunctionName(functionStartNode);
       CBMCStackElement firstStackElement = new CBMCStackElement(firstElement.getElementId(),
-          startFunction(firstElement.retrieveLocationElement().getLocationNode(), true));
+          startFunction(functionStartNode, freshFunctionName));
       functions.add(firstStackElement);
 
       Stack<Stack<CBMCStackElement>> newStack = new Stack<Stack<CBMCStackElement>>();
@@ -165,14 +166,19 @@ public class AbstractPathToCTranslator {
         // it to the topmost stack to represent the function
         assert noOfParents == 1 : "Merging elements directly after function calls is not supported";
 
+        // each function call gets a new name
+        FunctionDefinitionNode functionStartNode = ((FunctionCallEdge)edge).getSuccessor();
+        ARTElement firstFunctionElement = nextCBMCEdge.getChildElement();
+        assert functionStartNode == firstFunctionElement.retrieveLocationElement().getLocationNode();
+        String freshFunctionName = getFreshFunctionName(functionStartNode);
+
         // write summary edge to the caller site
-        lastStackElement.write(processFunctionCall(edge));
+        lastStackElement.write(processFunctionCall(edge, freshFunctionName));
         // create a new stack to save conditions in that function
         Stack<CBMCStackElement> newFunctionStack = new Stack<CBMCStackElement>();
         // create a new function
-        ARTElement firstFunctionElement = nextCBMCEdge.getChildElement();
         CBMCStackElement firstFunctionStackElement = new CBMCStackElement(firstFunctionElement.getElementId(),
-            startFunction(firstFunctionElement.retrieveLocationElement().getLocationNode(), true));
+            startFunction(functionStartNode, freshFunctionName));
         functions.add(firstFunctionStackElement);
         newFunctionStack.push(firstFunctionStackElement);
         stack.push(newFunctionStack);
@@ -414,11 +420,9 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
     return "";
   }
 
-  private String processFunctionCall(CFAEdge pCFAEdge) {
+  private String processFunctionCall(CFAEdge pCFAEdge, String functionName) {
 
     FunctionCallEdge lFunctionCallEdge = (FunctionCallEdge)pCFAEdge;
-
-    String lFunctionName = lFunctionCallEdge.getSuccessor().getFunctionName();
 
     List<String> lArguments = Lists.transform(lFunctionCallEdge.getArguments(), RAW_SIGNATURE_FUNCTION);
     String lArgumentString = "(" + Joiner.on(", ").join(lArguments) + ")";
@@ -428,35 +432,31 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
     if (expressionOnSummaryEdge instanceof IASTFunctionCallAssignmentStatement) {
       IASTFunctionCallAssignmentStatement assignExp = (IASTFunctionCallAssignmentStatement)expressionOnSummaryEdge;
       String assignedVarName = assignExp.getLeftHandSide().getRawSignature();
-      return assignedVarName + " = " + lFunctionName + "_" + mFunctionIndex + lArgumentString + ";";
+      return assignedVarName + " = " + functionName + lArgumentString + ";";
 
     } else {
       assert expressionOnSummaryEdge instanceof IASTFunctionCallStatement;
-      return lFunctionName + "_" + mFunctionIndex + lArgumentString + ";";
+      return functionName + lArgumentString + ";";
     }
   }
 
-  private String startFunction(CFANode pNode, boolean pAddIndex) {
+  private String startFunction(FunctionDefinitionNode pNode, String freshFunctionName) {
     assert pNode != null;
-    assert pNode instanceof FunctionDefinitionNode;
 
-    FunctionDefinitionNode lFunctionDefinitionNode = (FunctionDefinitionNode)pNode;
-
-    List<String> parameters = new ArrayList<String>();
-    for (IASTSimpleDeclaration lFunctionParameter : lFunctionDefinitionNode.getFunctionParameters()) {
-      parameters.add(lFunctionParameter.getRawSignature());
-    }
-
-    String lFunctionHeader = lFunctionDefinitionNode.getFunctionDefinition().getRawSignature();
-    if (pAddIndex) {
+    String lFunctionHeader = pNode.getFunctionDefinition().getRawSignature();
+    if (freshFunctionName != pNode.getFunctionName()) {
       lFunctionHeader = lFunctionHeader.replaceFirst(
-          lFunctionDefinitionNode.getFunctionName() + "\\(",
-          lFunctionDefinitionNode.getFunctionName() + "_" + mFunctionIndex++ + "(");
+          Pattern.quote(pNode.getFunctionName() + "("),
+          freshFunctionName + "(");
     }
 
     mFunctionDecls.add(lFunctionHeader + ";");
 
     return lFunctionHeader + " {\n";
+  }
+
+  private String getFreshFunctionName(CFAFunctionDefinitionNode functionStartNode) {
+    return functionStartNode.getFunctionName() + "_" + mFunctionIndex++;
   }
 
   private Stack<Stack<CBMCStackElement>> cloneStack(Stack<Stack<CBMCStackElement>> pStack) {
