@@ -20,6 +20,18 @@ CSV_SEPARATOR = "\t"
 BUG_SUBSTRING_LIST = ['bug', 'unsafe']
 
 
+# colors for column status in terminal
+USE_COLORS = True
+COLOR_GREEN = "\033[32;1m{0}\033[m"
+COLOR_RED = "\033[31;1m{0}\033[m"
+COLOR_ORANGE = "\033[35;1m{0}\033[m" # not orange, magenta
+COLOR_DIC = {"correctSafe": COLOR_GREEN,
+             "correctUnsafe": COLOR_GREEN,
+             "unknown": COLOR_ORANGE,
+             "wrongUnsafe": COLOR_RED,
+             "wrongSafe": COLOR_RED}
+
+
 # the number of digits after the decimal separator of the time column,
 # for the other columns it can be configured in the xml-file
 TIME_PRECISION = 2
@@ -531,8 +543,11 @@ class OutputHandler:
             self.maxLengthOfFileName = max(len(sourcefile), self.maxLengthOfFileName)
 
         # write testname to terminal
+        numberOfFiles = len(self.test.sourcefiles)
         print("\nrunning test" + \
-            (" '" + test.name + "'" if test.name is not None else ""))
+            (" '" + test.name + "'" if test.name is not None else "") + \
+            ("     (1 file)" if numberOfFiles == 1 
+                        else "     ({0} files)".format(numberOfFiles)))
 
         # store testname and options in XML, 
         # copy benchmarkinfo, limits, columntitles, systeminfo from XMLHeader
@@ -656,7 +671,12 @@ class OutputHandler:
         logFile.append(output)
 
         # output in terminal/console
-        print(status.ljust(8) + cpuTimeDelta.rjust(8) + wallTimeDelta.rjust(8))
+        statusRelation = self.isCorrectResult(sourcefile, status)
+        if USE_COLORS and sys.stdout.isatty(): # is terminal, not file
+            statusStr = COLOR_DIC[statusRelation].format(status.ljust(8))
+        else:
+            statusStr = status.ljust(8)
+        print(statusStr + cpuTimeDelta.rjust(8) + wallTimeDelta.rjust(8))
 
         # store filename, status, times, columns in XML
         fileElem = ET.Element("sourcefile", {"name": sourcefile})
@@ -683,7 +703,7 @@ class OutputHandler:
                 + [column.value for column in self.benchmark.columns])
         self.CSVFiles[self.getFileName(self.test.name, "csv")].append(CSVLine + "\n")
 
-        self.statistics.addResult(sourcefile, status)
+        self.statistics.addResult(statusRelation)
 
 
     def outputAfterTest(self, cpuTimeTest, wallTimeTest):
@@ -716,6 +736,38 @@ class OutputHandler:
                              wallTimeTest, [], False)
 
         self.TXTFile.append(self.test.simpleLine + endline + "\n")
+
+
+    def isCorrectResult(self, filename, status):
+        '''
+        this function return a string,
+        that shows the relation between status and file.
+        '''
+        status = status.lower()
+        isSafeFile = not self.containsAny(filename.lower(), BUG_SUBSTRING_LIST)
+
+        if status == 'safe':
+            if isSafeFile:
+                return "correctSafe"
+            else:
+                return "wrongSafe"
+        elif status == 'unsafe':
+            if isSafeFile:
+                return "wrongUnsafe"
+            else:
+                return "correctUnsafe"
+        else:
+                 return "unknown"
+
+
+    def containsAny(self, text, list):
+        '''
+        This function returns True, iff any string in list is a substring of text.
+        '''
+        for elem in list:
+            if elem in text:
+                return True
+        return False
 
 
     def createOutputLine(self, sourcefile, status, cpuTimeDelta, wallTimeDelta, columns, isFirstLine):
@@ -787,53 +839,30 @@ class OutputHandler:
 class Statistics:
 
     def __init__(self):
-        self.counter = 0
-        self.correctSafe = 0
-        self.correctUnsafe = 0
-        self.unknown = 0
-        self.wrongUnsafe = 0
-        self.wrongSafe = 0
+        self.dic = {"counter": 0,
+                    "correctSafe": 0,
+                    "correctUnsafe": 0,
+                    "unknown": 0,
+                    "wrongUnsafe": 0,
+                    "wrongSafe": 0}
 
 
-    def addResult(self, filename, status):
-        self.counter += 1
-
-        status = status.lower()
-        isSafeFile = not self.containsAny(filename.lower(), BUG_SUBSTRING_LIST)
-
-        if status == 'safe':
-            if isSafeFile:
-                self.correctSafe += 1
-            else:
-                self.wrongSafe += 1
-        elif status == 'unsafe':
-            if isSafeFile:
-                self.wrongUnsafe += 1
-            else:
-                self.correctUnsafe += 1
-        else:
-                self.unknown += 1
+    def addResult(self, statusRelation):
+        self.dic["counter"] += 1
+        assert statusRelation in self.dic
+        self.dic[statusRelation] += 1
 
 
     def printToTerminal(self):
-        print '\n'.join(['\nStatistics:' + str(self.counter).rjust(13) + ' Files',
-                 '    correct:        ' + str(self.correctSafe + self.correctUnsafe).rjust(4),
-                 '    unknown:        ' + str(self.unknown).rjust(4),
-                 '    false negatives:' + str(self.wrongUnsafe).rjust(4) + \
+        print '\n'.join(['\nStatistics:' + str(self.dic["counter"]).rjust(13) + ' Files',
+                 '    correct:        ' + str(self.dic["correctSafe"] + \
+                                              self.dic["correctUnsafe"]).rjust(4),
+                 '    unknown:        ' + str(self.dic["unknown"]).rjust(4),
+                 '    false negatives:' + str(self.dic["wrongUnsafe"]).rjust(4) + \
                  '        (file is safe, result is unsafe)',
-                 '    false positives:' + str(self.wrongSafe).rjust(4) + \
+                 '    false positives:' + str(self.dic["wrongSafe"]).rjust(4) + \
                  '        (file is unsafe, result is safe)',
                  ''])
-
-
-    def containsAny(self, text, list):
-        '''
-        This function returns True, iff any string in list is a substring of text.
-        '''
-        for elem in list:
-            if elem in text:
-                return True
-        return False
 
 
 def getOptions(optionsTag):
