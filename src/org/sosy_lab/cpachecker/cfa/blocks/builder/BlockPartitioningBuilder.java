@@ -176,12 +176,21 @@ public class BlockPartitioningBuilder {
       for(int i = 0; i < node.getNumLeavingEdges(); i++) {
         CFANode succ = node.getLeavingEdge(i).getSuccessor();
         if(!pNodes.contains(succ)) {
-          //TODO: BUG: block ending directly with a function call
           //leaving edge from inside of the given set of nodes to outside
           //-> this is a either return-node or a function call
           if(!(node.getLeavingEdge(i) instanceof FunctionCallEdge)) {
             //-> only add if its not a function call
             result.add(node);
+          } else {
+            //otherwise check if the summary edge is inside of the block
+            CFANode sumSucc = ((FunctionCallEdge)node.getLeavingEdge(i)).getSummaryEdge().getSuccessor();
+            if(!pNodes.contains(sumSucc)) {
+              //summary edge successor not in nodes set; this is a leaving edge
+              //add entering nodes
+              for(int j = 0; j < sumSucc.getNumEnteringEdges(); j++) {
+                result.add(sumSucc.getEnteringEdge(j).getPredecessor());
+              }
+            }
           }
         }
       }
