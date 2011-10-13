@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" timelimit="900" memlimit="15000">
+
+  <!-- benchmark set that only includes benchmark files that perform better with LBE than with ABE  -->
+
+  <option name="-noout"/>
+  <option name="-spec">test/config/automata/sv-comp.spc</option>
+  <option name="-setprop">parser.ignoreCasts=true</option>
+
+  <test name="predicateAnalysis">
+    <sourcefiles>
+      <include>test/programs/benchmarks/ntdrivers/parport.BUG.i.cil.c</include>
+      <include>test/programs/benchmarks/ntdrivers/parport.i.cil.c</include>
+      <include>test/programs/benchmarks/ldv-drivers/module_get_put-drivers-atm-eni.ko-safe.cil.out.i.pp.cil.c</include>
+      <include>test/programs/benchmarks/ldv-drivers/module_get_put-drivers-block-drbd-drbd.ko-safe.cil.out.i.pp.cil.c</include>
+      <include>test/programs/benchmarks/ldv-drivers/module_get_put-drivers-block-paride-pt.ko-safe.cil.out.i.pp.cil.c</include>
+      <include>test/programs/benchmarks/ldv-drivers/module_get_put-drivers-net-atl1c-atl1c.ko-safe.cil.out.i.pp.cil.c</include>
+      <include>test/programs/benchmarks/ldv-drivers/module_get_put-drivers-net-sis900.ko-safe.cil.out.i.pp.cil.c</include>
+      <include>test/programs/benchmarks/ldv-drivers/module_get_put-drivers-scsi-megaraid.ko-safe.cil.out.i.pp.cil.c</include>
+      <include>test/programs/benchmarks/ldv-drivers/usb_urb-drivers-media-video-c-qcam.ko-safe.cil.out.i.pp.cil.c</include>
+      <include>test/programs/benchmarks/ldv-drivers/usb_urb-drivers-vhost-vhost_net.ko-safe.cil.out.i.pp.cil.c</include>
+      <include>test/programs/benchmarks/ldv-drivers/usb_urb-drivers-video-arkfb.ko-safe.cil.out.i.pp.cil.c</include>
+    </sourcefiles>
+    <option name="-config">test/config/predicateAnalysis.properties</option>
+    <option name="-heap">12000m</option>
+  </test>
+
+  <test name="predicateAnalysis_lbe">
+    <sourcefiles>
+      <include>test/programs/benchmarks/ntdrivers/parport.BUG.i.cil.c</include>
+      <include>test/programs/benchmarks/ntdrivers/parport.i.cil.c</include>
+      <include>test/programs/benchmarks/ldv-drivers/module_get_put-drivers-atm-eni.ko-safe.cil.out.i.pp.cil.c</include>
+      <include>test/programs/benchmarks/ldv-drivers/module_get_put-drivers-block-drbd-drbd.ko-safe.cil.out.i.pp.cil.c</include>
+      <include>test/programs/benchmarks/ldv-drivers/module_get_put-drivers-block-paride-pt.ko-safe.cil.out.i.pp.cil.c</include>
+      <include>test/programs/benchmarks/ldv-drivers/module_get_put-drivers-net-atl1c-atl1c.ko-safe.cil.out.i.pp.cil.c</include>
+      <include>test/programs/benchmarks/ldv-drivers/module_get_put-drivers-net-sis900.ko-safe.cil.out.i.pp.cil.c</include>
+      <include>test/programs/benchmarks/ldv-drivers/module_get_put-drivers-scsi-megaraid.ko-safe.cil.out.i.pp.cil.c</include>
+      <include>test/programs/benchmarks/ldv-drivers/usb_urb-drivers-media-video-c-qcam.ko-safe.cil.out.i.pp.cil.c</include>
+      <include>test/programs/benchmarks/ldv-drivers/usb_urb-drivers-vhost-vhost_net.ko-safe.cil.out.i.pp.cil.c</include>
+      <include>test/programs/benchmarks/ldv-drivers/usb_urb-drivers-video-arkfb.ko-safe.cil.out.i.pp.cil.c</include>
+    </sourcefiles>
+    <option name="-config">test/config/predicateAnalysis-lbe.properties</option>
+    <option name="-heap">12000m</option>
+  </test>
+
+  <columns>
+    <column title="total">time for CPAchecker</column>
+    <column title="cpa time">time for CPA algorithm</column>
+  </columns>
+</benchmark>
