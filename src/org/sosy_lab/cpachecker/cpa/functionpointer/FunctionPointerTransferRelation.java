@@ -107,7 +107,10 @@ class FunctionPointerTransferRelation implements TransferRelation {
 
       for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges(); edgeIdx++) {
         CFAEdge edge = node.getLeavingEdge(edgeIdx);
-        getAbstractSuccessorForEdge(oldState, pPrecision, edge, results);
+        if (!(edge instanceof FunctionPointerCallEdge)) {
+          // ignore FunctionPointerCallEdges, they are from previous passes
+          getAbstractSuccessorForEdge(oldState, pPrecision, edge, results);
+        }
       }
 
     } else {
@@ -146,16 +149,13 @@ class FunctionPointerTransferRelation implements TransferRelation {
 
           List<IASTExpression> parameters = functionCallExpression.getParameterExpressions();
 
-          // create new edges
+          // Create new edges.
           FunctionPointerCallEdge callEdge = new FunctionPointerCallEdge(functionCallExpression.getRawSignature(), edge.getStatement(), lineNumber, predecessorNode, (FunctionDefinitionNode)fDefNode, parameters);
           predecessorNode.addLeavingEdge(callEdge);
           fDefNode.addEnteringEdge(callEdge);
 
-          CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(functionCall.asStatement().getRawSignature(), lineNumber, predecessorNode, successorNode, functionCall);
-          predecessorNode.addLeavingSummaryEdge(calltoReturnEdge);
-          successorNode.addEnteringSummaryEdge(calltoReturnEdge);
-
           if (fExitNode.getNumEnteringEdges() > 0) {
+            CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(functionCall.asStatement().getRawSignature(), lineNumber, predecessorNode, successorNode, functionCall);
             FunctionPointerReturnEdge returnEdge = new FunctionPointerReturnEdge("Return Edge to " + successorNode.getNodeNumber(), lineNumber, fExitNode, successorNode, callEdge, calltoReturnEdge);
             fExitNode.addLeavingEdge(returnEdge);
             successorNode.addEnteringEdge(returnEdge);
@@ -186,6 +186,13 @@ class FunctionPointerTransferRelation implements TransferRelation {
       cfaEdge = pCfaEdge;
     }
 
+    // Some CPAs rely on the call-to-return edge when processing the return edge.
+    // We add it here to the CFA and remove it before returning from this function.
+    if (cfaEdge instanceof FunctionPointerReturnEdge) {
+      CallToReturnEdge calltoReturnEdge = ((FunctionPointerReturnEdge) cfaEdge).getSummaryEdge();
+      calltoReturnEdge.getPredecessor().addLeavingSummaryEdge(calltoReturnEdge);
+      calltoReturnEdge.getSuccessor().addEnteringSummaryEdge(calltoReturnEdge);
+    }
 
     // now handle the edge, whether it is real or not
     Collection<? extends AbstractElement> newWrappedStates = wrappedTransfer.getAbstractSuccessors(oldState.getWrappedElement(), pPrecision, cfaEdge);
@@ -209,18 +216,14 @@ class FunctionPointerTransferRelation implements TransferRelation {
       CallToReturnEdge summaryEdge = returnEdge.getSummaryEdge();
 
       CFANode callNode = callEdge.getPredecessor();
-      CFANode entryNode = callEdge.getSuccessor();
-      CFANode exitNode = returnEdge.getPredecessor();
       CFANode returnNode = returnEdge.getSuccessor();
 
-      callNode.removeLeavingEdge(callEdge);
-      entryNode.removeEnteringEdge(callEdge);
-
-      exitNode.removeLeavingEdge(returnEdge);
-      returnNode.removeEnteringEdge(returnEdge);
+      // The call edge and the return edge are never removed from the CFA,
+      // because we might need them for refinement.
+      // CallstackCPA should force taking the right return edge.
 
       callNode.removeLeavingSummaryEdge(summaryEdge);
-      returnNode.removeLeavingSummaryEdge(summaryEdge);
+      returnNode.removeEnteringSummaryEdge(summaryEdge);
     }
   }
 
