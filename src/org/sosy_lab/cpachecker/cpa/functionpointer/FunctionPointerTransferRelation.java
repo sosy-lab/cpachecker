@@ -383,12 +383,23 @@ class FunctionPointerTransferRelation implements TransferRelation {
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
     List<IASTExpression> arguments = callEdge.getArguments();
 
-    assert (paramNames.size() == arguments.size());
+    if (functionEntryNode.getFunctionDefinition().getDeclSpecifier().takesVarArgs()) {
+      if (paramNames.size() > arguments.size()) {
+        throw new UnrecognizedCCodeException("Number of parameters on function call does " +
+            "not match function definition", callEdge);
+      }
+
+    } else {
+      if (paramNames.size() != arguments.size()) {
+        throw new UnrecognizedCCodeException("Number of parameters on function call does " +
+            "not match function definition", callEdge);
+      }
+    }
 
     // used to get value in caller context
     ExpressionValueVisitor v = new ExpressionValueVisitor(pNewState, callerFunctionName);
 
-    for (int i=0; i < arguments.size(); i++) {
+    for (int i=0; i < paramNames.size(); i++) {
       String paramName = scoped(paramNames.get(i), calledFunctionName);
       IASTExpression actualArgument = arguments.get(i);
 

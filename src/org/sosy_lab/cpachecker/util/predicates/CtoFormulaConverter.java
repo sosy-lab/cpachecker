@@ -589,12 +589,23 @@ public class CtoFormulaConverter {
     FunctionDefinitionNode fn = edge.getSuccessor();
     List<IASTParameterDeclaration> formalParams = fn.getFunctionParameters();
 
-    if (formalParams.size() != actualParams.size()) {
-      throw new UnrecognizedCCodeException("Number of parameters on function call does " +
-          "not match function definition", edge);
-    }
-
     String calledFunction = fn.getFunctionName();
+
+    if (fn.getFunctionDefinition().getDeclSpecifier().takesVarArgs()) {
+      if (formalParams.size() > actualParams.size()) {
+        throw new UnrecognizedCCodeException("Number of parameters on function call does " +
+            "not match function definition", edge);
+      }
+
+      logger.log(Level.WARNING, "Ignoring parameters passed as varargs to function", calledFunction,
+                                "in line", edge.getLineNumber());
+
+    } else {
+      if (formalParams.size() != actualParams.size()) {
+        throw new UnrecognizedCCodeException("Number of parameters on function call does " +
+            "not match function definition", edge);
+      }
+    }
 
     int i = 0;
     Formula result = fmgr.makeTrue();
