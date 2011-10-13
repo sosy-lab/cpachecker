@@ -158,7 +158,7 @@ public class AbstractPathToCTranslator {
     // lFunctionHeader is for example "void foo_99(int a)"
 
     CBMCStackElement firstFunctionStackElement = new CBMCStackElement(firstFunctionElement.getElementId(),
-        lFunctionHeader + " {\n");
+        lFunctionHeader);
 
     // create a new stack to save conditions in that function
     Stack<CBMCStackElement> newFunctionStack = new Stack<CBMCStackElement>();
@@ -274,31 +274,28 @@ public class AbstractPathToCTranslator {
         Stack<CBMCStackElement> lastStackOfFunction = newCondStack.peek();
         assert e instanceof AssumeEdge;
         AssumeEdge assumeEdge = (AssumeEdge)e;
-        // create a new
-        CBMCStackElement newStackElement = new CBMCStackElement(currentElement.getElementId(), assumeEdge);
-
         boolean truthAssumption = assumeEdge.getTruthAssumption();
 
         String cond = "";
 
         if (ind == 0) {
-          cond = "if";
+          cond = "if ";
         } else if (ind == 1) {
-          cond = "else if";
+          cond = "else if ";
         } else {
           assert false;
         }
         ind++;
 
         if (truthAssumption) {
-          lastStackOfFunction.peek().write(cond + "(" + assumeEdge.getExpression().getRawSignature() + ") {");
-          lastStackOfFunction.peek().write(newStackElement);
-          lastStackOfFunction.peek().write("}");
+          cond += "(" + assumeEdge.getExpression().getRawSignature() + ")";
         } else {
-          lastStackOfFunction.peek().write(cond + "(!(" + assumeEdge.getExpression().getRawSignature() + ")) {");
-          lastStackOfFunction.peek().write(newStackElement);
-          lastStackOfFunction.peek().write("}");
+          cond += "(!(" + assumeEdge.getExpression().getRawSignature() + "))";
         }
+
+        // create a new stack element
+        CBMCStackElement newStackElement = new CBMCStackElement(currentElement.getElementId(), assumeEdge, cond);
+        lastStackOfFunction.peek().write(newStackElement);
 
         lastStackOfFunction.push(newStackElement);
         CBMCEdge newEdge = new CBMCEdge(currentElement, elem, e, newCondStack);
@@ -462,7 +459,7 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
 
     @Override
     public String toString() {
-      return firstElement.getCode().append("\n}").toString();
+      return firstElement.getCode().toString();
     }
   }
 }

@@ -43,14 +43,15 @@ class CBMCStackElement {
   public CBMCStackElement(int pElementId, String pFunctionName) {
     elementId = pElementId;
     codeList = new ArrayList<Object>();
-    codeList.add(pFunctionName);
+    codeList.add(pFunctionName + " {");
   }
 
-  public CBMCStackElement(int pElementId, AssumeEdge pEdge) {
+  public CBMCStackElement(int pElementId, AssumeEdge pEdge, String pConditionString) {
     elementId = pElementId;
     codeList = new ArrayList<Object>();
     boolean truthAssumption = pEdge.getTruthAssumption();
     condition = truthAssumption;
+    codeList.add(pConditionString + " {");
   }
 
   public int getElementId() {
@@ -90,6 +91,7 @@ class CBMCStackElement {
       }
     }
 
+    ret.append("}\n");
     return ret;
   }
 
