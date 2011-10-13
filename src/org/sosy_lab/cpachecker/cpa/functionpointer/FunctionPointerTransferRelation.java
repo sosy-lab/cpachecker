@@ -254,6 +254,9 @@ class FunctionPointerTransferRelation implements TransferRelation {
     if (nameExp instanceof IASTIdExpression) {
       // a = f(b) or a = (*f)(b)
       return scopedIfNecessary((IASTIdExpression)nameExp, currentFunction);
+    } else if (nameExp instanceof IASTFieldReference) {
+      // TODO This is a function pointer call "(s->f)()" or "(s.f)()"
+      return null;
     } else {
       throw new UnrecognizedCCodeException("unknown function call expression", pCfaEdge, nameExp);
     }
