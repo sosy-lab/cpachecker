@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 
 class CBMCStackElement {
 
+  private static final String SINGLE_INDENT = "  ";
+
   // element id of the art element that has the conditional statement
   private final int elementId;
   // true for if, false for else
@@ -38,12 +40,13 @@ class CBMCStackElement {
   private boolean isClosedBefore = false;
 
   // this is the code of this element
+  private final String firstCodeLine;
   private final List<Object> codeList;
 
   public CBMCStackElement(int pElementId, String pFunctionName) {
     elementId = pElementId;
     codeList = new ArrayList<Object>();
-    codeList.add(pFunctionName + " {");
+    firstCodeLine = pFunctionName;
   }
 
   public CBMCStackElement(int pElementId, AssumeEdge pEdge, String pConditionString) {
@@ -51,7 +54,7 @@ class CBMCStackElement {
     codeList = new ArrayList<Object>();
     boolean truthAssumption = pEdge.getTruthAssumption();
     condition = truthAssumption;
-    codeList.add(pConditionString + " {");
+    firstCodeLine = pConditionString;
   }
 
   public int getElementId() {
@@ -71,26 +74,40 @@ class CBMCStackElement {
   }
 
   public void write(Object pStatement) {
-    codeList.add(pStatement);
+    if (   !(pStatement instanceof String)
+        || !((String)pStatement).isEmpty()) {
+      codeList.add(pStatement);
+    }
   }
 
-  public StringBuilder getCode() {
+  public String getCode() {
+    return getCode("").toString();
+  }
+
+  private StringBuilder getCode(String pIndent) {
     StringBuilder ret = new StringBuilder();
+
+    ret.append(pIndent);
+    ret.append(firstCodeLine);
+    ret.append(" {\n");
+
+    String indent = pIndent + SINGLE_INDENT;
 
     for (Object obj: codeList) {
       // check whether we have a simple statement
       // or a conditional statement
       if (obj instanceof String) {
+        ret.append(indent);
         ret.append((String)obj);
-        ret.append("\n");
       } else if (obj instanceof CBMCStackElement) {
-        ret.append(((CBMCStackElement)obj).getCode());
-        ret.append("\n");
+        ret.append(((CBMCStackElement)obj).getCode(indent));
       } else {
         assert false;
       }
+      ret.append("\n");
     }
 
+    ret.append(pIndent);
     ret.append("}\n");
     return ret;
   }

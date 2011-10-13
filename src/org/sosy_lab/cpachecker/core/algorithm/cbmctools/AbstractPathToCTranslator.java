@@ -459,7 +459,7 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
 
     @Override
     public String toString() {
-      return firstElement.getCode().toString();
+      return firstElement.getCode();
     }
   }
 }
