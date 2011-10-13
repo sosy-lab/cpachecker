@@ -34,22 +34,16 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 class FunctionPointerReturnEdge extends FunctionReturnEdge {
 
   private final FunctionPointerCallEdge callEdge;
-  private final CallToReturnEdge summaryEdge;
 
   public FunctionPointerReturnEdge(String pRawStatement, int pLineNumber,
       CFAFunctionExitNode pPredecessor, CFANode pSuccessor,
       FunctionPointerCallEdge pCallEdge, CallToReturnEdge pSummaryEdge) {
-    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
+    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor, pSummaryEdge);
 
     callEdge = pCallEdge;
-    summaryEdge = pSummaryEdge;
   }
 
   public FunctionPointerCallEdge getCallEdge() {
     return callEdge;
-  }
-
-  public CallToReturnEdge getSummaryEdge() {
-    return summaryEdge;
   }
 }

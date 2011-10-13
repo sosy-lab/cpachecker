@@ -440,8 +440,7 @@ public final class ErrorPathShrinker {
       final CFAEdge lastEdge = shortFunctionPath.getFirst().getSecond();
       assert (lastEdge instanceof FunctionCallEdge);
       final FunctionCallEdge funcEdge = (FunctionCallEdge) lastEdge;
-      final CallToReturnEdge funcSummaryEdge =
-          funcEdge.getPredecessor().getLeavingSummaryEdge();
+      final CallToReturnEdge funcSummaryEdge = funcEdge.getSummaryEdge();
       final IASTFunctionCall funcExp = funcSummaryEdge.getExpression();
 
       // "f(x)", without a variable "a" as "a = f(x)".

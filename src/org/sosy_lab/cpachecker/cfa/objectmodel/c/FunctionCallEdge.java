@@ -38,12 +38,16 @@ public class FunctionCallEdge extends AbstractCFAEdge
 {
 	private final List<IASTExpression> arguments;
 	private final IASTStatement rawAST;
+	private final CallToReturnEdge summaryEdge;
 
-    public FunctionCallEdge (String rawStatement, IASTStatement rawAST, int lineNumber, CFANode predecessor, FunctionDefinitionNode successor, List<IASTExpression> arguments) {
-        super(rawAST.getRawSignature(), lineNumber, predecessor, successor);
+    public FunctionCallEdge (String rawStatement, IASTStatement rawAST, int lineNumber,
+        CFANode predecessor, FunctionDefinitionNode successor, List<IASTExpression> arguments,
+        CallToReturnEdge pSummaryEdge) {
+      super(rawAST.getRawSignature(), lineNumber, predecessor, successor);
 
-        this.arguments = ImmutableList.copyOf(arguments);
-        this.rawAST = rawAST;
+      this.arguments = ImmutableList.copyOf(arguments);
+      this.rawAST = rawAST;
+      this.summaryEdge = pSummaryEdge;
     }
 
     @Override
@@ -51,6 +55,10 @@ public class FunctionCallEdge extends AbstractCFAEdge
     {
         return CFAEdgeType.FunctionCallEdge;
     }
+
+  public CallToReturnEdge getSummaryEdge() {
+    return summaryEdge;
+  }
 
   public List<IASTExpression> getArguments() {
     return arguments;
