@@ -659,6 +659,10 @@ public class CtoFormulaConverter {
         function, ssa, constraints);
   }
 
+  private Formula makeNotEqual(Formula f1, Formula f2) {
+    return fmgr.makeNot(fmgr.makeEqual(f1, f2));
+  }
+
   private Formula buildTerm(IASTRightHandSide exp, String function,
       SSAMapBuilder ssa, Constraints ax) throws UnrecognizedCCodeException {
     return toNumericFormula(exp.accept(new RightHandSideToFormulaVisitor(function, ssa, ax)));
@@ -1200,7 +1204,7 @@ public class CtoFormulaConverter {
     private Formula makeMemoryLocationVariable(IASTIdExpression exp, String function) {
       String addressVariable = "&" + scopedIfNecessary(exp, function);
 
-      // a variable address is always initialized and cannot change
+      // a variable address is always initialized, not 0 and cannot change
       if (ssa.getIndex(addressVariable) == VARIABLE_UNSET) {
         List<String> oldMemoryLocations = getAllMemoryLocationsFromSsaMap(ssa);
 
@@ -1214,6 +1218,10 @@ public class CtoFormulaConverter {
 
           constraints.addConstraint(addressInequality);
         }
+
+        // a variable address is not 0
+        Formula notZero = makeNotEqual(newMemoryLocation, fmgr.makeNumber(0));
+        constraints.addConstraint(notZero);
       }
 
       return makeVariable(addressVariable, ssa);
@@ -1565,10 +1573,6 @@ public class CtoFormulaConverter {
     private Formula makeImplication(Formula p, Formula q) {
       Formula left = fmgr.makeNot(p);
       return fmgr.makeOr(left, q);
-    }
-
-    private Formula makeNotEqual(Formula f1, Formula f2) {
-      return fmgr.makeNot(fmgr.makeEqual(f1, f2));
     }
 
     private String makeFreshMallocVariableName() {
