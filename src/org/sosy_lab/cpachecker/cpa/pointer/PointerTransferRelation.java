@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
@@ -1019,7 +1020,14 @@ public class PointerTransferRelation implements TransferRelation {
       IASTRightHandSide expression, CFAEdge cfaEdge)
       throws UnrecognizedCCodeException, InvalidPointerException {
 
-    if (expression instanceof IASTLiteralExpression) {
+    if (expression instanceof IASTStringLiteralExpression) {
+      // char* s = "hello world"
+      // TODO we have currently no way of storing the information that this pointer
+      // points to somewhere in the data region
+      element.pointerOp(new Pointer.Assign(Memory.UNKNOWN_POINTER),
+          leftPointer, leftDereference);
+
+    } else if (expression instanceof IASTLiteralExpression) {
       // a = 0
       element.pointerOp(new Pointer.Assign(Memory.NULL_POINTER), leftPointer,
           leftDereference);
