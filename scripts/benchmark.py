@@ -1132,6 +1132,9 @@ def run_acsar(options, sourcefile, columns, rlimits):
     elif "runtime error" in output:
         status = "RUNTIME ERROR"
 
+    elif "error while loading shared libraries:" in output:
+        status = "LIBRARY ERROR"
+
     elif "can not be used as a root procedure because it is not defined" in output:
         status = "NO MAIN"
 
@@ -1154,7 +1157,7 @@ def run_acsar(options, sourcefile, columns, rlimits):
         status = "SAFE"
 
     else:
-        status = "UNKNOWN"
+        status = "UNKNOWN" # TODO: UNKNOWN not reachable, allways SAFE ?!?
 
     # delete tmp-files
     import os
