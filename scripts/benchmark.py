@@ -858,9 +858,9 @@ class Statistics:
                  '    correct:        ' + str(self.dic["correctSafe"] + \
                                               self.dic["correctUnsafe"]).rjust(4),
                  '    unknown:        ' + str(self.dic["unknown"]).rjust(4),
-                 '    false negatives:' + str(self.dic["wrongUnsafe"]).rjust(4) + \
+                 '    false positives:' + str(self.dic["wrongUnsafe"]).rjust(4) + \
                  '        (file is safe, result is unsafe)',
-                 '    false positives:' + str(self.dic["wrongSafe"]).rjust(4) + \
+                 '    false negatives:' + str(self.dic["wrongSafe"]).rjust(4) + \
                  '        (file is unsafe, result is safe)',
                  ''])
 

@@ -407,8 +407,8 @@ def getTableBody(listOfTests):
     rowsForStats = [['<td>total sum</td>'],
                     ['<td title="(no bug exists + result is SAFE) OR ' + \
                      '(bug exists + result is UNSAFE)">correct results</td>'],
-                    ['<td title="bug exists + result is SAFE">false positives</td>'],
-                    ['<td title="no bug exists + result is UNSAFE">false negatives</td>'],
+                    ['<td title="bug exists + result is SAFE">false negatives</td>'],
+                    ['<td title="no bug exists + result is UNSAFE">false positives</td>'],
                     ['<td>score ({0} files)</td>'.format(len(fileList))]]
 
     # get filenames
