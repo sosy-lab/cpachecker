@@ -384,7 +384,7 @@ public class CtoFormulaConverter {
                           ? edge.getPredecessor().getFunctionName() : null;
 
     SSAMapBuilder ssa = oldFormula.getSsa().builder();
-    Axioms axioms = new Axioms();
+    Constraints constraints = new Constraints();
 
     Formula edgeFormula;
     switch (edge.getEdgeType()) {
@@ -392,9 +392,9 @@ public class CtoFormulaConverter {
       StatementEdge statementEdge = (StatementEdge) edge;
       StatementToFormulaVisitor v;
       if (handlePointerAliasing) {
-        v = new StatementToFormulaVisitorPointers(function, ssa, axioms);
+        v = new StatementToFormulaVisitorPointers(function, ssa, constraints);
       } else {
-        v = new StatementToFormulaVisitor(function, ssa, axioms);
+        v = new StatementToFormulaVisitor(function, ssa, constraints);
       }
       edgeFormula = statementEdge.getStatement().accept(v);
       break;
@@ -402,18 +402,18 @@ public class CtoFormulaConverter {
 
     case ReturnStatementEdge: {
       ReturnStatementEdge returnEdge = (ReturnStatementEdge)edge;
-      edgeFormula = makeReturn(returnEdge.getExpression(), function, ssa, axioms);
+      edgeFormula = makeReturn(returnEdge.getExpression(), function, ssa, constraints);
       break;
     }
 
     case DeclarationEdge: {
       DeclarationEdge d = (DeclarationEdge)edge;
-      edgeFormula = makeDeclaration(d.getDeclSpecifier(), d.isGlobal(), d, function, ssa, axioms);
+      edgeFormula = makeDeclaration(d.getDeclSpecifier(), d.isGlobal(), d, function, ssa, constraints);
       break;
     }
 
     case AssumeEdge: {
-      edgeFormula = makeAssume((AssumeEdge)edge, function, ssa, axioms);
+      edgeFormula = makeAssume((AssumeEdge)edge, function, ssa, constraints);
       break;
     }
 
@@ -424,14 +424,14 @@ public class CtoFormulaConverter {
     }
 
     case FunctionCallEdge: {
-      edgeFormula = makeFunctionCall((FunctionCallEdge)edge, function, ssa, axioms);
+      edgeFormula = makeFunctionCall((FunctionCallEdge)edge, function, ssa, constraints);
       break;
     }
 
     case FunctionReturnEdge: {
       // get the expression from the summary edge
       CallToReturnEdge ce = ((FunctionReturnEdge)edge).getSummaryEdge();
-      edgeFormula = makeExitFunction(ce, function, ssa, axioms);
+      edgeFormula = makeExitFunction(ce, function, ssa, constraints);
       break;
     }
 
@@ -458,7 +458,7 @@ public class CtoFormulaConverter {
       }
     }
 
-    edgeFormula = axioms.extend(edgeFormula);
+    edgeFormula = constraints.extend(edgeFormula);
 
     SSAMap newSsa = ssa.build();
     if (edgeFormula.isTrue() && (newSsa == oldFormula.getSsa())) {
@@ -474,7 +474,7 @@ public class CtoFormulaConverter {
 
   private Formula makeDeclaration(IType spec, boolean isGlobal,
       DeclarationEdge edge, String function, SSAMapBuilder ssa,
-      Axioms axioms) throws CPATransferException {
+      Constraints constraints) throws CPATransferException {
 
     if (spec instanceof IASTFunctionTypeSpecifier) {
       return fmgr.makeTrue();
@@ -551,7 +551,7 @@ public class CtoFormulaConverter {
             log(Level.WARNING, getLogMessage("Ignoring initial value of special non-determinism variable " + var, edge));
 
           } else {
-            Formula minit = buildTerm(init, function, ssa, axioms);
+            Formula minit = buildTerm(init, function, ssa, constraints);
             return makeAssignment(var, minit, ssa);
           }
         }
@@ -564,7 +564,7 @@ public class CtoFormulaConverter {
   }
 
   private Formula makeExitFunction(CallToReturnEdge ce, String function,
-      SSAMapBuilder ssa, Axioms axioms) throws CPATransferException {
+      SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
 
     IASTFunctionCall retExp = ce.getExpression();
     if (retExp instanceof IASTFunctionCallStatement) {
@@ -578,7 +578,7 @@ public class CtoFormulaConverter {
       IASTExpression e = exp.getLeftHandSide();
 
       function = ce.getSuccessor().getFunctionName();
-      Formula outvarFormula = buildLvalueTerm(e, function, ssa, axioms);
+      Formula outvarFormula = buildLvalueTerm(e, function, ssa, constraints);
       return fmgr.makeAssignment(outvarFormula, retvarFormula);
 
     } else {
@@ -587,7 +587,7 @@ public class CtoFormulaConverter {
   }
 
   private Formula makeFunctionCall(FunctionCallEdge edge,
-      String callerFunction, SSAMapBuilder ssa, Axioms axioms) throws CPATransferException {
+      String callerFunction, SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
 
     List<IASTExpression> actualParams = edge.getArguments();
 
@@ -626,7 +626,7 @@ public class CtoFormulaConverter {
       }
 
       // get value of actual parameter
-      Formula actualParam = buildTerm(actualParams.get(i++), callerFunction, ssa, axioms);
+      Formula actualParam = buildTerm(actualParams.get(i++), callerFunction, ssa, constraints);
 
       Formula eq = makeAssignment(scoped(formalParamName, calledFunction), actualParam, ssa);
 
@@ -637,7 +637,7 @@ public class CtoFormulaConverter {
   }
 
   private Formula makeReturn(IASTExpression exp, String function,
-      SSAMapBuilder ssa, Axioms axioms) throws CPATransferException {
+      SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
     if (exp == null) {
       // this is a return from a void function, do nothing
       return fmgr.makeTrue();
@@ -647,37 +647,37 @@ public class CtoFormulaConverter {
       // so that we can use it later on, if it is assigned to
       // a variable. We create a function::__retval__ variable
       // that will hold the return value
-      Formula retval = buildTerm(exp, function, ssa, axioms);
+      Formula retval = buildTerm(exp, function, ssa, constraints);
       return makeAssignment(scoped(VAR_RETURN_NAME, function), retval, ssa);
     }
   }
 
   private Formula makeAssume(AssumeEdge assume, String function,
-      SSAMapBuilder ssa, Axioms axioms) throws CPATransferException {
+      SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
 
     return makePredicate(assume.getExpression(), assume.getTruthAssumption(),
-        function, ssa, axioms);
+        function, ssa, constraints);
   }
 
   private Formula buildTerm(IASTRightHandSide exp, String function,
-      SSAMapBuilder ssa, Axioms ax) throws UnrecognizedCCodeException {
+      SSAMapBuilder ssa, Constraints ax) throws UnrecognizedCCodeException {
     return toNumericFormula(exp.accept(new RightHandSideToFormulaVisitor(function, ssa, ax)));
   }
 
   private Formula buildTerm(IASTExpression exp, String function,
-      SSAMapBuilder ssa, Axioms axioms) throws UnrecognizedCCodeException {
-    return toNumericFormula(exp.accept(getExpressionVisitor(function, ssa, axioms)));
+      SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
+    return toNumericFormula(exp.accept(getExpressionVisitor(function, ssa, constraints)));
   }
 
   private Formula buildLvalueTerm(IASTExpression exp, String function,
-      SSAMapBuilder ssa, Axioms axioms) throws UnrecognizedCCodeException {
-    return exp.accept(getLvalueVisitor(function, ssa, axioms));
+      SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
+    return exp.accept(getLvalueVisitor(function, ssa, constraints));
   }
 
   protected Formula makePredicate(IASTExpression exp, boolean isTrue,
-      String function, SSAMapBuilder ssa, Axioms axioms) throws UnrecognizedCCodeException {
+      String function, SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
 
-    Formula result = toBooleanFormula(exp.accept(getExpressionVisitor(function, ssa, axioms)));
+    Formula result = toBooleanFormula(exp.accept(getExpressionVisitor(function, ssa, constraints)));
 
     if (!isTrue) {
       result = fmgr.makeNot(result);
@@ -686,23 +686,23 @@ public class CtoFormulaConverter {
   }
 
   private ExpressionToFormulaVisitor getExpressionVisitor(String pFunction,
-      SSAMapBuilder pSsa, Axioms pAx) {
+      SSAMapBuilder pSsa, Constraints pCo) {
     if (lvalsAsUif) {
-      return new ExpressionToFormulaVisitorUIF(pFunction, pSsa, pAx);
+      return new ExpressionToFormulaVisitorUIF(pFunction, pSsa, pCo);
     } else if (handlePointerAliasing) {
-      return new ExpressionToFormulaVisitorPointers(pFunction, pSsa, pAx);
+      return new ExpressionToFormulaVisitorPointers(pFunction, pSsa, pCo);
     } else {
-      return new ExpressionToFormulaVisitor(pFunction, pSsa, pAx);
+      return new ExpressionToFormulaVisitor(pFunction, pSsa, pCo);
     }
   }
 
-  private LvalueVisitor getLvalueVisitor(String pFunction, SSAMapBuilder pSsa, Axioms pAx) {
+  private LvalueVisitor getLvalueVisitor(String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
     if (lvalsAsUif) {
-      return new LvalueVisitorUIF(pFunction, pSsa, pAx);
+      return new LvalueVisitorUIF(pFunction, pSsa, pCo);
     } else if (handlePointerAliasing) {
-      return new LvalueVisitorPointers(pFunction, pSsa, pAx);
+      return new LvalueVisitorPointers(pFunction, pSsa, pCo);
     } else {
-      return new LvalueVisitor(pFunction, pSsa, pAx);
+      return new LvalueVisitor(pFunction, pSsa, pCo);
     }
   }
 
@@ -754,33 +754,33 @@ public class CtoFormulaConverter {
   }
 
   /**
-   * This class tracks axioms which are created during AST traversal but
+   * This class tracks constraints which are created during AST traversal but
    * cannot be applied at the time of creation.
    */
-  protected class Axioms {
+  protected class Constraints {
 
-    private Formula axioms = fmgr.makeTrue();
+    private Formula constraints = fmgr.makeTrue();
 
-    public Axioms() {}
+    public Constraints() {}
 
-    private void addAxiom(Formula pAxiom) {
-      if (axioms.isTrue()) {
-        axioms = pAxiom;
+    private void addConstraint(Formula pCo) {
+      if (constraints.isTrue()) {
+        constraints = pCo;
       } else {
-        axioms = fmgr.makeAnd(axioms, pAxiom);
+        constraints = fmgr.makeAnd(constraints, pCo);
       }
     }
 
     /**
-     * Applies the axioms to a given Formula and returns the extended Formula.
-     * This axiom container is cleared and set to TRUE.
+     * Applies the constraints to a given Formula and returns the extended Formula.
+     * This constraint container is cleared and set to TRUE.
      */
     public Formula extend(Formula f) {
-      if (axioms.isTrue()) {
+      if (constraints.isTrue()) {
         return f;
       } else {
-        Formula extendedFormula = fmgr.makeAnd(f, axioms);
-        axioms = fmgr.makeTrue();
+        Formula extendedFormula = fmgr.makeAnd(f, constraints);
+        constraints = fmgr.makeTrue();
 
         return extendedFormula;
       }
@@ -791,12 +791,12 @@ public class CtoFormulaConverter {
 
     protected final String        function;
     protected final SSAMapBuilder ssa;
-    protected final Axioms        axioms;
+    protected final Constraints   constraints;
 
-    public ExpressionToFormulaVisitor(String pFunction, SSAMapBuilder pSsa, Axioms pAx) {
+    public ExpressionToFormulaVisitor(String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
       function = pFunction;
       ssa = pSsa;
-      axioms = pAx;
+      constraints = pCo;
     }
 
     @Override
@@ -1063,8 +1063,8 @@ public class CtoFormulaConverter {
 
   private class ExpressionToFormulaVisitorUIF extends ExpressionToFormulaVisitor {
 
-    public ExpressionToFormulaVisitorUIF(String pFunction, SSAMapBuilder pSsa, Axioms pAx) {
-      super(pFunction, pSsa, pAx);
+    public ExpressionToFormulaVisitorUIF(String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
+      super(pFunction, pSsa, pCo);
     }
 
     private Formula makeUIF(String name, FormulaList args, SSAMapBuilder ssa) {
@@ -1136,8 +1136,8 @@ public class CtoFormulaConverter {
       ExpressionToFormulaVisitor {
 
     public ExpressionToFormulaVisitorPointers(String pFunction,
-        SSAMapBuilder pSsa, Axioms pAx) {
-      super(pFunction, pSsa, pAx);
+        SSAMapBuilder pSsa, Constraints pCo) {
+      super(pFunction, pSsa, pCo);
     }
 
     @Override
@@ -1211,7 +1211,7 @@ public class CtoFormulaConverter {
           Formula newMemoryLocation = makeVariable(memoryLocation, ssa);
           Formula addressInequality = fmgr.makeNot(fmgr.makeEqual(oldMemoryLocation, newMemoryLocation));
 
-          axioms.addAxiom(addressInequality);
+          constraints.addConstraint(addressInequality);
         }
       }
 
@@ -1289,13 +1289,13 @@ public class CtoFormulaConverter {
 
     protected final String        function;
     protected final SSAMapBuilder ssa;
-    protected final Axioms        axioms;
+    protected final Constraints   constraints;
 
-    public RightHandSideToFormulaVisitor(String pFunction, SSAMapBuilder pSsa, Axioms pAx) {
-      super(getExpressionVisitor(pFunction, pSsa, pAx));
+    public RightHandSideToFormulaVisitor(String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
+      super(getExpressionVisitor(pFunction, pSsa, pCo));
       function = pFunction;
       ssa = pSsa;
-      axioms = pAx;
+      constraints = pCo;
     }
 
     @Override
@@ -1346,8 +1346,8 @@ public class CtoFormulaConverter {
 
   private class StatementToFormulaVisitor extends RightHandSideToFormulaVisitor implements StatementVisitor<Formula, UnrecognizedCCodeException> {
 
-    public StatementToFormulaVisitor(String pFunction, SSAMapBuilder pSsa, Axioms pAxioms) {
-      super(pFunction, pSsa, pAxioms);
+    public StatementToFormulaVisitor(String pFunction, SSAMapBuilder pSsa, Constraints pConstraints) {
+      super(pFunction, pSsa, pConstraints);
     }
 
     @Override
@@ -1359,7 +1359,7 @@ public class CtoFormulaConverter {
     public Formula visit(IASTAssignment assignment) throws UnrecognizedCCodeException {
       Formula rightVariable = assignment.getRightHandSide().accept(this);
       Formula r = toNumericFormula(rightVariable);
-      Formula l = buildLvalueTerm(assignment.getLeftHandSide(), function, ssa, axioms);
+      Formula l = buildLvalueTerm(assignment.getLeftHandSide(), function, ssa, constraints);
       return fmgr.makeAssignment(l, r);
     }
 
@@ -1385,8 +1385,8 @@ public class CtoFormulaConverter {
   private class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
 
     public StatementToFormulaVisitorPointers(String pFunction,
-        SSAMapBuilder pSsa, Axioms pAxioms) {
-      super(pFunction, pSsa, pAxioms);
+        SSAMapBuilder pSsa, Constraints pConstraints) {
+      super(pFunction, pSsa, pConstraints);
     }
 
     @Override
@@ -1419,7 +1419,7 @@ public class CtoFormulaConverter {
           Formula nullFormula = fmgr.makeNumber(0);
           Formula implication = makeImplication(makeNotEqual(mallocVar, nullFormula), ineq);
 
-          axioms.addAxiom(implication);
+          constraints.addConstraint(implication);
           return mallocVar;
         }
       }
@@ -1479,7 +1479,7 @@ public class CtoFormulaConverter {
             Formula indexUpdate = fmgr.makeAssignment(newVariable, oldVariable);
 
             Formula variableUpdate = fmgr.makeIfThenElse(condition, equality, indexUpdate);
-            axioms.addAxiom(variableUpdate);
+            constraints.addConstraint(variableUpdate);
           } else {
 
             // TODO
@@ -1765,12 +1765,12 @@ public class CtoFormulaConverter {
 
     protected final String        function;
     protected final SSAMapBuilder ssa;
-    protected final Axioms        axioms;
+    protected final Constraints   constraints;
 
-    public LvalueVisitor(String pFunction, SSAMapBuilder pSsa, Axioms pAx) {
+    public LvalueVisitor(String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
       function = pFunction;
       ssa = pSsa;
-      axioms = pAx;
+      constraints = pCo;
     }
 
     @Override
@@ -1829,8 +1829,8 @@ public class CtoFormulaConverter {
 
   private class LvalueVisitorUIF extends LvalueVisitor {
 
-    public LvalueVisitorUIF(String pFunction, SSAMapBuilder pSsa, Axioms pAx) {
-      super(pFunction, pSsa, pAx);
+    public LvalueVisitorUIF(String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
+      super(pFunction, pSsa, pCo);
     }
 
     @Override
@@ -1848,7 +1848,7 @@ public class CtoFormulaConverter {
       default:
         throw new UnrecognizedCCodeException("Invalid unary operator for lvalue", null, uExp);
       }
-      Formula term = buildTerm(operand, function, ssa, axioms);
+      Formula term = buildTerm(operand, function, ssa, constraints);
 
       // PW make SSA index of * independent from argument
       int idx = makeFreshIndex(opname, ssa);
@@ -1867,7 +1867,7 @@ public class CtoFormulaConverter {
     public Formula visit(IASTFieldReference fexp) throws UnrecognizedCCodeException {
       String field = fexp.getFieldName();
       IASTExpression owner = fexp.getFieldOwner();
-      Formula term = buildTerm(owner, function, ssa, axioms);
+      Formula term = buildTerm(owner, function, ssa, constraints);
 
       String tpname = getTypeName(owner.getExpressionType());
       String ufname =
@@ -1884,8 +1884,8 @@ public class CtoFormulaConverter {
     public Formula visit(IASTArraySubscriptExpression aexp) throws UnrecognizedCCodeException {
       IASTExpression arrexp = aexp.getArrayExpression();
       IASTExpression subexp = aexp.getSubscriptExpression();
-      Formula aterm = buildTerm(arrexp, function, ssa, axioms);
-      Formula sterm = buildTerm(subexp, function, ssa, axioms);
+      Formula aterm = buildTerm(arrexp, function, ssa, constraints);
+      Formula sterm = buildTerm(subexp, function, ssa, constraints);
 
       String ufname = OP_ARRAY_SUBSCRIPT;
       FormulaList args = fmgr.makeList(aterm, sterm);
@@ -1897,8 +1897,8 @@ public class CtoFormulaConverter {
   }
 
   private class LvalueVisitorPointers extends LvalueVisitor {
-    public LvalueVisitorPointers(String pFunction, SSAMapBuilder pSsa, Axioms pAx) {
-      super(pFunction, pSsa, pAx);
+    public LvalueVisitorPointers(String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
+      super(pFunction, pSsa, pCo);
     }
 
     @Override
