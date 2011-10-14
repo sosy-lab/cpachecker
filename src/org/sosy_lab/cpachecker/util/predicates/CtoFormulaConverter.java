@@ -1472,8 +1472,14 @@ public class CtoFormulaConverter {
       assert (l.getOperator() == UnaryOperator.STAR);
 
       IASTExpression lOperand = l.getOperand();
-      if (!(lOperand instanceof IASTIdExpression)) {
-        throw new UnrecognizedCCodeException("left hand side unknown", null, lOperand);
+
+      while (!(lOperand instanceof IASTIdExpression)) {
+        // try to find the encapsulated IASTIdExpression, if possible
+        if (lOperand instanceof IASTCastExpression) {
+          lOperand = ((IASTCastExpression) lOperand).getOperand();
+        } else {
+          throw new UnrecognizedCCodeException("left hand side unknown", null, lOperand);
+        }
       }
 
       IASTRightHandSide r = pAssignment.getRightHandSide();
@@ -1520,7 +1526,7 @@ public class CtoFormulaConverter {
       // if the left variable is an alias for an address,
       // then the left side is (deep) equal to the right side
       // otherwise update the variables
-      boolean doDeepUpdate = deepUpdate(l, r);
+      boolean doDeepUpdate = deepUpdate(lOperand, r);
 
       List<String> memAddresses = getAllMemoryLocationsFromSsaMap(ssa);
       if (doDeepUpdate) {
@@ -1579,7 +1585,7 @@ public class CtoFormulaConverter {
       return as;
     }
 
-    private boolean deepUpdate(IASTUnaryExpression left, IASTRightHandSide right) {
+    private boolean deepUpdate(IASTExpression left, IASTRightHandSide right) {
       return (right instanceof IASTIdExpression);
     }
 
@@ -2004,12 +2010,20 @@ public class CtoFormulaConverter {
 
     @Override
     public Formula visit(IASTUnaryExpression pE) throws UnrecognizedCCodeException {
-      if (pE.getOperator() != UnaryOperator.STAR
-          || !(pE.getOperand() instanceof IASTIdExpression)) {
-        throw new UnrecognizedCCodeException(null, pE);
-      }
+      IASTIdExpression pId = null;
 
-      IASTIdExpression pId = (IASTIdExpression) pE.getOperand();
+      if (pE.getOperator() == UnaryOperator.STAR
+          && (pE.getOperand() instanceof IASTIdExpression)) {
+        pId = (IASTIdExpression) pE.getOperand();
+
+      } else if (pE.getOperator() == UnaryOperator.STAR
+          && (pE.getOperand() instanceof IASTCastExpression)
+          && (((IASTCastExpression) pE.getOperand()).getOperand() instanceof IASTIdExpression)) {
+        pId = (IASTIdExpression) ((IASTCastExpression) pE.getOperand()).getOperand();
+
+      } else {
+        return super.visit(pE);
+      }
 
       String pVarName = makePointerVariableName(pId, function, ssa);
       makeFreshIndex(pVarName, ssa);
