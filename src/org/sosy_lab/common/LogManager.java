@@ -295,25 +295,25 @@ public class LogManager {
    * @param args the message (can be an arbitrary number of objects containing any information), will be concatenated by " "
    */
   public void log(Level priority, Object... args) {
-    log(priority, 1, args);
-  }
-
-  /**
-   * Logs any message occurring during program execution.
-   * @param priority the log level for the message
-   * @param callStackOffset how many frames two ignore on call stack (useful for helper methods)
-   * @param args the message (can be an arbitrary number of objects containing any information), will be concatenated by " "
-   */
-  public void log(Level priority, int callStackOffset, Object... args) {
 
     //Since some toString() methods may be rather costly, only log if the level is
     //sufficiently high.
     if (wouldBeLogged(priority))  {
 
       StackTraceElement[] trace = Thread.currentThread().getStackTrace();
-      callStackOffset += 2; // add 2 for this method and the getStackTrace method
+      int traceIndex = 2; // first method in stacktrace is Thread#getStackTrace(), second is this method
 
-      log0(priority, trace[callStackOffset], args);
+      // find the first interesting method in the stack trace
+      // (we assume that methods starting with "log" are helper methods for logging).
+      // Synthetic accessor methods are also excluded.
+      String methodName = trace[traceIndex].getMethodName();
+      while (methodName.startsWith("log")
+          || methodName.startsWith("access$")) {
+        traceIndex++;
+        methodName = trace[traceIndex].getMethodName();
+      }
+
+      log0(priority, trace[traceIndex], args);
     }
   }
 
@@ -346,22 +346,6 @@ public class LogManager {
     record.setSourceMethodName(stackElement.getMethodName());
 
     logger.log(record);
-  }
-
-  /**
-   * Log an exception by printing the full details to the user.
-   *
-   * This method should only be used in cases where logUserException and
-   * logDebugException are not acceptable.
-   *
-   * @param priority the log level for the message
-   * @param e the occurred exception
-   * @param additionalMessage an optional message
-   */
-  public void logException(Level priority, Throwable e, String additionalMessage) {
-    if (wouldBeLogged(priority)) {
-      logException(priority, 1, e, additionalMessage);
-    }
   }
 
   /**
@@ -431,9 +415,7 @@ public class LogManager {
       log0(priority, trace[traceIndex], logMessage);
     }
 
-    if (wouldBeLogged(exceptionDebugLevel)) {
-      logException(exceptionDebugLevel, 1, e, additionalMessage);
-    }
+    logDebugException(e, additionalMessage);
   }
 
   /**
@@ -447,9 +429,7 @@ public class LogManager {
    * @param additionalMessage an optional message
    */
   public void logDebugException(Throwable e, String additionalMessage) {
-    if (wouldBeLogged(exceptionDebugLevel)) {
-      logException(exceptionDebugLevel, 1, e, additionalMessage);
-    }
+    logException(exceptionDebugLevel, e, additionalMessage);
   }
 
   /**
@@ -462,32 +442,44 @@ public class LogManager {
    * @param e the occurred exception
    */
   public void logDebugException(Throwable e) {
-    if (wouldBeLogged(exceptionDebugLevel)) {
-      logException(exceptionDebugLevel, 1, e, null);
-    }
+    logDebugException(e, null);
   }
 
-  private void logException(Level priority, int offset, Throwable e, String additionalMessage) {
-    String logMessage = "";
+  /**
+   * Log an exception by printing the full details to the user.
+   *
+   * This method should only be used in cases where logUserException and
+   * logDebugException are not acceptable.
+   *
+   * @param priority the log level for the message
+   * @param e the occurred exception
+   * @param additionalMessage an optional message
+   */
+  public void logException(Level priority, Throwable e, String additionalMessage) {
+    if (wouldBeLogged(priority)) {
+      String logMessage = "";
 
-    if (!Strings.isNullOrEmpty(additionalMessage)) {
-      logMessage = additionalMessage + "\n";
+      if (!Strings.isNullOrEmpty(additionalMessage)) {
+        logMessage = additionalMessage + "\n";
+      }
+
+      logMessage += Throwables.getStackTraceAsString(e);
+
+      StackTraceElement[] trace = Thread.currentThread().getStackTrace();
+      int traceIndex = 2; // first method in stacktrace is Thread#getStackTrace(), second is this method
+
+      // find the first interesting method in the stack trace
+      // (we assume that methods starting with "log" are helper methods for logging
+      while (trace[traceIndex].getMethodName().startsWith("log")) {
+        traceIndex++;
+      }
+
+      LogRecord record = new LogRecord(priority, logMessage);
+      record.setSourceClassName(trace[traceIndex].getClassName());
+      record.setSourceMethodName(trace[traceIndex].getMethodName());
+
+      logger.log(record);
     }
-
-    logMessage += Throwables.getStackTraceAsString(e);
-
-    //The following is copied from log().
-    //It should not be replaced with a call to log() because of the fixed reference
-    //to the correct position of the caller in the stack trace.
-
-    offset += 2; // first method in stacktrace is Thread#getStackTrace(), second is this method
-
-    LogRecord record = new LogRecord(priority, logMessage);
-    StackTraceElement[] trace = Thread.currentThread().getStackTrace();
-    record.setSourceClassName(trace[offset].getClassName());
-    record.setSourceMethodName(trace[offset].getMethodName());
-
-    logger.log(record);
   }
 
   public void flush() {

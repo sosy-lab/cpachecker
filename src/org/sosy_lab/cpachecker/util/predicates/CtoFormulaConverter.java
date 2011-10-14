@@ -213,13 +213,13 @@ public class CtoFormulaConverter {
 
   private void logDebug(String msg, IASTNode astNode) {
     if (logger.wouldBeLogged(Level.ALL)) {
-      logger.log(Level.ALL, 1, getLogMessage(msg, astNode));
+      logger.log(Level.ALL, getLogMessage(msg, astNode));
     }
   }
 
   private void logDebug(String msg, CFAEdge edge) {
     if (logger.wouldBeLogged(Level.ALL)) {
-      logger.log(Level.ALL, 1, getLogMessage(msg, edge));
+      logger.log(Level.ALL, getLogMessage(msg, edge));
     }
   }
 
@@ -227,7 +227,7 @@ public class CtoFormulaConverter {
     if (logger.wouldBeLogged(level)
         && printedWarnings.add(msg)) {
 
-      logger.log(level, 1, msg);
+      logger.log(level, msg);
     }
   }
 
