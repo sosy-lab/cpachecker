@@ -1464,10 +1464,9 @@ public class CtoFormulaConverter {
 
       // the following expressions are supported by cil:
       // *p = a;
-      // *p = 1; TODO
-      // *p = a | b; (or any other binary statement) TODO
-      // *p = s->f; TODO
-      // *p = function(); TODO
+      // *p = 1;
+      // *p = a | b; (or any other binary statement)
+      // *p = function();
 
       IASTUnaryExpression l = (IASTUnaryExpression) pAssignment.getLeftHandSide();
       assert (l.getOperator() == UnaryOperator.STAR);
@@ -1478,18 +1477,21 @@ public class CtoFormulaConverter {
       }
 
       IASTRightHandSide r = pAssignment.getRightHandSide();
-      if (!(r instanceof IASTIdExpression)) {
-        throw new UnrecognizedCCodeException(null, r);
-      }
 
       String lVarName = scopedIfNecessary((IASTIdExpression) lOperand, function);
       Formula lVar = makeVariable(lVarName, ssa);
 
-      String rVarName = scopedIfNecessary((IASTIdExpression) r, function);
-      Formula rVar = makeVariable(rVarName, ssa);
-      Formula rPVar = makePointerVariable((IASTIdExpression) r, function, ssa);
+      String rVarName = null;
+      Formula rPVar = null;
+      if (r instanceof IASTIdExpression) {
+        rVarName = scopedIfNecessary((IASTIdExpression) r, function);
+        rPVar = makePointerVariable((IASTIdExpression) r, function, ssa);
+      }
 
-      Formula as = super.visit(pAssignment);
+      Formula rightVariable = pAssignment.getRightHandSide().accept(this);
+      rightVariable = toNumericFormula(rightVariable);
+      Formula lPVar = buildLvalueTerm(pAssignment.getLeftHandSide(), function, ssa, constraints);
+      Formula as = fmgr.makeAssignment(lPVar, rightVariable);
 
       // update all pointer variables (they might have a new value)
       // every variable aliased to the left hand side,
@@ -1506,7 +1508,7 @@ public class CtoFormulaConverter {
           Formula newPVar = makeVariable(pVarName, ssa);
 
           Formula condition = fmgr.makeEqual(var, lVar);
-          Formula equality = fmgr.makeAssignment(newPVar, rVar);
+          Formula equality = fmgr.makeAssignment(newPVar, rightVariable);
           Formula indexUpdate = fmgr.makeAssignment(newPVar, oldPVar);
 
           Formula variableUpdate = fmgr.makeIfThenElse(condition, equality, indexUpdate);
@@ -1518,40 +1520,67 @@ public class CtoFormulaConverter {
       // if the left variable is an alias for an address,
       // then the left side is (deep) equal to the right side
       // otherwise update the variables
+      boolean doDeepUpdate = deepUpdate(l, r);
+
       List<String> memAddresses = getAllMemoryLocationsFromSsaMap(ssa);
-      for (String memAddress : memAddresses) {
-        String varName = getVariableNameFromMemoryAddress(memAddress);
+      if (doDeepUpdate) {
+        for (String memAddress : memAddresses) {
+          String varName = getVariableNameFromMemoryAddress(memAddress);
 
-        Formula memAddressVar = makeVariable(memAddress, ssa);
+          Formula memAddressVar = makeVariable(memAddress, ssa);
 
-        Formula oldVar = makeVariable(varName, ssa);
-        String oldPVarName = makePointerMask(varName, ssa);
-        Formula oldPVar = makeVariable(oldPVarName, ssa);
+          Formula oldVar = makeVariable(varName, ssa);
+          String oldPVarName = makePointerMask(varName, ssa);
+          Formula oldPVar = makeVariable(oldPVarName, ssa);
 
-        makeFreshIndex(varName, ssa);
+          makeFreshIndex(varName, ssa);
 
-        Formula newVar = makeVariable(varName, ssa);
-        String newPVarName = makePointerMask(varName, ssa);
-        Formula newPVar = makeVariable(varName, ssa);
-        removeOldPointerVariablesFromSsaMap(newPVarName);
+          Formula newVar = makeVariable(varName, ssa);
+          String newPVarName = makePointerMask(varName, ssa);
+          Formula newPVar = makeVariable(varName, ssa);
+          removeOldPointerVariablesFromSsaMap(newPVarName);
 
-        Formula varEqualityVar = fmgr.makeAssignment(newVar, rVar);
-        Formula pVarEqualityVar = fmgr.makeAssignment(newPVar, rPVar);
-        Formula varUpdateVar = fmgr.makeAssignment(newVar, oldVar);
-        Formula pVarUpdateVar = fmgr.makeAssignment(newPVar, oldPVar);
+          Formula varEquality = fmgr.makeAssignment(newVar, rightVariable);
+          Formula pVarEquality = fmgr.makeAssignment(newPVar, rPVar);
+          Formula varUpdate = fmgr.makeAssignment(newVar, oldVar);
+          Formula pVarUpdate = fmgr.makeAssignment(newPVar, oldPVar);
 
-        Formula condition = fmgr.makeEqual(lVar, memAddressVar);
-        Formula equality = fmgr.makeAnd(varEqualityVar, pVarEqualityVar);
-        Formula indexUpdate = fmgr.makeAnd(varUpdateVar, pVarUpdateVar);
+          Formula condition = fmgr.makeEqual(lVar, memAddressVar);
+          Formula equality = fmgr.makeAnd(varEquality, pVarEquality);
+          Formula update = fmgr.makeAnd(varUpdate, pVarUpdate);
 
-        Formula variableUpdate = fmgr.makeIfThenElse(condition, equality, indexUpdate);
-        constraints.addConstraint(variableUpdate);
+          Formula variableUpdate = fmgr.makeIfThenElse(condition, equality, update);
+          constraints.addConstraint(variableUpdate);
+        }
 
-        // TODO: sometimes no deep update is necessary (if right and var is no pointer)
-        //       distinguish for every side: may, cannot be pointer
+      } else {
+        for (String memAddress : memAddresses) {
+          String varName = getVariableNameFromMemoryAddress(memAddress);
+
+          Formula oldVar = makeVariable(varName, ssa);
+
+          makeFreshIndex(varName, ssa);
+
+          Formula newVar = makeVariable(varName, ssa);
+          String newPVarName = makePointerMask(varName, ssa);
+          removeOldPointerVariablesFromSsaMap(newPVarName);
+
+          Formula memAddressVar = makeVariable(memAddress, ssa);
+
+          Formula condition = fmgr.makeEqual(lVar, memAddressVar);
+          Formula equality = fmgr.makeAssignment(newVar, rightVariable);
+          Formula update = fmgr.makeAssignment(newVar, oldVar);
+
+          Formula variableUpdate = fmgr.makeIfThenElse(condition, equality, update);
+          constraints.addConstraint(variableUpdate);
+        }
       }
 
       return as;
+    }
+
+    private boolean deepUpdate(IASTUnaryExpression left, IASTRightHandSide right) {
+      return (right instanceof IASTIdExpression);
     }
 
     private Formula handleDirectAssignment(IASTAssignment assignment)
@@ -1641,11 +1670,9 @@ public class CtoFormulaConverter {
         // s = 1
         // s = someFunction()
         // s = a + b
-
       }
 
       if (isKnownMemoryLocation(leftVarName)) {
-
         String leftMemLocationName = makeMemoryLocationVariableName(leftVarName);
         Formula leftMemLocation = makeVariable(leftMemLocationName, ssa);
 
