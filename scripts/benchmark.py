@@ -1150,14 +1150,14 @@ def run_acsar(options, sourcefile, columns, rlimits):
     elif "received signal 15" in output:
         status = "KILLED"
 
-    elif "Error Location <<ERROR_LOCATION>> is reachable via the following path" in output:
-        status = "UNSAFE"
-    
-    elif "Error Location <<ERROR_LOCATION>> is reachable via the following path" not in output:
+    elif "Error Location <<ERROR_LOCATION>> is not reachable" in output:
         status = "SAFE"
 
+    elif "Error Location <<ERROR_LOCATION>> is reachable via the following path" in output:
+        status = "UNSAFE"
+
     else:
-        status = "UNKNOWN" # TODO: UNKNOWN not reachable, allways SAFE ?!?
+        status = "UNKNOWN"
 
     # delete tmp-files
     import os
