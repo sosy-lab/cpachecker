@@ -377,6 +377,10 @@ public class CtoFormulaConverter {
     return makePointerMask(scopedId, ssa);
   }
 
+  private String makeMemoryLocationVariableName(String var) {
+    return "&" + var;
+  }
+
   // name has to be scoped already
   private Formula makeAssignment(String name,
           Formula rightHandSide, SSAMapBuilder ssa) {
@@ -1224,7 +1228,7 @@ public class CtoFormulaConverter {
     }
 
     private Formula makeMemoryLocationVariable(IASTIdExpression exp, String function) {
-      String addressVariable = "&" + scopedIfNecessary(exp, function);
+      String addressVariable = makeMemoryLocationVariableName(scopedIfNecessary(exp, function));
 
       // a variable address is always initialized, not 0 and cannot change
       if (ssa.getIndex(addressVariable) == VARIABLE_UNSET) {
