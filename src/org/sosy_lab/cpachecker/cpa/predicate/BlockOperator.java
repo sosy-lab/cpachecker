@@ -66,6 +66,12 @@ public class BlockOperator {
   int numBlkLoops = 0;
   int numBlkThreshold = 0;
 
+  void switchToLBE() {
+    alwaysAtFunctions = true;
+    alwaysAtLoops = true;
+    threshold = 0;
+  }
+
   /**
    * Check whether an abstraction should be computed.
    *
