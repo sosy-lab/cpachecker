@@ -11,11 +11,15 @@
       <includesfile>test/programs/benchmarks/SystemC.set</includesfile>
     </sourcefiles>
     <sourcefiles>
+      <includesfile>test/programs/benchmarks/DeviceDrivers.set</includesfile>
+      <option name="-setprop">cpa.predicate.handlePointerAliasing=true</option>
+    </sourcefiles>
+    <sourcefiles>
       <includesfile>test/programs/benchmarks/DeviceDrivers64.set</includesfile>
       <option name="-setprop">cpa.predicate.machineModel=64-Linux</option>
     </sourcefiles>
     <option name="-sv-comp12"/>
-    <option name="-heap">12000m</option>
+    <option name="-heap">12500m</option>
   </test>
 
   <columns>
