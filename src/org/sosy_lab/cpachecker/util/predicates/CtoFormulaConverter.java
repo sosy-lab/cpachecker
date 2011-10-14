@@ -1200,7 +1200,7 @@ public class CtoFormulaConverter {
         if (exp.getOperand() instanceof IASTIdExpression) {
           return makePointerVariable((IASTIdExpression) exp.getOperand(), function, ssa);
         }
-        throw new UnrecognizedCCodeException(null, exp);
+        // fall-through
 
       default:
         return super.visit(exp);
@@ -1453,8 +1453,9 @@ public class CtoFormulaConverter {
         return handleIndirectAssignment(assignment);
 
       } else {
-        throw new UnrecognizedCCodeException(
-            "left hand side of assignment unsupported: ", null, left);
+        return super.visit(assignment);
+//        throw new UnrecognizedCCodeException(
+//            "left hand side of assignment unsupported: ", null, left);
       }
     }
 
@@ -1472,13 +1473,12 @@ public class CtoFormulaConverter {
       assert (l.getOperator() == UnaryOperator.STAR);
 
       IASTExpression lOperand = l.getOperand();
-
       while (!(lOperand instanceof IASTIdExpression)) {
         // try to find the encapsulated IASTIdExpression, if possible
         if (lOperand instanceof IASTCastExpression) {
           lOperand = ((IASTCastExpression) lOperand).getOperand();
         } else {
-          throw new UnrecognizedCCodeException("left hand side unknown", null, lOperand);
+          return super.visit(pAssignment);
         }
       }
 
@@ -1659,17 +1659,16 @@ public class CtoFormulaConverter {
             && ((IASTUnaryExpression) right).getOperator() == UnaryOperator.AMPER){
 
           IASTExpression rOperand = ((IASTUnaryExpression) right).getOperand();
-          if (!(rOperand instanceof IASTIdExpression)) {
-            throw new UnsupportedCCodeException(null, right);
+          if (rOperand instanceof IASTIdExpression) {
+            String rVarName = scopedIfNecessary((IASTIdExpression) rOperand, function);
+            Formula rVar = makeVariable(rVarName, ssa);
+
+            Formula lPVar = makePointerVariable(left, function, ssa);
+
+            Formula pointerUpdate = fmgr.makeAssignment(lPVar, rVar);
+
+            assignmentFormula = fmgr.makeAnd(assignmentFormula, pointerUpdate);
           }
-          String rVarName = scopedIfNecessary((IASTIdExpression) rOperand, function);
-          Formula rVar = makeVariable(rVarName, ssa);
-
-          Formula lPVar = makePointerVariable(left, function, ssa);
-
-          Formula pointerUpdate = fmgr.makeAssignment(lPVar, rVar);
-
-          assignmentFormula = fmgr.makeAnd(assignmentFormula, pointerUpdate);
         }
 
       } else {
