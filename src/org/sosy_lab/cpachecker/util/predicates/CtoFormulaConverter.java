@@ -360,6 +360,23 @@ public class CtoFormulaConverter {
     return fmgr.makeVariable(var, idx);
   }
 
+  private Formula makePointerVariable(IASTIdExpression expr, String function,
+      SSAMapBuilder ssa) {
+    String variableName = makePointerVariableName(expr, function, ssa);
+    return makeVariable(variableName, ssa);
+  }
+
+  private String makePointerMask(String scopedId, SSAMapBuilder ssa) {
+    String pointerId = "*<" + scopedId + "," + ssa.getIndex(scopedId) + ">";
+    return pointerId;
+  }
+
+  private String makePointerVariableName(IASTIdExpression expr,
+      String function, SSAMapBuilder ssa) {
+    String scopedId = scopedIfNecessary(expr, function);
+    return makePointerMask(scopedId, ssa);
+  }
+
   // name has to be scoped already
   private Formula makeAssignment(String name,
           Formula rightHandSide, SSAMapBuilder ssa) {
@@ -708,6 +725,11 @@ public class CtoFormulaConverter {
     } else {
       return new LvalueVisitor(pFunction, pSsa, pCo);
     }
+  }
+
+  private boolean isPointerDereferencing(IASTExpression e) {
+    return (e instanceof IASTUnaryExpression)
+        && ((IASTUnaryExpression) e).getOperator() == UnaryOperator.STAR;
   }
 
   private Formula toBooleanFormula(Formula f) {
@@ -1268,28 +1290,6 @@ public class CtoFormulaConverter {
 
       return isPointerDereferencing(e1) || isPointerDereferencing(e2);
     }
-  }
-
-  private boolean isPointerDereferencing(IASTExpression e) {
-    return (e instanceof IASTUnaryExpression)
-        && ((IASTUnaryExpression) e).getOperator() == UnaryOperator.STAR;
-  }
-
-  private Formula makePointerVariable(IASTIdExpression expr, String function,
-      SSAMapBuilder ssa) {
-    String variableName = makePointerVariableName(expr, function, ssa);
-    return makeVariable(variableName, ssa);
-  }
-
-  private String makePointerVariableName(IASTIdExpression expr,
-      String function, SSAMapBuilder ssa) {
-    String scopedId = scopedIfNecessary(expr, function);
-    return makePointerMask(scopedId, ssa);
-  }
-
-  private String makePointerMask(String scopedId, SSAMapBuilder ssa) {
-    String pointerId = "*<" + scopedId + "," + ssa.getIndex(scopedId) + ">";
-    return pointerId;
   }
 
   private class RightHandSideToFormulaVisitor extends
