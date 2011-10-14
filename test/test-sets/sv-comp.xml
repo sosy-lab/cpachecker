@@ -6,7 +6,6 @@
     <sourcefiles>
       <includesfile>test/programs/benchmarks/Concurrency.set</includesfile>
       <includesfile>test/programs/benchmarks/ControlFlowInteger.set</includesfile>
-      <includesfile>test/programs/benchmarks/DeviceDrivers.set</includesfile>
       <includesfile>test/programs/benchmarks/HeapManipulation.set</includesfile>
       <includesfile>test/programs/benchmarks/SystemC.set</includesfile>
     </sourcefiles>
