@@ -1202,14 +1202,15 @@ public class CtoFormulaConverter {
 
       // a variable address is always initialized and cannot change
       if (ssa.getIndex(addressVariable) == VARIABLE_UNSET) {
-        ssa.setIndex(addressVariable, VARIABLE_UNINITIALIZED + 1);
-
         List<String> oldMemoryLocations = getAllMemoryLocationsFromSsaMap(ssa);
-        Formula oldMemoryLocation = makeVariable(addressVariable, ssa);
 
+        ssa.setIndex(addressVariable, VARIABLE_UNINITIALIZED + 1);
+        Formula newMemoryLocation = makeVariable(addressVariable, ssa);
+
+        // a memory address that is unknown is different from all previously known addresses
         for (String memoryLocation : oldMemoryLocations) {
-          Formula newMemoryLocation = makeVariable(memoryLocation, ssa);
-          Formula addressInequality = fmgr.makeNot(fmgr.makeEqual(oldMemoryLocation, newMemoryLocation));
+          Formula oldMemoryLocation = makeVariable(memoryLocation, ssa);
+          Formula addressInequality = fmgr.makeNot(fmgr.makeEqual(newMemoryLocation, oldMemoryLocation));
 
           constraints.addConstraint(addressInequality);
         }
