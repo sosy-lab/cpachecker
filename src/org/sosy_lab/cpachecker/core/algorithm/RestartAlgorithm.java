@@ -277,7 +277,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   private ConfigurableProgramAnalysis createCPA(ReachedSetFactory pReachedSetFactory, Configuration pConfig, RestartAlgorithmStatistics stats) throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
 
-    CPABuilder builder = new CPABuilder(pConfig, logger, pReachedSetFactory, null);
+    CPABuilder builder = new CPABuilder(pConfig, logger, pReachedSetFactory, cfa);
     ConfigurableProgramAnalysis cpa = builder.buildCPAs();
 
     if (cpa instanceof StatisticsProvider) {
