@@ -181,7 +181,11 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
           return true;
         }
       } catch (CPAException e) {
-        logger.logUserException(Level.WARNING, e, "Analysis not completed");
+        if (configFilesIterator.hasNext()) {
+          logger.logUserException(Level.WARNING, e, "Analysis not completed");
+        } else {
+          throw e;
+        }
       }
 
       if (configFilesIterator.hasNext()) {
