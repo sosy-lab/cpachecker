@@ -310,27 +310,43 @@ public class LogManager {
     //sufficiently high.
     if (wouldBeLogged(priority))  {
 
-      String[] argsStr = new String[args.length];
-      for (int i = 0; i < args.length; i++) {
-        String arg = firstNonNull(args[i], "null").toString();
-        if ((truncateSize > 0) && (arg.length() > truncateSize)) {
-          argsStr[i] = "<ARGUMENT OMITTED BECAUSE " + arg.length() + " CHARACTERS LONG>";
-        } else {
-          argsStr[i] = arg;
-        }
-      }
-
-      LogRecord record = new LogRecord(priority, messageFormat.join(argsStr));
       StackTraceElement[] trace = Thread.currentThread().getStackTrace();
       callStackOffset += 2; // add 2 for this method and the getStackTrace method
 
-      record.setSourceClassName(trace[callStackOffset].getClassName());
-      record.setSourceMethodName(trace[callStackOffset].getMethodName());
-
-      logger.log(record);
+      log0(priority, trace[callStackOffset], args);
     }
   }
 
+  /**
+   * Log a message as if it occurred in a given stack trace and with a given
+   * priority.
+   *
+   * For performance reasons, callers should check if
+   * <code>wouldBeLogged(priority)</code> returns true before calling this message.
+   *
+   * @param priority the log level for the message
+   * @param trace the stack trace frame to use
+   * @param args the message (can be an arbitrary number of objects containing any information), will be concatenated by " "
+   */
+  private void log0(Level priority, StackTraceElement stackElement, Object... args) {
+
+    String[] argsStr = new String[args.length];
+    for (int i = 0; i < args.length; i++) {
+      String arg = firstNonNull(args[i], "null").toString();
+      if ((truncateSize > 0) && (arg.length() > truncateSize)) {
+        argsStr[i] = "<ARGUMENT OMITTED BECAUSE " + arg.length() + " CHARACTERS LONG>";
+      } else {
+        argsStr[i] = arg;
+      }
+    }
+
+    LogRecord record = new LogRecord(priority, messageFormat.join(argsStr));
+
+    record.setSourceClassName(stackElement.getClassName());
+    record.setSourceMethodName(stackElement.getMethodName());
+
+    logger.log(record);
+  }
 
   /**
    * Log an exception by printing the full details to the user.
@@ -399,7 +415,20 @@ public class LogManager {
         }
       }
 
-      log(priority, 1, logMessage);
+      // use exception stack trace here so that the location where the exception
+      // occurred appears in the message
+      StackTraceElement[] trace = e.getStackTrace();
+      int traceIndex = 0;
+
+      if (e instanceof InvalidConfigurationException) {
+        // find first method outside of the Configuration class,
+        // this is probably the most interesting trace element
+        while (trace[traceIndex].getClassName().equals(Configuration.class.getName())) {
+          traceIndex++;
+        }
+      }
+
+      log0(priority, trace[traceIndex], logMessage);
     }
 
     if (wouldBeLogged(exceptionDebugLevel)) {
