@@ -326,7 +326,7 @@ public class CPAchecker {
 
       if (options.useRestartingAlgorithm) {
         // hard-coded dummy CPA
-        return LocationCPA.factory().createInstance();
+        return LocationCPA.factory().set(cfa, CFA.class).createInstance();
       }
 
       CPABuilder builder = new CPABuilder(config, logger, reachedSetFactory, cfa);
