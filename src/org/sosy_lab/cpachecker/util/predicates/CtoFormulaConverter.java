@@ -1585,13 +1585,20 @@ public class CtoFormulaConverter {
       return "&#" + idx;
     }
 
-    private void removeOldPointerVariablesFromSsaMap(String newVar) {
-      String nVar = getVariableNameFromPointerVariable(newVar);
+    /**
+     * Removes all pointer variables belonging to a given variable from the SSA map
+     * that are no longer valid. Validity of an entry expires, when the pointer
+     * variable belongs to a variable with an old index.
+     *
+     * @param newPVar The variable name of the new pointer variable.
+     */
+    private void removeOldPointerVariablesFromSsaMap(String newPVar) {
+      String newVar = getVariableNameFromPointerVariable(newPVar);
 
       List<String> pointerVariables = getAllPointerVariablesFromSsaMap();
       for (String pointerVar : pointerVariables) {
-        String oVar = getVariableNameFromPointerVariable(pointerVar);
-        if (!pointerVar.equals(newVar) && oVar.equals(nVar)) {
+        String oldVar = getVariableNameFromPointerVariable(pointerVar);
+        if (!pointerVar.equals(newPVar) && oldVar.equals(newVar)) {
           ssa.deleteVariable(pointerVar);
         }
       }
