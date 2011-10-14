@@ -39,6 +39,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -137,6 +138,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   private final LogManager logger;
   private final Algorithm algorithm;
+  private final ConfigurableProgramAnalysis cpa;
   private final Refiner mRefiner;
 
   // TODO Copied from CPABuilder, should be refactored into a generic implementation
@@ -185,6 +187,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   public CEGARAlgorithm(Algorithm algorithm, ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
     config.inject(this);
     this.algorithm = algorithm;
+    this.cpa = pCpa;
     this.logger = logger;
 
     mRefiner = createInstance(pCpa);
@@ -202,9 +205,10 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
    * @throws InvalidConfigurationException
    * @throws CPAException
    */
-  public CEGARAlgorithm(Algorithm algorithm, Refiner pRefiner, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
+  public CEGARAlgorithm(Algorithm algorithm, ConfigurableProgramAnalysis pCpa, Refiner pRefiner, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
     config.inject(this);
     this.algorithm = algorithm;
+    this.cpa = pCpa;
     this.logger = logger;
     mRefiner = Preconditions.checkNotNull(pRefiner);
   }
@@ -261,7 +265,19 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
           // no refinement found, because the counterexample is not spurious
           logger.log(Level.FINE, "Refinement unsuccessful");
         }
-      } // if lastElement is target element
+
+      } else if (reached.hasWaitingElement()) {
+        // algorithm stopped but still work to do
+        // assume we should restart the analysis from scratch
+
+        logger.log(Level.INFO, "Restarting analysis");
+
+        CFANode initialLoc = AbstractElements.extractLocation(reached.getFirstElement());
+        reached.clear();
+        reached.add(cpa.getInitialElement(initialLoc), cpa.getInitialPrecision(initialLoc));
+
+        continueAnalysis = true;
+      }
 
     } while (continueAnalysis);
 
