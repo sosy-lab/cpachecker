@@ -151,9 +151,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       ReachedSet currentReached = currentPair.getSecond();
       reached.setDelegate(currentReached);
 
-      // run algorithm
-      Preconditions.checkNotNull(currentReached);
-      boolean sound = currentAlgorithm.run(currentReached);
 
       if (currentAlgorithm instanceof StatisticsProvider) {
         ((StatisticsProvider)currentAlgorithm).collectStatistics(stats.getSubStatistics());
@@ -161,23 +158,30 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
       stats.noOfAlgorithmsUsed++;
 
-      if (Iterables.any(currentReached, AbstractElements.IS_TARGET_ELEMENT)) {
-        return sound;
-      }
+      // run algorithm
+      try {
+        boolean sound = currentAlgorithm.run(currentReached);
 
-      if (!sound) {
-        // if the analysis is not sound and we can proceed with
-        // another algorithm, continue with the next algorithm
-        logger.log(Level.INFO, "Analysis result was unsound.");
+        if (Iterables.any(currentReached, AbstractElements.IS_TARGET_ELEMENT)) {
+          return sound;
+        }
 
-      } else if (currentReached.hasWaitingElement()) {
-        // if there are still elements in the waitlist, the result is unknown
-        // continue with the next algorithm
-        logger.log(Level.INFO, "Analysis not completed: There are still elements to be processed.");
+        if (!sound) {
+          // if the analysis is not sound and we can proceed with
+          // another algorithm, continue with the next algorithm
+          logger.log(Level.INFO, "Analysis result was unsound.");
 
-      } else {
-        // sound analysis and completely finished, terminate
-        return true;
+        } else if (currentReached.hasWaitingElement()) {
+          // if there are still elements in the waitlist, the result is unknown
+          // continue with the next algorithm
+          logger.log(Level.INFO, "Analysis not completed: There are still elements to be processed.");
+
+        } else {
+          // sound analysis and completely finished, terminate
+          return true;
+        }
+      } catch (CPAException e) {
+        logger.logUserException(Level.WARNING, e, "Analysis not completed");
       }
 
       if (configFilesIterator.hasNext()) {
