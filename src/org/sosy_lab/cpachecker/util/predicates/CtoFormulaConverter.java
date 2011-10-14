@@ -699,6 +699,8 @@ public class CtoFormulaConverter {
   private LvalueVisitor getLvalueVisitor(String pFunction, SSAMapBuilder pSsa, Axioms pAx) {
     if (lvalsAsUif) {
       return new LvalueVisitorUIF(pFunction, pSsa, pAx);
+    } else if (handlePointerAliasing) {
+      return new LvalueVisitorPointers(pFunction, pSsa, pAx);
     } else {
       return new LvalueVisitor(pFunction, pSsa, pAx);
     }
@@ -1273,6 +1275,10 @@ public class CtoFormulaConverter {
   private String makePointerVariableName(IASTIdExpression expr,
       String function, SSAMapBuilder ssa) {
     String scopedId = scopedIfNecessary(expr, function);
+    return makePointerMask(scopedId, ssa);
+  }
+
+  private String makePointerMask(String scopedId, SSAMapBuilder ssa) {
     String pointerId = "*<" + scopedId + "," + ssa.getIndex(scopedId) + ">";
     return pointerId;
   }
@@ -1425,10 +1431,75 @@ public class CtoFormulaConverter {
     public Formula visit(IASTAssignment assignment)
         throws UnrecognizedCCodeException {
       IASTExpression left = assignment.getLeftHandSide();
+
+      if (left instanceof IASTIdExpression) {
+        return handleDirectAssignment(assignment);
+
+      } else if (left instanceof IASTUnaryExpression
+          && ((IASTUnaryExpression) left).getOperator() == UnaryOperator.STAR) {
+        return handleIndirectAssignment(assignment);
+
+      } else {
+        throw new UnrecognizedCCodeException(
+            "left hand side of assignment unsupported: ", null, left);
+      }
+    }
+
+    private Formula handleIndirectAssignment(IASTAssignment pAssignment)
+        throws UnrecognizedCCodeException {
+      assert (pAssignment.getLeftHandSide() instanceof IASTUnaryExpression);
+
+      IASTUnaryExpression l = (IASTUnaryExpression) pAssignment.getLeftHandSide();
+      assert (l.getOperator() == UnaryOperator.STAR);
+
+      IASTExpression lOperand = l.getOperand();
+      if (!(lOperand instanceof IASTIdExpression)) {
+        throw new UnrecognizedCCodeException("left hand side unknown", null, lOperand);
+      }
+
+      String leftSideVarName = scopedIfNecessary((IASTIdExpression) lOperand, function);
+      Formula oldPVar = makePointerVariable((IASTIdExpression) lOperand, function, ssa);
+
+      Formula as = super.visit(pAssignment);
+
+      Formula newPVar = makePointerVariable((IASTIdExpression) lOperand, function, ssa);
+
+      // update all variables (they might have a new value)
+      List<String> vars = getAllVariableNames();
+      for (String v : vars) {
+        if (!v.equals(leftSideVarName)) {
+          String pVarName = makePointerMask(v, ssa);
+          if (ssa.getIndex(pVarName) != VARIABLE_UNSET) {
+
+            Formula oldVariable = makeVariable(v, ssa);
+            Formula newVariable = makeFreshVariable(v, ssa);
+
+            Formula condition = fmgr.makeEqual(oldVariable, oldPVar);
+            Formula equality = fmgr.makeAssignment(newVariable, newPVar);
+            Formula indexUpdate = fmgr.makeAssignment(newVariable, oldVariable);
+
+            Formula variableUpdate = fmgr.makeIfThenElse(condition, equality, indexUpdate);
+            axioms.addAxiom(variableUpdate);
+          } else {
+
+            // TODO
+
+
+          }
+        }
+      }
+
+      // TODO update ssa map
+
+      return as;
+    }
+
+    private Formula handleDirectAssignment(IASTAssignment assignment)
+        throws UnrecognizedCCodeException {
+      IASTExpression left = assignment.getLeftHandSide();
       IASTRightHandSide right = assignment.getRightHandSide();
 
       Formula oldVariable = null;
-
 
       boolean doPointerUpdate = requiresPointerUpdates(assignment);
       if (doPointerUpdate) {
@@ -1486,8 +1557,6 @@ public class CtoFormulaConverter {
           }
         }
       }
-
-      //System.err.println("assignment: " + assignmentFormula.toString());
 
       return assignmentFormula;
     }
@@ -1603,6 +1672,13 @@ public class CtoFormulaConverter {
         String leftVarName =
             scopedIfNecessary((IASTIdExpression) left, function);
         return makeVariable(leftVarName, ssa);
+
+//      } else if (left instanceof IASTUnaryExpression
+//          && ((IASTUnaryExpression) left).getOperator() == UnaryOperator.STAR
+//          && ((IASTUnaryExpression) left).getOperand() instanceof IASTIdExpression) {
+//
+//        // not handled here
+
       } else {
         throw new UnrecognizedCCodeException(null, left);
       }
@@ -1654,6 +1730,20 @@ public class CtoFormulaConverter {
     private boolean isPointerVariable(String variable) {
       final Pattern pointerVariablePattern = Pattern.compile("\\*<.*>");
       return pointerVariablePattern.matcher(variable).matches();
+    }
+
+    private List<String> getAllVariableNames() {
+      Set<String> allEntries = ssa.build().allVariables();
+
+      List<String> allVariables = new LinkedList<String>();
+      Pattern p = Pattern.compile("[a-zA-Z].*");
+      for (String var : allEntries) {
+        if (p.matcher(var).matches()) {
+          allVariables.add(var);
+        }
+      }
+
+      return allVariables;
     }
 
     private List<String> getAllPointerVariablesFromSsaMap() {
@@ -1803,6 +1893,27 @@ public class CtoFormulaConverter {
 
       return fmgr.makeUIF(ufname, args, idx);
 
+    }
+  }
+
+  private class LvalueVisitorPointers extends LvalueVisitor {
+    public LvalueVisitorPointers(String pFunction, SSAMapBuilder pSsa, Axioms pAx) {
+      super(pFunction, pSsa, pAx);
+    }
+
+    @Override
+    public Formula visit(IASTUnaryExpression pE) throws UnrecognizedCCodeException {
+      if (pE.getOperator() != UnaryOperator.STAR
+          || !(pE.getOperand() instanceof IASTIdExpression)) {
+        throw new UnrecognizedCCodeException(null, pE);
+      }
+
+      IASTIdExpression pId = (IASTIdExpression) pE.getOperand();
+
+      String pVarName = makePointerVariableName(pId, function, ssa);
+      makeFreshIndex(pVarName, ssa);
+
+      return makePointerVariable(pId, function, ssa);
     }
   }
 
