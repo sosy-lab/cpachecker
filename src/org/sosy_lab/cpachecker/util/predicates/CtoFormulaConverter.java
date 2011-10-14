@@ -153,6 +153,12 @@ public class CtoFormulaConverter {
   @Option(description = "handle Pointers")
   private boolean handlePointerAliasing = false;
 
+  @Option(description = "list of functions that provide new memory on the heap."
+    + " This is only used, when handling of pointers is enabled.")
+  private Set<String> memoryAllocationFunctions = ImmutableSet.of(
+      "malloc", "__kmalloc", "kzalloc"
+      );
+
   // list of functions that are pure (no side-effects)
   private static final Set<String> PURE_EXTERNAL_FUNCTIONS
       = ImmutableSet.of("__assert_fail", "free", "kfree",
@@ -714,6 +720,21 @@ public class CtoFormulaConverter {
     return f;
   }
 
+  private List<String> getAllMemoryLocationsFromSsaMap(SSAMapBuilder ssa) {
+    List<String> memoryLocations = new LinkedList<String>();
+    Set<String> ssaVariables = ssa.build().allVariables();
+
+    Pattern p = Pattern.compile("&.*");
+
+    for (String variable : ssaVariables) {
+      if (p.matcher(variable).matches()) {
+        memoryLocations.add(variable);
+      }
+    }
+
+    return memoryLocations;
+  }
+
   private MachineModel getMachineModel() {
     if (mMachineModel == null) {
       if (this.machineModel.equals("32-Linux")) {
@@ -1168,7 +1189,7 @@ public class CtoFormulaConverter {
         return makeMemoryLocationVariable((IASTIdExpression) operand, function);
 
       } else {
-        // not yet implemented: malloc, pointer arithmetic
+        // not yet implemented: pointer arithmetic
         log(Level.WARNING, exp.getRawSignature() + " is not yet implemented");
         return fmgr.makeTrue();
       }
@@ -1181,7 +1202,7 @@ public class CtoFormulaConverter {
       if (ssa.getIndex(addressVariable) == VARIABLE_UNSET) {
         ssa.setIndex(addressVariable, VARIABLE_UNINITIALIZED + 1);
 
-        List<String> oldMemoryLocations = getAllMemoryLocationsFromSsaMap();
+        List<String> oldMemoryLocations = getAllMemoryLocationsFromSsaMap(ssa);
         Formula oldMemoryLocation = makeVariable(addressVariable, ssa);
 
         for (String memoryLocation : oldMemoryLocations) {
@@ -1235,21 +1256,6 @@ public class CtoFormulaConverter {
       IASTExpression e2 = expr.getOperand2();
 
       return isPointerDereferencing(e1) || isPointerDereferencing(e2);
-    }
-
-    private List<String> getAllMemoryLocationsFromSsaMap() {
-      List<String> memoryLocations = new LinkedList<String>();
-      Set<String> ssaVariables = ssa.build().allVariables();
-
-      Pattern p = Pattern.compile("&.*");
-
-      for (String variable : ssaVariables) {
-        if (p.matcher(variable).matches()) {
-          memoryLocations.add(variable);
-        }
-      }
-
-      return memoryLocations;
     }
   }
 
@@ -1378,6 +1384,44 @@ public class CtoFormulaConverter {
     }
 
     @Override
+    public Formula visit(IASTFunctionCallExpression fexp) throws UnrecognizedCCodeException {
+      // handle malloc
+      IASTExpression fn = fexp.getFunctionNameExpression();
+      if (fn instanceof IASTIdExpression) {
+        // TODO: cil allows sizeof(int) in malloc calls
+        String fName = ((IASTIdExpression)fn).getName();
+
+        if (memoryAllocationFunctions.contains(fName)) {
+          // TODO: for now all parameters are ignored
+
+          List<String> memoryLocations = getAllMemoryLocationsFromSsaMap(ssa);
+
+          String mallocVarName = makeFreshMallocVariableName();
+          Formula mallocVar = makeVariable(mallocVarName, ssa);
+
+          // we must distinguish between two cases:
+          // either the result is 0 or it is different from all other memory locations
+          // (m != 0) => for all memory locations n: m != n
+          Formula ineq = fmgr.makeTrue();
+          for (String ml : memoryLocations) {
+            Formula n = makeVariable(ml, ssa);
+
+            Formula notEqual = makeNotEqual(n, mallocVar);
+            ineq = fmgr.makeAnd(notEqual, ineq);
+          }
+
+          Formula nullFormula = fmgr.makeNumber(0);
+          Formula implication = makeImplication(makeNotEqual(mallocVar, nullFormula), ineq);
+
+          axioms.addAxiom(implication);
+          return mallocVar;
+        }
+      }
+
+      return super.visit(fexp);
+    }
+
+    @Override
     public Formula visit(IASTAssignment assignment)
         throws UnrecognizedCCodeException {
       IASTExpression left = assignment.getLeftHandSide();
@@ -1443,9 +1487,33 @@ public class CtoFormulaConverter {
         }
       }
 
-      System.err.println("assignment: " + assignmentFormula.toString());
+      //System.err.println("assignment: " + assignmentFormula.toString());
 
       return assignmentFormula;
+    }
+
+    private Formula makeImplication(Formula p, Formula q) {
+      Formula left = fmgr.makeNot(p);
+      return fmgr.makeOr(left, q);
+    }
+
+    private Formula makeNotEqual(Formula f1, Formula f2) {
+      return fmgr.makeNot(fmgr.makeEqual(f1, f2));
+    }
+
+    private String makeFreshMallocVariableName() {
+      // TODO: find a better way (without using the SSA map)
+      final String mallocVariableName = "#malloc";
+
+      int idx = ssa.getIndex(mallocVariableName);
+
+      if (idx == VARIABLE_UNSET) {
+        idx = 2;
+      }
+
+      ssa.setIndex(mallocVariableName, idx + 1);
+
+      return "&#" + idx;
     }
 
     private void removeOldPointerVariablesFromSsaMap(String newVar) {
@@ -1492,7 +1560,7 @@ public class CtoFormulaConverter {
       return leftPointerVariableName;
     }
 
-    private Formula makeRightVariable(IASTRightHandSide right) {
+    private Formula makeRightVariable(IASTRightHandSide right) throws UnrecognizedCCodeException {
       Formula rightVariable = null;
 
       if (right instanceof IASTIdExpression) {
@@ -1514,8 +1582,15 @@ public class CtoFormulaConverter {
         IASTIdExpression rightId = (IASTIdExpression) r.getOperand();
         rightVariable = makePointerVariable(rightId, function, ssa);
 
+      } else if (right instanceof IASTFunctionCallExpression) {
+        // treatment of malloc:
+        // memory location can be anything, so no value is set,
+        // instead only the index of the variable is adjusted
+
+        // TODO: special treatment is needed for functions that allocate and
+        // initialize memory (like kzalloc/kcalloc)
       } else {
-        // unsupported: malloc (etc), pointer arithmetic
+        // unsupported: pointer arithmetic
         logger.log(Level.WARNING, right.getRawSignature()
             + " not supported, analysis may be imprecise");
       }
@@ -1540,13 +1615,15 @@ public class CtoFormulaConverter {
       if (left instanceof IASTIdExpression) {
 
         String varName = scopedIfNecessary(((IASTIdExpression) left), function);
-        if (ssa.getIndex(varName) == VARIABLE_UNINITIALIZED) { return false; }
+        if (ssa.getIndex(varName) == VARIABLE_UNINITIALIZED) {
+          return false;
+        }
 
-        String pointerVarName =
-            makePointerVariableName((IASTIdExpression) left, function, ssa);
+        String pointerVarName = makePointerVariableName((IASTIdExpression) left, function, ssa);
         boolean isInSsaMap = ssa.getIndex(pointerVarName) != VARIABLE_UNSET;
-        if (!isInSsaMap) { return !isStaticallyDeclaredPointer(assignment
-            .getLeftHandSide().getExpressionType()); }
+        if (!isInSsaMap) {
+          return !isStaticallyDeclaredPointer(assignment.getLeftHandSide().getExpressionType());
+        }
       }
 
       return true;

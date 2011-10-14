@@ -370,6 +370,12 @@ cpa.predicate.mathsat.useIntegers = false
 # Use UIFs (recommended because its more precise)
 cpa.predicate.mathsat.useUIFs = true
 
+# list of functions that provide new memory on the heap. This is only used,
+# when handling of pointers is enabled.
+cpa.predicate.memoryAllocationFunctions = {
+      "malloc", "__kmalloc", "kzalloc"
+      }
+
 # which merge operator to use for predicate cpa (usually ABE should be used)
 cpa.predicate.merge = "ABE"
   allowed values: [SEP, ABE]
