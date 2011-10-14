@@ -128,15 +128,16 @@ class FunctionPointerElement extends AbstractSingleWrapperElement  {
   }
 
   // this map should never contain UnknownTargets
-  private final Map<String,FunctionPointerTarget> pointerVariableValues = new HashMap<String,FunctionPointerTarget>();
+  private final Map<String,FunctionPointerTarget> pointerVariableValues;
 
   private FunctionPointerElement(AbstractElement pWrappedElement) {
     super(pWrappedElement);
+    pointerVariableValues = new HashMap<String,FunctionPointerTarget>(0);
   }
 
   private FunctionPointerElement(FunctionPointerElement pCopyFromPreviousState, AbstractElement pWrappedElement) {
     super(pWrappedElement);
-    this.pointerVariableValues.putAll(pCopyFromPreviousState.pointerVariableValues);
+    pointerVariableValues = new HashMap<String,FunctionPointerTarget>(pCopyFromPreviousState.pointerVariableValues);
   }
 
   public static FunctionPointerElement createEmptyElement(AbstractElement pWrappedElement) {

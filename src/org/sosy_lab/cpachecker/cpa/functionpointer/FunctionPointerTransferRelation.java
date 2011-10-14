@@ -29,6 +29,10 @@ import java.util.List;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.DefaultExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
@@ -79,18 +83,28 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
+@Options(prefix="cpa.functionpointer")
 class FunctionPointerTransferRelation implements TransferRelation {
 
   private static final String FUNCTION_RETURN_VARIABLE = "__cpachecker_return_var";
+
+  @Option(description="whether function pointers with invalid targets (e.g., 0) should be tracked in order to find calls to such pointers")
+  private boolean trackInvalidFunctionPointers = false;
+  private final FunctionPointerTarget invalidFunctionPointerTarget;
 
   private final TransferRelation wrappedTransfer;
   private final CFA functions;
   private final LogManager logger;
 
-  FunctionPointerTransferRelation(TransferRelation pWrappedTransfer, CFA pCfa, LogManager pLogger) {
+  FunctionPointerTransferRelation(TransferRelation pWrappedTransfer, CFA pCfa, LogManager pLogger, Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
     wrappedTransfer = pWrappedTransfer;
     functions = pCfa;
     logger = pLogger;
+
+    invalidFunctionPointerTarget = trackInvalidFunctionPointers
+                                   ? InvalidTarget.getInstance()
+                                   : UnknownTarget.getInstance();
   }
 
   @Override
@@ -340,7 +354,8 @@ class FunctionPointerTransferRelation implements TransferRelation {
     }
 
     // get initial value
-    FunctionPointerTarget initialValue = InvalidTarget.getInstance();
+    FunctionPointerTarget initialValue = invalidFunctionPointerTarget;
+
     if (declEdge.getInitializer() != null) {
       IASTInitializer init = declEdge.getInitializer();
       if (init instanceof IASTInitializerExpression) {
@@ -401,7 +416,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
     }
 
     // used to get value in caller context
-    ExpressionValueVisitor v = new ExpressionValueVisitor(pNewState, callerFunctionName);
+    ExpressionValueVisitor v = new ExpressionValueVisitor(pNewState, callerFunctionName, invalidFunctionPointerTarget);
 
     for (int i=0; i < paramNames.size(); i++) {
       String paramName = scoped(paramNames.get(i), calledFunctionName);
@@ -481,7 +496,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
   }
 
   private FunctionPointerTarget getValue(IASTRightHandSide exp, FunctionPointerElement element, String function) throws UnrecognizedCCodeException {
-    return exp.accept(new ExpressionValueVisitor(element, function));
+    return exp.accept(new ExpressionValueVisitor(element, function, invalidFunctionPointerTarget));
   }
 
   private static class ExpressionValueVisitor extends DefaultExpressionVisitor<FunctionPointerTarget, UnrecognizedCCodeException>
@@ -489,10 +504,13 @@ class FunctionPointerTransferRelation implements TransferRelation {
 
     private final FunctionPointerElement element;
     private final String function;
+    private final FunctionPointerTarget targetForInvalidPointers;
 
-    private ExpressionValueVisitor(FunctionPointerElement pElement, String pFunction) {
+    private ExpressionValueVisitor(FunctionPointerElement pElement, String pFunction,
+                                   FunctionPointerTarget pTargetForInvalidPointers) {
       element = pElement;
       function = pFunction;
+      targetForInvalidPointers = pTargetForInvalidPointers;
     }
 
     @Override
@@ -528,22 +546,22 @@ class FunctionPointerTransferRelation implements TransferRelation {
 
     @Override
     public FunctionPointerTarget visit(IASTCharLiteralExpression pE) {
-      return InvalidTarget.getInstance();
+      return targetForInvalidPointers;
     }
 
     @Override
     public FunctionPointerTarget visit(IASTFloatLiteralExpression pE) {
-      return InvalidTarget.getInstance();
+      return targetForInvalidPointers;
     }
 
     @Override
     public FunctionPointerTarget visit(IASTIntegerLiteralExpression pE) {
-      return InvalidTarget.getInstance();
+      return targetForInvalidPointers;
     }
 
     @Override
     public FunctionPointerTarget visit(IASTStringLiteralExpression pE) {
-      return InvalidTarget.getInstance();
+      return targetForInvalidPointers;
     }
   }
 
