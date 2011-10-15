@@ -8,16 +8,18 @@
       <includesfile>test/programs/benchmarks/ControlFlowInteger.set</includesfile>
       <includesfile>test/programs/benchmarks/HeapManipulation.set</includesfile>
       <includesfile>test/programs/benchmarks/SystemC.set</includesfile>
+      <option name="-sv-comp12-abm"/>
     </sourcefiles>
     <sourcefiles>
       <includesfile>test/programs/benchmarks/DeviceDrivers.set</includesfile>
       <option name="-setprop">cpa.predicate.handlePointerAliasing=true</option>
+      <option name="-sv-comp12-abm-funpoint"/>
     </sourcefiles>
     <sourcefiles>
       <includesfile>test/programs/benchmarks/DeviceDrivers64.set</includesfile>
       <option name="-setprop">cpa.predicate.machineModel=64-Linux</option>
-    </sourcefiles>
-    <option name="-sv-comp12-abm"/>
+      <option name="-sv-comp12-abm"/>
+    </sourcefiles>    
     <option name="-heap">12500m</option>
   </test>
 
