@@ -107,4 +107,4 @@ if [ ! -z "$CPACHECKER_ARGUMENTS" ]; then
 fi
 
 # run CPAchecker
-exec "$JAVA" $JAVA_VM_ARGUMENTS "-Djava.library.path=$arch_platform_path" -Xmx${JAVA_HEAP_SIZE:-$DEFAULT_HEAP_SIZE} org.sosy_lab.cpachecker.cmdline.CPAMain "${OPTIONS[@]}" $CPACHECKER_ARGUMENTS
+exec "$JAVA" $JAVA_VM_ARGUMENTS "-Djava.library.path=$arch_platform_path" -Xmx${JAVA_HEAP_SIZE:-$DEFAULT_HEAP_SIZE} -ea org.sosy_lab.cpachecker.cmdline.CPAMain "${OPTIONS[@]}" $CPACHECKER_ARGUMENTS
