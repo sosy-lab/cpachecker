@@ -3,19 +3,19 @@ Libraries contained in this project:
 NOTE: If you add a library to CPAchecker, be sure to update MANIFEST.MF
 with the Eclipse PDE wizard!
 
-- build-only/JFLex.jar: JFlex Scanner Generator for Java
+- ivy/build/jflex.jar: JFlex Scanner Generator for Java
   http://www.jflex.de/
-  GNU GPL: GPL.txt
+  GNU GPL: http://jflex.de/copying.html#GPL
   Used for generating automaton and FQL scanners.
   The generated code is not under GPL,
   and we do not use JFlex during runtime.
 
-- build-only/junit.jar: JUnit
+- ivy/test/junit.jar: JUnit
   http://junit.sourceforge.net/
   Common Public License 1.0: http://junit.sourceforge.net/cpl-v10.html
   Used for unit tests.
 
-- build-only/org.hamcrest.*: Hamcrest
+- ivy/test/org.hamcrest.*: Hamcrest
   http://code.google.com/p/hamcrest/
   BSD license
   Needed by JUnit
@@ -35,9 +35,9 @@ with the Eclipse PDE wizard!
   Apache License 2.0: ../License_Apache-2.0.txt
   SMT solver for predicate analysis.
 
-- eclipse/icu4j-*.jar: International Components for Unicode
+- ivy/runtime/icu4j.jar: International Components for Unicode
   http://site.icu-project.org/
-  ICU License - ICU 1.8.1 and later: license-libicu4j.html
+  ICU License: http://source.icu-project.org/repos/icu/icu/trunk/license.html
   Needed by Eclipse CDT parser for error messages.
 
 - eclipse/org.eclipse.*: Eclipse and Eclipse CDT
@@ -45,7 +45,7 @@ with the Eclipse PDE wizard!
   Eclipse Public License 1.0: http://www.eclipse.org/org/documents/epl-v10.php
   Used for parsing C code.
 
-- guava-*.jar: Google Core Libraries for Java
+- ivy/runtime/guava.jar: Google Core Libraries for Java
   http://guava-libraries.googlecode.com
   Apache License 2.0: ../License_Apache-2.0.txt
   Contains a lot of helpful data structures.
@@ -63,7 +63,7 @@ with the Eclipse PDE wizard!
 - jgrapht-*.jar: JGraphT
   http://www.jgrapht.org/
   GNU LGPL: LGPL.txt
-  Used for fllesh graphs.
+  Used by FShell for graphs.
 
 - libJOct.so: Octagon Abstract Domain Library
   http://www.di.ens.fr/~mine/oct/
@@ -71,7 +71,7 @@ with the Eclipse PDE wizard!
   Used for octagon abstract domain.
   Source for wrapper in native/source/octagon-libJOct.so/
 
-- json_simple-*.jar: JSON.simple -A simple Java toolkit for JSON
+- ivy/runtime/json-simple.jar: JSON.simple -A simple Java toolkit for JSON
   http://code.google.com/p/json-simple/
   Apache License 2.0: ../License_Apache-2.0.txt
   Used for dumping verification result as JSON for report builder.

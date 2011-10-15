@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE ivy-module> <!-- generic AcceptAllDTD to make the Eclipse Warning go away -->
+<ivy-module version="2.0">
+    <info organisation="org.sosy_lab" module="CPAchecker"/>
+        <configurations>
+                <conf name="build" />
+                <conf name="runtime" />
+                <conf name="test" />
+                <conf name="contrib" />
+        </configurations>
+    <dependencies>
+        <dependency org="com.google.guava" name="guava" rev="10.0" conf="runtime->default; contrib->sources"/>
+        <dependency org="com.googlecode.json-simple" name="json-simple" rev="1.1" conf="runtime->default; contrib->sources"/>
+        
+        <dependency org="com.ibm.icu" name="icu4j" rev="4.8.1.1" conf="runtime->default"/>
+        
+        <dependency org="junit" name="junit" rev="4.10" conf="test->default"/>
+
+        <!-- Dependency on Ivy itself so that we can ugprade it easily.
+             Don't forget to also change the version in build.xml. -->
+        <dependency org="org.apache.ivy" name="ivy" rev="2.2.0" conf="build->default"/>
+        
+        <!-- JFlex Scanner generator -->
+        <dependency org="de.jflex" name="jflex" rev="1.4.3" conf="build->default"/>
+        
+        <!-- The JUnit task for Ant so that we can run the tests.
+             The property used here is defined in build.xml according to the current Ant version. -->
+        <dependency org="org.apache.ant" name="ant-junit" rev="${ant.version.exact}" transitive="false" conf="build->default"/>
+        
+    </dependencies>
+</ivy-module>

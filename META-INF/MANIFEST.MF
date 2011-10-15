@@ -9,8 +9,8 @@ Bundle-ClassPath: bin/,
  lib/jgrapht-jdk1.6.jar,
  lib/yicesapijava.jar,
  .,
- lib/json_simple-1.1.jar,
- lib/guava-10.0.jar,
+ lib/lib/ivy/runtime/json-simple.jar,
+ lib/lib/ivy/runtime/guava.jar,
  lib/eclipse-cdt6-parser.jar
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Export-Package: com.google.common.io,

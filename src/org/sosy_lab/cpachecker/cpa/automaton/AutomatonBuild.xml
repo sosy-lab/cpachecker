@@ -6,10 +6,10 @@
   <property name="src"       location="src" />
   <property name="lib"       location="lib" />
   <property environment="env" />
-
+	
   <taskdef name="jflex"
            classname="JFlex.anttask.JFlexTask"
-           classpath="${lib}/build-only/JFlex.jar"
+           classpath="${lib}/ivy/build/jflex.jar"
   />
   <taskdef name="cup"
            classname="java_cup.anttask.CUPTask"

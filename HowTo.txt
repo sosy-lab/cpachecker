@@ -18,8 +18,7 @@ Building CPAchecker:
 2. Checkout CPAchecker from SVN repository.
    URL: https://svn.sosy-lab.org/software/cpachecker/trunk
    URL (read-only mirror): http://cpachecker.googlecode.com/svn/trunk
-3. Install ant (anything since version 1.6 should be ok).
-   The optional ant tasks are needed (in Ubuntu they are packaged as ant-optional).
+3. Install ant (anything since version 1.7 should be ok).
 4. Run "ant" in CPAchecker directory to build CPAchecker.
 
 Running CPAchecker:
@@ -63,8 +62,7 @@ Running CPAchecker:
 Running test cases:
 -------------------
 1. Build CPAchecker as described above.
-2. You need ant-junit.jar (on Debian/Ubuntu included in the package ant-optional).
-3. Run "ant tests" from the project root directory. The output (including the test
+2. Run "ant tests" from the project root directory. The output (including the test
    results) will be in test/output/.
 
 Building and running CPAchecker from within Eclipse:
@@ -93,6 +91,9 @@ Building and running CPAchecker from within Eclipse:
    Repository URL: pserver://anonymous@dev.exlipse.org/cvsroot/tools
    Module: org.eclipse.cdt/all/org.eclipse.cdt.core
    Tag: CDT_7_0_2
+6. Optional, only for CPAchecker developers:
+   If you want the sources of the other libraries (like Guava), run "ant contrib"
+   once in the CPAchecker directory.
 
 Using CPAchecker as an Eclipse plugin for your C projects
 ---------------------------------------------------------
