@@ -665,12 +665,14 @@ def main(args=None):
     if args is None:
         args = sys.argv
 
-    parser = optparse.OptionParser('%prog [options] sourcefile')
+    parser = optparse.OptionParser('%prog [options] sourcefile\n\n' + \
+        "INFO: documented example-files can be found in 'doc/examples'\n")
+
     parser.add_option("-x", "--xml", 
         action="store", 
         type="string", 
         dest="xmltablefile",
-        help="use xmlfile for table"
+        help="use xmlfile for table. the xml-file should define resultfiles and columns."
     )
     parser.add_option("-o", "--outputpath", 
         action="store", 

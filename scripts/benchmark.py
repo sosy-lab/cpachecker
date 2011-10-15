@@ -1351,7 +1351,9 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
     from optparse import OptionParser
-    parser = OptionParser(usage="usage: %prog [OPTION]... [FILE]...")
+    parser = OptionParser(usage="usage: %prog [OPTION]... [FILE]...\n\n" + \
+        "INFO: documented example-files can be found in 'doc/examples'\n")
+
     parser.add_option("-d", "--debug",
                       action="store_true",
                       help="enable debug output")
