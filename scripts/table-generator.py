@@ -404,7 +404,7 @@ def getTableBody(listOfTests):
     rowsForHTML = []
     rowsForCSV = []
     fileList = listOfTests[0][0].findall('sourcefile')
-    rowsForStats = [['<td>total sum</td>'],
+    rowsForStats = [['<td>total files</td>'],
                     ['<td title="(no bug exists + result is SAFE) OR ' + \
                      '(bug exists + result is UNSAFE)">correct results</td>'],
                     ['<td title="bug exists + result is SAFE">false negatives</td>'],
