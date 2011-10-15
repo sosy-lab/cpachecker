@@ -34,9 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.hyperic.sigar.Mem;
-import org.hyperic.sigar.Sigar;
-import org.hyperic.sigar.SigarException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.TimeAccumulator;
@@ -366,20 +363,12 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     while (lGoalIterator.hasNext()) {
       if (mDoRestart) {
-        try {
-          Sigar lSigar = new Sigar();
+        if (pHadProgress && Runtime.getRuntime().freeMemory() < mRestartBound) {
+          System.out.println("SHUTDOWN TEST GENERATION");
 
-          Mem lMemory = lSigar.getMem();
+          lResultFactory.setUnfinished();
 
-          if (pHadProgress && lMemory.getFree() < mRestartBound) {
-            System.out.println("SHUTDOWN TEST GENERATION");
-
-            lResultFactory.setUnfinished();
-
-            break;
-          }
-        } catch (SigarException e) {
-          throw new RuntimeException(e);
+          break;
         }
       }
 

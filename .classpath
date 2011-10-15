@@ -19,7 +19,6 @@
 	<classpathentry kind="lib" path="lib/build-only/junit.jar"/>
 	<classpathentry kind="lib" path="lib/build-only/org.hamcrest.core_1.1.0.v20090501071000.jar"/>
 	<classpathentry kind="lib" path="lib/json_simple-1.1.jar"/>
-	<classpathentry kind="lib" path="lib/sigar.jar"/>
 	<classpathentry kind="lib" path="lib/eclipse-cdt6-parser.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="output" path="bin"/>
