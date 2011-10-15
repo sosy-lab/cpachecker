@@ -198,4 +198,8 @@ class FunctionPointerElement extends AbstractSingleWrapperElement  {
 
     return true;
   }
+
+  Map<String, FunctionPointerTarget> getTargetMap() {
+    return pointerVariableValues;
+  }
 }

@@ -34,19 +34,22 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-public class FunctionPointerCPA extends AbstractSingleWrapperCPA {
+public class FunctionPointerCPA extends AbstractSingleWrapperCPA implements ConfigurableProgramAnalysisWithABM {
 
   private FunctionPointerDomain abstractDomain;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
   private TransferRelation transferRelation;
   private PrecisionAdjustment precisionAdjustment;
+  private final Reducer reducer;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(FunctionPointerCPA.class);
@@ -59,6 +62,16 @@ public class FunctionPointerCPA extends AbstractSingleWrapperCPA {
     this.stopOperator = new FunctionPointerStopOperator(pCpa.getStopOperator());
     this.transferRelation = new FunctionPointerTransferRelation(pCpa.getTransferRelation(), pCfa, pLogger, pConfig);
     this.precisionAdjustment = new FunctionPointerPrecisionAdjustment(pCpa.getPrecisionAdjustment());
+    if (pCpa instanceof ConfigurableProgramAnalysisWithABM) {
+      Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithABM)pCpa).getReducer();
+      if (wrappedReducer != null) {
+        reducer = new FunctionPointerReducer(wrappedReducer);
+      } else {
+        reducer = null;
+      }
+    } else {
+      reducer = null;
+    }
   }
 
   @Override
@@ -94,5 +107,10 @@ public class FunctionPointerCPA extends AbstractSingleWrapperCPA {
   @Override
   public Precision getInitialPrecision(CFANode pNode) {
     return getWrappedCpa().getInitialPrecision(pNode);
+  }
+
+  @Override
+  public Reducer getReducer() {
+    return reducer;
   }
 }

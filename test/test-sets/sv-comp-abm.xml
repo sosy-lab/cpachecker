@@ -2,10 +2,6 @@
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="900" memlimit="15000">
 
-  <option name="-noout"/>
-  <option name="-spec">test/config/automata/sv-comp.spc</option>
-  <option name="-setprop">parser.ignoreCasts=true</option>
-
   <test name="predicateAnalysis-abm">
     <sourcefiles>
       <includesfile>test/programs/benchmarks/Concurrency.set</includesfile>
@@ -21,8 +17,8 @@
       <includesfile>test/programs/benchmarks/DeviceDrivers64.set</includesfile>
       <option name="-setprop">cpa.predicate.machineModel=64-Linux</option>
     </sourcefiles>
-    <option name="-predicateAnalysis-abm"/>
-    <option name="-heap">12000m</option>
+    <option name="-sv-comp12-abm"/>
+    <option name="-heap">12500m</option>
   </test>
 
   <columns>
