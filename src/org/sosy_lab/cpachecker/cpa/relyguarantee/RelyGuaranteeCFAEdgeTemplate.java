@@ -28,6 +28,7 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
@@ -40,8 +41,8 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 public class RelyGuaranteeCFAEdgeTemplate{
 
   private final CFAEdge localEdge;
-  private final PathFormulaWrapper pathFormulaWrapper;
-  private final ARTElementWrapper sourceARTElementWrapper;
+  private final PathFormula pathFormula;
+  private ARTElement  sourceARTElement;
   private final int sourceTid;
 
   // environmental transition form which this edge was generated from
@@ -58,8 +59,8 @@ public class RelyGuaranteeCFAEdgeTemplate{
 
   public RelyGuaranteeCFAEdgeTemplate(CFAEdge pEdge, PathFormula pPathFormula, int sourceTid, ARTElement sourceARTElement, RelyGuaranteeEnvironmentalTransition sourceEnvTransition, Integer uniquePrimeThis, Integer uniquePrimeOther){
     this.localEdge = pEdge;
-    this.pathFormulaWrapper = new PathFormulaWrapper(pPathFormula);
-    this.sourceARTElementWrapper = new ARTElementWrapper(sourceARTElement);
+    this.pathFormula= pPathFormula;
+    this.sourceARTElement = sourceARTElement;
     this.sourceTid = sourceTid;
     this.sourceEnvTransition = sourceEnvTransition;
     this.coveredBy = null;
@@ -68,18 +69,21 @@ public class RelyGuaranteeCFAEdgeTemplate{
     this.uniquePrimeOther = uniquePrimeOther;
   }
 
+
   // instantiate
-  public RelyGuaranteeCFAEdge instantiate(){
-    RelyGuaranteeCFAEdge edge = new RelyGuaranteeCFAEdge(this.localEdge, this.pathFormulaWrapper, this.sourceTid, this.sourceARTElementWrapper, this.sourceEnvTransition, this, this.uniquePrimeThis, this.uniquePrimeOther);
+  public RelyGuaranteeCFAEdge instantiate(CFANode successor, CFANode predecessor){
+    RelyGuaranteeCFAEdge edge = new RelyGuaranteeCFAEdge(this, successor, predecessor);
     return edge;
   }
 
 
   public ARTElement getSourceARTElement() {
-    return this.sourceARTElementWrapper.artElement;
+    return this.sourceARTElement;
   }
 
-
+  public void setSourceARTElement(ARTElement newElem) {
+    this.sourceARTElement =  newElem;
+  }
 
   public IASTNode getRawAST() {
     return null;
@@ -90,13 +94,13 @@ public class RelyGuaranteeCFAEdgeTemplate{
   }
 
   public PathFormula getPathFormula() {
-    return this.pathFormulaWrapper.pathFormula;
+    return this.pathFormula;
   }
 
 
   @Override
   public String toString() {
-    return "RelyGuaranteeEnvEdgeTemplate from "+this.sourceTid+": "+localEdge.getRawStatement()+","+this.pathFormulaWrapper.pathFormula+", by element id:"+this.sourceARTElementWrapper.artElement.getElementId();
+    return "RelyGuaranteeEnvEdgeTemplate from "+this.sourceTid+": "+localEdge.getRawStatement()+","+this.pathFormula+", by element id:"+this.sourceARTElement.getElementId();
   }
 
   public CFAEdge getLocalEdge() {
@@ -107,19 +111,8 @@ public class RelyGuaranteeCFAEdgeTemplate{
     return this.sourceTid;
   }
 
-
-
   public RelyGuaranteeEnvironmentalTransition getSourceEnvTransition() {
     return sourceEnvTransition;
-  }
-
-
-  public PathFormulaWrapper getPathFormulaWrapper() {
-    return pathFormulaWrapper;
-  }
-
-  public ARTElementWrapper getSourceARTElementWrapper() {
-    return sourceARTElementWrapper;
   }
 
   public RelyGuaranteeCFAEdgeTemplate getCoveredBy() {
@@ -135,6 +128,11 @@ public class RelyGuaranteeCFAEdgeTemplate{
 
   public Integer getUniquePrimeOther() {
     return uniquePrimeOther;
+  }
+
+  @Override
+  public int hashCode(){
+    return uniquePrimeThis + 17 * uniquePrimeOther;
   }
 
   /**
@@ -191,64 +189,6 @@ public class RelyGuaranteeCFAEdgeTemplate{
     coveredBy.covers.remove(this);
     covers.clear();
     coveredBy = null;
-  }
-
-
-
-  /**
-   * Wrapper around a path formula.
-   */
-  class PathFormulaWrapper{
-
-    PathFormula pathFormula;
-
-    public PathFormulaWrapper(PathFormula pf){
-      this.pathFormula = pf;
-    }
-
-    public void setPathFormula(PathFormula pf){
-      this.pathFormula = pf;
-    }
-
-    public PathFormula getPathFormula() {
-      return pathFormula;
-    }
-
-    @Override
-    public boolean equals(Object o){
-      return o.equals(pathFormula);
-    }
-
-  }
-
-  /**
-   * Wrapper around an ART element.
-   */
-  class ARTElementWrapper{
-
-    ARTElement artElement;
-
-    public ARTElementWrapper(ARTElement artElement){
-      assert artElement != null;
-      this.artElement = artElement;
-    }
-
-    public void setARTElement(ARTElement artElement){
-      this.artElement = artElement;
-    }
-
-    public ARTElement getArtElement() {
-      return artElement;
-    }
-
-    public void setArtElement(ARTElement pArtElement) {
-      artElement = pArtElement;
-    }
-
-    @Override
-    public boolean equals(Object o){
-      return o.equals(artElement);
-    }
   }
 
 }

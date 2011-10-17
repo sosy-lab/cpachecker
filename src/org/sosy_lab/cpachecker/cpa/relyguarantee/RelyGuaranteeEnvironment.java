@@ -55,8 +55,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement.AbstractionElement;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdgeTemplate.ARTElementWrapper;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdgeTemplate.PathFormulaWrapper;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -640,19 +638,19 @@ public class RelyGuaranteeEnvironment {
 
     // valid
     for(RelyGuaranteeCFAEdgeTemplate rgEdge : validEnvEdgesFromThread[i]){
-      ARTElementWrapper wrapper = rgEdge.getSourceARTElementWrapper();
-      if (wrapper.getArtElement() == reachedElement){
-        wrapper.setArtElement(mergedElement);
+      ARTElement sourceARTElement = rgEdge.getSourceARTElement();
+      if (sourceARTElement == reachedElement){
+        rgEdge.setSourceARTElement(mergedElement);
         System.out.println("! Replaced id:"+reachedElement.getElementId()+" by id:"+mergedElement.getElementId()+" in a valid edge: "+rgEdge);
       }
     }
 
     // covered
     for(RelyGuaranteeCFAEdgeTemplate rgEdge : coveredEnvEdgesFromThread[i]){
-      ARTElementWrapper wrapper = rgEdge.getSourceARTElementWrapper();
-      if (wrapper.getArtElement() == reachedElement){
-        wrapper.setArtElement(mergedElement);
-        System.out.println("! Replaced id:"+reachedElement.getElementId()+" by id:"+mergedElement.getElementId()+" in a covered edge: "+rgEdge);
+      ARTElement sourceARTElement = rgEdge.getSourceARTElement();
+      if (sourceARTElement == reachedElement){
+        rgEdge.setSourceARTElement(mergedElement);
+        System.out.println("! Replaced id:"+reachedElement.getElementId()+" by id:"+mergedElement.getElementId()+" in a valid edge: "+rgEdge);
       }
     }
 
@@ -728,7 +726,7 @@ public class RelyGuaranteeEnvironment {
         toDelete.add(rgEdge);
         rgEdge.killCoveredEdge();
 
-        makeRelyGuaranteeEnvEdgeFalse(rgEdge);
+        //makeRelyGuaranteeEnvEdgeFalse(rgEdge);
       }
     }
     if (debug){
@@ -757,7 +755,7 @@ public class RelyGuaranteeEnvironment {
       if (rgEdge.getSourceARTElement().isDestroyed()){
         // rgEdge belongs to a dropped subtree
         toDelete.add(rgEdge);
-        makeRelyGuaranteeEnvEdgeFalse(rgEdge);
+        //makeRelyGuaranteeEnvEdgeFalse(rgEdge);
       }
     }
 
@@ -907,11 +905,7 @@ public class RelyGuaranteeEnvironment {
 
 
 
-
-  /**
-   * All env edges created from rgEdge will have a false path formula and a null source ART element.
-   * @param rgEdge
-   */
+/*
   private void makeRelyGuaranteeEnvEdgeFalse(RelyGuaranteeCFAEdgeTemplate rgEdge){
     //System.out.println("---> Made false "+rgEdge);
     PathFormula falsePathFormula = pfManager.makeFalsePathFormula();
@@ -921,7 +915,7 @@ public class RelyGuaranteeEnvironment {
     assert aew.getArtElement() != null;
     pfw.setPathFormula(falsePathFormula);
     //aew.setARTElement(null);
-  }
+  }/*
 
   /**
    * Removes all unprocessed environmental transitions that belong to subtree root at the specified element.

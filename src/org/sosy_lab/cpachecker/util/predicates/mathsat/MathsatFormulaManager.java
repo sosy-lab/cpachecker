@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat;
 
-import static mathsat.api.*;
+import static org.sosy_lab.cpachecker.util.predicates.mathsat.NativeApi.*;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;

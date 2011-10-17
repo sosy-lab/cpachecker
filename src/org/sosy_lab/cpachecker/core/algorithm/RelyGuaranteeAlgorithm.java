@@ -30,9 +30,9 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Vector;
-import java.util.Map.Entry;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
@@ -410,9 +410,8 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
 
       if (toApply.contains(node)){
         // combine all valid edges into one
-        RelyGuaranteeCombinedCFAEdge combined = new RelyGuaranteeCombinedCFAEdge(valid);
-
-        addEnvTransitionToNode(node, combined);
+        RelyGuaranteeCombinedCFAEdge combined = new RelyGuaranteeCombinedCFAEdge(valid, node, node);
+        addEnvTransitionToNode(combined);
 
         if (debug){
           System.out.println("\t-node "+node+" applied "+combined);
@@ -459,8 +458,8 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
         // apply edges
 
         for (RelyGuaranteeCFAEdgeTemplate edge : valid){
-          RelyGuaranteeCFAEdge rgEdge = edge.instantiate();
-          addEnvTransitionToNode(node, rgEdge);
+          RelyGuaranteeCFAEdge rgEdge = edge.instantiate(node, node);
+          addEnvTransitionToNode(rgEdge);
 
           if (debug){
             System.out.println("\t-node "+node+" applied "+rgEdge);
@@ -504,21 +503,9 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
   /**
    * Add the env transition to the CFA node
    */
-  private void addEnvTransitionToNode(CFANode pNode, RelyGuaranteeCFAEdge pEnvTransition) {
-    pEnvTransition.setPredecessor(pNode);
-    pEnvTransition.setSuccessor(pNode);
-    pNode.addLeavingEdge(pEnvTransition);
-    pNode.addEnteringEdge(pEnvTransition);
-  }
-
-  /**
-   * Add the env transition to the CFA node
-   */
-  private void addEnvTransitionToNode(CFANode pNode, RelyGuaranteeCombinedCFAEdge pEnvTransition) {
-    pEnvTransition.setPredecessor(pNode);
-    pEnvTransition.setSuccessor(pNode);
-    pNode.addLeavingEdge(pEnvTransition);
-    pNode.addEnteringEdge(pEnvTransition);
+  private void addEnvTransitionToNode(CFAEdge edge) {
+    edge.getPredecessor().addLeavingEdge(edge);
+    edge.getSuccessor().addEnteringEdge(edge);;
   }
 
   @Override

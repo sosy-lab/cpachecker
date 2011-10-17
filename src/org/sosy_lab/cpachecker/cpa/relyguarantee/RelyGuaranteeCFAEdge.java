@@ -28,35 +28,25 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdgeTemplate.ARTElementWrapper;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdgeTemplate.PathFormulaWrapper;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
 public class RelyGuaranteeCFAEdge implements CFAEdge{
 
-  private final CFAEdge localEdge;
-  private final PathFormulaWrapper pathFormulaWrapper;
-  private final ARTElementWrapper sourceARTElementWrapper;
-  private final int sourceTid;
-  private CFANode predecessor;
-  private CFANode successor;
   private final RelyGuaranteeCFAEdgeTemplate template;
-  private final Integer uniquePrimeThis;
-  private final Integer uniquePrimeOther;
 
-  protected RelyGuaranteeCFAEdge(CFAEdge pEdge, PathFormulaWrapper pathFormulaWrapper, int sourceTid, ARTElementWrapper sourceARTElementWrapper, RelyGuaranteeEnvironmentalTransition sourceEnvTransition, RelyGuaranteeCFAEdgeTemplate template, Integer uniquePrimeThis, Integer uniquePrimeOther){
-    this.localEdge = pEdge;
-    this.pathFormulaWrapper = pathFormulaWrapper;
-    this.sourceARTElementWrapper = sourceARTElementWrapper;
-    this.sourceTid = sourceTid;
-    this.template = template;
-    this.uniquePrimeThis  = uniquePrimeThis;
-    this.uniquePrimeOther = uniquePrimeOther;
+  private final CFANode predecessor;
+  private final CFANode successor;
+
+  public RelyGuaranteeCFAEdge(RelyGuaranteeCFAEdgeTemplate pTemplate, CFANode predecessor, CFANode successor) {
+    assert predecessor != null;
+    assert successor != null;
+    this.template = pTemplate;
+    this.predecessor = predecessor;
+    this.successor = successor;
   }
 
-
   public ARTElement getSourceARTElement() {
-    return this.sourceARTElementWrapper.artElement;
+    return this.template.getSourceARTElement();
   }
 
   @Override
@@ -74,9 +64,6 @@ public class RelyGuaranteeCFAEdge implements CFAEdge{
     return this.predecessor;
   }
 
-  public void setPredecessor(CFANode node){
-    this.predecessor = node;
-  }
 
   @Override
   public IASTNode getRawAST() {
@@ -85,7 +72,7 @@ public class RelyGuaranteeCFAEdge implements CFAEdge{
 
   @Override
   public String getRawStatement() {
-    return localEdge.getRawStatement();
+    return this.template.getRawStatement();
   }
 
   @Override
@@ -93,13 +80,8 @@ public class RelyGuaranteeCFAEdge implements CFAEdge{
     return this.successor;
   }
 
-  public void setSuccessor(CFANode node){
-    this.successor = node;
-  }
-
-
   public PathFormula getPathFormula() {
-    return this.pathFormulaWrapper.pathFormula;
+    return this.template.getPathFormula();
   }
 
   @Override
@@ -109,37 +91,32 @@ public class RelyGuaranteeCFAEdge implements CFAEdge{
 
   @Override
   public String toString() {
-    return "RG edge from "+sourceTid+": "+localEdge.getRawStatement()+", "+pathFormulaWrapper.pathFormula+" by element id:"+sourceARTElementWrapper.getArtElement().getElementId();
+    return "RG edge from "+this.getSourceTid()+": "+this.getRawStatement()+", "+this.getPathFormula()+" by element id:"+this.getSourceARTElement();
   }
 
   public CFAEdge getLocalEdge() {
-    return this.localEdge;
+    return this.template.getLocalEdge();
   }
 
   public int getSourceTid(){
-    return this.sourceTid;
+    return this.template.getSourceTid();
   }
 
   public RelyGuaranteeCFAEdgeTemplate getTemplate() {
     return template;
   }
 
-
-
   public Integer getUniquePrimeThis() {
-    return uniquePrimeThis;
+    return this.template.getUniquePrimeThis();
   }
-
 
   public Integer getUniquePrimeOther() {
-    return uniquePrimeOther;
+    return this.template.getUniquePrimeOther();
   }
 
-
+  @Override
   public int hashCode() {
-    return 31 * sourceARTElementWrapper.artElement.hashCode()  + pathFormulaWrapper.pathFormula.hashCode();
+    return this.predecessor.hashCode() + 23 * (this.successor.hashCode() +  13 * this.template.hashCode());
   }
-
-
 
 }

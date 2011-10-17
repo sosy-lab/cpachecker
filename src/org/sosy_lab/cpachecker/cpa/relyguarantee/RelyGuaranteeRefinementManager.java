@@ -573,8 +573,6 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         System.out.println("\t-"+node.toString()+" (cached)");
       }
 
-
-
       // how to rename variables in the path formula
       Map<Integer, Integer> adjustmentMap = new HashMap<Integer, Integer>();
 
