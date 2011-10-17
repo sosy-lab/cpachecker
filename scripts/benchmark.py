@@ -304,10 +304,10 @@ class OutputHandler:
         
         memlimit = None
         timelimit = None
-        if (9 in self.benchmark.rlimits): # 9 is key of memlimit, convert value to MB
-            memlimit = str(self.benchmark.rlimits[9][0] / 1024 / 1024) + " MB"
-        if (0 in self.benchmark.rlimits): # 0 is key of timelimit
-            timelimit = str(self.benchmark.rlimits[0][0]) + " s"
+        if (resource.RLIMIT_AS in self.benchmark.rlimits):
+            memlimit = str(self.benchmark.rlimits[resource.RLIMIT_AS][0] / 1024 / 1024) + " MB"
+        if (resource.RLIMIT_CPU in self.benchmark.rlimits):
+            timelimit = str(self.benchmark.rlimits[resource.RLIMIT_CPU][0]) + " s"
 
         self.storeHeaderInXML(version, memlimit, timelimit, opSystem, cpuModel,
                               numberOfCores, maxFrequency, memory)
