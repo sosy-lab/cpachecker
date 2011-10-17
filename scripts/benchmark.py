@@ -434,7 +434,6 @@ class OutputHandler:
 
             else: # try to get revision with GIT-SVN
                 output = subprocess.Popen(['git', 'svn', 'info'],
-                                  cwd=cpaFolder,
                                   stdout=subprocess.PIPE,
                                   stderr=subprocess.STDOUT).communicate()[0]
     
