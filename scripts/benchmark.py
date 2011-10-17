@@ -158,6 +158,12 @@ def getSourceFiles(sourcefilesTagList):
 
             for file in getFileList(includesFilesFile.text):
                 fileDir = os.path.dirname(file)
+                
+                # check for code (if somebody changes 'include' and 'includesfile')
+                if isCode(file):
+                    logging.error("'" + file + "' is no includesfile (set-file).\n" + \
+                        "please check your benchmark-xml-file or remove bracket '{' from this file.")
+                    sys.exit()
 
                 # read files from list
                 fileWithList = open(file, "r")
@@ -167,8 +173,7 @@ def getSourceFiles(sourcefilesTagList):
                     line = line.strip()
 
                     # ignore comments and empty lines
-                    if line and not line.startswith("#") \
-                            and not line.startswith("//"):
+                    if not isComment(line):                        
                         currentSourcefiles += getFileList(line, fileDir)
 
                 fileWithList.close()
@@ -185,6 +190,25 @@ def getSourceFiles(sourcefilesTagList):
         sourcefiles.extend((file, fileOptions) for file in currentSourcefiles)
 
     return sourcefiles
+
+
+def isCode(filename):
+    '''
+    This function returns True, if  a line of the file contains bracket '{'.
+    '''
+    isCodeFile = False
+    file = open(filename, "r")
+    for line in file:
+        # ignore comments and empty lines
+        if not isComment(line) \
+                and '{' in line: # <-- simple indicator for code
+            isCodeFile = True
+    file.close()
+    return isCodeFile
+
+
+def isComment(line):
+    return not line or line.startswith("#") or line.startswith("//")
 
 
 def removeAll(list, elemToRemove):
