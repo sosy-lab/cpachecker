@@ -1257,6 +1257,8 @@ def getCPAcheckerStatus(returncode, output):
             status = 'SEGMENTATION FAULT'
         elif (returncode == 0 or returncode == 1) and ('Exception' in line):
             status = 'EXCEPTION'
+        elif 'Could not reserve enough space for object heap' in line:
+            status = 'JAVA HEAP ERROR'
         elif (status is None) and line.startswith('Verification result: '):
             line = line[21:].strip()
             if line.startswith('SAFE'):
