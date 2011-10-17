@@ -37,7 +37,7 @@ with the Eclipse PDE wizard!
 
 - ivy/runtime/icu4j.jar: International Components for Unicode
   http://site.icu-project.org/
-  ICU License: http://source.icu-project.org/repos/icu/icu/trunk/license.html
+  ICU License: license-icu4j.html
   Needed by Eclipse CDT parser for error messages.
 
 - eclipse/org.eclipse.*: Eclipse and Eclipse CDT
