@@ -44,6 +44,9 @@ with the Eclipse PDE wizard!
   http://www.eclipse.org/ and http://www.eclipse.org/cdt/
   Eclipse Public License 1.0: http://www.eclipse.org/org/documents/epl-v10.php
   Used for parsing C code.
+  If you want to have the source of Eclipse CDT in your Eclipse, download
+  http://download.eclipse.org/tools/cdt/releases/indigo/plugins/org.eclipse.cdt.core.source_5.3.1.201109151620.jar
+  and put it into the lib/eclipse/ folder.
 
 - guava-*.jar: Google Core Libraries for Java
   http://guava-libraries.googlecode.com
