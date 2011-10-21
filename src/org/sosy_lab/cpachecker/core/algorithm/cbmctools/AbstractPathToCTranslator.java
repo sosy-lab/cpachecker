@@ -103,7 +103,11 @@ public class AbstractPathToCTranslator {
     translator.translatePath(artRoot); // this fills all the lists in translator
 
     List<String> includeList = new ArrayList<String>();
-    includeList.add("#include<stdlib.h>");
+
+    // do not include stdlib.h, as some examples (ntdrivers) define
+    // "typedef unsigned short wchar_t;" that is also defined in stdlib.h
+    // as "typedef int wchar_t;" - these contradicting definitions make cbmc fail
+//  includeList.add("#include<stdlib.h>");
     includeList.add("#include<stdio.h>");
     String ret = Joiner.on('\n').join(concat(includeList,
                                              translator.mGlobalDefinitionsList,
