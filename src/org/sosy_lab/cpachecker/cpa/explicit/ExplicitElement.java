@@ -189,7 +189,7 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
       sb.append(entry.getValue());
       sb.append(" :: ");
       sb.append(noOfReferences.get(key));
-      sb.append("> ");
+      sb.append(">\n");
     }
     return sb.append("] size->  ").append(constantsMap.size()).toString();
   }

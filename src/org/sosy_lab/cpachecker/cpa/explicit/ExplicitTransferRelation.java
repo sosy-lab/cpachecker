@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
+import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -38,10 +39,8 @@ import org.sosy_lab.cpachecker.cfa.ast.DefaultExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
@@ -60,9 +59,11 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
@@ -96,6 +97,9 @@ public class ExplicitTransferRelation implements TransferRelation {
   @Option(description="threshold for amount of different values that "
     + "are tracked for one variable in ExplicitCPA (0 means infinitely)")
   private int threshold = 0;
+
+  @Option(description="propagateBoolExpr")
+  private boolean propagateBoolExpr = true;
 
   private String missingInformationLeftVariable = null;
   private String missingInformationLeftPointer  = null;
@@ -146,7 +150,42 @@ public class ExplicitTransferRelation implements TransferRelation {
     // this is an assumption, e.g. if(a == b)
     case AssumeEdge: {
       AssumeEdge assumeEdge = (AssumeEdge) cfaEdge;
-      successor = handleAssumption(explicitElement, assumeEdge.getExpression(), cfaEdge, assumeEdge.getTruthAssumption(), precision);
+
+      if(true)
+      {
+        if(propagateBoolExpr)
+          successor = handleAssumption(explicitElement.clone(), assumeEdge.getExpression(), cfaEdge, assumeEdge.getTruthAssumption(), precision);
+        else
+          successor = handleAssumption2(explicitElement.clone(), assumeEdge.getExpression(), cfaEdge, assumeEdge.getTruthAssumption(), precision);
+      }
+      else
+      {
+        successor = handleAssumption(explicitElement.clone(), assumeEdge.getExpression(), cfaEdge, assumeEdge.getTruthAssumption(), precision);
+
+        AbstractElement successor2 = handleAssumption2(explicitElement.clone(), assumeEdge.getExpression(), cfaEdge, assumeEdge.getTruthAssumption(), precision);
+
+        if((successor == null && successor2 != null) || (successor != null && successor2 == null))
+          System.out.println("ERR1 in edge " + assumeEdge.getExpression().getRawSignature());
+
+        if((successor == null && successor2 == null))
+          ;
+        else if(!successor.equals(successor2))
+          System.out.println("ERR2 in edge " + assumeEdge.getExpression().getRawSignature());
+
+
+        if((successor == null && successor2 != null) || (successor != null && successor2 == null))
+          System.out.println("ERR1 in edge " + assumeEdge.getExpression().getRawSignature());
+
+        else if((successor == null && successor2 == null))
+          ;
+
+        else if(!successor.equals(successor2))
+          System.out.println("ERR2 in edge " + assumeEdge.getExpression().getRawSignature());
+
+        if(true)
+          successor = successor2;
+      }
+
       break;
     }
 
@@ -310,6 +349,41 @@ public class ExplicitTransferRelation implements TransferRelation {
     ExpressionValueVisitor v = new ExpressionValueVisitor(element, functionName);
 
     return handleAssignmentToVariable("___cpa_temp_result_var_", expression, v);
+  }
+
+  private AbstractElement handleAssumption2(ExplicitElement element,
+      IASTExpression expression, CFAEdge cfaEdge, boolean truthValue, ExplicitPrecision precision)
+  throws UnrecognizedCCodeException
+  {
+    // convert a simple expression like [a] to [a != 0]
+    expression = convertToNotEqualToZeroAssume(expression);
+    //System.out.println("input expression: " + expression.getRawSignature());
+
+    // convert an expression like [a + 753 != 951] to [a != 951 + 753]
+    expression = optimizeAssumeForEvaluation(expression);
+    //System.out.println("outpt expression: " + expression.getRawSignature());
+
+    String functionName = cfaEdge.getPredecessor().getFunctionName();
+
+    // get the value of the expression (either true[1L], false[0L], or unknown[null])
+    ExpressionValueVisitor evalVisitor = new ExpressionValueVisitor(element, functionName);
+    Long value = expression.accept(evalVisitor);
+
+    // value is null, try to derive further information
+    if(value == null)
+    {
+      AssigningValueVisitor avv = new AssigningValueVisitor(element, functionName, truthValue);
+
+      expression.accept(avv);
+
+      return element;
+    }
+
+    else if((truthValue && value == 1L) || (!truthValue && value == 0L))
+      return element;
+
+    else
+      return null;
   }
 
   private AbstractElement handleAssumption(ExplicitElement element,
@@ -1127,14 +1201,24 @@ public class ExplicitTransferRelation implements TransferRelation {
   private class ExpressionValueVisitor extends DefaultExpressionVisitor<Long, UnrecognizedCCodeException>
                                        implements RightHandSideVisitor<Long, UnrecognizedCCodeException> {
 
-    protected final ExplicitElement element;
-    protected final String functionName;
+    protected ExplicitElement element;
+    protected String functionName;
 
     private boolean missingPointer = false;
 
     public ExpressionValueVisitor(ExplicitElement pElement, String pFunctionName) {
       element = pElement;
       functionName = pFunctionName;
+    }
+
+    public void setElement(ExplicitElement element)
+    {
+      this.element = element;
+    }
+
+    public void setScope(String functionName)
+    {
+      this.functionName = functionName;
     }
 
     // TODO fields, arrays
@@ -1152,15 +1236,18 @@ public class ExplicitTransferRelation implements TransferRelation {
 
       switch (binaryOperator) {
       case MODULO:
-      case BINARY_AND:
-      case BINARY_OR:
         // TODO check which cases can be handled (I think all)
-        return null;
+        //return null;
+        throw new UnrecognizedCCodeException("unsupported binary operator", null, pE);
 
       case PLUS:
       case MINUS:
       case DIVIDE:
-      case MULTIPLY: {
+      case MULTIPLY:
+      case SHIFT_LEFT:
+      case BINARY_AND:
+      case BINARY_OR:
+      case BINARY_XOR: {
 
         Long lVal = lVarInBinaryExp.accept(this);
         if (lVal == null) {
@@ -1189,6 +1276,18 @@ public class ExplicitTransferRelation implements TransferRelation {
 
         case MULTIPLY:
           return lVal * rVal;
+
+        case SHIFT_LEFT:
+          return lVal << rVal;
+
+        case BINARY_AND:
+          return lVal & rVal;
+
+        case BINARY_OR:
+          return lVal | rVal;
+
+        case BINARY_XOR:
+          return lVal ^ rVal;
 
         default:
           throw new AssertionError();
@@ -1333,6 +1432,111 @@ public class ExplicitTransferRelation implements TransferRelation {
       default:
         throw new UnrecognizedCCodeException("unknown unary operator", null, unaryExpression);
       }
+    }
+
+    @Override
+    public Long visit(IASTFieldReference fieldReferenceExpression) throws UnrecognizedCCodeException {
+
+      String varName = getvarName(fieldReferenceExpression.getRawSignature(), functionName);
+      if (element.contains(varName)) {
+        return element.getValueFor(varName);
+      } else {
+        return null;
+      }
+    }
+  }
+
+
+  /**
+   * Visitor that derives further information from an assume edge
+   */
+  private class AssigningValueVisitor extends ExpressionValueVisitor {
+
+    protected boolean truthValue = false;
+
+    public AssigningValueVisitor(ExplicitElement pElement, String pFunctionName, boolean truthValue) {
+      super(pElement, pFunctionName);
+
+      this.truthValue = truthValue;
+    }
+
+    private IASTExpression unwrap(IASTExpression expression)
+    {
+      // is this correct for e.g. [!a != !(void*)(int)(!b)] !?!?!
+      if(expression instanceof IASTUnaryExpression)
+      {
+        IASTUnaryExpression exp = (IASTUnaryExpression)expression;
+        if(exp.getOperator() == UnaryOperator.NOT)
+        {
+          expression = exp.getOperand();
+          truthValue = !truthValue;
+
+          expression = unwrap(expression);
+        }
+      }
+
+      if(expression instanceof IASTCastExpression)
+      {
+        IASTCastExpression exp = (IASTCastExpression)expression;
+        expression = exp.getOperand();
+
+        expression = unwrap(expression);
+      }
+
+      return expression;
+    }
+
+    @Override
+    public Long visit(IASTBinaryExpression pE) throws UnrecognizedCCodeException
+    {
+      BinaryOperator binaryOperator   = pE.getOperator();
+
+      IASTExpression lVarInBinaryExp  = pE.getOperand1();
+
+      lVarInBinaryExp = unwrap(lVarInBinaryExp);
+/*
+      if(lVarInBinaryExp instanceof IASTUnaryExpression)
+      {
+        IASTUnaryExpression exp = (IASTUnaryExpression)lVarInBinaryExp;
+        if(exp.getOperator() == UnaryOperator.NOT)
+        {
+          lVarInBinaryExp = exp.getOperand();
+          truthValue = !truthValue;
+        }
+      }
+
+      if(lVarInBinaryExp instanceof IASTCastExpression)
+      {
+        IASTCastExpression exp = (IASTCastExpression)lVarInBinaryExp;
+        lVarInBinaryExp = exp.getOperand();
+      }*/
+
+      IASTExpression rVarInBinaryExp  = pE.getOperand2();
+
+      Long leftValue                  = lVarInBinaryExp.accept(this);
+      Long rightValue                 = rVarInBinaryExp.accept(this);
+
+      if((binaryOperator == BinaryOperator.EQUALS && truthValue) || (binaryOperator == BinaryOperator.NOT_EQUALS && !truthValue))
+      {
+        if(leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp))
+        {
+          //System.out.println("assigning " + getvarName(lVarInBinaryExp.getRawSignature(), functionName) + " value of " + rightValue);
+          element.assignConstant(getvarName(lVarInBinaryExp.getRawSignature(), functionName), rightValue, 2000);
+        }
+
+        else if(rightValue == null && leftValue != null && isAssignable(rVarInBinaryExp))
+        {
+          //System.out.println("assigning " + getvarName(rVarInBinaryExp.getRawSignature(), functionName) + " value of " + leftValue);
+          element.assignConstant(getvarName(rVarInBinaryExp.getRawSignature(), functionName), leftValue, 2000);
+        }
+      }
+
+      return super.visit(pE);
+    }
+
+    private boolean isAssignable(IASTExpression expression)
+    {
+      return expression instanceof IASTIdExpression || expression instanceof IASTFieldReference;
     }
   }
 
@@ -1507,5 +1711,88 @@ public class ExplicitTransferRelation implements TransferRelation {
       }
     }
     return null;
+  }
+
+  /**
+   * This method converts a simple expression like [a] to [a != 0], to handle these expression just like the more general one
+   *
+   * @param expression the expression to generalize
+   * @return the generalized expression
+   */
+  private IASTBinaryExpression convertToNotEqualToZeroAssume(IASTExpression expression)
+  {
+    if(expression instanceof IASTBinaryExpression)
+    {
+      IASTBinaryExpression binaryExpression = (IASTBinaryExpression)expression;
+
+      if(binaryExpression.getOperator() == BinaryOperator.EQUALS || binaryExpression.getOperator() == BinaryOperator.NOT_EQUALS)
+        return binaryExpression;
+    }
+
+    IASTIntegerLiteralExpression zero = new IASTIntegerLiteralExpression("0",
+        expression.getFileLocation(),
+        expression.getExpressionType(),
+        BigInteger.ZERO);
+
+    return new IASTBinaryExpression(expression.getRawSignature() + " " + BinaryOperator.NOT_EQUALS.getOperator() + " " + zero.getRawSignature(),
+                                  expression.getFileLocation(),
+                                  expression.getExpressionType(),
+                                  expression,
+                                  zero,
+                                  BinaryOperator.NOT_EQUALS);
+  }
+
+  /**
+   * This method converts an expression like [a + 753 != 951] to [a != 951 + 753], to be able to derive addition information easier
+   *
+   * @param expression the expression to generalize
+   * @return the generalized expression
+   */
+  private IASTExpression optimizeAssumeForEvaluation(IASTExpression expression)
+  {
+    if(expression instanceof IASTBinaryExpression)
+    {
+      IASTBinaryExpression binaryExpression = (IASTBinaryExpression)expression;
+
+      BinaryOperator operator = binaryExpression.getOperator();
+      IASTExpression leftOperand = binaryExpression.getOperand1();
+      IASTExpression riteOperand = binaryExpression.getOperand2();
+
+      if(operator == BinaryOperator.EQUALS || operator == BinaryOperator.NOT_EQUALS)
+      {
+        if(leftOperand instanceof IASTBinaryExpression && riteOperand instanceof IASTLiteralExpression)
+        {
+          IASTBinaryExpression expr = (IASTBinaryExpression)leftOperand;
+
+          BinaryOperator operation = expr.getOperator();
+          IASTExpression leftAddend = expr.getOperand1();
+          IASTExpression riteAddend = expr.getOperand2();
+
+          // [(a + 753) != 951] => [a == 951 + 753]
+          if(riteAddend instanceof IASTLiteralExpression && (operation == BinaryOperator.PLUS || operation == BinaryOperator.MINUS))
+          {
+            BinaryOperator newOperation = (operation == BinaryOperator.PLUS) ? BinaryOperator.MINUS : BinaryOperator.PLUS;
+
+            IASTBinaryExpression sum = new IASTBinaryExpression(riteOperand.getRawSignature() + " " + newOperation.getOperator() + " " + riteAddend.getRawSignature(),
+                expr.getFileLocation(),
+                expr.getExpressionType(),
+                riteOperand,
+                riteAddend,
+                newOperation);
+
+            IASTBinaryExpression assume = new IASTBinaryExpression(leftAddend.getRawSignature() + " " + operator.getOperator() + " " + sum.getRawSignature(),
+                  expression.getFileLocation(),
+                  expression.getExpressionType(),
+                  leftAddend,
+                  sum,
+                  operator);
+
+            return assume;
+          }
+        }
+      }
+    }
+
+    return expression;
   }
 }
