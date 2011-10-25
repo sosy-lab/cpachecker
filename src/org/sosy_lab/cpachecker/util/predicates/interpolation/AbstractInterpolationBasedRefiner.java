@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.interpolation;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -84,25 +85,33 @@ public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARTBa
   }
 
   @Override
-  protected CounterexampleInfo performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
+  protected CounterexampleInfo performRefinement(final ARTReachedSet pReached, final Path pPath) throws CPAException, InterruptedException {
     totalRefinement.start();
 
     Set<ARTElement> elementsOnPath = ARTUtils.getAllElementsOnPathsTo(pPath.getLast().getFirst()); // TODO: make this lazy?
+
+    boolean branchingOccurred = true;
+    if (elementsOnPath.size() == pPath.size()) {
+      // No branches/merges in path, it is precise.
+      // We don't need to care about creating extra predicates for branching etc.
+      elementsOnPath = Collections.emptySet();
+      branchingOccurred = false;
+    }
 
     logger.log(Level.FINEST, "Starting interpolation-based refinement");
 
     // create path with all abstraction location elements (excluding the initial element)
     // the last element is the element corresponding to the error location
-    List<Pair<ARTElement, CFANode>> path = transformPath(pPath);
+    final List<Pair<ARTElement, CFANode>> path = transformPath(pPath);
 
     logger.log(Level.ALL, "Abstraction trace is", path);
 
     // create list of formulas on path
-    List<Formula> formulas = getFormulasForPath(path, pPath.getFirst().getFirst());
+    final List<Formula> formulas = getFormulasForPath(path, pPath.getFirst().getFirst());
     assert path.size() == formulas.size();
 
     // build the counterexample
-    CounterexampleTraceInfo<I> counterexample = formulaManager.buildCounterexampleTrace(formulas, elementsOnPath);
+    final CounterexampleTraceInfo<I> counterexample = formulaManager.buildCounterexampleTrace(formulas, elementsOnPath);
 
     // if error is spurious refine
     if (counterexample.isSpurious()) {
@@ -116,26 +125,32 @@ public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARTBa
     } else {
       // we have a real error
       logger.log(Level.FINEST, "Error trace is not spurious");
-      Pair<Path, CounterexampleTraceInfo<I>> preciseCounterexample = findPreciseErrorPath(pPath, counterexample);
+      final Path targetPath;
+      final CounterexampleTraceInfo<I> preciseCounterexample;
 
-      Path targetPath;
-      if (preciseCounterexample == null) {
-        logger.log(Level.WARNING, "The error path and the satisfying assignment may be imprecise!");
-        targetPath = pPath;
+      if (branchingOccurred) {
+        Pair<Path, CounterexampleTraceInfo<I>> preciseInfo = findPreciseErrorPath(pPath, counterexample);
 
+        if (preciseInfo != null) {
+          targetPath = preciseInfo.getFirst();
+          preciseCounterexample = preciseInfo.getSecond();
+        } else {
+          logger.log(Level.WARNING, "The error path and the satisfying assignment may be imprecise!");
+          targetPath = pPath;
+          preciseCounterexample = counterexample;
+        }
       } else {
-        targetPath = preciseCounterexample.getFirst();
-        counterexample = preciseCounterexample.getSecond();
+        targetPath = pPath;
+        preciseCounterexample = counterexample;
       }
 
-      CounterexampleInfo cex = CounterexampleInfo.feasible(targetPath, counterexample.getCounterexample());
+      CounterexampleInfo cex = CounterexampleInfo.feasible(targetPath, preciseCounterexample.getCounterexample());
 
-      final CounterexampleTraceInfo<I> counterexample2 = counterexample;
       cex.addFurtherInformation(new Object() {
         // lazily call formulaManager.dumpCounterexample()
         @Override
         public String toString() {
-          return formulaManager.dumpCounterexample(counterexample2);
+          return formulaManager.dumpCounterexample(preciseCounterexample);
         }
       }, dumpCexFile);
 
