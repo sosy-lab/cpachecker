@@ -54,7 +54,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.collect.Lists;
 
-public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> {
+public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, Pair<ARTElement, CFANode>> {
 
   private final FormulaManager fmgr;
 

@@ -58,9 +58,12 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
  * abstraction, this is left to sub-classes.
  *
  * It does, however, produce a nice error path in case of a feasible counterexample.
+ *
+ * @param <I> The type of the result of the interpolation query.
+ * @param <P> The type of path elements used by the sub-class.
  */
 @Options(prefix="cpa.predicate.refinement")
-public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARTBasedRefiner {
+public abstract class AbstractInterpolationBasedRefiner<I, P> extends AbstractARTBasedRefiner {
 
   @Option(name="msatCexFile", type=Option.Type.OUTPUT_FILE,
       description="where to dump the counterexample formula in case the error location is reached")
@@ -102,7 +105,7 @@ public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARTBa
 
     // create path with all abstraction location elements (excluding the initial element)
     // the last element is the element corresponding to the error location
-    final List<Pair<ARTElement, CFANode>> path = transformPath(pPath);
+    final List<P> path = transformPath(pPath);
 
     logger.log(Level.ALL, "Abstraction trace is", path);
 
@@ -159,7 +162,7 @@ public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARTBa
     }
   }
 
-  protected abstract List<Pair<ARTElement, CFANode>> transformPath(Path pPath);
+  protected abstract List<P> transformPath(Path pPath);
 
   /**
    * Get the block formulas from a path.
@@ -168,10 +171,9 @@ public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARTBa
    * @return A list of block formulas for this path.
    * @throws CPATransferException
    */
-  protected abstract List<Formula> getFormulasForPath(List<Pair<ARTElement, CFANode>> path, ARTElement initialElement) throws CPATransferException;
+  protected abstract List<Formula> getFormulasForPath(List<P> path, ARTElement initialElement) throws CPATransferException;
 
-  protected abstract void performRefinement(ARTReachedSet pReached,
-      List<Pair<ARTElement, CFANode>> path,
+  protected abstract void performRefinement(ARTReachedSet pReached, List<P> path,
       CounterexampleTraceInfo<I> counterexample) throws CPAException;
 
   private Pair<Path, CounterexampleTraceInfo<I>> findPreciseErrorPath(Path pPath, CounterexampleTraceInfo<I> counterexample) {

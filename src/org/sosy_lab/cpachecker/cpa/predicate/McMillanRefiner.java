@@ -54,7 +54,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.collect.Lists;
 
-public class McMillanRefiner extends AbstractInterpolationBasedRefiner<Formula> {
+public class McMillanRefiner extends AbstractInterpolationBasedRefiner<Formula, Pair<ARTElement, CFANode>> {
 
   private int i = 0;
 
