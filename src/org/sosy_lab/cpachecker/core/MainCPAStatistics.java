@@ -36,6 +36,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
+import javax.management.JMException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
+
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
@@ -65,14 +70,33 @@ class MainCPAStatistics implements Statistics {
 
     private static final long MEMORY_CHECK_INTERVAL = 100; // milliseconds
 
+    private final LogManager logger;
+
     private long maxHeap = 0;
     private long sumHeap = 0;
     private long maxNonHeap = 0;
     private long sumNonHeap = 0;
+    private long maxProcess = 0;
+    private long sumProcess = 0;
     private long count = 0;
 
-    private MemoryStatistics() {
+    // necessary stuff to query the OperatingSystemMBean
+    private final MBeanServer mbeanServer;
+    private ObjectName osMbean;
+    private static final String MEMORY_SIZE = "CommittedVirtualMemorySize";
+
+    private MemoryStatistics(LogManager pLogger) {
       super("CPAchecker memory statistics collector");
+
+      logger = pLogger;
+
+      mbeanServer = ManagementFactory.getPlatformMBeanServer();
+      try {
+        osMbean = new ObjectName("java.lang", "type", "OperatingSystem");
+      } catch (MalformedObjectNameException e) {
+        logger.logDebugException(e, "Accessing OperatingSystemMXBean failed");
+        osMbean = null;
+      }
     }
 
     @Override
@@ -80,13 +104,32 @@ class MainCPAStatistics implements Statistics {
       MemoryMXBean mxBean = ManagementFactory.getMemoryMXBean();
       while (true) { // no stop condition, call Thread#interrupt() to stop it
         count++;
+
+        // get Java heap usage
         long currentHeapUsed = mxBean.getHeapMemoryUsage().getUsed();
         maxHeap = Math.max(maxHeap, currentHeapUsed);
         sumHeap += currentHeapUsed;
 
+        // get Java non-heap usage
         long currentNonHeapUsed = mxBean.getNonHeapMemoryUsage().getUsed();
         maxNonHeap = Math.max(maxNonHeap, currentNonHeapUsed);
         sumNonHeap += currentNonHeapUsed;
+
+        // get process virtual memory usage
+        if (osMbean != null) {
+          try {
+            long memUsed = (Long) mbeanServer.getAttribute(osMbean, MEMORY_SIZE);
+            maxProcess = Math.max(maxProcess, memUsed);
+            sumProcess += memUsed;
+
+          } catch (JMException e) {
+            logger.logDebugException(e, "Querying memory size failed");
+            osMbean = null;
+          } catch (ClassCastException e) {
+            logger.logDebugException(e, "Querying memory size failed");
+            osMbean = null;
+          }
+        }
 
         try {
           sleep(MEMORY_CHECK_INTERVAL);
@@ -128,7 +171,7 @@ class MainCPAStatistics implements Statistics {
         subStats = new ArrayList<Statistics>();
 
         if (monitorMemoryUsage) {
-          memStats = new MemoryStatistics();
+          memStats = new MemoryStatistics(pLogger);
           memStats.setDaemon(true);
           memStats.start();
         } else {
@@ -235,6 +278,9 @@ class MainCPAStatistics implements Statistics {
           }
           out.println("Heap memory usage:            " + formatMem(memStats.maxHeap) + " max (" + formatMem(memStats.sumHeap/memStats.count) + " avg)");
           out.println("Non-Heap memory usage:        " + formatMem(memStats.maxNonHeap) + " max (" + formatMem(memStats.sumNonHeap/memStats.count) + " avg)");
+          if (memStats.osMbean != null) {
+            out.println("Total process virtual memory: " + formatMem(memStats.maxProcess) + " max (" + formatMem(memStats.sumProcess/memStats.count) + " avg)");
+          }
         }
     }
 
