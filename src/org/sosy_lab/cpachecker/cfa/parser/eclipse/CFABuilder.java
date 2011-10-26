@@ -362,8 +362,7 @@ class CFABuilder extends ASTVisitor
             logger.log(Level.INFO, "Dead code detected at line", n.getLineNumber() + ": Label", n.getLabel(), "is not reachable.");
 
             // remove this dead code from CFA
-            n.removeEnteringEdge(edge);
-            n.removeLeavingEdge(edge);
+            CFACreationUtils.removeEdgeFromNodes(edge);
             assert n.getNumLeavingEdges() == 0;
           }
         }

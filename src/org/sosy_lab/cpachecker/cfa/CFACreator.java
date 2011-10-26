@@ -323,8 +323,7 @@ public class CFACreator {
     assert firstEdge instanceof BlankEdge && !firstEdge.isJumpEdge();
     CFANode secondNode = firstEdge.getSuccessor();
 
-    cfa.removeLeavingEdge(firstEdge);
-    secondNode.removeEnteringEdge(firstEdge);
+    CFACreationUtils.removeEdgeFromNodes(firstEdge);
 
     // insert one node to start the series of declarations
     CFANode cur = new CFANode(0, cfa.getFunctionName());

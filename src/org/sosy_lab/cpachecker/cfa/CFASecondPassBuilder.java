@@ -167,8 +167,7 @@ public class CFASecondPassBuilder {
     List<IASTExpression> parameters = functionCallExpression.getParameterExpressions();
 
     // delete old edge
-    predecessorNode.removeLeavingEdge(edge);
-    successorNode.removeEnteringEdge(edge);
+    CFACreationUtils.removeEdgeFromNodes(edge);
 
     // create new edges
     CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(functionCall.asStatement().getRawSignature(), lineNumber, predecessorNode, successorNode, functionCall);

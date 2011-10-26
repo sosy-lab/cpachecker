@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 
 /**
@@ -117,9 +118,18 @@ public class CFACreationUtils {
       CFAEdge e = n.getLeavingEdge(i);
       CFANode succ = e.getSuccessor();
 
-      n.removeLeavingEdge(e);
-      succ.removeEnteringEdge(e);
+      removeEdgeFromNodes(e);
       removeChainOfNodesFromCFA(succ);
     }
+  }
+
+  public static void removeEdgeFromNodes(CFAEdge e) {
+    e.getPredecessor().removeLeavingEdge(e);
+    e.getSuccessor().removeEnteringEdge(e);
+  }
+
+  public static void removeSummaryEdgeFromNodes(CallToReturnEdge e) {
+    e.getPredecessor().removeLeavingSummaryEdge(e);
+    e.getSuccessor().removeEnteringSummaryEdge(e);
   }
 }

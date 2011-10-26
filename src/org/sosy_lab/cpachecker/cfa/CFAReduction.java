@@ -36,7 +36,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
@@ -85,11 +84,11 @@ public class CFAReduction {
       // shortcut, all nodes are irrelevant
 
       // remove all outgoing edges of first node
-      for (int i = mainFunction.getNumLeavingEdges() - 1; i >= 0; i--) {
-        mainFunction.removeLeavingEdge(mainFunction.getLeavingEdge(i));
+      while (mainFunction.getNumLeavingEdges() > 0) {
+        CFACreationUtils.removeEdgeFromNodes(mainFunction.getLeavingEdge(0));
       }
       if (mainFunction.getLeavingSummaryEdge() != null) {
-        mainFunction.removeLeavingSummaryEdge(mainFunction.getLeavingSummaryEdge());
+        CFACreationUtils.removeSummaryEdgeFromNodes(mainFunction.getLeavingSummaryEdge());
       }
       return;
     }
@@ -165,29 +164,21 @@ public class CFAReduction {
           if (!errorNodes.contains(prevNode)) {
             // do not remove the direct successors of error nodes
 
-            prevNode.removeLeavingEdge(removedEdge);
-            n.removeEnteringEdge(removedEdge);
+            CFACreationUtils.removeEdgeFromNodes(removedEdge);
           }
         }
 
         // remove all outgoing edges
         while (n.getNumLeavingEdges() > 0) {
-          CFAEdge removedEdge = n.getLeavingEdge(0);
-          CFANode succNode = removedEdge.getSuccessor();
-          n.removeLeavingEdge(removedEdge);
-          succNode.removeEnteringEdge(removedEdge);
+          CFACreationUtils.removeEdgeFromNodes(n.getLeavingEdge(0));
         }
 
         // remove all summary edges
         if (n.getEnteringSummaryEdge() != null) {
-          CallToReturnEdge edge = n.getEnteringSummaryEdge();
-          edge.getPredecessor().removeLeavingSummaryEdge(edge);
-          edge.getSuccessor().removeEnteringSummaryEdge(edge);
+          CFACreationUtils.removeSummaryEdgeFromNodes(n.getEnteringSummaryEdge());
         }
         if (n.getLeavingSummaryEdge() != null) {
-          CallToReturnEdge edge = n.getLeavingSummaryEdge();
-          edge.getPredecessor().removeLeavingSummaryEdge(edge);
-          edge.getSuccessor().removeEnteringSummaryEdge(edge);
+          CFACreationUtils.removeSummaryEdgeFromNodes(n.getLeavingSummaryEdge());
         }
       }
     }
