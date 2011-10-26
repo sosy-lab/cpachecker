@@ -36,6 +36,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
@@ -176,8 +177,18 @@ public class CFAReduction {
           n.removeLeavingEdge(removedEdge);
           succNode.removeEnteringEdge(removedEdge);
         }
-        n.addEnteringSummaryEdge(null);
-        n.addLeavingSummaryEdge(null);
+
+        // remove all summary edges
+        if (n.getEnteringSummaryEdge() != null) {
+          CallToReturnEdge edge = n.getEnteringSummaryEdge();
+          edge.getPredecessor().removeLeavingSummaryEdge(edge);
+          edge.getSuccessor().removeEnteringSummaryEdge(edge);
+        }
+        if (n.getLeavingSummaryEdge() != null) {
+          CallToReturnEdge edge = n.getLeavingSummaryEdge();
+          edge.getPredecessor().removeLeavingSummaryEdge(edge);
+          edge.getSuccessor().removeEnteringSummaryEdge(edge);
+        }
       }
     }
   }
