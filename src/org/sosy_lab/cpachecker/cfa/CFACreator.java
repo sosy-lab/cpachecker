@@ -209,13 +209,15 @@ public class CFACreator {
       assert CFACheck.check(mainFunction, null);
       checkTime.stop();
 
+      CFA cfa = new CFA(cfas, mainFunction, loopStructure);
+
       if ((exportCfaFile != null) && (exportCfa || exportCfaPerFunction)) {
-        exportCFA(cfas, mainFunction);
+        exportCFA(cfa);
       }
 
-      logger.log(Level.FINE, "DONE, CFA for", cfas.size(), "functions created");
+      logger.log(Level.FINE, "DONE, CFA for", cfa.getAllFunctions().size(), "functions created");
 
-      return new CFA(cfas, mainFunction, loopStructure);
+      return cfa;
 
     } finally {
       totalTime.stop();
@@ -315,8 +317,7 @@ public class CFACreator {
     addToCFA(be);
   }
 
-  private void exportCFA(final Map<String, CFAFunctionDefinitionNode> cfas,
-      final CFAFunctionDefinitionNode mainFunction) {
+  private void exportCFA(final CFA cfa) {
     // execute asynchronously, this may take several seconds for large programs on slow disks
     new Thread(new Runnable() {
       @Override
@@ -330,7 +331,7 @@ public class CFACreator {
         if (exportCfa) {
           try {
             Files.writeFile(exportCfaFile,
-                DOTBuilder.generateDOT(cfas.values(), mainFunction));
+                DOTBuilder.generateDOT(cfa.getAllFunctions().values(), cfa.getMainFunction()));
           } catch (IOException e) {
             logger.logUserException(Level.WARNING, e,
               "Could not write CFA to dot file");
@@ -342,7 +343,7 @@ public class CFACreator {
         if (exportCfaPerFunction) {
           try {
             File outdir = exportCfaFile.getParentFile();
-            DOTBuilder2.writeReport(mainFunction, outdir);
+            DOTBuilder2.writeReport(cfa.getMainFunction(), outdir);
           } catch (IOException e) {
             logger.logUserException(Level.WARNING, e,
               "Could not write CFA to dot and json file");
