@@ -172,20 +172,7 @@ public class CFACreator {
       }
 
       // get loop information
-      Optional<ImmutableMultimap<String, Loop>> loopStructure;
-      try {
-        ImmutableMultimap.Builder<String, Loop> loops = ImmutableMultimap.builder();
-        for (String functionName : cfaNodes.keySet()) {
-          SortedSet<CFANode> nodes = cfaNodes.get(functionName);
-          loops.putAll(functionName, findLoops(nodes));
-        }
-        loopStructure = Optional.of(loops.build());
-      } catch (ParserException e) {
-        // don't abort here, because if the analysis doesn't need the loop information, we can continue
-        logger.logUserException(Level.WARNING, e, "Could not analyze loop structure of program");
-        loopStructure = Optional.absent();
-      }
-      CFACreator.loops = loopStructure.orNull();
+      Optional<ImmutableMultimap<String, Loop>> loopStructure = getLoopStructure(cfaNodes);
 
       // Insert call and return edges and build the supergraph
       if (interprocedural) {
@@ -223,43 +210,7 @@ public class CFACreator {
       checkTime.stop();
 
       if ((exportCfaFile != null) && (exportCfa || exportCfaPerFunction)) {
-
-        // execute asynchronously, this may take several seconds for large programs on slow disks
-        new Thread(new Runnable() {
-          @Override
-          public void run() {
-            exportTime.start();
-
-            // running the following in parallel is thread-safe
-            // because we don't modify the CFA from this point on
-
-            // write CFA to file
-            if (exportCfa) {
-              try {
-                Files.writeFile(exportCfaFile,
-                    DOTBuilder.generateDOT(cfas.values(), mainFunction));
-              } catch (IOException e) {
-                logger.logUserException(Level.WARNING, e,
-                  "Could not write CFA to dot file");
-                // continue with analysis
-              }
-            }
-
-            // write the CFA to files (one file per function + some metainfo)
-            if (exportCfaPerFunction) {
-              try {
-                File outdir = exportCfaFile.getParentFile();
-                DOTBuilder2.writeReport(mainFunction, outdir);
-              } catch (IOException e) {
-                logger.logUserException(Level.WARNING, e,
-                  "Could not write CFA to dot and json file");
-                // continue with analysis
-              }
-            }
-
-            exportTime.stop();
-          }
-        }, "CFA export thread").start();
+        exportCFA(cfas, mainFunction);
       }
 
       logger.log(Level.FINE, "DONE, CFA for", cfas.size(), "functions created");
@@ -308,6 +259,24 @@ public class CFACreator {
     }
   }
 
+  private Optional<ImmutableMultimap<String, Loop>> getLoopStructure(
+      final SortedSetMultimap<String, CFANode> cfaNodes) {
+    Optional<ImmutableMultimap<String, Loop>> loopStructure;
+    try {
+      ImmutableMultimap.Builder<String, Loop> loops = ImmutableMultimap.builder();
+      for (String functionName : cfaNodes.keySet()) {
+        SortedSet<CFANode> nodes = cfaNodes.get(functionName);
+        loops.putAll(functionName, findLoops(nodes));
+      }
+      loopStructure = Optional.of(loops.build());
+    } catch (ParserException e) {
+      // don't abort here, because if the analysis doesn't need the loop information, we can continue
+      logger.logUserException(Level.WARNING, e, "Could not analyze loop structure of program");
+      loopStructure = Optional.absent();
+    }
+    CFACreator.loops = loopStructure.orNull();
+    return loopStructure;
+  }
 
   /**
    * Insert nodes for global declarations after first node of CFA.
@@ -344,6 +313,46 @@ public class CFACreator {
     // and a blank edge connecting the declarations with the second node of CFA
     be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode);
     addToCFA(be);
+  }
+
+  private void exportCFA(final Map<String, CFAFunctionDefinitionNode> cfas,
+      final CFAFunctionDefinitionNode mainFunction) {
+    // execute asynchronously, this may take several seconds for large programs on slow disks
+    new Thread(new Runnable() {
+      @Override
+      public void run() {
+        exportTime.start();
+
+        // running the following in parallel is thread-safe
+        // because we don't modify the CFA from this point on
+
+        // write CFA to file
+        if (exportCfa) {
+          try {
+            Files.writeFile(exportCfaFile,
+                DOTBuilder.generateDOT(cfas.values(), mainFunction));
+          } catch (IOException e) {
+            logger.logUserException(Level.WARNING, e,
+              "Could not write CFA to dot file");
+            // continue with analysis
+          }
+        }
+
+        // write the CFA to files (one file per function + some metainfo)
+        if (exportCfaPerFunction) {
+          try {
+            File outdir = exportCfaFile.getParentFile();
+            DOTBuilder2.writeReport(mainFunction, outdir);
+          } catch (IOException e) {
+            logger.logUserException(Level.WARNING, e,
+              "Could not write CFA to dot and json file");
+            // continue with analysis
+          }
+        }
+
+        exportTime.stop();
+      }
+    }, "CFA export thread").start();
   }
 
   private static void addToCFA(CFAEdge edge) {
