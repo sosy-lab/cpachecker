@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.SortedSetMultimap;
 
 /**
  * Class that encapsulates the whole CFA creation process.
@@ -145,40 +144,38 @@ public class CFACreator {
       ParseResult c = parser.parseFile(filename);
       logger.log(Level.FINE, "Parser Finished");
 
-      final Map<String, CFAFunctionDefinitionNode> cfas = c.getFunctions();
-      final SortedSetMultimap<String, CFANode> cfaNodes = c.getCFANodes();
-
-      if (cfas.isEmpty()) {
+      if (c.isEmpty()) {
         throw new ParserException("No functions found in program");
       }
 
-      final CFAFunctionDefinitionNode mainFunction = getMainFunction(filename, cfas);
+      final CFAFunctionDefinitionNode mainFunction = getMainFunction(filename, c.getFunctions());
+
+      MutableCFA cfa = new MutableCFA(c.getFunctions(), c.getCFANodes(), mainFunction);
 
       checkTime.start();
-      assert cfas.keySet().equals(cfaNodes.keySet());
 
       // check the CFA of each function
-      for (CFAFunctionDefinitionNode cfa : cfas.values()) {
-        assert CFACheck.check(cfa, cfaNodes.get(cfa.getFunctionName()));
+      for (String functionName : cfa.getAllFunctionNames()) {
+        assert CFACheck.check(cfa.getFunction(functionName), cfa.getFunctionNodes(functionName));
       }
       checkTime.stop();
 
       processingTime.start();
 
       // annotate CFA nodes with topological information for later use
-      for(CFAFunctionDefinitionNode cfa : cfas.values()){
+      for(CFAFunctionDefinitionNode function : cfa.getAllFunctions().values()){
         CFATopologicalSort topSort = new CFATopologicalSort();
-        topSort.topologicalSort(cfa);
+        topSort.topologicalSort(function);
       }
 
       // get loop information
-      Optional<ImmutableMultimap<String, Loop>> loopStructure = getLoopStructure(cfaNodes);
+      Optional<ImmutableMultimap<String, Loop>> loopStructure = getLoopStructure(cfa);
 
       // Insert call and return edges and build the supergraph
       if (interprocedural) {
         logger.log(Level.FINE, "Analysis is interprocedural, adding super edges");
 
-        CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfas);
+        CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfa.getAllFunctions());
         spbuilder.insertCallEdgesRecursively();
       }
 
@@ -192,7 +189,7 @@ public class CFACreator {
       // remove irrelevant locations
       if (cfaReduction != null) {
         pruningTime.start();
-        cfaReduction.removeIrrelevantForErrorLocations(new CFA(cfas, mainFunction, loopStructure));
+        cfaReduction.removeIrrelevantForErrorLocations(cfa);
         pruningTime.stop();
 
         if (mainFunction.getNumLeavingEdges() == 0) {
@@ -200,24 +197,25 @@ public class CFACreator {
                 + ", analysis not necessary. "
                 + "If the code contains no error location named ERROR, set the option cfa.removeIrrelevantForErrorLocations to false.");
 
-          return CFA.empty();
+          return ImmutableCFA.empty();
         }
       }
+
+
+      final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(loopStructure);
 
       // check the super CFA starting at the main function
       checkTime.start();
       assert CFACheck.check(mainFunction, null);
       checkTime.stop();
 
-      CFA cfa = new CFA(cfas, mainFunction, loopStructure);
-
       if ((exportCfaFile != null) && (exportCfa || exportCfaPerFunction)) {
-        exportCFA(cfa);
+        exportCFA(immutableCFA);
       }
 
-      logger.log(Level.FINE, "DONE, CFA for", cfa.getAllFunctions().size(), "functions created");
+      logger.log(Level.FINE, "DONE, CFA for", immutableCFA.getAllFunctions().size(), "functions created");
 
-      return cfa;
+      return immutableCFA;
 
     } finally {
       totalTime.stop();
@@ -261,13 +259,12 @@ public class CFACreator {
     }
   }
 
-  private Optional<ImmutableMultimap<String, Loop>> getLoopStructure(
-      final SortedSetMultimap<String, CFANode> cfaNodes) {
+  private Optional<ImmutableMultimap<String, Loop>> getLoopStructure(MutableCFA cfa) {
     Optional<ImmutableMultimap<String, Loop>> loopStructure;
     try {
       ImmutableMultimap.Builder<String, Loop> loops = ImmutableMultimap.builder();
-      for (String functionName : cfaNodes.keySet()) {
-        SortedSet<CFANode> nodes = cfaNodes.get(functionName);
+      for (String functionName : cfa.getAllFunctionNames()) {
+        SortedSet<CFANode> nodes = cfa.getFunctionNodes(functionName);
         loops.putAll(functionName, findLoops(nodes));
       }
       loopStructure = Optional.of(loops.build());

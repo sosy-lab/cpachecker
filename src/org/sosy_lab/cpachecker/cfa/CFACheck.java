@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
@@ -46,7 +47,7 @@ public class CFACheck {
    * @param cfa Node to start traversal from
    * @param nodes Optional set of all nodes in the CFA (may be null)
    */
-  public static boolean check(CFAFunctionDefinitionNode cfa, Set<CFANode> nodes) {
+  public static boolean check(CFAFunctionDefinitionNode cfa, Collection<CFANode> nodes) {
 
     Set<CFANode> visitedNodes = new HashSet<CFANode>();
     Deque<CFANode> waitingNodeList = new ArrayDeque<CFANode>();
@@ -69,8 +70,8 @@ public class CFACheck {
 
     if (nodes != null) {
       if (!visitedNodes.equals(nodes)) {
-        assert false : "\nNodes in CFA but not reachable through traversal: " + Iterables.transform(Sets.difference(nodes, visitedNodes), DEBUG_FORMAT)
-                     + "\nNodes reached that are not in CFA: " + Iterables.transform(Sets.difference(visitedNodes, nodes), DEBUG_FORMAT);
+        assert false : "\nNodes in CFA but not reachable through traversal: " + Iterables.transform(Sets.difference(new HashSet<CFANode>(nodes), visitedNodes), DEBUG_FORMAT)
+                     + "\nNodes reached that are not in CFA: " + Iterables.transform(Sets.difference(visitedNodes, new HashSet<CFANode>(nodes)), DEBUG_FORMAT);
       }
     }
     return true;

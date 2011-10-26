@@ -23,61 +23,27 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import static com.google.common.base.Preconditions.*;
-
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 
-/**
- * This class represents a CFA after it has been fully created (parsing, linking
- * of functions, etc.).
- */
-public class CFA {
+public interface CFA {
 
-  private final ImmutableMap<String, CFAFunctionDefinitionNode> functions;
-  private final CFAFunctionDefinitionNode mainFunction;
-  private final Optional<ImmutableMultimap<String, Loop>> loopStructure;
+  boolean isEmpty();
 
-  CFA(Map<String, CFAFunctionDefinitionNode> pFunctions, CFAFunctionDefinitionNode pMainFunction, Optional<ImmutableMultimap<String, Loop>> pLoopStructure) {
-    functions = ImmutableMap.copyOf(pFunctions);
-    mainFunction = checkNotNull(pMainFunction);
-    checkArgument(functions.get(mainFunction.getFunctionName()) == mainFunction);
-    loopStructure = pLoopStructure;
-  }
+  Set<String> getAllFunctionNames();
 
-  private CFA() {
-    functions = ImmutableMap.of();
-    mainFunction = null;
-    loopStructure = Optional.absent();
-  }
+  CFAFunctionDefinitionNode getFunction(String name);
 
-  static CFA empty() {
-    return new CFA();
-  }
+  Map<String, CFAFunctionDefinitionNode> getAllFunctions();
 
-  public boolean isEmpty() {
-    return functions.isEmpty();
-  }
+  CFAFunctionDefinitionNode getMainFunction();
 
-  public CFAFunctionDefinitionNode getFunction(String name) {
-    return functions.get(name);
-  }
+  Optional<ImmutableMultimap<String, Loop>> getLoopStructure();
 
-  public ImmutableMap<String, CFAFunctionDefinitionNode> getAllFunctions() {
-    return functions;
-  }
-
-  public CFAFunctionDefinitionNode getMainFunction() {
-    return mainFunction;
-  }
-
-  public Optional<ImmutableMultimap<String, Loop>> getLoopStructure() {
-    return loopStructure;
-  }
 }
