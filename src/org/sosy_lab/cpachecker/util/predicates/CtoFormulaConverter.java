@@ -99,6 +99,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.util.MachineModel;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
@@ -144,11 +145,8 @@ public class CtoFormulaConverter {
       "__VERIFIER_nondet_short", "__VERIFIER_nondet_char", "__VERIFIER_nondet_float"
       );
 
-  @Option(description = "the machine model used for functions sizeof and alignof",
-          values={"32-Linux", "64-Linux"})
-  private String machineModel = "32-Linux";
-
-  private MachineModel mMachineModel;
+  @Option(description = "the machine model used for functions sizeof and alignof")
+  private MachineModel machineModel = MachineModel.Linux32;
 
   @Option(description = "handle Pointers")
   private boolean handlePointerAliasing = false;
@@ -767,22 +765,6 @@ public class CtoFormulaConverter {
     return memoryLocations;
   }
 
-  private MachineModel getMachineModel() {
-    if (mMachineModel == null) {
-      if (this.machineModel.equals("32-Linux")) {
-        mMachineModel = new MachineModel32Linux();
-      } else if (this.machineModel.equals("64-Linux")) {
-        mMachineModel = new MachineModel64Linux();
-      } else {
-        logger.log(Level.SEVERE, "Unknown machine model."
-            + " Falling back to default, i.e., a 32 bit Linux machine.");
-        mMachineModel = new MachineModel32Linux();
-      }
-    }
-
-    return mMachineModel;
-  }
-
   /**
    * This class tracks constraints which are created during AST traversal but
    * cannot be applied at the time of creation.
@@ -1044,47 +1026,8 @@ public class CtoFormulaConverter {
         throws UnrecognizedCCodeException {
 
       if (pIType instanceof IASTSimpleDeclSpecifier) {
-        IASTSimpleDeclSpecifier lSimpleDeclSpec =
-            (IASTSimpleDeclSpecifier) pIType;
-        MachineModel lMachineModel = getMachineModel();
+        return fmgr.makeNumber(machineModel.getSizeof((IASTSimpleDeclSpecifier) pIType));
 
-        switch (lSimpleDeclSpec.getType()) {
-        case UNSPECIFIED: {
-          return visitDefault(pExp);
-        }
-        case VOID: {
-          return fmgr.makeNumber(lMachineModel.getSizeofVoid());
-        }
-        case BOOL: {
-          return fmgr.makeNumber(lMachineModel.getSizeofBool());
-        }
-        case CHAR: {
-          return fmgr.makeNumber(lMachineModel.getSizeofChar());
-        }
-        case INT: {
-          if (lSimpleDeclSpec.isLongLong()) {
-            return fmgr.makeNumber(lMachineModel.getSizeofLongLongInt());
-          } else if (lSimpleDeclSpec.isLong()) {
-            return fmgr.makeNumber(lMachineModel.getSizeofLongInt());
-          } else if (lSimpleDeclSpec.isShort()) {
-            return fmgr.makeNumber(lMachineModel.getSizeofShort());
-          } else {
-            return fmgr.makeNumber(lMachineModel.getSizeofInt());
-          }
-        }
-        case FLOAT: {
-          return fmgr.makeNumber(lMachineModel.getSizeofFloat());
-        }
-        case DOUBLE: {
-          if (lSimpleDeclSpec.isLong()) {
-            return fmgr.makeNumber(lMachineModel.getSizeofLongDouble());
-          } else {
-            return fmgr.makeNumber(lMachineModel.getSizeofDouble());
-          }
-        }
-        default:
-          return visitDefault(pExp);
-        }
       } else {
         return visitDefault(pExp);
       }
@@ -2028,108 +1971,6 @@ public class CtoFormulaConverter {
       makeFreshIndex(pVarName, ssa);
 
       return makePointerVariable(pId, function, ssa);
-    }
-  }
-
-
-  private abstract class MachineModel {
-    // numeric types
-    protected int     mSizeofShort;
-    protected int     mSizeofInt;
-    protected int     mSizeofLongInt;
-    protected int     mSizeofLongLongInt;
-    protected int     mSizeofFloat;
-    protected int     mSizeofDouble;
-    protected int     mSizeofLongDouble;
-
-    // other
-    protected int     mSizeofVoid;
-    protected int     mSizeofBool;
-
-    // according to ANSI C, sizeof(char) is always 1
-    private final int mSizeofChar = 1;
-
-    public int getSizeofShort() {
-      return mSizeofShort;
-    }
-
-    public int getSizeofInt() {
-      return mSizeofInt;
-    }
-
-    public int getSizeofLongInt() {
-      return mSizeofLongInt;
-    }
-
-    public int getSizeofLongLongInt() {
-      return mSizeofLongLongInt;
-    }
-
-    public int getSizeofFloat() {
-      return mSizeofFloat;
-    }
-
-    public int getSizeofDouble() {
-      return mSizeofDouble;
-    }
-
-    public int getSizeofLongDouble() {
-      return mSizeofLongDouble;
-    }
-
-    public int getSizeofVoid() {
-      return mSizeofVoid;
-    }
-
-    public int getSizeofBool() {
-      return mSizeofBool;
-    }
-
-    public int getSizeofChar() {
-      return mSizeofChar;
-    }
-  }
-
-  /**
-   * Machine model representing a 32bit Linux machine
-   */
-  private class MachineModel32Linux extends MachineModel {
-
-    public MachineModel32Linux() {
-      // numeric types
-      mSizeofShort = 2;
-      mSizeofInt = 4;
-      mSizeofLongInt = 4;
-      mSizeofLongLongInt = 8;
-      mSizeofFloat = 4;
-      mSizeofDouble = 8;
-      mSizeofLongDouble = 12;
-
-      // other
-      mSizeofVoid = 1;
-      mSizeofBool = 1;
-    }
-
-  }
-
-  /**
-   * Machine model representing a 64bit Linux machine
-   */
-  private class MachineModel64Linux extends MachineModel {
-
-    public MachineModel64Linux() {
-      // numeric types
-      mSizeofShort = 2;
-      mSizeofInt = 4;
-      mSizeofLongInt = 8;
-      mSizeofLongLongInt = 8;
-      mSizeofFloat = 4;
-      mSizeofDouble = 8;
-      mSizeofLongDouble = 16;
-
-      // other
-      mSizeofVoid = 1;
-      mSizeofBool = 1;
     }
   }
 }
