@@ -215,7 +215,13 @@ public class OptionCollector {
    * @param field field with the option */
   private static String getOptionDescription(final Field field) {
     final Option option = field.getAnnotation(Option.class);
-    return formatText(option.description());
+    String text = option.description();
+
+    if (field.getAnnotation(Deprecated.class) != null) {
+      text = "DEPRECATED: " + text;
+    }
+
+    return formatText(text);
   }
 
   /** This function adds the formatted description of {@link Options}
@@ -331,7 +337,7 @@ public class OptionCollector {
       // java.util.List<?> --> List<?>
       genericType = genericType.replaceAll("^[^<]*\\.", "");
 
-      // remove package-definition in middle: 
+      // remove package-definition in middle:
       // List<package.name.X> --> List<X>
       // (without special case "? extends X", that is handled below)
       genericType = genericType.replaceAll("<[^\\?][^<]*\\.", "<");
