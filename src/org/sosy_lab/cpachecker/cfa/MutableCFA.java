@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -60,6 +61,11 @@ class MutableCFA implements CFA {
     allNodes.put(pNode.getFunctionName(), pNode);
   }
 
+  void clear() {
+    functions.clear();
+    allNodes.clear();
+  }
+
   void removeNode(CFANode pNode) {
     SortedSet<CFANode> functionNodes = allNodes.get(pNode.getFunctionName());
     assert functionNodes.contains(pNode);
@@ -92,6 +98,10 @@ class MutableCFA implements CFA {
 
   public SortedSet<CFANode> getFunctionNodes(String pName) {
     return Collections.unmodifiableSortedSet(allNodes.get(pName));
+  }
+
+  public Collection<CFANode> getAllNodes() {
+    return Collections.unmodifiableCollection(allNodes.values());
   }
 
   @Override

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa;
 
 import static org.sosy_lab.cpachecker.util.AbstractElements.*;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
@@ -34,7 +35,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -75,23 +75,15 @@ public class CFAReduction {
 
 
   public void removeIrrelevantForErrorLocations(final MutableCFA cfa) throws InterruptedException {
-    CFAFunctionDefinitionNode mainFunction = cfa.getMainFunction();
-    Set<CFANode> allNodes = CFAUtils.allNodes(mainFunction, true);
-
-    Set<CFANode> errorNodes = getErrorNodesWithCPA(cfa, allNodes);
+    Collection<CFANode> errorNodes = getErrorNodesWithCPA(cfa);
 
     if (errorNodes.isEmpty()) {
       // shortcut, all nodes are irrelevant
-
-      // remove all outgoing edges of first node
-      while (mainFunction.getNumLeavingEdges() > 0) {
-        CFACreationUtils.removeEdgeFromNodes(mainFunction.getLeavingEdge(0));
-      }
-      if (mainFunction.getLeavingSummaryEdge() != null) {
-        CFACreationUtils.removeSummaryEdgeFromNodes(mainFunction.getLeavingSummaryEdge());
-      }
+      cfa.clear();
       return;
     }
+
+    Collection<CFANode> allNodes = cfa.getAllNodes();
 
     if (errorNodes.size() == allNodes.size()) {
       // shortcut, no node is irrelevant
@@ -114,10 +106,10 @@ public class CFAReduction {
     }
 
     // now detach all the nodes not visited
-    pruneIrrelevantNodes(cfa, allNodes, relevantNodes, errorNodes);
+    pruneIrrelevantNodes(cfa, relevantNodes, errorNodes);
   }
 
-  private Set<CFANode> getErrorNodesWithCPA(CFA cfa, Set<CFANode> allNodes) throws InterruptedException {
+  private Collection<CFANode> getErrorNodesWithCPA(MutableCFA cfa) throws InterruptedException {
     try {
       ReachedSetFactory lReachedSetFactory = new ReachedSetFactory(Configuration.defaultConfiguration());
 
@@ -147,13 +139,14 @@ public class CFAReduction {
       logger.log(Level.WARNING, "Error during CFA reduction, using full CFA");
       logger.logDebugException(e);
     }
-    return allNodes;
+    return cfa.getAllNodes();
   }
 
 
-  private void pruneIrrelevantNodes(MutableCFA cfa, Set<CFANode> allNodes,
-      Set<CFANode> relevantNodes, Set<CFANode> errorNodes) {
-    for (CFANode n : allNodes) {
+  private void pruneIrrelevantNodes(MutableCFA cfa, Set<CFANode> relevantNodes,
+      Collection<CFANode> errorNodes) {
+
+    for (CFANode n : cfa.getAllNodes()) {
       if (!relevantNodes.contains(n)) {
         cfa.removeNode(n);
 

@@ -192,7 +192,7 @@ public class CFACreator {
         cfaReduction.removeIrrelevantForErrorLocations(cfa);
         pruningTime.stop();
 
-        if (mainFunction.getNumLeavingEdges() == 0) {
+        if (cfa.isEmpty()) {
           logger.log(Level.INFO, "No error locations reachable from " + mainFunction.getFunctionName()
                 + ", analysis not necessary. "
                 + "If the code contains no error location named ERROR, set the option cfa.removeIrrelevantForErrorLocations to false.");
