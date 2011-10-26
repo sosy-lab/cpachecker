@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -74,12 +75,22 @@ class ImmutableCFA implements CFA {
   }
 
   @Override
+  public int getNumberOfFunctions() {
+    return functions.size();
+  }
+
+  @Override
   public ImmutableSet<String> getAllFunctionNames() {
     return functions.keySet();
   }
 
   @Override
-  public CFAFunctionDefinitionNode getFunction(String name) {
+  public ImmutableCollection<CFAFunctionDefinitionNode> getAllFunctionHeads() {
+    return functions.values();
+  }
+
+  @Override
+  public CFAFunctionDefinitionNode getFunctionHead(String name) {
     return functions.get(name);
   }
 

@@ -156,14 +156,14 @@ public class CFACreator {
 
       // check the CFA of each function
       for (String functionName : cfa.getAllFunctionNames()) {
-        assert CFACheck.check(cfa.getFunction(functionName), cfa.getFunctionNodes(functionName));
+        assert CFACheck.check(cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName));
       }
       checkTime.stop();
 
       processingTime.start();
 
       // annotate CFA nodes with topological information for later use
-      for(CFAFunctionDefinitionNode function : cfa.getAllFunctions().values()){
+      for(CFAFunctionDefinitionNode function : cfa.getAllFunctionHeads()){
         CFATopologicalSort topSort = new CFATopologicalSort();
         topSort.topologicalSort(function);
       }
@@ -213,7 +213,7 @@ public class CFACreator {
         exportCFA(immutableCFA);
       }
 
-      logger.log(Level.FINE, "DONE, CFA for", immutableCFA.getAllFunctions().size(), "functions created");
+      logger.log(Level.FINE, "DONE, CFA for", immutableCFA.getNumberOfFunctions(), "functions created");
 
       return immutableCFA;
 
@@ -331,7 +331,7 @@ public class CFACreator {
         if (exportCfa) {
           try {
             Files.writeFile(exportCfaFile,
-                DOTBuilder.generateDOT(cfa.getAllFunctions().values(), cfa.getMainFunction()));
+                DOTBuilder.generateDOT(cfa.getAllFunctionHeads(), cfa.getMainFunction()));
           } catch (IOException e) {
             logger.logUserException(Level.WARNING, e,
               "Could not write CFA to dot file");

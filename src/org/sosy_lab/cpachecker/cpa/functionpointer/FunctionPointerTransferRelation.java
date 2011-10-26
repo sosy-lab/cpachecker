@@ -149,7 +149,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
       FunctionPointerTarget target = oldState.getTarget(functionCallVariable);
       if (target instanceof NamedFunctionTarget) {
         String functionName = ((NamedFunctionTarget)target).getFunctionName();
-        CFAFunctionDefinitionNode fDefNode = functions.getFunction(functionName);
+        CFAFunctionDefinitionNode fDefNode = functions.getFunctionHead(functionName);
         if (fDefNode != null) {
           logger.log(Level.FINEST, "Function pointer", functionCallVariable, "points to", target, "while it is used.");
 

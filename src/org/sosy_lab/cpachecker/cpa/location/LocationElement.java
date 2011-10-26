@@ -54,8 +54,8 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
 
       SortedSet<CFANode> seenNodes = new TreeSet<CFANode>();
       Deque<CFANode> waitlist = new ArrayDeque<CFANode>();
-      seenNodes.addAll(pCfa.getAllFunctions().values());
-      waitlist.addAll(pCfa.getAllFunctions().values());
+      seenNodes.addAll(pCfa.getAllFunctionHeads());
+      waitlist.addAll(pCfa.getAllFunctionHeads());
 
       while (!waitlist.isEmpty()) {
         CFANode n = waitlist.pop();

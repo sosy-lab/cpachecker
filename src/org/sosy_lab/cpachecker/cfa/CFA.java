@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
@@ -36,9 +37,13 @@ public interface CFA {
 
   boolean isEmpty();
 
+  int getNumberOfFunctions();
+
   Set<String> getAllFunctionNames();
 
-  CFAFunctionDefinitionNode getFunction(String name);
+  Collection<CFAFunctionDefinitionNode> getAllFunctionHeads();
+
+  CFAFunctionDefinitionNode getFunctionHead(String name);
 
   Map<String, CFAFunctionDefinitionNode> getAllFunctions();
 

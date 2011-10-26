@@ -82,12 +82,22 @@ class MutableCFA implements CFA {
   }
 
   @Override
+  public int getNumberOfFunctions() {
+    return functions.size();
+  }
+
+  @Override
   public Set<String> getAllFunctionNames() {
     return Collections.unmodifiableSet(functions.keySet());
   }
 
   @Override
-  public CFAFunctionDefinitionNode getFunction(String pName) {
+  public Collection<CFAFunctionDefinitionNode> getAllFunctionHeads() {
+    return Collections.unmodifiableCollection(functions.values());
+  }
+
+  @Override
+  public CFAFunctionDefinitionNode getFunctionHead(String pName) {
     return functions.get(pName);
   }
 

@@ -92,7 +92,7 @@ public class AbstractPathToCTranslator {
     // there will be no code for these functions, so they can never be called via the function
     // pointer properly; a real solution requires function pointer support within the CPA
     // providing location/successor information
-    for (CFAFunctionDefinitionNode node : cfa.getAllFunctions().values()) {
+    for (CFAFunctionDefinitionNode node : cfa.getAllFunctionHeads()) {
       FunctionDefinitionNode pNode = (FunctionDefinitionNode)node;
 
       String lFunctionHeader = pNode.getFunctionDefinition().getRawSignature();
