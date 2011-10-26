@@ -74,7 +74,7 @@ public class CFAReduction {
   }
 
 
-  public void removeIrrelevantForErrorLocations(final CFA cfa) throws InterruptedException {
+  public void removeIrrelevantForErrorLocations(final MutableCFA cfa) throws InterruptedException {
     CFAFunctionDefinitionNode mainFunction = cfa.getMainFunction();
     Set<CFANode> allNodes = CFAUtils.allNodes(mainFunction, true);
 
@@ -114,7 +114,7 @@ public class CFAReduction {
     }
 
     // now detach all the nodes not visited
-    pruneIrrelevantNodes(allNodes, relevantNodes, errorNodes);
+    pruneIrrelevantNodes(cfa, allNodes, relevantNodes, errorNodes);
   }
 
   private Set<CFANode> getErrorNodesWithCPA(CFA cfa, Set<CFANode> allNodes) throws InterruptedException {
@@ -151,10 +151,11 @@ public class CFAReduction {
   }
 
 
-  private void pruneIrrelevantNodes(Set<CFANode> allNodes,
+  private void pruneIrrelevantNodes(MutableCFA cfa, Set<CFANode> allNodes,
       Set<CFANode> relevantNodes, Set<CFANode> errorNodes) {
     for (CFANode n : allNodes) {
       if (!relevantNodes.contains(n)) {
+        cfa.removeNode(n);
 
         // check if node is successor of error node and remove incoming edges
         for (int edgeIndex = n.getNumEnteringEdges() - 1; edgeIndex >= 0; edgeIndex--) {

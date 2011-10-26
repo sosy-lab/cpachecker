@@ -181,7 +181,7 @@ public class CFACreator {
 
       if (useGlobalVars){
         // add global variables at the beginning of main
-        insertGlobalDeclarations(mainFunction, c.getGlobalDeclarations(), logger);
+        insertGlobalDeclarations(cfa, c.getGlobalDeclarations());
       }
 
       processingTime.stop();
@@ -280,22 +280,24 @@ public class CFACreator {
   /**
    * Insert nodes for global declarations after first node of CFA.
    */
-  public static void insertGlobalDeclarations(final CFAFunctionDefinitionNode cfa, List<IASTDeclaration> globalVars, LogManager logger) {
+  public static void insertGlobalDeclarations(final MutableCFA cfa, List<IASTDeclaration> globalVars) {
     if (globalVars.isEmpty()) {
       return;
     }
 
     // split off first node of CFA
-    assert cfa.getNumLeavingEdges() == 1;
-    CFAEdge firstEdge = cfa.getLeavingEdge(0);
+    CFAFunctionDefinitionNode firstNode = cfa.getMainFunction();
+    assert firstNode.getNumLeavingEdges() == 1;
+    CFAEdge firstEdge = firstNode.getLeavingEdge(0);
     assert firstEdge instanceof BlankEdge && !firstEdge.isJumpEdge();
     CFANode secondNode = firstEdge.getSuccessor();
 
     CFACreationUtils.removeEdgeFromNodes(firstEdge);
 
     // insert one node to start the series of declarations
-    CFANode cur = new CFANode(0, cfa.getFunctionName());
-    BlankEdge be = new BlankEdge("INIT GLOBAL VARS", 0, cfa, cur);
+    CFANode cur = new CFANode(0, firstNode.getFunctionName());
+    cfa.addNode(cur);
+    BlankEdge be = new BlankEdge("INIT GLOBAL VARS", 0, firstNode, cur);
     addToCFA(be);
 
     // create a series of GlobalDeclarationEdges, one for each declaration
@@ -303,6 +305,7 @@ public class CFACreator {
       assert d.isGlobal();
 
       CFANode n = new CFANode(d.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
+      cfa.addNode(n);
       GlobalDeclarationEdge e = new GlobalDeclarationEdge(d,
           d.getFileLocation().getStartingLineNumber(), cur, n);
       addToCFA(e);
