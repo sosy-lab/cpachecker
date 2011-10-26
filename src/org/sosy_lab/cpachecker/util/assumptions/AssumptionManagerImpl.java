@@ -89,9 +89,7 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
       // called that used De Morgan's law to transform any occurrence of
       // (!(a && b)) into (!a && !b)
       // I don't see a point in doing this, so I removed it.
-      Constraints constraints = new Constraints();
-      f = fmgr.makeAnd(f, makePredicate((IASTExpression)p, true, function, mapBuilder, constraints));
-      f = constraints.extend(f);
+      f = fmgr.makeAnd(f, makePredicate((IASTExpression)p, function, mapBuilder));
     }
     return f;
   }

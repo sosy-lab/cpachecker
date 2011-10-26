@@ -477,7 +477,7 @@ public class CtoFormulaConverter {
       }
     }
 
-    edgeFormula = constraints.extend(edgeFormula);
+    edgeFormula = fmgr.makeAnd(edgeFormula, constraints.get());
 
     SSAMap newSsa = ssa.build();
     if (edgeFormula.isTrue() && (newSsa == oldFormula.getSsa())) {
@@ -697,7 +697,7 @@ public class CtoFormulaConverter {
     return exp.accept(getLvalueVisitor(function, ssa, constraints));
   }
 
-  protected Formula makePredicate(IASTExpression exp, boolean isTrue,
+  private Formula makePredicate(IASTExpression exp, boolean isTrue,
       String function, SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
 
     Formula result = toBooleanFormula(exp.accept(getExpressionVisitor(function, ssa, constraints)));
@@ -706,6 +706,12 @@ public class CtoFormulaConverter {
       result = fmgr.makeNot(result);
     }
     return result;
+  }
+
+  protected Formula makePredicate(IASTExpression exp, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
+    Constraints constraints = new Constraints();
+    Formula f = makePredicate(exp, true, function, ssa, constraints);
+    return fmgr.makeAnd(f, constraints.get());
   }
 
   private ExpressionToFormulaVisitor getExpressionVisitor(String pFunction,
@@ -769,33 +775,16 @@ public class CtoFormulaConverter {
    * This class tracks constraints which are created during AST traversal but
    * cannot be applied at the time of creation.
    */
-  protected class Constraints {
+  private class Constraints {
 
     private Formula constraints = fmgr.makeTrue();
 
-    public Constraints() {}
-
     private void addConstraint(Formula pCo) {
-      if (constraints.isTrue()) {
-        constraints = pCo;
-      } else {
-        constraints = fmgr.makeAnd(constraints, pCo);
-      }
+      constraints = fmgr.makeAnd(constraints, pCo);
     }
 
-    /**
-     * Applies the constraints to a given Formula and returns the extended Formula.
-     * This constraint container is cleared and set to TRUE.
-     */
-    public Formula extend(Formula f) {
-      if (constraints.isTrue()) {
-        return f;
-      } else {
-        Formula extendedFormula = fmgr.makeAnd(f, constraints);
-        constraints = fmgr.makeTrue();
-
-        return extendedFormula;
-      }
+    public Formula get() {
+      return constraints;
     }
   }
 
