@@ -45,6 +45,10 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 
@@ -98,15 +102,20 @@ public class CFAReduction {
 
     assert allNodes.containsAll(relevantNodes) : "Inconsistent CFA";
 
-    logger.log(Level.INFO, "Detected", allNodes.size()-relevantNodes.size(), "irrelevant CFA nodes.");
+    int numIrrelevantNodes = allNodes.size() - relevantNodes.size();
 
-    if (relevantNodes.size() == allNodes.size()) {
+    logger.log(Level.INFO, "Detected", numIrrelevantNodes, "irrelevant CFA nodes.");
+
+    if (numIrrelevantNodes == 0) {
       // shortcut, no node is irrelevant
       return;
     }
 
+    Predicate<CFANode> irrelevantNode = Predicates.not(Predicates.in(relevantNodes));
+    Collection<CFANode> removedNodes = ImmutableList.copyOf(Collections2.filter(allNodes, irrelevantNode));
+
     // now detach all the nodes not visited
-    pruneIrrelevantNodes(cfa, relevantNodes, errorNodes);
+    pruneIrrelevantNodes(cfa, removedNodes, errorNodes);
   }
 
   private Collection<CFANode> getErrorNodesWithCPA(MutableCFA cfa) throws InterruptedException {
@@ -143,37 +152,35 @@ public class CFAReduction {
   }
 
 
-  private void pruneIrrelevantNodes(MutableCFA cfa, Set<CFANode> relevantNodes,
+  private void pruneIrrelevantNodes(MutableCFA cfa, Collection<CFANode> irrelevantNodes,
       Collection<CFANode> errorNodes) {
 
-    for (CFANode n : cfa.getAllNodes()) {
-      if (!relevantNodes.contains(n)) {
-        cfa.removeNode(n);
+    for (CFANode n : irrelevantNodes) {
+      cfa.removeNode(n);
 
-        // check if node is successor of error node and remove incoming edges
-        for (int edgeIndex = n.getNumEnteringEdges() - 1; edgeIndex >= 0; edgeIndex--) {
-          CFAEdge removedEdge = n.getEnteringEdge(edgeIndex);
-          CFANode prevNode = removedEdge.getPredecessor();
+      // check if node is successor of error node and remove incoming edges
+      for (int edgeIndex = n.getNumEnteringEdges() - 1; edgeIndex >= 0; edgeIndex--) {
+        CFAEdge removedEdge = n.getEnteringEdge(edgeIndex);
+        CFANode prevNode = removedEdge.getPredecessor();
 
-          if (!errorNodes.contains(prevNode)) {
-            // do not remove the direct successors of error nodes
+        if (!errorNodes.contains(prevNode)) {
+          // do not remove the direct successors of error nodes
 
-            CFACreationUtils.removeEdgeFromNodes(removedEdge);
-          }
+          CFACreationUtils.removeEdgeFromNodes(removedEdge);
         }
+      }
 
-        // remove all outgoing edges
-        while (n.getNumLeavingEdges() > 0) {
-          CFACreationUtils.removeEdgeFromNodes(n.getLeavingEdge(0));
-        }
+      // remove all outgoing edges
+      while (n.getNumLeavingEdges() > 0) {
+        CFACreationUtils.removeEdgeFromNodes(n.getLeavingEdge(0));
+      }
 
-        // remove all summary edges
-        if (n.getEnteringSummaryEdge() != null) {
-          CFACreationUtils.removeSummaryEdgeFromNodes(n.getEnteringSummaryEdge());
-        }
-        if (n.getLeavingSummaryEdge() != null) {
-          CFACreationUtils.removeSummaryEdgeFromNodes(n.getLeavingSummaryEdge());
-        }
+      // remove all summary edges
+      if (n.getEnteringSummaryEdge() != null) {
+        CFACreationUtils.removeSummaryEdgeFromNodes(n.getEnteringSummaryEdge());
+      }
+      if (n.getLeavingSummaryEdge() != null) {
+        CFACreationUtils.removeSummaryEdgeFromNodes(n.getLeavingSummaryEdge());
       }
     }
   }
