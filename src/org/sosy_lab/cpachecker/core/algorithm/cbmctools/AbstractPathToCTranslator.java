@@ -417,8 +417,14 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
     List<String> lArguments = Lists.transform(lFunctionCallEdge.getArguments(), RAW_SIGNATURE_FUNCTION);
     String lArgumentString = "(" + Joiner.on(", ").join(lArguments) + ")";
 
-    CFAEdge summaryEdge = lFunctionCallEdge.getPredecessor().getLeavingSummaryEdge();
-    IASTFunctionCall expressionOnSummaryEdge = ((CallToReturnEdge)summaryEdge).getExpression();
+    CallToReturnEdge summaryEdge = lFunctionCallEdge.getPredecessor().getLeavingSummaryEdge();
+    if (summaryEdge == null) {
+      // no summary edge, i.e., no return to this function (CFA was pruned)
+      // we don't need to care whether this was an assignment or just a function call
+      return functionName + lArgumentString + ";";
+    }
+
+    IASTFunctionCall expressionOnSummaryEdge = summaryEdge.getExpression();
     if (expressionOnSummaryEdge instanceof IASTFunctionCallAssignmentStatement) {
       IASTFunctionCallAssignmentStatement assignExp = (IASTFunctionCallAssignmentStatement)expressionOnSummaryEdge;
       String assignedVarName = assignExp.getLeftHandSide().getRawSignature();
