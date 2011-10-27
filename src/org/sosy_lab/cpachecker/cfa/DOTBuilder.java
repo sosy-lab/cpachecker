@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -51,53 +52,19 @@ public final class DOTBuilder {
 	private static final String MAIN_GRAPH = "____Main____Diagram__";
   private static final Joiner JOINER_ON_NEWLINE = Joiner.on('\n');
 
-  private static class ShapePair {
-    private final int nodeNumber;
-    private final String shape;
 
-    private ShapePair(int nodeNo, String shape){
-      this.nodeNumber = nodeNo;
-      this.shape = shape;
-    }
-
-    @Override
-    public String toString() {
-      return "node [shape = " + shape + "]; " + nodeNumber + ";";
-    }
-  }
-
-  private static class DOTNodeShapeWriter extends ArrayList<ShapePair> {
-
-    private static final long serialVersionUID = -595748260228384806L;
-
-    public void add(int no, String shape){
-      add(new ShapePair(no, shape));
-    }
-
-    public String getDot(){
-      return JOINER_ON_NEWLINE.join(this);
-    }
-
-  }
-
-  private static class DOTWriter extends ArrayList<String> {
-
-    private static final long serialVersionUID = -3086512411642445646L;
-
-    @Override
-    public String toString() {
-      return JOINER_ON_NEWLINE.join(this);
-    }
+  private static String formatNode(CFANode node, String shape) {
+    return "node [shape = " + shape + "]; " + node.getNodeNumber() + ";";
   }
 
   public static String generateDOT(Collection<CFAFunctionDefinitionNode> cfasMapList, CFAFunctionDefinitionNode cfa) {
-		Map<String, DOTWriter> subGraphs = new HashMap<String, DOTWriter>();
-		DOTNodeShapeWriter nodeWriter = new DOTNodeShapeWriter();
+		Map<String, List<String>> subGraphs = new HashMap<String, List<String>>();
+		List<String> nodeWriter = new ArrayList<String>();
 
-		subGraphs.put(MAIN_GRAPH, new DOTWriter());
+		subGraphs.put(MAIN_GRAPH, new ArrayList<String>());
 
 		for(CFAFunctionDefinitionNode fnode:cfasMapList){
-			subGraphs.put(fnode.getFunctionName(), new DOTWriter());
+			subGraphs.put(fnode.getFunctionName(), new ArrayList<String>());
 		}
 
 		generateDotHelper (subGraphs, nodeWriter, cfa);
@@ -105,23 +72,23 @@ public final class DOTBuilder {
 		StringBuilder sb = new StringBuilder();
 		sb.append("digraph " + "CFA" + " {\n");
 
-		sb.append(nodeWriter.getDot());
+		JOINER_ON_NEWLINE.appendTo(sb, nodeWriter);
 		sb.append('\n');
 		sb.append("node [shape = circle];\n");
 
 		for (CFAFunctionDefinitionNode fnode : cfasMapList) {
 			sb.append("subgraph cluster_" + fnode.getFunctionName() + " {\n");
 			sb.append("label = \"" + fnode.getFunctionName() + "()\";\n");
-			sb.append(subGraphs.get(fnode.getFunctionName()));
+			JOINER_ON_NEWLINE.appendTo(sb, subGraphs.get(fnode.getFunctionName()));
 			sb.append("}\n");
 		}
 
-		sb.append(subGraphs.get(MAIN_GRAPH));
+    JOINER_ON_NEWLINE.appendTo(sb, subGraphs.get(MAIN_GRAPH));
 		sb.append("}");
 		return sb.toString();
 	}
 
-	private static void generateDotHelper(Map<String, DOTWriter> subGraphWriters, DOTNodeShapeWriter nodeWriter, CFAFunctionDefinitionNode cfa) {
+	private static void generateDotHelper(Map<String, List<String>> subGraphWriters, List<String> nodeWriter, CFAFunctionDefinitionNode cfa) {
 		Set<CFANode> visitedNodes = new HashSet<CFANode> ();
 		Deque<CFANode> waitingNodeList = new ArrayDeque<CFANode> ();
 		Set<CFANode> waitingNodeSet = new HashSet<CFANode> ();
@@ -136,7 +103,7 @@ public final class DOTBuilder {
 			visitedNodes.add (node);
 
 			if(node.isLoopStart()){
-				nodeWriter.add(node.getNodeNumber(), "doublecircle");
+				nodeWriter.add(formatNode(node, "doublecircle"));
 			}
 
 			int leavingEdgeCount = node.getNumLeavingEdges ();
@@ -145,7 +112,7 @@ public final class DOTBuilder {
 				CFAEdge edge = node.getLeavingEdge (edgeIdx);
 
 				if(edge instanceof AssumeEdge){
-					nodeWriter.add(node.getNodeNumber(), "diamond");
+					nodeWriter.add(formatNode(node, "diamond"));
 				}
 
 				CFANode successor = edge.getSuccessor ();
@@ -170,14 +137,14 @@ public final class DOTBuilder {
 
 				line = line + edgeText;
 				line = line + "\"];";
-				DOTWriter dw;
+				List<String> graph;
 				if ((edge instanceof FunctionCallEdge) || edge instanceof FunctionReturnEdge){
-					dw = subGraphWriters.get(MAIN_GRAPH);
+					graph = subGraphWriters.get(MAIN_GRAPH);
 				}
 				else{
-					dw = subGraphWriters.get(node.getFunctionName());
+					graph = subGraphWriters.get(node.getFunctionName());
 				}
-				dw.add(line);
+				graph.add(line);
 			}
 
 			CFAEdge edge = node.getLeavingSummaryEdge();
@@ -199,8 +166,8 @@ public final class DOTBuilder {
 				String edgeText = edge.getRawStatement ().replaceAll ("\\\"", "\\\\\\\"").replaceAll("\n", " ");
 				line = line + edgeText;
 				line = line + "\" style=dotted arrowhead=empty];";
-				DOTWriter dw = subGraphWriters.get(node.getFunctionName());
-				dw.add(line);
+				List<String> graph = subGraphWriters.get(node.getFunctionName());
+				graph.add(line);
 			}
 		}
 	}
