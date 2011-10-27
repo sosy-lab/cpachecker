@@ -84,24 +84,23 @@ public final class DOTBuilder {
 
     private static final long serialVersionUID = -3086512411642445646L;
 
-    public String getSubGraph(){
+    @Override
+    public String toString() {
       return JOINER_ON_NEWLINE.join(this);
     }
   }
 
   public static String generateDOT(Collection<CFAFunctionDefinitionNode> cfasMapList, CFAFunctionDefinitionNode cfa) {
-		Map<String, DOTWriter> subGraphWriters = new HashMap<String, DOTWriter>();
+		Map<String, DOTWriter> subGraphs = new HashMap<String, DOTWriter>();
 		DOTNodeShapeWriter nodeWriter = new DOTNodeShapeWriter();
 
-		DOTWriter dw = new DOTWriter();
-		subGraphWriters.put(MAIN_GRAPH, dw);
+		subGraphs.put(MAIN_GRAPH, new DOTWriter());
 
 		for(CFAFunctionDefinitionNode fnode:cfasMapList){
-			dw = new DOTWriter();
-			subGraphWriters.put(fnode.getFunctionName(), dw);
+			subGraphs.put(fnode.getFunctionName(), new DOTWriter());
 		}
 
-		generateDotHelper (subGraphWriters, nodeWriter, cfa);
+		generateDotHelper (subGraphs, nodeWriter, cfa);
 
 		StringBuilder sb = new StringBuilder();
 		sb.append("digraph " + "CFA" + " {\n");
@@ -110,16 +109,14 @@ public final class DOTBuilder {
 		sb.append('\n');
 		sb.append("node [shape = circle];\n");
 
-		for(CFAFunctionDefinitionNode fnode:cfasMapList){
-			dw = subGraphWriters.get(fnode.getFunctionName());
+		for (CFAFunctionDefinitionNode fnode : cfasMapList) {
 			sb.append("subgraph cluster_" + fnode.getFunctionName() + " {\n");
 			sb.append("label = \"" + fnode.getFunctionName() + "()\";\n");
-			sb.append(dw.getSubGraph());
+			sb.append(subGraphs.get(fnode.getFunctionName()));
 			sb.append("}\n");
 		}
 
-		dw = subGraphWriters.get(MAIN_GRAPH);
-		sb.append(dw.getSubGraph());
+		sb.append(subGraphs.get(MAIN_GRAPH));
 		sb.append("}");
 		return sb.toString();
 	}
