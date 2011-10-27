@@ -36,7 +36,8 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.SetMultimap;
 
 /**
  * This class represents a CFA after it has been fully created (parsing, linking
@@ -45,14 +46,17 @@ import com.google.common.collect.Multimap;
 class ImmutableCFA implements CFA {
 
   private final ImmutableMap<String, CFAFunctionDefinitionNode> functions;
+  private final ImmutableSortedSet<CFANode> allNodes;
   private final CFAFunctionDefinitionNode mainFunction;
   private final Optional<ImmutableMultimap<String, Loop>> loopStructure;
 
   ImmutableCFA(Map<String, CFAFunctionDefinitionNode> pFunctions,
-      Multimap<String, CFANode> pAllNodes,
+      SetMultimap<String, CFANode> pAllNodes,
       CFAFunctionDefinitionNode pMainFunction,
       Optional<ImmutableMultimap<String, Loop>> pLoopStructure) {
+
     functions = ImmutableMap.copyOf(pFunctions);
+    allNodes = ImmutableSortedSet.copyOf(pAllNodes.values());
     mainFunction = checkNotNull(pMainFunction);
     loopStructure = pLoopStructure;
 
@@ -61,6 +65,7 @@ class ImmutableCFA implements CFA {
 
   private ImmutableCFA() {
     functions = ImmutableMap.of();
+    allNodes = ImmutableSortedSet.of();
     mainFunction = null;
     loopStructure = Optional.absent();
   }
@@ -97,6 +102,11 @@ class ImmutableCFA implements CFA {
   @Override
   public ImmutableMap<String, CFAFunctionDefinitionNode> getAllFunctions() {
     return functions;
+  }
+
+  @Override
+  public ImmutableSortedSet<CFANode> getAllNodes() {
+    return allNodes;
   }
 
   @Override

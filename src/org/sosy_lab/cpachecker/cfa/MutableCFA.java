@@ -110,6 +110,7 @@ class MutableCFA implements CFA {
     return Collections.unmodifiableSortedSet(allNodes.get(pName));
   }
 
+  @Override
   public Collection<CFANode> getAllNodes() {
     return Collections.unmodifiableCollection(allNodes.values());
   }
