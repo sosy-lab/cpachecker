@@ -85,8 +85,14 @@ public class CFACreationUtils {
       // unreachable edge, don't add it to the CFA
 
       if (!edge.getRawStatement().isEmpty()) {
-        // warn user
-        logger.log(Level.INFO, "Dead code detected at line", edge.getLineNumber() + ":", edge.getRawStatement());
+        // warn user, but not if its due to dead code produced by CIL
+        Level level = Level.INFO;
+        if (edge.getRawStatement().matches("^Goto: (switch|while)_\\d+_[a-z0-9]+$")) {
+          // don't mention dead code produced by CIL on normal log levels
+          level = Level.FINER;
+        }
+
+        logger.log(level, "Dead code detected at line", edge.getLineNumber() + ":", edge.getRawStatement());
       }
     }
   }

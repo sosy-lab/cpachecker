@@ -346,7 +346,7 @@ class CFABuilder extends ASTVisitor
 
       for (CFALabelNode n : labelMap.values()) {
         if (n.getNumEnteringEdges() == 0) {
-          logger.log(Level.INFO, "Dead code detected at line", n.getLineNumber() + ": Label", n.getLabel(), "is not reachable.");
+          logDeadLabel(n);
 
           // remove this dead code from CFA
           CFACreationUtils.removeChainOfNodesFromCFA(n);
@@ -359,7 +359,7 @@ class CFABuilder extends ASTVisitor
             // if (0) { ERROR: goto ERROR; }
             assert !isPathFromTo(currentCFA, n);
 
-            logger.log(Level.INFO, "Dead code detected at line", n.getLineNumber() + ": Label", n.getLabel(), "is not reachable.");
+            logDeadLabel(n);
 
             // remove this dead code from CFA
             CFACreationUtils.removeEdgeFromNodes(edge);
@@ -387,6 +387,15 @@ class CFABuilder extends ASTVisitor
     }
 
     return PROCESS_CONTINUE;
+  }
+
+  private void logDeadLabel(CFALabelNode n) {
+    Level level = Level.INFO;
+    if (n.getLabel().matches("(switch|while)_\\d+_[a-z0-9]+")) {
+      // don't mention dead code produced by CIL on normal log levels
+      level = Level.FINER;
+    }
+    logger.log(level, "Dead code detected at line", n.getLineNumber() + ": Label", n.getLabel(), "is not reachable.");
   }
 
   // Methods for to handle visiting and leaving Statements
