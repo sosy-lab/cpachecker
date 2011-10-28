@@ -76,6 +76,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.AbstractInterpolationBasedRefiner;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
@@ -96,6 +97,8 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
   private Set<String> globalVars = null;
 
+  private final FormulaManager fmgr;
+
   public static ExplicitRefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     if (!(pCpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(PredicateRefiner.class.getSimpleName() + " could not find the ExplicitCPA");
@@ -115,18 +118,20 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
         explicitCpa.getConfiguration(),
         logger);
 
-    ExplicitRefiner refiner = new ExplicitRefiner(explicitCpa.getConfiguration(), logger, pCpa, manager);
+    ExplicitRefiner refiner = new ExplicitRefiner(explicitCpa.getConfiguration(), logger, pCpa, explicitCpa.getFormulaManager(), manager);
 
     return refiner;
   }
 
   protected ExplicitRefiner(final Configuration config, final LogManager logger,
-      final ConfigurableProgramAnalysis pCpa,
+      final ConfigurableProgramAnalysis pCpa, FormulaManager pFmgr,
       final PredicateRefinementManager pInterpolationManager) throws CPAException, InvalidConfigurationException {
 
     super(config, logger, pCpa, pInterpolationManager);
 
     config.inject(this, ExplicitRefiner.class);
+
+    fmgr = pFmgr;
 
     // TODO: runner-up award for ugliest hack of the month ...
     globalVars = ExplicitTransferRelation.globalVarsStatic;
@@ -214,7 +219,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
     PredicateMap predicates = new PredicateMap(pInfo.getPredicatesForRefinement(), pPath);
 
-    Map<CFANode, Set<String>> variablesFromPredicates = predicates.getVariablesFromPredicates();
+    Map<CFANode, Set<String>> variablesFromPredicates = predicates.getVariablesFromPredicates(fmgr);
 
     allReferencedVaraibles.addAll(predicates.getReferencedVariables());
 

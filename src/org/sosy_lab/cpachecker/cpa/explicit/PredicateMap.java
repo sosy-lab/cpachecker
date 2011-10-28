@@ -23,12 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
-import static org.sosy_lab.cpachecker.util.predicates.mathsat.NativeApi.*;
-
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 
 public class PredicateMap
@@ -121,7 +118,7 @@ public class PredicateMap
    *
    * @return a mapping from program locations to variables referenced in predicates at that program location
    */
-  public Map<CFANode, Set<String>> getVariablesFromPredicates()
+  public Map<CFANode, Set<String>> getVariablesFromPredicates(FormulaManager fmgr)
   {
     Map<CFANode, Set<String>> locToVarsMap = new HashMap<CFANode, Set<String>>();
 
@@ -134,7 +131,7 @@ public class PredicateMap
       for(AbstractionPredicate predicate : predicatesAtEdge.getValue())
       {
         // ... get the names of the variables referenced in that predicate ...
-        Collection<String> atoms = extractVariables(((MathsatFormula)predicate.getSymbolicAtom()).getTerm());
+        Collection<String> atoms = fmgr.extractVariables(predicate.getSymbolicAtom());
 
         // ... and add them to location-to-variables-mapping
         if(!atoms.isEmpty())
@@ -152,37 +149,6 @@ public class PredicateMap
     }
 
     return locToVarsMap;
-  }
-
-  /**
-   * This method extracts the variables in plain text from a MathSAT term.
-   *
-   * @todo: copy & paste code from branches/fshell3/src/org/sosy_lab/cpachecker/util/predicates/mathsat/MathsatFormulaManager.java
-   * @param pTerm the MathSAT term from which to extract the variables
-   * @return the collection of variables extracted from the MathSAT term
-   */
-  private static Collection<String> extractVariables(long pTerm) {
-    HashSet<String> lVariables = new HashSet<String>();
-
-    LinkedList<Long> lWorklist = new LinkedList<Long>();
-    lWorklist.add(pTerm);
-
-    while (!lWorklist.isEmpty()) {
-      long lTerm = lWorklist.removeFirst();
-
-      if (msat_term_is_variable(lTerm) != 0) {
-        lVariables.add(msat_term_repr(lTerm));
-      }
-      else {
-        int lArity = msat_term_arity(lTerm);
-        for (int i = 0; i < lArity; i++) {
-          long lSubterm = msat_term_get_arg(lTerm, i);
-          lWorklist.add(lSubterm);
-        }
-      }
-    }
-
-    return lVariables;
   }
 
   @Override

@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 /**
  * A Formula represented as a MathSAT term.
  */
-public class MathsatFormula implements Formula {
+class MathsatFormula implements Formula {
 
     private final long msatTerm;
 
@@ -61,7 +61,7 @@ public class MathsatFormula implements Formula {
         return msatTerm == ((MathsatFormula)o).msatTerm;
     }
 
-    public long getTerm() { return msatTerm; }
+    long getTerm() { return msatTerm; }
 
     @Override
     public int hashCode() {
