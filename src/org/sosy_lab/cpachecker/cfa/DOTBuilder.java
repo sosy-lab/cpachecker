@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 
 /**
  * Class for generating a DOT file from a CFA.
@@ -51,11 +52,6 @@ public final class DOTBuilder {
 
   private static final String MAIN_GRAPH = "____Main____Diagram__";
   private static final Joiner JOINER_ON_NEWLINE = Joiner.on('\n');
-
-
-  private static String formatNode(CFANode node, String shape) {
-    return "node [shape = " + shape + "]; " + node.getNodeNumber() + ";";
-  }
 
   public static String generateDOT(Collection<CFAFunctionDefinitionNode> cfasMapList, CFAFunctionDefinitionNode cfa) {
     Map<String, List<String>> subGraphs = new HashMap<String, List<String>>();
@@ -116,7 +112,6 @@ public final class DOTBuilder {
         }
 
         CFANode successor = edge.getSuccessor ();
-        String line = "";
 
         if ((!visitedNodes.contains (successor)) && (!waitingNodeSet.contains (successor)))
         {
@@ -124,19 +119,6 @@ public final class DOTBuilder {
           waitingNodeSet.add (successor);
         }
 
-        line = line + node.getNodeNumber ();
-        line = line + " -> ";
-        line = line + successor.getNodeNumber ();
-        line = line + " [label=\"" ;
-
-        //the first call to replaceAll replaces \" with \ " to prevent a bug in dotty.
-        //future updates of dotty may make this obsolete.
-        String edgeText = edge.getRawStatement().replaceAll("\\Q\\\"\\E", "\\ \"")
-                                                .replaceAll ("\\\"", "\\\\\\\"")
-                                                .replaceAll("\n", " ");
-
-        line = line + edgeText;
-        line = line + "\"];";
         List<String> graph;
         if ((edge instanceof FunctionCallEdge) || edge instanceof FunctionReturnEdge){
           graph = subGraphWriters.get(MAIN_GRAPH);
@@ -144,13 +126,12 @@ public final class DOTBuilder {
         else{
           graph = subGraphWriters.get(node.getFunctionName());
         }
-        graph.add(line);
+        graph.add(formatEdge(edge, "style=dotted arrowhead=empty"));
       }
 
       CFAEdge edge = node.getLeavingSummaryEdge();
       if(edge != null){
         CFANode successor = edge.getSuccessor ();
-        String line = "";
 
         if ((!visitedNodes.contains (successor)) && (!waitingNodeSet.contains (successor)))
         {
@@ -158,17 +139,35 @@ public final class DOTBuilder {
           waitingNodeSet.add (successor);
         }
 
-        line = line + node.getNodeNumber ();
-        line = line + " -> ";
-        line = line + successor.getNodeNumber ();
-        line = line + " [label=\"" ;
-
-        String edgeText = edge.getRawStatement ().replaceAll ("\\\"", "\\\\\\\"").replaceAll("\n", " ");
-        line = line + edgeText;
-        line = line + "\" style=dotted arrowhead=empty];";
         List<String> graph = subGraphWriters.get(node.getFunctionName());
-        graph.add(line);
+        graph.add(formatEdge(edge, "style=dotted arrowhead=empty"));
       }
     }
+  }
+
+  private static String formatNode(CFANode node, String shape) {
+    return "node [shape = " + shape + "]; " + node.getNodeNumber() + ";";
+  }
+
+  private static String formatEdge(CFAEdge edge, String additionalProperties) {
+    StringBuilder sb = new StringBuilder();
+    sb.append(edge.getPredecessor().getNodeNumber());
+    sb.append(" -> ");
+    sb.append(edge.getSuccessor().getNodeNumber());
+    sb.append(" [label=\"");
+
+    //the first call to replaceAll replaces \" with \ " to prevent a bug in dotty.
+    //future updates of dotty may make this obsolete.
+    sb.append(edge.getRawStatement().replaceAll("\\Q\\\"\\E", "\\ \"")
+                                    .replaceAll("\\\"", "\\\\\\\"")
+                                    .replaceAll("\n", " "));
+
+    sb.append("\"");
+    if (!Strings.isNullOrEmpty(additionalProperties)) {
+      sb.append(" ");
+      sb.append(additionalProperties);
+    }
+    sb.append("];");
+    return sb.toString();
   }
 }
