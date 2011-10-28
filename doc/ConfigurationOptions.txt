@@ -148,7 +148,7 @@ counterexample.continueAfterInfeasibleError = true
 # similar infeasible counterexamples to get discovered, but is unsound
 counterexample.removeInfeasibleErrors = false
 
-# CPA to use (see HowToConfiguration.txt for more documentation on this)
+# CPA to use (cf. Configuration.txt for more documentation on this)
 cpa = CompositeCPA.class.getCanonicalName()
 
 # disable caching of abstract state spaces for blocks

@@ -32,7 +32,7 @@ Running CPAchecker:
    choose a configuration file. This file defines for example which CPAs are used.
    Standard configuration files can be found in the directory test/config/.
    Example: test/config/explicitAnalysis.properties
-   The configuration options used in this file are explained in HowToConfiguration.txt.
+   The configuration options used in this file are explained in Configuration.txt.
 7. Choose a specification file (you may not need this for some CPAs).
    The standard configuration files use test/config/automata/ErrorLocationAutomaton.txt
    as the default specification. With this one, CPAchecker will look for labels
@@ -41,7 +41,7 @@ Running CPAchecker:
 8. Execute "scripts/cpa.sh [ -config <CONFIG_FILE> ] [ -spec <SPEC_FILE> ] <SOURCE_FILE>"
    Either a configuration file or a specification file needs to be given.
    The current directory should be the CPAchecker project directory.
-   Additional command line switches are described in HowToConfiguration.txt.
+   Additional command line switches are described in Configuration.txt.
    Example: scripts/cpa.sh -config test/config/explicitAnalysis.properties test/programs/simple/loop1.c
    This example can also be abbreviated to:
    scripts/cpa.sh -explicitAnalysis test/programs/simple/loop1.c
@@ -58,7 +58,7 @@ Running CPAchecker:
    Also some of these files are only produced if an error is found (or vice-versa).
    CPAchecker will overwrite files in this directory!
    These files may be used to generate a report that can be viewed in a browser.
-   See HowToBuildReport.txt for this.
+   Cf. BuildReport.txt for this.
 
 Running test cases:
 -------------------
