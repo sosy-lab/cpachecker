@@ -35,9 +35,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
@@ -69,7 +71,7 @@ public class YicesTheoremProver implements TheoremProver {
     // much memory
     // private final int MAX_NUM_YICES_CALLS = 100;
 
-    public YicesTheoremProver(FormulaManager mgr) {
+    public YicesTheoremProver(FormulaManager mgr, LogManager logger) {
         msatVarToYicesVar = new HashMap<Long, String>();
         msatToYicesCache = new HashMap<Long, String>();
         yicesPredToMsat = new HashMap<String, Long>();
@@ -78,8 +80,7 @@ public class YicesTheoremProver implements TheoremProver {
         yicesContext = yicesManager.yicesl_mk_context();
         yicesManager.yicesl_set_verbosity((short)0);
         yicesManager.yicesl_set_output_file("/dev/null");
-        //System.out.println("USING YICES VERSION: " +
-        //                   yicesManager.yicesl_version());
+        logger.log(Level.FINEST, "Using Yices version", yicesManager.yicesl_version());
         smgr = mgr;
         declStack = new ArrayDeque<Collection<String>>();
         globalDecls = new HashSet<String>();
