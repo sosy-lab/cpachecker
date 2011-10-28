@@ -33,9 +33,6 @@ case "$arch-$platform" in
   i386-Darwin)
     arch_platform="x86-macosx"
     ;;
-  "Power Macintosh-Darwin")
-    arch_platform="ppc-macosx"
-    ;;
   *)
    echo "Failed to determine system type" 1>&2
    exit 1
