@@ -88,11 +88,11 @@ import org.sosy_lab.cpachecker.util.assumptions.NumericTypes;
 @Options(prefix="cpa.explicit")
 public class ExplicitTransferRelation implements TransferRelation {
 
-
   public static Pair<AbstractElement, String> maxElem;
   private static int maxSize = 0;
 
   private final Set<String> globalVars = new HashSet<String>();
+  public static Set<String> globalVarsStatic = null;
 
   @Option(description="threshold for amount of different values that "
     + "are tracked for one variable in ExplicitCPA (0 means infinitely)")
@@ -104,7 +104,11 @@ public class ExplicitTransferRelation implements TransferRelation {
 
   public ExplicitTransferRelation(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
+
+    globalVarsStatic = globalVars;
   }
+
+  private ExplicitPrecision currentPrecision = null;
 
   @Override
   public Collection<AbstractElement> getAbstractSuccessors(
@@ -112,7 +116,12 @@ public class ExplicitTransferRelation implements TransferRelation {
     if (! (pPrecision instanceof ExplicitPrecision)) {
       throw new IllegalArgumentException("precision is no ExplicitPrecision");
     }
+
     ExplicitPrecision precision = (ExplicitPrecision) pPrecision;
+
+    currentPrecision = precision;
+
+    precision.setLocation(cfaEdge.getSuccessor());
 
     AbstractElement successor;
     ExplicitElement explicitElement = (ExplicitElement)element;
@@ -385,7 +394,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         // assign initial value if necessary
         String scopedVarName = getvarName(varName, functionName);
 
-        if (initialValue != null && !precision.isOnBlacklist(scopedVarName)) {
+        if (initialValue != null && precision.isTracking(scopedVarName)) {
           newElement.assignConstant(scopedVarName, initialValue, this.threshold);
         } else {
           newElement.forget(scopedVarName);
@@ -492,7 +501,10 @@ public class ExplicitTransferRelation implements TransferRelation {
     if (value == null) {
       newElement.forget(assignedVar);
     } else {
-      newElement.assignConstant(assignedVar, value, this.threshold);
+      if(currentPrecision.isTracking(assignedVar) || assignedVar.endsWith("___cpa_temp_result_var_"))
+        newElement.assignConstant(assignedVar, value, this.threshold);
+      else
+        newElement.forget(assignedVar);
     }
     return newElement;
   }
@@ -797,14 +809,22 @@ public class ExplicitTransferRelation implements TransferRelation {
       {
         if(leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp))
         {
-          //System.out.println("assigning " + getvarName(lVarInBinaryExp.getRawSignature(), functionName) + " value of " + rightValue);
-          element.assignConstant(getvarName(lVarInBinaryExp.getRawSignature(), functionName), rightValue, 2000);
+          String leftVariableName = getvarName(lVarInBinaryExp.getRawSignature(), functionName);
+          if(currentPrecision.isTracking(leftVariableName))
+          {
+            //System.out.println("assigning " + leftVariableName + " value of " + rightValue);
+            element.assignConstant(leftVariableName, rightValue, 2000);
+          }
         }
 
         else if(rightValue == null && leftValue != null && isAssignable(rVarInBinaryExp))
         {
-          //System.out.println("assigning " + getvarName(rVarInBinaryExp.getRawSignature(), functionName) + " value of " + leftValue);
-          element.assignConstant(getvarName(rVarInBinaryExp.getRawSignature(), functionName), leftValue, 2000);
+          String rightVariableName = getvarName(rVarInBinaryExp.getRawSignature(), functionName);
+          if(currentPrecision.isTracking(rightVariableName))
+          {
+            //System.out.println("assigning " + rightVariableName + " value of " + leftValue);
+            element.assignConstant(rightVariableName, leftValue, 2000);
+          }
         }
       }
 

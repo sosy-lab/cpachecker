@@ -61,7 +61,7 @@ public class MathsatFormula implements Formula {
         return msatTerm == ((MathsatFormula)o).msatTerm;
     }
 
-    long getTerm() { return msatTerm; }
+    public long getTerm() { return msatTerm; }
 
     @Override
     public int hashCode() {

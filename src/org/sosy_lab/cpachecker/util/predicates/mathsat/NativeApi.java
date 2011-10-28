@@ -27,7 +27,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat;
 
-class NativeApi {
+public class NativeApi {
     static {
         System.loadLibrary("mathsatj");
     }
