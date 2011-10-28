@@ -29,6 +29,8 @@
     </target>
     <target name="clean">
         <delete dir="bin"/>
+        <delete file="cpachecker.jar"/>
+        <delete file="CPAchecker-*.zip"/>
     </target>
     <target depends="clean" name="cleanall"/>
     <target depends="build-subprojects,build-project,build-documentation" name="build"/>
@@ -87,7 +89,10 @@
     </target>
 	
     <target name="zip" depends="jar">
-    	<!-- TODO make a zip file will all the relevant content -->
+        <zip destfile="CPAchecker-${version}.zip" whenempty="fail">
+	    <fileset dir="." includes="doc/** scripts/** cpachecker.jar *.txt" excludes="INSTALL.txt"/>
+	    <fileset dir="." includes="lib/**" excludes="lib/build-only/** lib/native/source/**"/>
+	</zip>
     </target>
 
     <target description="Run all JUnit tests" depends="build" name="tests">
