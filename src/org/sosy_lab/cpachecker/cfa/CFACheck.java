@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import static org.sosy_lab.cpachecker.util.CFAUtils.*;
+
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
@@ -57,8 +59,7 @@ public class CFACheck {
       CFANode node = waitingNodeList.poll();
 
       if (visitedNodes.add(node)) {
-        for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges(); edgeIdx++) {
-          CFAEdge edge = node.getLeavingEdge(edgeIdx);
+        for (CFAEdge edge : leavingEdges(node)) {
           waitingNodeList.add(edge.getSuccessor());
         }
 
@@ -138,8 +139,7 @@ public class CFACheck {
     Set<CFAEdge> seenEdges = new HashSet<CFAEdge>();
     Set<CFANode> seenNodes = new HashSet<CFANode>();
 
-    for (int edgeIdx = 0; edgeIdx < pNode.getNumLeavingEdges(); ++edgeIdx) {
-      CFAEdge edge = pNode.getLeavingEdge(edgeIdx);
+    for (CFAEdge edge : leavingEdges(pNode)) {
       if (!seenEdges.add(edge)) {
         assert false : "Duplicate leaving edge " + edge + " on node " + DEBUG_FORMAT.apply(pNode);
       }
@@ -149,13 +149,7 @@ public class CFACheck {
         assert false : "Duplicate successor " + successor + " for node " + DEBUG_FORMAT.apply(pNode);
       }
 
-      boolean hasEdge = false;
-      for (int succEdgeIdx = 0; succEdgeIdx < successor.getNumEnteringEdges(); ++succEdgeIdx) {
-        if (successor.getEnteringEdge(succEdgeIdx) == edge) {
-          hasEdge = true;
-          break;
-        }
-      }
+      boolean hasEdge = Iterables.contains(enteringEdges(successor), edge);
       assert hasEdge : "Node " + DEBUG_FORMAT.apply(pNode) + " has leaving edge " + edge
           + ", but pNode " + DEBUG_FORMAT.apply(pNode) + " does not have this edge as entering edge!";
     }
@@ -163,8 +157,7 @@ public class CFACheck {
     seenEdges.clear();
     seenNodes.clear();
 
-    for (int edgeIdx = 0; edgeIdx < pNode.getNumEnteringEdges(); ++edgeIdx) {
-      CFAEdge edge = pNode.getEnteringEdge(edgeIdx);
+    for (CFAEdge edge : enteringEdges(pNode)) {
       if (!seenEdges.add(edge)) {
         assert false : "Duplicate entering edge " + edge + " on node " + DEBUG_FORMAT.apply(pNode);
       }
@@ -174,13 +167,7 @@ public class CFACheck {
         assert false : "Duplicate predecessor " + predecessor + " for node " + DEBUG_FORMAT.apply(pNode);
       }
 
-      boolean hasEdge = false;
-      for (int predEdgeIdx = 0; predEdgeIdx < predecessor.getNumLeavingEdges(); ++predEdgeIdx) {
-        if (predecessor.getLeavingEdge(predEdgeIdx) == edge) {
-          hasEdge = true;
-          break;
-        }
-      }
+      boolean hasEdge = Iterables.contains(leavingEdges(predecessor), edge);
       assert hasEdge : "Node " + DEBUG_FORMAT.apply(pNode) + " has entering edge " + edge
           + ", but pNode " + DEBUG_FORMAT.apply(pNode) + " does not have this edge as leaving edge!";
     }

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import static org.sosy_lab.cpachecker.util.CFAUtils.allLeavingEdges;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,11 +39,11 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
 
 /**
  * Class for generating a DOT file from a CFA.
@@ -102,10 +104,7 @@ public final class DOTBuilder {
         nodeWriter.add(formatNode(node, "doublecircle"));
       }
 
-      int leavingEdgeCount = node.getNumLeavingEdges ();
-      for (int edgeIdx = 0; edgeIdx < leavingEdgeCount; edgeIdx++)
-      {
-        CFAEdge edge = node.getLeavingEdge (edgeIdx);
+      for (CFAEdge edge : allLeavingEdges(node)) {
 
         if(edge instanceof AssumeEdge){
           nodeWriter.add(formatNode(node, "diamond"));
@@ -126,21 +125,7 @@ public final class DOTBuilder {
         else{
           graph = subGraphWriters.get(node.getFunctionName());
         }
-        graph.add(formatEdge(edge, "style=dotted arrowhead=empty"));
-      }
-
-      CFAEdge edge = node.getLeavingSummaryEdge();
-      if(edge != null){
-        CFANode successor = edge.getSuccessor ();
-
-        if ((!visitedNodes.contains (successor)) && (!waitingNodeSet.contains (successor)))
-        {
-          waitingNodeList.add (successor);
-          waitingNodeSet.add (successor);
-        }
-
-        List<String> graph = subGraphWriters.get(node.getFunctionName());
-        graph.add(formatEdge(edge, "style=dotted arrowhead=empty"));
+        graph.add(formatEdge(edge));
       }
     }
   }
@@ -149,7 +134,7 @@ public final class DOTBuilder {
     return "node [shape = " + shape + "]; " + node.getNodeNumber() + ";";
   }
 
-  private static String formatEdge(CFAEdge edge, String additionalProperties) {
+  private static String formatEdge(CFAEdge edge) {
     StringBuilder sb = new StringBuilder();
     sb.append(edge.getPredecessor().getNodeNumber());
     sb.append(" -> ");
@@ -163,9 +148,8 @@ public final class DOTBuilder {
                                     .replaceAll("\n", " "));
 
     sb.append("\"");
-    if (!Strings.isNullOrEmpty(additionalProperties)) {
-      sb.append(" ");
-      sb.append(additionalProperties);
+    if (edge instanceof CallToReturnEdge) {
+      sb.append(" style=dotted arrowhead=empty");
     }
     sb.append("];");
     return sb.toString();
