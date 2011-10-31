@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project basedir="." default="build" name="CPAchecker">
+    <property name="version" value="trunk"/> <!-- change here for a release -->
+	
     <property environment="env"/>
     <property name="debuglevel" value="source,lines,vars"/>
     <property name="target" value="1.6"/>
@@ -27,6 +29,8 @@
     </target>
     <target name="clean">
         <delete dir="bin"/>
+        <delete file="cpachecker.jar"/>
+        <delete file="CPAchecker-*.zip"/>
     </target>
     <target depends="clean" name="cleanall"/>
     <target depends="build-subprojects,build-project,build-documentation" name="build"/>
@@ -68,6 +72,27 @@
             <!-- <arg value="-v"/> -->
         </java>
         <echo message="Options collected." level="info"/>
+    </target>
+	
+    <target description="Make a distributable release" depends="build,jar,zip" name="dist"/>
+	
+    <target name="jar" depends="build">
+	<jar basedir="bin/" includes="**/*.class" destfile="cpachecker.jar"
+		whenmanifestonly="fail">
+	    <manifest>
+	    	<attribute name="Implementation-Title" value="CPAchecker"/>
+	    	<attribute name="Implementation-Version" value="${version}"/>
+	    	<attribute name="Implementation-URL" value="http://cpachecker.sosy-lab.org"/>
+		<attribute name="Main-Class" value="org.sosy_lab.cpachecker.cmdline.CPAMain"/>
+	     </manifest>
+	</jar>
+    </target>
+	
+    <target name="zip" depends="jar">
+        <zip destfile="CPAchecker-${version}.zip" whenempty="fail">
+	    <fileset dir="." includes="doc/** scripts/** cpachecker.jar *.txt" excludes="INSTALL.txt"/>
+	    <fileset dir="." includes="lib/**" excludes="lib/build-only/** lib/native/source/**"/>
+	</zip>
     </target>
 
     <target description="Run all JUnit tests" depends="build" name="tests">

@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
+import java.util.HashMap;
+import java.util.Set;
+
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -44,6 +48,16 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
+import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
+import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 
 @Options(prefix="cpa.explicit")
 public class ExplicitCPA implements ConfigurableProgramAnalysis {
@@ -72,10 +86,27 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
   private TransferRelation transferRelation;
   private PrecisionAdjustment precisionAdjustment;
 
-  private ExplicitCPA(Configuration config) throws InvalidConfigurationException {
+  private final Configuration config;
+  private final LogManager logger;
+
+  private final RegionManager regionManager;
+  private final ExtendedFormulaManager formulaManager;
+  private final PathFormulaManager pathFormulaManager;
+  private final TheoremProver theoremProver;
+
+  private final PredicateAbstractionManager predicateManager;
+
+  private ExplicitCPA(Configuration config, LogManager logger) throws InvalidConfigurationException
+  {
+    this.config = config;
+    this.logger = logger;
+
     config.inject(this);
 
-    precision = new ExplicitPrecision(variableBlacklist);
+    if(this.useCegar())
+      precision = new ExplicitPrecision(variableBlacklist, new HashMap<CFANode, Set<String>>());
+    else
+      precision = new ExplicitPrecision(variableBlacklist, null);
 
     ExplicitDomain explicitDomain = new ExplicitDomain ();
     MergeOperator explicitMergeOp = null;
@@ -104,6 +135,14 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
     this.stopOperator = explicitStopOp;
     this.transferRelation = explicitRelation;
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+
+    MathsatFormulaManager mathsatFormulaManager = MathsatFactory.createFormulaManager(config, logger);
+
+    regionManager       = BDDRegionManager.getInstance();
+    formulaManager      = new ExtendedFormulaManager(mathsatFormulaManager, config, logger);
+    pathFormulaManager  = new PathFormulaManagerImpl(formulaManager, config, logger);
+    theoremProver       = new MathsatTheoremProver(mathsatFormulaManager);
+    predicateManager    = new PredicateAbstractionManager(regionManager, formulaManager, theoremProver, config, logger);
   }
 
   @Override
@@ -145,6 +184,39 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
     return precisionAdjustment;
+  }
+
+  protected PredicateAbstractionManager getPredicateManager() {
+    return predicateManager;
+  }
+
+  protected Configuration getConfiguration() {
+    return config;
+  }
+
+  protected LogManager getLogger() {
+    return logger;
+  }
+
+  protected ExtendedFormulaManager getFormulaManager()
+  {
+    return formulaManager;
+  }
+
+  protected PathFormulaManager getPathFormulaManager()
+  {
+    return pathFormulaManager;
+  }
+
+  protected TheoremProver getTheoremProver()
+  {
+    return theoremProver;
+  }
+
+  private boolean useCegar()
+  {
+    return this.config.getProperty("analysis.useRefinement") != null
+      && this.config.getProperty("cegar.refiner").equals("cpa.explicit.ExplicitRefiner");
   }
 
 }

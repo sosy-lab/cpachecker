@@ -92,7 +92,7 @@ public class AbstractPathToCTranslator {
     // there will be no code for these functions, so they can never be called via the function
     // pointer properly; a real solution requires function pointer support within the CPA
     // providing location/successor information
-    for (CFAFunctionDefinitionNode node : cfa.getAllFunctions().values()) {
+    for (CFAFunctionDefinitionNode node : cfa.getAllFunctionHeads()) {
       FunctionDefinitionNode pNode = (FunctionDefinitionNode)node;
 
       String lFunctionHeader = pNode.getFunctionDefinition().getRawSignature();
@@ -103,7 +103,11 @@ public class AbstractPathToCTranslator {
     translator.translatePath(artRoot); // this fills all the lists in translator
 
     List<String> includeList = new ArrayList<String>();
-    includeList.add("#include<stdlib.h>");
+
+    // do not include stdlib.h, as some examples (ntdrivers) define
+    // "typedef unsigned short wchar_t;" that is also defined in stdlib.h
+    // as "typedef int wchar_t;" - these contradicting definitions make cbmc fail
+//  includeList.add("#include<stdlib.h>");
     includeList.add("#include<stdio.h>");
     String ret = Joiner.on('\n').join(concat(includeList,
                                              translator.mGlobalDefinitionsList,
@@ -413,8 +417,14 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
     List<String> lArguments = Lists.transform(lFunctionCallEdge.getArguments(), RAW_SIGNATURE_FUNCTION);
     String lArgumentString = "(" + Joiner.on(", ").join(lArguments) + ")";
 
-    CFAEdge summaryEdge = lFunctionCallEdge.getPredecessor().getLeavingSummaryEdge();
-    IASTFunctionCall expressionOnSummaryEdge = ((CallToReturnEdge)summaryEdge).getExpression();
+    CallToReturnEdge summaryEdge = lFunctionCallEdge.getPredecessor().getLeavingSummaryEdge();
+    if (summaryEdge == null) {
+      // no summary edge, i.e., no return to this function (CFA was pruned)
+      // we don't need to care whether this was an assignment or just a function call
+      return functionName + lArgumentString + ";";
+    }
+
+    IASTFunctionCall expressionOnSummaryEdge = summaryEdge.getExpression();
     if (expressionOnSummaryEdge instanceof IASTFunctionCallAssignmentStatement) {
       IASTFunctionCallAssignmentStatement assignExp = (IASTFunctionCallAssignmentStatement)expressionOnSummaryEdge;
       String assignedVarName = assignExp.getLeftHandSide().getRawSignature();

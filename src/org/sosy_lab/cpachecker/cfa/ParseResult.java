@@ -59,6 +59,10 @@ public class ParseResult {
     globalDeclarations = pGlobalDeclarations;
   }
 
+  public boolean isEmpty() {
+    return functions.isEmpty();
+  }
+
   public Map<String, CFAFunctionDefinitionNode> getFunctions() {
     return functions;
   }

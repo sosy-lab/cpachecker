@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
+
 import java.util.HashSet;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 public class CFATopologicalSort {
@@ -39,10 +42,8 @@ public class CFATopologicalSort {
       return;
     }
 
-    for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-      CFANode successor = node.getLeavingEdge(i).getSuccessor();
-
-      topologicalSort(successor);
+    for (CFAEdge edge : leavingEdges(node)) {
+      topologicalSort(edge.getSuccessor());
     }
 
     node.setTopologicalSortId(topSortId++);

@@ -290,7 +290,13 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
         Formula pred = fmgr.makePredicateVariable(BRANCHING_PREDICATE_NAME + pathElement.getElementId(), 0);
 
         // create formula by edge, be sure to use the correct SSA indices!
+        // TODO the class PathFormulaManagerImpl should not depend on PredicateAbstractElement,
+        // it is used without PredicateCPA as well.
         PredicateAbstractElement pe = AbstractElements.extractElementByType(pathElement, PredicateAbstractElement.class);
+        if (pe == null) {
+          logger.log(Level.WARNING, "Cannot find precise error path information without PredicateCPA");
+          return fmgr.makeTrue();
+        }
         PathFormula pf = pe.getPathFormula();
         pf = this.makeEmptyPathFormula(pf); // reset everything except SSAMap
         pf = this.makeAnd(pf, edge);        // conjunct with edge

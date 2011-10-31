@@ -128,7 +128,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     if (whichProver.equals("MATHSAT")) {
       theoremProver = new MathsatTheoremProver(mathsatFormulaManager);
     } else if (whichProver.equals("YICES")) {
-      theoremProver = new YicesTheoremProver(formulaManager);
+      theoremProver = new YicesTheoremProver(formulaManager, logger);
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }

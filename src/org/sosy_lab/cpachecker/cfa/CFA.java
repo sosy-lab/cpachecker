@@ -23,61 +23,35 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import static com.google.common.base.Preconditions.*;
-
+import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 
-/**
- * This class represents a CFA after it has been fully created (parsing, linking
- * of functions, etc.).
- */
-public class CFA {
+public interface CFA {
 
-  private final ImmutableMap<String, CFAFunctionDefinitionNode> functions;
-  private final CFAFunctionDefinitionNode mainFunction;
-  private final Optional<ImmutableMultimap<String, Loop>> loopStructure;
+  boolean isEmpty();
 
-  CFA(Map<String, CFAFunctionDefinitionNode> pFunctions, CFAFunctionDefinitionNode pMainFunction, Optional<ImmutableMultimap<String, Loop>> pLoopStructure) {
-    functions = ImmutableMap.copyOf(pFunctions);
-    mainFunction = checkNotNull(pMainFunction);
-    checkArgument(functions.get(mainFunction.getFunctionName()) == mainFunction);
-    loopStructure = pLoopStructure;
-  }
+  int getNumberOfFunctions();
 
-  private CFA() {
-    functions = ImmutableMap.of();
-    mainFunction = null;
-    loopStructure = Optional.absent();
-  }
+  Set<String> getAllFunctionNames();
 
-  static CFA empty() {
-    return new CFA();
-  }
+  Collection<CFAFunctionDefinitionNode> getAllFunctionHeads();
 
-  public boolean isEmpty() {
-    return functions.isEmpty();
-  }
+  CFAFunctionDefinitionNode getFunctionHead(String name);
 
-  public CFAFunctionDefinitionNode getFunction(String name) {
-    return functions.get(name);
-  }
+  Map<String, CFAFunctionDefinitionNode> getAllFunctions();
 
-  public ImmutableMap<String, CFAFunctionDefinitionNode> getAllFunctions() {
-    return functions;
-  }
+  Collection<CFANode> getAllNodes();
 
-  public CFAFunctionDefinitionNode getMainFunction() {
-    return mainFunction;
-  }
+  CFAFunctionDefinitionNode getMainFunction();
 
-  public Optional<ImmutableMultimap<String, Loop>> getLoopStructure() {
-    return loopStructure;
-  }
+  Optional<ImmutableMultimap<String, Loop>> getLoopStructure();
+
 }

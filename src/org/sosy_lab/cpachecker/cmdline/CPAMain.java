@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+import org.sosy_lab.pcc.proof_gen.ProofGenerator;
 
 import com.google.common.base.Joiner;
 import com.google.common.io.Closeables;
@@ -193,7 +194,6 @@ public class CPAMain {
     }
   }
 
-
   public static void main(String[] args) {
     // initialize various components
     Configuration cpaConfig = null;
@@ -240,6 +240,16 @@ public class CPAMain {
     shutdownHook.setResult(result);
 
     // statistics are displayed by shutdown hook
+
+    // create PCC proof (if enabled)
+    try {
+      ProofGenerator pccProofGenerator = new ProofGenerator(cpaConfig, logManager);
+      // generate PCC proof
+      pccProofGenerator.generateProof(result);
+    } catch (InvalidConfigurationException e) {
+      logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
+      System.exit(1);
+    }
   }
 
   static String getCodeFilePath(final Configuration cpaConfig, final LogManager logManager){

@@ -12,10 +12,10 @@
 	<classpathentry kind="lib" path="lib/yicesapijava.jar"/>
 	<classpathentry kind="lib" path="lib/eclipse/icu4j-4_2_1.jar"/>
 	<classpathentry kind="lib" path="lib/jgrapht-jdk1.6.jar"/>
-	<classpathentry kind="lib" path="lib/eclipse/org.eclipse.cdt.core_5.2.1.201102110609.jar" sourcepath="/Eclipse CDT core"/>
-	<classpathentry kind="lib" path="lib/eclipse/org.eclipse.core.resources_3.6.1.R36x_v20110131-1630.jar"/>
-	<classpathentry kind="lib" path="lib/eclipse/org.eclipse.equinox.common_3.6.0.v20100503.jar"/>
-	<classpathentry kind="lib" path="lib/eclipse/org.eclipse.osgi_3.6.2.R36x_v20110210.jar"/>
+	<classpathentry kind="lib" path="lib/eclipse/org.eclipse.cdt.core_5.3.1.201109151620.jar" sourcepath="lib/eclipse/org.eclipse.cdt.core.source_5.3.1.201109151620.jar"/>
+	<classpathentry kind="lib" path="lib/eclipse/org.eclipse.core.resources_3.7.100.v20110510-0712.jar"/>
+	<classpathentry kind="lib" path="lib/eclipse/org.eclipse.equinox.common_3.6.0.v20110523.jar"/>
+	<classpathentry kind="lib" path="lib/eclipse/org.eclipse.osgi_3.7.1.R37x_v20110808-1106.jar"/>
 	<classpathentry kind="lib" path="lib/build-only/junit.jar"/>
 	<classpathentry kind="lib" path="lib/build-only/org.hamcrest.core_1.1.0.v20090501071000.jar"/>
 	<classpathentry kind="lib" path="lib/json_simple-1.1.jar"/>

@@ -148,7 +148,7 @@ counterexample.continueAfterInfeasibleError = true
 # similar infeasible counterexamples to get discovered, but is unsound
 counterexample.removeInfeasibleErrors = false
 
-# CPA to use (see HowToConfiguration.txt for more documentation on this)
+# CPA to use (cf. Configuration.txt for more documentation on this)
 cpa = CompositeCPA.class.getCanonicalName()
 
 # disable caching of abstract state spaces for blocks
@@ -183,7 +183,11 @@ cpa.assumptions.progressobserver.heuristics = no default value
 # threshold for heuristics of progressobserver
 cpa.assumptions.progressobserver.heuristics.assumeEdgesInPathHeuristics.threshold = -1
 cpa.assumptions.progressobserver.heuristics.edgeCountHeuristics.threshold = -1
+
+# Threshold for MemoryOutHeuristics (total memory of process in MB)
 cpa.assumptions.progressobserver.heuristics.memoryOutHeuristics.threshold = -1
+
+# threshold for heuristics of progressobserver
 cpa.assumptions.progressobserver.heuristics.pathLengthHeuristics.threshold = -1
 cpa.assumptions.progressobserver.heuristics.reachedSizeHeuristics.threshold = -1
 cpa.assumptions.progressobserver.heuristics.repetitionsInPathHeuristics.threshold = -1
@@ -345,8 +349,8 @@ cpa.predicate.handlePointerAliasing = false
 cpa.predicate.initAllVars = false
 
 # the machine model used for functions sizeof and alignof
-cpa.predicate.machineModel = "32-Linux"
-  allowed values: [32-Linux, 64-Linux]
+cpa.predicate.machineModel = Linux32
+  enum:     [Linux32, Linux64]
 
 # With of the bitvectors if useBitwise is true.
 cpa.predicate.mathsat.bitWidth = 32

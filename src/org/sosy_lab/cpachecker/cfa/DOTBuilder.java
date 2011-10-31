@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import static org.sosy_lab.cpachecker.util.CFAUtils.allLeavingEdges;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -36,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 
@@ -48,163 +52,106 @@ public final class DOTBuilder {
 
   private DOTBuilder() { /* utility class */ }
 
-	private static final String MAIN_GRAPH = "____Main____Diagram__";
+  private static final String MAIN_GRAPH = "____Main____Diagram__";
   private static final Joiner JOINER_ON_NEWLINE = Joiner.on('\n');
 
-  private static class ShapePair {
-    private final int nodeNumber;
-    private final String shape;
-
-    private ShapePair(int nodeNo, String shape){
-      this.nodeNumber = nodeNo;
-      this.shape = shape;
-    }
-
-    @Override
-    public String toString() {
-      return "node [shape = " + shape + "]; " + nodeNumber + ";";
-    }
-  }
-
-  private static class DOTNodeShapeWriter extends ArrayList<ShapePair> {
-
-    private static final long serialVersionUID = -595748260228384806L;
-
-    public void add(int no, String shape){
-      add(new ShapePair(no, shape));
-    }
-
-    public String getDot(){
-      return JOINER_ON_NEWLINE.join(this);
-    }
-
-  }
-
-  private static class DOTWriter extends ArrayList<String> {
-
-    private static final long serialVersionUID = -3086512411642445646L;
-
-    public String getSubGraph(){
-      return JOINER_ON_NEWLINE.join(this);
-    }
-  }
-
   public static String generateDOT(Collection<CFAFunctionDefinitionNode> cfasMapList, CFAFunctionDefinitionNode cfa) {
-		Map<String, DOTWriter> subGraphWriters = new HashMap<String, DOTWriter>();
-		DOTNodeShapeWriter nodeWriter = new DOTNodeShapeWriter();
+    Map<String, List<String>> subGraphs = new HashMap<String, List<String>>();
+    List<String> nodeWriter = new ArrayList<String>();
 
-		DOTWriter dw = new DOTWriter();
-		subGraphWriters.put(MAIN_GRAPH, dw);
+    subGraphs.put(MAIN_GRAPH, new ArrayList<String>());
 
-		for(CFAFunctionDefinitionNode fnode:cfasMapList){
-			dw = new DOTWriter();
-			subGraphWriters.put(fnode.getFunctionName(), dw);
-		}
+    for(CFAFunctionDefinitionNode fnode:cfasMapList){
+      subGraphs.put(fnode.getFunctionName(), new ArrayList<String>());
+    }
 
-		generateDotHelper (subGraphWriters, nodeWriter, cfa);
+    generateDotHelper (subGraphs, nodeWriter, cfa);
 
-		StringBuilder sb = new StringBuilder();
-		sb.append("digraph " + "CFA" + " {\n");
+    StringBuilder sb = new StringBuilder();
+    sb.append("digraph " + "CFA" + " {\n");
 
-		sb.append(nodeWriter.getDot());
-		sb.append('\n');
-		sb.append("node [shape = circle];\n");
+    JOINER_ON_NEWLINE.appendTo(sb, nodeWriter);
+    sb.append('\n');
+    sb.append("node [shape = circle];\n");
 
-		for(CFAFunctionDefinitionNode fnode:cfasMapList){
-			dw = subGraphWriters.get(fnode.getFunctionName());
-			sb.append("subgraph cluster_" + fnode.getFunctionName() + " {\n");
-			sb.append("label = \"" + fnode.getFunctionName() + "()\";\n");
-			sb.append(dw.getSubGraph());
-			sb.append("}\n");
-		}
+    for (CFAFunctionDefinitionNode fnode : cfasMapList) {
+      sb.append("subgraph cluster_" + fnode.getFunctionName() + " {\n");
+      sb.append("label = \"" + fnode.getFunctionName() + "()\";\n");
+      JOINER_ON_NEWLINE.appendTo(sb, subGraphs.get(fnode.getFunctionName()));
+      sb.append("}\n");
+    }
 
-		dw = subGraphWriters.get(MAIN_GRAPH);
-		sb.append(dw.getSubGraph());
-		sb.append("}");
-		return sb.toString();
-	}
+    JOINER_ON_NEWLINE.appendTo(sb, subGraphs.get(MAIN_GRAPH));
+    sb.append("}");
+    return sb.toString();
+  }
 
-	private static void generateDotHelper(Map<String, DOTWriter> subGraphWriters, DOTNodeShapeWriter nodeWriter, CFAFunctionDefinitionNode cfa) {
-		Set<CFANode> visitedNodes = new HashSet<CFANode> ();
-		Deque<CFANode> waitingNodeList = new ArrayDeque<CFANode> ();
-		Set<CFANode> waitingNodeSet = new HashSet<CFANode> ();
+  private static void generateDotHelper(Map<String, List<String>> subGraphWriters, List<String> nodeWriter, CFAFunctionDefinitionNode cfa) {
+    Set<CFANode> visitedNodes = new HashSet<CFANode> ();
+    Deque<CFANode> waitingNodeList = new ArrayDeque<CFANode> ();
+    Set<CFANode> waitingNodeSet = new HashSet<CFANode> ();
 
-		waitingNodeList.add (cfa);
-		waitingNodeSet.add (cfa);
-		while (!waitingNodeList.isEmpty ())
-		{
-			CFANode node = waitingNodeList.poll ();
-			waitingNodeSet.remove (node);
+    waitingNodeList.add (cfa);
+    waitingNodeSet.add (cfa);
+    while (!waitingNodeList.isEmpty ())
+    {
+      CFANode node = waitingNodeList.poll ();
+      waitingNodeSet.remove (node);
 
-			visitedNodes.add (node);
+      visitedNodes.add (node);
 
-			if(node.isLoopStart()){
-				nodeWriter.add(node.getNodeNumber(), "doublecircle");
-			}
+      if(node.isLoopStart()){
+        nodeWriter.add(formatNode(node, "doublecircle"));
+      }
 
-			int leavingEdgeCount = node.getNumLeavingEdges ();
-			for (int edgeIdx = 0; edgeIdx < leavingEdgeCount; edgeIdx++)
-			{
-				CFAEdge edge = node.getLeavingEdge (edgeIdx);
+      for (CFAEdge edge : allLeavingEdges(node)) {
 
-				if(edge instanceof AssumeEdge){
-					nodeWriter.add(node.getNodeNumber(), "diamond");
-				}
+        if(edge instanceof AssumeEdge){
+          nodeWriter.add(formatNode(node, "diamond"));
+        }
 
-				CFANode successor = edge.getSuccessor ();
-				String line = "";
+        CFANode successor = edge.getSuccessor ();
 
-				if ((!visitedNodes.contains (successor)) && (!waitingNodeSet.contains (successor)))
-				{
-					waitingNodeList.add (successor);
-					waitingNodeSet.add (successor);
-				}
+        if ((!visitedNodes.contains (successor)) && (!waitingNodeSet.contains (successor)))
+        {
+          waitingNodeList.add (successor);
+          waitingNodeSet.add (successor);
+        }
 
-				line = line + node.getNodeNumber ();
-				line = line + " -> ";
-				line = line + successor.getNodeNumber ();
-				line = line + " [label=\"" ;
+        List<String> graph;
+        if ((edge instanceof FunctionCallEdge) || edge instanceof FunctionReturnEdge){
+          graph = subGraphWriters.get(MAIN_GRAPH);
+        }
+        else{
+          graph = subGraphWriters.get(node.getFunctionName());
+        }
+        graph.add(formatEdge(edge));
+      }
+    }
+  }
 
-				//the first call to replaceAll replaces \" with \ " to prevent a bug in dotty.
-				//future updates of dotty may make this obsolete.
-				String edgeText = edge.getRawStatement().replaceAll("\\Q\\\"\\E", "\\ \"")
-				                                        .replaceAll ("\\\"", "\\\\\\\"")
-				                                        .replaceAll("\n", " ");
+  private static String formatNode(CFANode node, String shape) {
+    return "node [shape = " + shape + "]; " + node.getNodeNumber() + ";";
+  }
 
-				line = line + edgeText;
-				line = line + "\"];";
-				DOTWriter dw;
-				if ((edge instanceof FunctionCallEdge) || edge instanceof FunctionReturnEdge){
-					dw = subGraphWriters.get(MAIN_GRAPH);
-				}
-				else{
-					dw = subGraphWriters.get(node.getFunctionName());
-				}
-				dw.add(line);
-			}
+  private static String formatEdge(CFAEdge edge) {
+    StringBuilder sb = new StringBuilder();
+    sb.append(edge.getPredecessor().getNodeNumber());
+    sb.append(" -> ");
+    sb.append(edge.getSuccessor().getNodeNumber());
+    sb.append(" [label=\"");
 
-			CFAEdge edge = node.getLeavingSummaryEdge();
-			if(edge != null){
-				CFANode successor = edge.getSuccessor ();
-				String line = "";
+    //the first call to replaceAll replaces \" with \ " to prevent a bug in dotty.
+    //future updates of dotty may make this obsolete.
+    sb.append(edge.getRawStatement().replaceAll("\\Q\\\"\\E", "\\ \"")
+                                    .replaceAll("\\\"", "\\\\\\\"")
+                                    .replaceAll("\n", " "));
 
-				if ((!visitedNodes.contains (successor)) && (!waitingNodeSet.contains (successor)))
-				{
-					waitingNodeList.add (successor);
-					waitingNodeSet.add (successor);
-				}
-
-				line = line + node.getNodeNumber ();
-				line = line + " -> ";
-				line = line + successor.getNodeNumber ();
-				line = line + " [label=\"" ;
-
-				String edgeText = edge.getRawStatement ().replaceAll ("\\\"", "\\\\\\\"").replaceAll("\n", " ");
-				line = line + edgeText;
-				line = line + "\" style=dotted arrowhead=empty];";
-				DOTWriter dw = subGraphWriters.get(node.getFunctionName());
-				dw.add(line);
-			}
-		}
-	}
+    sb.append("\"");
+    if (edge instanceof CallToReturnEdge) {
+      sb.append(" style=dotted arrowhead=empty");
+    }
+    sb.append("];");
+    return sb.toString();
+  }
 }

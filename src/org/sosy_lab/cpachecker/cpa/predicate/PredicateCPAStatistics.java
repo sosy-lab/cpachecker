@@ -64,7 +64,7 @@ class PredicateCPAStatistics implements Statistics {
 
     private final PredicateCPA cpa;
     private final BlockOperator blk;
-    private AbstractInterpolationBasedRefiner<?> refiner = null;
+    private AbstractInterpolationBasedRefiner<?, ?> refiner = null;
 
     public PredicateCPAStatistics(PredicateCPA cpa, BlockOperator blk) throws InvalidConfigurationException {
       this.cpa = cpa;
@@ -72,7 +72,7 @@ class PredicateCPAStatistics implements Statistics {
       cpa.getConfiguration().inject(this, PredicateCPAStatistics.class);
     }
 
-    void addRefiner(AbstractInterpolationBasedRefiner<?> ref) {
+    void addRefiner(AbstractInterpolationBasedRefiner<?, ?> ref) {
       refiner = ref;
     }
 

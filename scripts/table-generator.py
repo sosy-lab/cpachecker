@@ -22,7 +22,7 @@ CSV_SEPARATOR = '\t'
 
 # string searched in filenames to determine correct or incorrect status.
 # use lower case!
-BUG_SUBSTRING_LIST = ['bug', 'unsafe']
+BUG_SUBSTRING_LIST = ['bad', 'bug', 'unsafe']
 
 
 DOCTYPE = '''

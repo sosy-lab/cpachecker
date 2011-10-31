@@ -218,6 +218,11 @@ public class CPAchecker {
         logger.log(Level.WARNING, "The following configuration options were specified but are not used:\n",
             Joiner.on("\n ").join(unusedProperties), "\n");
       }
+      Set<String> deprecatedProperties = config.getDeprecatedProperties();
+      if (!deprecatedProperties.isEmpty()) {
+        logger.log(Level.WARNING, "The following options are deprecated and will be removed in the future:\n",
+            Joiner.on("\n ").join(deprecatedProperties), "\n");
+      }
 
       stats.creationTime.stop();
       stopIfNecessary();

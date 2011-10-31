@@ -70,7 +70,7 @@ import com.google.common.collect.Multimap;
  * and removing the relevant parts of the ART).
  */
 @Options(prefix="cpa.predicate.refinement")
-public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collection<AbstractionPredicate>> {
+public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collection<AbstractionPredicate>, Pair<ARTElement, CFANode>> {
 
   @Option(description="refinement will add all discovered predicates "
           + "to all the locations in the abstract trace")
