@@ -21,14 +21,10 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.pcc.proof_check;
+package org.sosy_lab.pcc.common;
 
-import java.io.File;
-
-import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.pcc.common.PCCCheckResult;
-
-public interface ProofCheckAlgorithm {
-
-  public PCCCheckResult checkProvidedProof(CFA pCFA, File pProof);
+public enum AbstractionType {
+  Abstraction,
+  NeverAbstraction,
+  NoAbstraction
 }

@@ -23,18 +23,66 @@
  */
 package org.sosy_lab.pcc.proof_check;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.Scanner;
+
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.pcc.common.ARTNode;
+import org.sosy_lab.pcc.common.PCCCheckResult;
 
 public abstract class ARTProofCheckAlgorithm implements ProofCheckAlgorithm {
 
-  public ARTProofCheckAlgorithm(LogManager pLogger)
+  protected LogManager logger;
+  protected Configuration config;
+  protected CFA cfaForProof = null;
+  protected ARTNode root = null;
+
+  public ARTProofCheckAlgorithm(Configuration pConfig, LogManager pLogger)
   {
-
+    config = pConfig;
+    logger = pLogger;
   }
 
-  public boolean checkProvidedProof(CFA pCFA){
-    return false;
+  @Override
+  public PCCCheckResult checkProvidedProof(CFA pCFA, File pProof){
+    PCCCheckResult success;
+    cfaForProof = pCFA;
+    // read proof from file
+    try {
+      success = readFromFile(pProof);
+      if(success!=PCCCheckResult.Success){
+        return success;
+      }
+    } catch (FileNotFoundException e) {
+      return PCCCheckResult.InvalidProofFile;
+    }
+    // check proof
+    return checkProof();
   }
+
+  private PCCCheckResult readFromFile(File pFile) throws FileNotFoundException{
+    Scanner scan = new Scanner(pFile);
+    scan.useDelimiter("(\\s)*#(\\s)*");
+    PCCCheckResult success = readNodes(scan);
+    if(success != PCCCheckResult.Success){
+      return success;
+    }
+    success = readEdges(scan);
+    return success;
+  }
+
+  /**
+   * set root
+   * @param pScan
+   * @return
+   */
+  protected abstract PCCCheckResult readNodes(Scanner pScan);
+
+  protected abstract PCCCheckResult readEdges(Scanner pScan);
+
+  protected abstract PCCCheckResult checkProof();
 
 }

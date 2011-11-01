@@ -24,7 +24,6 @@
 package org.sosy_lab.pcc.proof_gen;
 
 import java.util.Iterator;
-import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -33,27 +32,17 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
+import org.sosy_lab.pcc.common.AbstractionType;
+import org.sosy_lab.pcc.common.FormulaHandler;
 
 public class SBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
 
-  private PathFormulaManager pfm;
-  private FormulaManager     fm;
+  private FormulaHandler fh;
 
   public SBE_ARTProofGenAlgorithm(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
-    MathsatFormulaManager mathsatFormulaManager =
-        MathsatFactory.createFormulaManager(config, logger);
-    fm = new ExtendedFormulaManager(mathsatFormulaManager, config, logger);
-    pfm = new PathFormulaManagerImpl(fm, config, logger);
+    fh = new FormulaHandler(pConfig, pLogger);
   }
 
   @Override
@@ -71,11 +60,11 @@ public class SBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
     if (predicate == null) { return false; }
     // isAbstractionNode == true --> write 1 otherwise 0
     if (predicate.isAbstractionElement()) {
-      nodeRep.append(1);
+      nodeRep.append(AbstractionType.Abstraction);
       nodeRep.append("#");
       nodeRep.append(predicate.getAbstractionFormula().asFormula().toString());
     } else {
-      nodeRep.append(0);
+      nodeRep.append(AbstractionType.NeverAbstraction);
     }
     nodeRep.append("#");
     nodes.add(nodeRep.toString());
@@ -121,22 +110,7 @@ public class SBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
     // get wrapped PredicateAbstractionElement
     PredicateAbstractElement predicate =
         getWrappedPredicateAbstractElement(pSource);
-    PathFormula oldFormula, formula;
-    oldFormula = pfm.makeEmptyPathFormula(predicate.getPathFormula());
-    try {
-      formula = pfm.makeAnd(oldFormula, pEdge);
-    } catch (CPATransferException e) {
-      logger.log(Level.SEVERE,
-          "Cannot create formula representing edge operation.",
-          e.getStackTrace());
-      return null;
-    }
-    // check if same object due to blank edge (no abstraction element)
-    if (oldFormula == formula) {
-      return "";
-    } else {
-      return formula.toString();
-    }
+    return fh.getEdgeOperationWithSSA(predicate.getPathFormula(), pEdge);
   }
 
 }

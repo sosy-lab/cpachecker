@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cmdline;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -38,15 +37,16 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cmdline.CPAMain.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.pcc.common.PCCAlgorithmType;
+import org.sosy_lab.pcc.common.PCCCheckResult;
 import org.sosy_lab.pcc.proof_check.ProofCheckAlgorithm;
+import org.sosy_lab.pcc.proof_check.SBE_ARTProofCheckAlgorithm;
 
 import com.google.common.base.Throwables;
-import com.google.common.io.Files;
 
 public class PCCProofCheckMain {
 
   @Options
-  private class PCCProofChecker {
+  private static class PCCProofChecker {
 
     //TODO possibly add values
     @Option(name = "pcc.proofgen.algorithm", description = "Type of the algorithm which should be used for PCC")
@@ -71,24 +71,20 @@ public class PCCProofCheckMain {
           "Proof Checking is not enabled in the configuration."); }
     }
 
-    private ProofCheckAlgorithm getCheckAlgorithm() {
+    private ProofCheckAlgorithm getCheckAlgorithm(Configuration pConfig,
+        LogManager pLogger) throws InvalidConfigurationException {
       ProofCheckAlgorithm algorithm = null;
       switch (algorithmType) {
       case SBEasART: {
-
-
+        if (alwaysAfterThreshold && threshold == 1 && switchToLBEAfter == 0) {
+          algorithm = new SBE_ARTProofCheckAlgorithm(pConfig, pLogger);
+        }
         break;
       }
       default: {
       }
       }
       return algorithm;
-    }
-// really needed or provide only File TODO
-    private StringBuilder readFromFile(File pFile) throws IOException{
-      StringBuilder builder = new StringBuilder();
-      Files.copy(pFile, Charset.defaultCharset(), builder);
-      return null;
     }
   }
 
@@ -120,9 +116,8 @@ public class PCCProofCheckMain {
 
     CFA cfa = null;
     try {
-// TODO do logging INFO level
-      PCCProofChecker prover =
-          (new PCCProofCheckMain()).new PCCProofChecker(config);
+      // TODO do logging INFO level
+      PCCProofChecker prover = new PCCProofChecker(config);
       // create CFA
       CFACreator cfaCreator = new CFACreator(config, logger);
       cfa =
@@ -130,12 +125,16 @@ public class PCCProofCheckMain {
               logger));
 
       // get algorithm for checking
-      ProofCheckAlgorithm algorithm = prover.getCheckAlgorithm();
+      ProofCheckAlgorithm algorithm = prover.getCheckAlgorithm(config, logger);
 
       //start check
-      boolean success = algorithm.checkProvidedProof(cfa);
+      PCCCheckResult result = algorithm.checkProvidedProof(cfa, prover.file);
 
-      if(success){}else{}//TODO
+      if (result == PCCCheckResult.Success) {
+        System.out.println("Proof has been checked successfully.\n");
+      } else {
+        System.out.println("Proof failed with failure: " + result);
+      }
 
     } catch (IOException e) {
       logger.logUserException(Level.SEVERE, e, "Could not read file");
@@ -154,9 +153,4 @@ public class PCCProofCheckMain {
       logger.logUserException(Level.SEVERE, e, "Invalid configuration");
     }
   }
-
-  private static ProofCheckAlgorithm too() {
-    return null;
-  }
-
 }

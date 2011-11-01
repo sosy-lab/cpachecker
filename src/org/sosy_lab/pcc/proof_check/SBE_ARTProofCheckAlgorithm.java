@@ -1,0 +1,219 @@
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2011  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
+package org.sosy_lab.pcc.proof_check;
+
+import java.util.HashSet;
+import java.util.Hashtable;
+import java.util.InputMismatchException;
+import java.util.NoSuchElementException;
+import java.util.Scanner;
+import java.util.Stack;
+
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.pcc.common.ARTEdge;
+import org.sosy_lab.pcc.common.ARTNode;
+import org.sosy_lab.pcc.common.AbstractionType;
+import org.sosy_lab.pcc.common.FormulaHandler;
+import org.sosy_lab.pcc.common.PCCCheckResult;
+
+public class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
+
+  private Hashtable<Integer, ARTNode> art = new Hashtable<Integer, ARTNode>();
+  private FormulaHandler              handler;
+
+  public SBE_ARTProofCheckAlgorithm(Configuration pConfig, LogManager pLogger)
+      throws InvalidConfigurationException {
+    super(pConfig, pLogger);
+    handler = new FormulaHandler(pConfig, pLogger);
+  }
+
+  @Override
+  protected PCCCheckResult readNodes(Scanner pScan) {
+    // create fast look up for nodes
+    Hashtable<Integer, CFANode> nodes = new Hashtable<Integer, CFANode>();
+    for (CFANode node : cfaForProof.getAllNodes()) {
+      nodes.put(new Integer(node.getNodeNumber()), node);
+    }
+
+    root = null;
+    int artId, cfaId;
+    AbstractionType pAbsType;
+    ARTNode newNode;
+    CFANode cfaNode;
+
+    // reading nodes
+    String next = "";
+    while (pScan.hasNext()) {
+      next = pScan.next();
+      if (next.equals("}")) {
+        break;
+      }
+      // read next node description
+      try {
+        artId = Integer.parseInt(next);
+        cfaId = pScan.nextInt();
+        // get corresponding CFA node
+        cfaNode = nodes.get(new Integer(cfaId));
+        pAbsType = AbstractionType.valueOf(pScan.next());
+        if (pAbsType == AbstractionType.Abstraction) {
+          next = pScan.next();
+          newNode = new ARTNode(artId, cfaNode, pAbsType, next);
+        } else {
+          newNode = new ARTNode(artId, cfaNode, pAbsType);
+        }
+        art.put(new Integer(artId), newNode);
+        if (cfaNode != null && cfaForProof.getMainFunction().equals(cfaNode)) {
+          root = newNode;
+        }
+      } catch (NumberFormatException e1) {
+        return PCCCheckResult.UnknownCFANode;
+      } catch (InputMismatchException e2) {
+        return PCCCheckResult.UnknownCFANode;
+      } catch (NoSuchElementException e3) {
+        return PCCCheckResult.UnknownCFANode;
+      } catch (IllegalArgumentException e4) {
+        return PCCCheckResult.UnknownCFANode;
+      }
+    }
+    return PCCCheckResult.Success;
+  }
+
+  @Override
+  protected PCCCheckResult readEdges(Scanner pScan) {
+    int source, target;
+    String operation;
+    CFAEdge cfaEdge;
+    ARTNode nodeS, nodeT;
+    ARTEdge edge;
+
+    while (pScan.hasNext()) {
+      try {
+        // read next edge
+        source = pScan.nextInt();
+        target = pScan.nextInt();
+        nodeS = art.get(new Integer(source));
+        nodeT = art.get(new Integer(target));
+        if (nodeS != null && nodeT != null) {
+          cfaEdge =
+              nodeS.getCorrespondingCFANode().getEdgeTo(
+                  nodeT.getCorrespondingCFANode());
+        } else {
+          return PCCCheckResult.UnknownCFAEdge;
+        }
+        operation = pScan.next();
+        edge = new ARTEdge(target, cfaEdge, operation, handler);
+        nodeS.addEdge(edge);
+      } catch (InputMismatchException e2) {
+        return PCCCheckResult.UnknownCFAEdge;
+      } catch (NoSuchElementException e3) {
+        return PCCCheckResult.UnknownCFAEdge;
+      } catch (IllegalArgumentException e4) {
+        return PCCCheckResult.UnknownCFAEdge;
+      }
+    }
+    return PCCCheckResult.Success;
+  }
+
+  @Override
+  protected PCCCheckResult checkProof() {
+    HashSet<Integer> visited = new HashSet<Integer>();
+    Stack<Pair<Integer, String>> waiting = new Stack<Pair<Integer, String>>();
+    //add root
+    visited.add(root.getID());
+    waiting.push(new Pair<Integer, String>(root.getID(), ""));
+    PCCCheckResult intermediateRes;
+    Pair<Integer, String> current;
+    // check ART
+    while (!waiting.isEmpty()) {
+      current = waiting.pop();
+      intermediateRes =
+          checkARTNode(art.get(current.getFirst()), current.getSecond(),
+              visited, waiting);
+      if (intermediateRes != PCCCheckResult.Success) { return intermediateRes; }
+    }
+    return PCCCheckResult.Success;
+  }
+
+  // check if CFA node exists, possible edge at ART already done
+  private PCCCheckResult checkARTNode(ARTNode pNode, String pCallReturnStack,
+      HashSet<Integer> pVisited, Stack<Pair<Integer, String>> pWaiting) {
+    CFANode cfaNode = pNode.getCorrespondingCFANode();
+    String abstraction = pNode.getAbstraction();
+    // check if ERROR node
+    if (cfaNode instanceof CFALabelNode) {
+      if (((CFALabelNode) cfaNode).getLabel().toLowerCase().equals("error")
+          && (pNode.getAbstractionType() != AbstractionType.Abstraction || !handler
+              .isFalse(abstraction))) { return PCCCheckResult.ErrorNodeReachable; }
+    }
+    // stop if abstraction is false, no edges allowed
+    if (pNode.getAbstractionType() == AbstractionType.Abstraction
+        && handler.isFalse(abstraction)) {
+      if (pNode.getNumberOfEdges() != 0) { return PCCCheckResult.InvalidART; }
+    } else {
+      // TODO check if all edges of CFA are covered, blank edge (do not treat separately, directly consider its outgoing edges)
+      // TODO check function call/return edges (update and check of callstack)
+
+    }
+
+    // buildAndCheckFormula aufrufen (wann?)
+    return PCCCheckResult.Success;
+  }
+
+  private PCCCheckResult buildAndCheckFormula(String pAbstractionLeft, String pOperation, String pAbstractionRight) {
+    Formula f = handler.buildEdgeInvariant(pAbstractionLeft, pOperation, pAbstractionRight);
+    if(f == null){
+      return PCCCheckResult.InvalidFormulaSpecificationInProof;
+    }
+    if(f.isFalse()){
+      return PCCCheckResult.Success;
+    }
+    else{
+      return PCCCheckResult.InvalidART;
+    }
+  }
+
+  private class Pair<T1, T2> {
+    private T1 artNodeId;
+    private T2 callStack;
+
+    public Pair(T1 pT1, T2 pT2) {
+      artNodeId = pT1;
+      callStack = pT2;
+    }
+
+    public T1 getFirst() {
+      return artNodeId;
+    }
+
+    public T2 getSecond() {
+      return callStack;
+    }
+  }
+}
