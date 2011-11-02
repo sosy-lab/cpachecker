@@ -1,13 +1,54 @@
 CPAchecker Installation
 =======================
-If you have downloaded the CPAchecker source,
-see BUILD.txt for information on how to build CPAchecker.
 
-1. You need a Java Runtime Environment which is at least Java 6 compatible
+
+Install CPAchecker -- Binary
+----------------------------
+
+1. Install a Java Runtime Environment which is at least Java 6 compatible
    (e.g., Sun/Oracle JRE, OpenJDK).
    See http://java.oracle.com/ or install a package from your distribution.
+
 2. Install GNU Multiprecision Arithmetic Library libgmp.so.3 and libgmpxx.so.4.
    (Ubuntu: sudo apt-get install libgmp3c2 libgmpxx4ldbl)
+
 3. Extract the content of the CPAchecker zip file into a directory of your choice.
+
+
+Install CPAchecker -- Source
+----------------------------
+
+1. Install Java 1.6 SDK or higher (OpenJDK 6 works, too).
+   http://java.sun.com/
+
+2. Install GNU Multiprecision Arithmetic Library libgmp.so.3 and libgmpxx.so.4.
+   (Ubuntu: sudo apt-get install libgmp3c2 libgmpxx4ldbl)
+
+3. Install ant (anything since version 1.6 should be ok).
+   The optional ant tasks are needed (in Ubuntu they are packaged as ant-optional).
+   (Ubuntu: sudo apt-get install ant ant-optional)
+
+4. Install python (version 2, not version 3).
+   Python is needed for benchmark and reporting scripts.
+   http://www.python.org/
+
+5. Install Subversion.
+
+6. Checkout CPAchecker from SVN repository.
+   URL: https://svn.sosy-lab.org/software/cpachecker/trunk
+   URL (read-only mirror): http://cpachecker.googlecode.com/svn/trunk
+
+7. Run "ant" in CPAchecker directory to build CPAchecker.
+
+
+Install CPAchecker as Eclipse Plugin for C projects
+---------------------------------------------------
+
+1. Install Eclipse 3.5 with CDT 6, Eclipse 3.6 with CDT 7, or Eclipse 3.7 with CDT 7.
+
+2. Add the URL http://www.sosy-lab.org/~dbeyer/eclipse-download/ as an update site to Eclipse.
+
+3. Install CPAclipse plugin.
+
 
 For information on how to run CPAchecker, see README.txt.

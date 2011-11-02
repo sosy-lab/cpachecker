@@ -1,5 +1,9 @@
 Getting Started with CPAchecker
 ===============================
+
+Installation Instructions:  INSTALL.txt
+Develop and Contribute:     CONTRIB.txt
+
 More details can be found in doc/*.txt
 
 Prepare Programs for Verification by CPAchecker
@@ -18,8 +22,6 @@ Prepare Programs for Verification by CPAchecker
 
 Verifying a Program with CPAchecker
 -----------------------------------
-
-0. See INSTALL.txt for the requirements needed to run CPAchecker.
 
 1. Choose a source code file that you want to be checked.
    Several types of example programs can be found in test/programs/
