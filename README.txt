@@ -19,8 +19,7 @@ Prepare Programs for Verification by CPAchecker
 Verifying a Program with CPAchecker
 -----------------------------------
 
-0. You need a Java Runtime Environment which is at least Java 6 compatible
-   (e.g., Sun/Oracle JRE, OpenJDK).
+0. See INSTALL.txt for the requirements needed to run CPAchecker.
 
 1. Choose a source code file that you want to be checked.
    Several types of example programs can be found in test/programs/
@@ -61,5 +60,3 @@ Verifying a Program with CPAchecker
    CPAchecker will overwrite files in this directory!
    These files may be used to generate a report that can be viewed in a browser.
    Cf. BuildReport.txt for this.
-
-

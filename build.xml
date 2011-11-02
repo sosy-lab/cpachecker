@@ -90,7 +90,7 @@
 	
     <target name="zip" depends="jar">
         <zip destfile="CPAchecker-${version}.zip" whenempty="fail">
-	    <fileset dir="." includes="doc/** scripts/** cpachecker.jar *.txt" excludes="INSTALL.txt"/>
+	    <fileset dir="." includes="doc/** scripts/** cpachecker.jar *.txt" excludes="BUILD.txt"/>
 	    <fileset dir="." includes="lib/**" excludes="lib/build-only/** lib/native/source/**"/>
 	</zip>
     </target>
