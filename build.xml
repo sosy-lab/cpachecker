@@ -96,7 +96,7 @@
     </target>
 
     <target description="Run all JUnit tests" depends="build" name="tests">
-        <property name="test.report.dir" value="test/output"/>
+        <property name="test.report.dir" value="output"/>
         <mkdir dir="${test.report.dir}"/>
         <junit fork="true" printSummary="true" showOutput="false">
             <assertions>

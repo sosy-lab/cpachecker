@@ -21,7 +21,7 @@ scripts/cpa.sh -predicateAnalysis path/to/my.cil.c
 
 python scripts/report-generator.py path/to/my.cil.c
 
-3) open test/output/index.html in Firefox.
+3) open output/index.html in Firefox.
 
 
 Quick Reference to use the report

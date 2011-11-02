@@ -151,9 +151,6 @@ counterexample.removeInfeasibleErrors = false
 # CPA to use (see doc/Configuration.txt for more documentation on this)
 cpa = CompositeCPA.class.getCanonicalName()
 
-# disable caching of abstract state spaces for blocks
-cpa.abm.NO_CACHING = false
-
 # Type of partitioning (FunctionAndLoopPartitioning or
 # DelayedFunctionAndLoopPartitioning)
 # or any class that implements a PartitioningHeuristic
@@ -543,7 +540,7 @@ noAutoInitPrefix = "__BLAST_NONDET"
 output.disable = false
 
 # directory to put all output files in
-output.path = "test/output/"
+output.path = "output/"
 
 # C dialect for parser
 parser.dialect = GNUC

@@ -49,7 +49,7 @@ Verifying a Program with CPAchecker
    This example can also be abbreviated to:
    scripts/cpa.sh -explicitAnalysis test/programs/simple/loop1.c
 
-5. Additionally to the console output, there will be several output files in test/output/:
+5. Additionally to the console output, there will be several files in the directory output/:
      ART.dot: Visualization of abstract reachability tree (Graphviz format)
      cfa*.dot: Visualization of control flow automaton (Graphviz format)
      counterexample.msat: Formula representation of the error path
