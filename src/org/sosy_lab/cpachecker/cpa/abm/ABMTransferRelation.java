@@ -73,9 +73,6 @@ import com.google.common.collect.Iterables;
 @Options(prefix="cpa.abm")
 public class ABMTransferRelation implements TransferRelation {
 
-  @Option(description="disable caching of abstract state spaces for blocks")
-  private boolean NO_CACHING = false;
-
   private class AbstractElementHash {
 
     private final Object wrappedHash;
@@ -427,12 +424,10 @@ public class ABMTransferRelation implements TransferRelation {
 
       abstractElementToReachedSet.put(initialElement, reached);
 
-      if (!NO_CACHING) {
-        if (returnElements != null) {
-          assert reached != null;
-          fullCacheHits++;
-          return imbueAbstractElementsWithPrecision(reached, returnElements);
-        }
+      if (returnElements != null) {
+        assert reached != null;
+        fullCacheHits++;
+        return imbueAbstractElementsWithPrecision(reached, returnElements);
       }
 
       if (reached != null) {
