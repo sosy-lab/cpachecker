@@ -40,24 +40,24 @@ public class ExplicitPrecision implements Precision
 
   CFANode currentLocation = null;
 
-  public ExplicitPrecision(String variableBlacklist, Map<CFANode, Set<String>> whiteList) {
-
+  public ExplicitPrecision(String variableBlacklist, Map<CFANode, Set<String>> whiteList)
+  {
     blackListPattern = Pattern.compile(variableBlacklist);
 
     if(whiteList != null)
       this.whiteList = new HashMap<CFANode, Set<String>>(whiteList);
   }
 
-  public ExplicitPrecision(ExplicitPrecision precision, Map<CFANode, Set<String>> whiteList) {
-
+  public ExplicitPrecision(ExplicitPrecision precision, Map<CFANode, Set<String>> whiteList)
+  {
     blackListPattern = precision.blackListPattern;
 
     if(whiteList != null)
       this.whiteList = new HashMap<CFANode, Set<String>>(whiteList);
   }
 
-  public ExplicitPrecision(ExplicitPrecision precision, Map<CFANode, Set<String>> predicateInfo, Map<CFANode, Set<String>> pathInfo) {
-
+  public ExplicitPrecision(ExplicitPrecision precision, Map<CFANode, Set<String>> predicateInfo, Map<CFANode, Set<String>> pathInfo)
+  {
     blackListPattern = precision.blackListPattern;
 
     this.whiteList = new HashMap<CFANode, Set<String>>(precision.whiteList);
@@ -68,7 +68,8 @@ public class ExplicitPrecision implements Precision
   }
 
   @Override
-  public String toString() {
+  public String toString()
+  {
     return whiteList.toString();
   }
 

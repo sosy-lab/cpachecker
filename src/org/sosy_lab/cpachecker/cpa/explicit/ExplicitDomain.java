@@ -29,23 +29,22 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
-public class ExplicitDomain implements AbstractDomain {
-
+public class ExplicitDomain implements AbstractDomain
+{
   @Override
-  public boolean isLessOrEqual(AbstractElement newElement, AbstractElement reachedElement) {
+  public boolean isLessOrEqual(AbstractElement newElement, AbstractElement reachedElement)
+  {
       // returns true if element1 < element2 on lattice
       ExplicitElement ExplicitElementNew = (ExplicitElement) newElement;
       ExplicitElement ExplicitElementReached = (ExplicitElement) reachedElement;
 
-      if (ExplicitElementNew.getPreviousElement() != ExplicitElementReached.getPreviousElement()) {
+      if(ExplicitElementNew.getPreviousElement() != ExplicitElementReached.getPreviousElement())
         return false;
-      }
 
       Map<String, Long> constantsMapNew = ExplicitElementNew.getConstantsMap();
       Map<String, Long> constantsMapReached = ExplicitElementReached.getConstantsMap();
 
       // check whether constantsMapReached contains a subset of the mappings of constantsMapNew
-
       if (constantsMapNew.size() < constantsMapReached.size()) {
         return false;
       }

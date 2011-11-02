@@ -110,31 +110,31 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
 
     ExplicitDomain explicitDomain = new ExplicitDomain ();
     MergeOperator explicitMergeOp = null;
-    if (mergeType.equals("SEP")){
+
+    if(mergeType.equals("SEP"))
       explicitMergeOp = MergeSepOperator.getInstance();
-    } else if (mergeType.equals("JOIN")){
+
+    else if(mergeType.equals("JOIN"))
       explicitMergeOp = new MergeJoinOperator(explicitDomain);
-    }
 
     StopOperator explicitStopOp = null;
 
-    if(stopType.equals("SEP")){
+    if(stopType.equals("SEP"))
       explicitStopOp = new StopSepOperator(explicitDomain);
-    }
-    else if(stopType.equals("JOIN")){
+
+    else if(stopType.equals("JOIN"))
       explicitStopOp = new StopJoinOperator(explicitDomain);
-    }
-    else if(stopType.equals("NEVER")){
+
+    else if(stopType.equals("NEVER"))
       explicitStopOp = new StopNeverOperator();
-    }
 
     TransferRelation explicitRelation = new ExplicitTransferRelation(config);
 
-    this.abstractDomain = explicitDomain;
-    this.mergeOperator = explicitMergeOp;
-    this.stopOperator = explicitStopOp;
-    this.transferRelation = explicitRelation;
-    this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+    this.abstractDomain       = explicitDomain;
+    this.mergeOperator        = explicitMergeOp;
+    this.stopOperator         = explicitStopOp;
+    this.transferRelation     = explicitRelation;
+    this.precisionAdjustment  = StaticPrecisionAdjustment.getInstance();
 
     MathsatFormulaManager mathsatFormulaManager = MathsatFactory.createFormulaManager(config, logger);
 
@@ -176,25 +176,29 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode) {
-    //return SingletonPrecision.getInstance();
+  public Precision getInitialPrecision(CFANode pNode)
+  {
     return precision;
   }
 
   @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
+  public PrecisionAdjustment getPrecisionAdjustment()
+  {
     return precisionAdjustment;
   }
 
-  protected PredicateAbstractionManager getPredicateManager() {
+  protected PredicateAbstractionManager getPredicateManager()
+  {
     return predicateManager;
   }
 
-  protected Configuration getConfiguration() {
+  protected Configuration getConfiguration()
+  {
     return config;
   }
 
-  protected LogManager getLogger() {
+  protected LogManager getLogger()
+  {
     return logger;
   }
 
@@ -218,5 +222,4 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
     return this.config.getProperty("analysis.useRefinement") != null
       && this.config.getProperty("cegar.refiner").equals("cpa.explicit.ExplicitRefiner");
   }
-
 }

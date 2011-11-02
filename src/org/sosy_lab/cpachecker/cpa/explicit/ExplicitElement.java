@@ -37,8 +37,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.base.Preconditions;
 
-public class ExplicitElement implements AbstractQueryableElement, FormulaReportingElement {
-
+public class ExplicitElement implements AbstractQueryableElement, FormulaReportingElement
+{
   // map that keeps the name of variables and their constant values
   private final Map<String, Long> constantsMap;
 
@@ -52,22 +52,22 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
   // TODO this is completely broken, name doesn't match, the option is never read from file etc.
   private String noAutoInitPrefix = "__BLAST_NONDET";
 
-  public ExplicitElement() {
-    constantsMap = new HashMap<String, Long>();
-    noOfReferences = new HashMap<String, Integer>();
+  public ExplicitElement()
+  {
+    constantsMap    = new HashMap<String, Long>();
+    noOfReferences  = new HashMap<String, Integer>();
     previousElement = null;
   }
 
-  public ExplicitElement(ExplicitElement previousElement) {
-    constantsMap = new HashMap<String, Long>();
-    noOfReferences = new HashMap<String, Integer>();
-    this.previousElement = previousElement;
+  public ExplicitElement(ExplicitElement previousElement)
+  {
+    constantsMap          = new HashMap<String, Long>();
+    noOfReferences        = new HashMap<String, Integer>();
+    this.previousElement  = previousElement;
   }
 
 
-  public ExplicitElement(Map<String, Long> constantsMap,
-      Map<String, Integer> referencesMap,
-      ExplicitElement previousElement) {
+  public ExplicitElement(Map<String, Long> constantsMap, Map<String, Integer> referencesMap, ExplicitElement previousElement) {
     this.constantsMap = constantsMap;
     this.noOfReferences = referencesMap;
     this.previousElement = previousElement;
@@ -79,109 +79,115 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
    * @param value value to be assigned.
    * @param pThreshold threshold from property explicitAnalysis.threshold
    */
-  void assignConstant(String nameOfVar, Long value, int pThreshold){
-
-    if(constantsMap.containsKey(nameOfVar) &&
-        constantsMap.get(nameOfVar).equals(value)) {
+  void assignConstant(String nameOfVar, Long value, int pThreshold)
+  {
+    if(constantsMap.containsKey(nameOfVar) && constantsMap.get(nameOfVar).equals(value))
       return;
-    }
 
-    if(pThreshold == 0){
+    if(pThreshold == 0)
       return;
-    }
 
-    if(nameOfVar.contains(noAutoInitPrefix)){
+    if(nameOfVar.contains(noAutoInitPrefix))
       return;
-    }
 
-    if(noOfReferences.containsKey(nameOfVar)){
+    if(noOfReferences.containsKey(nameOfVar))
+    {
       int currentVal = noOfReferences.get(nameOfVar).intValue();
-      if(currentVal >= pThreshold) {
+      if(currentVal >= pThreshold)
+      {
         forget(nameOfVar);
         return;
       }
+
       int newVal = currentVal + 1;
       noOfReferences.put(nameOfVar, newVal);
     }
-    else{
+
+    else
       noOfReferences.put(nameOfVar, 1);
-    }
 
     constantsMap.put(nameOfVar, value);
   }
 
-  public Long getValueFor(String variableName){
+  public Long getValueFor(String variableName)
+  {
     return checkNotNull(constantsMap.get(variableName));
   }
 
-  public boolean contains(String variableName){
+  public boolean contains(String variableName)
+  {
     return constantsMap.containsKey(variableName);
   }
 
-  ExplicitElement getPreviousElement() {
+  ExplicitElement getPreviousElement()
+  {
     return previousElement;
   }
 
   @Override
-  public ExplicitElement clone() {
+  public ExplicitElement clone()
+  {
     ExplicitElement newElement = new ExplicitElement(previousElement);
-    for (String s: constantsMap.keySet()){
+
+    for(String s: constantsMap.keySet())
+    {
       long val = constantsMap.get(s).longValue();
       newElement.constantsMap.put(s, val);
     }
-    for (String s: noOfReferences.keySet()){
+
+    for(String s: noOfReferences.keySet())
+    {
       int val = noOfReferences.get(s).intValue();
       newElement.noOfReferences.put(s, val);
     }
+
     return newElement;
   }
 
   @Override
-  public boolean equals (Object other) {
-    if (this == other)
+  public boolean equals (Object other)
+  {
+    if(this == other)
       return true;
 
-    //assert (other instanceof ExplicitElement);
-
-    if (other == null) {
+    if (other == null)
       return false;
-    }
 
-    if (!getClass().equals(other.getClass())) {
+    if(!getClass().equals(other.getClass()))
       return false;
-    }
 
     ExplicitElement otherElement = (ExplicitElement) other;
-    if (otherElement.previousElement != previousElement) {
+    if(otherElement.previousElement != previousElement)
       return false;
+
+    if(otherElement.constantsMap.size() != constantsMap.size())
+      return false;
+
+    for(String s: constantsMap.keySet())
+    {
+      if(!otherElement.constantsMap.containsKey(s))
+        return false;
+
+      if(otherElement.constantsMap.get(s).longValue() != constantsMap.get(s))
+        return false;
     }
 
-    if (otherElement.constantsMap.size() != constantsMap.size()){
-      return false;
-    }
-
-    for (String s: constantsMap.keySet()){
-      if(!otherElement.constantsMap.containsKey(s)){
-        return false;
-      }
-      if(otherElement.constantsMap.get(s).longValue() !=
-        constantsMap.get(s)){
-        return false;
-      }
-    }
     return true;
   }
 
   @Override
-  public int hashCode() {
+  public int hashCode()
+  {
     return constantsMap.hashCode();
   }
 
   @Override
-  public String toString() {
+  public String toString()
+  {
     StringBuilder sb = new StringBuilder();
     sb.append("[");
-    for (Map.Entry<String, Long> entry: constantsMap.entrySet()){
+    for (Map.Entry<String, Long> entry: constantsMap.entrySet())
+    {
       String key = entry.getKey();
       sb.append(" <");
       sb.append(key);
@@ -191,57 +197,77 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
       sb.append(noOfReferences.get(key));
       sb.append(">\n");
     }
+
     return sb.append("] size->  ").append(constantsMap.size()).toString();
   }
 
-  public Map<String, Long> getConstantsMap(){
+  public Map<String, Long> getConstantsMap()
+  {
     return constantsMap;
   }
 
-  void forget(String assignedVar) {
-    if(constantsMap.containsKey(assignedVar)){
+  void forget(String assignedVar)
+  {
+    if(constantsMap.containsKey(assignedVar))
       constantsMap.remove(assignedVar);
-    }
   }
 
-  Map<String, Integer> getNoOfReferences() {
+  Map<String, Integer> getNoOfReferences()
+  {
     return noOfReferences;
   }
 
   @Override
-  public Object evaluateProperty(String pProperty) throws InvalidQueryException {
+  public Object evaluateProperty(String pProperty) throws InvalidQueryException
+  {
     pProperty = pProperty.trim();
-    if (pProperty.startsWith("contains(")) {
-      String varName = pProperty.substring("contains(".length(),pProperty.length()-1);
+
+    if(pProperty.startsWith("contains("))
+    {
+      String varName = pProperty.substring("contains(".length(), pProperty.length() - 1);
       return this.constantsMap.containsKey(varName);
-    } else {
+    }
+
+    else
+    {
       String[] parts = pProperty.split("==");
-      if (parts.length != 2) {
+      if(parts.length != 2)
+      {
         Long value = this.constantsMap.get(pProperty);
-        if (value != null) {
+        if(value != null)
           return value;
-        } else {
+        else
           throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not find the variable \"" + pProperty + "\"");
-        }
-      } else {
-        return checkProperty(pProperty);
       }
+
+      else
+        return checkProperty(pProperty);
     }
   }
   @Override
-  public boolean checkProperty(String pProperty) throws InvalidQueryException {
-  // e.g. "x==5" where x is a variable. Returns if 5 is the associated constant
+  public boolean checkProperty(String pProperty) throws InvalidQueryException
+  {
+    // e.g. "x==5" where x is a variable. Returns if 5 is the associated constant
     String[] parts = pProperty.split("==");
-    if (parts.length != 2)
+
+    if(parts.length != 2)
       throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not split the property string correctly.");
-    else {
+
+    else
+    {
       Long value = this.constantsMap.get(parts[0]);
-      if (value == null) {
+
+      if(value == null)
         return false;
-      } else {
-        try {
+
+      else
+      {
+        try
+        {
           return value.longValue() == Long.parseLong(parts[1]);
-        } catch (NumberFormatException e) {
+        }
+        catch (NumberFormatException e)
+        {
           // The command might contains something like "main::p==cmd" where the user wants to compare the variable p to the variable cmd (nearest in scope)
           // perhaps we should omit the "main::" and find the variable via static scoping ("main::p" is also not intuitive for a user)
           // TODO: implement Variable finding via static scoping
@@ -250,37 +276,55 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
       }
     }
   }
+
   @Override
-  public void modifyProperty(String pModification)
-  throws InvalidQueryException {
+  public void modifyProperty(String pModification) throws InvalidQueryException
+  {
     Preconditions.checkNotNull(pModification);
+
     // either "deletevalues(methodname::varname)" or "setvalue(methodname::varname:=1929)"
     String[] statements = pModification.split(";");
-    for (int i = 0; i < statements.length; i++) {
+    for (int i = 0; i < statements.length; i++)
+    {
       String statement = statements[i].trim().toLowerCase();
-      if (statement.startsWith("deletevalues(")) {
-        if (!statement.endsWith(")")) throw new InvalidQueryException(statement +" should end with \")\"");
-        String varName = statement.substring("deletevalues(".length(), statement.length()-1);
+      if(statement.startsWith("deletevalues("))
+      {
+        if(!statement.endsWith(")"))
+          throw new InvalidQueryException(statement +" should end with \")\"");
+
+        String varName = statement.substring("deletevalues(".length(), statement.length() - 1);
 
         Object x = this.constantsMap.remove(varName);
         Object y = this.noOfReferences.remove(varName);
 
-        if (x==null || y==null) {
+        if(x == null || y == null)
+        {
           // varname was not present in one of the maps
           // i would like to log an error here, but no logger is available
         }
-      } else if (statement.startsWith("setvalue(")) {
-        if (!statement.endsWith(")")) throw new InvalidQueryException(statement +" should end with \")\"");
+      }
+
+      else if (statement.startsWith("setvalue("))
+      {
+        if(!statement.endsWith(")"))
+          throw new InvalidQueryException(statement +" should end with \")\"");
+
         String assignment = statement.substring("setvalue(".length(), statement.length()-1);
         String[] assignmentParts = assignment.split(":=");
-        if (assignmentParts.length != 2)
+
+        if(assignmentParts.length != 2)
           throw new InvalidQueryException("The Query \"" + pModification + "\" is invalid. Could not split the property string correctly.");
-        else {
+
+        else
+        {
           String varName = assignmentParts[0].trim();
-          try {
+          try
+          {
             long newValue = Long.parseLong(assignmentParts[1].trim());
             this.assignConstant(varName, newValue, 1); // threshold is passed as 1! This will only succeed if no other value for this variable is present
-          } catch (NumberFormatException e) {
+          }
+          catch (NumberFormatException e)
+          {
             throw new InvalidQueryException("The Query \"" + pModification + "\" is invalid. Could not parse the long \"" + assignmentParts[1].trim() + "\"");
           }
         }
@@ -289,18 +333,21 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
   }
 
   @Override
-  public String getCPAName() {
+  public String getCPAName()
+  {
     return "ExplicitAnalysis";
   }
 
   @Override
-  public Formula getFormulaApproximation(FormulaManager manager) {
-
+  public Formula getFormulaApproximation(FormulaManager manager)
+  {
     Formula formula = manager.makeTrue();
-    for (Map.Entry<String, Long> entry : constantsMap.entrySet()) {
+
+    for(Map.Entry<String, Long> entry : constantsMap.entrySet())
+    {
       Formula var = manager.makeVariable(entry.getKey());
       Formula val = manager.makeNumber(entry.getValue().toString());
-      formula = manager.makeAnd(formula, manager.makeEqual(var, val));
+      formula     = manager.makeAnd(formula, manager.makeEqual(var, val));
     }
 
     return formula;
