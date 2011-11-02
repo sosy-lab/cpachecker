@@ -162,7 +162,8 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
         CounterexampleTraceInfo<Collection<AbstractionPredicate>> pCounterexample,
         boolean pRepeatedCounterexample) throws CPAException {
 
-      // TODO Is this still necessary?
+      // overriding this method is needed, as, in principle, it is possible to get two successive spurious counterexamples
+      // which only differ in its abstractions (with 'aggressive caching').
       super.performRefinement(pReached, pPath, pCounterexample, false);
     }
 
