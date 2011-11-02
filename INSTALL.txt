@@ -30,17 +30,13 @@ Install CPAchecker -- Source
    The optional ant tasks are needed (in Ubuntu they are packaged as ant-optional).
    (Ubuntu: sudo apt-get install ant ant-optional)
 
-4. Install python (version 2, not version 3).
-   Python is needed for benchmark and reporting scripts.
-   http://www.python.org/
+4. Install Subversion.
 
-5. Install Subversion.
-
-6. Checkout CPAchecker from SVN repository.
+5. Checkout CPAchecker from SVN repository.
    URL: https://svn.sosy-lab.org/software/cpachecker/trunk
    URL (read-only mirror): http://cpachecker.googlecode.com/svn/trunk
 
-7. Run "ant" in CPAchecker directory to build CPAchecker.
+6. Run "ant" in CPAchecker directory to build CPAchecker.
 
 (For building CPAchecker within Eclipse, cf. doc/Developing.txt.)
 
