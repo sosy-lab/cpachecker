@@ -9,7 +9,7 @@ Install CPAchecker -- Binary
 
 1. Install a Java Runtime Environment which is at least Java 6 compatible
    (e.g., Sun/Oracle JRE, OpenJDK).
-   See http://java.oracle.com/ or install a package from your distribution.
+   Cf. http://java.oracle.com/ or install a package from your distribution.
 
 2. Install GNU Multiprecision Arithmetic Library libgmp.so.3 and libgmpxx.so.4.
    (Ubuntu: sudo apt-get install libgmp3c2 libgmpxx4ldbl)
@@ -20,8 +20,9 @@ Install CPAchecker -- Binary
 Install CPAchecker -- Source
 ----------------------------
 
-1. Install Java 1.6 SDK or higher (OpenJDK 6 works, too).
-   http://java.sun.com/
+1. Install a Java SDK which is at least Java 6 compatible
+   (e.g., Sun/Oracle JDK, OpenJDK).
+   Cf. http://java.oracle.com/ or install a package from your distribution.
 
 2. Install GNU Multiprecision Arithmetic Library libgmp.so.3 and libgmpxx.so.4.
    (Ubuntu: sudo apt-get install libgmp3c2 libgmpxx4ldbl)
@@ -31,6 +32,7 @@ Install CPAchecker -- Source
    (Ubuntu: sudo apt-get install ant ant-optional)
 
 4. Install Subversion.
+   (Ubuntu: sudo apt-get install subversion)
 
 5. Checkout CPAchecker from SVN repository.
    URL: https://svn.sosy-lab.org/software/cpachecker/trunk
