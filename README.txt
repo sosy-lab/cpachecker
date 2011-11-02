@@ -63,9 +63,3 @@ Verifying a Program with CPAchecker
    Cf. BuildReport.txt for this.
 
 
-Troubleshooting
----------------
-
-- Libraries are missing.
-  Error (example): "libgmpxx.so.4: cannot open shared object file: No such file or directory"
-  Solution: Install the missing library ('libgmpxx4ldbl' in this case on debian/ubuntu systems)

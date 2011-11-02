@@ -5,8 +5,8 @@ Installing CPAchecker
 
 1. Install Java 1.6 SDK or higher (OpenJDK 6 works, too).
    http://java.sun.com/
-2. Install GNU Multiprecision Arithmetic Library libgmp.so.3.
-   (Ubuntu: sudo apt-get install libgmp3c2)
+2. Install GNU Multiprecision Arithmetic Library libgmp.so.3 and libgmpxx.so.4.
+   (Ubuntu: sudo apt-get install libgmp3c2 libgmpxx4ldbl)
 3. Install ant (anything since version 1.6 should be ok).
    The optional ant tasks are needed (in Ubuntu they are packaged as ant-optional).
    (Ubuntu: sudo apt-get install ant ant-optional)
