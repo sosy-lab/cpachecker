@@ -1,4 +1,4 @@
-#include test/config/automata/ErrorLabelAutomaton.txt
+#include config/specification/ErrorLabel.spc
 
 CONTROL AUTOMATON ExitFunction
 

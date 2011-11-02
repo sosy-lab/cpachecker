@@ -31,21 +31,21 @@ Verifying a Program with CPAchecker
 
 2. If you want to enable certain analyses like predicate analysis,
    choose a configuration file. This file defines for example which CPAs are used.
-   Standard configuration files can be found in the directory test/config/.
-   Example: test/config/explicitAnalysis.properties
+   Standard configuration files can be found in the directory config/.
+   Example: config/explicitAnalysis.properties
    The configuration options used in this file are explained in doc/Configuration.txt.
 
 3. Choose a specification file (you may not need this for some CPAs).
-   The standard configuration files use test/config/automata/ErrorLocationAutomaton.txt
+   The standard configuration files use config/specification/ErrorLocation.spc
    as the default specification. With this one, CPAchecker will look for labels
    named "ERROR" and assertions in the source code file.
-   Other examples for specifications can be found in test/config/automata/.
+   Other examples for specifications can be found in config/specification/
 
 4. Execute "scripts/cpa.sh [ -config <CONFIG_FILE> ] [ -spec <SPEC_FILE> ] <SOURCE_FILE>"
    Either a configuration file or a specification file needs to be given.
    The current directory should be the CPAchecker project directory.
    Additional command line switches are described in doc/Configuration.txt.
-   Example: scripts/cpa.sh -config test/config/explicitAnalysis.properties test/programs/simple/loop1.c
+   Example: scripts/cpa.sh -config config/explicitAnalysis.properties test/programs/simple/loop1.c
    This example can also be abbreviated to:
    scripts/cpa.sh -explicitAnalysis test/programs/simple/loop1.c
 

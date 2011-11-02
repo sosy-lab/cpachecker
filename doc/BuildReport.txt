@@ -15,7 +15,7 @@ Generate a Report
 
 1) Run CPAchecker as follows:
 
-scripts/cpa.sh -config test/config/predicateAnalysis.properties path/to/my.cil.c
+scripts/cpa.sh -predicateAnalysis path/to/my.cil.c
 
 2) After CPAchecker has completed, generate the report:
 

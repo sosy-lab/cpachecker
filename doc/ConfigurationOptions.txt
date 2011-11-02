@@ -137,7 +137,7 @@ counterexample.checker = "CBMC"
   allowed values: [CBMC, CPACHECKER]
 
 # configuration file for counterexample checks with CPAchecker
-counterexample.checker.config = "test/config/explicitAnalysis-no-cbmc.properties"
+counterexample.checker.config = "config/explicitAnalysis-no-cbmc.properties"
 
 # continue analysis after an counterexample was found that was denied by the
 # second check
@@ -148,7 +148,7 @@ counterexample.continueAfterInfeasibleError = true
 # similar infeasible counterexamples to get discovered, but is unsound
 counterexample.removeInfeasibleErrors = false
 
-# CPA to use (cf. Configuration.txt for more documentation on this)
+# CPA to use (see doc/Configuration.txt for more documentation on this)
 cpa = CompositeCPA.class.getCanonicalName()
 
 # disable caching of abstract state spaces for blocks
@@ -564,7 +564,7 @@ restartAlgorithm.configFiles = no default value
 rootDirectory = "."
 
 # comma-separated list of files with specifications that should be checked
-# (see test/config/automata/ for examples)
+# (see config/specification/ for examples)
 specification = no default value
 
 # write some statistics to disk

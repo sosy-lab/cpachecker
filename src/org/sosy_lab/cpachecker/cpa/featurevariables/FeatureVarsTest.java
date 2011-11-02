@@ -42,7 +42,7 @@ public class FeatureVarsTest {
   @Test
   public void assignmentTest_True() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
-        "specification",     "test/config/automata/FeatureVarsErrorLocationAutomaton.txt",
+        "specification",     "config/specification/FeatureVarsErrorLocation.spc",
         "cpa.explicit.threshold", "200",
         "cpa.explicit.variableBlacklist", "__SELECTED_FEATURE_(\\w)*",
         "cpa.featurevars.variableWhitelist", "__SELECTED_FEATURE_(\\w)*"
@@ -72,7 +72,7 @@ public class FeatureVarsTest {
   @Test
   public void assignmentTest_False() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
-        "specification",     "test/config/automata/FeatureVarsErrorLocationAutomaton.txt",
+        "specification",     "config/specification/FeatureVarsErrorLocation.spc",
         "cpa.explicit.threshold", "200",
         "cpa.explicit.variableBlacklist", "__SELECTED_FEATURE_(\\w)*",
         "cpa.featurevars.variableWhitelist", "__SELECTED_FEATURE_(\\w)*"
@@ -103,7 +103,7 @@ public class FeatureVarsTest {
   @Test
   public void cooperationWithExplicit3VarsWithFunctionCall() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
-        "specification",     "test/config/automata/FeatureVarsErrorLocationAutomaton.txt",
+        "specification",     "config/specification/FeatureVarsErrorLocation.spc",
         "cpa.explicit.threshold", "200",
         "cpa.explicit.variableBlacklist", "__SELECTED_FEATURE_(\\w)*",
         "cpa.featurevars.variableWhitelist", "__SELECTED_FEATURE_(\\w)*"
@@ -132,7 +132,7 @@ public class FeatureVarsTest {
   @Test
   public void testStateReduction() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
-        "specification",     "test/config/automata/FeatureVarsErrorLocationAutomaton.txt",
+        "specification",     "config/specification/FeatureVarsErrorLocation.spc",
         "cpa.explicit.threshold", "200",
         "cpa.explicit.variableBlacklist", "__SELECTED_FEATURE_(\\w)*",
         "cpa.featurevars.variableWhitelist", "__SELECTED_FEATURE_(\\w)*"
@@ -171,7 +171,7 @@ public class FeatureVarsTest {
   @Test
   public void cooperationWithExplicit3VarsWithoutFunctionCall() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
-        "specification",     "test/config/automata/FeatureVarsErrorLocationAutomaton.txt",
+        "specification",     "config/specification/FeatureVarsErrorLocation.spc",
         "cpa.explicit.threshold", "200",
         "cpa.explicit.variableBlacklist", "__SELECTED_FEATURE_(\\w)*",
         "cpa.featurevars.variableWhitelist", "__SELECTED_FEATURE_(\\w)*"

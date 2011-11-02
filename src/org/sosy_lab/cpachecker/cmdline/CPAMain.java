@@ -60,7 +60,7 @@ public class CPAMain {
    * The directory where to look for configuration files for options like
    * "-predicateAbstraction" that get translated into a config file name.
    */
-  private static final String DEFAULT_CONFIG_FILES_DIR = "test/config/%s.properties";
+  private static final String DEFAULT_CONFIG_FILES_DIR = "config/%s.properties";
 
   private static final String CONFIGURATION_FILE_OPTION = "configuration.file";
   private static final String SPECIFICATION_FILE_OPTION = "specification";
