@@ -27,6 +27,7 @@ import static com.google.common.collect.Iterables.getOnlyElement;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
 
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -50,9 +51,11 @@ import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 import com.google.common.collect.Lists;
 
@@ -144,15 +147,23 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
       predicateCpa.getABMStats().addRefiner(this);
     }
 
+    /**
+     * Overridden just for visibility
+     */
     @Override
     protected final CounterexampleInfo performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
-      CounterexampleInfo counterexample = super.performRefinement(pReached, pPath);
+      return super.performRefinement(pReached, pPath);
+    }
 
-      if (counterexample.isSpurious()) {
-        lastErrorPath = null; // TODO why this?
-      }
+    @Override
+    protected void performRefinement(
+        ARTReachedSet pReached,
+        List<Pair<ARTElement, CFANode>> pPath,
+        CounterexampleTraceInfo<Collection<AbstractionPredicate>> pCounterexample,
+        boolean pRepeatedCounterexample) throws CPAException {
 
-      return counterexample;
+      // TODO Is this still necessary?
+      super.performRefinement(pReached, pPath, pCounterexample, false);
     }
 
     @Override

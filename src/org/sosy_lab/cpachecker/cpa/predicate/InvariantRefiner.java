@@ -66,13 +66,13 @@ import org.sosy_lab.cpachecker.util.invariants.balancer.TemplateMap;
 import org.sosy_lab.cpachecker.util.invariants.balancer.TemplateNetwork;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Transition;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateChooser;
+import org.sosy_lab.cpachecker.util.invariants.templates.TemplateChooser.TemplateChooserStrategy;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateConstraint;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormula;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormulaManager;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplatePathFormulaBuilder;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateTrue;
 import org.sosy_lab.cpachecker.util.invariants.templates.VariableWriteMode;
-import org.sosy_lab.cpachecker.util.invariants.templates.TemplateChooser.TemplateChooserStrategy;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -149,7 +149,7 @@ public class InvariantRefiner extends AbstractARTBasedRefiner {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
 
       List<Pair<ARTElement, CFANode>> path = transformPath(pPath);
-      predicateRefiner.performRefinement(pReached, path, counterexample);
+      predicateRefiner.performRefinement(pReached, path, counterexample, false);
 
       totalRefinement.stop();
       return CounterexampleInfo.spurious();
