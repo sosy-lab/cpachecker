@@ -27,7 +27,7 @@ import static com.google.common.base.Preconditions.*;
 
 /**
  * This class represents declaration of types and variables. It contains a
- * storage class, a type, a name and an initializer.
+ * storage class, a type, a name and an optional initializer.
  *
  * If the storage class is TYPEDEF, then the given name is aliased to the
  * given type (as typedef does in C).
@@ -73,6 +73,10 @@ public final class IASTDeclaration extends IASTSimpleDeclaration {
     return storageClass;
   }
 
+  /**
+   * The initial value of the variable
+   * (only if present, null otherwise).
+   */
   public IASTInitializer getInitializer() {
     return initializer;
   }
