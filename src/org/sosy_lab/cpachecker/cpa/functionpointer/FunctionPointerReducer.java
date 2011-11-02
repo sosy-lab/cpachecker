@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
-
+// TODO implements a no-op for the function pointer map and passes the wrapped abstract element to the wrappedReducer; could be improved
 public class FunctionPointerReducer implements Reducer {
 
   private final Reducer wrappedReducer;
@@ -56,7 +56,6 @@ public class FunctionPointerReducer implements Reducer {
     FunctionPointerElement funRootElement = (FunctionPointerElement)pRootElement;
     FunctionPointerElement funReducedElement = (FunctionPointerElement)pReducedElement;
 
-    //TODO: merge maps?
     return funReducedElement.createDuplicateWithNewWrappedElement(wrappedReducer.getVariableExpandedElement(funRootElement.getWrappedElement(), pReducedContext, funReducedElement.getWrappedElement()));
   }
 
