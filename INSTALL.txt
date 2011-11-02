@@ -1,6 +1,8 @@
 CPAchecker Installation
 =======================
 
+For information on how to run CPAchecker, see README.txt.
+
 
 Install CPAchecker -- Binary
 ----------------------------
@@ -41,7 +43,7 @@ Install CPAchecker -- Source
 7. Run "ant" in CPAchecker directory to build CPAchecker.
 
 
-Install CPAchecker as Eclipse Plugin for C projects
+Install CPAchecker -- Eclipse Plugin for C projects
 ---------------------------------------------------
 
 1. Install Eclipse 3.5 with CDT 6, Eclipse 3.6 with CDT 7, or Eclipse 3.7 with CDT 7.
@@ -51,4 +53,3 @@ Install CPAchecker as Eclipse Plugin for C projects
 3. Install CPAclipse plugin.
 
 
-For information on how to run CPAchecker, see README.txt.
