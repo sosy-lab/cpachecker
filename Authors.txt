@@ -5,6 +5,7 @@ Main Authors/Maintainers:
 
 Contributors:
   Gregor Endler (2009 - 2010)
+  Karlheinz Friedberger (2011)
   Alberto Griggio (2008 - 2009)
   Peter Häring (2011)
   Andreas Holzer (2008 - 2011)
