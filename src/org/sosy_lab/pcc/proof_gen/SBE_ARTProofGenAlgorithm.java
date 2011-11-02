@@ -90,6 +90,10 @@ public class SBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
     // build string of form sourceId#targetId#operation#
     edgeRep.append(pSource.getElementId());
     edgeRep.append("#");
+    // if target element is covered -> set covering element as target
+    if(pTarget.isCovered()){
+      pTarget = pTarget.getCoveringElement();
+    }
     edgeRep.append(pTarget.getElementId());
     edgeRep.append("#");
     // append operation

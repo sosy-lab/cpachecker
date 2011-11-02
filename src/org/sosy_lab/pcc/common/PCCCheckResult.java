@@ -27,6 +27,7 @@ public enum PCCCheckResult {
   Success,
   ART_CFA_Mismatch,
   UnknownCFANode,
+  AmbigiousRoot,
   UnknownCFAEdge,
   ErrorNodeReachable,
   InvalidART,
