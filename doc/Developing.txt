@@ -1,7 +1,6 @@
 CPAchecker Develop Instructions
 
-Follow installation instructions from source in INSTALL.txt.
-More details (style guide etc.) can be found in doc/*.txt.
+More details (style guide etc.) can be found in the other files in this directory.
 
 
 Develop CPAchecker from within Eclipse
