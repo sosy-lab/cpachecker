@@ -63,7 +63,6 @@ import org.eclipse.cdt.core.dom.ast.IASTReturnStatement;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTSwitchStatement;
-import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
@@ -86,7 +85,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 /**
@@ -118,9 +116,6 @@ class CFAFunctionBuilder extends ASTVisitor {
   private CFAFunctionDefinitionNode cfa = null;
   private SortedSet<CFANode> cfaNodes = null;
 
-  // Data structure for storing global declarations
-  private final List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> globalDeclarations = Lists.newArrayList();
-
   private final Scope scope;
   private final ASTConverter astCreator;
 
@@ -148,14 +143,6 @@ class CFAFunctionBuilder extends ASTVisitor {
     shouldVisitStatements = true;
     shouldVisitTranslationUnit = false;
     shouldVisitTypeIds = false;
-  }
-
-  /**
-   * Retrieves list of all global declarations
-   * @return global declarations
-   */
-  public List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> getGlobalDeclarations() {
-    return globalDeclarations;
   }
 
   /* (non-Javadoc)
@@ -191,6 +178,8 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   private int handleSimpleDeclaration(final IASTSimpleDeclaration sd, final IASTFileLocation fileloc) {
 
+    assert (locStack.size() > 0) : "not in a function's scope";
+
     final List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> newDs = astCreator.convert(sd);
     assert !newDs.isEmpty();
 
@@ -204,33 +193,25 @@ class CFAFunctionBuilder extends ASTVisitor {
       }
     }
 
-    if (locStack.size() > 0) {// i.e. we're in a function
+    CFANode prevNode = locStack.pop();
+    CFANode nextNode = null;
 
-      CFANode prevNode = locStack.pop();
-      CFANode nextNode = null;
+    for (org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD : newDs) {
+      assert !newD.isGlobal();
 
-      for (org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD : newDs) {
-        assert !newD.isGlobal();
+      nextNode = new CFANode(fileloc.getStartingLineNumber(), cfa.getFunctionName());
+      cfaNodes.add(nextNode);
 
-        nextNode = new CFANode(fileloc.getStartingLineNumber(), cfa.getFunctionName());
-        cfaNodes.add(nextNode);
+      final DeclarationEdge edge =
+          new DeclarationEdge(newD, fileloc.getStartingLineNumber(), prevNode,
+              nextNode);
+      addToCFA(edge);
 
-        final DeclarationEdge edge = new DeclarationEdge(newD,
-            fileloc.getStartingLineNumber(), prevNode, nextNode);
-        addToCFA(edge);
-
-        prevNode = nextNode;
-      }
-
-      assert nextNode != null;
-      locStack.push(nextNode);
-
-    } else {
-      assert (sd.getParent() instanceof IASTTranslationUnit) : "not a real global declaration";
-
-      // else we're in the global scope
-      globalDeclarations.addAll(newDs);
+      prevNode = nextNode;
     }
+
+    assert nextNode != null;
+    locStack.push(nextNode);
 
     return PROCESS_SKIP; // important to skip here, otherwise we would visit nested declarations
   }

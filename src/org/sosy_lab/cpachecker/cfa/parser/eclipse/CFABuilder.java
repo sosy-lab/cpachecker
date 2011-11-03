@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.SortedSetMultimap;
@@ -163,6 +162,8 @@ class CFABuilder extends ASTVisitor {
 
   private int handleSimpleDeclaration(final IASTSimpleDeclaration sd, final IASTFileLocation fileloc) {
 
+    assert (locStack.size() == 0) : "not in the global scope";
+
     final List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> newDs = astCreator.convert(sd);
     assert !newDs.isEmpty();
 
@@ -176,33 +177,9 @@ class CFABuilder extends ASTVisitor {
       }
     }
 
-    if (locStack.size() > 0) {// i.e. we're in a function
+    assert (sd.getParent() instanceof IASTTranslationUnit) : "not a real global declaration";
 
-      CFANode prevNode = locStack.pop();
-      CFANode nextNode = null;
-
-      for (org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD : newDs) {
-        assert !newD.isGlobal();
-
-        nextNode = new CFANode(fileloc.getStartingLineNumber(), currentCfa.getFunctionName());
-        currentCfaNodes.add(nextNode);
-
-        final DeclarationEdge edge = new DeclarationEdge(newD,
-            fileloc.getStartingLineNumber(), prevNode, nextNode);
-        addToCFA(edge);
-
-        prevNode = nextNode;
-      }
-
-      assert nextNode != null;
-      locStack.push(nextNode);
-
-    } else {
-      assert (sd.getParent() instanceof IASTTranslationUnit) : "not a real global declaration";
-
-      // else we're in the global scope
-      globalDeclarations.addAll(newDs);
-    }
+    globalDeclarations.addAll(newDs);
 
     return PROCESS_SKIP; // important to skip here, otherwise we would visit nested declarations
   }
