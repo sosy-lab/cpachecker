@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.Iterables.getOnlyElement;
+import static com.google.common.collect.Lists.transform;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
 
 import java.util.ArrayDeque;
@@ -51,12 +52,16 @@ import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.collect.Lists;
 
 
@@ -134,6 +139,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
     final Timer ssaRenamingTimer = new Timer();
 
     private final PathFormulaManager pfmgr;
+    private List<Region> lastAbstractions = null;
 
     private ExtendedPredicateRefiner(final Configuration config, final LogManager logger,
         final ConfigurableProgramAnalysis pCpa,
@@ -155,6 +161,24 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
       return super.performRefinement(pReached, pPath);
     }
 
+    private static final Function<PredicateAbstractElement, Region> GET_REGION
+    = new Function<PredicateAbstractElement, Region>() {
+        @Override
+        public Region apply(PredicateAbstractElement e) {
+          assert e.isAbstractionElement();
+          return e.getAbstractionFormula().asRegion();
+        };
+      };
+
+    private List<Region> getRegionsForPath(List<Pair<ARTElement, CFANode>> path) throws CPATransferException {
+      return transform(path,
+          Functions.compose(
+              GET_REGION,
+          Functions.compose(
+              AbstractElements.extractElementByTypeFunction(PredicateAbstractElement.class),
+              Pair.<ARTElement>getProjectionToFirst())));
+    }
+
     @Override
     protected void performRefinement(
         ARTReachedSet pReached,
@@ -164,7 +188,14 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
 
       // overriding this method is needed, as, in principle, it is possible to get two successive spurious counterexamples
       // which only differ in its abstractions (with 'aggressive caching').
-      super.performRefinement(pReached, pPath, pCounterexample, false);
+
+      if(pRepeatedCounterexample) {
+        //block formulas are the same as last time; check if abstractions also agree
+        pRepeatedCounterexample = getRegionsForPath(pPath).equals(lastAbstractions);
+      }
+
+      lastAbstractions = getRegionsForPath(pPath);
+      super.performRefinement(pReached, pPath, pCounterexample, pRepeatedCounterexample);
     }
 
     @Override
