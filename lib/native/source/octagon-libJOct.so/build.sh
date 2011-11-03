@@ -1,12 +1,5 @@
 #!/bin/bash
 
-#wget http://www.di.ens.fr/~mine/oct/oct-0.9.10.tar.gz
-#tar xzf oct-0.9.10.tar.gz
-cd oct-0.9.10
-./configure --with-num=float
-make
-cd ..
-
 if [ `uname` = "Darwin" ] ; then
   COMPILE_OPT="-I/usr/local/include -I/sw/include -I/System/Library/Frameworks/JavaVM.framework/Headers"
   LINK_OPT="-dynamiclib -o libJOct.jnilib"
@@ -19,8 +12,5 @@ else
   echo "Missing build information for `uname`"
   exit 1
 fi
-gcc -g -O2 $COMPILE_OPT -Ioct-0.9.10/ -Ioct-0.9.10/clib/ -DOCT_HAS_GMP -DOCT_ENABLE_ASSERT -DOCT_NUM_FLOAT -DOCT_PREFIX=CAT\(octfag_ -c OctWrapper.c
-gcc $LINK_OPT OctWrapper.o oct-0.9.10/clib/.libs/*.o -lm
-
-cp libJOct.so ../../x86-linux
-cp OctWrapper.o ../../x86-linux
+gcc -g -O2 $COMPILE_OPT -Ioct-0.9.10/ -Ioct-0.9.10/clib/ -DOCT_HAS_GMP -DOCT_ENABLE_ASSERT -DOCT_NUM_FLOAT -DOCT_PREFIX=CAT\(octfag_ -c org_sosy_lab_cpachecker_util_octagon_OctWrapper.c
+gcc $LINK_OPT org_sosy_lab_cpachecker_util_octagon_OctWrapper.o oct-0.9.10/clib/.libs/*.o -lm
