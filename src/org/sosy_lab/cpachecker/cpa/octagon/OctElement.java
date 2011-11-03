@@ -40,7 +40,7 @@ import com.google.common.collect.HashBiMap;
  * see {@link Variable}.
  *
  */
-public class OctElement implements AbstractElement{
+class OctElement implements AbstractElement{
 
   // the octagon representation
   private Octagon octagon;

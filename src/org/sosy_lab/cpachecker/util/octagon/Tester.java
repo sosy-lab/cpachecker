@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.octagon;
 
 public class Tester {
 
-	static OctWrapper ow = new OctWrapper();
+	private static final OctWrapper ow = new OctWrapper();
 
 	public static void main(String[] args) {
 //		System.out.println("Init: " + ow.J_init());
