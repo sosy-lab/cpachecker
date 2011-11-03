@@ -37,7 +37,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.SortedSetMultimap;
 
-class MutableCFA implements CFA {
+public class MutableCFA implements CFA {
 
   private final Map<String, CFAFunctionDefinitionNode> functions;
   private final SortedSetMultimap<String, CFANode> allNodes;
