@@ -306,8 +306,7 @@ public class ExplicitTransferRelation implements TransferRelation
     String functionName = cfaEdge.getPredecessor().getFunctionName();
 
     // get the value of the expression (either true[1L], false[0L], or unknown[null])
-    ExpressionValueVisitor evalVisitor = new ExpressionValueVisitor(element, functionName);
-    Long value = expression.accept(evalVisitor);
+    Long value = getExpressionValue(element, expression, functionName);
 
     // value is null, try to derive further information
     if(value == null)
@@ -409,9 +408,8 @@ public class ExplicitTransferRelation implements TransferRelation
       else
       {
         String functionName = cfaEdge.getPredecessor().getFunctionName();
-        ExpressionValueVisitor v = new ExpressionValueVisitor(element, functionName);
 
-        return handleAssignmentToVariable(op1.getRawSignature(), op2, v);
+        return handleAssignmentToVariable(op1.getRawSignature(), op2, new ExpressionValueVisitor(element, functionName));
       }
     }
 
@@ -449,9 +447,8 @@ public class ExplicitTransferRelation implements TransferRelation
       else
       {
         String functionName = cfaEdge.getPredecessor().getFunctionName();
-        ExpressionValueVisitor v = new ExpressionValueVisitor(element, functionName);
 
-        return handleAssignmentToVariable(op1.getRawSignature(), op2, v);
+        return handleAssignmentToVariable(op1.getRawSignature(), op2, new ExpressionValueVisitor(element, functionName));
       }
     }
 
@@ -463,19 +460,19 @@ public class ExplicitTransferRelation implements TransferRelation
       throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", cfaEdge, op1);
   }
 
-  private ExplicitElement handleAssignmentToVariable(String lParam, IASTRightHandSide exp, ExpressionValueVisitor v)
+  private ExplicitElement handleAssignmentToVariable(String lParam, IASTRightHandSide exp, ExpressionValueVisitor visitor)
     throws UnrecognizedCCodeException
   {
-    Long value = exp.accept(v);
+    Long value = exp.accept(visitor);
 
-    if(v.missingPointer)
+    if(visitor.missingPointer)
     {
       missingInformationRightExpression = exp;
       assert value == null;
     }
 
-    ExplicitElement newElement = v.element.clone();
-    String assignedVar = getScopedVariableName(lParam, v.functionName);
+    ExplicitElement newElement = visitor.element.clone();
+    String assignedVar = getScopedVariableName(lParam, visitor.functionName);
 
     if(value == null)
       newElement.forget(assignedVar);
@@ -1021,7 +1018,7 @@ public class ExplicitTransferRelation implements TransferRelation
           IASTExpression leftAddend = expr.getOperand1();
           IASTExpression riteAddend = expr.getOperand2();
 
-          // [(a + 753) != 951] => [a == 951 + 753]
+          // [(a + 753) != 951] => [a != 951 + 753]
           if(riteAddend instanceof IASTLiteralExpression && (operation == BinaryOperator.PLUS || operation == BinaryOperator.MINUS))
           {
             BinaryOperator newOperation = (operation == BinaryOperator.PLUS) ? BinaryOperator.MINUS : BinaryOperator.PLUS;
