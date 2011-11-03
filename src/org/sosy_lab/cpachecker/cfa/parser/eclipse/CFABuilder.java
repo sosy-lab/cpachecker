@@ -26,8 +26,10 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.SortedSet;
 import java.util.logging.Level;
 
@@ -99,7 +101,7 @@ class CFABuilder extends ASTVisitor {
     shouldVisitParameterDeclarations = true;
     shouldVisitProblems = true;
     shouldVisitStatements = true;
-    shouldVisitTranslationUnit = false;
+    shouldVisitTranslationUnit = true;
     shouldVisitTypeIds = false;
   }
 
@@ -127,6 +129,8 @@ class CFABuilder extends ASTVisitor {
     return globalDeclarations;
   }
 
+  private Queue<IASTFunctionDefinition> functionDeclarations = new LinkedList<IASTFunctionDefinition>();
+
   /* (non-Javadoc)
    * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IASTDeclaration)
    */
@@ -138,8 +142,7 @@ class CFABuilder extends ASTVisitor {
       return handleSimpleDeclaration((IASTSimpleDeclaration)declaration, fileloc);
 
     } else if (declaration instanceof IASTFunctionDefinition) {
-      declaration.accept(new CFAFunctionBuilder(logger, ignoreCasts, this,
-          scope, astCreator));
+      functionDeclarations.add((IASTFunctionDefinition) declaration);
       return PROCESS_SKIP;
 
     } else if (declaration instanceof IASTProblemDeclaration) {
@@ -248,6 +251,20 @@ class CFABuilder extends ASTVisitor {
   @Override
   public int visit(IASTProblem problem) {
     throw new CFAGenerationRuntimeException(problem.getMessage(), problem);
+  }
+
+  @Override
+  public int visit(IASTTranslationUnit translationUnit) {
+    return PROCESS_CONTINUE;
+  }
+
+  @Override
+  public int leave(IASTTranslationUnit translationUnit) {
+    for (IASTFunctionDefinition declaration : functionDeclarations) {
+      declaration.accept(new CFAFunctionBuilder(logger, ignoreCasts, this,
+          scope, astCreator));
+    }
+    return PROCESS_CONTINUE;
   }
 
   /**
