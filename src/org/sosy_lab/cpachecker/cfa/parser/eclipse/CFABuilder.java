@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
-import static org.sosy_lab.cpachecker.cfa.CFACreationUtils.isReachableNode;
-
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -35,17 +33,14 @@ import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
 import org.eclipse.cdt.core.dom.ast.IASTASMDeclaration;
-import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
-import org.eclipse.cdt.core.dom.ast.IASTIfStatement;
 import org.eclipse.cdt.core.dom.ast.IASTProblem;
 import org.eclipse.cdt.core.dom.ast.IASTProblemDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
-import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
@@ -69,10 +64,6 @@ class CFABuilder extends ASTVisitor {
 
   // Data structure for maintaining our scope stack in a function
   private final Deque<CFANode> locStack = new ArrayDeque<CFANode>();
-
-  // Data structures for handling loops & else conditions
-  private final Deque<CFANode> loopStartStack = new ArrayDeque<CFANode>();
-  private final Deque<CFANode> loopNextStack  = new ArrayDeque<CFANode>(); // For the node following the current if / while block
 
   // Data structures for handling function declarations
   private final Map<String, CFAFunctionDefinitionNode> cfas = new HashMap<String, CFAFunctionDefinitionNode>();
@@ -268,53 +259,8 @@ class CFABuilder extends ASTVisitor {
    */
   @Override
   public int leave(IASTStatement statement) {
-    if (statement instanceof IASTIfStatement) {
-      CFANode prevNode = locStack.pop();
-      CFANode nextNode = locStack.peek();
-
-      if (isReachableNode(prevNode)) {
-        BlankEdge blankEdge = new BlankEdge("", prevNode.getLineNumber(),
-            prevNode, nextNode);
-        addToCFA(blankEdge);
-      }
-
-    } else if (statement instanceof IASTCompoundStatement) {
-      scope.leaveBlock();
-      if (statement.getPropertyInParent() == IASTWhileStatement.BODY) {
-        CFANode prevNode = locStack.pop();
-        CFANode startNode = loopStartStack.pop();
-
-        if (isReachableNode(prevNode)) {
-          BlankEdge blankEdge = new BlankEdge("", prevNode.getLineNumber(),
-              prevNode, startNode);
-          addToCFA(blankEdge);
-        }
-
-        CFANode nextNode = loopNextStack.pop();
-        assert nextNode == locStack.peek();
-      }
-
-    } else if (statement instanceof IASTWhileStatement) { // Code never hit due to bug in Eclipse CDT
-      /* Commented out, because with CDT 6, the branch above _and_ this branch
-       * are hit, which would result in an exception.
-      CFANode prevNode = locStack.pop();
-
-      if (!prevNode.hasJumpEdgeLeaving())
-      {
-        CFANode startNode = loopStartStack.peek();
-
-        if (!prevNode.hasEdgeTo(startNode))
-        {
-          BlankEdge blankEdge = new BlankEdge("");
-          blankEdge.initialize(prevNode, startNode);
-        }
-      }
-
-      loopStartStack.pop();
-      loopNextStack.pop();
-      */
-    }
-    return PROCESS_CONTINUE;
+    throw new CFAGenerationRuntimeException("Statements shouldn't be seen by"
+        + " global CFABuilder.", statement);
   }
 
   //Method to handle visiting a parsing problem.  Hopefully none exist
