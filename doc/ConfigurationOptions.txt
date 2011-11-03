@@ -346,8 +346,8 @@ cpa.predicate.handlePointerAliasing = false
 cpa.predicate.initAllVars = false
 
 # the machine model used for functions sizeof and alignof
-cpa.predicate.machineModel = Linux32
-  enum:     [Linux32, Linux64]
+cpa.predicate.machineModel = LINUX32
+  enum:     [LINUX32, LINUX64]
 
 # With of the bitvectors if useBitwise is true.
 cpa.predicate.mathsat.bitWidth = 32
