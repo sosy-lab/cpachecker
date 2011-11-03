@@ -139,7 +139,8 @@ class CFABuilder extends ASTVisitor {
       return handleSimpleDeclaration((IASTSimpleDeclaration)declaration, fileloc);
 
     } else if (declaration instanceof IASTFunctionDefinition) {
-      declaration.accept(new CFAFunctionBuilder(logger, ignoreCasts, this));
+      declaration.accept(new CFAFunctionBuilder(logger, ignoreCasts, this,
+          scope, astCreator));
       return PROCESS_SKIP;
 
     } else if (declaration instanceof IASTProblemDeclaration) {

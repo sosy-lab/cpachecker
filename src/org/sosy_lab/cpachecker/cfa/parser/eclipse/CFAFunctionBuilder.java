@@ -121,16 +121,19 @@ class CFAFunctionBuilder extends ASTVisitor {
   // Data structure for storing global declarations
   private final List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> globalDeclarations = Lists.newArrayList();
 
-  private final Scope scope = new Scope();
+  private final Scope scope;
   private final ASTConverter astCreator;
 
   private final LogManager logger;
   private final CFABuilder cfaBuilder;
 
-  public CFAFunctionBuilder(LogManager pLogger, boolean pIgnoreCasts, CFABuilder pCfaBuilder) {
+  public CFAFunctionBuilder(LogManager pLogger, boolean pIgnoreCasts,
+      CFABuilder pCfaBuilder, Scope pScope, ASTConverter pAstCreator) {
+
     logger = pLogger;
     cfaBuilder = pCfaBuilder;
-    astCreator = new ASTConverter(scope, pIgnoreCasts, logger);
+    scope = pScope;
+    astCreator = pAstCreator;
 
     //shouldVisitComments = false;
     shouldVisitDeclarations = true;
