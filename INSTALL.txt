@@ -11,10 +11,7 @@ Install CPAchecker -- Binary
    (e.g., Sun/Oracle JRE, OpenJDK).
    Cf. http://java.oracle.com/ or install a package from your distribution.
 
-2. Install GNU Multiprecision Arithmetic Library libgmp.so.3 and libgmpxx.so.4.
-   (Ubuntu: sudo apt-get install libgmp3c2 libgmpxx4ldbl)
-
-3. Extract the content of the CPAchecker zip file into a directory of your choice.
+2. Extract the content of the CPAchecker zip file into a directory of your choice.
 
 
 Install CPAchecker -- Source
@@ -24,21 +21,18 @@ Install CPAchecker -- Source
    (e.g., Sun/Oracle JDK, OpenJDK).
    Cf. http://java.oracle.com/ or install a package from your distribution.
 
-2. Install GNU Multiprecision Arithmetic Library libgmp.so.3 and libgmpxx.so.4.
-   (Ubuntu: sudo apt-get install libgmp3c2 libgmpxx4ldbl)
-
-3. Install ant (anything since version 1.6 should be ok).
+2. Install ant (anything since version 1.6 should be ok).
    The optional ant tasks are needed (in Ubuntu they are packaged as ant-optional).
    (Ubuntu: sudo apt-get install ant ant-optional)
 
-4. Install Subversion.
+3. Install Subversion.
    (Ubuntu: sudo apt-get install subversion)
 
-5. Checkout CPAchecker from SVN repository.
+4. Checkout CPAchecker from SVN repository.
    URL: https://svn.sosy-lab.org/software/cpachecker/trunk
    URL (read-only mirror): http://cpachecker.googlecode.com/svn/trunk
 
-6. Run "ant" in CPAchecker directory to build CPAchecker.
+5. Run "ant" in CPAchecker directory to build CPAchecker.
 
 (For building CPAchecker within Eclipse, cf. doc/Developing.txt.)
 
