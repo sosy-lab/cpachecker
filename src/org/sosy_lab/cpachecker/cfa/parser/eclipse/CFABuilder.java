@@ -29,7 +29,6 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -75,12 +74,10 @@ import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -290,78 +287,7 @@ class CFABuilder extends ASTVisitor {
 
   @Override
   public int leave(IASTDeclaration declaration) {
-    if (declaration instanceof IASTFunctionDefinition) {
-      if (locStack.size() != 1) {
-        throw new CFAGenerationRuntimeException("Depth wrong. Geoff needs to do more work");
-      }
-
-      CFANode lastNode = locStack.pop();
-
-      if (isReachableNode(lastNode)) {
-        BlankEdge blankEdge = new BlankEdge("default return",
-            lastNode.getLineNumber(), lastNode, currentCfa.getExitNode());
-        addToCFA(blankEdge);
-      }
-
-      if (!gotoLabelNeeded.isEmpty()) {
-        throw new CFAGenerationRuntimeException("Following labels were not found in function "
-              + currentCfa.getFunctionName() + ": " + gotoLabelNeeded.keySet());
-      }
-
-      for (CFALabelNode n : labelMap.values()) {
-        if (n.getNumEnteringEdges() == 0) {
-          logDeadLabel(n);
-
-          // remove this dead code from CFA
-          CFACreationUtils.removeChainOfNodesFromCFA(n);
-
-        } else if (n.getNumEnteringEdges() == 1) {
-          CFAEdge edge = n.getEnteringEdge(0);
-
-          if (edge.getPredecessor().equals(n)) {
-            // it's an unreachable self-loop, this happens in cases like
-            // if (0) { ERROR: goto ERROR; }
-            assert !isPathFromTo(currentCfa, n);
-
-            logDeadLabel(n);
-
-            // remove this dead code from CFA
-            CFACreationUtils.removeEdgeFromNodes(edge);
-            assert n.getNumLeavingEdges() == 0;
-          }
-        }
-        // TODO handle other cases of unreachable labels
-        // Probably its best to just check whether there is a path from the
-        // entry node to the label.
-      }
-
-      labelMap.clear();
-
-      Iterator<CFANode> it = currentCfaNodes.iterator();
-      while (it.hasNext()) {
-        CFANode n = it.next();
-        if (n.getNumEnteringEdges() == 0 && n.getNumLeavingEdges() == 0) {
-          // node was created but isn't part of CFA (e.g. because of dead code)
-          it.remove(); // remove n from currentCFANodes
-        }
-      }
-      currentCfaNodes = null;
-
-      currentCfa = null;
-      scope.leaveFunction();
-    }
-
     return PROCESS_CONTINUE;
-  }
-
-  private void logDeadLabel(CFALabelNode n) {
-    Level level = Level.INFO;
-    if (n.getLabel().matches("(switch|while)_\\d+_[a-z0-9]+")) {
-      // don't mention dead code produced by CIL on normal log levels
-      level = Level.FINER;
-    }
-    logger.log(level, "Dead code detected at line", n.getLineNumber() + ": Label",
-        n.getLabel(), "is not reachable.");
   }
 
   // Methods for to handle visiting and leaving Statements
@@ -409,7 +335,8 @@ class CFABuilder extends ASTVisitor {
     } else if (statement instanceof IASTGotoStatement) {
       handleGotoStatement((IASTGotoStatement)statement, fileloc);
     } else if (statement instanceof IASTReturnStatement) {
-      handleReturnStatement((IASTReturnStatement)statement, fileloc);
+      throw new CFAGenerationRuntimeException("Return statements shouldn't be"
+          + " seen by global CFABuilder.", statement);
     } else if (statement instanceof IASTSwitchStatement) {
       return handleSwitchStatement((IASTSwitchStatement)statement, fileloc);
     } else if (statement instanceof IASTCaseStatement) {
@@ -913,22 +840,6 @@ class CFABuilder extends ASTVisitor {
       }
     }
     return false;
-  }
-
-  private void handleReturnStatement(IASTReturnStatement returnStatement,
-      IASTFileLocation fileloc) {
-
-    CFANode prevNode = locStack.pop();
-    CFAFunctionExitNode functionExitNode = currentCfa.getExitNode();
-
-    ReturnStatementEdge edge = new ReturnStatementEdge(astCreator.convert(returnStatement),
-        fileloc.getStartingLineNumber(), prevNode, functionExitNode);
-    addToCFA(edge);
-
-    CFANode nextNode = new CFANode(fileloc.getEndingLineNumber(),
-        currentCfa.getFunctionName());
-    currentCfaNodes.add(nextNode);
-    locStack.push(nextNode);
   }
 
   private int handleSwitchStatement(final IASTSwitchStatement statement,
