@@ -149,6 +149,15 @@ public class CPAchecker {
     }
   }
 
+  /**
+   * Change this string in preparation of a release.
+   */
+  private static final String version = "(development version)";
+
+  public static String getVersion() {
+    return version;
+  }
+
   public CPAchecker(Configuration pConfiguration, LogManager pLogManager) throws InvalidConfigurationException {
     config = pConfiguration;
     logger = pLogManager;
@@ -160,7 +169,7 @@ public class CPAchecker {
 
   public CPAcheckerResult run(String filename) {
 
-    logger.log(Level.INFO, "CPAchecker started");
+    logger.log(Level.INFO, "CPAchecker", getVersion(), "started");
 
     MainCPAStatistics stats = null;
     ReachedSet reached = null;

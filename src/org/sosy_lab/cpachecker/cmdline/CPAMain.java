@@ -391,6 +391,8 @@ public class CPAMain {
   }
 
   private static void printHelp() {
+    System.out.println("CPAchecker " + CPAchecker.getVersion());
+    System.out.println();
     System.out.println("OPTIONS:");
     System.out.println(" -config");
     System.out.println(" -cpas");
@@ -408,7 +410,7 @@ public class CPAMain {
     System.out.println(" -printOptions [-v|-verbose]");
     System.out.println(" -printUsedOptions");
     System.out.println(" -help");
-    System.out.println("");
+    System.out.println();
     System.out.println("More information on how to configure CPAchecker can be found in HowToConfiguration.txt");
     System.exit(0);
   }
