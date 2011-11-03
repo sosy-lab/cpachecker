@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 import static org.sosy_lab.cpachecker.cfa.CFACreationUtils.isReachableNode;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -80,14 +81,13 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.SortedSetMultimap;
-import com.google.common.collect.TreeMultimap;
 
 /**
  * Builder to traverse AST.
@@ -95,7 +95,7 @@ import com.google.common.collect.TreeMultimap;
  * <p> -- K&R style function definitions not implemented
  * <p> -- Pointer modifiers not tracked (i.e. const, volatile, etc. for *
  */
-class CFABuilder extends ASTVisitor {
+class CFAFunctionBuilder extends ASTVisitor {
 
   // Data structure for maintaining our scope stack in a function
   private final Deque<CFANode> locStack = new ArrayDeque<CFANode>();
@@ -115,10 +115,8 @@ class CFABuilder extends ASTVisitor {
   private final Multimap<String, CFANode> gotoLabelNeeded = ArrayListMultimap.create();
 
   // Data structures for handling function declarations
-  private final Map<String, CFAFunctionDefinitionNode> cfas = new HashMap<String, CFAFunctionDefinitionNode>();
-  private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
-  private CFAFunctionDefinitionNode currentCfa = null;
-  private SortedSet<CFANode> currentCfaNodes = null;
+  private CFAFunctionDefinitionNode cfa = null;
+  private SortedSet<CFANode> cfaNodes = null;
 
   // Data structure for storing global declarations
   private final List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> globalDeclarations = Lists.newArrayList();
@@ -127,16 +125,12 @@ class CFABuilder extends ASTVisitor {
   private final ASTConverter astCreator;
 
   private final LogManager logger;
-  private final boolean ignoreCasts;
+  private final CFABuilder cfaBuilder;
 
-  public CFABuilder(LogManager pLogger, boolean pIgnoreCasts) {
+  public CFAFunctionBuilder(LogManager pLogger, boolean pIgnoreCasts, CFABuilder pCfaBuilder) {
     logger = pLogger;
-    ignoreCasts = pIgnoreCasts;
+    cfaBuilder = pCfaBuilder;
     astCreator = new ASTConverter(scope, pIgnoreCasts, logger);
-
-    if (pIgnoreCasts) {
-      logger.log(Level.WARNING, "Ignoring all casts in the program because of user request!");
-    }
 
     //shouldVisitComments = false;
     shouldVisitDeclarations = true;
@@ -151,22 +145,6 @@ class CFABuilder extends ASTVisitor {
     shouldVisitStatements = true;
     shouldVisitTranslationUnit = false;
     shouldVisitTypeIds = false;
-  }
-
-  /**
-   * Retrieves list of all functions
-   * @return all CFAs in the program
-   */
-  public Map<String, CFAFunctionDefinitionNode> getCFAs()  {
-    return cfas;
-  }
-
-  /**
-   * Retrieves list of all nodes
-   * @return all CFAs in the program
-   */
-  public SortedSetMultimap<String, CFANode> getCFANodes()  {
-    return cfaNodes;
   }
 
   /**
@@ -188,8 +166,7 @@ class CFABuilder extends ASTVisitor {
       return handleSimpleDeclaration((IASTSimpleDeclaration)declaration, fileloc);
 
     } else if (declaration instanceof IASTFunctionDefinition) {
-      declaration.accept(new CFAFunctionBuilder(logger, ignoreCasts, this));
-      return PROCESS_SKIP;
+      return handleFunctionDefinition((IASTFunctionDefinition)declaration, fileloc);
 
     } else if (declaration instanceof IASTProblemDeclaration) {
       // CDT parser struggles on GCC's __attribute__((something)) constructs
@@ -232,8 +209,8 @@ class CFABuilder extends ASTVisitor {
       for (org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD : newDs) {
         assert !newD.isGlobal();
 
-        nextNode = new CFANode(fileloc.getStartingLineNumber(), currentCfa.getFunctionName());
-        currentCfaNodes.add(nextNode);
+        nextNode = new CFANode(fileloc.getStartingLineNumber(), cfa.getFunctionName());
+        cfaNodes.add(nextNode);
 
         final DeclarationEdge edge = new DeclarationEdge(newD,
             fileloc.getStartingLineNumber(), prevNode, nextNode);
@@ -255,16 +232,52 @@ class CFABuilder extends ASTVisitor {
     return PROCESS_SKIP; // important to skip here, otherwise we would visit nested declarations
   }
 
-  void addFunctionCfa(String pNameOfFunction,
-      final CFAFunctionDefinitionNode pStartNode,
-      final IASTFunctionDefinition pDeclaration) {
+  private int handleFunctionDefinition(final IASTFunctionDefinition declaration,
+      final IASTFileLocation fileloc) {
 
-    if (cfas.containsKey(pNameOfFunction)) {
-      throw new CFAGenerationRuntimeException("Duplicate function "
-          + pNameOfFunction, pDeclaration);
+    if (locStack.size() != 0) {
+      throw new CFAGenerationRuntimeException("Nested function declarations?");
     }
 
-    cfas.put(pNameOfFunction, pStartNode);
+    assert labelMap.isEmpty();
+    assert gotoLabelNeeded.isEmpty();
+    assert cfa == null;
+    assert cfaNodes == null;
+
+    final org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDefinition fdef = astCreator.convert(declaration);
+    final String nameOfFunction = fdef.getName();
+    assert !nameOfFunction.isEmpty();
+
+    scope.enterFunction(fdef);
+
+    final List<org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration> parameters = fdef.getDeclSpecifier().getParameters();
+    final List<String> parameterNames = new ArrayList<String>(parameters.size());
+
+    for (org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration param : parameters) {
+      scope.registerDeclaration(param); // declare parameter as local variable
+      parameterNames.add(param.getName());
+    }
+
+    cfaNodes = cfaBuilder.getCFANodes().get(nameOfFunction);
+
+    final CFAFunctionExitNode returnNode = new CFAFunctionExitNode(fileloc.getEndingLineNumber(), nameOfFunction);
+    cfaNodes.add(returnNode);
+
+    final CFAFunctionDefinitionNode startNode = new FunctionDefinitionNode(
+        fileloc.getStartingLineNumber(), nameOfFunction, fdef, returnNode, parameters, parameterNames);
+    cfaNodes.add(startNode);
+    cfaBuilder.addFunctionCfa(nameOfFunction, startNode, declaration);
+    cfa = startNode;
+
+    final CFANode nextNode = new CFANode(fileloc.getStartingLineNumber(), nameOfFunction);
+    cfaNodes.add(nextNode);
+    locStack.add(nextNode);
+
+    final BlankEdge dummyEdge = new BlankEdge("Function start dummy edge",
+        fileloc.getStartingLineNumber(), startNode, nextNode);
+    addToCFA(dummyEdge);
+
+    return PROCESS_CONTINUE;
   }
 
   private int ignoreASMDeclaration(final IASTFileLocation fileloc) {
@@ -277,8 +290,8 @@ class CFABuilder extends ASTVisitor {
     if (!locStack.isEmpty()) {
       final CFANode prevNode = locStack.pop();
 
-      final CFANode nextNode = new CFANode(fileloc.getStartingLineNumber(), currentCfa.getFunctionName());
-      currentCfaNodes.add(nextNode);
+      final CFANode nextNode = new CFANode(fileloc.getStartingLineNumber(), cfa.getFunctionName());
+      cfaNodes.add(nextNode);
       locStack.push(nextNode);
 
       final BlankEdge edge = new BlankEdge("Ignored inline assembler code",
@@ -291,6 +304,7 @@ class CFABuilder extends ASTVisitor {
   @Override
   public int leave(IASTDeclaration declaration) {
     if (declaration instanceof IASTFunctionDefinition) {
+
       if (locStack.size() != 1) {
         throw new CFAGenerationRuntimeException("Depth wrong. Geoff needs to do more work");
       }
@@ -299,13 +313,13 @@ class CFABuilder extends ASTVisitor {
 
       if (isReachableNode(lastNode)) {
         BlankEdge blankEdge = new BlankEdge("default return",
-            lastNode.getLineNumber(), lastNode, currentCfa.getExitNode());
+            lastNode.getLineNumber(), lastNode, cfa.getExitNode());
         addToCFA(blankEdge);
       }
 
       if (!gotoLabelNeeded.isEmpty()) {
         throw new CFAGenerationRuntimeException("Following labels were not found in function "
-              + currentCfa.getFunctionName() + ": " + gotoLabelNeeded.keySet());
+              + cfa.getFunctionName() + ": " + gotoLabelNeeded.keySet());
       }
 
       for (CFALabelNode n : labelMap.values()) {
@@ -321,7 +335,7 @@ class CFABuilder extends ASTVisitor {
           if (edge.getPredecessor().equals(n)) {
             // it's an unreachable self-loop, this happens in cases like
             // if (0) { ERROR: goto ERROR; }
-            assert !isPathFromTo(currentCfa, n);
+            assert !isPathFromTo(cfa, n);
 
             logDeadLabel(n);
 
@@ -337,7 +351,7 @@ class CFABuilder extends ASTVisitor {
 
       labelMap.clear();
 
-      Iterator<CFANode> it = currentCfaNodes.iterator();
+      Iterator<CFANode> it = cfaNodes.iterator();
       while (it.hasNext()) {
         CFANode n = it.next();
         if (n.getNumEnteringEdges() == 0 && n.getNumLeavingEdges() == 0) {
@@ -345,9 +359,9 @@ class CFABuilder extends ASTVisitor {
           it.remove(); // remove n from currentCFANodes
         }
       }
-      currentCfaNodes = null;
+      cfaNodes = null;
 
-      currentCfa = null;
+      cfa = null;
       scope.leaveFunction();
     }
 
@@ -445,8 +459,8 @@ class CFABuilder extends ASTVisitor {
     CFANode prevNode = locStack.pop();
 
     CFANode nextNode = new CFANode(fileloc.getStartingLineNumber(),
-        currentCfa.getFunctionName());
-    currentCfaNodes.add(nextNode);
+        cfa.getFunctionName());
+    cfaNodes.add(nextNode);
     locStack.push(nextNode);
 
     StatementEdge edge = new StatementEdge(astCreator.convert(exprStatement),
@@ -474,13 +488,13 @@ class CFABuilder extends ASTVisitor {
     CFANode prevNode = locStack.pop();
 
     CFANode postIfNode = new CFANode(fileloc.getEndingLineNumber(),
-        currentCfa.getFunctionName());
-    currentCfaNodes.add(postIfNode);
+        cfa.getFunctionName());
+    cfaNodes.add(postIfNode);
     locStack.push(postIfNode);
 
     CFANode thenNode = new CFANode(fileloc.getStartingLineNumber(),
-        currentCfa.getFunctionName());
-    currentCfaNodes.add(thenNode);
+        cfa.getFunctionName());
+    cfaNodes.add(thenNode);
     locStack.push(thenNode);
 
     CFANode elseNode;
@@ -490,8 +504,8 @@ class CFABuilder extends ASTVisitor {
       elseNode = postIfNode;
     } else {
       elseNode = new CFANode(fileloc.getStartingLineNumber(),
-          currentCfa.getFunctionName());
-      currentCfaNodes.add(elseNode);
+          cfa.getFunctionName());
+      cfaNodes.add(elseNode);
       elseStack.push(elseNode);
     }
 
@@ -505,18 +519,18 @@ class CFABuilder extends ASTVisitor {
     final CFANode prevNode = locStack.pop();
 
     final CFANode loopStart = new CFANode(fileloc.getStartingLineNumber(),
-        currentCfa.getFunctionName());
-    currentCfaNodes.add(loopStart);
+        cfa.getFunctionName());
+    cfaNodes.add(loopStart);
     loopStart.setLoopStart();
     loopStartStack.push(loopStart);
 
     final CFANode firstLoopNode = new CFANode(fileloc.getStartingLineNumber(),
-        currentCfa.getFunctionName());
-    currentCfaNodes.add(firstLoopNode);
+        cfa.getFunctionName());
+    cfaNodes.add(firstLoopNode);
 
     final CFANode postLoopNode = new CFALabelNode(fileloc.getEndingLineNumber(),
-        currentCfa.getFunctionName(), "");
-    currentCfaNodes.add(postLoopNode);
+        cfa.getFunctionName(), "");
+    cfaNodes.add(postLoopNode);
     loopNextStack.push(postLoopNode);
 
     // inverse order here!
@@ -588,13 +602,13 @@ class CFABuilder extends ASTVisitor {
     final CFANode prevNode = locStack.pop();
 
     // loopInit is Node before "counter = 0;"
-    final CFANode loopInit = new CFANode(filelocStart, currentCfa.getFunctionName());
-    currentCfaNodes.add(loopInit);
+    final CFANode loopInit = new CFANode(filelocStart, cfa.getFunctionName());
+    cfaNodes.add(loopInit);
     addToCFA(new BlankEdge("for", filelocStart, prevNode, loopInit));
 
     // loopStart is the Node before the loop itself
-    final CFANode loopStart = new CFANode(filelocStart, currentCfa.getFunctionName());
-    currentCfaNodes.add(loopStart);
+    final CFANode loopStart = new CFANode(filelocStart, cfa.getFunctionName());
+    cfaNodes.add(loopStart);
     loopStart.setLoopStart();
 
     // init-edge from loopinit to loopstart
@@ -602,8 +616,8 @@ class CFABuilder extends ASTVisitor {
         filelocStart, loopInit, loopStart);
 
     // loopEnd is Node before "counter++;"
-    final CFANode loopEnd = new CFALabelNode(filelocStart, currentCfa.getFunctionName(), "");
-    currentCfaNodes.add(loopEnd);
+    final CFANode loopEnd = new CFALabelNode(filelocStart, cfa.getFunctionName(), "");
+    cfaNodes.add(loopEnd);
     loopStartStack.push(loopEnd);
 
     // this edge connects loopEnd with loopStart and contains the statement "counter++;"
@@ -612,13 +626,13 @@ class CFABuilder extends ASTVisitor {
 
     // firstLoopNode is Node after "counter < 5"
     final CFANode firstLoopNode = new CFANode(
-        filelocStart, currentCfa.getFunctionName());
-    currentCfaNodes.add(firstLoopNode);
+        filelocStart, cfa.getFunctionName());
+    cfaNodes.add(firstLoopNode);
 
     // firstLoopNode is Node after "!(counter < 5)"
     final CFANode postLoopNode = new CFALabelNode(
-        fileloc.getEndingLineNumber(), currentCfa.getFunctionName(), "");
-    currentCfaNodes.add(postLoopNode);
+        fileloc.getEndingLineNumber(), cfa.getFunctionName(), "");
+    cfaNodes.add(postLoopNode);
     loopNextStack.push(postLoopNode);
 
     // inverse order here!
@@ -696,8 +710,8 @@ class CFABuilder extends ASTVisitor {
     // create one edge for every declaration
     // (if there is only one declaration, this loop is skipped)
     for (int i = 0; i < declList.size() - 1; i++) {
-      final CFANode nextNode = new CFANode(filelocStart, currentCfa.getFunctionName());
-      currentCfaNodes.add(nextNode);
+      final CFANode nextNode = new CFANode(filelocStart, cfa.getFunctionName());
+      cfaNodes.add(nextNode);
 
       final org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration decl = declList.get(i);
       final DeclarationEdge initEdge = new DeclarationEdge(decl, filelocStart,
@@ -795,8 +809,8 @@ class CFABuilder extends ASTVisitor {
     addToCFA(blankEdge);
 
     CFANode nextNode = new CFANode(fileloc.getEndingLineNumber(),
-        currentCfa.getFunctionName());
-    currentCfaNodes.add(nextNode);
+        cfa.getFunctionName());
+    cfaNodes.add(nextNode);
     locStack.push(nextNode);
   }
 
@@ -811,7 +825,7 @@ class CFABuilder extends ASTVisitor {
     addToCFA(blankEdge);
 
     CFANode nextNode = new CFANode(fileloc.getEndingLineNumber(),
-        currentCfa.getFunctionName());
+        cfa.getFunctionName());
     locStack.push(nextNode);
   }
 
@@ -821,14 +835,14 @@ class CFABuilder extends ASTVisitor {
     String labelName = labelStatement.getName().toString();
     if (labelMap.containsKey(labelName)) {
       throw new CFAGenerationRuntimeException("Duplicate label " + labelName
-          + " in function " + currentCfa.getFunctionName(), labelStatement);
+          + " in function " + cfa.getFunctionName(), labelStatement);
     }
 
     CFANode prevNode = locStack.pop();
 
     CFALabelNode labelNode = new CFALabelNode(fileloc.getStartingLineNumber(),
-        currentCfa.getFunctionName(), labelName);
-    currentCfaNodes.add(labelNode);
+        cfa.getFunctionName(), labelName);
+    cfaNodes.add(labelNode);
     locStack.push(labelNode);
     labelMap.put(labelName, labelNode);
 
@@ -873,8 +887,8 @@ class CFABuilder extends ASTVisitor {
     }
 
     CFANode nextNode = new CFANode(fileloc.getEndingLineNumber(),
-        currentCfa.getFunctionName());
-    currentCfaNodes.add(nextNode);
+        cfa.getFunctionName());
+    cfaNodes.add(nextNode);
     locStack.push(nextNode);
   }
 
@@ -919,15 +933,15 @@ class CFABuilder extends ASTVisitor {
       IASTFileLocation fileloc) {
 
     CFANode prevNode = locStack.pop();
-    CFAFunctionExitNode functionExitNode = currentCfa.getExitNode();
+    CFAFunctionExitNode functionExitNode = cfa.getExitNode();
 
     ReturnStatementEdge edge = new ReturnStatementEdge(astCreator.convert(returnStatement),
         fileloc.getStartingLineNumber(), prevNode, functionExitNode);
     addToCFA(edge);
 
     CFANode nextNode = new CFANode(fileloc.getEndingLineNumber(),
-        currentCfa.getFunctionName());
-    currentCfaNodes.add(nextNode);
+        cfa.getFunctionName());
+    cfaNodes.add(nextNode);
     locStack.push(nextNode);
   }
 
@@ -940,8 +954,8 @@ class CFABuilder extends ASTVisitor {
     // TODO useful or unnecessary? it can be replaced through prevNode.
     final CFANode firstSwitchNode =
         new CFANode(fileloc.getStartingLineNumber(),
-            currentCfa.getFunctionName());
-    currentCfaNodes.add(firstSwitchNode);
+            cfa.getFunctionName());
+    cfaNodes.add(firstSwitchNode);
     addToCFA(new BlankEdge("switch ("
         + statement.getControllerExpression().getRawSignature() + ")",
         fileloc.getStartingLineNumber(), prevNode, firstSwitchNode));
@@ -954,13 +968,13 @@ class CFABuilder extends ASTVisitor {
     // postSwitchNode is Node after the switch-statement
     final CFANode postSwitchNode =
         new CFALabelNode(fileloc.getEndingLineNumber(),
-            currentCfa.getFunctionName(), "");
-    currentCfaNodes.add(postSwitchNode);
+            cfa.getFunctionName(), "");
+    cfaNodes.add(postSwitchNode);
     loopNextStack.push(postSwitchNode);
     locStack.push(postSwitchNode);
 
     locStack.push(new CFANode(fileloc.getStartingLineNumber(),
-        currentCfa.getFunctionName()));
+        cfa.getFunctionName()));
 
     // visit only body, getBody() != getChildren()
     statement.getBody().accept(this);
@@ -1011,11 +1025,11 @@ class CFABuilder extends ASTVisitor {
     // build condition edges, to caseNode with "a==2", to notCaseNode with "!(a==2)"
     final CFANode rootNode = switchCaseStack.pop();
     final CFANode caseNode = new CFANode(filelocStart,
-        currentCfa.getFunctionName());
+        cfa.getFunctionName());
     final CFANode notCaseNode = new CFANode(filelocStart,
-        currentCfa.getFunctionName());
-    currentCfaNodes.add(caseNode);
-    currentCfaNodes.add(notCaseNode);
+        cfa.getFunctionName());
+    cfaNodes.add(caseNode);
+    cfaNodes.add(notCaseNode);
 
     // fall-through (case before has no "break")
     final CFANode oldNode = locStack.pop();
@@ -1044,10 +1058,10 @@ class CFABuilder extends ASTVisitor {
 
     // build blank edge to caseNode with "default", no edge to notCaseNode
     final CFANode rootNode = switchCaseStack.pop();
-    final CFANode caseNode = new CFANode(filelocStart, currentCfa.getFunctionName());
-    final CFANode notCaseNode = new CFANode(filelocStart, currentCfa.getFunctionName());
-    currentCfaNodes.add(caseNode);
-    currentCfaNodes.add(notCaseNode);
+    final CFANode caseNode = new CFANode(filelocStart, cfa.getFunctionName());
+    final CFANode notCaseNode = new CFANode(filelocStart, cfa.getFunctionName());
+    cfaNodes.add(caseNode);
+    cfaNodes.add(notCaseNode);
 
     // fall-through (case before has no "break")
     final CFANode oldNode = locStack.pop();
