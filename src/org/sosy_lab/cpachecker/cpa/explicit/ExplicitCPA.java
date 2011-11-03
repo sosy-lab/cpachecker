@@ -62,7 +62,8 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 @Options(prefix="cpa.explicit")
 public class ExplicitCPA implements ConfigurableProgramAnalysis {
 
-  public static CPAFactory factory() {
+  public static CPAFactory factory()
+  {
     return AutomaticCPAFactory.forType(ExplicitCPA.class);
   }
 
@@ -103,38 +104,12 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
 
     config.inject(this);
 
-    if(this.useCegar())
-      precision = new ExplicitPrecision(variableBlacklist, new HashMap<CFANode, Set<String>>());
-    else
-      precision = new ExplicitPrecision(variableBlacklist, null);
-
-    ExplicitDomain explicitDomain = new ExplicitDomain ();
-    MergeOperator explicitMergeOp = null;
-
-    if(mergeType.equals("SEP"))
-      explicitMergeOp = MergeSepOperator.getInstance();
-
-    else if(mergeType.equals("JOIN"))
-      explicitMergeOp = new MergeJoinOperator(explicitDomain);
-
-    StopOperator explicitStopOp = null;
-
-    if(stopType.equals("SEP"))
-      explicitStopOp = new StopSepOperator(explicitDomain);
-
-    else if(stopType.equals("JOIN"))
-      explicitStopOp = new StopJoinOperator(explicitDomain);
-
-    else if(stopType.equals("NEVER"))
-      explicitStopOp = new StopNeverOperator();
-
-    TransferRelation explicitRelation = new ExplicitTransferRelation(config);
-
-    this.abstractDomain       = explicitDomain;
-    this.mergeOperator        = explicitMergeOp;
-    this.stopOperator         = explicitStopOp;
-    this.transferRelation     = explicitRelation;
-    this.precisionAdjustment  = StaticPrecisionAdjustment.getInstance();
+    abstractDomain      = new ExplicitDomain();
+    transferRelation    = new ExplicitTransferRelation(config);
+    precision           = initializePrecision();
+    mergeOperator       = initializeMergeOperator();
+    stopOperator        = initializeStopOperator();
+    precisionAdjustment = StaticPrecisionAdjustment.getInstance();
 
     MathsatFormulaManager mathsatFormulaManager = MathsatFactory.createFormulaManager(config, logger);
 
@@ -143,6 +118,40 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
     pathFormulaManager  = new PathFormulaManagerImpl(formulaManager, config, logger);
     theoremProver       = new MathsatTheoremProver(mathsatFormulaManager);
     predicateManager    = new PredicateAbstractionManager(regionManager, formulaManager, theoremProver, config, logger);
+  }
+
+  private MergeOperator initializeMergeOperator()
+  {
+    if(mergeType.equals("SEP"))
+      return MergeSepOperator.getInstance();
+
+    else if(mergeType.equals("JOIN"))
+      return new MergeJoinOperator(abstractDomain);
+
+    return null;
+  }
+
+  private StopOperator initializeStopOperator()
+  {
+    if(stopType.equals("SEP"))
+      return new StopSepOperator(abstractDomain);
+
+    else if(stopType.equals("JOIN"))
+      return new StopJoinOperator(abstractDomain);
+
+    else if(stopType.equals("NEVER"))
+      return new StopNeverOperator();
+
+    return null;
+  }
+
+  private ExplicitPrecision initializePrecision()
+  {
+    if(this.useCegar())
+      return new ExplicitPrecision(variableBlacklist, new HashMap<CFANode, Set<String>>());
+
+    else
+      return new ExplicitPrecision(variableBlacklist, null);
   }
 
   @Override

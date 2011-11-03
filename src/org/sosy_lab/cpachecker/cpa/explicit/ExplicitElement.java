@@ -42,7 +42,7 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
   // map that keeps the name of variables and their constant values
   private final Map<String, Long> constantsMap;
 
-  private final Map<String, Integer> noOfReferences;
+  private final Map<String, Integer> referenceCount;
 
   // element from the previous context
   // used for return edges
@@ -55,58 +55,71 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
   public ExplicitElement()
   {
     constantsMap    = new HashMap<String, Long>();
-    noOfReferences  = new HashMap<String, Integer>();
+    referenceCount  = new HashMap<String, Integer>();
     previousElement = null;
   }
 
   public ExplicitElement(ExplicitElement previousElement)
   {
     constantsMap          = new HashMap<String, Long>();
-    noOfReferences        = new HashMap<String, Integer>();
+    referenceCount        = new HashMap<String, Integer>();
     this.previousElement  = previousElement;
   }
 
-
-  public ExplicitElement(Map<String, Long> constantsMap, Map<String, Integer> referencesMap, ExplicitElement previousElement) {
-    this.constantsMap = constantsMap;
-    this.noOfReferences = referencesMap;
-    this.previousElement = previousElement;
+  public ExplicitElement(Map<String, Long> constantsMap, Map<String, Integer> referencesMap, ExplicitElement previousElement)
+  {
+    this.constantsMap     = constantsMap;
+    this.referenceCount   = referencesMap;
+    this.previousElement  = previousElement;
   }
 
   /**
    * Assigns a value to the variable and puts it in the map
-   * @param nameOfVar name of the variable.
+   * @param variableName name of the variable.
    * @param value value to be assigned.
    * @param pThreshold threshold from property explicitAnalysis.threshold
    */
-  void assignConstant(String nameOfVar, Long value, int pThreshold)
+  void assignConstant(String variableName, Long value, int pThreshold)
   {
-    if(constantsMap.containsKey(nameOfVar) && constantsMap.get(nameOfVar).equals(value))
+    if(constantsMap.containsKey(variableName) && constantsMap.get(variableName).equals(value))
       return;
 
     if(pThreshold == 0)
       return;
 
-    if(nameOfVar.contains(noAutoInitPrefix))
+    if(variableName.contains(noAutoInitPrefix))
       return;
 
-    if(noOfReferences.containsKey(nameOfVar))
+    if(referenceCount.containsKey(variableName))
     {
-      int currentVal = noOfReferences.get(nameOfVar).intValue();
+      int currentVal = referenceCount.get(variableName).intValue();
+
       if(currentVal >= pThreshold)
       {
-        forget(nameOfVar);
+        forget(variableName);
         return;
       }
 
-      int newVal = currentVal + 1;
-      noOfReferences.put(nameOfVar, newVal);
+      referenceCount.put(variableName, currentVal + 1);
     }
 
     else
-      noOfReferences.put(nameOfVar, 1);
+      referenceCount.put(variableName, 1);
 
-    constantsMap.put(nameOfVar, value);
+    constantsMap.put(variableName, value);
+  }
+
+  void copyConstant(ExplicitElement other, String variableName)
+  {
+    constantsMap.put(variableName, other.constantsMap.get(variableName));
+
+    referenceCount.put(variableName, other.referenceCount.get(variableName));
+  }
+
+  void forget(String variableName)
+  {
+    if(constantsMap.containsKey(variableName))
+      constantsMap.remove(variableName);
   }
 
   public Long getValueFor(String variableName)
@@ -124,28 +137,88 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
     return previousElement;
   }
 
+  /**
+   * This element joins this element with another element.
+   *
+   * @param other the other element to join with this element
+   * @return a new element representing the join of this element and the other element
+   */
+  public ExplicitElement join(ExplicitElement other)
+  {
+    int size = Math.min(constantsMap.size(), other.constantsMap.size());
+
+    Map<String, Long> newConstantsMap     = new HashMap<String, Long>(size);
+    Map<String, Integer> newReferencesMap = new HashMap<String, Integer>(size);
+
+    newReferencesMap.putAll(this.referenceCount);
+
+    for(Map.Entry<String, Long> otherEntry : other.constantsMap.entrySet())
+    {
+      String otherKey = otherEntry.getKey();
+      Long otherValue = constantsMap.get(otherKey);
+
+      // both constant maps contain a value for the same constant ...
+      if(otherValue != null)
+      {
+        // ... having identical values
+        if(otherValue.equals(otherEntry.getValue()))
+          newConstantsMap.put(otherKey, otherValue);
+
+        // update references map
+        newReferencesMap.put(otherKey, Math.max(this.referenceCount.get(otherKey), other.referenceCount.get(otherKey)));
+      }
+
+      // if the first map does not contain the variable
+      else
+        newReferencesMap.put(otherKey, other.referenceCount.get(otherKey));
+    }
+
+    return new ExplicitElement(newConstantsMap, newReferencesMap, this.getPreviousElement());
+  }
+
+  /**
+   * This method decides if this element is less or equal than the other element, based on the order imposed by the lattice.
+   *
+   * @param other the other element
+   * @return true, if this element is less or equal than the other element, based on the order imposed by the lattice
+   */
+  public boolean isLessOrEqual(ExplicitElement other)
+  {
+    // this element is not less or equal than the other element, if the previous elements differ
+    if(previousElement != other.previousElement)
+      return false;
+
+    // also, this element is not less or equal than the other element, if it contains less elements
+    if(constantsMap.size() < other.constantsMap.size())
+      return false;
+
+    // also, this element is not less or equal than the other element,
+    // if any one constant's value of the other element differs from the constant's value in this element
+    for(Map.Entry<String, Long> entry : other.constantsMap.entrySet())
+    {
+      if(!entry.getValue().equals(constantsMap.get(entry.getKey())))
+        return false;
+    }
+
+    return true;
+  }
+
   @Override
   public ExplicitElement clone()
   {
     ExplicitElement newElement = new ExplicitElement(previousElement);
 
-    for(String s: constantsMap.keySet())
-    {
-      long val = constantsMap.get(s).longValue();
-      newElement.constantsMap.put(s, val);
-    }
+    for(String variableName: constantsMap.keySet())
+      newElement.constantsMap.put(variableName, constantsMap.get(variableName).longValue());
 
-    for(String s: noOfReferences.keySet())
-    {
-      int val = noOfReferences.get(s).intValue();
-      newElement.noOfReferences.put(s, val);
-    }
+    for(String variableName: referenceCount.keySet())
+      newElement.referenceCount.put(variableName, referenceCount.get(variableName).intValue());
 
     return newElement;
   }
 
   @Override
-  public boolean equals (Object other)
+  public boolean equals(Object other)
   {
     if(this == other)
       return true;
@@ -194,27 +267,11 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
       sb.append(" = ");
       sb.append(entry.getValue());
       sb.append(" :: ");
-      sb.append(noOfReferences.get(key));
+      sb.append(referenceCount.get(key));
       sb.append(">\n");
     }
 
     return sb.append("] size->  ").append(constantsMap.size()).toString();
-  }
-
-  public Map<String, Long> getConstantsMap()
-  {
-    return constantsMap;
-  }
-
-  void forget(String assignedVar)
-  {
-    if(constantsMap.containsKey(assignedVar))
-      constantsMap.remove(assignedVar);
-  }
-
-  Map<String, Integer> getNoOfReferences()
-  {
-    return noOfReferences;
   }
 
   @Override
@@ -295,7 +352,7 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
         String varName = statement.substring("deletevalues(".length(), statement.length() - 1);
 
         Object x = this.constantsMap.remove(varName);
-        Object y = this.noOfReferences.remove(varName);
+        Object y = this.referenceCount.remove(varName);
 
         if(x == null || y == null)
         {

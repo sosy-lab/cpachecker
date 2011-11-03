@@ -87,7 +87,7 @@ import org.sosy_lab.cpachecker.util.assumptions.NumericTypes;
 @Options(prefix="cpa.explicit")
 public class ExplicitTransferRelation implements TransferRelation
 {
-  private final Set<String> globalVars = new HashSet<String>();
+  private final Set<String> globalVariables = new HashSet<String>();
   public static Set<String> globalVarsStatic = null;
 
   @Option(description="threshold for amount of different values that "
@@ -105,7 +105,7 @@ public class ExplicitTransferRelation implements TransferRelation
   {
     config.inject(this);
 
-    globalVarsStatic = globalVars;
+    globalVarsStatic = globalVariables;
   }
 
   @Override
@@ -183,11 +183,64 @@ public class ExplicitTransferRelation implements TransferRelation
       return Collections.singleton(successor);
   }
 
+  private ExplicitElement handleFunctionCall(ExplicitElement element, FunctionCallEdge callEdge)
+    throws UnrecognizedCCodeException
+  {
+    ExplicitElement newElement = new ExplicitElement(element);
+
+    // copy global variables into the new element, to make them available in body of called function
+    // assignConstant() won't do it here, as the current referenceCount of the variable also has to be copied
+    for(String globalVar : globalVariables)
+    {
+      if(element.contains(globalVar))
+        newElement.copyConstant(element, globalVar);
+    }
+
+    FunctionDefinitionNode functionEntryNode = callEdge.getSuccessor();
+    String calledFunctionName = functionEntryNode.getFunctionName();
+    String callerFunctionName = callEdge.getPredecessor().getFunctionName();
+
+    List<String> paramNames = functionEntryNode.getFunctionParameterNames();
+    List<IASTExpression> arguments = callEdge.getArguments();
+
+    assert(paramNames.size() == arguments.size());
+
+    // visitor for getting the values of the actual parameters in caller function context
+    ExpressionValueVisitor visitor = new ExpressionValueVisitor(element, callerFunctionName);
+
+    // get value of actual parameter in caller function context
+    for(int i = 0; i < arguments.size(); i++)
+    {
+      Long value = arguments.get(i).accept(visitor);
+
+      String formalParamName = getScopedVariableName(paramNames.get(i), calledFunctionName);
+
+      if(value == null)
+        newElement.forget(formalParamName);
+
+      else
+        newElement.assignConstant(formalParamName, value, this.threshold);
+    }
+
+    return newElement;
+  }
+
+  private ExplicitElement handleExitFromFunction(ExplicitElement element, IASTExpression expression, ReturnStatementEdge returnEdge)
+    throws UnrecognizedCCodeException
+  {
+    if(expression == null)
+      expression = NumericTypes.ZERO; // this is the default in C
+
+    String functionName       = returnEdge.getPredecessor().getFunctionName();
+
+    return handleAssignmentToVariable("___cpa_temp_result_var_", expression, new ExpressionValueVisitor(element, functionName));
+  }
+
   /**
    * Handles return from one function to another function.
-   * @param element previous abstract element.
-   * @param functionReturnEdge return edge from a function to its call site.
-   * @return new abstract element.
+   * @param element previous abstract element
+   * @param functionReturnEdge return edge from a function to its call site
+   * @return new abstract element
    */
   private ExplicitElement handleFunctionReturn(ExplicitElement element, FunctionReturnEdge functionReturnEdge)
     throws UnrecognizedCCodeException
@@ -195,30 +248,19 @@ public class ExplicitTransferRelation implements TransferRelation
     CallToReturnEdge summaryEdge    = functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
     IASTFunctionCall exprOnSummary  = summaryEdge.getExpression();
 
-    // TODO get from stack
-    ExplicitElement previousElem  = element.getPreviousElement();
-    ExplicitElement newElement    = previousElem.clone();
-    String callerFunctionName     = functionReturnEdge.getSuccessor().getFunctionName();
-    String calledFunctionName     = functionReturnEdge.getPredecessor().getFunctionName();
+    ExplicitElement newElement      = element.getPreviousElement().clone();
+    String callerFunctionName       = functionReturnEdge.getSuccessor().getFunctionName();
+    String calledFunctionName       = functionReturnEdge.getPredecessor().getFunctionName();
 
-    // copy global variables
-    for(String globalVar : globalVars)
+    // copy global variables back to the new element, to make them available in body of calling function
+    // assignConstant() won't do it here, as the current referenceCount of the variable also has to be copied back
+    for(String variableName : globalVariables)
     {
-      if(element.getNoOfReferences().containsKey(globalVar) && element.getNoOfReferences().get(globalVar).intValue() >= this.threshold)
-      {
-        newElement.forget(globalVar);
-        newElement.getNoOfReferences().put(globalVar, element.getNoOfReferences().get(globalVar));
-      }
+      if(element.contains(variableName))
+        newElement.copyConstant(element, variableName);
+
       else
-      {
-        if(element.contains(globalVar))
-        {
-          newElement.assignConstant(globalVar, element.getValueFor(globalVar), this.threshold);
-          newElement.getNoOfReferences().put(globalVar, element.getNoOfReferences().get(globalVar));
-        }
-        else
-          newElement.forget(globalVar);
-      }
+        newElement.forget(variableName);
     }
 
     // expression is an assignment operation, e.g. a = g(b);
@@ -230,9 +272,9 @@ public class ExplicitTransferRelation implements TransferRelation
       // we expect left hand side of the expression to be a variable
       if((op1 instanceof IASTIdExpression) || (op1 instanceof IASTFieldReference))
       {
-        String returnVarName = getvarName("___cpa_temp_result_var_", calledFunctionName);
+        String returnVarName = getScopedVariableName("___cpa_temp_result_var_", calledFunctionName);
 
-        String assignedVarName = getvarName(op1.getRawSignature(), callerFunctionName);
+        String assignedVarName = getScopedVariableName(op1.getRawSignature(), callerFunctionName);
 
         if(element.contains(returnVarName))
           newElement.assignConstant(assignedVarName, element.getValueFor(returnVarName), this.threshold);
@@ -250,60 +292,6 @@ public class ExplicitTransferRelation implements TransferRelation
     }
 
     return newElement;
-  }
-
-  private ExplicitElement handleFunctionCall(ExplicitElement element, FunctionCallEdge callEdge)
-    throws UnrecognizedCCodeException
-  {
-    ExplicitElement newElement = new ExplicitElement(element);
-
-    for(String globalVar : globalVars)
-    {
-      if(element.contains(globalVar))
-      {
-        newElement.getConstantsMap().put(globalVar, element.getValueFor(globalVar));
-        newElement.getNoOfReferences().put(globalVar, element.getNoOfReferences().get(globalVar));
-      }
-    }
-
-    FunctionDefinitionNode functionEntryNode = callEdge.getSuccessor();
-    String calledFunctionName = functionEntryNode.getFunctionName();
-    String callerFunctionName = callEdge.getPredecessor().getFunctionName();
-
-    List<String> paramNames = functionEntryNode.getFunctionParameterNames();
-    List<IASTExpression> arguments = callEdge.getArguments();
-
-    assert(paramNames.size() == arguments.size());
-
-    // visitor for getting the values of the actual parameters in caller function context
-    ExpressionValueVisitor v = new ExpressionValueVisitor(element, callerFunctionName);
-
-    // get value of actual parameter in caller function context
-    for(int i=0; i < arguments.size(); i++)
-    {
-      Long value = arguments.get(i).accept(v);
-
-      String formalParamName = getvarName(paramNames.get(i), calledFunctionName);
-
-      if(value == null)
-        newElement.forget(formalParamName);
-      else
-        newElement.assignConstant(formalParamName, value, this.threshold);
-    }
-
-    return newElement;
-  }
-
-  private ExplicitElement handleExitFromFunction(ExplicitElement element, IASTExpression expression, ReturnStatementEdge returnEdge)
-    throws UnrecognizedCCodeException
-  {
-    if(expression == null)
-      expression = NumericTypes.ZERO; // this is the default in C
-
-    String functionName       = returnEdge.getPredecessor().getFunctionName();
-    ExpressionValueVisitor v  = new ExpressionValueVisitor(element, functionName);
-
-    return handleAssignmentToVariable("___cpa_temp_result_var_", expression, v);
   }
 
   private AbstractElement handleAssumption(ExplicitElement element, IASTExpression expression, CFAEdge cfaEdge, boolean truthValue, ExplicitPrecision precision)
@@ -360,7 +348,7 @@ public class ExplicitTransferRelation implements TransferRelation
     if(declarationEdge.isGlobal())
     {
       // if this is a global variable, add to the list of global variables
-      globalVars.add(varName);
+      globalVariables.add(varName);
 
       // global variables without initializer are set to 0 in C
       initialValue = 0L;
@@ -376,7 +364,7 @@ public class ExplicitTransferRelation implements TransferRelation
     }
 
     // assign initial value if necessary
-    String scopedVarName = getvarName(varName, functionName);
+    String scopedVarName = getScopedVariableName(varName, functionName);
 
     if(initialValue != null && precision.isTracking(scopedVarName))
       newElement.assignConstant(scopedVarName, initialValue, this.threshold);
@@ -415,7 +403,7 @@ public class ExplicitTransferRelation implements TransferRelation
     if(op1 instanceof IASTIdExpression)
     {
       // a = ...
-      if(precision.isOnBlacklist(getvarName(op1.getRawSignature(),cfaEdge.getPredecessor().getFunctionName())))
+      if(precision.isOnBlacklist(getScopedVariableName(op1.getRawSignature(),cfaEdge.getPredecessor().getFunctionName())))
         return element;
 
       else
@@ -455,7 +443,7 @@ public class ExplicitTransferRelation implements TransferRelation
     else if(op1 instanceof IASTFieldReference)
     {
       // a->b = ...
-      if(precision.isOnBlacklist(getvarName(op1.getRawSignature(),cfaEdge.getPredecessor().getFunctionName())))
+      if(precision.isOnBlacklist(getScopedVariableName(op1.getRawSignature(),cfaEdge.getPredecessor().getFunctionName())))
         return element.clone();
 
       else
@@ -487,7 +475,7 @@ public class ExplicitTransferRelation implements TransferRelation
     }
 
     ExplicitElement newElement = v.element.clone();
-    String assignedVar = getvarName(lParam, v.functionName);
+    String assignedVar = getScopedVariableName(lParam, v.functionName);
 
     if(value == null)
       newElement.forget(assignedVar);
@@ -696,7 +684,7 @@ public class ExplicitTransferRelation implements TransferRelation
           return null;
       }
 
-      String varName = getvarName(idExp.getName(), functionName);
+      String varName = getScopedVariableName(idExp.getName(), functionName);
 
       if(element.contains(varName))
         return element.getValueFor(varName);
@@ -746,7 +734,7 @@ public class ExplicitTransferRelation implements TransferRelation
     @Override
     public Long visit(IASTFieldReference fieldReferenceExpression) throws UnrecognizedCCodeException
     {
-      String varName = getvarName(fieldReferenceExpression.getRawSignature(), functionName);
+      String varName = getScopedVariableName(fieldReferenceExpression.getRawSignature(), functionName);
 
       if(element.contains(varName))
         return element.getValueFor(varName);
@@ -815,7 +803,7 @@ public class ExplicitTransferRelation implements TransferRelation
       {
         if(leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp))
         {
-          String leftVariableName = getvarName(lVarInBinaryExp.getRawSignature(), functionName);
+          String leftVariableName = getScopedVariableName(lVarInBinaryExp.getRawSignature(), functionName);
           if(currentPrecision.isTracking(leftVariableName))
           {
             //System.out.println("assigning " + leftVariableName + " value of " + rightValue);
@@ -825,7 +813,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
         else if(rightValue == null && leftValue != null && isAssignable(rVarInBinaryExp))
         {
-          String rightVariableName = getvarName(rVarInBinaryExp.getRawSignature(), functionName);
+          String rightVariableName = getScopedVariableName(rVarInBinaryExp.getRawSignature(), functionName);
           if(currentPrecision.isTracking(rightVariableName))
           {
             //System.out.println("assigning " + rightVariableName + " value of " + leftValue);
@@ -871,7 +859,7 @@ public class ExplicitTransferRelation implements TransferRelation
         String rightVar = derefPointerToVariable(pointerElement, unaryOperand.getRawSignature());
         if(rightVar != null)
         {
-          rightVar = getvarName(rightVar, functionName);
+          rightVar = getScopedVariableName(rightVar, functionName);
 
           if(element.contains(rightVar))
             return element.getValueFor(rightVar);
@@ -891,9 +879,9 @@ public class ExplicitTransferRelation implements TransferRelation
     return expression.accept(new ExpressionValueVisitor(element, functionName));
   }
 
-  public String getvarName(String variableName, String functionName)
+  public String getScopedVariableName(String variableName, String functionName)
   {
-    if(globalVars.contains(variableName))
+    if(globalVariables.contains(variableName))
       return variableName;
 
     return functionName + "::" + variableName;
@@ -944,7 +932,7 @@ public class ExplicitTransferRelation implements TransferRelation
           String leftVar = derefPointerToVariable(pointerElement, missingInformationLeftPointer);
           if(leftVar != null)
           {
-            leftVar = getvarName(leftVar, functionName);
+            leftVar = getScopedVariableName(leftVar, functionName);
             ExplicitElement newElement = handleAssignmentToVariable(leftVar, missingInformationRightExpression, v);
 
             return Collections.singleton(newElement);
