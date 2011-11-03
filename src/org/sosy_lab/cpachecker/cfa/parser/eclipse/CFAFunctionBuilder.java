@@ -130,19 +130,11 @@ class CFAFunctionBuilder extends ASTVisitor {
     scope = pScope;
     astCreator = pAstCreator;
 
-    //shouldVisitComments = false;
     shouldVisitDeclarations = true;
-    shouldVisitDeclarators = false;
-    shouldVisitDeclSpecifiers = false;
     shouldVisitEnumerators = true;
-    shouldVisitExpressions = false;
-    shouldVisitInitializers = false;
-    shouldVisitNames = false;
     shouldVisitParameterDeclarations = true;
     shouldVisitProblems = true;
     shouldVisitStatements = true;
-    shouldVisitTranslationUnit = false;
-    shouldVisitTypeIds = false;
   }
 
   /* (non-Javadoc)

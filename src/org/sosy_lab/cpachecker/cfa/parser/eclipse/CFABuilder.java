@@ -41,7 +41,6 @@ import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTProblem;
 import org.eclipse.cdt.core.dom.ast.IASTProblemDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
-import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
@@ -90,19 +89,10 @@ class CFABuilder extends ASTVisitor {
       logger.log(Level.WARNING, "Ignoring all casts in the program because of user request!");
     }
 
-    //shouldVisitComments = false;
     shouldVisitDeclarations = true;
-    shouldVisitDeclarators = false;
-    shouldVisitDeclSpecifiers = false;
     shouldVisitEnumerators = true;
-    shouldVisitExpressions = false;
-    shouldVisitInitializers = false;
-    shouldVisitNames = false;
-    shouldVisitParameterDeclarations = true;
     shouldVisitProblems = true;
-    shouldVisitStatements = true;
     shouldVisitTranslationUnit = true;
-    shouldVisitTypeIds = false;
   }
 
   /**
@@ -223,25 +213,6 @@ class CFABuilder extends ASTVisitor {
   @Override
   public int leave(IASTDeclaration declaration) {
     return PROCESS_CONTINUE;
-  }
-
-  // Methods for to handle visiting and leaving Statements
-  /* (non-Javadoc)
-   * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IASTStatement)
-   */
-  @Override
-  public int visit(IASTStatement statement) {
-    throw new CFAGenerationRuntimeException("Statements shouldn't be seen by"
-        + " global CFABuilder.", statement);
-  }
-
-  /* (non-Javadoc)
-   * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#leave(org.eclipse.cdt.core.dom.ast.IASTStatement)
-   */
-  @Override
-  public int leave(IASTStatement statement) {
-    throw new CFAGenerationRuntimeException("Statements shouldn't be seen by"
-        + " global CFABuilder.", statement);
   }
 
   //Method to handle visiting a parsing problem.  Hopefully none exist
