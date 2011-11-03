@@ -29,7 +29,7 @@ public enum MachineModel {
   /**
    * Machine model representing a 32bit Linux machine
    */
-  Linux32(
+  LINUX32(
       // numeric types
       2,  // short
       4,  // int
@@ -47,7 +47,7 @@ public enum MachineModel {
   /**
    * Machine model representing a 64bit Linux machine
    */
-  Linux64(
+  LINUX64(
       // numeric types
       2,  // short
       4,  // int

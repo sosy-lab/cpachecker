@@ -146,7 +146,7 @@ public class CtoFormulaConverter {
       );
 
   @Option(description = "the machine model used for functions sizeof and alignof")
-  private MachineModel machineModel = MachineModel.Linux32;
+  private MachineModel machineModel = MachineModel.LINUX32;
 
   @Option(description = "handle Pointers")
   private boolean handlePointerAliasing = false;
