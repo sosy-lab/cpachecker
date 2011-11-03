@@ -46,7 +46,7 @@ public class ExplicitSortedWaitlist extends AbstractSortedWaitlist<Integer> {
       AbstractElements.extractElementByType(pElement, ExplicitElement.class);
 
     // negate size so that the highest key corresponds to the smallest map
-    return (explicitElement != null) ? -explicitElement.getConstantsMap().size() : 0;
+    return (explicitElement != null) ? -explicitElement.getSize() : 0;
   }
 
   public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy) {

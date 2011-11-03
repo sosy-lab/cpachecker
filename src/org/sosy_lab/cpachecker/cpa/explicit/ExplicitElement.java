@@ -137,6 +137,11 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
     return previousElement;
   }
 
+  public int getSize()
+  {
+    return constantsMap.size();
+  }
+
   /**
    * This element joins this element with another element.
    *
