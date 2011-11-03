@@ -261,19 +261,17 @@ class CFAFunctionBuilder extends ASTVisitor {
     logger.log(Level.WARNING, "Ignoring inline assembler code at line "
         + fileloc.getStartingLineNumber() + ", analysis is probably unsound!");
 
-    // locStack may be empty here, which happens when there is assembler code
-    // outside of a function
-    if (!locStack.isEmpty()) {
-      final CFANode prevNode = locStack.pop();
+    final CFANode prevNode = locStack.pop();
 
-      final CFANode nextNode = new CFANode(fileloc.getStartingLineNumber(), cfa.getFunctionName());
-      cfaNodes.add(nextNode);
-      locStack.push(nextNode);
+    final CFANode nextNode = new CFANode(fileloc.getStartingLineNumber(),
+        cfa.getFunctionName());
+    cfaNodes.add(nextNode);
+    locStack.push(nextNode);
 
-      final BlankEdge edge = new BlankEdge("Ignored inline assembler code",
-          fileloc.getStartingLineNumber(), prevNode, nextNode);
-      addToCFA(edge);
-    }
+    final BlankEdge edge = new BlankEdge("Ignored inline assembler code",
+        fileloc.getStartingLineNumber(), prevNode, nextNode);
+    addToCFA(edge);
+
     return PROCESS_SKIP;
   }
 

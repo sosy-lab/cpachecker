@@ -23,14 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.SortedSet;
 import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
@@ -43,10 +40,7 @@ import org.eclipse.cdt.core.dom.ast.IASTProblemDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
-import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
@@ -62,14 +56,10 @@ import com.google.common.collect.TreeMultimap;
  */
 class CFABuilder extends ASTVisitor {
 
-  // Data structure for maintaining our scope stack in a function
-  private final Deque<CFANode> locStack = new ArrayDeque<CFANode>();
-
   // Data structures for handling function declarations
+  private Queue<IASTFunctionDefinition> functionDeclarations = new LinkedList<IASTFunctionDefinition>();
   private final Map<String, CFAFunctionDefinitionNode> cfas = new HashMap<String, CFAFunctionDefinitionNode>();
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
-  private CFAFunctionDefinitionNode currentCfa = null;
-  private SortedSet<CFANode> currentCfaNodes = null;
 
   // Data structure for storing global declarations
   private final List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> globalDeclarations = Lists.newArrayList();
@@ -119,8 +109,6 @@ class CFABuilder extends ASTVisitor {
     return globalDeclarations;
   }
 
-  private Queue<IASTFunctionDefinition> functionDeclarations = new LinkedList<IASTFunctionDefinition>();
-
   /* (non-Javadoc)
    * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IASTDeclaration)
    */
@@ -146,16 +134,19 @@ class CFABuilder extends ASTVisitor {
 
     } else if (declaration instanceof IASTASMDeclaration) {
       // TODO Assembler code is ignored here
-      return ignoreASMDeclaration(fileloc);
+      logger.log(Level.WARNING, "Ignoring inline assembler code at line "
+          + fileloc.getStartingLineNumber()
+          + ", analysis is probably unsound!");
+      return PROCESS_SKIP;
 
     } else {
-      throw new CFAGenerationRuntimeException("Unknown declaration type " + declaration.getClass().getSimpleName(), declaration);
+      throw new CFAGenerationRuntimeException("Unknown declaration type "
+          + declaration.getClass().getSimpleName(), declaration);
     }
   }
 
-  private int handleSimpleDeclaration(final IASTSimpleDeclaration sd, final IASTFileLocation fileloc) {
-
-    assert (locStack.size() == 0) : "not in the global scope";
+  private int handleSimpleDeclaration(final IASTSimpleDeclaration sd,
+      final IASTFileLocation fileloc) {
 
     final List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> newDs = astCreator.convert(sd);
     assert !newDs.isEmpty();
@@ -189,32 +180,6 @@ class CFABuilder extends ASTVisitor {
     cfas.put(pNameOfFunction, pStartNode);
   }
 
-  private int ignoreASMDeclaration(final IASTFileLocation fileloc) {
-    // TODO Assembler code is ignored here
-    logger.log(Level.WARNING, "Ignoring inline assembler code at line "
-        + fileloc.getStartingLineNumber() + ", analysis is probably unsound!");
-
-    // locStack may be empty here, which happens when there is assembler code
-    // outside of a function
-    if (!locStack.isEmpty()) {
-      final CFANode prevNode = locStack.pop();
-
-      final CFANode nextNode = new CFANode(fileloc.getStartingLineNumber(), currentCfa.getFunctionName());
-      currentCfaNodes.add(nextNode);
-      locStack.push(nextNode);
-
-      final BlankEdge edge = new BlankEdge("Ignored inline assembler code",
-          fileloc.getStartingLineNumber(), prevNode, nextNode);
-      addToCFA(edge);
-    }
-    return PROCESS_SKIP;
-  }
-
-  @Override
-  public int leave(IASTDeclaration declaration) {
-    return PROCESS_CONTINUE;
-  }
-
   //Method to handle visiting a parsing problem.  Hopefully none exist
   /* (non-Javadoc)
    * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IASTProblem)
@@ -225,25 +190,11 @@ class CFABuilder extends ASTVisitor {
   }
 
   @Override
-  public int visit(IASTTranslationUnit translationUnit) {
-    return PROCESS_CONTINUE;
-  }
-
-  @Override
   public int leave(IASTTranslationUnit translationUnit) {
     for (IASTFunctionDefinition declaration : functionDeclarations) {
       declaration.accept(new CFAFunctionBuilder(logger, ignoreCasts, this,
           scope, astCreator));
     }
     return PROCESS_CONTINUE;
-  }
-
-  /**
-   * This method adds this edge to the leaving and entering edges
-   * of its predecessor and successor respectively, but it does so only
-   * if the edge does not contain dead code
-   */
-  private void addToCFA(CFAEdge edge) {
-    CFACreationUtils.addEdgeToCFA(edge, logger);
   }
 }
