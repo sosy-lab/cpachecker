@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import java.util.Iterator;
 import java.util.List;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
 public class IASTInitializerList extends IASTInitializer {
@@ -46,20 +46,11 @@ public class IASTInitializerList extends IASTInitializer {
   @Override
   public String toASTString() {
     StringBuilder lASTString = new StringBuilder();
+
     lASTString.append("{");
-
-    Iterator<IASTInitializer> lIt = initializerList.iterator();
-    boolean lFirst = true;
-    while (lIt.hasNext()) {
-      if (lFirst) {
-        lFirst = false;
-      } else {
-        lASTString.append(", ");
-      }
-      lASTString.append(lIt.next().toASTString());
-    }
-
+    lASTString.append(Joiner.on(", ").join(new ASTStringIterable(initializerList)));
     lASTString.append("}");
+
     return lASTString.toString();
   }
 }

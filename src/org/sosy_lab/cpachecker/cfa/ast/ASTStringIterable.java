@@ -23,24 +23,39 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public final class IASTPointerTypeSpecifier extends IType {
+import java.util.Iterator;
 
-  private final IType type;
+import com.google.common.collect.UnmodifiableIterator;
 
-  public IASTPointerTypeSpecifier(final boolean pConst, final boolean pVolatile,
-      final IType pType) {
-    super(pConst, pVolatile);
-    type = pType;
-  }
+class ASTStringIterable implements Iterable<String> {
 
-  public IType getType() {
-    return type;
+  private final Iterable<? extends IASTNode> collection;
+
+  public ASTStringIterable(Iterable<? extends IASTNode> pCollection) {
+    collection = pCollection;
   }
 
   @Override
-  public String toASTString() {
-    return (isConst() ? "const " : "")
-        + (isVolatile() ? "volatile " : "")
-        + type.toASTString() + " *";
+  public Iterator<String> iterator() {
+    return new ASTStringIterator(collection);
+  }
+
+  private class ASTStringIterator extends UnmodifiableIterator<String> {
+
+    private final Iterator<? extends IASTNode> subIteator;
+
+    public ASTStringIterator(Iterable<? extends IASTNode> pCollection) {
+      subIteator = pCollection.iterator();
+    }
+
+    @Override
+    public boolean hasNext() {
+      return subIteator.hasNext();
+    }
+
+    @Override
+    public String next() {
+      return subIteator.next().toASTString();
+    }
   }
 }

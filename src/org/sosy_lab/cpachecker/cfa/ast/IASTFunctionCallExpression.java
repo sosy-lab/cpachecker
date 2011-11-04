@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import java.util.Iterator;
 import java.util.List;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
 public class IASTFunctionCallExpression extends IASTRightHandSide {
@@ -73,21 +73,12 @@ public class IASTFunctionCallExpression extends IASTRightHandSide {
   @Override
   public String toASTString() {
     StringBuilder lASTString = new StringBuilder();
+
     lASTString.append(functionName.toASTString());
     lASTString.append("(");
-
-    Iterator<IASTExpression> lIt = parameters.iterator();
-    boolean lFirst = true;
-    while (lIt.hasNext()) {
-      if (lFirst) {
-        lFirst = false;
-      } else {
-        lASTString.append(",");
-      }
-      lASTString.append(lIt.next().toASTString());
-    }
-
+    lASTString.append(Joiner.on(", ").join(new ASTStringIterable(parameters)));
     lASTString.append(")");
+
     return lASTString.toString();
   }
 }
