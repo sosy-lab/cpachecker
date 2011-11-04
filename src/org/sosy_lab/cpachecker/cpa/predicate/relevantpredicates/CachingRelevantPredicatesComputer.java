@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -37,7 +38,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 
-public class CachingRelevantPredicatesComputer implements RelevantPredicatesComputer {
+public class CachingRelevantPredicatesComputer implements RefineableRelevantPredicatesComputer {
 
   private final Map<Pair<Block, ImmutableSet<AbstractionPredicate>>, ImmutableSet<AbstractionPredicate>> irrelevantCache = Maps.newHashMap();
   private final Map<Pair<Block, ImmutableSet<AbstractionPredicate>>, ImmutableSet<AbstractionPredicate>> relevantCache = Maps.newHashMap();
@@ -86,5 +87,27 @@ public class CachingRelevantPredicatesComputer implements RelevantPredicatesComp
     }
 
     return result;
+  }
+
+  @Override
+  public void considerPredicateAsRelevant(Block pBlock, AbstractionPredicate pPredicate) {
+    if(delegate instanceof RefineableRelevantPredicatesComputer) {
+      RefineableRelevantPredicatesComputer refineableDelegate = (RefineableRelevantPredicatesComputer)delegate;
+      refineableDelegate.considerPredicateAsRelevant(pBlock, pPredicate);
+      removeCacheEntriesForBlock(pBlock, irrelevantCache);
+      removeCacheEntriesForBlock(pBlock, relevantCache);
+    }
+  }
+
+  static <U, V> void removeCacheEntriesForBlock(Block pBlock, Map<Pair<Block, U>, V> pCache) {
+    Collection<Pair<Block, U>> removeKeys = new ArrayList<Pair<Block, U>>();
+    for(Pair<Block, U> key : pCache.keySet()) {
+      if(key.getFirst().equals(pBlock)) {
+        removeKeys.add(key);
+      }
+    }
+    for(Pair<Block, U> key : removeKeys) {
+      pCache.remove(key);
+    }
   }
 }
