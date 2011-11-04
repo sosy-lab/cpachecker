@@ -1772,20 +1772,6 @@ public class CtoFormulaConverter {
       return pointerVariablePattern.matcher(variable).matches();
     }
 
-    private List<String> getAllVariableNamesFromSSAMap() {
-      Set<String> allEntries = ssa.build().allVariables();
-
-      List<String> allVariables = new LinkedList<String>();
-      Pattern p = Pattern.compile("[a-zA-Z].*");
-      for (String var : allEntries) {
-        if (p.matcher(var).matches()) {
-          allVariables.add(var);
-        }
-      }
-
-      return allVariables;
-    }
-
     private List<String> getAllPointerVariablesFromSsaMap() {
       List<String> pointerVariables = new LinkedList<String>();
       Set<String> ssaVariables = ssa.build().allVariables();
