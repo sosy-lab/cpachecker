@@ -32,7 +32,7 @@ public final class IASTFloatLiteralExpression extends IASTLiteralExpression {
 
   public IASTFloatLiteralExpression(String pRawSignature,
       IASTFileLocation pFileLocation, IType pType, BigDecimal pValue) {
-    super(pRawSignature, pFileLocation, pType, IASTLiteralExpression.lk_float_constant);
+    super(pRawSignature, pFileLocation, pType);
     value = pValue;
   }
 

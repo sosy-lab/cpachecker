@@ -35,17 +35,21 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
@@ -351,7 +355,7 @@ public class InterpreterTransferRelation implements TransferRelation {
       }
 
       else if(arg instanceof IASTLiteralExpression){
-        Long val = parseLiteral(arg);
+        Long val = parseLiteral((IASTLiteralExpression)arg);
 
         if (val != null) {
           newElement.assignConstant(formalParamName, val);
@@ -500,17 +504,9 @@ public class InterpreterTransferRelation implements TransferRelation {
       else if (op2 instanceof IASTLiteralExpression)
       {
         String varName = op1.getRawSignature();
-        int typeOfLiteral = ((IASTLiteralExpression)op2).getKind();
-        if ( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant
-            //  || typeOfLiteral == IASTLiteralExpression.lk_float_constant
-        )
-        {
-          String literalString = op2.getRawSignature();
-          if (literalString.contains("L") || literalString.contains("U")){
-            literalString = literalString.replace("L", "");
-            literalString = literalString.replace("U", "");
-          }
-          int valueOfLiteral = Integer.valueOf(literalString).intValue();
+        if (op2 instanceof IASTIntegerLiteralExpression) {
+
+          int valueOfLiteral = ((IASTIntegerLiteralExpression)op2).getValue().intValue();
 
           // a == 9
           if (opType == BinaryOperator.EQUALS) {
@@ -813,18 +809,8 @@ public class InterpreterTransferRelation implements TransferRelation {
 
           if(unaryExpOp instanceof IASTLiteralExpression){
             IASTLiteralExpression literalExp = (IASTLiteralExpression)unaryExpOp;
-            int typeOfLiteral = literalExp.getKind();
-            if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant
-                //  || typeOfLiteral == IASTLiteralExpression.lk_float_constant
-            )
-            {
-              String literalValue = op2.getRawSignature();
-              if(literalValue.contains("L") || literalValue.contains("U")){
-                literalValue = literalValue.replace("L", "");
-                literalValue = literalValue.replace("U", "");
-              }
-
-              int valueOfLiteral = Integer.valueOf(literalValue).intValue();
+            if (literalExp instanceof IASTIntegerLiteralExpression) {
+              int valueOfLiteral = ((IASTIntegerLiteralExpression)literalExp).getValue().intValue();
 
               // a == 9
               if(opType == BinaryOperator.EQUALS) {
@@ -1468,7 +1454,7 @@ public class InterpreterTransferRelation implements TransferRelation {
                                   String functionName, CFAEdge cfaEdge) throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException, AccessToUninitializedVariableException {
 
     if (expression instanceof IASTLiteralExpression) {
-      return parseLiteral(expression);
+      return parseLiteral((IASTLiteralExpression)expression);
 
     } else if (expression instanceof IASTIdExpression) {
       String varName = getvarName(expression.getRawSignature(), functionName);
@@ -1528,7 +1514,7 @@ public class InterpreterTransferRelation implements TransferRelation {
   }
 
   private InterpreterElement handleAssignmentOfLiteral(InterpreterElement element,
-                        String lParam, IASTExpression op2, String functionName)
+                        String lParam, IASTLiteralExpression op2, String functionName)
                         throws UnrecognizedCCodeException
   {
     InterpreterElement newElement = element.clone();
@@ -1546,29 +1532,22 @@ public class InterpreterTransferRelation implements TransferRelation {
     return newElement;
   }
 
-  private Long parseLiteral(IASTExpression expression) throws UnrecognizedCCodeException {
-    if (expression instanceof IASTLiteralExpression) {
+  private Long parseLiteral(IASTLiteralExpression expression) throws UnrecognizedCCodeException {
+    if (expression instanceof IASTIntegerLiteralExpression) {
+      return ((IASTIntegerLiteralExpression)expression).asLong();
 
-      int typeOfLiteral = ((IASTLiteralExpression)expression).getKind();
-      if (typeOfLiteral == IASTLiteralExpression.lk_integer_constant) {
+    } else if (expression instanceof IASTFloatLiteralExpression) {
+      return null;
 
-        String s = expression.getRawSignature();
-        if(s.endsWith("L") || s.endsWith("U") || s.endsWith("UL")){
-          s = s.replace("L", "");
-          s = s.replace("U", "");
-          s = s.replace("UL", "");
-        }
-        try {
-          return Long.valueOf(s);
-        } catch (NumberFormatException e) {
-          throw new UnrecognizedCCodeException("invalid integer literal", null, expression);
-        }
-      }
-      if (typeOfLiteral == IASTLiteralExpression.lk_string_literal) {
-        return (long) expression.hashCode();
-      }
+    } else if (expression instanceof IASTCharLiteralExpression) {
+      return (long)((IASTCharLiteralExpression)expression).getCharacter();
+
+    } else if (expression instanceof IASTStringLiteralExpression) {
+      return null;
+
+    } else {
+      throw new UnrecognizedCCodeException("unknown literal", expression);
     }
-    return null;
   }
 
   public String getvarName(String variableName, String functionName){

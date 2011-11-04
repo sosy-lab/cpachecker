@@ -385,13 +385,10 @@ class OctTransferRelation implements TransferRelation{
         IASTLiteralExpression literalExp = (IASTLiteralExpression)op2;
         String varName = op1.getRawSignature();
         String variableName = getvarName(varName, functionName);
-        int typeOfLiteral = literalExp.getKind();
-        if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant
-            || typeOfLiteral == IASTLiteralExpression.lk_float_constant
-            || typeOfLiteral == IASTLiteralExpression.lk_char_constant
-        )
-        {
-          long valueOfLiteral = parseLiteral((IASTLiteralExpression)op2);
+
+        if (literalExp instanceof IASTIntegerLiteralExpression
+            || literalExp instanceof IASTCharLiteralExpression) {
+          long valueOfLiteral = parseLiteral(literalExp);
           // a == 9
           if(opType == BinaryOperator.EQUALS) {
             if(truthValue){
@@ -584,12 +581,9 @@ class OctTransferRelation implements TransferRelation{
 
           if(unaryExpOp instanceof IASTLiteralExpression){
             IASTLiteralExpression literalExp = (IASTLiteralExpression)unaryExpOp;
-            int typeOfLiteral = literalExp.getKind();
-            if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant
-                || typeOfLiteral == IASTLiteralExpression.lk_float_constant
-                || typeOfLiteral == IASTLiteralExpression.lk_char_constant
-            )
-            {
+
+            if (literalExp instanceof IASTIntegerLiteralExpression
+                || literalExp instanceof IASTCharLiteralExpression) {
               long valueOfLiteral = parseLiteralWithOppositeSign(literalExp);
               String variableName = getvarName(varName, functionName);
 

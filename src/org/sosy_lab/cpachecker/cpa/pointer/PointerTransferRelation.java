@@ -640,7 +640,7 @@ public class PointerTransferRelation implements TransferRelation {
         } else if (parameter instanceof IASTLiteralExpression) {
           IASTLiteralExpression literal = (IASTLiteralExpression)parameter;
 
-          if ((literal.getKind() == IASTLiteralExpression.lk_integer_constant)
+          if (literal instanceof IASTIntegerLiteralExpression
               && parseIntegerLiteral(literal) == 0) {
 
             actualValues.add(new Pointer()); // null pointer

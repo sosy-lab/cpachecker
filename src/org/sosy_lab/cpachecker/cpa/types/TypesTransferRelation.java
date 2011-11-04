@@ -28,18 +28,22 @@ import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNamedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -359,16 +363,15 @@ public class TypesTransferRelation implements TransferRelation {
 
       IASTExpression lengthExpression = arraySpecifier.getLength();
       if (lengthExpression != null) {
-        try {
-          //if the length expression is a literal, get its integer value
-          if (lengthExpression instanceof IASTLiteralExpression) {
-            length = parseLiteral(lengthExpression).intValue();
-          //if not, we can't get the value with this cpa alone, and so use the default value
-          } else {
-            length = 0;
+        //if the length expression is a literal, get its integer value
+        if (lengthExpression instanceof IASTLiteralExpression) {
+          Integer value = parseLiteral((IASTLiteralExpression)lengthExpression);
+          if (value != null) {
+            length = value;
           }
-        } catch (NumberFormatException e) {
-          throw new UnrecognizedCCodeException("Invalid numeric literal " + lengthExpression.getRawSignature(), cfaEdge);
+        //if not, we can't get the value with this cpa alone, and so use the default value
+        } else {
+          length = 0;
         }
       }
       type = new ArrayType(type, length);
@@ -414,21 +417,22 @@ public class TypesTransferRelation implements TransferRelation {
     return function;
   }
 
-  private Long parseLiteral(IASTExpression expression) throws NumberFormatException {
-    if (expression instanceof IASTLiteralExpression) {
+  private Integer parseLiteral(IASTLiteralExpression expression) throws UnrecognizedCCodeException {
+    if (expression instanceof IASTIntegerLiteralExpression) {
+      return ((IASTIntegerLiteralExpression)expression).getValue().intValue();
 
-      int typeOfLiteral = ((IASTLiteralExpression)expression).getKind();
-      if (typeOfLiteral == IASTLiteralExpression.lk_integer_constant) {
+    } else if (expression instanceof IASTFloatLiteralExpression) {
+      return null;
 
-        String s = expression.getRawSignature();
-        if(s.endsWith("L") || s.endsWith("U")){
-          s = s.replace("L", "");
-          s = s.replace("U", "");
-        }
-        return Long.valueOf(s);
-      }
+    } else if (expression instanceof IASTCharLiteralExpression) {
+      return (int)((IASTCharLiteralExpression)expression).getCharacter();
+
+    } else if (expression instanceof IASTStringLiteralExpression) {
+      return null;
+
+    } else {
+      throw new UnrecognizedCCodeException("unknown literal", expression);
     }
-    return null;
   }
 
   public void setEntryFunctionDefinitionNode(FunctionDefinitionNode pEntryFunctionDefNode) {
