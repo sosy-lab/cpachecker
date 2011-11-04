@@ -275,22 +275,8 @@ public class TypesTransferRelation implements TransferRelation {
     } else if (declSpecifier instanceof IASTElaboratedTypeSpecifier) {
       // type reference like "struct a"
       IASTElaboratedTypeSpecifier elaboratedTypeSpecifier = (IASTElaboratedTypeSpecifier)declSpecifier;
-      String name = elaboratedTypeSpecifier.getName();
-
-      switch (elaboratedTypeSpecifier.getKind()) {
-      case IASTElaboratedTypeSpecifier.k_enum:
-        name = "enum " + name;
-        break;
-      case IASTElaboratedTypeSpecifier.k_struct:
-        name = "struct " + name;
-        break;
-      case IASTElaboratedTypeSpecifier.k_union:
-        name = "union " + name;
-        break;
-
-      default:
-        throw new UnrecognizedCCodeException("Unknown elaborated type", cfaEdge);
-      }
+      String typeStr = elaboratedTypeSpecifier.getKind().name().toLowerCase();
+      String name = typeStr + " " + elaboratedTypeSpecifier.getName();
 
       type = element.getTypedef(name);
 
@@ -298,13 +284,13 @@ public class TypesTransferRelation implements TransferRelation {
         // forward declaration
 
         switch (elaboratedTypeSpecifier.getKind()) {
-        case IASTElaboratedTypeSpecifier.k_enum:
+        case ENUM:
           type = new EnumType(name, constant);
           break;
-        case IASTElaboratedTypeSpecifier.k_struct:
+        case STRUCT:
           type = new StructType(name, constant);
           break;
-        case IASTElaboratedTypeSpecifier.k_union:
+        case UNION:
           type = new UnionType(name, constant);
           break;
         default:
