@@ -36,6 +36,7 @@ public final class IASTFloatLiteralExpression extends IASTLiteralExpression {
     value = pValue;
   }
 
+  @Override
   public BigDecimal getValue() {
     return value;
   }

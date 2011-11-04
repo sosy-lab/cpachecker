@@ -37,6 +37,14 @@ public abstract class IASTLiteralExpression extends IASTExpression {
     return kind;
   }
 
+  public abstract Object getValue();
+
+  @Override
+  @Deprecated
+  public String getRawSignature() {
+    return super.getRawSignature();
+  }
+
   public static final int lk_integer_constant = 0;
   public static final int lk_float_constant = 1;
   public static final int lk_char_constant = 2;

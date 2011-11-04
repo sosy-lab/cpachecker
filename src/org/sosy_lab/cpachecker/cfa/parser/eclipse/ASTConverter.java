@@ -408,7 +408,7 @@ class ASTConverter {
       return new IASTFloatLiteralExpression(e.getRawSignature(), fileLoc, type, value);
 
     case org.eclipse.cdt.core.dom.ast.IASTLiteralExpression.lk_string_literal:
-      return new IASTStringLiteralExpression(e.getRawSignature(), fileLoc, type);
+      return new IASTStringLiteralExpression(e.getRawSignature(), fileLoc, type, valueStr);
 
     default:
       throw new CFAGenerationRuntimeException("Unknown literal", e);
@@ -1077,7 +1077,7 @@ class ASTConverter {
       }
 
       if (v instanceof IASTIntegerLiteralExpression) {
-        value = ((IASTIntegerLiteralExpression)v).getValue().longValue();
+        value = ((IASTIntegerLiteralExpression)v).asLong();
         if (negate) {
           value = -value;
         }

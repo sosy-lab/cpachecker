@@ -949,7 +949,7 @@ public class CtoFormulaConverter {
     public Formula visit(IASTStringLiteralExpression lexp) throws UnrecognizedCCodeException {
       // we create a string constant representing the given
       // string literal
-      String literal = lexp.getRawSignature();
+      String literal = lexp.getValue();
       Formula result = stringLitToFormula.get(literal);
 
       if (result == null) {

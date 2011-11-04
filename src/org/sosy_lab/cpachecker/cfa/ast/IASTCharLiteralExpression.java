@@ -38,6 +38,11 @@ public class IASTCharLiteralExpression extends IASTLiteralExpression {
   }
 
   @Override
+  public Character getValue() {
+    return getCharacter();
+  }
+
+  @Override
   public <R, X extends Exception> R accept(ExpressionVisitor<R, X> v) throws X {
     return v.visit(this);
   }

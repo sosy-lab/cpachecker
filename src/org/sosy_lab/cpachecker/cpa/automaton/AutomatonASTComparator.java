@@ -27,6 +27,7 @@ import static com.google.common.base.Objects.equal;
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.common.Pair.zipList;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -216,11 +217,11 @@ class AutomatonASTComparator {
 
     @Override
     public ASTMatcher visit(IASTFloatLiteralExpression exp) {
-      return new ExpressionWithFieldMatcher<IASTFloatLiteralExpression, String>(IASTFloatLiteralExpression.class, exp) {
+      return new ExpressionWithFieldMatcher<IASTFloatLiteralExpression, BigDecimal>(IASTFloatLiteralExpression.class, exp) {
 
         @Override
-        protected String getFieldValueFrom(IASTFloatLiteralExpression pSource) {
-          return pSource.getRawSignature();
+        protected BigDecimal getFieldValueFrom(IASTFloatLiteralExpression pSource) {
+          return pSource.getValue();
         }
       };
     }
@@ -242,7 +243,7 @@ class AutomatonASTComparator {
 
         @Override
         protected String getFieldValueFrom(IASTStringLiteralExpression pSource) {
-          return pSource.getRawSignature();
+          return pSource.getValue();
         }
       };
     }
