@@ -33,9 +33,11 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
@@ -43,10 +45,12 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
@@ -378,9 +382,10 @@ class OctTransferRelation implements TransferRelation{
       // a (bop) 9
       else if(op2 instanceof IASTLiteralExpression)
       {
+        IASTLiteralExpression literalExp = (IASTLiteralExpression)op2;
         String varName = op1.getRawSignature();
         String variableName = getvarName(varName, functionName);
-        int typeOfLiteral = ((IASTLiteralExpression)op2).getKind();
+        int typeOfLiteral = literalExp.getKind();
         if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant
             || typeOfLiteral == IASTLiteralExpression.lk_float_constant
             || typeOfLiteral == IASTLiteralExpression.lk_char_constant
@@ -464,12 +469,12 @@ class OctTransferRelation implements TransferRelation{
           // [a + 9]
           else if(opType == BinaryOperator.PLUS)
           {
-            valueOfLiteral = parseLiteralWithOppositeSign(op2);
+            valueOfLiteral = parseLiteralWithOppositeSign(literalExp);
             if(truthValue){
               return addIneqConstraint(pElement, variableName, valueOfLiteral);
             }
             else {
-              valueOfLiteral = parseLiteralWithOppositeSign(op2);
+              valueOfLiteral = parseLiteralWithOppositeSign(literalExp);
 
               return addEqConstraint(pElement, variableName, valueOfLiteral);
             }
@@ -1337,167 +1342,30 @@ class OctTransferRelation implements TransferRelation{
     //    return null;
   }
 
-  private Long parseLiteral(IASTLiteralExpression expression) {
-      //      int typeOfLiteral = ((IASTLiteralExpression)expression).getKind();
-      //      if (typeOfLiteral == IASTLiteralExpression.lk_integer_constant) {
-      //
-      //        String s = expression.getRawSignature();
-      //        if(s.endsWith("L") || s.endsWith("U") || s.endsWith("UL")){
-      //          s = s.replace("L", "");
-      //          s = s.replace("U", "");
-      //          s = s.replace("UL", "");
-      //        }
-      //        try {
-      //          return Long.valueOf(s);
-      //        } catch (NumberFormatException e) {
-      //          throw new UnrecognizedCCodeException("invalid integer literal", null, expression);
-      //        }
-      //      }
-      //      if (typeOfLiteral == IASTLiteralExpression.lk_string_literal) {
-      //        return (long) expression.hashCode();
-      //      }
+  private Long parseLiteral(IASTLiteralExpression expression) throws UnrecognizedCCodeException {
+    if (expression instanceof IASTIntegerLiteralExpression) {
+      return ((IASTIntegerLiteralExpression)expression).asLong();
 
-      // this should be a number...
-      IASTLiteralExpression lexp = expression;
-      String num = lexp.getRawSignature();
-      Long retVal = null;
-      switch (lexp.getKind()) {
-      case IASTLiteralExpression.lk_integer_constant:
-      case IASTLiteralExpression.lk_float_constant:
-        if (num.startsWith("0x")) {
-          // this should be in hex format
-          // we use Long instead of Integer to avoid getting negative
-          // numbers (e.g. for 0xffffff we would get -1)
-          num = Long.valueOf(num, 16).toString();
-        } else {
-          // this might have some modifiers attached (e.g. 0UL), we
-          // have to get rid of them
-          int pos = num.length()-1;
-          while (!Character.isDigit(num.charAt(pos))) {
-            --pos;
-          }
-          num = num.substring(0, pos+1);
-        }
-        break;
-      case IASTLiteralExpression.lk_char_constant: {
-        // we convert to a byte, and take the integer value
-        String s = expression.getRawSignature();
-        int length = s.length();
-        assert(s.charAt(0) == '\'');
-        assert(s.charAt(length-1) == '\'');
-        int n;
+    } else if (expression instanceof IASTFloatLiteralExpression) {
+      return null;
 
-        if (s.charAt(1) == '\\') {
-          n = Integer.parseInt(s.substring(2, length-1));
-        } else {
-          assert (expression.getRawSignature().length() == 3);
-          n = expression.getRawSignature().charAt(1);
-        }
-        num = "" + n;
+    } else if (expression instanceof IASTCharLiteralExpression) {
+      return (long)((IASTCharLiteralExpression)expression).getCharacter();
 
-      }
-      break;
-      case IASTLiteralExpression.lk_string_literal: {
-        // can't handle
-        return null;
-      }
-      default:
-        assert(false) : expression;
-        return null;
-      }
-      // TODO here we assume 32 bit integers!!! This is because CIL
-      // seems to do so as well...
-      try {
-        int i = Integer.parseInt(num);
-        retVal = (long)i;
-      } catch (NumberFormatException nfe) {
-        long l = Long.parseLong(num);
-        if (l < 0) {
-          retVal = Integer.MAX_VALUE + l;
-        } else {
-          //retVal = (l - ((long)Integer.MAX_VALUE + 1)*2);
-          retVal = l;
-        }
-      }
-      return retVal;
+    } else if (expression instanceof IASTStringLiteralExpression) {
+      return null;
+
+    } else {
+      throw new UnrecognizedCCodeException("unknown literal", expression);
+    }
   }
 
-  private Long parseLiteralWithOppositeSign(IASTExpression expression){
-    if (expression instanceof IASTLiteralExpression) {
-      // this should be a number...
-      IASTLiteralExpression lexp = (IASTLiteralExpression)expression;
-      String num = lexp.getRawSignature();
-      Long retVal = null;
-      boolean isUnsigned = false;
-      switch (lexp.getKind()) {
-      case IASTLiteralExpression.lk_integer_constant:
-      case IASTLiteralExpression.lk_float_constant:
-        if (num.startsWith("0x")) {
-          // this should be in hex format
-          // we use Long instead of Integer to avoid getting negative
-          // numbers (e.g. for 0xffffff we would get -1)
-          num = Long.valueOf(num, 16).toString();
-        } else {
-          // this might have some modifiers attached (e.g. 0UL), we
-          // have to get rid of them
-          int pos = num.length()-1;
-          if(num.contains("U")){
-            isUnsigned = true;
-          }
-          while (!Character.isDigit(num.charAt(pos))) {
-            --pos;
-          }
-          num = num.substring(0, pos+1);
-        }
-        break;
-      case IASTLiteralExpression.lk_char_constant: {
-        // we convert to a byte, and take the integer value
-        String s = expression.getRawSignature();
-        int length = s.length();
-        assert(s.charAt(0) == '\'');
-        assert(s.charAt(length-1) == '\'');
-        int n;
-
-        if (s.charAt(1) == '\\') {
-          n = Integer.parseInt(s.substring(2, length-1));
-        } else {
-          assert (expression.getRawSignature().length() == 3);
-          n = expression.getRawSignature().charAt(1);
-        }
-        num = "" + n;
-
-      }
-      break;
-      default:
-        assert(false);
-        return null;
-      }
-      // TODO here we assume 32 bit integers!!! This is because CIL
-      // seems to do so as well...
-      try {
-        int i = Integer.parseInt(num);
-        retVal = 0 - (long)i;
-        if(isUnsigned){
-          if (retVal < 0) {
-            retVal = ((long)Integer.MAX_VALUE + 1)*2 + retVal;
-          } else {
-            retVal = (retVal - ((long)Integer.MAX_VALUE + 1)*2);
-          }
-        }
-      } catch (NumberFormatException nfe) {
-        long l = Long.parseLong(num);
-        l = 0 - l;
-        if (l < 0) {
-          retVal = Integer.MAX_VALUE + l;
-        } else {
-          //retVal = (l - ((long)Integer.MAX_VALUE + 1)*2);
-          retVal = l;
-        }
-      }
-      return retVal;
+  private Long parseLiteralWithOppositeSign(IASTLiteralExpression expression) throws UnrecognizedCCodeException {
+    Long value = parseLiteral(expression);
+    if (value != null) {
+      value = -value;
     }
-    return null;
-
+    return value;
   }
 
   public String getvarName(String variableName, String functionName){
