@@ -39,7 +39,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 
-@Options(prefix = "pcc.proofgen.ART")
+@Options(prefix = "pcc.proofgen")
 public abstract class ARTProofGenAlgorithm implements ProofGenAlgorithm {
 
   protected Vector<String>   nodes        = new Vector<String>();
@@ -48,8 +48,8 @@ public abstract class ARTProofGenAlgorithm implements ProofGenAlgorithm {
   protected Configuration    config;
   protected LogManager       logger;
 
-  @Option(type = Option.Type.OUTPUT_FILE, description = "export ART needed for proof checking in PCC, if the error location is not reached")
-  private File               file         = new File("pccART.txt");
+  @Option(type = Option.Type.OUTPUT_FILE, description = "export ART representation needed for proof checking in PCC, if the error location is not reached, the representation depends on the algorithm used for proof checking")
+  private File               file         = new File("pccProof.txt");
 
   public ARTProofGenAlgorithm(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
@@ -67,10 +67,9 @@ public abstract class ARTProofGenAlgorithm implements ProofGenAlgorithm {
       return false;
     }
     // collects the information about ART nodes and edges
-    visitART(pFirst);
+    if (!visitART(pFirst)) { return false; }
     // writes information about ART nodes and edges to file
-    writeART();
-    return true;
+    return writeART();
   }
 
   private boolean visitART(ARTElement pRoot) {
@@ -81,14 +80,14 @@ public abstract class ARTProofGenAlgorithm implements ProofGenAlgorithm {
     while (!toVisit.isEmpty()) {
       current = toVisit.pop();
       // build and save representation for this node
-      addARTNode(current);
+      if (!addARTNode(current)) { return false; }
       // consider current node's edges
       for (ARTElement child : current.getChildren()) {
         if (!(visitedNodes.contains(child.getElementId()))) {
           toVisit.push(child);
           visitedNodes.add(child.getElementId());
         }
-        addARTEdge(current, current.getEdgeToChild(child), child);
+        if (!addARTEdge(current, current.getEdgeToChild(child), child)) { return false; }
       }
     }
     return true;
@@ -110,8 +109,7 @@ public abstract class ARTProofGenAlgorithm implements ProofGenAlgorithm {
       Files.writeFile(file, output);
     } catch (IOException e) {
       logger.log(Level.SEVERE,
-          "Unable to write the abstract reachability tree.",
-          e.getStackTrace());
+          "Unable to write the abstract reachability tree.", e.getStackTrace());
       return false;
     }
     return true;

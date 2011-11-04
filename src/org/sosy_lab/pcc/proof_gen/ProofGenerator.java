@@ -34,33 +34,37 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackElement;
 import org.sosy_lab.cpachecker.cpa.location.LocationElement;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.pcc.common.PCCAlgorithmType;
 
 @Options
 public class ProofGenerator {
 
   private ProofGenAlgorithm algorithm;
-  private Configuration     config;
   private LogManager        logger;
 
   //TODO possibly add values
   @Option(name = "pcc.proofgen.algorithm", description = "Type of the algorithm which should be used for PCC")
-  private PCCAlgorithmType  algorithmType = PCCAlgorithmType.SBEasART;
+  private PCCAlgorithmType  algorithmType        = PCCAlgorithmType.SBEasART;
   @Option(name = "pcc.proofgen.doPCC", description = "")
-  private boolean           doPCC         = false;
+  private boolean           doPCC                = false;
   //TODO further values if other algorithms available
   @Option(name = "cpa.predicate.blk.alwaysAfterThreshold", description = "force abstractions immediately after threshold is reached (no effect if threshold = 0)")
-  private boolean           alwaysAfterThreshold;
+  private boolean           alwaysAfterThreshold = true;
   @Option(name = "cpa.predicate.blk.threshold", description = "maximum blocksize before abstraction is forced\n"
       + "(non-negative number, special values: 0 = don't check threshold, 1 = SBE)")
-  private int               threshold;
+  private int               threshold            = 0;
   @Option(name = "cpa.predicate.blk.switchToLBEAfter", description = "Switch to a LBE configuration after so many milliseconds (0 to disable)")
-  private int               switchToLBEAfter;
+  private int               switchToLBEAfter     = 0;
+  @Option(description = "force abstractions at loop heads, regardless of threshold")
+  private boolean           alwaysAtLoops        = true;
+  @Option(description = "force abstractions at each function calls/returns, regardless of threshold")
+  private boolean           alwaysAtFunctions    = true;
 
   public ProofGenerator(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
-    config = pConfig;
     logger = pLogger;
     // TODO choose the correct algorithm due to the configuration, null if wrong config
     if (doPCC) {
@@ -68,6 +72,17 @@ public class ProofGenerator {
       case SBEasART: {
         if (alwaysAfterThreshold && switchToLBEAfter == 0 && threshold == 1) {
           algorithm = new SBE_ARTProofGenAlgorithm(pConfig, pLogger);
+        } else {
+          logger
+              .log(Level.WARNING,
+                  "Predicate Abstraction configuration does not fit to PCC algorithm.");
+          algorithm = null;
+        }
+        break;
+      }
+      case SBEasInvariant: {
+        if (alwaysAfterThreshold && switchToLBEAfter == 0 && threshold == 1) {
+          //TODO algorithm = new SBE_ARTProofGenAlgorithm(pConfig, pLogger);
         } else {
           logger
               .log(Level.WARNING,
@@ -90,12 +105,15 @@ public class ProofGenerator {
     UnmodifiableReachedSet reached = pResult.getReached();
     // check result
     if (pResult.getResult() != Result.SAFE
-        || reached.getFirstElement() != null
+        || reached.getFirstElement() == null
         || !(reached.getFirstElement() instanceof ARTElement)
-        || !(((ARTElement) reached.getFirstElement()).retrieveLocationElement() instanceof LocationElement)) {
+        || (((ARTElement) reached.getFirstElement()).retrieveLocationElement() == null)
+        || !(((ARTElement) reached.getFirstElement()).retrieveLocationElement() instanceof LocationElement)
+        || AbstractElements.extractElementByType(reached.getFirstElement(),
+            CallstackElement.class) == null) {
       logger
           .log(Level.SEVERE,
-              "Proof cannot be generated because checked property not knwon to be true.");
+              "Proof cannot be generated because checked property not known to be true.");
       return;
     }
     // check algorithm

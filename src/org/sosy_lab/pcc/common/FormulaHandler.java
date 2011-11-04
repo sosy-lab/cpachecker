@@ -69,14 +69,16 @@ public class FormulaHandler {
   public Formula buildEdgeInvariant(String pLeft, String pOperation,
       String pRight) {
     if (pLeft == null || pLeft.length() == 0 || pOperation == null
-        || pOperation.length() == 0 || pRight == null || pRight.length() == 0) { return null; }
+        || pRight == null || pRight.length() == 0) { return null; }
     try {
       Formula fR, fOp, fL;
       fL = fm.parse(pLeft);
-      fOp = fm.parse(pOperation);
       fR = fm.parse(pRight);
-      fL = fm.makeAnd(fL, fOp);
       fR = fm.makeNot(fR);
+      if (pOperation.length() != 0) {
+        fOp = fm.parse(pOperation);
+        fL = fm.makeAnd(fL, fOp);
+      }
       return fm.makeAnd(fL, fR);
     } catch (IllegalArgumentException e) {
       return null;
@@ -94,9 +96,13 @@ public class FormulaHandler {
           e.getStackTrace());
       return null;
     }
-    // check if same object due to blank edge (no abstraction element)
-    if (oldFormula == formula) {
-      return "";
+    // check if same object due to blank edge or no operation on edge ->(no abstraction element)
+    if (oldFormula == formula || (formula.getLength() == 0)) {
+      if (formula.getFormula().isTrue()) {
+        return "";
+      } else {
+        return null;
+      }
     } else {
       return formula.toString();
     }
@@ -114,7 +120,7 @@ public class FormulaHandler {
       return null;
     }
     // check if same object due to blank edge (no abstraction element)
-    if (oldFormula == formula) {
+    if (oldFormula == formula || formula.getLength() == 0) {
       return "";
     } else {
       return formula.toString();
@@ -124,6 +130,7 @@ public class FormulaHandler {
   @SuppressWarnings({ "deprecation", "finally" })
   public boolean isSameFormulaWithoutSSAIndicies(String pFormula1,
       String pFormula2) {
+    if (pFormula1.equals("") && pFormula2.equals("")) { return true; }
     try {
       Formula formula1 = fm.parse(pFormula1);
       Formula formula2 = fm.parse(pFormula2);

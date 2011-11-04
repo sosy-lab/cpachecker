@@ -40,6 +40,7 @@ import org.sosy_lab.pcc.common.PCCAlgorithmType;
 import org.sosy_lab.pcc.common.PCCCheckResult;
 import org.sosy_lab.pcc.proof_check.ProofCheckAlgorithm;
 import org.sosy_lab.pcc.proof_check.SBE_ARTProofCheckAlgorithm;
+import org.sosy_lab.pcc.proof_check.SBE_InvariantProofCheckAlgorithm;
 
 import com.google.common.base.Throwables;
 
@@ -55,14 +56,18 @@ public class PCCProofCheckMain {
     private boolean          doPCC         = false;
     //TODO further values if other algorithms available
     @Option(name = "cpa.predicate.blk.alwaysAfterThreshold", description = "force abstractions immediately after threshold is reached (no effect if threshold = 0)")
-    private boolean          alwaysAfterThreshold;
+    private boolean          alwaysAfterThreshold = true;
     @Option(name = "cpa.predicate.blk.threshold", description = "maximum blocksize before abstraction is forced\n"
         + "(non-negative number, special values: 0 = don't check threshold, 1 = SBE)")
-    private int              threshold;
+    private int              threshold = 0;
     @Option(name = "cpa.predicate.blk.switchToLBEAfter", description = "Switch to a LBE configuration after so many milliseconds (0 to disable)")
-    private int              switchToLBEAfter;
-    @Option(name = "pcc.proofgen.ART.file", type = Option.Type.OUTPUT_FILE, description = "export ART needed for proof checking in PCC, if the error location is not reached")
-    private File             file          = new File("pccART.txt");
+    private int              switchToLBEAfter = 0;
+    @Option(name = "pcc.profgen.file", type = Option.Type.OUTPUT_FILE, description = "export ART representation needed for proof checking in PCC, if the error location is not reached, the representation depends on the algorithm used for proof checking")
+    private File               file         = new File("pccProof.txt");
+    @Option(description = "force abstractions at loop heads, regardless of threshold")
+    private boolean           alwaysAtLoops        = true;
+    @Option(description = "force abstractions at each function calls/returns, regardless of threshold")
+    private boolean           alwaysAtFunctions    = true;
 
     private PCCProofChecker(Configuration pConfig)
         throws InvalidConfigurationException {
@@ -77,7 +82,14 @@ public class PCCProofCheckMain {
       switch (algorithmType) {
       case SBEasART: {
         if (alwaysAfterThreshold && threshold == 1 && switchToLBEAfter == 0) {
-          algorithm = new SBE_ARTProofCheckAlgorithm(pConfig, pLogger);
+          algorithm = new SBE_ARTProofCheckAlgorithm(pConfig, pLogger, alwaysAtLoops, alwaysAtFunctions);
+        }
+        break;
+      }
+      case SBEasInvariant:
+      {
+        if (alwaysAfterThreshold && threshold == 1 && switchToLBEAfter == 0){
+        algorithm = new SBE_InvariantProofCheckAlgorithm(pConfig,pLogger,alwaysAtLoops, alwaysAtFunctions);
         }
         break;
       }

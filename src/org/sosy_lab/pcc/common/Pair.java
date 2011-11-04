@@ -23,7 +23,20 @@
  */
 package org.sosy_lab.pcc.common;
 
-public enum PCCAlgorithmType {
-  SBEasART,
-  SBEasInvariant
+public class Pair<T1, T2> {
+  private T1 artNodeId;
+  private T2 callStack;
+
+  public Pair(T1 pT1, T2 pT2) {
+    artNodeId = pT1;
+    callStack = pT2;
+  }
+
+  public T1 getFirst() {
+    return artNodeId;
+  }
+
+  public T2 getSecond() {
+    return callStack;
+  }
 }

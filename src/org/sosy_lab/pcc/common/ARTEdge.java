@@ -31,17 +31,11 @@ public class ARTEdge {
   private CFAEdge cfaEdge;
   private String  operation;
 
-  public ARTEdge(int pTargetARTId, CFAEdge pCFAEdge, String pOperation,
-      FormulaHandler pHandler) throws IllegalArgumentException {
+  public ARTEdge(int pTargetARTId, CFAEdge pCFAEdge, String pOperation)
+      throws IllegalArgumentException {
 
-    if (pCFAEdge == null
-        || pOperation == null
-        || pHandler == null
-        || !pHandler.isSameFormulaWithoutSSAIndicies(
-            pHandler.getEdgeOperation(pCFAEdge), pOperation)) {
-      throw new IllegalArgumentException(
-        "Cannot be a valid ART edge.");
-    }
+    if (pCFAEdge == null || pOperation == null) { throw new IllegalArgumentException(
+        "Cannot be a valid ART edge."); }
     targetARTId = pTargetARTId;
     cfaEdge = pCFAEdge;
     operation = pOperation;

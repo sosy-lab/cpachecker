@@ -28,11 +28,11 @@ public enum PCCCheckResult {
   ART_CFA_Mismatch,
   UnknownCFANode,
   AmbigiousRoot,
+  InvalidARTRootSpecification,
   UnknownCFAEdge,
   ErrorNodeReachable,
   InvalidART,
   InvalidFormulaSpecificationInProof,
-  // TODO Formula failure, more precise results
   InvalidProofFile,
   ReadingProofFailed
 }

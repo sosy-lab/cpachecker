@@ -96,9 +96,6 @@ public class SBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
     }
     edgeRep.append(pTarget.getElementId());
     edgeRep.append("#");
-    // append operation
-    edgeRep.append(getEdgeOperationFormula(pSource, pEdge));
-    edgeRep.append("#");
     //add operation
     String operation = getEdgeOperationFormula(pSource, pEdge);
     if (operation != null) {
