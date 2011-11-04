@@ -235,7 +235,7 @@ public class CtoFormulaConverter {
     }
   }
 
-  // looks up the variable in the current namespace
+  /** Looks up the variable name in the current namespace. */
   private String scopedIfNecessary(IASTIdExpression var, String function) {
     IASTSimpleDeclaration decl = var.getDeclaration();
     boolean isGlobal = false;
@@ -356,17 +356,20 @@ public class CtoFormulaConverter {
     return fmgr.makeVariable(var, idx);
   }
 
+  /** Returns the pointer variable belonging to a given IdExpression */
   private Formula makePointerVariable(IASTIdExpression expr, String function,
       SSAMapBuilder ssa) {
     String variableName = makePointerVariableName(expr, function, ssa);
     return makeVariable(variableName, ssa);
   }
 
+  /** Takes a (scoped) variable name and returns the pointer variable name. */
   private String makePointerMask(String scopedId, SSAMapBuilder ssa) {
     String pointerId = "*<" + scopedId + "," + ssa.getIndex(scopedId) + ">";
     return pointerId;
   }
 
+  /** Returns the pointer variable name corresponding to a given IdExpression */
   private String makePointerVariableName(IASTIdExpression expr,
       String function, SSAMapBuilder ssa) {
     String scopedId = scopedIfNecessary(expr, function);
@@ -749,6 +752,13 @@ public class CtoFormulaConverter {
     return f;
   }
 
+  /**
+   * Returns a list of all variable names representing memory locations in
+   * the SSAMap. These memory locations are those previously used.
+   *
+   * Stored memory locations are prefixed with
+   * {@link MEMORY_ADDRESS_VARIABLE_PREFIX}.
+   */
   private List<String> getAllMemoryLocationsFromSsaMap(SSAMapBuilder ssa) {
     List<String> memoryLocations = new LinkedList<String>();
     Set<String> ssaVariables = ssa.build().allVariables();
@@ -1143,13 +1153,18 @@ public class CtoFormulaConverter {
       }
     }
 
+    /**
+     * Returns a Formula representing the memory location of a given IdExpression.
+     * Ensures that the location is unique and not 0.
+     *
+     * @param function The scope of the variable.
+     */
     private Formula makeMemoryLocationVariable(IASTIdExpression exp, String function) {
       String addressVariable = makeMemoryLocationVariableName(scopedIfNecessary(exp, function));
 
       // a variable address is always initialized, not 0 and cannot change
       if (ssa.getIndex(addressVariable) == VARIABLE_UNSET) {
         List<String> oldMemoryLocations = getAllMemoryLocationsFromSsaMap(ssa);
-
         Formula newMemoryLocation = makeConstant(addressVariable, ssa);
 
         // a variable address that is unknown is different from all previously known addresses
@@ -1623,9 +1638,7 @@ public class CtoFormulaConverter {
       return assignmentFormula;
     }
 
-    /**
-     * Returns whether the address of a given variable has been used before.
-     */
+    /** Returns whether the address of a given variable has been used before. */
     boolean isKnownMemoryLocation(String varName) {
       List<String> memLocations = getAllMemoryLocationsFromSsaMap(ssa);
       String memVarName = makeMemoryLocationVariableName(varName);
@@ -1662,8 +1675,6 @@ public class CtoFormulaConverter {
             return true;
           }
         }
-
-        // TODO are there any other cases?
       }
 
       return false;
@@ -1696,8 +1707,8 @@ public class CtoFormulaConverter {
       return fmgr.makeOr(left, q);
     }
 
+    /** Returns a new variable name for every malloc call. */
     private String makeFreshMallocVariableName() {
-      // TODO: find a better way (without using the SSA map)
       int idx = ssa.getIndex(MALLOC_COUNTER_VARIABLE_NAME);
 
       if (idx == VARIABLE_UNSET) {
@@ -1705,7 +1716,6 @@ public class CtoFormulaConverter {
       }
 
       ssa.setIndex(MALLOC_COUNTER_VARIABLE_NAME, idx + 1);
-
       return MEMORY_ADDRESS_VARIABLE_PREFIX + "#" + idx;
     }
 
@@ -1745,11 +1755,17 @@ public class CtoFormulaConverter {
       return memoryAddress.substring(MEMORY_ADDRESS_VARIABLE_PREFIX.length());
     }
 
-    private boolean isPointerVariable(String variable) {
+    /**
+     * Returns whether the given variable name is a pointer variable name.
+     */
+    private boolean isPointerVariable(String variableName) {
       final Pattern pointerVariablePattern = Pattern.compile("\\*<.*>");
-      return pointerVariablePattern.matcher(variable).matches();
+      return pointerVariablePattern.matcher(variableName).matches();
     }
 
+    /**
+     * Returns a list of all pointer variables stored in the SSAMap.
+     */
     private List<String> getAllPointerVariablesFromSsaMap() {
       List<String> pointerVariables = new LinkedList<String>();
       Set<String> ssaVariables = ssa.build().allVariables();
