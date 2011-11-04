@@ -1604,20 +1604,20 @@ public class CtoFormulaConverter {
         List<String> pVarNames = getAllPointerVariablesFromSsaMap();
         Formula newLeftVar = leftVariable;
         for (String pVarName : pVarNames) {
-          // TODO no updates of now assigned values
-
           String varName = getVariableNameFromPointerVariable(pVarName);
-          Formula var = makeVariable(varName, ssa);
-          Formula oldPVar = makeVariable(pVarName, ssa);
-          makeFreshIndex(pVarName, ssa);
-          Formula newPVar = makeVariable(pVarName, ssa);
+          if (!varName.equals(leftVarName)) {
+            Formula var = makeVariable(varName, ssa);
+            Formula oldPVar = makeVariable(pVarName, ssa);
+            makeFreshIndex(pVarName, ssa);
+            Formula newPVar = makeVariable(pVarName, ssa);
 
-          Formula condition = fmgr.makeEqual(var, leftMemLocation);
-          Formula equivalence = fmgr.makeAssignment(newPVar, newLeftVar);
-          Formula update = fmgr.makeAssignment(newPVar, oldPVar);
+            Formula condition = fmgr.makeEqual(var, leftMemLocation);
+            Formula equivalence = fmgr.makeAssignment(newPVar, newLeftVar);
+            Formula update = fmgr.makeAssignment(newPVar, oldPVar);
 
-          Formula constraint = fmgr.makeIfThenElse(condition, equivalence, update);
-          constraints.addConstraint(constraint);
+            Formula constraint = fmgr.makeIfThenElse(condition, equivalence, update);
+            constraints.addConstraint(constraint);
+          }
         }
 
       }
