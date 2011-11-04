@@ -1150,12 +1150,11 @@ public class CtoFormulaConverter {
       if (ssa.getIndex(addressVariable) == VARIABLE_UNSET) {
         List<String> oldMemoryLocations = getAllMemoryLocationsFromSsaMap(ssa);
 
-        ssa.setIndex(addressVariable, VARIABLE_UNINITIALIZED + 1);
-        Formula newMemoryLocation = makeVariable(addressVariable, ssa);
+        Formula newMemoryLocation = makeConstant(addressVariable, ssa);
 
-        // a memory address that is unknown is different from all previously known addresses
+        // a variable address that is unknown is different from all previously known addresses
         for (String memoryLocation : oldMemoryLocations) {
-          Formula oldMemoryLocation = makeVariable(memoryLocation, ssa);
+          Formula oldMemoryLocation = makeConstant(memoryLocation, ssa);
           Formula addressInequality = fmgr.makeNot(fmgr.makeEqual(newMemoryLocation, oldMemoryLocation));
 
           constraints.addConstraint(addressInequality);
@@ -1166,7 +1165,7 @@ public class CtoFormulaConverter {
         constraints.addConstraint(notZero);
       }
 
-      return makeVariable(addressVariable, ssa);
+      return makeConstant(addressVariable, ssa);
     }
 
     private Formula makeCompoundFormula(IASTBinaryExpression exp, Formula me1,
@@ -1323,23 +1322,22 @@ public class CtoFormulaConverter {
       // handle malloc
       IASTExpression fn = fexp.getFunctionNameExpression();
       if (fn instanceof IASTIdExpression) {
-        // TODO: cil allows sizeof(int) in malloc calls
         String fName = ((IASTIdExpression)fn).getName();
 
         if (memoryAllocationFunctions.contains(fName)) {
-          // TODO: for now all parameters are ignored
+          // for now all parameters are ignored
 
           List<String> memoryLocations = getAllMemoryLocationsFromSsaMap(ssa);
 
           String mallocVarName = makeFreshMallocVariableName();
-          Formula mallocVar = makeVariable(mallocVarName, ssa);
+          Formula mallocVar = makeConstant(mallocVarName, ssa);
 
           // we must distinguish between two cases:
           // either the result is 0 or it is different from all other memory locations
           // (m != 0) => for all memory locations n: m != n
           Formula ineq = fmgr.makeTrue();
           for (String ml : memoryLocations) {
-            Formula n = makeVariable(ml, ssa);
+            Formula n = makeConstant(ml, ssa);
 
             Formula notEqual = makeNotEqual(n, mallocVar);
             ineq = fmgr.makeAnd(notEqual, ineq);
@@ -1595,7 +1593,7 @@ public class CtoFormulaConverter {
 
       if (isKnownMemoryLocation(leftVarName)) {
         String leftMemLocationName = makeMemoryLocationVariableName(leftVarName);
-        Formula leftMemLocation = makeVariable(leftMemLocationName, ssa);
+        Formula leftMemLocation = makeConstant(leftMemLocationName, ssa);
 
         // update all pointers:
         // if a pointer is aliased to the assigned variable,
