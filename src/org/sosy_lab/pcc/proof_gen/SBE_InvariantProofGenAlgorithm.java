@@ -36,10 +36,11 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.pcc.common.FormulaHandler;
+import org.sosy_lab.pcc.common.Separators;
 
 public class SBE_InvariantProofGenAlgorithm extends InvariantProofGenAlgorithm {
 
-  private FormulaHandler              fh;
+  private FormulaHandler fh;
 
   public SBE_InvariantProofGenAlgorithm(Configuration pConfig,
       LogManager pLogger) throws InvalidConfigurationException {
@@ -110,13 +111,16 @@ public class SBE_InvariantProofGenAlgorithm extends InvariantProofGenAlgorithm {
     if (operation == null) { return false; }
     // build identification of edge
     String id =
-        pNode.retrieveLocationElement().getLocationNode().getNodeNumber() + "#"
-            + pEdge.getSuccessor().getNodeNumber();
+        pNode.retrieveLocationElement().getLocationNode().getNodeNumber()
+            + Separators.commonSeparator
+            + pEdge.getPredecessor().getNodeNumber()
+            + Separators.commonSeparator + pEdge.getSuccessor().getNodeNumber();
     StringBuilder current = operationsPerEdge.get(id);
     if (current == null) {
-      operationsPerEdge.put(id, new StringBuilder(operation + "#"));
+      operationsPerEdge.put(id, new StringBuilder(operation
+          + Separators.commonSeparator));
     } else {
-      current.append(operation + "#");
+      current.append(operation + Separators.commonSeparator);
     }
     return true;
   }
@@ -126,20 +130,22 @@ public class SBE_InvariantProofGenAlgorithm extends InvariantProofGenAlgorithm {
     PredicateAbstractElement predicate =
         AbstractElements.extractElementByType(pNode,
             PredicateAbstractElement.class);
-    if(predicate == null){
-      return false;
-    }
+    if (predicate == null) { return false; }
     CFANode corresponding = pNode.retrieveLocationElement().getLocationNode();
     //check if it is an abstraction element, otherwise nothing to do
-    if(predicate.isAbstractionElement()
-    || (corresponding instanceof CFAFunctionDefinitionNode)
-    || (corresponding instanceof CFAFunctionExitNode)
-    || corresponding.getEnteringSummaryEdge() != null){
-      StringBuilder builder = cfaNodeInvariants.get(corresponding.getNodeNumber());
-      if(builder == null){
-        cfaNodeInvariants.put(corresponding.getNodeNumber(), new StringBuilder(predicate.getAbstractionFormula().asFormula().toString()+"?" + pStack+ "#"));
-      }else{
-        builder.append(predicate.getAbstractionFormula().asFormula().toString()+"?" + pStack+ "#");
+    if (predicate.isAbstractionElement()
+        || (corresponding instanceof CFAFunctionDefinitionNode)
+        || (corresponding instanceof CFAFunctionExitNode)
+        || corresponding.getEnteringSummaryEdge() != null) {
+      StringBuilder builder =
+          cfaNodeInvariants.get(corresponding.getNodeNumber());
+      if (builder == null) {
+        cfaNodeInvariants.put(corresponding.getNodeNumber(), new StringBuilder(
+            predicate.getAbstractionFormula().asFormula().toString() + pStack
+                + Separators.commonSeparator));
+      } else {
+        builder.append(predicate.getAbstractionFormula().asFormula().toString()
+            + pStack + Separators.commonSeparator);
       }
     }
     return true;

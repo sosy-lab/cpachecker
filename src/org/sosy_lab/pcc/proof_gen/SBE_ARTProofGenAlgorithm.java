@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
 import org.sosy_lab.pcc.common.AbstractionType;
 import org.sosy_lab.pcc.common.FormulaHandler;
+import org.sosy_lab.pcc.common.Separators;
 
 public class SBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
 
@@ -50,23 +51,23 @@ public class SBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
     StringBuilder nodeRep = new StringBuilder();
     // build string of form ARTId#CFAId#isAbstractionNode(#Abstraction)?#
     nodeRep.append(pNode.getElementId());
-    nodeRep.append("#");
+    nodeRep.append(Separators.commonSeparator);
     nodeRep.append(pNode.retrieveLocationElement().getLocationNode()
         .getNodeNumber());
-    nodeRep.append("#");
+    nodeRep.append(Separators.commonSeparator);
     // get PredicateAbstractElement
     PredicateAbstractElement predicate =
         getWrappedPredicateAbstractElement(pNode);
     if (predicate == null) { return false; }
-    // isAbstractionNode == true --> write 1 otherwise 0
+    // write abstraction type
     if (predicate.isAbstractionElement()) {
       nodeRep.append(AbstractionType.Abstraction);
-      nodeRep.append("#");
+      nodeRep.append(Separators.commonSeparator);
       nodeRep.append(predicate.getAbstractionFormula().asFormula().toString());
     } else {
       nodeRep.append(AbstractionType.NeverAbstraction);
     }
-    nodeRep.append("#");
+    nodeRep.append(Separators.commonSeparator);
     nodes.add(nodeRep.toString());
     return true;
   }
@@ -89,13 +90,13 @@ public class SBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
     StringBuilder edgeRep = new StringBuilder();
     // build string of form sourceId#targetId#operation#
     edgeRep.append(pSource.getElementId());
-    edgeRep.append("#");
+    edgeRep.append(Separators.commonSeparator);
     // if target element is covered -> set covering element as target
     if(pTarget.isCovered()){
       pTarget = pTarget.getCoveringElement();
     }
     edgeRep.append(pTarget.getElementId());
-    edgeRep.append("#");
+    edgeRep.append(Separators.commonSeparator);
     //add operation
     String operation = getEdgeOperationFormula(pSource, pEdge);
     if (operation != null) {

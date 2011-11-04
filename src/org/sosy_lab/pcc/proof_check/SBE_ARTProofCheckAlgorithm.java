@@ -47,6 +47,7 @@ import org.sosy_lab.pcc.common.AbstractionType;
 import org.sosy_lab.pcc.common.FormulaHandler;
 import org.sosy_lab.pcc.common.PCCCheckResult;
 import org.sosy_lab.pcc.common.Pair;
+import org.sosy_lab.pcc.common.Separators;
 
 public class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
 
@@ -83,7 +84,7 @@ public class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
     String next = "";
     while (pScan.hasNext()) {
       next = pScan.next();
-      if (next.equals("}")) {
+      if (next.equals(Separators.nodesFromEdgesSeparator)) {
         break;
       }
       // read next node description
@@ -233,10 +234,9 @@ public class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
           int target = pNode.getEdges()[0].getTarget();
           int returnID =
               art.get(target).getCorrespondingCFANode().getNodeNumber();
-          if (returnID != Integer
-              .parseInt(pCallReturnStack.substring(
-                  pCallReturnStack.lastIndexOf("#") + 1,
-                  pCallReturnStack.length()))) { return PCCCheckResult.InvalidART; }
+          if (returnID != Integer.parseInt(pCallReturnStack.substring(
+              pCallReturnStack.lastIndexOf(Separators.stackEntrySeparator) + 1,
+              pCallReturnStack.length()))) { return PCCCheckResult.InvalidART; }
           // proof edge
           PCCCheckResult result;
           if (pNode.getAbstractionType() != AbstractionType.NeverAbstraction) {
@@ -252,7 +252,8 @@ public class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
             }
             if (result != PCCCheckResult.Success) { return result; }
             addTargetNode(target, pCallReturnStack.substring(0,
-                pCallReturnStack.lastIndexOf("#")), pVisited, pWaiting);
+                pCallReturnStack.lastIndexOf(Separators.stackEntrySeparator)),
+                pVisited, pWaiting);
           }
         }
       } else {
@@ -281,6 +282,7 @@ public class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
             //add target ART element if not checked yet
             if (edges[i].getCorrespondingCFAEdge().getEdgeType() == CFAEdgeType.FunctionCallEdge) {
               addTargetNode(edges[i].getTarget(), pCallReturnStack
+                  + Separators.stackEntrySeparator
                   + cfaNode.getLeavingSummaryEdge().getSuccessor()
                       .getNodeNumber(), pVisited, pWaiting);
             } else {

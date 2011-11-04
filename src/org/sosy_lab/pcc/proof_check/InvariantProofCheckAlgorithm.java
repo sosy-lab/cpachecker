@@ -31,6 +31,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.pcc.common.PCCCheckResult;
+import org.sosy_lab.pcc.common.Separators;
 
 public abstract class InvariantProofCheckAlgorithm implements
     ProofCheckAlgorithm {
@@ -60,7 +61,7 @@ public abstract class InvariantProofCheckAlgorithm implements
 
   private PCCCheckResult readFromFile(File pFile) throws FileNotFoundException {
     Scanner scan = new Scanner(pFile);
-    scan.useDelimiter("(\\s)*#(\\s)*");
+    scan.useDelimiter("(\\s)*"+Separators.commonSeparator+"(\\s)*");
     PCCCheckResult success = readNodes(scan);
     if (success != PCCCheckResult.Success) { return success; }
     success = readEdges(scan);

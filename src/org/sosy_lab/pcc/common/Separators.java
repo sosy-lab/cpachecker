@@ -23,23 +23,12 @@
  */
 package org.sosy_lab.pcc.common;
 
-public enum PCCCheckResult {
-  Success,
-  ART_CFA_Mismatch,
-  UncoveredCFANode,
-  UnknownCFANode,
-  InvalidCFANode,
-  ErrorNodeReachable,
-  InvalidInvariant,
-  AmbigiousRoot,
-  InvalidARTRootSpecification,
-  UnknownCFAEdge,
-  UncoveredEdge,
-  InvalidEdge,
-  InvalidOperation,
-  InvalidART,
-  InvalidFormulaSpecificationInProof,
-  InvalidProofFile,
-  ReadingProofFailed,
-  InvalidStack
+public class Separators {
+
+  public final static String commonSeparator = "#";
+  public final static String stackEntrySeparator = "?";
+  public final static String nodesFromEdgesSeparator = "}";
+  // expected to be the same value as MathsatFormulaManager.INDEX_SEPARATOR
+  public final static String SSAIndexSeparator = "@";
+
 }

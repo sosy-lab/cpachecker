@@ -38,6 +38,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.pcc.common.Separators;
 
 @Options(prefix = "pcc.proofgen")
 public abstract class ARTProofGenAlgorithm implements ProofGenAlgorithm {
@@ -100,7 +101,7 @@ public abstract class ARTProofGenAlgorithm implements ProofGenAlgorithm {
       output.append(node);
     }
     // add separation between nodes and edges
-    output.append("}");
+    output.append(Separators.nodesFromEdgesSeparator);
     // add all edges
     for (String edge : edges) {
       output.append(edge);

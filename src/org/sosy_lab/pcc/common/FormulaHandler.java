@@ -85,6 +85,15 @@ public class FormulaHandler {
     }
   }
 
+  public Formula buildConjunction(Formula[] pList) {
+    if (pList == null || pList.length == 0) { return null; }
+    Formula result = pList[0];
+    for (int i = 1; i < pList.length; i++) {
+      fm.makeAnd(result, pList[i]);
+    }
+    return result;
+  }
+
   public String getEdgeOperationWithSSA(PathFormula pPredecessor, CFAEdge pEdge) {
     PathFormula oldFormula, formula;
     oldFormula = pfm.makeEmptyPathFormula(pPredecessor);
@@ -146,6 +155,12 @@ public class FormulaHandler {
     } catch (IllegalArgumentException e) {
       return false;
     }
+  }
+
+  public Formula createFormula(String pString) {
+    if (pString == null || pString.length() == 0) { throw new IllegalArgumentException(
+        "It is not a valid formula."); }
+    return fm.parse(pString);
   }
 
   /**

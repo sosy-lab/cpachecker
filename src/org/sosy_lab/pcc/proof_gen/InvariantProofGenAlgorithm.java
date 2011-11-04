@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.pcc.common.Pair;
+import org.sosy_lab.pcc.common.Separators;
 
 public abstract class InvariantProofGenAlgorithm implements ProofGenAlgorithm {
 
@@ -99,7 +100,7 @@ public abstract class InvariantProofGenAlgorithm implements ProofGenAlgorithm {
           if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
             newCallstack =
                 visiting.getSecond()
-                    + "?"
+                    + Separators.stackEntrySeparator
                     + current.retrieveLocationElement().getLocationNode()
                         .getLeavingSummaryEdge();
             toVisit.push(new Pair<ARTElement, String>(child, newCallstack));
@@ -107,7 +108,8 @@ public abstract class InvariantProofGenAlgorithm implements ProofGenAlgorithm {
             if (edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
               newCallstack = visiting.getSecond();
               newCallstack =
-                  newCallstack.substring(0, newCallstack.lastIndexOf("?"));
+                  newCallstack.substring(0,
+                      newCallstack.lastIndexOf(Separators.stackEntrySeparator));
               toVisit.push(new Pair<ARTElement, String>(child, newCallstack));
             } else {
               toVisit.push(new Pair<ARTElement, String>(child, visiting
@@ -129,17 +131,19 @@ public abstract class InvariantProofGenAlgorithm implements ProofGenAlgorithm {
     // add all invariants
     StringBuilder toWrite;
     for (Integer cfaID : cfaNodeInvariants.keySet()) {
-      output.append(cfaID + "#");
+      output.append(cfaID + Separators.commonSeparator);
       toWrite = cfaNodeInvariants.get(cfaID);
-      output.append(countNumOccurrences(toWrite, "#") + "#" + toWrite);
+      output.append(countNumOccurrences(toWrite, Separators.commonSeparator)
+          + Separators.commonSeparator + toWrite);
     }
     // add separation between invariants and operations
-    output.append("}");
+    output.append(Separators.nodesFromEdgesSeparator);
     // add all operations
     for (String edge : operationsPerEdge.keySet()) {
-      output.append(edge + "#");
+      output.append(edge + Separators.commonSeparator);
       toWrite = operationsPerEdge.get(edge);
-      output.append(countNumOccurrences(toWrite, "#") + "#" + toWrite);
+      output.append(countNumOccurrences(toWrite, Separators.commonSeparator)
+          + Separators.commonSeparator + toWrite);
     }
     try {
       Files.writeFile(file, output);
