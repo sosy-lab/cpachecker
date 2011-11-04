@@ -385,11 +385,6 @@ cpa.predicate.memoryAllocationFunctions = {
 cpa.predicate.merge = "ABE"
   allowed values: [SEP, ABE]
 
-# if initAllVars is true, we get rid of all non-determinism. This might not
-# be desirable. If the following property is set to a non-empty value, all
-# variables starting with this prefix will not be initialized automatically
-cpa.predicate.noAutoInitPrefix = "__BLAST_NONDET"
-
 # list of functions that should be considered as giving a non-deterministic
 # return value
 #  Only predicate analysis honors this option. If you specify this option,
@@ -528,12 +523,6 @@ log.truncateSize = 10000
 
 # all used options are printed
 log.usedOptions.export = false
-
-# variables whose name contains this will be seen by InterpreterCPA as having
-# non-deterministic values
-# variables whose name contains this will be seen by ExplicitCPA as having
-# non-deterministic values
-noAutoInitPrefix = "__BLAST_NONDET"
 
 # disable all default output files
 # (any explicitly given file will still be written)

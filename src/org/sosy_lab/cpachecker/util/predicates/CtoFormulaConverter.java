@@ -120,12 +120,6 @@ public class CtoFormulaConverter {
   @Option(description="initialize all variables to 0 when they are declared")
   private boolean initAllVars = false;
 
-  @Option(description="if initAllVars is true, we get rid of all non-determinism. "
-    + "This might not be desirable. If the following property is set to a non-empty value, "
-    + "all variables starting with this prefix will not be initialized automatically")
-  // TODO this is not only about missing initialization, it should be renamed to nondetVariables
-  private String noAutoInitPrefix = "__BLAST_NONDET";
-
   // if true, handle lvalues as *x, &x, s.x, etc. using UIFs. If false, just
   // use variables
   @Option(name="mathsat.lvalsAsUIFs",
@@ -254,10 +248,6 @@ public class CtoFormulaConverter {
   // Call only if you are sure you have a local variable!
   private static String scoped(String var, String function) {
     return function + "::" + var;
-  }
-
-  private boolean isNondetVariable(String var) {
-    return (!noAutoInitPrefix.isEmpty()) && var.startsWith(noAutoInitPrefix);
   }
 
   private static String exprToVarName(IASTExpression e) {
@@ -568,13 +558,8 @@ public class CtoFormulaConverter {
         if (init != null) {
           // initializer value present
 
-          if (isNondetVariable(varNameWithoutFunction)) {
-            log(Level.WARNING, getLogMessage("Ignoring initial value of special non-determinism variable " + var, edge));
-
-          } else {
-            Formula minit = buildTerm(init, function, ssa, constraints);
-            return makeAssignment(var, minit, ssa);
-          }
+          Formula minit = buildTerm(init, function, ssa, constraints);
+          return makeAssignment(var, minit, ssa);
         }
       }
       return fmgr.makeTrue();
@@ -899,16 +884,7 @@ public class CtoFormulaConverter {
         }
       }
 
-      String var = idExp.getName();
-
-      if (isNondetVariable(var)) {
-        // on every read access to special non-determininism variable use a fresh instance
-        return makeFreshVariable(NONDET_VARIABLE, ssa);
-
-      } else {
-        return makeVariable(scopedIfNecessary(idExp, function), ssa);
-      }
-
+      return makeVariable(scopedIfNecessary(idExp, function), ssa);
     }
 
     @Override
@@ -1806,12 +1782,7 @@ public class CtoFormulaConverter {
 
     @Override
     public Formula visit(IASTIdExpression idExp) {
-      String var = idExp.getName();
-
-      if (isNondetVariable(var)) {
-        log(Level.WARNING, "Assignment to special non-determinism variable" + var + "will be ignored.");
-      }
-      var = scopedIfNecessary(idExp, function);
+      String var = scopedIfNecessary(idExp, function);
       return makeFreshVariable(var, ssa);
     }
 

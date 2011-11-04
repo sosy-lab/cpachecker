@@ -27,11 +27,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.AccessToUninitializedVariableException;
 import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.MissingInputException;
-import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.ReadingFromNondetVariableException;
 
 import com.google.common.base.Joiner;
 
@@ -47,10 +45,6 @@ public class InterpreterElement implements AbstractElement {
   // TODO make final
   private int mInputIndex;
   private int[] mInputs;
-
-  @Option(description="variables whose name contains this will be seen by InterpreterCPA as having non-deterministic values")
-  // TODO this is completely broken, name doesn't match, the option is never read from file etc.
-  private String noAutoInitPrefix = "__BLAST_NONDET";
 
   public InterpreterElement() {
     this(new int[0]);
@@ -117,18 +111,10 @@ public class InterpreterElement implements AbstractElement {
       return;
     }
 
-    if(nameOfVar.contains(noAutoInitPrefix)){
-      throw new RuntimeException(nameOfVar);
-    }
-
     mConstantsMap.put(nameOfVar, value);
   }
 
-  public long getValueFor(String pVariableName) throws ReadingFromNondetVariableException, AccessToUninitializedVariableException {
-    if (pVariableName.endsWith("::__BLAST_NONDET")) {
-      throw new ReadingFromNondetVariableException();
-    }
-
+  public long getValueFor(String pVariableName) throws AccessToUninitializedVariableException {
     if (!mConstantsMap.containsKey(pVariableName)) {
       throw new AccessToUninitializedVariableException(pVariableName);
     }

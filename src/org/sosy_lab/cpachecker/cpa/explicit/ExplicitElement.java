@@ -28,7 +28,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.assumptions.FormulaReportingElement;
@@ -47,10 +46,6 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
   // element from the previous context
   // used for return edges
   private final ExplicitElement previousElement;
-
-  @Option(description="variables whose name contains this will be seen by ExplicitCPA as having non-deterministic values")
-  // TODO this is completely broken, name doesn't match, the option is never read from file etc.
-  private String noAutoInitPrefix = "__BLAST_NONDET";
 
   public ExplicitElement()
   {
@@ -85,9 +80,6 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
       return;
 
     if(pThreshold == 0)
-      return;
-
-    if(variableName.contains(noAutoInitPrefix))
       return;
 
     if(referenceCount.containsKey(variableName))

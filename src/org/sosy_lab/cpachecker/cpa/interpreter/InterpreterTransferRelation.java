@@ -70,7 +70,6 @@ import org.sosy_lab.cpachecker.cpa.assume.ConstrainedAssumeElement;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonPredicateElement;
 import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.AccessToUninitializedVariableException;
 import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.MissingInputException;
-import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.ReadingFromNondetVariableException;
 import org.sosy_lab.cpachecker.cpa.pointer.Memory;
 import org.sosy_lab.cpachecker.cpa.pointer.Pointer;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerElement;
@@ -222,12 +221,11 @@ public class InterpreterTransferRelation implements TransferRelation {
    * @param functionReturnEdge return edge from a function to its call site.
    * @return new abstract element.
    * @throws MissingInputException
-   * @throws ReadingFromNondetVariableException
    * @throws AccessToUninitializedVariableException
    */
   private InterpreterElement handleFunctionReturn(InterpreterElement element,
       FunctionReturnEdge functionReturnEdge)
-  throws UnrecognizedCCodeException, ReadingFromNondetVariableException, AccessToUninitializedVariableException {
+  throws UnrecognizedCCodeException, AccessToUninitializedVariableException {
 
     CallToReturnEdge summaryEdge =
       functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
@@ -316,7 +314,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
   private InterpreterElement handleFunctionCall(InterpreterElement element,
       FunctionCallEdge callEdge)
-  throws UnrecognizedCCodeException, ReadingFromNondetVariableException, AccessToUninitializedVariableException {
+  throws UnrecognizedCCodeException, AccessToUninitializedVariableException {
 
     FunctionDefinitionNode functionEntryNode = callEdge.getSuccessor();
     String calledFunctionName = functionEntryNode.getFunctionName();
@@ -391,7 +389,7 @@ public class InterpreterTransferRelation implements TransferRelation {
   private InterpreterElement handleExitFromFunction(InterpreterElement element,
       IASTExpression expression,
       ReturnStatementEdge returnEdge)
-  throws UnrecognizedCCodeException, ReadingFromNondetVariableException, MissingInputException, AccessToUninitializedVariableException {
+  throws UnrecognizedCCodeException, MissingInputException, AccessToUninitializedVariableException {
 
     InterpreterElement lSuccessor = handleAssignmentToVariable(element, "___cpa_temp_result_var_", expression, returnEdge);
 
@@ -404,7 +402,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
   private AbstractElement handleAssumption(InterpreterElement element,
                   IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
-                  throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException, AccessToUninitializedVariableException {
+                  throws UnrecognizedCCodeException, MissingInputException, AccessToUninitializedVariableException {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
     // Binary operation
@@ -472,7 +470,7 @@ public class InterpreterTransferRelation implements TransferRelation {
   private AbstractElement propagateBooleanExpression(AbstractElement element,
       BinaryOperator opType,IASTExpression op1,
       IASTExpression op2, String functionName, boolean truthValue)
-  throws UnrecognizedCCodeException, ReadingFromNondetVariableException, AccessToUninitializedVariableException {
+  throws UnrecognizedCCodeException, AccessToUninitializedVariableException {
 
     InterpreterElement newElement = ((InterpreterElement)element).clone();
 
@@ -1146,7 +1144,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
   private InterpreterElement handleStatement(InterpreterElement element,
       IASTStatement expression, CFAEdge cfaEdge)
-  throws UnrecognizedCCodeException, ReadingFromNondetVariableException, AccessToUninitializedVariableException, MissingInputException {
+  throws UnrecognizedCCodeException, AccessToUninitializedVariableException, MissingInputException {
     // expression is an assignment operation, e.g. a = b;
     if (expression instanceof IASTAssignment) {
       return handleAssignment(element, (IASTAssignment)expression, cfaEdge);
@@ -1166,7 +1164,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
   private InterpreterElement handleAssignment(InterpreterElement element,
                             IASTAssignment assignExpression, CFAEdge cfaEdge)
-                            throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException, AccessToUninitializedVariableException {
+                            throws UnrecognizedCCodeException, MissingInputException, AccessToUninitializedVariableException {
 
     IASTExpression op1 = assignExpression.getLeftHandSide();
     IASTRightHandSide op2 = assignExpression.getRightHandSide();
@@ -1220,7 +1218,7 @@ public class InterpreterTransferRelation implements TransferRelation {
   }
 
   private InterpreterElement handleAssignmentToVariable(InterpreterElement element,
-                          String lParam, IASTRightHandSide rightExp, CFAEdge cfaEdge) throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException, AccessToUninitializedVariableException {
+                          String lParam, IASTRightHandSide rightExp, CFAEdge cfaEdge) throws UnrecognizedCCodeException, MissingInputException, AccessToUninitializedVariableException {
     String functionName = cfaEdge.getPredecessor().getFunctionName();
 
     // a = 8.2 or "return;" (when rightExp == null)
@@ -1259,7 +1257,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
   private InterpreterElement handleAssignmentOfCast(InterpreterElement element,
                               String lParam, IASTCastExpression castExp, CFAEdge cfaEdge)
-                              throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException, AccessToUninitializedVariableException
+                              throws UnrecognizedCCodeException, MissingInputException, AccessToUninitializedVariableException
   {
     IASTExpression castOperand = castExp.getOperand();
 
@@ -1274,7 +1272,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
   private InterpreterElement handleAssignmentOfUnaryExp(InterpreterElement element,
                                       String lParam, IASTUnaryExpression unaryExp, CFAEdge cfaEdge)
-                                      throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException, AccessToUninitializedVariableException {
+                                      throws UnrecognizedCCodeException, MissingInputException, AccessToUninitializedVariableException {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
     // name of the updated variable, so if a = -b is handled, lParam is a
@@ -1319,7 +1317,7 @@ public class InterpreterTransferRelation implements TransferRelation {
   private InterpreterElement handleAssignmentOfBinaryExp(InterpreterElement element,
                        String lParam, IASTExpression lVarInBinaryExp, IASTExpression rVarInBinaryExp,
                        BinaryOperator binaryOperator, CFAEdge cfaEdge)
-                       throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException, AccessToUninitializedVariableException {
+                       throws UnrecognizedCCodeException, MissingInputException, AccessToUninitializedVariableException {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
     // name of the updated variable, so if a = b + c is handled, lParam is a
@@ -1451,7 +1449,7 @@ public class InterpreterTransferRelation implements TransferRelation {
   }
 
   private Long getExpressionValue(InterpreterElement element, IASTExpression expression,
-                                  String functionName, CFAEdge cfaEdge) throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException, AccessToUninitializedVariableException {
+                                  String functionName, CFAEdge cfaEdge) throws UnrecognizedCCodeException, MissingInputException, AccessToUninitializedVariableException {
 
     if (expression instanceof IASTLiteralExpression) {
       return parseLiteral((IASTLiteralExpression)expression);
@@ -1488,22 +1486,13 @@ public class InterpreterTransferRelation implements TransferRelation {
   }
 
   private InterpreterElement handleAssignmentOfVariable(InterpreterElement element,
-      String lParam, IASTExpression op2, String functionName) throws MissingInputException, ReadingFromNondetVariableException, AccessToUninitializedVariableException
+      String lParam, IASTExpression op2, String functionName) throws MissingInputException, AccessToUninitializedVariableException
   {
     String rParam = op2.getRawSignature();
 
     String leftVarName = getvarName(lParam, functionName);
 
-    if (rParam.equals("__BLAST_NONDET")) {
-      InterpreterElement newElement = element.nextInputElement();
-
-      // We return the input of the current element, the successor element
-      // will refer to the next input.
-      newElement.assignConstant(leftVarName, element.getCurrentInput());
-
-      return newElement;
-    }
-    else {
+    {
       String rightVarName = getvarName(rParam, functionName);
 
       InterpreterElement newElement = element.clone();
@@ -1560,7 +1549,7 @@ public class InterpreterTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement element,
                                     List<AbstractElement> elements,
-                                    CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException, AccessToUninitializedVariableException {
+                                    CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException, MissingInputException, AccessToUninitializedVariableException {
 
     assert element instanceof InterpreterElement;
     InterpreterElement explicitElement = (InterpreterElement)element;
@@ -1580,7 +1569,7 @@ public class InterpreterTransferRelation implements TransferRelation {
   }
 
   private Collection<? extends AbstractElement> strengthen(InterpreterElement explicitElement,
-      PointerElement pointerElement, CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException, AccessToUninitializedVariableException {
+      PointerElement pointerElement, CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException, MissingInputException, AccessToUninitializedVariableException {
 
     List<InterpreterElement> retList = new ArrayList<InterpreterElement>();
 
