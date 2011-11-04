@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
  * Therefore, this implementation should be considered as deprecated and
  * replaced by TopologiallySortedWaitlist.
  */
+@Deprecated
 public class TopsortWaitlist extends AbstractWaitlist<LinkedList<AbstractElement>> {
 
   protected TopsortWaitlist() {
