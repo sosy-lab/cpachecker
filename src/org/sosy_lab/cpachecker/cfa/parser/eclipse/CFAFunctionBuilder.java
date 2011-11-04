@@ -449,8 +449,11 @@ class CFAFunctionBuilder extends ASTVisitor {
           if (((IASTLiteralExpression)cond).getKind() ==
               IASTLiteralExpression.lk_integer_constant) {
               int c = Integer.parseInt(cond.getRawSignature());
-              if (c == 0) return CONDITION.ALWAYS_FALSE;
-              else return CONDITION.ALWAYS_TRUE;
+              if (c == 0) {
+                return CONDITION.ALWAYS_FALSE;
+              } else {
+                return CONDITION.ALWAYS_TRUE;
+              }
           }
       }
       return CONDITION.NORMAL;

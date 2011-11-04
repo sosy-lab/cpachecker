@@ -58,8 +58,9 @@ public class ProgressObserverElement implements AbstractElement, AvoidanceReport
 
     while (it1.hasNext()) {
       assert it2.hasNext();
-      if (!it1.next().isLessThan(it2.next()))
+      if (!it1.next().isLessThan(it2.next())) {
         return false;
+      }
     }
     assert !it2.hasNext();
 
@@ -68,7 +69,9 @@ public class ProgressObserverElement implements AbstractElement, AvoidanceReport
 
   @Override
   public boolean equals(Object other) {
-    if (other == this) return true;
+    if (other == this) {
+      return true;
+    }
 
     if (other instanceof ProgressObserverElement) {
       ProgressObserverElement o = (ProgressObserverElement) other;
@@ -79,7 +82,9 @@ public class ProgressObserverElement implements AbstractElement, AvoidanceReport
       Iterator<StopHeuristicsData> it1 = data.iterator();
       Iterator<StopHeuristicsData> it2 = o.data.iterator();
       while (it1.hasNext()) {
-        if (!it2.hasNext()) return false;
+        if (!it2.hasNext()) {
+          return false;
+        }
 
         StopHeuristicsData d1 = it1.next();
         StopHeuristicsData d2 = it2.next();
@@ -99,11 +104,14 @@ public class ProgressObserverElement implements AbstractElement, AvoidanceReport
             mismatch = true;
           }
         } else {
-          if ((!mismatch) && (!d1.equals(d2)))
+          if ((!mismatch) && (!d1.equals(d2))) {
             mismatch = true;
+          }
         }
       }
-      if (it2.hasNext()) return false;
+      if (it2.hasNext()) {
+        return false;
+      }
       return !mismatch;
     } else {
       return false;
@@ -121,10 +129,11 @@ public class ProgressObserverElement implements AbstractElement, AvoidanceReport
     StringBuilder buffer = new StringBuilder();
     boolean first = true;
     for (StopHeuristicsData d : data) {
-      if (first)
+      if (first) {
         first = false;
-      else
+      } else {
         buffer.append('\n');
+      }
       buffer.append(d.getClass().getSimpleName()).append(": ").append(d.toString());
     }
     return buffer.toString();
@@ -134,8 +143,9 @@ public class ProgressObserverElement implements AbstractElement, AvoidanceReport
   public boolean mustDumpAssumptionForAvoidance() {
     // returns true if the current element is the same as bottom
     for (StopHeuristicsData d : data) {
-      if (d.isBottom())
+      if (d.isBottom()) {
         return true;
+      }
     }
 
     return false;

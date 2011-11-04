@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Preconditions.*;
 
 import java.util.Iterator;
 import java.util.List;

@@ -56,8 +56,9 @@ public class FeatureVarsElement implements AbstractQueryableElement {
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
     if (pProperty.equals("VALUES")) {
       return manager.dumpRegion(this.currentState);
-    } else
-    throw new InvalidQueryException("Feature Vars Element can only return the current values (\"VALUES\")");
+    } else {
+      throw new InvalidQueryException("Feature Vars Element can only return the current values (\"VALUES\")");
+    }
   }
 
   @Override

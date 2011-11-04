@@ -42,8 +42,9 @@ public class Octagon {
 
   @Override
   public boolean equals(Object pObj) {
-    if(!(pObj instanceof Octagon))
-        return false;
+    if(!(pObj instanceof Octagon)) {
+      return false;
+    }
     Octagon otherOct = (Octagon) pObj;
     return this.octId == otherOct.octId;
   }

@@ -275,7 +275,9 @@ public class CtoFormulaConverter {
     } else if (tp instanceof IComplexType){
       return ((IComplexType)tp).getName();
 
-    } else throw new AssertionError("wrong type");
+    } else {
+      throw new AssertionError("wrong type");
+    }
   }
 
   /**

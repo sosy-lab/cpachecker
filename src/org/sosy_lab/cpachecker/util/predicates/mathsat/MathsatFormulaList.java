@@ -57,7 +57,9 @@ public class MathsatFormulaList implements FormulaList {
 
   @Override
   public boolean equals(Object pObj) {
-    if (!(pObj instanceof MathsatFormulaList)) return false;
+    if (!(pObj instanceof MathsatFormulaList)) {
+      return false;
+    }
     return Arrays.equals(terms, ((MathsatFormulaList)pObj).terms);
   }
 

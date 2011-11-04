@@ -190,6 +190,8 @@ public class McMillanRefiner extends AbstractInterpolationBasedRefiner<Formula, 
 
     ARTElement lastElement = pPath.get(pPath.size()-1).getFirst();
     assert !pReached.asReachedSet().contains(lastElement);
-    if (++this.i == 10) throw new RefinementFailedException(Reason.InterpolationFailed, null);
+    if (++this.i == 10) {
+      throw new RefinementFailedException(Reason.InterpolationFailed, null);
+    }
   }
 }

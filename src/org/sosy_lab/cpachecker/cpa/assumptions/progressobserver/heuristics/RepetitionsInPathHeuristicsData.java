@@ -85,7 +85,9 @@ public class RepetitionsInPathHeuristicsData implements StopHeuristicsData {
   }
 
   public RepetitionsInPathHeuristicsData updateForEdge(CFAEdge edge, Function<? super CFAEdge, Integer> thresholds) {
-    if (!isInteresting(edge)) return this;
+    if (!isInteresting(edge)) {
+      return this;
+    }
 
     Integer oldValueInTable = frequencyMap.get(edge);
     int newValue = (oldValueInTable == null) ? 1 : (oldValueInTable.intValue() + 1);

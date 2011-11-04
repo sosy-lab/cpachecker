@@ -65,8 +65,9 @@ class OctElement implements AbstractElement{
 
   @Override
   public boolean equals(Object pObj) {
-    if(!(pObj instanceof OctElement))
+    if(!(pObj instanceof OctElement)) {
       return false;
+    }
     OctElement otherOct = (OctElement) pObj;
     return this.octagon.equals(otherOct.octagon);
   }

@@ -71,13 +71,21 @@ public class Triple<A, B, C> {
 
     @Override
     public int hashCode() {
-        if (first == null && second == null) return (third == null) ? 0 : third.hashCode() + 1;
-        else if (first == null && third == null) return second.hashCode() + 2;
-        else if (first == null) return second.hashCode() * 7 + third.hashCode();
-        else if (second == null && third == null) return first.hashCode() + 3;
-        else if (second == null) return first.hashCode() * 11 + third.hashCode();
-        else if (third == null) return first.hashCode() * 13 + second.hashCode();
-        else return first.hashCode() * 17 + second.hashCode() * 5 + third.hashCode();
+        if (first == null && second == null) {
+          return (third == null) ? 0 : third.hashCode() + 1;
+        } else if (first == null && third == null) {
+          return second.hashCode() + 2;
+        } else if (first == null) {
+          return second.hashCode() * 7 + third.hashCode();
+        } else if (second == null && third == null) {
+          return first.hashCode() + 3;
+        } else if (second == null) {
+          return first.hashCode() * 11 + third.hashCode();
+        } else if (third == null) {
+          return first.hashCode() * 13 + second.hashCode();
+        } else {
+          return first.hashCode() * 17 + second.hashCode() * 5 + third.hashCode();
+        }
     }
 
 
