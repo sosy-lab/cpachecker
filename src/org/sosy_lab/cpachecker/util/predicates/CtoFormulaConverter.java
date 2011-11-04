@@ -279,7 +279,7 @@ public class CtoFormulaConverter {
     if (idx > 0) {
       idx = idx+1;
     } else {
-      idx = 2; // AG - IMPORTANT!!! We must start from 2 and
+      idx = VARIABLE_UNINITIALIZED; // AG - IMPORTANT!!! We must start from 2 and
       // not from 1, because this is an assignment,
       // so the SSA index must be fresh.
     }
@@ -306,7 +306,7 @@ public class CtoFormulaConverter {
     if (idx > 0) {
       idx = idx+1;
     } else {
-      idx = 2; // AG - IMPORTANT!!! We must start from 2 and
+      idx = VARIABLE_UNINITIALIZED; // AG - IMPORTANT!!! We must start from 2 and
       // not from 1, because this is an assignment,
       // so the SSA index must be fresh. If we use 1
       // here, we will have troubles later when
@@ -1699,7 +1699,7 @@ public class CtoFormulaConverter {
       int idx = ssa.getIndex(mallocVariableName);
 
       if (idx == VARIABLE_UNSET) {
-        idx = 2;
+        idx = VARIABLE_UNINITIALIZED;
       }
 
       ssa.setIndex(mallocVariableName, idx + 1);
