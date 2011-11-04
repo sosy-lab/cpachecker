@@ -171,6 +171,12 @@ public class CtoFormulaConverter {
   public static final String NONDET_VARIABLE = "__nondet__";
   public static final String NONDET_FLAG_VARIABLE = NONDET_VARIABLE + "flag__";
 
+  /** The prefix used for variables representing memory locations. */
+  private static final String MEMORY_ADDRESS_VARIABLE_PREFIX = "&";
+
+  /** The variable name that's used to store the malloc counter in the SSAMap. */
+  private static final String MALLOC_COUNTER_VARIABLE_NAME = "#malloc";
+
   private final Set<String> printedWarnings = new HashSet<String>();
 
   private final Map<String, Formula> stringLitToFormula = new HashMap<String, Formula>();
@@ -368,7 +374,7 @@ public class CtoFormulaConverter {
   }
 
   private String makeMemoryLocationVariableName(String var) {
-    return "&" + var;
+    return MEMORY_ADDRESS_VARIABLE_PREFIX + var;
   }
 
   // name has to be scoped already
@@ -747,7 +753,7 @@ public class CtoFormulaConverter {
     List<String> memoryLocations = new LinkedList<String>();
     Set<String> ssaVariables = ssa.build().allVariables();
 
-    Pattern p = Pattern.compile("&.*");
+    Pattern p = Pattern.compile("^" + MEMORY_ADDRESS_VARIABLE_PREFIX + ".*");
 
     for (String variable : ssaVariables) {
       if (p.matcher(variable).matches()) {
@@ -1694,17 +1700,15 @@ public class CtoFormulaConverter {
 
     private String makeFreshMallocVariableName() {
       // TODO: find a better way (without using the SSA map)
-      final String mallocVariableName = "#malloc";
-
-      int idx = ssa.getIndex(mallocVariableName);
+      int idx = ssa.getIndex(MALLOC_COUNTER_VARIABLE_NAME);
 
       if (idx == VARIABLE_UNSET) {
         idx = VARIABLE_UNINITIALIZED;
       }
 
-      ssa.setIndex(mallocVariableName, idx + 1);
+      ssa.setIndex(MALLOC_COUNTER_VARIABLE_NAME, idx + 1);
 
-      return "&#" + idx;
+      return MEMORY_ADDRESS_VARIABLE_PREFIX + "#" + idx;
     }
 
     /**
@@ -1738,9 +1742,9 @@ public class CtoFormulaConverter {
     }
 
     private String getVariableNameFromMemoryAddress(String memoryAddress) {
-      assert(memoryAddress.charAt(0) == '&');
+      assert(memoryAddress.startsWith(MEMORY_ADDRESS_VARIABLE_PREFIX));
 
-      return memoryAddress.substring(1);
+      return memoryAddress.substring(MEMORY_ADDRESS_VARIABLE_PREFIX.length());
     }
 
     private boolean isPointerVariable(String variable) {
