@@ -72,10 +72,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
-import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
 
 
 @Options(prefix="cpa.relyguarantee")
@@ -1083,6 +1081,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       // prepare formula list
       stats.interpolationTimer.start();
       itpProver.init();
+      interpolationIds.clear();
       for (Formula fr : pair.getFirst()){
         T id = itpProver.addFormula(fr);
         interpolationIds.add(id);
@@ -1110,11 +1109,17 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         CFANode loc = AbstractElements.extractLocation(artElement);
         int idx = pair.getSecond();
 
+        //System.out.println("DEBUG: "+pair.getSecond());
+        /*for (Formula fr: pair.getFirst()){
+          System.out.println(fr);
+        }*/
+        //System.out.println("DEBUG2:"+interpolationIds.subList(0, idx+1));
         Formula itp = itpProver.getInterpolant(interpolationIds.subList(0, idx+1));
         // non-modular predicates
-        // Set<AbstractionPredicate> predicates = getDagPredicates(itp, node.getTid(), traceMap);
+        Set<AbstractionPredicate> preds = getDagPredicates(itp, node);
+        System.out.println("\t DEBUG: "+itp+"\t->\t"+preds);
         // try-to-be modular predicates
-        Set<AbstractionPredicate> preds = getDagsPredicates(itp, node);
+        //Set<AbstractionPredicate> preds = getDagPredicatesSkipNonModular(itp, node);
 
         itpProver.reset();
         stats.interpolationTimer.stop();
@@ -1984,14 +1989,18 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
 
   /**
-   * Divides the interpolant into atom formulas and renames them according to traceMap
+   * Extract interpolants from a formula. The interpolants may be non-modular.
    * @param itp
-   * @param traceMap
+   * @param node
    * @return
    */
-  private Set<AbstractionPredicate> getDagPredicates(Formula itp, Integer tid,  Multimap<Integer, Integer> traceMap) {
+  private Set<AbstractionPredicate> getDagPredicates(Formula itp, InterpolationDagNode node) {
 
     Set <AbstractionPredicate> result = new HashSet<AbstractionPredicate>();
+
+    int tid = node.getTid();
+    int otherTid = tid == 0 ? 1 : 0;
+
     // TODO maybe handling of non-atomic predicates
     if (!itp.isTrue()){
       if (itp.isFalse()){
@@ -2000,13 +2009,13 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         result.add(atomPredicate);
       }
       else {
-        Collection<Formula> atoms = null;
-        atoms = fmgr.extractAtoms(itp, splitItpAtoms, false);
+        List<Formula> atoms = fmgr.extractNonModularAtoms(itp, node.getTid());
 
-        for (Formula fr : atoms){
-          // TODO fix
-          //   Formula atom = fmgr.extractNonmodularFormula(fr, tid, traceMap);
-          AbstractionPredicate atomPredicate = amgr.makePredicate(fr);
+        for (Formula atom : atoms){
+          // testing
+          Set<Integer> primes = fmgr.howManyPrimes(atom);
+
+          AbstractionPredicate atomPredicate = amgr.makePredicate(atom);
           result.add(atomPredicate);
         }
       }
@@ -2014,9 +2023,13 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     return result;
   }
 
-
-  // TODO very prototyping
-  private Set<AbstractionPredicate> getDagsPredicates(Formula itp, InterpolationDagNode node) {
+  /**
+   * Extract interpolants from a formula. Purly non-modular predicates are skipped.
+   * @param itp
+   * @param node
+   * @return
+   */
+  private Set<AbstractionPredicate> getDagPredicatesSkipNonModular(Formula itp, InterpolationDagNode node) {
 
     Set <AbstractionPredicate> result = new HashSet<AbstractionPredicate>();
 
@@ -2037,6 +2050,19 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
           if (atom.toString().contains("^"+otherTid)){
             System.out.print("");
           }
+          // testing
+          Set<Integer> primes = fmgr.howManyPrimes(atom);
+
+          //assert !primes.contains(tid) || !primes.contains(otherTid);
+
+          if (primes.contains(otherTid) && !primes.contains(tid)){
+            if (debug){
+              System.out.println("\t skipped interpolant "+atom);
+            }
+            continue;
+          } else if (primes.contains(otherTid) && primes.contains(tid)){
+            System.out.print("");
+          }
 
           AbstractionPredicate atomPredicate = amgr.makePredicate(atom);
           result.add(atomPredicate);
@@ -2047,7 +2073,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
   }
 
 
-  private ListMultimap<ARTElement, AbstractionPredicate> getModularDagPredicates(Formula itp, InterpolationDagNode node) {
+  /*private ListMultimap<ARTElement, AbstractionPredicate> getModularDagPredicates(Formula itp, InterpolationDagNode node) {
 
     ListMultimap<ARTElement, AbstractionPredicate> predMap = LinkedListMultimap.create();
     // we assume that false is already in global predicates
@@ -2094,7 +2120,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     }
 
     return predMap;
-  }
+  }*/
 
 
   /**

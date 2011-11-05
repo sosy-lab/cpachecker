@@ -267,8 +267,8 @@ public interface FormulaManager {
 
     /**
      * Extract non-modular atom predicates from an interpolant in thread tid.
-     * Atoms remain primed. Atoms that have primed number other than tid are
-     * non-modular and their are kept with indexes. Modular atoms are uninstantiated.
+     * Atoms remain primed. Atoms that have primed number other than tid (non-modular atoms)
+     * are kept with indexes. Modular atoms are uninstantiated.
      * @param itp interpolant
      * @param tid thread number
      * @return collection of predicates

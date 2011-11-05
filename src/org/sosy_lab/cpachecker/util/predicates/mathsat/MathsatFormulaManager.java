@@ -866,7 +866,17 @@ public class MathsatFormulaManager implements FormulaManager  {
       final long t = getTerm(tt);
 
       if (msat_term_is_variable(t) != 0) {
-        Pair<String, Integer> data = PathFormula.getPrimeData(msat_term_repr(t));
+        String s = msat_term_repr(t);
+        String[] split = s.split(INDEX_SEPARATOR);
+
+        Pair<String, Integer> data = null;
+        if (split.length == 2){
+          // formula was instantiated
+          data = PathFormula.getPrimeData(split[0]);
+        } else {
+          // uninstantiated formula
+          data = PathFormula.getPrimeData(s);
+        }
         cache.put(tt, data.getSecond());
         toProcess.pop();
       }
