@@ -3,6 +3,9 @@ Main Authors/Maintainers:
   Stefan Löwe (since 2010)
   Philipp Wendler (since 2009)
 
+Former Maintainers:
+  Erkan Keremoglu (2008 - 2011)
+
 Contributors:
   Gregor Endler (2009 - 2010)
   Karlheinz Friedberger (2011)
@@ -10,7 +13,6 @@ Contributors:
   Peter Häring (2011)
   Andreas Holzer (2008 - 2011)
   Michael Käufl (2011)
-  Erkan Keremoglu (2008 - 2011)
   Steven Kieffer (2011)
   Alexander von Rhein (2010)
   Andreas Stahlbauer (2011)
