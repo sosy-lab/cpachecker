@@ -67,7 +67,7 @@ public abstract class InvariantProofGenAlgorithm implements ProofGenAlgorithm {
   public boolean writeProof(ARTElement pFirst) {
     // check if file instantiated properly
     if (file == null) {
-      logger.log(Level.SEVERE, "No file specified to write ART.");
+      logger.log(Level.SEVERE, "No file specified to write proof.");
       return false;
     }
     // collect necessary information from ART

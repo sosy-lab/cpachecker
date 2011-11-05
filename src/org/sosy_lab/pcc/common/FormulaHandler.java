@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.pcc.common;
 
+import java.util.Hashtable;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -56,6 +59,12 @@ public class FormulaHandler {
     pfm = new PathFormulaManagerImpl(fm, config, logger);
   }
 
+  public Formula createFormula(String pString) {
+    if (pString == null || pString.length() == 0) { throw new IllegalArgumentException(
+        "It is not a valid formula."); }
+    return fm.parse(pString);
+  }
+
   public boolean isFalse(String pFormula) {
     if (pFormula == null) { return false; }
     try {
@@ -85,13 +94,58 @@ public class FormulaHandler {
     }
   }
 
+  public Formula buildEdgeInvariant(Formula pLeft, Formula pOperation,
+      Formula pRight) {
+    if (pLeft == null || pRight == null) { return null; }
+    try {
+      pRight = fm.makeNot(pRight);
+      if (pOperation != null) {
+        pLeft = fm.makeAnd(pLeft, pOperation);
+      }
+      return fm.makeAnd(pLeft, pRight);
+    } catch (IllegalArgumentException e) {
+      return null;
+    }
+  }
+
   public Formula buildConjunction(Formula[] pList) {
     if (pList == null || pList.length == 0) { return null; }
     Formula result = pList[0];
-    for (int i = 1; i < pList.length; i++) {
-      fm.makeAnd(result, pList[i]);
+    try {
+      for (int i = 1; i < pList.length; i++) {
+        if (result == null) {
+          result = pList[i];
+        } else {
+          if (pList[i] != null) {
+            result = fm.makeAnd(result, pList[i]);
+          }
+        }
+      }
+      if (result == null) { return fm.makeTrue(); }
+      return result;
+    } catch (IllegalArgumentException e) {
+      return null;
     }
-    return result;
+  }
+
+  public Formula buildDisjunction(Formula[] pList) {
+    if (pList == null || pList.length == 0) { return null; }
+    Formula result = pList[0];
+    try {
+      for (int i = 1; i < pList.length; i++) {
+        if (result == null) {
+          result = pList[i];
+        } else {
+          if (pList[i] != null) {
+            result = fm.makeOr(result, pList[i]);
+          }
+        }
+      }
+      if (result == null) { return fm.makeTrue(); }
+      return result;
+    } catch (IllegalArgumentException e) {
+      return null;
+    }
   }
 
   public String getEdgeOperationWithSSA(PathFormula pPredecessor, CFAEdge pEdge) {
@@ -103,6 +157,8 @@ public class FormulaHandler {
       logger.log(Level.SEVERE,
           "Cannot create formula representing edge operation.",
           e.getStackTrace());
+      return null;
+    } catch (IllegalArgumentException e) {
       return null;
     }
     // check if same object due to blank edge or no operation on edge ->(no abstraction element)
@@ -126,6 +182,8 @@ public class FormulaHandler {
       logger.log(Level.SEVERE,
           "Cannot create formula representing edge operation.",
           e.getStackTrace());
+      return null;
+    } catch (IllegalArgumentException e) {
       return null;
     }
     // check if same object due to blank edge (no abstraction element)
@@ -157,12 +215,44 @@ public class FormulaHandler {
     }
   }
 
-  public Formula createFormula(String pString) {
-    if (pString == null || pString.length() == 0) { throw new IllegalArgumentException(
-        "It is not a valid formula."); }
-    return fm.parse(pString);
-  }
+  // TODO naming
+  public boolean giveGoodName(String pAbstraction, String pOperation,
+      boolean pAssume) {
+    Hashtable<String, Integer> highestIndices =
+        new Hashtable<String, Integer>();
+    //adapt abstraction such that pattern also matches at beginning and end of string
+    pAbstraction = " " + pAbstraction + " ";
+    //get highest index for every SSA variable in pAbstraction
+    Pattern patVarSSAAbstraction =
+        Pattern
+            .compile("[\\W&&[^@]]([_A-Za-z](\\w)*:)?([_A-Za-z](\\w)*@(\\d)+)[\\W&&[^@]]");
+    Matcher match = patVarSSAAbstraction.matcher(pAbstraction);
+    String lastMatch, variable;
+    Integer highestIndex;
+    int index;
+    while (match.find()) {
+      lastMatch = match.group();
+      index = lastMatch.indexOf("@");
+      // extract variable name
+      variable = lastMatch.substring(1, index);
+      // extract SSA index
+      try {
+        index =
+            Integer.parseInt(lastMatch.substring(index + 1,
+                lastMatch.length() - 1));
+      } catch (NumberFormatException e) {
+        continue;
+      }
+      // look up if SSA index greater than all indices found for this variable
+      highestIndex = highestIndices.get(variable);
+      if (highestIndex == null || highestIndex.intValue() < index) {
+        highestIndices.put(variable, index);
+      }
+    }
 
+    //TODO
+    return true;
+  }
   /**
    *
    * @param pFormula -

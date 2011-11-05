@@ -30,7 +30,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
@@ -57,7 +56,6 @@ public class SBE_InvariantProofGenAlgorithm extends InvariantProofGenAlgorithm {
     CFANode corresponding = pSource.retrieveLocationElement().getLocationNode();
     if (!predicate.isAbstractionElement()
         && !(corresponding instanceof CFAFunctionDefinitionNode)
-        && !(corresponding instanceof CFAFunctionExitNode)
         && corresponding.getEnteringSummaryEdge() == null) { return true; }
     CFAEdge edge = pSource.getEdgeToChild(pTarget);
     // get PredicateAbstractElement
@@ -68,7 +66,6 @@ public class SBE_InvariantProofGenAlgorithm extends InvariantProofGenAlgorithm {
     // check if no abstraction needed
     if (!predicate.isAbstractionElement()
         && !(corresponding instanceof CFAFunctionDefinitionNode)
-        && !(corresponding instanceof CFAFunctionExitNode)
         && corresponding.getEnteringSummaryEdge() == null) {
       /* get next successor nodes which are abstraction elements
        * and build the respective operations*/
@@ -85,8 +82,7 @@ public class SBE_InvariantProofGenAlgorithm extends InvariantProofGenAlgorithm {
                   PredicateAbstractElement.class);
           corresponding = child.retrieveLocationElement().getLocationNode();
           if (!predicate.isAbstractionElement()
-              && !(corresponding instanceof CFAFunctionExitNode)
-              && !(corresponding instanceof CFAFunctionExitNode)
+              && !(corresponding instanceof CFAFunctionDefinitionNode)
               && corresponding.getEnteringSummaryEdge() == null) {
             toVisit.add(child);
           } else {
@@ -135,7 +131,6 @@ public class SBE_InvariantProofGenAlgorithm extends InvariantProofGenAlgorithm {
     //check if it is an abstraction element, otherwise nothing to do
     if (predicate.isAbstractionElement()
         || (corresponding instanceof CFAFunctionDefinitionNode)
-        || (corresponding instanceof CFAFunctionExitNode)
         || corresponding.getEnteringSummaryEdge() != null) {
       StringBuilder builder =
           cfaNodeInvariants.get(corresponding.getNodeNumber());

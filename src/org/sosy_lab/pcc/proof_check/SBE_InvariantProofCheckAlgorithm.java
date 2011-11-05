@@ -34,8 +34,8 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -47,8 +47,13 @@ import org.sosy_lab.pcc.common.Separators;
 public class SBE_InvariantProofCheckAlgorithm extends
     InvariantProofCheckAlgorithm {
 
+  private final String                                     stackName         =
+                                                                                 "_STACK";
+  private final String                                     goalDes           =
+                                                                                 "_GOAL";
+
   private boolean                                          atLoop;
-  private boolean                                          atFunction;
+  //private boolean                                          atFunction;
   private FormulaHandler                                   handler;
   private Hashtable<Integer, Vector<Pair<Formula, int[]>>> nodes             =
                                                                                  new Hashtable<Integer, Vector<Pair<Formula, int[]>>>();
@@ -57,11 +62,14 @@ public class SBE_InvariantProofCheckAlgorithm extends
   private Hashtable<Integer, CFANode>                      reachableCFANodes =
                                                                                  new Hashtable<Integer, CFANode>();
 
+  private Hashtable<Integer, CFANode>                      allCFANodes       =
+                                                                                 new Hashtable<Integer, CFANode>();
+
   public SBE_InvariantProofCheckAlgorithm(Configuration pConfig,
       LogManager pLogger, boolean pAlwaysAtLoops, boolean pAlwaysAtFunctions)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
-    atFunction = pAlwaysAtFunctions;
+    //atFunction = pAlwaysAtFunctions;
     atLoop = pAlwaysAtLoops;
     handler = new FormulaHandler(pConfig, pLogger);
   }
@@ -80,7 +88,8 @@ public class SBE_InvariantProofCheckAlgorithm extends
         sourceEdge = pScan.nextInt();
         target = pScan.nextInt();
         nodeS = reachableCFANodes.get(source);
-        nodeSourceOpEdge = reachableCFANodes.get(sourceEdge);
+
+        nodeSourceOpEdge = allCFANodes.get(sourceEdge);
         nodeT = reachableCFANodes.get(target);
         if (nodeS == null || nodeSourceOpEdge == null || nodeT == null) { return PCCCheckResult.UnknownCFAEdge; }
         // get all operations with respective SSA indices
@@ -116,18 +125,18 @@ public class SBE_InvariantProofCheckAlgorithm extends
   protected PCCCheckResult readNodes(Scanner pScan) {
     // set up look up for CFA nodes
     Vector<CFANode> cfaNodes = new Vector<CFANode>();
-    Hashtable<Integer, CFANode> visited = new Hashtable<Integer, CFANode>();
+    allCFANodes.clear();
     CFANode current, child;
     int nextIndex = 0;
     cfaNodes.add(cfaForProof.getMainFunction());
     while (nextIndex >= cfaNodes.size()) {
       current = cfaNodes.get(nextIndex);
       nextIndex++;
-      visited.put(current.getNodeNumber(), current);
+      allCFANodes.put(current.getNodeNumber(), current);
       // add children
       for (int i = 0; i < current.getNumLeavingEdges(); i++) {
         child = current.getLeavingEdge(i).getSuccessor();
-        if (!visited.containsKey(child.getNodeNumber())) {
+        if (!allCFANodes.containsKey(child.getNodeNumber())) {
           cfaNodes.add(child);
         }
       }
@@ -148,8 +157,8 @@ public class SBE_InvariantProofCheckAlgorithm extends
         }
         // read node
         readNode = Integer.parseInt(next);
-        if (visited.containsKey(readNode)) {
-          current = visited.get(readNode);
+        if (allCFANodes.containsKey(readNode)) {
+          current = allCFANodes.get(readNode);
           // check if node is abstraction node
           if (isNonAbstractionNode(current)) { return PCCCheckResult.UnknownCFANode; }
           reachableCFANodes.put(readNode, current);
@@ -184,6 +193,9 @@ public class SBE_InvariantProofCheckAlgorithm extends
           }
           // get stack
           stack = new int[subStr.length - 1];
+          if (isRoot) {
+            if (stack.length != 0) { return PCCCheckResult.InvalidARTRootSpecification; }
+          }
           try {
             for (int j = 0; i < stack.length; j++) {
               stack[j] = Integer.parseInt(subStr[j + 1]);
@@ -208,16 +220,15 @@ public class SBE_InvariantProofCheckAlgorithm extends
       return PCCCheckResult.UnknownCFANode;
     }
     // checking nodes
-    return structuralCheckCoverageOfCFANodes(visited);
+    return structuralCheckCoverageOfCFANodes();
   }
 
-  private PCCCheckResult structuralCheckCoverageOfCFANodes(
-      Hashtable<Integer, CFANode> pAllNodes) {
+  private PCCCheckResult structuralCheckCoverageOfCFANodes() {
     //check if same size
-    if (pAllNodes.size() == reachableCFANodes.size()) { return PCCCheckResult.Success; }
+    if (allCFANodes.size() == reachableCFANodes.size()) { return PCCCheckResult.Success; }
     // get uncovered nodes
     HashSet<Integer> uncovered = new HashSet<Integer>();
-    for (Integer nodeID : pAllNodes.keySet()) {
+    for (Integer nodeID : allCFANodes.keySet()) {
       if (!reachableCFANodes.containsKey(nodeID)) {
         uncovered.add(nodeID);
       }
@@ -225,7 +236,7 @@ public class SBE_InvariantProofCheckAlgorithm extends
     // build strongly connected components for uncovered nodes
     Vector<StronglyConnectedComponent> comps =
         StronglyConnectedComponent.extractStronglyConnectedComponents(
-            uncovered, pAllNodes, reachableCFANodes);
+            uncovered, allCFANodes, reachableCFANodes);
     // check if all external edges lead to only false abstraction or all nodes of component are non-abstraction nodes
     boolean result = true;
     for (int i = 0; result && i < comps.size(); i++) {
@@ -236,7 +247,7 @@ public class SBE_InvariantProofCheckAlgorithm extends
       //check if only non-abstraction nodes
       if (!result) {
         for (Integer id : comps.get(i).nodes) {
-          result = result && isNonAbstractionNode(pAllNodes.get(id));
+          result = result && isNonAbstractionNode(allCFANodes.get(id));
         }
       }
     }
@@ -255,7 +266,6 @@ public class SBE_InvariantProofCheckAlgorithm extends
   private boolean isNonAbstractionNode(CFANode pNode) {
     // check if kind of node requires abstraction
     if ((pNode instanceof CFAFunctionDefinitionNode)
-        || (pNode instanceof CFAFunctionExitNode)
         || pNode.getEnteringSummaryEdge() != null
         || (atLoop && pNode.isLoopStart())) { return false; }
     //check if all entering edges have empty operation
@@ -316,7 +326,6 @@ public class SBE_InvariantProofCheckAlgorithm extends
   private boolean isEndpoint(CFAEdge pEdge) {
     CFANode succ = pEdge.getSuccessor();
     if (succ instanceof CFAFunctionDefinitionNode
-        || succ instanceof CFAFunctionExitNode
         || succ.getEnteringSummaryEdge() != null
         || (atLoop && succ.isLoopStart())) { return true; }
     if (handler.getEdgeOperation(pEdge).length() == 0) { return false; }
@@ -402,43 +411,163 @@ public class SBE_InvariantProofCheckAlgorithm extends
   @Override
   protected PCCCheckResult checkProof() {
     // iterate over all edges
-    int source, target;
+    int source, sourceEdge, target;
     Vector<Pair<Formula, int[]>> invariantS, invariantT;
-    Formula edgeFormula;
+    Formula edgeFormula, targetFormula, proof, left, completeOperation;
+    Formula[] edgeFormulae;
+    CFAEdge cfaEdge;
+    boolean successfulEdgeProof, successfulAbstraction;
     for (String edge : edges.keySet()) {
-      source = Integer.parseInt(edge.substring(edge.indexOf("#")));
+      source =
+          Integer.parseInt(edge.substring(edge
+              .indexOf(Separators.commonSeparator)));
       target =
-          Integer
-              .parseInt(edge.substring(edge.lastIndexOf("#"), edge.length()));
+          Integer.parseInt(edge.substring(
+              edge.lastIndexOf(Separators.commonSeparator), edge.length()));
+      sourceEdge =
+          Integer.parseInt(edge.substring(
+              (edge.indexOf(Separators.commonSeparator)) + 1,
+              edge.lastIndexOf(Separators.commonSeparator)));
+      cfaEdge =
+          allCFANodes.get(sourceEdge).getEdgeTo(reachableCFANodes.get(target));
       invariantS = nodes.get(source);
       invariantT = nodes.get(target);
-      // build edge formula
-      edgeFormula = handler.buildConjunction(edges.get(edge));
+      edgeFormulae = edges.get(edge);
+      // iterate over all source abstractions
+      for (int i = 0; i < invariantS.size(); i++) {
+        // iterate over all operations
+        successfulAbstraction = false;
+        for (int k = 0; k < edgeFormulae.length; k++) {
+          // TODO check if operation fits to source abstraction (true->
+          successfulEdgeProof = false;
+          // iterate over all target abstraction at least one item
+          for (int j = 0; !successfulEdgeProof && j < invariantT.size(); j++) {
 
-      // iterate over all source predicates
-
-      // add stack operation to edge formula
-
-      if (edgeFormula == null) {
-        // TODO return PCCCheckResult.
+            // build left formula
+            left =
+                addStackInvariant(invariantS.get(i).getFirst(),
+                    invariantS.get(i).getSecond(), true, source);
+            // add stack operation to edge formula
+            if (cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+              completeOperation =
+                  addStackOperation(edgeFormula, invariantS.get(i).getSecond(),
+                      true,
+                      cfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge,
+                      cfaEdge.getSuccessor().getLeavingSummaryEdge()
+                          .getSuccessor().getNodeNumber());
+            } else {
+              completeOperation =
+                  addStackOperation(edgeFormula, invariantS.get(i).getSecond(),
+                      false,
+                      cfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge,
+                      -1);
+            }
+            if (left == null || completeOperation == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
+            // create proof formula
+            proof =
+                handler.buildEdgeInvariant(left, completeOperation,
+                    targetFormula);
+            if (proof == null || !proof.isFalse()) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
+          }
+          if (!successfulEdgeProof) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
+        }
       }
-      //TODO
     }
-    // TODO Auto-generated method stub
-    return null;
+    return PCCCheckResult.Success;
   }
 
-  private Formula addStackOperation(Formula pOperationFormula, int[] pStack,
-      boolean pFunctionCall, boolean pFunctionReturn) {
+  private Formula buildRightFormula(Vector<Pair<Formula, int[]>> pInvariantT,
+      int pTargetNode) {
+    Formula[] subFormulae = new Formula[pInvariantT.size()];
+    Pair<Formula, int[]> current;
+    for (int i = 0; i < pInvariantT.size(); i++) {
+      current = pInvariantT.get(i);
+      subFormulae[i] =
+          addStackInvariant(current.getFirst(), current.getSecond(), false,
+              pTargetNode);
+      if (subFormulae[i] == null) { return null; }
+    }
+    return handler.buildDisjunction(subFormulae);
+  }
+
+  private Formula addStackOperation(Formula pOperations, int[] pStackBefore,
+      boolean pFunctionCall, boolean pFunctionReturn, int pReturn) {
+    Formula[] subFormulae;
+    int elementsTakenFromStack;
     if (pFunctionCall && pFunctionReturn) { return null; }
-    // TODO
-    return null;
+    try {
+      if (pFunctionCall) {
+        subFormulae = new Formula[pStackBefore.length + 2];
+        elementsTakenFromStack = pStackBefore.length;
+        // add new stack element
+        subFormulae[subFormulae.length - 1] =
+            handler.createFormula(stackName + (pStackBefore.length)
+                + Separators.SSAIndexSeparator + 2 + " = " + pReturn);
+        if (subFormulae[subFormulae.length - 1] == null) { return null; }
+      } else {
+        subFormulae = new Formula[pStackBefore.length + 1];
+        if (pFunctionReturn) {
+          elementsTakenFromStack = pStackBefore.length - 1;
+          // add return statement
+          subFormulae[subFormulae.length - 1] =
+              handler.createFormula(goalDes + " = "
+                  + pStackBefore[pStackBefore.length - 1]);
+          if (subFormulae[subFormulae.length - 1] == null) { return null; }
+        } else {
+          elementsTakenFromStack = pStackBefore.length;
+        }
+      }
+      for (int i = 1; i <= elementsTakenFromStack; i++) {
+        subFormulae[i] =
+            handler.createFormula(stackName + (i - 1)
+                + Separators.SSAIndexSeparator + 1 + " = " + stackName
+                + (i - 1) + Separators.SSAIndexSeparator + 2);
+        if (subFormulae[i] == null) { return null; }
+      }
+    } catch (IllegalArgumentException e) {
+      return null;
+    }
+    subFormulae[0] = pOperations;
+    return handler.buildConjunction(subFormulae);
   }
 
   private Formula addStackInvariant(Formula pInvariant, int[] pStack,
-      boolean pLeft) {
-    // TODO
-    return null;
+      boolean pLeft, int pNode) {
+    if (pInvariant == null || pStack == null) { return null; }
+    boolean isReturn =
+        reachableCFANodes.get(pNode).getEnteringSummaryEdge() != null;
+    Formula[] singleInvariant;
+    if (isReturn) {
+      singleInvariant = new Formula[pStack.length + 2];
+    } else {
+      singleInvariant = new Formula[pStack.length + 1];
+    }
+
+    singleInvariant[0] = pInvariant;
+    try {
+      for (int j = 0; j < pStack.length; j++) {
+        if (pLeft) {
+          singleInvariant[j + 1] =
+              handler.createFormula(stackName + j
+                  + Separators.SSAIndexSeparator + 1 + " = " + pStack[j]);
+        } else {
+          singleInvariant[j + 1] =
+              handler.createFormula(stackName + j
+                  + Separators.SSAIndexSeparator + 2 + " = " + pStack[j]);
+        }
+
+        if (singleInvariant[j + 1] == null) { return null; }
+      }
+      if (isReturn) {
+        singleInvariant[singleInvariant.length - 1] =
+            handler.createFormula(goalDes + " = "
+                + reachableCFANodes.get(pNode).getNodeNumber());
+        if (singleInvariant[singleInvariant.length - 1] == null) { return null; }
+      }
+    } catch (IllegalArgumentException e1) {
+      return null;
+    }
+    return handler.buildConjunction(singleInvariant);
   }
 
   private static class StronglyConnectedComponent {
