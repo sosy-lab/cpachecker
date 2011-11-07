@@ -41,6 +41,7 @@ import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
+import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
@@ -213,6 +214,11 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
       if(pRepeatedCounterexample) {
         //block formulas are the same as last time; check if abstractions also agree
         pRepeatedCounterexample = getRegionsForPath(pPath).equals(lastAbstractions);
+
+        System.out.println("Repeated counterexample:");
+        System.out.println(transform(pPath, Pair.getProjectionToSecond()));
+        System.out.println("Abstractions agree: " + pRepeatedCounterexample);
+
         if(pRepeatedCounterexample && !refinedLastRelevantPredicatesComputer && relevantPredicatesComputer != null) {
           //even abstractions agree; try refining relevant predicates reducer
           refineRelevantPredicatesComputer(pPath, pReached);
@@ -227,22 +233,32 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
     }
 
     private void refineRelevantPredicatesComputer(List<Pair<ARTElement, CFANode>> pPath, ARTReachedSet pReached) {
-      // get previous precision
       UnmodifiableReachedSet reached = pReached.asReachedSet();
       Precision oldPrecision = reached.getPrecision(reached.getLastElement());
       PredicatePrecision oldPredicatePrecision = Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
 
+      BlockPartitioning partitioning = predicateCpa.getPartitioning();
+      Deque<Block> openBlocks = new ArrayDeque<Block>();
+      openBlocks.push(partitioning.getMainBlock());
       for (Pair<ARTElement, CFANode> pathElement : pPath) {
         CFANode currentNode = pathElement.getSecond();
-        if(predicateCpa.getPartitioning().isCallNode(currentNode)) {
-          Block block = predicateCpa.getPartitioning().getBlockForCallNode(currentNode);
-          Collection<AbstractionPredicate> localPreds = oldPredicatePrecision.getPredicates(currentNode);
+        if(partitioning.isCallNode(currentNode)) {
+          openBlocks.push(partitioning.getBlockForCallNode(currentNode));
+        }
 
+        Collection<AbstractionPredicate> localPreds = oldPredicatePrecision.getPredicates(currentNode);
+        for(Block block : openBlocks) {
           for(AbstractionPredicate pred : localPreds) {
             relevantPredicatesComputer.considerPredicateAsRelevant(block, pred);
           }
         }
+
+        while(openBlocks.peek().isReturnNode(currentNode)) {
+          openBlocks.pop();
+        }
       }
+
+      ((ABMPredicateReducer)predicateCpa.getReducer()).clearCaches();
     }
 
     @Override
