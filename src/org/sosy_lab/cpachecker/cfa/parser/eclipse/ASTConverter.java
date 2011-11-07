@@ -29,6 +29,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -41,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.ast.DummyType;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeMemberDeclaration;
@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
@@ -79,13 +78,15 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeId;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IComplexType;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.ITypedef;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression.TypeIdOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 
 @SuppressWarnings("deprecation") // several methods are deprecated in CDT 7 but still working
 class ASTConverter {
@@ -95,6 +96,7 @@ class ASTConverter {
   private final boolean ignoreCasts;
 
   private Scope scope;
+  private LinkedList<IASTNode> sideAssigment = new LinkedList<IASTNode>();
 
   public ASTConverter(Scope pScope, boolean pIgnoreCasts, LogManager pLogger) {
     scope = pScope;
@@ -108,15 +110,57 @@ class ASTConverter {
     }
   }
 
-  public IASTExpression convertExpressionWithoutSideEffects(org.eclipse.cdt.core.dom.ast.IASTExpression e) {
+  public boolean existsSideAssignment(){
+    return !sideAssigment.isEmpty();
+  }
+
+  public IASTNode getSideAssignment() {
+    return sideAssigment.removeFirst();
+  }
+
+  public IASTExpression convertExpressionWithoutSideEffects(
+      org.eclipse.cdt.core.dom.ast.IASTExpression e) {
+
     IASTNode node = convertExpressionWithSideEffects(e);
     if (node == null || node instanceof IASTExpression) {
-      return (IASTExpression)node;
+
+      return (IASTExpression) node;
+
+    } else if (node instanceof IASTFunctionCallExpression) {
+      String name = "__CPAchecker_TMP_";
+      int i = 0;
+      while(scope.variableNameInUse(name+i, name+i)){
+        i++;
+      }
+      name += i;
+
+      IASTDeclaration decl = new IASTDeclaration(((IASTFunctionCallExpression) node).getExpressionType().toASTString() + " " + name,
+                                                                      node.getFileLocation(),
+                                                                      false,
+                                                                      StorageClass.AUTO,
+                                                                      ((IASTFunctionCallExpression) node).getExpressionType(),
+                                                                      name,
+                                                                      null);
+
+      sideAssigment.add(decl);
+      IASTIdExpression tmp = new IASTIdExpression(name,
+                                                  convert(e.getFileLocation()),
+                                                  convert(e.getExpressionType()),
+                                                  name,
+                                                  decl);
+
+      scope.registerDeclaration(tmp.getDeclaration());
+      sideAssigment.add(new IASTFunctionCallAssignmentStatement(name + " = " + e.getRawSignature(),
+              convert(e.getFileLocation()), tmp, (IASTFunctionCallExpression) node));
+
+      logger.log(Level.INFO, "Created side-effect assignment", sideAssigment.getLast().toASTString());
+      return tmp;
 
     } else {
-      throw new CFAGenerationRuntimeException("Expression is not free of side-effects", e);
+      throw new AssertionError("unknown expression " + node);
     }
   }
+
 
   protected IASTNode convertExpressionWithSideEffects(org.eclipse.cdt.core.dom.ast.IASTExpression e) {
     assert !(e instanceof IASTExpression);

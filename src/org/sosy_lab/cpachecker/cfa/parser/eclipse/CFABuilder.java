@@ -477,9 +477,30 @@ class CFABuilder extends ASTVisitor
 
     CFANode nextNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
     currentCFANodes.add(nextNode);
+
+    org.sosy_lab.cpachecker.cfa.ast.IASTStatement statement = astCreator.convert(exprStatement);
+
+    while(astCreator.existsSideAssignment()){
+      IASTNode test = astCreator.getSideAssignment();
+      StatementEdge previous;
+      DeclarationEdge previousdec;
+      if(test instanceof IASTFunctionCallAssignmentStatement) {
+          previous = new StatementEdge((IASTFunctionCallAssignmentStatement)test, fileloc.getStartingLineNumber(), prevNode, nextNode);
+          addToCFA(previous);
+      } else {
+          previousdec = new DeclarationEdge((org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration) test, fileloc.getStartingLineNumber(), prevNode, nextNode);
+          addToCFA(previousdec);
+      }
+      prevNode = nextNode;
+
+      nextNode = new CFANode(fileloc.getStartingLineNumber(), currentCFA.getFunctionName());
+      currentCFANodes.add(nextNode);
+      logger.log(Level.INFO, "Created new node", nextNode);
+    }
+
     locStack.push(nextNode);
 
-    StatementEdge edge = new StatementEdge(astCreator.convert(exprStatement), fileloc.getStartingLineNumber(), prevNode, nextNode);
+    StatementEdge edge = new StatementEdge(statement, fileloc.getStartingLineNumber(), prevNode, nextNode);
     addToCFA(edge);
   }
 
