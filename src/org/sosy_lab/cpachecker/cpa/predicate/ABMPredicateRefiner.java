@@ -215,10 +215,6 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
         //block formulas are the same as last time; check if abstractions also agree
         pRepeatedCounterexample = getRegionsForPath(pPath).equals(lastAbstractions);
 
-        System.out.println("Repeated counterexample:");
-        System.out.println(transform(pPath, Pair.getProjectionToSecond()));
-        System.out.println("Abstractions agree: " + pRepeatedCounterexample);
-
         if(pRepeatedCounterexample && !refinedLastRelevantPredicatesComputer && relevantPredicatesComputer != null) {
           //even abstractions agree; try refining relevant predicates reducer
           refineRelevantPredicatesComputer(pPath, pReached);
