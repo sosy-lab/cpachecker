@@ -42,20 +42,20 @@ class ASTStringIterable implements Iterable<String> {
 
   private class ASTStringIterator extends UnmodifiableIterator<String> {
 
-    private final Iterator<? extends IASTNode> subIteator;
+    private final Iterator<? extends IASTNode> subIterator;
 
     public ASTStringIterator(Iterable<? extends IASTNode> pCollection) {
-      subIteator = pCollection.iterator();
+      subIterator = pCollection.iterator();
     }
 
     @Override
     public boolean hasNext() {
-      return subIteator.hasNext();
+      return subIterator.hasNext();
     }
 
     @Override
     public String next() {
-      return subIteator.next().toASTString();
+      return subIterator.next().toASTString();
     }
   }
 }
