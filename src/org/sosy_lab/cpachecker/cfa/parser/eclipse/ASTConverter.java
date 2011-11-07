@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier.ElaboratedType;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
@@ -452,7 +453,7 @@ class ASTConverter {
       return new IASTFloatLiteralExpression(e.getRawSignature(), fileLoc, type, value);
 
     case org.eclipse.cdt.core.dom.ast.IASTLiteralExpression.lk_string_literal:
-      return new IASTStringLiteralExpression(e.getRawSignature(), fileLoc, type);
+      return new IASTStringLiteralExpression(e.getRawSignature(), fileLoc, type, valueStr);
 
     default:
       throw new CFAGenerationRuntimeException("Unknown literal", e);
@@ -1043,7 +1044,22 @@ class ASTConverter {
   }
 
   private IASTElaboratedTypeSpecifier convert(org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier d) {
-    return new IASTElaboratedTypeSpecifier(d.isConst(), d.isVolatile(), d.getKind(), convert(d.getName()));
+    ElaboratedType type;
+    switch (d.getKind()) {
+    case org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier.k_enum:
+      type = ElaboratedType.ENUM;
+      break;
+    case org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier.k_struct:
+      type = ElaboratedType.STRUCT;
+      break;
+    case org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier.k_union:
+      type = ElaboratedType.UNION;
+      break;
+    default:
+      throw new CFAGenerationRuntimeException("Unknown elaborated type", d);
+    }
+
+    return new IASTElaboratedTypeSpecifier(d.isConst(), d.isVolatile(), type, convert(d.getName()));
   }
 
   private IASTEnumerationSpecifier convert(org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier d) {
@@ -1121,7 +1137,7 @@ class ASTConverter {
       }
 
       if (v instanceof IASTIntegerLiteralExpression) {
-        value = ((IASTIntegerLiteralExpression)v).getValue().longValue();
+        value = ((IASTIntegerLiteralExpression)v).asLong();
         if (negate) {
           value = -value;
         }

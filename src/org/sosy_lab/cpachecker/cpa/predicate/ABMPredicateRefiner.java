@@ -24,9 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.Iterables.getOnlyElement;
+import static com.google.common.collect.Lists.transform;
 import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType;
 
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -38,22 +40,35 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.blocks.Block;
+import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.abm.AbstractABMBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.Path;
+import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RefineableRelevantPredicatesComputer;
+import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.collect.Lists;
 
 
@@ -131,6 +146,11 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
     final Timer ssaRenamingTimer = new Timer();
 
     private final PathFormulaManager pfmgr;
+    private final RefineableRelevantPredicatesComputer relevantPredicatesComputer;
+    private final ABMPredicateCPA predicateCpa;
+
+    private List<Region> lastAbstractions = null;
+    private boolean refinedLastRelevantPredicatesComputer = false;
 
     private ExtendedPredicateRefiner(final Configuration config, final LogManager logger,
         final ConfigurableProgramAnalysis pCpa,
@@ -141,18 +161,100 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner {
 
       pfmgr = predicateCpa.getPathFormulaManager();
 
+      RelevantPredicatesComputer relevantPredicatesComputer = predicateCpa.getRelevantPredicatesComputer();
+      if(relevantPredicatesComputer instanceof RefineableRelevantPredicatesComputer) {
+        this.relevantPredicatesComputer = (RefineableRelevantPredicatesComputer)relevantPredicatesComputer;
+      } else {
+        this.relevantPredicatesComputer = null;
+      }
+
+      this.predicateCpa = predicateCpa;
+
       predicateCpa.getABMStats().addRefiner(this);
     }
 
+    /**
+     * Overridden just for visibility
+     */
     @Override
     protected final CounterexampleInfo performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
-      CounterexampleInfo counterexample = super.performRefinement(pReached, pPath);
+      return super.performRefinement(pReached, pPath);
+    }
 
-      if (counterexample.isSpurious()) {
-        lastErrorPath = null; // TODO why this?
+    private static final Function<PredicateAbstractElement, Region> GET_REGION
+    = new Function<PredicateAbstractElement, Region>() {
+        @Override
+        public Region apply(PredicateAbstractElement e) {
+          assert e.isAbstractionElement();
+          return e.getAbstractionFormula().asRegion();
+        };
+      };
+
+    private List<Region> getRegionsForPath(List<Pair<ARTElement, CFANode>> path) throws CPATransferException {
+      return transform(path,
+          Functions.compose(
+              GET_REGION,
+          Functions.compose(
+              AbstractElements.extractElementByTypeFunction(PredicateAbstractElement.class),
+              Pair.<ARTElement>getProjectionToFirst())));
+    }
+
+    @Override
+    protected void performRefinement(
+        ARTReachedSet pReached,
+        List<Pair<ARTElement, CFANode>> pPath,
+        CounterexampleTraceInfo<Collection<AbstractionPredicate>> pCounterexample,
+        boolean pRepeatedCounterexample) throws CPAException {
+
+      // overriding this method is needed, as, in principle, it is possible to get two successive spurious counterexamples
+      // which only differ in its abstractions (with 'aggressive caching').
+
+      boolean refinedRelevantPredicatesComputer = false;
+
+      if(pRepeatedCounterexample) {
+        //block formulas are the same as last time; check if abstractions also agree
+        pRepeatedCounterexample = getRegionsForPath(pPath).equals(lastAbstractions);
+
+        if(pRepeatedCounterexample && !refinedLastRelevantPredicatesComputer && relevantPredicatesComputer != null) {
+          //even abstractions agree; try refining relevant predicates reducer
+          refineRelevantPredicatesComputer(pPath, pReached);
+          pRepeatedCounterexample = false;
+          refinedRelevantPredicatesComputer = true;
+        }
       }
 
-      return counterexample;
+      lastAbstractions = getRegionsForPath(pPath);
+      refinedLastRelevantPredicatesComputer = refinedRelevantPredicatesComputer;
+      super.performRefinement(pReached, pPath, pCounterexample, pRepeatedCounterexample);
+    }
+
+    private void refineRelevantPredicatesComputer(List<Pair<ARTElement, CFANode>> pPath, ARTReachedSet pReached) {
+      UnmodifiableReachedSet reached = pReached.asReachedSet();
+      Precision oldPrecision = reached.getPrecision(reached.getLastElement());
+      PredicatePrecision oldPredicatePrecision = Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
+
+      BlockPartitioning partitioning = predicateCpa.getPartitioning();
+      Deque<Block> openBlocks = new ArrayDeque<Block>();
+      openBlocks.push(partitioning.getMainBlock());
+      for (Pair<ARTElement, CFANode> pathElement : pPath) {
+        CFANode currentNode = pathElement.getSecond();
+        if(partitioning.isCallNode(currentNode)) {
+          openBlocks.push(partitioning.getBlockForCallNode(currentNode));
+        }
+
+        Collection<AbstractionPredicate> localPreds = oldPredicatePrecision.getPredicates(currentNode);
+        for(Block block : openBlocks) {
+          for(AbstractionPredicate pred : localPreds) {
+            relevantPredicatesComputer.considerPredicateAsRelevant(block, pred);
+          }
+        }
+
+        while(openBlocks.peek().isReturnNode(currentNode)) {
+          openBlocks.pop();
+        }
+      }
+
+      ((ABMPredicateReducer)predicateCpa.getReducer()).clearCaches();
     }
 
     @Override

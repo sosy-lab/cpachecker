@@ -34,6 +34,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.DefaultExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
@@ -148,7 +149,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
       FunctionPointerTarget target = oldState.getTarget(functionCallVariable);
       if (target instanceof NamedFunctionTarget) {
         String functionName = ((NamedFunctionTarget)target).getFunctionName();
-        CFAFunctionDefinitionNode fDefNode = functions.getFunction(functionName);
+        CFAFunctionDefinitionNode fDefNode = functions.getFunctionHead(functionName);
         if (fDefNode != null) {
           logger.log(Level.FINEST, "Function pointer", functionCallVariable, "points to", target, "while it is used.");
 
@@ -227,18 +228,12 @@ class FunctionPointerTransferRelation implements TransferRelation {
       // Remove all fake edges we have created.
 
       FunctionPointerReturnEdge returnEdge = (FunctionPointerReturnEdge)pCfaEdge;
-      FunctionPointerCallEdge callEdge = returnEdge.getCallEdge();
-      CallToReturnEdge summaryEdge = returnEdge.getSummaryEdge();
-
-      CFANode callNode = callEdge.getPredecessor();
-      CFANode returnNode = returnEdge.getSuccessor();
 
       // The call edge and the return edge are never removed from the CFA,
       // because we might need them for refinement.
       // CallstackCPA should force taking the right return edge.
 
-      callNode.removeLeavingSummaryEdge(summaryEdge);
-      returnNode.removeEnteringSummaryEdge(summaryEdge);
+      CFACreationUtils.removeSummaryEdgeFromNodes(returnEdge.getSummaryEdge());
     }
   }
 

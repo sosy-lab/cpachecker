@@ -25,13 +25,9 @@ package org.sosy_lab.cpachecker.cpa.location;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.SortedSet;
-import java.util.TreeSet;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
@@ -39,6 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSortedSet;
 
 public class LocationElement implements AbstractElementWithLocation, AbstractQueryableElement, Partitionable
 {
@@ -52,34 +49,10 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
 
     private static LocationElement[] initialize(CFA pCfa) {
 
-      SortedSet<CFANode> seenNodes = new TreeSet<CFANode>();
-      Deque<CFANode> waitlist = new ArrayDeque<CFANode>();
-      seenNodes.addAll(pCfa.getAllFunctions().values());
-      waitlist.addAll(pCfa.getAllFunctions().values());
-
-      while (!waitlist.isEmpty()) {
-        CFANode n = waitlist.pop();
-
-        CFAEdge edge = n.getLeavingSummaryEdge();
-        if (edge != null) {
-          CFANode succ = edge.getSuccessor();
-          if (seenNodes.add(succ)) {
-            waitlist.push(succ);
-          }
-        }
-
-        for (int i = 0; i < n.getNumLeavingEdges(); i++) {
-          edge = n.getLeavingEdge(i);
-          CFANode succ = edge.getSuccessor();
-          if (seenNodes.add(succ)) {
-            waitlist.push(succ);
-          }
-        }
-      }
-
-      int maxNodeNumber = seenNodes.last().getNodeNumber();
+      SortedSet<CFANode> allNodes = ImmutableSortedSet.copyOf(pCfa.getAllNodes());
+      int maxNodeNumber = allNodes.last().getNodeNumber();
       LocationElement[] elements = new LocationElement[maxNodeNumber+1];
-      for (CFANode n : seenNodes) {
+      for (CFANode n : allNodes) {
         elements[n.getNodeNumber()] = new LocationElement(n);
       }
 
@@ -112,9 +85,9 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
     @Override
     public boolean checkProperty(String pProperty) throws InvalidQueryException {
       String[] parts = pProperty.split("==");
-      if (parts.length != 2)
+      if (parts.length != 2) {
         throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not split the property string correctly.");
-      else {
+      } else {
         if (parts[0].toLowerCase().equals("line")) {
           try {
             int queryLine = Integer.parseInt(parts[1]);

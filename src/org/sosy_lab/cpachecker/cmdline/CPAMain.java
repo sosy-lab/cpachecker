@@ -60,7 +60,7 @@ public class CPAMain {
    * The directory where to look for configuration files for options like
    * "-predicateAbstraction" that get translated into a config file name.
    */
-  private static final String DEFAULT_CONFIG_FILES_DIR = "test/config/%s.properties";
+  private static final String DEFAULT_CONFIG_FILES_DIR = "config/%s.properties";
 
   private static final String CONFIGURATION_FILE_OPTION = "configuration.file";
   private static final String SPECIFICATION_FILE_OPTION = "specification";
@@ -391,6 +391,8 @@ public class CPAMain {
   }
 
   private static void printHelp() {
+    System.out.println("CPAchecker " + CPAchecker.getVersion());
+    System.out.println();
     System.out.println("OPTIONS:");
     System.out.println(" -config");
     System.out.println(" -cpas");
@@ -408,7 +410,7 @@ public class CPAMain {
     System.out.println(" -printOptions [-v|-verbose]");
     System.out.println(" -printUsedOptions");
     System.out.println(" -help");
-    System.out.println("");
+    System.out.println();
     System.out.println("More information on how to configure CPAchecker can be found in HowToConfiguration.txt");
     System.exit(0);
   }
@@ -479,27 +481,4 @@ public class CPAMain {
       return false;
     }
   }
-
-// TODO implement this when you get really bored
-//  private void normalizeValues() {
-//    for (Enumeration<?> keys = propertyNames(); keys.hasMoreElements();) {
-//      String k = (String) keys.nextElement();
-//      String v = getProperty(k);
-//
-//      // trim heading and trailing blanks (at least Java 1.4.2 does not take care of trailing blanks)
-//      String v0 = v;
-//      v = v.trim();
-//      if (!v.equals(v0)) {
-//        put(k, v);
-//      }
-//
-//      if ("true".equalsIgnoreCase(v) || "t".equalsIgnoreCase(v)
-//            || "yes".equalsIgnoreCase(v) || "y".equalsIgnoreCase(v)) {
-//        put(k, "true");
-//      } else if ("false".equalsIgnoreCase(v) || "f".equalsIgnoreCase(v)
-//            || "no".equalsIgnoreCase(v) || "n".equalsIgnoreCase(v)) {
-//        put(k, "false");
-//      }
-//    }
-//  }
 }

@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
@@ -639,7 +640,7 @@ public class PointerTransferRelation implements TransferRelation {
         } else if (parameter instanceof IASTLiteralExpression) {
           IASTLiteralExpression literal = (IASTLiteralExpression)parameter;
 
-          if ((literal.getKind() == IASTLiteralExpression.lk_integer_constant)
+          if (literal instanceof IASTIntegerLiteralExpression
               && parseIntegerLiteral(literal) == 0) {
 
             actualValues.add(new Pointer()); // null pointer
@@ -693,18 +694,11 @@ public class PointerTransferRelation implements TransferRelation {
 
   private long parseIntegerLiteral(IASTLiteralExpression expression)
       throws UnrecognizedCCodeException {
-    try {
-      String s = expression.getRawSignature();
-      if (s.endsWith("UL")) {
-        s = s.substring(0, s.length() - 2);
-      } else if (s.endsWith("U") || s.endsWith("L")) {
-        s = s.substring(0, s.length() - 1);
-      }
-      return Long.parseLong(s);
-    } catch (NumberFormatException e) {
-      throw new UnrecognizedCCodeException("invalid integer literal", null,
-          expression);
+
+    if (!(expression instanceof IASTIntegerLiteralExpression)) {
+      throw new UnrecognizedCCodeException("integer expression expected", expression);
     }
+    return ((IASTIntegerLiteralExpression)expression).asLong();
   }
 
   private void handleReturnFromFunction(PointerElement element,

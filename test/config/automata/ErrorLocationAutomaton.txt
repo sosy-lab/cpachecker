@@ -1,4 +1,0 @@
-// check for assertions
-#include test/config/automata/AssertionAutomaton.txt
-// and "ERROR" labels
-#include test/config/automata/ErrorLabelAutomaton.txt

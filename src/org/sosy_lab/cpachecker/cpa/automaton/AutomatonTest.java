@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
 import com.google.common.collect.ImmutableMap;
 
 public class AutomatonTest {
-  private static final String OUTPUT_FILE = "test/output/AutomatonExport.dot";
+  private static final String OUTPUT_FILE = "output/AutomatonExport.dot";
 
   // Specification Tests
   @Test

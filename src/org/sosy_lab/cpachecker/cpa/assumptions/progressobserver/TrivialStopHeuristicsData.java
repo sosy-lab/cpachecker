@@ -66,17 +66,22 @@ public class TrivialStopHeuristicsData implements StopHeuristicsData {
 
   @Override
   public boolean isLessThan(StopHeuristicsData other) {
-    if (this == BOTTOM) return true;
-    if (other == TOP) return true;
+    if (this == BOTTOM) {
+      return true;
+    }
+    if (other == TOP) {
+      return true;
+    }
     return (this == other);
   }
 
   @Override
   public String toString() {
-    if (bottom)
+    if (bottom) {
       return "BOTTOM";
-    else
+    } else {
       return "TOP";
+    }
   }
 
   @Override

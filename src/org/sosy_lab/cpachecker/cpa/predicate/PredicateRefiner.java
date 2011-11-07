@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -153,7 +152,8 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
   @Override
   protected void performRefinement(ARTReachedSet pReached,
       List<Pair<ARTElement, CFANode>> pPath,
-      CounterexampleTraceInfo<Collection<AbstractionPredicate>> pCounterexample) throws CPAException {
+      CounterexampleTraceInfo<Collection<AbstractionPredicate>> pCounterexample,
+      boolean pRepeatedCounterexample) throws CPAException {
 
     precisionUpdate.start();
 
@@ -166,7 +166,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
     }
 
     Pair<ARTElement, PredicatePrecision> refinementResult =
-            performRefinement(oldPredicatePrecision, pPath, pCounterexample);
+            performRefinement(oldPredicatePrecision, pPath, pCounterexample, pRepeatedCounterexample);
     precisionUpdate.stop();
 
     artUpdate.start();
@@ -178,7 +178,8 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
 
   private Pair<ARTElement, PredicatePrecision> performRefinement(PredicatePrecision oldPrecision,
       List<Pair<ARTElement, CFANode>> pPath,
-      CounterexampleTraceInfo<Collection<AbstractionPredicate>> pInfo) throws CPAException {
+      CounterexampleTraceInfo<Collection<AbstractionPredicate>> pInfo,
+      boolean pRepeatedCounterexample) throws CPAException {
 
     List<Collection<AbstractionPredicate>> newPreds = pInfo.getPredicatesForRefinement();
 
@@ -231,8 +232,6 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
 
     logger.log(Level.ALL, "Predicate map now is", newPredicateMap);
 
-    List<CFANode> absLocations = ImmutableList.copyOf(transform(pPath, Pair.<CFANode>getProjectionToSecond()));
-
     // We have two different strategies for the refinement root: set it to
     // the firstInterpolationPoint or set it to highest location in the ART
     // where the same CFANode appears.
@@ -248,7 +247,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
           "trying strategy 1: remove everything below", root, "from ART.");
 
     } else {
-      if (absLocations.equals(lastErrorPath)) {
+      if (pRepeatedCounterexample) {
         throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
       }
 
@@ -269,7 +268,6 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
         throw new CPAException("Inconsistent ART, did not find element for " + loc);
       }
     }
-    lastErrorPath = absLocations;
     return Pair.of(root, newPrecision);
   }
 }

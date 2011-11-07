@@ -137,7 +137,7 @@ counterexample.checker = "CBMC"
   allowed values: [CBMC, CPACHECKER]
 
 # configuration file for counterexample checks with CPAchecker
-counterexample.checker.config = "test/config/explicitAnalysis-no-cbmc.properties"
+counterexample.checker.config = "config/explicitAnalysis-no-cbmc.properties"
 
 # continue analysis after an counterexample was found that was denied by the
 # second check
@@ -148,11 +148,8 @@ counterexample.continueAfterInfeasibleError = true
 # similar infeasible counterexamples to get discovered, but is unsound
 counterexample.removeInfeasibleErrors = false
 
-# CPA to use (see HowToConfiguration.txt for more documentation on this)
+# CPA to use (see doc/Configuration.txt for more documentation on this)
 cpa = CompositeCPA.class.getCanonicalName()
-
-# disable caching of abstract state spaces for blocks
-cpa.abm.NO_CACHING = false
 
 # Type of partitioning (FunctionAndLoopPartitioning or
 # DelayedFunctionAndLoopPartitioning)
@@ -349,8 +346,8 @@ cpa.predicate.handlePointerAliasing = false
 cpa.predicate.initAllVars = false
 
 # the machine model used for functions sizeof and alignof
-cpa.predicate.machineModel = Linux32
-  enum:     [Linux32, Linux64]
+cpa.predicate.machineModel = LINUX32
+  enum:     [LINUX32, LINUX64]
 
 # With of the bitvectors if useBitwise is true.
 cpa.predicate.mathsat.bitWidth = 32
@@ -387,11 +384,6 @@ cpa.predicate.memoryAllocationFunctions = {
 # which merge operator to use for predicate cpa (usually ABE should be used)
 cpa.predicate.merge = "ABE"
   allowed values: [SEP, ABE]
-
-# if initAllVars is true, we get rid of all non-determinism. This might not
-# be desirable. If the following property is set to a non-empty value, all
-# variables starting with this prefix will not be initialized automatically
-cpa.predicate.noAutoInitPrefix = "__BLAST_NONDET"
 
 # list of functions that should be considered as giving a non-deterministic
 # return value
@@ -532,18 +524,12 @@ log.truncateSize = 10000
 # all used options are printed
 log.usedOptions.export = false
 
-# variables whose name contains this will be seen by InterpreterCPA as having
-# non-deterministic values
-# variables whose name contains this will be seen by ExplicitCPA as having
-# non-deterministic values
-noAutoInitPrefix = "__BLAST_NONDET"
-
 # disable all default output files
 # (any explicitly given file will still be written)
 output.disable = false
 
 # directory to put all output files in
-output.path = "test/output/"
+output.path = "output/"
 
 # C dialect for parser
 parser.dialect = GNUC
@@ -564,7 +550,7 @@ restartAlgorithm.configFiles = no default value
 rootDirectory = "."
 
 # comma-separated list of files with specifications that should be checked
-# (see test/config/automata/ for examples)
+# (see config/specification/ for examples)
 specification = no default value
 
 # write some statistics to disk

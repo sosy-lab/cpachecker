@@ -33,12 +33,18 @@ public class IASTIntegerLiteralExpression extends IASTLiteralExpression {
 
   public IASTIntegerLiteralExpression(String pRawSignature,
       IASTFileLocation pFileLocation, IType pType, BigInteger pValue) {
-    super(pRawSignature, pFileLocation, pType, IASTLiteralExpression.lk_integer_constant);
+    super(pRawSignature, pFileLocation, pType);
     value = pValue;
   }
 
+  @Override
   public BigInteger getValue() {
     return value;
+  }
+
+  public long asLong() {
+    // TODO handle values that are bigger than MAX_LONG
+    return value.longValue();
   }
 
   @Override

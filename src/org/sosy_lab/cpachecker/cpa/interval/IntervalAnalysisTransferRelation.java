@@ -811,31 +811,21 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    */
   private static Long parseLiteral(IASTLiteralExpression expression) throws UnrecognizedCCodeException
   {
-      int typeOfLiteral = expression.getKind();
+    if (expression instanceof IASTIntegerLiteralExpression) {
+      return ((IASTIntegerLiteralExpression)expression).asLong();
 
-      if(typeOfLiteral == IASTLiteralExpression.lk_integer_constant)
-      {
-        String s = expression.getRawSignature();
-        if(s.endsWith("L") || s.endsWith("U") || s.endsWith("UL"))
-        {
-          s = s.replace("L", "");
-          s = s.replace("U", "");
-          s = s.replace("UL", "");
-        }
-        try
-        {
-          return Long.valueOf(s);
-        }
-        catch (NumberFormatException e)
-        {
-          throw new UnrecognizedCCodeException("invalid integer literal", null, expression);
-        }
-      }
+    } else if (expression instanceof IASTFloatLiteralExpression) {
+      return null;
 
-      if(typeOfLiteral == IASTLiteralExpression.lk_string_literal)
-        return (long)expression.hashCode();
+    } else if (expression instanceof IASTCharLiteralExpression) {
+      return (long)((IASTCharLiteralExpression)expression).getCharacter();
 
-    return null;
+    } else if (expression instanceof IASTStringLiteralExpression) {
+      return null;
+
+    } else {
+      throw new UnrecognizedCCodeException("unknown literal", expression);
+    }
   }
 
   /**

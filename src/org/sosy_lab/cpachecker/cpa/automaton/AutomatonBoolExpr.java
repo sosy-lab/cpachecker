@@ -331,8 +331,12 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       ResultValue<Integer> resA = a.eval(pArgs);
       ResultValue<Integer> resB = b.eval(pArgs);
-      if (resA.canNotEvaluate()) return new ResultValue<Boolean>(resA);
-      if (resB.canNotEvaluate()) return new ResultValue<Boolean>(resB);
+      if (resA.canNotEvaluate()) {
+        return new ResultValue<Boolean>(resA);
+      }
+      if (resB.canNotEvaluate()) {
+        return new ResultValue<Boolean>(resB);
+      }
       if (resA.getValue().equals(resB.getValue())) {
         return CONST_TRUE;
       } else {
@@ -363,8 +367,12 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       ResultValue<Integer> resA = a.eval(pArgs);
       ResultValue<Integer> resB = b.eval(pArgs);
-      if (resA.canNotEvaluate()) return new ResultValue<Boolean>(resA);
-      if (resB.canNotEvaluate()) return new ResultValue<Boolean>(resB);
+      if (resA.canNotEvaluate()) {
+        return new ResultValue<Boolean>(resA);
+      }
+      if (resB.canNotEvaluate()) {
+        return new ResultValue<Boolean>(resB);
+      }
       if (! resA.getValue().equals(resB.getValue())) {
         return CONST_TRUE;
       } else {
@@ -411,11 +419,14 @@ interface AutomatonBoolExpr extends AutomatonExpression {
           return resA;
         } else {
           ResultValue<Boolean> resB = b.eval(pArgs);
-          if (resB.canNotEvaluate()) return resB;
-          if (resB.getValue().equals(Boolean.TRUE))
+          if (resB.canNotEvaluate()) {
             return resB;
-          else
+          }
+          if (resB.getValue().equals(Boolean.TRUE)) {
+            return resB;
+          } else {
             return resA;
+          }
         }
       }
     }
@@ -460,11 +471,14 @@ interface AutomatonBoolExpr extends AutomatonExpression {
           return resA;
         } else {
           ResultValue<Boolean> resB = b.eval(pArgs);
-          if (resB.canNotEvaluate()) return resB;
-          if (resB.getValue().equals(Boolean.FALSE))
+          if (resB.canNotEvaluate()) {
             return resB;
-          else
+          }
+          if (resB.getValue().equals(Boolean.FALSE)) {
+            return resB;
+          } else {
             return resA;
+          }
         }
       }
     }
@@ -490,7 +504,9 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       ResultValue<Boolean> resA = a.eval(pArgs);
-      if (resA.canNotEvaluate()) return resA;
+      if (resA.canNotEvaluate()) {
+        return resA;
+      }
       if (resA.getValue().equals(Boolean.TRUE)) {
         return CONST_FALSE;
       } else {
@@ -521,11 +537,13 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       ResultValue<Boolean> resA = a.eval(pArgs);
-      if (resA.canNotEvaluate())
+      if (resA.canNotEvaluate()) {
         return resA;
+      }
       ResultValue<Boolean> resB = b.eval(pArgs);
-      if (resB.canNotEvaluate())
+      if (resB.canNotEvaluate()) {
         return resB;
+      }
       if (resA.getValue().equals(resB.getValue())) {
         return CONST_TRUE;
       } else {
@@ -556,11 +574,13 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       ResultValue<Boolean> resA = a.eval(pArgs);
-      if (resA.canNotEvaluate())
+      if (resA.canNotEvaluate()) {
         return resA;
+      }
       ResultValue<Boolean> resB = b.eval(pArgs);
-      if (resB.canNotEvaluate())
+      if (resB.canNotEvaluate()) {
         return resB;
+      }
       if (! resA.getValue().equals(resB.getValue())) {
         return CONST_TRUE;
       } else {

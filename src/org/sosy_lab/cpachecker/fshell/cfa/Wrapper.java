@@ -29,18 +29,22 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
 
 public class Wrapper {
 
@@ -74,7 +78,7 @@ public class Wrapper {
 
     mEntry = mTranslationUnit.getFunction(pEntryFunction);
 
-    CFACreator.insertGlobalDeclarations(mEntry, lWrapper.getGlobalDeclarations(), mLogManager);
+    insertGlobalDeclarations(mEntry, lWrapper.getGlobalDeclarations());
 
     determineAlphaAndOmegaEdges(mEntry, pMainFunction);
   }
@@ -218,4 +222,49 @@ public class Wrapper {
     return TranslationUnit.parseString(pWrapperFunction, mLogManager);
   }
 
+  /**
+   * Insert nodes for global declarations after first node of CFA.
+   *
+   * This function was copied from CFACreator as the version there
+   * started to use a CFA object.
+   * TODO: Adjust this class so that the CFACreator method can be used again.
+   */
+  private void insertGlobalDeclarations(final CFAFunctionDefinitionNode firstNode, List<IASTDeclaration> globalVars) {
+    if (globalVars.isEmpty()) {
+      return;
+    }
+
+    // split off first node of CFA
+    assert firstNode.getNumLeavingEdges() == 1;
+    CFAEdge firstEdge = firstNode.getLeavingEdge(0);
+    assert firstEdge instanceof BlankEdge && !firstEdge.isJumpEdge();
+    CFANode secondNode = firstEdge.getSuccessor();
+
+    CFACreationUtils.removeEdgeFromNodes(firstEdge);
+
+    // insert one node to start the series of declarations
+    CFANode cur = new CFANode(0, firstNode.getFunctionName());
+    BlankEdge be = new BlankEdge("INIT GLOBAL VARS", 0, firstNode, cur);
+    addToCFA(be);
+
+    // create a series of GlobalDeclarationEdges, one for each declaration
+    for (IASTDeclaration d : globalVars) {
+      assert d.isGlobal();
+
+      CFANode n = new CFANode(d.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
+      GlobalDeclarationEdge e = new GlobalDeclarationEdge(d,
+          d.getFileLocation().getStartingLineNumber(), cur, n);
+      addToCFA(e);
+      cur = n;
+    }
+
+    // and a blank edge connecting the declarations with the second node of CFA
+    be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode);
+    addToCFA(be);
+  }
+
+  private void addToCFA(CFAEdge edge) {
+    edge.getPredecessor().addLeavingEdge(edge);
+    edge.getSuccessor().addEnteringEdge(edge);
+  }
 }

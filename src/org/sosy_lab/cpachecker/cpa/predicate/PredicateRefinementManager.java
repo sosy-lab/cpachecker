@@ -48,7 +48,7 @@ import com.google.common.collect.ImmutableSet;
 
 
 @Options(prefix="cpa.predicate.refinement")
-class PredicateRefinementManager extends InterpolationManager<Collection<AbstractionPredicate>> {
+public class PredicateRefinementManager extends InterpolationManager<Collection<AbstractionPredicate>> {
 
   private final PredicateAbstractionManager amgr;
 

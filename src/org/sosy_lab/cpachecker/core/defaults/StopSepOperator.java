@@ -51,8 +51,9 @@ public class StopSepOperator implements StopOperator {
     throws CPAException {
 
     for (AbstractElement reachedElement : reached) {
-      if (domain.isLessOrEqual(el, reachedElement))
+      if (domain.isLessOrEqual(el, reachedElement)) {
         return true;
+      }
     }
     return false;
   }

@@ -27,11 +27,11 @@ import java.util.HashMap;
 
 import org.sosy_lab.cpachecker.cpa.location.LocationElement;
 
-public class OctWideningControl {
+class OctWideningControl {
 
 	HashMap<Integer, LoopNode> loopNodeList = new HashMap<Integer, LoopNode>();
 
-	public static class LoopNode{
+	static class LoopNode{
 		@SuppressWarnings("unused")
 		private int nodeId;
 		private int iterationCount = 0;
@@ -39,10 +39,6 @@ public class OctWideningControl {
 
 		public LoopNode(int id){
 			nodeId = id;
-		}
-
-		public LoopNode() {
-			// TODO Auto-generated constructor stub
 		}
 
 		public void incrementIteration(){

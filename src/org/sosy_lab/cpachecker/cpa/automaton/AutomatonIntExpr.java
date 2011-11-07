@@ -186,9 +186,13 @@ interface AutomatonIntExpr extends AutomatonExpression {
     @Override
     public ResultValue<Integer> eval(AutomatonExpressionArguments pArgs) {
       ResultValue<Integer> resA = a.eval(pArgs);
-      if (resA.canNotEvaluate()) return resA;
+      if (resA.canNotEvaluate()) {
+        return resA;
+      }
       ResultValue<Integer> resB = b.eval(pArgs);
-      if (resB.canNotEvaluate()) return resB;
+      if (resB.canNotEvaluate()) {
+        return resB;
+      }
       return new ResultValue<Integer>(resA.getValue() + resB.getValue());
     }
 
@@ -212,9 +216,13 @@ interface AutomatonIntExpr extends AutomatonExpression {
     @Override
     public ResultValue<Integer> eval(AutomatonExpressionArguments pArgs) {
       ResultValue<Integer> resA = a.eval(pArgs);
-      if (resA.canNotEvaluate()) return resA;
+      if (resA.canNotEvaluate()) {
+        return resA;
+      }
       ResultValue<Integer> resB = b.eval(pArgs);
-      if (resB.canNotEvaluate()) return resB;
+      if (resB.canNotEvaluate()) {
+        return resB;
+      }
       return new ResultValue<Integer>(resA.getValue() - resB.getValue());
     }
 

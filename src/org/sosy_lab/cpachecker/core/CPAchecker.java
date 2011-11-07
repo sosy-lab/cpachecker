@@ -149,6 +149,15 @@ public class CPAchecker {
     }
   }
 
+  /**
+   * Change this string in preparation of a release.
+   */
+  private static final String version = "(development version)";
+
+  public static String getVersion() {
+    return version;
+  }
+
   public CPAchecker(Configuration pConfiguration, LogManager pLogManager) throws InvalidConfigurationException {
     config = pConfiguration;
     logger = pLogManager;
@@ -160,7 +169,7 @@ public class CPAchecker {
 
   public CPAcheckerResult run(String filename) {
 
-    logger.log(Level.INFO, "CPAchecker started");
+    logger.log(Level.INFO, "CPAchecker", getVersion(), "started");
 
     MainCPAStatistics stats = null;
     ReachedSet reached = null;
@@ -218,6 +227,11 @@ public class CPAchecker {
         logger.log(Level.WARNING, "The following configuration options were specified but are not used:\n",
             Joiner.on("\n ").join(unusedProperties), "\n");
       }
+      Set<String> deprecatedProperties = config.getDeprecatedProperties();
+      if (!deprecatedProperties.isEmpty()) {
+        logger.log(Level.WARNING, "The following options are deprecated and will be removed in the future:\n",
+            Joiner.on("\n ").join(deprecatedProperties), "\n");
+      }
 
       stats.creationTime.stop();
       stopIfNecessary();
@@ -243,19 +257,6 @@ public class CPAchecker {
 
     } catch (InvalidConfigurationException e) {
       logger.logUserException(Level.SEVERE, e, "Invalid configuration");
-
-    } catch (UnsatisfiedLinkError e) {
-      if (e.getMessage().contains("libgmpxx.so.4")) {
-        logger.log(Level.SEVERE, "Error: The GNU Multiprecision arithmetic library is required, but missing on this system!\n"
-            + "Please install libgmpxx.so.4 and try again.\n"
-            + "On Ubuntu you need to install the package 'libgmpxx4ldbl'.");
-      } else if (e.getMessage().contains("libgmp.so.3")) {
-        logger.log(Level.SEVERE, "Error: The GNU Multiprecision arithmetic library is required, but missing on this system!\n"
-            + "Please install libgmp.so.3 and try again.\n"
-            + "On Ubuntu you need to install the package 'libgmp3c2'.");
-      } else {
-        logger.logException(Level.SEVERE, e, null);
-      }
 
     } catch (InterruptedException e) {
       // CPAchecker must exit because it was asked to

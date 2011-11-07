@@ -982,10 +982,19 @@ def findExecutable(program, default):
     sys.exit("ERROR: Could not find %s executable" % program)
 
 
-def run(args, rlimits):
+def killSubprocess(process):
+    '''
+    this function kills the process and the children in its group.
+    '''
+    os.killpg(process.pid, signal.SIGTERM)
+
+
+def run(args, rlimits, runningDir=None, runningEnv=None):
     args = map(lambda arg: os.path.expandvars(arg), args)
     args = map(lambda arg: os.path.expanduser(arg), args)
-    def setrlimits():
+
+    def preSubprocess():
+        os.setpgrp() # make subprocess to group-leader
         for rsrc, limits in rlimits.items():
             resource.setrlimit(rsrc, limits)
 
@@ -993,9 +1002,10 @@ def run(args, rlimits):
     wallTimeBefore = time.time()
 
     try:
+        global p
         p = subprocess.Popen(args,
                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                             preexec_fn=setrlimits)
+                             preexec_fn=preSubprocess)
     except OSError:
         logging.critical("I caught an OSError. Assure that the directory "
                          + "containing the tool to be benchmarked is included "
@@ -1005,10 +1015,10 @@ def run(args, rlimits):
     # if rlimit does not work, a seperate Timer is started to kill the subprocess, 
     # Timer has 10 seconds 'overhead'
     from threading import Timer
-    if (0 in rlimits): # 0 is key of timelimit
-        timelimit = rlimits[0][0]
+    if (resource.RLIMIT_CPU in rlimits):
+        timelimit = rlimits[resource.RLIMIT_CPU][0]
         global timer # "global" for KeyboardInterrupt from user
-        timer = Timer(timelimit + 10, subprocess.Popen.terminate, [p])
+        timer = Timer(timelimit + 10, killSubprocess, [p])
         timer.start()
 
     output = p.stdout.read()
@@ -1208,24 +1218,13 @@ def run_cpachecker(options, sourcefile, columns, rlimits):
     args = [exe] + options + [sourcefile]
     (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
 
-    if resource.RLIMIT_CPU in rlimits:
-        limit = rlimits.get(resource.RLIMIT_CPU)[0]
-    else:
-        limit = float('inf')
-
-    if returncode == -9 and cpuTimeDelta > (limit*0.99):
-        # if return code is "KILLED BY SIGNAL 9" and
-        # used CPU time is larger than the time limit (approximately at least)
-        status = 'TIMEOUT'
-    else:
-        status = getCPAcheckerStatus(returncode, output)
-
+    status = getCPAcheckerStatus(returncode, output, rlimits, cpuTimeDelta)
     getCPAcheckerColumns(output, columns)
 
     return (status, cpuTimeDelta, wallTimeDelta, output, args)
 
 
-def getCPAcheckerStatus(returncode, output):
+def getCPAcheckerStatus(returncode, output, rlimits, cpuTimeDelta):
     """
     @param returncode: code returned by CPAchecker 
     @param output: the output of CPAchecker
@@ -1241,14 +1240,27 @@ def getCPAcheckerStatus(returncode, output):
 
     if returncode == 0:
         status = None
+
     elif returncode == -6:
         status = "ABORTED (probably by Mathsat)"
+
     elif returncode == -9:
-        status = "KILLED BY SIGNAL 9"
+        if resource.RLIMIT_CPU in rlimits:
+            limit = rlimits.get(resource.RLIMIT_CPU)[0]
+        else:
+            limit = float('inf')
+
+        if cpuTimeDelta > limit*0.99:
+            status = 'TIMEOUT'
+        else:
+            status = "KILLED BY SIGNAL 9"
+
     elif returncode == (128+15):
         status = "KILLED"
+
     else:
         status = "ERROR ({0})".format(returncode)
+
     for line in output.splitlines():
         if isOutOfMemory(line):
             status = 'OUT OF MEMORY'
@@ -1424,6 +1436,11 @@ if __name__ == "__main__":
             timer.cancel() # Timer, that kills a subprocess after timelimit
         except NameError:
             pass # if no timer is defined, do nothing
+        
+        try:
+            killSubprocess(p) # kill running tool
+        except NameError:
+            pass # if tool not running, do nothing
 
         interruptMessage = "\n\nscript was interrupted by user, some tests may not be done"
         logging.debug(interruptMessage)

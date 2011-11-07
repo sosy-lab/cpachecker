@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.blocks.builder;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -39,8 +40,8 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
  */
 public class DelayedFunctionAndLoopPartitioning extends FunctionAndLoopPartitioning {
 
-  public DelayedFunctionAndLoopPartitioning(LogManager pLogger) {
-    super(pLogger);
+  public DelayedFunctionAndLoopPartitioning(LogManager pLogger, CFA pCfa) {
+    super(pLogger, pCfa);
   }
 
   @Override

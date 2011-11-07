@@ -38,7 +38,7 @@
       <option name="-debug"></option>
     </sourcefiles>
 
-    <option name="-config">test/config/predicateAnalysis-lbe.properties</option>    
+    <option name="-predicateAnalysis-lbe"/>
   </test>
 
 
@@ -47,7 +47,7 @@
       <include>test/programs/benchmarks/locks/*1?.c</include>
     </sourcefiles>
 
-    <option name="-config">test/config/predicateAnalysis-lbe.properties</option>
+    <option name="-predicateAnalysis"/>
   </test>
 
   <!-- Example columns from CPAchecker output -->

@@ -28,7 +28,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -62,11 +64,13 @@ public class ABMPredicateReducer implements Reducer {
   private final PathFormulaManager pmgr;
   private final PredicateAbstractionManager pamgr;
   private final RelevantPredicatesComputer relevantComputer;
+  private final LogManager logger;
 
   public ABMPredicateReducer(ABMPredicateCPA cpa, RelevantPredicatesComputer pRelevantPredicatesComputer) {
     this.rmgr = cpa.getRegionManager();
     this.pmgr = cpa.getPathFormulaManager();
     this.pamgr = cpa.getPredicateManager();
+    this.logger = cpa.getLogger();
     this.relevantComputer = pRelevantPredicatesComputer;
   }
 
@@ -190,6 +194,10 @@ public class ABMPredicateReducer implements Reducer {
   }
 
   private Map<Pair<Integer, Block>, Precision> reduceCache = new HashMap<Pair<Integer, Block>, Precision>();
+
+  public void clearCaches() {
+    reduceCache.clear();
+  }
 
   @Override
   public Precision getVariableReducedPrecision(Precision pPrecision,
@@ -317,7 +325,9 @@ public class ABMPredicateReducer implements Reducer {
 
     @Override
     public Set<AbstractionPredicate> getPredicates(CFANode loc) {
-      assert context.getNodes().contains(loc);
+      if(!context.getNodes().contains(loc)) {
+        logger.log(Level.WARNING, context, "was left in an unexpected way. Analysis might be unsound.");
+      }
 
       if(evaluatedPredicateMap != null) {
         Set<AbstractionPredicate> result = evaluatedPredicateMap.get(loc);

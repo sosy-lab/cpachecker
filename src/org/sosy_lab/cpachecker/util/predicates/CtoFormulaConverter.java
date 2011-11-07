@@ -120,12 +120,6 @@ public class CtoFormulaConverter {
   @Option(description="initialize all variables to 0 when they are declared")
   private boolean initAllVars = false;
 
-  @Option(description="if initAllVars is true, we get rid of all non-determinism. "
-    + "This might not be desirable. If the following property is set to a non-empty value, "
-    + "all variables starting with this prefix will not be initialized automatically")
-  // TODO this is not only about missing initialization, it should be renamed to nondetVariables
-  private String noAutoInitPrefix = "__BLAST_NONDET";
-
   // if true, handle lvalues as *x, &x, s.x, etc. using UIFs. If false, just
   // use variables
   @Option(name="mathsat.lvalsAsUIFs",
@@ -146,7 +140,7 @@ public class CtoFormulaConverter {
       );
 
   @Option(description = "the machine model used for functions sizeof and alignof")
-  private MachineModel machineModel = MachineModel.Linux32;
+  private MachineModel machineModel = MachineModel.LINUX32;
 
   @Option(description = "handle Pointers")
   private boolean handlePointerAliasing = false;
@@ -176,6 +170,12 @@ public class CtoFormulaConverter {
   private static final String OP_ARRAY_SUBSCRIPT = "__array__";
   public static final String NONDET_VARIABLE = "__nondet__";
   public static final String NONDET_FLAG_VARIABLE = NONDET_VARIABLE + "flag__";
+
+  /** The prefix used for variables representing memory locations. */
+  private static final String MEMORY_ADDRESS_VARIABLE_PREFIX = "&";
+
+  /** The variable name that's used to store the malloc counter in the SSAMap. */
+  private static final String MALLOC_COUNTER_VARIABLE_NAME = "#malloc";
 
   private final Set<String> printedWarnings = new HashSet<String>();
 
@@ -235,7 +235,7 @@ public class CtoFormulaConverter {
     }
   }
 
-  // looks up the variable in the current namespace
+  /** Looks up the variable name in the current namespace. */
   private String scopedIfNecessary(IASTIdExpression var, String function) {
     IASTSimpleDeclaration decl = var.getDeclaration();
     boolean isGlobal = false;
@@ -256,10 +256,6 @@ public class CtoFormulaConverter {
     return function + "::" + var;
   }
 
-  private boolean isNondetVariable(String var) {
-    return (!noAutoInitPrefix.isEmpty()) && var.startsWith(noAutoInitPrefix);
-  }
-
   private static String exprToVarName(IASTExpression e) {
     return e.getRawSignature().replaceAll("[ \n\t]", "");
   }
@@ -275,7 +271,9 @@ public class CtoFormulaConverter {
     } else if (tp instanceof IComplexType){
       return ((IComplexType)tp).getName();
 
-    } else throw new AssertionError("wrong type");
+    } else {
+      throw new AssertionError("wrong type");
+    }
   }
 
   /**
@@ -287,7 +285,7 @@ public class CtoFormulaConverter {
     if (idx > 0) {
       idx = idx+1;
     } else {
-      idx = 2; // AG - IMPORTANT!!! We must start from 2 and
+      idx = VARIABLE_UNINITIALIZED; // AG - IMPORTANT!!! We must start from 2 and
       // not from 1, because this is an assignment,
       // so the SSA index must be fresh.
     }
@@ -314,7 +312,7 @@ public class CtoFormulaConverter {
     if (idx > 0) {
       idx = idx+1;
     } else {
-      idx = 2; // AG - IMPORTANT!!! We must start from 2 and
+      idx = VARIABLE_UNINITIALIZED; // AG - IMPORTANT!!! We must start from 2 and
       // not from 1, because this is an assignment,
       // so the SSA index must be fresh. If we use 1
       // here, we will have troubles later when
@@ -358,17 +356,20 @@ public class CtoFormulaConverter {
     return fmgr.makeVariable(var, idx);
   }
 
+  /** Returns the pointer variable belonging to a given IdExpression */
   private Formula makePointerVariable(IASTIdExpression expr, String function,
       SSAMapBuilder ssa) {
     String variableName = makePointerVariableName(expr, function, ssa);
     return makeVariable(variableName, ssa);
   }
 
+  /** Takes a (scoped) variable name and returns the pointer variable name. */
   private String makePointerMask(String scopedId, SSAMapBuilder ssa) {
     String pointerId = "*<" + scopedId + "," + ssa.getIndex(scopedId) + ">";
     return pointerId;
   }
 
+  /** Returns the pointer variable name corresponding to a given IdExpression */
   private String makePointerVariableName(IASTIdExpression expr,
       String function, SSAMapBuilder ssa) {
     String scopedId = scopedIfNecessary(expr, function);
@@ -376,7 +377,7 @@ public class CtoFormulaConverter {
   }
 
   private String makeMemoryLocationVariableName(String var) {
-    return "&" + var;
+    return MEMORY_ADDRESS_VARIABLE_PREFIX + var;
   }
 
   // name has to be scoped already
@@ -566,13 +567,8 @@ public class CtoFormulaConverter {
         if (init != null) {
           // initializer value present
 
-          if (isNondetVariable(varNameWithoutFunction)) {
-            log(Level.WARNING, getLogMessage("Ignoring initial value of special non-determinism variable " + var, edge));
-
-          } else {
-            Formula minit = buildTerm(init, function, ssa, constraints);
-            return makeAssignment(var, minit, ssa);
-          }
+          Formula minit = buildTerm(init, function, ssa, constraints);
+          return makeAssignment(var, minit, ssa);
         }
       }
       return fmgr.makeTrue();
@@ -756,11 +752,18 @@ public class CtoFormulaConverter {
     return f;
   }
 
+  /**
+   * Returns a list of all variable names representing memory locations in
+   * the SSAMap. These memory locations are those previously used.
+   *
+   * Stored memory locations are prefixed with
+   * {@link MEMORY_ADDRESS_VARIABLE_PREFIX}.
+   */
   private List<String> getAllMemoryLocationsFromSsaMap(SSAMapBuilder ssa) {
     List<String> memoryLocations = new LinkedList<String>();
     Set<String> ssaVariables = ssa.build().allVariables();
 
-    Pattern p = Pattern.compile("&.*");
+    Pattern p = Pattern.compile("^" + MEMORY_ADDRESS_VARIABLE_PREFIX + ".*");
 
     for (String variable : ssaVariables) {
       if (p.matcher(variable).matches()) {
@@ -897,16 +900,7 @@ public class CtoFormulaConverter {
         }
       }
 
-      String var = idExp.getName();
-
-      if (isNondetVariable(var)) {
-        // on every read access to special non-determininism variable use a fresh instance
-        return makeFreshVariable(NONDET_VARIABLE, ssa);
-
-      } else {
-        return makeVariable(scopedIfNecessary(idExp, function), ssa);
-      }
-
+      return makeVariable(scopedIfNecessary(idExp, function), ssa);
     }
 
     @Override
@@ -947,7 +941,7 @@ public class CtoFormulaConverter {
     public Formula visit(IASTStringLiteralExpression lexp) throws UnrecognizedCCodeException {
       // we create a string constant representing the given
       // string literal
-      String literal = lexp.getRawSignature();
+      String literal = lexp.getValue();
       Formula result = stringLitToFormula.get(literal);
 
       if (result == null) {
@@ -1159,19 +1153,23 @@ public class CtoFormulaConverter {
       }
     }
 
+    /**
+     * Returns a Formula representing the memory location of a given IdExpression.
+     * Ensures that the location is unique and not 0.
+     *
+     * @param function The scope of the variable.
+     */
     private Formula makeMemoryLocationVariable(IASTIdExpression exp, String function) {
       String addressVariable = makeMemoryLocationVariableName(scopedIfNecessary(exp, function));
 
       // a variable address is always initialized, not 0 and cannot change
       if (ssa.getIndex(addressVariable) == VARIABLE_UNSET) {
         List<String> oldMemoryLocations = getAllMemoryLocationsFromSsaMap(ssa);
+        Formula newMemoryLocation = makeConstant(addressVariable, ssa);
 
-        ssa.setIndex(addressVariable, VARIABLE_UNINITIALIZED + 1);
-        Formula newMemoryLocation = makeVariable(addressVariable, ssa);
-
-        // a memory address that is unknown is different from all previously known addresses
+        // a variable address that is unknown is different from all previously known addresses
         for (String memoryLocation : oldMemoryLocations) {
-          Formula oldMemoryLocation = makeVariable(memoryLocation, ssa);
+          Formula oldMemoryLocation = makeConstant(memoryLocation, ssa);
           Formula addressInequality = fmgr.makeNot(fmgr.makeEqual(newMemoryLocation, oldMemoryLocation));
 
           constraints.addConstraint(addressInequality);
@@ -1182,7 +1180,7 @@ public class CtoFormulaConverter {
         constraints.addConstraint(notZero);
       }
 
-      return makeVariable(addressVariable, ssa);
+      return makeConstant(addressVariable, ssa);
     }
 
     private Formula makeCompoundFormula(IASTBinaryExpression exp, Formula me1,
@@ -1339,23 +1337,22 @@ public class CtoFormulaConverter {
       // handle malloc
       IASTExpression fn = fexp.getFunctionNameExpression();
       if (fn instanceof IASTIdExpression) {
-        // TODO: cil allows sizeof(int) in malloc calls
         String fName = ((IASTIdExpression)fn).getName();
 
         if (memoryAllocationFunctions.contains(fName)) {
-          // TODO: for now all parameters are ignored
+          // for now all parameters are ignored
 
           List<String> memoryLocations = getAllMemoryLocationsFromSsaMap(ssa);
 
           String mallocVarName = makeFreshMallocVariableName();
-          Formula mallocVar = makeVariable(mallocVarName, ssa);
+          Formula mallocVar = makeConstant(mallocVarName, ssa);
 
           // we must distinguish between two cases:
           // either the result is 0 or it is different from all other memory locations
           // (m != 0) => for all memory locations n: m != n
           Formula ineq = fmgr.makeTrue();
           for (String ml : memoryLocations) {
-            Formula n = makeVariable(ml, ssa);
+            Formula n = makeConstant(ml, ssa);
 
             Formula notEqual = makeNotEqual(n, mallocVar);
             ineq = fmgr.makeAnd(notEqual, ineq);
@@ -1611,7 +1608,7 @@ public class CtoFormulaConverter {
 
       if (isKnownMemoryLocation(leftVarName)) {
         String leftMemLocationName = makeMemoryLocationVariableName(leftVarName);
-        Formula leftMemLocation = makeVariable(leftMemLocationName, ssa);
+        Formula leftMemLocation = makeConstant(leftMemLocationName, ssa);
 
         // update all pointers:
         // if a pointer is aliased to the assigned variable,
@@ -1620,20 +1617,20 @@ public class CtoFormulaConverter {
         List<String> pVarNames = getAllPointerVariablesFromSsaMap();
         Formula newLeftVar = leftVariable;
         for (String pVarName : pVarNames) {
-          // TODO no updates of now assigned values
-
           String varName = getVariableNameFromPointerVariable(pVarName);
-          Formula var = makeVariable(varName, ssa);
-          Formula oldPVar = makeVariable(pVarName, ssa);
-          makeFreshIndex(pVarName, ssa);
-          Formula newPVar = makeVariable(pVarName, ssa);
+          if (!varName.equals(leftVarName)) {
+            Formula var = makeVariable(varName, ssa);
+            Formula oldPVar = makeVariable(pVarName, ssa);
+            makeFreshIndex(pVarName, ssa);
+            Formula newPVar = makeVariable(pVarName, ssa);
 
-          Formula condition = fmgr.makeEqual(var, leftMemLocation);
-          Formula equivalence = fmgr.makeAssignment(newPVar, newLeftVar);
-          Formula update = fmgr.makeAssignment(newPVar, oldPVar);
+            Formula condition = fmgr.makeEqual(var, leftMemLocation);
+            Formula equivalence = fmgr.makeAssignment(newPVar, newLeftVar);
+            Formula update = fmgr.makeAssignment(newPVar, oldPVar);
 
-          Formula constraint = fmgr.makeIfThenElse(condition, equivalence, update);
-          constraints.addConstraint(constraint);
+            Formula constraint = fmgr.makeIfThenElse(condition, equivalence, update);
+            constraints.addConstraint(constraint);
+          }
         }
 
       }
@@ -1641,9 +1638,7 @@ public class CtoFormulaConverter {
       return assignmentFormula;
     }
 
-    /**
-     * Returns whether the address of a given variable has been used before.
-     */
+    /** Returns whether the address of a given variable has been used before. */
     boolean isKnownMemoryLocation(String varName) {
       List<String> memLocations = getAllMemoryLocationsFromSsaMap(ssa);
       String memVarName = makeMemoryLocationVariableName(varName);
@@ -1680,8 +1675,6 @@ public class CtoFormulaConverter {
             return true;
           }
         }
-
-        // TODO are there any other cases?
       }
 
       return false;
@@ -1714,19 +1707,16 @@ public class CtoFormulaConverter {
       return fmgr.makeOr(left, q);
     }
 
+    /** Returns a new variable name for every malloc call. */
     private String makeFreshMallocVariableName() {
-      // TODO: find a better way (without using the SSA map)
-      final String mallocVariableName = "#malloc";
-
-      int idx = ssa.getIndex(mallocVariableName);
+      int idx = ssa.getIndex(MALLOC_COUNTER_VARIABLE_NAME);
 
       if (idx == VARIABLE_UNSET) {
-        idx = 2;
+        idx = VARIABLE_UNINITIALIZED;
       }
 
-      ssa.setIndex(mallocVariableName, idx + 1);
-
-      return "&#" + idx;
+      ssa.setIndex(MALLOC_COUNTER_VARIABLE_NAME, idx + 1);
+      return MEMORY_ADDRESS_VARIABLE_PREFIX + "#" + idx;
     }
 
     /**
@@ -1760,30 +1750,22 @@ public class CtoFormulaConverter {
     }
 
     private String getVariableNameFromMemoryAddress(String memoryAddress) {
-      assert(memoryAddress.charAt(0) == '&');
+      assert(memoryAddress.startsWith(MEMORY_ADDRESS_VARIABLE_PREFIX));
 
-      return memoryAddress.substring(1);
+      return memoryAddress.substring(MEMORY_ADDRESS_VARIABLE_PREFIX.length());
     }
 
-    private boolean isPointerVariable(String variable) {
+    /**
+     * Returns whether the given variable name is a pointer variable name.
+     */
+    private boolean isPointerVariable(String variableName) {
       final Pattern pointerVariablePattern = Pattern.compile("\\*<.*>");
-      return pointerVariablePattern.matcher(variable).matches();
+      return pointerVariablePattern.matcher(variableName).matches();
     }
 
-    private List<String> getAllVariableNamesFromSSAMap() {
-      Set<String> allEntries = ssa.build().allVariables();
-
-      List<String> allVariables = new LinkedList<String>();
-      Pattern p = Pattern.compile("[a-zA-Z].*");
-      for (String var : allEntries) {
-        if (p.matcher(var).matches()) {
-          allVariables.add(var);
-        }
-      }
-
-      return allVariables;
-    }
-
+    /**
+     * Returns a list of all pointer variables stored in the SSAMap.
+     */
     private List<String> getAllPointerVariablesFromSsaMap() {
       List<String> pointerVariables = new LinkedList<String>();
       Set<String> ssaVariables = ssa.build().allVariables();
@@ -1818,12 +1800,7 @@ public class CtoFormulaConverter {
 
     @Override
     public Formula visit(IASTIdExpression idExp) {
-      String var = idExp.getName();
-
-      if (isNondetVariable(var)) {
-        log(Level.WARNING, "Assignment to special non-determinism variable" + var + "will be ignored.");
-      }
-      var = scopedIfNecessary(idExp, function);
+      String var = scopedIfNecessary(idExp, function);
       return makeFreshVariable(var, ssa);
     }
 

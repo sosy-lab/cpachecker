@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -49,16 +49,18 @@ import com.google.common.collect.Iterables;
 public class LoopPartitioning extends PartitioningHeuristic {
 
   private Map<CFANode, Set<CFANode>> loopHeaderToLoopBody;
+  private final CFA cfa;
 
-  public LoopPartitioning(LogManager pLogger) {
-    this.loopHeaderToLoopBody = null;
+  public LoopPartitioning(LogManager pLogger, CFA pCfa) {
+    loopHeaderToLoopBody = null;
+    cfa = pCfa;
   }
 
   private void initLoopMap() {
     loopHeaderToLoopBody = new HashMap<CFANode, Set<CFANode>>();
-    if(CFACreator.loops != null) {
-      for(String functionName : CFACreator.loops.keySet()) {
-        for(Loop loop : CFACreator.loops.get(functionName)) {
+    if(cfa.getLoopStructure().isPresent()) {
+      for(String functionName : cfa.getLoopStructure().get().keySet()) {
+        for(Loop loop : cfa.getLoopStructure().get().get(functionName)) {
           if(loop.getLoopHeads().size() == 1) {
             //currently only loops with single loop heads supported
             loopHeaderToLoopBody.put(Iterables.getOnlyElement(loop.getLoopHeads()), loop.getLoopNodes());
