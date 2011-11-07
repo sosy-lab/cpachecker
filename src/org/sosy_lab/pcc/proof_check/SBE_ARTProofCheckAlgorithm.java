@@ -149,9 +149,8 @@ public class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
         operation = pScan.next();
         // check for correct operation
         String createdOperation = handler.getEdgeOperation(cfaEdge);
-        // TODO check for correctness with SSA indices
         if (createdOperation == null
-            || !handler.isSameFormulaWithoutSSAIndicies(createdOperation,
+            || !handler.isSameFormulaWithNormalizedIndices(createdOperation,
                 operation)) { return PCCCheckResult.InvalidART; }
 
         // check for correct abstraction type of target node
@@ -244,7 +243,9 @@ public class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
               result =
                   buildAndCheckFormula(pNode.getAbstraction(),
                       pNode.getEdges()[0].getOperation(), art.get(target)
-                          .getAbstraction());
+                          .getAbstraction(),
+                      pNode.getEdges()[0].getCorrespondingCFAEdge()
+                          .getEdgeType() == CFAEdgeType.AssumeEdge);
             } else {// target node does not contain abstraction -> use target nodes children
               result =
                   buildAndCheckFormulaeForNonAbstractionTarget(pNode,
@@ -276,7 +277,8 @@ public class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
               intermediateRes =
                   buildAndCheckFormula(pNode.getAbstraction(),
                       edges[i].getOperation(), art.get(edges[i].getTarget())
-                          .getAbstraction());
+                          .getAbstraction(), edges[i].getCorrespondingCFAEdge()
+                          .getEdgeType() == CFAEdgeType.AssumeEdge);
             }
             if (intermediateRes != PCCCheckResult.Success) { return intermediateRes; }
             //add target ART element if not checked yet
@@ -305,8 +307,8 @@ public class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
       toCheck.add(target.getEdges());
     }
 
-    ArrayList<Pair<ARTNode, String>> targets =
-        new ArrayList<Pair<ARTNode, String>>();
+    ArrayList<Pair<ARTNode, ARTEdge>> targets =
+        new ArrayList<Pair<ARTNode, ARTEdge>>();
     ARTEdge[] edges;
 
     // insert all target nodes and their operation
@@ -319,19 +321,21 @@ public class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
             toCheck.add(target.getEdges());
           }
         } else {
-          targets
-              .add(new Pair<ARTNode, String>(target, edges[i].getOperation()));
+          targets.add(new Pair<ARTNode, ARTEdge>(target, edges[i]));
         }
       }
     }
     // check all targets
     PCCCheckResult intermediateRes;
-    Pair<ARTNode, String> current;
+    Pair<ARTNode, ARTEdge> current;
     for (int i = 0; i < targets.size(); i++) {
       current = targets.get(i);
       intermediateRes =
-          buildAndCheckFormula(pSource.getAbstraction(), current.getSecond(),
-              current.getFirst().getAbstraction());
+          buildAndCheckFormula(
+              pSource.getAbstraction(),
+              current.getSecond().getOperation(),
+              current.getFirst().getAbstraction(),
+              current.getSecond().getCorrespondingCFAEdge().getEdgeType() == CFAEdgeType.AssumeEdge);
       if (intermediateRes != PCCCheckResult.Success) { return intermediateRes; }
     }
     return PCCCheckResult.Success;
@@ -363,7 +367,13 @@ public class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
   }
 
   private PCCCheckResult buildAndCheckFormula(String pAbstractionLeft,
-      String pOperation, String pAbstractionRight) {
+      String pOperation, String pAbstractionRight, boolean pAssume) {
+    // check if operation fits to left abstraction
+    if (handler.operationFitsToLeftAbstraction(pAbstractionLeft, pOperation,
+        pAssume)) { return PCCCheckResult.InvalidEdge; }
+    // check if right abstraction fits to left abstraction and operation
+    if (handler.rightAbstractionFitsToOperationAndLeftAbstraction(
+        pAbstractionLeft, pOperation, pAbstractionRight)) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
     Formula f =
         handler.buildEdgeInvariant(pAbstractionLeft, pOperation,
             pAbstractionRight);

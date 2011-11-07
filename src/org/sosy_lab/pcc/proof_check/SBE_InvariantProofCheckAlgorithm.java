@@ -91,7 +91,8 @@ public class SBE_InvariantProofCheckAlgorithm extends
 
         nodeSourceOpEdge = allCFANodes.get(sourceEdge);
         nodeT = reachableCFANodes.get(target);
-        if (nodeS == null || nodeSourceOpEdge == null || nodeT == null) { return PCCCheckResult.UnknownCFAEdge; }
+        if (nodeS == null || allInvariantFormulaeFalse(source)
+            || nodeSourceOpEdge == null || nodeT == null) { return PCCCheckResult.UnknownCFAEdge; }
         // get all operations with respective SSA indices
         numOps = pScan.nextInt();
         if (numOps < 1) { return PCCCheckResult.UnknownCFAEdge; }
@@ -285,10 +286,10 @@ public class SBE_InvariantProofCheckAlgorithm extends
     //check operations
     for (int i = 0; i < operations.length; i++) {
       if (operations[i] == null) {
-        if (!handler.isSameFormulaWithoutSSAIndicies("", builtOp)) { return PCCCheckResult.InvalidOperation; }
+        if (!handler.isSameFormulaWithNormalizedIndices("", builtOp)) { return PCCCheckResult.InvalidOperation; }
       } else {
-        if (!handler.isSameFormulaWithoutSSAIndicies(operations[i].toString(),
-            builtOp)) { return PCCCheckResult.InvalidOperation; }
+        if (!handler.isSameFormulaWithNormalizedIndices(
+            operations[i].toString(), builtOp)) { return PCCCheckResult.InvalidOperation; }
       }
     }
     return null;
@@ -349,8 +350,8 @@ public class SBE_InvariantProofCheckAlgorithm extends
       // treat every leaving edge
       for (int i = 0; i < current.getNumLeavingEdges(); i++) {
         edge = current.getLeavingEdge(i);
-        // if it is an abstraction node build and check edge
-        if (isSource) {
+        // if it is an abstraction node and abstraction is not false, build and check edge
+        if (isSource && !allInvariantFormulaeFalse(current.getNodeNumber())) {
           intermediateRes =
               buildLeavingEdgesAndCheck(current.getNodeNumber(), edge);
           if (intermediateRes != PCCCheckResult.Success) { return intermediateRes; }
@@ -413,7 +414,7 @@ public class SBE_InvariantProofCheckAlgorithm extends
     // iterate over all edges
     int source, sourceEdge, target;
     Vector<Pair<Formula, int[]>> invariantS, invariantT;
-    Formula edgeFormula, targetFormula, proof, left, completeOperation;
+    Formula proof, left, right, completeOperation;
     Formula[] edgeFormulae;
     CFAEdge cfaEdge;
     boolean successfulEdgeProof, successfulAbstraction;
@@ -437,40 +438,59 @@ public class SBE_InvariantProofCheckAlgorithm extends
       for (int i = 0; i < invariantS.size(); i++) {
         // iterate over all operations
         successfulAbstraction = false;
+        // build left formula
+        left =
+            addStackInvariant(invariantS.get(i).getFirst(), invariantS.get(i)
+                .getSecond(), true, source);
         for (int k = 0; k < edgeFormulae.length; k++) {
-          // TODO check if operation fits to source abstraction (true->
+          if (!handler.operationFitsToLeftAbstraction(invariantS.get(i)
+              .getFirst().toString(), edgeFormulae[k].toString(),
+              cfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge)) {
+            continue;
+          }
+          // add stack operation to edge formula
+          if (cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+            completeOperation =
+                addStackOperation(edgeFormulae[k], invariantS.get(i)
+                    .getSecond(), true,
+                    cfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge,
+                    cfaEdge.getSuccessor().getLeavingSummaryEdge()
+                        .getSuccessor().getNodeNumber());
+          } else {
+            completeOperation =
+                addStackOperation(edgeFormulae[k], invariantS.get(i)
+                    .getSecond(), false,
+                    cfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge, -1);
+          }
           successfulEdgeProof = false;
           // iterate over all target abstraction at least one item
           for (int j = 0; !successfulEdgeProof && j < invariantT.size(); j++) {
-
-            // build left formula
-            left =
-                addStackInvariant(invariantS.get(i).getFirst(),
-                    invariantS.get(i).getSecond(), true, source);
-            // add stack operation to edge formula
-            if (cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-              completeOperation =
-                  addStackOperation(edgeFormula, invariantS.get(i).getSecond(),
-                      true,
-                      cfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge,
-                      cfaEdge.getSuccessor().getLeavingSummaryEdge()
-                          .getSuccessor().getNodeNumber());
-            } else {
-              completeOperation =
-                  addStackOperation(edgeFormula, invariantS.get(i).getSecond(),
-                      false,
-                      cfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge,
-                      -1);
+            // check if right abstraction fits to left abstraction and operation
+            if (!handler.rightAbstractionFitsToOperationAndLeftAbstraction(
+                invariantS.get(i).getFirst().toString(),
+                edgeFormulae[k].toString(), invariantT.get(j).getFirst()
+                    .toString())) {
+              continue;
             }
-            if (left == null || completeOperation == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
+
+            // build right formula
+            right =
+                addStackInvariant(invariantT.get(j).getFirst(),
+                    invariantT.get(j).getSecond(), false, target);
+            if (left == null || completeOperation == null || right == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
             // create proof formula
-            proof =
-                handler.buildEdgeInvariant(left, completeOperation,
-                    targetFormula);
-            if (proof == null || !proof.isFalse()) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
+            proof = handler.buildEdgeInvariant(left, completeOperation, right);
+            if (proof == null || !proof.isFalse()) {
+              return PCCCheckResult.InvalidFormulaSpecificationInProof;
+            } else {
+              successfulEdgeProof = true;
+            }
           }
-          if (!successfulEdgeProof) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
+          if (successfulEdgeProof) {
+            successfulAbstraction = true;
+          }
         }
+        if (!successfulAbstraction) { return PCCCheckResult.InvalidART; }
       }
     }
     return PCCCheckResult.Success;
