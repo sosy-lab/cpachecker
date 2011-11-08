@@ -59,6 +59,21 @@ public class IASTIntegerLiteralExpression extends IASTLiteralExpression {
 
   @Override
   public String toASTString(String pPrefix) {
-    return pPrefix + value.toString();
+    String suffix = "";
+
+    IType iType = getExpressionType();
+    if (iType instanceof IASTSimpleDeclSpecifier) {
+      IASTSimpleDeclSpecifier type = (IASTSimpleDeclSpecifier) iType;
+      if (type.isUnsigned()) {
+        suffix += "U";
+      }
+      if (type.isLong()) {
+        suffix += "L";
+      } else if (type.isLongLong()) {
+        suffix += "LL";
+      }
+    }
+
+    return pPrefix + value.toString() + suffix;
   }
 }
