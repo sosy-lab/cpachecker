@@ -28,15 +28,15 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
-
 public class FunctionReturnEdge extends AbstractCFAEdge {
 
   private final CallToReturnEdge summaryEdge;
 
-  public FunctionReturnEdge(String rawStatement, int lineNumber,
-      CFAFunctionExitNode predecessor, CFANode successor,
+  public FunctionReturnEdge(String pRawStatement, int pLineNumber,
+      CFAFunctionExitNode pPredecessor, CFANode pSuccessor,
       CallToReturnEdge pSummaryEdge) {
-    super(rawStatement, lineNumber, predecessor, successor);
+
+    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
     summaryEdge = pSummaryEdge;
   }
 

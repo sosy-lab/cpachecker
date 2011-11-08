@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel;
 
-public enum CFAEdgeType
-{
+public enum CFAEdgeType {
     BlankEdge,
     AssumeEdge,
     StatementEdge,
