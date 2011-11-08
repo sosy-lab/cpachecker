@@ -1070,6 +1070,13 @@ class ASTConverter {
       throw new CFAGenerationRuntimeException("Unknown basic type " + dd.getType(), d);
     }
 
+    if ((dd.isShort() && dd.isLong())
+        || (dd.isShort() && dd.isLongLong())
+        || (dd.isLong() && dd.isLongLong())
+        || (dd.isSigned() && dd.isUnsigned())) {
+      throw new CFAGenerationRuntimeException("Illegal combination of type identifiers", d);
+    }
+
     return new IASTSimpleDeclSpecifier(dd.isConst(), dd.isVolatile(), type,
         dd.isLong(), dd.isShort(), dd.isSigned(), d.isUnsigned(),
         dd.isComplex(), dd.isImaginary(), dd.isLongLong());
@@ -1270,6 +1277,13 @@ class ASTConverter {
           break;
         default:
           throw new CFAGenerationRuntimeException("Unknown basic type " + t.getType());
+        }
+
+        if ((c.isShort() && c.isLong())
+            || (c.isShort() && c.isLongLong())
+            || (c.isLong() && c.isLongLong())
+            || (c.isSigned() && c.isUnsigned())) {
+          throw new CFAGenerationRuntimeException("Illegal combination of type identifiers");
         }
 
         // TODO why is there no isConst() and isVolatile() here?
