@@ -72,11 +72,11 @@ public final class DOTBuilder {
 
     JOINER_ON_NEWLINE.appendTo(sb, nodeWriter);
     sb.append('\n');
-    sb.append("node [shape=\"circle\"];\n");
+    sb.append("node [shape=\"circle\"]\n");
 
     for (CFAFunctionDefinitionNode fnode : cfasMapList) {
       sb.append("subgraph cluster_" + fnode.getFunctionName() + " {\n");
-      sb.append("label=\"" + fnode.getFunctionName() + "()\";\n");
+      sb.append("label=\"" + fnode.getFunctionName() + "()\"\n");
       JOINER_ON_NEWLINE.appendTo(sb, subGraphs.get(fnode.getFunctionName()));
       sb.append("}\n");
     }

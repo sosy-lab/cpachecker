@@ -173,12 +173,19 @@ public class ARTUtils {
       processed.add(currentElement);
 
       if(!nodesList.contains(currentElement.getElementId())){
-        String color = determineColor(currentElement);
 
         CFANode loc = currentElement.retrieveLocationElement().getLocationNode();
         String label = ((loc == null) ? 0 : loc.getNodeNumber()) + "000" + currentElement.getElementId();
 
-        sb.append("node [shape=\"diamond\" color=\"" + color + "\" style=\"filled\" label=\"" + label +"\" id=\"" + currentElement.getElementId() + "\"] " + currentElement.getElementId() + "\n");
+        sb.append(currentElement.getElementId());
+        sb.append(" [");
+        sb.append("shape=\"diamond\" ");
+        sb.append("color=\"" + determineColor(currentElement) + "\" ");
+        sb.append("style=\"filled\" ");
+        sb.append("label=\"" + label +"\" ");
+        sb.append("id=\"" + currentElement.getElementId() + "\"");
+        sb.append("]");
+        sb.append("\n");
 
         nodesList.add(currentElement.getElementId());
       }
