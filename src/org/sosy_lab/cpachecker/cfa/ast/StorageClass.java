@@ -36,6 +36,9 @@ public enum StorageClass {
   ;
 
   public String toASTString() {
-    return name().toLowerCase();
+    if (equals(AUTO)) {
+      return "";
+    }
+    return name().toLowerCase() + " ";
   }
 }

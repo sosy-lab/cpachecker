@@ -87,11 +87,12 @@ public final class IASTDeclaration extends IASTSimpleDeclaration {
 
     lASTString.append(pPrefix);
     lASTString.append(storageClass.toASTString());
-    lASTString.append(" ");
     lASTString.append(getDeclSpecifier().toASTString());
 
     if (getName() != null
-        && !(getDeclSpecifier() instanceof IASTFunctionTypeSpecifier)) {
+        && !(getDeclSpecifier() instanceof IASTFunctionTypeSpecifier)
+        && !(getDeclSpecifier() instanceof IASTPointerTypeSpecifier
+            && ((IASTPointerTypeSpecifier)getDeclSpecifier()).getType() instanceof IASTFunctionTypeSpecifier)) {
       lASTString.append(getName());
     }
 
