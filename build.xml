@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project basedir="." default="build" name="CPAchecker">
-    <property name="version" value="trunk"/> <!-- change here for a release -->
+    <property name="cpatiger-version" value="branch"/> <!-- change here for a release -->
 
     <property environment="env"/>
     <property name="debuglevel" value="source,lines,vars"/>
@@ -74,22 +74,22 @@
         <echo message="Options collected." level="info"/>
     </target>
 
-    <target description="Make a distributable release" depends="build,jar,zip" name="dist"/>
+    <target description="Make a distributable release" depends="build,cpatiger-jar,cpatiger-zip" name="cpatiger-dist"/>
 
-    <target name="jar" depends="build">
+    <target name="cpatiger-jar" depends="build">
         <jar basedir="bin/" includes="**/*.class" destfile="cpatiger.jar"
                 whenmanifestonly="fail">
             <manifest>
                 <attribute name="Implementation-Title" value="CPAtiger"/>
-                <attribute name="Implementation-Version" value="${version}"/>
+                <attribute name="Implementation-Version" value="${cpatiger-version}"/>
                 <attribute name="Implementation-URL" value="http://cpachecker.sosy-lab.org"/>
                 <attribute name="Main-Class" value="org.sosy_lab.cpachecker.fshell.Main"/>
              </manifest>
         </jar>
     </target>
 
-    <target name="zip" depends="jar">
-        <zip destfile="CPAtiger-${version}.zip" whenempty="fail">
+    <target name="cpatiger-zip" depends="cpatiger-jar">
+        <zip destfile="CPAtiger-${cpatiger-version}.zip" whenempty="fail">
             <fileset dir="." includes="config/** doc/** script/** cpatiger.jar *.txt"/>
             <fileset dir="." includes="lib/**" excludes="lib/build-only/** lib/native/source/**"/>
         </zip>
