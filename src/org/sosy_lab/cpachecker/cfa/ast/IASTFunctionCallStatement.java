@@ -50,7 +50,7 @@ public final class IASTFunctionCallStatement extends IASTStatement implements IA
   }
 
   @Override
-  public String toASTString() {
-    return functionCall.toASTString() + ";";
+  public String toASTString(String pPrefix) {
+    return pPrefix + functionCall.toASTString() + ";";
   }
 }

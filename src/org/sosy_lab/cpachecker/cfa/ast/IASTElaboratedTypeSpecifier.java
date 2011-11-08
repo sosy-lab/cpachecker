@@ -54,10 +54,10 @@ public final class IASTElaboratedTypeSpecifier extends IType {
       lASTString.append("volatile ");
     }
 
-    lASTString.append(kind.name().toLowerCase());
+    lASTString.append(kind.toASTString());
+    lASTString.append(name);
     lASTString.append(" ");
 
-    lASTString.append(name);
     return lASTString.toString();
   }
 
@@ -65,5 +65,9 @@ public final class IASTElaboratedTypeSpecifier extends IType {
     ENUM,
     STRUCT,
     UNION;
+
+    public String toASTString() {
+      return name().toLowerCase() + " ";
+    }
   }
 }

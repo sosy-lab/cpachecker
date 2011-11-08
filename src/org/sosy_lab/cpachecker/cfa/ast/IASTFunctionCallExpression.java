@@ -71,9 +71,10 @@ public class IASTFunctionCallExpression extends IASTRightHandSide {
   }
 
   @Override
-  public String toASTString() {
+  public String toASTString(String pPrefix) {
     StringBuilder lASTString = new StringBuilder();
 
+    lASTString.append(pPrefix);
     lASTString.append(functionName.toASTString());
     lASTString.append("(");
     lASTString.append(Joiner.on(", ").join(new ASTStringIterable(parameters)));

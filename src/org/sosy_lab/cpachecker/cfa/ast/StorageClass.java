@@ -35,4 +35,7 @@ public enum StorageClass {
   TYPEDEF,
   ;
 
+  public String toASTString() {
+    return name().toLowerCase();
+  }
 }

@@ -64,9 +64,9 @@ public final class IASTEnumerationSpecifier extends IType {
     lASTString.append("enum ");
     lASTString.append(name);
 
-    lASTString.append(" {");
-    lASTString.append(Joiner.on(", ").join(new ASTStringIterable(enumerators)));
-    lASTString.append("}");
+    lASTString.append(" {\n  ");
+    lASTString.append(Joiner.on(",\n  ").join(new ASTStringIterable(enumerators)));
+    lASTString.append("} ");
 
     return lASTString.toString();
   }
@@ -96,8 +96,9 @@ public final class IASTEnumerationSpecifier extends IType {
     }
 
     @Override
-    public String toASTString() {
-      return getName() + (hasValue() ? " = " + String.valueOf(value) : "");
+    public String toASTString(String pPrefix) {
+      return pPrefix + getName()
+          + (hasValue() ? " = " + String.valueOf(value) : "");
     }
   }
 }

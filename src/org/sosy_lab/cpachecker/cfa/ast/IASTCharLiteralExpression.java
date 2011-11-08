@@ -53,7 +53,7 @@ public class IASTCharLiteralExpression extends IASTLiteralExpression {
   }
 
   @Override
-  public String toASTString() {
-    return String.valueOf(character);
+  public String toASTString(String pPrefix) {
+    return pPrefix + String.valueOf(character);
   }
 }

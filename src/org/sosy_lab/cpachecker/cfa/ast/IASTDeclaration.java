@@ -82,15 +82,16 @@ public final class IASTDeclaration extends IASTSimpleDeclaration {
   }
 
   @Override
-  public String toASTString() {
+  public String toASTString(String pPrefix) {
     StringBuilder lASTString = new StringBuilder();
 
-    lASTString.append(storageClass.toString().toLowerCase());
+    lASTString.append(pPrefix);
+    lASTString.append(storageClass.toASTString());
     lASTString.append(" ");
     lASTString.append(getDeclSpecifier().toASTString());
 
-    if (getName() != null) {
-      lASTString.append(" ");
+    if (getName() != null
+        && !(getDeclSpecifier() instanceof IASTFunctionTypeSpecifier)) {
       lASTString.append(getName());
     }
 

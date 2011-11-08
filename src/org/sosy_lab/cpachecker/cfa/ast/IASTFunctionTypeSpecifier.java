@@ -82,16 +82,18 @@ public class IASTFunctionTypeSpecifier extends IType {
     }
 
     lASTString.append(returnType.toASTString());
-    lASTString.append(" ");
 
     if (name != null) {
       lASTString.append(name);
-      lASTString.append(" ");
     }
 
     lASTString.append("(");
-    lASTString.append(Joiner.on(", ").join(new ASTStringIterable(parameters)));
-    lASTString.append(")");
+    if (parameters.isEmpty()) {
+      lASTString.append("void");
+    } else {
+      lASTString.append(Joiner.on(", ").join(new ASTStringIterable(parameters)));
+    }
+    lASTString.append(") ");
 
     return lASTString.toString();
   }

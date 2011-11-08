@@ -44,12 +44,13 @@ public class IASTInitializerList extends IASTInitializer {
   }
 
   @Override
-  public String toASTString() {
+  public String toASTString(String pPrefix) {
     StringBuilder lASTString = new StringBuilder();
 
-    lASTString.append("{");
+    lASTString.append(pPrefix);
+    lASTString.append("{ ");
     lASTString.append(Joiner.on(", ").join(new ASTStringIterable(initializerList)));
-    lASTString.append("}");
+    lASTString.append(" }");
 
     return lASTString.toString();
   }
