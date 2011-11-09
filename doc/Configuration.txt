@@ -3,7 +3,7 @@ CPAchecker configuration
 
 Configuration of CPAchecker is done via command-line arguments and
 configuration files in the syntax of Java properties files.
-Standard configuration files with explanations can be found in test/config/.
+Standard configuration files with explanations can be found in config/.
 
 
 Command-line options
@@ -28,10 +28,10 @@ following arguments (see below to learn what the options mean):
 -rand           sets "analysis.traversal.order = RAND"
 -setprop <KEY>=<VALUE>	sets any option: "KEY = VALUE"
 
-The arguments "-config test/config/CONFIGFILE.properties" can be
+The arguments "-config config/CONFIGFILE.properties" can be
 abbreviated to "-CONFIG". In other words, if CPAchecker finds an
 unknown command-line option, it checks if a file with this name
-and the ending ".properties" exists in the directory "test/config"
+and the ending ".properties" exists in the directory "config"
 and uses it as the configuration file.
 
 Either "-help", "-config" or "-cpas" has to be specified.
@@ -70,7 +70,7 @@ A more complex example:
 cpa = cpa.art.ARTCPA art
 art.cpa = cpa.composite.CompositeCPA composite
 composite.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.automaton.ObserverAutomatonCPA ErrorLocationAutomaton, cpa.predicate.PredicateCPA
-ErrorLocationAutomaton.cpa.automaton.inputFile = test/config/automata/ErrorLocationAutomaton.txt
+ErrorLocationAutomaton.cpa.automaton.inputFile = config/specification/ErrorLocation.spc
 
 Note that instead of manually specifying an ObserverAutomatonCPA, you can
 use the option "specification". The following example is identical to the last one:
@@ -78,7 +78,7 @@ use the option "specification". The following example is identical to the last o
 cpa = cpa.art.ARTCPA art
 art.cpa = cpa.composite.CompositeCPA composite
 composite.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.predicate.PredicateCPA
-specification = test/config/automata/ErrorLocationAutomaton.txt
+specification = config/specification/ErrorLocation.spc
 
 
 Valid configuration options and default values

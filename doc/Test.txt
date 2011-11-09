@@ -5,7 +5,7 @@ Running Unit Tests
 1. Build CPAchecker as described above.
 2. You need ant-junit.jar (on Debian/Ubuntu included in the package ant-optional).
 3. Run "ant tests" from the project root directory. The output (including the test
-   results) will be in test/output/.
+   results) will be in output/.
 
 
 Testing Guidelines

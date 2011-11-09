@@ -90,13 +90,13 @@
 	
     <target name="zip" depends="jar">
         <zip destfile="CPAchecker-${version}.zip" whenempty="fail">
-	    <fileset dir="." includes="doc/** scripts/** cpachecker.jar *.txt" excludes="INSTALL.txt"/>
+	    <fileset dir="." includes="config/** doc/** scripts/** cpachecker.jar *.txt"/>
 	    <fileset dir="." includes="lib/**" excludes="lib/build-only/** lib/native/source/**"/>
 	</zip>
     </target>
 
     <target description="Run all JUnit tests" depends="build" name="tests">
-        <property name="test.report.dir" value="test/output"/>
+        <property name="test.report.dir" value="output"/>
         <mkdir dir="${test.report.dir}"/>
         <junit fork="true" printSummary="true" showOutput="false">
             <assertions>

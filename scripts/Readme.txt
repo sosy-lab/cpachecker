@@ -7,7 +7,7 @@ Supplied scripts:
 - cpa.sh: to start CPAchecker on Linux and similar platforms
           (see HowTo.txt)
 - report-generator.py: for building an interactive HTML report of a CPAchecker run
-                       (set HowToBuildReport.txt)
+                       (see doc/BuildReport.txt)
 - table-generator.py: for creating tables that contain the output of several benchmark.py runs.
                  as params you can either give names of result-files 
                  or run the script without params (result-files will be searced in test/results/)
