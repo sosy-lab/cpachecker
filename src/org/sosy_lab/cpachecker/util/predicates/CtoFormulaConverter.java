@@ -731,11 +731,6 @@ public class CtoFormulaConverter {
     }
   }
 
-  private boolean isPointerDereferencing(IASTExpression e) {
-    return (e instanceof IASTUnaryExpression)
-        && ((IASTUnaryExpression) e).getOperator() == UnaryOperator.STAR;
-  }
-
   private Formula toBooleanFormula(Formula f) {
     // If this is not a predicate, make it a predicate by adding a "!= 0"
     if (!fmgr.isBoolean(f)) {
@@ -1210,6 +1205,11 @@ public class CtoFormulaConverter {
       }
     }
 
+    private boolean isPointerDereferencing(IASTExpression e) {
+      return (e instanceof IASTUnaryExpression)
+          && ((IASTUnaryExpression) e).getOperator() == UnaryOperator.STAR;
+    }
+
     private Formula getExprFormula(IASTExpression exp)
         throws UnrecognizedCCodeException {
       if (isPointerDereferencing(exp)) {
@@ -1646,7 +1646,7 @@ public class CtoFormulaConverter {
     }
 
     /** Returns whether the address of a given variable has been used before. */
-    boolean isKnownMemoryLocation(String varName) {
+    private boolean isKnownMemoryLocation(String varName) {
       assert varName != null;
       List<String> memLocations = getAllMemoryLocationsFromSsaMap(ssa);
       String memVarName = makeMemoryLocationVariableName(varName);
@@ -1757,8 +1757,7 @@ public class CtoFormulaConverter {
      * Returns whether the given variable name is a pointer variable name.
      */
     private boolean isPointerVariable(String variableName) {
-      final Pattern pointerVariablePattern = Pattern.compile("\\*<.*>");
-      return pointerVariablePattern.matcher(variableName).matches();
+      return variableName.matches("\\*<.*>");
     }
 
     /**
