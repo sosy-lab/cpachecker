@@ -1411,7 +1411,8 @@ public class CtoFormulaConverter {
 
     /**
      * An indirect assignment does not change the value of the variable on the
-     * left hand side. Instead it changes the value aliased on the left hand side.
+     * left hand side. Instead it changes the value stored in the memory location
+     * aliased on the left hand side.
      */
     private Formula handleIndirectAssignment(IASTAssignment pAssignment)
         throws UnrecognizedCCodeException {
@@ -1555,87 +1556,11 @@ public class CtoFormulaConverter {
       Formula ri = assignment.getRightHandSide().accept(this);
       Formula rightVariable = toNumericFormula(ri);
       Formula leftVariable = buildLvalueTerm(assignment.getLeftHandSide(), function, ssa, constraints);
-      Formula assignmentFormula = fmgr.makeAssignment(leftVariable, rightVariable);
+      Formula firstLevelFormula = fmgr.makeAssignment(leftVariable, rightVariable);
 
-      // assignment (second level)
-      if (isVariable(right)) {
-        // C statement like: s1 = s2;
+      Formula secondLevelFormula = buildDirectSecondLevelAssignment(left, right);
 
-        // include aliases if the left or right side is a pointer
-        IASTIdExpression rIdExp = (IASTIdExpression) right;
-        if (maybePointer(left) || maybePointer(rIdExp)) {
-          Formula l = makePointerVariable(left, function, ssa);
-          Formula r = makePointerVariable(rIdExp, function, ssa);
-          Formula pForm = fmgr.makeAssignment(l, r);
-          assignmentFormula = fmgr.makeAnd(assignmentFormula, pForm);
-        }
-
-      } else if (isPointerDereferencing(right)) {
-        // C statement like: s1 = *s2;
-        List<String> pVars = getAllPointerVariablesFromSsaMap();
-
-        String lVarName = scopedIfNecessary(left, function);
-        Formula lVar = makeVariable(lVarName, ssa);
-
-        String lPVarName = makePointerVariableName(left, function, ssa);
-        makeFreshIndex(lPVarName, ssa);
-        removeOldPointerVariablesFromSsaMap(lPVarName);
-        Formula lPVar = makePointerVariable(left, function, ssa);
-
-        IASTIdExpression rIdExpr = (IASTIdExpression) ((IASTUnaryExpression) right).getOperand();
-        Formula rPVar = makePointerVariable(rIdExpr, function, ssa);
-
-        // the dealiased address of the right hand side may be a pointer itself.
-        // to ensure tracking, we need to set the left side
-        // equal to the dealiased right side or update the pointer
-        // r is the right hand side variable, l is the left hand side variable
-        // ∀p ∈ maybePointer: (p = *r) ⇒ (l = p ∧ *l = *p)
-        for (String pVarName : pVars) {
-          String varName = getVariableNameFromPointerVariable(pVarName);
-          if(!varName.equals(lVarName)) {
-
-            Formula var = makeVariable(varName, ssa);
-            Formula pVar = makeVariable(pVarName, ssa);
-
-            Formula p = fmgr.makeEqual(rPVar, var);
-
-            Formula dirEq = fmgr.makeEqual(lVar, var);
-            Formula indirEq = fmgr.makeEqual(lPVar, pVar);
-            Formula consequence = fmgr.makeAnd(dirEq, indirEq);
-
-            Formula constraint = makeImplication(p, consequence);
-
-            constraints.addConstraint(constraint);
-          }
-        }
-
-      } else if (isMemoryLocation(right)) {
-        // s = malloc()
-        // has been handled already
-
-        // s = &x
-        // need to update the pointer
-        if (right instanceof IASTUnaryExpression
-            && ((IASTUnaryExpression) right).getOperator() == UnaryOperator.AMPER){
-
-          IASTExpression rOperand = ((IASTUnaryExpression) right).getOperand();
-          if (rOperand instanceof IASTIdExpression) {
-            String rVarName = scopedIfNecessary((IASTIdExpression) rOperand, function);
-            Formula rVar = makeVariable(rVarName, ssa);
-
-            Formula lPVar = makePointerVariable(left, function, ssa);
-
-            Formula pointerUpdate = fmgr.makeAssignment(lPVar, rVar);
-
-            assignmentFormula = fmgr.makeAnd(assignmentFormula, pointerUpdate);
-          }
-        }
-
-      } else {
-        // s = 1
-        // s = someFunction()
-        // s = a + b
-      }
+      Formula assignmentFormula = fmgr.makeAnd(firstLevelFormula, secondLevelFormula);
 
       // updates
       if (isKnownMemoryLocation(leftVarName)) {
@@ -1666,8 +1591,100 @@ public class CtoFormulaConverter {
         }
 
       }
-
       return assignmentFormula;
+    }
+
+    private Formula buildDirectSecondLevelAssignment(IASTIdExpression left, IASTRightHandSide right) {
+      if (isVariable(right)) {
+        // C statement like: s1 = s2;
+
+        // include aliases if the left or right side may be a pointer a pointer
+        IASTIdExpression rIdExp = (IASTIdExpression) right;
+        if (maybePointer(left) || maybePointer(rIdExp)) {
+          // we assume that either the left or the right hand side is a pointer
+          // so we add the equality: *l = *r
+          Formula l = makePointerVariable(left, function, ssa);
+          Formula r = makePointerVariable(rIdExp, function, ssa);
+          Formula pForm = fmgr.makeAssignment(l, r);
+          return pForm;
+
+        } else {
+          // we can assume, that no pointers are affected in this assignment
+          return fmgr.makeTrue();
+        }
+
+      } else if (isPointerDereferencing(right)) {
+        // C statement like: s1 = *s2;
+
+        String lVarName = scopedIfNecessary(left, function);
+        Formula lVar = makeVariable(lVarName, ssa);
+
+        String lPVarName = makePointerVariableName(left, function, ssa);
+        makeFreshIndex(lPVarName, ssa);
+        removeOldPointerVariablesFromSsaMap(lPVarName);
+        Formula lPVar = makePointerVariable(left, function, ssa);
+
+        IASTIdExpression rIdExpr = (IASTIdExpression) ((IASTUnaryExpression) right).getOperand();
+        Formula rPVar = makePointerVariable(rIdExpr, function, ssa);
+
+        // the dealiased address of the right hand side may be a pointer itself.
+        // to ensure tracking, we need to set the left side
+        // equal to the dealiased right side or update the pointer
+        // r is the right hand side variable, l is the left hand side variable
+        // ∀p ∈ maybePointer: (p = *r) ⇒ (l = p ∧ *l = *p)
+        List<String> pVars = getAllPointerVariablesFromSsaMap();
+        for (String pVarName : pVars) {
+          String varName = getVariableNameFromPointerVariable(pVarName);
+          if(!varName.equals(lVarName)) {
+
+            Formula var = makeVariable(varName, ssa);
+            Formula pVar = makeVariable(pVarName, ssa);
+
+            Formula p = fmgr.makeEqual(rPVar, var);
+
+            Formula dirEq = fmgr.makeEqual(lVar, var);
+            Formula indirEq = fmgr.makeEqual(lPVar, pVar);
+            Formula consequence = fmgr.makeAnd(dirEq, indirEq);
+
+            Formula constraint = makeImplication(p, consequence);
+
+            constraints.addConstraint(constraint);
+          }
+        }
+
+        // no need to add a second level assignment
+        return fmgr.makeTrue();
+
+      } else if (isMemoryLocation(right)) {
+        // s = &x
+        // need to update the pointer on the left hand side
+        if (right instanceof IASTUnaryExpression
+            && ((IASTUnaryExpression) right).getOperator() == UnaryOperator.AMPER){
+
+          IASTExpression rOperand = ((IASTUnaryExpression) right).getOperand();
+          if (rOperand instanceof IASTIdExpression) {
+            String rVarName = scopedIfNecessary((IASTIdExpression) rOperand, function);
+            Formula rVar = makeVariable(rVarName, ssa);
+
+            Formula lPVar = makePointerVariable(left, function, ssa);
+
+            Formula pointerUpdate = fmgr.makeAssignment(lPVar, rVar);
+            return pointerUpdate;
+          }
+        }
+
+        // s = malloc()
+        // has been handled already
+        return fmgr.makeTrue();
+
+      } else {
+        // s = 1
+        // s = someFunction()
+        // s = a + b
+
+        // no second level assignment necessary
+        return fmgr.makeTrue();
+      }
     }
 
     /** Returns whether the address of a given variable has been used before. */
