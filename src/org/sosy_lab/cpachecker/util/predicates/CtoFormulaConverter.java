@@ -774,6 +774,13 @@ public class CtoFormulaConverter {
     return memoryLocations;
   }
 
+  private IASTExpression removeCast(IASTExpression exp) {
+    if (exp instanceof IASTCastExpression) {
+      return removeCast(((IASTCastExpression) exp).getOperand());
+    }
+    return exp;
+  }
+
   /**
    * This class tracks constraints which are created during AST traversal but
    * cannot be applied at the time of creation.
@@ -1804,7 +1811,7 @@ public class CtoFormulaConverter {
       return makeFreshVariable(var, ssa);
     }
 
-    private Formula makeUIF(IASTExpression exp) {
+    protected Formula makeUIF(IASTExpression exp) {
       warnUnsafeAssignment();
       logDebug("Assigning to ", exp);
 
@@ -1916,16 +1923,31 @@ public class CtoFormulaConverter {
       super(pFunction, pSsa, pCo);
     }
 
-    @Override
-    public Formula visit(IASTUnaryExpression pE) throws UnrecognizedCCodeException {
-      if (pE.getOperator() == UnaryOperator.STAR
-          && (pE.getOperand() instanceof IASTIdExpression)) {
-        IASTIdExpression pId = (IASTIdExpression) pE.getOperand();
+    private Formula getPointerFormula(IASTExpression pExp) {
+      IASTExpression exp = removeCast(pExp);
+
+      if (exp instanceof IASTIdExpression) {
+        // *a = ...
+        // *((int*) a) = ...
+        IASTIdExpression pId = (IASTIdExpression) exp;
         String pVarName = makePointerVariableName(pId, function, ssa);
         makeFreshIndex(pVarName, ssa);
-
         return makePointerVariable(pId, function, ssa);
 
+      } else {
+        // apparently valid cil output:
+        // *(&s.f) = ...
+        // *(s->f) = ...
+        // *(a+b) = ...
+
+        return makeUIF(exp);
+      }
+    }
+
+    @Override
+    public Formula visit(IASTUnaryExpression pE) throws UnrecognizedCCodeException {
+      if (pE.getOperator() == UnaryOperator.STAR) {
+        return getPointerFormula(pE.getOperand());
       } else {
         return super.visit(pE);
       }
