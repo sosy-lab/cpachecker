@@ -1918,25 +1918,17 @@ public class CtoFormulaConverter {
 
     @Override
     public Formula visit(IASTUnaryExpression pE) throws UnrecognizedCCodeException {
-      IASTIdExpression pId = null;
-
       if (pE.getOperator() == UnaryOperator.STAR
           && (pE.getOperand() instanceof IASTIdExpression)) {
-        pId = (IASTIdExpression) pE.getOperand();
+        IASTIdExpression pId = (IASTIdExpression) pE.getOperand();
+        String pVarName = makePointerVariableName(pId, function, ssa);
+        makeFreshIndex(pVarName, ssa);
 
-      } else if (pE.getOperator() == UnaryOperator.STAR
-          && (pE.getOperand() instanceof IASTCastExpression)
-          && (((IASTCastExpression) pE.getOperand()).getOperand() instanceof IASTIdExpression)) {
-        pId = (IASTIdExpression) ((IASTCastExpression) pE.getOperand()).getOperand();
+        return makePointerVariable(pId, function, ssa);
 
       } else {
         return super.visit(pE);
       }
-
-      String pVarName = makePointerVariableName(pId, function, ssa);
-      makeFreshIndex(pVarName, ssa);
-
-      return makePointerVariable(pId, function, ssa);
     }
   }
 }
