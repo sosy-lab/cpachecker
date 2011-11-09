@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import java.util.logging.Level;
+
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -31,6 +34,7 @@ import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ExplicitSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.TopologicallySortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
+import org.sosy_lab.cpachecker.core.waitlist.Waitlist.TraversalMethod;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 
 @Options(prefix="analysis")
@@ -69,8 +73,17 @@ public class ReachedSetFactory {
       + "\nPARTITIONED: partitioning depending on CPAs (e.g Location, Callstack etc.)")
   ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
 
-  public ReachedSetFactory(Configuration config) throws InvalidConfigurationException {
+  @SuppressWarnings("deprecation")
+  public ReachedSetFactory(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
+
+    if (traversalMethod == TraversalMethod.TOPSORT) {
+      logger.log(Level.WARNING, "Using the option 'analysis.traversal.order = TOPSORT' is deprecated, please switch to 'analysis.traversal.useTopSort = true'");
+
+      if (useTopSort) {
+        throw new InvalidConfigurationException("Cannot use both 'analysis.traversal.order = TOPSORT' and 'analysis.traversal.useTopSort = true'");
+      }
+    }
   }
 
   public ReachedSet create() {

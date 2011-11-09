@@ -164,7 +164,7 @@ public class CPAchecker {
 
     options = new CPAcheckerOptions();
     config.inject(options);
-    reachedSetFactory = new ReachedSetFactory(pConfiguration);
+    reachedSetFactory = new ReachedSetFactory(pConfiguration, pLogManager);
   }
 
   public CPAcheckerResult run(String filename) {
