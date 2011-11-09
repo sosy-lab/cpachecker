@@ -1666,12 +1666,8 @@ public class CtoFormulaConverter {
     }
 
     private boolean isPointerDereferencing(IASTNode exp) {
-      if (exp instanceof IASTUnaryExpression
-          && ((IASTUnaryExpression) exp).getOperator() == UnaryOperator.STAR) {
-        return true;
-      }
-
-      return false;
+      return (exp instanceof IASTUnaryExpression
+          && ((IASTUnaryExpression) exp).getOperator() == UnaryOperator.STAR);
     }
 
     /** Returns if a given expression may be a pointer. */
