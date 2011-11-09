@@ -388,19 +388,20 @@ public class CtoFormulaConverter {
   /** Returns the pointer variable name corresponding to a given IdExpression */
   private String makePointerVariableName(IASTIdExpression expr,
       String function, SSAMapBuilder ssa) {
+
     String scopedId = scopedIfNecessary(expr, function);
     return makePointerMask(scopedId, ssa);
   }
 
-  private String makeMemoryLocationVariableName(String var) {
-    return MEMORY_ADDRESS_VARIABLE_PREFIX + var;
+  private String makeMemoryLocationVariableName(String varName) {
+    return MEMORY_ADDRESS_VARIABLE_PREFIX + varName;
   }
 
   // name has to be scoped already
-  private Formula makeAssignment(String name,
+  private Formula makeAssignment(String varName,
           Formula rightHandSide, SSAMapBuilder ssa) {
 
-    Formula lhs = makeFreshVariable(name, ssa);
+    Formula lhs = makeFreshVariable(varName, ssa);
     return fmgr.makeAssignment(lhs, rightHandSide);
   }
 
@@ -895,6 +896,8 @@ public class CtoFormulaConverter {
   }
 
   private boolean isMemoryLocation(IASTNode exp) {
+
+    // memory allocating function?
     if (exp instanceof IASTFunctionCall) {
       IASTExpression fn =
           ((IASTFunctionCall) exp).getFunctionCallExpression().getFunctionNameExpression();
@@ -905,6 +908,8 @@ public class CtoFormulaConverter {
           return true;
         }
       }
+
+    // explicit heap/stack address?
     } else if (exp instanceof IASTUnaryExpression
         && ((IASTUnaryExpression) exp).getOperator() == UnaryOperator.AMPER) {
       return true;
@@ -1663,7 +1668,7 @@ public class CtoFormulaConverter {
       Formula rightVariable = pAssignment.getRightHandSide().accept(this);
       rightVariable = toNumericFormula(rightVariable);
       Formula lPVar = buildLvalueTerm(pAssignment.getLeftHandSide(), function, ssa, constraints);
-      Formula as = fmgr.makeAssignment(lPVar, rightVariable);
+      Formula assignments = fmgr.makeAssignment(lPVar, rightVariable);
 
       // update all pointer variables (they might have a new value)
       // every variable aliased to the left hand side,
@@ -1692,7 +1697,7 @@ public class CtoFormulaConverter {
       // if the left variable is an alias for an address,
       // then the left side is (deep) equal to the right side
       // otherwise update the variables
-      boolean doDeepUpdate = deepUpdate(lOperand, r);
+      boolean doDeepUpdate = (r instanceof IASTIdExpression);
 
       List<String> memAddresses = getAllMemoryLocationsFromSsaMap(ssa);
       if (doDeepUpdate) {
@@ -1748,11 +1753,7 @@ public class CtoFormulaConverter {
         }
       }
 
-      return as;
-    }
-
-    private boolean deepUpdate(IASTExpression left, IASTRightHandSide right) {
-      return (right instanceof IASTIdExpression);
+      return assignments;
     }
 
     /** A direct assignment changes the value of the variable on the left side. */
@@ -1772,6 +1773,7 @@ public class CtoFormulaConverter {
       Formula leftVariable = buildLvalueTerm(assignment.getLeftHandSide(), function, ssa, constraints);
       Formula firstLevelFormula = fmgr.makeAssignment(leftVariable, rightVariable);
 
+      // assignment (second level)
       String lVarName = scopedIfNecessary(left, function);
       Formula secondLevelFormula = buildDirectSecondLevelAssignment(
           left.getExpressionType(), lVarName,
@@ -1831,6 +1833,7 @@ public class CtoFormulaConverter {
       return MALLOC_VARIABLE_PREFIX + idx;
     }
 
+    /** Returns the variable name of a memory address variable */
     private String getVariableNameFromMemoryAddress(String memoryAddress) {
       assert(memoryAddress.startsWith(MEMORY_ADDRESS_VARIABLE_PREFIX));
 
