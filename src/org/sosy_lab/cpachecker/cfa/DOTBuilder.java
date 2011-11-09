@@ -102,14 +102,18 @@ public final class DOTBuilder {
 
       visitedNodes.add (node);
 
+      boolean nodeWritten = false;
+
       if(node.isLoopStart()){
         nodeWriter.add(formatNode(node, "doublecircle"));
+        nodeWritten = true;
       }
 
       for (CFAEdge edge : allLeavingEdges(node)) {
 
-        if(edge instanceof AssumeEdge){
+        if (!nodeWritten && edge instanceof AssumeEdge) {
           nodeWriter.add(formatNode(node, "diamond"));
+          nodeWritten = true;
         }
 
         CFANode successor = edge.getSuccessor ();
