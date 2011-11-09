@@ -93,6 +93,25 @@ public final class ExtendedFormulaManager extends ForwardingFormulaManager {
     return result;
   }
 
+  /**
+   * Makes an implication from p to q.
+   *
+   * @return (p ⇒ q)
+   */
+  public Formula makeImplication(Formula p, Formula q) {
+    Formula left = makeNot(p);
+    return makeOr(left, q);
+  }
+
+  /**
+   * Makes a Formula in which f1 and f2 are not equal.
+   *
+   * @return (f1 != f2)
+   */
+  public Formula makeNotEqual(Formula f1, Formula f2) {
+    return makeNot(makeEqual(f1, f2));
+  }
+
   public File formatFormulaOutputFile(String function, int call, String formula, int index) {
     if (formulaDumpFilePattern == null) {
       return null;

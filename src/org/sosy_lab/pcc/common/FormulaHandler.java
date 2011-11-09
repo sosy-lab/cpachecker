@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
@@ -54,7 +53,7 @@ public class FormulaHandler {
   private Configuration      config;
   private LogManager         logger;
   private PathFormulaManager pfm;
-  private FormulaManager     fm;
+  private ExtendedFormulaManager     fm;
 
   public FormulaHandler(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {

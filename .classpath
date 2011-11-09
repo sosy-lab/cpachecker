@@ -1,26 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="src" path="src">
-		<attributes>
-			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="bin"/>
-		</attributes>
-	</classpathentry>
+	<classpathentry kind="src" path="src"/>
 	<classpathentry exported="true" kind="lib" path="bin/"/>
 	<classpathentry exported="true" kind="lib" path="lib/guava-10.0.jar"/>
+	<classpathentry kind="lib" path="lib/eclipse-cdt6-parser.jar"/>
 	<classpathentry kind="lib" path="lib/javabdd-1.0b2.jar"/>
 	<classpathentry kind="lib" path="lib/java-cup-11a.jar"/>
-	<classpathentry kind="lib" path="lib/yicesapijava.jar"/>
-	<classpathentry kind="lib" path="lib/eclipse/icu4j-4_2_1.jar"/>
 	<classpathentry kind="lib" path="lib/jgrapht-jdk1.6.jar"/>
+	<classpathentry kind="lib" path="lib/json_simple-1.1.jar"/>
+	<classpathentry kind="lib" path="lib/sigar.jar"/>
+	<classpathentry kind="lib" path="lib/yicesapijava.jar"/>
 	<classpathentry kind="lib" path="lib/eclipse/org.eclipse.cdt.core_5.3.1.201109151620.jar" sourcepath="lib/eclipse/org.eclipse.cdt.core.source_5.3.1.201109151620.jar"/>
 	<classpathentry kind="lib" path="lib/eclipse/org.eclipse.core.resources_3.7.100.v20110510-0712.jar"/>
 	<classpathentry kind="lib" path="lib/eclipse/org.eclipse.equinox.common_3.6.0.v20110523.jar"/>
 	<classpathentry kind="lib" path="lib/eclipse/org.eclipse.osgi_3.7.1.R37x_v20110808-1106.jar"/>
+	<classpathentry kind="lib" path="lib/eclipse/icu4j-4_2_1.jar"/>
 	<classpathentry kind="lib" path="lib/build-only/junit.jar"/>
 	<classpathentry kind="lib" path="lib/build-only/org.hamcrest.core_1.1.0.v20090501071000.jar"/>
-	<classpathentry kind="lib" path="lib/json_simple-1.1.jar"/>
-	<classpathentry kind="lib" path="lib/sigar.jar"/>
-	<classpathentry kind="lib" path="lib/eclipse-cdt6-parser.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

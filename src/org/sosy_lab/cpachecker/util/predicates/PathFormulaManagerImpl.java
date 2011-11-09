@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.util.predicates.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.Model.Variable;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
 import com.google.common.base.Function;
@@ -65,7 +64,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
       "^.*" + BRANCHING_PREDICATE_NAME + "(?=\\d+$)");
 
-  public PathFormulaManagerImpl(FormulaManager pFmgr,
+  public PathFormulaManagerImpl(ExtendedFormulaManager pFmgr,
       Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     super(config, pFmgr, pLogger);
   }
