@@ -64,6 +64,10 @@
         <ivy:retrieve sync="true" overwriteMode="different" pattern="${ivy.lib.dir}/[conf]/[artifact](-[classifier]).[ext]"/>
     </target>
 
+    <target name="report-dependencies" depends="resolve-dependencies" description="Generate dependencies report">
+        <ivy:report graph="false" dot="true" conf="runtime, build, test, contrib"/>
+    </target>
+
     <!-- Update additional resources if they were downloaded previously. -->
     <target name="update-contrib" if="ivy.contrib.present">
         <antcall target="contrib"/>
