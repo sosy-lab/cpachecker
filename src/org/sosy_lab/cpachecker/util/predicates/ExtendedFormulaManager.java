@@ -60,6 +60,16 @@ public final class ExtendedFormulaManager extends ForwardingFormulaManager {
 
   private static final Joiner LINE_JOINER = Joiner.on('\n');
 
+  public static ExtendedFormulaManager extendFormulaManager(FormulaManager pFmgr,
+      Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+
+    if (pFmgr instanceof ExtendedFormulaManager) {
+      return (ExtendedFormulaManager) pFmgr;
+    } else {
+      return new ExtendedFormulaManager(pFmgr, config, pLogger);
+    }
+  }
+
   public ExtendedFormulaManager(FormulaManager pFmgr, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     super(pFmgr);
     config.inject(this, ExtendedFormulaManager.class);
