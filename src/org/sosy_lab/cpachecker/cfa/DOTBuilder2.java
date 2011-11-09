@@ -256,7 +256,7 @@ public final class DOTBuilder2 {
         shape = "diamond";
       }
 
-      return "node [shape=\"" + shape + "\"] " + node.getNodeNumber() + "\n";
+      return node.getNodeNumber() + " [shape=\"" + shape + "\"]\n";
     }
 
     @SuppressWarnings("unchecked")
@@ -266,7 +266,7 @@ public final class DOTBuilder2 {
       }
       if (edge instanceof FunctionCallEdge) {
        //create the function node
-        String ret = "node [shape=\"component\" label=\"" + edge.getSuccessor().getFunctionName() + "\"] " + (++virtFuncCallNodeIdCounter) + "\n";
+        String ret = (++virtFuncCallNodeIdCounter) + " [shape=\"component\" label=\"" + edge.getSuccessor().getFunctionName() + "\"]\n";
         int from = edge.getPredecessor().getNodeNumber();
         ret += String.format("%d -> %d [label=\"%s\" fontname=\"Courier New\"]\n",
             from,
@@ -318,7 +318,7 @@ public final class DOTBuilder2 {
         sb.append('"');
 
       } else {
-        sb.append("\"<<table border=\"0\" cellborder=\"0\" cellpadding=\"3\" bgcolor=\"white\">");
+        sb.append("<<table border=\"0\" cellborder=\"0\" cellpadding=\"3\" bgcolor=\"white\">");
 
         for (CFAEdge edge: combo) {
           sb.append("<tr><td align=\"right\">");
@@ -333,7 +333,7 @@ public final class DOTBuilder2 {
                             .replaceAll("\\}", "&#125;"));
           sb.append("</td></tr>");
         }
-        sb.append("</table>>\"");
+        sb.append("</table>>");
       }
 
       for (CFAEdge edge: combo) {

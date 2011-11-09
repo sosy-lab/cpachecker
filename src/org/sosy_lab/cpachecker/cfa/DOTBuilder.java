@@ -72,6 +72,8 @@ public final class DOTBuilder {
 
     JOINER_ON_NEWLINE.appendTo(sb, nodeWriter);
     sb.append('\n');
+
+    // define the graphic representation for all subsequent nodes
     sb.append("node [shape=\"circle\"]\n");
 
     for (CFAFunctionDefinitionNode fnode : cfasMapList) {
@@ -131,7 +133,7 @@ public final class DOTBuilder {
   }
 
   private static String formatNode(CFANode node, String shape) {
-    return "node [shape=\"" + shape + "\"] " + node.getNodeNumber();
+    return node.getNodeNumber() + " [shape=\"" + shape + "\"]";
   }
 
   private static String formatEdge(CFAEdge edge) {
