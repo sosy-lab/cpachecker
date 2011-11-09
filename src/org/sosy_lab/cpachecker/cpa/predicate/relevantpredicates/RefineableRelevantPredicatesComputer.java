@@ -21,15 +21,12 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.interpreter.exceptions;
+package org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates;
 
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.cfa.blocks.Block;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
-public class ReadingFromNondetVariableException extends CPATransferException {
 
-  private static final long serialVersionUID = 6227594213791342654L;
-
-  public ReadingFromNondetVariableException() {
-    super("Read from special nondet variable __BLAST_NONDET");
-  }
+public interface RefineableRelevantPredicatesComputer extends RelevantPredicatesComputer {
+  public void considerPredicateAsRelevant(Block block, AbstractionPredicate predicate);
 }

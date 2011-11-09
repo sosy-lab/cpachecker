@@ -61,7 +61,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
   @Option(name="config",
       type=Type.REQUIRED_INPUT_FILE,
       description="configuration file for counterexample checks with CPAchecker")
-  private File configFile = new File("test/config/explicitAnalysis-no-cbmc.properties");
+  private File configFile = new File("config/explicitAnalysis-no-cbmc.properties");
 
   public CounterexampleCPAChecker(Configuration config, LogManager logger, ReachedSetFactory pReachedSetFactory, CFA pCfa) throws InvalidConfigurationException {
     this.logger = logger;

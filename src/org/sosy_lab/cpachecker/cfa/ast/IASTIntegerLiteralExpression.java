@@ -33,12 +33,18 @@ public class IASTIntegerLiteralExpression extends IASTLiteralExpression {
 
   public IASTIntegerLiteralExpression(String pRawSignature,
       IASTFileLocation pFileLocation, IType pType, BigInteger pValue) {
-    super(pRawSignature, pFileLocation, pType, IASTLiteralExpression.lk_integer_constant);
+    super(pRawSignature, pFileLocation, pType);
     value = pValue;
   }
 
+  @Override
   public BigInteger getValue() {
     return value;
+  }
+
+  public long asLong() {
+    // TODO handle values that are bigger than MAX_LONG
+    return value.longValue();
   }
 
   @Override
@@ -52,7 +58,22 @@ public class IASTIntegerLiteralExpression extends IASTLiteralExpression {
   }
 
   @Override
-  public String toASTString() {
-    return value.toString();
+  public String toASTString(String pPrefix) {
+    String suffix = "";
+
+    IType iType = getExpressionType();
+    if (iType instanceof IASTSimpleDeclSpecifier) {
+      IASTSimpleDeclSpecifier type = (IASTSimpleDeclSpecifier) iType;
+      if (type.isUnsigned()) {
+        suffix += "U";
+      }
+      if (type.isLong()) {
+        suffix += "L";
+      } else if (type.isLongLong()) {
+        suffix += "LL";
+      }
+    }
+
+    return pPrefix + value.toString() + suffix;
   }
 }

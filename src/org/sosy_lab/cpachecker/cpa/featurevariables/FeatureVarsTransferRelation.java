@@ -76,8 +76,10 @@ public class FeatureVarsTransferRelation implements TransferRelation {
       throws CPATransferException {
     Preconditions.checkArgument(pPrecision instanceof FeatureVarsPrecision, "precision is no FeatureVarsPrecision");
     FeatureVarsPrecision precision = (FeatureVarsPrecision) pPrecision;
-    if (precision.isDisabled()) // this means that no variables should be tracked (whitelist is empty)
+    if (precision.isDisabled()) {
+      // this means that no variables should be tracked (whitelist is empty)
       return Collections.singleton(element);
+    }
 
     FeatureVarsElement fvElement = (FeatureVarsElement) element;
     AbstractElement successor = fvElement;
@@ -187,9 +189,9 @@ public class FeatureVarsTransferRelation implements TransferRelation {
       IASTExpression op, String functionName, boolean pTruthValue,
       FeatureVarsPrecision precision) throws UnrecognizedCCodeException {
     Region operand = propagateBooleanExpression(element, op, functionName, precision);
-    if (operand == null)
+    if (operand == null) {
       return element;
-    else {
+    } else {
       Region newRegion = null;
       if (pTruthValue) {
         newRegion =
@@ -210,7 +212,9 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     if (op instanceof IASTIdExpression || op instanceof IASTFieldReference
         || op instanceof IASTArraySubscriptExpression) {
       String varName = op.getRawSignature();//this.getvarName(op.getRawSignature(), functionName);
-      if (!precision.isOnWhitelist(varName)) return null;
+      if (!precision.isOnWhitelist(varName)) {
+        return null;
+      }
       operand = rmgr.createPredicate(varName);
     } else if (op instanceof IASTUnaryExpression) {
       operand =
@@ -235,7 +239,9 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     if (op instanceof IASTIdExpression || op instanceof IASTFieldReference
         || op instanceof IASTArraySubscriptExpression) {
       String varName = op.getRawSignature();//this.getvarName(op.getRawSignature(), functionName);
-      if (!precision.isOnWhitelist(varName)) return null;
+      if (!precision.isOnWhitelist(varName)) {
+        return null;
+      }
       operand = rmgr.createPredicate(varName);
     } else if (op instanceof IASTUnaryExpression) {
       operand =
@@ -249,7 +255,9 @@ public class FeatureVarsTransferRelation implements TransferRelation {
               binExp.getOperand1(), binExp.getOperand2(), functionName,
               precision);
     }
-    if (operand == null) return null;
+    if (operand == null) {
+      return null;
+    }
     switch (opType) {
     case NOT:
       returnValue = rmgr.makeNot(operand);
@@ -274,7 +282,9 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     if (op1 instanceof IASTIdExpression || op1 instanceof IASTFieldReference
         || op1 instanceof IASTArraySubscriptExpression) {
       String varName = op1.getRawSignature();// this.getvarName(op1.getRawSignature(), functionName);
-      if (!precision.isOnWhitelist(varName)) return null;
+      if (!precision.isOnWhitelist(varName)) {
+        return null;
+      }
       operand1 = rmgr.createPredicate(varName);
     } else if (op1 instanceof IASTUnaryExpression) {
       operand1 =
@@ -293,7 +303,9 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     if (op2 instanceof IASTIdExpression || op2 instanceof IASTFieldReference
         || op2 instanceof IASTArraySubscriptExpression) {
       String varName = op2.getRawSignature(); //this.getvarName(op2.getRawSignature(), functionName);
-      if (!precision.isOnWhitelist(varName)) return null;
+      if (!precision.isOnWhitelist(varName)) {
+        return null;
+      }
       operand2 = rmgr.createPredicate(varName);
     } else if (op2 instanceof IASTUnaryExpression) {
       operand2 =
@@ -307,7 +319,9 @@ public class FeatureVarsTransferRelation implements TransferRelation {
               binExp.getOperand1(), binExp.getOperand2(), functionName,
               precision);
     }
-    if (operand1 == null || operand2 == null) return null;
+    if (operand1 == null || operand2 == null) {
+      return null;
+    }
     Region returnValue = null;
     // binary expression
     switch (opType) {

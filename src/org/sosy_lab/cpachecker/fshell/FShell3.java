@@ -328,7 +328,7 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
     Map<String, String> lCommandLineOptions = new HashMap<String, String>();
 
     lCommandLineOptions.put("analysis.programNames", Joiner.on(", ").join(pSourceFiles));
-    //lCommandLineOptions.put("output.path", "test/output");
+    //lCommandLineOptions.put("output.path", "output");
 
     Configuration lConfiguration = null;
     try {

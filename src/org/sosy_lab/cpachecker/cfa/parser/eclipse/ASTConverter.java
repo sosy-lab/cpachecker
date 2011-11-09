@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier.ElaboratedType;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
@@ -408,7 +409,7 @@ class ASTConverter {
       return new IASTFloatLiteralExpression(e.getRawSignature(), fileLoc, type, value);
 
     case org.eclipse.cdt.core.dom.ast.IASTLiteralExpression.lk_string_literal:
-      return new IASTStringLiteralExpression(e.getRawSignature(), fileLoc, type);
+      return new IASTStringLiteralExpression(e.getRawSignature(), fileLoc, type, valueStr);
 
     default:
       throw new CFAGenerationRuntimeException("Unknown literal", e);
@@ -999,7 +1000,22 @@ class ASTConverter {
   }
 
   private IASTElaboratedTypeSpecifier convert(org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier d) {
-    return new IASTElaboratedTypeSpecifier(d.isConst(), d.isVolatile(), d.getKind(), convert(d.getName()));
+    ElaboratedType type;
+    switch (d.getKind()) {
+    case org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier.k_enum:
+      type = ElaboratedType.ENUM;
+      break;
+    case org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier.k_struct:
+      type = ElaboratedType.STRUCT;
+      break;
+    case org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier.k_union:
+      type = ElaboratedType.UNION;
+      break;
+    default:
+      throw new CFAGenerationRuntimeException("Unknown elaborated type", d);
+    }
+
+    return new IASTElaboratedTypeSpecifier(d.isConst(), d.isVolatile(), type, convert(d.getName()));
   }
 
   private IASTEnumerationSpecifier convert(org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier d) {
@@ -1054,6 +1070,13 @@ class ASTConverter {
       throw new CFAGenerationRuntimeException("Unknown basic type " + dd.getType(), d);
     }
 
+    if ((dd.isShort() && dd.isLong())
+        || (dd.isShort() && dd.isLongLong())
+        || (dd.isLong() && dd.isLongLong())
+        || (dd.isSigned() && dd.isUnsigned())) {
+      throw new CFAGenerationRuntimeException("Illegal combination of type identifiers", d);
+    }
+
     return new IASTSimpleDeclSpecifier(dd.isConst(), dd.isVolatile(), type,
         dd.isLong(), dd.isShort(), dd.isSigned(), d.isUnsigned(),
         dd.isComplex(), dd.isImaginary(), dd.isLongLong());
@@ -1077,7 +1100,7 @@ class ASTConverter {
       }
 
       if (v instanceof IASTIntegerLiteralExpression) {
-        value = ((IASTIntegerLiteralExpression)v).getValue().longValue();
+        value = ((IASTIntegerLiteralExpression)v).asLong();
         if (negate) {
           value = -value;
         }
@@ -1254,6 +1277,13 @@ class ASTConverter {
           break;
         default:
           throw new CFAGenerationRuntimeException("Unknown basic type " + t.getType());
+        }
+
+        if ((c.isShort() && c.isLong())
+            || (c.isShort() && c.isLongLong())
+            || (c.isLong() && c.isLongLong())
+            || (c.isSigned() && c.isUnsigned())) {
+          throw new CFAGenerationRuntimeException("Illegal combination of type identifiers");
         }
 
         // TODO why is there no isConst() and isVolatile() here?

@@ -55,7 +55,7 @@ public final class IASTCastExpression extends IASTExpression {
   }
 
   @Override
-  public String toASTString() {
-    return "(" + type.toASTString() + ")" + operand.toASTString();
+  public String toASTString(String pPrefix) {
+    return pPrefix + "(" + type.toASTString() + ")" + operand.toASTString();
   }
 }

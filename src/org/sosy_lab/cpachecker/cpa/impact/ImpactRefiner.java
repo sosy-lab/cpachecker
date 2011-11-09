@@ -133,7 +133,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, Pa
   @Override
   protected void performRefinement(ARTReachedSet pReached,
       List<Pair<ARTElement, CFANode>> pPath,
-      CounterexampleTraceInfo<Formula> pInfo) throws CPAException {
+      CounterexampleTraceInfo<Formula> pInfo, boolean pRepeatedCounterexample) throws CPAException {
 
     List<Formula> itps = pInfo.getPredicatesForRefinement();
 

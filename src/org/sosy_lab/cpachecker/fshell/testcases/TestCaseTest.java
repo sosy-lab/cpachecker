@@ -74,7 +74,7 @@ public class TestCaseTest {
 
   @Test
   public void test() throws IOException {
-    NondetToInput.replace("test/programs/fql/locks/test_locks_1.c", "test/output/test_locks_1.c");
+    NondetToInput.replace("test/programs/fql/locks/test_locks_1.c", "output/test_locks_1.c");
   }
 
   @Test

@@ -27,7 +27,7 @@ import static com.google.common.base.Preconditions.*;
 
 /**
  * This class represents declaration of types and variables. It contains a
- * storage class, a type, a name and an initializer.
+ * storage class, a type, a name and an optional initializer.
  *
  * If the storage class is TYPEDEF, then the given name is aliased to the
  * given type (as typedef does in C).
@@ -73,25 +73,36 @@ public final class IASTDeclaration extends IASTSimpleDeclaration {
     return storageClass;
   }
 
+  /**
+   * The initial value of the variable
+   * (only if present, null otherwise).
+   */
   public IASTInitializer getInitializer() {
     return initializer;
   }
 
   @Override
-  public String toASTString() {
+  public String toASTString(String pPrefix) {
     StringBuilder lASTString = new StringBuilder();
-    lASTString.append(storageClass.toString().toLowerCase());
-    lASTString.append(" ");
+
+    lASTString.append(pPrefix);
+    lASTString.append(storageClass.toASTString());
     lASTString.append(getDeclSpecifier().toASTString());
-    if (getName() != null) {
-      lASTString.append(" ");
+
+    if (getName() != null
+        && !(getDeclSpecifier() instanceof IASTFunctionTypeSpecifier)
+        && !(getDeclSpecifier() instanceof IASTPointerTypeSpecifier
+            && ((IASTPointerTypeSpecifier)getDeclSpecifier()).getType() instanceof IASTFunctionTypeSpecifier)) {
       lASTString.append(getName());
     }
+
     if (initializer != null) {
       lASTString.append(" = ");
       lASTString.append(initializer.toASTString());
     }
+
     lASTString.append(";");
+
     return lASTString.toString();
   }
 }

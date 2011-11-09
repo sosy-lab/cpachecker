@@ -23,36 +23,39 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import java.math.BigDecimal;
+import java.util.Iterator;
 
-public final class IASTFloatLiteralExpression extends IASTLiteralExpression {
+import com.google.common.collect.UnmodifiableIterator;
 
-  // use a BigDecimal here because C code might have floating point types with bigger precision than double
-  private final BigDecimal value;
+class ASTStringIterable implements Iterable<String> {
 
-  public IASTFloatLiteralExpression(String pRawSignature,
-      IASTFileLocation pFileLocation, IType pType, BigDecimal pValue) {
-    super(pRawSignature, pFileLocation, pType);
-    value = pValue;
+  private final Iterable<? extends IASTNode> collection;
+
+  public ASTStringIterable(Iterable<? extends IASTNode> pCollection) {
+    collection = pCollection;
   }
 
   @Override
-  public BigDecimal getValue() {
-    return value;
+  public Iterator<String> iterator() {
+    return new ASTStringIterator(collection);
   }
 
-  @Override
-  public <R, X extends Exception> R accept(ExpressionVisitor<R, X> v) throws X {
-    return v.visit(this);
-  }
+  private class ASTStringIterator extends UnmodifiableIterator<String> {
 
-  @Override
-  public <R, X extends Exception> R accept(RightHandSideVisitor<R, X> v) throws X {
-    return v.visit(this);
-  }
+    private final Iterator<? extends IASTNode> subIterator;
 
-  @Override
-  public String toASTString(String pPrefix) {
-    return pPrefix + value.toString();
+    public ASTStringIterator(Iterable<? extends IASTNode> pCollection) {
+      subIterator = pCollection.iterator();
+    }
+
+    @Override
+    public boolean hasNext() {
+      return subIterator.hasNext();
+    }
+
+    @Override
+    public String next() {
+      return subIterator.next().toASTString();
+    }
   }
 }

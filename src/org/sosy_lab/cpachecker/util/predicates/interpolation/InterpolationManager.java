@@ -444,8 +444,11 @@ public abstract class InterpolationManager<I> {
         boolean fromStart = false;
         while (true) {
           int i = fromStart ? s : e;
-          if (fromStart) ++s;
-          else --e;
+          if (fromStart) {
+            ++s;
+          } else {
+            --e;
+          }
           fromStart = !fromStart;
 
           Formula t = f.get(i);
@@ -466,7 +469,9 @@ public abstract class InterpolationManager<I> {
             break;
           }
 
-          if (e < s) break;
+          if (e < s) {
+            break;
+          }
         }
       } else {
         for (int i = pos; suffixTrace ? i >= 0 : i < f.size();
@@ -555,8 +560,11 @@ public abstract class InterpolationManager<I> {
       boolean fromStart = false;
       while (s <= e) {
         int i = fromStart ? s : e;
-        if (fromStart) s++;
-        else e--;
+        if (fromStart) {
+          s++;
+        } else {
+          e--;
+        }
         fromStart = !fromStart;
 
         tmpSpurious = null;

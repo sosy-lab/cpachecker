@@ -60,17 +60,18 @@ public class UsedMemoryOutHeuristics implements StopHeuristics<TrivialStopHeuris
 
   @Override
   public TrivialStopHeuristicsData processEdge(StopHeuristicsData pData, CFAEdge pEdge) {
-    if (pData == TrivialStopHeuristicsData.BOTTOM)
+    if (pData == TrivialStopHeuristicsData.BOTTOM) {
       return TrivialStopHeuristicsData.BOTTOM;
+    }
 
     long usedMemory = mxBean.getHeapMemoryUsage().getUsed();
     if (precision.getThreshold() != 0 && usedMemory > precision.getThreshold()){
       TrivialStopHeuristicsData.setThreshold(precision.getThreshold());
       TrivialStopHeuristicsData.setPreventingHeuristicType(PreventingHeuristicType.MEMORYOUT);
       return TrivialStopHeuristicsData.BOTTOM;
-    }
-    else
+    } else {
       return TrivialStopHeuristicsData.TOP;
+    }
   }
 
   @Override

@@ -49,6 +49,6 @@ public class DummyType extends IType {
 
   @Override
   public String toASTString() {
-    return typeName;
+    return typeName + " ";
   }
 }

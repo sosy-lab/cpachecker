@@ -46,7 +46,7 @@ public final class IASTTypeId extends IASTNode {
   }
 
   @Override
-  public String toASTString() {
-    return name;
+  public String toASTString(String pPrefix) {
+    return pPrefix + specifier.toASTString() + name;
   }
 }

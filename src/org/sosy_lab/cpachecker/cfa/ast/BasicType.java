@@ -34,4 +34,7 @@ public enum BasicType {
   DOUBLE,
   ;
 
+  public String toASTString() {
+    return name().toLowerCase();
+  }
 }

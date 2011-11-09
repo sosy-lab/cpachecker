@@ -85,9 +85,9 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
     @Override
     public boolean checkProperty(String pProperty) throws InvalidQueryException {
       String[] parts = pProperty.split("==");
-      if (parts.length != 2)
+      if (parts.length != 2) {
         throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not split the property string correctly.");
-      else {
+      } else {
         if (parts[0].toLowerCase().equals("line")) {
           try {
             int queryLine = Integer.parseInt(parts[1]);

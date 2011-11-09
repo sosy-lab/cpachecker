@@ -37,7 +37,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
@@ -77,7 +76,7 @@ public abstract class AbstractInterpolationBasedRefiner<I, P> extends AbstractAR
   private final InterpolationManager<I> formulaManager;
 
   // TODO: this should be private
-  protected List<CFANode> lastErrorPath = null;
+  protected List<Formula> lastErrorPath = null;
 
   protected AbstractInterpolationBasedRefiner(final Configuration config, LogManager pLogger, final ConfigurableProgramAnalysis pCpa, InterpolationManager<I> pInterpolationManager) throws CPAException, InvalidConfigurationException {
     super(pCpa);
@@ -120,7 +119,10 @@ public abstract class AbstractInterpolationBasedRefiner<I, P> extends AbstractAR
     if (counterexample.isSpurious()) {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
 
-      performRefinement(pReached, path, counterexample);
+      boolean repeatedCounterexample = formulas.equals(lastErrorPath);
+      lastErrorPath = formulas;
+
+      performRefinement(pReached, path, counterexample, repeatedCounterexample);
 
       totalRefinement.stop();
       return CounterexampleInfo.spurious();
@@ -174,7 +176,7 @@ public abstract class AbstractInterpolationBasedRefiner<I, P> extends AbstractAR
   protected abstract List<Formula> getFormulasForPath(List<P> path, ARTElement initialElement) throws CPATransferException;
 
   protected abstract void performRefinement(ARTReachedSet pReached, List<P> path,
-      CounterexampleTraceInfo<I> counterexample) throws CPAException;
+      CounterexampleTraceInfo<I> counterexample, boolean pRepeatedCounterexample) throws CPAException;
 
   private Pair<Path, CounterexampleTraceInfo<I>> findPreciseErrorPath(Path pPath, CounterexampleTraceInfo<I> counterexample) {
     errorPathProcessing.start();

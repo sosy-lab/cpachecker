@@ -216,10 +216,6 @@ implements GenericAssumptionBuilder
       StatementEdge stmtEdge = (StatementEdge) pEdge;
 
       IASTStatement stmt = stmtEdge.getStatement();
-      // TODO replace with a global nondet variable
-      if(stmt.getRawSignature().contains("__BLAST_NONDET")){
-        break;
-      }
       if (stmt instanceof IASTAssignment) {
         result = visit(((IASTAssignment)stmt).getLeftHandSide(), result);
       }

@@ -51,6 +51,6 @@ public class IComplexType extends IType {
 
   @Override
   public String toASTString() {
-    return name;
+    return name + " ";
   }
 }

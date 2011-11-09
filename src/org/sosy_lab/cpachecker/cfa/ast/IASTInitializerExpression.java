@@ -38,7 +38,7 @@ public final class IASTInitializerExpression extends IASTInitializer {
   }
 
   @Override
-  public String toASTString() {
-    return expression.toASTString();
+  public String toASTString(String pPrefix) {
+    return pPrefix + expression.toASTString();
   }
 }

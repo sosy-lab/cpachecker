@@ -90,7 +90,6 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
   final Timer precisionUpdate = new Timer();
   final Timer artUpdate = new Timer();
 
-  protected List<CFANode> lastErrorPath = null;
   Pair<ARTElement, CFAEdge> firstInterpolationPoint = null;
 
   private Set<String> allReferencedVaraibles = new HashSet<String>();
@@ -138,8 +137,9 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
   }
 
   @Override
-  protected void performRefinement(ARTReachedSet pReached, List<Pair<ARTElement, CFAEdge>> pPath, CounterexampleTraceInfo<Collection<AbstractionPredicate>> pCounterexample)
-  throws CPAException {
+  protected void performRefinement(ARTReachedSet pReached, List<Pair<ARTElement, CFAEdge>> pPath,
+      CounterexampleTraceInfo<Collection<AbstractionPredicate>> pCounterexample,
+      boolean pRepeatedCounterexample) throws CPAException {
 
     precisionUpdate.start();
 

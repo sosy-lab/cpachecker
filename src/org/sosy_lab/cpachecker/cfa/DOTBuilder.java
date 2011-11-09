@@ -72,11 +72,13 @@ public final class DOTBuilder {
 
     JOINER_ON_NEWLINE.appendTo(sb, nodeWriter);
     sb.append('\n');
-    sb.append("node [shape = circle];\n");
+
+    // define the graphic representation for all subsequent nodes
+    sb.append("node [shape=\"circle\"]\n");
 
     for (CFAFunctionDefinitionNode fnode : cfasMapList) {
       sb.append("subgraph cluster_" + fnode.getFunctionName() + " {\n");
-      sb.append("label = \"" + fnode.getFunctionName() + "()\";\n");
+      sb.append("label=\"" + fnode.getFunctionName() + "()\"\n");
       JOINER_ON_NEWLINE.appendTo(sb, subGraphs.get(fnode.getFunctionName()));
       sb.append("}\n");
     }
@@ -100,14 +102,18 @@ public final class DOTBuilder {
 
       visitedNodes.add (node);
 
+      boolean nodeWritten = false;
+
       if(node.isLoopStart()){
         nodeWriter.add(formatNode(node, "doublecircle"));
+        nodeWritten = true;
       }
 
       for (CFAEdge edge : allLeavingEdges(node)) {
 
-        if(edge instanceof AssumeEdge){
+        if (!nodeWritten && edge instanceof AssumeEdge) {
           nodeWriter.add(formatNode(node, "diamond"));
+          nodeWritten = true;
         }
 
         CFANode successor = edge.getSuccessor ();
@@ -131,7 +137,7 @@ public final class DOTBuilder {
   }
 
   private static String formatNode(CFANode node, String shape) {
-    return "node [shape = " + shape + "]; " + node.getNodeNumber() + ";";
+    return node.getNodeNumber() + " [shape=\"" + shape + "\"]";
   }
 
   private static String formatEdge(CFAEdge edge) {
@@ -149,9 +155,9 @@ public final class DOTBuilder {
 
     sb.append("\"");
     if (edge instanceof CallToReturnEdge) {
-      sb.append(" style=dotted arrowhead=empty");
+      sb.append(" style=\"dotted\" arrowhead=\"empty\"");
     }
-    sb.append("];");
+    sb.append("]");
     return sb.toString();
   }
 }

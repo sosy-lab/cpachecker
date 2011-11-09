@@ -301,7 +301,7 @@ public class Configuration {
   }
 
   @Option(name="output.path", description="directory to put all output files in")
-  private String outputDirectory = "test/output/";
+  private String outputDirectory = "output/";
 
   @Option(name="output.disable", description="disable all default output files"
     + "\n(any explicitly given file will still be written)")

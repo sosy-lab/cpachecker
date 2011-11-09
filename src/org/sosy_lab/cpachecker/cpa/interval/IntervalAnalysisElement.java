@@ -31,11 +31,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 public class IntervalAnalysisElement implements AbstractElement
 {
   /**
-   * variables with that contain this string are never being tracked
-   */
-  private static final String IGNORED_VARS_PREFIX = "__BLAST_NONDET";
-
-  /**
    * the intervals of the element
    */
   private Map<String, Interval> intervals;
@@ -154,9 +149,6 @@ public class IntervalAnalysisElement implements AbstractElement
   // see ExplicitElement::assignConstant
   public IntervalAnalysisElement addInterval(String variableName, Interval interval, int pThreshold)
   {
-    if(variableName.contains(IGNORED_VARS_PREFIX))
-      return this;
-
     // only add the interval if it is not already present
     if(!intervals.containsKey(variableName) || !intervals.get(variableName).equals(interval))
     {

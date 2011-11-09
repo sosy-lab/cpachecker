@@ -60,9 +60,9 @@ public class ReachedSizeHeuristics implements StopHeuristics<TrivialStopHeuristi
       TrivialStopHeuristicsData.setThreshold(threshold);
       TrivialStopHeuristicsData.setPreventingHeuristicType(PreventingHeuristicType.MEMORYOUT);
       return TrivialStopHeuristicsData.BOTTOM;
-    }
-    else
+    } else {
       return TrivialStopHeuristicsData.TOP;
+    }
   }
 
   @Override
