@@ -776,6 +776,13 @@ public class CtoFormulaConverter {
     return exp;
   }
 
+  private IASTRightHandSide removeCast(IASTRightHandSide exp) {
+    if (exp instanceof IASTCastExpression) {
+      return removeCast(((IASTCastExpression) exp).getOperand());
+    }
+    return exp;
+  }
+
   /**
    * This class tracks constraints which are created during AST traversal but
    * cannot be applied at the time of creation.
@@ -1102,10 +1109,10 @@ public class CtoFormulaConverter {
     public Formula visit(IASTBinaryExpression exp)
         throws UnrecognizedCCodeException {
       if (containsPointerDereferencing(exp)) {
-        IASTExpression e1 = exp.getOperand1();
+        IASTExpression e1 = removeCast(exp.getOperand1());
         Formula me1 = getExprFormula(e1);
 
-        IASTExpression e2 = exp.getOperand2();
+        IASTExpression e2 = removeCast(exp.getOperand2());
         Formula me2 = getExprFormula(e2);
 
         Formula exprFormula = makeCompoundFormula(exp, me1, me2);
@@ -1118,6 +1125,7 @@ public class CtoFormulaConverter {
     @Override
     public Formula visit(IASTUnaryExpression exp)
         throws UnrecognizedCCodeException {
+      IASTExpression opExp = removeCast(exp.getOperand());
       UnaryOperator op = exp.getOperator();
 
       switch (op) {
@@ -1125,8 +1133,8 @@ public class CtoFormulaConverter {
         return makeAddressVariable(exp, function);
 
       case STAR:
-        if (exp.getOperand() instanceof IASTIdExpression) {
-          return makePointerVariable((IASTIdExpression) exp.getOperand(), function, ssa);
+        if (opExp instanceof IASTIdExpression) {
+          return makePointerVariable((IASTIdExpression) opExp, function, ssa);
         }
         // fall-through
 
@@ -1135,24 +1143,17 @@ public class CtoFormulaConverter {
       }
     }
 
-    private Formula makeAddressVariable(IASTExpression exp, String function)
+    private Formula makeAddressVariable(IASTUnaryExpression exp, String function)
         throws UnrecognizedCCodeException {
 
-      if (exp instanceof IASTUnaryExpression) {
-        IASTExpression operand = ((IASTUnaryExpression) exp).getOperand();
-        UnaryOperator op = ((IASTUnaryExpression) exp).getOperator();
+        IASTExpression operand = removeCast(exp.getOperand());
+        UnaryOperator op = exp.getOperator();
 
         if (op != UnaryOperator.AMPER || !(operand instanceof IASTIdExpression)) {
           return super.visitDefault(exp);
         }
 
         return makeMemoryLocationVariable((IASTIdExpression) operand, function);
-
-      } else {
-        // not yet implemented: pointer arithmetic
-        log(Level.WARNING, exp.getRawSignature() + " is not yet implemented");
-        return fmgr.makeTrue();
-      }
     }
 
     /**
@@ -1213,16 +1214,16 @@ public class CtoFormulaConverter {
     private Formula getExprFormula(IASTExpression exp)
         throws UnrecognizedCCodeException {
       if (isPointerDereferencing(exp)) {
-
-        IASTExpression operand = ((IASTUnaryExpression) exp).getOperand();
+        IASTExpression operand = removeCast(((IASTUnaryExpression) exp).getOperand());
         if (operand instanceof IASTIdExpression) {
           return makePointerVariable((IASTIdExpression) operand, function, ssa);
         } else {
           throw new UnrecognizedCCodeException(exp.getRawSignature(), null, exp);
         }
-      }
 
-      return exp.accept(this);
+      } else {
+        return exp.accept(this);
+      }
     }
 
     private boolean containsPointerDereferencing(IASTBinaryExpression expr) {
@@ -1379,7 +1380,7 @@ public class CtoFormulaConverter {
     @Override
     public Formula visit(IASTAssignment assignment)
         throws UnrecognizedCCodeException {
-      IASTExpression left = assignment.getLeftHandSide();
+      IASTExpression left = removeCast(assignment.getLeftHandSide());
 
       if (left instanceof IASTIdExpression) {
         // p = ...
@@ -1401,7 +1402,8 @@ public class CtoFormulaConverter {
      */
     private Formula handleIndirectAssignment(IASTAssignment pAssignment)
         throws UnrecognizedCCodeException {
-      assert (pAssignment.getLeftHandSide() instanceof IASTUnaryExpression);
+      IASTExpression lExp = removeCast(pAssignment.getLeftHandSide());
+      assert (lExp instanceof IASTUnaryExpression);
 
       // the following expressions are supported by cil:
       // *p = a;
@@ -1409,17 +1411,13 @@ public class CtoFormulaConverter {
       // *p = a | b; (or any other binary statement)
       // *p = function();
 
-      IASTUnaryExpression l = (IASTUnaryExpression) pAssignment.getLeftHandSide();
+      IASTUnaryExpression l = (IASTUnaryExpression) lExp;
       assert (l.getOperator() == UnaryOperator.STAR);
 
-      IASTExpression lOperand = l.getOperand();
-      while (!(lOperand instanceof IASTIdExpression)) {
-        // try to find the encapsulated IASTIdExpression, if possible
-        if (lOperand instanceof IASTCastExpression) {
-          lOperand = ((IASTCastExpression) lOperand).getOperand();
-        } else {
-          return super.visit(pAssignment);
-        }
+      IASTExpression lOperand = removeCast(l.getOperand());
+      if (!(lOperand instanceof IASTIdExpression)) {
+        // TODO: *(a + 2) = b
+        return super.visit(pAssignment);
       }
 
       IASTRightHandSide r = pAssignment.getRightHandSide();
@@ -1532,10 +1530,11 @@ public class CtoFormulaConverter {
     /** A direct assignment changes the value of the variable on the left side. */
     private Formula handleDirectAssignment(IASTAssignment assignment)
         throws UnrecognizedCCodeException {
-      assert(assignment.getLeftHandSide() instanceof IASTIdExpression);
+      IASTExpression lExpr = removeCast(assignment.getLeftHandSide());
+      assert(lExpr instanceof IASTIdExpression);
 
-      IASTIdExpression left = (IASTIdExpression) assignment.getLeftHandSide();
-      IASTRightHandSide right = assignment.getRightHandSide();
+      IASTIdExpression left = (IASTIdExpression) lExpr;
+      IASTRightHandSide right = removeCast(assignment.getRightHandSide());
 
       String leftVarName = scopedIfNecessary(left, function);
 
@@ -1676,7 +1675,8 @@ public class CtoFormulaConverter {
     }
 
     /** Returns if a given expression may be a pointer. */
-    private boolean maybePointer(IASTExpression exp) {
+    private boolean maybePointer(IASTExpression pExp) {
+      IASTExpression exp = removeCast(pExp);
       if (exp instanceof IASTIdExpression) {
         IASTIdExpression idExp = (IASTIdExpression) exp;
         if (isStaticallyDeclaredPointer(exp.getExpressionType())) {
@@ -1925,6 +1925,11 @@ public class CtoFormulaConverter {
   private class LvalueVisitorPointers extends LvalueVisitor {
     public LvalueVisitorPointers(String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
       super(pFunction, pSsa, pCo);
+    }
+
+    @Override
+    public Formula visit(IASTCastExpression e) throws UnrecognizedCCodeException {
+      return e.getOperand().accept(this);
     }
 
     private Formula getPointerFormula(IASTExpression pExp) {
