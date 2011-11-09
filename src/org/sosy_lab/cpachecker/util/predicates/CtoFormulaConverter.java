@@ -733,8 +733,10 @@ public class CtoFormulaConverter {
       if (maybePointer(lType, lVarName, ssa) || maybePointer(rIdExp, function, ssa)) {
         // we assume that either the left or the right hand side is a pointer
         // so we add the equality: *l = *r
-        Formula rVar = makePointerVariable(rIdExp, function, ssa);
-        return fmgr.makeAssignment(lVar, rVar);
+        String lPVarName = makePointerMask(lVarName, ssa);
+        Formula lPVar = makeVariable(lPVarName, ssa);
+        Formula rPVar = makePointerVariable(rIdExp, function, ssa);
+        return fmgr.makeAssignment(lPVar, rPVar);
 
       } else {
         // we can assume, that no pointers are affected in this assignment
