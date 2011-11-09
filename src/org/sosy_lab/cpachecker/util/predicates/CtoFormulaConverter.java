@@ -341,9 +341,9 @@ public class CtoFormulaConverter {
    * Create a formula for a given variable.
    * This method does not handle scoping and the NON_DET_VARIABLE!
    */
-  private Formula makeVariable(String var, SSAMapBuilder ssa) {
-    int idx = getIndex(var, ssa);
-    return fmgr.makeVariable(var, idx);
+  private Formula makeVariable(String varName, SSAMapBuilder ssa) {
+    int idx = getIndex(varName, ssa);
+    return fmgr.makeVariable(varName, idx);
   }
 
   /**
@@ -359,14 +359,13 @@ public class CtoFormulaConverter {
   /** Returns the pointer variable belonging to a given IdExpression */
   private Formula makePointerVariable(IASTIdExpression expr, String function,
       SSAMapBuilder ssa) {
-    String variableName = makePointerVariableName(expr, function, ssa);
-    return makeVariable(variableName, ssa);
+    String pVarName = makePointerVariableName(expr, function, ssa);
+    return makeVariable(pVarName, ssa);
   }
 
   /** Takes a (scoped) variable name and returns the pointer variable name. */
   private static String makePointerMask(String scopedId, SSAMapBuilder ssa) {
-    String pointerId = "*<" + scopedId + "," + ssa.getIndex(scopedId) + ">";
-    return pointerId;
+    return "*<" + scopedId + "," + ssa.getIndex(scopedId) + ">";
   }
 
   /**
