@@ -1647,15 +1647,10 @@ public class CtoFormulaConverter {
 
     /** Returns whether the address of a given variable has been used before. */
     boolean isKnownMemoryLocation(String varName) {
+      assert varName != null;
       List<String> memLocations = getAllMemoryLocationsFromSsaMap(ssa);
       String memVarName = makeMemoryLocationVariableName(varName);
-      for (String memLocation : memLocations) {
-        if (memLocation.equals(memVarName)) {
-          return true;
-        }
-      }
-
-      return false;
+      return memLocations.contains(memVarName);
     }
 
     private boolean isPointerDereferencing(IASTNode exp) {
@@ -1677,11 +1672,7 @@ public class CtoFormulaConverter {
         // check if it has been used as a pointer before
         List<String> pVarNames = getAllPointerVariablesFromSsaMap();
         String expPVarName = makePointerVariableName(idExp, function, ssa);
-        for (String pVarName : pVarNames) {
-          if (expPVarName.equals(pVarName)) {
-            return true;
-          }
-        }
+        return pVarNames.contains(expPVarName);
       }
 
       return false;
