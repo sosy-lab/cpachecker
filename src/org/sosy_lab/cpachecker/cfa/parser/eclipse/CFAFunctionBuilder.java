@@ -66,6 +66,7 @@ import org.eclipse.cdt.core.dom.ast.IASTSwitchStatement;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
+import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
@@ -185,6 +186,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       }
     }
 
+
     CFANode prevNode = locStack.pop();
     CFANode nextNode = null;
 
@@ -193,6 +195,27 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       nextNode = new CFANode(fileloc.getStartingLineNumber(), cfa.getFunctionName());
       cfaNodes.add(nextNode);
+
+      while(astCreator.existsSideAssignment()){
+        IASTNode test = astCreator.getSideAssignment();
+        StatementEdge previous;
+        DeclarationEdge previousdec;
+        if(test instanceof IASTFunctionCallAssignmentStatement) {
+            previous = new StatementEdge((IASTFunctionCallAssignmentStatement)test, fileloc.getStartingLineNumber(), prevNode, nextNode);
+            addToCFA(previous);
+        } else if(test instanceof IASTAssignment){
+          previous = new StatementEdge((IASTExpressionAssignmentStatement)test, fileloc.getStartingLineNumber(), prevNode, nextNode);
+          addToCFA(previous);
+        } else {
+            previousdec = new DeclarationEdge((org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration) test, fileloc.getStartingLineNumber(), prevNode, nextNode);
+            addToCFA(previousdec);
+        }
+        prevNode = nextNode;
+
+        nextNode = new CFANode(fileloc.getStartingLineNumber(), cfa.getFunctionName());
+        cfaNodes.add(nextNode);
+        logger.log(Level.INFO, "Created new node", nextNode);
+      }
 
       final DeclarationEdge edge =
           new DeclarationEdge(newD, fileloc.getStartingLineNumber(), prevNode,
