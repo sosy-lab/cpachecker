@@ -280,8 +280,8 @@ public class CtoFormulaConverter {
    * Produces a fresh new SSA index for an assignment
    * and updates the SSA map.
    */
-  private int makeFreshIndex(String name, SSAMapBuilder ssa) {
-    int idx = ssa.getIndex(name);
+  private int makeFreshIndex(String varName, SSAMapBuilder ssa) {
+    int idx = ssa.getIndex(varName);
     if (idx > 0) {
       idx = idx+1;
     } else {
@@ -289,7 +289,7 @@ public class CtoFormulaConverter {
       // not from 1, because this is an assignment,
       // so the SSA index must be fresh.
     }
-    ssa.setIndex(name, idx);
+    ssa.setIndex(varName, idx);
     return idx;
   }
 
@@ -307,8 +307,8 @@ public class CtoFormulaConverter {
    * Produces a fresh new SSA index for the left-hand side of an assignment
    * and updates the SSA map.
    */
-  private int makeLvalIndex(String name, FormulaList args, SSAMapBuilder ssa) {
-    int idx = ssa.getIndex(name, args);
+  private int makeLvalIndex(String varName, FormulaList args, SSAMapBuilder ssa) {
+    int idx = ssa.getIndex(varName, args);
     if (idx > 0) {
       idx = idx+1;
     } else {
@@ -318,7 +318,7 @@ public class CtoFormulaConverter {
       // here, we will have troubles later when
       // shifting indices
     }
-    ssa.setIndex(name, args, idx);
+    ssa.setIndex(varName, args, idx);
     return idx;
   }
 
@@ -351,9 +351,9 @@ public class CtoFormulaConverter {
    * side of an assignment.
    * This method does not handle scoping and the NON_DET_VARIABLE!
    */
-  private Formula makeFreshVariable(String var, SSAMapBuilder ssa) {
-    int idx = makeFreshIndex(var, ssa);
-    return fmgr.makeVariable(var, idx);
+  private Formula makeFreshVariable(String varName, SSAMapBuilder ssa) {
+    int idx = makeFreshIndex(varName, ssa);
+    return fmgr.makeVariable(varName, idx);
   }
 
   /** Returns the pointer variable belonging to a given IdExpression */
@@ -520,11 +520,11 @@ public class CtoFormulaConverter {
       if (edge.getName() != null) {
 
         String varNameWithoutFunction = edge.getName();
-        String var;
+        String varName;
         if (isGlobal) {
-          var = varNameWithoutFunction;
+          varName = varNameWithoutFunction;
         } else {
-          var = scoped(varNameWithoutFunction, function);
+          varName = scoped(varNameWithoutFunction, function);
         }
 
         // TODO get the type of the variable, and act accordingly
@@ -543,7 +543,7 @@ public class CtoFormulaConverter {
         // (a declaration contains an implicit assignment, even without initializer)
         // In case of an existing initializer, we increment the index twice
         // (here and below) so that the index 2 only occurs for uninitialized variables.
-        makeFreshIndex(var, ssa);
+        makeFreshIndex(varName, ssa);
 
         // if there is an initializer associated to this variable,
         // take it into account
@@ -568,7 +568,7 @@ public class CtoFormulaConverter {
           // initializer value present
 
           Formula minit = buildTerm(init, function, ssa, constraints);
-          return makeAssignment(var, minit, ssa);
+          return makeAssignment(varName, minit, ssa);
         }
       }
       return fmgr.makeTrue();
