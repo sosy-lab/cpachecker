@@ -103,7 +103,6 @@ import org.sosy_lab.cpachecker.util.MachineModel;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -189,13 +188,13 @@ public class CtoFormulaConverter {
   private final Map<String, Formula> stringLitToFormula = new HashMap<String, Formula>();
   private int nextStringLitIndex = 0;
 
-  protected final FormulaManager fmgr;
+  protected final ExtendedFormulaManager fmgr;
   protected final LogManager logger;
 
   private static final int                 VARIABLE_UNSET          = -1;
   private static final int                 VARIABLE_UNINITIALIZED  = 2;
 
-  public CtoFormulaConverter(Configuration config, FormulaManager fmgr, LogManager logger) throws InvalidConfigurationException {
+  public CtoFormulaConverter(Configuration config, ExtendedFormulaManager fmgr, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, CtoFormulaConverter.class);
 
     this.fmgr = fmgr;
@@ -704,15 +703,6 @@ public class CtoFormulaConverter {
         function, ssa, constraints);
   }
 
-  private Formula makeNotEqual(Formula f1, Formula f2) {
-    return fmgr.makeNot(fmgr.makeEqual(f1, f2));
-  }
-
-  private Formula makeImplication(Formula p, Formula q) {
-    Formula left = fmgr.makeNot(p);
-    return fmgr.makeOr(left, q);
-  }
-
   private Formula buildTerm(IASTRightHandSide exp, String function,
       SSAMapBuilder ssa, Constraints ax) throws UnrecognizedCCodeException {
     return toNumericFormula(exp.accept(new RightHandSideToFormulaVisitor(function, ssa, ax)));
@@ -780,7 +770,7 @@ public class CtoFormulaConverter {
           Formula indirEq = fmgr.makeEqual(lPVar, pVar);
           Formula consequence = fmgr.makeAnd(dirEq, indirEq);
 
-          Formula constraint = makeImplication(p, consequence);
+          Formula constraint = fmgr.makeImplication(p, consequence);
 
           constraints.addConstraint(constraint);
         }
@@ -1411,7 +1401,7 @@ public class CtoFormulaConverter {
         }
 
         // a variable address is not 0
-        Formula notZero = makeNotEqual(newMemoryLocation, fmgr.makeNumber(0));
+        Formula notZero = fmgr.makeNotEqual(newMemoryLocation, fmgr.makeNumber(0));
         constraints.addConstraint(notZero);
       }
 
@@ -1594,12 +1584,13 @@ public class CtoFormulaConverter {
           for (String ml : memoryLocations) {
             Formula n = makeConstant(ml, ssa);
 
-            Formula notEqual = makeNotEqual(n, mallocVar);
+            Formula notEqual = fmgr.makeNotEqual(n, mallocVar);
             ineq = fmgr.makeAnd(notEqual, ineq);
           }
 
           Formula nullFormula = fmgr.makeNumber(0);
-          Formula implication = makeImplication(makeNotEqual(mallocVar, nullFormula), ineq);
+          Formula implication = fmgr.makeImplication(
+              fmgr.makeNotEqual(mallocVar, nullFormula), ineq);
 
           constraints.addConstraint(implication);
           return mallocVar;
