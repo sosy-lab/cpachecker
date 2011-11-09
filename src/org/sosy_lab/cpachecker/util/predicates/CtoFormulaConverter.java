@@ -1382,19 +1382,23 @@ public class CtoFormulaConverter {
       IASTExpression left = assignment.getLeftHandSide();
 
       if (left instanceof IASTIdExpression) {
+        // p = ...
         return handleDirectAssignment(assignment);
 
       } else if (left instanceof IASTUnaryExpression
           && ((IASTUnaryExpression) left).getOperator() == UnaryOperator.STAR) {
+        // *p = ...
         return handleIndirectAssignment(assignment);
 
       } else {
         return super.visit(assignment);
-//        throw new UnrecognizedCCodeException(
-//            "left hand side of assignment unsupported: ", null, left);
       }
     }
 
+    /**
+     * An indirect assignment does not change the value of the variable on the
+     * left hand side. Instead it changes the value aliased on the left hand side.
+     */
     private Formula handleIndirectAssignment(IASTAssignment pAssignment)
         throws UnrecognizedCCodeException {
       assert (pAssignment.getLeftHandSide() instanceof IASTUnaryExpression);
@@ -1525,6 +1529,7 @@ public class CtoFormulaConverter {
       return (right instanceof IASTIdExpression);
     }
 
+    /** A direct assignment changes the value of the variable on the left side. */
     private Formula handleDirectAssignment(IASTAssignment assignment)
         throws UnrecognizedCCodeException {
       assert(assignment.getLeftHandSide() instanceof IASTIdExpression);
@@ -1534,11 +1539,13 @@ public class CtoFormulaConverter {
 
       String leftVarName = scopedIfNecessary(left, function);
 
+      // assignment (first level) -- uses superclass
       Formula ri = assignment.getRightHandSide().accept(this);
       Formula rightVariable = toNumericFormula(ri);
       Formula leftVariable = buildLvalueTerm(assignment.getLeftHandSide(), function, ssa, constraints);
       Formula assignmentFormula = fmgr.makeAssignment(leftVariable, rightVariable);
 
+      // assignment (second level)
       if (isVariable(right)) {
         // C statement like: s1 = s2;
 
@@ -1566,6 +1573,11 @@ public class CtoFormulaConverter {
         IASTIdExpression rIdExpr = (IASTIdExpression) ((IASTUnaryExpression) right).getOperand();
         Formula rPVar = makePointerVariable(rIdExpr, function, ssa);
 
+        // the dealiased address of the right hand side may be a pointer itself.
+        // to ensure tracking, we need to set the left side
+        // equal to the dealiased right side or update the pointer
+        // r is the right hand side variable, l is the left hand side variable
+        // ∀p ∈ maybePointer: (p = *r) ⇒ (l = p ∧ *l = *p)
         for (String pVarName : pVars) {
           String varName = getVariableNameFromPointerVariable(pVarName);
           if(!varName.equals(lVarName)) {
@@ -1613,6 +1625,7 @@ public class CtoFormulaConverter {
         // s = a + b
       }
 
+      // updates
       if (isKnownMemoryLocation(leftVarName)) {
         String leftMemLocationName = makeMemoryLocationVariableName(leftVarName);
         Formula leftMemLocation = makeConstant(leftMemLocationName, ssa);
@@ -1662,6 +1675,7 @@ public class CtoFormulaConverter {
       return false;
     }
 
+    /** Returns if a given expression may be a pointer. */
     private boolean maybePointer(IASTExpression exp) {
       if (exp instanceof IASTIdExpression) {
         IASTIdExpression idExp = (IASTIdExpression) exp;
