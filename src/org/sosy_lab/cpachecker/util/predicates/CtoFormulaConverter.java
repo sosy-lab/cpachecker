@@ -589,7 +589,7 @@ public class CtoFormulaConverter {
           if (handlePointerAliasing) {
             // we need to add the pointer alias
             Formula pAssign = buildDirectSecondLevelAssignment(spec, varName,
-                init, function, constraints, ssa);
+                removeCast(init), function, constraints, ssa);
             assignments = fmgr.makeAnd(pAssign, assignments);
 
             // no need to add pointer updates:
@@ -719,9 +719,10 @@ public class CtoFormulaConverter {
   }
 
   private Formula buildDirectSecondLevelAssignment(IType lType,
-      String lVarName, IASTRightHandSide right, String function,
+      String lVarName, IASTRightHandSide pRight, String function,
       Constraints constraints, SSAMapBuilder ssa) {
 
+    IASTRightHandSide right = removeCast(pRight);
     Formula lVar = makeVariable(lVarName, ssa);
 
     if (isVariable(right)) {
@@ -748,7 +749,8 @@ public class CtoFormulaConverter {
       removeOldPointerVariablesFromSsaMap(lPVarName, ssa);
       Formula lPVar = makeVariable(lPVarName, ssa);
 
-      IASTIdExpression rIdExpr = (IASTIdExpression) ((IASTUnaryExpression) right).getOperand();
+      IASTIdExpression rIdExpr = (IASTIdExpression)
+          removeCast(((IASTUnaryExpression) right).getOperand());
       Formula rPVar = makePointerVariable(rIdExpr, function, ssa);
 
       // the dealiased address of the right hand side may be a pointer itself.
@@ -785,7 +787,8 @@ public class CtoFormulaConverter {
       if (right instanceof IASTUnaryExpression
           && ((IASTUnaryExpression) right).getOperator() == UnaryOperator.AMPER){
 
-        IASTExpression rOperand = ((IASTUnaryExpression) right).getOperand();
+        IASTExpression rOperand =
+            removeCast(((IASTUnaryExpression) right).getOperand());
         if (rOperand instanceof IASTIdExpression) {
           String rVarName = scopedIfNecessary((IASTIdExpression) rOperand, function);
           Formula rVar = makeVariable(rVarName, ssa);
