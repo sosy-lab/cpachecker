@@ -45,7 +45,7 @@ public class ReachedSetFactory {
   }
 
   @Option(name="traversal.order",
-      description="which strategy to adopt for visiting states?"
+      description="which strategy to adopt for visiting states? "
       		      + "TOPSORT is deprecated, use the option analysis.traversal.useTopsort instead")
   Waitlist.TraversalMethod traversalMethod = Waitlist.TraversalMethod.DFS;
 

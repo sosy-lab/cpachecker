@@ -24,7 +24,8 @@ analysis.restartAfterUnknown = false
 # stop after the first error has been found
 analysis.stopAfterError = true
 
-# which strategy to adopt for visiting states?
+# which strategy to adopt for visiting states? TOPSORT is deprecated, use the
+# option analysis.traversal.useTopsort instead
 analysis.traversal.order = DFS
   enum:     [DFS, BFS, TOPSORT, RAND]
 
