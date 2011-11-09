@@ -47,7 +47,7 @@ public class ProofGenerator {
 
   //TODO possibly add values
   @Option(name = "pcc.proofgen.algorithm", description = "Type of the algorithm which should be used for PCC")
-  private PCCAlgorithmType  algorithmType        = PCCAlgorithmType.SBEasART;
+  private PCCAlgorithmType  algorithmType        = PCCAlgorithmType.SBEWithoutIndicesAsART;
   @Option(name = "pcc.proofgen.doPCC", description = "")
   private boolean           doPCC                = false;
   //TODO further values if other algorithms available
@@ -62,6 +62,8 @@ public class ProofGenerator {
   private boolean           alwaysAtLoops        = true;
   @Option(description = "force abstractions at each function calls/returns, regardless of threshold")
   private boolean           alwaysAtFunctions    = true;
+  @Option(name = "cpa.predicate.abstraction.cartesian", description = "whether to use Boolean (false) or Cartesian (true) abstraction")
+  private boolean           cartesianAbstraction = false;
 
   public ProofGenerator(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
@@ -69,9 +71,10 @@ public class ProofGenerator {
     // TODO choose the correct algorithm due to the configuration, null if wrong config
     if (doPCC) {
       switch (algorithmType) {
-      case SBEasART: {
-        if (alwaysAfterThreshold && switchToLBEAfter == 0 && threshold == 1) {
-          algorithm = new SBE_ARTProofGenAlgorithm(pConfig, pLogger);
+      case SBEWithoutIndicesAsART: {
+        if (alwaysAfterThreshold && switchToLBEAfter == 0 && threshold == 1
+            && cartesianAbstraction) {
+          algorithm = new SBEWithoutIndices_ARTProofGenAlgorithm(pConfig, pLogger);
         } else {
           logger
               .log(Level.WARNING,
@@ -80,9 +83,34 @@ public class ProofGenerator {
         }
         break;
       }
-      case SBEasInvariant: {
-        if (alwaysAfterThreshold && switchToLBEAfter == 0 && threshold == 1) {
-          //TODO algorithm = new SBE_ARTProofGenAlgorithm(pConfig, pLogger);
+      case SBEWithIndicesAsART: {
+        if (alwaysAfterThreshold && switchToLBEAfter == 0 && threshold == 1
+            && cartesianAbstraction) {
+          algorithm = new SBEWithIndices_ARTProofGenAlgorithm(pConfig, pLogger);
+        } else {
+          logger
+              .log(Level.WARNING,
+                  "Predicate Abstraction configuration does not fit to PCC algorithm.");
+          algorithm = null;
+        }
+        break;
+      }
+      case SBEWithoutIndicesAsInvariant: {
+        if (alwaysAfterThreshold && switchToLBEAfter == 0 && threshold == 1
+            && cartesianAbstraction) {
+          algorithm = new SBEWithoutIndices_InvariantProofGenAlgorithm(pConfig, pLogger);
+        } else {
+          logger
+              .log(Level.WARNING,
+                  "Predicate Abstraction configuration does not fit to PCC algorithm.");
+          algorithm = null;
+        }
+        break;
+      }
+      case SBEWithIndicesAsInvariant:{
+        if (alwaysAfterThreshold && switchToLBEAfter == 0 && threshold == 1
+            && cartesianAbstraction) {
+          algorithm = new SBEWithIndices_InvariantProofGenAlgorithm(pConfig, pLogger);
         } else {
           logger
               .log(Level.WARNING,

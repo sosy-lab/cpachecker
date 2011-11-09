@@ -28,7 +28,6 @@ import java.util.Iterator;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
@@ -36,9 +35,8 @@ import org.sosy_lab.pcc.common.AbstractionType;
 import org.sosy_lab.pcc.common.FormulaHandler;
 import org.sosy_lab.pcc.common.Separators;
 
-public class SBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
-
-  private FormulaHandler fh;
+public abstract class SBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
+  protected FormulaHandler fh;
 
   public SBE_ARTProofGenAlgorithm(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
@@ -63,7 +61,9 @@ public class SBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
     if (predicate.isAbstractionElement()) {
       nodeRep.append(AbstractionType.Abstraction);
       nodeRep.append(Separators.commonSeparator);
-      nodeRep.append(predicate.getAbstractionFormula().asFormula().toString());
+      String abstraction = getAbstraction(predicate);
+      if (abstraction == null || abstraction.equals("")) { return false; }
+      nodeRep.append(abstraction);
     } else {
       nodeRep.append(AbstractionType.NeverAbstraction);
     }
@@ -72,7 +72,7 @@ public class SBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
     return true;
   }
 
-  private PredicateAbstractElement getWrappedPredicateAbstractElement(
+  protected PredicateAbstractElement getWrappedPredicateAbstractElement(
       ARTElement pNode) {
     AbstractElement wrappedElement;
     Iterator<? extends AbstractElement> it =
@@ -84,35 +84,20 @@ public class SBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
     return null;
   }
 
-  @Override
-  protected boolean addARTEdge(ARTElement pSource, CFAEdge pEdge,
+  protected abstract String getAbstraction(PredicateAbstractElement pPredicate);
+
+  protected String getEdgeIdentification(ARTElement pSource,
       ARTElement pTarget) {
     StringBuilder edgeRep = new StringBuilder();
-    // build string of form sourceId#targetId#operation#
+    // build string of form sourceId#targetId
     edgeRep.append(pSource.getElementId());
     edgeRep.append(Separators.commonSeparator);
     // if target element is covered -> set covering element as target
-    if(pTarget.isCovered()){
+    if (pTarget.isCovered()) {
       pTarget = pTarget.getCoveringElement();
     }
     edgeRep.append(pTarget.getElementId());
-    edgeRep.append(Separators.commonSeparator);
-    //add operation
-    String operation = getEdgeOperationFormula(pSource, pEdge);
-    if (operation != null) {
-      edgeRep.append(operation);
-      edges.add(edgeRep.toString());
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  private String getEdgeOperationFormula(ARTElement pSource, CFAEdge pEdge) {
-    // get wrapped PredicateAbstractionElement
-    PredicateAbstractElement predicate =
-        getWrappedPredicateAbstractElement(pSource);
-    return fh.getEdgeOperationWithSSA(predicate.getPathFormula(), pEdge);
+    return edgeRep.toString();
   }
 
 }

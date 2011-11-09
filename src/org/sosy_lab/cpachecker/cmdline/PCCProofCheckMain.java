@@ -39,8 +39,10 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.pcc.common.PCCAlgorithmType;
 import org.sosy_lab.pcc.common.PCCCheckResult;
 import org.sosy_lab.pcc.proof_check.ProofCheckAlgorithm;
-import org.sosy_lab.pcc.proof_check.SBE_ARTProofCheckAlgorithm;
-import org.sosy_lab.pcc.proof_check.SBE_InvariantProofCheckAlgorithm;
+import org.sosy_lab.pcc.proof_check.SBEWithIndices_ARTProofCheckAlgorithm;
+import org.sosy_lab.pcc.proof_check.SBEWithIndices_InvariantProofCheckAlgorithm;
+import org.sosy_lab.pcc.proof_check.SBEWithoutIndices_ARTProofCheckAlgorithm;
+import org.sosy_lab.pcc.proof_check.SBEWithoutIndices_InvariantProofCheckAlgorithm;
 
 import com.google.common.base.Throwables;
 
@@ -51,23 +53,25 @@ public class PCCProofCheckMain {
 
     //TODO possibly add values
     @Option(name = "pcc.proofgen.algorithm", description = "Type of the algorithm which should be used for PCC")
-    private PCCAlgorithmType algorithmType = PCCAlgorithmType.SBEasART;
+    private PCCAlgorithmType algorithmType        = PCCAlgorithmType.SBEWithoutIndicesAsART;
     @Option(name = "pcc.proofgen.doPCC", description = "")
-    private boolean          doPCC         = false;
+    private boolean          doPCC                = false;
     //TODO further values if other algorithms available
     @Option(name = "cpa.predicate.blk.alwaysAfterThreshold", description = "force abstractions immediately after threshold is reached (no effect if threshold = 0)")
     private boolean          alwaysAfterThreshold = true;
     @Option(name = "cpa.predicate.blk.threshold", description = "maximum blocksize before abstraction is forced\n"
         + "(non-negative number, special values: 0 = don't check threshold, 1 = SBE)")
-    private int              threshold = 0;
+    private int              threshold            = 0;
     @Option(name = "cpa.predicate.blk.switchToLBEAfter", description = "Switch to a LBE configuration after so many milliseconds (0 to disable)")
-    private int              switchToLBEAfter = 0;
+    private int              switchToLBEAfter     = 0;
     @Option(name = "pcc.profgen.file", type = Option.Type.OUTPUT_FILE, description = "export ART representation needed for proof checking in PCC, if the error location is not reached, the representation depends on the algorithm used for proof checking")
-    private File               file         = new File("pccProof.txt");
+    private File             file                 = new File("pccProof.txt");
     @Option(description = "force abstractions at loop heads, regardless of threshold")
-    private boolean           alwaysAtLoops        = true;
+    private boolean          alwaysAtLoops        = true;
     @Option(description = "force abstractions at each function calls/returns, regardless of threshold")
-    private boolean           alwaysAtFunctions    = true;
+    private boolean          alwaysAtFunctions    = true;
+    @Option(name = "cpa.predicate.abstraction.cartesian", description = "whether to use Boolean (false) or Cartesian (true) abstraction")
+    private boolean          cartesianAbstraction = false;
 
     private PCCProofChecker(Configuration pConfig)
         throws InvalidConfigurationException {
@@ -80,16 +84,39 @@ public class PCCProofCheckMain {
         LogManager pLogger) throws InvalidConfigurationException {
       ProofCheckAlgorithm algorithm = null;
       switch (algorithmType) {
-      case SBEasART: {
-        if (alwaysAfterThreshold && threshold == 1 && switchToLBEAfter == 0) {
-          algorithm = new SBE_ARTProofCheckAlgorithm(pConfig, pLogger, alwaysAtLoops, alwaysAtFunctions);
+      case SBEWithoutIndicesAsART: {
+        if (alwaysAfterThreshold && threshold == 1 && switchToLBEAfter == 0
+            && cartesianAbstraction) {
+          algorithm =
+              new SBEWithoutIndices_ARTProofCheckAlgorithm(pConfig, pLogger, alwaysAtLoops,
+                  alwaysAtFunctions);
         }
         break;
       }
-      case SBEasInvariant:
-      {
-        if (alwaysAfterThreshold && threshold == 1 && switchToLBEAfter == 0){
-        algorithm = new SBE_InvariantProofCheckAlgorithm(pConfig,pLogger,alwaysAtLoops, alwaysAtFunctions);
+      case SBEWithIndicesAsART: {
+        if (alwaysAfterThreshold && threshold == 1 && switchToLBEAfter == 0
+            && cartesianAbstraction) {
+          algorithm =
+              new SBEWithIndices_ARTProofCheckAlgorithm(pConfig, pLogger, alwaysAtLoops,
+                  alwaysAtFunctions);
+        }
+        break;
+      }
+      case SBEWithoutIndicesAsInvariant: {
+        if (alwaysAfterThreshold && threshold == 1 && switchToLBEAfter == 0
+            && cartesianAbstraction) {
+          algorithm =
+              new SBEWithoutIndices_InvariantProofCheckAlgorithm(pConfig, pLogger,
+                  alwaysAtLoops, alwaysAtFunctions);
+        }
+        break;
+      }
+      case SBEWithIndicesAsInvariant: {
+        if (alwaysAfterThreshold && threshold == 1 && switchToLBEAfter == 0
+            && cartesianAbstraction) {
+          algorithm =
+              new SBEWithIndices_InvariantProofCheckAlgorithm(pConfig, pLogger,
+                  alwaysAtLoops, alwaysAtFunctions);
         }
         break;
       }

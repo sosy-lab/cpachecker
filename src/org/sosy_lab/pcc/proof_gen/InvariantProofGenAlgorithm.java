@@ -45,8 +45,7 @@ public abstract class InvariantProofGenAlgorithm implements ProofGenAlgorithm {
 
   protected Hashtable<Integer, StringBuilder> cfaNodeInvariants =
                                                                     new Hashtable<Integer, StringBuilder>();
-  protected Hashtable<String, StringBuilder>  operationsPerEdge =
-                                                                    new Hashtable<String, StringBuilder>();
+
   protected Configuration                     config;
   protected LogManager                        logger;
 
@@ -126,6 +125,8 @@ public abstract class InvariantProofGenAlgorithm implements ProofGenAlgorithm {
 
   protected abstract boolean addOperation(ARTElement pSource, ARTElement pTarget);
 
+  protected abstract StringBuilder writeOperations();
+
   private boolean writeInvariantsAndOperations() {
     StringBuilder output = new StringBuilder();
     // add all invariants
@@ -134,17 +135,16 @@ public abstract class InvariantProofGenAlgorithm implements ProofGenAlgorithm {
       output.append(cfaID + Separators.commonSeparator);
       toWrite = cfaNodeInvariants.get(cfaID);
       output.append(countNumOccurrences(toWrite, Separators.commonSeparator)
-          + Separators.commonSeparator + toWrite);
+          + Separators.commonSeparator + toWrite.toString());
     }
     // add separation between invariants and operations
     output.append(Separators.nodesFromEdgesSeparator);
     // add all operations
-    for (String edge : operationsPerEdge.keySet()) {
-      output.append(edge + Separators.commonSeparator);
-      toWrite = operationsPerEdge.get(edge);
-      output.append(countNumOccurrences(toWrite, Separators.commonSeparator)
-          + Separators.commonSeparator + toWrite);
+    toWrite = writeOperations();
+    if(toWrite == null){
+      return false;
     }
+    output.append(toWrite.toString());
     try {
       Files.writeFile(file, output);
     } catch (IOException e) {
@@ -155,7 +155,7 @@ public abstract class InvariantProofGenAlgorithm implements ProofGenAlgorithm {
     return true;
   }
 
-  private int countNumOccurrences(StringBuilder pSource, String pOccur) {
+  protected int countNumOccurrences(StringBuilder pSource, String pOccur) {
     int i = -1;
     int pos, index = 0;
     do {

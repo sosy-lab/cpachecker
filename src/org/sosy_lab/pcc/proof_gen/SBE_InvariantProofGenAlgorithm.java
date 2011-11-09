@@ -37,14 +37,40 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.pcc.common.FormulaHandler;
 import org.sosy_lab.pcc.common.Separators;
 
-public class SBE_InvariantProofGenAlgorithm extends InvariantProofGenAlgorithm {
+public abstract class SBE_InvariantProofGenAlgorithm extends
+    InvariantProofGenAlgorithm {
 
-  private FormulaHandler fh;
+  protected FormulaHandler fh;
 
   public SBE_InvariantProofGenAlgorithm(Configuration pConfig,
       LogManager pLogger) throws InvalidConfigurationException {
     super(pConfig, pLogger);
     fh = new FormulaHandler(pConfig, pLogger);
+  }
+
+  @Override
+  protected boolean addInvariant(ARTElement pNode, String pStack) {
+    PredicateAbstractElement predicate =
+        AbstractElements.extractElementByType(pNode,
+            PredicateAbstractElement.class);
+    if (predicate == null) { return false; }
+    CFANode corresponding = pNode.retrieveLocationElement().getLocationNode();
+    //check if it is an abstraction element, otherwise nothing to do
+    if (predicate.isAbstractionElement()
+        || (corresponding instanceof CFAFunctionDefinitionNode)
+        || corresponding.getEnteringSummaryEdge() != null) {
+      StringBuilder builder =
+          cfaNodeInvariants.get(corresponding.getNodeNumber());
+      if (builder == null) {
+        builder = new StringBuilder();
+        cfaNodeInvariants.put(corresponding.getNodeNumber(), builder);
+      }
+      // add invariant and stack
+      String invariant = getAbstraction(predicate);
+      if (invariant == null || invariant.length() == 0) { return false; }
+      builder.append(invariant + pStack + Separators.commonSeparator);
+    }
+    return true;
   }
 
   @Override
@@ -63,7 +89,7 @@ public class SBE_InvariantProofGenAlgorithm extends InvariantProofGenAlgorithm {
         AbstractElements.extractElementByType(pTarget,
             PredicateAbstractElement.class);
     corresponding = pTarget.retrieveLocationElement().getLocationNode();
-    // check if no abstraction needed
+    // check if no abstraction needed for target, than look for children as target
     if (!predicate.isAbstractionElement()
         && !(corresponding instanceof CFAFunctionDefinitionNode)
         && corresponding.getEnteringSummaryEdge() == null) {
@@ -97,52 +123,17 @@ public class SBE_InvariantProofGenAlgorithm extends InvariantProofGenAlgorithm {
     return true;
   }
 
-  private boolean addSingleOperation(ARTElement pNode, CFAEdge pEdge) {
-    PredicateAbstractElement predicate =
-        AbstractElements.extractElementByType(pNode,
-            PredicateAbstractElement.class);
-    if (predicate == null) { return false; }
-    String operation =
-        fh.getEdgeOperationWithSSA(predicate.getPathFormula(), pEdge);
-    if (operation == null) { return false; }
+  protected String buildEdgeId(CFANode pSource, CFAEdge pEdge) {
     // build identification of edge
     String id =
-        pNode.retrieveLocationElement().getLocationNode().getNodeNumber()
-            + Separators.commonSeparator
+        pSource.getNodeNumber() + Separators.commonSeparator
             + pEdge.getPredecessor().getNodeNumber()
             + Separators.commonSeparator + pEdge.getSuccessor().getNodeNumber();
-    StringBuilder current = operationsPerEdge.get(id);
-    if (current == null) {
-      operationsPerEdge.put(id, new StringBuilder(operation
-          + Separators.commonSeparator));
-    } else {
-      current.append(operation + Separators.commonSeparator);
-    }
-    return true;
+    return id;
   }
 
-  @Override
-  protected boolean addInvariant(ARTElement pNode, String pStack) {
-    PredicateAbstractElement predicate =
-        AbstractElements.extractElementByType(pNode,
-            PredicateAbstractElement.class);
-    if (predicate == null) { return false; }
-    CFANode corresponding = pNode.retrieveLocationElement().getLocationNode();
-    //check if it is an abstraction element, otherwise nothing to do
-    if (predicate.isAbstractionElement()
-        || (corresponding instanceof CFAFunctionDefinitionNode)
-        || corresponding.getEnteringSummaryEdge() != null) {
-      StringBuilder builder =
-          cfaNodeInvariants.get(corresponding.getNodeNumber());
-      if (builder == null) {
-        cfaNodeInvariants.put(corresponding.getNodeNumber(), new StringBuilder(
-            predicate.getAbstractionFormula().asFormula().toString() + pStack
-                + Separators.commonSeparator));
-      } else {
-        builder.append(predicate.getAbstractionFormula().asFormula().toString()
-            + pStack + Separators.commonSeparator);
-      }
-    }
-    return true;
-  }
+  protected abstract boolean addSingleOperation(ARTElement pNode, CFAEdge pEdge);
+
+  protected abstract String getAbstraction(PredicateAbstractElement pPredicate);
+
 }

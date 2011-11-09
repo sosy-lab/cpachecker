@@ -23,9 +23,21 @@
  */
 package org.sosy_lab.pcc.common;
 
-public enum PCCAlgorithmType {
-  SBEWithIndicesAsART,
-  SBEWithoutIndicesAsART,
-  SBEWithIndicesAsInvariant,
-  SBEWithoutIndicesAsInvariant
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+
+public class WithOpDescriptionARTEdge extends ARTEdge {
+
+  private String operation;
+
+  public WithOpDescriptionARTEdge(int pTargetARTId, CFAEdge pCFAEdge,
+      String pOperation) throws IllegalArgumentException {
+    super(pTargetARTId, pCFAEdge);
+    if (pOperation == null) { throw new IllegalArgumentException(
+        "Cannot be a valid ART edge for which an operation should be stored."); }
+    operation = pOperation;
+  }
+
+  public String getOperation() {
+    return operation;
+  }
 }

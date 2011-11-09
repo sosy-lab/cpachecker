@@ -29,16 +29,16 @@ public class ARTEdge {
 
   private int     targetARTId;
   private CFAEdge cfaEdge;
-  private String  operation;
 
-  public ARTEdge(int pTargetARTId, CFAEdge pCFAEdge, String pOperation)
+
+  public ARTEdge(int pTargetARTId, CFAEdge pCFAEdge)
       throws IllegalArgumentException {
 
-    if (pCFAEdge == null || pOperation == null) { throw new IllegalArgumentException(
+    if (pCFAEdge == null) { throw new IllegalArgumentException(
         "Cannot be a valid ART edge."); }
     targetARTId = pTargetARTId;
     cfaEdge = pCFAEdge;
-    operation = pOperation;
+
   }
 
   public int getTarget() {
@@ -47,9 +47,5 @@ public class ARTEdge {
 
   public CFAEdge getCorrespondingCFAEdge() {
     return cfaEdge;
-  }
-
-  public String getOperation() {
-    return operation;
   }
 }

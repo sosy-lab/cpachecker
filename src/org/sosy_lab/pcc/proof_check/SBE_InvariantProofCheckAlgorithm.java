@@ -34,7 +34,6 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -44,26 +43,26 @@ import org.sosy_lab.pcc.common.PCCCheckResult;
 import org.sosy_lab.pcc.common.Pair;
 import org.sosy_lab.pcc.common.Separators;
 
-public class SBE_InvariantProofCheckAlgorithm extends
+public abstract class SBE_InvariantProofCheckAlgorithm extends
     InvariantProofCheckAlgorithm {
 
-  private final String                                     stackName         =
-                                                                                 "_STACK";
-  private final String                                     goalDes           =
-                                                                                 "_GOAL";
+  protected final String                                     stackName         =
+                                                                                   "_STACK";
+  protected final String                                     goalDes           =
+                                                                                   "_GOAL";
 
-  private boolean                                          atLoop;
+  private boolean                                            atLoop;
   //private boolean                                          atFunction;
-  private FormulaHandler                                   handler;
-  private Hashtable<Integer, Vector<Pair<Formula, int[]>>> nodes             =
-                                                                                 new Hashtable<Integer, Vector<Pair<Formula, int[]>>>();
-  private Hashtable<String, Formula[]>                     edges             =
-                                                                                 new Hashtable<String, Formula[]>();
-  private Hashtable<Integer, CFANode>                      reachableCFANodes =
-                                                                                 new Hashtable<Integer, CFANode>();
+  protected FormulaHandler                                   handler;
+  protected Hashtable<Integer, Vector<Pair<Formula, int[]>>> nodes             =
+                                                                                   new Hashtable<Integer, Vector<Pair<Formula, int[]>>>();
+  protected HashSet<String>                                  edges             =
+                                                                                   new HashSet<String>();
+  protected Hashtable<Integer, CFANode>                      reachableCFANodes =
+                                                                                   new Hashtable<Integer, CFANode>();
 
-  private Hashtable<Integer, CFANode>                      allCFANodes       =
-                                                                                 new Hashtable<Integer, CFANode>();
+  protected Hashtable<Integer, CFANode>                      allCFANodes       =
+                                                                                   new Hashtable<Integer, CFANode>();
 
   public SBE_InvariantProofCheckAlgorithm(Configuration pConfig,
       LogManager pLogger, boolean pAlwaysAtLoops, boolean pAlwaysAtFunctions)
@@ -74,52 +73,33 @@ public class SBE_InvariantProofCheckAlgorithm extends
     handler = new FormulaHandler(pConfig, pLogger);
   }
 
-  @Override
-  protected PCCCheckResult readEdges(Scanner pScan) {
-    int source, target, sourceEdge, numOps;
-    CFANode nodeS, nodeT, nodeSourceOpEdge;
-    String op;
-    PCCCheckResult intermediateRes;
-    Formula[] operations;
-    while (pScan.hasNext()) {
-      try {
-        // read next edge
-        source = pScan.nextInt();
-        sourceEdge = pScan.nextInt();
-        target = pScan.nextInt();
-        nodeS = reachableCFANodes.get(source);
-
-        nodeSourceOpEdge = allCFANodes.get(sourceEdge);
-        nodeT = reachableCFANodes.get(target);
-        if (nodeS == null || allInvariantFormulaeFalse(source)
-            || nodeSourceOpEdge == null || nodeT == null) { return PCCCheckResult.UnknownCFAEdge; }
-        // get all operations with respective SSA indices
-        numOps = pScan.nextInt();
-        if (numOps < 1) { return PCCCheckResult.UnknownCFAEdge; }
-        operations = new Formula[numOps];
-        for (int i = 0; i < numOps; i++) {
-          op = pScan.next();
-          if (op.length() == 0) {
-            operations[i] = null;
-          } else {
-            operations[i] = handler.createFormula(op);
-          }
+  protected CFAEdge retrieveOperationEdge(CFANode pSource, CFANode pSourceEdge,
+      CFANode pTarget) {
+    HashSet<Integer> visitedTargets = new HashSet<Integer>();
+    Vector<CFANode> toVisit = new Vector<CFANode>();
+    toVisit.add(pSource);
+    visitedTargets.add(pSource.getNodeNumber());
+    CFANode current;
+    CFAEdge edge;
+    while (!toVisit.isEmpty()) {
+      current = toVisit.remove(0);
+      if (current.equals(pSourceEdge)) {
+        if ((!current.hasEdgeTo(pTarget) || !isEndpoint(current
+            .getEdgeTo(pTarget)))) {
+          return null;
+        } else {
+          return current.getEdgeTo(pTarget);
         }
-        //check edge
-        intermediateRes =
-            structuralCheckEdge(nodeS, nodeSourceOpEdge, nodeT, operations);
-        if (intermediateRes != PCCCheckResult.Success) { return intermediateRes; }
-        //add edge
-        edges.put(source + Separators.commonSeparator + target, operations);
-      } catch (IllegalArgumentException e3) {
-        return PCCCheckResult.UnknownCFAEdge;
-      } catch (InputMismatchException e2) {
-        return PCCCheckResult.UnknownCFAEdge;
-      } catch (NoSuchElementException e1) {
-        return PCCCheckResult.UnknownCFAEdge;
+      }
+      for (int i = 0; i < current.getNumLeavingEdges(); i++) {
+        edge = current.getLeavingEdge(i);
+        if (!isEndpoint(edge) && !visitedTargets.contains(edge.getSuccessor())) {
+          visitedTargets.add(edge.getSuccessor().getNodeNumber());
+          toVisit.add(edge.getSuccessor());
+        }
       }
     }
-    return structuralCheckCoverageOfCFAEdges();
+    return null;
   }
 
   @Override
@@ -178,10 +158,11 @@ public class SBE_InvariantProofCheckAlgorithm extends
         for (int i = 0; i < numInvariants; i++) {
           // read invariant
           next = pScan.next();
-          subStr = next.split("?");
+          subStr = next.split(Separators.stackEntrySeparator);
           if (subStr.length < 1) { return PCCCheckResult.InvalidInvariant; }
           // get formula
           try {
+            if (!checkAbstraction(subStr[0])) { return PCCCheckResult.InvalidInvariant; }
             invariant = handler.createFormula(subStr[0]);
             if (isRoot) {
               if (!invariant.isTrue()) { return PCCCheckResult.InvalidARTRootSpecification; }
@@ -206,10 +187,6 @@ public class SBE_InvariantProofCheckAlgorithm extends
           }
           // add invariant
           invariants.add(new Pair<Formula, int[]>(invariant, stack));
-        }
-        // check root node
-        if (cfaForProof.getMainFunction().equals(current)) {
-
         }
         nodes.put(readNode, invariants);
       }
@@ -247,6 +224,7 @@ public class SBE_InvariantProofCheckAlgorithm extends
       }
       //check if only non-abstraction nodes
       if (!result) {
+        result = true;
         for (Integer id : comps.get(i).nodes) {
           result = result && isNonAbstractionNode(allCFANodes.get(id));
         }
@@ -256,84 +234,7 @@ public class SBE_InvariantProofCheckAlgorithm extends
     return PCCCheckResult.Success;
   }
 
-  private boolean allInvariantFormulaeFalse(Integer pNode) {
-    Vector<Pair<Formula, int[]>> formulae = nodes.get(pNode);
-    for (int i = 0; i < formulae.size(); i++) {
-      if (!formulae.get(i).getFirst().isFalse()) { return false; }
-    }
-    return true;
-  }
-
-  private boolean isNonAbstractionNode(CFANode pNode) {
-    // check if kind of node requires abstraction
-    if ((pNode instanceof CFAFunctionDefinitionNode)
-        || pNode.getEnteringSummaryEdge() != null
-        || (atLoop && pNode.isLoopStart())) { return false; }
-    //check if all entering edges have empty operation
-    for (int i = 0; i < pNode.getNumEnteringEdges(); i++) {
-      if (handler.getEdgeOperation(pNode.getEnteringEdge(i)).length() != 0) { return false; }
-
-    }
-    return true;
-  }
-
-  private PCCCheckResult structuralCheckEdge(CFANode pSource,
-      CFANode pEdgeSource, CFANode pTarget, Formula[] operations) {
-    CFAEdge edge = retrieveOperationEdge(pSource, pEdgeSource, pTarget);
-    if (edge == null) { return PCCCheckResult.InvalidEdge; }
-    // get operation formula
-    String builtOp = handler.getEdgeOperation(edge);
-    //check operations
-    for (int i = 0; i < operations.length; i++) {
-      if (operations[i] == null) {
-        if (!handler.isSameFormulaWithNormalizedIndices("", builtOp)) { return PCCCheckResult.InvalidOperation; }
-      } else {
-        if (!handler.isSameFormulaWithNormalizedIndices(
-            operations[i].toString(), builtOp)) { return PCCCheckResult.InvalidOperation; }
-      }
-    }
-    return null;
-  }
-
-  private CFAEdge retrieveOperationEdge(CFANode pSource, CFANode pSourceEdge,
-      CFANode pTarget) {
-    HashSet<Integer> visitedTargets = new HashSet<Integer>();
-    Vector<CFANode> toVisit = new Vector<CFANode>();
-    toVisit.add(pSource);
-    visitedTargets.add(pSource.getNodeNumber());
-    CFANode current;
-    CFAEdge edge;
-    while (!toVisit.isEmpty()) {
-      current = toVisit.remove(0);
-      if (current.equals(pSourceEdge)) {
-        if ((!current.hasEdgeTo(pTarget) || !isEndpoint(current
-            .getEdgeTo(pTarget)))) {
-          return null;
-        } else {
-          return current.getEdgeTo(pTarget);
-        }
-      }
-      for (int i = 0; i < current.getNumLeavingEdges(); i++) {
-        edge = current.getLeavingEdge(i);
-        if (!isEndpoint(edge) && !visitedTargets.contains(edge.getSuccessor())) {
-          visitedTargets.add(edge.getSuccessor().getNodeNumber());
-          toVisit.add(edge.getSuccessor());
-        }
-      }
-    }
-    return null;
-  }
-
-  private boolean isEndpoint(CFAEdge pEdge) {
-    CFANode succ = pEdge.getSuccessor();
-    if (succ instanceof CFAFunctionDefinitionNode
-        || succ.getEnteringSummaryEdge() != null
-        || (atLoop && succ.isLoopStart())) { return true; }
-    if (handler.getEdgeOperation(pEdge).length() == 0) { return false; }
-    return true;
-  }
-
-  private PCCCheckResult structuralCheckCoverageOfCFAEdges() {
+  protected PCCCheckResult structuralCheckCoverageOfCFAEdges() {
     //build all edge identifications for reachable source nodes and test if they are in edges
     HashSet<Integer> visited = new HashSet<Integer>();
     Vector<CFANode> toVisit = new Vector<CFANode>();
@@ -374,7 +275,7 @@ public class SBE_InvariantProofCheckAlgorithm extends
           new String(pNodeNumber + Separators.commonSeparator + pNodeNumber
               + Separators.commonSeparator
               + pEdge.getSuccessor().getNodeNumber());
-      if (edges.containsKey(id)) {
+      if (edges.contains(id)) {
         return PCCCheckResult.Success;
       } else {
         return PCCCheckResult.UncoveredEdge;
@@ -397,7 +298,7 @@ public class SBE_InvariantProofCheckAlgorithm extends
               pNodeNumber + Separators.commonSeparator
                   + current.getNodeNumber() + Separators.commonSeparator
                   + succ.getNodeNumber();
-          if (!edges.containsKey(id)) { return PCCCheckResult.UncoveredEdge; }
+          if (!edges.contains(id)) { return PCCCheckResult.UncoveredEdge; }
         } else {
           if (!visited.contains(succ.getNodeNumber())) {
             visited.add(succ.getNodeNumber());
@@ -409,16 +310,44 @@ public class SBE_InvariantProofCheckAlgorithm extends
     return PCCCheckResult.Success;
   }
 
+  protected boolean allInvariantFormulaeFalse(Integer pNode) {
+    Vector<Pair<Formula, int[]>> formulae = nodes.get(pNode);
+    for (int i = 0; i < formulae.size(); i++) {
+      if (!formulae.get(i).getFirst().isFalse()) { return false; }
+    }
+    return true;
+  }
+
+  private boolean isNonAbstractionNode(CFANode pNode) {
+    // check if kind of node requires abstraction
+    if ((pNode instanceof CFAFunctionDefinitionNode)
+        || pNode.getEnteringSummaryEdge() != null
+        || (atLoop && pNode.isLoopStart())) { return false; }
+    //check if all entering edges have empty operation
+    for (int i = 0; i < pNode.getNumEnteringEdges(); i++) {
+      if (handler.getEdgeOperation(pNode.getEnteringEdge(i)).length() != 0) { return false; }
+
+    }
+    return true;
+  }
+
+  private boolean isEndpoint(CFAEdge pEdge) {
+    CFANode succ = pEdge.getSuccessor();
+    if (succ instanceof CFAFunctionDefinitionNode
+        || succ.getEnteringSummaryEdge() != null
+        || (atLoop && succ.isLoopStart())) { return true; }
+    if (handler.getEdgeOperation(pEdge).length() == 0) { return false; }
+    return true;
+  }
+
   @Override
   protected PCCCheckResult checkProof() {
     // iterate over all edges
     int source, sourceEdge, target;
+    PCCCheckResult intermediateRes;
     Vector<Pair<Formula, int[]>> invariantS, invariantT;
-    Formula proof, left, right, completeOperation;
-    Formula[] edgeFormulae;
     CFAEdge cfaEdge;
-    boolean successfulEdgeProof, successfulAbstraction;
-    for (String edge : edges.keySet()) {
+    for (String edge : edges) {
       source =
           Integer.parseInt(edge.substring(edge
               .indexOf(Separators.commonSeparator)));
@@ -433,84 +362,13 @@ public class SBE_InvariantProofCheckAlgorithm extends
           allCFANodes.get(sourceEdge).getEdgeTo(reachableCFANodes.get(target));
       invariantS = nodes.get(source);
       invariantT = nodes.get(target);
-      edgeFormulae = edges.get(edge);
-      // iterate over all source abstractions
-      for (int i = 0; i < invariantS.size(); i++) {
-        // iterate over all operations
-        successfulAbstraction = false;
-        // build left formula
-        left =
-            addStackInvariant(invariantS.get(i).getFirst(), invariantS.get(i)
-                .getSecond(), true, source);
-        for (int k = 0; k < edgeFormulae.length; k++) {
-          if (!handler.operationFitsToLeftAbstraction(invariantS.get(i)
-              .getFirst().toString(), edgeFormulae[k].toString(),
-              cfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge)) {
-            continue;
-          }
-          // add stack operation to edge formula
-          if (cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-            completeOperation =
-                addStackOperation(edgeFormulae[k], invariantS.get(i)
-                    .getSecond(), true,
-                    cfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge,
-                    cfaEdge.getSuccessor().getLeavingSummaryEdge()
-                        .getSuccessor().getNodeNumber());
-          } else {
-            completeOperation =
-                addStackOperation(edgeFormulae[k], invariantS.get(i)
-                    .getSecond(), false,
-                    cfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge, -1);
-          }
-          successfulEdgeProof = false;
-          // iterate over all target abstraction at least one item
-          for (int j = 0; !successfulEdgeProof && j < invariantT.size(); j++) {
-            // check if right abstraction fits to left abstraction and operation
-            if (!handler.rightAbstractionFitsToOperationAndLeftAbstraction(
-                invariantS.get(i).getFirst().toString(),
-                edgeFormulae[k].toString(), invariantT.get(j).getFirst()
-                    .toString())) {
-              continue;
-            }
-
-            // build right formula
-            right =
-                addStackInvariant(invariantT.get(j).getFirst(),
-                    invariantT.get(j).getSecond(), false, target);
-            if (left == null || completeOperation == null || right == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
-            // create proof formula
-            proof = handler.buildEdgeInvariant(left, completeOperation, right);
-            if (proof == null || !proof.isFalse()) {
-              return PCCCheckResult.InvalidFormulaSpecificationInProof;
-            } else {
-              successfulEdgeProof = true;
-            }
-          }
-          if (successfulEdgeProof) {
-            successfulAbstraction = true;
-          }
-        }
-        if (!successfulAbstraction) { return PCCCheckResult.InvalidART; }
-      }
+      intermediateRes = proveEdge(edge, source, target, invariantS, cfaEdge, invariantT);
+      if (intermediateRes != PCCCheckResult.Success) { return intermediateRes; }
     }
     return PCCCheckResult.Success;
   }
 
-  private Formula buildRightFormula(Vector<Pair<Formula, int[]>> pInvariantT,
-      int pTargetNode) {
-    Formula[] subFormulae = new Formula[pInvariantT.size()];
-    Pair<Formula, int[]> current;
-    for (int i = 0; i < pInvariantT.size(); i++) {
-      current = pInvariantT.get(i);
-      subFormulae[i] =
-          addStackInvariant(current.getFirst(), current.getSecond(), false,
-              pTargetNode);
-      if (subFormulae[i] == null) { return null; }
-    }
-    return handler.buildDisjunction(subFormulae);
-  }
-
-  private Formula addStackOperation(Formula pOperations, int[] pStackBefore,
+  protected Formula addStackOperation(Formula pOperations, int[] pStackBefore,
       boolean pFunctionCall, boolean pFunctionReturn, int pReturn) {
     Formula[] subFormulae;
     int elementsTakenFromStack;
@@ -551,7 +409,7 @@ public class SBE_InvariantProofCheckAlgorithm extends
     return handler.buildConjunction(subFormulae);
   }
 
-  private Formula addStackInvariant(Formula pInvariant, int[] pStack,
+  protected Formula addStackInvariant(Formula pInvariant, int[] pStack,
       boolean pLeft, int pNode) {
     if (pInvariant == null || pStack == null) { return null; }
     boolean isReturn =
@@ -589,6 +447,12 @@ public class SBE_InvariantProofCheckAlgorithm extends
     }
     return handler.buildConjunction(singleInvariant);
   }
+
+  protected abstract boolean checkAbstraction(String pAbstraction);
+
+  protected abstract PCCCheckResult proveEdge(String pEdge, int pSource, int pTarget,
+      Vector<Pair<Formula, int[]>> pInvariantS, CFAEdge pCfaEdge,
+      Vector<Pair<Formula, int[]>> pInvariantT);
 
   private static class StronglyConnectedComponent {
     private HashSet<Integer>                          nodes             =
@@ -656,5 +520,4 @@ public class SBE_InvariantProofCheckAlgorithm extends
       return remaining;
     }
   }
-
 }

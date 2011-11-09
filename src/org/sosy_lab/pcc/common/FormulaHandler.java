@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Set;
 import java.util.Vector;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
@@ -40,6 +41,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -76,6 +79,49 @@ public class FormulaHandler {
       return f.isFalse();
     } catch (IllegalArgumentException e) {
       return false;
+    }
+  }
+
+  @SuppressWarnings("deprecation")
+  public Formula removeIndices(Formula pFormula) {
+    try {
+      return fm.uninstantiate(pFormula);
+    } catch (IllegalArgumentException e) {
+      return null;
+    }
+  }
+
+  public Pair<Formula, SSAMap> addIndices(SSAMap pSSA, Formula pFormula) {
+    try {
+      if (pFormula == null) { return null; }
+      if (pSSA == null) {
+        //left abstraction -> build SSAMap
+        SSAMapBuilder builder = SSAMap.emptySSAMap().builder();
+        // get all variable names
+        Set<String> variables = fm.extractVariables(pFormula);
+        for (String var : variables) {
+          if (!var.contains("@")) {
+            builder.setIndex(var, 2);
+          }
+        }
+        // get built SSAMap
+        pSSA = builder.build();
+      }
+      // instantiate formula with indices
+      pFormula = fm.instantiate(pFormula, pSSA);
+      return new Pair<Formula, SSAMap>(pFormula, pSSA);
+    } catch (IllegalArgumentException e) {
+      return null;
+    }
+  }
+
+  public Pair<Formula, SSAMap> addIndices(SSAMap pSSA, String pFormula) {
+    try {
+      Formula f = createFormula(pFormula);
+      if (f == null) { return null; }
+      return addIndices(pSSA, f);
+    } catch (IllegalArgumentException e) {
+      return null;
     }
   }
 
@@ -150,6 +196,23 @@ public class FormulaHandler {
     } catch (IllegalArgumentException e) {
       return null;
     }
+  }
+
+  public PathFormula getEdgeOperationFormula(SSAMap pSSA, CFAEdge pEdge) {
+    PathFormula oldFormula, formula;
+    oldFormula = pfm.makeEmptyPathFormula();
+    oldFormula = pfm.makeNewPathFormula(oldFormula, pSSA);
+    try {
+      formula = pfm.makeAnd(oldFormula, pEdge);
+    } catch (CPATransferException e) {
+      logger.log(Level.SEVERE,
+          "Cannot create formula representing edge operation.",
+          e.getStackTrace());
+      return null;
+    } catch (IllegalArgumentException e) {
+      return null;
+    }
+    return formula;
   }
 
   public String getEdgeOperationWithSSA(PathFormula pPredecessor, CFAEdge pEdge) {
@@ -282,7 +345,7 @@ public class FormulaHandler {
     //get all indices for every variable
     Pattern patVarSSAAbstraction =
         Pattern
-            .compile("[\\W&&[^@]]([_A-Za-z](\\w)*:)?([_A-Za-z](\\w)*@(\\d)+)[\\W&&[^@]]");
+            .compile("[\\W&&[^@]]([_A-Za-z](\\w)*::)?([_A-Za-z](\\w)*@(\\d)+)[\\W&&[^@]]");
     Matcher match = patVarSSAAbstraction.matcher(pFormula);
     String lastMatch, variable;
     int index;
@@ -329,7 +392,7 @@ public class FormulaHandler {
     //get highest index for every SSA variable in pAbstraction
     Pattern patVarSSAAbstraction =
         Pattern
-            .compile("[\\W&&[^@]]([_A-Za-z](\\w)*:)?([_A-Za-z](\\w)*@(\\d)+)[\\W&&[^@]]");
+            .compile("[\\W&&[^@]]([_A-Za-z](\\w)*::)?([_A-Za-z](\\w)*@(\\d)+)[\\W&&[^@]]");
     Matcher match = patVarSSAAbstraction.matcher(pFormula);
     String lastMatch, variable;
     Integer highestIndex;
