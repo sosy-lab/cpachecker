@@ -174,6 +174,13 @@ public class CtoFormulaConverter {
   /** The prefix used for variables representing memory locations. */
   private static final String MEMORY_ADDRESS_VARIABLE_PREFIX = "&";
 
+  /**
+   * The prefix used for memory locations derived from malloc calls.
+   * (Must start with {@link MEMORY_ADDRESS_VARIABLE_PREFIX}.)
+   */
+  private static final String MALLOC_VARIABLE_PREFIX =
+      MEMORY_ADDRESS_VARIABLE_PREFIX + "#";
+
   /** The variable name that's used to store the malloc counter in the SSAMap. */
   private static final String MALLOC_COUNTER_VARIABLE_NAME = "#malloc";
 
@@ -1821,7 +1828,7 @@ public class CtoFormulaConverter {
       }
 
       ssa.setIndex(MALLOC_COUNTER_VARIABLE_NAME, idx + 1);
-      return MEMORY_ADDRESS_VARIABLE_PREFIX + "#" + idx;
+      return MALLOC_VARIABLE_PREFIX + idx;
     }
 
     private String getVariableNameFromMemoryAddress(String memoryAddress) {
