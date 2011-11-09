@@ -747,6 +747,19 @@ public class CtoFormulaConverter {
     return f;
   }
 
+  private static boolean isVariable(IASTNode exp) {
+    return exp instanceof IASTIdExpression;
+  }
+
+  private static boolean isPointerDereferencing(IASTNode exp) {
+    return (exp instanceof IASTUnaryExpression
+        && ((IASTUnaryExpression) exp).getOperator() == UnaryOperator.STAR);
+  }
+
+  private static boolean isStaticallyDeclaredPointer(IType expr) {
+    return expr instanceof IASTPointerTypeSpecifier;
+  }
+
   /**
    * Returns a list of all variable names representing memory locations in
    * the SSAMap. These memory locations are those previously used.
@@ -754,7 +767,7 @@ public class CtoFormulaConverter {
    * Stored memory locations are prefixed with
    * {@link MEMORY_ADDRESS_VARIABLE_PREFIX}.
    */
-  private List<String> getAllMemoryLocationsFromSsaMap(SSAMapBuilder ssa) {
+  private static List<String> getAllMemoryLocationsFromSsaMap(SSAMapBuilder ssa) {
     List<String> memoryLocations = new LinkedList<String>();
     Set<String> ssaVariables = ssa.build().allVariables();
 
@@ -769,14 +782,14 @@ public class CtoFormulaConverter {
     return memoryLocations;
   }
 
-  private IASTExpression removeCast(IASTExpression exp) {
+  private static IASTExpression removeCast(IASTExpression exp) {
     if (exp instanceof IASTCastExpression) {
       return removeCast(((IASTCastExpression) exp).getOperand());
     }
     return exp;
   }
 
-  private IASTRightHandSide removeCast(IASTRightHandSide exp) {
+  private static IASTRightHandSide removeCast(IASTRightHandSide exp) {
     if (exp instanceof IASTCastExpression) {
       return removeCast(((IASTCastExpression) exp).getOperand());
     }
@@ -1665,11 +1678,6 @@ public class CtoFormulaConverter {
       return memLocations.contains(memVarName);
     }
 
-    private boolean isPointerDereferencing(IASTNode exp) {
-      return (exp instanceof IASTUnaryExpression
-          && ((IASTUnaryExpression) exp).getOperator() == UnaryOperator.STAR);
-    }
-
     /** Returns if a given expression may be a pointer. */
     private boolean maybePointer(IASTExpression pExp) {
       IASTExpression exp = removeCast(pExp);
@@ -1706,10 +1714,6 @@ public class CtoFormulaConverter {
       return false;
     }
 
-    private boolean isVariable(IASTNode exp) {
-      return exp instanceof IASTIdExpression;
-    }
-
     private Formula makeImplication(Formula p, Formula q) {
       Formula left = fmgr.makeNot(p);
       return fmgr.makeOr(left, q);
@@ -1744,11 +1748,6 @@ public class CtoFormulaConverter {
           ssa.deleteVariable(pointerVar);
         }
       }
-    }
-
-    private boolean isStaticallyDeclaredPointer(IType expr) {
-      String declaration = expr.toASTString();
-      return Pattern.matches(".*\\*", declaration);
     }
 
     private String getVariableNameFromPointerVariable(String pointerVariable) {
