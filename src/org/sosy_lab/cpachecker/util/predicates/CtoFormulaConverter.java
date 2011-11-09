@@ -577,7 +577,20 @@ public class CtoFormulaConverter {
           // initializer value present
 
           Formula minit = buildTerm(init, function, ssa, constraints);
-          return makeAssignment(varName, minit, ssa);
+          Formula assignments = makeAssignment(varName, minit, ssa);
+
+          if (handlePointerAliasing) {
+            // we need to add the pointer alias
+            Formula pAssign = buildDirectSecondLevelAssignment(spec, varName,
+                init, function, constraints, ssa);
+            assignments = fmgr.makeAnd(pAssign, assignments);
+
+            // no need to add pointer updates:
+            // the left hand variable cannot yet be aliased
+            // because it is newly created
+          }
+
+          return assignments;
         }
       }
       return fmgr.makeTrue();
@@ -707,22 +720,22 @@ public class CtoFormulaConverter {
     return exp.accept(getLvalueVisitor(function, ssa, constraints));
   }
 
-  private Formula buildDirectSecondLevelAssignment(IASTIdExpression left,
-      IASTRightHandSide right, String function,
+  private Formula buildDirectSecondLevelAssignment(IType lType,
+      String lVarName, IASTRightHandSide right, String function,
       Constraints constraints, SSAMapBuilder ssa) {
+
+    Formula lVar = makeVariable(lVarName, ssa);
 
     if (isVariable(right)) {
       // C statement like: s1 = s2;
 
       // include aliases if the left or right side may be a pointer a pointer
       IASTIdExpression rIdExp = (IASTIdExpression) right;
-      if (maybePointer(left, function, ssa) || maybePointer(rIdExp, function, ssa)) {
+      if (maybePointer(lType, lVarName, ssa) || maybePointer(rIdExp, function, ssa)) {
         // we assume that either the left or the right hand side is a pointer
         // so we add the equality: *l = *r
-        Formula l = makePointerVariable(left, function, ssa);
-        Formula r = makePointerVariable(rIdExp, function, ssa);
-        Formula pForm = fmgr.makeAssignment(l, r);
-        return pForm;
+        Formula rVar = makePointerVariable(rIdExp, function, ssa);
+        return fmgr.makeAssignment(lVar, rVar);
 
       } else {
         // we can assume, that no pointers are affected in this assignment
@@ -732,13 +745,10 @@ public class CtoFormulaConverter {
     } else if (isPointerDereferencing(right)) {
       // C statement like: s1 = *s2;
 
-      String lVarName = scopedIfNecessary(left, function);
-      Formula lVar = makeVariable(lVarName, ssa);
-
-      String lPVarName = makePointerVariableName(left, function, ssa);
+      String lPVarName = makePointerMask(lVarName, ssa);
       makeFreshIndex(lPVarName, ssa);
       removeOldPointerVariablesFromSsaMap(lPVarName, ssa);
-      Formula lPVar = makePointerVariable(left, function, ssa);
+      Formula lPVar = makeVariable(lPVarName, ssa);
 
       IASTIdExpression rIdExpr = (IASTIdExpression) ((IASTUnaryExpression) right).getOperand();
       Formula rPVar = makePointerVariable(rIdExpr, function, ssa);
@@ -782,10 +792,10 @@ public class CtoFormulaConverter {
           String rVarName = scopedIfNecessary((IASTIdExpression) rOperand, function);
           Formula rVar = makeVariable(rVarName, ssa);
 
-          Formula lPVar = makePointerVariable(left, function, ssa);
+          String lPVarName = makePointerMask(lVarName, ssa);
+          Formula lPVar = makeVariable(lPVarName, ssa);
 
-          Formula pointerUpdate = fmgr.makeAssignment(lPVar, rVar);
-          return pointerUpdate;
+          return fmgr.makeAssignment(lPVar, rVar);
         }
       }
 
@@ -901,17 +911,22 @@ public class CtoFormulaConverter {
     IASTExpression exp = removeCast(pExp);
     if (exp instanceof IASTIdExpression) {
       IASTIdExpression idExp = (IASTIdExpression) exp;
-      if (isStaticallyDeclaredPointer(exp.getExpressionType())) {
-        return true;
-      }
-
-      // check if it has been used as a pointer before
-      List<String> pVarNames = getAllPointerVariablesFromSsaMap(ssa);
-      String expPVarName = makePointerVariableName(idExp, function, ssa);
-      return pVarNames.contains(expPVarName);
+      IType type = exp.getExpressionType();
+      return maybePointer(type, scopedIfNecessary(idExp, function), ssa);
     }
 
     return false;
+  }
+
+  private boolean maybePointer(IType type, String varName, SSAMapBuilder ssa) {
+    if (isStaticallyDeclaredPointer(type)) {
+      return true;
+    }
+
+    // check if it has been used as a pointer before
+    List<String> pVarNames = getAllPointerVariablesFromSsaMap(ssa);
+    String expPVarName = makePointerMask(varName, ssa);
+    return pVarNames.contains(expPVarName);
   }
 
   /**
@@ -1750,7 +1765,9 @@ public class CtoFormulaConverter {
       Formula leftVariable = buildLvalueTerm(assignment.getLeftHandSide(), function, ssa, constraints);
       Formula firstLevelFormula = fmgr.makeAssignment(leftVariable, rightVariable);
 
-      Formula secondLevelFormula = buildDirectSecondLevelAssignment(left,
+      String lVarName = scopedIfNecessary(left, function);
+      Formula secondLevelFormula = buildDirectSecondLevelAssignment(
+          left.getExpressionType(), lVarName,
           right, function, constraints, ssa);
 
       Formula assignmentFormula = fmgr.makeAnd(firstLevelFormula, secondLevelFormula);
