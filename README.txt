@@ -25,14 +25,16 @@ Verifying a Program with CPAchecker
 -----------------------------------
 
 1. Choose a source code file that you want to be checked.
-   Several types of example programs can be found in test/programs/
    If you use your own program, remember to pre-process it with CIL (see above).
-   Example: test/programs/simple/loop1.c
+   Example: doc/examples/example.c
+   A good source for more example programs is the benchmark set of the
+   TACAS 2012 Competition on Software Verification (http://sv-comp.sosy-lab.org/),
+   which can be checked out from https://svn.sosy-lab.org/software/sv-benchmarks/trunk.
 
 2. If you want to enable certain analyses like predicate analysis,
    choose a configuration file. This file defines for example which CPAs are used.
    Standard configuration files can be found in the directory config/.
-   Example: config/explicitAnalysis.properties
+   Example: config/predicateAnalysis.properties
    The configuration options used in this file are explained in doc/Configuration.txt.
 
 3. Choose a specification file (you may not need this for some CPAs).
@@ -45,9 +47,9 @@ Verifying a Program with CPAchecker
    Either a configuration file or a specification file needs to be given.
    The current directory should be the CPAchecker project directory.
    Additional command line switches are described in doc/Configuration.txt.
-   Example: scripts/cpa.sh -config config/explicitAnalysis.properties test/programs/simple/loop1.c
+   Example: scripts/cpa.sh -config config/predicateAnalysis.properties doc/examples/example.c
    This example can also be abbreviated to:
-   scripts/cpa.sh -explicitAnalysis test/programs/simple/loop1.c
+   scripts/cpa.sh -predicateAnalysis doc/examples/example.c
 
 5. Additionally to the console output, there will be several files in the directory output/:
      ART.dot: Visualization of abstract reachability tree (Graphviz format)
