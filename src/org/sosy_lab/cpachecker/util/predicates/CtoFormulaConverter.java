@@ -143,7 +143,7 @@ public class CtoFormulaConverter {
   private MachineModel machineModel = MachineModel.LINUX32;
 
   @Option(description = "handle Pointers")
-  private boolean handlePointerAliasing = true;
+  private boolean handlePointerAliasing = false;
 
   @Option(description = "list of functions that provide new memory on the heap."
     + " This is only used, when handling of pointers is enabled.")
