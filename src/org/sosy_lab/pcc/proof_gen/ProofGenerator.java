@@ -68,7 +68,7 @@ public class ProofGenerator {
   public ProofGenerator(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     logger = pLogger;
-    // TODO choose the correct algorithm due to the configuration, null if wrong config
+    pConfig.inject(this);
     if (doPCC) {
       switch (algorithmType) {
       case SBEWithoutIndicesAsART: {
