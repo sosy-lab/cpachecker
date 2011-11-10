@@ -1441,12 +1441,13 @@ public class CtoFormulaConverter {
 
     private Formula getExprFormula(IASTExpression exp)
         throws UnrecognizedCCodeException {
+
       if (isPointerDereferencing(exp)) {
         IASTExpression operand = removeCast(((IASTUnaryExpression) exp).getOperand());
         if (operand instanceof IASTIdExpression) {
           return makePointerVariable((IASTIdExpression) operand, function, ssa);
         } else {
-          throw new UnrecognizedCCodeException(exp.getRawSignature(), null, exp);
+          return visitDefault(exp);
         }
 
       } else {
