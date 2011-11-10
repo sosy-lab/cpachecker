@@ -50,10 +50,10 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 
 public class FormulaHandler {
 
-  private Configuration      config;
-  private LogManager         logger;
+  private Configuration config;
+  private LogManager logger;
   private PathFormulaManager pfm;
-  private ExtendedFormulaManager     fm;
+  private ExtendedFormulaManager fm;
 
   public FormulaHandler(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
@@ -292,7 +292,7 @@ public class FormulaHandler {
     for (int i = 0; i < first.size(); i++) {
       if (!first.get(i).getFirst().equals(second.get(i).getFirst())) { return false; }
       firstList =
-          Integer.compare(first.get(i).getSecond(), second.get(i).getSecond());
+          first.get(i).getSecond().compareTo(second.get(i).getSecond());
       if (firstList != 0) {
         if (firstList < 0) {
           pFormula2 =
