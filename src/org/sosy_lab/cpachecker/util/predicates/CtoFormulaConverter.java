@@ -1708,37 +1708,21 @@ public class CtoFormulaConverter {
       Formula lPVar = buildLvalueTerm(pAssignment.getLeftHandSide(), function, ssa, constraints);
       Formula assignments = fmgr.makeAssignment(lPVar, rightVariable);
 
-      // update all pointer variables (they might have a new value)
-      // every variable aliased to the left hand side,
-      // has its pointer set to the right hand side,
-      // for all other pointer variables, the index is updated
-      List<String> pVarNames = getAllPointerVariablesFromSsaMap(ssa);
-      for (String pVarName : pVarNames) {
-        String varName = removePointerMask(pVarName);
-        if (!varName.equals(lVarName) && !varName.equals(rVarName)) {
-          Formula var = makeVariable(varName, ssa);
+      updateAllPointers(lVarName, lVar, rVarName, rightVariable);
 
-          Formula oldPVar = makeVariable(pVarName, ssa);
-          makeFreshIndex(pVarName, ssa);
-          Formula newPVar = makeVariable(pVarName, ssa);
+      boolean doDeepUpdate = (r instanceof IASTIdExpression);
+      updateAllMemoryLocations(lVar, rPVar, rightVariable, doDeepUpdate);
 
-          Formula condition = fmgr.makeEqual(var, lVar);
-          Formula equality = fmgr.makeAssignment(newPVar, rightVariable);
-          Formula indexUpdate = fmgr.makeAssignment(newPVar, oldPVar);
+      return assignments;
+    }
 
-          Formula variableUpdate = fmgr.makeIfThenElse(condition, equality, indexUpdate);
-          constraints.addConstraint(variableUpdate);
-        }
-      }
-
+    private void updateAllMemoryLocations(Formula lVar, Formula rPVar, Formula rightVariable, boolean deepUpdate) {
       // for all memory addresses also update the aliasing
       // if the left variable is an alias for an address,
       // then the left side is (deep) equal to the right side
       // otherwise update the variables
-      boolean doDeepUpdate = (r instanceof IASTIdExpression);
-
       List<String> memAddresses = getAllMemoryLocationsFromSsaMap(ssa);
-      if (doDeepUpdate) {
+      if (deepUpdate) {
         for (String memAddress : memAddresses) {
           String varName = getVariableNameFromMemoryAddress(memAddress);
 
@@ -1790,8 +1774,36 @@ public class CtoFormulaConverter {
           constraints.addConstraint(variableUpdate);
         }
       }
+    }
 
-      return assignments;
+    /**
+     * Call this method if you need to update all pointers
+     */
+    private void updateAllPointers(String leftVarName, Formula leftVar,
+        String rightVarName, Formula rightVariable) {
+
+      // update all pointer variables (they might have a new value)
+      // every variable aliased to the left hand side,
+      // has its pointer set to the right hand side,
+      // for all other pointer variables, the index is updated
+      List<String> pVarNames = getAllPointerVariablesFromSsaMap(ssa);
+      for (String pVarName : pVarNames) {
+        String varName = removePointerMask(pVarName);
+        if (!varName.equals(leftVarName) && !varName.equals(rightVarName)) {
+          Formula var = makeVariable(varName, ssa);
+
+          Formula oldPVar = makeVariable(pVarName, ssa);
+          makeFreshIndex(pVarName, ssa);
+          Formula newPVar = makeVariable(pVarName, ssa);
+
+          Formula condition = fmgr.makeEqual(var, leftVar);
+          Formula equality = fmgr.makeAssignment(newPVar, rightVariable);
+          Formula indexUpdate = fmgr.makeAssignment(newPVar, oldPVar);
+
+          Formula variableUpdate = fmgr.makeIfThenElse(condition, equality, indexUpdate);
+          constraints.addConstraint(variableUpdate);
+        }
+      }
     }
 
     /** A direct assignment changes the value of the variable on the left side. */
