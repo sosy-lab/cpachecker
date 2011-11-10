@@ -318,42 +318,37 @@ public class CFACreator {
   }
 
   private void exportCFA(final CFA cfa) {
-    // execute asynchronously, this may take several seconds for large programs on slow disks
-    new Thread(new Runnable() {
-      @Override
-      public void run() {
-        exportTime.start();
+    // We used to do this asynchronously.
+    // However, FunctionPointerCPA modifies the CFA during analysis, so this is
+    // no longer safe.
 
-        // running the following in parallel is thread-safe
-        // because we don't modify the CFA from this point on
+    exportTime.start();
 
-        // write CFA to file
-        if (exportCfa) {
-          try {
-            Files.writeFile(exportCfaFile,
-                DOTBuilder.generateDOT(cfa.getAllFunctionHeads(), cfa.getMainFunction()));
-          } catch (IOException e) {
-            logger.logUserException(Level.WARNING, e,
-              "Could not write CFA to dot file");
-            // continue with analysis
-          }
-        }
-
-        // write the CFA to files (one file per function + some metainfo)
-        if (exportCfaPerFunction) {
-          try {
-            File outdir = exportCfaFile.getParentFile();
-            DOTBuilder2.writeReport(cfa.getMainFunction(), outdir);
-          } catch (IOException e) {
-            logger.logUserException(Level.WARNING, e,
-              "Could not write CFA to dot and json file");
-            // continue with analysis
-          }
-        }
-
-        exportTime.stop();
+    // write CFA to file
+    if (exportCfa) {
+      try {
+        Files.writeFile(exportCfaFile,
+            DOTBuilder.generateDOT(cfa.getAllFunctionHeads(), cfa.getMainFunction()));
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e,
+          "Could not write CFA to dot file");
+        // continue with analysis
       }
-    }, "CFA export thread").start();
+    }
+
+    // write the CFA to files (one file per function + some metainfo)
+    if (exportCfaPerFunction) {
+      try {
+        File outdir = exportCfaFile.getParentFile();
+        DOTBuilder2.writeReport(cfa.getMainFunction(), outdir);
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e,
+          "Could not write CFA to dot and json file");
+        // continue with analysis
+      }
+    }
+
+    exportTime.stop();
   }
 
   private static void addToCFA(CFAEdge edge) {
