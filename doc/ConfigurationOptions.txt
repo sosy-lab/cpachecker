@@ -341,7 +341,7 @@ cpa.predicate.checkBlockFeasibility = false
 cpa.predicate.formulaDumpFilePattern = "%s%04d-%s%03d.msat"
 
 # handle Pointers
-cpa.predicate.handlePointerAliasing = false
+cpa.predicate.handlePointerAliasing = true
 
 # initialize all variables to 0 when they are declared
 cpa.predicate.initAllVars = false
