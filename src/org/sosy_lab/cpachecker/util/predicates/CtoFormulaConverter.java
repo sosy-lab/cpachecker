@@ -619,13 +619,24 @@ public class CtoFormulaConverter {
     } else if (retExp instanceof IASTFunctionCallAssignmentStatement) {
       IASTFunctionCallAssignmentStatement exp = (IASTFunctionCallAssignmentStatement)retExp;
 
-      Formula retvarFormula = makeVariable(scoped(VAR_RETURN_NAME, function), ssa);
+      String retVarName = scoped(VAR_RETURN_NAME, function);
+      Formula retVar = makeVariable(retVarName, ssa);
       IASTExpression e = exp.getLeftHandSide();
 
       function = ce.getSuccessor().getFunctionName();
       Formula outvarFormula = buildLvalueTerm(e, function, ssa, constraints);
-      return fmgr.makeAssignment(outvarFormula, retvarFormula);
+      Formula assignments = fmgr.makeAssignment(outvarFormula, retVar);
 
+      if (handlePointerAliasing) {
+        IASTExpression left = removeCast(e);
+        if (left instanceof IASTIdExpression) {
+          Formula ptrAssignment = buildDirectReturnSecondLevelAssignment(
+              (IASTIdExpression) left, retVarName, function, ssa);
+          assignments = fmgr.makeAnd(assignments, ptrAssignment);
+        }
+      }
+
+       return assignments;
     } else {
       throw new UnrecognizedCCodeException("Unknown function exit expression", ce, retExp.asStatement());
     }
@@ -681,9 +692,9 @@ public class CtoFormulaConverter {
     return result;
   }
 
-  private Formula makeReturn(IASTExpression exp, String function,
+  private Formula makeReturn(IASTExpression rightExp, String function,
       SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
-    if (exp == null) {
+    if (rightExp == null) {
       // this is a return from a void function, do nothing
       return fmgr.makeTrue();
     } else {
@@ -692,8 +703,18 @@ public class CtoFormulaConverter {
       // so that we can use it later on, if it is assigned to
       // a variable. We create a function::__retval__ variable
       // that will hold the return value
-      Formula retval = buildTerm(exp, function, ssa, constraints);
-      return makeAssignment(scoped(VAR_RETURN_NAME, function), retval, ssa);
+      Formula retval = buildTerm(rightExp, function, ssa, constraints);
+      String retVarName = scoped(VAR_RETURN_NAME, function);
+      Formula assignments = makeAssignment(retVarName, retval, ssa);
+
+      if (handlePointerAliasing) {
+        // if the value to be returned may be a pointer, act accordingly
+        Formula rightAssignment = buildDirectSecondLevelAssignment(null,
+            retVarName, rightExp, function, constraints, ssa);
+        assignments = fmgr.makeAnd(assignments, rightAssignment);
+      }
+
+      return assignments;
     }
   }
 
@@ -717,6 +738,25 @@ public class CtoFormulaConverter {
   private Formula buildLvalueTerm(IASTExpression exp, String function,
       SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
     return exp.accept(getLvalueVisitor(function, ssa, constraints));
+  }
+
+  private Formula buildDirectReturnSecondLevelAssignment(IASTIdExpression leftId,
+      String retVarName, String function, SSAMapBuilder ssa) {
+
+    // include aliases if the left or right side may be a pointer a pointer
+    if (maybePointer(leftId, function, ssa)
+        || maybePointer((IType) null, retVarName, ssa)) {
+      // we assume that either the left or the right hand side is a pointer
+      // so we add the equality: *l = *r
+      Formula lPVar = makePointerVariable(leftId, function, ssa);
+      String retPVarName = makePointerMask(retVarName, ssa);
+      Formula retPVar = makeVariable(retPVarName, ssa);
+      return fmgr.makeAssignment(lPVar, retPVar);
+
+    } else {
+      // we can assume, that no pointers are affected in this assignment
+      return fmgr.makeTrue();
+    }
   }
 
   private Formula buildDirectSecondLevelAssignment(IType lType,
@@ -927,7 +967,7 @@ public class CtoFormulaConverter {
   }
 
   private boolean maybePointer(IType type, String varName, SSAMapBuilder ssa) {
-    if (isStaticallyDeclaredPointer(type)) {
+    if (type != null && isStaticallyDeclaredPointer(type)) {
       return true;
     }
 
