@@ -29,12 +29,13 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormulaManager.TemplateParseMode;
+import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 public class TemplatePathFormulaBuilder {
 
-  private TemplateFormulaManager tfmgr;
   private PathFormulaManagerImpl pfmgr;
 
   public TemplatePathFormulaBuilder() {
@@ -45,8 +46,9 @@ public class TemplatePathFormulaBuilder {
 
     try {
       logger = new LogManager(config);
-      tfmgr = new TemplateFormulaManager(TemplateParseMode.PATHFORMULA);
-      pfmgr = new PathFormulaManagerImpl(tfmgr, config, logger);
+      FormulaManager fmgr = new TemplateFormulaManager(TemplateParseMode.PATHFORMULA);
+      ExtendedFormulaManager efmgr = new ExtendedFormulaManager(fmgr, config, logger);
+      pfmgr = new PathFormulaManagerImpl(efmgr, config, logger);
     } catch (Exception e) {
       System.err.println( e.getMessage() );
     }
@@ -58,8 +60,9 @@ public class TemplatePathFormulaBuilder {
     // Use this constructor if you have a config and logger already.
 
     try {
-      tfmgr = new TemplateFormulaManager(TemplateParseMode.PATHFORMULA);
-      pfmgr = new PathFormulaManagerImpl(tfmgr, config, logger);
+      FormulaManager fmgr = new TemplateFormulaManager(TemplateParseMode.PATHFORMULA);
+      ExtendedFormulaManager efmgr = new ExtendedFormulaManager(fmgr, config, logger);
+      pfmgr = new PathFormulaManagerImpl(efmgr, config, logger);
     } catch (Exception e) {
       System.err.println( e.getMessage() );
     }
@@ -82,7 +85,7 @@ public class TemplatePathFormulaBuilder {
     }
     return pf;
   }
-  
+
   public PathFormula buildPathFormula(List<CFAEdge> L) {
     CFAEdge[] A = new CFAEdge[L.size()];
     for (int i = 0; i < L.size(); i++) {

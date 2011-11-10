@@ -103,7 +103,6 @@ import org.sosy_lab.cpachecker.util.MachineModel;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -195,10 +194,10 @@ public class CtoFormulaConverter {
   private static final int                 VARIABLE_UNSET          = -1;
   private static final int                 VARIABLE_UNINITIALIZED  = 2;
 
-  public CtoFormulaConverter(Configuration config, FormulaManager fmgr, LogManager logger) throws InvalidConfigurationException {
+  public CtoFormulaConverter(Configuration config, ExtendedFormulaManager fmgr, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, CtoFormulaConverter.class);
 
-    this.fmgr = ExtendedFormulaManager.extendFormulaManager(fmgr, config, logger);
+    this.fmgr = fmgr;
     this.logger = logger;
   }
 

@@ -30,11 +30,11 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
 
 
@@ -64,13 +64,13 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
     }
   }
 
-  private static volatile FormulaManager fmgr = null;
+  private static volatile ExtendedFormulaManager fmgr = null;
 
   // TODO Ugly, probably better to remove singleton pattern here.
-  public static FormulaManager createFormulaManager(Configuration pConfig, LogManager pLogger)
+  public static ExtendedFormulaManager createFormulaManager(Configuration pConfig, LogManager pLogger)
   throws InvalidConfigurationException {
     if (fmgr == null) {
-      fmgr = MathsatFactory.createFormulaManager(pConfig, pLogger);
+      fmgr = new ExtendedFormulaManager(MathsatFactory.createFormulaManager(pConfig, pLogger), pConfig, pLogger);
     }
     return fmgr;
   }
