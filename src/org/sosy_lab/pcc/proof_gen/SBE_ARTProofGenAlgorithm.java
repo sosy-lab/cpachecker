@@ -24,6 +24,7 @@
 package org.sosy_lab.pcc.proof_gen;
 
 import java.util.Iterator;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -70,6 +71,7 @@ public abstract class SBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
     } else {
       nodeRep.append(AbstractionType.NeverAbstraction);
     }
+    logger.log(Level.INFO, "Add an ART node description");
     nodeRep.append(Separators.commonSeparator);
     nodes.add(nodeRep.toString());
     return true;

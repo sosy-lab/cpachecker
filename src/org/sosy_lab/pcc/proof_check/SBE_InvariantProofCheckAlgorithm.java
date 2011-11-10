@@ -29,6 +29,7 @@ import java.util.InputMismatchException;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 import java.util.Vector;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -46,23 +47,23 @@ import org.sosy_lab.pcc.common.Separators;
 public abstract class SBE_InvariantProofCheckAlgorithm extends
     InvariantProofCheckAlgorithm {
 
-  protected final String                                     stackName         =
-                                                                                   "_STACK";
-  protected final String                                     goalDes           =
-                                                                                   "_GOAL";
+  protected final String stackName =
+      "_STACK";
+  protected final String goalDes =
+      "_GOAL";
 
-  private boolean                                            atLoop;
+  private boolean atLoop;
   //private boolean                                          atFunction;
-  protected FormulaHandler                                   handler;
-  protected Hashtable<Integer, Vector<Pair<Formula, int[]>>> nodes             =
-                                                                                   new Hashtable<Integer, Vector<Pair<Formula, int[]>>>();
-  protected HashSet<String>                                  edges             =
-                                                                                   new HashSet<String>();
-  protected Hashtable<Integer, CFANode>                      reachableCFANodes =
-                                                                                   new Hashtable<Integer, CFANode>();
+  protected FormulaHandler handler;
+  protected Hashtable<Integer, Vector<Pair<Formula, int[]>>> nodes =
+      new Hashtable<Integer, Vector<Pair<Formula, int[]>>>();
+  protected HashSet<String> edges =
+      new HashSet<String>();
+  protected Hashtable<Integer, CFANode> reachableCFANodes =
+      new Hashtable<Integer, CFANode>();
 
-  protected Hashtable<Integer, CFANode>                      allCFANodes       =
-                                                                                   new Hashtable<Integer, CFANode>();
+  protected Hashtable<Integer, CFANode> allCFANodes =
+      new Hashtable<Integer, CFANode>();
 
   public SBE_InvariantProofCheckAlgorithm(Configuration pConfig,
       LogManager pLogger, boolean pAlwaysAtLoops, boolean pAlwaysAtFunctions)
@@ -86,6 +87,8 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
       if (current.equals(pSourceEdge)) {
         if ((!current.hasEdgeTo(pTarget) || !isEndpoint(current
             .getEdgeTo(pTarget)))) {
+          logger.log(Level.SEVERE, pSource + "#" + pSourceEdge + "#" + pTarget
+              + " is not a valid edge which connects regions");
           return null;
         } else {
           return current.getEdgeTo(pTarget);
@@ -99,12 +102,15 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
         }
       }
     }
+    logger.log(Level.SEVERE, pSource + "#" + pSourceEdge + "#" + pTarget
+        + " is not a valid edge which connects regions");
     return null;
   }
 
   @Override
   protected PCCCheckResult readNodes(Scanner pScan) {
     // set up look up for CFA nodes
+    logger.log(Level.INFO, "Collect all CFA nodes");
     Vector<CFANode> cfaNodes = new Vector<CFANode>();
     allCFANodes.clear();
     CFANode current, child;
@@ -137,13 +143,19 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
           break;
         }
         // read node
+        logger.log(Level.INFO, "Read next CFA node regions.");
         readNode = Integer.parseInt(next);
         if (allCFANodes.containsKey(readNode)) {
           current = allCFANodes.get(readNode);
           // check if node is abstraction node
-          if (isNonAbstractionNode(current)) { return PCCCheckResult.UnknownCFANode; }
+          if (isNonAbstractionNode(current)) {
+            logger.log(Level.SEVERE, "CFA node " + readNode
+                + " is not a node which is allowed to have regions attached to.");
+            return PCCCheckResult.UnknownCFANode;
+          }
           reachableCFANodes.put(readNode, current);
         } else {
+          logger.log(Level.SEVERE, readNode + " is not a valid CFA node");
           return PCCCheckResult.InvalidCFANode;
         }
         boolean isRoot = cfaForProof.getMainFunction().equals(current);
@@ -159,16 +171,25 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
           // read invariant
           next = pScan.next();
           subStr = next.split(Separators.stackEntrySeparator);
-          if (subStr.length < 1) { return PCCCheckResult.InvalidInvariant; }
+          if (subStr.length < 1) {
+            logger.log(Level.SEVERE, "No valid regions specification: " + subStr);
+            return PCCCheckResult.InvalidInvariant;
+          }
           // get formula
           try {
             if (!checkAbstraction(subStr[0])) { return PCCCheckResult.InvalidInvariant; }
             invariant = handler.createFormula(subStr[0]);
             if (isRoot) {
-              if (!invariant.isTrue()) { return PCCCheckResult.InvalidARTRootSpecification; }
+              if (!invariant.isTrue()) {
+                logger.log(Level.SEVERE, "Invalid region for root.");
+                return PCCCheckResult.InvalidARTRootSpecification;
+              }
             }
             if (isError) {
-              if (!invariant.isFalse()) { return PCCCheckResult.ErrorNodeReachable; }
+              if (!invariant.isFalse()) {
+                logger.log(Level.SEVERE, "Invalid region for error node.");
+                return PCCCheckResult.ErrorNodeReachable;
+              }
             }
           } catch (IllegalArgumentException e1) {
             return PCCCheckResult.InvalidInvariant;
@@ -183,6 +204,7 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
               stack[j] = Integer.parseInt(subStr[j + 1]);
             }
           } catch (NumberFormatException e1) {
+            logger.log(Level.SEVERE, "Invalid stack specification.");
             return PCCCheckResult.InvalidStack;
           }
           // add invariant
@@ -198,6 +220,7 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
       return PCCCheckResult.UnknownCFANode;
     }
     // checking nodes
+    logger.log(Level.INFO, "Check coverage of CFA nodes");
     return structuralCheckCoverageOfCFANodes();
   }
 
@@ -205,6 +228,7 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
     //check if same size
     if (allCFANodes.size() == reachableCFANodes.size()) { return PCCCheckResult.Success; }
     // get uncovered nodes
+    logger.log(Level.INFO, "Get all uncovered CFA nodes");
     HashSet<Integer> uncovered = new HashSet<Integer>();
     for (Integer nodeID : allCFANodes.keySet()) {
       if (!reachableCFANodes.containsKey(nodeID)) {
@@ -212,10 +236,12 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
       }
     }
     // build strongly connected components for uncovered nodes
+    logger.log(Level.INFO, "Build SCCs from CFA subgraph induced by uncovered nodes");
     Vector<StronglyConnectedComponent> comps =
         StronglyConnectedComponent.extractStronglyConnectedComponents(
             uncovered, allCFANodes, reachableCFANodes);
     // check if all external edges lead to only false abstraction or all nodes of component are non-abstraction nodes
+    logger.log(Level.INFO, "Check if nodes must be uncovered");
     boolean result = true;
     for (int i = 0; result && i < comps.size(); i++) {
       // check external edges
@@ -238,6 +264,7 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
     //build all edge identifications for reachable source nodes and test if they are in edges
     HashSet<Integer> visited = new HashSet<Integer>();
     Vector<CFANode> toVisit = new Vector<CFANode>();
+    logger.log(Level.INFO, "Check if all edges which must be in proof are contained.");
     //add root node
     toVisit.add(cfaForProof.getMainFunction());
     visited.add(toVisit.get(0).getNodeNumber());
@@ -253,6 +280,7 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
         edge = current.getLeavingEdge(i);
         // if it is an abstraction node and abstraction is not false, build and check edge
         if (isSource && !allInvariantFormulaeFalse(current.getNodeNumber())) {
+          logger.log(Level.INFO, "Check if all edges for node " + current + " are available.");
           intermediateRes =
               buildLeavingEdgesAndCheck(current.getNodeNumber(), edge);
           if (intermediateRes != PCCCheckResult.Success) { return intermediateRes; }
@@ -347,6 +375,7 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
     PCCCheckResult intermediateRes;
     Vector<Pair<Formula, int[]>> invariantS, invariantT;
     CFAEdge cfaEdge;
+    logger.log(Level.INFO, "Start proving inductions edge by edge.");
     for (String edge : edges) {
       source =
           Integer.parseInt(edge.substring(edge
@@ -455,10 +484,11 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
       Vector<Pair<Formula, int[]>> pInvariantT);
 
   private static class StronglyConnectedComponent {
-    private HashSet<Integer>                          nodes             =
-                                                                            new HashSet<Integer>();
-    private Vector<Integer>                           externalEndPoints =
-                                                                            new Vector<Integer>();
+
+    private HashSet<Integer> nodes =
+        new HashSet<Integer>();
+    private Vector<Integer> externalEndPoints =
+        new Vector<Integer>();
     private static Vector<StronglyConnectedComponent> stronglyConComp;
 
     private StronglyConnectedComponent() {

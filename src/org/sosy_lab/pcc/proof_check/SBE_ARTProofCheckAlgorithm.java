@@ -30,6 +30,7 @@ import java.util.InputMismatchException;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 import java.util.Stack;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -50,9 +51,9 @@ import org.sosy_lab.pcc.common.Separators;
 
 public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
 
-  protected FormulaHandler              handler;
-  protected boolean                     atLoop;
-  protected boolean                     atFunction;
+  protected FormulaHandler handler;
+  protected boolean atLoop;
+  protected boolean atFunction;
   protected Hashtable<Integer, ARTNode> art = new Hashtable<Integer, ARTNode>();
 
   public SBE_ARTProofCheckAlgorithm(Configuration pConfig, LogManager pLogger,
@@ -88,6 +89,7 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
       }
       // read next node description
       try {
+        logger.log(Level.INFO, "Read next ART node from file.");
         artId = Integer.parseInt(next);
         cfaId = pScan.nextInt();
         // get corresponding CFA node
@@ -95,7 +97,10 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
         pAbsType = AbstractionType.valueOf(pScan.next());
         if (pAbsType == AbstractionType.Abstraction) {
           next = pScan.next();
-          if (!checkAbstraction(next)) { return PCCCheckResult.InvalidInvariant; }
+          if (!checkAbstraction(next)) {
+            logger.log(Level.SEVERE, "Wrong abstraction: " + next + " .");
+            return PCCCheckResult.InvalidInvariant;
+          }
           newNode = new ARTNode(artId, cfaNode, pAbsType, next);
         } else {
           newNode = new ARTNode(artId, cfaNode, pAbsType);
@@ -105,9 +110,13 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
           if (!rootFound) {
             //check root properties
             if (root.getAbstractionType() != AbstractionType.Abstraction
-                || (!handler.createFormula(root.getAbstraction()).isTrue())) { return PCCCheckResult.InvalidARTRootSpecification; }
+                || (!handler.createFormula(root.getAbstraction()).isTrue())) {
+              logger.log(Level.SEVERE, "Wrong root specification: " + root);
+              return PCCCheckResult.InvalidARTRootSpecification;
+            }
             root = newNode;
           } else {
+            logger.log(Level.SEVERE, "Ambigious root specification: " + root.getID() + " and " + newNode.getID());
             return PCCCheckResult.AmbigiousRoot;
           }
         }
@@ -136,6 +145,7 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
     // check ART
     while (!waiting.isEmpty()) {
       current = waiting.pop();
+      logger.log(Level.INFO, "Check ART node " + current.getFirst() + " .");
       intermediateRes =
           checkARTNode(art.get(current.getFirst()), current.getSecond(),
               visited, waiting);
@@ -153,13 +163,24 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
     if (cfaNode instanceof CFALabelNode) {
       if (((CFALabelNode) cfaNode).getLabel().toLowerCase().equals("error")
           && (pNode.getAbstractionType() != AbstractionType.Abstraction || !handler
-              .isFalse(abstraction))) { return PCCCheckResult.ErrorNodeReachable; }
+              .isFalse(abstraction))) {
+        if (pNode.getAbstractionType() != AbstractionType.Abstraction) {
+          logger.log(Level.SEVERE, "No abstraction for error node " + pNode.getID() + " .");
+        }
+        else {
+          logger.log(Level.SEVERE, "Abstraction for error node " + pNode.getID() + " is not false");
+        }
+        return PCCCheckResult.ErrorNodeReachable;
+      }
     }
 
     // stop if abstraction is false, no edges allowed
     if (pNode.getAbstractionType() == AbstractionType.Abstraction
         && handler.isFalse(abstraction)) {
-      if (pNode.getNumberOfEdges() != 0) { return PCCCheckResult.InvalidART; }
+      if (pNode.getNumberOfEdges() != 0) {
+        logger.log(Level.SEVERE, "ART node " + pNode.getID() + " has edges although its abstraction is false.");
+        return PCCCheckResult.InvalidART;
+      }
     } else {
 
       // check if all edges of CFA are covered
@@ -169,22 +190,37 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
         //check if end of program reached
         if (pCallReturnStack.length() == 0) {
           if (!cfaForProof.getMainFunction().getExitNode().equals(cfaNode)
-              || pNode.getNumberOfEdges() != 0) { return PCCCheckResult.InvalidART; }
+              || pNode.getNumberOfEdges() != 0) {
+            if (pNode.getNumberOfEdges() != 0) {
+              logger.log(Level.SEVERE, "Outgoing ART edges although the program should be finished.");
+            } else {
+              logger.log(Level.SEVERE, "Invalid callstack used for ART.");
+            }
+            return PCCCheckResult.InvalidART;
+          }
         } else {
 
           // return function edge
           // only one return edge allowed, already checked if it is correct edge
-          if (pNode.getNumberOfEdges() != 1) { return PCCCheckResult.InvalidART; }
+          if (pNode.getNumberOfEdges() != 1) {
+            logger.log(Level.SEVERE, " Too many edges. Only one edge possible if function is exited.");
+            return PCCCheckResult.InvalidART;
+          }
           // check if correct return
           int target = pNode.getEdges()[0].getTarget();
           int returnID =
               art.get(target).getCorrespondingCFANode().getNodeNumber();
           if (returnID != Integer.parseInt(pCallReturnStack.substring(
               pCallReturnStack.lastIndexOf(Separators.stackEntrySeparator) + 1,
-              pCallReturnStack.length()))) { return PCCCheckResult.InvalidART; }
+              pCallReturnStack.length()))) {
+            logger.log(Level.SEVERE,
+                "Invalid callstack used in ART. The target node does not fit to the callstack return address.");
+            return PCCCheckResult.InvalidART;
+          }
           // proof edge
           PCCCheckResult result;
           if (pNode.getAbstractionType() != AbstractionType.NeverAbstraction) {
+            logger.log(Level.INFO, "Check if feasible abstraction.");
             if (art.get(target).getAbstractionType() != AbstractionType.NeverAbstraction) {
               result =
                   checkEdgeFormula(pNode, pNode.getEdges()[0], art.get(target));
@@ -207,6 +243,7 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
         // check other edges
         ARTEdge[] edges = pNode.getEdges();
         //check if all edges are covered exactly once
+        logger.log(Level.INFO, "Check if all CFA edges of the corresponding CFA node are covered by ART node");
         if (edges.length != cfaNode.getNumLeavingEdges()
             || !containsCFAEdges(edges, cfaNode)) { return PCCCheckResult.InvalidART; }
         PCCCheckResult intermediateRes;
@@ -214,6 +251,7 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
         for (int i = 0; i < edges.length; i++) {
           // formula only needs to be checked if location has abstraction, otherwise already checked
           if (pNode.getAbstractionType() != AbstractionType.NeverAbstraction) {
+            logger.log(Level.INFO, "Check if feasible abstraction.");
             // target node does not contain abstraction -> use target nodes children
             if (art.get(edges[i].getTarget()).getAbstractionType() == AbstractionType.NeverAbstraction) {
               intermediateRes =
@@ -261,7 +299,11 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
           break;
         }
       }
-      if (!found) { return false; }
+      if (!found) {
+        logger.log(Level.SEVERE, "CFA edge " + pCFA.getNodeNumber() + "->" + (edge.getSuccessor()).getNodeNumber()
+            + " not covered.");
+        return false;
+      }
     }
     return true;
   }

@@ -26,6 +26,7 @@ package org.sosy_lab.pcc.proof_check;
 import java.util.InputMismatchException;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -67,6 +68,7 @@ public class SBEWithIndices_ARTProofCheckAlgorithm extends
     while (pScan.hasNext()) {
       try {
         // read next edge
+        logger.log(Level.INFO, "Read next edge");
         source = pScan.nextInt();
         target = pScan.nextInt();
         nodeS = art.get(new Integer(source));
@@ -76,6 +78,8 @@ public class SBEWithIndices_ARTProofCheckAlgorithm extends
               nodeS.getCorrespondingCFANode().getEdgeTo(
                   nodeT.getCorrespondingCFANode());
         } else {
+          logger.log(Level.SEVERE,
+              "Cannot get corresponding CFA edge because either source or target node of edge is no valid ART node.");
           return PCCCheckResult.UnknownCFAEdge;
         }
 
@@ -84,11 +88,17 @@ public class SBEWithIndices_ARTProofCheckAlgorithm extends
         String createdOperation = handler.getEdgeOperation(cfaEdge);
         if (createdOperation == null
             || !handler.isSameFormulaWithNormalizedIndices(createdOperation,
-                operation)) { return PCCCheckResult.InvalidART; }
+                operation)) {
+          logger.log(Level.SEVERE, " Operation " + createdOperation + " does not fit to ART edge");
+          return PCCCheckResult.InvalidART;
+        }
 
         // check for correct abstraction type of target node
         intermediateRes = checkTargetAbstractionType(nodeT, operation);
-        if (intermediateRes != PCCCheckResult.Success) { return intermediateRes; }
+        if (intermediateRes != PCCCheckResult.Success) {
+          logger.log(Level.SEVERE, "Wrong abstraction type for ART node " + nodeT);
+          return intermediateRes;
+        }
 
         edge = new WithOpDescriptionARTEdge(target, cfaEdge, operation);
         nodeS.addEdge(edge);
@@ -106,12 +116,12 @@ public class SBEWithIndices_ARTProofCheckAlgorithm extends
   @Override
   protected PCCCheckResult checkEdgeFormula(ARTNode pSource, ARTEdge pEdge,
       ARTNode pTarget) {
-    try{
-     return buildAndCheckFormula(pSource.getAbstraction(),
-        ((WithOpDescriptionARTEdge) pEdge).getOperation(),
-        pTarget.getAbstraction(),
-        pEdge.getCorrespondingCFAEdge().getEdgeType() == CFAEdgeType.AssumeEdge);
-    }catch(ClassCastException e){
+    try {
+      return buildAndCheckFormula(pSource.getAbstraction(),
+          ((WithOpDescriptionARTEdge) pEdge).getOperation(),
+          pTarget.getAbstraction(),
+          pEdge.getCorrespondingCFAEdge().getEdgeType() == CFAEdgeType.AssumeEdge);
+    } catch (ClassCastException e) {
       return PCCCheckResult.InvalidEdge;
     }
   }
@@ -120,17 +130,28 @@ public class SBEWithIndices_ARTProofCheckAlgorithm extends
       String pOperation, String pAbstractionRight, boolean pAssume) {
     // check if operation fits to left abstraction
     if (handler.operationFitsToLeftAbstraction(pAbstractionLeft, pOperation,
-        pAssume)) { return PCCCheckResult.InvalidEdge; }
+        pAssume)) {
+      logger.log(Level.SEVERE, "Operation does not fit to left abstraction.");
+      return PCCCheckResult.InvalidEdge;
+    }
     // check if right abstraction fits to left abstraction and operation
     if (handler.rightAbstractionFitsToOperationAndLeftAbstraction(
-        pAbstractionLeft, pOperation, pAbstractionRight)) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
+        pAbstractionLeft, pOperation, pAbstractionRight)) {
+      logger.log(Level.SEVERE, "Right abstraction cannot be constructed in a correct ART.");
+      return PCCCheckResult.InvalidFormulaSpecificationInProof;
+    }
     Formula f =
         handler.buildEdgeInvariant(pAbstractionLeft, pOperation,
             pAbstractionRight);
-    if (f == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
+    if (f == null) {
+      logger.log(Level.WARNING, "Cannot build proof formula.");
+      return PCCCheckResult.InvalidFormulaSpecificationInProof;
+    }
     if (f.isFalse()) {
       return PCCCheckResult.Success;
     } else {
+      logger.log(Level.SEVERE, pAbstractionLeft + " & " + pOperation + " -> " + pAbstractionRight
+          + ") cannot be proven.");
       return PCCCheckResult.InvalidART;
     }
   }

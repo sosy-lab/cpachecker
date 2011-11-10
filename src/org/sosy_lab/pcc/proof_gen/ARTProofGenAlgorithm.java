@@ -43,14 +43,16 @@ import org.sosy_lab.pcc.common.Separators;
 @Options(prefix = "pcc.proofgen")
 public abstract class ARTProofGenAlgorithm implements ProofGenAlgorithm {
 
-  protected Vector<String>   nodes        = new Vector<String>();
-  protected Vector<String>   edges        = new Vector<String>();
+  protected Vector<String> nodes = new Vector<String>();
+  protected Vector<String> edges = new Vector<String>();
   protected HashSet<Integer> visitedNodes = new HashSet<Integer>();
-  protected Configuration    config;
-  protected LogManager       logger;
+  protected Configuration config;
+  protected LogManager logger;
 
-  @Option(type = Option.Type.OUTPUT_FILE, description = "export ART representation needed for proof checking in PCC, if the error location is not reached, the representation depends on the algorithm used for proof checking")
-  private File               file         = new File("pccProof.txt");
+  @Option(
+      type = Option.Type.OUTPUT_FILE,
+      description = "export ART representation needed for proof checking in PCC, if the error location is not reached, the representation depends on the algorithm used for proof checking")
+  private File file = new File("pccProof.txt");
 
   public ARTProofGenAlgorithm(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
@@ -80,6 +82,7 @@ public abstract class ARTProofGenAlgorithm implements ProofGenAlgorithm {
     ARTElement current;
     while (!toVisit.isEmpty()) {
       current = toVisit.pop();
+      logger.log(Level.INFO, "Visit ART node " + current + " .");
       // build and save representation for this node
       if (!addARTNode(current)) { return false; }
       // consider current node's edges
@@ -96,12 +99,14 @@ public abstract class ARTProofGenAlgorithm implements ProofGenAlgorithm {
 
   private boolean writeART() {
     StringBuilder output = new StringBuilder();
+    logger.log(Level.INFO, "Write ART nodes.");
     // add all nodes
     for (String node : nodes) {
       output.append(node);
     }
     // add separation between nodes and edges
     output.append(Separators.nodesFromEdgesSeparator);
+    logger.log(Level.INFO, "Write ART edges.");
     // add all edges
     for (String edge : edges) {
       output.append(edge);
@@ -109,8 +114,8 @@ public abstract class ARTProofGenAlgorithm implements ProofGenAlgorithm {
     try {
       Files.writeFile(file, output);
     } catch (IOException e) {
-      logger.log(Level.SEVERE,
-          "Unable to write the abstract reachability tree.", e.getStackTrace());
+      logger.logUserException(Level.SEVERE, e,
+          "Unable to write the abstract reachability tree.");
       return false;
     }
     return true;

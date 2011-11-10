@@ -27,6 +27,7 @@ import java.util.InputMismatchException;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 import java.util.Vector;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -65,6 +66,7 @@ public class SBEWithoutIndices_InvariantProofCheckAlgorithm extends
     while (pScan.hasNext()) {
       try {
         // read next edge
+        logger.log(Level.INFO, "Read next edge.");
         source = pScan.nextInt();
         sourceEdge = pScan.nextInt();
         target = pScan.nextInt();
@@ -72,12 +74,23 @@ public class SBEWithoutIndices_InvariantProofCheckAlgorithm extends
 
         nodeSourceOpEdge = allCFANodes.get(sourceEdge);
         nodeT = reachableCFANodes.get(target);
-        if (nodeS == null || allInvariantFormulaeFalse(source)
-            || nodeSourceOpEdge == null || nodeT == null) { return PCCCheckResult.UnknownCFAEdge; }
+        if (nodeS == null
+            || nodeSourceOpEdge == null || nodeT == null) {
+          logger.log(Level.SEVERE, "Edge " + source + "#" + sourceEdge + "#" + target
+              + "not possible because one is no CFA node or is not an abstraction node.");
+          return PCCCheckResult.UnknownCFAEdge;
+        }
 
+        if (allInvariantFormulaeFalse(source)) {
+          logger.log(Level.SEVERE, "Source should not be reachable, no edges allowed.");
+          return PCCCheckResult.UnknownCFAEdge;
+        }
         //check edge
         edge = retrieveOperationEdge(nodeS, nodeSourceOpEdge, nodeT);
-        if (edge == null) { return PCCCheckResult.InvalidEdge; }
+        if (edge == null) {
+          logger.log(Level.SEVERE, "Edge " + source + "#" + sourceEdge + "#" + target + " is not correct edge in CFA.");
+          return PCCCheckResult.InvalidEdge;
+        }
         //add edge
         edges.add(source + Separators.commonSeparator + target);
       } catch (IllegalArgumentException e3) {
@@ -88,6 +101,7 @@ public class SBEWithoutIndices_InvariantProofCheckAlgorithm extends
         return PCCCheckResult.UnknownCFAEdge;
       }
     }
+    logger.log(Level.INFO, "Check if all necessary edges are contained in proof.");
     return structuralCheckCoverageOfCFAEdges();
   }
 
@@ -96,6 +110,7 @@ public class SBEWithoutIndices_InvariantProofCheckAlgorithm extends
       Vector<Pair<Formula, int[]>> pInvariantS, CFAEdge pCfaEdge,
       Vector<Pair<Formula, int[]>> pInvariantT) {
     // build right formula without indices
+    logger.log(Level.INFO, "Check a single edge.");
     Formula[] rightAbstraction = new Formula[pInvariantT.size()];
     Formula operation, right, rightInstantiated, left, proof;
     PathFormula op;
@@ -108,23 +123,41 @@ public class SBEWithoutIndices_InvariantProofCheckAlgorithm extends
       if (rightAbstraction[i] == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
     }
     right = handler.buildDisjunction(rightAbstraction);
-    if (right == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
+    if (right == null) {
+      logger.log(Level.SEVERE, "Cannot build formula of right invariant.");
+      return PCCCheckResult.InvalidFormulaSpecificationInProof;
+    }
     // iterate over all left abstractions
     for (int i = 0; i < pInvariantS.size(); i++) {
       // instantiate left abstraction
       resultAbs = handler.addIndices(null, pInvariantS.get(i).getFirst());
-      if (resultAbs == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
+      if (resultAbs == null) {
+        logger.log(Level.SEVERE, "Cannot build formula of left invariant.");
+        return PCCCheckResult.InvalidFormulaSpecificationInProof;
+      }
       left = resultAbs.getFirst();
-      if (left == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
+      if (left == null) {
+        logger.log(Level.SEVERE, "Cannot build formula of left invariant.");
+        return PCCCheckResult.InvalidFormulaSpecificationInProof;
+      }
       // add stack invariant
       left =
           addStackInvariant(left, pInvariantS.get(i).getSecond(), true, pSource);
-      if (left == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
+      if (left == null) {
+        logger.log(Level.SEVERE, "Cannot build formula of left invariant.");
+        return PCCCheckResult.InvalidFormulaSpecificationInProof;
+      }
       // get operation with indices
       op = handler.getEdgeOperationFormula(resultAbs.getSecond(), pCfaEdge);
-      if (op == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
+      if (op == null) {
+        logger.log(Level.SEVERE, "Cannot build formula for operation.");
+        return PCCCheckResult.InvalidFormulaSpecificationInProof;
+      }
       operation = op.getFormula();
-      if (operation == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
+      if (operation == null) {
+        logger.log(Level.SEVERE, "Cannot build formula for operation.");
+        return PCCCheckResult.InvalidFormulaSpecificationInProof;
+      }
       // add stack operation to edge formula
       if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
         operation =
@@ -137,16 +170,28 @@ public class SBEWithoutIndices_InvariantProofCheckAlgorithm extends
             addStackOperation(operation, pInvariantS.get(i).getSecond(), false,
                 pCfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge, -1);
       }
-      if (operation == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
+      if (operation == null) {
+        logger.log(Level.SEVERE, "Cannot build formula for operation.");
+        return PCCCheckResult.InvalidFormulaSpecificationInProof;
+      }
       // instantiate right abstraction
       resultAbs = handler.addIndices(op.getSsa(), right);
-      if (resultAbs == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
+      if (resultAbs == null) {
+        logger.log(Level.SEVERE, "Cannot build formula of left invariant.");
+        return PCCCheckResult.InvalidFormulaSpecificationInProof;
+      }
       rightInstantiated = resultAbs.getFirst();
-      if (rightInstantiated == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
+      if (rightInstantiated == null) {
+        logger.log(Level.SEVERE, "Cannot build formula of left invariant.");
+        return PCCCheckResult.InvalidFormulaSpecificationInProof;
+      }
       // build edge invariant
       proof = handler.buildEdgeInvariant(left, operation, rightInstantiated);
       if (proof == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
-      if (!proof.isFalse()) { return PCCCheckResult.InvalidART; }
+      if (!proof.isFalse()) {
+        logger.log(Level.SEVERE, "Proof for edge failed.");
+        return PCCCheckResult.InvalidART;
+      }
     }
     return PCCCheckResult.Success;
   }

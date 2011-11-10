@@ -29,10 +29,10 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 public class ARTNode {
 
-  private int                id;
-  private CFANode            cfaNode;
-  private AbstractionType    isAbstraction;
-  private String             abstraction;
+  private int id;
+  private CFANode cfaNode;
+  private AbstractionType isAbstraction;
+  private String abstraction;
   private ArrayList<ARTEdge> edges = new ArrayList<ARTEdge>();
 
   public ARTNode(int pID, CFANode pCFANode, AbstractionType pAbstractionType)
@@ -84,9 +84,18 @@ public class ARTNode {
   }
 
   public String getAbstraction() {
-    if (isAbstraction == AbstractionType.Abstraction) { return abstraction;
-    }
+    if (isAbstraction == AbstractionType.Abstraction) { return abstraction; }
     return null;
+  }
+
+  @Override
+  public String toString() {
+    if (isAbstraction == AbstractionType.Abstraction) {
+      return "ART node " + id + " corresponding to CFA node " + cfaNode.getNodeNumber() + " Abstraction: "
+          + abstraction;
+    } else {
+      return "ART node " + id + " corresponding to CFA node " + cfaNode.getNodeNumber();
+    }
   }
 
 }

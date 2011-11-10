@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.pcc.proof_gen;
 
+import java.util.logging.Level;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -44,6 +46,7 @@ public class SBEWithoutIndices_ARTProofGenAlgorithm extends
       ARTElement pTarget) {
     String id = getEdgeIdentification(pSource, pTarget);
     if (id == null || id.length() == 0) { return false; }
+    logger.log(Level.INFO, "Add ART edge");
     edges.add(id);
     return true;
   }

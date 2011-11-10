@@ -24,6 +24,7 @@
 package org.sosy_lab.pcc.proof_gen;
 
 import java.util.Hashtable;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -59,6 +60,7 @@ public class SBEWithIndices_InvariantProofGenAlgorithm extends
         buildEdgeId(pNode.retrieveLocationElement().getLocationNode(), pEdge);
     StringBuilder current = operationsPerEdge.get(id);
     // add operation
+    logger.log(Level.INFO,"Add an edge which connects two regions");
     if (current == null) {
       operationsPerEdge.put(id, new StringBuilder(operation
           + Separators.commonSeparator));

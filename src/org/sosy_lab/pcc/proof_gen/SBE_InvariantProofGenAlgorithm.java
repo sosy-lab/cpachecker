@@ -24,6 +24,7 @@
 package org.sosy_lab.pcc.proof_gen;
 
 import java.util.Vector;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -50,6 +51,7 @@ public abstract class SBE_InvariantProofGenAlgorithm extends
 
   @Override
   protected boolean addInvariant(ARTElement pNode, String pStack) {
+    // if covered, this element is not part of proof, redirection to covering node
     if (pNode.isCovered()) { return true; }
     PredicateAbstractElement predicate =
         AbstractElements.extractElementByType(pNode,
@@ -67,6 +69,7 @@ public abstract class SBE_InvariantProofGenAlgorithm extends
         cfaNodeInvariants.put(corresponding.getNodeNumber(), builder);
       }
       // add invariant and stack
+      logger.log(Level.INFO, "Add another region description.");
       String invariant = getAbstraction(predicate);
       if (invariant == null || invariant.length() == 0) { return false; }
       builder.append(invariant + pStack + Separators.commonSeparator);

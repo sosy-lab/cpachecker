@@ -28,6 +28,7 @@ import java.util.InputMismatchException;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 import java.util.Vector;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -44,15 +45,13 @@ public class SBEWithIndices_InvariantProofCheckAlgorithm extends
     SBE_InvariantProofCheckAlgorithm {
 
   private Hashtable<String, Formula[]> edgeOperations =
-                                                          new Hashtable<String, Formula[]>();
+      new Hashtable<String, Formula[]>();
 
   public SBEWithIndices_InvariantProofCheckAlgorithm(Configuration pConfig,
       LogManager pLogger, boolean pAlwaysAtLoops, boolean pAlwaysAtFunctions)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pAlwaysAtLoops, pAlwaysAtFunctions);
   }
-
-  // TODO was noch teilen, z.B. checkProof, readEdges
 
   @Override
   protected PCCCheckResult readEdges(Scanner pScan) {
@@ -64,6 +63,7 @@ public class SBEWithIndices_InvariantProofCheckAlgorithm extends
     while (pScan.hasNext()) {
       try {
         // read next edge
+        logger.log(Level.INFO, "Read next edge.");
         source = pScan.nextInt();
         sourceEdge = pScan.nextInt();
         target = pScan.nextInt();
@@ -71,8 +71,15 @@ public class SBEWithIndices_InvariantProofCheckAlgorithm extends
 
         nodeSourceOpEdge = allCFANodes.get(sourceEdge);
         nodeT = reachableCFANodes.get(target);
-        if (nodeS == null || allInvariantFormulaeFalse(source)
-            || nodeSourceOpEdge == null || nodeT == null) { return PCCCheckResult.UnknownCFAEdge; }
+        if (nodeS == null || nodeSourceOpEdge == null || nodeT == null) {
+          logger.log(Level.INFO, "One identifier of edge " + source + "#" + sourceEdge + "#" + target
+              + " is not a CFA node or a CFA node without abstraction.");
+          return PCCCheckResult.UnknownCFAEdge;
+        }
+        if (allInvariantFormulaeFalse(source)) {
+          logger.log(Level.INFO, "No edge expected because source node should not be reachable.");
+          return PCCCheckResult.UnknownCFAEdge;
+        }
         // get all operations with respective SSA indices
         numOps = pScan.nextInt();
         if (numOps < 1) { return PCCCheckResult.UnknownCFAEdge; }
@@ -88,7 +95,10 @@ public class SBEWithIndices_InvariantProofCheckAlgorithm extends
         //check edge
         intermediateRes =
             structuralCheckEdge(nodeS, nodeSourceOpEdge, nodeT, operations);
-        if (intermediateRes != PCCCheckResult.Success) { return intermediateRes; }
+        if (intermediateRes != PCCCheckResult.Success) {
+          logger.log(Level.SEVERE, "Not a valid edge.");
+          return intermediateRes;
+          }
         //add edge
         edges.add(source + Separators.commonSeparator + target);
         edgeOperations.put(source + Separators.commonSeparator + target,
@@ -122,6 +132,7 @@ public class SBEWithIndices_InvariantProofCheckAlgorithm extends
     return PCCCheckResult.Success;
   }
 
+  @SuppressWarnings("unused")
   private Formula buildRightFormula(Vector<Pair<Formula, int[]>> pInvariantT,
       int pTargetNode) {
     Formula[] subFormulae = new Formula[pInvariantT.size()];
@@ -153,7 +164,7 @@ public class SBEWithIndices_InvariantProofCheckAlgorithm extends
     edgeFormulae = edgeOperations.get(pEdge);
     // iterate over all source abstractions
     for (int i = 0; i < pInvariantS.size(); i++) {
-      // iterate over all operations
+      // iterate over all operation
       successfulAbstraction = false;
       // build left formula
       left =
@@ -171,7 +182,7 @@ public class SBEWithIndices_InvariantProofCheckAlgorithm extends
               addStackOperation(edgeFormulae[k],
                   pInvariantS.get(i).getSecond(), true,
                   pCfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge,
-                      pCfaEdge.getSuccessor().getLeavingSummaryEdge().getSuccessor()
+                  pCfaEdge.getSuccessor().getLeavingSummaryEdge().getSuccessor()
                       .getNodeNumber());
         } else {
           completeOperation =
@@ -192,7 +203,7 @@ public class SBEWithIndices_InvariantProofCheckAlgorithm extends
 
           // build right formula
           right =
-              addStackInvariant(pInvariantT.get(j).getFirst(),pInvariantT.get(j)
+              addStackInvariant(pInvariantT.get(j).getFirst(), pInvariantT.get(j)
                   .getSecond(), false, pTarget);
           if (left == null || completeOperation == null || right == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
           // create proof formula

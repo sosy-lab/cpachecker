@@ -26,6 +26,7 @@ package org.sosy_lab.pcc.proof_check;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -50,20 +51,24 @@ public abstract class InvariantProofCheckAlgorithm implements
     cfaForProof = pCFA;
     PCCCheckResult intermediateRes;
     try {
+      logger.log(Level.INFO, "Start reading proof.");
       intermediateRes = readFromFile(pProof);
     } catch (FileNotFoundException e1) {
+      logger.logUserException(Level.WARNING, e1, "");
       return PCCCheckResult.InvalidProofFile;
     }
     if (intermediateRes != PCCCheckResult.Success) { return intermediateRes; }
-
+    logger.log(Level.INFO, "Finished reading proof and start validating proof.");
     return checkProof();
   }
 
   private PCCCheckResult readFromFile(File pFile) throws FileNotFoundException {
     Scanner scan = new Scanner(pFile);
     scan.useDelimiter("(\\s)*"+Separators.commonSeparator+"(\\s)*");
+    logger.log(Level.INFO, "Read regions.");
     PCCCheckResult success = readNodes(scan);
     if (success != PCCCheckResult.Success) { return success; }
+    logger.log(Level.INFO, "Read edges connecting regions.");
     success = readEdges(scan);
     return success;
   }

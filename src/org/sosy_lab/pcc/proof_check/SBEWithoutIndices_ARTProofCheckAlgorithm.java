@@ -26,6 +26,7 @@ package org.sosy_lab.pcc.proof_check;
 import java.util.InputMismatchException;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -60,10 +61,12 @@ public class SBEWithoutIndices_ARTProofCheckAlgorithm extends
     CFAEdge cfaEdge;
     ARTNode nodeS, nodeT;
     ARTEdge edge;
+    PCCCheckResult intermediateRes;
 
     while (pScan.hasNext()) {
       try {
         // read next edge
+        logger.log(Level.INFO, "Read next edge");
         source = pScan.nextInt();
         target = pScan.nextInt();
         nodeS = art.get(new Integer(source));
@@ -73,7 +76,14 @@ public class SBEWithoutIndices_ARTProofCheckAlgorithm extends
               nodeS.getCorrespondingCFANode().getEdgeTo(
                   nodeT.getCorrespondingCFANode());
         } else {
+          logger.log(Level.SEVERE, "Edge " + source + "#" + target + " has no corresponding CFA edge.");
           return PCCCheckResult.UnknownCFAEdge;
+        }
+        // check abstraction type
+        intermediateRes = checkTargetAbstractionType(nodeT, handler.getEdgeOperation(cfaEdge));
+        if (intermediateRes != PCCCheckResult.Success) {
+          logger.log(Level.SEVERE, "Wrong abstraction type for ART node " + nodeT);
+          return intermediateRes;
         }
         // add edge
         edge = new ARTEdge(target, cfaEdge);
@@ -95,24 +105,40 @@ public class SBEWithoutIndices_ARTProofCheckAlgorithm extends
     // instantiate left abstraction
     Pair<Formula, SSAMap> resultAbs =
         handler.addIndices(null, pSource.getAbstraction());
-    if (resultAbs == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
+    if (resultAbs == null) {
+      logger.log(Level.SEVERE, "Cannot build abstraction of ART node " + pSource);
+      return PCCCheckResult.InvalidFormulaSpecificationInProof;
+    }
     Formula left = resultAbs.getFirst();
-    if (left == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
+    if (left == null) {
+      logger.log(Level.SEVERE, "Cannot build abstraction of ART node " + pSource);
+      return PCCCheckResult.InvalidFormulaSpecificationInProof;
+    }
     // get operation with indices
     PathFormula op =
         handler.getEdgeOperationFormula(resultAbs.getSecond(),
             pEdge.getCorrespondingCFAEdge());
-    if (op == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
+    if (op == null) {
+      logger.log(Level.SEVERE, "Cannot build operation.");
+      return PCCCheckResult.InvalidFormulaSpecificationInProof;
+    }
     // instantiate right abstraction
     resultAbs = handler.addIndices(op.getSsa(), pTarget.getAbstraction());
-    if (resultAbs == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
+    if (resultAbs == null) {
+      logger.log(Level.SEVERE, "Cannot build abstraction of ART node " + pTarget);
+      return PCCCheckResult.InvalidFormulaSpecificationInProof;
+    }
     Formula right = resultAbs.getFirst();
     if (right == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
     Formula proof = handler.buildEdgeInvariant(left, op.getFormula(), right);
-    if (proof == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
+    if (proof == null) {
+      logger.log(Level.SEVERE, "Cannot build abstraction of ART node " + pTarget);
+      return PCCCheckResult.InvalidFormulaSpecificationInProof;
+    }
     if (proof.isFalse()) {
       return PCCCheckResult.Success;
     } else {
+      logger.log(Level.SEVERE, "Formula cannot be proven.");
       return PCCCheckResult.InvalidART;
     }
   }

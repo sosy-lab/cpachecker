@@ -155,22 +155,26 @@ public class PCCProofCheckMain {
 
     CFA cfa = null;
     try {
-      // TODO do logging INFO level
+      logger.log(Level.INFO, "Start PCC proof checking.");
       PCCProofChecker prover = new PCCProofChecker(config);
       // create CFA
+      logger.log(Level.INFO, "Started CFA construction.");
       CFACreator cfaCreator = new CFACreator(config, logger);
       cfa =
           cfaCreator.parseFileAndCreateCFA(CPAMain.getCodeFilePath(config,
               logger));
-
+      logger.log(Level.INFO, "CFA construction finished.");
       // get algorithm for checking
       ProofCheckAlgorithm algorithm = prover.getCheckAlgorithm(config, logger);
 
       //start check
+      logger.log(Level.INFO,"Started proof validation.");
       PCCCheckResult result = algorithm.checkProvidedProof(cfa, prover.file);
+      logger.log(Level.INFO,"Finished proof validation.");
 
       if (result == PCCCheckResult.Success) {
         System.out.println("Proof has been checked successfully.\n");
+
       } else {
         System.out.println("Proof failed with failure: " + result);
       }

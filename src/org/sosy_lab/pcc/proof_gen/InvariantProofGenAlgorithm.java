@@ -44,15 +44,17 @@ import org.sosy_lab.pcc.common.Separators;
 public abstract class InvariantProofGenAlgorithm implements ProofGenAlgorithm {
 
   protected Hashtable<Integer, StringBuilder> cfaNodeInvariants =
-                                                                    new Hashtable<Integer, StringBuilder>();
+      new Hashtable<Integer, StringBuilder>();
 
-  protected Configuration                     config;
-  protected LogManager                        logger;
+  protected Configuration config;
+  protected LogManager logger;
 
-  @Option(type = Option.Type.OUTPUT_FILE, description = "export ART representation needed for proof checking in PCC, if the error location is not reached, the representation depends on the algorithm used for proof checking")
-  private File                                file              =
-                                                                    new File(
-                                                                        "pccProof.txt");
+  @Option(
+      type = Option.Type.OUTPUT_FILE,
+      description = "export ART representation needed for proof checking in PCC, if the error location is not reached, the representation depends on the algorithm used for proof checking")
+  private File file =
+      new File(
+          "pccProof.txt");
 
   public InvariantProofGenAlgorithm(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
@@ -90,6 +92,7 @@ public abstract class InvariantProofGenAlgorithm implements ProofGenAlgorithm {
     while (!toVisit.isEmpty()) {
       visiting = toVisit.pop();
       current = visiting.getFirst();
+      logger.log(Level.INFO, "Visit ART node " + current + " .");
       // build and save representation for this node
       if (!addInvariant(current, visiting.getSecond())) { return false; }
       // consider current node's edges
@@ -130,6 +133,7 @@ public abstract class InvariantProofGenAlgorithm implements ProofGenAlgorithm {
   private boolean writeInvariantsAndOperations() {
     StringBuilder output = new StringBuilder();
     // add all invariants
+    logger.log(Level.INFO, "Write regions per CFA node.");
     StringBuilder toWrite;
     for (Integer cfaID : cfaNodeInvariants.keySet()) {
       output.append(cfaID + Separators.commonSeparator);
@@ -140,16 +144,15 @@ public abstract class InvariantProofGenAlgorithm implements ProofGenAlgorithm {
     // add separation between invariants and operations
     output.append(Separators.nodesFromEdgesSeparator);
     // add all operations
+    logger.log(Level.INFO, "Write edges between regions.");
     toWrite = writeOperations();
-    if(toWrite == null){
-      return false;
-    }
+    if (toWrite == null) { return false; }
     output.append(toWrite.toString());
     try {
       Files.writeFile(file, output);
     } catch (IOException e) {
-      logger.log(Level.SEVERE,
-          "Unable to write the abstract reachability tree.", e.getStackTrace());
+      logger.logUserException(Level.SEVERE, e,
+          "Unable to write the abstract reachability tree.");
       return false;
     }
     return true;

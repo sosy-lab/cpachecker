@@ -26,6 +26,7 @@ package org.sosy_lab.pcc.proof_check;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -53,13 +54,16 @@ public abstract class ARTProofCheckAlgorithm implements ProofCheckAlgorithm {
     cfaForProof = pCFA;
     // read proof from file
     try {
+      logger.log(Level.INFO, "Start reading proof.");
       success = readFromFile(pProof);
       if(success!=PCCCheckResult.Success){
         return success;
       }
     } catch (FileNotFoundException e) {
+      logger.logUserException(Level.WARNING, e, "");
       return PCCCheckResult.InvalidProofFile;
     }
+    logger.log(Level.INFO, "Finished reading proof and start validating proof.");
     // check proof
     return checkProof();
   }
@@ -67,10 +71,12 @@ public abstract class ARTProofCheckAlgorithm implements ProofCheckAlgorithm {
   private PCCCheckResult readFromFile(File pFile) throws FileNotFoundException{
     Scanner scan = new Scanner(pFile);
     scan.useDelimiter("(\\s)*"+Separators.commonSeparator+"(\\s)*");
+    logger.log(Level.INFO, "Reading ART nodes.");
     PCCCheckResult success = readNodes(scan);
     if(success != PCCCheckResult.Success){
       return success;
     }
+    logger.log(Level.INFO, "Reading ART edges.");
     success = readEdges(scan);
     return success;
   }
