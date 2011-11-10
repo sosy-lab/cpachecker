@@ -66,9 +66,9 @@ public class PCCProofCheckMain {
     private int              switchToLBEAfter     = 0;
     @Option(name = "pcc.profgen.file", type = Option.Type.OUTPUT_FILE, description = "export ART representation needed for proof checking in PCC, if the error location is not reached, the representation depends on the algorithm used for proof checking")
     private File             file                 = new File("pccProof.txt");
-    @Option(description = "force abstractions at loop heads, regardless of threshold")
+    @Option(name = "cpa.predicate.blk.alwaysAtLoops", description = "force abstractions at loop heads, regardless of threshold")
     private boolean          alwaysAtLoops        = true;
-    @Option(description = "force abstractions at each function calls/returns, regardless of threshold")
+    @Option(name = "cpa.predicate.blk.alwaysAtFunctions", description = "force abstractions at each function calls/returns, regardless of threshold")
     private boolean          alwaysAtFunctions    = true;
     @Option(name = "cpa.predicate.abstraction.cartesian", description = "whether to use Boolean (false) or Cartesian (true) abstraction")
     private boolean          cartesianAbstraction = false;

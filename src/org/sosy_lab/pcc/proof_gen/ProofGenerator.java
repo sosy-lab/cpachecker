@@ -58,9 +58,9 @@ public class ProofGenerator {
   private int               threshold            = 0;
   @Option(name = "cpa.predicate.blk.switchToLBEAfter", description = "Switch to a LBE configuration after so many milliseconds (0 to disable)")
   private int               switchToLBEAfter     = 0;
-  @Option(description = "force abstractions at loop heads, regardless of threshold")
+  @Option(name = "cpa.predicate.blk.alwaysAtLoops", description = "force abstractions at loop heads, regardless of threshold")
   private boolean           alwaysAtLoops        = true;
-  @Option(description = "force abstractions at each function calls/returns, regardless of threshold")
+  @Option(name = "cpa.predicate.blk.alwaysAtFunctions", description = "force abstractions at each function calls/returns, regardless of threshold")
   private boolean           alwaysAtFunctions    = true;
   @Option(name = "cpa.predicate.abstraction.cartesian", description = "whether to use Boolean (false) or Cartesian (true) abstraction")
   private boolean           cartesianAbstraction = false;

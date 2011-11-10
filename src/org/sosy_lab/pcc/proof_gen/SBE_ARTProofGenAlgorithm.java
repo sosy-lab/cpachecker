@@ -36,6 +36,7 @@ import org.sosy_lab.pcc.common.FormulaHandler;
 import org.sosy_lab.pcc.common.Separators;
 
 public abstract class SBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
+
   protected FormulaHandler fh;
 
   public SBE_ARTProofGenAlgorithm(Configuration pConfig, LogManager pLogger)
@@ -46,6 +47,8 @@ public abstract class SBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
 
   @Override
   protected boolean addARTNode(ARTElement pNode) {
+    // ignore nodes that are covered by another node
+    if (pNode.isCovered()) { return true; }
     StringBuilder nodeRep = new StringBuilder();
     // build string of form ARTId#CFAId#isAbstractionNode(#Abstraction)?#
     nodeRep.append(pNode.getElementId());

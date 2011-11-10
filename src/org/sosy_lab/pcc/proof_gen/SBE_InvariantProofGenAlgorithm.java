@@ -50,6 +50,7 @@ public abstract class SBE_InvariantProofGenAlgorithm extends
 
   @Override
   protected boolean addInvariant(ARTElement pNode, String pStack) {
+    if (pNode.isCovered()) { return true; }
     PredicateAbstractElement predicate =
         AbstractElements.extractElementByType(pNode,
             PredicateAbstractElement.class);
@@ -75,6 +76,9 @@ public abstract class SBE_InvariantProofGenAlgorithm extends
 
   @Override
   protected boolean addOperation(ARTElement pSource, ARTElement pTarget) {
+    if (pTarget.isCovered()) {
+      pTarget = pTarget.getCoveringElement();
+    }
     PredicateAbstractElement predicate =
         AbstractElements.extractElementByType(pSource,
             PredicateAbstractElement.class);
