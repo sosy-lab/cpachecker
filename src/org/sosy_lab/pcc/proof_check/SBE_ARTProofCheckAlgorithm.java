@@ -56,11 +56,12 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
   protected boolean atFunction;
   protected Hashtable<Integer, ARTNode> art = new Hashtable<Integer, ARTNode>();
 
-  public SBE_ARTProofCheckAlgorithm(Configuration pConfig, LogManager pLogger,
+  public SBE_ARTProofCheckAlgorithm(Configuration pConfig, LogManager pLogger, String pProverType,
       boolean pAlwaysAtLoops, boolean pAlwaysAtFunctions)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
-    handler = new FormulaHandler(pConfig, pLogger);
+
+    handler = new FormulaHandler(pConfig, pLogger, pProverType);
     atLoop = pAlwaysAtLoops;
     atFunction = pAlwaysAtFunctions;
   }
@@ -105,28 +106,30 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
         } else {
           newNode = new ARTNode(artId, cfaNode, pAbsType);
         }
+
         art.put(new Integer(artId), newNode);
         if (cfaNode != null && cfaForProof.getMainFunction().equals(cfaNode)) {
           if (!rootFound) {
+            // set root
+            root = newNode;
             //check root properties
             if (root.getAbstractionType() != AbstractionType.Abstraction
-                || (!handler.createFormula(root.getAbstraction()).isTrue())) {
+                || (!(handler.createFormula(root.getAbstraction())).isTrue())) {
               logger.log(Level.SEVERE, "Wrong root specification: " + root);
               return PCCCheckResult.InvalidARTRootSpecification;
             }
-            root = newNode;
           } else {
             logger.log(Level.SEVERE, "Ambigious root specification: " + root.getID() + " and " + newNode.getID());
             return PCCCheckResult.AmbigiousRoot;
           }
         }
-      } catch (NumberFormatException e1) {
+      } catch (NumberFormatException e1) {System.out.println("Error1");
         return PCCCheckResult.UnknownCFANode;
-      } catch (InputMismatchException e2) {
+      } catch (InputMismatchException e2) {System.out.println("Error2");
         return PCCCheckResult.UnknownCFANode;
-      } catch (NoSuchElementException e3) {
+      } catch (NoSuchElementException e3) {System.out.println("Error3");
         return PCCCheckResult.UnknownCFANode;
-      } catch (IllegalArgumentException e4) {
+      } catch (IllegalArgumentException e4) {System.out.println("Error4");
         return PCCCheckResult.UnknownCFANode;
       }
     }

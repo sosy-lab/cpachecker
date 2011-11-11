@@ -72,6 +72,9 @@ public class PCCProofCheckMain {
     private boolean          alwaysAtFunctions    = true;
     @Option(name = "cpa.predicate.abstraction.cartesian", description = "whether to use Boolean (false) or Cartesian (true) abstraction")
     private boolean          cartesianAbstraction = false;
+    @Option(name="cpa.predicate.abstraction.solver", toUppercase=true, values={"MATHSAT", "YICES"},
+        description="which solver to use?")
+    private String whichProver = "MATHSAT";
 
     private PCCProofChecker(Configuration pConfig)
         throws InvalidConfigurationException {
@@ -82,13 +85,14 @@ public class PCCProofCheckMain {
 
     private ProofCheckAlgorithm getCheckAlgorithm(Configuration pConfig,
         LogManager pLogger) throws InvalidConfigurationException {
+
       ProofCheckAlgorithm algorithm = null;
       switch (algorithmType) {
       case SBENOINDART: {
         if (alwaysAfterThreshold && threshold == 1 && switchToLBEAfter == 0
             && cartesianAbstraction) {
           algorithm =
-              new SBEWithoutIndices_ARTProofCheckAlgorithm(pConfig, pLogger, alwaysAtLoops,
+              new SBEWithoutIndices_ARTProofCheckAlgorithm(pConfig, pLogger, whichProver, alwaysAtLoops,
                   alwaysAtFunctions);
         }
         break;
@@ -97,7 +101,7 @@ public class PCCProofCheckMain {
         if (alwaysAfterThreshold && threshold == 1 && switchToLBEAfter == 0
             && cartesianAbstraction) {
           algorithm =
-              new SBEWithIndices_ARTProofCheckAlgorithm(pConfig, pLogger, alwaysAtLoops,
+              new SBEWithIndices_ARTProofCheckAlgorithm(pConfig, pLogger, whichProver, alwaysAtLoops,
                   alwaysAtFunctions);
         }
         break;
@@ -106,7 +110,7 @@ public class PCCProofCheckMain {
         if (alwaysAfterThreshold && threshold == 1 && switchToLBEAfter == 0
             && cartesianAbstraction) {
           algorithm =
-              new SBEWithoutIndices_InvariantProofCheckAlgorithm(pConfig, pLogger,
+              new SBEWithoutIndices_InvariantProofCheckAlgorithm(pConfig, pLogger,whichProver,
                   alwaysAtLoops, alwaysAtFunctions);
         }
         break;
@@ -115,7 +119,7 @@ public class PCCProofCheckMain {
         if (alwaysAfterThreshold && threshold == 1 && switchToLBEAfter == 0
             && cartesianAbstraction) {
           algorithm =
-              new SBEWithIndices_InvariantProofCheckAlgorithm(pConfig, pLogger,
+              new SBEWithIndices_InvariantProofCheckAlgorithm(pConfig, pLogger,whichProver,
                   alwaysAtLoops, alwaysAtFunctions);
         }
         break;

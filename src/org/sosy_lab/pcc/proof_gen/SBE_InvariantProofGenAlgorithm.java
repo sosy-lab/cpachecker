@@ -46,7 +46,7 @@ public abstract class SBE_InvariantProofGenAlgorithm extends
   public SBE_InvariantProofGenAlgorithm(Configuration pConfig,
       LogManager pLogger) throws InvalidConfigurationException {
     super(pConfig, pLogger);
-    fh = new FormulaHandler(pConfig, pLogger);
+    fh = new FormulaHandler(pConfig, pLogger, whichProver);
   }
 
   @Override

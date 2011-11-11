@@ -86,7 +86,7 @@ public class SBEWithIndices_InvariantProofGenAlgorithm extends
       output.append(countNumOccurrences(toWrite, Separators.commonSeparator)
           + Separators.commonSeparator + toWrite);
     }
-    return null;
+    return output;
   }
 
 }

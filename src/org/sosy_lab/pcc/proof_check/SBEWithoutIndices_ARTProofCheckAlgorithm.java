@@ -44,9 +44,9 @@ public class SBEWithoutIndices_ARTProofCheckAlgorithm extends
     SBE_ARTProofCheckAlgorithm {
 
   public SBEWithoutIndices_ARTProofCheckAlgorithm(Configuration pConfig,
-      LogManager pLogger, boolean pAlwaysAtLoops, boolean pAlwaysAtFunctions)
-      throws InvalidConfigurationException {
-    super(pConfig, pLogger, pAlwaysAtLoops, pAlwaysAtFunctions);
+      LogManager pLogger, String pProverType, boolean pAlwaysAtLoops, boolean pAlwaysAtFunctions)
+      throws InvalidConfigurationException{
+    super(pConfig, pLogger, pProverType, pAlwaysAtLoops, pAlwaysAtFunctions);
   }
 
   @Override
@@ -122,6 +122,8 @@ public class SBEWithoutIndices_ARTProofCheckAlgorithm extends
       logger.log(Level.SEVERE, "Cannot build operation.");
       return PCCCheckResult.InvalidFormulaSpecificationInProof;
     }
+    // need to be used to ensure that all variables in right abstraction are known (only possible for correct abstraction)
+    handler.removeIndices(op.getFormula());
     // instantiate right abstraction
     resultAbs = handler.addIndices(op.getSsa(), pTarget.getAbstraction());
     if (resultAbs == null) {
@@ -135,7 +137,7 @@ public class SBEWithoutIndices_ARTProofCheckAlgorithm extends
       logger.log(Level.SEVERE, "Cannot build abstraction of ART node " + pTarget);
       return PCCCheckResult.InvalidFormulaSpecificationInProof;
     }
-    if (proof.isFalse()) {
+    if (handler.isFalse(proof)) {
       return PCCCheckResult.Success;
     } else {
       logger.log(Level.SEVERE, "Formula cannot be proven.");

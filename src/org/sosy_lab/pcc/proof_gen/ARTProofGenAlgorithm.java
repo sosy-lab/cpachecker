@@ -54,6 +54,10 @@ public abstract class ARTProofGenAlgorithm implements ProofGenAlgorithm {
       description = "export ART representation needed for proof checking in PCC, if the error location is not reached, the representation depends on the algorithm used for proof checking")
   private File file = new File("pccProof.txt");
 
+  @Option(name="cpa.predicate.abstraction.solver", toUppercase=true, values={"MATHSAT", "YICES"},
+      description="which solver to use?")
+  protected String whichProver = "MATHSAT";
+
   public ARTProofGenAlgorithm(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     config = pConfig;
@@ -105,7 +109,7 @@ public abstract class ARTProofGenAlgorithm implements ProofGenAlgorithm {
       output.append(node);
     }
     // add separation between nodes and edges
-    output.append(Separators.nodesFromEdgesSeparator);
+    output.append(Separators.nodesFromEdgesSeparator+Separators.commonSeparator);
     logger.log(Level.INFO, "Write ART edges.");
     // add all edges
     for (String edge : edges) {

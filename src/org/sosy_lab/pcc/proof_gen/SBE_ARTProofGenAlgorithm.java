@@ -23,15 +23,14 @@
  */
 package org.sosy_lab.pcc.proof_gen;
 
-import java.util.Iterator;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.pcc.common.AbstractionType;
 import org.sosy_lab.pcc.common.FormulaHandler;
 import org.sosy_lab.pcc.common.Separators;
@@ -43,7 +42,7 @@ public abstract class SBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
   public SBE_ARTProofGenAlgorithm(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
-    fh = new FormulaHandler(pConfig, pLogger);
+    fh = new FormulaHandler(pConfig, pLogger, whichProver);
   }
 
   @Override
@@ -58,8 +57,7 @@ public abstract class SBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
         .getNodeNumber());
     nodeRep.append(Separators.commonSeparator);
     // get PredicateAbstractElement
-    PredicateAbstractElement predicate =
-        getWrappedPredicateAbstractElement(pNode);
+    PredicateAbstractElement predicate = AbstractElements.extractElementByType(pNode, PredicateAbstractElement.class);
     if (predicate == null) { return false; }
     // write abstraction type
     if (predicate.isAbstractionElement()) {
@@ -77,24 +75,12 @@ public abstract class SBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
     return true;
   }
 
-  protected PredicateAbstractElement getWrappedPredicateAbstractElement(
-      ARTElement pNode) {
-    AbstractElement wrappedElement;
-    Iterator<? extends AbstractElement> it =
-        pNode.getWrappedElements().iterator();
-    while (it.hasNext()) {
-      wrappedElement = it.next();
-      if (wrappedElement instanceof PredicateAbstractElement) { return (PredicateAbstractElement) wrappedElement; }
-    }
-    return null;
-  }
-
   protected abstract String getAbstraction(PredicateAbstractElement pPredicate);
 
   protected String getEdgeIdentification(ARTElement pSource,
       ARTElement pTarget) {
     StringBuilder edgeRep = new StringBuilder();
-    // build string of form sourceId#targetId
+    // build string of form sourceId#targetId#
     edgeRep.append(pSource.getElementId());
     edgeRep.append(Separators.commonSeparator);
     // if target element is covered -> set covering element as target
@@ -102,6 +88,7 @@ public abstract class SBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
       pTarget = pTarget.getCoveringElement();
     }
     edgeRep.append(pTarget.getElementId());
+    edgeRep.append(Separators.commonSeparator);
     return edgeRep.toString();
   }
 

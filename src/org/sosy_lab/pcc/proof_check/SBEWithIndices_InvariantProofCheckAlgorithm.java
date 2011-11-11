@@ -48,9 +48,9 @@ public class SBEWithIndices_InvariantProofCheckAlgorithm extends
       new Hashtable<String, Formula[]>();
 
   public SBEWithIndices_InvariantProofCheckAlgorithm(Configuration pConfig,
-      LogManager pLogger, boolean pAlwaysAtLoops, boolean pAlwaysAtFunctions)
+      LogManager pLogger, String pProverType, boolean pAlwaysAtLoops, boolean pAlwaysAtFunctions)
       throws InvalidConfigurationException {
-    super(pConfig, pLogger, pAlwaysAtLoops, pAlwaysAtFunctions);
+    super(pConfig, pLogger, pProverType, pAlwaysAtLoops, pAlwaysAtFunctions);
   }
 
   @Override
@@ -100,8 +100,8 @@ public class SBEWithIndices_InvariantProofCheckAlgorithm extends
           return intermediateRes;
           }
         //add edge
-        edges.add(source + Separators.commonSeparator + target);
-        edgeOperations.put(source + Separators.commonSeparator + target,
+        edges.add(source + Separators.commonSeparator + sourceEdge + Separators.commonSeparator + target);
+        edgeOperations.put(source + Separators.commonSeparator + sourceEdge + Separators.commonSeparator +target,
             operations);
       } catch (IllegalArgumentException e3) {
         return PCCCheckResult.UnknownCFAEdge;
@@ -155,8 +155,8 @@ public class SBEWithIndices_InvariantProofCheckAlgorithm extends
 
   @Override
   protected PCCCheckResult proveEdge(String pEdge, int pSource, int pTarget,
-      Vector<Pair<Formula, int[]>> pInvariantS, CFAEdge pCfaEdge,
-      Vector<Pair<Formula, int[]>> pInvariantT) {
+      Vector<Pair<String, int[]>> pInvariantS, CFAEdge pCfaEdge,
+      Vector<Pair<String, int[]>> pInvariantT) {
     Formula proof, left, right, completeOperation;
     Formula[] edgeFormulae;
 
@@ -168,7 +168,7 @@ public class SBEWithIndices_InvariantProofCheckAlgorithm extends
       successfulAbstraction = false;
       // build left formula
       left =
-          addStackInvariant(pInvariantS.get(i).getFirst(), pInvariantS.get(i)
+          addStackInvariant(handler.createFormula(pInvariantS.get(i).getFirst()), pInvariantS.get(i)
               .getSecond(), true, pSource);
       for (int k = 0; k < edgeFormulae.length; k++) {
         if (!handler.operationFitsToLeftAbstraction(pInvariantS.get(i)
@@ -203,12 +203,12 @@ public class SBEWithIndices_InvariantProofCheckAlgorithm extends
 
           // build right formula
           right =
-              addStackInvariant(pInvariantT.get(j).getFirst(), pInvariantT.get(j)
+              addStackInvariant(handler.createFormula(pInvariantT.get(j).getFirst()), pInvariantT.get(j)
                   .getSecond(), false, pTarget);
           if (left == null || completeOperation == null || right == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
           // create proof formula
           proof = handler.buildEdgeInvariant(left, completeOperation, right);
-          if (proof == null || !proof.isFalse()) {
+          if (proof == null || !handler.isFalse(proof)) {
             return PCCCheckResult.InvalidFormulaSpecificationInProof;
           } else {
             successfulEdgeProof = true;
@@ -220,6 +220,6 @@ public class SBEWithIndices_InvariantProofCheckAlgorithm extends
       }
       if (!successfulAbstraction) { return PCCCheckResult.InvalidART; }
     }
-    return null;
+    return PCCCheckResult.Success;
   }
 }

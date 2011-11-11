@@ -46,9 +46,9 @@ public class SBEWithoutIndices_InvariantProofCheckAlgorithm extends
     SBE_InvariantProofCheckAlgorithm {
 
   public SBEWithoutIndices_InvariantProofCheckAlgorithm(Configuration pConfig,
-      LogManager pLogger, boolean pAlwaysAtLoops, boolean pAlwaysAtFunctions)
+      LogManager pLogger, String pProverType, boolean pAlwaysAtLoops, boolean pAlwaysAtFunctions)
       throws InvalidConfigurationException {
-    super(pConfig, pLogger, pAlwaysAtLoops, pAlwaysAtFunctions);
+    super(pConfig, pLogger, pProverType, pAlwaysAtLoops, pAlwaysAtFunctions);
   }
 
   @Override
@@ -81,18 +81,22 @@ public class SBEWithoutIndices_InvariantProofCheckAlgorithm extends
           return PCCCheckResult.UnknownCFAEdge;
         }
 
-        if (allInvariantFormulaeFalse(source)) {
-          logger.log(Level.SEVERE, "Source should not be reachable, no edges allowed.");
-          return PCCCheckResult.UnknownCFAEdge;
-        }
         //check edge
         edge = retrieveOperationEdge(nodeS, nodeSourceOpEdge, nodeT);
         if (edge == null) {
           logger.log(Level.SEVERE, "Edge " + source + "#" + sourceEdge + "#" + target + " is not correct edge in CFA.");
           return PCCCheckResult.InvalidEdge;
         }
+
+        // TODO handler.getEdgeOperation(edge);
+
+        if (allInvariantFormulaeFalse(source)) {
+          logger.log(Level.SEVERE, "Source should not be reachable, no edges allowed.");
+          return PCCCheckResult.UnknownCFAEdge;
+        }
+
         //add edge
-        edges.add(source + Separators.commonSeparator + target);
+        edges.add(source + Separators.commonSeparator + sourceEdge + Separators.commonSeparator + target);
       } catch (IllegalArgumentException e3) {
         return PCCCheckResult.UnknownCFAEdge;
       } catch (InputMismatchException e2) {
@@ -107,8 +111,8 @@ public class SBEWithoutIndices_InvariantProofCheckAlgorithm extends
 
   @Override
   protected PCCCheckResult proveEdge(String pEdge, int pSource, int pTarget,
-      Vector<Pair<Formula, int[]>> pInvariantS, CFAEdge pCfaEdge,
-      Vector<Pair<Formula, int[]>> pInvariantT) {
+      Vector<Pair<String, int[]>> pInvariantS, CFAEdge pCfaEdge,
+      Vector<Pair<String, int[]>> pInvariantT) {
     // build right formula without indices
     logger.log(Level.INFO, "Check a single edge.");
     Formula[] rightAbstraction = new Formula[pInvariantT.size()];
@@ -118,7 +122,7 @@ public class SBEWithoutIndices_InvariantProofCheckAlgorithm extends
     // add stack part
     for (int i = 0; i < pInvariantT.size(); i++) {
       rightAbstraction[i] =
-          addStackInvariant(pInvariantT.get(i).getFirst(), pInvariantT.get(i)
+          addStackInvariant(handler.createFormula(pInvariantT.get(i).getFirst()), pInvariantT.get(i)
               .getSecond(), false, pTarget);
       if (rightAbstraction[i] == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
     }
@@ -188,7 +192,7 @@ public class SBEWithoutIndices_InvariantProofCheckAlgorithm extends
       // build edge invariant
       proof = handler.buildEdgeInvariant(left, operation, rightInstantiated);
       if (proof == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
-      if (!proof.isFalse()) {
+      if (!handler.isFalse(proof)) {
         logger.log(Level.SEVERE, "Proof for edge failed.");
         return PCCCheckResult.InvalidART;
       }

@@ -31,6 +31,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.pcc.common.Separators;
 
 public class SBEWithIndices_ARTProofGenAlgorithm extends
@@ -56,12 +57,13 @@ public class SBEWithIndices_ARTProofGenAlgorithm extends
     String edgeId = getEdgeIdentification(pSource, pTarget);
     if (edgeId == null || edgeId.length() == 0) { return false; }
     edgeRep.append(edgeId);
-    edgeRep.append(Separators.commonSeparator);
+
     //add operation
     String operation = getEdgeOperationFormula(pSource, pEdge);
     if (operation != null) {
       logger.log(Level.INFO, "Add an ART Edge");
       edgeRep.append(operation);
+      edgeRep.append(Separators.commonSeparator);
       edges.add(edgeRep.toString());
       return true;
     } else {
@@ -71,8 +73,7 @@ public class SBEWithIndices_ARTProofGenAlgorithm extends
 
   private String getEdgeOperationFormula(ARTElement pSource, CFAEdge pEdge) {
     // get wrapped PredicateAbstractionElement
-    PredicateAbstractElement predicate =
-        getWrappedPredicateAbstractElement(pSource);
+    PredicateAbstractElement predicate = AbstractElements.extractElementByType(pSource, PredicateAbstractElement.class);
     return fh.getEdgeOperationWithSSA(predicate.getPathFormula(), pEdge);
   }
 }

@@ -55,8 +55,8 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
   private boolean atLoop;
   //private boolean                                          atFunction;
   protected FormulaHandler handler;
-  protected Hashtable<Integer, Vector<Pair<Formula, int[]>>> nodes =
-      new Hashtable<Integer, Vector<Pair<Formula, int[]>>>();
+  protected Hashtable<Integer, Vector<Pair<String, int[]>>> nodes =
+      new Hashtable<Integer, Vector<Pair<String, int[]>>>();
   protected HashSet<String> edges =
       new HashSet<String>();
   protected Hashtable<Integer, CFANode> reachableCFANodes =
@@ -66,12 +66,12 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
       new Hashtable<Integer, CFANode>();
 
   public SBE_InvariantProofCheckAlgorithm(Configuration pConfig,
-      LogManager pLogger, boolean pAlwaysAtLoops, boolean pAlwaysAtFunctions)
-      throws InvalidConfigurationException {
+      LogManager pLogger, String pProverType, boolean pAlwaysAtLoops, boolean pAlwaysAtFunctions)
+      throws InvalidConfigurationException{
     super(pConfig, pLogger);
     //atFunction = pAlwaysAtFunctions;
     atLoop = pAlwaysAtLoops;
-    handler = new FormulaHandler(pConfig, pLogger);
+    handler = new FormulaHandler(pConfig, pLogger, pProverType);
   }
 
   protected CFAEdge retrieveOperationEdge(CFANode pSource, CFANode pSourceEdge,
@@ -116,7 +116,7 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
     CFANode current, child;
     int nextIndex = 0;
     cfaNodes.add(cfaForProof.getMainFunction());
-    while (nextIndex >= cfaNodes.size()) {
+    while (nextIndex < cfaNodes.size()) {
       current = cfaNodes.get(nextIndex);
       nextIndex++;
       allCFANodes.put(current.getNodeNumber(), current);
@@ -133,8 +133,8 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
     String next = "";
     String[] subStr;
     int readNode, numInvariants;
-    Vector<Pair<Formula, int[]>> invariants;
-    Formula invariant;
+    Vector<Pair<String, int[]>> invariants;
+    String invariant;
     int[] stack;
     try {
       while (pScan.hasNext()) {
@@ -165,12 +165,12 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
               ((CFALabelNode) current).getLabel().toLowerCase().equals("error");
         }
         // read invariants
-        invariants = new Vector<Pair<Formula, int[]>>();
+        invariants = new Vector<Pair<String, int[]>>();
         numInvariants = pScan.nextInt();
         for (int i = 0; i < numInvariants; i++) {
           // read invariant
           next = pScan.next();
-          subStr = next.split(Separators.stackEntrySeparator);
+          subStr = next.split("\\" +Separators.stackEntrySeparator);
           if (subStr.length < 1) {
             logger.log(Level.SEVERE, "No valid regions specification: " + subStr);
             return PCCCheckResult.InvalidInvariant;
@@ -178,15 +178,15 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
           // get formula
           try {
             if (!checkAbstraction(subStr[0])) { return PCCCheckResult.InvalidInvariant; }
-            invariant = handler.createFormula(subStr[0]);
+            invariant = subStr[0];
             if (isRoot) {
-              if (!invariant.isTrue()) {
+              if (! handler.createFormula(invariant).isTrue()) {
                 logger.log(Level.SEVERE, "Invalid region for root.");
                 return PCCCheckResult.InvalidARTRootSpecification;
               }
             }
             if (isError) {
-              if (!invariant.isFalse()) {
+              if (!handler.isFalse(invariant)) {
                 logger.log(Level.SEVERE, "Invalid region for error node.");
                 return PCCCheckResult.ErrorNodeReachable;
               }
@@ -208,7 +208,7 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
             return PCCCheckResult.InvalidStack;
           }
           // add invariant
-          invariants.add(new Pair<Formula, int[]>(invariant, stack));
+          invariants.add(new Pair<String, int[]>(invariant, stack));
         }
         nodes.put(readNode, invariants);
       }
@@ -339,9 +339,9 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
   }
 
   protected boolean allInvariantFormulaeFalse(Integer pNode) {
-    Vector<Pair<Formula, int[]>> formulae = nodes.get(pNode);
+    Vector<Pair<String, int[]>> formulae = nodes.get(pNode);
     for (int i = 0; i < formulae.size(); i++) {
-      if (!formulae.get(i).getFirst().isFalse()) { return false; }
+      if (!handler.isFalse(formulae.get(i).getFirst())) { return false; }
     }
     return true;
   }
@@ -373,16 +373,16 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
     // iterate over all edges
     int source, sourceEdge, target;
     PCCCheckResult intermediateRes;
-    Vector<Pair<Formula, int[]>> invariantS, invariantT;
+    Vector<Pair<String, int[]>> invariantS, invariantT;
     CFAEdge cfaEdge;
     logger.log(Level.INFO, "Start proving inductions edge by edge.");
     for (String edge : edges) {
       source =
-          Integer.parseInt(edge.substring(edge
+          Integer.parseInt(edge.substring(0,edge
               .indexOf(Separators.commonSeparator)));
       target =
           Integer.parseInt(edge.substring(
-              edge.lastIndexOf(Separators.commonSeparator), edge.length()));
+              edge.lastIndexOf(Separators.commonSeparator)+1, edge.length()));
       sourceEdge =
           Integer.parseInt(edge.substring(
               (edge.indexOf(Separators.commonSeparator)) + 1,
@@ -480,8 +480,8 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
   protected abstract boolean checkAbstraction(String pAbstraction);
 
   protected abstract PCCCheckResult proveEdge(String pEdge, int pSource, int pTarget,
-      Vector<Pair<Formula, int[]>> pInvariantS, CFAEdge pCfaEdge,
-      Vector<Pair<Formula, int[]>> pInvariantT);
+      Vector<Pair<String, int[]>> pInvariantS, CFAEdge pCfaEdge,
+      Vector<Pair<String, int[]>> pInvariantT);
 
   private static class StronglyConnectedComponent {
 

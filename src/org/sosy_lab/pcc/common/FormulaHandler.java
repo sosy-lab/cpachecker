@@ -45,8 +45,11 @@ import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.mathsat.YicesTheoremProver;
 
 public class FormulaHandler {
 
@@ -54,8 +57,9 @@ public class FormulaHandler {
   private LogManager logger;
   private PathFormulaManager pfm;
   private ExtendedFormulaManager fm;
+  private TheoremProver tp;
 
-  public FormulaHandler(Configuration pConfig, LogManager pLogger)
+  public FormulaHandler(Configuration pConfig, LogManager pLogger, String pProverType)
       throws InvalidConfigurationException {
     config = pConfig;
     logger = pLogger;
@@ -63,31 +67,63 @@ public class FormulaHandler {
         MathsatFactory.createFormulaManager(config, logger);
     fm = new ExtendedFormulaManager(mathsatFormulaManager, config, logger);
     pfm = new PathFormulaManagerImpl(fm, config, logger);
+    if (pProverType.equals("MATHSAT")) {
+      tp = new MathsatTheoremProver(mathsatFormulaManager);
+    } else if (pProverType.equals("YICES")) {
+      tp = new YicesTheoremProver(fm, logger);
+    } else {
+      throw new InvalidConfigurationException("Update list of allowed solvers!");
+    }
   }
 
   public Formula createFormula(String pString) {
+    // TODO become more robust is variables are unknown
     if (pString == null || pString.length() == 0) { throw new IllegalArgumentException(
         "It is not a valid formula."); }
-    return fm.parse(pString);
+    try{
+    Formula f = fm.parseInfix(pString);
+    return f;
+    }catch(IllegalArgumentException e){
+      return null;
+    }
   }
 
   public boolean isFalse(String pFormula) {
     if (pFormula == null) { return false; }
     try {
-      Formula f = fm.parse(pFormula);
-      return f.isFalse();
+      Formula f = fm.parseInfix(pFormula);
+      return isFalse(f);
     } catch (IllegalArgumentException e) {
       return false;
     }
   }
 
+  public boolean isFalse(Formula pFormula){
+    if(pFormula == null){
+      return false;
+    }
+    if(pFormula.isFalse()){
+      return true;
+    }
+    tp.init();
+    boolean result = tp.isUnsat(pFormula);
+    tp.reset();
+    return result;
+  }
+
   @SuppressWarnings("deprecation")
   public Formula removeIndices(Formula pFormula) {
+    // TODO write own method, uninstantiate seems to be buggy (return String)
     try {
       return fm.uninstantiate(pFormula);
     } catch (IllegalArgumentException e) {
       return null;
     }
+  }
+
+  public String removeIndicesStr(Formula pFormula){
+    // TODO implement replace at necessary part
+    return null;
   }
 
   public Pair<Formula, SSAMap> addIndices(SSAMap pSSA, Formula pFormula) {
@@ -130,11 +166,11 @@ public class FormulaHandler {
         || pRight == null || pRight.length() == 0) { return null; }
     try {
       Formula fR, fOp, fL;
-      fL = fm.parse(pLeft);
-      fR = fm.parse(pRight);
+      fL = fm.parseInfix(pLeft);
+      fR = fm.parseInfix(pRight);
       fR = fm.makeNot(fR);
       if (pOperation.length() != 0) {
-        fOp = fm.parse(pOperation);
+        fOp = fm.parseInfix(pOperation);
         fL = fm.makeAnd(fL, fOp);
       }
       return fm.makeAnd(fL, fR);
@@ -265,8 +301,8 @@ public class FormulaHandler {
       String pFormula2) {
     if (pFormula1.equals("") && pFormula2.equals("")) { return true; }
     try {
-      Formula formula1 = fm.parse(pFormula1);
-      Formula formula2 = fm.parse(pFormula2);
+      Formula formula1 = fm.parseInfix(pFormula1);
+      Formula formula2 = fm.parseInfix(pFormula2);
       try {
         formula1 = fm.uninstantiate(formula1);
       } finally {
@@ -305,6 +341,7 @@ public class FormulaHandler {
                   + first.get(i).getSecond(), pFormula1, second.get(i)
                   .getFirst() + "@" + second.get(i).getSecond());
         }
+
       }
     }
     // compare (string should be the same)
@@ -314,7 +351,7 @@ public class FormulaHandler {
   public String replaceVariable(String pOldVar, String pInput, String pNewVar) {
     if (pOldVar == null || pInput == null || pNewVar == null) { return null; }
     StringBuilder newStr = new StringBuilder();
-    Pattern pat = Pattern.compile("[\\W" + pOldVar + "\\W");
+    Pattern pat = Pattern.compile("\\W" + pOldVar + "\\W");
     // adapt input such that pattern also matches at beginning and end
     pInput = " " + pInput + " ";
     Matcher match = pat.matcher(pInput);
@@ -325,7 +362,7 @@ public class FormulaHandler {
       // add replacement
       newStr.append(pNewVar);
       // set lastIndex, also integrate last identifier of match
-      lastIndex = match.end() - 2;
+      lastIndex = match.end() - 1;
     }
     // add rest of string
     if (lastIndex < pInput.length()) {
@@ -422,28 +459,27 @@ public class FormulaHandler {
       String pOperation, boolean pAssume) {
     // get highest indices for variables in pAbstraction
     Hashtable<String, Integer> highestIndices = getHighestIndices(pAbstraction);
-    if (highestIndices == null) { return false; }
+    if (highestIndices == null) { System.out.println("Test1"); return false; }
     String intermediate;
 
     for (String var : highestIndices.keySet()) {
       if (pAssume) {
         // all variables are only allowed to have same indices as highest indices
         intermediate =
-            pOperation.replaceAll("[\\W]" + var + "@" + highestIndices.get(var)
-                + "[\\W]", "");
-        if (intermediate.contains(var)) { return false; }
+            pOperation.replaceAll(var + "@" + highestIndices.get(var), "");
+        if (intermediate.contains(var)) { System.out.println("Test2"); return false; }
       } else {
         // eliminate all variables of this kind on the left hand of the assignment
         intermediate =
             pOperation
-                .replaceAll("[\\W]" + var + "@" + (highestIndices.get(var) + 1)
+                .replaceAll(var + "@" + (highestIndices.get(var) + 1)
                     + "(\\s)*=", "");
         // eliminate all remaining variables of this kind
         intermediate =
             intermediate.replaceAll(
-                "[\\W]" + var + "@" + highestIndices.get(var)
+                var + "@" + highestIndices.get(var)
                     + "(\\s)*[p{Punct}&&[^=]]", "");
-        if (intermediate.contains(var)) { return false; }
+        if (intermediate.contains(var)) { System.out.println("Test3");return false; }
       }
     }
     return true;

@@ -35,12 +35,14 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.pcc.common.Pair;
 import org.sosy_lab.pcc.common.Separators;
 
+@Options
 public abstract class InvariantProofGenAlgorithm implements ProofGenAlgorithm {
 
   protected Hashtable<Integer, StringBuilder> cfaNodeInvariants =
@@ -52,16 +54,18 @@ public abstract class InvariantProofGenAlgorithm implements ProofGenAlgorithm {
   @Option(
       type = Option.Type.OUTPUT_FILE,
       description = "export ART representation needed for proof checking in PCC, if the error location is not reached, the representation depends on the algorithm used for proof checking")
-  private File file =
-      new File(
-          "pccProof.txt");
+  private File file = new File("pccProof.txt");
+
+  @Option(name = "cpa.predicate.abstraction.solver", toUppercase = true, values = { "MATHSAT", "YICES" },
+      description = "which solver to use?")
+  protected String whichProver = "MATHSAT";
 
   public InvariantProofGenAlgorithm(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     config = pConfig;
     logger = pLogger;
     // set configuration options
-    config.inject(this, ARTProofGenAlgorithm.class);
+    config.inject(this, InvariantProofGenAlgorithm.class);
   }
 
   @Override
@@ -142,7 +146,7 @@ public abstract class InvariantProofGenAlgorithm implements ProofGenAlgorithm {
           + Separators.commonSeparator + toWrite.toString());
     }
     // add separation between invariants and operations
-    output.append(Separators.nodesFromEdgesSeparator);
+    output.append(Separators.nodesFromEdgesSeparator + Separators.commonSeparator);
     // add all operations
     logger.log(Level.INFO, "Write edges between regions.");
     toWrite = writeOperations();

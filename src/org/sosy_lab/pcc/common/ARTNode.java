@@ -46,7 +46,7 @@ public class ARTNode {
 
   public ARTNode(int pID, CFANode pCFANode, AbstractionType pAbstractionType,
       String pAbstraction) throws IllegalArgumentException {
-    if (pCFANode == null || abstraction == null || abstraction.length() == 0
+    if (pCFANode == null || pAbstraction == null || pAbstraction.length() == 0
         || pAbstractionType != AbstractionType.Abstraction) { throw new IllegalArgumentException(
         "Abstraction missing."); }
     id = pID;
@@ -76,7 +76,7 @@ public class ARTNode {
   }
 
   public ARTEdge[] getEdges() {
-    return (ARTEdge[]) edges.toArray();
+    return edges.toArray(new ARTEdge[edges.size()]);
   }
 
   public AbstractionType getAbstractionType() {

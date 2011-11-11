@@ -43,9 +43,9 @@ public class SBEWithIndices_ARTProofCheckAlgorithm extends
     SBE_ARTProofCheckAlgorithm {
 
   public SBEWithIndices_ARTProofCheckAlgorithm(Configuration pConfig,
-      LogManager pLogger, boolean pAlwaysAtLoops, boolean pAlwaysAtFunctions)
+      LogManager pLogger, String pProverType, boolean pAlwaysAtLoops, boolean pAlwaysAtFunctions)
       throws InvalidConfigurationException {
-    super(pConfig, pLogger, pAlwaysAtLoops, pAlwaysAtFunctions);
+    super(pConfig, pLogger, pProverType, pAlwaysAtLoops, pAlwaysAtFunctions);
 
   }
 
@@ -80,7 +80,7 @@ public class SBEWithIndices_ARTProofCheckAlgorithm extends
         } else {
           logger.log(Level.SEVERE,
               "Cannot get corresponding CFA edge because either source or target node of edge is no valid ART node.");
-          return PCCCheckResult.UnknownCFAEdge;
+                    return PCCCheckResult.UnknownCFAEdge;
         }
 
         operation = pScan.next();
@@ -102,11 +102,11 @@ public class SBEWithIndices_ARTProofCheckAlgorithm extends
 
         edge = new WithOpDescriptionARTEdge(target, cfaEdge, operation);
         nodeS.addEdge(edge);
-      } catch (InputMismatchException e2) {
+      } catch (InputMismatchException e2) {System.out.println("Test2");
         return PCCCheckResult.UnknownCFAEdge;
-      } catch (NoSuchElementException e3) {
+      } catch (NoSuchElementException e3) {System.out.println("Test3");
         return PCCCheckResult.UnknownCFAEdge;
-      } catch (IllegalArgumentException e4) {
+      } catch (IllegalArgumentException e4) {System.out.println("Test4");
         return PCCCheckResult.UnknownCFAEdge;
       }
     }
@@ -129,13 +129,13 @@ public class SBEWithIndices_ARTProofCheckAlgorithm extends
   private PCCCheckResult buildAndCheckFormula(String pAbstractionLeft,
       String pOperation, String pAbstractionRight, boolean pAssume) {
     // check if operation fits to left abstraction
-    if (handler.operationFitsToLeftAbstraction(pAbstractionLeft, pOperation,
+    if (!handler.operationFitsToLeftAbstraction(pAbstractionLeft, pOperation,
         pAssume)) {
       logger.log(Level.SEVERE, "Operation does not fit to left abstraction.");
       return PCCCheckResult.InvalidEdge;
     }
     // check if right abstraction fits to left abstraction and operation
-    if (handler.rightAbstractionFitsToOperationAndLeftAbstraction(
+    if (!handler.rightAbstractionFitsToOperationAndLeftAbstraction(
         pAbstractionLeft, pOperation, pAbstractionRight)) {
       logger.log(Level.SEVERE, "Right abstraction cannot be constructed in a correct ART.");
       return PCCCheckResult.InvalidFormulaSpecificationInProof;
@@ -147,10 +147,10 @@ public class SBEWithIndices_ARTProofCheckAlgorithm extends
       logger.log(Level.WARNING, "Cannot build proof formula.");
       return PCCCheckResult.InvalidFormulaSpecificationInProof;
     }
-    if (f.isFalse()) {
+    if (handler.isFalse(f)) {
       return PCCCheckResult.Success;
     } else {
-      logger.log(Level.SEVERE, pAbstractionLeft + " & " + pOperation + " -> " + pAbstractionRight
+      logger.log(Level.SEVERE, "("+ pAbstractionLeft + " & " + pOperation +")" + " -> " + "(" +pAbstractionRight
           + ") cannot be proven.");
       return PCCCheckResult.InvalidART;
     }
