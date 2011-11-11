@@ -1373,23 +1373,6 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(IASTBinaryExpression exp)
-        throws UnrecognizedCCodeException {
-      if (containsPointerDereferencing(exp)) {
-        IASTExpression e1 = removeCast(exp.getOperand1());
-        Formula me1 = getExprFormula(e1);
-
-        IASTExpression e2 = removeCast(exp.getOperand2());
-        Formula me2 = getExprFormula(e2);
-
-        Formula exprFormula = makeCompoundFormula(exp, me1, me2);
-        return exprFormula;
-      } else {
-        return super.visit(exp);
-      }
-    }
-
-    @Override
     public Formula visit(IASTUnaryExpression exp)
         throws UnrecognizedCCodeException {
       IASTExpression opExp = removeCast(exp.getOperand());
@@ -1451,54 +1434,6 @@ public class CtoFormulaConverter {
       }
 
       return makeConstant(addressVariable, ssa);
-    }
-
-    private Formula makeCompoundFormula(IASTBinaryExpression exp, Formula me1,
-        Formula me2) throws UnrecognizedCCodeException {
-      switch (exp.getOperator()) {
-      case GREATER_THAN:
-        return fmgr.makeGt(me1, me2);
-      case GREATER_EQUAL:
-        return fmgr.makeGeq(me1, me2);
-      case LESS_THAN:
-        return fmgr.makeLt(me1, me2);
-      case LESS_EQUAL:
-        return fmgr.makeLeq(me1, me2);
-      case EQUALS:
-        return fmgr.makeEqual(me1, me2);
-      case NOT_EQUALS:
-        return fmgr.makeNot(fmgr.makeEqual(me1, me2));
-      default:
-        throw new UnrecognizedCCodeException(exp.getRawSignature(), null, exp);
-      }
-    }
-
-    private boolean isPointerDereferencing(IASTExpression e) {
-      return (e instanceof IASTUnaryExpression)
-          && ((IASTUnaryExpression) e).getOperator() == UnaryOperator.STAR;
-    }
-
-    private Formula getExprFormula(IASTExpression exp)
-        throws UnrecognizedCCodeException {
-
-      if (isPointerDereferencing(exp)) {
-        IASTExpression operand = removeCast(((IASTUnaryExpression) exp).getOperand());
-        if (operand instanceof IASTIdExpression) {
-          return makePointerVariable((IASTIdExpression) operand, function, ssa);
-        } else {
-          return visitDefault(exp);
-        }
-
-      } else {
-        return exp.accept(this);
-      }
-    }
-
-    private boolean containsPointerDereferencing(IASTBinaryExpression expr) {
-      IASTExpression e1 = expr.getOperand1();
-      IASTExpression e2 = expr.getOperand2();
-
-      return isPointerDereferencing(e1) || isPointerDereferencing(e2);
     }
   }
 
