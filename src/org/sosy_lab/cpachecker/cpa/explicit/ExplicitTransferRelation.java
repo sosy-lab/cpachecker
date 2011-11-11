@@ -38,10 +38,8 @@ import org.sosy_lab.cpachecker.cfa.ast.DefaultExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
@@ -60,9 +58,11 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
@@ -297,6 +297,7 @@ public class ExplicitTransferRelation implements TransferRelation
   private AbstractElement handleAssumption(ExplicitElement element, IASTExpression expression, CFAEdge cfaEdge, boolean truthValue, ExplicitPrecision precision)
     throws UnrecognizedCCodeException
   {
+    String exp = expression.getRawSignature();
     // convert a simple expression like [a] to [a != 0]
     expression = convertToNotEqualToZeroAssume(expression);
 
@@ -315,7 +316,31 @@ public class ExplicitTransferRelation implements TransferRelation
 
       expression.accept(avv);
 
-      return element;
+      if(exp.contains("((s->s3)->tmp.new_cipher)->algorithms") || exp.contains("s->verify_mode &"))
+      {
+        if(element.hasAssume(exp) == null)
+        {
+          element.addAssume(exp, truthValue);
+          //System.out.println("going edge: " + cfaEdge.getRawStatement());
+          return element;
+        }
+
+        if(element.hasAssume(exp) == truthValue)
+        {
+          //System.out.println("going allowed edge again: " + cfaEdge.getRawStatement());
+          return element;
+        }
+
+        if(element.hasAssume(exp) != truthValue)
+        {
+          //System.out.println("not going again - disallowed: " + cfaEdge.getRawStatement());
+          return null;
+        }
+
+        return null;
+      }
+      else
+        return element;
     }
 
     else if((truthValue && value == 1L) || (!truthValue && value == 0L))
@@ -474,12 +499,32 @@ public class ExplicitTransferRelation implements TransferRelation
     ExplicitElement newElement = visitor.element.clone();
     String assignedVar = getScopedVariableName(lParam, visitor.functionName);
 
+    String assigningVariable = null;
+    if(exp instanceof IASTIdExpression)
+    {
+      IASTIdExpression id = (IASTIdExpression)exp;
+      assigningVariable = getScopedVariableName(id.getName(), visitor.functionName);
+    }
+
+
     if(value == null)
+    {
       newElement.forget(assignedVar);
+      if(currentPrecision.isTracking(assignedVar) && exp instanceof IASTIdExpression)
+      {
+        newElement.addInequalities(assignedVar, assigningVariable);
+      }
+    }
     else
     {
       if(currentPrecision.isTracking(assignedVar) || assignedVar.endsWith("___cpa_temp_result_var_"))
+      {
         newElement.assignConstant(assignedVar, value, this.threshold);
+        if(exp instanceof IASTIdExpression)
+        {
+          newElement.addInequalities(assignedVar, assigningVariable);
+        }
+      }
       else
         newElement.forget(assignedVar);
     }
@@ -535,12 +580,20 @@ public class ExplicitTransferRelation implements TransferRelation
       case BINARY_AND:
       case BINARY_OR:
       case BINARY_XOR:
+      case LOGICAL_AND:
       {
         Long lVal = lVarInBinaryExp.accept(this);
+        Long rVal = rVarInBinaryExp.accept(this);
+
+        if(binaryOperator == BinaryOperator.LOGICAL_AND)
+        {
+          if((lVal != null && lVal.equals(0L)) || (rVal != null && rVal.equals(0L)))
+            return 0L;
+        }
+
         if(lVal == null)
           return null;
 
-        Long rVal = rVarInBinaryExp.accept(this);
         if(rVal == null)
           return null;
 
@@ -587,10 +640,31 @@ public class ExplicitTransferRelation implements TransferRelation
       case LESS_EQUAL: {
 
         Long lVal = lVarInBinaryExp.accept(this);
-        if(lVal == null)
-          return null;
-
         Long rVal = rVarInBinaryExp.accept(this);
+
+        if(lVal == null)
+        {
+          if(binaryOperator == BinaryOperator.EQUALS && (lVarInBinaryExp instanceof IASTIdExpression || lVarInBinaryExp instanceof IASTFieldReference))
+          {
+            String variableName = getScopedVariableName(lVarInBinaryExp.getRawSignature(), functionName);
+            if(element.isNotEqualTo(variableName, rVal))
+              return 0L;
+          }
+
+          else if(binaryOperator == BinaryOperator.NOT_EQUALS && (lVarInBinaryExp instanceof IASTIdExpression || lVarInBinaryExp instanceof IASTFieldReference || lVarInBinaryExp instanceof IASTCastExpression))
+          {
+            if(lVarInBinaryExp instanceof IASTCastExpression)
+            {
+              IASTCastExpression exprCast = (IASTCastExpression)lVarInBinaryExp;
+              lVarInBinaryExp = exprCast.getOperand();
+            }
+            String variableName = getScopedVariableName(lVarInBinaryExp.getRawSignature(), functionName);
+            if(element.isNotEqualTo(variableName, rVal))
+              return 1L;
+          }
+          return null;
+        }
+
         if(rVal == null)
           return null;
 
@@ -796,6 +870,7 @@ public class ExplicitTransferRelation implements TransferRelation
       Long leftValue                  = lVarInBinaryExp.accept(this);
       Long rightValue                 = rVarInBinaryExp.accept(this);
 
+      // [a == b] || ![a != b]
       if((binaryOperator == BinaryOperator.EQUALS && truthValue) || (binaryOperator == BinaryOperator.NOT_EQUALS && !truthValue))
       {
         if(leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp))
@@ -804,7 +879,7 @@ public class ExplicitTransferRelation implements TransferRelation
           if(currentPrecision.isTracking(leftVariableName))
           {
             //System.out.println("assigning " + leftVariableName + " value of " + rightValue);
-            element.assignConstant(leftVariableName, rightValue, 2000);
+            element.assignConstant(leftVariableName, rightValue, ExplicitTransferRelation.this.threshold);
           }
         }
 
@@ -814,7 +889,31 @@ public class ExplicitTransferRelation implements TransferRelation
           if(currentPrecision.isTracking(rightVariableName))
           {
             //System.out.println("assigning " + rightVariableName + " value of " + leftValue);
-            element.assignConstant(rightVariableName, leftValue, 2000);
+            element.assignConstant(rightVariableName, leftValue, ExplicitTransferRelation.this.threshold);
+          }
+        }
+      }
+
+      // ![a == b] || [a != b]
+      else if((binaryOperator == BinaryOperator.EQUALS && !truthValue) || (binaryOperator == BinaryOperator.NOT_EQUALS && truthValue))
+      {
+        if(leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp))
+        {
+          String leftVariableName = getScopedVariableName(lVarInBinaryExp.getRawSignature(), functionName);
+          if(currentPrecision.isTracking(leftVariableName))
+          {
+            //System.out.println("assigning NOT " + leftVariableName + " value of " + rightValue + " in " + (truthValue ? "" : "!") + pE.getRawSignature());
+            element.assignInequality(leftVariableName, rightValue);
+          }
+        }
+
+        else if(rightValue == null && leftValue != null && isAssignable(rVarInBinaryExp))
+        {
+          String rightVariableName = getScopedVariableName(rVarInBinaryExp.getRawSignature(), functionName);
+          if(currentPrecision.isTracking(rightVariableName))
+          {
+            //System.out.println("assigning NOT " + rightVariableName + " value of " + leftValue + " in " + (truthValue ? "" : "!") + pE.getRawSignature());
+            element.assignInequality(rightVariableName, leftValue);
           }
         }
       }

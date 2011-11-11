@@ -37,7 +37,6 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
@@ -60,9 +59,10 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
@@ -88,11 +88,11 @@ import org.sosy_lab.cpachecker.cpa.pointer.Memory.Variable;
 import org.sosy_lab.cpachecker.cpa.pointer.Pointer.PointerOperation;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerElement.ElementProperty;
 import org.sosy_lab.cpachecker.cpa.types.Type;
+import org.sosy_lab.cpachecker.cpa.types.TypesElement;
 import org.sosy_lab.cpachecker.cpa.types.Type.ArrayType;
 import org.sosy_lab.cpachecker.cpa.types.Type.FunctionType;
 import org.sosy_lab.cpachecker.cpa.types.Type.PointerType;
 import org.sosy_lab.cpachecker.cpa.types.Type.TypeClass;
-import org.sosy_lab.cpachecker.cpa.types.TypesElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -166,7 +166,10 @@ public class PointerTransferRelation implements TransferRelation {
   private static LinkedList<MemoryRegion>   memoryLeakWarnings = null;
 
   private FunctionDefinitionNode entryFunctionDefinitionNode = null;
-  private boolean entryFunctionProcessed = false;
+  private boolean entryPointProcessed = false;
+
+  private PointerElement currentElement;
+  private CFAEdge currentEdge;
 
   public PointerTransferRelation(boolean pPrintWarnings,
       LogManager pLogger) {
@@ -235,20 +238,26 @@ public class PointerTransferRelation implements TransferRelation {
       return Collections.emptySet();
     }
 
+    currentElement  = ((PointerElement)element).clone();
+    currentEdge     = cfaEdge;
+
     successor.setCurrentEdge(cfaEdge);
     successor.clearProperties();
 
-    try {
-      switch (cfaEdge.getEdgeType()) {
+    Collection<PointerElement> successors = null;
+
+    try
+    {
+      switch (cfaEdge.getEdgeType())
+      {
 
       case DeclarationEdge:
         DeclarationEdge declEdge = (DeclarationEdge)cfaEdge;
-        handleDeclaration(successor, cfaEdge, declEdge.getStorageClass(), declEdge.getName(), declEdge.getDeclSpecifier());
+        successors = handleDeclaration(successor, cfaEdge, declEdge.getStorageClass(), declEdge.getName(), declEdge.getDeclSpecifier());
         break;
 
       case StatementEdge:
-        handleStatement(successor, ((StatementEdge)cfaEdge).getStatement(),
-                                                      (StatementEdge)cfaEdge);
+        handleStatement(successor, ((StatementEdge)cfaEdge).getStatement(), (StatementEdge)cfaEdge);
         break;
 
       case ReturnStatementEdge:
@@ -286,22 +295,20 @@ public class PointerTransferRelation implements TransferRelation {
         break;
 
       case BlankEdge:
-        //the first function start dummy edge is the actual start of the entry function
-        if (!entryFunctionProcessed &&
-            cfaEdge.getRawStatement().equals("Function start dummy edge")) {
 
-          //since by this point all global variables have been processed, we can now process the entry function
-          //by first creating its context...
-          successor.callFunction(entryFunctionDefinitionNode.getFunctionName());
+        if(isEdgeToEntryPoint(cfaEdge))
+        {
+          // since by this point all global variables have been processed, we can now process the entry function
+          // by first creating its context...
+          successor.setScope(entryFunctionDefinitionNode.getFunctionName());
 
-          List<IASTParameterDeclaration> l = entryFunctionDefinitionNode.getFunctionParameters();
+          List<IASTParameterDeclaration> parameters = entryFunctionDefinitionNode.getFunctionParameters();
 
-          //..then adding all parameters as local variables
-          for (IASTParameterDeclaration dec : l) {
-            IType declSpecifier = dec.getDeclSpecifier();
-            handleDeclaration(successor, cfaEdge, StorageClass.AUTO, dec.getName(), declSpecifier);
-          }
-          entryFunctionProcessed = true;
+          // ... then adding all parameters as local variables
+          for(IASTParameterDeclaration declaration : parameters)
+            successors = handleDeclaration(successor, cfaEdge, StorageClass.AUTO, declaration.getName(), declaration.getDeclSpecifier());
+
+          entryPointProcessed = true;
         }
         break;
 
@@ -336,127 +343,128 @@ public class PointerTransferRelation implements TransferRelation {
     return Collections.singleton(successor);
   }
 
-  private void handleDeclaration(PointerElement element, CFAEdge edge,
-      StorageClass storageClass,
-      String name,
-      IType specifier) throws CPATransferException {
+  private boolean isEdgeToEntryPoint(CFAEdge edge)
+  {
+    // entry point not yet processed and encountering function start edge -> entry point reached
+    return !entryPointProcessed && edge.getRawStatement().equals("Function start dummy edge");
+  }
 
-    if (storageClass == StorageClass.TYPEDEF) {
-      // ignore, this is a type definition, not a variable declaration
-      return;
-    }
+  private Collection<PointerElement> handleDeclaration(PointerElement element, CFAEdge edge, StorageClass storageClass, String name, IType specifier)
+    throws CPATransferException
+  {
+    // ignore, this is a type definition, not a variable declaration
+    if(storageClass == StorageClass.TYPEDEF)
+      return soleSuccessor(element);
 
-    if (name == null
-        && (specifier instanceof IASTElaboratedTypeSpecifier
-            || specifier instanceof IASTCompositeTypeSpecifier)) {
-      // ignore struct prototypes
-      return;
-    }
+    // ignore struct prototypes
+    if(isStructPrototype(name, specifier))
+      return soleSuccessor(element);
 
-    if (name == null) {
+    if(name == null)
       throw new UnrecognizedCCodeException("not expected in CIL", edge);
-    }
 
-    if (specifier instanceof IASTFunctionTypeSpecifier) {
-      return;
-    }
+    if(specifier instanceof IASTFunctionTypeSpecifier)
+      return soleSuccessor(element);
 
-    if (specifier instanceof IASTCompositeTypeSpecifier
-        || specifier instanceof IASTElaboratedTypeSpecifier
-        || specifier instanceof IASTEnumerationSpecifier) {
-
-      // structs on stack etc.
-      return;
-    }
+    if(isStructOnStack(specifier))
+      return soleSuccessor(element);
 
     String varName = name;
 
-    if (specifier instanceof IASTArrayTypeSpecifier) {
-      Pointer p = new Pointer(1);
-      if (edge instanceof GlobalDeclarationEdge) {
-        element.addNewGlobalPointer(varName, p);
-      } else {
-        element.addNewLocalPointer(varName, p);
-      }
+    // handling arrays
+    if(specifier instanceof IASTArrayTypeSpecifier)
+    {
+      Pointer pointerToArray = new Pointer(1);
+
+      if(edge instanceof GlobalDeclarationEdge)
+        element.addNewGlobalPointer(varName, pointerToArray);
+
+      else
+        element.addNewLocalPointer(varName, pointerToArray);
 
       //long length = parseIntegerLiteral(((IASTArrayDeclarator)declarator).)
       IType nestedSpecifier = ((IASTArrayTypeSpecifier)specifier).getType();
-      if (!(nestedSpecifier instanceof IASTSimpleDeclSpecifier)) {
+      if (!(nestedSpecifier instanceof IASTSimpleDeclSpecifier))
         throw new UnrecognizedCCodeException("unsupported array declaration", edge);
-      }
 
       IASTExpression lengthExpression = ((IASTArrayTypeSpecifier)specifier).getLength();
-      if (!(lengthExpression instanceof IASTLiteralExpression)) {
+      if (!(lengthExpression instanceof IASTLiteralExpression))
         throw new UnrecognizedCCodeException("variable sized stack arrays are not supported", edge);
-      }
 
       long length = parseIntegerLiteral((IASTLiteralExpression)lengthExpression);
+
       StackArrayCell array = new StackArrayCell(element.getCurrentFunctionName(),
                                                   new StackArray(varName, length));
 
-      element.pointerOp(new Pointer.Assign(array), p);
+      element.pointerOp(new Pointer.Assign(array), pointerToArray);
 
       // store the pointer so the type analysis CPA can update its
       // type information
       missing = new MissingInformation();
-      missing.typeInformationPointer = p;
+      missing.typeInformationPointer = pointerToArray;
       missing.typeInformationEdge = edge;
       missing.typeInformationName = name;
 
-    } else if (specifier instanceof IASTPointerTypeSpecifier) {
+    }
 
-      int depth = 0;
+    // handle pointers
+    else if(specifier instanceof IASTPointerTypeSpecifier)
+    {
+      int levelOfIndirection = 0;
       IType nestedSpecifier = specifier;
       do {
         nestedSpecifier = ((IASTPointerTypeSpecifier)nestedSpecifier).getType();
-        depth++;
+        levelOfIndirection++;
       } while (nestedSpecifier instanceof IASTPointerTypeSpecifier);
 
+      // declaration of pointer to struct
+      if(nestedSpecifier instanceof IASTElaboratedTypeSpecifier)
+      {
+        Pointer pointerToStruct = new Pointer(levelOfIndirection);
 
-      if (nestedSpecifier instanceof IASTElaboratedTypeSpecifier) {
-        // declaration of pointer to struct
+        if(edge instanceof GlobalDeclarationEdge)
+        {
+          element.addNewGlobalPointer(varName, pointerToStruct);
+          element.pointerOp(new Pointer.Assign(Memory.UNINITIALIZED_POINTER), pointerToStruct);
+        }
 
-        Pointer ptr = new Pointer(depth);
+        // edge is instance of LocalDeclarationEdge
+        else
+        {
+          element.addNewLocalPointer(varName, pointerToStruct);
 
-        if (edge instanceof GlobalDeclarationEdge) {
-          element.addNewGlobalPointer(varName, ptr);
-          element.pointerOp(new Pointer.Assign(Memory.UNINITIALIZED_POINTER),
-              ptr);
+          if(entryPointProcessed)
+            element.pointerOp(new Pointer.Assign(Memory.UNINITIALIZED_POINTER), pointerToStruct);
 
-        } else {
-          // edge is instance of LocalDeclarationEdge
-
-          element.addNewLocalPointer(varName, ptr);
-
-          if (entryFunctionProcessed) {
-            element.pointerOp(
-                new Pointer.Assign(Memory.UNINITIALIZED_POINTER), ptr);
-          } else {
-            // ptr is a function parameter
-            element.pointerOp(
-                new Pointer.Assign(Memory.UNKNOWN_POINTER), ptr);
-          }
+          // pointer is a function parameter
+          else
+            element.pointerOp(new Pointer.Assign(Memory.UNKNOWN_POINTER), pointerToStruct);
         }
 
         missing = new MissingInformation();
-        missing.typeInformationPointer = ptr;
+        missing.typeInformationPointer = pointerToStruct;
         missing.typeInformationEdge = edge;
         missing.typeInformationName = name;
+      }
 
-      } else {
-        Pointer p = new Pointer(depth);
-        if (edge instanceof GlobalDeclarationEdge) {
+      else
+      {
+        Pointer p = new Pointer(levelOfIndirection);
+        if(edge instanceof GlobalDeclarationEdge)
+        {
           element.addNewGlobalPointer(varName, p);
           element.pointerOp(new Pointer.Assign(Memory.UNINITIALIZED_POINTER), p);
-        } else {
+        }
+
+        else
+        {
           element.addNewLocalPointer(varName, p);
           //if the entryFunction has not yet been processed, this means this pointer is a parameter
           //and should be considered unknown rather than uninitialized
-          PointerTarget pTarg =
-            (!entryFunctionProcessed ? Memory.UNKNOWN_POINTER : Memory.UNINITIALIZED_POINTER);
-          element.pointerOp(new Pointer.Assign(pTarg), p);
-
+          PointerTarget target = (!entryPointProcessed ? Memory.UNKNOWN_POINTER : Memory.UNINITIALIZED_POINTER);
+          element.pointerOp(new Pointer.Assign(target), p);
         }
+
         // store the pointer so the type analysis CPA can update its
         // type information
         missing = new MissingInformation();
@@ -468,14 +476,17 @@ public class PointerTransferRelation implements TransferRelation {
         // constant and constant pointers are considered null
         // local variables do not have initializers in CIL
       }
-
-    } else {
-      if (edge instanceof GlobalDeclarationEdge) {
-        element.addNewGlobalPointer(varName, null);
-      } else {
-        element.addNewLocalPointer(varName, null);
-      }
     }
+    else
+    {
+      if(edge instanceof GlobalDeclarationEdge)
+        element.addNewGlobalPointer(varName, null);
+
+      else
+        element.addNewLocalPointer(varName, null);
+    }
+
+    return soleSuccessor(element);
   }
 
   private void handleAssume(PointerElement element,
@@ -668,7 +679,7 @@ public class PointerTransferRelation implements TransferRelation {
         }
       }
 
-      element.callFunction(funcName);
+      element.setScope(funcName);
 
       for (int i = 0; i < actualValues.size(); i++) {
         Pointer value = actualValues.get(i);
@@ -680,7 +691,7 @@ public class PointerTransferRelation implements TransferRelation {
       }
 
     } else {
-      element.callFunction(funcName);
+      element.setScope(funcName);
     }
 
     element.addNewLocalPointer(RETURN_VALUE_VARIABLE, null);
@@ -780,135 +791,135 @@ public class PointerTransferRelation implements TransferRelation {
 
   }
 
-  private void handleStatement(PointerElement element,
-      IASTStatement expression, StatementEdge cfaEdge)
-      throws UnrecognizedCCodeException, InvalidPointerException {
+  private Collection<PointerElement> handleStatement(PointerElement successor, IASTStatement expression, StatementEdge cfaEdge)
+      throws UnrecognizedCCodeException, InvalidPointerException
+  {
+    Collection<PointerElement> successors = null;
 
-    if (expression instanceof IASTFunctionCallStatement) {
+    if(expression instanceof IASTFunctionCallStatement)
+    {
       // this is a mere function call (func(a))
-      IASTFunctionCallExpression funcExpression =
-          ((IASTFunctionCallStatement)expression).getFunctionCallExpression();
-      String functionName =
-          funcExpression.getFunctionNameExpression().getRawSignature();
+      IASTFunctionCallExpression funcExpression = ((IASTFunctionCallStatement)expression).getFunctionCallExpression();
+      String functionName = funcExpression.getFunctionNameExpression().getRawSignature();
 
-      if (functionName.equals("free")) {
+      if(functionName.equals("free"))
+        successors = handleFree(successor, funcExpression, cfaEdge);
 
-        handleFree(element, funcExpression, cfaEdge);
-
-      } else if (functionName.equals("malloc")) {
+      else if(functionName.equals("malloc"))
+      {
         // malloc without assignment (will lead to memory leak)
-        element.addProperty(ElementProperty.MEMORY_LEAK);
-        addWarning(
-            "Memory leak because of calling malloc without using the return value!",
-            cfaEdge, "");
+        successor.addProperty(ElementProperty.MEMORY_LEAK);
+
+        addWarning(Warning.MALLOC_WITHOUT_RETURN, cfaEdge, "");
+
+        successors = soleSuccessor(successor);
       }
-
-    } else if (expression instanceof IASTAssignment) {
-      // statement is an assignment expression, e.g. a = b or a = a+b;
-      handleAssignmentStatement(element, (IASTAssignment)expression, cfaEdge);
-
-    } else {
-      throw new UnrecognizedCCodeException(cfaEdge, expression);
     }
+
+    // statement is an assignment expression, e.g. a = b or a = a + b;
+    else if(expression instanceof IASTAssignment)
+      successors = handleAssignmentStatement(successor, (IASTAssignment)expression, cfaEdge);
+
+    else
+      throw new UnrecognizedCCodeException(cfaEdge, expression);
+
+    return successors;
   }
 
-  private void handleFree(PointerElement element,
-      IASTFunctionCallExpression expression, CFAEdge cfaEdge)
-      throws UnrecognizedCCodeException, InvalidPointerException {
-
+  private Collection<PointerElement> handleFree(PointerElement successor, IASTFunctionCallExpression expression, CFAEdge cfaEdge)
+      throws UnrecognizedCCodeException, InvalidPointerException
+  {
     List<IASTExpression> parameters = expression.getParameterExpressions();
-    if (parameters.size() != 1) {
+
+    if(parameters.size() != 1)
       throw new UnrecognizedCCodeException("Wrong number of arguments for free", cfaEdge, expression);
-    }
+
     IASTExpression parameter = parameters.get(0);
 
-    if (parameter instanceof IASTIdExpression) {
-      Pointer p = element.lookupPointer(parameter.getRawSignature());
+    if(parameter instanceof IASTIdExpression)
+    {
+      // the pointer to free
+      Pointer pointer = successor.lookupPointer(parameter.getRawSignature());
 
-      if (p == null) {
-        throw new UnrecognizedCCodeException("freeing non-pointer pointer",
-                                                        cfaEdge, parameter);
-      }
+      if(pointer == null)
+        throw new UnrecognizedCCodeException("freeing non-pointer pointer", cfaEdge, parameter);
 
-      List<PointerTarget> newTargets = new ArrayList<PointerTarget>();
+      // unused?
+      //List<PointerTarget> newTargets = new ArrayList<PointerTarget>();
+
       boolean success = false;
-      MemoryAddress freeMem = null;
+      MemoryAddress freedMemory = null;
 
-      for (PointerTarget target : p.getTargets()) {
+      for(PointerTarget target : pointer.getTargets())
+      {
+        if(target instanceof MemoryAddress)
+        {
+          freedMemory = (MemoryAddress)target;
 
-        if (target instanceof MemoryAddress) {
-          freeMem = (MemoryAddress)target;
-          if (!freeMem.hasOffset()) {
-            addWarning("Possibly freeing pointer " + p.getLocation() + " to "
-                + freeMem + " with unknown offset", cfaEdge, freeMem.toString());
+          if(freedMemory.hasUnknownOffset())
+          {
+            addWarning("Possibly freeing pointer " + pointer.getLocation() + " to " + freedMemory + " with unknown offset", cfaEdge, freedMemory.toString());
 
-            newTargets.add(Memory.INVALID_POINTER);
+            //newTargets.add(Memory.INVALID_POINTER);
             success = true; // it may succeed
-            freeMem = null; // but we cannot free it
-
-          } else if (freeMem.getOffset() != 0) {
-            addWarning("Possibly freeing pointer " + p.getLocation() + " to "
-                + freeMem + " with offset != 0", cfaEdge, freeMem.toString());
-
-          } else {
-            newTargets.add(Memory.INVALID_POINTER);
-            success = true;
+            freedMemory = null; // but we cannot free it
           }
 
-        } else if (target.isNull()) {
-          // free(null) is allowed and does nothing!
-          success = true;
-          newTargets.add(Memory.NULL_POINTER);
-          //addWarning("Freeing a NULL-pointer at " + p.getLocation() + " - no harm is done, but maybe check your code, if this pointer can hold non-NULL values at the time it's being freed", cfaEdge, target.toString());
+          else if(!freedMemory.hasZeroOffset())
+            addWarning("Possibly freeing pointer " + pointer.getLocation() + " to " + freedMemory + " with offset != 0", cfaEdge, freedMemory.toString());
 
-        } else if (target == Memory.UNKNOWN_POINTER) {
-          success = true;
-          newTargets.add(Memory.UNKNOWN_POINTER);
-
-        } else {
-          addWarning("Possibly freeing pointer " + p.getLocation() + " to "
-              + target, cfaEdge, target.toString());
+          else
+            success = true;
         }
+
+        // free(null) is allowed but does nothing
+        else if(target.isNull())
+          success = true;
+
+        else if (target == Memory.UNKNOWN_POINTER)
+          success = true;
+
+        else
+          addWarning("Possibly freeing pointer " + pointer.getLocation() + " to " + target, cfaEdge, target.toString());
       }
 
-      if (!success) {
-        // all targets fail
+      // all targets fail
+      if(!success)
+      {
         // elevate the above warnings to an error
-        element.addProperty(ElementProperty.INVALID_FREE);
-        throw new InvalidPointerException("Free of pointer " + p.getLocation()
-            + " = " + p
-            + " is impossible to succeed (all targets lead to errors)");
+        successor.addProperty(ElementProperty.INVALID_FREE);
+        throw new InvalidPointerException("Free of pointer " + pointer.getLocation() + " = " + pointer + " is impossible to succeed (all targets lead to errors)");
       }
 
       // free only if there is exactly one target and it is the beginning
       // of a memory region or the pointer has two targets and one of them
       // is the NULL-pointer (because malloc leaves us with at least one NULL-pointer. if the malloc result is unchecked)
-      if ((p.getNumberOfTargets() == 1
-            || (p.getNumberOfTargets() == 2 && p.contains(Memory.NULL_POINTER)))
-          && (freeMem != null)) {
-
-        try {
-          element.free(freeMem.getRegion());
-        } catch (InvalidPointerException e) {
-          // intercept the Exception and add the DOUBLE_FREE flag, then throw again
-          element.addProperty(ElementProperty.DOUBLE_FREE);
+      if((pointer.getNumberOfTargets() == 1 || (pointer.getNumberOfTargets() == 2 && pointer.contains(Memory.NULL_POINTER))) && (freedMemory != null))
+      {
+        try
+        {
+          successor.free(freedMemory.getRegion());
+        }
+        catch (InvalidPointerException e)
+        {
+          // catch the exception and add the DOUBLE_FREE flag, then re-throw
+          successor.addProperty(ElementProperty.DOUBLE_FREE);
           throw e;
         }
-
       }
 
       // when the program continues after free(p), p can only contain INVALID, NULL or UNKNOWN targets,
       // depending on what it contained before (MemoryAddress, NULL or UNKNOWN respectively)
       //element.pointerOpForAllAliases(new Pointer.AssignListOfTargets(newTargets), p, false);
-
-    } else {
-      throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge,
-          parameter);
     }
+
+    else
+      throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge, parameter);
+
+    return soleSuccessor(successor);
   }
 
-  private void handleAssignmentStatement(PointerElement element,
-      IASTAssignment expression, CFAEdge cfaEdge)
+  private Collection<PointerElement> handleAssignmentStatement(PointerElement successor, IASTAssignment expression, CFAEdge cfaEdge)
       throws UnrecognizedCCodeException, InvalidPointerException {
 
     // left hand side
@@ -917,91 +928,93 @@ public class PointerTransferRelation implements TransferRelation {
     Pointer leftPointer;
     boolean leftDereference;
 
-    if (leftExpression instanceof IASTIdExpression) {
+    if(leftExpression instanceof IASTIdExpression)
+    {
       // a
       leftDereference = false;
-      leftVarName = leftExpression.getRawSignature();
-      leftPointer = element.lookupPointer(leftVarName);
-
-    } else if (leftExpression instanceof IASTUnaryExpression) {
-
+      leftVarName     = leftExpression.getRawSignature();
+      leftPointer     = successor.lookupPointer(leftVarName);
+    }
+    else if(leftExpression instanceof IASTUnaryExpression)
+    {
       IASTUnaryExpression unaryExpression = (IASTUnaryExpression)leftExpression;
-      if (unaryExpression.getOperator() == UnaryOperator.STAR) {
-        // *a
+
+      // *a
+      if(unaryExpression.getOperator() == UnaryOperator.STAR)
+      {
         leftDereference = true;
+        leftExpression  = unaryExpression.getOperand();
 
-        leftExpression = unaryExpression.getOperand();
-
+        // remove the cast
         boolean leftCast = false;
-        if (leftExpression instanceof IASTCastExpression) {
+        if(leftExpression instanceof IASTCastExpression)
+        {
           leftCast = true;
           leftExpression = ((IASTCastExpression)leftExpression).getOperand();
         }
 
-        if (!(leftExpression instanceof IASTIdExpression)) {
-          // not a variable at left hand side
-          throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge,
-              leftExpression);
-        }
+        // ensure that left hand side is an identifier now
+        if (!(leftExpression instanceof IASTIdExpression))
+          throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge, leftExpression);
 
-        leftPointer = element.lookupPointer(leftExpression.getRawSignature());
+        leftPointer = successor.lookupPointer(leftExpression.getRawSignature());
         leftVarName = leftExpression.getRawSignature();
-        if (leftPointer == null) {
-          element.addProperty(ElementProperty.UNSAFE_DEREFERENCE);
-          if (!leftCast) {
-            throw new UnrecognizedCCodeException("dereferencing a non-pointer",
-                cfaEdge, leftExpression);
-          } else {
-            addWarning("Casting non-pointer value "
-                + leftExpression.getRawSignature()
-                + " to pointer and dereferencing it", cfaEdge, leftExpression
-                .getRawSignature());
-          }
 
-        } else {
+        // left side is not a pointer
+        if(leftPointer == null)
+        {
+          successor.addProperty(ElementProperty.UNSAFE_DEREFERENCE);
 
-          if (!leftPointer.isDereferencable()) {
-            element.addProperty(ElementProperty.UNSAFE_DEREFERENCE);
-            throw new InvalidPointerException("Unsafe deref of pointer "
-                + leftPointer.getLocation() + " = " + leftPointer);
-            }
+          if(!leftCast)
+            throw new UnrecognizedCCodeException("dereferencing a non-pointer", cfaEdge, leftExpression);
 
-          if (!leftPointer.isSafe()) {
-            element.addProperty(ElementProperty.POTENTIALLY_UNSAFE_DEREFERENCE);
-            addWarning("Potentially unsafe deref of pointer "
-                + leftPointer.getLocation() + " = " + leftPointer, cfaEdge,
-                unaryExpression.getRawSignature());
-
-            // if program continues after deref, pointer did not contain NULL, INVALID or UNINITIALIZED
-            element.pointerOpAssumeInequality(leftPointer, Memory.NULL_POINTER);
-            element.pointerOpAssumeInequality(leftPointer,
-                Memory.INVALID_POINTER);
-            element.pointerOpAssumeInequality(leftPointer,
-                Memory.UNINITIALIZED_POINTER);
-          }
-
-          if (!leftPointer.isPointerToPointer()) {
-            // other pointers are not of interest to us
-            leftPointer = null;
-          }
+          else
+            addWarning("Casting non-pointer value " + leftExpression.getRawSignature() + " to pointer and dereferencing it", cfaEdge, leftExpression.getRawSignature());
         }
 
-      } else {
-        throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge,
-            unaryExpression);
+        // left side is a pointer
+        else
+        {
+          if(!leftPointer.isDereferencable())
+          {
+            successor.addProperty(ElementProperty.UNSAFE_DEREFERENCE);
+
+            throw new InvalidPointerException("Unsafe deref of pointer " + leftPointer.getLocation() + " = " + leftPointer);
+          }
+
+          if(!leftPointer.isSafe())
+          {
+            successor.addProperty(ElementProperty.POTENTIALLY_UNSAFE_DEREFERENCE);
+            addWarning("Potentially unsafe dereferencing of pointer " + leftPointer.getLocation() + " = " + leftPointer, cfaEdge, unaryExpression.getRawSignature());
+
+            // if program continues after dereferencing, pointer did not contain NULL, INVALID or UNINITIALIZED
+            successor.pointerOpAssumeInequality(leftPointer, Memory.NULL_POINTER);
+            successor.pointerOpAssumeInequality(leftPointer, Memory.INVALID_POINTER);
+            successor.pointerOpAssumeInequality(leftPointer, Memory.UNINITIALIZED_POINTER);
+          }
+
+          // other pointers are not of interest
+          if(!leftPointer.isPointerToPointer())
+            leftPointer = null;
+        }
       }
-    } else {
-      // TODO fields, arrays
-      throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge,
-          leftExpression);
+
+      else
+        throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge, unaryExpression);
     }
+
+    // TODO fields, arrays
+    else
+      throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge, leftExpression);
 
     // right hand side
     IASTRightHandSide op2 = expression.getRightHandSide();
 
     // handles *a = x and a = x
-    handleAssignment(element, leftVarName, leftPointer, leftDereference, op2,
-        cfaEdge);
+    handleAssignment(successor, leftVarName, leftPointer, leftDereference, op2, cfaEdge);
+
+    // just added so that program compiles for now
+    return soleSuccessor(successor);
   }
 
   /**
@@ -1670,4 +1683,30 @@ public class PointerTransferRelation implements TransferRelation {
     entryFunctionDefinitionNode = pEntryFunctionDefNode;
   }
 
+  private static class Warning
+  {
+      private final static String MALLOC_WITHOUT_RETURN = "Memory leak because of calling malloc without using the return value!";
+  };
+
+  private Collection<PointerElement> soleSuccessor(PointerElement successor)
+  {
+    return Collections.singleton(successor);
+  }
+
+  private Collection<PointerElement> noSuccessors()
+  {
+    return Collections.emptySet();
+  }
+
+  private boolean isStructPrototype(String name, IType specifier)
+  {
+    return name == null && (specifier instanceof IASTElaboratedTypeSpecifier || specifier instanceof IASTCompositeTypeSpecifier);
+  }
+
+  private boolean isStructOnStack(IType specifier)
+  {
+    return (specifier instanceof IASTCompositeTypeSpecifier
+            || specifier instanceof IASTElaboratedTypeSpecifier
+            || specifier instanceof IASTEnumerationSpecifier);
+  }
 }

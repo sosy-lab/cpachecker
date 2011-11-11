@@ -293,8 +293,19 @@ public interface Memory {
       return hasOffset() ? new MemoryAddress(region, true) : this;
     }
 
-    public boolean hasOffset() {
+    public boolean hasOffset()
+    {
       return (offset != -1);
+    }
+
+    public boolean hasZeroOffset()
+    {
+      return offset == 0;
+    }
+
+    public boolean hasUnknownOffset()
+    {
+      return offset == -1;
     }
 
     @Override

@@ -30,8 +30,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
+import java.util.Map.Entry;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
@@ -48,36 +48,63 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 public class PointerElement implements AbstractQueryableElement, Memory,
     Cloneable, Targetable {
 
-  private static final char                                    FUNCTION_NAME_SEPARATOR =
-                                                                                           ':';
+  private static final String GLOBAL_SCOPE          = "";
 
-  private CFAEdge                                              currentEdge             =
-                                                                                           null;
+  private static final char FUNCTION_NAME_SEPARATOR = ':';
+
+  private CFAEdge currentEdge                       = null;
+
   /**
    * true if this AbstractElement represents an error state
    */
   private boolean error = false;
 
-  static enum ElementProperty {DOUBLE_FREE, NO_MEMORY_LEAK,
-    MEMORY_LEAK, UNSAFE_DEREFERENCE, POTENTIALLY_UNSAFE_DEREFERENCE, INVALID_FREE}
-  private Set<ElementProperty> properties = EnumSet.noneOf(ElementProperty.class); // emptySet
 
-  private final Map<String, Map<String, Pointer>>              stack;
-  // global variables are stored here with function name ""
-  // non-pointer variables are tracked too, (mapped to null)
+  static enum ElementProperty
+  {
+    DOUBLE_FREE,
+    NO_MEMORY_LEAK,
+    MEMORY_LEAK,
+    UNSAFE_DEREFERENCE,
+    POTENTIALLY_UNSAFE_DEREFERENCE,
+    INVALID_FREE
+  }
 
-  private String                                               currentFunctionName     =
-                                                                                           "";
+  /**
+   * emptySet
+   */
+  private Set<ElementProperty> properties = EnumSet.noneOf(ElementProperty.class);
 
-  private final HashMap<MemoryAddress, Pointer>                heap;
+  private String currentFunctionName              = "";
 
-  private final HashSet<MemoryRegion>                          mallocs;                         // list of all malloc'ed memory regions
+  /**
+   * the map that keeps track of the variables on the stack
+   *
+   * global variables are stored here with an empty function name, non-pointer variables are tracked too (mapped to null)
+   */
+  private final Map<String, Map<String, Pointer>> stack;
 
-  private final HashMap<PointerTarget, Set<PointerLocation>>   reverseRelation;                 // reverse mapping from pointer targets to pointer locations
+  private final HashMap<MemoryAddress, Pointer> heap;
 
-  private final HashMap<PointerLocation, Set<PointerLocation>> aliases;                         // mapping from pointer location to locations of all aliases
+  /**
+   * list of all malloc'ed memory regions
+   */
+  private final HashSet<MemoryRegion> mallocs;
 
-  private final HashSet<PointerLocation>                       tempTracked;                     // non-pointer variables temporarily containing pointer values
+  /**
+   * reverse mapping from pointer targets to pointer locations
+   */
+  private final HashMap<PointerTarget, Set<PointerLocation>> reverseRelation;
+
+  /**
+   * mapping from pointer location to locations of all aliases
+   */
+  private final HashMap<PointerLocation, Set<PointerLocation>> aliases;
+
+  /**
+   * non-pointer variables temporarily containing pointer values
+   */
+  private final HashSet<PointerLocation> tempTracked;
 
   /*
    * Following possibilities exist:
@@ -98,7 +125,7 @@ public class PointerElement implements AbstractQueryableElement, Memory,
     aliases = new HashMap<PointerLocation, Set<PointerLocation>>();
     tempTracked = new HashSet<PointerLocation>();
 
-    stack.put("", new HashMap<String, Pointer>());
+    stack.put(GLOBAL_SCOPE, new HashMap<String, Pointer>());
   }
 
   private PointerElement(final Map<String, Map<String, Pointer>> stack,
@@ -240,7 +267,7 @@ public class PointerElement implements AbstractQueryableElement, Memory,
   }
 
   private Map<String, Pointer> getGlobalPointers() {
-    return stack.get("");
+    return stack.get(GLOBAL_SCOPE);
   }
 
   private Map<String, Pointer> getLocalPointers() {
@@ -782,13 +809,13 @@ public class PointerElement implements AbstractQueryableElement, Memory,
 
   }
 
-  public void pointerOpAssumeInequality(Pointer pointer, PointerTarget target) {
-    if (target != INVALID_POINTER && target != UNKNOWN_POINTER
-        && target != UNINITIALIZED_POINTER) {
-
-      if (pointer.contains(target)) {
-        pointerOpForAllAliases(new Pointer.AssumeInequality(target), pointer,
-            true);
+  public void pointerOpAssumeInequality(Pointer pointer, PointerTarget target)
+  {
+    if(target != INVALID_POINTER && target != UNKNOWN_POINTER && target != UNINITIALIZED_POINTER)
+    {
+      if(pointer.contains(target))
+      {
+        pointerOpForAllAliases(new Pointer.AssumeInequality(target), pointer, true);
 
         findAndMergePossibleAliases(pointer);
       }
@@ -847,16 +874,14 @@ public class PointerElement implements AbstractQueryableElement, Memory,
     return false;
   }
 
-  public void callFunction(String functionName) {
-    //HashMap<String, Pointer> newLocalPointers = ;
-    //localPointers.addLast(new Pair<String, HashMap<String, Pointer>>(functionName, newLocalPointers));
-
-    if (currentFunctionName.equals("")) {
+  public void setScope(String functionName)
+  {
+    if(currentFunctionName.equals(GLOBAL_SCOPE))
       currentFunctionName = functionName;
-    } else {
-      currentFunctionName =
-          currentFunctionName + FUNCTION_NAME_SEPARATOR + functionName;
-    }
+
+    else
+      currentFunctionName += FUNCTION_NAME_SEPARATOR + functionName;
+
     stack.put(currentFunctionName, new HashMap<String, Pointer>());
   }
 

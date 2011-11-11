@@ -41,7 +41,11 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
   // map that keeps the name of variables and their constant values
   private final Map<String, Long> constantsMap;
 
+  private final Map<String, Long> inequalityMap;
+
   private final Map<String, Integer> referenceCount;
+
+  private Map<String, Boolean> assumes;
 
   // element from the previous context
   // used for return edges
@@ -52,6 +56,9 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
     constantsMap    = new HashMap<String, Long>();
     referenceCount  = new HashMap<String, Integer>();
     previousElement = null;
+
+    inequalityMap   = new HashMap<String, Long>();
+    assumes         = new HashMap<String, Boolean>();
   }
 
   public ExplicitElement(ExplicitElement previousElement)
@@ -59,13 +66,19 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
     constantsMap          = new HashMap<String, Long>();
     referenceCount        = new HashMap<String, Integer>();
     this.previousElement  = previousElement;
+
+    inequalityMap         = new HashMap<String, Long>();
+    assumes               = new HashMap<String, Boolean>();
   }
 
-  public ExplicitElement(Map<String, Long> constantsMap, Map<String, Integer> referencesMap, ExplicitElement previousElement)
+  public ExplicitElement(Map<String, Long> constantsMap, Map<String, Long> inequalityMap, Map<String, Boolean> assumes, Map<String, Integer> referencesMap, ExplicitElement previousElement)
   {
     this.constantsMap     = constantsMap;
     this.referenceCount   = referencesMap;
     this.previousElement  = previousElement;
+
+    this.inequalityMap    = inequalityMap;
+    this.assumes          = assumes;
   }
 
   /**
@@ -99,19 +112,61 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
       referenceCount.put(variableName, 1);
 
     constantsMap.put(variableName, value);
+
+    if(inequalityMap.containsKey(variableName) && inequalityMap.get(variableName).equals(value))
+      inequalityMap.remove(variableName);
+  }
+
+  void assignInequality(String variableName, Long value)
+  {
+    inequalityMap.put(variableName, value);
+  }
+
+  boolean isNotEqualTo(String variableName, Long value)
+  {
+    if(inequalityMap.containsKey(variableName) && inequalityMap.get(variableName).equals(value))
+      return true;
+
+    else
+      return false;
+  }
+
+  public void addInequalities(String assignedVar, String assigningVariable)
+  {
+    if(inequalityMap.containsKey(assigningVariable))
+    {
+      inequalityMap.put(assignedVar, inequalityMap.get(assigningVariable).longValue());
+    }
+  }
+
+  public void addAssume(String assume, Boolean type)
+  {
+    assumes.put(assume, type);
+  }
+  public Boolean hasAssume(String assume)
+  {
+    return assumes.get(assume);
   }
 
   void copyConstant(ExplicitElement other, String variableName)
   {
-    constantsMap.put(variableName, other.constantsMap.get(variableName));
+    if(other.constantsMap.containsKey(variableName))
+      constantsMap.put(variableName, other.constantsMap.get(variableName));
 
-    referenceCount.put(variableName, other.referenceCount.get(variableName));
+    if(other.inequalityMap.containsKey(variableName))
+      inequalityMap.put(variableName, other.inequalityMap.get(variableName));
+
+    if(other.referenceCount.containsKey(variableName))
+      referenceCount.put(variableName, other.referenceCount.get(variableName));
   }
 
   void forget(String variableName)
   {
     if(constantsMap.containsKey(variableName))
       constantsMap.remove(variableName);
+
+    if(inequalityMap.containsKey(variableName))
+      inequalityMap.remove(variableName);
   }
 
   public Long getValueFor(String variableName)
@@ -170,7 +225,39 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
         newReferencesMap.put(otherKey, other.referenceCount.get(otherKey));
     }
 
-    return new ExplicitElement(newConstantsMap, newReferencesMap, this.getPreviousElement());
+    Map<String, Long> newInequalityMap = new HashMap<String, Long>();
+    newInequalityMap.putAll(this.inequalityMap);
+    for(Map.Entry<String, Long> otherEntry : other.inequalityMap.entrySet())
+    {
+      String otherKey = otherEntry.getKey();
+      Long otherValue = inequalityMap.get(otherKey);
+
+      // both constant maps contain a value for the same constant ...
+      if(otherValue != null)
+      {
+        // ... having identical values
+        if(otherValue.equals(otherEntry.getValue()))
+          newInequalityMap.put(otherKey, otherValue);
+      }
+    }
+
+    Map<String, Boolean> newAssumesMap = new HashMap<String, Boolean>();
+    newAssumesMap.putAll(this.assumes);
+    for(Map.Entry<String, Boolean> otherEntry : other.assumes.entrySet())
+    {
+      String otherKey = otherEntry.getKey();
+      Boolean otherValue = assumes.get(otherKey);
+
+      // both constant maps contain a value for the same constant ...
+      if(otherValue != null)
+      {
+        // ... having identical values
+        if(otherValue.equals(otherEntry.getValue()))
+          newAssumesMap.put(otherKey, otherValue);
+      }
+    }
+
+    return new ExplicitElement(newConstantsMap, newInequalityMap, newAssumesMap, newReferencesMap, this.getPreviousElement());
   }
 
   /**
@@ -189,11 +276,26 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
     if(constantsMap.size() < other.constantsMap.size())
       return false;
 
+    if(inequalityMap.size() < other.inequalityMap.size())
+      return false;
+
     // also, this element is not less or equal than the other element,
     // if any one constant's value of the other element differs from the constant's value in this element
     for(Map.Entry<String, Long> entry : other.constantsMap.entrySet())
     {
       if(!entry.getValue().equals(constantsMap.get(entry.getKey())))
+        return false;
+    }
+
+    for(Map.Entry<String, Long> entry : other.inequalityMap.entrySet())
+    {
+      if(!entry.getValue().equals(inequalityMap.get(entry.getKey())))
+        return false;
+    }
+
+    for(Map.Entry<String, Boolean> entry : other.assumes.entrySet())
+    {
+      if(!entry.getValue().equals(assumes.get(entry.getKey())))
         return false;
     }
 
@@ -207,6 +309,36 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
 
     for(String variableName: constantsMap.keySet())
       newElement.constantsMap.put(variableName, constantsMap.get(variableName).longValue());
+
+    if(inequalityMap.size() > 0)
+    {
+      //System.out.println("size = " + inequalityMap.size());
+
+      for(String variableName2: inequalityMap.keySet())
+      {
+        //System.out.println(" -> " + variableName2);
+        newElement.
+          inequalityMap.
+            put(variableName2, inequalityMap.
+              get(variableName2).
+                longValue());
+      }
+    }
+
+    if(assumes.size() > 0)
+    {
+      //System.out.println("size = " + inequalityMap.size());
+
+      for(String variableName2: assumes.keySet())
+      {
+        //System.out.println(" -> " + variableName2);
+        newElement.
+        assumes.
+            put(variableName2, assumes.
+              get(variableName2).
+                booleanValue());
+      }
+    }
 
     for(String variableName: referenceCount.keySet())
       newElement.referenceCount.put(variableName, referenceCount.get(variableName).intValue());
@@ -233,6 +365,9 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
     if(otherElement.constantsMap.size() != constantsMap.size())
       return false;
 
+    if(otherElement.inequalityMap.size() != inequalityMap.size())
+      return false;
+
     for(String s: constantsMap.keySet())
     {
       if(!otherElement.constantsMap.containsKey(s))
@@ -242,13 +377,31 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
         return false;
     }
 
+    for(String s: inequalityMap.keySet())
+    {
+      if(!otherElement.inequalityMap.containsKey(s))
+        return false;
+
+      if(otherElement.inequalityMap.get(s).longValue() != inequalityMap.get(s))
+        return false;
+    }
+
+    for(String s: assumes.keySet())
+    {
+      if(!otherElement.assumes.containsKey(s))
+        return false;
+
+      if(otherElement.assumes.get(s).booleanValue() != assumes.get(s))
+        return false;
+    }
+
     return true;
   }
 
   @Override
   public int hashCode()
   {
-    return constantsMap.hashCode();
+    return constantsMap.hashCode() + 17 * inequalityMap.hashCode() + 31 * assumes.hashCode();
   }
 
   @Override
@@ -256,7 +409,7 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
   {
     StringBuilder sb = new StringBuilder();
     sb.append("[");
-    for (Map.Entry<String, Long> entry: constantsMap.entrySet())
+    for(Map.Entry<String, Long> entry: constantsMap.entrySet())
     {
       String key = entry.getKey();
       sb.append(" <");
@@ -266,6 +419,16 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
       sb.append(" :: ");
       sb.append(referenceCount.get(key));
       sb.append(">\n");
+    }
+
+    for(Map.Entry<String, Long> entry: inequalityMap.entrySet())
+    {
+      String key = entry.getKey();
+      sb.append("\n<");
+      sb.append(key);
+      sb.append(" != ");
+      sb.append(entry.getValue());
+      sb.append(">");
     }
 
     return sb.append("] size->  ").append(constantsMap.size()).toString();

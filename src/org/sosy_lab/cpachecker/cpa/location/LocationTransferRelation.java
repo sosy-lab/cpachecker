@@ -28,8 +28,16 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -83,6 +91,16 @@ public class LocationTransferRelation implements TransferRelation {
     for (int edgeIdx = 0; edgeIdx < numLeavingEdges; edgeIdx++)
     {
       CFAEdge tempEdge = node.getLeavingEdge (edgeIdx);
+
+      if(tempEdge.getEdgeType() == CFAEdgeType.AssumeEdge)
+      {
+        AssumeEdge assume = (AssumeEdge)tempEdge;
+
+        IASTExpression expression = assume.getExpression();
+
+        handleExpression(expression);
+      }
+
       allSuccessors.add(factory.getElement(tempEdge.getSuccessor()));
     }
 
@@ -94,5 +112,46 @@ public class LocationTransferRelation implements TransferRelation {
                          List<AbstractElement> otherElements, CFAEdge cfaEdge,
                          Precision precision) {
     return null;
+  }
+
+  private static boolean isSimple(IASTExpression expression)
+  {
+    return expression instanceof IASTIdExpression
+      || expression instanceof IASTLiteralExpression
+      || expression instanceof IASTFieldReference;
+
+  }
+
+  private static boolean isNotSimple(IASTExpression expression)
+  {
+    return expression instanceof IASTBinaryExpression;
+  }
+
+  private boolean handleExpression(IASTExpression expression)
+  {
+    if(true)
+      return true;
+
+    if(isSimple(expression))
+      return true;
+
+    else if(expression instanceof IASTUnaryExpression)
+    {
+      IASTUnaryExpression expr = (IASTUnaryExpression)expression;
+      isSimple(expr);
+    }
+
+    else
+    {
+      IASTBinaryExpression expr = ((IASTBinaryExpression)expression);
+
+      IASTExpression op1 = expr.getOperand1();
+      IASTExpression op2 = expr.getOperand2();
+
+      if(isNotSimple(op1) || isNotSimple(op2))
+        System.out.println(expression.getRawSignature() + "[" + expression.getClass().getSimpleName() + "]");
+    }
+
+    return false;
   }
 }
