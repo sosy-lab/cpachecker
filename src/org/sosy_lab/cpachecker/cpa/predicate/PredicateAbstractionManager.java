@@ -430,9 +430,11 @@ class PredicateAbstractionManager {
 
     // the formula is (abstractionFormula & pathFormula & predDef)
     Formula fm = fmgr.makeAnd(f, predDef);
+
+    /*
     System.out.println();
     System.out.println("fm: "+fm);
-    System.out.println();
+    System.out.println();*/
     logger.log(Level.ALL, "COMPUTING ALL-SMT ON FORMULA: ", fm);
 
     stats.abstractionTime.startOuter();

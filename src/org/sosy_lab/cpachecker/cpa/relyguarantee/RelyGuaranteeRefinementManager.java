@@ -1117,7 +1117,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         Formula itp = itpProver.getInterpolant(interpolationIds.subList(0, idx+1));
         // non-modular predicates
         Set<AbstractionPredicate> preds = getDagPredicates(itp, node);
-        System.out.println("\t DEBUG: "+itp+"\t->\t"+preds);
+        //System.out.println("\t DEBUG: "+itp+"\t->\t"+preds);
         // try-to-be modular predicates
         //Set<AbstractionPredicate> preds = getDagPredicatesSkipNonModular(itp, node);
 
@@ -1138,10 +1138,17 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         if (itp.isFalse()){
           i = topNodes.size();
         } else {
-          // replace
+          // replace formula in the interpolated node
           PathFormula oldPf = node.getPathFormula();
           PathFormula newPf = new PathFormula(itp, oldPf.getSsa(), oldPf.getLength());
           dag.replacePathFormulaInNode(node, newPf);
+
+          // add itp to the the children nodes:
+          for (InterpolationDagNode child : node.getChildren()){
+            PathFormula oldChildPf = child.getPathFormula();
+            PathFormula newChildPf = this.pmgr.makeAnd(oldChildPf, itp);
+            dag.replacePathFormulaInNode(child, newChildPf);
+          }
         }
         i++;
       }
@@ -2014,6 +2021,10 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         for (Formula atom : atoms){
           // testing
           Set<Integer> primes = fmgr.howManyPrimes(atom);
+
+          if (debug && primes.contains(otherTid)){
+            System.out.println("non-modular atom: "+atom+" from itp: "+itp);
+          }
 
           AbstractionPredicate atomPredicate = amgr.makePredicate(atom);
           result.add(atomPredicate);
