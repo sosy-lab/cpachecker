@@ -40,7 +40,7 @@ USE_ONLY_DATE = False # use date or date+time for filenames
 
 class Benchmark:
     """
-    The class Benchmark manages the import of files, options, columns and 
+    The class Benchmark manages the import of files, options, columns and
     the tool from a benchmarkFile.
     """
 
@@ -122,7 +122,7 @@ class Test:
     def __init__(self, testTag, globalSourcefiles=[]):
         """
         The constructor of Test reads testname and the filenames from testTag.
-        Filenames can be included or excluded, and imported from a list of 
+        Filenames can be included or excluded, and imported from a list of
         names in another file. Wildcards and variables are expanded.
         @param testTag: a testTag from the xml-file
         """
@@ -158,7 +158,7 @@ def getSourceFiles(sourcefilesTagList):
 
             for file in getFileList(includesFilesFile.text):
                 fileDir = os.path.dirname(file)
-                
+
                 # check for code (if somebody changes 'include' and 'includesfile')
                 if isCode(file):
                     logging.error("'" + file + "' is no includesfile (set-file).\n" + \
@@ -173,7 +173,7 @@ def getSourceFiles(sourcefilesTagList):
                     line = line.strip()
 
                     # ignore comments and empty lines
-                    if not isComment(line):                        
+                    if not isComment(line):
                         currentSourcefiles += getFileList(line, fileDir)
 
                 fileWithList.close()
@@ -217,7 +217,7 @@ def removeAll(list, elemToRemove):
 
 def getFileList(shortFile, root=""):
     """
-    The function getFileList expands a short filename to a sorted list 
+    The function getFileList expands a short filename to a sorted list
     of filenames. The short filename can contain variables and wildcards.
     If root is given and shortFile is not absolute, root and shortFile are joined.
     """
@@ -292,7 +292,7 @@ class OutputHandler:
 
         # create folder for file-specific log-files.
         # if the folder exists, it will be used.
-        # if there are files in the folder (with the same name than the testfiles), 
+        # if there are files in the folder (with the same name than the testfiles),
         # they will be OVERWRITTEN without a message!
         self.logFolder = OUTPUT_PATH + self.benchmark.name + "." + self.benchmark.date + ".logfiles/"
         if not os.path.isdir(self.logFolder):
@@ -301,7 +301,7 @@ class OutputHandler:
         # get information about computer
         (opSystem, cpuModel, numberOfCores, maxFrequency, memory) = self.getSystemInfo()
         version = self.getVersion(self.benchmark.tool)
-        
+
         memlimit = None
         timelimit = None
         if (resource.RLIMIT_AS in self.benchmark.rlimits):
@@ -313,7 +313,7 @@ class OutputHandler:
                               numberOfCores, maxFrequency, memory)
         self.writeHeaderToLog(version, memlimit, timelimit, opSystem, cpuModel,
                               numberOfCores, maxFrequency, memory)
-        
+
         # write columntitles of tests in CSV-files, this overwrites existing files
         self.CSVFiles = dict()
         CSVLine = CSV_SEPARATOR.join(
@@ -338,7 +338,7 @@ class OutputHandler:
         if timelimit is not None:
             self.XMLHeader.set("timelimit", timelimit)
 
-        # store systemInfo in XML          
+        # store systemInfo in XML
         osElem = ET.Element("os", {"name": opSystem})
         cpuElem = ET.Element("cpu",
             {"model": cpuModel, "cores": numberOfCores, "frequency" : maxFrequency})
@@ -369,19 +369,19 @@ class OutputHandler:
 
         columnWidth = 20
         simpleLine = "-" * (60) + "\n\n"
-    
+
         header = "   BENCHMARK INFORMATION\n"\
                 + "benchmark:".ljust(columnWidth) + self.benchmark.name + "\n"\
                 + "date:".ljust(columnWidth) + self.benchmark.date + "\n"\
                 + "tool:".ljust(columnWidth) + self.getToolnameForPrinting()\
                 + " " + version + "\n"
-    
+
         if memlimit is not None:
             header += "memlimit:".ljust(columnWidth) + memlimit + "\n"
         if timelimit is not None:
             header += "timelimit:".ljust(columnWidth) + timelimit + "\n"
         header += simpleLine
-    
+
         systemInfo = "   SYSTEM INFORMATION\n"\
                 + "os:".ljust(columnWidth) + opSystem + "\n"\
                 + "cpu:".ljust(columnWidth) + cpuModel + "\n"\
@@ -389,8 +389,8 @@ class OutputHandler:
                 + "- max frequency:".ljust(columnWidth) + maxFrequency + "\n"\
                 + "ram:".ljust(columnWidth) + memory + "\n"\
                 + simpleLine
-    
-        # write to file    
+
+        # write to file
         self.TXTFile = FileWriter(self.getFileName(None, "txt"), header + systemInfo)
 
 
@@ -424,7 +424,7 @@ class OutputHandler:
                               stderr=subprocess.STDOUT).communicate()[0]
 
             # parse output and get revision
-            svnInfoList = [line for line in output.strip('\n').split('\n') 
+            svnInfoList = [line for line in output.strip('\n').split('\n')
                            if ': ' in line]
             svnInfo = dict(map(lambda str: tuple(str.split(': ')),
                                svnInfoList))
@@ -436,9 +436,9 @@ class OutputHandler:
                 output = subprocess.Popen(['git', 'svn', 'info'],
                                   stdout=subprocess.PIPE,
                                   stderr=subprocess.STDOUT).communicate()[0]
-    
+
                 # parse output and get revision
-                svnInfoList = [line for line in output.strip('\n').split('\n') 
+                svnInfoList = [line for line in output.strip('\n').split('\n')
                                if ': ' in line]
                 svnInfo = dict(map(lambda str: tuple(str.split(': ')),
                                    svnInfoList))
@@ -471,7 +471,7 @@ class OutputHandler:
 
             exe = findExecutable("cbmc", defaultExe)
             version = subprocess.Popen([exe, '--version'],
-                              stdout=subprocess.PIPE).communicate()[0].strip()                
+                              stdout=subprocess.PIPE).communicate()[0].strip()
 
         elif (tool == "satabs"):
             exe = findExecutable("satabs", None)
@@ -486,7 +486,7 @@ class OutputHandler:
         elif (tool == "blast"):
             exe = findExecutable("pblast.opt", None)
             version = subprocess.Popen([exe],
-                              stdout=subprocess.PIPE, 
+                              stdout=subprocess.PIPE,
                               stderr=subprocess.STDOUT).communicate()[0][6:9]
 
         return version
@@ -519,7 +519,7 @@ class OutputHandler:
             maxFrequency = cpuInfo['cpu MHz'].split('.')[0].strip() + ' MHz'
 
         # modern cpus may not work with full speed the whole day
-        # read the number from cpufreq and overwrite maxFrequency from above 
+        # read the number from cpufreq and overwrite maxFrequency from above
         freqInfoFilename = '/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq'
         if os.path.isfile(freqInfoFilename) and os.access(freqInfoFilename, os.R_OK):
             frequencyInfoFile = open(freqInfoFilename, "r")
@@ -544,7 +544,7 @@ class OutputHandler:
 
     def outputBeforeTest(self, test):
         """
-        The method outputBeforeTest() calculates the length of the 
+        The method outputBeforeTest() calculates the length of the
         first column for the output in terminal and stores information
         about the test in XML.
         @param test: current test with a list of testfiles
@@ -569,10 +569,10 @@ class OutputHandler:
         numberOfFiles = len(self.test.sourcefiles)
         print("\nrunning test" + \
             (" '" + test.name + "'" if test.name is not None else "") + \
-            ("     (1 file)" if numberOfFiles == 1 
+            ("     (1 file)" if numberOfFiles == 1
                         else "     ({0} files)".format(numberOfFiles)))
 
-        # store testname and options in XML, 
+        # store testname and options in XML,
         # copy benchmarkinfo, limits, columntitles, systeminfo from XMLHeader
         self.testElem = self.getCopyOfXMLElem(self.XMLHeader)
         testOptions = mergeOptions(self.benchmark.options, self.test.options)
@@ -590,7 +590,7 @@ class OutputHandler:
         when a test is skipped.
         There is no message about skipping a test in the xml-file.
         '''
-        
+
         # print to terminal
         print("\nskipping test" + \
             (" '" + test.name + "'" if test.name is not None else ""))
@@ -599,7 +599,7 @@ class OutputHandler:
         numberOfTest = self.benchmark.tests.index(test) + 1
         testInfo = "\n\n"
         if test.name is not None:
-            testInfo += test.name + "\n" 
+            testInfo += test.name + "\n"
         testInfo += "test {0} of {1}: skipped\n".format(
                 numberOfTest, len(self.benchmark.tests))
         self.TXTFile.append(testInfo)
@@ -628,7 +628,7 @@ class OutputHandler:
         if self.test.name is None:
             testInfo = ""
         else:
-            testInfo = self.test.name + "\n" 
+            testInfo = self.test.name + "\n"
         testInfo += "test {0} of {1} with options: {2}\n\n".format(
                 numberOfTest, len(self.benchmark.tests),
                 " ".join(toSimpleList(testOptions)))
@@ -638,7 +638,7 @@ class OutputHandler:
 
         self.test.simpleLine = "-" * (len(titleLine)) + "\n"
 
-        # write into TXTFile    
+        # write into TXTFile
         self.TXTFile.append("\n\n" + testInfo + titleLine + "\n" + self.test.simpleLine)
 
 
@@ -661,8 +661,8 @@ class OutputHandler:
     def outputAfterRun(self, sourcefile, fileOptions, status,
                        cpuTimeDelta, wallTimeDelta, output, args):
         """
-        The method outputAfterRun() prints filename, result, time and status 
-        of a test to terminal and stores all data in XML 
+        The method outputAfterRun() prints filename, result, time and status
+        of a test to terminal and stores all data in XML
         The output is written to a file-specific log-file.
         """
 
@@ -731,7 +731,7 @@ class OutputHandler:
 
     def outputAfterTest(self, cpuTimeTest, wallTimeTest):
         """
-        The method outputAfterTest() stores the times of a test in XML. 
+        The method outputAfterTest() stores the times of a test in XML.
         @params cpuTimeTest, wallTimeTest: times of the test
         """
 
@@ -796,7 +796,7 @@ class OutputHandler:
     def createOutputLine(self, sourcefile, status, cpuTimeDelta, wallTimeDelta, columns, isFirstLine):
         """
         @param sourcefile: title of a sourcefile
-        @param status: status of programm 
+        @param status: status of programm
         @param cpuTimeDelta: time from running the programm
         @param wallTimeDelta: time from running the programm
         @param columns: list of columns with a title or a value
@@ -816,7 +816,7 @@ class OutputHandler:
         for column in columns:
             columnLength = max(minLengthOfColumns, len(column.title)) + 2
 
-            if isFirstLine: 
+            if isFirstLine:
                 value = column.title
             else:
                 value = column.value
@@ -836,17 +836,17 @@ class OutputHandler:
             with a number of digits after the decimal separator.
             If the number has more digits, it is rounded.
             If the number has less digits, zeros are added.
-    
+
             @param number: the number to format
             @param digits: the number of digits
             """
-    
+
             return "%.{0}f".format(numberOfDigits) % number
 
 
     def getFileName(self, testname, fileExtension):
         '''
-        This function returns the name of the file of a test 
+        This function returns the name of the file of a test
         with an extension ("txt", "xml", "csv").
         '''
 
@@ -890,10 +890,10 @@ class Statistics:
 
 def getOptions(optionsTag):
     '''
-    This function searches for options in a tag 
+    This function searches for options in a tag
     and returns a list with tuples of (name, value).
     '''
-    return [(option.get("name"), option.text) 
+    return [(option.get("name"), option.text)
                for option in optionsTag.findall("option")]
 
 
@@ -920,7 +920,7 @@ def mergeOptions(benchmarkOptions, testOptions=[], fileOptions=[]):
 
 def toSimpleList(listOfPairs):
     '''
-    This function converts a list of pairs to a list. 
+    This function converts a list of pairs to a list.
     Each pair of key and value is divided into 2 listelements.
     All "None"-values are removed.
     '''
@@ -967,18 +967,18 @@ class FileWriter:
 def findExecutable(program, default):
     def isExecutable(programPath):
         return os.path.isfile(programPath) and os.access(programPath, os.X_OK)
-    
+
     dirs = os.environ['PATH'].split(os.pathsep)
     dirs.append(".")
-    
+
     for dir in dirs:
         name = os.path.join(dir, program)
         if isExecutable(name):
             return name
-    
+
     if default is not None and isExecutable(default):
         return default
-    
+
     sys.exit("ERROR: Could not find %s executable" % program)
 
 
@@ -1012,7 +1012,7 @@ def run(args, rlimits, runningDir=None, runningEnv=None):
                          + "in the PATH environment variable or an alias is set.")
         sys.exit("A critical exception caused me to exit non-gracefully. Bye.")
 
-    # if rlimit does not work, a seperate Timer is started to kill the subprocess, 
+    # if rlimit does not work, a seperate Timer is started to kill the subprocess,
     # Timer has 10 seconds 'overhead'
     from threading import Timer
     if (resource.RLIMIT_CPU in rlimits):
@@ -1023,7 +1023,7 @@ def run(args, rlimits, runningDir=None, runningEnv=None):
 
     output = p.stdout.read()
     returncode = p.wait()
-    
+
     if (0 in rlimits) and timer.isAlive():
         timer.cancel()
 
@@ -1040,21 +1040,21 @@ def run(args, rlimits, runningDir=None, runningEnv=None):
 def run_cbmc(options, sourcefile, columns, rlimits):
     if ("--xml-ui" not in options):
         options = options + ["--xml-ui"]
-        
+
     defaultExe = None
     if platform.machine() == "x86_64":
         defaultExe = "lib/native/x86_64-linux/cbmc"
     elif platform.machine() == "i386":
         defaultExe = "lib/native/x86-linux/cbmc"
-    
+
     exe = findExecutable("cbmc", defaultExe)
     args = [exe] + options + [sourcefile]
     (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
-    
+
     #an empty tag cannot be parsed into a tree
     output = output.replace("<>", "<emptyTag>")
     output = output.replace("</>", "</emptyTag>")
-    
+
     if ((returncode == 0) or (returncode == 10)):
         try:
             tree = ET.fromstring(output)
@@ -1213,7 +1213,7 @@ def prepareSourceFileForAcsar(sourcefile):
 def run_cpachecker(options, sourcefile, columns, rlimits):
     if ("-stats" not in options):
         options = options + ["-stats"]
-        
+
     exe = findExecutable("cpachecker", "scripts/cpa.sh")
     args = [exe] + options + [sourcefile]
     (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
@@ -1226,11 +1226,11 @@ def run_cpachecker(options, sourcefile, columns, rlimits):
 
 def getCPAcheckerStatus(returncode, output, rlimits, cpuTimeDelta):
     """
-    @param returncode: code returned by CPAchecker 
+    @param returncode: code returned by CPAchecker
     @param output: the output of CPAchecker
     @return: status of CPAchecker after running a testfile
     """
-    
+
     def isOutOfMemory(line):
         return ('java.lang.OutOfMemoryError' in line
              or 'std::bad_alloc'             in line # C++ out of memory exception
@@ -1355,29 +1355,29 @@ def runBenchmark(benchmarkFile):
             # get times before test
             ruBefore = resource.getrusage(resource.RUSAGE_CHILDREN)
             wallTimeBefore = time.time()
-    
+
             outputHandler.outputBeforeTest(test)
-    
+
             for (sourcefile, fileOptions) in test.sourcefiles:
-    
+
                 currentOptions = toSimpleList(mergeOptions(
                                     benchmark.options, test.options, fileOptions))
                 outputHandler.outputBeforeRun(sourcefile, currentOptions)
-    
+
                 # run test
                 (status, cpuTimeDelta, wallTimeDelta, output, args) = \
                     run_func(currentOptions, sourcefile, benchmark.columns, benchmark.rlimits)
-    
+
                 outputHandler.outputAfterRun(sourcefile, fileOptions, status,
                                              cpuTimeDelta, wallTimeDelta, output, args)
-    
+
             # get times after test
             wallTimeAfter = time.time()
             wallTimeTest = wallTimeAfter - wallTimeBefore
             ruAfter = resource.getrusage(resource.RUSAGE_CHILDREN)
             cpuTimeTest = (ruAfter.ru_utime + ruAfter.ru_stime)\
             - (ruBefore.ru_utime + ruBefore.ru_stime)
-    
+
             outputHandler.outputAfterTest(cpuTimeTest, wallTimeTest)
 
     outputHandler.outputAfterBenchmark()
@@ -1396,12 +1396,12 @@ def main(argv=None):
                       help="enable debug output")
 
     parser.add_option("-t", "--test", dest="testRunOnly",
-                      help="run only a special TEST from xml-file", 
+                      help="run only a special TEST from xml-file",
                       metavar="TEST")
 
     global options
     (options, args) = parser.parse_args(argv)
-    
+
     if len(args) < 2:
         parser.error("invalid number of arguments")
     if (options.debug):
@@ -1409,7 +1409,7 @@ def main(argv=None):
                             level=logging.DEBUG)
     else:
         logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s")
-        
+
     for arg in args[1:]:
         if not os.path.exists(arg) or not os.path.isfile(arg):
             parser.error("File {0} does not exist.".format(repr(arg)))
@@ -1436,7 +1436,7 @@ if __name__ == "__main__":
             timer.cancel() # Timer, that kills a subprocess after timelimit
         except NameError:
             pass # if no timer is defined, do nothing
-        
+
         try:
             killSubprocess(p) # kill running tool
         except NameError:

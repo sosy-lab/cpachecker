@@ -61,7 +61,7 @@ def getEmptyElements(listOfTestTags):
 
 def getSourcefileDics(listOfSourcefileTags):
     '''
-    this function return a list of dictionaries 
+    this function return a list of dictionaries
     with key=filename and value=resultElem.
     '''
     listOfSourcefileDics = []
@@ -81,12 +81,12 @@ def getSourcefileDics(listOfSourcefileTags):
 
 def getAllFilenames(listOfSourcefileDics):
     '''
-    this function returns all filenames for a 'complete' diff, 
+    this function returns all filenames for a 'complete' diff,
     in alphabetical order.
     '''
     # casting to set and back to list removes doubles and mixes the filenames
-    allFilenames = list(set(filename 
-                            for sfDic in listOfSourcefileDics 
+    allFilenames = list(set(filename
+                            for sfDic in listOfSourcefileDics
                             for filename in sfDic))
     allFilenames.sort()
     return allFilenames
@@ -114,13 +114,13 @@ def getFilenameList(listOfSourcefileTags, listOfSourcefileDics, compare):
 
 def compareResults(xmlFiles, compare):
     print '\ncomparing results ...'
-    
+
     resultFiles = FileUtil.extendFileList(xmlFiles)
-    
+
     if len(resultFiles) == 0:
         print 'Resultfile not found. Check your filenames!'
         sys.exit()
-    
+
     listOfTestTags = [ET.ElementTree().parse(resultFile)
                        for resultFile in resultFiles]
 
@@ -131,7 +131,7 @@ def compareResults(xmlFiles, compare):
     listOfSourcefileTags = [elem.findall('sourcefile') for elem in listOfTestTags]
     maxLen = max((len(file.get('name')) for file in listOfSourcefileTags[0]))
     listOfSourcefileDics = getSourcefileDics(listOfSourcefileTags)
-    
+
     # get list of filenames for table
     filenames = getFilenameList(listOfSourcefileTags, listOfSourcefileDics, compare)
 
@@ -196,7 +196,7 @@ def allEqualResult(sourcefileTags):
     if len(sourcefileTags) > 1:
         name = sourcefileTags[0].get('name')
         status = getStatus(sourcefileTags[0])
-        
+
         for sourcefileTag in sourcefileTags:
             if name != sourcefileTag.get('name'):
                 print 'wrong filename in xml'
@@ -225,12 +225,12 @@ def XMLtoString(elem):
 
 
 def main(args=None):
-    
+
     if args is None:
         args = sys.argv
-        
+
     parser = optparse.OptionParser('%prog [options] result_1.xml ... result_n.xml')
-    parser.add_option("-c", "--compare", 
+    parser.add_option("-c", "--compare",
         action="store", type="string", dest="compare",
         help="Which sourcefiles should be compared? " + \
              "Use 'a' for 'all' or a number for the position."

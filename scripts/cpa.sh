@@ -75,14 +75,14 @@ export PATH="$PATH:$arch_platform_path"
 
 # loop over all input parameters and parse them
 declare -a OPTIONS
-while [ $# -gt 0 ]; do 
+while [ $# -gt 0 ]; do
 
   case $1 in
    "-heap")
        shift
        JAVA_HEAP_SIZE=$1
        ;;
-   "-debug")  
+   "-debug")
        JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=5005,suspend=n"
        ;;
    *) # other params are only for CPAchecker

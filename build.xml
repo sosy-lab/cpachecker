@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project basedir="." default="build" name="CPAchecker">
     <property name="version" value="1.1"/> <!-- change here for a release -->
-	
+
     <property environment="env"/>
     <property name="debuglevel" value="source,lines,vars"/>
     <property name="target" value="1.6"/>
@@ -73,9 +73,9 @@
         </java>
         <echo message="Options collected." level="info"/>
     </target>
-	
+
     <target description="Make a distributable release" depends="build,jar,zip,tar" name="dist"/>
-	
+
     <target name="jar" depends="build">
 	<jar basedir="bin/" includes="**/*.class" destfile="cpachecker.jar"
 		whenmanifestonly="fail">
@@ -87,7 +87,7 @@
 	     </manifest>
 	</jar>
     </target>
-	
+
     <target name="zip" depends="jar">
 	<property name="namez" value="CPAchecker-${version}-windows"/>
 	<zip destfile="${namez}.zip" whenempty="fail">
