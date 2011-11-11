@@ -31,6 +31,7 @@
         <delete dir="bin"/>
         <delete file="cpachecker.jar"/>
         <delete file="CPAchecker-*.zip"/>
+        <delete file="CPAchecker-*.tar.*"/>
     </target>
     <target depends="clean" name="cleanall"/>
     <target depends="build-subprojects,build-project,build-documentation" name="build"/>
@@ -74,7 +75,7 @@
         <echo message="Options collected." level="info"/>
     </target>
 	
-    <target description="Make a distributable release" depends="build,jar,zip" name="dist"/>
+    <target description="Make a distributable release" depends="build,jar,zip,tar" name="dist"/>
 	
     <target name="jar" depends="build">
 	<jar basedir="bin/" includes="**/*.class" destfile="cpachecker.jar"
@@ -89,10 +90,18 @@
     </target>
 	
     <target name="zip" depends="jar">
-        <zip destfile="CPAchecker-${version}.zip" whenempty="fail">
-	    <fileset dir="." includes="config/** doc/** scripts/** cpachecker.jar *.txt"/>
-	    <fileset dir="." includes="lib/**" excludes="lib/build-only/** lib/native/source/**"/>
+	<zip destfile="CPAchecker-windows-${version}.zip" whenempty="fail">
+	    <zipfileset dir="." includes="config/** doc/** scripts/*.bat scripts/*.txt cpachecker.jar *.txt" prefix="CPAchecker-windows-${version}/"/>
+	    <zipfileset dir="." includes="lib/**" excludes="lib/build-only/** lib/native/**" prefix="CPAchecker-windows-${version}/"/>
+	    <zipfileset dir="." includes="lib/native/*win*/**" prefix="CPAchecker-windows-${version}/"/>
 	</zip>
+    </target>
+
+    <target name="tar" depends="jar">
+	<tar destfile="CPAchecker-linux-${version}.tar.bz2" compression="bzip2">
+	    <tarfileset dir="." includes="config/** doc/** scripts/*.* cpachecker.jar *.txt" excludes="scripts/*.bat" prefix="CPAchecker-linux-${version}/"/>
+	    <tarfileset dir="." includes="lib/**" excludes="lib/build-only/** lib/native/source/** lib/native/*win*/**" prefix="CPAchecker-linux-${version}/"/>
+	</tar>
     </target>
 
     <target description="Run all JUnit tests" depends="build" name="tests">
