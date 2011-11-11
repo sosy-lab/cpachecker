@@ -28,10 +28,9 @@
 	-->
     </target>
     <target name="clean">
-        <delete dir="bin"/>
-        <delete file="cpachecker.jar"/>
-        <delete file="CPAchecker-*.zip"/>
-        <delete file="CPAchecker-*.tar.*"/>
+	<delete>
+	    <fileset dir="." includes="bin cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
+	</delete>
     </target>
     <target depends="clean" name="cleanall"/>
     <target depends="build-subprojects,build-project,build-documentation" name="build"/>
