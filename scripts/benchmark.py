@@ -407,7 +407,7 @@ class OutputHandler:
         else:
             return str(self.benchmark.tool)
 
-
+# this function only for development, currently unused
     def getVersionOfCPAchecker(self):
         '''
         get info about CPAchecker from local svn- or git-svn-directory
@@ -460,7 +460,9 @@ class OutputHandler:
 
         version = ''
         if (tool == "cpachecker"):
-            version = self.getVersionOfCPAchecker()
+            exe = findExecutable("cpachecker", "scripts/cpa.sh")
+            version = subprocess.Popen([exe, '-help'],
+                stdout=subprocess.PIPE).communicate()[0].splitlines()[0].split()[1].strip()
 
         elif (tool == "cbmc"):
             defaultExe = None
@@ -989,7 +991,7 @@ def killSubprocess(process):
     os.killpg(process.pid, signal.SIGTERM)
 
 
-def run(args, rlimits, runningDir=None, runningEnv=None):
+def run(args, rlimits):
     args = map(lambda arg: os.path.expandvars(arg), args)
     args = map(lambda arg: os.path.expanduser(arg), args)
 
