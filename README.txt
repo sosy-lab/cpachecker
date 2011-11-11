@@ -51,6 +51,10 @@ Verifying a Program with CPAchecker
    This example can also be abbreviated to:
    scripts/cpa.sh -predicateAnalysis doc/examples/example.c
 
+   On Windows, you need to use cpa.bat instead of cpa.sh.
+   Also, predicateAnalysis is currently not supported on Windows,
+   so you need to use other analyses like explicitAnalysis.
+
 5. Additionally to the console output, there will be several files in the directory output/:
      ART.dot: Visualization of abstract reachability tree (Graphviz format)
      cfa*.dot: Visualization of control flow automaton (Graphviz format)
