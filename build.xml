@@ -89,30 +89,32 @@
     </target>
 	
     <target name="zip" depends="jar">
-	<zip destfile="CPAchecker-windows-${version}.zip" whenempty="fail">
-	    <zipfileset dir="." includes="config/** doc/** scripts/*.bat scripts/*.txt cpachecker.jar *.txt" prefix="CPAchecker-windows-${version}/"/>
-	    <zipfileset dir="." includes="lib/**" excludes="lib/build-only/** lib/native/** lib/eclipse/*.source_*" prefix="CPAchecker-windows-${version}/"/>
-	    <zipfileset dir="." includes="lib/native/*win*/**" prefix="CPAchecker-windows-${version}/"/>
+	<property name="namez" value="CPAchecker-${version}-windows"/>
+	<zip destfile="${namez}.zip" whenempty="fail">
+	    <zipfileset dir="." includes="config/** doc/** scripts/*.bat scripts/*.txt cpachecker.jar *.txt" prefix="${namez}/"/>
+	    <zipfileset dir="." includes="lib/**" excludes="lib/build-only/** lib/native/** lib/eclipse/*.source_*" prefix="${namez}/"/>
+	    <zipfileset dir="." includes="lib/native/*win*/**" prefix="${namez}/"/>
 	</zip>
     </target>
 
     <target name="tar" depends="jar">
-	<tar destfile="CPAchecker-linux-${version}.tar.bz2" compression="bzip2">
+	<property name="namet" value="CPAchecker-${version}-unix"/>
+	<tar destfile="${namet}.tar.bz2" compression="bzip2">
 	    <tarfileset dir="."
 		includes="config/** doc/** cpachecker.jar *.txt"
-		prefix="CPAchecker-linux-${version}/"/>
+		prefix="${namet}/"/>
 	    <tarfileset dir="scripts"
 		includes="*.*"
 		excludes="*.bat *.sh *.py"
-		prefix="CPAchecker-linux-${version}/scripts/"/>
+		prefix="${namet}/scripts/"/>
 	    <tarfileset dir="lib"
 		includes="*.* eclipse/*"
 		excludes="eclipse/*.source_*"
-		prefix="CPAchecker-linux-${version}/lib/"/>
+		prefix="${namet}/lib/"/>
 	    <tarfileset dir="." filemode="755"
 		includes="scripts/*.sh scripts/*.py lib/native/**"
 		excludes="lib/native/source/** lib/native/*win*/**"
-		prefix="CPAchecker-linux-${version}/"/>
+		prefix="${namet}/"/>
 	</tar>
     </target>
 
