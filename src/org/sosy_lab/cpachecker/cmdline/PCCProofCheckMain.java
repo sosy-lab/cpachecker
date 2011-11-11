@@ -53,7 +53,7 @@ public class PCCProofCheckMain {
 
     //TODO possibly add values
     @Option(name = "pcc.proofgen.algorithm", description = "Type of the algorithm which should be used for PCC")
-    private PCCAlgorithmType algorithmType        = PCCAlgorithmType.SBEWithoutIndicesAsART;
+    private PCCAlgorithmType algorithmType        = PCCAlgorithmType.SBENOINDART;
     @Option(name = "pcc.proofgen.doPCC", description = "")
     private boolean          doPCC                = false;
     //TODO further values if other algorithms available
@@ -84,7 +84,7 @@ public class PCCProofCheckMain {
         LogManager pLogger) throws InvalidConfigurationException {
       ProofCheckAlgorithm algorithm = null;
       switch (algorithmType) {
-      case SBEWithoutIndicesAsART: {
+      case SBENOINDART: {
         if (alwaysAfterThreshold && threshold == 1 && switchToLBEAfter == 0
             && cartesianAbstraction) {
           algorithm =
@@ -93,7 +93,7 @@ public class PCCProofCheckMain {
         }
         break;
       }
-      case SBEWithIndicesAsART: {
+      case SBEINDART: {
         if (alwaysAfterThreshold && threshold == 1 && switchToLBEAfter == 0
             && cartesianAbstraction) {
           algorithm =
@@ -102,7 +102,7 @@ public class PCCProofCheckMain {
         }
         break;
       }
-      case SBEWithoutIndicesAsInvariant: {
+      case SBENOINDINVARIANT: {
         if (alwaysAfterThreshold && threshold == 1 && switchToLBEAfter == 0
             && cartesianAbstraction) {
           algorithm =
@@ -111,7 +111,7 @@ public class PCCProofCheckMain {
         }
         break;
       }
-      case SBEWithIndicesAsInvariant: {
+      case SBEINDINVARIANT: {
         if (alwaysAfterThreshold && threshold == 1 && switchToLBEAfter == 0
             && cartesianAbstraction) {
           algorithm =

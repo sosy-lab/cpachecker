@@ -24,8 +24,8 @@
 package org.sosy_lab.pcc.common;
 
 public enum PCCAlgorithmType {
-  SBEWithIndicesAsART,
-  SBEWithoutIndicesAsART,
-  SBEWithIndicesAsInvariant,
-  SBEWithoutIndicesAsInvariant
+  SBEINDART,
+  SBENOINDART,
+  SBEINDINVARIANT,
+  SBENOINDINVARIANT
 }

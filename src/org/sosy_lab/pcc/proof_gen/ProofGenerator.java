@@ -47,7 +47,7 @@ public class ProofGenerator {
 
   //TODO possibly add values
   @Option(name = "pcc.proofgen.algorithm", description = "Type of the algorithm which should be used for PCC")
-  private PCCAlgorithmType  algorithmType        = PCCAlgorithmType.SBEWithoutIndicesAsART;
+  private PCCAlgorithmType  algorithmType        = PCCAlgorithmType.SBENOINDART;
   @Option(name = "pcc.proofgen.doPCC", description = "")
   private boolean           doPCC                = false;
   //TODO further values if other algorithms available
@@ -71,7 +71,7 @@ public class ProofGenerator {
     pConfig.inject(this);
     if (doPCC) {
       switch (algorithmType) {
-      case SBEWithoutIndicesAsART: {
+      case SBENOINDART: {
         if (alwaysAfterThreshold && switchToLBEAfter == 0 && threshold == 1
             && cartesianAbstraction) {
           algorithm = new SBEWithoutIndices_ARTProofGenAlgorithm(pConfig, pLogger);
@@ -83,7 +83,7 @@ public class ProofGenerator {
         }
         break;
       }
-      case SBEWithIndicesAsART: {
+      case SBEINDART: {
         if (alwaysAfterThreshold && switchToLBEAfter == 0 && threshold == 1
             && cartesianAbstraction) {
           algorithm = new SBEWithIndices_ARTProofGenAlgorithm(pConfig, pLogger);
@@ -95,7 +95,7 @@ public class ProofGenerator {
         }
         break;
       }
-      case SBEWithoutIndicesAsInvariant: {
+      case SBENOINDINVARIANT: {
         if (alwaysAfterThreshold && switchToLBEAfter == 0 && threshold == 1
             && cartesianAbstraction) {
           algorithm = new SBEWithoutIndices_InvariantProofGenAlgorithm(pConfig, pLogger);
@@ -107,7 +107,7 @@ public class ProofGenerator {
         }
         break;
       }
-      case SBEWithIndicesAsInvariant:{
+      case SBEINDINVARIANT:{
         if (alwaysAfterThreshold && switchToLBEAfter == 0 && threshold == 1
             && cartesianAbstraction) {
           algorithm = new SBEWithIndices_InvariantProofGenAlgorithm(pConfig, pLogger);
