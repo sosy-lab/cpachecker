@@ -9,11 +9,8 @@ SHIFT
 goto parameterparsing
 :cont
 
-:: go to dir "CPAchecker" (assuming we are in dir "CPAchecker" or in a direct subdirectory)
-if NOT EXIST bin CD ..\
-
 :: build the Classpath: bin directory, every .jar in lib and every .jar in lib/eclipse/ 
-set CLASSPATH=bin:cpachecker.jar
+set CLASSPATH=bin;cpachecker.jar
 for %%i in (lib\*.jar) do call scripts\classpath.bat %%i
 for %%i in (lib\eclipse\*.jar) do call scripts\classpath.bat %%i
 
