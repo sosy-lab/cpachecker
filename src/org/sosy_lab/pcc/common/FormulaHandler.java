@@ -77,15 +77,44 @@ public class FormulaHandler {
   }
 
   public Formula createFormula(String pString) {
-    // TODO become more robust is variables are unknown
     if (pString == null || pString.length() == 0) { throw new IllegalArgumentException(
         "It is not a valid formula."); }
-    try{
-    Formula f = fm.parseInfix(pString);
-    return f;
-    }catch(IllegalArgumentException e){
+    // get all variables and try to declare them
+    String[] vars = getVariables(pString);
+    if (vars == null) { return null; }
+    for (int i = 0; i < vars.length; i++) {
+      try {
+        fm.makeVariable(vars[i]); // TODO test
+      } catch (IllegalArgumentException e) {
+        // variable already declared do nothing
+      }
+    }
+    try {
+      Formula f = fm.parseInfix(pString);
+      return f;
+    } catch (IllegalArgumentException e) {
       return null;
     }
+  }
+
+  private String[] getVariables(String pFormula) {
+    if (pFormula == null) { return null; }
+    HashSet<String> foundVars = new HashSet<String>();
+    //adapt abstraction such that pattern also matches at beginning and end of string
+    pFormula = " " + pFormula + " ";
+    //get all variables
+    Pattern patVarSSAAbstraction =
+        Pattern
+            .compile("[\\W&&[^@]]([_A-Za-z](\\w)*::)?([_A-Za-z](\\w)*(@(\\d)+))?[\\W&&[^@]]");
+    Matcher match = patVarSSAAbstraction.matcher(pFormula);
+    String variable;
+    while (match.find()) {
+      variable = pFormula.substring(match.start() + 1, match.end() - 1);
+      if (!foundVars.contains(variable)) {
+        foundVars.add(variable);
+      }
+    }
+    return foundVars.toArray(new String[foundVars.size()]);
   }
 
   public boolean isFalse(String pFormula) {
@@ -98,32 +127,45 @@ public class FormulaHandler {
     }
   }
 
-  public boolean isFalse(Formula pFormula){
-    if(pFormula == null){
-      return false;
-    }
-    if(pFormula.isFalse()){
-      return true;
-    }
+  public boolean isFalse(Formula pFormula) {
+    if (pFormula == null) { return false; }
+    if (pFormula.isFalse()) { return true; }
     tp.init();
     boolean result = tp.isUnsat(pFormula);
     tp.reset();
     return result;
   }
 
-  @SuppressWarnings("deprecation")
+  @SuppressWarnings("deprecation")// do not call since uninstantiate is buggy
   public Formula removeIndices(Formula pFormula) {
-    // TODO write own method, uninstantiate seems to be buggy (return String)
     try {
+
       return fm.uninstantiate(pFormula);
     } catch (IllegalArgumentException e) {
       return null;
     }
   }
 
-  public String removeIndicesStr(Formula pFormula){
-    // TODO implement replace at necessary part
-    return null;
+  public String removeIndicesStr(Formula pFormula) {
+    if(pFormula == null){return null;}
+    String pInput = pFormula.toString();
+    StringBuilder newStr = new StringBuilder();
+    Pattern pat = Pattern.compile("[\\W&&[^@]]([_A-Za-z](\\w)*::)?([_A-Za-z](\\w)*@(\\d)+)[\\W&&[^@]]");
+    // adapt input such that pattern also matches at beginning and end
+    pInput = " " + pInput + " ";
+    Matcher match = pat.matcher(pInput);
+    int lastIndex = 0;
+    while (match.find()) {
+      // add content between matches plus first identifier of match which was needed to ensure that only this variable is found
+      newStr.append(pInput.substring(lastIndex, pInput.indexOf("@", match.start())));
+      // set lastIndex, also integrate last identifier of match
+      lastIndex = match.end() - 1;
+    }
+    // add rest of string
+    if (lastIndex < pInput.length()) {
+      newStr.append(pInput.substring(lastIndex, pInput.length()));
+    }
+    return newStr.substring(1, newStr.length() - 1);
   }
 
   public Pair<Formula, SSAMap> addIndices(SSAMap pSSA, Formula pFormula) {
@@ -348,7 +390,7 @@ public class FormulaHandler {
     return pFormula1.equals(pFormula2);
   }
 
-  public String replaceVariable(String pOldVar, String pInput, String pNewVar) {
+  private String replaceVariable(String pOldVar, String pInput, String pNewVar) {
     if (pOldVar == null || pInput == null || pNewVar == null) { return null; }
     StringBuilder newStr = new StringBuilder();
     Pattern pat = Pattern.compile("\\W" + pOldVar + "\\W");
@@ -372,7 +414,7 @@ public class FormulaHandler {
 
   }
 
-  public Vector<Pair<String, Integer>> getIndicesForVariables(String pFormula) {
+  private Vector<Pair<String, Integer>> getIndicesForVariables(String pFormula) {
     Vector<Pair<String, Integer>> foundVar =
         new Vector<Pair<String, Integer>>();
     HashSet<String> found = new HashSet<String>();
@@ -459,7 +501,10 @@ public class FormulaHandler {
       String pOperation, boolean pAssume) {
     // get highest indices for variables in pAbstraction
     Hashtable<String, Integer> highestIndices = getHighestIndices(pAbstraction);
-    if (highestIndices == null) { System.out.println("Test1"); return false; }
+    if (highestIndices == null) {
+      System.out.println("Test1");
+      return false;
+    }
     String intermediate;
 
     for (String var : highestIndices.keySet()) {
@@ -467,7 +512,10 @@ public class FormulaHandler {
         // all variables are only allowed to have same indices as highest indices
         intermediate =
             pOperation.replaceAll(var + "@" + highestIndices.get(var), "");
-        if (intermediate.contains(var)) { System.out.println("Test2"); return false; }
+        if (intermediate.contains(var)) {
+          System.out.println("Test2");
+          return false;
+        }
       } else {
         // eliminate all variables of this kind on the left hand of the assignment
         intermediate =
@@ -479,7 +527,10 @@ public class FormulaHandler {
             intermediate.replaceAll(
                 var + "@" + highestIndices.get(var)
                     + "(\\s)*[p{Punct}&&[^=]]", "");
-        if (intermediate.contains(var)) { System.out.println("Test3");return false; }
+        if (intermediate.contains(var)) {
+          System.out.println("Test3");
+          return false;
+        }
       }
     }
     return true;

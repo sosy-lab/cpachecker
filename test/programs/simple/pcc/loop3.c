@@ -7,7 +7,7 @@ void main() {
 
   while(1) {
     if(i== 20){
-       goto LOOPEND;
+       break;
     }
     else{
        i++;
