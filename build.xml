@@ -4,10 +4,13 @@
 
     <property environment="env"/>
     <property name="debuglevel" value="source,lines,vars"/>
-    <property name="target" value="1.6"/>
-    <property name="source" value="1.6"/>
+    <property name="source.format" value="1.6"/>
+    <property name="source.dir" value="src"/>
+    <property name="class.format" value="1.6"/>
+    <property name="class.dir" value="bin"/>
+
     <path id="CPAchecker.classpath">
-        <pathelement location="bin"/>
+	<pathelement location="${class.dir}"/>
         <fileset dir="lib" includes="**/*.jar"/>
     </path>
     <condition property="architecture" value="x86_64" else="x86">
@@ -20,16 +23,11 @@
         <os family="windows"/>
     </condition>
     <target name="init">
-        <mkdir dir="bin"/>
-	<!-- seems not to be necessary
-	<copy includeemptydirs="false" todir="bin">
-            <fileset dir="src" excludes="**/*.launch, **/*.java"/>
-	</copy>
-	-->
+	<mkdir dir="${class.dir}"/>
     </target>
     <target name="clean">
 	<delete includeEmptyDirs="true">
-	    <fileset dir="." includes="bin/** cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
+	    <fileset dir="." includes="${class.dir}/** cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
 	</delete>
     </target>
     <target depends="clean" name="cleanall"/>
@@ -43,16 +41,15 @@
 
     <target depends="init" name="build-project">
         <echo message="${ant.project.name}: ${ant.file}"/>
-        <javac debug="true" debuglevel="${debuglevel}" destdir="bin" source="${source}" target="${target}" encoding="UTF-8">
-            <src path="src"/>
-	    <exclude name="org/sosy_lab/cpachecker/cpaplugin/**"/>
+	<javac debug="true" debuglevel="${debuglevel}" destdir="${class.dir}" source="${source.format}" target="${class.format}" encoding="UTF-8">
+	    <src path="${source.dir}"/>
             <classpath refid="CPAchecker.classpath"/>
         </javac>
     </target>
 
     <property name="outputfile" value="doc/ConfigurationOptions.txt"/>
     <uptodate property="documentation.uptodate" targetfile="${outputfile}">
-      <srcfiles dir="src" includes="**/*.java"/>
+	<srcfiles dir="${source.dir}" includes="**/*.java"/>
     </uptodate>
 
     <target name="build-documentation" depends="build-project" unless="documentation.uptodate">
@@ -77,7 +74,7 @@
     <target description="Make a distributable release" depends="build,jar,zip,tar" name="dist"/>
 
     <target name="jar" depends="build">
-	<jar basedir="bin/" includes="**/*.class" destfile="cpachecker.jar"
+	<jar basedir="${class.dir}/" includes="**/*.class" destfile="cpachecker.jar"
 		whenmanifestonly="fail">
 	    <manifest>
 	    	<attribute name="Implementation-Title" value="CPAchecker"/>
@@ -128,7 +125,7 @@
             <formatter type="plain"/>
             <classpath refid="CPAchecker.classpath"/>
             <batchtest fork="true" todir="${test.report.dir}">
-                <fileset dir="${basedir}/bin">
+                <fileset dir="${class.dir}">
                     <include name="**/*Test.*"/>
                     <exclude name="**/*$*Test.*"/>
 		    <exclude name="org/sosy_lab/cpachecker/util/octagon/OctLibraryTest.class"/>
