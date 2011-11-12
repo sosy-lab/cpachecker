@@ -28,8 +28,8 @@
 	-->
     </target>
     <target name="clean">
-	<delete>
-	    <fileset dir="." includes="bin cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
+	<delete includeEmptyDirs="true">
+	    <fileset dir="." includes="bin/** cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
 	</delete>
     </target>
     <target depends="clean" name="cleanall"/>
