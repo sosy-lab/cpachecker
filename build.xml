@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project basedir="." default="build" name="CPAchecker">
-    <property name="version" value="1.1-svn/> <!-- change here for a release -->
+    <property name="version" value="1.1-svn"> <!-- change here for a release -->
 
     <property environment="env"/>
     <property name="debuglevel" value="source,lines,vars"/>
