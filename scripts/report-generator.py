@@ -19,19 +19,19 @@ class Template(object):
     """
     a pretty limited template "engine" :)
     """
-    
+
     def __init__(self, infile, outfile):
         self.infile = infile
         self.outfile = outfile
-        
+
     def render(self, **kws):
         """
         pass kwargs here. The value should be a callable that returns the string to insert for the key.
-        
+
         render(test=lambda : "This is a test!!") will substitute {{{test}}} for "This is a test!!"
-        
+
         WARNING: currently only one template var e.g. {{{test}}} may appear on a single line in the template.
-        
+
         """
         for line in self.infile:
             match = SUBSTITUTION_RE.search(line)
@@ -71,53 +71,53 @@ def call_dot(infile, outpath):
 def main():
 
     parser = optparse.OptionParser('%prog [options] sourcefile')
-    parser.add_option("-r", "--reportpath", 
-        action="store", 
-        type="string", 
+    parser.add_option("-r", "--reportpath",
+        action="store",
+        type="string",
         dest="reportdir",
         help="Directory for report"
     )
-    parser.add_option("-o", "--outputpath", 
-        action="store", 
-        type="string", 
+    parser.add_option("-o", "--outputpath",
+        action="store",
+        type="string",
         dest="outdir",
         help="CPAChecker output.path"
     )
-    parser.add_option("-a", "--art", 
-        action="store", 
-        type="string", 
+    parser.add_option("-a", "--art",
+        action="store",
+        type="string",
         dest="art",
         help="CPAChecker ART.file"
     )
-    parser.add_option("-l", "--logfile", 
-        action="store", 
-        type="string", 
+    parser.add_option("-l", "--logfile",
+        action="store",
+        type="string",
         dest="logfile",
         help="CPAChecker log.file"
     )
-    parser.add_option("-s", "--statistics", 
-        action="store", 
-        type="string", 
+    parser.add_option("-s", "--statistics",
+        action="store",
+        type="string",
         dest="statsfile",
         help="CPAChecker statistics.file"
     )
-    parser.add_option("-e", "--errorpath", 
-        action="store", 
-        type="string", 
+    parser.add_option("-e", "--errorpath",
+        action="store",
+        type="string",
         dest="errorpath",
         help="CPAChecker cpa.art.errorPath.json"
     )
     parser.add_option("-c", "--config",
-        action="store", 
-        type="string", 
+        action="store",
+        type="string",
         dest="conffile",
         help="path to CPAChecker config file"
     )
-    
+
     options, args = parser.parse_args()
     if len(args) != 1:
          parser.error('Incorrect number of arguments, you need to specify the source code file')
-    
+
     print 'Generating report'
     scriptdir = os.path.dirname(__file__)
     cpacheckerdir = os.path.normpath(os.path.join(scriptdir, '..'))
@@ -128,7 +128,7 @@ def main():
     artfilepath = options.art or os.path.join(cpaoutdir, 'ART.dot')
     errorpath = options.errorpath or os.path.join(cpaoutdir, 'ErrorPath.json')
     combinednodes = os.path.join(reportdir, 'combinednodes.json')
-    cfainfo = os.path.join(reportdir, 'cfainfo.json')    
+    cfainfo = os.path.join(reportdir, 'cfainfo.json')
     fcalledges = os.path.join(reportdir, 'fcalledges.json')
     logfile = options.logfile or os.path.join(cpaoutdir, 'CPALog.txt')
     statsfile = options.statsfile or os.path.join(cpaoutdir, 'Statistics.txt')
@@ -163,7 +163,7 @@ def main():
     def format_cil():
         if not os.path.isfile(cilfile):
             return '<h3>CIL file not found.</h3>'
-        else:            
+        else:
             with open(cilfile, 'r') as fp:
                 buff = ['<table id="cil_holder">']
                 for no, line in enumerate(fp):
@@ -198,7 +198,7 @@ def main():
         formatted_cil=format_cil,
         sourcefile=lambda: cilfile[cilfile.rfind('/') + 1:], # get filename without path
     )
-  
+
     inf.close()
     outf.close()
     print 'Report generated in %s' % (outfilepath)

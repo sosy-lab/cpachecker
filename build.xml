@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project basedir="." default="build" name="CPAchecker">
-    <property name="version" value="trunk"/> <!-- change here for a release -->
-	
+    <property name="version" value="1.1"/> <!-- change here for a release -->
+
     <property environment="env"/>
     <property name="debuglevel" value="source,lines,vars"/>
     <property name="target" value="1.6"/>
@@ -28,9 +28,9 @@
 	-->
     </target>
     <target name="clean">
-        <delete dir="bin"/>
-        <delete file="cpachecker.jar"/>
-        <delete file="CPAchecker-*.zip"/>
+	<delete>
+	    <fileset dir="." includes="bin cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
+	</delete>
     </target>
     <target depends="clean" name="cleanall"/>
     <target depends="build-subprojects,build-project,build-documentation" name="build"/>
@@ -73,9 +73,9 @@
         </java>
         <echo message="Options collected." level="info"/>
     </target>
-	
-    <target description="Make a distributable release" depends="build,jar,zip" name="dist"/>
-	
+
+    <target description="Make a distributable release" depends="build,jar,zip,tar" name="dist"/>
+
     <target name="jar" depends="build">
 	<jar basedir="bin/" includes="**/*.class" destfile="cpachecker.jar"
 		whenmanifestonly="fail">
@@ -87,12 +87,35 @@
 	     </manifest>
 	</jar>
     </target>
-	
+
     <target name="zip" depends="jar">
-        <zip destfile="CPAchecker-${version}.zip" whenempty="fail">
-	    <fileset dir="." includes="config/** doc/** scripts/** cpachecker.jar *.txt"/>
-	    <fileset dir="." includes="lib/**" excludes="lib/build-only/** lib/native/source/**"/>
+	<property name="namez" value="CPAchecker-${version}-windows"/>
+	<zip destfile="${namez}.zip" whenempty="fail">
+	    <zipfileset dir="." includes="config/** doc/** scripts/*.bat scripts/*.txt cpachecker.jar *.txt" prefix="${namez}/"/>
+	    <zipfileset dir="." includes="lib/**" excludes="lib/build-only/** lib/native/** lib/eclipse/*.source_*" prefix="${namez}/"/>
+	    <zipfileset dir="." includes="lib/native/*win*/**" prefix="${namez}/"/>
 	</zip>
+    </target>
+
+    <target name="tar" depends="jar">
+	<property name="namet" value="CPAchecker-${version}-unix"/>
+	<tar destfile="${namet}.tar.bz2" compression="bzip2">
+	    <tarfileset dir="."
+		includes="config/** doc/** cpachecker.jar *.txt"
+		prefix="${namet}/"/>
+	    <tarfileset dir="scripts"
+		includes="*.*"
+		excludes="*.bat *.sh *.py"
+		prefix="${namet}/scripts/"/>
+	    <tarfileset dir="lib"
+		includes="*.* eclipse/*"
+		excludes="eclipse/*.source_*"
+		prefix="${namet}/lib/"/>
+	    <tarfileset dir="." filemode="755"
+		includes="scripts/*.sh scripts/*.py lib/native/**"
+		excludes="lib/native/source/** lib/native/*win*/**"
+		prefix="${namet}/"/>
+	</tar>
     </target>
 
     <target description="Run all JUnit tests" depends="build" name="tests">

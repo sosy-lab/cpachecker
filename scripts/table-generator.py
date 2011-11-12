@@ -33,7 +33,7 @@ DOCTYPE = '''
 CSS = '''
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 
-<style type="text/css"> 
+<style type="text/css">
     <!--
     table { outline:3px solid black; border-spacing:0px; font-family:arial, sans serif}
     thead { text-align:center}
@@ -43,7 +43,7 @@ CSS = '''
     td { border:1px solid black}
     td:first-child { text-align:left; white-space:nowrap}
     tbody td:first-child { font-family: monospace; }
-    #options td:not(:first-child) {  text-align:left; font-size: x-small; 
+    #options td:not(:first-child) {  text-align:left; font-size: x-small;
                                      font-family: monospace; }
     #columnTitles td:first-child { font-family: monospace; font-size: x-small; }
     tbody tr:first-child td { border-top:3px solid black}
@@ -55,7 +55,7 @@ CSS = '''
     a { color: inherit; text-decoration: none; display: block; }
     a:hover { background: lime }
     -->
-</style> 
+</style>
 '''
 
 
@@ -90,7 +90,7 @@ def getListOfTests(file, filesFromXML=False):
 
     If result-files are parsed, all columns are taken.
 
-    @return: a list of tuples, 
+    @return: a list of tuples,
     each tuple contains a testelement and a list of columntitles
     '''
     listOfTests = []
@@ -134,7 +134,7 @@ def appendTests(listOfTests, filelist, columns=None):
                 print ('        resultfile contains different files, skipping resultfile')
                 continue
 
-            availableColumnTitles = [column.get("title") for column in 
+            availableColumnTitles = [column.get("title") for column in
                                 resultElem.find('sourcefile').findall('column')]
             if columns: # not None
                     columnTitles = [column.get("title") for column in columns
@@ -198,7 +198,7 @@ def insertLogFileNames(resultFile, resultElem):
 
 def getFileList(shortFile):
     """
-    The function getFileList expands a short filename to a sorted list 
+    The function getFileList expands a short filename to a sorted list
     of filenames. The short filename can contain variables and wildcards.
     """
 
@@ -208,7 +208,7 @@ def getFileList(shortFile):
     # expand wildcards
     fileList = glob.glob(expandedFile)
 
-    # sort alphabetical, 
+    # sort alphabetical,
     # if list is emtpy, sorting returns None, so better do not sort
     if len(fileList) != 0:
         fileList.sort()
@@ -225,7 +225,7 @@ def extendFileList(filelist):
     '''
     return [file for wildcardFile in filelist for file in getFileList(wildcardFile)]
 
-    
+
 def getTableHead(listOfTests):
     '''
     get tablehead (tools, limits, testnames, systeminfo, columntitles for html,
@@ -462,7 +462,7 @@ def getTableBody(listOfTests):
 def getPathOfSourceFile(filename):
     '''
     This method expand a filename of a sourcefile to a path to the sourcefile.
-    An absolute filename will not be changed, 
+    An absolute filename will not be changed,
     a filename, that is relative to CPAchackerDir, will get a prefix.
     '''
     if not filename.startswith('/'): # not absolute -> relative, TODO: windows?
@@ -507,7 +507,7 @@ def getValuesOfFileXTest(currentFile, listOfColumns):
                     else:
                             currentFile.status = 'unknown'
 
-                    if LOGFILES_IN_HTML:                
+                    if LOGFILES_IN_HTML:
                         valuesForHTML.append('<td class="{0}"><a href="{1}">{2}</a></td>'
                             .format(currentFile.status, str(currentFile.get('logfileForHtml')), status))
                     else:
@@ -577,7 +577,7 @@ def getStatsOfTest(fileResult, columns, valuesList):
                                 SCORE_WRONG_UNSAFE * wrongUnsafeNr))
 
         # get sums for correct, wrong, etc
-        else: 
+        else:
             try:
                 (sum, correctSum, wrongSafeNumber, wrongUnsafeNumber) \
                     = getStatsOfNumber(map(toDecimal, column), statusList)
@@ -596,13 +596,13 @@ def getStatsOfTest(fileResult, columns, valuesList):
 
 def getStatsOfNumber(valueList, statusList=None):
     assert len(valueList) == len(statusList)
-    correctSum = sum([value 
+    correctSum = sum([value
                       for value, status in zip(valueList, statusList)
                       if (status == 'correctSafe' or status == 'correctUnsafe')])
-    wrongSafeNumber = sum([value 
+    wrongSafeNumber = sum([value
                       for value, status in zip(valueList, statusList)
                       if (status == 'wrongSafe')])
-    wrongUnsafeNumber = sum([value 
+    wrongUnsafeNumber = sum([value
                       for value, status in zip(valueList, statusList)
                       if (status == 'wrongUnsafe')])
 
@@ -668,15 +668,15 @@ def main(args=None):
     parser = optparse.OptionParser('%prog [options] sourcefile\n\n' + \
         "INFO: documented example-files can be found in 'doc/examples'\n")
 
-    parser.add_option("-x", "--xml", 
-        action="store", 
-        type="string", 
+    parser.add_option("-x", "--xml",
+        action="store",
+        type="string",
         dest="xmltablefile",
         help="use xmlfile for table. the xml-file should define resultfiles and columns."
     )
-    parser.add_option("-o", "--outputpath", 
-        action="store", 
-        type="string", 
+    parser.add_option("-o", "--outputpath",
+        action="store",
+        type="string",
         dest="outputPath",
         help="outputPath for table. if it does not exist, it is created."
     )

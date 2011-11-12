@@ -1,363 +1,172 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2011  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
-package org.sosy_lab.cpachecker.cfa;
-
-import static org.sosy_lab.cpachecker.util.CFAUtils.findLoops;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.logging.Level;
-
-import org.sosy_lab.common.Files;
-import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Timer;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
-import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
-
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.Iterables;
-
-/**
- * Class that encapsulates the whole CFA creation process.
- *
- * It is not thread-safe, but it may be re-used.
- */
-@Options
-public class CFACreator {
-
-  @Option(name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$",
-      description="entry function")
-  private String mainFunctionName = "main";
-
-  @Option(name="analysis.interprocedural",
-      description="run interprocedural analysis")
-  private boolean interprocedural = true;
-
-  @Option(name="analysis.useGlobalVars",
-      description="add declarations for global variables before entry function")
-  private boolean useGlobalVars = true;
-
-  @Option(name="cfa.removeIrrelevantForErrorLocations",
-      description="remove paths from CFA that cannot lead to a error location")
-  private boolean removeIrrelevantForErrorLocations = false;
-
-  @Option(name="cfa.export",
-      description="export CFA as .dot file")
-  private boolean exportCfa = true;
-
-  @Option(name="cfa.exportPerFunction",
-      description="export individual CFAs for function as .dot files")
-  private boolean exportCfaPerFunction = true;
-
-  @Option(name="cfa.file", type=Option.Type.OUTPUT_FILE,
-      description="export CFA as .dot file")
-  private File exportCfaFile = new File("cfa.dot");
-
-  private final LogManager logger;
-  private final CParser parser;
-  private final CFAReduction cfaReduction;
-
-  @Deprecated // use CFA#getLoopStructure() instead
-  public static ImmutableMultimap<String, Loop> loops = null;
-
-  public final Timer parserInstantiationTime = new Timer();
-  public final Timer totalTime = new Timer();
-  public final Timer parsingTime;
-  public final Timer conversionTime;
-  public final Timer checkTime = new Timer();
-  public final Timer processingTime = new Timer();
-  public final Timer pruningTime = new Timer();
-  public final Timer exportTime = new Timer();
-
-  public CFACreator(Configuration config, LogManager logger)
-          throws InvalidConfigurationException {
-    config.inject(this);
-
-    this.logger = logger;
-
-    parserInstantiationTime.start();
-    parser = CParser.Factory.getParser(logger, CParser.Factory.getOptions(config));
-    parsingTime = parser.getParseTime();
-    conversionTime = parser.getCFAConstructionTime();
-
-    if (removeIrrelevantForErrorLocations) {
-      cfaReduction = new CFAReduction(config, logger);
-    } else {
-      cfaReduction = null;
-    }
-
-    parserInstantiationTime.stop();
-  }
-
-  /**
-   * Parse a file and create a CFA, including all post-processing etc.
-   *
-   * @param filename  The file to parse.
-   * @return A representation of the CFA.
-   * @throws InvalidConfigurationException If the main function that was specified in the configuration is not found.
-   * @throws IOException If an I/O error occurs.
-   * @throws ParserException If the parser or the CFA builder cannot handle the C code.
-   * @throws InterruptedException
-   */
-  public CFA parseFileAndCreateCFA(String filename)
-          throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
-
-    totalTime.start();
-    try {
-
-      logger.log(Level.FINE, "Starting parsing of file");
-      ParseResult c = parser.parseFile(filename);
-      logger.log(Level.FINE, "Parser Finished");
-
-      if (c.isEmpty()) {
-        throw new ParserException("No functions found in program");
-      }
-
-      final CFAFunctionDefinitionNode mainFunction = getMainFunction(filename, c.getFunctions());
-
-      MutableCFA cfa = new MutableCFA(c.getFunctions(), c.getCFANodes(), mainFunction);
-
-      checkTime.start();
-
-      // check the CFA of each function
-      for (String functionName : cfa.getAllFunctionNames()) {
-        assert CFACheck.check(cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName));
-      }
-      checkTime.stop();
-
-      processingTime.start();
-
-      // annotate CFA nodes with topological information for later use
-      for(CFAFunctionDefinitionNode function : cfa.getAllFunctionHeads()){
-        CFATopologicalSort topSort = new CFATopologicalSort();
-        topSort.topologicalSort(function);
-      }
-
-      // get loop information
-      Optional<ImmutableMultimap<String, Loop>> loopStructure = getLoopStructure(cfa);
-
-      // Insert call and return edges and build the supergraph
-      if (interprocedural) {
-        logger.log(Level.FINE, "Analysis is interprocedural, adding super edges");
-
-        CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfa.getAllFunctions());
-        spbuilder.insertCallEdgesRecursively();
-      }
-
-      if (useGlobalVars){
-        // add global variables at the beginning of main
-        insertGlobalDeclarations(cfa, c.getGlobalDeclarations());
-      }
-
-      processingTime.stop();
-
-      // remove irrelevant locations
-      if (cfaReduction != null) {
-        pruningTime.start();
-        cfaReduction.removeIrrelevantForErrorLocations(cfa);
-        pruningTime.stop();
-
-        if (cfa.isEmpty()) {
-          logger.log(Level.INFO, "No error locations reachable from " + mainFunction.getFunctionName()
-                + ", analysis not necessary. "
-                + "If the code contains no error location named ERROR, set the option cfa.removeIrrelevantForErrorLocations to false.");
-
-          return ImmutableCFA.empty();
-        }
-      }
-
-
-      final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(loopStructure);
-
-      // check the super CFA starting at the main function
-      checkTime.start();
-      assert CFACheck.check(mainFunction, null);
-      checkTime.stop();
-
-      if ((exportCfaFile != null) && (exportCfa || exportCfaPerFunction)) {
-        exportCFA(immutableCFA);
-      }
-
-      logger.log(Level.FINE, "DONE, CFA for", immutableCFA.getNumberOfFunctions(), "functions created");
-
-      return immutableCFA;
-
-    } finally {
-      totalTime.stop();
-    }
-  }
-
-  private CFAFunctionDefinitionNode getMainFunction(String filename,
-      final Map<String, CFAFunctionDefinitionNode> cfas)
-      throws InvalidConfigurationException {
-
-    // try specified function
-    CFAFunctionDefinitionNode mainFunction = cfas.get(mainFunctionName);
-
-    if (mainFunction != null) {
-      return mainFunction;
-    }
-
-    if (!mainFunctionName.equals("main")) {
-      // function explicitly given by user, but not found
-      throw new InvalidConfigurationException("Function " + mainFunctionName + " not found!");
-    }
-
-    if (cfas.size() == 1) {
-      // only one function available, take this one
-      return Iterables.getOnlyElement(cfas.values());
-
-    } else {
-      // get the AAA part out of a filename like test/program/AAA.cil.c
-      filename = (new File(filename)).getName(); // remove directory
-
-      int indexOfDot = filename.indexOf('.');
-      String baseFilename = indexOfDot >= 1 ? filename.substring(0, indexOfDot) : filename;
-
-      // try function with same name as file
-      mainFunction = cfas.get(baseFilename);
-
-      if (mainFunction == null) {
-        throw new InvalidConfigurationException("No entry function found, please specify one!");
-      }
-      return mainFunction;
-    }
-  }
-
-  private Optional<ImmutableMultimap<String, Loop>> getLoopStructure(MutableCFA cfa) {
-    Optional<ImmutableMultimap<String, Loop>> loopStructure;
-    try {
-      ImmutableMultimap.Builder<String, Loop> loops = ImmutableMultimap.builder();
-      for (String functionName : cfa.getAllFunctionNames()) {
-        SortedSet<CFANode> nodes = cfa.getFunctionNodes(functionName);
-        loops.putAll(functionName, findLoops(nodes));
-      }
-      loopStructure = Optional.of(loops.build());
-    } catch (ParserException e) {
-      // don't abort here, because if the analysis doesn't need the loop information, we can continue
-      logger.logUserException(Level.WARNING, e, "Could not analyze loop structure of program");
-      loopStructure = Optional.absent();
-    }
-    CFACreator.loops = loopStructure.orNull();
-    return loopStructure;
-  }
-
-  /**
-   * Insert nodes for global declarations after first node of CFA.
-   */
-  public static void insertGlobalDeclarations(final MutableCFA cfa, List<IASTDeclaration> globalVars) {
-    if (globalVars.isEmpty()) {
-      return;
-    }
-
-    // split off first node of CFA
-    CFAFunctionDefinitionNode firstNode = cfa.getMainFunction();
-    assert firstNode.getNumLeavingEdges() == 1;
-    CFAEdge firstEdge = firstNode.getLeavingEdge(0);
-    assert firstEdge instanceof BlankEdge && !firstEdge.isJumpEdge();
-    CFANode secondNode = firstEdge.getSuccessor();
-
-    CFACreationUtils.removeEdgeFromNodes(firstEdge);
-
-    // insert one node to start the series of declarations
-    CFANode cur = new CFANode(0, firstNode.getFunctionName());
-    cfa.addNode(cur);
-    BlankEdge be = new BlankEdge("INIT GLOBAL VARS", 0, firstNode, cur);
-    addToCFA(be);
-
-    // create a series of GlobalDeclarationEdges, one for each declaration
-    for (IASTDeclaration d : globalVars) {
-      assert d.isGlobal();
-
-      CFANode n = new CFANode(d.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
-      cfa.addNode(n);
-      GlobalDeclarationEdge e = new GlobalDeclarationEdge(d,
-          d.getFileLocation().getStartingLineNumber(), cur, n);
-      addToCFA(e);
-      cur = n;
-    }
-
-    // and a blank edge connecting the declarations with the second node of CFA
-    be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode);
-    addToCFA(be);
-  }
-
-  private void exportCFA(final CFA cfa) {
-    // execute asynchronously, this may take several seconds for large programs on slow disks
-    new Thread(new Runnable() {
-      @Override
-      public void run() {
-        exportTime.start();
-
-        // running the following in parallel is thread-safe
-        // because we don't modify the CFA from this point on
-
-        // write CFA to file
-        if (exportCfa) {
-          try {
-            Files.writeFile(exportCfaFile,
-                DOTBuilder.generateDOT(cfa.getAllFunctionHeads(), cfa.getMainFunction()));
-          } catch (IOException e) {
-            logger.logUserException(Level.WARNING, e,
-              "Could not write CFA to dot file");
-            // continue with analysis
-          }
-        }
-
-        // write the CFA to files (one file per function + some metainfo)
-        if (exportCfaPerFunction) {
-          try {
-            File outdir = exportCfaFile.getParentFile();
-            DOTBuilder2.writeReport(cfa.getMainFunction(), outdir);
-          } catch (IOException e) {
-            logger.logUserException(Level.WARNING, e,
-              "Could not write CFA to dot and json file");
-            // continue with analysis
-          }
-        }
-
-        exportTime.stop();
-      }
-    }, "CFA export thread").start();
-  }
-
-  private static void addToCFA(CFAEdge edge) {
-    edge.getPredecessor().addLeavingEdge(edge);
-    edge.getSuccessor().addEnteringEdge(edge);
-  }
-}
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  
+  
+
+  
+
+
+  
+
+  <head>
+    <title>
+      /trunk/src/org/sosy_lab/cpachecker/cfa/CFACreator.java – CPAchecker
+    </title>
+        <link rel="search" href="/trac/cpachecker/search" />
+        <link rel="help" href="/trac/cpachecker/wiki/TracGuide" />
+        <link rel="alternate" href="/trac/cpachecker/browser/trunk/src/org/sosy_lab/cpachecker/cfa/CFACreator.java?format=txt" type="text/plain" title="Plain Text" /><link rel="alternate" href="/trac/cpachecker/export/4837/trunk/src/org/sosy_lab/cpachecker/cfa/CFACreator.java" type="text/x-java; charset=utf-8" title="Original Format" />
+        <link rel="up" href="/trac/cpachecker/browser/trunk/src/org/sosy_lab/cpachecker/cfa" title="Parent directory" />
+        <link rel="start" href="/trac/cpachecker/wiki" />
+        <link rel="stylesheet" href="/trac/cpachecker/chrome/common/css/trac.css" type="text/css" /><link rel="stylesheet" href="/trac/cpachecker/chrome/common/css/code.css" type="text/css" /><link rel="stylesheet" href="/trac/cpachecker/chrome/common/css/browser.css" type="text/css" />
+        <link rel="shortcut icon" href="/trac/cpachecker/chrome/common/trac.ico" type="image/x-icon" />
+        <link rel="icon" href="/trac/cpachecker/chrome/common/trac.ico" type="image/x-icon" />
+      <link type="application/opensearchdescription+xml" rel="search" href="/trac/cpachecker/search/opensearch" title="Search CPAchecker" />
+    <script type="text/javascript" src="/trac/cpachecker/chrome/common/js/jquery.js"></script><script type="text/javascript" src="/trac/cpachecker/chrome/common/js/trac.js"></script><script type="text/javascript" src="/trac/cpachecker/chrome/common/js/search.js"></script>
+    <!--[if lt IE 7]>
+    <script type="text/javascript" src="/trac/cpachecker/chrome/common/js/ie_pre7_hacks.js"></script>
+    <![endif]-->
+    <script type="text/javascript">
+      jQuery(document).ready(function($) {
+        $(".trac-toggledeleted").show().click(function() {
+                  $(this).siblings().find(".trac-deleted").toggle();
+                  return false;
+        }).click();
+        $("#jumploc input").hide();
+        $("#jumploc select").change(function () {
+          this.parentNode.parentNode.submit();
+        });
+      });
+    </script>
+  </head>
+  <body>
+    <div id="banner">
+      <div id="header">
+        <a id="logo" href="http://www.sosy-lab.org"><img src="http://www.sosy-lab.org/images/sosylogo.png" alt="Software Systems Lab" /></a>
+      </div>
+      <form id="search" action="/trac/cpachecker/search" method="get">
+        <div>
+          <label for="proj-search">Search:</label>
+          <input type="text" id="proj-search" name="q" size="18" value="" />
+          <input type="submit" value="Search" />
+        </div>
+      </form>
+      <div id="metanav" class="nav">
+    <ul>
+      <li class="first">logged in as mcjakobs</li><li><a href="/trac/cpachecker/prefs">Preferences</a></li><li><a href="/trac/cpachecker/wiki/TracGuide">Help/Guide</a></li><li><a href="/trac/cpachecker/about">About Trac</a></li><li class="last"><a href="/trac/cpachecker/logout">Logout</a></li>
+    </ul>
+  </div>
+    </div>
+    <div id="mainnav" class="nav">
+    <ul>
+      <li class="first"><a href="/trac/cpachecker/wiki">Wiki</a></li><li><a href="/trac/cpachecker/timeline">Timeline</a></li><li><a href="/trac/cpachecker/roadmap">Roadmap</a></li><li class="active"><a href="/trac/cpachecker/browser">Browse Source</a></li><li><a href="/trac/cpachecker/report">View Tickets</a></li><li><a href="/trac/cpachecker/newticket">New Ticket</a></li><li class="last"><a href="/trac/cpachecker/search">Search</a></li>
+    </ul>
+  </div>
+    <div id="main">
+      <div id="ctxtnav" class="nav">
+        <h2>Context Navigation</h2>
+          <ul>
+              <li class="first"><a href="/trac/cpachecker/changeset/4795/trunk/src/org/sosy_lab/cpachecker/cfa/CFACreator.java">Last Change</a></li><li><a href="/trac/cpachecker/browser/trunk/src/org/sosy_lab/cpachecker/cfa/CFACreator.java?annotate=blame&amp;rev=4795" title="Annotate each line with the last changed revision (this can be time consuming...)">Annotate</a></li><li class="last"><a href="/trac/cpachecker/log/trunk/src/org/sosy_lab/cpachecker/cfa/CFACreator.java">Revision Log</a></li>
+          </ul>
+        <hr />
+      </div>
+    <div id="content" class="browser">
+      <h1>
+    <a class="pathentry first" title="Go to root directory" href="/trac/cpachecker/browser">root</a><span class="pathentry sep">/</span><a class="pathentry" title="View trunk" href="/trac/cpachecker/browser/trunk">trunk</a><span class="pathentry sep">/</span><a class="pathentry" title="View src" href="/trac/cpachecker/browser/trunk/src">src</a><span class="pathentry sep">/</span><a class="pathentry" title="View org" href="/trac/cpachecker/browser/trunk/src/org">org</a><span class="pathentry sep">/</span><a class="pathentry" title="View sosy_lab" href="/trac/cpachecker/browser/trunk/src/org/sosy_lab">sosy_lab</a><span class="pathentry sep">/</span><a class="pathentry" title="View cpachecker" href="/trac/cpachecker/browser/trunk/src/org/sosy_lab/cpachecker">cpachecker</a><span class="pathentry sep">/</span><a class="pathentry" title="View cfa" href="/trac/cpachecker/browser/trunk/src/org/sosy_lab/cpachecker/cfa">cfa</a><span class="pathentry sep">/</span><a class="pathentry" title="View CFACreator.java" href="/trac/cpachecker/browser/trunk/src/org/sosy_lab/cpachecker/cfa/CFACreator.java">CFACreator.java</a>
+    <br style="clear: both" />
+  </h1>
+      <div id="jumprev">
+        <form action="" method="get">
+          <div>
+            <label for="rev">
+              View revision:</label>
+            <input type="text" id="rev" name="rev" size="6" />
+          </div>
+        </form>
+      </div>
+      <div id="jumploc">
+        <form action="" method="get">
+          <div class="buttons">
+            <label for="preselected">Visit:</label>
+            <select id="preselected" name="preselected">
+              <option selected="selected"></option>
+              <optgroup label="branches">
+                <option value="/trac/cpachecker/browser/trunk">trunk</option><option value="/trac/cpachecker/browser/branches/abe">branches/abe</option><option value="/trac/cpachecker/browser/branches/cfa">branches/cfa</option><option value="/trac/cpachecker/browser/branches/explicit_experiments">branches/explicit_experiments</option><option value="/trac/cpachecker/browser/branches/fshell3">branches/fshell3</option><option value="/trac/cpachecker/browser/branches/interpreter-ds">branches/interpreter-ds</option><option value="/trac/cpachecker/browser/branches/ivy">branches/ivy</option><option value="/trac/cpachecker/browser/branches/multi-threaded">branches/multi-threaded</option><option value="/trac/cpachecker/browser/branches/pcc">branches/pcc</option><option value="/trac/cpachecker/browser/branches/precision-refinement">branches/precision-refinement</option>
+              </optgroup><optgroup label="tags">
+                <option value="/trac/cpachecker/browser/tags/cpachecker-0.8?rev=1446">tags/cpachecker-0.8</option><option value="/trac/cpachecker/browser/tags/cpachecker-0.9?rev=1446">tags/cpachecker-0.9</option><option value="/trac/cpachecker/browser/tags/cpachecker-1.0?rev=2689">tags/cpachecker-1.0</option><option value="/trac/cpachecker/browser/tags/cpachecker-1.0.4-cav11?rev=4809">tags/cpachecker-1.0.4-cav11</option><option value="/trac/cpachecker/browser/tags/cpachecker-1.0.10-svcomp12-abe?rev=4811">tags/cpachecker-1.0.10-svcomp12-abe</option><option value="/trac/cpachecker/browser/tags/cpachecker-1.0.10-svcomp12-abm?rev=4813">tags/cpachecker-1.0.10-svcomp12-abm</option><option value="/trac/cpachecker/browser/tags/cpachecker-1.1?rev=4836">tags/cpachecker-1.1</option>
+              </optgroup>
+            </select>
+            <input type="submit" value="Go!" title="Jump to the chosen preselected path" />
+          </div>
+        </form>
+      </div>
+      <table id="info" summary="Revision info">
+        <tr>
+          <th scope="col">
+            Revision <a href="/trac/cpachecker/changeset/4795">4795</a>, <span title="12541 bytes">12.2 KB</span>
+            (checked in by pwendler, <a class="timeline" href="/trac/cpachecker/timeline?from=2011-11-10T04%3A20%3A00-0800&amp;precision=second" title="2011-11-10T04:20:00-0800 in Timeline">43 hours</a> ago)
+          </th>
+        </tr>
+        <tr>
+          <td class="message searchable">
+              <p>
+Do not export CFA to disk asynchronously.<br />
+This does not work reliably anymore, because FunctionPointerCPA modifies<br />
+the CFA during analysis.<br />
+</p>
+<p>
+This makes CPAchecker usually a few seconds slower unless -noout is used<br />
+(so be sure to use this option for benchmarks!).<br />
+</p>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2">
+            <ul class="props">
+              <li>
+                  Property <strong>svn:eol-style</strong> set to
+                    <em><code>native</code></em>
+              </li>
+            </ul>
+          </td>
+        </tr>
+      </table>
+      <div id="preview" class="searchable">
+    <table class="code"><thead><tr><th class="lineno" title="Line numbers">Line</th><th class="content"> </th></tr></thead><tbody><tr><th id="L1"><a href="#L1">1</a></th><td><i><span class="code-comment">/*</span></i></td></tr><tr><th id="L2"><a href="#L2">2</a></th><td><i><span class="code-comment"> *  CPAchecker is a tool for configurable software verification.</span></i></td></tr><tr><th id="L3"><a href="#L3">3</a></th><td><i><span class="code-comment"> *  This file is part of CPAchecker.</span></i></td></tr><tr><th id="L4"><a href="#L4">4</a></th><td><i><span class="code-comment"> *</span></i></td></tr><tr><th id="L5"><a href="#L5">5</a></th><td><i><span class="code-comment"> *  Copyright (C) 2007-2011  Dirk Beyer</span></i></td></tr><tr><th id="L6"><a href="#L6">6</a></th><td><i><span class="code-comment"> *  All rights reserved.</span></i></td></tr><tr><th id="L7"><a href="#L7">7</a></th><td><i><span class="code-comment"> *</span></i></td></tr><tr><th id="L8"><a href="#L8">8</a></th><td><i><span class="code-comment"> *  Licensed under the Apache License, Version 2.0 (the "License");</span></i></td></tr><tr><th id="L9"><a href="#L9">9</a></th><td><i><span class="code-comment"> *  you may not use this file except in compliance with the License.</span></i></td></tr><tr><th id="L10"><a href="#L10">10</a></th><td><i><span class="code-comment"> *  You may obtain a copy of the License at</span></i></td></tr><tr><th id="L11"><a href="#L11">11</a></th><td><i><span class="code-comment"> *</span></i></td></tr><tr><th id="L12"><a href="#L12">12</a></th><td><i><span class="code-comment"> *      http://www.apache.org/licenses/LICENSE-2.0</span></i></td></tr><tr><th id="L13"><a href="#L13">13</a></th><td><i><span class="code-comment"> *</span></i></td></tr><tr><th id="L14"><a href="#L14">14</a></th><td><i><span class="code-comment"> *  Unless required by applicable law or agreed to in writing, software</span></i></td></tr><tr><th id="L15"><a href="#L15">15</a></th><td><i><span class="code-comment"> *  distributed under the License is distributed on an "AS IS" BASIS,</span></i></td></tr><tr><th id="L16"><a href="#L16">16</a></th><td><i><span class="code-comment"> *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span></i></td></tr><tr><th id="L17"><a href="#L17">17</a></th><td><i><span class="code-comment"> *  See the License for the specific language governing permissions and</span></i></td></tr><tr><th id="L18"><a href="#L18">18</a></th><td><i><span class="code-comment"> *  limitations under the License.</span></i></td></tr><tr><th id="L19"><a href="#L19">19</a></th><td><i><span class="code-comment"> *</span></i></td></tr><tr><th id="L20"><a href="#L20">20</a></th><td><i><span class="code-comment"> *</span></i></td></tr><tr><th id="L21"><a href="#L21">21</a></th><td><i><span class="code-comment"> *  CPAchecker web page:</span></i></td></tr><tr><th id="L22"><a href="#L22">22</a></th><td><i><span class="code-comment"> *    http://cpachecker.sosy-lab.org</span></i></td></tr><tr><th id="L23"><a href="#L23">23</a></th><td><i><span class="code-comment"> */</span></i></td></tr><tr><th id="L24"><a href="#L24">24</a></th><td><b><span class="code-lang">package</span></b> org.sosy_lab.cpachecker.cfa;</td></tr><tr><th id="L25"><a href="#L25">25</a></th><td></td></tr><tr><th id="L26"><a href="#L26">26</a></th><td><b><span class="code-lang">import</span></b> <b><span class="code-lang">static</span></b> org.sosy_lab.cpachecker.util.CFAUtils.findLoops;</td></tr><tr><th id="L27"><a href="#L27">27</a></th><td></td></tr><tr><th id="L28"><a href="#L28">28</a></th><td><b><span class="code-lang">import</span></b> java.io.File;</td></tr><tr><th id="L29"><a href="#L29">29</a></th><td><b><span class="code-lang">import</span></b> java.io.IOException;</td></tr><tr><th id="L30"><a href="#L30">30</a></th><td><b><span class="code-lang">import</span></b> java.util.List;</td></tr><tr><th id="L31"><a href="#L31">31</a></th><td><b><span class="code-lang">import</span></b> java.util.Map;</td></tr><tr><th id="L32"><a href="#L32">32</a></th><td><b><span class="code-lang">import</span></b> java.util.SortedSet;</td></tr><tr><th id="L33"><a href="#L33">33</a></th><td><b><span class="code-lang">import</span></b> java.util.logging.Level;</td></tr><tr><th id="L34"><a href="#L34">34</a></th><td></td></tr><tr><th id="L35"><a href="#L35">35</a></th><td><b><span class="code-lang">import</span></b> org.sosy_lab.common.Files;</td></tr><tr><th id="L36"><a href="#L36">36</a></th><td><b><span class="code-lang">import</span></b> org.sosy_lab.common.LogManager;</td></tr><tr><th id="L37"><a href="#L37">37</a></th><td><b><span class="code-lang">import</span></b> org.sosy_lab.common.Timer;</td></tr><tr><th id="L38"><a href="#L38">38</a></th><td><b><span class="code-lang">import</span></b> org.sosy_lab.common.configuration.Configuration;</td></tr><tr><th id="L39"><a href="#L39">39</a></th><td><b><span class="code-lang">import</span></b> org.sosy_lab.common.configuration.InvalidConfigurationException;</td></tr><tr><th id="L40"><a href="#L40">40</a></th><td><b><span class="code-lang">import</span></b> org.sosy_lab.common.configuration.Option;</td></tr><tr><th id="L41"><a href="#L41">41</a></th><td><b><span class="code-lang">import</span></b> org.sosy_lab.common.configuration.Options;</td></tr><tr><th id="L42"><a href="#L42">42</a></th><td><b><span class="code-lang">import</span></b> org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;</td></tr><tr><th id="L43"><a href="#L43">43</a></th><td><b><span class="code-lang">import</span></b> org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;</td></tr><tr><th id="L44"><a href="#L44">44</a></th><td><b><span class="code-lang">import</span></b> org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;</td></tr><tr><th id="L45"><a href="#L45">45</a></th><td><b><span class="code-lang">import</span></b> org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;</td></tr><tr><th id="L46"><a href="#L46">46</a></th><td><b><span class="code-lang">import</span></b> org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;</td></tr><tr><th id="L47"><a href="#L47">47</a></th><td><b><span class="code-lang">import</span></b> org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;</td></tr><tr><th id="L48"><a href="#L48">48</a></th><td><b><span class="code-lang">import</span></b> org.sosy_lab.cpachecker.exceptions.ParserException;</td></tr><tr><th id="L49"><a href="#L49">49</a></th><td><b><span class="code-lang">import</span></b> org.sosy_lab.cpachecker.util.CFAUtils.Loop;</td></tr><tr><th id="L50"><a href="#L50">50</a></th><td></td></tr><tr><th id="L51"><a href="#L51">51</a></th><td><b><span class="code-lang">import</span></b> com.google.common.base.Optional;</td></tr><tr><th id="L52"><a href="#L52">52</a></th><td><b><span class="code-lang">import</span></b> com.google.common.collect.ImmutableMultimap;</td></tr><tr><th id="L53"><a href="#L53">53</a></th><td><b><span class="code-lang">import</span></b> com.google.common.collect.Iterables;</td></tr><tr><th id="L54"><a href="#L54">54</a></th><td></td></tr><tr><th id="L55"><a href="#L55">55</a></th><td><i><span class="code-comment">/**</span></i></td></tr><tr><th id="L56"><a href="#L56">56</a></th><td><i><span class="code-comment"> * Class that encapsulates the whole CFA creation process.</span></i></td></tr><tr><th id="L57"><a href="#L57">57</a></th><td><i><span class="code-comment"> *</span></i></td></tr><tr><th id="L58"><a href="#L58">58</a></th><td><i><span class="code-comment"> * It is not thread-safe, but it may be re-used.</span></i></td></tr><tr><th id="L59"><a href="#L59">59</a></th><td><i><span class="code-comment"> */</span></i></td></tr><tr><th id="L60"><a href="#L60">60</a></th><td>@Options</td></tr><tr><th id="L61"><a href="#L61">61</a></th><td><b><span class="code-lang">public</span></b> <b><span class="code-lang">class</span></b> CFACreator {</td></tr><tr><th id="L62"><a href="#L62">62</a></th><td></td></tr><tr><th id="L63"><a href="#L63">63</a></th><td>  @Option(name=<b><span class="code-string">"analysis.entryFunction"</span></b>, regexp=<b><span class="code-string">"^[_a-zA-Z][_a-zA-Z0-9]*$"</span></b>,</td></tr><tr><th id="L64"><a href="#L64">64</a></th><td>      description=<b><span class="code-string">"entry function"</span></b>)</td></tr><tr><th id="L65"><a href="#L65">65</a></th><td>  <b><span class="code-lang">private</span></b> String mainFunctionName = <b><span class="code-string">"main"</span></b>;</td></tr><tr><th id="L66"><a href="#L66">66</a></th><td></td></tr><tr><th id="L67"><a href="#L67">67</a></th><td>  @Option(name=<b><span class="code-string">"analysis.interprocedural"</span></b>,</td></tr><tr><th id="L68"><a href="#L68">68</a></th><td>      description=<b><span class="code-string">"run interprocedural analysis"</span></b>)</td></tr><tr><th id="L69"><a href="#L69">69</a></th><td>  <b><span class="code-lang">private</span></b> <b><span class="code-lang">boolean</span></b> interprocedural = <b><span class="code-lang">true</span></b>;</td></tr><tr><th id="L70"><a href="#L70">70</a></th><td></td></tr><tr><th id="L71"><a href="#L71">71</a></th><td>  @Option(name=<b><span class="code-string">"analysis.useGlobalVars"</span></b>,</td></tr><tr><th id="L72"><a href="#L72">72</a></th><td>      description=<b><span class="code-string">"add declarations for global variables before entry function"</span></b>)</td></tr><tr><th id="L73"><a href="#L73">73</a></th><td>  <b><span class="code-lang">private</span></b> <b><span class="code-lang">boolean</span></b> useGlobalVars = <b><span class="code-lang">true</span></b>;</td></tr><tr><th id="L74"><a href="#L74">74</a></th><td></td></tr><tr><th id="L75"><a href="#L75">75</a></th><td>  @Option(name=<b><span class="code-string">"cfa.removeIrrelevantForErrorLocations"</span></b>,</td></tr><tr><th id="L76"><a href="#L76">76</a></th><td>      description=<b><span class="code-string">"remove paths from CFA that cannot lead to a error location"</span></b>)</td></tr><tr><th id="L77"><a href="#L77">77</a></th><td>  <b><span class="code-lang">private</span></b> <b><span class="code-lang">boolean</span></b> removeIrrelevantForErrorLocations = <b><span class="code-lang">false</span></b>;</td></tr><tr><th id="L78"><a href="#L78">78</a></th><td></td></tr><tr><th id="L79"><a href="#L79">79</a></th><td>  @Option(name=<b><span class="code-string">"cfa.export"</span></b>,</td></tr><tr><th id="L80"><a href="#L80">80</a></th><td>      description=<b><span class="code-string">"export CFA as .dot file"</span></b>)</td></tr><tr><th id="L81"><a href="#L81">81</a></th><td>  <b><span class="code-lang">private</span></b> <b><span class="code-lang">boolean</span></b> exportCfa = <b><span class="code-lang">true</span></b>;</td></tr><tr><th id="L82"><a href="#L82">82</a></th><td></td></tr><tr><th id="L83"><a href="#L83">83</a></th><td>  @Option(name=<b><span class="code-string">"cfa.exportPerFunction"</span></b>,</td></tr><tr><th id="L84"><a href="#L84">84</a></th><td>      description=<b><span class="code-string">"export individual CFAs for function as .dot files"</span></b>)</td></tr><tr><th id="L85"><a href="#L85">85</a></th><td>  <b><span class="code-lang">private</span></b> <b><span class="code-lang">boolean</span></b> exportCfaPerFunction = <b><span class="code-lang">true</span></b>;</td></tr><tr><th id="L86"><a href="#L86">86</a></th><td></td></tr><tr><th id="L87"><a href="#L87">87</a></th><td>  @Option(name=<b><span class="code-string">"cfa.file"</span></b>, type=Option.Type.OUTPUT_FILE,</td></tr><tr><th id="L88"><a href="#L88">88</a></th><td>      description=<b><span class="code-string">"export CFA as .dot file"</span></b>)</td></tr><tr><th id="L89"><a href="#L89">89</a></th><td>  <b><span class="code-lang">private</span></b> File exportCfaFile = <b><span class="code-lang">new</span></b> File(<b><span class="code-string">"cfa.dot"</span></b>);</td></tr><tr><th id="L90"><a href="#L90">90</a></th><td></td></tr><tr><th id="L91"><a href="#L91">91</a></th><td>  <b><span class="code-lang">private</span></b> <b><span class="code-lang">final</span></b> LogManager logger;</td></tr><tr><th id="L92"><a href="#L92">92</a></th><td>  <b><span class="code-lang">private</span></b> <b><span class="code-lang">final</span></b> CParser parser;</td></tr><tr><th id="L93"><a href="#L93">93</a></th><td>  <b><span class="code-lang">private</span></b> <b><span class="code-lang">final</span></b> CFAReduction cfaReduction;</td></tr><tr><th id="L94"><a href="#L94">94</a></th><td></td></tr><tr><th id="L95"><a href="#L95">95</a></th><td>  @Deprecated <i><span class="code-comment">// use CFA#getLoopStructure() instead</span></i></td></tr><tr><th id="L96"><a href="#L96">96</a></th><td><i><span class="code-comment"></span></i>  <b><span class="code-lang">public</span></b> <b><span class="code-lang">static</span></b> ImmutableMultimap&lt;String, Loop&gt; loops = <b><span class="code-lang">null</span></b>;</td></tr><tr><th id="L97"><a href="#L97">97</a></th><td></td></tr><tr><th id="L98"><a href="#L98">98</a></th><td>  <b><span class="code-lang">public</span></b> <b><span class="code-lang">final</span></b> Timer parserInstantiationTime = <b><span class="code-lang">new</span></b> Timer();</td></tr><tr><th id="L99"><a href="#L99">99</a></th><td>  <b><span class="code-lang">public</span></b> <b><span class="code-lang">final</span></b> Timer totalTime = <b><span class="code-lang">new</span></b> Timer();</td></tr><tr><th id="L100"><a href="#L100">100</a></th><td>  <b><span class="code-lang">public</span></b> <b><span class="code-lang">final</span></b> Timer parsingTime;</td></tr><tr><th id="L101"><a href="#L101">101</a></th><td>  <b><span class="code-lang">public</span></b> <b><span class="code-lang">final</span></b> Timer conversionTime;</td></tr><tr><th id="L102"><a href="#L102">102</a></th><td>  <b><span class="code-lang">public</span></b> <b><span class="code-lang">final</span></b> Timer checkTime = <b><span class="code-lang">new</span></b> Timer();</td></tr><tr><th id="L103"><a href="#L103">103</a></th><td>  <b><span class="code-lang">public</span></b> <b><span class="code-lang">final</span></b> Timer processingTime = <b><span class="code-lang">new</span></b> Timer();</td></tr><tr><th id="L104"><a href="#L104">104</a></th><td>  <b><span class="code-lang">public</span></b> <b><span class="code-lang">final</span></b> Timer pruningTime = <b><span class="code-lang">new</span></b> Timer();</td></tr><tr><th id="L105"><a href="#L105">105</a></th><td>  <b><span class="code-lang">public</span></b> <b><span class="code-lang">final</span></b> Timer exportTime = <b><span class="code-lang">new</span></b> Timer();</td></tr><tr><th id="L106"><a href="#L106">106</a></th><td></td></tr><tr><th id="L107"><a href="#L107">107</a></th><td>  <b><span class="code-lang">public</span></b> CFACreator(Configuration config, LogManager logger)</td></tr><tr><th id="L108"><a href="#L108">108</a></th><td>          <b><span class="code-lang">throws</span></b> InvalidConfigurationException {</td></tr><tr><th id="L109"><a href="#L109">109</a></th><td>    config.inject(<b><span class="code-lang">this</span></b>);</td></tr><tr><th id="L110"><a href="#L110">110</a></th><td></td></tr><tr><th id="L111"><a href="#L111">111</a></th><td>    <b><span class="code-lang">this</span></b>.logger = logger;</td></tr><tr><th id="L112"><a href="#L112">112</a></th><td></td></tr><tr><th id="L113"><a href="#L113">113</a></th><td>    parserInstantiationTime.start();</td></tr><tr><th id="L114"><a href="#L114">114</a></th><td>    parser = CParser.Factory.getParser(logger, CParser.Factory.getOptions(config));</td></tr><tr><th id="L115"><a href="#L115">115</a></th><td>    parsingTime = parser.getParseTime();</td></tr><tr><th id="L116"><a href="#L116">116</a></th><td>    conversionTime = parser.getCFAConstructionTime();</td></tr><tr><th id="L117"><a href="#L117">117</a></th><td></td></tr><tr><th id="L118"><a href="#L118">118</a></th><td>    <b><span class="code-lang">if</span></b> (removeIrrelevantForErrorLocations) {</td></tr><tr><th id="L119"><a href="#L119">119</a></th><td>      cfaReduction = <b><span class="code-lang">new</span></b> CFAReduction(config, logger);</td></tr><tr><th id="L120"><a href="#L120">120</a></th><td>    } <b><span class="code-lang">else</span></b> {</td></tr><tr><th id="L121"><a href="#L121">121</a></th><td>      cfaReduction = <b><span class="code-lang">null</span></b>;</td></tr><tr><th id="L122"><a href="#L122">122</a></th><td>    }</td></tr><tr><th id="L123"><a href="#L123">123</a></th><td></td></tr><tr><th id="L124"><a href="#L124">124</a></th><td>    parserInstantiationTime.stop();</td></tr><tr><th id="L125"><a href="#L125">125</a></th><td>  }</td></tr><tr><th id="L126"><a href="#L126">126</a></th><td></td></tr><tr><th id="L127"><a href="#L127">127</a></th><td>  <i><span class="code-comment">/**</span></i></td></tr><tr><th id="L128"><a href="#L128">128</a></th><td><i><span class="code-comment">   * Parse a file and create a CFA, including all post-processing etc.</span></i></td></tr><tr><th id="L129"><a href="#L129">129</a></th><td><i><span class="code-comment">   *</span></i></td></tr><tr><th id="L130"><a href="#L130">130</a></th><td><i><span class="code-comment">   * @param filename  The file to parse.</span></i></td></tr><tr><th id="L131"><a href="#L131">131</a></th><td><i><span class="code-comment">   * @return A representation of the CFA.</span></i></td></tr><tr><th id="L132"><a href="#L132">132</a></th><td><i><span class="code-comment">   * @throws InvalidConfigurationException If the main function that was specified in the configuration is not found.</span></i></td></tr><tr><th id="L133"><a href="#L133">133</a></th><td><i><span class="code-comment">   * @throws IOException If an I/O error occurs.</span></i></td></tr><tr><th id="L134"><a href="#L134">134</a></th><td><i><span class="code-comment">   * @throws ParserException If the parser or the CFA builder cannot handle the C code.</span></i></td></tr><tr><th id="L135"><a href="#L135">135</a></th><td><i><span class="code-comment">   * @throws InterruptedException</span></i></td></tr><tr><th id="L136"><a href="#L136">136</a></th><td><i><span class="code-comment">   */</span></i></td></tr><tr><th id="L137"><a href="#L137">137</a></th><td>  <b><span class="code-lang">public</span></b> CFA parseFileAndCreateCFA(String filename)</td></tr><tr><th id="L138"><a href="#L138">138</a></th><td>          <b><span class="code-lang">throws</span></b> InvalidConfigurationException, IOException, ParserException, InterruptedException {</td></tr><tr><th id="L139"><a href="#L139">139</a></th><td></td></tr><tr><th id="L140"><a href="#L140">140</a></th><td>    totalTime.start();</td></tr><tr><th id="L141"><a href="#L141">141</a></th><td>    <b><span class="code-lang">try</span></b> {</td></tr><tr><th id="L142"><a href="#L142">142</a></th><td></td></tr><tr><th id="L143"><a href="#L143">143</a></th><td>      logger.log(Level.FINE, <b><span class="code-string">"Starting parsing of file"</span></b>);</td></tr><tr><th id="L144"><a href="#L144">144</a></th><td>      ParseResult c = parser.parseFile(filename);</td></tr><tr><th id="L145"><a href="#L145">145</a></th><td>      logger.log(Level.FINE, <b><span class="code-string">"Parser Finished"</span></b>);</td></tr><tr><th id="L146"><a href="#L146">146</a></th><td></td></tr><tr><th id="L147"><a href="#L147">147</a></th><td>      <b><span class="code-lang">if</span></b> (c.isEmpty()) {</td></tr><tr><th id="L148"><a href="#L148">148</a></th><td>        <b><span class="code-lang">throw</span></b> <b><span class="code-lang">new</span></b> ParserException(<b><span class="code-string">"No functions found in program"</span></b>);</td></tr><tr><th id="L149"><a href="#L149">149</a></th><td>      }</td></tr><tr><th id="L150"><a href="#L150">150</a></th><td></td></tr><tr><th id="L151"><a href="#L151">151</a></th><td>      <b><span class="code-lang">final</span></b> CFAFunctionDefinitionNode mainFunction = getMainFunction(filename, c.getFunctions());</td></tr><tr><th id="L152"><a href="#L152">152</a></th><td></td></tr><tr><th id="L153"><a href="#L153">153</a></th><td>      MutableCFA cfa = <b><span class="code-lang">new</span></b> MutableCFA(c.getFunctions(), c.getCFANodes(), mainFunction);</td></tr><tr><th id="L154"><a href="#L154">154</a></th><td></td></tr><tr><th id="L155"><a href="#L155">155</a></th><td>      checkTime.start();</td></tr><tr><th id="L156"><a href="#L156">156</a></th><td></td></tr><tr><th id="L157"><a href="#L157">157</a></th><td>      <i><span class="code-comment">// check the CFA of each function</span></i></td></tr><tr><th id="L158"><a href="#L158">158</a></th><td><i><span class="code-comment"></span></i>      <b><span class="code-lang">for</span></b> (String functionName : cfa.getAllFunctionNames()) {</td></tr><tr><th id="L159"><a href="#L159">159</a></th><td>        assert CFACheck.check(cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName));</td></tr><tr><th id="L160"><a href="#L160">160</a></th><td>      }</td></tr><tr><th id="L161"><a href="#L161">161</a></th><td>      checkTime.stop();</td></tr><tr><th id="L162"><a href="#L162">162</a></th><td></td></tr><tr><th id="L163"><a href="#L163">163</a></th><td>      processingTime.start();</td></tr><tr><th id="L164"><a href="#L164">164</a></th><td></td></tr><tr><th id="L165"><a href="#L165">165</a></th><td>      <i><span class="code-comment">// annotate CFA nodes with topological information for later use</span></i></td></tr><tr><th id="L166"><a href="#L166">166</a></th><td><i><span class="code-comment"></span></i>      <b><span class="code-lang">for</span></b>(CFAFunctionDefinitionNode function : cfa.getAllFunctionHeads()){</td></tr><tr><th id="L167"><a href="#L167">167</a></th><td>        CFATopologicalSort topSort = <b><span class="code-lang">new</span></b> CFATopologicalSort();</td></tr><tr><th id="L168"><a href="#L168">168</a></th><td>        topSort.topologicalSort(function);</td></tr><tr><th id="L169"><a href="#L169">169</a></th><td>      }</td></tr><tr><th id="L170"><a href="#L170">170</a></th><td></td></tr><tr><th id="L171"><a href="#L171">171</a></th><td>      <i><span class="code-comment">// get loop information</span></i></td></tr><tr><th id="L172"><a href="#L172">172</a></th><td><i><span class="code-comment"></span></i>      Optional&lt;ImmutableMultimap&lt;String, Loop&gt;&gt; loopStructure = getLoopStructure(cfa);</td></tr><tr><th id="L173"><a href="#L173">173</a></th><td></td></tr><tr><th id="L174"><a href="#L174">174</a></th><td>      <i><span class="code-comment">// Insert call and return edges and build the supergraph</span></i></td></tr><tr><th id="L175"><a href="#L175">175</a></th><td><i><span class="code-comment"></span></i>      <b><span class="code-lang">if</span></b> (interprocedural) {</td></tr><tr><th id="L176"><a href="#L176">176</a></th><td>        logger.log(Level.FINE, <b><span class="code-string">"Analysis is interprocedural, adding super edges"</span></b>);</td></tr><tr><th id="L177"><a href="#L177">177</a></th><td></td></tr><tr><th id="L178"><a href="#L178">178</a></th><td>        CFASecondPassBuilder spbuilder = <b><span class="code-lang">new</span></b> CFASecondPassBuilder(cfa.getAllFunctions());</td></tr><tr><th id="L179"><a href="#L179">179</a></th><td>        spbuilder.insertCallEdgesRecursively();</td></tr><tr><th id="L180"><a href="#L180">180</a></th><td>      }</td></tr><tr><th id="L181"><a href="#L181">181</a></th><td></td></tr><tr><th id="L182"><a href="#L182">182</a></th><td>      <b><span class="code-lang">if</span></b> (useGlobalVars){</td></tr><tr><th id="L183"><a href="#L183">183</a></th><td>        <i><span class="code-comment">// add global variables at the beginning of main</span></i></td></tr><tr><th id="L184"><a href="#L184">184</a></th><td><i><span class="code-comment"></span></i>        insertGlobalDeclarations(cfa, c.getGlobalDeclarations());</td></tr><tr><th id="L185"><a href="#L185">185</a></th><td>      }</td></tr><tr><th id="L186"><a href="#L186">186</a></th><td></td></tr><tr><th id="L187"><a href="#L187">187</a></th><td>      processingTime.stop();</td></tr><tr><th id="L188"><a href="#L188">188</a></th><td></td></tr><tr><th id="L189"><a href="#L189">189</a></th><td>      <i><span class="code-comment">// remove irrelevant locations</span></i></td></tr><tr><th id="L190"><a href="#L190">190</a></th><td><i><span class="code-comment"></span></i>      <b><span class="code-lang">if</span></b> (cfaReduction != <b><span class="code-lang">null</span></b>) {</td></tr><tr><th id="L191"><a href="#L191">191</a></th><td>        pruningTime.start();</td></tr><tr><th id="L192"><a href="#L192">192</a></th><td>        cfaReduction.removeIrrelevantForErrorLocations(cfa);</td></tr><tr><th id="L193"><a href="#L193">193</a></th><td>        pruningTime.stop();</td></tr><tr><th id="L194"><a href="#L194">194</a></th><td></td></tr><tr><th id="L195"><a href="#L195">195</a></th><td>        <b><span class="code-lang">if</span></b> (cfa.isEmpty()) {</td></tr><tr><th id="L196"><a href="#L196">196</a></th><td>          logger.log(Level.INFO, <b><span class="code-string">"No error locations reachable from "</span></b> + mainFunction.getFunctionName()</td></tr><tr><th id="L197"><a href="#L197">197</a></th><td>                + <b><span class="code-string">", analysis not necessary. "</span></b></td></tr><tr><th id="L198"><a href="#L198">198</a></th><td>                + <b><span class="code-string">"If the code contains no error location named ERROR, set the option cfa.removeIrrelevantForErrorLocations to false."</span></b>);</td></tr><tr><th id="L199"><a href="#L199">199</a></th><td></td></tr><tr><th id="L200"><a href="#L200">200</a></th><td>          <b><span class="code-lang">return</span></b> ImmutableCFA.empty();</td></tr><tr><th id="L201"><a href="#L201">201</a></th><td>        }</td></tr><tr><th id="L202"><a href="#L202">202</a></th><td>      }</td></tr><tr><th id="L203"><a href="#L203">203</a></th><td></td></tr><tr><th id="L204"><a href="#L204">204</a></th><td></td></tr><tr><th id="L205"><a href="#L205">205</a></th><td>      <b><span class="code-lang">final</span></b> ImmutableCFA immutableCFA = cfa.makeImmutableCFA(loopStructure);</td></tr><tr><th id="L206"><a href="#L206">206</a></th><td></td></tr><tr><th id="L207"><a href="#L207">207</a></th><td>      <i><span class="code-comment">// check the super CFA starting at the main function</span></i></td></tr><tr><th id="L208"><a href="#L208">208</a></th><td><i><span class="code-comment"></span></i>      checkTime.start();</td></tr><tr><th id="L209"><a href="#L209">209</a></th><td>      assert CFACheck.check(mainFunction, <b><span class="code-lang">null</span></b>);</td></tr><tr><th id="L210"><a href="#L210">210</a></th><td>      checkTime.stop();</td></tr><tr><th id="L211"><a href="#L211">211</a></th><td></td></tr><tr><th id="L212"><a href="#L212">212</a></th><td>      <b><span class="code-lang">if</span></b> ((exportCfaFile != <b><span class="code-lang">null</span></b>) &amp;&amp; (exportCfa || exportCfaPerFunction)) {</td></tr><tr><th id="L213"><a href="#L213">213</a></th><td>        exportCFA(immutableCFA);</td></tr><tr><th id="L214"><a href="#L214">214</a></th><td>      }</td></tr><tr><th id="L215"><a href="#L215">215</a></th><td></td></tr><tr><th id="L216"><a href="#L216">216</a></th><td>      logger.log(Level.FINE, <b><span class="code-string">"DONE, CFA for"</span></b>, immutableCFA.getNumberOfFunctions(), <b><span class="code-string">"functions created"</span></b>);</td></tr><tr><th id="L217"><a href="#L217">217</a></th><td></td></tr><tr><th id="L218"><a href="#L218">218</a></th><td>      <b><span class="code-lang">return</span></b> immutableCFA;</td></tr><tr><th id="L219"><a href="#L219">219</a></th><td></td></tr><tr><th id="L220"><a href="#L220">220</a></th><td>    } <b><span class="code-lang">finally</span></b> {</td></tr><tr><th id="L221"><a href="#L221">221</a></th><td>      totalTime.stop();</td></tr><tr><th id="L222"><a href="#L222">222</a></th><td>    }</td></tr><tr><th id="L223"><a href="#L223">223</a></th><td>  }</td></tr><tr><th id="L224"><a href="#L224">224</a></th><td></td></tr><tr><th id="L225"><a href="#L225">225</a></th><td>  <b><span class="code-lang">private</span></b> CFAFunctionDefinitionNode getMainFunction(String filename,</td></tr><tr><th id="L226"><a href="#L226">226</a></th><td>      <b><span class="code-lang">final</span></b> Map&lt;String, CFAFunctionDefinitionNode&gt; cfas)</td></tr><tr><th id="L227"><a href="#L227">227</a></th><td>      <b><span class="code-lang">throws</span></b> InvalidConfigurationException {</td></tr><tr><th id="L228"><a href="#L228">228</a></th><td></td></tr><tr><th id="L229"><a href="#L229">229</a></th><td>    <i><span class="code-comment">// try specified function</span></i></td></tr><tr><th id="L230"><a href="#L230">230</a></th><td><i><span class="code-comment"></span></i>    CFAFunctionDefinitionNode mainFunction = cfas.get(mainFunctionName);</td></tr><tr><th id="L231"><a href="#L231">231</a></th><td></td></tr><tr><th id="L232"><a href="#L232">232</a></th><td>    <b><span class="code-lang">if</span></b> (mainFunction != <b><span class="code-lang">null</span></b>) {</td></tr><tr><th id="L233"><a href="#L233">233</a></th><td>      <b><span class="code-lang">return</span></b> mainFunction;</td></tr><tr><th id="L234"><a href="#L234">234</a></th><td>    }</td></tr><tr><th id="L235"><a href="#L235">235</a></th><td></td></tr><tr><th id="L236"><a href="#L236">236</a></th><td>    <b><span class="code-lang">if</span></b> (!mainFunctionName.equals(<b><span class="code-string">"main"</span></b>)) {</td></tr><tr><th id="L237"><a href="#L237">237</a></th><td>      <i><span class="code-comment">// function explicitly given by user, but not found</span></i></td></tr><tr><th id="L238"><a href="#L238">238</a></th><td><i><span class="code-comment"></span></i>      <b><span class="code-lang">throw</span></b> <b><span class="code-lang">new</span></b> InvalidConfigurationException(<b><span class="code-string">"Function "</span></b> + mainFunctionName + <b><span class="code-string">" not found!"</span></b>);</td></tr><tr><th id="L239"><a href="#L239">239</a></th><td>    }</td></tr><tr><th id="L240"><a href="#L240">240</a></th><td></td></tr><tr><th id="L241"><a href="#L241">241</a></th><td>    <b><span class="code-lang">if</span></b> (cfas.size() == 1) {</td></tr><tr><th id="L242"><a href="#L242">242</a></th><td>      <i><span class="code-comment">// only one function available, take this one</span></i></td></tr><tr><th id="L243"><a href="#L243">243</a></th><td><i><span class="code-comment"></span></i>      <b><span class="code-lang">return</span></b> Iterables.getOnlyElement(cfas.values());</td></tr><tr><th id="L244"><a href="#L244">244</a></th><td></td></tr><tr><th id="L245"><a href="#L245">245</a></th><td>    } <b><span class="code-lang">else</span></b> {</td></tr><tr><th id="L246"><a href="#L246">246</a></th><td>      <i><span class="code-comment">// get the AAA part out of a filename like test/program/AAA.cil.c</span></i></td></tr><tr><th id="L247"><a href="#L247">247</a></th><td><i><span class="code-comment"></span></i>      filename = (<b><span class="code-lang">new</span></b> File(filename)).getName(); <i><span class="code-comment">// remove directory</span></i></td></tr><tr><th id="L248"><a href="#L248">248</a></th><td><i><span class="code-comment"></span></i></td></tr><tr><th id="L249"><a href="#L249">249</a></th><td>      <b><span class="code-lang">int</span></b> indexOfDot = filename.indexOf(<b><span class="code-string">'.'</span></b>);</td></tr><tr><th id="L250"><a href="#L250">250</a></th><td>      String baseFilename = indexOfDot &gt;= 1 ? filename.substring(0, indexOfDot) : filename;</td></tr><tr><th id="L251"><a href="#L251">251</a></th><td></td></tr><tr><th id="L252"><a href="#L252">252</a></th><td>      <i><span class="code-comment">// try function with same name as file</span></i></td></tr><tr><th id="L253"><a href="#L253">253</a></th><td><i><span class="code-comment"></span></i>      mainFunction = cfas.get(baseFilename);</td></tr><tr><th id="L254"><a href="#L254">254</a></th><td></td></tr><tr><th id="L255"><a href="#L255">255</a></th><td>      <b><span class="code-lang">if</span></b> (mainFunction == <b><span class="code-lang">null</span></b>) {</td></tr><tr><th id="L256"><a href="#L256">256</a></th><td>        <b><span class="code-lang">throw</span></b> <b><span class="code-lang">new</span></b> InvalidConfigurationException(<b><span class="code-string">"No entry function found, please specify one!"</span></b>);</td></tr><tr><th id="L257"><a href="#L257">257</a></th><td>      }</td></tr><tr><th id="L258"><a href="#L258">258</a></th><td>      <b><span class="code-lang">return</span></b> mainFunction;</td></tr><tr><th id="L259"><a href="#L259">259</a></th><td>    }</td></tr><tr><th id="L260"><a href="#L260">260</a></th><td>  }</td></tr><tr><th id="L261"><a href="#L261">261</a></th><td></td></tr><tr><th id="L262"><a href="#L262">262</a></th><td>  <b><span class="code-lang">private</span></b> Optional&lt;ImmutableMultimap&lt;String, Loop&gt;&gt; getLoopStructure(MutableCFA cfa) {</td></tr><tr><th id="L263"><a href="#L263">263</a></th><td>    Optional&lt;ImmutableMultimap&lt;String, Loop&gt;&gt; loopStructure;</td></tr><tr><th id="L264"><a href="#L264">264</a></th><td>    <b><span class="code-lang">try</span></b> {</td></tr><tr><th id="L265"><a href="#L265">265</a></th><td>      ImmutableMultimap.Builder&lt;String, Loop&gt; loops = ImmutableMultimap.builder();</td></tr><tr><th id="L266"><a href="#L266">266</a></th><td>      <b><span class="code-lang">for</span></b> (String functionName : cfa.getAllFunctionNames()) {</td></tr><tr><th id="L267"><a href="#L267">267</a></th><td>        SortedSet&lt;CFANode&gt; nodes = cfa.getFunctionNodes(functionName);</td></tr><tr><th id="L268"><a href="#L268">268</a></th><td>        loops.putAll(functionName, findLoops(nodes));</td></tr><tr><th id="L269"><a href="#L269">269</a></th><td>      }</td></tr><tr><th id="L270"><a href="#L270">270</a></th><td>      loopStructure = Optional.of(loops.build());</td></tr><tr><th id="L271"><a href="#L271">271</a></th><td>    } <b><span class="code-lang">catch</span></b> (ParserException e) {</td></tr><tr><th id="L272"><a href="#L272">272</a></th><td>      <i><span class="code-comment">// don't abort here, because if the analysis doesn't need the loop information, we can continue</span></i></td></tr><tr><th id="L273"><a href="#L273">273</a></th><td><i><span class="code-comment"></span></i>      logger.logUserException(Level.WARNING, e, <b><span class="code-string">"Could not analyze loop structure of program"</span></b>);</td></tr><tr><th id="L274"><a href="#L274">274</a></th><td>      loopStructure = Optional.absent();</td></tr><tr><th id="L275"><a href="#L275">275</a></th><td>    }</td></tr><tr><th id="L276"><a href="#L276">276</a></th><td>    CFACreator.loops = loopStructure.orNull();</td></tr><tr><th id="L277"><a href="#L277">277</a></th><td>    <b><span class="code-lang">return</span></b> loopStructure;</td></tr><tr><th id="L278"><a href="#L278">278</a></th><td>  }</td></tr><tr><th id="L279"><a href="#L279">279</a></th><td></td></tr><tr><th id="L280"><a href="#L280">280</a></th><td>  <i><span class="code-comment">/**</span></i></td></tr><tr><th id="L281"><a href="#L281">281</a></th><td><i><span class="code-comment">   * Insert nodes for global declarations after first node of CFA.</span></i></td></tr><tr><th id="L282"><a href="#L282">282</a></th><td><i><span class="code-comment">   */</span></i></td></tr><tr><th id="L283"><a href="#L283">283</a></th><td>  <b><span class="code-lang">public</span></b> <b><span class="code-lang">static</span></b> <b><span class="code-lang">void</span></b> insertGlobalDeclarations(<b><span class="code-lang">final</span></b> MutableCFA cfa, List&lt;IASTDeclaration&gt; globalVars) {</td></tr><tr><th id="L284"><a href="#L284">284</a></th><td>    <b><span class="code-lang">if</span></b> (globalVars.isEmpty()) {</td></tr><tr><th id="L285"><a href="#L285">285</a></th><td>      <b><span class="code-lang">return</span></b>;</td></tr><tr><th id="L286"><a href="#L286">286</a></th><td>    }</td></tr><tr><th id="L287"><a href="#L287">287</a></th><td></td></tr><tr><th id="L288"><a href="#L288">288</a></th><td>    <i><span class="code-comment">// split off first node of CFA</span></i></td></tr><tr><th id="L289"><a href="#L289">289</a></th><td><i><span class="code-comment"></span></i>    CFAFunctionDefinitionNode firstNode = cfa.getMainFunction();</td></tr><tr><th id="L290"><a href="#L290">290</a></th><td>    assert firstNode.getNumLeavingEdges() == 1;</td></tr><tr><th id="L291"><a href="#L291">291</a></th><td>    CFAEdge firstEdge = firstNode.getLeavingEdge(0);</td></tr><tr><th id="L292"><a href="#L292">292</a></th><td>    assert firstEdge <b><span class="code-lang">instanceof</span></b> BlankEdge &amp;&amp; !firstEdge.isJumpEdge();</td></tr><tr><th id="L293"><a href="#L293">293</a></th><td>    CFANode secondNode = firstEdge.getSuccessor();</td></tr><tr><th id="L294"><a href="#L294">294</a></th><td></td></tr><tr><th id="L295"><a href="#L295">295</a></th><td>    CFACreationUtils.removeEdgeFromNodes(firstEdge);</td></tr><tr><th id="L296"><a href="#L296">296</a></th><td></td></tr><tr><th id="L297"><a href="#L297">297</a></th><td>    <i><span class="code-comment">// insert one node to start the series of declarations</span></i></td></tr><tr><th id="L298"><a href="#L298">298</a></th><td><i><span class="code-comment"></span></i>    CFANode cur = <b><span class="code-lang">new</span></b> CFANode(0, firstNode.getFunctionName());</td></tr><tr><th id="L299"><a href="#L299">299</a></th><td>    cfa.addNode(cur);</td></tr><tr><th id="L300"><a href="#L300">300</a></th><td>    BlankEdge be = <b><span class="code-lang">new</span></b> BlankEdge(<b><span class="code-string">"INIT GLOBAL VARS"</span></b>, 0, firstNode, cur);</td></tr><tr><th id="L301"><a href="#L301">301</a></th><td>    addToCFA(be);</td></tr><tr><th id="L302"><a href="#L302">302</a></th><td></td></tr><tr><th id="L303"><a href="#L303">303</a></th><td>    <i><span class="code-comment">// create a series of GlobalDeclarationEdges, one for each declaration</span></i></td></tr><tr><th id="L304"><a href="#L304">304</a></th><td><i><span class="code-comment"></span></i>    <b><span class="code-lang">for</span></b> (IASTDeclaration d : globalVars) {</td></tr><tr><th id="L305"><a href="#L305">305</a></th><td>      assert d.isGlobal();</td></tr><tr><th id="L306"><a href="#L306">306</a></th><td></td></tr><tr><th id="L307"><a href="#L307">307</a></th><td>      CFANode n = <b><span class="code-lang">new</span></b> CFANode(d.getFileLocation().getStartingLineNumber(), cur.getFunctionName());</td></tr><tr><th id="L308"><a href="#L308">308</a></th><td>      cfa.addNode(n);</td></tr><tr><th id="L309"><a href="#L309">309</a></th><td>      GlobalDeclarationEdge e = <b><span class="code-lang">new</span></b> GlobalDeclarationEdge(d,</td></tr><tr><th id="L310"><a href="#L310">310</a></th><td>          d.getFileLocation().getStartingLineNumber(), cur, n);</td></tr><tr><th id="L311"><a href="#L311">311</a></th><td>      addToCFA(e);</td></tr><tr><th id="L312"><a href="#L312">312</a></th><td>      cur = n;</td></tr><tr><th id="L313"><a href="#L313">313</a></th><td>    }</td></tr><tr><th id="L314"><a href="#L314">314</a></th><td></td></tr><tr><th id="L315"><a href="#L315">315</a></th><td>    <i><span class="code-comment">// and a blank edge connecting the declarations with the second node of CFA</span></i></td></tr><tr><th id="L316"><a href="#L316">316</a></th><td><i><span class="code-comment"></span></i>    be = <b><span class="code-lang">new</span></b> BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode);</td></tr><tr><th id="L317"><a href="#L317">317</a></th><td>    addToCFA(be);</td></tr><tr><th id="L318"><a href="#L318">318</a></th><td>  }</td></tr><tr><th id="L319"><a href="#L319">319</a></th><td></td></tr><tr><th id="L320"><a href="#L320">320</a></th><td>  <b><span class="code-lang">private</span></b> <b><span class="code-lang">void</span></b> exportCFA(<b><span class="code-lang">final</span></b> CFA cfa) {</td></tr><tr><th id="L321"><a href="#L321">321</a></th><td>    <i><span class="code-comment">// We used to do this asynchronously.</span></i></td></tr><tr><th id="L322"><a href="#L322">322</a></th><td><i><span class="code-comment"></span></i>    <i><span class="code-comment">// However, FunctionPointerCPA modifies the CFA during analysis, so this is</span></i></td></tr><tr><th id="L323"><a href="#L323">323</a></th><td><i><span class="code-comment"></span></i>    <i><span class="code-comment">// no longer safe.</span></i></td></tr><tr><th id="L324"><a href="#L324">324</a></th><td><i><span class="code-comment"></span></i></td></tr><tr><th id="L325"><a href="#L325">325</a></th><td>    exportTime.start();</td></tr><tr><th id="L326"><a href="#L326">326</a></th><td></td></tr><tr><th id="L327"><a href="#L327">327</a></th><td>    <i><span class="code-comment">// write CFA to file</span></i></td></tr><tr><th id="L328"><a href="#L328">328</a></th><td><i><span class="code-comment"></span></i>    <b><span class="code-lang">if</span></b> (exportCfa) {</td></tr><tr><th id="L329"><a href="#L329">329</a></th><td>      <b><span class="code-lang">try</span></b> {</td></tr><tr><th id="L330"><a href="#L330">330</a></th><td>        Files.writeFile(exportCfaFile,</td></tr><tr><th id="L331"><a href="#L331">331</a></th><td>            DOTBuilder.generateDOT(cfa.getAllFunctionHeads(), cfa.getMainFunction()));</td></tr><tr><th id="L332"><a href="#L332">332</a></th><td>      } <b><span class="code-lang">catch</span></b> (IOException e) {</td></tr><tr><th id="L333"><a href="#L333">333</a></th><td>        logger.logUserException(Level.WARNING, e,</td></tr><tr><th id="L334"><a href="#L334">334</a></th><td>          <b><span class="code-string">"Could not write CFA to dot file"</span></b>);</td></tr><tr><th id="L335"><a href="#L335">335</a></th><td>        <i><span class="code-comment">// continue with analysis</span></i></td></tr><tr><th id="L336"><a href="#L336">336</a></th><td><i><span class="code-comment"></span></i>      }</td></tr><tr><th id="L337"><a href="#L337">337</a></th><td>    }</td></tr><tr><th id="L338"><a href="#L338">338</a></th><td></td></tr><tr><th id="L339"><a href="#L339">339</a></th><td>    <i><span class="code-comment">// write the CFA to files (one file per function + some metainfo)</span></i></td></tr><tr><th id="L340"><a href="#L340">340</a></th><td><i><span class="code-comment"></span></i>    <b><span class="code-lang">if</span></b> (exportCfaPerFunction) {</td></tr><tr><th id="L341"><a href="#L341">341</a></th><td>      <b><span class="code-lang">try</span></b> {</td></tr><tr><th id="L342"><a href="#L342">342</a></th><td>        File outdir = exportCfaFile.getParentFile();</td></tr><tr><th id="L343"><a href="#L343">343</a></th><td>        DOTBuilder2.writeReport(cfa.getMainFunction(), outdir);</td></tr><tr><th id="L344"><a href="#L344">344</a></th><td>      } <b><span class="code-lang">catch</span></b> (IOException e) {</td></tr><tr><th id="L345"><a href="#L345">345</a></th><td>        logger.logUserException(Level.WARNING, e,</td></tr><tr><th id="L346"><a href="#L346">346</a></th><td>          <b><span class="code-string">"Could not write CFA to dot and json file"</span></b>);</td></tr><tr><th id="L347"><a href="#L347">347</a></th><td>        <i><span class="code-comment">// continue with analysis</span></i></td></tr><tr><th id="L348"><a href="#L348">348</a></th><td><i><span class="code-comment"></span></i>      }</td></tr><tr><th id="L349"><a href="#L349">349</a></th><td>    }</td></tr><tr><th id="L350"><a href="#L350">350</a></th><td></td></tr><tr><th id="L351"><a href="#L351">351</a></th><td>    exportTime.stop();</td></tr><tr><th id="L352"><a href="#L352">352</a></th><td>  }</td></tr><tr><th id="L353"><a href="#L353">353</a></th><td></td></tr><tr><th id="L354"><a href="#L354">354</a></th><td>  <b><span class="code-lang">private</span></b> <b><span class="code-lang">static</span></b> <b><span class="code-lang">void</span></b> addToCFA(CFAEdge edge) {</td></tr><tr><th id="L355"><a href="#L355">355</a></th><td>    edge.getPredecessor().addLeavingEdge(edge);</td></tr><tr><th id="L356"><a href="#L356">356</a></th><td>    edge.getSuccessor().addEnteringEdge(edge);</td></tr><tr><th id="L357"><a href="#L357">357</a></th><td>  }</td></tr><tr><th id="L358"><a href="#L358">358</a></th><td>}</td></tr></tbody></table>
+      </div>
+      <div id="help">
+        <strong>Note:</strong> See <a href="/trac/cpachecker/wiki/TracBrowser">TracBrowser</a>
+        for help on using the browser.
+      </div>
+      <div id="anydiff">
+        <form action="/trac/cpachecker/diff" method="get">
+          <div class="buttons">
+            <input type="hidden" name="new_path" value="/trunk/src/org/sosy_lab/cpachecker/cfa/CFACreator.java" />
+            <input type="hidden" name="old_path" value="/trunk/src/org/sosy_lab/cpachecker/cfa/CFACreator.java" />
+            <input type="hidden" name="new_rev" />
+            <input type="hidden" name="old_rev" />
+            <input type="submit" value="View changes..." title="Select paths and revs for Diff" />
+          </div>
+        </form>
+      </div>
+    </div>
+    <div id="altlinks">
+      <h3>Download in other formats:</h3>
+      <ul>
+        <li class="first">
+          <a rel="nofollow" href="/trac/cpachecker/browser/trunk/src/org/sosy_lab/cpachecker/cfa/CFACreator.java?format=txt">Plain Text</a>
+        </li><li class="last">
+          <a rel="nofollow" href="/trac/cpachecker/export/4837/trunk/src/org/sosy_lab/cpachecker/cfa/CFACreator.java">Original Format</a>
+        </li>
+      </ul>
+    </div>
+    </div>
+    <div id="footer" lang="en" xml:lang="en"><hr />
+      <a id="tracpowered" href="http://trac.edgewall.org/"><img src="/trac/cpachecker/chrome/common/trac_logo_mini.png" height="30" width="107" alt="Trac Powered" /></a>
+      <p class="left">
+        Powered by <a href="/trac/cpachecker/about"><strong>Trac 0.11.7</strong></a><br />
+        By <a href="http://www.edgewall.org/">Edgewall Software</a>.
+      </p>
+      <p class="right">Visit the Trac open source project at<br /><a href="http://trac.edgewall.org/">http://trac.edgewall.org/</a></p>
+    </div>
+  </body>
+</html>

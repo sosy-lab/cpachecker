@@ -254,7 +254,7 @@ class MainCPAStatistics implements Statistics {
             out.println("  Time for CFA pruning:       " + cfaCreator.pruningTime);
           }
           if (cfaCreator.exportTime.getNumberOfIntervals() > 0) {
-            out.println("Time for CFA export:          " + cfaCreator.exportTime);
+            out.println("  Time for CFA export:        " + cfaCreator.exportTime);
           }
         }
         out.println("Time for Analysis:            " + analysisTime);

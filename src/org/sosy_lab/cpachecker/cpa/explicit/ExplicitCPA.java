@@ -48,16 +48,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
-import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
-import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 
 @Options(prefix="cpa.explicit")
 public class ExplicitCPA implements ConfigurableProgramAnalysis {
@@ -90,13 +80,6 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
   private final Configuration config;
   private final LogManager logger;
 
-  private final RegionManager regionManager;
-  private final ExtendedFormulaManager formulaManager;
-  private final PathFormulaManager pathFormulaManager;
-  private final TheoremProver theoremProver;
-
-  private final PredicateAbstractionManager predicateManager;
-
   private ExplicitCPA(Configuration config, LogManager logger) throws InvalidConfigurationException
   {
     this.config = config;
@@ -111,13 +94,6 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
     stopOperator        = initializeStopOperator();
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
 
-    MathsatFormulaManager mathsatFormulaManager = MathsatFactory.createFormulaManager(config, logger);
-
-    regionManager       = BDDRegionManager.getInstance();
-    formulaManager      = new ExtendedFormulaManager(mathsatFormulaManager, config, logger);
-    pathFormulaManager  = new PathFormulaManagerImpl(formulaManager, config, logger);
-    theoremProver       = new MathsatTheoremProver(mathsatFormulaManager);
-    predicateManager    = new PredicateAbstractionManager(regionManager, formulaManager, theoremProver, config, logger);
   }
 
   private MergeOperator initializeMergeOperator()
@@ -196,11 +172,6 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
     return precisionAdjustment;
   }
 
-  protected PredicateAbstractionManager getPredicateManager()
-  {
-    return predicateManager;
-  }
-
   protected Configuration getConfiguration()
   {
     return config;
@@ -209,21 +180,6 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
   protected LogManager getLogger()
   {
     return logger;
-  }
-
-  protected ExtendedFormulaManager getFormulaManager()
-  {
-    return formulaManager;
-  }
-
-  protected PathFormulaManager getPathFormulaManager()
-  {
-    return pathFormulaManager;
-  }
-
-  protected TheoremProver getTheoremProver()
-  {
-    return theoremProver;
   }
 
   private boolean useCegar()
