@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- vim: set tabstop=8 shiftwidth=4 expandtab : -->
 <project basedir="." default="build" name="CPAchecker">
     <property name="version" value="1.1-svn"/> <!-- change here for a release -->
 
@@ -10,7 +11,7 @@
     <property name="class.dir" value="bin"/>
 
     <path id="CPAchecker.classpath">
-	<pathelement location="${class.dir}"/>
+        <pathelement location="${class.dir}"/>
         <fileset dir="lib" includes="**/*.jar"/>
     </path>
     <condition property="architecture" value="x86_64" else="x86">
@@ -23,34 +24,34 @@
         <os family="windows"/>
     </condition>
     <target name="init">
-	<mkdir dir="${class.dir}"/>
+        <mkdir dir="${class.dir}"/>
     </target>
     <target name="clean">
-	<delete includeEmptyDirs="true">
-	    <fileset dir="." includes="${class.dir}/** cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
-	</delete>
+        <delete includeEmptyDirs="true">
+            <fileset dir="." includes="${class.dir}/** cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
+        </delete>
     </target>
     <target depends="clean" name="cleanall"/>
     <target depends="build-subprojects,build-project,build-documentation" name="build"/>
     <target name="build-subprojects">
-	    <echo message="Generate automaton parser if necessary" level="info"/>
-	    <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" inheritAll="false"/>
-	    <echo message="Generate FQL parser if necessary" level="info"/>
-	    <ant antfile="src/org/sosy_lab/cpachecker/fshell/fql2/parser/build.xml" inheritAll="false"/>
+            <echo message="Generate automaton parser if necessary" level="info"/>
+            <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" inheritAll="false"/>
+            <echo message="Generate FQL parser if necessary" level="info"/>
+            <ant antfile="src/org/sosy_lab/cpachecker/fshell/fql2/parser/build.xml" inheritAll="false"/>
     </target>
 
     <target depends="init" name="build-project">
         <echo message="${ant.project.name}: ${ant.file}"/>
-	<depend srcdir="${source.dir}" destdir="${class.dir}"/>
-	<javac debug="true" debuglevel="${debuglevel}" destdir="${class.dir}" source="${source.format}" target="${class.format}" encoding="UTF-8">
-	    <src path="${source.dir}"/>
+        <depend srcdir="${source.dir}" destdir="${class.dir}"/>
+        <javac debug="true" debuglevel="${debuglevel}" destdir="${class.dir}" source="${source.format}" target="${class.format}" encoding="UTF-8">
+            <src path="${source.dir}"/>
             <classpath refid="CPAchecker.classpath"/>
         </javac>
     </target>
 
     <property name="outputfile" value="doc/ConfigurationOptions.txt"/>
     <uptodate property="documentation.uptodate" targetfile="${outputfile}">
-	<srcfiles dir="${source.dir}" includes="**/*.java"/>
+        <srcfiles dir="${source.dir}" includes="**/*.java"/>
     </uptodate>
 
     <target name="build-documentation" depends="build-project" unless="documentation.uptodate">
@@ -75,45 +76,45 @@
     <target description="Make a distributable release" depends="build,jar,zip,tar" name="dist"/>
 
     <target name="jar" depends="build">
-	<jar basedir="${class.dir}/" includes="**/*.class" destfile="cpachecker.jar"
-		whenmanifestonly="fail">
-	    <manifest>
-	    	<attribute name="Implementation-Title" value="CPAchecker"/>
-	    	<attribute name="Implementation-Version" value="${version}"/>
-	    	<attribute name="Implementation-URL" value="http://cpachecker.sosy-lab.org"/>
-		<attribute name="Main-Class" value="org.sosy_lab.cpachecker.cmdline.CPAMain"/>
-	     </manifest>
-	</jar>
+        <jar basedir="${class.dir}/" includes="**/*.class" destfile="cpachecker.jar"
+                whenmanifestonly="fail">
+            <manifest>
+                    <attribute name="Implementation-Title" value="CPAchecker"/>
+                    <attribute name="Implementation-Version" value="${version}"/>
+                    <attribute name="Implementation-URL" value="http://cpachecker.sosy-lab.org"/>
+                <attribute name="Main-Class" value="org.sosy_lab.cpachecker.cmdline.CPAMain"/>
+             </manifest>
+        </jar>
     </target>
 
     <target name="zip" depends="jar">
-	<property name="namez" value="CPAchecker-${version}-windows"/>
-	<zip destfile="${namez}.zip" whenempty="fail">
-	    <zipfileset dir="." includes="config/** doc/** scripts/*.bat scripts/*.txt cpachecker.jar *.txt" prefix="${namez}/"/>
-	    <zipfileset dir="." includes="lib/**" excludes="lib/build-only/** lib/native/** lib/eclipse/*.source_*" prefix="${namez}/"/>
-	    <zipfileset dir="." includes="lib/native/*win*/**" prefix="${namez}/"/>
-	</zip>
+        <property name="namez" value="CPAchecker-${version}-windows"/>
+        <zip destfile="${namez}.zip" whenempty="fail">
+            <zipfileset dir="." includes="config/** doc/** scripts/*.bat scripts/*.txt cpachecker.jar *.txt" prefix="${namez}/"/>
+            <zipfileset dir="." includes="lib/**" excludes="lib/build-only/** lib/native/** lib/eclipse/*.source_*" prefix="${namez}/"/>
+            <zipfileset dir="." includes="lib/native/*win*/**" prefix="${namez}/"/>
+        </zip>
     </target>
 
     <target name="tar" depends="jar">
-	<property name="namet" value="CPAchecker-${version}-unix"/>
-	<tar destfile="${namet}.tar.bz2" compression="bzip2">
-	    <tarfileset dir="."
-		includes="config/** doc/** cpachecker.jar *.txt"
-		prefix="${namet}/"/>
-	    <tarfileset dir="scripts"
-		includes="*.*"
-		excludes="*.bat *.sh *.py"
-		prefix="${namet}/scripts/"/>
-	    <tarfileset dir="lib"
-		includes="*.* eclipse/*"
-		excludes="eclipse/*.source_*"
-		prefix="${namet}/lib/"/>
-	    <tarfileset dir="." filemode="755"
-		includes="scripts/*.sh scripts/*.py lib/native/**"
-		excludes="lib/native/source/** lib/native/*win*/**"
-		prefix="${namet}/"/>
-	</tar>
+        <property name="namet" value="CPAchecker-${version}-unix"/>
+        <tar destfile="${namet}.tar.bz2" compression="bzip2">
+            <tarfileset dir="."
+                includes="config/** doc/** cpachecker.jar *.txt"
+                prefix="${namet}/"/>
+            <tarfileset dir="scripts"
+                includes="*.*"
+                excludes="*.bat *.sh *.py"
+                prefix="${namet}/scripts/"/>
+            <tarfileset dir="lib"
+                includes="*.* eclipse/*"
+                excludes="eclipse/*.source_*"
+                prefix="${namet}/lib/"/>
+            <tarfileset dir="." filemode="755"
+                includes="scripts/*.sh scripts/*.py lib/native/**"
+                excludes="lib/native/source/** lib/native/*win*/**"
+                prefix="${namet}/"/>
+        </tar>
     </target>
 
     <target description="Run all JUnit tests" depends="build" name="tests">
@@ -129,7 +130,7 @@
                 <fileset dir="${class.dir}">
                     <include name="**/*Test.*"/>
                     <exclude name="**/*$*Test.*"/>
-		    <exclude name="org/sosy_lab/cpachecker/util/octagon/OctLibraryTest.class"/>
+                    <exclude name="org/sosy_lab/cpachecker/util/octagon/OctLibraryTest.class"/>
                 </fileset>
             </batchtest>
         </junit>
