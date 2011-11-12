@@ -152,7 +152,7 @@ public class CPAchecker {
   /**
    * Change this string in preparation of a release.
    */
-  private static final String version = "1.1";
+  private static final String version = "1.1-svn";
 
   public static String getVersion() {
     return version;
