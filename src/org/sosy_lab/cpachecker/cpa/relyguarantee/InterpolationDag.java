@@ -48,7 +48,9 @@ import com.google.common.collect.ListMultimap;
 public class InterpolationDag {
 
   private final List<InterpolationDagNode> roots;
-  private final Map<Pair<Integer, Integer>, InterpolationDagNode> nodeMap;
+  //private final Map<Pair<Integer, Integer>, InterpolationDagNode> nodeMap;
+  private final Map<InterpolationDagNodeKey, InterpolationDagNode> nodeMap;
+
 
   /**
    * Makes a deep copy of the DAG.
@@ -56,7 +58,7 @@ public class InterpolationDag {
    */
   public InterpolationDag(InterpolationDag oldDag){
     this.roots = new Vector<InterpolationDagNode>(oldDag.roots.size());
-    this.nodeMap = new HashMap<Pair<Integer, Integer>, InterpolationDagNode>();
+    this.nodeMap = new HashMap<InterpolationDagNodeKey, InterpolationDagNode>();
 
     Deque<InterpolationDagNode> toProcess = new LinkedList<InterpolationDagNode>();
     toProcess.addAll(oldDag.roots);
@@ -65,7 +67,7 @@ public class InterpolationDag {
       InterpolationDagNode oldNode = toProcess.poll();
       boolean parentsDone = true;
       for (InterpolationDagNode oldParent : oldNode.getParents()){
-        if (!this.nodeMap.containsKey(Pair.of(oldParent.tid, oldParent.artElement.getElementId()))){
+        if (!this.nodeMap.containsKey(oldParent.getKey())){
           parentsDone = false;
           break;
         }
@@ -76,7 +78,7 @@ public class InterpolationDag {
       }
 
       InterpolationDagNode newNode = new InterpolationDagNode(oldNode);
-      this.nodeMap.put(Pair.of(newNode.tid, newNode.artElement.getElementId()), newNode);
+      this.nodeMap.put(newNode.getKey(), newNode);
 
       if (oldNode.getParents().isEmpty()){
         assert oldDag.roots.contains(oldNode);
@@ -84,7 +86,7 @@ public class InterpolationDag {
       }
 
       for (InterpolationDagNode oldParent : oldNode.getParents()){
-        InterpolationDagNode newParent = this.nodeMap.get(Pair.of(oldParent.tid, oldParent.artElement.getElementId()));
+        InterpolationDagNode newParent = this.nodeMap.get(oldParent.getKey());
         assert newParent != null;
         newParent.children.add(newNode);
         newNode.parents.add(newParent);
@@ -102,12 +104,12 @@ public class InterpolationDag {
 
   public InterpolationDag(){
     this.roots = new Vector<InterpolationDagNode>();
-    this.nodeMap = new HashMap<Pair<Integer, Integer>, InterpolationDagNode>();
+    this.nodeMap = new HashMap<InterpolationDagNodeKey, InterpolationDagNode>();
   }
 
   public InterpolationDag(List<InterpolationDagNode> roots){
     this.roots = roots;
-    this.nodeMap = new HashMap<Pair<Integer, Integer>, InterpolationDagNode>();
+    this.nodeMap = new HashMap<InterpolationDagNodeKey, InterpolationDagNode>();
     this.getDagFromRoots(roots);
   }
 
@@ -117,7 +119,7 @@ public class InterpolationDag {
 
     while (!toProcess.isEmpty()){
       InterpolationDagNode node = toProcess.poll();
-      nodeMap.put(Pair.of(node.getTid(), node.getArtElement().getElementId()), node);
+      nodeMap.put(node.key, node);
       toProcess.addAll(node.getChildren());
     }
   }
@@ -151,7 +153,7 @@ public class InterpolationDag {
   }
 
   /**
-   * In the threadremoves all nodes that are not in the collection.
+   * In the given thread removes all nodes that are not in the collection.
    * @param retain
    * @return
    */
@@ -215,17 +217,22 @@ public class InterpolationDag {
     return roots;
   }
 
-  public  Map<Pair<Integer, Integer>, InterpolationDagNode> getNodeMap() {
+  public  Map<InterpolationDagNodeKey, InterpolationDagNode> getNodeMap() {
     return nodeMap;
   }
 
   public InterpolationDagNode getNode(Integer tid, Integer elementId){
-    return nodeMap.get(Pair.of(tid, elementId));
-  }
+    InterpolationDagNodeKey key = new InterpolationDagNodeKey(tid, elementId);
 
-  public InterpolationDagNode getNode(Pair<Integer, Integer> key){
     return nodeMap.get(key);
   }
+
+
+  public InterpolationDagNode getNode(InterpolationDagNodeKey key){
+    return nodeMap.get(key);
+  }
+
+
 
   /**
    * Writes a DOT file for DAG representation of ARTs and environmental transitions.
@@ -326,10 +333,10 @@ public class InterpolationDag {
       roots.add(newNode);
     }
 
-    Pair<Integer, Integer> key = null;
-    for (Pair<Integer, Integer> pair: nodeMap.keySet()){
-      if (nodeMap.get(pair) == node){
-        key = pair;
+    InterpolationDagNodeKey key = null;
+    for (InterpolationDagNodeKey nodeKey: nodeMap.keySet()){
+      if (nodeMap.get(nodeKey) == node){
+        key = nodeKey;
         break;
       }
     }
@@ -392,7 +399,7 @@ public class InterpolationDag {
     n2.parents.add(n1);
 
     if (!nodeMap.containsKey(Pair.of(n1.tid, n1.artElement.getElementId()))){
-      nodeMap.put(Pair.of(n1.tid, n1.artElement.getElementId()), n1);
+      nodeMap.put(n1.getKey(), n1);
     }
 
     if (roots.contains(n2)){

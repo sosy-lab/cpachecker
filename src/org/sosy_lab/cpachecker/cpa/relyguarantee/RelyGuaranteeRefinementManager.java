@@ -327,7 +327,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     System.out.println();
     System.out.println("Main DAG:");
-    for (Pair<Integer, Integer> key : mainDag.getNodeMap().keySet()){
+    for (InterpolationDagNodeKey key : mainDag.getNodeMap().keySet()){
       System.out.println(mainDag.getNodeMap().get(key));
     }
 
@@ -338,6 +338,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     // get node on the path from the root to the error element
     InterpolationDagNode mainDagErrorNode = mainDag.getNode(tid, errorElem.getElementId());
+    assert mainDagErrorNode != null;
 
     List<Pair<Integer, Integer>> errorPath = mainDag.getModularPathToNode(mainDagErrorNode);
 
@@ -545,7 +546,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       InterpolationDagNode node = dag.getNode(tid, artElement.getElementId());
       if (node == null){
         node = new InterpolationDagNode(rgElement.getAbstractionFormula().getBlockPathFormula(), tid, artElement, tid);
-        dag.getNodeMap().put(Pair.of(tid, artElement.getElementId()), node);
+        dag.getNodeMap().put(node.getKey(), node);
         newNode = true;
 
         if (lastNode == null){
@@ -1044,13 +1045,14 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
   private <T> DAGInterpolationResult interpolateDag(InterpolationDag dag, InterpolatingTheoremProver<T> itpProver, RelyGuaranteeRefinerStatistics stats) throws InterruptedException{
 
-    List<InterpolationDagNode> topNodes = topSortDag(dag.getRoots());
+    List<InterpolationDagNodeKey> topNodes = topSortDag(dag);
 
     if (debug){
       System.out.println();
       System.out.println("Interpolation formulas - element id [thread, trace, location]: formula, env. formulas");
       int j=0;
-      for (InterpolationDagNode node : topNodes){
+      for (InterpolationDagNodeKey key : topNodes){
+        InterpolationDagNode node = dag.getNode(key);
         CFANode loc = AbstractElements.extractLocation(node.getArtElement());
         System.out.println("\t-id:"+node.getArtElement().getElementId()+" [t"+node.getTid()+", "+node.getTraceNo()+", "+loc+"]:\t"+node.getPathFormula());
         j++;
@@ -1071,7 +1073,8 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     // get interpolants in the order of topological sort
     int i=0;
     while(i<topNodes.size()){
-      InterpolationDagNode node = topNodes.get(i);
+      InterpolationDagNodeKey key = topNodes.get(i);
+      InterpolationDagNode node = dag.getNode(key);
 
       // get formula list, where
       //Pair<List<InterpolationDagNode>, Integer> pair = parentSortDag(roots, node);
@@ -1082,10 +1085,21 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       stats.interpolationTimer.start();
       itpProver.init();
       interpolationIds.clear();
-      for (Formula fr : pair.getFirst()){
+
+      // push formulas for interpolation;
+      // some formulas are renamed to unser that the interpolant is modular
+      int otherThread = node.getTid() == 0 ? 1 : 0;
+      Map<Integer, Integer> adjustmentMap = new HashMap<Integer, Integer>(1);
+      adjustmentMap.put(otherThread, 5000);
+      for (int j=0; j<pair.getFirst().size(); j++){
+        Formula fr = pair.getFirst().get(j);
+        if (j <= pair.getSecond()){
+          fr = fmgr.adjustedPrimedNo(fr, adjustmentMap);
+        }
         T id = itpProver.addFormula(fr);
         interpolationIds.add(id);
       }
+
 
       // check if spurious
       spurious = itpProver.isUnsat();
@@ -1125,7 +1139,9 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         stats.interpolationTimer.stop();
 
         if (debug){
-          System.out.println("\t-id:"+artElement.getElementId()+" "+itp+", "+preds);
+          loc = AbstractElements.extractLocation(node.getArtElement());
+ //         System.out.println("\t-id:"+node.getArtElement().getElementId()+" [t"+node.getTid()+", "+node.getTraceNo()+", "+loc+"]:\t"+node.getPathFormula());
+          System.out.println("\t-id:"+artElement.getElementId()+" ["+node.getTid()+", "+loc+"]: \t"+itp+", "+preds);
         }
 
         if (result == null){
@@ -1141,12 +1157,20 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
           // replace formula in the interpolated node
           PathFormula oldPf = node.getPathFormula();
           PathFormula newPf = new PathFormula(itp, oldPf.getSsa(), oldPf.getLength());
-          dag.replacePathFormulaInNode(node, newPf);
+          node = dag.replacePathFormulaInNode(node, newPf);
 
           // add itp to the the children nodes:
+
+          List<InterpolationDagNodeKey> childrenKeys = new Vector<InterpolationDagNodeKey>(node.getChildren().size());
           for (InterpolationDagNode child : node.getChildren()){
+            childrenKeys.add(child.getKey());
+          }
+
+          for (InterpolationDagNodeKey childKey : childrenKeys){
+            InterpolationDagNode child = dag.getNode(childKey);
             PathFormula oldChildPf = child.getPathFormula();
-            PathFormula newChildPf = this.pmgr.makeAnd(oldChildPf, itp);
+            Formula newChildF = this.fmgr.makeAnd(oldChildPf.getFormula(), itp);
+            PathFormula newChildPf = new PathFormula(newChildF, oldChildPf.getSsa(), oldChildPf.getLength());
             dag.replacePathFormulaInNode(child, newChildPf);
           }
         }
@@ -1361,13 +1385,14 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
   }*/
 
   /**
-   * Return the nodes of the DAG in topogical order.
+   * Return the node keys of the DAG in topogical order.
    */
-  private List<InterpolationDagNode> topSortDag(List<InterpolationDagNode> roots) {
+  private List<InterpolationDagNodeKey> topSortDag(InterpolationDag dag) {
 
     Set<InterpolationDagNode> visited = new HashSet<InterpolationDagNode>();
     List<InterpolationDagNode> topList = new Vector<InterpolationDagNode>();
-    topList.addAll(roots);
+
+    topList.addAll(dag.getRoots());
 
     int i=0;
     while(i<topList.size()){
@@ -1381,7 +1406,12 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       i++;
     }
 
-    return topList;
+    List<InterpolationDagNodeKey> topListKeys = new Vector<InterpolationDagNodeKey>(topList.size());
+    for (InterpolationDagNode node : topList){
+      topListKeys.add(node.getKey());
+    }
+
+    return topListKeys;
   }
 
 
@@ -2022,8 +2052,9 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
           // testing
           Set<Integer> primes = fmgr.howManyPrimes(atom);
 
+          // Prints non-modular predicates
           if (debug && primes.contains(otherTid)){
-            System.out.println("non-modular atom: "+atom+" from itp: "+itp);
+            System.out.println("\t\t\t non-modular atom: "+atom+" from itp: "+itp);
           }
 
           AbstractionPredicate atomPredicate = amgr.makePredicate(atom);

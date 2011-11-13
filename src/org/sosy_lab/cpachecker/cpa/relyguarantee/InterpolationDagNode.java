@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -42,6 +41,7 @@ public class InterpolationDagNode extends InterpolationBlock{
   protected final List<InterpolationDagNode> parents;
   protected final int tid;
   protected final Map<RelyGuaranteeCFAEdge, Integer> envPrimes;
+  protected final InterpolationDagNodeKey key;
 
   /**
    * Deep copy of the node, except for children and parents.
@@ -53,6 +53,7 @@ public class InterpolationDagNode extends InterpolationBlock{
     this.parents    = new Vector<InterpolationDagNode>();
     this.tid        = node.tid;
     this.envPrimes  = new HashMap<RelyGuaranteeCFAEdge, Integer>(node.envPrimes);
+    this.key        = node.key;
   }
 
   public InterpolationDagNode(PathFormula pf, int traceNo, ARTElement artElement, int tid){
@@ -61,6 +62,7 @@ public class InterpolationDagNode extends InterpolationBlock{
     this.parents    = new Vector<InterpolationDagNode>();
     this.tid        = tid;
     this.envPrimes  = new HashMap<RelyGuaranteeCFAEdge, Integer>();
+    this.key        = new InterpolationDagNodeKey(tid, artElement.getElementId());
   }
 
 
@@ -70,6 +72,7 @@ public class InterpolationDagNode extends InterpolationBlock{
     this.parents  = parents;
     this.tid      = tid;
     this.envPrimes  = new HashMap<RelyGuaranteeCFAEdge, Integer>();
+    this.key        = new InterpolationDagNodeKey(tid, artElement.getElementId());
   }
 
   public InterpolationDagNode(PathFormula pf, int traceNo, ARTElement artElement, List<InterpolationDagNode> children, List<InterpolationDagNode> parents, int tid, Map<RelyGuaranteeCFAEdge, Integer> envPrimes) {
@@ -78,6 +81,7 @@ public class InterpolationDagNode extends InterpolationBlock{
     this.parents  = parents;
     this.tid      = tid;
     this.envPrimes  = envPrimes;
+    this.key        = new InterpolationDagNodeKey(tid, artElement.getElementId());
   }
 
   public List<InterpolationDagNode> getChildren() {
@@ -91,7 +95,7 @@ public class InterpolationDagNode extends InterpolationBlock{
 
   public String toString() {
     RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(artElement, RelyGuaranteeAbstractElement.class);
-    return "DAG node ("+rgElement.getTid()+", "+artElement.getElementId()+") "+hashCode();
+    return "ItpDagNode "+key.toString();
   }
 
   public int getTid() {
@@ -102,30 +106,14 @@ public class InterpolationDagNode extends InterpolationBlock{
     return envPrimes;
   }
 
-
-
-
-
-  class InterpolationDagNodeKey{
-
-    protected final Pair<Integer, Integer> key;
-
-    public InterpolationDagNodeKey(Integer tid, Integer artElementId){
-      this.key = Pair.of(tid, artElementId);
-    }
-
-    public Pair<Integer, Integer> getKey() {
-      return key;
-    }
-
-    public Integer getTid(){
-      return key.getFirst();
-    }
-
-    public Integer getARTElementId(){
-      return key.getSecond();
-    }
-
+  public InterpolationDagNodeKey getKey(){
+    return key;
   }
+
+  @Override
+  public int hashCode(){
+    return key.hashCode();
+  }
+
 
 }
