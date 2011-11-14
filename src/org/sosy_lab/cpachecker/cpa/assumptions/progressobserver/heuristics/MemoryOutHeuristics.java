@@ -133,7 +133,7 @@ public class MemoryOutHeuristics implements StopHeuristics<TrivialStopHeuristics
   }
 
   @Override
-  public HeuristicPrecision getPrecision() {
+  public HeuristicPrecision getInitialPrecision() {
     // TODO Auto-generated method stub
     return null;
   }

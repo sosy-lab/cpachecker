@@ -130,7 +130,7 @@ public class TimeOutHeuristics implements StopHeuristics<TimeOutHeuristicsData> 
   }
 
   @Override
-  public HeuristicPrecision getPrecision() {
+  public HeuristicPrecision getInitialPrecision() {
     return precision;
   }
 
