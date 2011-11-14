@@ -43,6 +43,8 @@ public class RelyGuaranteeCFAEdgeTemplate{
   private final CFAEdge localEdge;
   private final PathFormula pathFormula;
   private ARTElement  sourceARTElement;
+  // the last abstraction point in the ART
+  private final ARTElement  lastARTAbstractionElement;
   private final int sourceTid;
 
   // environmental transition form which this edge was generated from
@@ -57,10 +59,11 @@ public class RelyGuaranteeCFAEdgeTemplate{
 
 
 
-  public RelyGuaranteeCFAEdgeTemplate(CFAEdge pEdge, PathFormula pPathFormula, int sourceTid, ARTElement sourceARTElement, RelyGuaranteeEnvironmentalTransition sourceEnvTransition, Integer uniquePrimeThis, Integer uniquePrimeOther){
+  public RelyGuaranteeCFAEdgeTemplate(CFAEdge pEdge, PathFormula pPathFormula, int sourceTid, ARTElement sourceARTElement, ARTElement lastARTAbstractionElement, RelyGuaranteeEnvironmentalTransition sourceEnvTransition, Integer uniquePrimeThis, Integer uniquePrimeOther){
     this.localEdge = pEdge;
     this.pathFormula= pPathFormula;
     this.sourceARTElement = sourceARTElement;
+    this.lastARTAbstractionElement = lastARTAbstractionElement;
     this.sourceTid = sourceTid;
     this.sourceEnvTransition = sourceEnvTransition;
     this.coveredBy = null;
@@ -68,7 +71,6 @@ public class RelyGuaranteeCFAEdgeTemplate{
     this.uniquePrimeThis  = uniquePrimeThis;
     this.uniquePrimeOther = uniquePrimeOther;
   }
-
 
   // instantiate
   public RelyGuaranteeCFAEdge instantiate(CFANode successor, CFANode predecessor){
@@ -85,6 +87,11 @@ public class RelyGuaranteeCFAEdgeTemplate{
     this.sourceARTElement =  newElem;
   }
 
+  public ARTElement getLastARTAbstractionElement() {
+    return lastARTAbstractionElement;
+  }
+
+
   public IASTNode getRawAST() {
     return null;
   }
@@ -100,7 +107,7 @@ public class RelyGuaranteeCFAEdgeTemplate{
 
   @Override
   public String toString() {
-    return "RelyGuaranteeEnvEdgeTemplate from "+this.sourceTid+": "+localEdge.getRawStatement()+","+this.pathFormula+", by element id:"+this.sourceARTElement.getElementId();
+    return "RG edge template  T:"+this.sourceTid+", source ART:"+this.sourceARTElement.getElementId()+", abstr. ART:"+this.lastARTAbstractionElement.getElementId()+", CFA edge:"+localEdge.getRawStatement()+", path formula:"+this.pathFormula;
   }
 
   public CFAEdge getLocalEdge() {

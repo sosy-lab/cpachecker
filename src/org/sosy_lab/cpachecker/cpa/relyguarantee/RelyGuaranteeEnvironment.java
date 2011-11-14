@@ -26,8 +26,10 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -274,8 +276,12 @@ public class RelyGuaranteeEnvironment {
 
       newPf = new PathFormula(newPf.getFormula(), ssaBldr.build(), 0 , uniquePrime+1);
 
+      // find the last abstraction element
+      ARTElement lastARTAbstractionElement = findLastAbstractionARTElement(et.getSourceARTElement());
+      assert lastARTAbstractionElement != null;
+
       //newPF = pfManager.normalize(newPF);
-      RelyGuaranteeCFAEdgeTemplate rgEdge = new RelyGuaranteeCFAEdgeTemplate(et.getEdge(), newPf, et.getSourceThread(), et.getSourceARTElement(), et, uniquePrime, uniquePrime+1);
+      RelyGuaranteeCFAEdgeTemplate rgEdge = new RelyGuaranteeCFAEdgeTemplate(et.getEdge(), newPf, et.getSourceThread(), et.getSourceARTElement(), lastARTAbstractionElement, et, uniquePrime, uniquePrime+1);
       uniquePrime = uniquePrime+2;
       rgEdges.add(rgEdge);
     }
@@ -316,6 +322,8 @@ public class RelyGuaranteeEnvironment {
 
     processStats.totalTimer.stop();
   }
+
+
 
 
   private void assertion(){
@@ -961,6 +969,37 @@ public class RelyGuaranteeEnvironment {
     if (processStats != null){
       processStats.printStatistics(System.out, null, null);
     }
+  }
+
+  /**
+   * Finds the last rely-guarantee abstraction element that is an ancestor of the argument.
+   * @param pElement
+   * @return
+   */
+  private ARTElement findLastAbstractionARTElement(ARTElement pElement) {
+    ARTElement laARTElement = null;
+    Deque<ARTElement> toProcess = new LinkedList<ARTElement>();
+    Set<ARTElement> visisted = new HashSet<ARTElement>();
+    toProcess.add(pElement);
+
+    while (!toProcess.isEmpty()){
+      ARTElement element = toProcess.poll();
+      visisted.add(element);
+
+      AbstractionElement aElement = AbstractElements.extractElementByType(element, AbstractionElement.class);
+      if (aElement != null){
+        laARTElement = element;
+        break;
+      }
+
+      for (ARTElement parent : element.getParents()){
+        if (!visisted.contains(parent)){
+          toProcess.addLast(parent);
+        }
+      }
+    }
+
+    return laARTElement;
   }
 
 }

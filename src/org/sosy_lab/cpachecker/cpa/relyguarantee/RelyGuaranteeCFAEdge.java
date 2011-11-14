@@ -91,7 +91,11 @@ public class RelyGuaranteeCFAEdge implements CFAEdge{
 
   @Override
   public String toString() {
-    return "RG edge from "+this.getSourceTid()+": "+this.getRawStatement()+", "+this.getPathFormula()+" by element id:"+this.getSourceARTElement();
+    return "RG edge T:"+this.getSourceTid()+", source ART:"+this.getSourceARTElement().getElementId()+", abstraction ART:"+this.getLastARTAbstractionElement().getElementId()+", CFA edge:"+this.getRawStatement()+", path formula:"+this.getPathFormula();
+  }
+
+  private ARTElement getLastARTAbstractionElement() {
+    return this.template.getLastARTAbstractionElement();
   }
 
   public CFAEdge getLocalEdge() {
