@@ -147,7 +147,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       throw new InternalError("Update list of allowed merge operators");
     }
 
-    prec = new PredicatePrecisionAdjustment(this, blk);
+    prec = new PredicatePrecisionAdjustment(this);
     stop = new StopSepOperator(domain);
 
     Collection<AbstractionPredicate> predicates = readPredicatesFromFile();
