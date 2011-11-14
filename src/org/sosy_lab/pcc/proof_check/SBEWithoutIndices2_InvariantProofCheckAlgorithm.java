@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.pcc.proof_check;
 
-import java.util.InputMismatchException;
-import java.util.NoSuchElementException;
+import java.util.HashSet;
 import java.util.Scanner;
 import java.util.Vector;
 import java.util.logging.Level;
@@ -42,10 +41,11 @@ import org.sosy_lab.pcc.common.PCCCheckResult;
 import org.sosy_lab.pcc.common.Pair;
 import org.sosy_lab.pcc.common.Separators;
 
-public class SBEWithoutIndices_InvariantProofCheckAlgorithm extends
-    SBE_InvariantProofCheckAlgorithm {
 
-  public SBEWithoutIndices_InvariantProofCheckAlgorithm(Configuration pConfig,
+public class SBEWithoutIndices2_InvariantProofCheckAlgorithm extends
+SBE_InvariantProofCheckAlgorithm{
+
+  public SBEWithoutIndices2_InvariantProofCheckAlgorithm(Configuration pConfig,
       LogManager pLogger, String pProverType, boolean pAlwaysAtLoops, boolean pAlwaysAtFunctions)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pProverType, pAlwaysAtLoops, pAlwaysAtFunctions);
@@ -59,57 +59,38 @@ public class SBEWithoutIndices_InvariantProofCheckAlgorithm extends
 
   @Override
   protected PCCCheckResult readEdges(Scanner pScan) {
-    int source, target, sourceEdge;
-    CFANode nodeS, nodeT, nodeSourceOpEdge;
+  //build all edge identifications for reachable source nodes and put them to the edges
+    HashSet<Integer> visited = new HashSet<Integer>();
+    Vector<CFANode> toVisit = new Vector<CFANode>();
+    logger.log(Level.INFO, "Constructall edges which must be checked in proof.");
+    //add root node
+    toVisit.add(cfaForProof.getMainFunction());
+    visited.add(toVisit.get(0).getNodeNumber());
+    CFANode current, succ;
     CFAEdge edge;
-
-    while (pScan.hasNext()) {
-      try {
-        // read next edge
-        logger.log(Level.INFO, "Read next edge.");
-        source = pScan.nextInt();
-        sourceEdge = pScan.nextInt();
-        target = pScan.nextInt();
-        nodeS = reachableCFANodes.get(source);
-
-        nodeSourceOpEdge = allCFANodes.get(sourceEdge);
-        nodeT = reachableCFANodes.get(target);
-        if (nodeS == null
-            || nodeSourceOpEdge == null || nodeT == null) {
-          logger.log(Level.SEVERE, "Edge " + source + "#" + sourceEdge + "#" + target
-              + "not possible because one is no CFA node or is not an abstraction node.");
-          return PCCCheckResult.UnknownCFAEdge;
+    Vector<String> result;
+    boolean isSource;
+    while (!toVisit.isEmpty()) {
+      current = toVisit.remove(0);
+      isSource = reachableCFANodes.containsKey(current.getNodeNumber());
+      // treat every leaving edge
+      for (int i = 0; i < current.getNumLeavingEdges(); i++) {
+        edge = current.getLeavingEdge(i);
+        // if it is an abstraction node and abstraction is not false, build and check edge
+        if (isSource && !allInvariantFormulaeFalse(current.getNodeNumber())) {
+          logger.log(Level.INFO, "Build all edges for node " + current + " are available.");
+          result =
+              buildLeavingEdges(current.getNodeNumber(), edge);
+          edges.addAll(result);
         }
-
-        //check edge
-        edge = retrieveOperationEdge(nodeS, nodeSourceOpEdge, nodeT);
-        if (edge == null) {
-          logger.log(Level.SEVERE, "Edge " + source + "#" + sourceEdge + "#" + target + " is not correct edge in CFA.");
-          return PCCCheckResult.InvalidEdge;
+        succ = edge.getSuccessor();
+        if (!visited.contains(succ.getNodeNumber())) {
+          toVisit.add(succ);
+          visited.add(succ.getNodeNumber());
         }
-
-        //handler.getEdgeOperation(edge);
-
-        if (allInvariantFormulaeFalse(source)) {
-          logger.log(Level.SEVERE, "Source should not be reachable, no edges allowed.");
-          return PCCCheckResult.UnknownCFAEdge;
-        }
-
-        //add edge
-        if(edges.contains(source + Separators.commonSeparator + sourceEdge + Separators.commonSeparator + target)){
-          return PCCCheckResult.ElementAlreadyRead;
-        }
-        edges.add(source + Separators.commonSeparator + sourceEdge + Separators.commonSeparator + target);
-      } catch (IllegalArgumentException e3) {
-        return PCCCheckResult.UnknownCFAEdge;
-      } catch (InputMismatchException e2) {
-        return PCCCheckResult.UnknownCFAEdge;
-      } catch (NoSuchElementException e1) {
-        return PCCCheckResult.UnknownCFAEdge;
       }
     }
-    logger.log(Level.INFO, "Check if all necessary edges are contained in proof.");
-    return structuralCheckCoverageOfCFAEdges();
+    return PCCCheckResult.Success;
   }
 
   @Override

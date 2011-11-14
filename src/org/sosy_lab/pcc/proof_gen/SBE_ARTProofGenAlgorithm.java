@@ -85,7 +85,10 @@ public abstract class SBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
     edgeRep.append(Separators.commonSeparator);
     // if target element is covered -> set covering element as target
     if (pTarget.isCovered()) {
-      pTarget = pTarget.getCoveringElement();
+      pTarget = getFinalCoveringElement(pTarget);
+    }
+    if(pTarget == null){
+      return null;
     }
     edgeRep.append(pTarget.getElementId());
     edgeRep.append(Separators.commonSeparator);

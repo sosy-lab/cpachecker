@@ -41,6 +41,7 @@ import org.sosy_lab.pcc.common.PCCCheckResult;
 import org.sosy_lab.pcc.proof_check.ProofCheckAlgorithm;
 import org.sosy_lab.pcc.proof_check.SBEWithIndices_ARTProofCheckAlgorithm;
 import org.sosy_lab.pcc.proof_check.SBEWithIndices_InvariantProofCheckAlgorithm;
+import org.sosy_lab.pcc.proof_check.SBEWithoutIndices2_InvariantProofCheckAlgorithm;
 import org.sosy_lab.pcc.proof_check.SBEWithoutIndices_ARTProofCheckAlgorithm;
 import org.sosy_lab.pcc.proof_check.SBEWithoutIndices_InvariantProofCheckAlgorithm;
 
@@ -123,6 +124,15 @@ public class PCCProofCheckMain {
                   alwaysAtLoops, alwaysAtFunctions);
         }
         break;
+      }
+      case SBENOEDGENOINDINVARIANT:{
+        if (alwaysAfterThreshold && threshold == 1 && switchToLBEAfter == 0
+          && cartesianAbstraction) {
+        algorithm =
+            new SBEWithoutIndices2_InvariantProofCheckAlgorithm(pConfig, pLogger,whichProver,
+                alwaysAtLoops, alwaysAtFunctions);
+      }
+      break;
       }
       default: {
       }

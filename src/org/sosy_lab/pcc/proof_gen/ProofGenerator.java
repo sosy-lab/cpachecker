@@ -43,27 +43,37 @@ import org.sosy_lab.pcc.common.PCCAlgorithmType;
 public class ProofGenerator {
 
   private ProofGenAlgorithm algorithm;
-  private LogManager        logger;
+  private LogManager logger;
 
   //TODO possibly add values
   @Option(name = "pcc.proofgen.algorithm", description = "Type of the algorithm which should be used for PCC")
-  private PCCAlgorithmType  algorithmType        = PCCAlgorithmType.SBENOINDART;
+  private PCCAlgorithmType algorithmType = PCCAlgorithmType.SBENOINDART;
   @Option(name = "pcc.proofgen.doPCC", description = "")
-  private boolean           doPCC                = false;
+  private boolean doPCC = false;
   //TODO further values if other algorithms available
-  @Option(name = "cpa.predicate.blk.alwaysAfterThreshold", description = "force abstractions immediately after threshold is reached (no effect if threshold = 0)")
-  private boolean           alwaysAfterThreshold = true;
+  @Option(
+      name = "cpa.predicate.blk.alwaysAfterThreshold",
+      description = "force abstractions immediately after threshold is reached (no effect if threshold = 0)")
+  private boolean alwaysAfterThreshold = true;
   @Option(name = "cpa.predicate.blk.threshold", description = "maximum blocksize before abstraction is forced\n"
       + "(non-negative number, special values: 0 = don't check threshold, 1 = SBE)")
-  private int               threshold            = 0;
-  @Option(name = "cpa.predicate.blk.switchToLBEAfter", description = "Switch to a LBE configuration after so many milliseconds (0 to disable)")
-  private int               switchToLBEAfter     = 0;
-  @Option(name = "cpa.predicate.blk.alwaysAtLoops", description = "force abstractions at loop heads, regardless of threshold")
-  private boolean           alwaysAtLoops        = true;
-  @Option(name = "cpa.predicate.blk.alwaysAtFunctions", description = "force abstractions at each function calls/returns, regardless of threshold")
-  private boolean           alwaysAtFunctions    = true;
-  @Option(name = "cpa.predicate.abstraction.cartesian", description = "whether to use Boolean (false) or Cartesian (true) abstraction")
-  private boolean           cartesianAbstraction = false;
+  private int threshold = 0;
+  @Option(
+      name = "cpa.predicate.blk.switchToLBEAfter",
+      description = "Switch to a LBE configuration after so many milliseconds (0 to disable)")
+  private int switchToLBEAfter = 0;
+  @Option(
+      name = "cpa.predicate.blk.alwaysAtLoops",
+      description = "force abstractions at loop heads, regardless of threshold")
+  private boolean alwaysAtLoops = true;
+  @Option(
+      name = "cpa.predicate.blk.alwaysAtFunctions",
+      description = "force abstractions at each function calls/returns, regardless of threshold")
+  private boolean alwaysAtFunctions = true;
+  @Option(
+      name = "cpa.predicate.abstraction.cartesian",
+      description = "whether to use Boolean (false) or Cartesian (true) abstraction")
+  private boolean cartesianAbstraction = false;
 
   public ProofGenerator(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
@@ -107,10 +117,34 @@ public class ProofGenerator {
         }
         break;
       }
-      case SBEINDINVARIANT:{
+      case SBEINDINVARIANT: {
         if (alwaysAfterThreshold && switchToLBEAfter == 0 && threshold == 1
             && cartesianAbstraction) {
           algorithm = new SBEWithIndices_InvariantProofGenAlgorithm(pConfig, pLogger);
+        } else {
+          logger
+              .log(Level.WARNING,
+                  "Predicate Abstraction configuration does not fit to PCC algorithm.");
+          algorithm = null;
+        }
+        break;
+      }
+      case SBENOEDGENOINDINVARIANT: {
+        if (alwaysAfterThreshold && switchToLBEAfter == 0 && threshold == 1
+            && cartesianAbstraction) {
+          algorithm = new SBEWithoutIndices2_InvariantProofGenAlgorithm(pConfig, pLogger);
+        } else {
+          logger
+              .log(Level.WARNING,
+                  "Predicate Abstraction configuration does not fit to PCC algorithm.");
+          algorithm = null;
+        }
+        break;
+      }
+      case ABENOINDART: {
+        if (alwaysAfterThreshold && switchToLBEAfter == 0 && ((threshold == 1
+            && cartesianAbstraction) || (threshold != 1 && alwaysAtFunctions && !cartesianAbstraction))) {
+          algorithm = new ABE_ARTProofGenAlgorithm(pConfig, pLogger);
         } else {
           logger
               .log(Level.WARNING,

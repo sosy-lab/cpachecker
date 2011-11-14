@@ -35,10 +35,11 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.pcc.common.ARTEdge;
+import org.sosy_lab.pcc.common.ARTSBEEdge;
 import org.sosy_lab.pcc.common.ARTNode;
 import org.sosy_lab.pcc.common.PCCCheckResult;
 import org.sosy_lab.pcc.common.Pair;
+import org.sosy_lab.pcc.common.Separators;
 
 public class SBEWithoutIndices_ARTProofCheckAlgorithm extends
     SBE_ARTProofCheckAlgorithm {
@@ -51,7 +52,7 @@ public class SBEWithoutIndices_ARTProofCheckAlgorithm extends
 
   @Override
   protected boolean checkAbstraction(String pAbstraction) {
-    if (pAbstraction.contains("@")) { return false; }
+    if (pAbstraction.contains(Separators.SSAIndexSeparator)) { return false; }
     return true;
   }
 
@@ -60,7 +61,7 @@ public class SBEWithoutIndices_ARTProofCheckAlgorithm extends
     int source, target;
     CFAEdge cfaEdge;
     ARTNode nodeS, nodeT;
-    ARTEdge edge;
+    ARTSBEEdge edge;
     PCCCheckResult intermediateRes;
 
     while (pScan.hasNext()) {
@@ -86,7 +87,10 @@ public class SBEWithoutIndices_ARTProofCheckAlgorithm extends
           return intermediateRes;
         }
         // add edge
-        edge = new ARTEdge(target, cfaEdge);
+        edge = new ARTSBEEdge(target, cfaEdge);
+        if(nodeS.isEdgeContained(edge)){
+          return PCCCheckResult.ElementAlreadyRead;
+        }
         nodeS.addEdge(edge);
       } catch (InputMismatchException e2) {
         return PCCCheckResult.UnknownCFAEdge;
@@ -100,7 +104,7 @@ public class SBEWithoutIndices_ARTProofCheckAlgorithm extends
   }
 
   @Override
-  protected PCCCheckResult checkEdgeFormula(ARTNode pSource, ARTEdge pEdge,
+  protected PCCCheckResult checkEdgeFormula(ARTNode pSource, ARTSBEEdge pEdge,
       ARTNode pTarget) {
     // instantiate left abstraction
     Pair<Formula, SSAMap> resultAbs =

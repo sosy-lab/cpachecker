@@ -125,6 +125,17 @@ public abstract class ARTProofGenAlgorithm implements ProofGenAlgorithm {
     return true;
   }
 
+  protected ARTElement getFinalCoveringElement(ARTElement pNode){
+    if(!pNode.isCovered()){
+      return null;
+    }
+    pNode = pNode.getCoveringElement();
+    while(pNode!= null && pNode.isCovered()){
+      pNode = pNode.getCoveringElement();
+    }
+    return pNode;
+  }
+
   protected abstract boolean addARTNode(ARTElement pNode);
 
   protected abstract boolean addARTEdge(ARTElement pSource, CFAEdge pEdge,

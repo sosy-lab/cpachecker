@@ -23,9 +23,21 @@
  */
 package org.sosy_lab.pcc.common;
 
-public enum AbstractionType {
-  Abstraction,
-  NeverAbstraction,
-  CoveredNonAbstraction,
-  NoAbstraction
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+
+public class WithOpDescriptionARTSBEEdge extends ARTSBEEdge {
+
+  private String operation;
+
+  public WithOpDescriptionARTSBEEdge(int pTargetARTId, CFAEdge pCFAEdge,
+      String pOperation) throws IllegalArgumentException {
+    super(pTargetARTId, pCFAEdge);
+    if (pOperation == null) { throw new IllegalArgumentException(
+        "Cannot be a valid ART edge for which an operation should be stored."); }
+    operation = pOperation;
+  }
+
+  public String getOperation() {
+    return operation;
+  }
 }

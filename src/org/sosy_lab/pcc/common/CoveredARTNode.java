@@ -23,9 +23,22 @@
  */
 package org.sosy_lab.pcc.common;
 
-public enum AbstractionType {
-  Abstraction,
-  NeverAbstraction,
-  CoveredNonAbstraction,
-  NoAbstraction
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+
+
+public class CoveredARTNode extends ARTNode {
+
+  private int covering;
+
+  public CoveredARTNode(int pID, CFANode pCFANode, AbstractionType pAbstractionType, int pCoveringElement,
+      boolean pFullART) {
+    super(pID, pCFANode, pAbstractionType, pFullART);
+    if (pAbstractionType != AbstractionType.CoveredNonAbstraction) { throw new IllegalArgumentException(
+        "Wrong abstraction type."); }
+    covering = pCoveringElement;
+  }
+
+  public int getCoveringElement() {
+    return covering;
+  }
 }

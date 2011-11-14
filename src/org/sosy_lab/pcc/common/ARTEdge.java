@@ -23,29 +23,23 @@
  */
 package org.sosy_lab.pcc.common;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
 public class ARTEdge {
 
   private int     targetARTId;
-  private CFAEdge cfaEdge;
 
-
-  public ARTEdge(int pTargetARTId, CFAEdge pCFAEdge)
-      throws IllegalArgumentException {
-
-    if (pCFAEdge == null) { throw new IllegalArgumentException(
-        "Cannot be a valid ART edge."); }
+  public ARTEdge(int pTargetARTId) {
     targetARTId = pTargetARTId;
-    cfaEdge = pCFAEdge;
-
   }
 
   public int getTarget() {
     return targetARTId;
   }
 
-  public CFAEdge getCorrespondingCFAEdge() {
-    return cfaEdge;
+  public boolean equals(ARTEdge pEdge){
+    if(pEdge == null){
+      return false;
+    }
+    return targetARTId == pEdge.targetARTId;
   }
 }

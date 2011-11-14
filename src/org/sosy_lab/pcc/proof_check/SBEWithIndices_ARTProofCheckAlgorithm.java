@@ -34,10 +34,10 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.pcc.common.ARTEdge;
+import org.sosy_lab.pcc.common.ARTSBEEdge;
 import org.sosy_lab.pcc.common.ARTNode;
 import org.sosy_lab.pcc.common.PCCCheckResult;
-import org.sosy_lab.pcc.common.WithOpDescriptionARTEdge;
+import org.sosy_lab.pcc.common.WithOpDescriptionARTSBEEdge;
 
 public class SBEWithIndices_ARTProofCheckAlgorithm extends
     SBE_ARTProofCheckAlgorithm {
@@ -62,7 +62,7 @@ public class SBEWithIndices_ARTProofCheckAlgorithm extends
     String operation;
     CFAEdge cfaEdge;
     ARTNode nodeS, nodeT;
-    ARTEdge edge;
+    ARTSBEEdge edge;
     PCCCheckResult intermediateRes;
 
     while (pScan.hasNext()) {
@@ -99,8 +99,10 @@ public class SBEWithIndices_ARTProofCheckAlgorithm extends
           logger.log(Level.SEVERE, "Wrong abstraction type for ART node " + nodeT);
           return intermediateRes;
         }
-
-        edge = new WithOpDescriptionARTEdge(target, cfaEdge, operation);
+        edge = new WithOpDescriptionARTSBEEdge(target, cfaEdge, operation);
+        if(nodeS.isEdgeContained(edge)){
+          return PCCCheckResult.ElementAlreadyRead;
+        }
         nodeS.addEdge(edge);
       } catch (InputMismatchException e2) {System.out.println("Test2");
         return PCCCheckResult.UnknownCFAEdge;
@@ -114,11 +116,11 @@ public class SBEWithIndices_ARTProofCheckAlgorithm extends
   }
 
   @Override
-  protected PCCCheckResult checkEdgeFormula(ARTNode pSource, ARTEdge pEdge,
+  protected PCCCheckResult checkEdgeFormula(ARTNode pSource, ARTSBEEdge pEdge,
       ARTNode pTarget) {
     try {
       return buildAndCheckFormula(pSource.getAbstraction(),
-          ((WithOpDescriptionARTEdge) pEdge).getOperation(),
+          ((WithOpDescriptionARTSBEEdge) pEdge).getOperation(),
           pTarget.getAbstraction(),
           pEdge.getCorrespondingCFAEdge().getEdgeType() == CFAEdgeType.AssumeEdge);
     } catch (ClassCastException e) {

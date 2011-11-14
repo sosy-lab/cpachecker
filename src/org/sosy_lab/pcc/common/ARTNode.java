@@ -34,18 +34,20 @@ public class ARTNode {
   private AbstractionType isAbstraction;
   private String abstraction;
   private ArrayList<ARTEdge> edges = new ArrayList<ARTEdge>();
+  private boolean fullART;
 
-  public ARTNode(int pID, CFANode pCFANode, AbstractionType pAbstractionType)
+  public ARTNode(int pID, CFANode pCFANode, AbstractionType pAbstractionType, boolean pFullART)
       throws IllegalArgumentException {
     if (pCFANode == null || pAbstractionType == AbstractionType.Abstraction) { throw new IllegalArgumentException(
         "Abstraction missing."); }
     id = pID;
     cfaNode = pCFANode;
     isAbstraction = pAbstractionType;
+    fullART = pFullART;
   }
 
   public ARTNode(int pID, CFANode pCFANode, AbstractionType pAbstractionType,
-      String pAbstraction) throws IllegalArgumentException {
+      String pAbstraction, boolean pFullART) throws IllegalArgumentException {
     if (pCFANode == null || pAbstraction == null || pAbstraction.length() == 0
         || pAbstractionType != AbstractionType.Abstraction) { throw new IllegalArgumentException(
         "Abstraction missing."); }
@@ -53,13 +55,17 @@ public class ARTNode {
     cfaNode = pCFANode;
     isAbstraction = pAbstractionType;
     abstraction = pAbstraction;
+    fullART = pFullART;
   }
 
   public void addEdge(ARTEdge pEdge) throws IllegalArgumentException {
+    if (isEdgeContained(pEdge)) { throw new IllegalArgumentException("Edge already exists."); }
     // check if it is a valid edge
-    if (cfaNode.getEdgeTo(pEdge.getCorrespondingCFAEdge().getSuccessor()) != pEdge
-        .getCorrespondingCFAEdge()) { throw new IllegalArgumentException(
-        "Edge cannot be an edge from this ARTNode.\n"); }
+    if (fullART) {
+      if (cfaNode.getEdgeTo(((ARTSBEEdge) pEdge).getCorrespondingCFAEdge().getSuccessor()) != ((ARTSBEEdge) pEdge)
+          .getCorrespondingCFAEdge()) { throw new IllegalArgumentException(
+          "Edge cannot be an edge from this ARTNode.\n"); }
+    }
     edges.add(pEdge);
   }
 
@@ -76,6 +82,9 @@ public class ARTNode {
   }
 
   public ARTEdge[] getEdges() {
+    if(fullART){
+      return edges.toArray(new ARTSBEEdge[edges.size()]);
+    }
     return edges.toArray(new ARTEdge[edges.size()]);
   }
 
@@ -86,6 +95,16 @@ public class ARTNode {
   public String getAbstraction() {
     if (isAbstraction == AbstractionType.Abstraction) { return abstraction; }
     return null;
+  }
+
+  public boolean isEdgeContained(ARTEdge pEdge) {
+    if (edges == null) { return false; }
+    ARTEdge edge;
+    for (int i = 0; i < edges.size(); i++) {
+      edge = edges.get(i);
+      if (edge.equals(pEdge)) { return true; }
+    }
+    return false;
   }
 
   @Override

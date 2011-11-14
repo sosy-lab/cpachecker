@@ -67,7 +67,7 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
 
   public SBE_InvariantProofCheckAlgorithm(Configuration pConfig,
       LogManager pLogger, String pProverType, boolean pAlwaysAtLoops, boolean pAlwaysAtFunctions)
-      throws InvalidConfigurationException{
+      throws InvalidConfigurationException {
     super(pConfig, pLogger);
     //atFunction = pAlwaysAtFunctions;
     atLoop = pAlwaysAtLoops;
@@ -170,7 +170,7 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
         for (int i = 0; i < numInvariants; i++) {
           // read invariant
           next = pScan.next();
-          subStr = next.split("\\" +Separators.stackEntrySeparator);
+          subStr = next.split("\\" + Separators.stackEntrySeparator);
           if (subStr.length < 1) {
             logger.log(Level.SEVERE, "No valid regions specification: " + subStr);
             return PCCCheckResult.InvalidInvariant;
@@ -180,7 +180,7 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
             if (!checkAbstraction(subStr[0])) { return PCCCheckResult.InvalidInvariant; }
             invariant = subStr[0];
             if (isRoot) {
-              if (! handler.createFormula(invariant).isTrue()) {
+              if (!handler.createFormula(invariant).isTrue()) {
                 logger.log(Level.SEVERE, "Invalid region for root.");
                 return PCCCheckResult.InvalidARTRootSpecification;
               }
@@ -210,7 +210,11 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
           // add invariant
           invariants.add(new Pair<String, int[]>(invariant, stack));
         }
-        nodes.put(readNode, invariants);
+        if (nodes.containsKey(readNode)) {
+          return PCCCheckResult.ElementAlreadyRead;
+        } else {
+          nodes.put(readNode, invariants);
+        }
       }
     } catch (NumberFormatException e1) {
       return PCCCheckResult.UnknownCFANode;
@@ -295,19 +299,27 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
     return PCCCheckResult.Success;
   }
 
+
   private PCCCheckResult buildLeavingEdgesAndCheck(int pNodeNumber,
       CFAEdge pEdge) {
+    Vector<String> edges = buildLeavingEdges(pNodeNumber, pEdge);
+    for (int i = 0; i < edges.size(); i++) {
+      if (!this.edges.contains(edges.get(i))) { return PCCCheckResult.UncoveredEdge; }
+    }
+    return PCCCheckResult.Success;
+  }
+
+  protected Vector<String> buildLeavingEdges(int pNodeNumber,
+      CFAEdge pEdge) {
+    Vector<String> foundEdges = new Vector<String>();
     String id;
     if (isEndpoint(pEdge)) {
       id =
           new String(pNodeNumber + Separators.commonSeparator + pNodeNumber
               + Separators.commonSeparator
               + pEdge.getSuccessor().getNodeNumber());
-      if (edges.contains(id)) {
-        return PCCCheckResult.Success;
-      } else {
-        return PCCCheckResult.UncoveredEdge;
-      }
+      foundEdges.add(id);
+      return foundEdges;
     }
     HashSet<Integer> visited = new HashSet<Integer>();
     visited.add(pNodeNumber);
@@ -326,7 +338,7 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
               pNodeNumber + Separators.commonSeparator
                   + current.getNodeNumber() + Separators.commonSeparator
                   + succ.getNodeNumber();
-          if (!edges.contains(id)) { return PCCCheckResult.UncoveredEdge; }
+          foundEdges.add(id);
         } else {
           if (!visited.contains(succ.getNodeNumber())) {
             visited.add(succ.getNodeNumber());
@@ -335,7 +347,7 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
         }
       }
     }
-    return PCCCheckResult.Success;
+    return foundEdges;
   }
 
   protected boolean allInvariantFormulaeFalse(Integer pNode) {
@@ -378,11 +390,11 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
     logger.log(Level.INFO, "Start proving inductions edge by edge.");
     for (String edge : edges) {
       source =
-          Integer.parseInt(edge.substring(0,edge
+          Integer.parseInt(edge.substring(0, edge
               .indexOf(Separators.commonSeparator)));
       target =
           Integer.parseInt(edge.substring(
-              edge.lastIndexOf(Separators.commonSeparator)+1, edge.length()));
+              edge.lastIndexOf(Separators.commonSeparator) + 1, edge.length()));
       sourceEdge =
           Integer.parseInt(edge.substring(
               (edge.indexOf(Separators.commonSeparator)) + 1,

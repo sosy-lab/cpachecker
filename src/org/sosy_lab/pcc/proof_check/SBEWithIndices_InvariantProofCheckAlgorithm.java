@@ -100,6 +100,9 @@ public class SBEWithIndices_InvariantProofCheckAlgorithm extends
           return intermediateRes;
           }
         //add edge
+        if(edges.contains(source + Separators.commonSeparator + sourceEdge + Separators.commonSeparator + target)){
+          return PCCCheckResult.ElementAlreadyRead;
+        }
         edges.add(source + Separators.commonSeparator + sourceEdge + Separators.commonSeparator + target);
         edgeOperations.put(source + Separators.commonSeparator + sourceEdge + Separators.commonSeparator +target,
             operations);

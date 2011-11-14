@@ -41,5 +41,6 @@ public enum PCCCheckResult {
   InvalidFormulaSpecificationInProof,
   InvalidProofFile,
   ReadingProofFailed,
-  InvalidStack
+  InvalidStack,
+  ElementAlreadyRead
 }
