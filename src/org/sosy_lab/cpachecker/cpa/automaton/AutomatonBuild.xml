@@ -23,6 +23,12 @@
         <echo>${basedir}</echo>
     </target>
 
+    <target name="clean" description="Delete generated files">
+        <delete>
+            <fileset dir="${parserDir}" includes="AutomatonScanner.java AutomatonParser.java AutomatonSym.java"/>
+        </delete>
+    </target>
+
     <uptodate property="scanner.uptodate" srcfile="${parserDir}/Scanner.jflex" targetfile="${parserDir}/AutomatonScanner.java"/>
 
     <condition property="parser.uptodate">

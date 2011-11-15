@@ -23,6 +23,12 @@
         <echo>${basedir}</echo>
     </target>
 
+    <target name="clean" description="Delete generated files">
+        <delete>
+            <fileset dir="${parserDir}" includes="FQLLexer.java FQLParser.java FQLSym.java"/>
+        </delete>
+    </target>
+
     <uptodate property="scanner.uptodate" srcfile="${parserDir}/FQL.lex" targetfile="${parserDir}/FQLLexer.java"/>
 
     <condition property="parser.uptodate">
