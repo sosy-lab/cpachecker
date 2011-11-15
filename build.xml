@@ -24,7 +24,9 @@
         <os family="windows"/>
     </condition>
     <target name="init">
-        <mkdir dir="${class.dir}"/>
+        <echo message="Building ${ant.project.name} ${version}"/>
+        <mkdir dir="${class.dir}/org/sosy_lab/cpachecker"/>
+        <echo message="${version}" file="${class.dir}/org/sosy_lab/cpachecker/VERSION.txt"/>
     </target>
     <target name="clean">
         <delete includeEmptyDirs="true">
@@ -41,7 +43,6 @@
     </target>
 
     <target depends="init" name="build-project">
-        <echo message="${ant.project.name}: ${ant.file}"/>
         <depend srcdir="${source.dir}" destdir="${class.dir}"/>
         <javac debug="true" debuglevel="${debuglevel}" destdir="${class.dir}" source="${source.format}" target="${class.format}" encoding="UTF-8">
             <src path="${source.dir}"/>
@@ -76,7 +77,7 @@
     <target description="Make a distributable release" depends="build,jar,zip,tar" name="dist"/>
 
     <target name="jar" depends="build">
-        <jar basedir="${class.dir}/" includes="**/*.class" destfile="cpachecker.jar"
+        <jar basedir="${class.dir}/" includes="**" destfile="cpachecker.jar"
                 whenmanifestonly="fail">
             <manifest>
                     <attribute name="Implementation-Title" value="CPAchecker"/>
