@@ -75,22 +75,21 @@ public class TimeOutHeuristics implements StopHeuristics<TimeOutHeuristicsData> 
   @Override
   public TimeOutHeuristicsData getInitialData(CFANode pNode) {
     resetStartTime();
-    return new TimeOutHeuristicsData(false);
+    return TimeOutHeuristicsData.createTop();
   }
 
 
   @Override
   public TimeOutHeuristicsData processEdge(StopHeuristicsData pData, CFAEdge pEdge) {
     TimeOutHeuristicsData d = (TimeOutHeuristicsData)pData;
-    if (d == TimeOutHeuristicsData.BOTTOM) {
+    if (d.isBottom()) {
       return d;
     }
 
     long threshold = precision.getThreshold();
     if ((threshold >= 0)
         && (System.currentTimeMillis() > startTime + threshold)) {
-      d.setThreshold(precision.getThreshold());
-      return TimeOutHeuristicsData.BOTTOM;
+      return TimeOutHeuristicsData.createBottom(threshold);
     }
 
     if (disabled || precision.getHardLimitThreshold() == -1) {
@@ -120,8 +119,7 @@ public class TimeOutHeuristics implements StopHeuristics<TimeOutHeuristicsData> 
 
     if (cputime > precision.getHardLimitThreshold()) {
       precision.setShouldForceToStop();
-      d.setThreshold(precision.getHardLimitThreshold());
-      return TimeOutHeuristicsData.BOTTOM;
+      return TimeOutHeuristicsData.createBottom(precision.getHardLimitThreshold());
     }
 
     return d;
