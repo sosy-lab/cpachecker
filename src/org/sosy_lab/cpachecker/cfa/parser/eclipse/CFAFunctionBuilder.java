@@ -467,6 +467,9 @@ class CFAFunctionBuilder extends ASTVisitor {
       if(test instanceof IASTFunctionCallAssignmentStatement) {
           previous = new StatementEdge((IASTFunctionCallAssignmentStatement)test, fileloc.getStartingLineNumber(), prevNode, nextNode);
           addToCFA(previous);
+      } else if (test instanceof IASTAssignment) {
+        previous = new StatementEdge((org.sosy_lab.cpachecker.cfa.ast.IASTStatement)test, fileloc.getStartingLineNumber(), prevNode, nextNode);
+        addToCFA(previous);
       } else {
           previousdec = new DeclarationEdge((org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration) test, fileloc.getStartingLineNumber(), prevNode, nextNode);
           addToCFA(previousdec);
@@ -500,6 +503,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       }
       return CONDITION.NORMAL;
   }
+
 
   private void handleIfStatement(IASTIfStatement ifStatement,
       IASTFileLocation fileloc) {
@@ -570,7 +574,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    * - If NORMAL two edges are created: one 'then'-edge and one 'else'-edge.
    */
   private void createConditionEdges(final IASTExpression condition,
-      final int filelocStart, final CFANode rootNode, final CFANode thenNode,
+      final int filelocStart, CFANode rootNode, CFANode thenNode,
       final CFANode elseNode) {
 
     assert condition != null;
@@ -598,6 +602,25 @@ class CFAFunctionBuilder extends ASTVisitor {
       final org.sosy_lab.cpachecker.cfa.ast.IASTExpression exp =
         astCreator.convertExpressionWithoutSideEffects(condition);
 
+          while (astCreator.existsSideAssignment()) {
+            IASTNode test = astCreator.getSideAssignment();
+            CFANode between = new CFANode(test.getFileLocation().getStartingLineNumber(), cfa.getFunctionName());
+            StatementEdge previous;
+            DeclarationEdge previousdec;
+            if (test instanceof IASTFunctionCallAssignmentStatement) {
+              previous = new StatementEdge((IASTFunctionCallAssignmentStatement)test, test.getFileLocation().getStartingLineNumber(), rootNode, between);
+              addToCFA(previous);
+            } else if (test instanceof IASTAssignment) {
+              previous = new StatementEdge((org.sosy_lab.cpachecker.cfa.ast.IASTStatement)test, test.getFileLocation().getStartingLineNumber(), rootNode, between);
+              addToCFA(previous);
+            } else {
+              previousdec = new DeclarationEdge((org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration) test, test.getFileLocation().getStartingLineNumber(), rootNode, between);
+              addToCFA(previousdec);
+            }
+            rootNode = between;
+            cfaNodes.add(between);
+          }
+
       // edge connecting rootNode with elseNode
       final AssumeEdge assumeEdgeFalse = new AssumeEdge("!(" + condition.getRawSignature() + ")",
           filelocStart, rootNode, elseNode, exp, false);
@@ -607,6 +630,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       final AssumeEdge assumeEdgeTrue = new AssumeEdge(condition.getRawSignature(),
           filelocStart, rootNode, thenNode, exp, true);
       addToCFA(assumeEdgeTrue);
+
       break;
 
     default:
