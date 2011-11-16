@@ -4,10 +4,7 @@
     <!-- basedir should be the "CPAchecker" directory -->
 
     <property name="dir.parser" location="src/org/sosy_lab/cpachecker/cpa/automaton/" />
-    <property name="scanner.source" value="Scanner.jflex"/>
     <property name="scanner.target" value="AutomatonScanner"/>
-    <property name="skeleton.source" value="skeleton.nested"/>
-    <property name="parser.source" value="parser.cup"/>
     <property name="parser.target" value="AutomatonParser"/>
     <property name="symbols.target" value="AutomatonSym"/>
 

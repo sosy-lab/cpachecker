@@ -6,6 +6,12 @@
     <property name="dir.src" location="${dir.base}/src" />
     <property name="dir.lib" location="${dir.base}/lib" />
 
+    <!-- the following properties will be used as default
+         if the importing file does not overwrite them -->
+    <property name="scanner.source" value="Scanner.jflex"/>
+    <property name="skeleton.source" value="skeleton.nested"/>
+    <property name="parser.source" value="parser.cup"/>
+
     <taskdef name="jflex"
         classname="JFlex.anttask.JFlexTask"
         classpath="${dir.lib}/build-only/JFlex.jar"
