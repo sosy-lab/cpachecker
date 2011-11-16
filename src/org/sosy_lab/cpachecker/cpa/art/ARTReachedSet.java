@@ -52,7 +52,7 @@ import com.google.common.collect.ImmutableList;
  */
 public class ARTReachedSet {
 
-  private final ReachedSet mReached;
+  public final ReachedSet mReached;
   private final UnmodifiableReachedSet mUnmodifiableReached;
   private final ARTCPA mCpa;
 

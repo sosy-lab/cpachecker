@@ -1,0 +1,56 @@
+ 1 Base
+ 2 Base AddressBook
+ 3 Base AutoResponder
+ 4 Base Keys
+ 5 Base Forward
+ 6 Base Keys AddressBook
+ 7 Base AutoResponder AddressBook
+ 8 Base Keys AutoResponder
+ 9 Base AddressBook Forward
+10 Base AutoResponder Forward
+11 Base Keys Forward
+12 Base Keys Encrypt Decrypt
+13 Base Keys Sign Verify
+14 Base Keys Encrypt AddressBook Decrypt
+15 Base Keys Encrypt AutoResponder Decrypt
+16 Base Keys Encrypt Forward Decrypt
+17 Base Keys AddressBook Sign Verify
+18 Base Keys AutoResponder Sign Verify
+19 Base Keys Sign Forward Verify
+20 Base Keys Encrypt AutoResponder AddressBook Decrypt
+21 Base Keys Encrypt AddressBook Forward Decrypt
+22 Base Keys Encrypt AutoResponder Forward Decrypt
+23 Base Keys AutoResponder AddressBook Sign Verify
+24 Base Keys AutoResponder Sign Forward Verify
+25 Base Keys AddressBook Sign Forward Verify
+26 Base Keys Encrypt AutoResponder AddressBook Forward Decrypt
+27 Base Keys AutoResponder AddressBook Sign Forward Verify
+28 Base Keys Encrypt Sign Verify Decrypt
+29 Base Keys Encrypt AddressBook Sign Verify Decrypt
+30 Base Keys Encrypt AutoResponder Sign Verify Decrypt
+31 Base Keys Encrypt Sign Forward Verify Decrypt 
+32 Base Keys Encrypt AutoResponder AddressBook Sign Verify Decrypt
+33 Base Keys Encrypt AutoResponder Sign Forward Verify Decrypt
+34 Base Keys Encrypt AddressBook Sign Forward Verify Decrypt
+35 Base Keys Encrypt AutoResponder AddressBook Sign Forward Verify Decrypt
+36 Base AutoResponder AddressBook Forward
+37 Base Keys AutoResponder Forward
+38 Base Keys AddressBook Forward
+39 Base Keys AutoResponder AddressBook
+40 Base Keys AutoResponder AddressBook Forward
+
+
+
+
+numbers in log :
+
+variant.num
+
+composition_time
+weaving_time
+preparation_time
+check_time
+
+total_time
+liftedOrNot
+check_result

@@ -167,6 +167,7 @@ public class CPAchecker {
     reachedSetFactory = new ReachedSetFactory(pConfiguration, pLogManager);
   }
 
+  public static CFA staticCFA = null;
   public CPAcheckerResult run(String filename) {
 
     logger.log(Level.INFO, "CPAchecker", getVersion(), "started");
@@ -240,7 +241,7 @@ public class CPAchecker {
 
       // run analysis
       result = Result.UNKNOWN; // set to unknown so that the result is correct in case of exception
-
+      staticCFA = cfa;
       boolean sound = runAlgorithm(algorithm, reached, stats);
 
       result = analyzeResult(reached, sound);

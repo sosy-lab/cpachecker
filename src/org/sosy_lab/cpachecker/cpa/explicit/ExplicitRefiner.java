@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
@@ -58,12 +59,15 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.sosy_lab.cpachecker.core.algorithm.cbmctools.AbstractPathToCTranslator;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
+import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefinementManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
@@ -136,11 +140,12 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
     globalVars = ExplicitTransferRelation.globalVarsStatic;
   }
 
+  public ARTReachedSet currentReached = null;
   @Override
   protected void performRefinement(ARTReachedSet pReached, List<Pair<ARTElement, CFAEdge>> pPath,
       CounterexampleTraceInfo<Collection<AbstractionPredicate>> pCounterexample,
       boolean pRepeatedCounterexample) throws CPAException {
-
+    currentReached = pReached;
     precisionUpdate.start();
 
     // get previous precision
@@ -226,11 +231,12 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
     Map<CFANode, Set<String>> relevantVariablesOnPath = getRelevantVariablesOnPath(pPath, predicates);
     assert firstInterpolationPoint != null;
 
-//System.out.println("\n" + (++refinementCounter) + ". refining ...");
+System.out.println("\n" + (++refinementCounter) + ". refining ...");
 //System.out.println(getErrorPathAsString(pPath));
-//System.out.println("\nreferencedVariables: " + predicates.getReferencedVariables());
-//System.out.println("\nallReferencedVaraibles: " + allReferencedVaraibles);
-//System.out.println("\nnew predicate map: " + predicates.toString());
+System.out.println("\nreferencedVariables: " + predicates.getReferencedVariables());
+System.out.println("\nallReferencedVaraibles: " + allReferencedVaraibles);
+System.out.println("\nnew predicate map: " + predicates.toString());
+System.out.println("\nrelevantVariablesOnPath: " + relevantVariablesOnPath);
 //System.out.println("\nfirstInterpolationPoint = " + firstInterpolationPoint + "\n");
 
     // create the new precision
@@ -243,6 +249,8 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
     if(!pathHashes.add(getErrorPathAsString(pPath).hashCode()))
     {
+      System.out.println(AbstractPathToCTranslator.translatePaths(CPAchecker.staticCFA, (ARTElement)currentReached.mReached.getFirstElement(), ARTUtils.getAllElementsOnPathsTo((ARTElement)currentReached.mReached.getLastElement())));
+
       System.out.println(getErrorPathAsString(pPath));
 
       System.out.println("\nlast set of variables in predicates: " + predicates.getReferencedVariables());
@@ -304,6 +312,43 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
     switch(edge.getEdgeType())
     {
+    case FunctionCallEdge:
+      FunctionCallEdge functionCallEdge = (FunctionCallEdge)edge;
+
+//System.out.println("inspecting FunctionCallEdge " + functionCallEdge.getRawStatement());
+
+      if(functionCallEdge.getRawAST() instanceof IASTFunctionCallAssignmentStatement)
+      {
+        IASTFunctionCallAssignmentStatement fcas = ((IASTFunctionCallAssignmentStatement)functionCallEdge.getRawAST());
+
+        String assignedVariable = fcas.getLeftHandSide().getRawSignature();
+
+        if(visitor.hasCollected(assignedVariable, false))
+        {
+          fcas.getLeftHandSide().accept(visitor);
+
+          fcas.getRightHandSide().accept(visitor);
+
+          extracted = true;
+        }
+
+        FunctionDefinitionNode def = functionCallEdge.getSuccessor();
+        String functionName = def.getFunctionName();
+
+        int parameterCount = 0;
+        for(IASTParameterDeclaration parameter : def.getFunctionDefinition().getDeclSpecifier().getParameters())
+        {
+          if(visitor.hasCollected(functionName + "::" + parameter.getName(), true))
+          {
+            visitor.addVariableToLocation2(functionCallEdge.getArguments().get(parameterCount).getRawSignature());
+          }
+
+          parameterCount++;
+        }
+      }
+
+      break;
+
     case StatementEdge:
       StatementEdge statementEdge = (StatementEdge)edge;
 
@@ -414,6 +459,11 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
         return cfaNode.getFunctionName() + "::" + variableName;
     }
 
+    public void addVariableToLocation2(String variable)
+    {
+      collect(edge.getPredecessor(), variable);
+    }
+
     private void addVariableToLocation(String variable)
     {
       Set<String> variablesAtLocation = variablesAtLocations.get(edge.getSuccessor());
@@ -422,6 +472,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
         variablesAtLocations.put(edge.getSuccessor(), variablesAtLocation = new HashSet<String>());
 
       variablesAtLocation.add(variable);
+      //System.out.println("adding " + variable + " at successor of " + edge);
     }
 
     @Override
@@ -461,7 +512,9 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
     @Override
     public Void visit(IASTFieldReference fieldReference)
     {
-      fieldReference.getFieldOwner().accept(this);
+      //fieldReference.getFieldOwner().accept(this);
+
+      collect(edge.getPredecessor(), fieldReference.getRawSignature());
 
       return null;
     }
