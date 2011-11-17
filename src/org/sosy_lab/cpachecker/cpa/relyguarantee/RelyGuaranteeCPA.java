@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
 import java.io.File;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -45,7 +44,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CSIsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -187,7 +185,7 @@ public class RelyGuaranteeCPA extends PredicateCPA{
       predicates = ImmutableSet.of(p);
     }
     // TODO make-shift solution
-    this.topElement = new RelyGuaranteeAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null),  tid, new HashMap<RelyGuaranteeCFAEdge, PathFormula>());
+    this.topElement = new RelyGuaranteeAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null),  tid, null);
 
     this.initialPrecision= new RelyGuaranteePrecision(predicates);
 

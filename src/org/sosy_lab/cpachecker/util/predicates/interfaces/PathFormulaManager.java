@@ -71,6 +71,9 @@ public interface PathFormulaManager {
   PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge, Integer tid) throws CPATransferException;
 
 
+  PathFormula makePureAnd(PathFormula localF, CFAEdge edge, Integer tid ) throws CPATransferException;
+
+
   PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM);
 
   PathFormula matchPaths(PathFormula localPF, PathFormula envPF, Set<String> globalVariablesSet, int offset);
@@ -134,6 +137,8 @@ public interface PathFormulaManager {
    * @return
    */
   PathFormula makePrimedEqualities(PathFormula pf1, int i, PathFormula pf2, int j);
+
+
 
 
 }

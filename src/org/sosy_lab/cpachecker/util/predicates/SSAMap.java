@@ -149,6 +149,27 @@ public class SSAMap {
   }
 
   /**
+   * Returns an SSAMap that contains only indexes of variables primed p times.
+   * @param ssa
+   * @param tid
+   * @return
+   */
+  public static SSAMap retainPrime(SSAMap ssa, int p){
+
+    SSAMapBuilder bldr = EMPTY_SSA_MAP.builder();
+
+    for (String var : ssa.vars){
+      Pair<String, Integer> data = PathFormula.getPrimeData(var);
+      if (data.getSecond().equals(p)){
+        int idx = ssa.getIndex(var);
+        bldr.setIndex(var, idx);
+      }
+    }
+
+    return bldr.build();
+  }
+
+  /**
    * Returns an unmodifiable SSAMap that contains all indices from two SSAMaps.
    * If there are conflicting indices, the maximum of both is used.
    */

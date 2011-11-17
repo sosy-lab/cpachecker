@@ -23,9 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Vector;
 
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
@@ -33,40 +31,58 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
 /**
- * Represents a formula block.
+ * Represents a abstraction point.
  */
-public class InterpolationDagNode extends InterpolationBlock{
+public class InterpolationDagNode {
 
-  protected final List<InterpolationDagNode> children;
+  /** ART element, where the path formula was abstracted */
+  protected final ARTElement artElement;
+
+  /** Path formula */
+  protected PathFormula pathFormula;
+
+  /** Information on applied env. edges */
+  protected final RelyGuaranteeApplicationInfo appInfo;
+
+  /** Node directly affecting this node */
   protected final List<InterpolationDagNode> parents;
+
+  /** Nodes directly affected by this node */
+  protected final List<InterpolationDagNode> children;
+
+  /** Thread id. */
   protected final int tid;
-  protected final Map<RelyGuaranteeCFAEdge, Integer> envPrimes;
+
   protected final InterpolationDagNodeKey key;
 
   /**
-   * Deep copy of the node, except for children and parents.
+   * Makes a deep copy of the node, except for children and parents.
    * @param node
    */
   public InterpolationDagNode(InterpolationDagNode node){
-    super(node.pathFormula, node.traceNo, node.artElement, null);
-    this.children   = new Vector<InterpolationDagNode>();
-    this.parents    = new Vector<InterpolationDagNode>();
-    this.tid        = node.tid;
-    this.envPrimes  = new HashMap<RelyGuaranteeCFAEdge, Integer>(node.envPrimes);
-    this.key        = node.key;
+    this.artElement   = node.artElement;
+    this.pathFormula  = node.pathFormula;
+    this.appInfo      = node.appInfo;
+    this.children     = new Vector<InterpolationDagNode>();
+    this.parents      = new Vector<InterpolationDagNode>();
+    this.tid          = node.tid;
+    this.key          = node.key;
   }
 
-  public InterpolationDagNode(PathFormula pf, int traceNo, ARTElement artElement, int tid){
-    super(pf, traceNo, artElement, null);
-    this.children   = new Vector<InterpolationDagNode>();
-    this.parents    = new Vector<InterpolationDagNode>();
-    this.tid        = tid;
-    this.envPrimes  = new HashMap<RelyGuaranteeCFAEdge, Integer>();
-    this.key        = new InterpolationDagNodeKey(tid, artElement.getElementId());
+  public InterpolationDagNode(ARTElement artElement, PathFormula pathFormula, RelyGuaranteeApplicationInfo appInfo, int tid){
+    assert artElement   != null;
+    assert pathFormula  != null;
+
+    this.artElement   = artElement;
+    this.pathFormula  = pathFormula;
+    this.appInfo      = appInfo;
+    this.children     = new Vector<InterpolationDagNode>();
+    this.parents      = new Vector<InterpolationDagNode>();
+    this.tid          = tid;
+    this.key          = new InterpolationDagNodeKey(tid, artElement.getElementId());
   }
 
-
-  public InterpolationDagNode(PathFormula pf, int traceNo, ARTElement artElement, List<InterpolationDagNode> children, List<InterpolationDagNode> parents, int tid) {
+  /*public InterpolationDagNode(PathFormula pf, int traceNo, ARTElement artElement, List<InterpolationDagNode> children, List<InterpolationDagNode> parents, int tid) {
     super(pf, traceNo, artElement, null);
     this.children = children;
     this.parents  = parents;
@@ -82,12 +98,11 @@ public class InterpolationDagNode extends InterpolationBlock{
     this.tid      = tid;
     this.envPrimes  = envPrimes;
     this.key        = new InterpolationDagNodeKey(tid, artElement.getElementId());
-  }
+  }*/
 
   public List<InterpolationDagNode> getChildren() {
     return children;
   }
-
 
   public List<InterpolationDagNode> getParents() {
     return parents;
@@ -102,12 +117,24 @@ public class InterpolationDagNode extends InterpolationBlock{
     return tid;
   }
 
-  public Map<RelyGuaranteeCFAEdge, Integer> getEnvPrimes() {
-    return envPrimes;
-  }
-
   public InterpolationDagNodeKey getKey(){
     return key;
+  }
+
+  public PathFormula getPathFormula() {
+    return pathFormula;
+  }
+
+  public void setPathFormula(PathFormula pPathFormula) {
+    pathFormula = pPathFormula;
+  }
+
+  public RelyGuaranteeApplicationInfo getAppInfo() {
+    return appInfo;
+  }
+
+  public ARTElement getArtElement() {
+    return artElement;
   }
 
   @Override

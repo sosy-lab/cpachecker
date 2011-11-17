@@ -36,19 +36,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.ListMultimap;
 
 /**
- * Directed acyclic graph representing ART and env. transitions.
+ * Directed acyclic graph representing ARTs linked by env. transitions.
  */
 public class InterpolationDag {
 
   private final List<InterpolationDagNode> roots;
-  //private final Map<Pair<Integer, Integer>, InterpolationDagNode> nodeMap;
   private final Map<InterpolationDagNodeKey, InterpolationDagNode> nodeMap;
 
 
@@ -130,17 +126,17 @@ public class InterpolationDag {
    * @param target
    * @return
    */
-  public List<Pair<Integer, Integer>> getModularPathToNode(InterpolationDagNode target){
+  public List<InterpolationDagNodeKey> getModularPathToNode(InterpolationDagNode target){
     assert nodeMap.containsValue(target);
 
-    List<Pair<Integer, Integer>> path = new Vector<Pair<Integer, Integer>>();
+    List<InterpolationDagNodeKey> path = new Vector<InterpolationDagNodeKey>();
     InterpolationDagNode toProcess = target;
     int tid = target.getTid();
 
     while(toProcess != null){
       InterpolationDagNode node = toProcess;
       toProcess = null;
-      path.add(0, Pair.of(node.tid, node.artElement.getElementId()));
+      path.add(0, node.key);
       for (InterpolationDagNode parent : node.getParents()){
         if (parent.getTid() == tid){
           toProcess = parent;
@@ -153,13 +149,14 @@ public class InterpolationDag {
   }
 
   /**
-   * In the given thread removes all nodes that are not in the collection.
+   * In the given thread removes all nodes whose keys are not in the collection. Returns removed nodes.
    * @param retain
-   * @return
    */
-  public void retainNodesInThread(Collection<Pair<Integer, Integer>> retain, int tid){
+  public void retainNodesInThread(Collection<InterpolationDagNodeKey> retain, int tid){
 
     Deque<InterpolationDagNode> toProcess = new LinkedList<InterpolationDagNode>();
+    Set<InterpolationDagNode> removed = new HashSet<InterpolationDagNode>();
+
     for (InterpolationDagNode root : roots){
       if (root.getTid() == tid){
         toProcess.add(root);
@@ -175,8 +172,8 @@ public class InterpolationDag {
         }
       }
 
-      if (!retain.contains(Pair.of(node.tid, node.artElement.getElementId()))){
-        removeNode(node);
+      if (!retain.contains(node.key)){
+        removeNode(node.key);
       }
     }
 
@@ -184,11 +181,12 @@ public class InterpolationDag {
   }
 
   /**
-   * Removes a non-root node from the DAG.
+   * Removes a node from the DAG.
    * @param node
    */
-  public void removeNode(InterpolationDagNode node){
-    assert nodeMap.containsValue(node);
+  public void removeNode(InterpolationDagNodeKey key){
+    InterpolationDagNode node = nodeMap.get(key);
+    assert node != null;
 
     if (roots.contains(node)){
       roots.remove(node);
@@ -201,16 +199,13 @@ public class InterpolationDag {
 
     for (InterpolationDagNode child : node.getChildren()){
       boolean succ = child.getParents().remove(node);
-      if (!succ){
-        System.out.println();
-      }
       assert succ;
       if (child.getParents().isEmpty()){
         roots.add(child);
       }
     }
 
-    nodeMap.remove(Pair.of(node.getTid(), node.getArtElement().getElementId()));
+    nodeMap.remove(key);
   }
 
   public List<InterpolationDagNode> getRoots() {
@@ -255,7 +250,7 @@ public class InterpolationDag {
    * @param tid
    * @return
    */
-  public List<List<Pair<Integer, Integer>>> getBranchesInThread(int tid) {
+  public List<List<InterpolationDagNodeKey>> getBranchesInThread(int tid) {
 
     InterpolationDagNode root = null;
 
@@ -267,20 +262,20 @@ public class InterpolationDag {
       }
     }
 
-    List<Pair<Integer, Integer>> path = new Vector<Pair<Integer, Integer>>();
-    List<List<Pair<Integer, Integer>>>  branches = dfsAddBranch(root, path);
+    List<InterpolationDagNodeKey> path = new Vector<InterpolationDagNodeKey>();
+    List<List<InterpolationDagNodeKey>>  branches = dfsAddBranch(root, path);
 
     return branches;
   }
 
-  private List<List<Pair<Integer, Integer>>> dfsAddBranch(InterpolationDagNode node, List<Pair<Integer, Integer>> path){
-    List<List<Pair<Integer, Integer>>> branches = new Vector<List<Pair<Integer, Integer>>>();
+  private List<List<InterpolationDagNodeKey>> dfsAddBranch(InterpolationDagNode node, List<InterpolationDagNodeKey> path){
+    List<List<InterpolationDagNodeKey>> branches = new Vector<List<InterpolationDagNodeKey>>();
 
     if (node == null){
       return branches;
     }
 
-    path.add(Pair.of(node.tid, node.artElement.getElementId()));
+    path.add(node.key);
 
 
     boolean hasChildren = false;
@@ -297,7 +292,7 @@ public class InterpolationDag {
         System.out.println(bn.getArtElement().getElementId()+" ");
       }*/
       System.out.println();
-      List<Pair<Integer, Integer>> branch = new Vector<Pair<Integer, Integer>>(path);
+      List<InterpolationDagNodeKey> branch = new Vector<InterpolationDagNodeKey>(path);
       branches.add(branch);
     }
 
@@ -306,48 +301,6 @@ public class InterpolationDag {
     return branches;
 
   }
-
-  /**
-   * Replaces a node with a new one with the given path formula. Returns the new node.
-   * @param node
-   * @param newPf
-   */
-  public InterpolationDagNode replacePathFormulaInNode(InterpolationDagNode node, PathFormula newPf) {
-    assert nodeMap.values().contains(node);
-    InterpolationDagNode newNode = new InterpolationDagNode(newPf, node.traceNo, node.artElement, node.children, node.parents, node.tid, node.envPrimes);
-
-    for (InterpolationDagNode parent : node.parents){
-      boolean succ = parent.children.remove(node);
-      assert succ;
-      parent.children.add(newNode);
-    }
-
-    for (InterpolationDagNode child : node.children){
-      boolean succ = child.parents.remove(node);
-      assert succ;
-      child.parents.add(newNode);
-    }
-
-    boolean succ = roots.remove(node);
-    if (succ){
-      roots.add(newNode);
-    }
-
-    InterpolationDagNodeKey key = null;
-    for (InterpolationDagNodeKey nodeKey: nodeMap.keySet()){
-      if (nodeMap.get(nodeKey) == node){
-        key = nodeKey;
-        break;
-      }
-    }
-    assert key != null;
-    nodeMap.put(key, newNode);
-    // TODO remove
-    dagAssertions();
-
-    return newNode;
-  }
-
 
   /**
    * Check the correctness of the DAG.
@@ -398,7 +351,7 @@ public class InterpolationDag {
     n1.children.add(n2);
     n2.parents.add(n1);
 
-    if (!nodeMap.containsKey(Pair.of(n1.tid, n1.artElement.getElementId()))){
+    if (!nodeMap.containsKey(n1)){
       nodeMap.put(n1.getKey(), n1);
     }
 
@@ -442,8 +395,10 @@ public class InterpolationDag {
       if (!visisted.contains(node)){
         visisted.add(node);
 
-        for (RelyGuaranteeCFAEdge edge :  node.getEnvPrimes().keySet()){
-          appliedMap.put(node, edge);
+        if (node.getAppInfo() != null){
+          for (RelyGuaranteeCFAEdge edge :  node.getAppInfo().getEnvMap().keySet()){
+            appliedMap.put(node, edge);
+          }
         }
 
         for (InterpolationDagNode child : node.children){
@@ -490,6 +445,24 @@ public class InterpolationDag {
     }
 
     return leaves;
+  }
+
+  /**
+   * Returns all nodes that belong to thread tid.
+   * @param tid
+   * @return
+   */
+  public Set<InterpolationDagNode> getNodesInThread(int tid) {
+
+    Set<InterpolationDagNode> nodes = new HashSet<InterpolationDagNode>();
+
+    for (InterpolationDagNode node : nodeMap.values()){
+      if (node.tid == tid){
+        nodes.add(node);
+      }
+    }
+
+    return nodes;
   }
 
 

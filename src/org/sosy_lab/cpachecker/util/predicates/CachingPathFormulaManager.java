@@ -258,5 +258,11 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
 
+  @Override
+  public PathFormula makePureAnd(PathFormula pLocalF, CFAEdge pEdge, Integer pTid) throws CPATransferException {
+    return delegate.makePureAnd(pLocalF, pEdge, pTid);
+  }
+
+
 
 }

@@ -27,11 +27,9 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
@@ -57,6 +55,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement.AbstractionElement;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -64,7 +63,6 @@ import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
@@ -252,37 +250,44 @@ public class RelyGuaranteeEnvironment {
       //assert envTransProcessedBeforeFromThread[i].containsValue(et);
 
       int tid = et.getSourceThread();
-      int otherTid  = tid == 0 ? 1 : 0;
       assert tid == i;
-      Map<Integer, Integer> adjustmentMap = new HashMap<Integer, Integer>();
-      adjustmentMap.put(tid, uniquePrime);
-      adjustmentMap.put(otherTid, uniquePrime+1);
-     // this.fManager.r
-      PathFormula af    =  pfManager.adjustPrimedNo(et.getAbstractionPathFormula(), adjustmentMap);
-      PathFormula pf    =  pfManager.adjustPrimedNo(et.getPathFormula(), adjustmentMap);
-      PathFormula newPf = pfManager.makeAnd(af, pf);
-      PathFormula eq = pfManager.makePrimedEqualities(af, uniquePrime, tid);
-      newPf = pfManager.makeAnd(newPf, eq);
 
-      // clean SSA map - leave only variables for thread and the unique prime
-      SSAMapBuilder ssaBldr = SSAMap.emptySSAMap().builder();
-      for (String var : newPf.getSsa().allVariables()){
-        Pair<String, Integer> data = PathFormula.getPrimeData(var);
-        Integer primeNo = data.getSecond();
-        if (primeNo != null && (primeNo == 0 || primeNo == 1 || primeNo == uniquePrime || primeNo == uniquePrime+1)){
-          ssaBldr.setIndex(var, newPf.getSsa().getIndex(var));
+      // apply the env operation on env pf
+      PathFormula opPf = null;
+      try {
+        opPf = pfManager.makePureAnd(et.getPathFormula(), et.getEdge(), tid);
+      } catch (CPATransferException e) {
+        // TODO better handling
+        e.printStackTrace();
+      }
+
+      // find the variable changed by the operation
+      SSAMap envSsa = et.getPathFormula().getSsa();
+      SSAMap opSsa   = opPf.getSsa();
+      String opVar   = null;
+
+      for (String var : opSsa.allVariables()){
+        if (opSsa.getIndex(var) > envSsa.getIndex(var)){
+          Pair<String, Integer> data = PathFormula.getPrimeData(var);
+          opVar = data.getFirst();
+          break;
         }
       }
 
-      newPf = new PathFormula(newPf.getFormula(), ssaBldr.build(), 0 , uniquePrime+1);
+      if (opVar == null){
+        System.out.println("");
+      }
+      assert opVar != null;
 
       // find the last abstraction element
       ARTElement lastARTAbstractionElement = findLastAbstractionARTElement(et.getSourceARTElement());
       assert lastARTAbstractionElement != null;
 
-      //newPF = pfManager.normalize(newPF);
-      RelyGuaranteeCFAEdgeTemplate rgEdge = new RelyGuaranteeCFAEdgeTemplate(et.getEdge(), newPf, et.getSourceThread(), et.getSourceARTElement(), lastARTAbstractionElement, et, uniquePrime, uniquePrime+1);
-      uniquePrime = uniquePrime+2;
+      //ARTElement nextARTAbstractionElement = findNextAbstractionARTElement(et.getSourceARTElement());
+      //assert nextARTAbstractionElement != null;
+
+      RelyGuaranteeCFAEdgeTemplate rgEdge = new RelyGuaranteeCFAEdgeTemplate(et.getEdge(), et.getAbstractionPathFormula(), et.getPathFormula(), opPf, opVar, et.getSourceARTElement(), lastARTAbstractionElement, tid, et);
+      uniquePrime++;
       rgEdges.add(rgEdge);
     }
     unprocessedTransitions.clear();
@@ -322,6 +327,8 @@ public class RelyGuaranteeEnvironment {
 
     processStats.totalTimer.stop();
   }
+
+
 
 
 
@@ -584,23 +591,7 @@ public class RelyGuaranteeEnvironment {
       return true;
     }
 
-    // unify unique prime numbers, so transitions can be directly compared
-    Map<Integer, Integer> adjustmentMap = new HashMap<Integer, Integer>();
-
-    Integer u1this  = env1.getUniquePrimeThis();
-    Integer u1other = env1.getUniquePrimeOther();
-    adjustmentMap.put(u1this, 100);
-    adjustmentMap.put(u1other, 101);
-    Formula f1a = fManager.adjustedPrimedNo(f1, adjustmentMap);
-
-    adjustmentMap.clear();
-    Integer u2this  = env2.getUniquePrimeThis();
-    Integer u2other = env2.getUniquePrimeOther();
-    adjustmentMap.put(u2this, 100);
-    adjustmentMap.put(u2other, 101);
-    Formula f2a =  fManager.adjustedPrimedNo(f2, adjustmentMap);
-
-    Formula nImpl = fManager.makeAnd(f1a, fManager.makeNot(f2a));
+    Formula nImpl = fManager.makeAnd(f1, fManager.makeNot(f2));
     tProver.init();
     try {
       return tProver.isUnsat(nImpl);
@@ -970,6 +961,40 @@ public class RelyGuaranteeEnvironment {
       processStats.printStatistics(System.out, null, null);
     }
   }
+
+  /**
+   * Finds the next descendant in the ART that is a rely-guarantee abstraction.
+   * Returns the argument if it is an abstraction.
+   * @param element
+   * @return
+   */
+  private ARTElement findNextAbstractionARTElement(ARTElement element) {
+
+    ARTElement naARTElement = null;
+    Deque<ARTElement> toProcess = new LinkedList<ARTElement>();
+    Set<ARTElement> visisted = new HashSet<ARTElement>();
+    toProcess.add(element);
+
+    while (!toProcess.isEmpty()){
+      ARTElement elem = toProcess.poll();
+      visisted.add(elem);
+
+      AbstractionElement aElement = AbstractElements.extractElementByType(elem, AbstractionElement.class);
+      if (aElement != null){
+        naARTElement = elem;
+        break;
+      }
+
+      for (ARTElement parent : elem.getChildren()){
+        if (!visisted.contains(parent)){
+          toProcess.addLast(parent);
+        }
+      }
+    }
+
+    return naARTElement;
+  }
+
 
   /**
    * Finds the last rely-guarantee abstraction element that is an ancestor of the argument.

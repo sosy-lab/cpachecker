@@ -49,6 +49,10 @@ public class RelyGuaranteeCFAEdge implements CFAEdge{
     return this.template.getSourceARTElement();
   }
 
+  public ARTElement getLastARTAbstractionElement() {
+    return template.lastARTAbstractionElement;
+  }
+
   @Override
   public CFAEdgeType getEdgeType() {
     return CFAEdgeType.RelyGuaranteeCFAEdge;
@@ -81,7 +85,11 @@ public class RelyGuaranteeCFAEdge implements CFAEdge{
   }
 
   public PathFormula getPathFormula() {
-    return this.template.getPathFormula();
+    return this.template.pathFormula;
+  }
+
+  public PathFormula getAbstractionFormula() {
+    return this.template.abstractionFormula;
   }
 
   @Override
@@ -91,15 +99,7 @@ public class RelyGuaranteeCFAEdge implements CFAEdge{
 
   @Override
   public String toString() {
-    return "RG edge T:"+this.getSourceTid()+", source ART:"+this.getSourceARTElement().getElementId()+", abstraction ART:"+this.getLastARTAbstractionElement().getElementId()+", CFA edge:"+this.getRawStatement()+", path formula:"+this.getPathFormula();
-  }
-
-  private ARTElement getLastARTAbstractionElement() {
-    return this.template.getLastARTAbstractionElement();
-  }
-
-  public CFAEdge getLocalEdge() {
-    return this.template.getLocalEdge();
+    return "RG edge T:"+this.getSourceTid()+", source ART:"+this.getSourceARTElement().getElementId()+", last abstr. ART:"+this.getLastARTAbstractionElement().getElementId()+", operation:"+this.getOpPathFormula()+", opVar:"+this.getOpVar()+", path formula:"+this.getPathFormula()+", abstraction formula:"+this.getAbstractionFormula();
   }
 
   public int getSourceTid(){
@@ -110,17 +110,23 @@ public class RelyGuaranteeCFAEdge implements CFAEdge{
     return template;
   }
 
-  public Integer getUniquePrimeThis() {
-    return this.template.getUniquePrimeThis();
+  public CFAEdge getOperation() {
+    return this.template.operation;
   }
 
-  public Integer getUniquePrimeOther() {
-    return this.template.getUniquePrimeOther();
+  public PathFormula getOpPathFormula() {
+    return this.template.opPathFormula;
   }
+
+  public String getOpVar() {
+    return this.template.opVar;
+  }
+
 
   @Override
   public int hashCode() {
     return this.predecessor.hashCode() + 23 * (this.successor.hashCode() +  13 * this.template.hashCode());
   }
+
 
 }

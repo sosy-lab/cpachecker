@@ -1927,6 +1927,79 @@ public class MathsatFormulaManager implements FormulaManager  {
   }
 
 
+  @Override
+  public Formula renameIndexes(Formula fr, SSAMap ssa, int p) {
+
+    Map<Formula, Formula> cache = new HashMap<Formula, Formula>();
+    Deque<Formula> toProcess = new ArrayDeque<Formula>();
+
+    toProcess.push(fr);
+    while (!toProcess.isEmpty()) {
+      final Formula tt = toProcess.peek();
+
+      if (cache.containsKey(tt)) {
+        toProcess.pop();
+        continue;
+      }
+      final long t = getTerm(tt);
+
+      if (msat_term_is_variable(t) != 0) {
+        Pair<String, Integer> lVariable = parseName(msat_term_repr(t));
+        String var = lVariable.getFirst();
+        int idx   = lVariable.getSecond();
+
+        if (idx < ssa.getIndex(var)){
+          // rename
+          Pair<String, Integer> data = PathFormula.getPrimeData(var);
+          var = data.getFirst()+ PathFormula.PRIME_SYMBOL+p;
+          long newt = buildMsatVariable(makeName(var, idx), msat_term_get_type(t));
+          cache.put(tt, encapsulate(newt));
+        } else {
+          cache.put(tt, tt);
+        }
+      } else {
+        boolean childrenDone = true;
+        long[] newargs = new long[msat_term_arity(t)];
+        for (int i = 0; i < newargs.length; ++i) {
+          Formula c = encapsulate(msat_term_get_arg(t, i));
+          Formula newC = cache.get(c);
+          if (newC != null) {
+            newargs[i] = getTerm(newC);
+          } else {
+            toProcess.push(c);
+            childrenDone = false;
+          }
+        }
+
+        if (childrenDone) {
+          toProcess.pop();
+          long newt;
+          if (msat_term_is_uif(t) != 0) {
+            String name = msat_decl_get_name(msat_term_get_decl(t));
+            assert name != null;
+
+            if (ufCanBeLvalue(name)) {
+              name = parseName(name).getFirst();
+
+              newt = buildMsatUF(name, newargs);
+            } else {
+              newt = msat_replace_args(msatEnv, t, newargs);
+            }
+          } else {
+            newt = msat_replace_args(msatEnv, t, newargs);
+          }
+
+          cache.put(tt, encapsulate(newt));
+        }
+      }
+    }
+
+    Formula result = cache.get(fr);
+    assert result != null;
+    return result;
+  }
+
+
 
 
 

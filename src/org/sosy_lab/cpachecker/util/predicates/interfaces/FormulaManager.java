@@ -284,6 +284,15 @@ public interface FormulaManager {
      */
     public Formula instantiateModular(Formula fr, SSAMap ssa);
 
+    /**
+     * Prime p times all variable instances lower than in the SSA map.
+     * @param fr
+     * @param ssa
+     * @param renameMap
+     * @return
+     */
+    public Formula renameIndexes(Formula fr, SSAMap ssa, int p);
+
 
 
 

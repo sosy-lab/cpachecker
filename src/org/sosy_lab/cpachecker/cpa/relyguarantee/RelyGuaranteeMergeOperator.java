@@ -116,7 +116,7 @@ public class RelyGuaranteeMergeOperator extends PredicateMergeOperator {
         logger.log(Level.ALL, "New path formula is", pathFormula);
 
         // TODO the edge map is not correct if don't abstract after merging
-        merged = new RelyGuaranteeAbstractElement(pathFormula, elem1.getAbstractionFormula(), cpa.getTid(), elem1.getEdgeMap());
+        merged = new RelyGuaranteeAbstractElement(pathFormula, elem1.getAbstractionFormula(), cpa.getTid());
 
         // now mark elem1 so that coverage check can find out it was merged
         elem1.setMergedInto(merged);

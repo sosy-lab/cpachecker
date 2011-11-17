@@ -40,36 +40,51 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
  */
 public class RelyGuaranteeCFAEdgeTemplate{
 
-  private final CFAEdge localEdge;
-  private final PathFormula pathFormula;
-  private ARTElement  sourceARTElement;
-  // the last abstraction point in the ART
-  private final ARTElement  lastARTAbstractionElement;
-  private final int sourceTid;
+  /** The operation. */
+  protected final CFAEdge operation;
 
-  // environmental transition form which this edge was generated from
-  private final RelyGuaranteeEnvironmentalTransition sourceEnvTransition;
-  // unkilled env. edge that is more general than this one
+  /**  Abstraction formula. */
+  protected final PathFormula abstractionFormula;
+
+  /** Path formula before the operation. */
+  protected final PathFormula pathFormula;
+
+  /** Path formula after the operation. */
+  protected final PathFormula opPathFormula;
+
+  /** Variable assigned by the operation */
+  protected final String opVar;
+
+  /** ART element that generated this edge. */
+  protected ARTElement  sourceARTElement;
+
+  /** The last abstraction point before the source element */
+  protected final ARTElement  lastARTAbstractionElement;
+
+  /** Source thread id. */
+  protected final int sourceTid;
+
+  /** Environmental transition form which this edge was generated from */
+  protected final RelyGuaranteeEnvironmentalTransition sourceEnvTransition;
+
+  /** Unkilled env. edge that is more general than this one. */
   private RelyGuaranteeCFAEdgeTemplate coveredBy;
-  // unkilled env. edges that are less general that this one
+
+  /** Unkilled env. edges that are less general that this one. */
   private final Set<RelyGuaranteeCFAEdgeTemplate> covers;
-  // part of the env. transition that should always be unique
-  private final Integer uniquePrimeThis;
-  private final Integer uniquePrimeOther;
 
-
-
-  public RelyGuaranteeCFAEdgeTemplate(CFAEdge pEdge, PathFormula pPathFormula, int sourceTid, ARTElement sourceARTElement, ARTElement lastARTAbstractionElement, RelyGuaranteeEnvironmentalTransition sourceEnvTransition, Integer uniquePrimeThis, Integer uniquePrimeOther){
-    this.localEdge = pEdge;
-    this.pathFormula= pPathFormula;
+  public RelyGuaranteeCFAEdgeTemplate(CFAEdge operation, PathFormula abstractionFormula, PathFormula pathFormula, PathFormula opPathFormula, String opVar, ARTElement sourceARTElement, ARTElement lastARTAbstractionElement, int sourceTid, RelyGuaranteeEnvironmentalTransition sourceEnvTransition){
+    this.operation = operation;
+    this.abstractionFormula = abstractionFormula;
+    this.pathFormula = pathFormula;
+    this.opPathFormula = opPathFormula;
+    this.opVar = opVar;
     this.sourceARTElement = sourceARTElement;
     this.lastARTAbstractionElement = lastARTAbstractionElement;
     this.sourceTid = sourceTid;
     this.sourceEnvTransition = sourceEnvTransition;
     this.coveredBy = null;
     this.covers = new HashSet<RelyGuaranteeCFAEdgeTemplate>();
-    this.uniquePrimeThis  = uniquePrimeThis;
-    this.uniquePrimeOther = uniquePrimeOther;
   }
 
   // instantiate
@@ -87,17 +102,24 @@ public class RelyGuaranteeCFAEdgeTemplate{
     this.sourceARTElement =  newElem;
   }
 
+  /*public ARTElement getLastARTAbstractionElement() {
+    return nextARTAbstractionElement;
+  }*/
+
+  public PathFormula getAbstractionFormula() {
+    return abstractionFormula;
+  }
+
   public ARTElement getLastARTAbstractionElement() {
     return lastARTAbstractionElement;
   }
-
 
   public IASTNode getRawAST() {
     return null;
   }
 
   public String getRawStatement() {
-    return localEdge.getRawStatement();
+    return operation.getRawStatement();
   }
 
   public PathFormula getPathFormula() {
@@ -107,11 +129,11 @@ public class RelyGuaranteeCFAEdgeTemplate{
 
   @Override
   public String toString() {
-    return "RG edge template  T:"+this.sourceTid+", source ART:"+this.sourceARTElement.getElementId()+", abstr. ART:"+this.lastARTAbstractionElement.getElementId()+", CFA edge:"+localEdge.getRawStatement()+", path formula:"+this.pathFormula;
+    return "RG edge template  T:"+this.sourceTid+", source ART:"+this.sourceARTElement.getElementId()+", last abstr. ART:"+this.lastARTAbstractionElement.getElementId()+", operation:"+opPathFormula+", opVar:"+opVar+", path formula:"+this.pathFormula+", abstraction formula:"+this.abstractionFormula;
   }
 
   public CFAEdge getLocalEdge() {
-    return this.localEdge;
+    return this.operation;
   }
 
   public int getSourceTid(){
@@ -129,17 +151,17 @@ public class RelyGuaranteeCFAEdgeTemplate{
     return covers;
   }
 
-  public Integer getUniquePrimeThis() {
-    return uniquePrimeThis;
+
+  public CFAEdge getOperation() {
+    return operation;
   }
 
-  public Integer getUniquePrimeOther() {
-    return uniquePrimeOther;
+  public PathFormula getOpPathFormula() {
+    return opPathFormula;
   }
 
-  @Override
-  public int hashCode(){
-    return uniquePrimeThis + 17 * uniquePrimeOther;
+  public String getOpVar() {
+    return opVar;
   }
 
   /**
@@ -151,7 +173,7 @@ public class RelyGuaranteeCFAEdgeTemplate{
     assert other != null;
     assert other != this;
     assert !other.covers.contains(this);
-    assert other.localEdge.equals(this.localEdge);
+    assert other.operation.equals(this.operation);
     // TODO change it - only null should be allowed
     if (coveredBy == null){
       coveredBy  = other;
