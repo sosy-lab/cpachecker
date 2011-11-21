@@ -302,11 +302,15 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
 
       boolean lIsCovered = false;
 
+      TestCase lLastTestCase = null;
+
       for (TestCase lTestCase : pTestSuite) {
         // TODO combine with pedantic flag
         /*if (!lTestCase.isPrecise()) {
           throw new RuntimeException();
         }*/
+
+        lLastTestCase = lTestCase;
 
         CFAEdge[] lCFAPath = mPathCache.get(lTestCase);
 
@@ -363,10 +367,16 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
         }
       }
 
+
       if (lIsCovered) {
-        System.out.println("COVERED");
+        System.out.println("Test goal #" + lIndex + " is covered");
+
+        System.out.println(lLastTestCase);
 
         lNumberOfCoveredTestGoals++;
+      }
+      else {
+        System.out.println("Test goal #" + lIndex + " is not covered");
       }
     }
 
