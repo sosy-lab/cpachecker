@@ -103,6 +103,8 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
   private final ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> mBuilder;
   private final Collection<AbstractionPredicate> mGlobalPredicates;
 
+  //private MathsatFormulaManager mMathsat;
+
   public PredicateRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     this(pCpa, new ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate>(), new HashSet<AbstractionPredicate>());
   }
@@ -118,6 +120,7 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
     predicateCpa.getConfiguration().inject(this, PredicateRefiner.class);
     logger = predicateCpa.getLogger();
     formulaManager = predicateCpa.getPredicateManager();
+    //mMathsat = (MathsatFormulaManager)predicateCpa.getFormulaManager();
     predicateCpa.getStats().addRefiner(this);
 
     mBuilder = pBuilder;
@@ -154,6 +157,13 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
       precisionUpdate.stop();
 
       mBuilder.putAll(refinementResult.getSecond().getPredicateMap());
+      /*for (CFANode lNode : refinementResult.getSecond().getPredicateMap().keySet()) {
+        for (AbstractionPredicate lPredicate : refinementResult.getSecond().getPredicates(lNode)) {
+          if (!mMathsat.isComparisonAgainstConstant(lPredicate.getSymbolicAtom())) {
+            mBuilder.put(lNode, lPredicate);
+          }
+        }
+      }*/
       mGlobalPredicates.addAll(refinementResult.getSecond().getGlobalPredicates());
 
       artUpdate.start();
@@ -164,6 +174,12 @@ public class PredicateRefiner extends AbstractARTBasedRefiner {
       totalRefinement.stop();
       return true;
     } else {
+      // TODO implement caching of feasibility information
+      // 1) extract abstraction points
+      // 2) store common prefix ? (or store all information and determine common prefixes on demand?)
+
+
+
       // we have a real error
       logger.log(Level.FINEST, "Error trace is not spurious");
       errorPathProcessing.start();

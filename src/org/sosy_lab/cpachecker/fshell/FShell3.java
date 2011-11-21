@@ -393,6 +393,10 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
 
       lWriter.println("cpa.interval.merge = JOIN");
 
+      // Logging information
+      lWriter.println("log.level = OFF");
+      lWriter.println("log.consoleLevel = OFF");
+
       lWriter.close();
 
     } catch (IOException e) {

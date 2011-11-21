@@ -79,7 +79,7 @@ public class KLEEToFShell3 {
 
     State lState = State.STARTED;
 
-    int lNumObjects = -1;
+    int lNumObjects = 0;
 
     String lLine = null;
 

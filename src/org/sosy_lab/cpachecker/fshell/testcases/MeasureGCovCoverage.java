@@ -38,6 +38,7 @@ public class MeasureGCovCoverage {
   private static String INFO = "This program executes a given test suite on the given source and measures the achieved coverage with gcov.";
 
   private static void printUsage() {
+    // TODO update usage
     System.out.println("Usage: java org.sosy_lab.cpachecker.fshell.testcases.MeasureGCovCoverage [--fshell2|--klee] <source-file> <testsuite-file>");
     System.out.println();
     System.out.println(INFO);
@@ -160,6 +161,8 @@ public class MeasureGCovCoverage {
     LinkedList<String> lEvaluateCoverage = new LinkedList<String>();
     lEvaluateCoverage.add("gcov");
     lEvaluateCoverage.add("-b");
+    lEvaluateCoverage.add("-u");
+    //lEvaluateCoverage.add("-f");
     lEvaluateCoverage.add("-o");
     lEvaluateCoverage.add(lObjectFile.getAbsolutePath());
     lEvaluateCoverage.add(lPreprocessedSourceFile.getAbsolutePath());
@@ -204,9 +207,10 @@ public class MeasureGCovCoverage {
 
   public static void runTestsuite(File pExecutable, String pTestsuiteFileName, File pTestcaseFile) throws IOException, InterruptedException {
     // run testsuite
-    System.out.print("Run testsuite ");
-
     TestSuite lTestSuite = TestSuite.load(pTestsuiteFileName);
+
+    System.out.println("#testcases = " + lTestSuite.size());
+    System.out.print("Run testsuite ");
 
     for (TestCase lTestCase : lTestSuite) {
       lTestCase.toInputFile(pTestcaseFile);
@@ -321,7 +325,6 @@ public class MeasureGCovCoverage {
     System.out.println("done (" + lReturnCode + ").");
 
 
-
     // pre-process source II)
     System.out.print("Preprocess source step B ... ");
 
@@ -353,7 +356,6 @@ public class MeasureGCovCoverage {
     System.out.print("Compile input.c to input.o ... ");
 
     File lTmpInputO = File.createTempFile("input.", ".o");
-    lTmpInputO.deleteOnExit();
 
     LinkedList<String> lCompileInputO = new LinkedList<String>();
     lCompileInputO.add("gcc");
@@ -378,7 +380,7 @@ public class MeasureGCovCoverage {
     return lTmpInputO;
   }
 
-  private static void readInputStream(InputStream lInputStream) throws IOException {
+  public static void readInputStream(InputStream lInputStream) throws IOException {
     BufferedReader lReader = new BufferedReader(new InputStreamReader(lInputStream));
 
     boolean lHasWritten = false;

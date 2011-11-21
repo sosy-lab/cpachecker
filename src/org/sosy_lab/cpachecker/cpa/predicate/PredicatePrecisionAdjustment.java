@@ -129,6 +129,8 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     Collection<AbstractionPredicate> preds = precision.getPredicates(loc);
 
+    //int lPredsBefore = preds.size();
+
     if (mRemoveIrrelevantPredicates && preds.size() > mPredsSizeThreshold) {
       HashSet<String> lVariables = new HashSet<String>();
       lVariables.addAll(mMathsatFormulaManager.getVariables(abstractionFormula.asFormula()));
@@ -183,6 +185,10 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       }
     }
 
+    /*if (lPredsBefore != preds.size()) {
+      System.out.println("Removed " + (lPredsBefore - preds.size()) + " predictates!");
+    }*/
+
     maxBlockSize = Math.max(maxBlockSize, pathFormula.getLength());
     maxPredsPerAbstraction = Math.max(maxPredsPerAbstraction, preds.size());
 
@@ -195,6 +201,15 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
         abstractionFormula, pathFormula, preds, loc);
 
     computingAbstractionTime.stop();
+
+    /*if (preds.size() > 40 && !newAbstractionFormula.isFalse()) {
+      Formula lFormula = newAbstractionFormula.asFormula();
+      Collection<Formula> lAtoms = mMathsatFormulaManager.extractAtoms(lFormula, false, false);
+
+      if (lAtoms.size() != preds.size()) {
+        System.out.println((preds.size() - lAtoms.size()) + " predicates vanished!");
+      }
+    }*/
 
     /*int lThreshold = 15;
 

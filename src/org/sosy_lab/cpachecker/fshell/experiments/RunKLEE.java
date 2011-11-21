@@ -23,35 +23,39 @@
  */
 package org.sosy_lab.cpachecker.fshell.experiments;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.fshell.testcases.CRESTToFShell3;
+import org.sosy_lab.cpachecker.fshell.testcases.KLEEToFShell3;
 import org.sosy_lab.cpachecker.fshell.testcases.MeasureGCovCoverage;
 import org.sosy_lab.cpachecker.fshell.testcases.TestSuite;
 
-public class RunCREST {
+public class RunKLEE {
 
   public static void main(String[] args) throws IOException, InterruptedException {
-    if (args.length < 1) {
+    if (args.length == 0) {
       throw new RuntimeException();
     }
 
-    String lGenericSourceFileName = args[0];
-    String lTigerSourceFileName = args[1];
+    String lSourceFileName = args[0];
 
-    File lSourceFile = new File(lGenericSourceFileName);
+    File lSourceFile = new File(lSourceFileName);
 
     File lTemporaryDirectory = new File("tmp-testing");
 
     if (lTemporaryDirectory.exists()) {
-      throw new RuntimeException();
+      throw new RuntimeException("Temporary directory 'tmp-testing' already exists!");
     }
 
     if (!lTemporaryDirectory.mkdir()) {
-      throw new RuntimeException();
+      throw new RuntimeException("Couldn't create temporary directory 'tmp-testing'!");
     }
 
 
@@ -65,16 +69,16 @@ public class RunCREST {
 
     String lBasename = lFilename.substring(0, lFilenameLength - 2);
 
-    File lCrestFile = new File(lTemporaryDirectory, lBasename + "-crest.c");
+    File lKleeFile = new File(lTemporaryDirectory, lBasename + "-klee.i");
 
     List<String> lCommand = new LinkedList<String>();
 
     lCommand.add("gcc");
     lCommand.add("-E");
-    lCommand.add("-D__CREST__");
+    lCommand.add("-D__KLEE__");
     lCommand.add(lSourceFile.getAbsolutePath());
     lCommand.add("-o");
-    lCommand.add(lCrestFile.getAbsolutePath());
+    lCommand.add(lKleeFile.getAbsolutePath());
 
     ProcessBuilder lBuilder = new ProcessBuilder();
     lBuilder.command(lCommand);
@@ -91,41 +95,78 @@ public class RunCREST {
     }
 
     lCommand.clear();
-    lCommand.add("crestc");
-    lCommand.add(lCrestFile.getAbsolutePath());
+    lCommand.add("llvm-gcc");
+    lCommand.add("--emit-llvm");
+    lCommand.add("-g");
+    lCommand.add("-c");
+    lCommand.add(lKleeFile.getAbsolutePath());
+    lCommand.add("-o");
+    lCommand.add(lBasename + "-klee.bc");
 
     lBuilder.command(lCommand);
     lBuilder.directory(lTemporaryDirectory);
 
-    Process lCrestC = lBuilder.start();
+    Process lLlvmGcc = lBuilder.start();
 
-    MeasureGCovCoverage.readInputStream(lCrestC.getInputStream());
+    MeasureGCovCoverage.readInputStream(lLlvmGcc.getInputStream());
 
-    lReturnValue = lCrestC.waitFor();
+    lReturnValue = lLlvmGcc.waitFor();
 
     if (lReturnValue != 0) {
       throw new RuntimeException();
     }
 
     lCommand.clear();
-    lCommand.add("run_crest");
-    lCommand.add("." + File.separator + lCrestFile.getName().substring(0, lCrestFile.getName().length() - 2));
-    lCommand.add("100");
-    lCommand.add("-dfs");
+    lCommand.add("klee");
+    lCommand.add("-max-time=600");
+    lCommand.add(lBasename + "-klee.bc");
 
     lBuilder.command(lCommand);
 
-    Process lRunCrest = lBuilder.start();
+    Process lRunKlee = lBuilder.start();
 
-    MeasureGCovCoverage.readInputStream(lRunCrest.getInputStream());
+    MeasureGCovCoverage.readInputStream(lRunKlee.getInputStream());
 
-    lReturnValue = lRunCrest.waitFor();
+    lReturnValue = lRunKlee.waitFor();
 
     if (lReturnValue != 0) {
       throw new RuntimeException();
     }
 
-    TestSuite lGeneratedTestSuite = CRESTToFShell3.translateTestSuite(lTemporaryDirectory);
+    String lTestSuiteDirectory = lTemporaryDirectory.getAbsolutePath() + File.separator + "klee-out-0";
+
+    System.out.println(lTestSuiteDirectory);
+
+    File lOutputDirectory = new File(lTestSuiteDirectory);
+    for (File lFile : lOutputDirectory.listFiles()) {
+      if (lFile.getName().endsWith(".ktest")) {
+        lCommand.clear();
+        lCommand.add("ktest-tool");
+        //lCommand.add("--write-ints");
+        lCommand.add(lFile.getAbsolutePath());
+
+        lBuilder.directory(lOutputDirectory);
+
+        Process lTranslationProcess = lBuilder.start();
+
+        BufferedReader lReader = new BufferedReader(new InputStreamReader(lTranslationProcess.getInputStream()));
+
+        File lOutputFile = new File(lFile.getAbsolutePath() + ".txt");
+
+        PrintWriter lWriter = new PrintWriter(new BufferedWriter(new FileWriter(lOutputFile)));
+
+        String lLine = null;
+
+        while ((lLine = lReader.readLine()) != null) {
+          lWriter.println(lLine);
+        }
+
+        lWriter.close();
+      }
+    }
+
+
+    TestSuite lGeneratedTestSuite = KLEEToFShell3.translateTestSuite(lTestSuiteDirectory);
     System.out.println(lGeneratedTestSuite);
 
     if (lGeneratedTestSuite.isEmpty()) {
@@ -138,8 +179,7 @@ public class RunCREST {
     lGeneratedTestSuite.write(lTemporaryTestSuiteFile);
 
     String[] lArguments = new String[2];
-    //lArguments[0] = lTigerSourceFileName;
-    lArguments[0] = lGenericSourceFileName;
+    lArguments[0] = lSourceFileName;
     lArguments[1] = lTemporaryTestSuiteFile.getAbsolutePath();
 
     MeasureGCovCoverage.main(lArguments);

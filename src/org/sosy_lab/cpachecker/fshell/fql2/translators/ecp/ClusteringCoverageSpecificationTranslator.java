@@ -48,6 +48,8 @@ public class ClusteringCoverageSpecificationTranslator {
   private final ElementaryCoveragePattern mIDStar;
   private final CFANode mInitialNode;
 
+  private boolean mInsertReverted = false;
+
   public ClusteringCoverageSpecificationTranslator(PathPatternTranslator pPathPatternTranslator, LinkedList<Edges> pCoverageSequence, CFANode pInitialNode) {
     mPathPatternTranslator = pPathPatternTranslator;
 
@@ -130,15 +132,37 @@ public class ClusteringCoverageSpecificationTranslator {
           CFAEdge lLastSingletonCFAEdge = lEdgeSet.getCFAEdge();
 
           ECPConcatenation lGoal = new ECPConcatenation(lSequence);
-          ClusteredElementaryCoveragePattern lClusteredGoal = new ClusteredElementaryCoveragePattern(lGoal, lCluster, lCluster.size(), lInitialNode, lLastSingletonCFAEdge);
+          ClusteredElementaryCoveragePattern lClusteredGoal;
+
+          if (mInsertReverted) {
+            lClusteredGoal = new ClusteredElementaryCoveragePattern(lGoal, lCluster, lClusterSize - lCluster.size() - 1, lInitialNode, lLastSingletonCFAEdge);
+          }
+          else {
+            lClusteredGoal = new ClusteredElementaryCoveragePattern(lGoal, lCluster, lCluster.size(), lInitialNode, lLastSingletonCFAEdge);
+          }
           lCluster.add(lClusteredGoal);
 
-          lCoveragePatterns[lECPCounter] = lClusteredGoal;
+          if (mInsertReverted) {
+            lCoveragePatterns[lCoveragePatterns.length - lECPCounter - 1] = lClusteredGoal;
+          }
+          else {
+            lCoveragePatterns[lECPCounter] = lClusteredGoal;
+          }
 
           lECPCounter++;
 
           lSequence.removeLast();
           lSequence.removeLast();
+        }
+
+        if (mInsertReverted) {
+          ClusteredElementaryCoveragePattern[] lClusterArray = new ClusteredElementaryCoveragePattern[lCluster.size()];
+
+          lClusterArray = lCluster.toArray(lClusterArray);
+
+          for (int i = 0; i < lClusterArray.length; i++) {
+            lCluster.set(lClusterSize - i - 1, lClusterArray[i]);
+          }
         }
 
         lCurrentStackDepth--;

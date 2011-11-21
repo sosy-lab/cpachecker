@@ -36,7 +36,7 @@ import java.util.Set;
 
 public class FShell2ToFShell3 {
 
-  private final static String USAGE_STRING = "Usage: java [--out=output-file] org.sosy_lab.cpachecker.fshell.testcases.FShell2ToFShell3 <FShell2 result files>";
+  private final static String USAGE_STRING = "Usage: java " + FShell2ToFShell3.class.getCanonicalName() + " [--out=output-file] <FShell2 result files>";
 
   public static void translateTestsuite(String pSourceFile, String pTargetFile) throws NumberFormatException, FileNotFoundException, IOException {
     translateTestsuite(new PrintStream(new FileOutputStream(pTargetFile)), pSourceFile);

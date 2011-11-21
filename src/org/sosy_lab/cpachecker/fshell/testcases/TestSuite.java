@@ -65,6 +65,14 @@ public class TestSuite implements Iterable<TestCase> {
     TestCase.toFile(mTestSuite, pTestSuiteOutputFile);
   }
 
+  public int size() {
+    return mTestSuite.size();
+  }
+
+  public boolean isEmpty() {
+    return mTestSuite.isEmpty();
+  }
+
   @Override
   public Iterator<TestCase> iterator() {
     return mTestSuite.iterator();

@@ -143,7 +143,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
   private long mRestartBound = 100000000; // 100 MB
 
   private boolean mUseAutomatonOptimization = true;
-  private boolean mUseGraphCPA = true;
+  private boolean mUseGraphCPA = true; // TODO shall we constantly disable it?
   private boolean mReuseART = true;
   private boolean mUseInfeasibilityPropagation = true;
 
@@ -372,7 +372,13 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     TimeAccumulator lTimeCover = new TimeAccumulator();
 
 
+    boolean lUseGraphCPAOld = mUseGraphCPA;
+
     if (lInfeasibilityPropagation.getFirst()) {
+      // deactivate graph search ... experiments showed graph search useless when we use infeasibility propagation
+      // TODO investigate that issue in more detail
+      mUseGraphCPA = false;
+
       CFANode lInitialNode = this.mAlphaLabel.getEdgeSet().iterator().next().getSuccessor();
 
       ClusteringCoverageSpecificationTranslator lTranslator = new ClusteringCoverageSpecificationTranslator(mCoverageSpecificationTranslator.mPathPatternTranslator, lInfeasibilityPropagation.getSecond(), lInitialNode);
@@ -757,8 +763,6 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
           mFeasibilityInformation.setStatus(lIndex, FeasibilityInformation.FeasibilityStatus.IMPRECISE);
 
-
-
           InfeasibilityPropagation.Prediction lCurrentPrediction = lGoalPrediction[lIndex - 1];
 
           if (!lCurrentPrediction.equals(InfeasibilityPropagation.Prediction.UNKNOWN)) {
@@ -805,6 +809,10 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     for (int i = 0; i < lGoalRuntime.length; i++) {
       System.out.println("#" + (i + 1) + ": " + lGoalRuntime[i] + " ms");
     }*/
+
+    if (lInfeasibilityPropagation.getFirst()) {
+      mUseGraphCPA = lUseGraphCPAOld;
+    }
 
     return lResult;
   }

@@ -37,16 +37,16 @@ public class KBFilter1_BB_Test extends ExperimentalSeries {
   @Test
   public void test001() throws Exception {
     String lCFile = "kbfiltr_simpl1.cil.c";
-    
+
     LinkedList<String> lArguments = new LinkedList<String>();
-    
+
     lArguments.add(Main.BASIC_BLOCK_COVERAGE);
     lArguments.add("test/programs/fql/ntdrivers-simplified/" + lCFile);
     lArguments.add("main");
     //lArguments.add("--output=kbfilter.bb.1.txt");
-    lArguments.add("--nooutput");
+    //lArguments.add("--nooutput");
     lArguments.add("--withoutCilPreprocessing");
-    
+
     String[] lArgs = new String[lArguments.size()];
     lArguments.toArray(lArgs);
 
