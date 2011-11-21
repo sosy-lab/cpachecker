@@ -274,9 +274,6 @@ public class RelyGuaranteeEnvironment {
         }
       }
 
-      if (opVar == null){
-        System.out.println("");
-      }
       assert opVar != null;
 
       // find the last abstraction element
@@ -446,10 +443,11 @@ public class RelyGuaranteeEnvironment {
 
     for (RelyGuaranteeEnvironmentalTransition  et: unprocessedTransitions){
       Formula f = et.getPathFormula().getFormula();
+      PathFormula af = et.getAbstractionPathFormula();
       PathFormula pf = et.getPathFormula();
       CFAEdge localEdge = et.getEdge();
       // don't generate transition with 'false' or transitions that assign to local variables
-      if (f.isFalse() || pf.getFormula().isFalse() || isLocalAssigment(localEdge)) {
+      if (f.isFalse() || af.getFormula().isFalse() || pf.getFormula().isFalse() || isLocalAssigment(localEdge)) {
         toDelete.add(et);
         if (debug){
           System.out.println("Removed (syn,false): "+et);
@@ -585,11 +583,22 @@ public class RelyGuaranteeEnvironment {
     if (!env1.getLocalEdge().equals(env2.getLocalEdge())){
       return false;
     }
-    Formula f1 = env1.getPathFormula().getFormula();
-    Formula f2 = env2.getPathFormula().getFormula();
-    if (f1.isFalse() || f2.isTrue()) {
+    Formula f1a= env1.getAbstractionFormula().getFormula();
+    Formula f1pf = env1.getPathFormula().getFormula();
+    Formula f2a = env2.getAbstractionFormula().getFormula();
+    Formula f2pf = env2.getPathFormula().getFormula();
+
+    if (f1a.isFalse() || f1pf.isFalse()) {
       return true;
     }
+
+    Formula f2 = fManager.makeAnd(f2a, f2pf);
+
+    if (f2.isTrue()){
+      return true;
+    }
+
+    Formula f1 = fManager.makeAnd(f1a, f1pf);
 
     Formula nImpl = fManager.makeAnd(f1, fManager.makeNot(f2));
     tProver.init();

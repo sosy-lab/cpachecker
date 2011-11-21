@@ -77,17 +77,10 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
   @Override
   public PathFormula makeEmptyPathFormula(PathFormula oldFormula) {
-    // remove primed variables from ssa map
-    SSAMapBuilder ssa = SSAMap.emptySSAMap().builder();
-    for (String var : oldFormula.getSsa().allVariables()){
-      if (! var.contains(PathFormula.PRIME_SYMBOL)){
-        ssa.setIndex(var, oldFormula.getSsa().getIndex(var));
-      }
-    }
-    return new PathFormula(fmgr.makeTrue(), ssa.build(), 0, 0);
+    return new PathFormula(fmgr.makeTrue(), oldFormula.getSsa(), 0, 0);
   }
 
-  // returns an empty path formula with a clean SSAMap from variables that do not belong to this thread
+  // returns an empty path formula with a  SSAMap clean from variables that do not belong to this thread
   public PathFormula makeEmptyPathFormula(PathFormula oldFormula, int tid) {
     //
     SSAMap oldssa = oldFormula.getSsa();
@@ -253,7 +246,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
 
   // like mergeSSAMaps, but equivalences built over variables primed tid times
-  private Pair<Pair<Formula, Formula>, SSAMap> mergeRelyGuaranteeSSAMaps(SSAMap ssa1, SSAMap ssa2, int tid) {
+  public Pair<Pair<Formula, Formula>, SSAMap> mergeRelyGuaranteeSSAMaps(SSAMap ssa1, SSAMap ssa2, int tid) {
 
     SSAMap result = SSAMap.merge(ssa1, ssa2);
     Formula mt1 = fmgr.makeTrue();

@@ -416,22 +416,25 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     }
 
     // construct path formula with applications from the 'retain' set
-    PathFormula appPf = pmgr.makeEmptyPathFormula();
+    PathFormula appPf = new PathFormula(fmgr.makeFalse(), node.getPathFormula().getSsa(), 0, 0);
     int tid = node.getTid();
+
+    boolean noApplications = true;
 
     for (RelyGuaranteeCFAEdge rgEdge : appInfo.envMap.keySet()){
       if (artRetain.contains(rgEdge.getLastARTAbstractionElement())){
+        noApplications = false;
         PathFormula envPf = appInfo.envMap.get(rgEdge);
-
-        if (!appPf.getFormula().isTrue()){
-          appPf = pmgr.makeRelyGuaranteeOr(appPf, envPf, tid);
-        } else {
-          appPf = envPf;
-        }
+        appPf = pmgr.makeRelyGuaranteeOr(appPf, envPf, tid);
       }
     }
     // TODO same sanity check, i.e. SSA map
-    appPf = pmgr.makeAnd(appPf, appInfo.localPf);
+    if (noApplications){
+      appPf = pmgr.makeOr(appPf, appInfo.localPf);
+    } else {
+      appPf = pmgr.makeAnd(appPf, appInfo.localPf);
+    }
+
 
     node.setPathFormula(appPf);
   }
@@ -1045,6 +1048,11 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       Map<Integer, Integer> reprimeMap = new HashMap<Integer, Integer>(2);
       reprimeMap.put(otherTid, uniqueNumber+1);
 
+      if (debug){
+        System.out.println();
+        System.out.println("Renamed formulas for :"+node.key);
+      }
+
       for (int j=0; j<pair.getFirst().size(); j++){
         InterpolationDagNode nd = pair.getFirst().get(j);
         Formula fr = nd.getPathFormula().getFormula();
@@ -1057,9 +1065,15 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
           fr = fmgr.renameIndexes(fr, cleanSSA, uniqueNumber);
           fr = fmgr.adjustedPrimedNo(fr, reprimeMap);
         }
+
+        if (debug){
+          System.out.println("\t"+nd.key+" : "+fr);
+        }
+
         T id = itpProver.addFormula(fr);
         interpolationIds.add(id);
       }
+
 
 
       // check if spurious
