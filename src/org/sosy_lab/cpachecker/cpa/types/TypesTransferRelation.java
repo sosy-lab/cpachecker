@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDefinition;
@@ -46,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
+import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
@@ -351,7 +351,7 @@ public class TypesTransferRelation implements TransferRelation {
       if (lengthExpression != null) {
         //if the length expression is a literal, get its integer value
         if (lengthExpression instanceof IASTLiteralExpression) {
-          Integer value = parseLiteral((IASTLiteralExpression)lengthExpression);
+          Integer value = parseLiteral((IASTLiteralExpression)lengthExpression, cfaEdge);
           if (value != null) {
             length = value;
           }
@@ -403,7 +403,7 @@ public class TypesTransferRelation implements TransferRelation {
     return function;
   }
 
-  private Integer parseLiteral(IASTLiteralExpression expression) throws UnrecognizedCCodeException {
+  private Integer parseLiteral(IASTLiteralExpression expression, CFAEdge edge) throws UnrecognizedCCodeException {
     if (expression instanceof IASTIntegerLiteralExpression) {
       return ((IASTIntegerLiteralExpression)expression).getValue().intValue();
 
@@ -417,7 +417,7 @@ public class TypesTransferRelation implements TransferRelation {
       return null;
 
     } else {
-      throw new UnrecognizedCCodeException("unknown literal", expression);
+      throw new UnrecognizedCCodeException("unknown literal", edge, expression);
     }
   }
 

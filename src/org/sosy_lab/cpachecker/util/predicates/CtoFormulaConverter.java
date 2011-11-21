@@ -428,9 +428,9 @@ public class CtoFormulaConverter {
       StatementEdge statementEdge = (StatementEdge) edge;
       StatementToFormulaVisitor v;
       if (handlePointerAliasing) {
-        v = new StatementToFormulaVisitorPointers(function, ssa, constraints);
+        v = new StatementToFormulaVisitorPointers(function, ssa, constraints, edge);
       } else {
-        v = new StatementToFormulaVisitor(function, ssa, constraints);
+        v = new StatementToFormulaVisitor(function, ssa, constraints, edge);
       }
       edgeFormula = statementEdge.getStatement().accept(v);
       break;
@@ -444,7 +444,7 @@ public class CtoFormulaConverter {
 
     case DeclarationEdge: {
       DeclarationEdge d = (DeclarationEdge)edge;
-      edgeFormula = makeDeclaration(d.getDeclSpecifier(), d.isGlobal(), d, function, ssa, constraints);
+      edgeFormula = makeDeclaration(d.getDeclSpecifier(), d.isGlobal(), d, function, ssa, constraints, edge);
       break;
     }
 
@@ -510,7 +510,7 @@ public class CtoFormulaConverter {
 
   private Formula makeDeclaration(IType spec, boolean isGlobal,
       DeclarationEdge edge, String function, SSAMapBuilder ssa,
-      Constraints constraints) throws CPATransferException {
+      Constraints constraints, CFAEdge cfaEdge) throws CPATransferException {
 
     if (spec instanceof IASTFunctionTypeSpecifier) {
       return fmgr.makeTrue();
@@ -583,7 +583,7 @@ public class CtoFormulaConverter {
         if (init != null) {
           // initializer value present
 
-          Formula minit = buildTerm(init, function, ssa, constraints);
+          Formula minit = buildTerm(init, function, ssa, constraints, cfaEdge);
           Formula assignments = makeAssignment(varName, minit, ssa);
 
           if (handlePointerAliasing) {
@@ -725,8 +725,8 @@ public class CtoFormulaConverter {
   }
 
   private Formula buildTerm(IASTRightHandSide exp, String function,
-      SSAMapBuilder ssa, Constraints ax) throws UnrecognizedCCodeException {
-    return toNumericFormula(exp.accept(new RightHandSideToFormulaVisitor(function, ssa, ax)));
+      SSAMapBuilder ssa, Constraints ax, CFAEdge edge) throws UnrecognizedCCodeException {
+    return toNumericFormula(exp.accept(new RightHandSideToFormulaVisitor(function, ssa, ax, edge)));
   }
 
   private Formula buildTerm(IASTExpression exp, String function,
@@ -1444,12 +1444,14 @@ public class CtoFormulaConverter {
     protected final String        function;
     protected final SSAMapBuilder ssa;
     protected final Constraints   constraints;
+    protected final CFAEdge cfaEdge;
 
-    public RightHandSideToFormulaVisitor(String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
+    public RightHandSideToFormulaVisitor(String pFunction, SSAMapBuilder pSsa, Constraints pCo, CFAEdge edge) {
       super(getExpressionVisitor(pFunction, pSsa, pCo));
       function = pFunction;
       ssa = pSsa;
       constraints = pCo;
+      cfaEdge = edge;
     }
 
     @Override
@@ -1466,7 +1468,7 @@ public class CtoFormulaConverter {
           return makeFreshVariable(func, ssa);
 
         } else if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
-          throw new UnsupportedCCodeException(UNSUPPORTED_FUNCTIONS.get(func), fexp);
+          throw new UnsupportedCCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fexp);
 
         } else if (!PURE_EXTERNAL_FUNCTIONS.contains(func)) {
           if (pexps.isEmpty()) {
@@ -1500,8 +1502,8 @@ public class CtoFormulaConverter {
 
   private class StatementToFormulaVisitor extends RightHandSideToFormulaVisitor implements StatementVisitor<Formula, UnrecognizedCCodeException> {
 
-    public StatementToFormulaVisitor(String pFunction, SSAMapBuilder pSsa, Constraints pConstraints) {
-      super(pFunction, pSsa, pConstraints);
+    public StatementToFormulaVisitor(String pFunction, SSAMapBuilder pSsa, Constraints pConstraints, CFAEdge edge) {
+      super(pFunction, pSsa, pConstraints, edge);
     }
 
     @Override
@@ -1539,8 +1541,8 @@ public class CtoFormulaConverter {
   private class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
 
     public StatementToFormulaVisitorPointers(String pFunction,
-        SSAMapBuilder pSsa, Constraints pConstraints) {
-      super(pFunction, pSsa, pConstraints);
+        SSAMapBuilder pSsa, Constraints pConstraints, CFAEdge edge) {
+      super(pFunction, pSsa, pConstraints, edge);
     }
 
     @Override
