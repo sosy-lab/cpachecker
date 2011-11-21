@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.fshell;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -65,8 +66,12 @@ import org.sosy_lab.cpachecker.fshell.fql2.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.fshell.fql2.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.fshell.fql2.translators.ecp.IncrementalCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.fshell.interfaces.FQLCoverageAnalyser;
+import org.sosy_lab.cpachecker.fshell.testcases.CRESTToFShell3;
+import org.sosy_lab.cpachecker.fshell.testcases.FShell2ToFShell3;
 import org.sosy_lab.cpachecker.fshell.testcases.ImpreciseExecutionException;
+import org.sosy_lab.cpachecker.fshell.testcases.KLEEToFShell3;
 import org.sosy_lab.cpachecker.fshell.testcases.TestCase;
+import org.sosy_lab.cpachecker.fshell.testcases.TestSuite;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.util.ecp.SingletonECPEdgeSet;
@@ -97,6 +102,81 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
   private final GuardedEdgeLabel mAlphaLabel;
   private final GuardedEdgeLabel mOmegaLabel;
   private final GuardedEdgeLabel mInverseAlphaLabel;
+
+  private static void printUsage() {
+    System.err.println("Usage: java " + StandardFQLCoverageAnalyser.class.getCanonicalName() + " [--fshell2|--klee|--crest] <source file> <entry function> <fql specification> <test suite file>");
+  }
+
+  public static void main(String args[]) throws IOException {
+    if (args.length != 4 && args.length != 5) {
+      printUsage();
+      return;
+    }
+
+    String lSourceFileName = args[0];
+    String lEntryFunction = args[1];
+    String lFQLSpecification = args[2];
+    String lTestSuiteFileName = args[3];
+
+    if (args.length == 5) {
+      if (args[0].equals("--fshell2")) {
+        File lTmpTestSuiteFile = File.createTempFile("testsuite.", ".tst");
+        lTmpTestSuiteFile.deleteOnExit();
+
+        System.out.print("Translate FShell2 test suite to FShell3 test suite ... ");
+
+        FShell2ToFShell3.translateTestsuite(args[4], lTmpTestSuiteFile.getAbsolutePath());
+
+        System.out.println("done.");
+
+        lTestSuiteFileName = lTmpTestSuiteFile.getAbsolutePath();
+      }
+      else if (args[0].equals("--klee")) {
+        File lTmpTestsuiteFile = File.createTempFile("testsuite.", ".tst");
+        lTmpTestsuiteFile.deleteOnExit();
+
+        System.out.print("Translate KLEE test suite to FShell3 test suite ... ");
+
+        TestSuite lTestSuite = KLEEToFShell3.translateTestSuite(args[2]);
+        lTestSuite.write(lTmpTestsuiteFile);
+
+        System.out.println("done.");
+
+        lTestSuiteFileName = lTmpTestsuiteFile.getAbsolutePath();
+      }
+      else if (args[0].equals("--crest")) {
+        File lTmpTestsuiteFile = File.createTempFile("testsuite.", ".tst");
+        lTmpTestsuiteFile.deleteOnExit();
+
+        System.out.print("Translate CREST test suite to FShell3 test suite ... ");
+
+        TestSuite lTestSuite = CRESTToFShell3.translateTestSuite(args[2]);
+        lTestSuite.write(lTmpTestsuiteFile);
+
+        System.out.println("done.");
+
+        lTestSuiteFileName = lTmpTestsuiteFile.getAbsolutePath();
+      }
+      else {
+        printUsage();
+        return;
+      }
+
+      lSourceFileName = args[1];
+      lEntryFunction = args[2];
+      lFQLSpecification = args[3];
+    }
+    else {
+      lSourceFileName = args[0];
+      lEntryFunction = args[1];
+      lFQLSpecification = args[2];
+      lTestSuiteFileName = args[3];
+    }
+
+    StandardFQLCoverageAnalyser lCoverageAnalyser = new StandardFQLCoverageAnalyser(lSourceFileName, lEntryFunction);
+    Collection<TestCase> lTestSuite = TestCase.fromFile(lTestSuiteFileName);
+    lCoverageAnalyser.checkCoverage(lFQLSpecification, lTestSuite, true);
+  }
 
   public StandardFQLCoverageAnalyser(String pSourceFileName, String pEntryFunction) {
     Map<String, CFAFunctionDefinitionNode> lCFAMap;
@@ -223,9 +303,10 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
       boolean lIsCovered = false;
 
       for (TestCase lTestCase : pTestSuite) {
-        if (!lTestCase.isPrecise()) {
+        // TODO combine with pedantic flag
+        /*if (!lTestCase.isPrecise()) {
           throw new RuntimeException();
-        }
+        }*/
 
         CFAEdge[] lCFAPath = mPathCache.get(lTestCase);
 
