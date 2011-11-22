@@ -38,12 +38,11 @@ import org.sosy_lab.pcc.common.AbstractionType;
 import org.sosy_lab.pcc.common.FormulaHandler;
 
 
-public class ABE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm{
-
+public class LBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
 
   protected FormulaHandler fh;
 
-  public ABE_ARTProofGenAlgorithm(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+  public LBE_ARTProofGenAlgorithm(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
     super(pConfig, pLogger);
     fh = new FormulaHandler(pConfig, pLogger, whichProver);
   }
@@ -83,7 +82,9 @@ public class ABE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm{
           nodeRep.append(false + "#");// TODO check if it works
           nodes.add(nodeRep.toString());
         } else {
-          // build string of form ARTId#CFAId#NodeType#coveringID#
+          System.out.println("Unexpected case.");
+          return false;
+          /*// build string of form ARTId#CFAId#NodeType#coveringID#
           StringBuilder nodeRep = new StringBuilder();
           nodeRep.append(pNode.getElementId() + "#");
           nodeRep.append(pNode.retrieveLocationElement().getLocationNode().getNodeNumber() + "#");
@@ -91,7 +92,7 @@ public class ABE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm{
           ARTElement covering = getFinalCoveringElement(pNode);
           if (covering == null) { return false; }
           nodeRep.append(covering.getElementId() + "#");
-          nodes.add(nodeRep.toString());
+          nodes.add(nodeRep.toString());*/
         }
       }
     }

@@ -31,7 +31,6 @@ import java.util.Stack;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -51,25 +50,21 @@ import org.sosy_lab.pcc.common.Pair;
 import org.sosy_lab.pcc.common.Separators;
 
 
-public class ABE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
+public class LBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
 
   protected FormulaHandler handler;
   protected boolean atLoop;
   protected boolean atFunction;
-  int threshold;
 
   protected Hashtable<Integer, ARTNode> art = new Hashtable<Integer, ARTNode>();
 
-  public ABE_ARTProofCheckAlgorithm(Configuration pConfig, LogManager pLogger, String pProverType,
-      boolean pAlwaysAtFunctions, int pThreshold)
+  public LBE_ARTProofCheckAlgorithm(Configuration pConfig, LogManager pLogger, String pProverType)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
 
     handler = new FormulaHandler(pConfig, pLogger, pProverType);
     atLoop = true;
-    atFunction = pAlwaysAtFunctions;
-    threshold = pThreshold;
-    if (threshold < 0) { throw new IllegalArgumentException("Invalid threshold specification."); }
+    atFunction = true;
   }
 
   @Override
@@ -110,7 +105,9 @@ public class ABE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
           }
           newNode = new ARTNode(artId, cfaNode, pAbsType, next, false);
         } else {
-          newNode = new CoveredARTNode(artId, cfaNode, pAbsType, pScan.nextInt(), false);
+          // should not happen
+          return PCCCheckResult.InvalidART;
+          /*newNode = new CoveredARTNode(artId, cfaNode, pAbsType, pScan.nextInt(), false);*/
         }
 
         if (art.containsKey(artId)) { return PCCCheckResult.ElementAlreadyRead; }
@@ -200,21 +197,45 @@ public class ABE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
     waiting.push(new Pair<Integer, String>(root.getID(), ""));
     PCCCheckResult intermediateRes;
     Pair<Integer, String> current;
-    ARTNode node;
+    ARTNode node, child;
+    ARTEdge[] edges;
+    String stack;
     // check ART
     while (!waiting.isEmpty()) {
       current = waiting.pop();
       logger.log(Level.INFO, "Check ART node " + current.getFirst() + " .");
       node = art.get(current.getFirst());
       intermediateRes =
-          checkARTNode(node, current.getSecond(), visited, waiting);
+          checkARTNode(node, current.getSecond());
       if (intermediateRes != PCCCheckResult.Success) { return intermediateRes; }
+      // add children
+      edges = node.getEdges();
+      for (int i = 0; i < edges.length; i++) {
+        child = art.get(edges[i].getTarget());
+        if (child.getCorrespondingCFANode() instanceof FunctionDefinitionNode) {
+          stack = current.getSecond() + Separators.stackEntrySeparator
+              + node.getCorrespondingCFANode().getLeavingSummaryEdge().getSuccessor().getNodeNumber();
+        } else {
+          if (node.getCorrespondingCFANode().getEnteringSummaryEdge() != null) {
+            stack = current.getSecond().substring(0,
+                current.getSecond().lastIndexOf(Separators.stackEntrySeparator));
+          } else {
+            stack = current.getSecond();
+          }
+        }
+        if (!visited.contains(child.getID())) {
+          waiting.push(new Pair<Integer, String>(child.getID(), stack));
+          visited.put(child.getID(), stack);
+        }
+        else {
+          if (visited.get(child.getID()) == null || !visited.get(child.getID()).equals(stack)) { return PCCCheckResult.InvalidART; }
+        }
+      }
     }
     return PCCCheckResult.Success;
   }
 
-  private PCCCheckResult checkARTNode(ARTNode pNode, String pStack, Hashtable<Integer, String> pVisited,
-      Stack<Pair<Integer, String>> pWaiting) {
+  private PCCCheckResult checkARTNode(ARTNode pNode, String pStack) {
     CFANode cfaNode = pNode.getCorrespondingCFANode();
     // check ART node
     // check error node
@@ -229,8 +250,8 @@ public class ABE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
     // check stack
     if (cfaNode.getEnteringSummaryEdge() != null) {
       try {
-        if (cfaNode.getNodeNumber() != Integer.parseInt(pStack.substring(0,
-            pStack.lastIndexOf(Separators.stackEntrySeparator)))) { return PCCCheckResult.ART_CFA_Mismatch; }
+        if (cfaNode.getNodeNumber() != Integer.parseInt(pStack.substring(
+            pStack.lastIndexOf(Separators.stackEntrySeparator)),pStack.length())) { return PCCCheckResult.ART_CFA_Mismatch; }
       } catch (NumberFormatException e) {
         return PCCCheckResult.InvalidStack;
       }
@@ -239,117 +260,78 @@ public class ABE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
     if (cfaForProof.getMainFunction().getExitNode().equals(cfaNode)) {
       if (pNode.getNumberOfEdges() != 0) { return PCCCheckResult.ART_CFA_Mismatch; }
     }
-    // check covered element
+    /*// check covered element
     if (pNode instanceof CoveredARTNode) {
       if (pNode.getNumberOfEdges() != 0) { return PCCCheckResult.InvalidART; }
-    } else {
-      // check edges
-      Stack<Triple<CFANode, PathFormula, String>> toCheck = new Stack<Triple<CFANode, PathFormula, String>>();
-      Pair<Formula, SSAMap> sourceAbstraction = handler.addIndices(null, pNode.getAbstraction());
-      if (sourceAbstraction == null || sourceAbstraction.getFirst() == null || sourceAbstraction.getSecond() == null) { return PCCCheckResult.InvalidART; }
-      PathFormula pf = handler.getTrueFormula(sourceAbstraction.getSecond());
-      Formula f;
-      Formula[] leftAndOp = new Formula[2];
-      toCheck.add(new Triple<CFANode, PathFormula, String>(cfaNode, pf, pStack));
-      Triple<CFANode, PathFormula, String> current;
-      boolean[] edgeCovered = new boolean[pNode.getNumberOfEdges()];
-      ARTEdge[] edges;
-      ARTNode target;
-      int returnAddr;
-      // get allowed paths starting at this ARTNode to next abstraction, covered node
-      while (!toCheck.empty()) {
-        current = toCheck.pop();
-        cfaNode = current.getFirst();
-        // check all children
-        for (int i = 0; i < cfaNode.getNumLeavingEdges(); i++) {
-          pStack = current.getThird();
-          // only one possible function return address
-          if (cfaNode.getEnteringSummaryEdge() != null) {
-            try {
-              returnAddr =
-                  Integer
-                      .parseInt(pStack.substring(pStack.lastIndexOf(Separators.stackEntrySeparator), pStack.length()));
-            } catch (NumberFormatException e) {
-              return PCCCheckResult.InvalidStack;
-            }
-            if (returnAddr != cfaNode.getLeavingEdge(i).getSuccessor().getNodeNumber()) {
-              continue;
-            } else {
-              pStack = pStack.substring(0, pStack.lastIndexOf(Separators.stackEntrySeparator));
-            }
+    } else {*/
+    // check edges
+    Stack<Pair<CFANode, PathFormula>> toCheck = new Stack<Pair<CFANode, PathFormula>>();
+    Pair<Formula, SSAMap> sourceAbstraction = handler.addIndices(null, pNode.getAbstraction());
+    if (sourceAbstraction == null || sourceAbstraction.getFirst() == null || sourceAbstraction.getSecond() == null) { return PCCCheckResult.InvalidART; }
+    PathFormula pf = handler.getTrueFormula(sourceAbstraction.getSecond());
+    Formula f;
+    Formula[] leftAndOp = new Formula[2];
+    toCheck.add(new Pair<CFANode, PathFormula>(cfaNode, pf));
+    Pair<CFANode, PathFormula> current;
+    boolean[] edgeCovered = new boolean[pNode.getNumberOfEdges()];
+    ARTEdge[] edges;
+    ARTNode target;
+    // get allowed paths starting at this ARTNode to next abstraction node
+    while (!toCheck.empty()) {
+      current = toCheck.pop();
+      cfaNode = current.getFirst();
+      // check all children
+      for (int i = 0; i < cfaNode.getNumLeavingEdges(); i++) {
+        // get path formula
+        pf = handler.extendPath(current.getSecond(), cfaNode.getLeavingEdge(i));
+        if (pf == null || pf.getFormula() == null) { return PCCCheckResult.InvalidART; }
+        // check if path ends in abstraction ART node
+        if (isAbstraction(cfaNode.getLeavingEdge(i).getSuccessor())) {
+          // check if ART node is available
+          if (!hasAbstractionEdgeTo(cfaNode.getLeavingEdge(i).getSuccessor(), pNode.getEdges())) { return PCCCheckResult.UncoveredEdge; }
+          // check if edge is feasible
+          if (!checkARTEdgePath(sourceAbstraction.getFirst(), pf, cfaNode.getLeavingEdge(i), pNode.getEdges(),
+              edgeCovered)) { return PCCCheckResult.UncoveredEdge; }
+        } else {
+          // check if path formula combined with invariant is false -> stop, path not reachable
+          leftAndOp[0] = sourceAbstraction.getFirst();
+          leftAndOp[1] = pf.getFormula();
+          f = handler.buildConjunction(leftAndOp);
+          if (f == null) {
+            return PCCCheckResult.InvalidFormulaSpecificationInProof;
           }
-          // get path formula
-          pf = handler.extendPath(current.getSecond(), cfaNode.getLeavingEdge(i));
-          if (pf == null || pf.getFormula() == null) { return PCCCheckResult.InvalidART; }
-          // adapt stack at function start
-          if (cfaNode.getLeavingEdge(i).getSuccessor() instanceof FunctionDefinitionNode) {
-            pStack =
-                pStack + Separators.stackEntrySeparator
-                    + cfaNode.getLeavingEdge(i).getSuccessor().getLeavingSummaryEdge().getSuccessor().getNodeNumber();
-          }
-          // check if path ends in abstraction ART node
-          if (isAbstraction(cfaNode.getLeavingEdge(i).getSuccessor(), pf.getLength())) {
-            // check if ART node is available
-            if (!hasAbstractionEdgeTo(cfaNode.getLeavingEdge(i).getSuccessor(), pNode.getEdges())) { return PCCCheckResult.UncoveredEdge; }
-            // check if edge is feasible TODO consider call stack
-            if (!checkARTEdgePath(sourceAbstraction.getFirst(), pf, cfaNode.getLeavingEdge(i), pNode.getEdges(),
-                edgeCovered)) { return PCCCheckResult.UncoveredEdge; }
+          if (handler.isFalse(f)) {
+            // check if it covers abstraction target node which has abstraction false
+            edges = pNode.getEdges();
+            for (int j = 0; j < edges.length; j++) {
+              target = art.get(edges[j].getTarget());
+              if (target != null && target.getCorrespondingCFANode().equals(cfaNode.getLeavingEdge(i).getSuccessor())
+                  && handler.isFalse(target.getAbstraction())) {
+                edgeCovered[j] = true;
+              }
+            }
           } else {
-            // check if it ends in a covered ART node TODO consider callstack
-            if (hasCoveringEdgeTo(cfaNode.getLeavingEdge(i).getSuccessor(), pNode.getEdges())) {
-              // every non-abstraction path must fulfill covered criteria
-              if (!checkCoveredARTEdgePath(sourceAbstraction.getFirst(), pf, cfaNode.getLeavingEdge(i),
-                  pNode.getEdges(), edgeCovered)) { return PCCCheckResult.InvalidART; }
-            } else {
-              // check if it ends in an abstraction ART node, not relevant if at end of if-then-else construct (cannot be loop)
-              // TODO consider call stack
-              if ((cfaNode.getLeavingEdge(i).getSuccessor().getNumEnteringEdges() == 1
-              && hasAbstractionEdgeTo(cfaNode.getLeavingEdge(i).getSuccessor(), pNode.getEdges()))) {
-                // check if path feasible to that abstraction node
-                if (!checkARTEdgePath(sourceAbstraction.getFirst(), pf, cfaNode.getLeavingEdge(i), pNode.getEdges())) { return PCCCheckResult.InvalidART; }
-              }
-              else {
-                // check if path formula combined with invariant is false -> stop, path not reachable
-                leftAndOp[0] = sourceAbstraction.getFirst();
-                leftAndOp[1] = pf.getFormula();
-                f = handler.buildConjunction(leftAndOp);
-                if (f == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
-                if (handler.isFalse(f)) {
-                  // check if it covers abstraction target node which has abstraction false
-                  edges = pNode.getEdges();
-                  for (int j = 0; j < edges.length; j++) {
-                    target = art.get(edges[j].getTarget());
-                    if (target != null
-                        && target.getCorrespondingCFANode().equals(cfaNode.getLeavingEdge(i).getSuccessor())
-                        && handler.isFalse(target.getAbstraction())) {
-                      edgeCovered[j] = true;
-                    }
-                  }
-                } else {
-                  toCheck.add(new Triple<CFANode, PathFormula, String>(cfaNode.getLeavingEdge(i).getSuccessor(), pf, pStack));
-                }
-              }
-            }
+            toCheck.add(new Pair<CFANode, PathFormula>(cfaNode.getLeavingEdge(i).getSuccessor(), pf));
           }
         }
       }
-      // check if every successor is covered -> correct abstraction
-      for (int i = 0; i < edgeCovered.length; i++) {
-        if (!edgeCovered[i]) { return PCCCheckResult.UncoveredEdge; }
-      }
-      //TODO add all children not visited yet
     }
+    // check if every successor is covered -> correct abstraction
+    for (int i = 0; i < edgeCovered.length; i++) {
+      if (!edgeCovered[i]) { return PCCCheckResult.UncoveredEdge; }
+    }
+    //}
     return PCCCheckResult.Success;
   }
 
-  private boolean isAbstraction(CFANode pCFANode, int pPathLength) {
+  private boolean isAbstraction(CFANode pCFANode) {
     if (pCFANode instanceof CFALabelNode) {
       // check if error node
       if (((CFALabelNode) pCFANode).getLabel().toLowerCase().equals("error")) { return true; }
     }
     if (pCFANode instanceof FunctionDefinitionNode
         || pCFANode.getEnteringSummaryEdge() != null
-        || (pCFANode.isLoopStart() && atLoop) || pPathLength == threshold) { return true; }
+        || (pCFANode.isLoopStart())) { return true; }
     return false;
   }
 
@@ -362,7 +344,7 @@ public class ABE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
     boolean success = false;
     for (int i = 0; i < pEdges.length; i++) {
       target = art.get(pEdges[i].getTarget());
-      if (target == null || target instanceof CoveredARTNode) { return false; }
+      if (target == null) { return false; }
       if (target.getCorrespondingCFANode().equals(pCfaEdge.getSuccessor())) {
         // check feasible abstraction
         rightAbstraction = handler.createFormula(target.getAbstraction());
@@ -377,57 +359,6 @@ public class ABE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
     }
     return success;
   }
-
-  private boolean checkARTEdgePath(Formula pSourceAbstraction, PathFormula pPath, CFAEdge pCfaEdge,
-      ARTEdge[] pEdges) {
-    if (pPath == null || pPath.getFormula() == null
-        || pSourceAbstraction == null || pCfaEdge == null) { return false; }
-    ARTNode target;
-    Formula rightAbstraction;
-    boolean success = false;
-    for (int i = 0; i < pEdges.length; i++) {
-      target = art.get(pEdges[i].getTarget());
-      if (target == null || target instanceof CoveredARTNode) { return false; }
-      if (target.getCorrespondingCFANode().equals(pCfaEdge.getSuccessor())) {
-        // check feasible abstraction
-        rightAbstraction = handler.createFormula(target.getAbstraction());
-        if (rightAbstraction == null) { return false; }
-        rightAbstraction = handler.buildEdgeInvariant(pSourceAbstraction, pPath.getFormula(), rightAbstraction);
-        if (rightAbstraction == null) { return false; }
-        if (handler.isFalse(rightAbstraction)) {
-          success = true;
-        }
-      }
-    }
-    return success;
-  }
-
-  private boolean checkCoveredARTEdgePath(Formula pSourceAbstraction, PathFormula pPath, CFAEdge pEdge,
-      ARTEdge[] pEdges, boolean[] pEdgeCovered) {
-    if (pEdges.length != pEdgeCovered.length || pPath == null || pPath.getFormula() == null
-        || pSourceAbstraction == null || pEdge == null) { return false; }
-    ARTNode target;
-    Formula rightAbstraction;
-    boolean success = false;
-    for (int i = 0; i < pEdges.length; i++) {
-      target = art.get(pEdges[i].getTarget());
-      if (target == null || !(target instanceof CoveredARTNode)) { return false; }
-      if (target.getCorrespondingCFANode().equals(pEdge.getSuccessor())) {
-        // check feasible coverage
-        // TODO also check stack
-        rightAbstraction = handler.createFormula(target.getAbstraction());
-        if (rightAbstraction == null) { return false; }
-        rightAbstraction = handler.buildEdgeInvariant(pSourceAbstraction, pPath.getFormula(), rightAbstraction);
-        if (rightAbstraction == null) { return false; }
-        if (handler.isFalse(rightAbstraction)) {
-          pEdgeCovered[i] = true;
-          success = true;
-        }
-      }
-    }
-    return success;
-  }
-
 
   private boolean hasAbstractionEdgeTo(CFANode pTarget, ARTEdge[] pEdges) {
     if (pEdges == null || pTarget == null) { return false; }
@@ -435,17 +366,6 @@ public class ABE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
     for (int i = 0; i < pEdges.length; i++) {
       artTarget = pEdges[i].getTarget();
       if (!(art.get(artTarget) instanceof CoveredARTNode)
-          && art.get(artTarget).getCorrespondingCFANode().equals(pTarget)) { return true; }
-    }
-    return false;
-  }
-
-  private boolean hasCoveringEdgeTo(CFANode pTarget, ARTEdge[] pEdges) {
-    if (pEdges == null || pTarget == null) { return false; }
-    int artTarget;
-    for (int i = 0; i < pEdges.length; i++) {
-      artTarget = pEdges[i].getTarget();
-      if ((art.get(artTarget) instanceof CoveredARTNode)
           && art.get(artTarget).getCorrespondingCFANode().equals(pTarget)) { return true; }
     }
     return false;

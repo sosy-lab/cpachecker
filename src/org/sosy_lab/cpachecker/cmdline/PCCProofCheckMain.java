@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -42,6 +43,7 @@ import org.sosy_lab.pcc.proof_check.ProofCheckAlgorithm;
 import org.sosy_lab.pcc.proof_check.SBEWithIndices_ARTProofCheckAlgorithm;
 import org.sosy_lab.pcc.proof_check.SBEWithIndices_InvariantProofCheckAlgorithm;
 import org.sosy_lab.pcc.proof_check.SBEWithoutIndices2_InvariantProofCheckAlgorithm;
+import org.sosy_lab.pcc.proof_check.SBEWithoutIndices2a_InvariantProofCheckAlgorithm;
 import org.sosy_lab.pcc.proof_check.SBEWithoutIndices_ARTProofCheckAlgorithm;
 import org.sosy_lab.pcc.proof_check.SBEWithoutIndices_InvariantProofCheckAlgorithm;
 
@@ -134,6 +136,16 @@ public class PCCProofCheckMain {
       }
       break;
       }
+      case SBENOEDGENOINDINVARIANT2:{
+        if (alwaysAfterThreshold && threshold == 1 && switchToLBEAfter == 0
+          && cartesianAbstraction) {
+        algorithm =
+            new SBEWithoutIndices2a_InvariantProofCheckAlgorithm(pConfig, pLogger,whichProver,
+                alwaysAtLoops, alwaysAtFunctions);
+      }
+      break;
+      }
+      // TODO add LBE, ABE algorithms
       default: {
       }
       }
@@ -170,20 +182,29 @@ public class PCCProofCheckMain {
     CFA cfa = null;
     try {
       logger.log(Level.INFO, "Start PCC proof checking.");
+      Timer time = new Timer();
+      time.start();
       PCCProofChecker prover = new PCCProofChecker(config);
+      time.stop();
+      System.out.println("Configuration set up needed " + time.printMaxTime());
       // create CFA
       logger.log(Level.INFO, "Started CFA construction.");
+      time.start();
       CFACreator cfaCreator = new CFACreator(config, logger);
       cfa =
           cfaCreator.parseFileAndCreateCFA(CPAMain.getCodeFilePath(config,
               logger));
+      System.out.println("Reading CFA lasted " + Timer.formatTime(time.stop()));
       logger.log(Level.INFO, "CFA construction finished.");
       // get algorithm for checking
+      time.start();
       ProofCheckAlgorithm algorithm = prover.getCheckAlgorithm(config, logger);
-
+      System.out.println("Getting correct algorithm lasted " + Timer.formatTime(time.stop()));
       //start check
       logger.log(Level.INFO,"Started proof validation.");
+      time.start();
       PCCCheckResult result = algorithm.checkProvidedProof(cfa, prover.file);
+      System.out.println("Reading and checking proof lasted " + Timer.formatTime(time.stop()));
       logger.log(Level.INFO,"Finished proof validation.");
 
       if (result == PCCCheckResult.Success) {

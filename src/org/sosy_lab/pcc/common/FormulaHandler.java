@@ -136,7 +136,8 @@ public class FormulaHandler {
     return result;
   }
 
-  @SuppressWarnings("deprecation")// do not call since uninstantiate is buggy
+  @SuppressWarnings("deprecation")
+  // do not call since uninstantiate is buggy
   public Formula removeIndices(Formula pFormula) {
     try {
 
@@ -147,7 +148,7 @@ public class FormulaHandler {
   }
 
   public String removeIndicesStr(Formula pFormula) {
-    if(pFormula == null){return null;}
+    if (pFormula == null) { return null; }
     String pInput = pFormula.toString();
     StringBuilder newStr = new StringBuilder();
     Pattern pat = Pattern.compile("[\\W&&[^@]]([_A-Za-z](\\w)*::)?([_A-Za-z](\\w)*@(\\d)+)[\\W&&[^@]]");
@@ -273,6 +274,32 @@ public class FormulaHandler {
     } catch (IllegalArgumentException e) {
       return null;
     }
+  }
+
+  public PathFormula getTrueFormula(SSAMap pSSA) {
+    if (pSSA == null) {
+      return pfm.makeEmptyPathFormula();
+    } else {
+      return pfm.makeNewPathFormula(pfm.makeEmptyPathFormula(), pSSA);
+    }
+  }
+
+  public PathFormula extendPath(PathFormula pPath, CFAEdge pEdge) {
+    try {
+      return pfm.makeAnd(pPath, pEdge);
+    } catch (CPATransferException e) {
+      logger.log(Level.SEVERE,
+          "Cannot create formula representing edge operation.",
+          e.getStackTrace());
+      return null;
+    } catch (IllegalArgumentException e1) {
+      return null;
+    }
+  }
+
+  public PathFormula getEdgeOperationFormula(SSAMap pSSA, CFAEdge[] edges){
+    // TODO
+    return null;
   }
 
   public PathFormula getEdgeOperationFormula(SSAMap pSSA, CFAEdge pEdge) {

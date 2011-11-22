@@ -24,7 +24,6 @@
 package org.sosy_lab.pcc.proof_check;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.InputMismatchException;
 import java.util.NoSuchElementException;
@@ -144,10 +143,10 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
 
   @Override
   protected PCCCheckResult checkProof() {
-    HashSet<Integer> visited = new HashSet<Integer>();
+    Hashtable<Integer,String> visited = new Hashtable<Integer,String>();
     Stack<Pair<Integer, String>> waiting = new Stack<Pair<Integer, String>>();
     //add root
-    visited.add(root.getID());
+    visited.put(root.getID(),"");
     waiting.push(new Pair<Integer, String>(root.getID(), ""));
     PCCCheckResult intermediateRes;
     Pair<Integer, String> current;
@@ -164,7 +163,7 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
   }
 
   private PCCCheckResult checkARTNode(ARTNode pNode, String pCallReturnStack,
-      HashSet<Integer> pVisited, Stack<Pair<Integer, String>> pWaiting) {
+      Hashtable<Integer,String> pVisited, Stack<Pair<Integer, String>> pWaiting) {
     CFANode cfaNode = pNode.getCorrespondingCFANode();
     String abstraction = pNode.getAbstraction();
 
@@ -241,11 +240,14 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
             }
             if (result != PCCCheckResult.Success) { return result; }
           }
-          addTargetNode(
+          result = addTargetNode(
               target,
               pCallReturnStack.substring(0,
                   pCallReturnStack.lastIndexOf(Separators.stackEntrySeparator)),
               pVisited, pWaiting);
+          if(result !=PCCCheckResult.Success){
+            return result;
+          }
         }
       } else {
 
@@ -274,13 +276,16 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
           }
           //add target ART element if not checked yet
           if (edges[i].getCorrespondingCFAEdge().getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-            addTargetNode(edges[i].getTarget(), pCallReturnStack
+            intermediateRes = addTargetNode(edges[i].getTarget(), pCallReturnStack
                 + Separators.stackEntrySeparator
                 + cfaNode.getLeavingSummaryEdge().getSuccessor()
                     .getNodeNumber(), pVisited, pWaiting);
           } else {
-            addTargetNode(edges[i].getTarget(), pCallReturnStack, pVisited,
+            intermediateRes = addTargetNode(edges[i].getTarget(), pCallReturnStack, pVisited,
                 pWaiting);
+          }
+          if(intermediateRes!=PCCCheckResult.Success){
+            return intermediateRes;
           }
         }
       }
@@ -288,12 +293,17 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
     return PCCCheckResult.Success;
   }
 
-  private void addTargetNode(int pTarget, String pCallReturnStack,
-      HashSet<Integer> pVisited, Stack<Pair<Integer, String>> pWaiting) {
+  private PCCCheckResult addTargetNode(int pTarget, String pCallReturnStack,
+      Hashtable<Integer,String> pVisited, Stack<Pair<Integer, String>> pWaiting) {
     if (!pVisited.contains(pTarget)) {
-      pVisited.add(pTarget);
+      pVisited.put(pTarget, pCallReturnStack);
       pWaiting.push(new Pair<Integer, String>(pTarget, pCallReturnStack));
+    }else{
+      if(pVisited.get(pTarget)==null || !pVisited.get(pTarget).equals(pCallReturnStack)){
+        return PCCCheckResult.InvalidART;
+      }
     }
+    return PCCCheckResult.Success;
   }
 
   private boolean containsCFAEdges(ARTSBEEdge[] pEdges, CFANode pCFA) {

@@ -26,6 +26,7 @@ package org.sosy_lab.pcc.proof_gen;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -141,10 +142,34 @@ public class ProofGenerator {
         }
         break;
       }
-      case ABENOINDART: {
+      case SBENOEDGENOINDINVARIANT2: {
+        if (alwaysAfterThreshold && switchToLBEAfter == 0 && threshold == 1
+            && cartesianAbstraction) {
+          algorithm = new SBEWithoutIndices2_InvariantProofGenAlgorithm(pConfig, pLogger);
+        } else {
+          logger
+              .log(Level.WARNING,
+                  "Predicate Abstraction configuration does not fit to PCC algorithm.");
+          algorithm = null;
+        }
+        break;
+      }
+      case LBENOINDART: {
+        if (alwaysAfterThreshold && threshold == 0 && alwaysAtLoops && alwaysAtFunctions && !cartesianAbstraction) {
+          algorithm = new LBE_ARTProofGenAlgorithm(pConfig, pLogger);
+        } else {
+          logger
+              .log(Level.WARNING,
+                  "Predicate Abstraction configuration does not fit to PCC algorithm.");
+          algorithm = null;
+        }
+        break;
+      }
+      case ABENOINDART: { // TODO check always at loops, at functions not necessary
         if (alwaysAfterThreshold && switchToLBEAfter == 0 && ((threshold == 1
             && cartesianAbstraction) || (threshold != 1 && alwaysAtFunctions && !cartesianAbstraction))) {
-          algorithm = new ABE_ARTProofGenAlgorithm(pConfig, pLogger);
+          // TODO algorithm = new ABE_ARTProofGenAlgorithm(pConfig, pLogger);
+          algorithm = null;
         } else {
           logger
               .log(Level.WARNING,
@@ -186,9 +211,13 @@ public class ProofGenerator {
     }
     // saves the proof in specified file
     logger.log(Level.INFO, "PCC Proof Generation started.");
+    Timer writingTimer = new Timer();
+    writingTimer.start();
     boolean success =
         algorithm.writeProof((ARTElement) pResult.getReached()
             .getFirstElement());
+    writingTimer.stop();
+    System.out.println("Writing proof lasted " + writingTimer.printMaxTime());
     if (success) {
       logger.log(Level.INFO, "PCC Proof Generation finished.");
     } else {
