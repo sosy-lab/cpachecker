@@ -30,7 +30,7 @@ gcc -g $JNI_HEADERS -I$MSAT_SRC_DIR org_sosy_1lab_cpachecker_util_predicates_mat
 # This will link together the file produced above, the Mathsat library, the GMP library and the standard libraries.
 # Everything except the standard libraries is included statically.
 # The result is a shared library.
-gcc -Wall -g -o libmathsatj.so -shared -Wl,-soname,libmathsatj.so -L$MSAT_LIB_DIR -L$GMP_LIB_DIR org_sosy_1lab_cpachecker_util_predicates_mathsat_NativeApi.o -lc -lstdc++ -Wl,-Bstatic -lmathsat -lgmpxx -lgmp -Wl,-Bdynamic
+gcc -Wall -g -o libmathsatj.so -shared -Wl,-soname,libmathsatj.so -L$MSAT_LIB_DIR -L$GMP_LIB_DIR org_sosy_1lab_cpachecker_util_predicates_mathsat_NativeApi.o -Wl,-Bstatic -lmathsat -lgmpxx -lgmp -Wl,-Bdynamic -lc -lm -lstdc++
 
 if [ $? -eq 0 ]; then
 	strip libmathsatj.so
