@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE ivysettings> <!-- generic AcceptAllDTD to make the Eclipse Warning go away -->
 <ivysettings>
-    <property name="repo.url" value="http://www.sosy-lab.org/ivy"/>
     <settings defaultResolver="Sosy-Lab"/>
     <resolvers>
-        <url name="Sosy-Lab">
-            <ivy pattern="${repo.url}/[organisation]/[module]/ivy-[revision].xml" />
-            <artifact pattern="${repo.url}/[organisation]/[module]/[artifact]-[revision](-[classifier]).[ext]" />
+        <url name="Sosy-Lab" descriptor="required">
+            <ivy pattern="${ivy.repo.url}/[organisation]/[module]/ivy-[revision].xml" />
+            <artifact pattern="${ivy.repo.url}/[organisation]/[module]/[artifact]-[revision](-[classifier]).[ext]" />
         </url>
     </resolvers>
 </ivysettings>
