@@ -10,15 +10,15 @@ with the Eclipse PDE wizard!
   The generated code is not under GPL,
   and we do not use JFlex during runtime.
 
-- ivy/test/junit.jar: JUnit
+- ivy/build/ivy.jar: Apache Ivy
+  http://ant.apache.org/ivy/
+  Apache License 2.0: ../License_Apache-2.0.txt
+  Used for managing dependencies to external libraries.
+
+- ivy/build/ant-junit.jar, ivy/test/junit.jar: JUnit
   http://junit.sourceforge.net/
   Common Public License 1.0: http://junit.sourceforge.net/cpl-v10.html
-  Used for unit tests.
-
-- ivy/test/org.hamcrest.*: Hamcrest
-  http://code.google.com/p/hamcrest/
-  BSD license
-  Needed by JUnit
+  Used for unit tests and for executing them from ant.
 
 - cbmc: CBMC
   http://www.cprover.org/cbmc/
@@ -40,7 +40,7 @@ with the Eclipse PDE wizard!
   ICU License: license-icu4j.html
   Needed by Eclipse CDT parser for error messages.
 
-- eclipse/org.eclipse.*: Eclipse and Eclipse CDT
+- ivy/runtime/org.eclipse.*: Eclipse and Eclipse CDT
   http://www.eclipse.org/ and http://www.eclipse.org/cdt/
   Eclipse Public License 1.0: http://www.eclipse.org/org/documents/epl-v10.php
   Used for parsing C code.
@@ -50,17 +50,17 @@ with the Eclipse PDE wizard!
   Apache License 2.0: ../License_Apache-2.0.txt
   Contains a lot of helpful data structures.
 
-- javabdd-*.jar: JavaBDD
+- ivy/runtime/javabdd-*.jar: JavaBDD
   http://javabdd.sourceforge.net/
   GNU LGPL: LGPL.txt
   Java BDD library for predicate abstraction (uses CUDD).
 
-- java-cup-*.jar: CUP LALR Parser Generator for Java
+- ivy/build/java-cup.jar, ivy/runtime/java-cup-runtime.jar: CUP LALR Parser Generator for Java
   http://www2.cs.tum.edu/projects/cup/
   CUP Parser Generator License: license-cup.txt
   Used for generating automaton and FQL parsers.
 
-- jgrapht-*.jar: JGraphT
+- ivy/runtime/jgrapht-jdk1.6.jar: JGraphT
   http://www.jgrapht.org/
   GNU LGPL: LGPL.txt
   Used by FShell for graphs.

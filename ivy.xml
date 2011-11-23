@@ -11,6 +11,8 @@
     <dependencies>
         <dependency org="com.google.guava" name="guava" rev="10.0" conf="runtime->default; contrib->sources"/>
         <dependency org="com.googlecode.json-simple" name="json-simple" rev="1.1" conf="runtime->default; contrib->sources"/>
+        <dependency org="net.sf.javabdd" name="javabdd" rev="1.0b2" conf="runtime->default"/>
+        <dependency org="org.jgrapht" name="jgrapht-jdk1.6" rev="0.8.2" conf="runtime->default"/>
         
         <dependency org="com.ibm.icu" name="icu4j" rev="4.8.1.1" conf="runtime->default"/>
         
@@ -22,10 +24,12 @@
         
         <!-- JFlex Scanner generator -->
         <dependency org="de.jflex" name="jflex" rev="1.4.3" conf="build->default"/>
+        <dependency org="edu.tum.cs" name="java-cup" rev="11a" conf="build->build; runtime->runtime"/>
         
         <!-- The JUnit task for Ant so that we can run the tests.
              The property used here is defined in build.xml according to the current Ant version. -->
         <dependency org="org.apache.ant" name="ant-junit" rev="${ant.version.exact}" transitive="false" conf="build->default"/>
         
+        <dependency org="org.eclipse.cdt" name="core" rev="5.3.1.201109151620" conf="runtime->default; contrib->sources"/>
     </dependencies>
 </ivy-module>

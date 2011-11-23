@@ -4,14 +4,14 @@ Bundle-Name: CPAchecker runtime
 Bundle-SymbolicName: org.sosy_lab.cpachecker.runtime;singleton:=true
 Bundle-Version: 1.0.1.qualifier
 Bundle-ClassPath: bin/,
- lib/java-cup-11a.jar,
- lib/javabdd-1.0b2.jar,
- lib/jgrapht-jdk1.6.jar,
+ lib/ivy/runtime/java-cup-runtime.jar,
+ lib/ivy/runtime/javabdd.jar,
+ lib/ivy/runtime/jgrapht-jdk1.6.jar,
+ lib/ivy/runtime/json-simple.jar,
+ lib/ivy/runtime/guava.jar,
  lib/yicesapijava.jar,
- .,
- lib/lib/ivy/runtime/json-simple.jar,
- lib/lib/ivy/runtime/guava.jar,
- lib/eclipse-cdt6-parser.jar
+ lib/eclipse-cdt6-parser.jar,
+ .
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Export-Package: com.google.common.io,
  org.sosy_lab.common,
