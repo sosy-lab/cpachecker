@@ -9,11 +9,11 @@
 	
   <taskdef name="jflex"
            classname="JFlex.anttask.JFlexTask"
-           classpath="${lib}/ivy/build/jflex.jar"
+           classpath="${lib}/java/build/jflex.jar"
   />
   <taskdef name="cup"
            classname="java_cup.anttask.CUPTask"
-           classpath="${lib}/ivy/build/java-cup.jar"
+           classpath="${lib}/java/build/java-cup.jar"
   />
 
   <target name="echos">
