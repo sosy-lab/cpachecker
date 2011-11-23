@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.explicit;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisElement;
 
 public class ExplicitDomain implements AbstractDomain
 {
@@ -38,6 +37,6 @@ public class ExplicitDomain implements AbstractDomain
   @Override
   public AbstractElement join(AbstractElement currentElement, AbstractElement reachedElement)
   {
-    return ((IntervalAnalysisElement)currentElement).join((IntervalAnalysisElement)reachedElement);
+    return ((ExplicitElement)currentElement).join((ExplicitElement)reachedElement);
   }
 }
