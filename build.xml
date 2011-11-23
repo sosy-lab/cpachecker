@@ -5,13 +5,12 @@
     <property name="target" value="1.6"/>
     <property name="source" value="1.6"/>
     <antversion property="ant.version.exact"/> <!-- Define property that contains the Ant version. -->
+    <property name="ivy.lib.dir" value="${basedir}/lib/ivy"/>
 	
     <path id="CPAchecker.classpath">
         <pathelement location="bin"/>
-        <fileset dir="lib" includes="eclipse/*.jar"/>
-        <fileset dir="lib" includes="ivy/runtime/*.jar"/>
-        <fileset dir="lib" includes="ivy/test/*.jar"/>
         <fileset dir="lib" includes="*.jar"/>
+	<fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar"/>
     </path>
     <condition property="architecture" value="x86_64" else="x86">
         <os arch="amd64"/>
@@ -37,7 +36,6 @@
 	
     <property name="ivy.version" value="2.2.0"/> <!-- Change version number here to use a newer version of Ivy. -->
     <property name="ivy.repo.url" value="http://www.sosy-lab.org/ivy"/>
-    <property name="ivy.lib.dir" value="${basedir}/lib/ivy"/>
     <property name="ivy.jar.dir" value="${ivy.lib.dir}/build"/>
     <property name="ivy.jar.file" value="ivy.jar"/>
     <available file="${ivy.jar.dir}/${ivy.jar.file}" property="ivy.jar.present"/>
