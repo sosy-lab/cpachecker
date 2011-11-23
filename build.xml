@@ -35,7 +35,7 @@
     </target>
     <target depends="clean" name="cleanall"/>
 	
-    <property name="ivy.version" value="2.2.0"/> <!-- Change version number here to use a newer version of Ivy for bootstrapping -->
+    <property name="ivy.version" value="2.2.0"/> <!-- Change version number here to use a newer version of Ivy. -->
     <property name="ivy.lib.dir" value="${basedir}/lib/ivy"/>
     <property name="ivy.jar.dir" value="${ivy.lib.dir}/build"/>
     <property name="ivy.jar.file" value="ivy.jar"/>
