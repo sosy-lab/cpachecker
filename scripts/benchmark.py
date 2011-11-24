@@ -306,7 +306,7 @@ class OutputHandler:
         memlimit = None
         timelimit = None
         if (resource.RLIMIT_AS in self.benchmark.rlimits):
-            memlimit = str(self.benchmark.rlimits[resource.RLIMIT_AS][0] / 1024 / 1024) + " MB"
+            memlimit = str(self.benchmark.rlimits[resource.RLIMIT_AS][0] // 1024 // 1024) + " MB"
         if (resource.RLIMIT_CPU in self.benchmark.rlimits):
             timelimit = str(self.benchmark.rlimits[resource.RLIMIT_CPU][0]) + " s"
 
@@ -490,7 +490,7 @@ class OutputHandler:
                               stdout=subprocess.PIPE,
                               stderr=subprocess.STDOUT).communicate()[0][6:9]
 
-        return version
+        return decodeToString(version)
 
 
     def getSystemInfo(self):
@@ -526,7 +526,7 @@ class OutputHandler:
             frequencyInfoFile = open(freqInfoFilename, "r")
             maxFrequency = frequencyInfoFile.read().strip('\n')
             frequencyInfoFile.close()
-            maxFrequency = str(int(maxFrequency) / 1000) + ' MHz'
+            maxFrequency = str(int(maxFrequency) // 1000) + ' MHz'
 
         # get info about memory
         memInfo = dict()
@@ -614,7 +614,7 @@ class OutputHandler:
         '''
 
         copyElem = ET.Element(elem.tag, elem.attrib)
-        for child in elem.getchildren():
+        for child in elem:
             copyElem.append(child)
         return copyElem
 
@@ -878,7 +878,7 @@ class Statistics:
 
 
     def printToTerminal(self):
-        print '\n'.join(['\nStatistics:' + str(self.dic["counter"]).rjust(13) + ' Files',
+        print ('\n'.join(['\nStatistics:' + str(self.dic["counter"]).rjust(13) + ' Files',
                  '    correct:        ' + str(self.dic["correctSafe"] + \
                                               self.dic["correctUnsafe"]).rjust(4),
                  '    unknown:        ' + str(self.dic["unknown"]).rjust(4),
@@ -886,7 +886,7 @@ class Statistics:
                  '        (file is safe, result is unsafe)',
                  '    false negatives:' + str(self.dic["wrongSafe"]).rjust(4) + \
                  '        (file is unsafe, result is safe)',
-                 ''])
+                 '']))
 
 
 def getOptions(optionsTag):
@@ -941,6 +941,17 @@ def XMLtoString(elem):
         rough_string = ET.tostring(elem, 'utf-8')
         reparsed = minidom.parseString(rough_string)
         return reparsed.toprettyxml(indent="  ")
+
+
+def decodeToString(toDecode):
+    """
+    This function is needed for Python 3,
+    because a subprocess can return bytes instead of a string.
+    """
+    try: 
+        return toDecode.decode('utf-8')
+    except AttributeError: # bytesToDecode was of type string before
+        return toDecode
 
 
 class FileWriter:
@@ -1022,7 +1033,8 @@ def run(args, rlimits):
         timer = Timer(timelimit + 10, killSubprocess, [p])
         timer.start()
 
-    output = p.stdout.read()
+    output = p.communicate()[0]
+    output = decodeToString(output)
     returncode = p.wait()
 
     if (0 in rlimits) and timer.isAlive():
