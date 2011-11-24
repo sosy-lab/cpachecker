@@ -75,10 +75,11 @@ class Benchmark:
         logging.debug("The tool to be benchmarked is {0}.".format(repr(self.tool)))
 
         self.rlimits = {}
-        if ("memlimit" in root.keys()):
+        keys = list(root.keys())
+        if ("memlimit" in keys):
             limit = int(root.get("memlimit")) * 1024 * 1024
             self.rlimits[resource.RLIMIT_AS] = (limit, limit)
-        if ("timelimit" in root.keys()):
+        if ("timelimit" in keys):
             limit = int(root.get("timelimit"))
             self.rlimits[resource.RLIMIT_CPU] = (limit, limit)
 
@@ -212,7 +213,7 @@ def isComment(line):
 
 
 def removeAll(list, elemToRemove):
-    return filter(lambda elem: elem != elemToRemove, list)
+    return [elem for elem in list if elem != elemToRemove]
 
 
 def getFileList(shortFile, root=""):
@@ -426,8 +427,7 @@ class OutputHandler:
             # parse output and get revision
             svnInfoList = [line for line in output.strip('\n').split('\n')
                            if ': ' in line]
-            svnInfo = dict(map(lambda str: tuple(str.split(': ')),
-                               svnInfoList))
+            svnInfo = dict(tuple(str.split(': ')) for str in svnInfoList)
 
             if 'Revision' in svnInfo: # revision from SVN successful
                 version = 'r' + svnInfo['Revision']
@@ -440,8 +440,7 @@ class OutputHandler:
                 # parse output and get revision
                 svnInfoList = [line for line in output.strip('\n').split('\n')
                                if ': ' in line]
-                svnInfo = dict(map(lambda str: tuple(str.split(': ')),
-                                   svnInfoList))
+                svnInfo = dict(tuple(str.split(': ')) for str in svnInfoList)
 
                 if 'Revision' in svnInfo: # revision from GIT-SVN successful
                     version = 'r' + svnInfo['Revision']
@@ -510,10 +509,10 @@ class OutputHandler:
         cpuInfoFilename = '/proc/cpuinfo'
         if os.path.isfile(cpuInfoFilename) and os.access(cpuInfoFilename, os.R_OK):
             cpuInfoFile = open(cpuInfoFilename, "r")
-            cpuInfo = dict(map(lambda str: tuple(str.split(':')),
+            cpuInfo = dict(tuple(str.split(':')) for str in
                             cpuInfoFile.read()
                             .replace('\n\n', '\n').replace('\t', '')
-                            .strip('\n').split('\n')))
+                            .strip('\n').split('\n'))
             cpuInfoFile.close()
         cpuModel = cpuInfo.get('model name', 'unknown').strip()
         numberOfCores = cpuInfo.get('cpu cores', 'unknown').strip()
@@ -534,10 +533,10 @@ class OutputHandler:
         memInfoFilename = '/proc/meminfo'
         if os.path.isfile(memInfoFilename) and os.access(memInfoFilename, os.R_OK):
             memInfoFile = open(memInfoFilename, "r")
-            memInfo = dict(map(lambda str: tuple(str.split(': ')),
+            memInfo = dict(tuple(str.split(': ')) for str in
                             memInfoFile.read()
                             .replace('\t', '')
-                            .strip('\n').split('\n')))
+                            .strip('\n').split('\n'))
             memInfoFile.close()
         memTotal = memInfo.get('MemTotal', 'unknown').strip()
 
@@ -992,13 +991,13 @@ def killSubprocess(process):
 
 
 def run(args, rlimits):
-    args = map(lambda arg: os.path.expandvars(arg), args)
-    args = map(lambda arg: os.path.expanduser(arg), args)
+    args = [os.path.expandvars(arg) for arg in args]
+    args = [os.path.expanduser(arg) for arg in args]
 
     def preSubprocess():
         os.setpgrp() # make subprocess to group-leader
-        for rsrc, limits in rlimits.items():
-            resource.setrlimit(rsrc, limits)
+        for rsrc in rlimits:
+            resource.setrlimit(rsrc, rlimits[rsrc])
 
     ru_before = resource.getrusage(resource.RUSAGE_CHILDREN)
     wallTimeBefore = time.time()
