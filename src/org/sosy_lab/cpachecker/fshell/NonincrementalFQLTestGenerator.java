@@ -409,7 +409,7 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
 
     CEGARAlgorithm lAlgorithm;
     try {
-      lAlgorithm = new CEGARAlgorithm(lBasicAlgorithm, lARTCPA, lRefiner, mConfiguration, mLogManager);
+      lAlgorithm = new CEGARAlgorithm(lBasicAlgorithm, lRefiner, mConfiguration, mLogManager);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     } catch (CPAException e) {

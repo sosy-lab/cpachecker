@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.loopstack;
 
+import static com.google.common.base.Predicates.*;
+import static com.google.common.collect.Iterables.filter;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -73,10 +76,16 @@ public class LoopstackTransferRelation implements TransferRelation {
     ImmutableMultimap.Builder<CFANode, Loop> heads = ImmutableMultimap.builder();
 
     for (Loop l : loops.values()) {
-      for (CFAEdge e : l.getIncomingEdges()) {
+      // function edges do not count as incoming/outgoing edges
+      Iterable<CFAEdge> incomingEdges = filter(l.getIncomingEdges(),
+                                               not(instanceOf(FunctionReturnEdge.class)));
+      Iterable<CFAEdge> outgoingEdges = filter(l.getOutgoingEdges(),
+                                               not(instanceOf(FunctionCallEdge.class)));
+
+      for (CFAEdge e : incomingEdges) {
         entryEdges.put(e, l);
       }
-      for (CFAEdge e : l.getOutgoingEdges()) {
+      for (CFAEdge e : outgoingEdges) {
         exitEdges.put(e, l);
       }
       for (CFANode h : l.getLoopHeads()) {

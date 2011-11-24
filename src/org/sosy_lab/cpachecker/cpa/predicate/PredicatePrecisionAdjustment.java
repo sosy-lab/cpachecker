@@ -29,9 +29,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -43,7 +40,6 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
-@Options(prefix="cpa.predicate")
 public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
   // statistics
@@ -55,38 +51,20 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   int maxBlockSize = 0;
   int maxPredsPerAbstraction = 0;
 
-  @Option(name="blk.switchToLBEAfter",
-          description="Switch to a LBE configuration after so many milliseconds (0 to disable)")
-  private long switchToLBEAfter = 0;
-
-  private final long startTime = System.currentTimeMillis();
-
   private final LogManager logger;
   private final PredicateAbstractionManager formulaManager;
   private final PathFormulaManager pathFormulaManager;
-  private final BlockOperator blk;
 
-  public PredicatePrecisionAdjustment(PredicateCPA pCpa, BlockOperator pBlk) throws InvalidConfigurationException {
-    pCpa.getConfiguration().inject(this);
+  public PredicatePrecisionAdjustment(PredicateCPA pCpa) {
     logger = pCpa.getLogger();
     formulaManager = pCpa.getPredicateManager();
     pathFormulaManager = pCpa.getPathFormulaManager();
-    blk = pBlk;
   }
 
   @Override
   public Triple<AbstractElement, Precision, Action> prec(
       AbstractElement pElement, Precision pPrecision,
       UnmodifiableReachedSet pElements) {
-
-    if (switchToLBEAfter > 0) {
-      if (System.currentTimeMillis() > startTime + switchToLBEAfter) {
-        logger.log(Level.INFO, "Switching to LBE config");
-        switchToLBEAfter = 0;
-        blk.switchToLBE();
-        return new Triple<AbstractElement, Precision, Action>(pElement, pPrecision, Action.BREAK);
-      }
-    }
 
     totalPrecTime.start();
 

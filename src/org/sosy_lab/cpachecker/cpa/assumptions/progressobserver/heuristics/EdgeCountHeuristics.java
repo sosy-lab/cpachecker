@@ -69,7 +69,7 @@ public class EdgeCountHeuristics implements StopHeuristics<EdgeCountHeuristicsDa
   }
 
   @Override
-  public HeuristicPrecision getPrecision() {
+  public HeuristicPrecision getInitialPrecision() {
     // TODO Auto-generated method stub
     return null;
   }

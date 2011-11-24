@@ -11,7 +11,7 @@ Install CPAchecker -- Binary
    (e.g., Sun/Oracle JRE, OpenJDK).
    Cf. http://java.oracle.com/ or install a package from your distribution.
 
-2. Extract the content of the CPAchecker zip file into a directory of your choice.
+2. Extract the content of the CPAchecker zip or tar file into a directory of your choice.
 
 
 Install CPAchecker -- Source

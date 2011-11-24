@@ -297,30 +297,18 @@ class CFAFunctionBuilder extends ASTVisitor {
       }
 
       for (CFALabelNode n : labelMap.values()) {
-        if (n.getNumEnteringEdges() == 0) {
+        if (   (n.getNumEnteringEdges() == 0)
+            || !isPathFromTo(cfa, n)) {
           logDeadLabel(n);
 
-          // remove this dead code from CFA
-          CFACreationUtils.removeChainOfNodesFromCFA(n);
-
-        } else if (n.getNumEnteringEdges() == 1) {
-          CFAEdge edge = n.getEnteringEdge(0);
-
-          if (edge.getPredecessor().equals(n)) {
-            // it's an unreachable self-loop, this happens in cases like
-            // if (0) { ERROR: goto ERROR; }
-            assert !isPathFromTo(cfa, n);
-
-            logDeadLabel(n);
-
-            // remove this dead code from CFA
-            CFACreationUtils.removeEdgeFromNodes(edge);
-            assert n.getNumLeavingEdges() == 0;
+          // remove all entering edges
+          while (n.getNumEnteringEdges() > 0) {
+            CFACreationUtils.removeEdgeFromNodes(n.getEnteringEdge(0));
           }
+
+          // now we can delete this whole unreachable part
+          CFACreationUtils.removeChainOfNodesFromCFA(n);
         }
-        // TODO handle other cases of unreachable labels
-        // Probably its best to just check whether there is a path from the
-        // entry node to the label.
       }
 
       labelMap.clear();

@@ -44,5 +44,5 @@ public interface StopHeuristics <D extends StopHeuristicsData> {
   /** Process an edge and update the data */
   public D processEdge(StopHeuristicsData data, CFAEdge edge);
 
-  public HeuristicPrecision getPrecision();
+  public HeuristicPrecision getInitialPrecision();
 }

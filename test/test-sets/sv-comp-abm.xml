@@ -12,7 +12,6 @@
     </sourcefiles>
     <sourcefiles>
       <includesfile>test/programs/benchmarks/DeviceDrivers.set</includesfile>
-      <option name="-setprop">cpa.predicate.handlePointerAliasing=true</option>
       <option name="-sv-comp12-abm-funpoint"/>
     </sourcefiles>
     <sourcefiles>

@@ -37,7 +37,6 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
@@ -60,9 +59,10 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
@@ -88,11 +88,11 @@ import org.sosy_lab.cpachecker.cpa.pointer.Memory.Variable;
 import org.sosy_lab.cpachecker.cpa.pointer.Pointer.PointerOperation;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerElement.ElementProperty;
 import org.sosy_lab.cpachecker.cpa.types.Type;
+import org.sosy_lab.cpachecker.cpa.types.TypesElement;
 import org.sosy_lab.cpachecker.cpa.types.Type.ArrayType;
 import org.sosy_lab.cpachecker.cpa.types.Type.FunctionType;
 import org.sosy_lab.cpachecker.cpa.types.Type.PointerType;
 import org.sosy_lab.cpachecker.cpa.types.Type.TypeClass;
-import org.sosy_lab.cpachecker.cpa.types.TypesElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -390,7 +390,7 @@ public class PointerTransferRelation implements TransferRelation {
         throw new UnrecognizedCCodeException("variable sized stack arrays are not supported", edge);
       }
 
-      long length = parseIntegerLiteral((IASTLiteralExpression)lengthExpression);
+      long length = parseIntegerLiteral((IASTLiteralExpression)lengthExpression, edge);
       StackArrayCell array = new StackArrayCell(element.getCurrentFunctionName(),
                                                   new StackArray(varName, length));
 
@@ -641,7 +641,7 @@ public class PointerTransferRelation implements TransferRelation {
           IASTLiteralExpression literal = (IASTLiteralExpression)parameter;
 
           if (literal instanceof IASTIntegerLiteralExpression
-              && parseIntegerLiteral(literal) == 0) {
+              && parseIntegerLiteral(literal, cfaEdge) == 0) {
 
             actualValues.add(new Pointer()); // null pointer
           } else {
@@ -692,11 +692,11 @@ public class PointerTransferRelation implements TransferRelation {
     missing = new MissingInformation();
   }
 
-  private long parseIntegerLiteral(IASTLiteralExpression expression)
+  private long parseIntegerLiteral(IASTLiteralExpression expression, CFAEdge edge)
       throws UnrecognizedCCodeException {
 
     if (!(expression instanceof IASTIntegerLiteralExpression)) {
-      throw new UnrecognizedCCodeException("integer expression expected", expression);
+      throw new UnrecognizedCCodeException("integer expression expected", edge, expression);
     }
     return ((IASTIntegerLiteralExpression)expression).asLong();
   }
@@ -1099,7 +1099,7 @@ public class PointerTransferRelation implements TransferRelation {
           }
 
           if (op2 instanceof IASTLiteralExpression) {
-            long offset = parseIntegerLiteral((IASTLiteralExpression)op2);
+            long offset = parseIntegerLiteral((IASTLiteralExpression)op2, cfaEdge);
             if (typeOfOperator == BinaryOperator.MINUS) {
               offset = -offset;
             }
@@ -1336,7 +1336,7 @@ public class PointerTransferRelation implements TransferRelation {
     MemoryAddress memAddress = op.getMallocResult();
 
     if (parameter instanceof IASTLiteralExpression) {
-      long size = parseIntegerLiteral((IASTLiteralExpression)parameter);
+      long size = parseIntegerLiteral((IASTLiteralExpression)parameter, cfaEdge);
       if (size < 0) {
         throw new UnrecognizedCCodeException("malloc with size < 0, but malloc takes unsigned parameter",
                                               cfaEdge, parameter);

@@ -35,4 +35,12 @@ else
 	cat compile.log
 	exit 1
 fi
+
+MISSING_SYMBOLS="$(readelf -Ws libYicesLite.so | grep NOTYPE | grep GLOBAL | grep UND)"
+if [ ! -z "$MISSING_SYMBOLS" ]; then
+	echo "Warning: There are the following unresolved dependencies in libmathsatj.so:"
+	readelf -Ws libYicesLite.so | grep NOTYPE | grep GLOBAL | grep UND
+	exit 1
+fi
+
 echo "All Done"

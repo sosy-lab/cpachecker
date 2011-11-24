@@ -36,4 +36,12 @@ else
 	echo "There was a problem during compilation of \"org_sosy_lab_cpachecker_util_octagon_OctWrapper.c\""
 	exit 1
 fi
+
+MISSING_SYMBOLS="$(readelf -Ws libJOct.so | grep NOTYPE | grep GLOBAL | grep UND)"
+if [ ! -z "$MISSING_SYMBOLS" ]; then
+	echo "Warning: There are the following unresolved dependencies in libmathsatj.so:"
+	readelf -Ws libJOct.so | grep NOTYPE | grep GLOBAL | grep UND
+	exit 1
+fi
+
 echo "All Done"

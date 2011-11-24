@@ -36,7 +36,7 @@ public class ProgressObserverPrecision implements Precision {
   public ProgressObserverPrecision(ProgressObserverCPA pProgressObserverCPA) {
     this.precisions = new ArrayList<Precision>();
     for(StopHeuristics<?> heur: pProgressObserverCPA.getEnabledHeuristics()) {
-      precisions.add(heur.getPrecision());
+      precisions.add(heur.getInitialPrecision());
     }
   }
 

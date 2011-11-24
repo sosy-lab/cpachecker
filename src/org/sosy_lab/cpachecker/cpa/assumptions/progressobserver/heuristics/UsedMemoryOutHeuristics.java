@@ -75,7 +75,7 @@ public class UsedMemoryOutHeuristics implements StopHeuristics<TrivialStopHeuris
   }
 
   @Override
-  public HeuristicPrecision getPrecision() {
+  public HeuristicPrecision getInitialPrecision() {
     return precision;
   }
 

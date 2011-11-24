@@ -65,6 +65,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.Path;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefinementManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -74,12 +75,19 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.AbstractInterpolationBasedRefiner;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
+import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -96,7 +104,8 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
   private Set<String> globalVars = null;
 
-  private final FormulaManager fmgr;
+  private final ExtendedFormulaManager fmgr;
+  private final PathFormulaManager pathFormulaManager;
 
   public static ExplicitRefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     if (!(pCpa instanceof WrapperCPA)) {
@@ -109,21 +118,28 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
     }
 
     LogManager logger = explicitCpa.getLogger();
+    Configuration config = explicitCpa.getConfiguration();
 
-    PredicateRefinementManager manager = new PredicateRefinementManager(explicitCpa.getFormulaManager(),
-        explicitCpa.getPathFormulaManager(),
-        explicitCpa.getTheoremProver(),
-        explicitCpa.getPredicateManager(),
-        explicitCpa.getConfiguration(),
-        logger);
+    MathsatFormulaManager mathsatFormulaManager = MathsatFactory.createFormulaManager(config, logger);
 
-    ExplicitRefiner refiner = new ExplicitRefiner(explicitCpa.getConfiguration(), logger, pCpa, explicitCpa.getFormulaManager(), manager);
+    RegionManager regionManager            = BDDRegionManager.getInstance();
+    ExtendedFormulaManager formulaManager  = new ExtendedFormulaManager(mathsatFormulaManager, config, logger);
+    PathFormulaManager pathFormulaManager  = new PathFormulaManagerImpl(formulaManager, config, logger);
+    TheoremProver theoremProver            = new MathsatTheoremProver(mathsatFormulaManager);
+    PredicateAbstractionManager absManager = new PredicateAbstractionManager(regionManager, formulaManager, theoremProver, config, logger);
+
+    PredicateRefinementManager manager = new PredicateRefinementManager(formulaManager,
+        pathFormulaManager, theoremProver, absManager, config, logger);
+
+    ExplicitRefiner refiner = new ExplicitRefiner(config, logger, pCpa, formulaManager,
+                                                  pathFormulaManager, manager);
 
     return refiner;
   }
 
   protected ExplicitRefiner(final Configuration config, final LogManager logger,
-      final ConfigurableProgramAnalysis pCpa, FormulaManager pFmgr,
+      final ConfigurableProgramAnalysis pCpa, final ExtendedFormulaManager pFmgr,
+      final PathFormulaManager pPathFormulaManager,
       final PredicateRefinementManager pInterpolationManager) throws CPAException, InvalidConfigurationException {
 
     super(config, logger, pCpa, pInterpolationManager);
@@ -131,6 +147,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
     config.inject(this, ExplicitRefiner.class);
 
     fmgr = pFmgr;
+    pathFormulaManager = pPathFormulaManager;
 
     // TODO: runner-up award for ugliest hack of the month ...
     globalVars = ExplicitTransferRelation.globalVarsStatic;
@@ -182,14 +199,12 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
     try
     {
-      converter = new CtoFormulaConverter(explicitCPA.getConfiguration(), explicitCPA.getFormulaManager(), logger);
+      converter = new CtoFormulaConverter(explicitCPA.getConfiguration(), fmgr, logger);
     }
     catch(InvalidConfigurationException e)
     {
       //System.out.println("error when configuring CtoFormulaConverter");
     }
-
-    PathFormulaManager pathFormulaManager = explicitCPA.getPathFormulaManager();
 
     PathFormula currentPathFormula = pathFormulaManager.makeEmptyPathFormula();
 

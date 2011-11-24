@@ -324,9 +324,6 @@ cpa.predicate.blk.functions = false
 # threshold = 0)
 cpa.predicate.blk.loops = false
 
-# Switch to a LBE configuration after so many milliseconds (0 to disable)
-cpa.predicate.blk.switchToLBEAfter = 0
-
 # maximum blocksize before abstraction is forced
 # (non-negative number, special values: 0 = don't check threshold, 1 = SBE)
 cpa.predicate.blk.threshold = 0
@@ -341,7 +338,7 @@ cpa.predicate.checkBlockFeasibility = false
 cpa.predicate.formulaDumpFilePattern = "%s%04d-%s%03d.msat"
 
 # handle Pointers
-cpa.predicate.handlePointerAliasing = false
+cpa.predicate.handlePointerAliasing = true
 
 # initialize all variables to 0 when they are declared
 cpa.predicate.initAllVars = false

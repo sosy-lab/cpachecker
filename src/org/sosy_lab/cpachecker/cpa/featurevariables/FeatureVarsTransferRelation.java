@@ -30,7 +30,6 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
@@ -38,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
@@ -177,7 +177,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
       IASTExpression expression, CFAEdge cfaEdge, boolean truthValue,
       FeatureVarsPrecision precision) throws UnrecognizedCCodeException {
     String functionName = cfaEdge.getPredecessor().getFunctionName();
-    FeatureVarsElement result = handleBooleanExpression(element, expression, functionName, truthValue, precision);
+    FeatureVarsElement result = handleBooleanExpression(element, expression, functionName, truthValue, precision, cfaEdge);
     if (result.getRegion().isFalse()) {
       return null; // assumption is not fulfilled / not possible
     } else {
@@ -187,8 +187,8 @@ public class FeatureVarsTransferRelation implements TransferRelation {
 
   private FeatureVarsElement handleBooleanExpression(FeatureVarsElement element,
       IASTExpression op, String functionName, boolean pTruthValue,
-      FeatureVarsPrecision precision) throws UnrecognizedCCodeException {
-    Region operand = propagateBooleanExpression(element, op, functionName, precision);
+      FeatureVarsPrecision precision, CFAEdge edge) throws UnrecognizedCCodeException {
+    Region operand = propagateBooleanExpression(element, op, functionName, precision, edge);
     if (operand == null) {
       return element;
     } else {
@@ -206,7 +206,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
   }
 
   private Region propagateBooleanExpression(FeatureVarsElement element,
-      IASTExpression op, String functionName, FeatureVarsPrecision precision)
+      IASTExpression op, String functionName, FeatureVarsPrecision precision, CFAEdge edge)
     throws UnrecognizedCCodeException {
     Region operand = null;
     if (op instanceof IASTIdExpression || op instanceof IASTFieldReference
@@ -220,20 +220,20 @@ public class FeatureVarsTransferRelation implements TransferRelation {
       operand =
           propagateUnaryBooleanExpression(element, ((IASTUnaryExpression) op)
               .getOperator(), ((IASTUnaryExpression) op).getOperand(),
-              functionName, precision);
+              functionName, precision, edge);
     } else if (op instanceof IASTBinaryExpression) {
       IASTBinaryExpression binExp = ((IASTBinaryExpression) op);
       operand =
           propagateBinaryBooleanExpression(element, binExp.getOperator(),
               binExp.getOperand1(), binExp.getOperand2(), functionName,
-              precision);
+              precision, edge);
     }
     return operand;
   }
 
   private Region propagateUnaryBooleanExpression(FeatureVarsElement element,
       UnaryOperator opType, IASTExpression op, String functionName,
-      FeatureVarsPrecision precision) throws UnrecognizedCCodeException {
+      FeatureVarsPrecision precision, CFAEdge edge) throws UnrecognizedCCodeException {
     Region returnValue = null;
     Region operand = null;
     if (op instanceof IASTIdExpression || op instanceof IASTFieldReference
@@ -247,13 +247,13 @@ public class FeatureVarsTransferRelation implements TransferRelation {
       operand =
           propagateUnaryBooleanExpression(element, ((IASTUnaryExpression) op)
               .getOperator(), ((IASTUnaryExpression) op).getOperand(),
-              functionName, precision);
+              functionName, precision, edge);
     } else if (op instanceof IASTBinaryExpression) {
       IASTBinaryExpression binExp = ((IASTBinaryExpression) op);
       operand =
           propagateBinaryBooleanExpression(element, binExp.getOperator(),
               binExp.getOperand1(), binExp.getOperand2(), functionName,
-              precision);
+              precision, edge);
     }
     if (operand == null) {
       return null;
@@ -268,14 +268,14 @@ public class FeatureVarsTransferRelation implements TransferRelation {
       break;
     default:
       throw new UnrecognizedCCodeException("Unhandled case "
-          + op.getRawSignature());
+          + op.getRawSignature(), edge);
     }
     return returnValue;
   }
 
   private Region propagateBinaryBooleanExpression(FeatureVarsElement element,
       BinaryOperator opType, IASTExpression op1, IASTExpression op2,
-      String functionName, FeatureVarsPrecision precision)
+      String functionName, FeatureVarsPrecision precision, CFAEdge edge)
       throws UnrecognizedCCodeException {
     // determine operand1:
     Region operand1 = null;
@@ -290,13 +290,13 @@ public class FeatureVarsTransferRelation implements TransferRelation {
       operand1 =
           propagateUnaryBooleanExpression(element, ((IASTUnaryExpression) op1)
               .getOperator(), ((IASTUnaryExpression) op1).getOperand(),
-              functionName, precision);
+              functionName, precision, edge);
     } else if (op1 instanceof IASTBinaryExpression) {
       IASTBinaryExpression binExp = ((IASTBinaryExpression) op1);
       operand1 =
           propagateBinaryBooleanExpression(element, binExp.getOperator(),
               binExp.getOperand1(), binExp.getOperand2(), functionName,
-              precision);
+              precision, edge);
     }
     // determine operand2:
     Region operand2 = null;
@@ -311,13 +311,13 @@ public class FeatureVarsTransferRelation implements TransferRelation {
       operand2 =
           propagateUnaryBooleanExpression(element, ((IASTUnaryExpression) op2)
               .getOperator(), ((IASTUnaryExpression) op2).getOperand(),
-              functionName, precision);
+              functionName, precision, edge);
     } else if (op2 instanceof IASTBinaryExpression) {
       IASTBinaryExpression binExp = ((IASTBinaryExpression) op2);
       operand2 =
           propagateBinaryBooleanExpression(element, binExp.getOperator(),
               binExp.getOperand1(), binExp.getOperand2(), functionName,
-              precision);
+              precision, edge);
     }
     if (operand1 == null || operand2 == null) {
       return null;
@@ -335,7 +335,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     case NOT_EQUALS:
     default:
       throw new UnrecognizedCCodeException(
-          "Cases ==, != and others are not implemented");
+          "Cases ==, != and others are not implemented", edge);
     }
     return returnValue;
   }
