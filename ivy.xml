@@ -14,7 +14,7 @@
         <conf name="test" />
 
         <!-- Additional files like JavaDocs or source code that will help developers.
-             These are not downloaded by default, but only when "ant contrib" is called. -->
+             These are not downloaded by default, but only when "ant install-contrib" is called. -->
         <conf name="contrib" />
     </configurations>
 

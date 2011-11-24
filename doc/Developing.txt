@@ -29,7 +29,7 @@ Develop CPAchecker from within Eclipse
 
 5. Optional:
    If you want the sources of the libraries (like Guava or CDT),
-   run "ant contrib" once in the CPAchecker directory.
+   run "ant install-contrib" once in the CPAchecker directory.
 
 
 Develop CPAchecker as Eclipse Plugin for C projects

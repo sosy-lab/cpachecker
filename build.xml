@@ -74,10 +74,10 @@
 
     <!-- Update additional resources if they were downloaded previously. -->
     <target name="update-contrib" if="ivy.contrib.present">
-        <antcall target="contrib"/>
+        <antcall target="install-contrib"/>
     </target>
 
-    <target name="contrib" depends="load-ivy" description="retrieve sources and docs for external libraries">
+    <target name="install-contrib" depends="load-ivy" description="retrieve sources and docs for external libraries">
         <ivy:resolve conf="contrib"/>
         <ivy:retrieve sync="true" pattern="${ivy.lib.dir}-contrib/[artifact](-[classifier]).[ext]"/>
     </target>
