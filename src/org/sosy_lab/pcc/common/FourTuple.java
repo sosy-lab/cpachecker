@@ -23,32 +23,33 @@
  */
 package org.sosy_lab.pcc.common;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
-public class ARTSBEEdge extends ARTEdge{
+public class FourTuple<T1, T2, T3, T4> {
 
+  private T1 artNodeId;
+  private T2 callStack;
+  private T3 leftAbstraction;
+  private T4 pathFormula;
 
-  private CFAEdge cfaEdge;
-
-
-  public ARTSBEEdge(int pTargetARTId, CFAEdge pCFAEdge)
-      throws IllegalArgumentException {
-    super(pTargetARTId);
-    if (pCFAEdge == null) { throw new IllegalArgumentException(
-        "Cannot be a valid ART edge."); }
-    cfaEdge = pCFAEdge;
-
+  public FourTuple(T1 pT1, T2 pT2, T3 pT3, T4 pT4) {
+    artNodeId = pT1;
+    callStack = pT2;
   }
 
-  public CFAEdge getCorrespondingCFAEdge() {
-    return cfaEdge;
+  public T1 getFirst() {
+    return artNodeId;
   }
 
-  public boolean equals(ARTSBEEdge pEdge){
-    if(pEdge == null){ return false;}
-    if(getTarget() == pEdge.getTarget() && cfaEdge.equals(pEdge.cfaEdge)){
-      return true;
-    }
-    return false;
+  public T2 getSecond() {
+    return callStack;
   }
+
+  public T3 getThird(){
+    return leftAbstraction;
+  }
+
+  public T4 getFourth(){
+    return pathFormula;
+  }
+
 }

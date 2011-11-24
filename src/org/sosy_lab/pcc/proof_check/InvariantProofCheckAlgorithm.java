@@ -41,6 +41,9 @@ public abstract class InvariantProofCheckAlgorithm implements
   protected Configuration config;
   protected LogManager logger;
 
+  protected final String stackName = "_STACK";
+  protected final String goalDes = "_GOAL";
+
   public InvariantProofCheckAlgorithm(Configuration pConfig, LogManager pLogger) {
     config = pConfig;
     logger = pLogger;
@@ -64,7 +67,7 @@ public abstract class InvariantProofCheckAlgorithm implements
 
   private PCCCheckResult readFromFile(File pFile) throws FileNotFoundException {
     Scanner scan = new Scanner(pFile);
-    scan.useDelimiter("(\\s)*"+Separators.commonSeparator+"(\\s)*");
+    scan.useDelimiter("(\\s)*" + Separators.commonSeparator + "(\\s)*");
     logger.log(Level.INFO, "Read regions.");
     PCCCheckResult success = readNodes(scan);
     if (success != PCCCheckResult.Success) { return success; }

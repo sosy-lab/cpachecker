@@ -62,7 +62,7 @@ public class ARTNode {
     if (isEdgeContained(pEdge)) { throw new IllegalArgumentException("Edge already exists."); }
     // check if it is a valid edge
     if (fullART) {
-      if (cfaNode.getEdgeTo(((ARTSBEEdge) pEdge).getCorrespondingCFAEdge().getSuccessor()) != ((ARTSBEEdge) pEdge)
+      if (cfaNode.getEdgeTo(((WithCorrespondingCFAEdgeARTEdge) pEdge).getCorrespondingCFAEdge().getSuccessor()) != ((WithCorrespondingCFAEdgeARTEdge) pEdge)
           .getCorrespondingCFAEdge()) { throw new IllegalArgumentException(
           "Edge cannot be an edge from this ARTNode.\n"); }
     }
@@ -83,7 +83,7 @@ public class ARTNode {
 
   public ARTEdge[] getEdges() {
     if(fullART){
-      return edges.toArray(new ARTSBEEdge[edges.size()]);
+      return edges.toArray(new WithCorrespondingCFAEdgeARTEdge[edges.size()]);
     }
     return edges.toArray(new ARTEdge[edges.size()]);
   }

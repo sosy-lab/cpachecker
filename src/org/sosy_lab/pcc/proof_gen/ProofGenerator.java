@@ -75,6 +75,10 @@ public class ProofGenerator {
       name = "cpa.predicate.abstraction.cartesian",
       description = "whether to use Boolean (false) or Cartesian (true) abstraction")
   private boolean cartesianAbstraction = false;
+  @Option(name="cpa.predicate.satCheck",
+      description="maximum blocksize before a satisfiability check is done\n"
+        + "(non-negative number, 0 means never, if positive should be smaller than blocksize)")
+  private int satCheckBlockSize = 0;
 
   public ProofGenerator(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
@@ -178,6 +182,8 @@ public class ProofGenerator {
         }
         break;
       }
+      // TODO add LBE, ABE algorithms
+      // TODO invariant adjustable LBE, ABE consider that unsat check is disabled
       default: {
         algorithm = null;
       }

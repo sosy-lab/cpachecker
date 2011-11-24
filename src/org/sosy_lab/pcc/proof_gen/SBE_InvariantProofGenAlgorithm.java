@@ -79,9 +79,6 @@ public abstract class SBE_InvariantProofGenAlgorithm extends
 
   @Override
   protected boolean addOperation(ARTElement pSource, ARTElement pTarget) {
-    if (pTarget.isCovered()) {
-      pTarget = pTarget.getCoveringElement();
-    }
     PredicateAbstractElement predicate =
         AbstractElements.extractElementByType(pSource,
             PredicateAbstractElement.class);
@@ -91,19 +88,27 @@ public abstract class SBE_InvariantProofGenAlgorithm extends
         && !(corresponding instanceof CFAFunctionDefinitionNode)
         && corresponding.getEnteringSummaryEdge() == null) { return true; }
     CFAEdge edge = pSource.getEdgeToChild(pTarget);
+    ARTElement target;
+    if (pTarget.isCovered()) {
+      target = getFinalCoveringElement(pTarget);
+    }
+    else {
+      target = pTarget;
+    }
     // get PredicateAbstractElement
     predicate =
-        AbstractElements.extractElementByType(pTarget,
+        AbstractElements.extractElementByType(target,
             PredicateAbstractElement.class);
-    corresponding = pTarget.retrieveLocationElement().getLocationNode();
+    corresponding = target.retrieveLocationElement().getLocationNode();
     // check if no abstraction needed for target, than look for children as target
-    if (!predicate.isAbstractionElement()
+    if ((!predicate.isAbstractionElement() || (pTarget.isCovered() && !AbstractElements.extractElementByType(pTarget,
+        PredicateAbstractElement.class).isAbstractionElement()))
         && !(corresponding instanceof CFAFunctionDefinitionNode)
         && corresponding.getEnteringSummaryEdge() == null) {
       /* get next successor nodes which are abstraction elements
        * and build the respective operations*/
       Vector<ARTElement> toVisit = new Vector<ARTElement>();
-      toVisit.add(pTarget);
+      toVisit.add(target);
       ARTElement currentElem;
       boolean success;
       while (!toVisit.isEmpty()) {

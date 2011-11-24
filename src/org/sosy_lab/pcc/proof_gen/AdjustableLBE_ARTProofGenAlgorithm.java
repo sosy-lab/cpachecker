@@ -38,18 +38,19 @@ import org.sosy_lab.pcc.common.AbstractionType;
 import org.sosy_lab.pcc.common.FormulaHandler;
 
 
-public class LBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
+public class AdjustableLBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm{
+
 
   protected FormulaHandler fh;
 
-  public LBE_ARTProofGenAlgorithm(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+  public AdjustableLBE_ARTProofGenAlgorithm(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
     super(pConfig, pLogger);
     fh = new FormulaHandler(pConfig, pLogger, whichProver);
   }
 
   @Override
   protected boolean addARTNode(ARTElement pNode) {
-    // only add abstraction nodes
+    // only add abstraction nodes and non-abstraction nodes which are covered because they are false
     PredicateAbstractElement predicate = AbstractElements.extractElementByType(pNode, PredicateAbstractElement.class);
     if (predicate == null) { return false; }
     if (predicate.isAbstractionElement()) {
@@ -67,9 +68,6 @@ public class LBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
       }
     } else {
       if (pNode.isCovered()) {
-        System.out.println("Unexpected case.");
-        return false;
-        /*
         Formula[] fList = new Formula[2];
         fList[0] = predicate.getAbstractionFormula().asFormula();
         fList[1] = predicate.getPathFormula().getFormula();
@@ -85,8 +83,6 @@ public class LBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
           nodeRep.append(false + "#");// TODO check if it works
           nodes.add(nodeRep.toString());
         } else {
-          System.out.println("Unexpected case.");
-          return false;
           // build string of form ARTId#CFAId#NodeType#coveringID#
           StringBuilder nodeRep = new StringBuilder();
           nodeRep.append(pNode.getElementId() + "#");
@@ -96,7 +92,7 @@ public class LBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
           if (covering == null) { return false; }
           nodeRep.append(covering.getElementId() + "#");
           nodes.add(nodeRep.toString());
-        }*/
+        }
       }
     }
     return true;

@@ -25,19 +25,30 @@ package org.sosy_lab.pcc.common;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
-public class WithOpDescriptionARTSBEEdge extends WithCorrespondingCFAEdgeARTEdge {
+public class WithCorrespondingCFAEdgeARTEdge extends ARTEdge{
 
-  private String operation;
 
-  public WithOpDescriptionARTSBEEdge(int pTargetARTId, CFAEdge pCFAEdge,
-      String pOperation) throws IllegalArgumentException {
-    super(pTargetARTId, pCFAEdge);
-    if (pOperation == null) { throw new IllegalArgumentException(
-        "Cannot be a valid ART edge for which an operation should be stored."); }
-    operation = pOperation;
+  private CFAEdge cfaEdge;
+
+
+  public WithCorrespondingCFAEdgeARTEdge(int pTargetARTId, CFAEdge pCFAEdge)
+      throws IllegalArgumentException {
+    super(pTargetARTId);
+    if (pCFAEdge == null) { throw new IllegalArgumentException(
+        "Cannot be a valid ART edge."); }
+    cfaEdge = pCFAEdge;
+
   }
 
-  public String getOperation() {
-    return operation;
+  public CFAEdge getCorrespondingCFAEdge() {
+    return cfaEdge;
+  }
+
+  public boolean equals(WithCorrespondingCFAEdgeARTEdge pEdge){
+    if(pEdge == null){ return false;}
+    if(getTarget() == pEdge.getTarget() && cfaEdge.equals(pEdge.cfaEdge)){
+      return true;
+    }
+    return false;
   }
 }

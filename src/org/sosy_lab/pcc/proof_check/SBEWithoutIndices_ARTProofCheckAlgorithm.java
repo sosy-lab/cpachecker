@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.pcc.common.ARTSBEEdge;
+import org.sosy_lab.pcc.common.WithCorrespondingCFAEdgeARTEdge;
 import org.sosy_lab.pcc.common.ARTNode;
 import org.sosy_lab.pcc.common.PCCCheckResult;
 import org.sosy_lab.pcc.common.Pair;
@@ -61,7 +61,7 @@ public class SBEWithoutIndices_ARTProofCheckAlgorithm extends
     int source, target;
     CFAEdge cfaEdge;
     ARTNode nodeS, nodeT;
-    ARTSBEEdge edge;
+    WithCorrespondingCFAEdgeARTEdge edge;
     PCCCheckResult intermediateRes;
 
     while (pScan.hasNext()) {
@@ -87,7 +87,7 @@ public class SBEWithoutIndices_ARTProofCheckAlgorithm extends
           return intermediateRes;
         }
         // add edge
-        edge = new ARTSBEEdge(target, cfaEdge);
+        edge = new WithCorrespondingCFAEdgeARTEdge(target, cfaEdge);
         if(nodeS.isEdgeContained(edge)){
           return PCCCheckResult.ElementAlreadyRead;
         }
@@ -104,7 +104,7 @@ public class SBEWithoutIndices_ARTProofCheckAlgorithm extends
   }
 
   @Override
-  protected PCCCheckResult checkEdgeFormula(ARTNode pSource, ARTSBEEdge pEdge,
+  protected PCCCheckResult checkEdgeFormula(ARTNode pSource, WithCorrespondingCFAEdgeARTEdge pEdge,
       ARTNode pTarget) {
     // instantiate left abstraction
     Pair<Formula, SSAMap> resultAbs =

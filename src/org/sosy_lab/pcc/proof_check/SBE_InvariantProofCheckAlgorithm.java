@@ -47,11 +47,6 @@ import org.sosy_lab.pcc.common.Separators;
 public abstract class SBE_InvariantProofCheckAlgorithm extends
     InvariantProofCheckAlgorithm {
 
-  protected final String stackName =
-      "_STACK";
-  protected final String goalDes =
-      "_GOAL";
-
   private boolean atLoop;
   //private boolean                                          atFunction;
   protected FormulaHandler handler;
@@ -129,6 +124,7 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
       }
     }
     // reading nodes
+    boolean rootFound = false;
     cfaNodes = null;
     String next = "";
     String[] subStr;
@@ -184,6 +180,7 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
                 logger.log(Level.SEVERE, "Invalid region for root.");
                 return PCCCheckResult.InvalidARTRootSpecification;
               }
+              rootFound = true;
             }
             if (isError) {
               if (!handler.isFalse(invariant)) {
@@ -223,6 +220,7 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
     } catch (NoSuchElementException e3) {
       return PCCCheckResult.UnknownCFANode;
     }
+    if (!rootFound) { return PCCCheckResult.UncoveredCFANode; }
     // checking nodes
     logger.log(Level.INFO, "Check coverage of CFA nodes");
     return structuralCheckCoverageOfCFANodes();
@@ -239,10 +237,10 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
         uncovered.add(nodeID);
       }
     }
-    // build strongly connected components for uncovered nodes
-    logger.log(Level.INFO, "Build SCCs from CFA subgraph induced by uncovered nodes");
-    Vector<StronglyConnectedComponent> comps =
-        StronglyConnectedComponent.extractStronglyConnectedComponents(
+    // build connected components for uncovered nodes
+    logger.log(Level.INFO, "Build connected components from CFA subgraph induced by uncovered nodes");
+    Vector<ConnectedComponent> comps =
+        ConnectedComponent.extractConnectedComponents(
             uncovered, allCFANodes, reachableCFANodes);
     // check if all external edges lead to only false abstraction or all nodes of component are non-abstraction nodes
     logger.log(Level.INFO, "Check if nodes must be uncovered");
@@ -252,11 +250,15 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
       for (Integer external : comps.get(i).externalEndPoints) {
         result = result && allInvariantFormulaeFalse(external);
       }
-      //check if only non-abstraction nodes
+      //check if only non-abstraction nodes which are non error nodes
       if (!result) {
         result = true;
         for (Integer id : comps.get(i).nodes) {
           result = result && isNonAbstractionNode(allCFANodes.get(id));
+          if (allCFANodes.get(id) instanceof CFALabelNode
+              && ((CFALabelNode) allCFANodes.get(id)).getLabel().equalsIgnoreCase("error")) {
+            result = false;
+          }
         }
       }
     }
@@ -445,6 +447,8 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
       }
     } catch (IllegalArgumentException e) {
       return null;
+    } catch (ArrayIndexOutOfBoundsException e2) {
+      return null;
     }
     subFormulae[0] = pOperations;
     return handler.buildConjunction(subFormulae);
@@ -495,23 +499,23 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
       Vector<Pair<String, int[]>> pInvariantS, CFAEdge pCfaEdge,
       Vector<Pair<String, int[]>> pInvariantT);
 
-  private static class StronglyConnectedComponent {
+  private static class ConnectedComponent {
 
     private HashSet<Integer> nodes =
         new HashSet<Integer>();
     private Vector<Integer> externalEndPoints =
         new Vector<Integer>();
-    private static Vector<StronglyConnectedComponent> stronglyConComp;
+    private static Vector<ConnectedComponent> stronglyConComp;
 
-    private StronglyConnectedComponent() {
+    private ConnectedComponent() {
 
     }
 
-    public static Vector<StronglyConnectedComponent> extractStronglyConnectedComponents(
+    public static Vector<ConnectedComponent> extractConnectedComponents(
         HashSet<Integer> pGraph, Hashtable<Integer, CFANode> pAllNodes,
         Hashtable<Integer, CFANode> pReachableNodes) {
       stronglyConComp =
-          new Vector<SBE_InvariantProofCheckAlgorithm.StronglyConnectedComponent>();
+          new Vector<SBE_InvariantProofCheckAlgorithm.ConnectedComponent>();
       HashSet<Integer> rest = pGraph;
       while (rest != null) {
         rest = extractComponent(rest, pAllNodes, pReachableNodes);
@@ -524,7 +528,7 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
         Hashtable<Integer, CFANode> pReachableNodes) {
       if (pInputGraph.isEmpty()) { return null; }
       HashSet<Integer> remaining = pInputGraph;
-      StronglyConnectedComponent comp = new StronglyConnectedComponent();
+      ConnectedComponent comp = new ConnectedComponent();
       Vector<Integer> toCheck = new Vector<Integer>();
       toCheck.add(pInputGraph.iterator().next());
       CFANode current;

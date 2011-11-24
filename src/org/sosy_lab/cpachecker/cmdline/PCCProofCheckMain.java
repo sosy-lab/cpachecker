@@ -78,6 +78,10 @@ public class PCCProofCheckMain {
     @Option(name="cpa.predicate.abstraction.solver", toUppercase=true, values={"MATHSAT", "YICES"},
         description="which solver to use?")
     private String whichProver = "MATHSAT";
+    @Option(name="cpa.predicate.satCheck",
+        description="maximum blocksize before a satisfiability check is done\n"
+          + "(non-negative number, 0 means never, if positive should be smaller than blocksize)")
+    private int satCheckBlockSize = 0;
 
     private PCCProofChecker(Configuration pConfig)
         throws InvalidConfigurationException {
@@ -146,6 +150,7 @@ public class PCCProofCheckMain {
       break;
       }
       // TODO add LBE, ABE algorithms
+      // TODO invariant adjustable LBE, ABE consider that unsat check is disabled
       default: {
       }
       }

@@ -34,7 +34,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.pcc.common.ARTSBEEdge;
+import org.sosy_lab.pcc.common.WithCorrespondingCFAEdgeARTEdge;
 import org.sosy_lab.pcc.common.ARTNode;
 import org.sosy_lab.pcc.common.PCCCheckResult;
 import org.sosy_lab.pcc.common.WithOpDescriptionARTSBEEdge;
@@ -62,7 +62,7 @@ public class SBEWithIndices_ARTProofCheckAlgorithm extends
     String operation;
     CFAEdge cfaEdge;
     ARTNode nodeS, nodeT;
-    ARTSBEEdge edge;
+    WithCorrespondingCFAEdgeARTEdge edge;
     PCCCheckResult intermediateRes;
 
     while (pScan.hasNext()) {
@@ -116,7 +116,7 @@ public class SBEWithIndices_ARTProofCheckAlgorithm extends
   }
 
   @Override
-  protected PCCCheckResult checkEdgeFormula(ARTNode pSource, ARTSBEEdge pEdge,
+  protected PCCCheckResult checkEdgeFormula(ARTNode pSource, WithCorrespondingCFAEdgeARTEdge pEdge,
       ARTNode pTarget) {
     try {
       return buildAndCheckFormula(pSource.getAbstraction(),

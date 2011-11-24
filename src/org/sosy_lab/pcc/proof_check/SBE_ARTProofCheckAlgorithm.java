@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.pcc.common.ARTNode;
-import org.sosy_lab.pcc.common.ARTSBEEdge;
+import org.sosy_lab.pcc.common.WithCorrespondingCFAEdgeARTEdge;
 import org.sosy_lab.pcc.common.AbstractionType;
 import org.sosy_lab.pcc.common.FormulaHandler;
 import org.sosy_lab.pcc.common.PCCCheckResult;
@@ -94,9 +94,7 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
         cfaId = pScan.nextInt();
         // get corresponding CFA node
         cfaNode = nodes.get(new Integer(cfaId));
-        if(cfaNode == null){
-          return PCCCheckResult.UnknownCFANode;
-        }
+        if (cfaNode == null) { return PCCCheckResult.UnknownCFANode; }
         pAbsType = AbstractionType.valueOf(pScan.next());
         if (pAbsType == AbstractionType.Abstraction) {
           next = pScan.next();
@@ -109,9 +107,7 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
           newNode = new ARTNode(artId, cfaNode, pAbsType, true);
         }
 
-        if(art.containsKey(artId)){
-          return PCCCheckResult.ElementAlreadyRead;
-        }
+        if (art.containsKey(artId)) { return PCCCheckResult.ElementAlreadyRead; }
         art.put(new Integer(artId), newNode);
         if (cfaForProof.getMainFunction().equals(cfaNode)) {
           if (!rootFound) {
@@ -128,13 +124,17 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
             return PCCCheckResult.AmbigiousRoot;
           }
         }
-      } catch (NumberFormatException e1) {System.out.println("Error1");
+      } catch (NumberFormatException e1) {
+        System.out.println("Error1");
         return PCCCheckResult.UnknownCFANode;
-      } catch (InputMismatchException e2) {System.out.println("Error2");
+      } catch (InputMismatchException e2) {
+        System.out.println("Error2");
         return PCCCheckResult.UnknownCFANode;
-      } catch (NoSuchElementException e3) {System.out.println("Error3");
+      } catch (NoSuchElementException e3) {
+        System.out.println("Error3");
         return PCCCheckResult.UnknownCFANode;
-      } catch (IllegalArgumentException e4) {System.out.println("Error4");
+      } catch (IllegalArgumentException e4) {
+        System.out.println("Error4");
         return PCCCheckResult.UnknownCFANode;
       }
     }
@@ -143,10 +143,10 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
 
   @Override
   protected PCCCheckResult checkProof() {
-    Hashtable<Integer,String> visited = new Hashtable<Integer,String>();
+    Hashtable<Integer, String> visited = new Hashtable<Integer, String>();
     Stack<Pair<Integer, String>> waiting = new Stack<Pair<Integer, String>>();
     //add root
-    visited.put(root.getID(),"");
+    visited.put(root.getID(), "");
     waiting.push(new Pair<Integer, String>(root.getID(), ""));
     PCCCheckResult intermediateRes;
     Pair<Integer, String> current;
@@ -163,7 +163,7 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
   }
 
   private PCCCheckResult checkARTNode(ARTNode pNode, String pCallReturnStack,
-      Hashtable<Integer,String> pVisited, Stack<Pair<Integer, String>> pWaiting) {
+      Hashtable<Integer, String> pVisited, Stack<Pair<Integer, String>> pWaiting) {
     CFANode cfaNode = pNode.getCorrespondingCFANode();
     String abstraction = pNode.getAbstraction();
 
@@ -231,12 +231,12 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
             logger.log(Level.INFO, "Check if feasible abstraction.");
             if (art.get(target).getAbstractionType() != AbstractionType.NeverAbstraction) {
               result =
-                  checkEdgeFormula(pNode, (ARTSBEEdge)pNode.getEdges()[0], art.get(target));
+                  checkEdgeFormula(pNode, (WithCorrespondingCFAEdgeARTEdge) pNode.getEdges()[0], art.get(target));
 
             } else {// target node does not contain abstraction -> use target nodes children
               result =
                   checkEdgeFormulaeForNonAbstractionTarget(pNode,
-                      (ARTSBEEdge)pNode.getEdges()[0]);
+                      (WithCorrespondingCFAEdgeARTEdge) pNode.getEdges()[0]);
             }
             if (result != PCCCheckResult.Success) { return result; }
           }
@@ -245,14 +245,12 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
               pCallReturnStack.substring(0,
                   pCallReturnStack.lastIndexOf(Separators.stackEntrySeparator)),
               pVisited, pWaiting);
-          if(result !=PCCCheckResult.Success){
-            return result;
-          }
+          if (result != PCCCheckResult.Success) { return result; }
         }
       } else {
 
         // check other edges
-        ARTSBEEdge[] edges = (ARTSBEEdge[])pNode.getEdges();
+        WithCorrespondingCFAEdgeARTEdge[] edges = (WithCorrespondingCFAEdgeARTEdge[]) pNode.getEdges();
         //check if all edges are covered exactly once
         logger.log(Level.INFO, "Check if all CFA edges of the corresponding CFA node are covered by ART node");
         if (edges.length != cfaNode.getNumLeavingEdges()
@@ -284,9 +282,7 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
             intermediateRes = addTargetNode(edges[i].getTarget(), pCallReturnStack, pVisited,
                 pWaiting);
           }
-          if(intermediateRes!=PCCCheckResult.Success){
-            return intermediateRes;
-          }
+          if (intermediateRes != PCCCheckResult.Success) { return intermediateRes; }
         }
       }
     }
@@ -294,19 +290,17 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
   }
 
   private PCCCheckResult addTargetNode(int pTarget, String pCallReturnStack,
-      Hashtable<Integer,String> pVisited, Stack<Pair<Integer, String>> pWaiting) {
+      Hashtable<Integer, String> pVisited, Stack<Pair<Integer, String>> pWaiting) {
     if (!pVisited.contains(pTarget)) {
       pVisited.put(pTarget, pCallReturnStack);
       pWaiting.push(new Pair<Integer, String>(pTarget, pCallReturnStack));
-    }else{
-      if(pVisited.get(pTarget)==null || !pVisited.get(pTarget).equals(pCallReturnStack)){
-        return PCCCheckResult.InvalidART;
-      }
+    } else {
+      if (pVisited.get(pTarget) == null || !pVisited.get(pTarget).equals(pCallReturnStack)) { return PCCCheckResult.InvalidART; }
     }
     return PCCCheckResult.Success;
   }
 
-  private boolean containsCFAEdges(ARTSBEEdge[] pEdges, CFANode pCFA) {
+  private boolean containsCFAEdges(WithCorrespondingCFAEdgeARTEdge[] pEdges, CFANode pCFA) {
     CFAEdge edge;
     boolean found;
     for (int i = 0; i < pCFA.getNumLeavingEdges(); i++) {
@@ -328,17 +322,17 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
   }
 
   private PCCCheckResult checkEdgeFormulaeForNonAbstractionTarget(
-      ARTNode pSource, ARTSBEEdge pEdge) {
+      ARTNode pSource, WithCorrespondingCFAEdgeARTEdge pEdge) {
 
     ARTNode target = art.get(pEdge.getTarget());
-    ArrayList<ARTSBEEdge[]> toCheck = new ArrayList<ARTSBEEdge[]>();
+    ArrayList<WithCorrespondingCFAEdgeARTEdge[]> toCheck = new ArrayList<WithCorrespondingCFAEdgeARTEdge[]>();
     if (target.getNumberOfEdges() > 0) {
-      toCheck.add((ARTSBEEdge[])target.getEdges());
+      toCheck.add((WithCorrespondingCFAEdgeARTEdge[]) target.getEdges());
     }
 
-    ArrayList<Pair<ARTNode, ARTSBEEdge>> targets =
-        new ArrayList<Pair<ARTNode, ARTSBEEdge>>();
-    ARTSBEEdge[] edges;
+    ArrayList<Pair<ARTNode, WithCorrespondingCFAEdgeARTEdge>> targets =
+        new ArrayList<Pair<ARTNode, WithCorrespondingCFAEdgeARTEdge>>();
+    WithCorrespondingCFAEdgeARTEdge[] edges;
 
     // insert all target nodes and their operation
     while (!toCheck.isEmpty()) {
@@ -347,16 +341,16 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
         target = art.get(edges[i].getTarget());
         if (target.getAbstractionType() == AbstractionType.NeverAbstraction) {
           if (target.getNumberOfEdges() > 0) {
-            toCheck.add((ARTSBEEdge[])target.getEdges());
+            toCheck.add((WithCorrespondingCFAEdgeARTEdge[]) target.getEdges());
           }
         } else {
-          targets.add(new Pair<ARTNode, ARTSBEEdge>(target, edges[i]));
+          targets.add(new Pair<ARTNode, WithCorrespondingCFAEdgeARTEdge>(target, edges[i]));
         }
       }
     }
     // check all targets
     PCCCheckResult intermediateRes;
-    Pair<ARTNode, ARTSBEEdge> current;
+    Pair<ARTNode, WithCorrespondingCFAEdgeARTEdge> current;
     for (int i = 0; i < targets.size(); i++) {
       current = targets.get(i);
       intermediateRes =
@@ -374,8 +368,6 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
           || (atFunction && (pTarget.getCorrespondingCFANode() instanceof CFAFunctionDefinitionNode || pTarget
               .getCorrespondingCFANode().getLeavingSummaryEdge() != null))) {
         if (pTarget.getAbstractionType() != AbstractionType.Abstraction) { return PCCCheckResult.InvalidART; }
-      } else {
-        if (pTarget.getAbstractionType() != AbstractionType.NeverAbstraction) { return PCCCheckResult.InvalidART; }
       }
     } else {
       if (pTarget.getAbstractionType() != AbstractionType.Abstraction) { return PCCCheckResult.InvalidART; }
@@ -386,6 +378,6 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
   protected abstract boolean checkAbstraction(String pAbstraction);
 
   protected abstract PCCCheckResult checkEdgeFormula(ARTNode pSource,
-      ARTSBEEdge pEdge, ARTNode pTarget);
+      WithCorrespondingCFAEdgeARTEdge pEdge, ARTNode pTarget);
 
 }

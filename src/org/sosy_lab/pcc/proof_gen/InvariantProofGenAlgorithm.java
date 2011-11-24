@@ -173,5 +173,16 @@ public abstract class InvariantProofGenAlgorithm implements ProofGenAlgorithm {
     return i;
   }
 
+  protected ARTElement getFinalCoveringElement(ARTElement pNode){
+    if(!pNode.isCovered()){
+      return null;
+    }
+    pNode = pNode.getCoveringElement();
+    while(pNode!= null && pNode.isCovered()){
+      pNode = pNode.getCoveringElement();
+    }
+    return pNode;
+  }
+
   protected abstract boolean addInvariant(ARTElement pNode, String pStack);
 }
