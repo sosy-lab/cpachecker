@@ -137,7 +137,7 @@ counterexample.checker = "CBMC"
   allowed values: [CBMC, CPACHECKER]
 
 # configuration file for counterexample checks with CPAchecker
-counterexample.checker.config = "test/config/explicitAnalysis-no-cbmc.properties"
+counterexample.checker.config = "config/explicitAnalysis-no-cbmc.properties"
 
 # continue analysis after an counterexample was found that was denied by the
 # second check
@@ -148,11 +148,8 @@ counterexample.continueAfterInfeasibleError = true
 # similar infeasible counterexamples to get discovered, but is unsound
 counterexample.removeInfeasibleErrors = false
 
-# CPA to use (see HowToConfiguration.txt for more documentation on this)
+# CPA to use (see doc/Configuration.txt for more documentation on this)
 cpa = CompositeCPA.class.getCanonicalName()
-
-# disable caching of abstract state spaces for blocks
-cpa.abm.NO_CACHING = false
 
 # Type of partitioning (FunctionAndLoopPartitioning or
 # DelayedFunctionAndLoopPartitioning)
@@ -183,7 +180,11 @@ cpa.assumptions.progressobserver.heuristics = no default value
 # threshold for heuristics of progressobserver
 cpa.assumptions.progressobserver.heuristics.assumeEdgesInPathHeuristics.threshold = -1
 cpa.assumptions.progressobserver.heuristics.edgeCountHeuristics.threshold = -1
+
+# Threshold for MemoryOutHeuristics (total memory of process in MB)
 cpa.assumptions.progressobserver.heuristics.memoryOutHeuristics.threshold = -1
+
+# threshold for heuristics of progressobserver
 cpa.assumptions.progressobserver.heuristics.pathLengthHeuristics.threshold = -1
 cpa.assumptions.progressobserver.heuristics.reachedSizeHeuristics.threshold = -1
 cpa.assumptions.progressobserver.heuristics.repetitionsInPathHeuristics.threshold = -1
@@ -345,8 +346,8 @@ cpa.predicate.handlePointerAliasing = false
 cpa.predicate.initAllVars = false
 
 # the machine model used for functions sizeof and alignof
-cpa.predicate.machineModel = "32-Linux"
-  allowed values: [32-Linux, 64-Linux]
+cpa.predicate.machineModel = LINUX32
+  enum:     [LINUX32, LINUX64]
 
 # With of the bitvectors if useBitwise is true.
 cpa.predicate.mathsat.bitWidth = 32
@@ -539,7 +540,7 @@ noAutoInitPrefix = "__BLAST_NONDET"
 output.disable = false
 
 # directory to put all output files in
-output.path = "test/output/"
+output.path = "output/"
 
 # C dialect for parser
 parser.dialect = GNUC
@@ -560,7 +561,7 @@ restartAlgorithm.configFiles = no default value
 rootDirectory = "."
 
 # comma-separated list of files with specifications that should be checked
-# (see test/config/automata/ for examples)
+# (see config/specification/ for examples)
 specification = no default value
 
 # write some statistics to disk

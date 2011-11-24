@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
+
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
@@ -98,10 +100,7 @@ public class CFASecondPassBuilder {
         continue;
       }
 
-      int numLeavingEdges = node.getNumLeavingEdges();
-
-      for (int edgeIdx = 0; edgeIdx < numLeavingEdges; edgeIdx++) {
-        CFAEdge edge = node.getLeavingEdge(edgeIdx);
+      for (CFAEdge edge : leavingEdges(node)) {
         if (edge instanceof StatementEdge) {
           StatementEdge statement = (StatementEdge)edge;
           IASTStatement expr = statement.getStatement();
@@ -167,8 +166,7 @@ public class CFASecondPassBuilder {
     List<IASTExpression> parameters = functionCallExpression.getParameterExpressions();
 
     // delete old edge
-    predecessorNode.removeLeavingEdge(edge);
-    successorNode.removeEnteringEdge(edge);
+    CFACreationUtils.removeEdgeFromNodes(edge);
 
     // create new edges
     CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(functionCall.asStatement().getRawSignature(), lineNumber, predecessorNode, successorNode, functionCall);

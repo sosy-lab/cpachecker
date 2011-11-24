@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -46,8 +48,133 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Sets;
+import com.google.common.collect.UnmodifiableIterator;
 
 public class CFAUtils {
+
+  /**
+   * Return an {@link Iterable} that contains all entering edges of a given CFANode,
+   * including the summary edge if the node as one.
+   */
+  public static Iterable<CFAEdge> allEnteringEdges(final CFANode node) {
+    checkNotNull(node);
+    return new Iterable<CFAEdge>() {
+
+      @Override
+      public Iterator<CFAEdge> iterator() {
+        return new UnmodifiableIterator<CFAEdge>() {
+
+          // the index of the next edge (-1 means the summary edge)
+          private int i = (node.getEnteringSummaryEdge() != null) ? -1 : 0;
+
+          @Override
+          public boolean hasNext() {
+            return i < node.getNumEnteringEdges();
+          }
+
+          @Override
+          public CFAEdge next() {
+            if (i == -1) {
+              i = 0;
+              return node.getEnteringSummaryEdge();
+            }
+            return node.getEnteringEdge(i++);
+          }
+        };
+      }
+    };
+  }
+
+  /**
+   * Return an {@link Iterable} that contains the entering edges of a given CFANode,
+   * excluding the summary edge.
+   */
+  public static Iterable<CFAEdge> enteringEdges(final CFANode node) {
+    checkNotNull(node);
+    return new Iterable<CFAEdge>() {
+
+      @Override
+      public Iterator<CFAEdge> iterator() {
+        return new UnmodifiableIterator<CFAEdge>() {
+
+          // the index of the next edge
+          private int i = 0;
+
+          @Override
+          public boolean hasNext() {
+            return i < node.getNumEnteringEdges();
+          }
+
+          @Override
+          public CFAEdge next() {
+             return node.getEnteringEdge(i++);
+          }
+        };
+      }
+    };
+  }
+
+  /**
+   * Return an {@link Iterable} that contains all leaving edges of a given CFANode,
+   * including the summary edge if the node as one.
+   */
+  public static Iterable<CFAEdge> allLeavingEdges(final CFANode node) {
+    checkNotNull(node);
+    return new Iterable<CFAEdge>() {
+
+      @Override
+      public Iterator<CFAEdge> iterator() {
+        return new UnmodifiableIterator<CFAEdge>() {
+
+          // the index of the next edge (-1 means the summary edge)
+          private int i = (node.getLeavingSummaryEdge() != null) ? -1 : 0;
+
+          @Override
+          public boolean hasNext() {
+            return i < node.getNumLeavingEdges();
+          }
+
+          @Override
+          public CFAEdge next() {
+            if (i == -1) {
+              i = 0;
+              return node.getLeavingSummaryEdge();
+            }
+            return node.getLeavingEdge(i++);
+          }
+        };
+      }
+    };
+  }
+
+  /**
+   * Return an {@link Iterable} that contains the leaving edges of a given CFANode,
+   * excluding the summary edge.
+   */
+  public static Iterable<CFAEdge> leavingEdges(final CFANode node) {
+    checkNotNull(node);
+    return new Iterable<CFAEdge>() {
+
+      @Override
+      public Iterator<CFAEdge> iterator() {
+        return new UnmodifiableIterator<CFAEdge>() {
+
+          // the index of the next edge
+          private int i = 0;
+
+          @Override
+          public boolean hasNext() {
+            return i < node.getNumLeavingEdges();
+          }
+
+          @Override
+          public CFAEdge next() {
+             return node.getLeavingEdge(i++);
+          }
+        };
+      }
+    };
+  }
 
   /**
    * Find all nodes of the CFA that are reachable from the given entry point.

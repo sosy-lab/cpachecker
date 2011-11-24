@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 /**
  * A Formula represented as a MathSAT term.
  */
-public class MathsatFormula implements Formula {
+class MathsatFormula implements Formula {
 
     private final long msatTerm;
 

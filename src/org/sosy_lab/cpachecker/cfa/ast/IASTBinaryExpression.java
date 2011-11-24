@@ -63,7 +63,9 @@ public class IASTBinaryExpression extends IASTExpression {
 
   @Override
   public String toASTString() {
-    return operand1.toASTString() + " " + operator + " " + operand2.toASTString();
+    return "(" + operand1.toASTString() + ") "
+               + operator.getOperator()
+        + " (" + operand2.toASTString() + ")";
   }
 
   public static enum BinaryOperator {

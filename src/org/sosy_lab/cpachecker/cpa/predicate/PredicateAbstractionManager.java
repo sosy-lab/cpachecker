@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver.AllSatResult;
 
 @Options(prefix="cpa.predicate")
-class PredicateAbstractionManager {
+public class PredicateAbstractionManager {
 
   static class Stats {
     public int numCallsAbstraction = 0;

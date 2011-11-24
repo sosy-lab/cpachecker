@@ -35,6 +35,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.FunctionAndLoopPartitioning;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.PartitioningHeuristic;
@@ -74,17 +75,19 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   private final ABMPrecisionAdjustment prec;
   private final ABMCPAStatistics stats;
   private final PartitioningHeuristic heuristic;
+  private final CFA cfa;
 
   @Option(packagePrefix="org.sosy_lab.cpachecker.cfa.blocks.builder",
           description="Type of partitioning (FunctionAndLoopPartitioning or DelayedFunctionAndLoopPartitioning)\n"
   		              + "or any class that implements a PartitioningHeuristic")
   private Class<? extends PartitioningHeuristic> blockHeuristic = FunctionAndLoopPartitioning.class;
 
-  public ABMCPA(ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger, ReachedSetFactory pReachedSetFactory) throws InvalidConfigurationException, CPAException {
+  public ABMCPA(ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger, ReachedSetFactory pReachedSetFactory, CFA pCfa) throws InvalidConfigurationException, CPAException {
     super(pCpa);
     config.inject(this);
 
     logger = pLogger;
+    cfa = pCfa;
 
     if (!(pCpa instanceof ConfigurableProgramAnalysisWithABM)) {
       throw new InvalidConfigurationException("ABM needs CPAs that are capable for ABM");
@@ -121,7 +124,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   }
 
   private PartitioningHeuristic getPartitioningHeuristic() throws CPAException, InvalidConfigurationException {
-    return Classes.createInstance(PartitioningHeuristic.class, blockHeuristic, null, new Object[]{logger}, CPAException.class);
+    return Classes.createInstance(PartitioningHeuristic.class, blockHeuristic, new Class[]{LogManager.class, CFA.class}, new Object[]{logger, cfa}, CPAException.class);
   }
 
   @Override

@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="src" path="src">
-		<attributes>
-			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="bin"/>
-		</attributes>
-	</classpathentry>
+	<classpathentry kind="src" path="src"/>
 	<classpathentry exported="true" kind="lib" path="bin/"/>
 	<classpathentry exported="true" kind="lib" path="lib/java/runtime/guava.jar" sourcepath="lib/java-contrib/guava-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/jsr305.jar"/>

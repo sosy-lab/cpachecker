@@ -69,7 +69,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
  * Handles transfer relation for Octagon abstract domain library.
  * See <a href="http://www.di.ens.fr/~mine/oct/">Octagon abstract domain library</a>
  */
-public class OctTransferRelation implements TransferRelation{
+class OctTransferRelation implements TransferRelation{
 
   // set to set global variables
   private List<String> globalVars;
@@ -91,7 +91,6 @@ public class OctTransferRelation implements TransferRelation{
   public Collection<? extends AbstractElement> getAbstractSuccessors (AbstractElement element, Precision prec, CFAEdge cfaEdge) throws UnrecognizedCCodeException
   {
 
-    System.out.println(cfaEdge);
     // octElement is the region of the current state
     // this state will be updated using the edge
 
@@ -173,14 +172,10 @@ public class OctTransferRelation implements TransferRelation{
     }
     }
 
-//    System.out.println("------------------ " + cfaEdge);
     if (octElement == null || octElement.isEmpty()) {
-      System.out.println("[ empty ]");
       return Collections.emptySet();
     }
 
-//    octElement.printOctagon();
-//    System.out.println("=======================");
     return Collections.singleton(octElement);
   }
 
@@ -405,7 +400,6 @@ public class OctTransferRelation implements TransferRelation{
           // a != 9
           else if(opType == BinaryOperator.NOT_EQUALS)
           {
-            //            System.out.println(" >>>>> " + varName + " op2 " + op2.getRawSignature());
             if(truthValue){
               return addIneqConstraint(pElement, variableName, valueOfLiteral);
             }
@@ -1344,8 +1338,6 @@ public class OctTransferRelation implements TransferRelation{
   }
 
   private Long parseLiteral(IASTLiteralExpression expression) {
-      //      System.out.println("expr " + expression.getRawSignature());
-
       //      int typeOfLiteral = ((IASTLiteralExpression)expression).getKind();
       //      if (typeOfLiteral == IASTLiteralExpression.lk_integer_constant) {
       //
@@ -1385,7 +1377,6 @@ public class OctTransferRelation implements TransferRelation{
             --pos;
           }
           num = num.substring(0, pos+1);
-          //          System.out.println("num is " + num);
         }
         break;
       case IASTLiteralExpression.lk_char_constant: {
@@ -1420,9 +1411,7 @@ public class OctTransferRelation implements TransferRelation{
         int i = Integer.parseInt(num);
         retVal = (long)i;
       } catch (NumberFormatException nfe) {
-        //        System.out.print("catching ");
         long l = Long.parseLong(num);
-        //        System.out.println(l);
         if (l < 0) {
           retVal = Integer.MAX_VALUE + l;
         } else {

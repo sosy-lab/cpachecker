@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project basedir="." default="build" name="CPAchecker" xmlns:ivy="antlib:org.apache.ivy.ant">
+    <property name="version" value="trunk"/> <!-- change here for a release -->
+	
     <property environment="env"/>
     <property name="debuglevel" value="source,lines,vars"/>
     <property name="target" value="1.6"/>
@@ -31,6 +33,8 @@
     </target>
     <target name="clean">
         <delete dir="bin"/>
+        <delete file="cpachecker.jar"/>
+        <delete file="CPAchecker-*.zip"/>
     </target>
     <target depends="clean" name="cleanall"/>
 	
@@ -118,6 +122,27 @@
         </java>
         <echo message="Options collected." level="info"/>
     </target>
+	
+    <target description="Make a distributable release" depends="build,jar,zip" name="dist"/>
+	
+    <target name="jar" depends="build">
+	<jar basedir="bin/" includes="**/*.class" destfile="cpachecker.jar"
+		whenmanifestonly="fail">
+	    <manifest>
+	    	<attribute name="Implementation-Title" value="CPAchecker"/>
+	    	<attribute name="Implementation-Version" value="${version}"/>
+	    	<attribute name="Implementation-URL" value="http://cpachecker.sosy-lab.org"/>
+		<attribute name="Main-Class" value="org.sosy_lab.cpachecker.cmdline.CPAMain"/>
+	     </manifest>
+	</jar>
+    </target>
+	
+    <target name="zip" depends="jar">
+        <zip destfile="CPAchecker-${version}.zip" whenempty="fail">
+	    <fileset dir="." includes="config/** doc/** scripts/** cpachecker.jar *.txt"/>
+	    <fileset dir="." includes="lib/**" excludes="lib/build-only/** lib/native/source/**"/>
+	</zip>
+    </target>
 
     <!-- Load the JUnit plugin for Ant if it's not installed. -->
     <condition property="ant.junit.available">
@@ -130,7 +155,7 @@
     </target>
         
     <target description="Run all JUnit tests" depends="build, load-junit" name="tests">
-        <property name="test.report.dir" value="test/output"/>
+        <property name="test.report.dir" value="output"/>
         <mkdir dir="${test.report.dir}"/>
         <junit fork="true" printSummary="true" showOutput="false">
             <assertions>

@@ -17,7 +17,7 @@
     </sourcefiles>
     <sourcefiles>
       <includesfile>test/programs/benchmarks/DeviceDrivers64.set</includesfile>
-      <option name="-setprop">cpa.predicate.machineModel=64-Linux</option>
+      <option name="-setprop">cpa.predicate.machineModel=Linux64</option>
       <option name="-sv-comp12-abm"/>
     </sourcefiles>    
     <option name="-heap">12500m</option>

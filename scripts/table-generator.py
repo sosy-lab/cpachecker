@@ -22,7 +22,7 @@ CSV_SEPARATOR = '\t'
 
 # string searched in filenames to determine correct or incorrect status.
 # use lower case!
-BUG_SUBSTRING_LIST = ['bug', 'unsafe']
+BUG_SUBSTRING_LIST = ['bad', 'bug', 'unsafe']
 
 
 DOCTYPE = '''
@@ -142,7 +142,7 @@ def appendTests(listOfTests, filelist, columns=None):
             else:
                 columnTitles = availableColumnTitles
 
-            if LOGFILES_IN_HTML: insertLogFileNames(resultElem)
+            if LOGFILES_IN_HTML: insertLogFileNames(resultFile, resultElem)
 
             listOfTests.append((resultElem, columnTitles))
         else:
@@ -161,7 +161,7 @@ def containEqualFiles(resultElem1, resultElem2):
     return True
 
 
-def insertLogFileNames(resultElem):
+def insertLogFileNames(resultFile, resultElem):
     # get folder of logfiles
     logFolder = resultElem.get('benchmarkname') + "." + resultElem.get('date') + ".logfiles/"
 
@@ -176,19 +176,24 @@ def insertLogFileNames(resultElem):
         logFolder += testname + "."
         txtFolder += testname + "."
 
+    errorLogFileList = []
     # for each file: append original filename and insert logFileName into sourcefileElement
     for sourcefile in resultElem.findall('sourcefile'):
         logFileName = os.path.basename(sourcefile.get('name'))
 
         # copy logfiles to extra folder and rename them to '.txt'
-        logFile = OUTPUT_PATH + logFolder + logFileName + ".log"
+        logFile = os.path.dirname(resultFile) + '/' + logFolder + logFileName + ".log"
         txtFile = OUTPUT_PATH + txtFolder + logFileName + ".txt"
         try:
             shutil.copyfile(logFile, txtFile)
         except IOError:
-            print 'logfile not found or not copied:\n' + logFile
+            errorLogFileList.append(logFile)
 
         sourcefile.set('logfileForHtml', txtFolder + logFileName + ".txt")
+
+    if errorLogFileList: # not empty
+        print 'logfile not found or not copied:\n' + \
+            '\n'.join(errorLogFileList)
 
 
 def getFileList(shortFile):
@@ -660,14 +665,27 @@ def main(args=None):
     if args is None:
         args = sys.argv
 
-    parser = optparse.OptionParser('%prog [options] sourcefile')
+    parser = optparse.OptionParser('%prog [options] sourcefile\n\n' + \
+        "INFO: documented example-files can be found in 'doc/examples'\n")
+
     parser.add_option("-x", "--xml", 
         action="store", 
         type="string", 
         dest="xmltablefile",
-        help="xmlfile for table. If this option is used, other args are ignored."
+        help="use xmlfile for table. the xml-file should define resultfiles and columns."
+    )
+    parser.add_option("-o", "--outputpath", 
+        action="store", 
+        type="string", 
+        dest="outputPath",
+        help="outputPath for table. if it does not exist, it is created."
     )
     options, args = parser.parse_args(args)
+
+    if options.outputPath:
+        global OUTPUT_PATH
+        OUTPUT_PATH = options.outputPath if options.outputPath.endswith('/') \
+                 else options.outputPath + '/'
 
     if options.xmltablefile:
         print ("reading table definition from '" + options.xmltablefile + "'...")

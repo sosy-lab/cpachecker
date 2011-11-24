@@ -54,7 +54,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.collect.Lists;
 
-public class McMillanRefiner extends AbstractInterpolationBasedRefiner<Formula> {
+public class McMillanRefiner extends AbstractInterpolationBasedRefiner<Formula, Pair<ARTElement, CFANode>> {
 
   private int i = 0;
 
@@ -134,7 +134,7 @@ public class McMillanRefiner extends AbstractInterpolationBasedRefiner<Formula> 
   @Override
   protected void performRefinement(ARTReachedSet pReached,
       List<Pair<ARTElement, CFANode>> pPath,
-      CounterexampleTraceInfo<Formula> pInfo) throws CPAException {
+      CounterexampleTraceInfo<Formula> pInfo, boolean pRepeatedCounterexample) throws CPAException {
 
     List<Formula> itps = pInfo.getPredicatesForRefinement();
 

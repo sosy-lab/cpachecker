@@ -1,0 +1,9 @@
+This is a small selection of programs from the Original VeriSec Benchmark. The 
+complete source can be found at http://se.cs.toronto.edu/index.php/Verisec_Suite
+we did not take all the files because some tested cases CPA-Checker does not test
+and others were too simple. All files we have chosen were renamed, so the full
+path and the subdirecties in the original suite can be found easily.
+
+For our purposes we have inserted asserts in the chosen VeriSec Benchmark files,
+so the CPA-Checker is able to work with this Suite, besides that, all files were
+preprocessed with Cil 1.3.7.

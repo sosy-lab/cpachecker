@@ -23,10 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.heuristics;
 
+import java.lang.management.ManagementFactory;
 import java.util.logging.Level;
 
+import javax.management.JMException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
+
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -48,49 +53,32 @@ import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeu
  * Check that information before using this heuristic.
  */
 @Options(prefix="cpa.assumptions.progressobserver.heuristics.memoryOutHeuristics")
-public class MemoryOutHeuristics
-implements StopHeuristics<TrivialStopHeuristicsData>
-{
-  @Option(description = "threshold for heuristics of progressobserver")
+public class MemoryOutHeuristics implements StopHeuristics<TrivialStopHeuristicsData> {
+
+  @Option(required=true, description = "Threshold for MemoryOutHeuristics (total memory of process in MB)")
   private int threshold = -1;
 
   private final LogManager logger;
-  private int freq = 50000; //TODO read from file
-  private int noOfIterations = 0;
 
-  // find the index of column VIRT in "top -b -n 1" command
-  private final int idxOfVirt;
+  // necessary stuff to query the OperatingSystemMBean
+  private final MBeanServer mbeanServer;
+  private final ObjectName osMbean;
+  private static final String MEMORY_SIZE = "CommittedVirtualMemorySize";
 
-  public MemoryOutHeuristics(Configuration config, LogManager pLogger)
+  private boolean disabled = false;
+
+    public MemoryOutHeuristics(Configuration config, LogManager pLogger)
       throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
-    idxOfVirt = findIndexOfVIRTColumn();
-  }
 
-  private int findIndexOfVIRTColumn() {
-    ProcessExecutor<Exception> processExecutor;
+    mbeanServer = ManagementFactory.getPlatformMBeanServer();
     try {
-      processExecutor = new ProcessExecutor<Exception>(logger, Exception.class, new String[]{"top", "-b", "-n", "1"});
-      processExecutor.join();
-
-      for (String line: processExecutor.getOutput())
-      {
-        if(line.contains("VIRT")){
-          String lines[] = line.split("\\s+");
-          for(int i=0; i<lines.length; i++){
-            if(lines[i].contains("VIRT")){
-              return i;
-            }
-          }
-          break;
-        }
-      }
-
-    } catch (Exception e) {
-      e.printStackTrace();
+      osMbean = new ObjectName("java.lang", "type", "OperatingSystem");
+    } catch (MalformedObjectNameException e) {
+      // the name is hard-coded, so this exception should never occur
+      throw new AssertionError(e);
     }
-    return -1;
   }
 
   @Override
@@ -99,56 +87,44 @@ implements StopHeuristics<TrivialStopHeuristicsData>
   }
 
   @Override
-  public TrivialStopHeuristicsData processEdge(StopHeuristicsData pData, CFAEdge pEdge)
-  {
-    //TODO consider moving these into a thread later
-    // does com.sun.management.OperatingSystemMXBean give us
-    // info same with "top"?
-
-    if(noOfIterations != freq){
-      noOfIterations++;
-      return TrivialStopHeuristicsData.TOP;
+  public TrivialStopHeuristicsData processEdge(StopHeuristicsData pData, CFAEdge pEdge) {
+    TrivialStopHeuristicsData d = (TrivialStopHeuristicsData)pData;
+    if (d == TrivialStopHeuristicsData.BOTTOM) {
+      return d;
     }
 
-    else{
-      noOfIterations = 0;
+    if (disabled || threshold <= 0) {
+      return d;
     }
 
-    // Negative threshold => do nothing
-    if (threshold <= 0)
-      return TrivialStopHeuristicsData.TOP;
-
-    // Bottom => nothing to do, we are already out of memory
-    if (pData == TrivialStopHeuristicsData.BOTTOM)
-      return TrivialStopHeuristicsData.BOTTOM;
-
+    Object memUsedObject;
     try {
+      memUsedObject = mbeanServer.getAttribute(osMbean, MEMORY_SIZE);
+    } catch (JMException e) {
+      logger.logDebugException(e, "Querying memory size failed");
+      logger.log(Level.WARNING, "Your Java VM does not support measuring the memory size, MemoryOutHeuristics disabled");
 
-      ProcessExecutor<Exception> processExecutor = new ProcessExecutor<Exception>(logger, Exception.class, new String[]{"top", "-b", "-n", "1"});
-      processExecutor.join();
-
-      long memUsed = -2;
-
-      for (String line: processExecutor.getOutput())
-      {
-        if(line.contains("java")){
-          memUsed = Long.valueOf(line.split("\\s+")[idxOfVirt-1].replace("m", ""));
-          break;
-        }
-      }
-
-      if(memUsed > threshold) {
-        logger.log(Level.WARNING, "System out of memory, terminating.");
-        TrivialStopHeuristicsData.setThreshold(threshold);
-        TrivialStopHeuristicsData.setPreventingHeuristicType(PreventingHeuristicType.MEMORYOUT);
-        return TrivialStopHeuristicsData.BOTTOM;
-      }
-
-    } catch (Exception e1) {
-      e1.printStackTrace();
+      disabled = true;
+      return d;
     }
 
-    return TrivialStopHeuristicsData.TOP;
+    if (!(memUsedObject instanceof Long)) {
+      logger.log(Level.WARNING, "Invalid value received for memory size: " + memUsedObject + ", MemoryOutHeuristics disabled");
+
+      disabled = true;
+      return d;
+    }
+
+    long memUsed = ((Long)memUsedObject) / (1024*1024);
+
+    if (memUsed > threshold) {
+      logger.log(Level.WARNING, "System out of memory, terminating.");
+      TrivialStopHeuristicsData.setThreshold(threshold);
+      TrivialStopHeuristicsData.setPreventingHeuristicType(PreventingHeuristicType.MEMORYOUT);
+      return TrivialStopHeuristicsData.BOTTOM;
+    }
+
+    return d;
   }
 
   @Override

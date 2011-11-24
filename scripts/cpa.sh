@@ -33,9 +33,6 @@ case "$arch-$platform" in
   i386-Darwin)
     arch_platform="x86-macosx"
     ;;
-  "Power Macintosh-Darwin")
-    arch_platform="ppc-macosx"
-    ;;
   *)
    echo "Failed to determine system type" 1>&2
    exit 1
@@ -56,14 +53,16 @@ case "$platform" in
 esac
 
 if [ ! -e "$PATH_TO_CPACHECKER/bin/org/sosy_lab/cpachecker/cmdline/CPAMain.class" ] ; then
-  echo "bin/org/sosy_lab/cpachecker/cmdline/CPAMain.class not found, please check path to project directory" 1>&2
-  exit 1
+  if [ ! -e "$PATH_TO_CPACHECKER/cpachecker.jar" ] ; then
+    echo "Could not find CPAchecker binary, please check path to project directory" 1>&2
+    exit 1
+  fi
 fi
 
 arch_platform_path="$PATH_TO_CPACHECKER/lib/native/$arch_platform/"
 
 # project files
-CLASSPATH="$CLASSPATH:$PATH_TO_CPACHECKER/bin"
+CLASSPATH="$CLASSPATH:$PATH_TO_CPACHECKER/bin:$PATH_TO_CPACHECKER/cpachecker.jar"
 
 # external jars shipped with the project
 CLASSPATH="$CLASSPATH:$(find "$PATH_TO_CPACHECKER/lib" -maxdepth 1 -name '*.jar' | tr "[:space:]" ":" )"

@@ -248,14 +248,17 @@ public class Configuration {
       }
 
       Set<String> newUnusedProperties;
+      Set<String> newDeprecatedProperties;
       if (oldConfig != null) {
         // share the same set of unused properties
         newUnusedProperties = oldConfig.unusedProperties;
+        newDeprecatedProperties = oldConfig.deprecatedProperties;
       } else {
         newUnusedProperties = new HashSet<String>(newProperties.keySet());
+        newDeprecatedProperties = new HashSet<String>(0);
       }
 
-      Configuration newConfig = new Configuration(newProperties, newPrefix, newUnusedProperties);
+      Configuration newConfig = new Configuration(newProperties, newPrefix, newUnusedProperties, newDeprecatedProperties);
       newConfig.inject(newConfig);
 
       // reset builder instance so that it may be re-used
@@ -278,14 +281,14 @@ public class Configuration {
    * Creates a configuration with all values set to default.
    */
   public static Configuration defaultConfiguration() {
-    return new Configuration(ImmutableMap.<String, String>of(), "", new HashSet<String>(0));
+    return new Configuration(ImmutableMap.<String, String>of(), "", new HashSet<String>(0), new HashSet<String>(0));
   }
 
   /**
    * Creates a copy of a configuration with just the prefix set to a new value.
    */
   public static Configuration copyWithNewPrefix(Configuration oldConfig, String newPrefix) {
-    Configuration newConfig = new Configuration(oldConfig.properties, newPrefix, oldConfig.unusedProperties);
+    Configuration newConfig = new Configuration(oldConfig.properties, newPrefix, oldConfig.unusedProperties, oldConfig.deprecatedProperties);
 
     // instead of calling inject() set options manually
     // this avoids the "throws InvalidConfigurationException" in the signature
@@ -298,7 +301,7 @@ public class Configuration {
   }
 
   @Option(name="output.path", description="directory to put all output files in")
-  private String outputDirectory = "test/output/";
+  private String outputDirectory = "output/";
 
   @Option(name="output.disable", description="disable all default output files"
     + "\n(any explicitly given file will still be written)")
@@ -350,14 +353,17 @@ public class Configuration {
   private final String prefix;
 
   private final Set<String> unusedProperties;
+  private final Set<String> deprecatedProperties;
 
   /*
    * This constructor does not set the fields annotated with @Option!
    */
-  private Configuration(ImmutableMap<String, String> pProperties, String pPrefix, Set<String> pUnusedProperties) {
+  private Configuration(ImmutableMap<String, String> pProperties, String pPrefix,
+      Set<String> pUnusedProperties, Set<String> pDeprecatedProperties) {
     properties = pProperties;
     prefix = (pPrefix.isEmpty() ? "" : (pPrefix + "."));
     unusedProperties = pUnusedProperties;
+    deprecatedProperties = pDeprecatedProperties;
   }
 
   /**
@@ -399,6 +405,10 @@ public class Configuration {
 
   public Set<String> getUnusedProperties() {
     return Collections.unmodifiableSet(unusedProperties);
+  }
+
+  public Set<String> getDeprecatedProperties() {
+    return Collections.unmodifiableSet(deprecatedProperties);
   }
 
   /**
@@ -525,6 +535,10 @@ public class Configuration {
     // but do set OUTPUT_FILE options for disableOutput to work
     if (value == null && (option.type() != Option.Type.OUTPUT_FILE)) { return; }
 
+    if (value != null && (field.getAnnotation(Deprecated.class) != null)) {
+      deprecatedProperties.add(name);
+    }
+
     checkRange(option, name, value);
 
     // set value to field
@@ -590,6 +604,10 @@ public class Configuration {
     // options which were not specified need not to be set
     // but do set OUTPUT_FILE options for disableOutput to work
     if (value == null && (option.type() != Option.Type.OUTPUT_FILE)) { return; }
+
+    if (value != null && (method.getAnnotation(Deprecated.class) != null)) {
+      deprecatedProperties.add(name);
+    }
 
     checkRange(option, name, value);
 

@@ -65,12 +65,12 @@ public class CPABuilder {
   private static final Splitter LIST_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings();
 
   @Option(name=CPA_OPTION_NAME,
-      description="CPA to use (see HowToConfiguration.txt for more documentation on this)")
+      description="CPA to use (see doc/Configuration.txt for more documentation on this)")
   private String cpaName = CompositeCPA.class.getCanonicalName();
 
   @Option(name="specification", type=Option.Type.OPTIONAL_INPUT_FILE,
       description="comma-separated list of files with specifications that should be checked"
-        + "\n(see test/config/automata/ for examples)")
+        + "\n(see config/specification/ for examples)")
   private List<File> specificationFiles = null;
 
   private final Configuration config;

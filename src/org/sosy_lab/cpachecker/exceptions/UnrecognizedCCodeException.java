@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.exceptions;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import org.sosy_lab.cpachecker.cfa.ast.IASTFileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
@@ -35,11 +36,15 @@ public class UnrecognizedCCodeException extends CPATransferException {
 
   private static final long serialVersionUID = -8319167530363457020L;
 
+  protected UnrecognizedCCodeException(String msg1, String msg2, IASTFileLocation loc, String rawSignature) {
+    super(msg1
+        + (msg2 != null ? " (" + msg2 + ") " : " ")
+        + "in line " + loc.getStartingLineNumber()
+        + ": " + rawSignature);
+  }
+
   public UnrecognizedCCodeException(String msg, CFAEdge edge, IASTNode astNode) {
-    super("Unrecognized C code"
-        + (msg != null ? " (" + msg + ") " : " ")
-        + "in line " + astNode.getFileLocation().getStartingLineNumber()
-        + ": " + astNode.getRawSignature());
+    this(msg, astNode);
   }
 
   public UnrecognizedCCodeException(CFAEdge edge, IASTNode astNode) {
@@ -47,10 +52,11 @@ public class UnrecognizedCCodeException extends CPATransferException {
   }
 
   public UnrecognizedCCodeException(String msg, CFAEdge edge) {
-    super("Unrecognized C code"
-        + (msg != null ? " (" + msg + ") " : " ")
-        + "in line " + edge.getLineNumber()
-        + ": " + edge.getRawStatement());
+    this(msg, edge.getRawAST());
+  }
+
+  public UnrecognizedCCodeException(String msg, IASTNode astNode) {
+    this("Unrecognized C code", msg, astNode.getFileLocation(), astNode.getRawSignature());
   }
 
   /**
@@ -60,12 +66,5 @@ public class UnrecognizedCCodeException extends CPATransferException {
   @Deprecated
   public UnrecognizedCCodeException(String msg) {
     super("Unrecognized C code (" + checkNotNull(msg) + ")");
-  }
-
-  /**
-   * Constructor only for sub-classes that create their own message.
-   */
-  protected UnrecognizedCCodeException(String msg, Throwable cause) {
-    super(msg, cause);
   }
 }

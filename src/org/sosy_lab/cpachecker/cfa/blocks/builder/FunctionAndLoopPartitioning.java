@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
@@ -33,8 +34,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
  */
 public class FunctionAndLoopPartitioning extends LoopPartitioning {
 
-  public FunctionAndLoopPartitioning(LogManager pLogger) {
-    super(pLogger);
+  public FunctionAndLoopPartitioning(LogManager pLogger, CFA pCfa) {
+    super(pLogger, pCfa);
   }
 
   @Override

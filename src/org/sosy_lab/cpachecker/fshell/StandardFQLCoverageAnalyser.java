@@ -122,7 +122,7 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
     mWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCFAMap, mLogManager);
 
     try {
-      mWrapper.toDot("test/output/wrapper.dot");
+      mWrapper.toDot("output/wrapper.dot");
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

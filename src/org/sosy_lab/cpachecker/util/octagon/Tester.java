@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.octagon;
 
-public class Tester {
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.*;
 
-	static OctWrapper ow = new OctWrapper();
+public class Tester {
 
 	public static void main(String[] args) {
 //		System.out.println("Init: " + ow.J_init());
@@ -98,13 +98,13 @@ public class Tester {
 //		System.out.println("Removing 1 and 2 from 2 -->");
 //		ow.J_print(ow.J_removeDimensionAtPosition(random_oct2, 1, 2, true));
 
-	  System.out.println("Init: " + ow.J_init());
+	  System.out.println("Init: " + J_init());
 //	  long oct1 = ow.J_universe(0);
 //	  long oct2 = ow.J_copy(oct1);
-    long array = ow.J_init_n(3);
-    ow.J_num_set_int(array, 0, 0);
-    ow.J_num_set_int(array, 1, 0);
-    ow.J_num_set_int(array, 2, 2);
+    long array = J_init_n(3);
+    J_num_set_int(array, 0, 0);
+    J_num_set_int(array, 1, 0);
+    J_num_set_int(array, 2, 2);
 //    System.out.println(ow.J_num_get_int(array, 0));
 //    System.out.println(ow.J_num_get_int(array, 1));
 //    System.out.println(ow.J_num_get_int(array, 2));

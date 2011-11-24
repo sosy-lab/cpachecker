@@ -158,6 +158,12 @@ def getSourceFiles(sourcefilesTagList):
 
             for file in getFileList(includesFilesFile.text):
                 fileDir = os.path.dirname(file)
+                
+                # check for code (if somebody changes 'include' and 'includesfile')
+                if isCode(file):
+                    logging.error("'" + file + "' is no includesfile (set-file).\n" + \
+                        "please check your benchmark-xml-file or remove bracket '{' from this file.")
+                    sys.exit()
 
                 # read files from list
                 fileWithList = open(file, "r")
@@ -167,8 +173,7 @@ def getSourceFiles(sourcefilesTagList):
                     line = line.strip()
 
                     # ignore comments and empty lines
-                    if line and not line.startswith("#") \
-                            and not line.startswith("//"):
+                    if not isComment(line):                        
                         currentSourcefiles += getFileList(line, fileDir)
 
                 fileWithList.close()
@@ -185,6 +190,25 @@ def getSourceFiles(sourcefilesTagList):
         sourcefiles.extend((file, fileOptions) for file in currentSourcefiles)
 
     return sourcefiles
+
+
+def isCode(filename):
+    '''
+    This function returns True, if  a line of the file contains bracket '{'.
+    '''
+    isCodeFile = False
+    file = open(filename, "r")
+    for line in file:
+        # ignore comments and empty lines
+        if not isComment(line) \
+                and '{' in line: # <-- simple indicator for code
+            isCodeFile = True
+    file.close()
+    return isCodeFile
+
+
+def isComment(line):
+    return not line or line.startswith("#") or line.startswith("//")
 
 
 def removeAll(list, elemToRemove):
@@ -280,10 +304,10 @@ class OutputHandler:
         
         memlimit = None
         timelimit = None
-        if (9 in self.benchmark.rlimits): # 9 is key of memlimit, convert value to MB
-            memlimit = str(self.benchmark.rlimits[9][0] / 1024 / 1024) + " MB"
-        if (0 in self.benchmark.rlimits): # 0 is key of timelimit
-            timelimit = str(self.benchmark.rlimits[0][0]) + " s"
+        if (resource.RLIMIT_AS in self.benchmark.rlimits):
+            memlimit = str(self.benchmark.rlimits[resource.RLIMIT_AS][0] / 1024 / 1024) + " MB"
+        if (resource.RLIMIT_CPU in self.benchmark.rlimits):
+            timelimit = str(self.benchmark.rlimits[resource.RLIMIT_CPU][0]) + " s"
 
         self.storeHeaderInXML(version, memlimit, timelimit, opSystem, cpuModel,
                               numberOfCores, maxFrequency, memory)
@@ -410,7 +434,6 @@ class OutputHandler:
 
             else: # try to get revision with GIT-SVN
                 output = subprocess.Popen(['git', 'svn', 'info'],
-                                  cwd=cpaFolder,
                                   stdout=subprocess.PIPE,
                                   stderr=subprocess.STDOUT).communicate()[0]
     
@@ -959,10 +982,19 @@ def findExecutable(program, default):
     sys.exit("ERROR: Could not find %s executable" % program)
 
 
-def run(args, rlimits):
+def killSubprocess(process):
+    '''
+    this function kills the process and the children in its group.
+    '''
+    os.killpg(process.pid, signal.SIGTERM)
+
+
+def run(args, rlimits, runningDir=None, runningEnv=None):
     args = map(lambda arg: os.path.expandvars(arg), args)
     args = map(lambda arg: os.path.expanduser(arg), args)
-    def setrlimits():
+
+    def preSubprocess():
+        os.setpgrp() # make subprocess to group-leader
         for rsrc, limits in rlimits.items():
             resource.setrlimit(rsrc, limits)
 
@@ -970,9 +1002,10 @@ def run(args, rlimits):
     wallTimeBefore = time.time()
 
     try:
+        global p
         p = subprocess.Popen(args,
                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                             preexec_fn=setrlimits)
+                             preexec_fn=preSubprocess)
     except OSError:
         logging.critical("I caught an OSError. Assure that the directory "
                          + "containing the tool to be benchmarked is included "
@@ -982,10 +1015,10 @@ def run(args, rlimits):
     # if rlimit does not work, a seperate Timer is started to kill the subprocess, 
     # Timer has 10 seconds 'overhead'
     from threading import Timer
-    if (0 in rlimits): # 0 is key of timelimit
-        timelimit = rlimits[0][0]
+    if (resource.RLIMIT_CPU in rlimits):
+        timelimit = rlimits[resource.RLIMIT_CPU][0]
         global timer # "global" for KeyboardInterrupt from user
-        timer = Timer(timelimit + 10, subprocess.Popen.terminate, [p])
+        timer = Timer(timelimit + 10, killSubprocess, [p])
         timer.start()
 
     output = p.stdout.read()
@@ -1185,24 +1218,13 @@ def run_cpachecker(options, sourcefile, columns, rlimits):
     args = [exe] + options + [sourcefile]
     (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
 
-    if resource.RLIMIT_CPU in rlimits:
-        limit = rlimits.get(resource.RLIMIT_CPU)[0]
-    else:
-        limit = float('inf')
-
-    if returncode == -9 and cpuTimeDelta > (limit*0.99):
-        # if return code is "KILLED BY SIGNAL 9" and
-        # used CPU time is larger than the time limit (approximately at least)
-        status = 'TIMEOUT'
-    else:
-        status = getCPAcheckerStatus(returncode, output)
-
+    status = getCPAcheckerStatus(returncode, output, rlimits, cpuTimeDelta)
     getCPAcheckerColumns(output, columns)
 
     return (status, cpuTimeDelta, wallTimeDelta, output, args)
 
 
-def getCPAcheckerStatus(returncode, output):
+def getCPAcheckerStatus(returncode, output, rlimits, cpuTimeDelta):
     """
     @param returncode: code returned by CPAchecker 
     @param output: the output of CPAchecker
@@ -1218,14 +1240,27 @@ def getCPAcheckerStatus(returncode, output):
 
     if returncode == 0:
         status = None
+
     elif returncode == -6:
         status = "ABORTED (probably by Mathsat)"
+
     elif returncode == -9:
-        status = "KILLED BY SIGNAL 9"
+        if resource.RLIMIT_CPU in rlimits:
+            limit = rlimits.get(resource.RLIMIT_CPU)[0]
+        else:
+            limit = float('inf')
+
+        if cpuTimeDelta > limit*0.99:
+            status = 'TIMEOUT'
+        else:
+            status = "KILLED BY SIGNAL 9"
+
     elif returncode == (128+15):
         status = "KILLED"
+
     else:
         status = "ERROR ({0})".format(returncode)
+
     for line in output.splitlines():
         if isOutOfMemory(line):
             status = 'OUT OF MEMORY'
@@ -1233,6 +1268,8 @@ def getCPAcheckerStatus(returncode, output):
             status = 'SEGMENTATION FAULT'
         elif (returncode == 0 or returncode == 1) and ('Exception' in line):
             status = 'EXCEPTION'
+        elif 'Could not reserve enough space for object heap' in line:
+            status = 'JAVA HEAP ERROR'
         elif (status is None) and line.startswith('Verification result: '):
             line = line[21:].strip()
             if line.startswith('SAFE'):
@@ -1351,7 +1388,9 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
     from optparse import OptionParser
-    parser = OptionParser(usage="usage: %prog [OPTION]... [FILE]...")
+    parser = OptionParser(usage="usage: %prog [OPTION]... [FILE]...\n\n" + \
+        "INFO: documented example-files can be found in 'doc/examples'\n")
+
     parser.add_option("-d", "--debug",
                       action="store_true",
                       help="enable debug output")
@@ -1397,6 +1436,11 @@ if __name__ == "__main__":
             timer.cancel() # Timer, that kills a subprocess after timelimit
         except NameError:
             pass # if no timer is defined, do nothing
+        
+        try:
+            killSubprocess(p) # kill running tool
+        except NameError:
+            pass # if tool not running, do nothing
 
         interruptMessage = "\n\nscript was interrupted by user, some tests may not be done"
         logging.debug(interruptMessage)
