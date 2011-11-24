@@ -3,22 +3,11 @@ Libraries contained in this project:
 NOTE: If you add a library to CPAchecker, be sure to update MANIFEST.MF
 with the Eclipse PDE wizard!
 
-- ivy/build/jflex.jar: JFlex Scanner Generator for Java
-  http://www.jflex.de/
-  GNU GPL: http://jflex.de/copying.html#GPL
-  Used for generating automaton and FQL scanners.
-  The generated code is not under GPL,
-  and we do not use JFlex during runtime.
-
-- ivy/build/ivy.jar: Apache Ivy
-  http://ant.apache.org/ivy/
-  Apache License 2.0: ../License_Apache-2.0.txt
-  Used for managing dependencies to external libraries.
-
-- ivy/build/ant-junit.jar, ivy/test/junit.jar: JUnit
-  http://junit.sourceforge.net/
-  Common Public License 1.0: http://junit.sourceforge.net/cpl-v10.html
-  Used for unit tests and for executing them from ant.
+All libraries in the lib/java directory are managed by Apache Ivy.
+To add libraries there, add them to the ivy.xml file.
+Do not put any files in that directory, Ivy will delete them!
+To generate a report listing all the libraries managed by Ivy,
+call "ant report-dependencies". 
 
 - cbmc: CBMC
   http://www.cprover.org/cbmc/
@@ -35,46 +24,11 @@ with the Eclipse PDE wizard!
   Apache License 2.0: ../License_Apache-2.0.txt
   SMT solver for predicate analysis.
 
-- ivy/runtime/icu4j.jar: International Components for Unicode
-  http://site.icu-project.org/
-  ICU License: license-icu4j.html
-  Needed by Eclipse CDT parser for error messages.
-
-- ivy/runtime/org.eclipse.*: Eclipse and Eclipse CDT
-  http://www.eclipse.org/ and http://www.eclipse.org/cdt/
-  Eclipse Public License 1.0: http://www.eclipse.org/org/documents/epl-v10.php
-  Used for parsing C code.
-
-- ivy/runtime/guava.jar: Google Core Libraries for Java
-  http://guava-libraries.googlecode.com
-  Apache License 2.0: ../License_Apache-2.0.txt
-  Contains a lot of helpful data structures.
-
-- ivy/runtime/javabdd-*.jar: JavaBDD
-  http://javabdd.sourceforge.net/
-  GNU LGPL: LGPL.txt
-  Java BDD library for predicate abstraction (uses CUDD).
-
-- ivy/build/java-cup.jar, ivy/runtime/java-cup-runtime.jar: CUP LALR Parser Generator for Java
-  http://www2.cs.tum.edu/projects/cup/
-  CUP Parser Generator License: license-cup.txt
-  Used for generating automaton and FQL parsers.
-
-- ivy/runtime/jgrapht-jdk1.6.jar: JGraphT
-  http://www.jgrapht.org/
-  GNU LGPL: LGPL.txt
-  Used by FShell for graphs.
-
 - libJOct.so: Octagon Abstract Domain Library
   http://www.di.ens.fr/~mine/oct/
   Octagon Abstract Domain License: license-octagon.txt
   Used for octagon abstract domain.
   Source for wrapper in native/source/octagon-libJOct.so/
-
-- ivy/runtime/json-simple.jar: JSON.simple -A simple Java toolkit for JSON
-  http://code.google.com/p/json-simple/
-  Apache License 2.0: ../License_Apache-2.0.txt
-  Used for dumping verification result as JSON for report builder.
 
 - libmathsatj.so: Mathsat4
   http://mathsat4.disi.unitn.it/
