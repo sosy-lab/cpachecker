@@ -66,7 +66,7 @@ CLASSPATH="$CLASSPATH:$PATH_TO_CPACHECKER/bin:$PATH_TO_CPACHECKER/cpachecker.jar
 
 # external jars shipped with the project
 CLASSPATH="$CLASSPATH:$(find "$PATH_TO_CPACHECKER/lib" -maxdepth 1 -name '*.jar' | tr "[:space:]" ":" )"
-CLASSPATH="$CLASSPATH:$(find "$PATH_TO_CPACHECKER/lib/eclipse" -maxdepth 1 -name '*.jar' | tr "[:space:]" ":" )"
+CLASSPATH="$CLASSPATH:$(find "$PATH_TO_CPACHECKER/lib/java/runtime" -maxdepth 1 -name '*.jar' | tr "[:space:]" ":" )"
 
 export CLASSPATH
 
