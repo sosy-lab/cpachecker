@@ -1212,6 +1212,28 @@ def prepareSourceFileForAcsar(sourcefile):
     return newFilename
 
 
+# the next 3 functions are for imaginary tools, that return special results,
+# perhaps someone can use these function again someday,
+# to use them you need a normal benchmark-xml-file 
+# with the tool and sourcefiles, however options are ignored
+def run_safe(options, sourcefile, columns, rlimits):
+    args = ['safe'] + options + [sourcefile]
+    (returncode, output, cpuTimeDelta, wallTimeDelta) = (0, 'no output', 0, 0)
+    return ('safe', cpuTimeDelta, wallTimeDelta, output, args)
+
+def run_unsafe(options, sourcefile, columns, rlimits):
+    args = ['unsafe'] + options + [sourcefile]
+    (returncode, output, cpuTimeDelta, wallTimeDelta) = (0, 'no output', 0, 0)
+    return ('unsafe', cpuTimeDelta, wallTimeDelta, output, args)
+
+def run_random(options, sourcefile, columns, rlimits):
+    args = ['random'] + options + [sourcefile]
+    (returncode, output, cpuTimeDelta, wallTimeDelta) = (0, 'no output', 0, 0)
+    from random import random
+    status = 'safe' if random() < 0.5 else 'unsafe'
+    return (status, cpuTimeDelta, wallTimeDelta, output, args)
+
+
 def run_cpachecker(options, sourcefile, columns, rlimits):
     if ("-stats" not in options):
         options = options + ["-stats"]
@@ -1336,7 +1358,8 @@ def run_blast(options, sourcefile, columns, rlimits):
 def runBenchmark(benchmarkFile):
     benchmark = Benchmark(benchmarkFile)
 
-    assert benchmark.tool in ["cbmc", "satabs", "cpachecker", "blast", "acsar", "wolverine"]
+    assert benchmark.tool in ["cbmc", "satabs", "cpachecker", "blast", "acsar", "wolverine",
+                              "safe", "unsafe", "random"]
     run_func = eval("run_" + benchmark.tool)
 
     if len(benchmark.tests) == 1:
