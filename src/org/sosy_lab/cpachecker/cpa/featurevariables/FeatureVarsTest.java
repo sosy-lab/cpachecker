@@ -403,8 +403,11 @@ public class FeatureVarsTest {
     }
     boolean logLineMatches(String pattern) {
       String[] lines = this.log.split("\n");
-      for (int i = 0; i < lines.length; i++)
-        if (lines[i].matches(pattern))return true;
+      for (int i = 0; i < lines.length; i++) {
+        if (lines[i].matches(pattern)) {
+          return true;
+        }
+      }
       return false;
      }
     boolean isSafe() {

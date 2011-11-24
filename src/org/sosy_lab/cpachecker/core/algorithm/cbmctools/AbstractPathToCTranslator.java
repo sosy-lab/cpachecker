@@ -109,16 +109,10 @@ public class AbstractPathToCTranslator {
     // as "typedef int wchar_t;" - these contradicting definitions make cbmc fail
 //  includeList.add("#include<stdlib.h>");
     includeList.add("#include<stdio.h>");
-    String ret = Joiner.on('\n').join(concat(includeList,
+    return Joiner.on('\n').join(concat(includeList,
                                              translator.mGlobalDefinitionsList,
                                              translator.mFunctionDecls,
                                              translator.mFunctionBodies));
-
-    // replace nondet keyword with cbmc nondet keyword
-    ret = ret.replaceAll("__BLAST_NONDET___0", "nondet_int()");
-    ret = ret.replaceAll("__BLAST_NONDET", "nondet_int()");
-
-    return ret;
   }
 
   private void translatePath(final ARTElement firstElement) {

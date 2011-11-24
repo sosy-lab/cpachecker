@@ -42,5 +42,17 @@ public abstract class IASTNode {
     return rawSignature;
   }
 
-  public abstract String toASTString();
+  public String toASTString() {
+    return toASTString("");
+  }
+
+  public String toASTString(int pOffset) {
+    StringBuilder prefix = new StringBuilder();
+    for (int i = 0; i < pOffset; i++) {
+      prefix.append(" ");
+    }
+    return toASTString(prefix.toString());
+  }
+
+  public abstract String toASTString(String pPrefix);
 }

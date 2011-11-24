@@ -195,6 +195,10 @@ public class ABMPredicateReducer implements Reducer {
 
   private Map<Pair<Integer, Block>, Precision> reduceCache = new HashMap<Pair<Integer, Block>, Precision>();
 
+  public void clearCaches() {
+    reduceCache.clear();
+  }
+
   @Override
   public Precision getVariableReducedPrecision(Precision pPrecision,
       Block pContext) {

@@ -25,17 +25,17 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import java.util.Iterator;
 import java.util.List;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
 public class IASTFunctionTypeSpecifier extends IType {
 
-  private final IType              returnType;
-  private       String                         name = null;
+  private final IType returnType;
+  private String name = null;
   private final List<IASTParameterDeclaration> parameters;
-  private final boolean                        takesVarArgs;
+  private final boolean takesVarArgs;
 
   public IASTFunctionTypeSpecifier(
       boolean pConst,
@@ -72,6 +72,14 @@ public class IASTFunctionTypeSpecifier extends IType {
 
   @Override
   public String toASTString() {
+    return toASTStringHelper(false);
+  }
+
+  String toASTStringFunctionPointer() {
+    return toASTStringHelper(true);
+  }
+
+  private String toASTStringHelper(boolean pPointer) {
     StringBuilder lASTString = new StringBuilder();
 
     if (isConst()) {
@@ -82,25 +90,27 @@ public class IASTFunctionTypeSpecifier extends IType {
     }
 
     lASTString.append(returnType.toASTString());
-    lASTString.append(" ");
+
     if (name != null) {
-      lASTString.append(name);
-      lASTString.append(" ");
-    }
-    lASTString.append("(");
-
-    Iterator<IASTParameterDeclaration> lIt = parameters.iterator();
-    boolean isFirst = true;
-    while (lIt.hasNext()) {
-      if (isFirst) {
-        isFirst = false;
+      if (pPointer) {
+        lASTString.append("(*");
+        lASTString.append(name);
+        lASTString.append(")");
       } else {
-        lASTString.append(", ");
+        lASTString.append(name);
       }
-      lASTString.append(lIt.next().toASTString());
     }
 
-    lASTString.append(")");
+    lASTString.append("(");
+    if (parameters.isEmpty()) {
+      if (!pPointer) {
+        lASTString.append("void");
+      }
+    } else {
+      lASTString.append(Joiner.on(", ").join(new ASTStringIterable(parameters)));
+    }
+    lASTString.append(") ");
+
     return lASTString.toString();
   }
 }

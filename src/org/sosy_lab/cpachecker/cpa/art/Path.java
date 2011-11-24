@@ -119,10 +119,9 @@ public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
           AssumeEdge assumeEdge = (AssumeEdge)currentEdge;
           sb.append("__CPROVER_assume(");
 
-          if(assumeEdge.getTruthAssumption())
+          if(assumeEdge.getTruthAssumption()) {
             sb.append(assumeEdge.getExpression().getRawSignature());
-
-          else
+          } else
           {
             sb.append("!(");
             sb.append(assumeEdge.getExpression().getRawSignature());

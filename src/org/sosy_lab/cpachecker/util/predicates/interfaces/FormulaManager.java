@@ -88,7 +88,6 @@ public interface FormulaManager {
    * @param f2 a Formula
    * @return (IF atom THEN f1 ELSE f2)
    */
-
   public Formula makeIfThenElse(Formula cond,
       Formula f1, Formula f2);
 

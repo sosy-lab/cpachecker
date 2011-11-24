@@ -43,7 +43,7 @@ public class IASTExpressionStatement extends IASTStatement {
   }
 
   @Override
-  public String toASTString() {
-    return expression.toASTString() + ";";
+  public String toASTString(String pPrefix) {
+    return pPrefix + expression.toASTString() + ";";
   }
 }

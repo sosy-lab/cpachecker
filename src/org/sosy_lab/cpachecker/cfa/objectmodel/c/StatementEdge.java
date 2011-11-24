@@ -28,29 +28,28 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
-public class StatementEdge extends AbstractCFAEdge
-{
-    private final IASTStatement statement;
+public class StatementEdge extends AbstractCFAEdge {
 
-    public StatementEdge(IASTStatement pStatement, int lineNumber, CFANode predecessor, CFANode successor)
-    {
-        super(pStatement.getRawSignature(), lineNumber, predecessor, successor);
-        this.statement = pStatement;
-    }
+  private final IASTStatement statement;
 
-    @Override
-    public CFAEdgeType getEdgeType ()
-    {
-        return CFAEdgeType.StatementEdge;
-    }
+  public StatementEdge(IASTStatement pStatement, int pLineNumber,
+      CFANode pPredecessor, CFANode pSuccessor) {
 
-    public IASTStatement getStatement()
-    {
-        return statement;
-    }
+    super(pStatement.getRawSignature(), pLineNumber, pPredecessor, pSuccessor);
+    statement = pStatement;
+  }
 
-    @Override
-    public IASTStatement getRawAST() {
-      return statement;
-    }
+  @Override
+  public CFAEdgeType getEdgeType() {
+    return CFAEdgeType.StatementEdge;
+  }
+
+  public IASTStatement getStatement() {
+    return statement;
+  }
+
+  @Override
+  public IASTStatement getRawAST() {
+    return statement;
+  }
 }

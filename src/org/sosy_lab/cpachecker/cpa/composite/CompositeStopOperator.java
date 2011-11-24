@@ -64,7 +64,7 @@ public class CompositeStopOperator implements StopOperator{
 
     for (int idx = 0; idx < compositeElements.size(); idx++) {
       StopOperator stopOp = stopOperators.get(idx);
-      
+
       AbstractElement absElem1 = compositeElements.get(idx);
       AbstractElement absElem2 = compositeReachedElements.get(idx);
       Precision prec = compositePrecisions.get(idx);

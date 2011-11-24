@@ -23,12 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Preconditions.*;
 
-import java.util.Iterator;
 import java.util.List;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
 public final class IASTEnumerationSpecifier extends IType {
@@ -64,20 +63,11 @@ public final class IASTEnumerationSpecifier extends IType {
 
     lASTString.append("enum ");
     lASTString.append(name);
-    lASTString.append(" {");
 
-    Iterator<IASTEnumerator> lIt = enumerators.iterator();
-    boolean lFirst = true;
-    while (lIt.hasNext()) {
-      if (lFirst) {
-        lFirst = false;
-      } else {
-        lASTString.append(", ");
-      }
-      lASTString.append(lIt.next().toASTString());
-    }
+    lASTString.append(" {\n  ");
+    lASTString.append(Joiner.on(",\n  ").join(new ASTStringIterable(enumerators)));
+    lASTString.append("} ");
 
-    lASTString.append("}");
     return lASTString.toString();
   }
 
@@ -106,12 +96,9 @@ public final class IASTEnumerationSpecifier extends IType {
     }
 
     @Override
-    public String toASTString() {
-      if (hasValue()) {
-        return getName() + " = " + String.valueOf(value);
-      } else {
-        return getName();
-      }
+    public String toASTString(String pPrefix) {
+      return pPrefix + getName()
+          + (hasValue() ? " = " + String.valueOf(value) : "");
     }
   }
 }

@@ -104,6 +104,7 @@ public interface Waitlist extends Iterable<AbstractElement> {
   public enum TraversalMethod implements WaitlistFactory {
     DFS     { @Override public Waitlist createWaitlistInstance() { return new SimpleWaitlist(this); } },
     BFS     { @Override public Waitlist createWaitlistInstance() { return new SimpleWaitlist(this); } },
+    @Deprecated
     TOPSORT { @Override public Waitlist createWaitlistInstance() { return new TopsortWaitlist();    } },
     RAND    { @Override public Waitlist createWaitlistInstance() { return new RandomWaitlist();     } },
     ;

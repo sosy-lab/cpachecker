@@ -84,7 +84,9 @@ class NativeApi {
        long[] t = new long[1];
        long[] v = new long[1];
        int s = msat_model_iterator_next(i, t, v);
-       if (s == -1) return null;
+       if (s == -1) {
+        return null;
+      }
        return new long[]{ t[0], v[0] };
     }
 

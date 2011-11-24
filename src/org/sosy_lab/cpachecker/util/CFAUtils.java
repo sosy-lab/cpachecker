@@ -283,8 +283,9 @@ public class CFAUtils {
     Deque<CFANode> stack = new ArrayDeque<CFANode>();
 
     seen.add(startNode);
-    if(endNode != null)
+    if(endNode != null) {
       seen.add(endNode);
+    }
 
     for(int i = 0; i < startNode.getNumLeavingEdges(); i++) {
       CFANode nextNode = startNode.getLeavingEdge(i).getSuccessor();

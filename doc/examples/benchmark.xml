@@ -48,7 +48,7 @@
   <!--
     Optional list of additional options that are added to the resulting tables.
     (Currently only available for CPAchecker).
-    The output of the tool will be search for a matching line,
+    The output of the tool will be searched for a matching line,
     and the respective value will be copied to the table.
     "numberOfDigits" gives the number of digits after the decimal separator.
     Both attributes are optional.

@@ -36,7 +36,7 @@ import com.google.common.collect.Maps;
 
 public abstract class AbstractRelevantPredicatesComputer<T> implements RelevantPredicatesComputer {
 
-  private final Map<Pair<T, AbstractionPredicate>, Boolean> relevantPredicates = Maps.newHashMap();
+  protected final Map<Pair<T, AbstractionPredicate>, Boolean> relevantPredicates = Maps.newHashMap();
 
   @Override
   public Set<AbstractionPredicate> getRelevantPredicates(Block context, Collection<AbstractionPredicate> predicates) {

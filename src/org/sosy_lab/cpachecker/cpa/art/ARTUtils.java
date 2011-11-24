@@ -122,6 +122,28 @@ public class ARTUtils {
     return path;
   }
 
+  private static String determineColor(ARTElement currentElement)
+  {
+    String color;
+
+    if (currentElement.isCovered()) {
+      color = "green";
+
+    } else if (currentElement.isTarget()) {
+      color = "red";
+
+    } else {
+      PredicateAbstractElement abselem = AbstractElements.extractElementByType(currentElement, PredicateAbstractElement.class);
+      if (abselem != null && abselem.isAbstractionElement()) {
+        color = "blue";
+      } else {
+        color = "white";
+      }
+    }
+
+    return color;
+  }
+
   /**
    * Create String with ART in the DOT format of Graphviz.
    * @param pReached the reached set
@@ -138,7 +160,7 @@ public class ARTUtils {
     StringBuilder edges = new StringBuilder();
 
     sb.append("digraph ART {\n");
-    sb.append("style=filled; fontsize=10.0; fontname=\"Courier New\"; \n");
+    sb.append("style=\"filled\" fontsize=\"10.0\" fontname=\"Courier New\"\n");
 
     worklist.add(firstElement);
 
@@ -147,26 +169,23 @@ public class ARTUtils {
       if(processed.contains(currentElement)){
         continue;
       }
+
       processed.add(currentElement);
+
       if(!nodesList.contains(currentElement.getElementId())){
-        String color;
-        if (currentElement.isCovered()) {
-          color = "green";
-        } else if (currentElement.isTarget()) {
-          color = "red";
-        } else {
-          PredicateAbstractElement abselem = AbstractElements.extractElementByType(currentElement, PredicateAbstractElement.class);
-          if (abselem != null && abselem.isAbstractionElement()) {
-            color = "blue";
-          } else {
-            color = "white";
-          }
-        }
 
         CFANode loc = currentElement.retrieveLocationElement().getLocationNode();
-        String label = (loc==null ? 0 : loc.getNodeNumber()) + "000" + currentElement.getElementId();
+        String label = ((loc == null) ? 0 : loc.getNodeNumber()) + "000" + currentElement.getElementId();
 
-        sb.append("node [shape = diamond, color = " + color + ", style = filled, label=" + label +" id=\"" + currentElement.getElementId() + "\"] " + currentElement.getElementId() + ";\n");
+        sb.append(currentElement.getElementId());
+        sb.append(" [");
+        sb.append("shape=\"diamond\" ");
+        sb.append("color=\"" + determineColor(currentElement) + "\" ");
+        sb.append("style=\"filled\" ");
+        sb.append("label=\"" + label +"\" ");
+        sb.append("id=\"" + currentElement.getElementId() + "\"");
+        sb.append("]");
+        sb.append("\n");
 
         nodesList.add(currentElement.getElementId());
       }
@@ -175,30 +194,36 @@ public class ARTUtils {
         edges.append(covered.getElementId());
         edges.append(" -> ");
         edges.append(currentElement.getElementId());
-        edges.append(" [style = dashed, label = \"covered by\"];\n");
+        edges.append(" [style=\"dashed\" label=\"covered by\"]\n");
       }
 
       for (ARTElement child : currentElement.getChildren()) {
-        boolean colored = pathEdges.contains(Pair.of(currentElement, child));
-        CFAEdge edge = currentElement.getEdgeToChild(child);
         edges.append(currentElement.getElementId());
         edges.append(" -> ");
         edges.append(child.getElementId());
         edges.append(" [");
-        if (colored) {
-          edges.append("color = red");
+
+        boolean colored = pathEdges.contains(Pair.of(currentElement, child));
+        CFAEdge edge = currentElement.getEdgeToChild(child);
+        if(colored) {
+          edges.append("color=\"red\"");
         }
-        if (edge != null) {
-          edges.append(" label = \"");
+
+        if(edge != null) {
+          if(colored) {
+            edges.append(" ");
+          }
+          edges.append("label=\"");
           edges.append(edge.toString().replace('"', '\''));
           edges.append("\"");
           edges.append(" id=\"");
           edges.append(currentElement.getElementId());
-          edges.append("->");
+          edges.append(" -> ");
           edges.append(child.getElementId());
           edges.append("\"");
         }
-        edges.append("];\n");
+
+        edges.append("]\n");
         if(!worklist.contains(child)){
           worklist.add(child);
         }

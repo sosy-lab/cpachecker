@@ -48,6 +48,6 @@ public class IASTArrayTypeSpecifier extends IType {
     return (isConst() ? "const " : "")
       + (isVolatile() ? "volatile " : "")
       + type.toASTString()
-      + "[" + length.toASTString() + "]";
+      + "[" + length.toASTString() + "] ";
   }
 }

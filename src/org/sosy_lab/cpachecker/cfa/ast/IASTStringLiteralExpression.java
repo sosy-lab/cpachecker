@@ -25,9 +25,18 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 public final class IASTStringLiteralExpression extends IASTLiteralExpression {
 
+  private final String value;
+
   public IASTStringLiteralExpression(String pRawSignature,
-      IASTFileLocation pFileLocation, IType pType) {
-    super(pRawSignature, pFileLocation, pType, IASTLiteralExpression.lk_string_literal);
+      IASTFileLocation pFileLocation, IType pType, String pValue) {
+    super(pRawSignature, pFileLocation, pType);
+
+    value = pValue;
+  }
+
+  @Override
+  public String getValue() {
+    return value;
   }
 
   @Override
@@ -41,7 +50,8 @@ public final class IASTStringLiteralExpression extends IASTLiteralExpression {
   }
 
   @Override
-  public String toASTString() {
-    return getRawSignature();
+  public String toASTString(String pPrefix) {
+    return pPrefix + value;
   }
+
 }

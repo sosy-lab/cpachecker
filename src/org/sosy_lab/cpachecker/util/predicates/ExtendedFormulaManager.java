@@ -60,6 +60,16 @@ public final class ExtendedFormulaManager extends ForwardingFormulaManager {
 
   private static final Joiner LINE_JOINER = Joiner.on('\n');
 
+  public static ExtendedFormulaManager extendFormulaManager(FormulaManager pFmgr,
+      Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+
+    if (pFmgr instanceof ExtendedFormulaManager) {
+      return (ExtendedFormulaManager) pFmgr;
+    } else {
+      return new ExtendedFormulaManager(pFmgr, config, pLogger);
+    }
+  }
+
   public ExtendedFormulaManager(FormulaManager pFmgr, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     super(pFmgr);
     config.inject(this, ExtendedFormulaManager.class);
@@ -91,6 +101,25 @@ public final class ExtendedFormulaManager extends ForwardingFormulaManager {
       result = this.makeAnd(result, formula);
     }
     return result;
+  }
+
+  /**
+   * Makes an implication from p to q.
+   *
+   * @return (p ⇒ q)
+   */
+  public Formula makeImplication(Formula p, Formula q) {
+    Formula left = makeNot(p);
+    return makeOr(left, q);
+  }
+
+  /**
+   * Makes a Formula in which f1 and f2 are not equal.
+   *
+   * @return (f1 != f2)
+   */
+  public Formula makeNotEqual(Formula f1, Formula f2) {
+    return makeNot(makeEqual(f1, f2));
   }
 
   public File formatFormulaOutputFile(String function, int call, String formula, int index) {

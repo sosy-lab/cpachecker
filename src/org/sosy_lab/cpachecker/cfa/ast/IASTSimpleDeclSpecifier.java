@@ -114,7 +114,8 @@ public final class IASTSimpleDeclSpecifier extends IType {
       lASTString.append("_Complex ");
     }
 
-    lASTString.append(type.toString().toLowerCase());
+    lASTString.append(type.toASTString());
+    lASTString.append(" ");
     return lASTString.toString();
   }
 

@@ -100,7 +100,7 @@ public class EdgeCountHeuristicsData
   public EdgeCountHeuristicsData updateForEdge(CFAEdge edge, Function<? super CFAEdge, Integer> thresholds) {
     assert edge.getPredecessor() == node;
 
-    for (int i=0; i < counters.length; i++)
+    for (int i=0; i < counters.length; i++) {
       if (node.getLeavingEdge(i) == edge) {
         counters[i]++;
         // Threshold exceeded?
@@ -110,25 +110,30 @@ public class EdgeCountHeuristicsData
           return BOTTOM;
         }
       }
+    }
 
     return new EdgeCountHeuristicsData(edge.getSuccessor());
   }
 
   private boolean isInteresting()
   {
-    if (node.isLoopStart())
+    if (node.isLoopStart()) {
       return true;
+    }
     for (int i = 0; i < node.getNumLeavingEdges(); i++)
     {
       CFAEdge edge = node.getLeavingEdge(i);
-      if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge)
+      if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
         return true;
+      }
     }
     return false;
   }
 
   public EdgeCountHeuristicsData collectData(ReachedHeuristicsDataSetView reached) {
-    if (isTop() || isBottom() || !isInteresting()) return this;
+    if (isTop() || isBottom() || !isInteresting()) {
+      return this;
+    }
 
     for (StopHeuristicsData d : reached.getHeuristicsDataForLocation(node)) {
       EdgeCountHeuristicsData other = (EdgeCountHeuristicsData) d;
@@ -148,9 +153,10 @@ public class EdgeCountHeuristicsData
   @Override
   public String toString() {
     StringBuilder buffer = new StringBuilder();
-    for (int i=0; i < counters.length; i++)
+    for (int i=0; i < counters.length; i++) {
       buffer.append(counters[i]).append("x(").append(node).append(',')
         .append(node.getLeavingEdge(i).getSuccessor()).append(") ");
+    }
     return buffer.toString();
   }
 

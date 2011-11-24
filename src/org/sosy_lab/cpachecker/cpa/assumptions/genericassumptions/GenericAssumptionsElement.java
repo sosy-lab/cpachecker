@@ -53,10 +53,11 @@ public class GenericAssumptionsElement implements AbstractElement, AssumptionRep
 
   @Override
   public boolean equals(Object pObj) {
-    if (pObj instanceof GenericAssumptionsElement)
+    if (pObj instanceof GenericAssumptionsElement) {
       return assumption.equals(((GenericAssumptionsElement)pObj).assumption);
-    else
+    } else {
       return false;
+    }
   }
 
   @Override

@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.AuxiliaryComputer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.CachingRelevantPredicatesComputer;
-import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.OccurrenceComputer;
+import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RefineableOccurrenceComputer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 
 
@@ -55,6 +55,7 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
   private final ABMPredicateReducer reducer;
   private final ABMBlockOperator blk;
   private final ABMPredicateCPAStatistics stats;
+  private final RelevantPredicatesComputer relevantPredicatesComputer;
 
   @Option(description="whether to use auxiliary predidates for reduction")
   private boolean auxiliaryPredicateComputer = true;
@@ -69,13 +70,22 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
     if (auxiliaryPredicateComputer) {
       relevantPredicatesComputer = new AuxiliaryComputer();
     } else {
-      relevantPredicatesComputer = new OccurrenceComputer();
+      relevantPredicatesComputer = new RefineableOccurrenceComputer();
     }
     relevantPredicatesComputer = new CachingRelevantPredicatesComputer(relevantPredicatesComputer);
+    this.relevantPredicatesComputer = relevantPredicatesComputer;
 
     reducer = new ABMPredicateReducer(this, relevantPredicatesComputer);
     blk = pBlk;
     stats = new ABMPredicateCPAStatistics();
+  }
+
+  RelevantPredicatesComputer getRelevantPredicatesComputer() {
+    return relevantPredicatesComputer;
+  }
+
+  BlockPartitioning getPartitioning() {
+    return blk.getPartitioning();
   }
 
   @Override

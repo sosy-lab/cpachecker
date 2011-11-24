@@ -57,7 +57,9 @@ class MathsatFormula implements Formula {
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof MathsatFormula)) return false;
+        if (!(o instanceof MathsatFormula)) {
+          return false;
+        }
         return msatTerm == ((MathsatFormula)o).msatTerm;
     }
 

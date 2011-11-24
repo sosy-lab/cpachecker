@@ -641,12 +641,12 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         }
 
         invariantCPAs = new CPABuilder(invariantConfig, logger, reachedSetFactory, cfa).buildCPAs();
-        reached = new ReachedSetFactory(invariantConfig).create();
+        reached = new ReachedSetFactory(invariantConfig, logger).create();
 
       } else {
         // invariant generation is disabled
         invariantCPAs = null;
-        reached = new ReachedSetFactory(config).create(); // create reached set that will stay empty
+        reached = new ReachedSetFactory(config, logger).create(); // create reached set that will stay empty
       }
     }
 
