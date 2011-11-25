@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.art;
 
+import static com.google.common.collect.ImmutableList.copyOf;
+
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -84,6 +86,12 @@ public class ARTMergeJoin implements MergeOperator {
     for (ARTElement childOfElement2 : artElement2.getChildren()) {
       childOfElement2.addParent(mergedElement);
     }
+
+    for (ARTElement coveredElement : copyOf(artElement2.getCoveredByThis())) {
+      coveredElement.replaceCoveringElement(mergedElement);
+    }
+    assert artElement1.getCoveredByThis().isEmpty();
+    assert artElement2.getCoveredByThis().isEmpty();
 
     // artElement1 will only be removed from ART if stop(e1, reached) returns true
     artElement2.removeFromART();

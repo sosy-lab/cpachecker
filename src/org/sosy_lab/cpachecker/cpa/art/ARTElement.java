@@ -83,6 +83,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
   }
 
   protected void setCovered(ARTElement pCoveredBy) {
+    assert !isCovered();
     assert pCoveredBy != null;
     assert pCoveredBy.mayCover;
 
@@ -111,6 +112,15 @@ public class ARTElement extends AbstractSingleWrapperElement {
     } else {
       return Collections.unmodifiableSet(mCoveredByThis);
     }
+  }
+
+  void replaceCoveringElement(ARTElement newCoveringElement) {
+    assert isCovered();
+    assert mCoveredBy.mCoveredByThis.contains(this);
+    mCoveredBy.mCoveredByThis.remove(this);
+    mCoveredBy = null;
+
+    setCovered(newCoveringElement);
   }
 
   protected void setMergedWith(ARTElement pMergedWith) {
