@@ -69,7 +69,7 @@ public class ExplicitPrecision implements Precision {
 
   @Override
   public String toString() {
-    return whiteList.toString();
+    return whiteList != null ? whiteList.toString() : "whitelist disabled";
   }
 
   public void setLocation(CFANode node) {
