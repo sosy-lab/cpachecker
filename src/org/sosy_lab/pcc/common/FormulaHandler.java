@@ -84,7 +84,7 @@ public class FormulaHandler {
     if (vars == null) { return null; }
     for (int i = 0; i < vars.length; i++) {
       try {
-        fm.makeVariable(vars[i]); // TODO test
+        fm.makeVariable(vars[i]); // TODO test does not work
       } catch (IllegalArgumentException e) {
         // variable already declared do nothing
       }
@@ -105,12 +105,12 @@ public class FormulaHandler {
     //get all variables
     Pattern patVarSSAAbstraction =
         Pattern
-            .compile("[\\W&&[^@]]([_A-Za-z](\\w)*::)?([_A-Za-z](\\w)*(@(\\d)+))?[\\W&&[^@]]");
+            .compile("[\\W&&[^@]]([_A-Za-z](\\w)*::)?[_A-Za-z](\\w)*(@(\\d)+)?[\\W&&[^@]]");
     Matcher match = patVarSSAAbstraction.matcher(pFormula);
     String variable;
     while (match.find()) {
       variable = pFormula.substring(match.start() + 1, match.end() - 1);
-      if (!foundVars.contains(variable)) {
+      if (!foundVars.contains(variable)&&!variable.equals("true")&&!variable.equals("false")) {
         foundVars.add(variable);
       }
     }

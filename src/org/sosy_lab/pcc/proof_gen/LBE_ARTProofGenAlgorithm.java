@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
 import org.sosy_lab.cpachecker.util.AbstractElements;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.pcc.common.AbstractionType;
 import org.sosy_lab.pcc.common.FormulaHandler;
 
@@ -59,10 +58,10 @@ public class LBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
         nodeRep.append(pNode.getElementId() + "#");
         nodeRep.append(pNode.retrieveLocationElement().getLocationNode().getNodeNumber() + "#");
         nodeRep.append(AbstractionType.Abstraction + "#");
-        Formula f =
-            fh.removeIndices(predicate.getAbstractionFormula().asFormula());
+        String f =
+            fh.removeIndicesStr(predicate.getAbstractionFormula().asFormula());
         if (f == null) { return false; }
-        nodeRep.append(f.toString() + "#");
+        nodeRep.append(f + "#");
         nodes.add(nodeRep.toString());
       }
     } else {

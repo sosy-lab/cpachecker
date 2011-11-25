@@ -11,16 +11,16 @@ int main()
   int a=0;
   int x;
   
-  if(x%2==0){
-    a++;
-    a = f(x, a)
+  if(x<0){
+    x=0;
+    a = f(x, a);
   }
   else
   {
     a = f(x,a);
   }
   a++;
-  if(a%2!=0){
+  if(a<3){
     ERROR: return -1;
   }
 

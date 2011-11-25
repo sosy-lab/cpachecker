@@ -8,7 +8,7 @@ int main() {
   j = 0;
 
   while(1) {
-    if(i== 20){
+    if(i== 5){
        goto LOOPEND;
     }
     else{
@@ -19,13 +19,13 @@ int main() {
 
   LOOPEND:
 
-  if (a != 20) {
+  if (a != 5) {
      goto ERROR;
   }
   else {}
 
 while(1) {
-    if(j== 20){
+    if(j== 5){
        goto LOOPEND2;
     }
     else{
@@ -34,7 +34,7 @@ while(1) {
     }
   }
 LOOPEND2:
-if(a!=40){
+if(a!=10){
 goto ERROR;
 }
 else{}

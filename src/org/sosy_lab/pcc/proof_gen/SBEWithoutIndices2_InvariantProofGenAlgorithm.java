@@ -29,7 +29,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 
 public class SBEWithoutIndices2_InvariantProofGenAlgorithm extends
@@ -48,10 +47,10 @@ SBE_InvariantProofGenAlgorithm{
 
   @Override
   protected String getAbstraction(PredicateAbstractElement pPredicate) {
-    Formula f =
-        fh.removeIndices(pPredicate.getAbstractionFormula().asFormula());
+    String f =
+        fh.removeIndicesStr(pPredicate.getAbstractionFormula().asFormula());
     if (f == null) { return null; }
-    return f.toString();
+    return f;
   }
 
   @Override

@@ -35,11 +35,11 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.pcc.common.WithCorrespondingCFAEdgeARTEdge;
 import org.sosy_lab.pcc.common.ARTNode;
 import org.sosy_lab.pcc.common.PCCCheckResult;
 import org.sosy_lab.pcc.common.Pair;
 import org.sosy_lab.pcc.common.Separators;
+import org.sosy_lab.pcc.common.WithCorrespondingCFAEdgeARTEdge;
 
 public class SBEWithoutIndices_ARTProofCheckAlgorithm extends
     SBE_ARTProofCheckAlgorithm {
@@ -88,10 +88,9 @@ public class SBEWithoutIndices_ARTProofCheckAlgorithm extends
         }
         // add edge
         edge = new WithCorrespondingCFAEdgeARTEdge(target, cfaEdge);
-        if(nodeS.isEdgeContained(edge)){
-          return PCCCheckResult.ElementAlreadyRead;
+        if(!nodeS.isEdgeContained(edge)){
+          nodeS.addEdge(edge);
         }
-        nodeS.addEdge(edge);
       } catch (InputMismatchException e2) {
         return PCCCheckResult.UnknownCFAEdge;
       } catch (NoSuchElementException e3) {
@@ -126,8 +125,7 @@ public class SBEWithoutIndices_ARTProofCheckAlgorithm extends
       logger.log(Level.SEVERE, "Cannot build operation.");
       return PCCCheckResult.InvalidFormulaSpecificationInProof;
     }
-    // need to be used to ensure that all variables in right abstraction are known (only possible for correct abstraction)
-    handler.removeIndices(op.getFormula());
+
     // instantiate right abstraction
     resultAbs = handler.addIndices(op.getSsa(), pTarget.getAbstraction());
     if (resultAbs == null) {

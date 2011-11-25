@@ -223,7 +223,7 @@ public class LBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
             stack = current.getSecond();
           }
         }
-        if (!visited.contains(child.getID())) {
+        if (!visited.containsKey(child.getID())) {
           waiting.push(new Pair<Integer, String>(child.getID(), stack));
           visited.put(child.getID(), stack);
         }

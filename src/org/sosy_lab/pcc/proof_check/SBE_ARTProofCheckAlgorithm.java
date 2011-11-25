@@ -41,12 +41,12 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.pcc.common.ARTNode;
-import org.sosy_lab.pcc.common.WithCorrespondingCFAEdgeARTEdge;
 import org.sosy_lab.pcc.common.AbstractionType;
 import org.sosy_lab.pcc.common.FormulaHandler;
 import org.sosy_lab.pcc.common.PCCCheckResult;
 import org.sosy_lab.pcc.common.Pair;
 import org.sosy_lab.pcc.common.Separators;
+import org.sosy_lab.pcc.common.WithCorrespondingCFAEdgeARTEdge;
 
 public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
 
@@ -291,7 +291,7 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
 
   private PCCCheckResult addTargetNode(int pTarget, String pCallReturnStack,
       Hashtable<Integer, String> pVisited, Stack<Pair<Integer, String>> pWaiting) {
-    if (!pVisited.contains(pTarget)) {
+    if (!pVisited.containsKey(pTarget)) {
       pVisited.put(pTarget, pCallReturnStack);
       pWaiting.push(new Pair<Integer, String>(pTarget, pCallReturnStack));
     } else {
@@ -366,7 +366,7 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
     if (pOperation.length() == 0) {
       if ((atLoop && pTarget.getCorrespondingCFANode().isLoopStart())
           || (atFunction && (pTarget.getCorrespondingCFANode() instanceof CFAFunctionDefinitionNode || pTarget
-              .getCorrespondingCFANode().getLeavingSummaryEdge() != null))) {
+              .getCorrespondingCFANode().getEnteringSummaryEdge() != null))) {
         if (pTarget.getAbstractionType() != AbstractionType.Abstraction) { return PCCCheckResult.InvalidART; }
       }
     } else {

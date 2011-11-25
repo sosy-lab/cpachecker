@@ -6,7 +6,7 @@ void main() {
   a = 0;
 
   while(1) {
-    if(i== 20){
+    if(i== 5){
        break;
     }
     else{
@@ -17,7 +17,7 @@ void main() {
 
   LOOPEND:
 
-  if (a != 20) {
+  if (a != 5) {
      goto ERROR;
   }
   else {}

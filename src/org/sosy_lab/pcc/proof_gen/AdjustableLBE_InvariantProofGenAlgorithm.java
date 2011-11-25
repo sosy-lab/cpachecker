@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
 import org.sosy_lab.cpachecker.util.AbstractElements;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.pcc.common.FormulaHandler;
 import org.sosy_lab.pcc.common.Separators;
 
@@ -133,10 +132,10 @@ public class AdjustableLBE_InvariantProofGenAlgorithm extends InvariantProofGenA
   }
 
   protected String getAbstraction(PredicateAbstractElement pPredicate) {
-    Formula f =
-        fh.removeIndices(pPredicate.getAbstractionFormula().asFormula());
+    String f =
+        fh.removeIndicesStr(pPredicate.getAbstractionFormula().asFormula());
     if (f == null) { return null; }
-    return f.toString();
+    return f;
   }
 
 }

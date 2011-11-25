@@ -4,10 +4,12 @@ int main()
 {
   int a=0;
   int x=5;
+  int y=4;
   
   while(x>0){
-    if(x%2==0){
+    if(x-y==0){
       a++;
+      y=y-2;
     }
     a++;
     x--;

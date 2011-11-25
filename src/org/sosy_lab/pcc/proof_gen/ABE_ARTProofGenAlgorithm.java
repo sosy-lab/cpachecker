@@ -58,10 +58,10 @@ public class ABE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
         nodeRep.append(pNode.getElementId() + "#");
         nodeRep.append(pNode.retrieveLocationElement().getLocationNode().getNodeNumber() + "#");
         nodeRep.append(AbstractionType.Abstraction + "#");
-        Formula f =
-            fh.removeIndices(predicate.getAbstractionFormula().asFormula());
+        String f =
+            fh.removeIndicesStr(predicate.getAbstractionFormula().asFormula());
         if (f == null) { return false; }
-        nodeRep.append(f.toString() + "#");
+        nodeRep.append(f + "#");
         nodes.add(nodeRep.toString());
       }
     } else {

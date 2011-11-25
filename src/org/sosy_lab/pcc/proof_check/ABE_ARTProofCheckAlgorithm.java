@@ -353,7 +353,7 @@ public class ABE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
     else {
       id = Integer.toString(pTarget.getID()) + Separators.commonSeparator + pPath.toString();
     }
-    if (!pVisited.contains(id)) {
+    if (!pVisited.containsKey(id)) {
       pVisited.put(id, pStack);
       pWaiting.push(new FourTuple<Integer, String, Formula, PathFormula>(pTarget.getID(), pStack, pLeftAbstraction,
           pPath));
