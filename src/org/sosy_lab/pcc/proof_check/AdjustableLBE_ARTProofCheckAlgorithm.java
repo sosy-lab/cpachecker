@@ -60,13 +60,13 @@ public class AdjustableLBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm
   protected Hashtable<Integer, ARTNode> art = new Hashtable<Integer, ARTNode>();
 
   public AdjustableLBE_ARTProofCheckAlgorithm(Configuration pConfig, LogManager pLogger, String pProverType,
-      boolean pAlwaysAtFunctions, int pThreshold)
+      int pThreshold)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
 
     handler = new FormulaHandler(pConfig, pLogger, pProverType);
     atLoop = true;
-    atFunction = pAlwaysAtFunctions;
+    atFunction = true;
     threshold = pThreshold;
     if (threshold < 0) { throw new IllegalArgumentException("Invalid threshold specification."); }
   }
@@ -315,6 +315,7 @@ public class AdjustableLBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm
                 if (f == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
                 if (handler.isFalse(f)) {
                   // check if it covers abstraction target node which has abstraction false
+                  // TODO possibly cannot stop here, because influences paths elsewhere (stop earlier)
                   edges = pNode.getEdges();
                   for (int j = 0; j < edges.length; j++) {
                     target = art.get(edges[j].getTarget());

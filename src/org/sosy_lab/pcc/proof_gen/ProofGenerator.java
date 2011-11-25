@@ -46,12 +46,12 @@ public class ProofGenerator {
   private ProofGenAlgorithm algorithm;
   private LogManager logger;
 
-  //TODO possibly add values
+
   @Option(name = "pcc.proofgen.algorithm", description = "Type of the algorithm which should be used for PCC")
   private PCCAlgorithmType algorithmType = PCCAlgorithmType.SBENOINDART;
   @Option(name = "pcc.proofgen.doPCC", description = "")
   private boolean doPCC = false;
-  //TODO further values if other algorithms available
+
   @Option(
       name = "cpa.predicate.blk.alwaysAfterThreshold",
       description = "force abstractions immediately after threshold is reached (no effect if threshold = 0)")
@@ -159,31 +159,41 @@ public class ProofGenerator {
         break;
       }
       case LBENOINDART: {
-        if (alwaysAfterThreshold && threshold == 0 && alwaysAtLoops && alwaysAtFunctions && !cartesianAbstraction) {
+        if (alwaysAfterThreshold && alwaysAtFunctions && alwaysAtLoops
+            && !cartesianAbstraction && threshold == 0) {
           algorithm = new LBE_ARTProofGenAlgorithm(pConfig, pLogger);
-        } else {
-          logger
-              .log(Level.WARNING,
-                  "Predicate Abstraction configuration does not fit to PCC algorithm.");
-          algorithm = null;
         }
         break;
       }
-      case ABENOINDART: { // TODO check always at loops, at functions not necessary
-        if (alwaysAfterThreshold && switchToLBEAfter == 0 && ((threshold == 1
-            && cartesianAbstraction) || (threshold != 1 && alwaysAtFunctions && !cartesianAbstraction))) {
-          // TODO algorithm = new ABE_ARTProofGenAlgorithm(pConfig, pLogger);
-          algorithm = null;
-        } else {
-          logger
-              .log(Level.WARNING,
-                  "Predicate Abstraction configuration does not fit to PCC algorithm.");
-          algorithm = null;
+      case LBENOINDINVARIANT: {
+        if (alwaysAfterThreshold && alwaysAtFunctions && alwaysAtLoops
+            && !cartesianAbstraction && threshold == 0) {
+          algorithm = new LBE_InvariantProofGenAlgorithm(pConfig, pLogger);
         }
         break;
       }
-      // TODO add LBE, ABE algorithms
-      // TODO invariant adjustable LBE, ABE consider that unsat check is disabled
+      case ALBENOINDART: {
+        if (alwaysAfterThreshold && alwaysAtFunctions && alwaysAtLoops
+            && ((threshold == 1 && cartesianAbstraction) || (threshold != 1 && !cartesianAbstraction))) {
+          algorithm = new AdjustableLBE_ARTProofGenAlgorithm(pConfig, pLogger);
+        }
+        break;
+      }
+      case ALBENOINDINVARIANT: {
+        if (alwaysAfterThreshold && alwaysAtFunctions && alwaysAtLoops
+            && ((threshold == 1 && cartesianAbstraction) || (threshold != 1 && !cartesianAbstraction))
+            && satCheckBlockSize == 0) {
+          algorithm = new AdjustableLBE_InvariantProofGenAlgorithm(pConfig, pLogger);
+        }
+        break;
+      }
+      case ABENOINDART: {
+        if (alwaysAfterThreshold && alwaysAtLoops
+            && ((threshold == 1 && cartesianAbstraction) || (threshold != 1 && !cartesianAbstraction))) {
+          algorithm = new ABE_ARTProofGenAlgorithm(pConfig, pLogger);
+        }
+        break;
+      }
       default: {
         algorithm = null;
       }

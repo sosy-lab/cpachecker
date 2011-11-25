@@ -82,6 +82,7 @@ public abstract class SBE_InvariantProofGenAlgorithm extends
     PredicateAbstractElement predicate =
         AbstractElements.extractElementByType(pSource,
             PredicateAbstractElement.class);
+    if(predicate == null){return false;}
     //check if it is not start of an edge (no abstraction, no function exit node, no function definition node, no node with entering summary edge
     CFANode corresponding = pSource.retrieveLocationElement().getLocationNode();
     if (!predicate.isAbstractionElement()

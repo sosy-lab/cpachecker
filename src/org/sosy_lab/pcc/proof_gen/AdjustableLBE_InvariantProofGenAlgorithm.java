@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.pcc.proof_gen;
 
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Stack;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -37,26 +40,70 @@ import org.sosy_lab.pcc.common.FormulaHandler;
 import org.sosy_lab.pcc.common.Separators;
 
 
-public class LBE_InvariantProofGenAlgorithm extends InvariantProofGenAlgorithm {
+public class AdjustableLBE_InvariantProofGenAlgorithm extends InvariantProofGenAlgorithm{
 
   protected FormulaHandler fh;
+  private HashSet<String> edges = new HashSet<String>();
 
-  public LBE_InvariantProofGenAlgorithm(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+  public AdjustableLBE_InvariantProofGenAlgorithm(Configuration pConfig, LogManager pLogger)
+      throws InvalidConfigurationException {
     super(pConfig, pLogger);
     fh = new FormulaHandler(pConfig, pLogger, whichProver);
   }
 
   @Override
   protected boolean addOperation(ARTElement pSource, ARTElement pTarget) {
-    // nothing to do
+    PredicateAbstractElement predicate =
+        AbstractElements.extractElementByType(pSource,
+            PredicateAbstractElement.class);
+    if(predicate == null){return false;}
+    //check if it is start of an edge
+    if (predicate.isAbstractionElement()){
+      // get abstract successors and add them to edges
+      return addAbstractSuccesors(pSource);
+    }
+    return true;
+  }
+
+  private boolean addAbstractSuccesors(ARTElement pSource){
+    if(pSource == null){return false;}
+    CFANode node = pSource.retrieveLocationElement().getLocationNode();
+    if(node == null){return false;}
+    String sourceID = node.getNodeNumber()+Separators.commonSeparator;
+    String edgeID;
+    Stack<ARTElement> toVisit = new Stack<ARTElement>();
+    toVisit.push(pSource);
+    ARTElement current;
+    PredicateAbstractElement predicate;
+    while(!toVisit.isEmpty()){
+      current = toVisit.pop();
+      node = current.retrieveLocationElement().getLocationNode();
+      if(node == null){return false;}
+      edgeID = sourceID + node.getNodeNumber() + Separators.commonSeparator;
+      for(ARTElement child:current.getChildren()){
+        predicate = AbstractElements.extractElementByType(child, PredicateAbstractElement.class);
+        if(predicate == null){return false;}
+        if(predicate.isAbstractionElement() || child.isCovered()){
+          node = child.retrieveLocationElement().getLocationNode();
+          if(node == null){return false;}
+          // add edge
+          edges.add(edgeID+node.getNodeNumber()+Separators.commonSeparator);
+        }else{
+          toVisit.push(child);
+        }
+      }
+    }
     return true;
   }
 
   @Override
   protected StringBuilder writeOperations() {
-    // no edges written
-    StringBuilder output = new StringBuilder();
-    return output;
+    StringBuilder builder = new StringBuilder();
+    Iterator<String> it = edges.iterator();
+    while(it.hasNext()){
+      builder.append(it.next());
+    }
+    return builder;
   }
 
   @Override
@@ -91,4 +138,5 @@ public class LBE_InvariantProofGenAlgorithm extends InvariantProofGenAlgorithm {
     if (f == null) { return null; }
     return f.toString();
   }
+
 }

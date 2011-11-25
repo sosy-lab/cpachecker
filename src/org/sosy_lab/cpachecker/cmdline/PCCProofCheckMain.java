@@ -39,6 +39,11 @@ import org.sosy_lab.cpachecker.cmdline.CPAMain.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.pcc.common.PCCAlgorithmType;
 import org.sosy_lab.pcc.common.PCCCheckResult;
+import org.sosy_lab.pcc.proof_check.ABE_ARTProofCheckAlgorithm;
+import org.sosy_lab.pcc.proof_check.AdjustableLBE_ARTProofCheckAlgorithm;
+import org.sosy_lab.pcc.proof_check.AdjustableLBE_InvariantProofCheckAlgorithm;
+import org.sosy_lab.pcc.proof_check.LBE_ARTProofCheckAlgorithm;
+import org.sosy_lab.pcc.proof_check.LBE_InvariantProofCheckAlgorithm;
 import org.sosy_lab.pcc.proof_check.ProofCheckAlgorithm;
 import org.sosy_lab.pcc.proof_check.SBEWithIndices_ARTProofCheckAlgorithm;
 import org.sosy_lab.pcc.proof_check.SBEWithIndices_InvariantProofCheckAlgorithm;
@@ -54,33 +59,45 @@ public class PCCProofCheckMain {
   @Options
   private static class PCCProofChecker {
 
-    //TODO possibly add values
     @Option(name = "pcc.proofgen.algorithm", description = "Type of the algorithm which should be used for PCC")
-    private PCCAlgorithmType algorithmType        = PCCAlgorithmType.SBENOINDART;
+    private PCCAlgorithmType algorithmType = PCCAlgorithmType.SBENOINDART;
     @Option(name = "pcc.proofgen.doPCC", description = "")
-    private boolean          doPCC                = false;
-    //TODO further values if other algorithms available
-    @Option(name = "cpa.predicate.blk.alwaysAfterThreshold", description = "force abstractions immediately after threshold is reached (no effect if threshold = 0)")
-    private boolean          alwaysAfterThreshold = true;
+    private boolean doPCC = false;
+
+    @Option(
+        name = "cpa.predicate.blk.alwaysAfterThreshold",
+        description = "force abstractions immediately after threshold is reached (no effect if threshold = 0)")
+    private boolean alwaysAfterThreshold = true;
     @Option(name = "cpa.predicate.blk.threshold", description = "maximum blocksize before abstraction is forced\n"
         + "(non-negative number, special values: 0 = don't check threshold, 1 = SBE)")
-    private int              threshold            = 0;
-    @Option(name = "cpa.predicate.blk.switchToLBEAfter", description = "Switch to a LBE configuration after so many milliseconds (0 to disable)")
-    private int              switchToLBEAfter     = 0;
-    @Option(name = "pcc.profgen.file", type = Option.Type.OUTPUT_FILE, description = "export ART representation needed for proof checking in PCC, if the error location is not reached, the representation depends on the algorithm used for proof checking")
-    private File             file                 = new File("pccProof.txt");
-    @Option(name = "cpa.predicate.blk.alwaysAtLoops", description = "force abstractions at loop heads, regardless of threshold")
-    private boolean          alwaysAtLoops        = true;
-    @Option(name = "cpa.predicate.blk.alwaysAtFunctions", description = "force abstractions at each function calls/returns, regardless of threshold")
-    private boolean          alwaysAtFunctions    = true;
-    @Option(name = "cpa.predicate.abstraction.cartesian", description = "whether to use Boolean (false) or Cartesian (true) abstraction")
-    private boolean          cartesianAbstraction = false;
-    @Option(name="cpa.predicate.abstraction.solver", toUppercase=true, values={"MATHSAT", "YICES"},
-        description="which solver to use?")
+    private int threshold = 0;
+    @Option(
+        name = "cpa.predicate.blk.switchToLBEAfter",
+        description = "Switch to a LBE configuration after so many milliseconds (0 to disable)")
+    private int switchToLBEAfter = 0;
+    @Option(
+        name = "pcc.profgen.file",
+        type = Option.Type.OUTPUT_FILE,
+        description = "export ART representation needed for proof checking in PCC, if the error location is not reached, the representation depends on the algorithm used for proof checking")
+    private File file = new File("pccProof.txt");
+    @Option(
+        name = "cpa.predicate.blk.alwaysAtLoops",
+        description = "force abstractions at loop heads, regardless of threshold")
+    private boolean alwaysAtLoops = true;
+    @Option(
+        name = "cpa.predicate.blk.alwaysAtFunctions",
+        description = "force abstractions at each function calls/returns, regardless of threshold")
+    private boolean alwaysAtFunctions = true;
+    @Option(
+        name = "cpa.predicate.abstraction.cartesian",
+        description = "whether to use Boolean (false) or Cartesian (true) abstraction")
+    private boolean cartesianAbstraction = false;
+    @Option(name = "cpa.predicate.abstraction.solver", toUppercase = true, values = { "MATHSAT", "YICES" },
+        description = "which solver to use?")
     private String whichProver = "MATHSAT";
-    @Option(name="cpa.predicate.satCheck",
-        description="maximum blocksize before a satisfiability check is done\n"
-          + "(non-negative number, 0 means never, if positive should be smaller than blocksize)")
+    @Option(name = "cpa.predicate.satCheck",
+        description = "maximum blocksize before a satisfiability check is done\n"
+            + "(non-negative number, 0 means never, if positive should be smaller than blocksize)")
     private int satCheckBlockSize = 0;
 
     private PCCProofChecker(Configuration pConfig)
@@ -117,7 +134,7 @@ public class PCCProofCheckMain {
         if (alwaysAfterThreshold && threshold == 1 && switchToLBEAfter == 0
             && cartesianAbstraction) {
           algorithm =
-              new SBEWithoutIndices_InvariantProofCheckAlgorithm(pConfig, pLogger,whichProver,
+              new SBEWithoutIndices_InvariantProofCheckAlgorithm(pConfig, pLogger, whichProver,
                   alwaysAtLoops, alwaysAtFunctions);
         }
         break;
@@ -126,31 +143,65 @@ public class PCCProofCheckMain {
         if (alwaysAfterThreshold && threshold == 1 && switchToLBEAfter == 0
             && cartesianAbstraction) {
           algorithm =
-              new SBEWithIndices_InvariantProofCheckAlgorithm(pConfig, pLogger,whichProver,
+              new SBEWithIndices_InvariantProofCheckAlgorithm(pConfig, pLogger, whichProver,
                   alwaysAtLoops, alwaysAtFunctions);
         }
         break;
       }
-      case SBENOEDGENOINDINVARIANT:{
+      case SBENOEDGENOINDINVARIANT: {
         if (alwaysAfterThreshold && threshold == 1 && switchToLBEAfter == 0
-          && cartesianAbstraction) {
-        algorithm =
-            new SBEWithoutIndices2_InvariantProofCheckAlgorithm(pConfig, pLogger,whichProver,
-                alwaysAtLoops, alwaysAtFunctions);
+            && cartesianAbstraction) {
+          algorithm =
+              new SBEWithoutIndices2_InvariantProofCheckAlgorithm(pConfig, pLogger, whichProver,
+                  alwaysAtLoops, alwaysAtFunctions);
+        }
+        break;
       }
-      break;
-      }
-      case SBENOEDGENOINDINVARIANT2:{
+      case SBENOEDGENOINDINVARIANT2: {
         if (alwaysAfterThreshold && threshold == 1 && switchToLBEAfter == 0
-          && cartesianAbstraction) {
-        algorithm =
-            new SBEWithoutIndices2a_InvariantProofCheckAlgorithm(pConfig, pLogger,whichProver,
-                alwaysAtLoops, alwaysAtFunctions);
+            && cartesianAbstraction) {
+          algorithm =
+              new SBEWithoutIndices2a_InvariantProofCheckAlgorithm(pConfig, pLogger, whichProver,
+                  alwaysAtLoops, alwaysAtFunctions);
+        }
+        break;
       }
-      break;
+      case LBENOINDART: {
+        if (alwaysAfterThreshold && alwaysAtFunctions && alwaysAtLoops
+            && !cartesianAbstraction && threshold == 0) {
+          algorithm = new LBE_ARTProofCheckAlgorithm(pConfig, pLogger, whichProver);
+        }
+        break;
       }
-      // TODO add LBE, ABE algorithms
-      // TODO invariant adjustable LBE, ABE consider that unsat check is disabled
+      case LBENOINDINVARIANT: {
+        if (alwaysAfterThreshold && alwaysAtFunctions && alwaysAtLoops
+            && !cartesianAbstraction && threshold == 0) {
+          algorithm = new LBE_InvariantProofCheckAlgorithm(pConfig, pLogger, whichProver);
+        }
+        break;
+      }
+      case ALBENOINDART: {
+        if (alwaysAfterThreshold && alwaysAtFunctions && alwaysAtLoops
+            && ((threshold == 1 && cartesianAbstraction) || (threshold != 1 && !cartesianAbstraction))) {
+          algorithm = new AdjustableLBE_ARTProofCheckAlgorithm(pConfig, pLogger, whichProver, threshold);
+        }
+        break;
+      }
+      case ALBENOINDINVARIANT: {
+        if (alwaysAfterThreshold && alwaysAtFunctions && alwaysAtLoops
+            && ((threshold == 1 && cartesianAbstraction) || (threshold != 1 && !cartesianAbstraction))
+            && satCheckBlockSize == 0) {
+          algorithm = new AdjustableLBE_InvariantProofCheckAlgorithm(pConfig, pLogger, whichProver, threshold);
+        }
+        break;
+      }
+      case ABENOINDART: {
+        if (alwaysAfterThreshold && alwaysAtLoops
+            && ((threshold == 1 && cartesianAbstraction) || (threshold != 1 && !cartesianAbstraction))) {
+          algorithm = new ABE_ARTProofCheckAlgorithm(pConfig, pLogger, whichProver, alwaysAtFunctions, threshold);
+        }
+        break;
+      }
       default: {
       }
       }
@@ -206,11 +257,11 @@ public class PCCProofCheckMain {
       ProofCheckAlgorithm algorithm = prover.getCheckAlgorithm(config, logger);
       System.out.println("Getting correct algorithm lasted " + Timer.formatTime(time.stop()));
       //start check
-      logger.log(Level.INFO,"Started proof validation.");
+      logger.log(Level.INFO, "Started proof validation.");
       time.start();
       PCCCheckResult result = algorithm.checkProvidedProof(cfa, prover.file);
       System.out.println("Reading and checking proof lasted " + Timer.formatTime(time.stop()));
-      logger.log(Level.INFO,"Finished proof validation.");
+      logger.log(Level.INFO, "Finished proof validation.");
 
       if (result == PCCCheckResult.Success) {
         System.out.println("Proof has been checked successfully.\n");

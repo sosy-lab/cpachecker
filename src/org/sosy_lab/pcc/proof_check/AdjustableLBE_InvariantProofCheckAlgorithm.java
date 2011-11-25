@@ -47,25 +47,60 @@ import org.sosy_lab.pcc.common.Pair;
 import org.sosy_lab.pcc.common.Separators;
 
 
-public class LBE_InvariantProofCheckAlgorithm extends InvariantProofCheckAlgorithm {
+public class AdjustableLBE_InvariantProofCheckAlgorithm extends InvariantProofCheckAlgorithm {
 
   protected FormulaHandler handler;
   protected Hashtable<Integer, Vector<Pair<String, int[]>>> nodes =
       new Hashtable<Integer, Vector<Pair<String, int[]>>>();
-
+  protected HashSet<String> edges = new HashSet<String>();
   protected Hashtable<Integer, CFANode> reachableCFANodes = new Hashtable<Integer, CFANode>();
 
   protected Hashtable<Integer, CFANode> allCFANodes = new Hashtable<Integer, CFANode>();
 
-  public LBE_InvariantProofCheckAlgorithm(Configuration pConfig, LogManager pLogger, String pProverType)
+  protected int threshold;
+
+  public AdjustableLBE_InvariantProofCheckAlgorithm(Configuration pConfig, LogManager pLogger, String pProverType,
+      int pThreshold)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
     handler = new FormulaHandler(pConfig, pLogger, pProverType);
+    threshold = pThreshold;
   }
 
   @Override
   protected PCCCheckResult readEdges(Scanner pScan) {
-    // no edges to be read
+    int source, target, sourceEdge;
+    CFANode nodeS, nodeT, nodeSourceOpEdge;
+
+    while (pScan.hasNext()) {
+      try {
+        // read next edge
+        logger.log(Level.INFO, "Read next edge.");
+        source = pScan.nextInt();
+        sourceEdge = pScan.nextInt();
+        target = pScan.nextInt();
+        nodeS = reachableCFANodes.get(source);
+
+        nodeSourceOpEdge = allCFANodes.get(sourceEdge);
+        nodeT = reachableCFANodes.get(target);
+        if (nodeS == null
+            || nodeSourceOpEdge == null || nodeT == null || !nodeSourceOpEdge.hasEdgeTo(nodeT)) {
+          logger.log(Level.SEVERE, "Edge " + source + "#" + sourceEdge + "#" + target
+              + "not possible because one is no CFA node or is not an abstraction node.");
+          return PCCCheckResult.UnknownCFAEdge;
+        }
+
+        //add edge
+        if (edges.contains(source + Separators.commonSeparator + sourceEdge + Separators.commonSeparator + target)) { return PCCCheckResult.ElementAlreadyRead; }
+        edges.add(source + Separators.commonSeparator + sourceEdge + Separators.commonSeparator + target);
+      } catch (IllegalArgumentException e3) {
+        return PCCCheckResult.UnknownCFAEdge;
+      } catch (InputMismatchException e2) {
+        return PCCCheckResult.UnknownCFAEdge;
+      } catch (NoSuchElementException e1) {
+        return PCCCheckResult.UnknownCFAEdge;
+      }
+    }
     return PCCCheckResult.Success;
   }
 
@@ -110,12 +145,6 @@ public class LBE_InvariantProofCheckAlgorithm extends InvariantProofCheckAlgorit
         readNode = Integer.parseInt(next);
         if (allCFANodes.containsKey(readNode)) {
           current = allCFANodes.get(readNode);
-          // check if node is abstraction node
-          if (!isAbstractionNode(current)) {
-            logger.log(Level.SEVERE, "CFA node " + readNode
-                + " is not a node which is allowed to have regions attached to.");
-            return PCCCheckResult.UnknownCFANode;
-          }
           reachableCFANodes.put(readNode, current);
         } else {
           logger.log(Level.SEVERE, readNode + " is not a valid CFA node");
@@ -199,14 +228,15 @@ public class LBE_InvariantProofCheckAlgorithm extends InvariantProofCheckAlgorit
     return PCCCheckResult.Success;
   }
 
-  private boolean isAbstractionNode(CFANode pNode) {
-    if (pNode.isLoopStart() || pNode.getEnteringSummaryEdge() != null || pNode instanceof FunctionDefinitionNode) { return true; }
-    return false;
-  }
-
   protected boolean checkAbstraction(String pAbstraction) {
     if (pAbstraction.contains(Separators.SSAIndexSeparator)) { return false; }
     return true;
+  }
+
+  private boolean isAbstractionNode(CFANode pNode, int pPathLength) {
+    if (pNode.isLoopStart() || pNode.getEnteringSummaryEdge() != null || pNode instanceof FunctionDefinitionNode
+        || pPathLength == threshold) { return true; }
+    return false;
   }
 
   @Override
@@ -251,11 +281,15 @@ public class LBE_InvariantProofCheckAlgorithm extends InvariantProofCheckAlgorit
     if (pf == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
     Pair<PathFormula, CFANode> current;
     CFANode node;
+    String edgeID;
     toCheck.add(new Pair<PathFormula, CFANode>(pf, pStart));
     while (!toCheck.isEmpty()) {
       current = toCheck.remove(0);
       for (int i = 0; i < current.getSecond().getNumLeavingEdges(); i++) {
         node = current.getSecond().getLeavingEdge(i).getSuccessor();
+        edgeID =
+            pStart.getNodeNumber() + Separators.commonSeparator + current.getSecond().getNodeNumber()
+                + Separators.commonSeparator + node.getNodeNumber();
         pf = handler.extendPath(current.getFirst(), current.getSecond().getLeavingEdge(i));
         if (pf == null) { return PCCCheckResult.InvalidEdge; }
         fList = new Formula[2];
@@ -267,8 +301,11 @@ public class LBE_InvariantProofCheckAlgorithm extends InvariantProofCheckAlgorit
         if ((node instanceof CFALabelNode) && (((CFALabelNode) node).getLabel().equalsIgnoreCase("error"))) {
           if (!handler.isFalse(f)) { return PCCCheckResult.ErrorNodeReachable; }
         }
-        if (isAbstractionNode(node)) {
-          if (!reachableCFANodes.contains(node.getNodeNumber())) { return PCCCheckResult.UncoveredCFANode; }
+        if (isAbstractionNode(node, pf.getLength())&& !edges.contains(edgeID)) {
+          return PCCCheckResult.UncoveredEdge;
+        }
+        // stop because path marked as stop point
+        if(edges.contains(edgeID)){
           // get operation description
           fList = new Formula[2];
           fList[0] = pf.getFormula();
