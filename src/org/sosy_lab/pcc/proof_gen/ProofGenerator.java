@@ -39,6 +39,11 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackElement;
 import org.sosy_lab.cpachecker.cpa.location.LocationElement;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.pcc.common.PCCAlgorithmType;
+import org.sosy_lab.pcc.proof_check.ABE_ARTProofCheckAlgorithm;
+import org.sosy_lab.pcc.proof_check.AdjustableLBE_ARTProofCheckAlgorithm;
+import org.sosy_lab.pcc.proof_check.AdjustableLBE_InvariantProofCheckAlgorithm;
+import org.sosy_lab.pcc.proof_check.LBE_ARTProofCheckAlgorithm;
+import org.sosy_lab.pcc.proof_check.LBE_InvariantProofCheckAlgorithm;
 
 @Options
 public class ProofGenerator {
