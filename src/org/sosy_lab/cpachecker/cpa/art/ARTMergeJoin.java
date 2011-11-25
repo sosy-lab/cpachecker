@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.art;
 
-import static com.google.common.collect.ImmutableList.copyOf;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -71,31 +69,19 @@ public class ARTMergeJoin implements MergeOperator {
     ARTElement mergedElement = new ARTElement(retElement, null);
 
     // now replace artElement2 by mergedElement in ART
+    artElement2.replaceInARTWith(mergedElement);
 
+    // and also replace artElement1 with it
     for (ARTElement parentOfElement1 : artElement1.getParents()) {
       mergedElement.addParent(parentOfElement1);
     }
 
-    for (ARTElement parentOfElement2 : artElement2.getParents()) {
-      mergedElement.addParent(parentOfElement2);
-    }
-
-    // artElement1 is the current successor, it does not have any children yet
+    // artElement1 is the current successor, it does not have any children yet and covered nodes yet
     assert artElement1.getChildren().isEmpty();
-
-    for (ARTElement childOfElement2 : artElement2.getChildren()) {
-      childOfElement2.addParent(mergedElement);
-    }
-
-    for (ARTElement coveredElement : copyOf(artElement2.getCoveredByThis())) {
-      coveredElement.replaceCoveringElement(mergedElement);
-    }
     assert artElement1.getCoveredByThis().isEmpty();
-    assert artElement2.getCoveredByThis().isEmpty();
 
-    // artElement1 will only be removed from ART if stop(e1, reached) returns true
-    artElement2.removeFromART();
-
+    // ArtElement1 will only be removed from ART if stop(e1, reached) returns true.
+    // So we can't actually remove it now, but we need to remember this later.
     artElement1.setMergedWith(mergedElement);
     return mergedElement;
   }
