@@ -75,10 +75,11 @@ class Benchmark:
         logging.debug("The tool to be benchmarked is {0}.".format(repr(self.tool)))
 
         self.rlimits = {}
-        if ("memlimit" in root.keys()):
+        keys = list(root.keys())
+        if ("memlimit" in keys):
             limit = int(root.get("memlimit")) * 1024 * 1024
             self.rlimits[resource.RLIMIT_AS] = (limit, limit)
-        if ("timelimit" in root.keys()):
+        if ("timelimit" in keys):
             limit = int(root.get("timelimit"))
             self.rlimits[resource.RLIMIT_CPU] = (limit, limit)
 
@@ -212,7 +213,7 @@ def isComment(line):
 
 
 def removeAll(list, elemToRemove):
-    return filter(lambda elem: elem != elemToRemove, list)
+    return [elem for elem in list if elem != elemToRemove]
 
 
 def getFileList(shortFile, root=""):
@@ -305,7 +306,7 @@ class OutputHandler:
         memlimit = None
         timelimit = None
         if (resource.RLIMIT_AS in self.benchmark.rlimits):
-            memlimit = str(self.benchmark.rlimits[resource.RLIMIT_AS][0] / 1024 / 1024) + " MB"
+            memlimit = str(self.benchmark.rlimits[resource.RLIMIT_AS][0] // 1024 // 1024) + " MB"
         if (resource.RLIMIT_CPU in self.benchmark.rlimits):
             timelimit = str(self.benchmark.rlimits[resource.RLIMIT_CPU][0]) + " s"
 
@@ -426,8 +427,7 @@ class OutputHandler:
             # parse output and get revision
             svnInfoList = [line for line in output.strip('\n').split('\n')
                            if ': ' in line]
-            svnInfo = dict(map(lambda str: tuple(str.split(': ')),
-                               svnInfoList))
+            svnInfo = dict(tuple(str.split(': ')) for str in svnInfoList)
 
             if 'Revision' in svnInfo: # revision from SVN successful
                 version = 'r' + svnInfo['Revision']
@@ -440,8 +440,7 @@ class OutputHandler:
                 # parse output and get revision
                 svnInfoList = [line for line in output.strip('\n').split('\n')
                                if ': ' in line]
-                svnInfo = dict(map(lambda str: tuple(str.split(': ')),
-                                   svnInfoList))
+                svnInfo = dict(tuple(str.split(': ')) for str in svnInfoList)
 
                 if 'Revision' in svnInfo: # revision from GIT-SVN successful
                     version = 'r' + svnInfo['Revision']
@@ -491,7 +490,7 @@ class OutputHandler:
                               stdout=subprocess.PIPE,
                               stderr=subprocess.STDOUT).communicate()[0][6:9]
 
-        return version
+        return decodeToString(version)
 
 
     def getSystemInfo(self):
@@ -510,10 +509,10 @@ class OutputHandler:
         cpuInfoFilename = '/proc/cpuinfo'
         if os.path.isfile(cpuInfoFilename) and os.access(cpuInfoFilename, os.R_OK):
             cpuInfoFile = open(cpuInfoFilename, "r")
-            cpuInfo = dict(map(lambda str: tuple(str.split(':')),
+            cpuInfo = dict(tuple(str.split(':')) for str in
                             cpuInfoFile.read()
                             .replace('\n\n', '\n').replace('\t', '')
-                            .strip('\n').split('\n')))
+                            .strip('\n').split('\n'))
             cpuInfoFile.close()
         cpuModel = cpuInfo.get('model name', 'unknown').strip()
         numberOfCores = cpuInfo.get('cpu cores', 'unknown').strip()
@@ -527,17 +526,17 @@ class OutputHandler:
             frequencyInfoFile = open(freqInfoFilename, "r")
             maxFrequency = frequencyInfoFile.read().strip('\n')
             frequencyInfoFile.close()
-            maxFrequency = str(int(maxFrequency) / 1000) + ' MHz'
+            maxFrequency = str(int(maxFrequency) // 1000) + ' MHz'
 
         # get info about memory
         memInfo = dict()
         memInfoFilename = '/proc/meminfo'
         if os.path.isfile(memInfoFilename) and os.access(memInfoFilename, os.R_OK):
             memInfoFile = open(memInfoFilename, "r")
-            memInfo = dict(map(lambda str: tuple(str.split(': ')),
+            memInfo = dict(tuple(str.split(': ')) for str in
                             memInfoFile.read()
                             .replace('\t', '')
-                            .strip('\n').split('\n')))
+                            .strip('\n').split('\n'))
             memInfoFile.close()
         memTotal = memInfo.get('MemTotal', 'unknown').strip()
 
@@ -615,7 +614,7 @@ class OutputHandler:
         '''
 
         copyElem = ET.Element(elem.tag, elem.attrib)
-        for child in elem.getchildren():
+        for child in elem:
             copyElem.append(child)
         return copyElem
 
@@ -879,7 +878,7 @@ class Statistics:
 
 
     def printToTerminal(self):
-        print '\n'.join(['\nStatistics:' + str(self.dic["counter"]).rjust(13) + ' Files',
+        print ('\n'.join(['\nStatistics:' + str(self.dic["counter"]).rjust(13) + ' Files',
                  '    correct:        ' + str(self.dic["correctSafe"] + \
                                               self.dic["correctUnsafe"]).rjust(4),
                  '    unknown:        ' + str(self.dic["unknown"]).rjust(4),
@@ -887,7 +886,7 @@ class Statistics:
                  '        (file is safe, result is unsafe)',
                  '    false negatives:' + str(self.dic["wrongSafe"]).rjust(4) + \
                  '        (file is unsafe, result is safe)',
-                 ''])
+                 '']))
 
 
 def getOptions(optionsTag):
@@ -944,6 +943,17 @@ def XMLtoString(elem):
         return reparsed.toprettyxml(indent="  ")
 
 
+def decodeToString(toDecode):
+    """
+    This function is needed for Python 3,
+    because a subprocess can return bytes instead of a string.
+    """
+    try: 
+        return toDecode.decode('utf-8')
+    except AttributeError: # bytesToDecode was of type string before
+        return toDecode
+
+
 class FileWriter:
      """
      The class FileWrtiter is a wrapper for writing content into a file.
@@ -992,13 +1002,13 @@ def killSubprocess(process):
 
 
 def run(args, rlimits):
-    args = map(lambda arg: os.path.expandvars(arg), args)
-    args = map(lambda arg: os.path.expanduser(arg), args)
+    args = [os.path.expandvars(arg) for arg in args]
+    args = [os.path.expanduser(arg) for arg in args]
 
     def preSubprocess():
         os.setpgrp() # make subprocess to group-leader
-        for rsrc, limits in rlimits.items():
-            resource.setrlimit(rsrc, limits)
+        for rsrc in rlimits:
+            resource.setrlimit(rsrc, rlimits[rsrc])
 
     ru_before = resource.getrusage(resource.RUSAGE_CHILDREN)
     wallTimeBefore = time.time()
@@ -1023,7 +1033,8 @@ def run(args, rlimits):
         timer = Timer(timelimit + 10, killSubprocess, [p])
         timer.start()
 
-    output = p.stdout.read()
+    output = p.communicate()[0]
+    output = decodeToString(output)
     returncode = p.wait()
 
     if (0 in rlimits) and timer.isAlive():
@@ -1212,6 +1223,28 @@ def prepareSourceFileForAcsar(sourcefile):
     return newFilename
 
 
+# the next 3 functions are for imaginary tools, that return special results,
+# perhaps someone can use these function again someday,
+# to use them you need a normal benchmark-xml-file 
+# with the tool and sourcefiles, however options are ignored
+def run_safe(options, sourcefile, columns, rlimits):
+    args = ['safe'] + options + [sourcefile]
+    (returncode, output, cpuTimeDelta, wallTimeDelta) = (0, 'no output', 0, 0)
+    return ('safe', cpuTimeDelta, wallTimeDelta, output, args)
+
+def run_unsafe(options, sourcefile, columns, rlimits):
+    args = ['unsafe'] + options + [sourcefile]
+    (returncode, output, cpuTimeDelta, wallTimeDelta) = (0, 'no output', 0, 0)
+    return ('unsafe', cpuTimeDelta, wallTimeDelta, output, args)
+
+def run_random(options, sourcefile, columns, rlimits):
+    args = ['random'] + options + [sourcefile]
+    (returncode, output, cpuTimeDelta, wallTimeDelta) = (0, 'no output', 0, 0)
+    from random import random
+    status = 'safe' if random() < 0.5 else 'unsafe'
+    return (status, cpuTimeDelta, wallTimeDelta, output, args)
+
+
 def run_cpachecker(options, sourcefile, columns, rlimits):
     if ("-stats" not in options):
         options = options + ["-stats"]
@@ -1336,7 +1369,8 @@ def run_blast(options, sourcefile, columns, rlimits):
 def runBenchmark(benchmarkFile):
     benchmark = Benchmark(benchmarkFile)
 
-    assert benchmark.tool in ["cbmc", "satabs", "cpachecker", "blast", "acsar", "wolverine"]
+    assert benchmark.tool in ["cbmc", "satabs", "cpachecker", "blast", "acsar", "wolverine",
+                              "safe", "unsafe", "random"]
     run_func = eval("run_" + benchmark.tool)
 
     if len(benchmark.tests) == 1:

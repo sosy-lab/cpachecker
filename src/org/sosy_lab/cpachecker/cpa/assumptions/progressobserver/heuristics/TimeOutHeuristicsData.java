@@ -23,16 +23,28 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.heuristics;
 
+import static com.google.common.base.Preconditions.*;
+
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.StopHeuristicsData;
 import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
 
 public class TimeOutHeuristicsData implements StopHeuristicsData {
 
   private final boolean stop;
-  private static long threshold;
+  private final long threshold;
 
-  public TimeOutHeuristicsData(boolean pStop) {
+  private TimeOutHeuristicsData(boolean pStop, long pThreshold) {
     stop = pStop;
+    threshold = pThreshold;
+  }
+
+  static TimeOutHeuristicsData createTop() {
+    return new TimeOutHeuristicsData(false, -1);
+  }
+
+  static TimeOutHeuristicsData createBottom(long pThreshold) {
+    checkArgument(pThreshold >= 0);
+    return new TimeOutHeuristicsData(true, pThreshold);
   }
 
   @Override
@@ -50,15 +62,9 @@ public class TimeOutHeuristicsData implements StopHeuristicsData {
     return !stop;
   }
 
-  public static final TimeOutHeuristicsData BOTTOM = new TimeOutHeuristicsData(true);
-
   @Override
   public boolean shouldTerminateAnalysis() {
     return true;
-  }
-
-  protected void setThreshold(long pThreshold) {
-    threshold = pThreshold;
   }
 
   @Override
@@ -68,6 +74,7 @@ public class TimeOutHeuristicsData implements StopHeuristicsData {
 
   @Override
   public long getThreshold() {
+    checkState(stop);
     return threshold;
   }
 

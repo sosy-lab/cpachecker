@@ -93,7 +93,7 @@ public class PathLengthHeuristics implements StopHeuristics<PathLengthHeuristics
   }
 
   @Override
-  public HeuristicPrecision getPrecision() {
+  public HeuristicPrecision getInitialPrecision() {
     return precision;
   }
 

@@ -84,7 +84,7 @@ public class RepetitionsInPathHeuristics implements StopHeuristics<RepetitionsIn
   }
 
   @Override
-  public HeuristicPrecision getPrecision() {
+  public HeuristicPrecision getInitialPrecision() {
     return precision;
   }
 

@@ -93,7 +93,7 @@ public class AssumeEdgesInPathHeuristics implements StopHeuristics<AssumeEdgesIn
   }
 
   @Override
-  public HeuristicPrecision getPrecision() {
+  public HeuristicPrecision getInitialPrecision() {
     return precision;
   }
 
