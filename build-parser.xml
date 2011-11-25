@@ -58,8 +58,9 @@
         />
 
         <!-- places the suppressWarnings-tag in front of the outer class -->
-        <replace file="${dir.parser}/${parser.target}.java" token="public class " value="@SuppressWarnings(value = { &quot;all&quot; }) public    class "/>
+        <property name="annotation" value="@javax.annotation.Generated(&quot;JFlex&quot;)${line.separator}@SuppressWarnings(value = &quot;all&quot;)${line.separator}"/>
+        <replace file="${dir.parser}/${parser.target}.java" token="public class " value="${annotation}public  class "/>
         <!-- places the suppressWarnings-tag in front of the inner class -->
-        <replace file="${dir.parser}/${parser.target}.java" token="class CUP$" value="@SuppressWarnings(value = { &quot;all&quot; }) class    CUP$"/>
+        <replace file="${dir.parser}/${parser.target}.java" token="class CUP$" value="${annotation}class  CUP$"/>
     </target>
 </project>

@@ -13,6 +13,8 @@ import java.util.Deque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
+
+@javax.annotation.Generated("JFlex")
 @SuppressWarnings(value = { "all" })
 %%
 
