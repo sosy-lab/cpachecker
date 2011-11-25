@@ -115,16 +115,16 @@ def getListOfTests(file, filesFromXML=False):
 def appendTests(listOfTests, filelist, columns=None):
     for resultFile in filelist:
         if os.path.exists(resultFile) and os.path.isfile(resultFile):
-            print '    ' + resultFile
+            print ('    ' + resultFile)
 
             resultElem = ET.ElementTree().parse(resultFile)
 
             if 'test' != resultElem.tag:
-                print ("ERROR:\n" \
+                print (("ERROR:\n" \
                     + "XML-file seems to be invalid.\n" \
                     + "The rootelement of testresult is not named 'test'.\n" \
                     + "If you want to run a table-definition-file,\n"\
-                    + "you should use the option '-x' or '--xml'.").replace('\n','\n    ')
+                    + "you should use the option '-x' or '--xml'.").replace('\n','\n    '))
                 exit()
 
             # check for equal files in the tests
@@ -144,7 +144,7 @@ def appendTests(listOfTests, filelist, columns=None):
 
             listOfTests.append((resultElem, columnTitles))
         else:
-            print 'File {0} is not found.'.format(repr(resultFile))
+            print ('File {0} is not found.'.format(repr(resultFile)))
             exit()
 
 
@@ -190,8 +190,8 @@ def insertLogFileNames(resultFile, resultElem):
         sourcefile.set('logfileForHtml', txtFolder + logFileName + ".txt")
 
     if errorLogFileList: # not empty
-        print 'logfile not found or not copied:\n' + \
-            '\n'.join(errorLogFileList)
+        print ('logfile not found or not copied:\n' + \
+            '\n'.join(errorLogFileList))
 
 
 def getFileList(shortFile):
@@ -211,7 +211,7 @@ def getFileList(shortFile):
     if len(fileList) != 0:
         fileList.sort()
     else:
-        print '\nWarning: no file matches "{0}".'.format(shortFile)
+        print ('\nWarning: no file matches "{0}".'.format(shortFile))
 
     return fileList
 
@@ -623,7 +623,7 @@ def createTable(file, filesFromXML=False):
     parse inputfile(s), create html-code and write it to file
     '''
 
-    print 'collecting files ...'
+    print ('collecting files ...')
 
     if filesFromXML:
         listOfTests = getListOfTests(file, True)
@@ -636,11 +636,11 @@ def createTable(file, filesFromXML=False):
         CSVOutFileName = OUTPUT_PATH + NAME_START + "." + timestamp + ".table.csv"
 
     if len(listOfTests) == 0:
-        print '\nError! No file with testresults found.\n' \
-            + 'Please check the filenames in your XML-file.'
+        print ('\nError! No file with testresults found.\n' \
+            + 'Please check the filenames in your XML-file.')
         exit()
 
-    print 'generating html ...'
+    print ('generating html ...')
 
     (tableHeadHTML, tableHeadCSV) = getTableHead(listOfTests)
     (tableBodyHTML, tableFootHTML, tableBodyCSV) = getTableBody(listOfTests)
@@ -667,7 +667,7 @@ def createTable(file, filesFromXML=False):
     CSVFile.write(CSVCode)
     CSVFile.close()
 
-    print 'done'
+    print ('done')
 
 
 def main(args=None):
@@ -708,7 +708,7 @@ def main(args=None):
         print ("reading table definition from '" + options.xmltablefile + "'...")
         if not os.path.exists(options.xmltablefile) \
                 or not os.path.isfile(options.xmltablefile):
-            print 'File {0} does not exist.'.format(repr(options.xmltablefile))
+            print ('File {0} does not exist.'.format(repr(options.xmltablefile)))
             exit()
         else:
             createTable(options.xmltablefile, True)
@@ -725,5 +725,5 @@ if __name__ == '__main__':
     try:
         sys.exit(main())
     except KeyboardInterrupt:
-        print 'script was interrupted by user'
+        print ('script was interrupted by user')
         pass
