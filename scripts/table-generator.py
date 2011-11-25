@@ -15,8 +15,6 @@ OUTPUT_PATH = "test/results/"
 
 NAME_START = "results" # first part of filename of html-table
 
-LOGFILES_IN_HTML = True # create links to logfiles in html
-
 CSV_SEPARATOR = '\t'
 
 
@@ -275,7 +273,7 @@ def getColumnsRowAndTestWidths(listOfTests):
                 '</td><td>'.join(columnsTitles) + \
                 '</td></tr>',
             testWidths,
-            CSV_SEPARATOR.join(['filename'] + columnsTitles))
+            CSV_SEPARATOR.join(columnsTitles))
 
 
 def getToolRow(listOfTests, testWidths):
@@ -381,7 +379,7 @@ def getTestRow(listOfTests, testWidths):
                                 for (testResult, _) in listOfTests]
     tests = ['<td colspan="{0}">{1}</td>'.format(width, testName)
              for (testName, width) in zip(testNames, testWidths) if width]
-    testLine = CSV_SEPARATOR.join([CSV_SEPARATOR.join([testName]*width)
+    testLine = CSV_SEPARATOR.join(['test'] + [CSV_SEPARATOR.join([testName]*width)
              for (testName, width) in zip(testNames, testWidths) if width])
 
     return ('<tr><td>test</td>' + ''.join(tests) + '</tr>',
@@ -409,15 +407,22 @@ def getTableBody(listOfTests):
     rowsForHTML = []
     rowsForCSV = []
     fileList = listOfTests[0][0].findall('sourcefile')
+
+    # get filenames
+    fileNames = [file.get("name") for file in fileList]
+
+    maxScore = sum([SCORE_CORRECT_UNSAFE
+                    if containsAny(name.lower(), BUG_SUBSTRING_LIST)
+                    else SCORE_CORRECT_SAFE
+                        for name in fileNames])
     rowsForStats = [['<td>total files</td>'],
                     ['<td title="(no bug exists + result is SAFE) OR ' + \
                      '(bug exists + result is UNSAFE)">correct results</td>'],
                     ['<td title="bug exists + result is SAFE">false negatives</td>'],
                     ['<td title="no bug exists + result is UNSAFE">false positives</td>'],
-                    ['<td>score ({0} files)</td>'.format(len(fileList))]]
+                    ['<td>score ({0} files, max score: {1})</td>'
+                        .format(len(fileList), maxScore)]]
 
-    # get filenames
-    fileNames = [file.get("name") for file in fileList]
 
     # get common folder
     commonPrefix = os.path.commonprefix(fileNames) # maybe with parts of filename
@@ -427,9 +432,13 @@ def getTableBody(listOfTests):
     for fileName in fileNames:
         filePath = getPathOfSourceFile(fileName)
 
-        rowsForHTML.append(['<td><a href="{0}">{1}</a></td>'.
-                            format(filePath, fileName.replace(commonPrefix, ''))])
-        rowsForCSV.append([fileName])
+        if LOGFILES_IN_HTML:
+            rowsForHTML.append(['<td><a href="{0}">{1}</a></td>'.
+                            format(filePath, fileName.replace(commonPrefix, '', 1))])
+        else:
+            rowsForHTML.append(['<td>{0}</td>'.
+                            format(fileName.replace(commonPrefix, '', 1))])
+        rowsForCSV.append([fileName.replace(commonPrefix, '', 1)])
 
     # get values for each test
     for testResult, columns in listOfTests:
@@ -476,7 +485,7 @@ def getValuesOfFileXTest(currentFile, listOfColumns):
     Only columns, that should be part of the table, are collected.
     '''
 
-    currentFile.status = 'unknownStatus'
+    currentFile.status = 'unknown'
 
     valuesForHTML = []
     valuesForCSV = []
@@ -647,6 +656,7 @@ def createTable(file, filesFromXML=False):
     htmlCode = DOCTYPE + '<html>\n\n<head>\n' + CSS + TITLE + '\n</head>\n\n<body>\n\n' \
                 + tableCode + '</body>\n\n</html>'
 
+    if not os.path.isdir(OUTPUT_PATH): os.makedirs(OUTPUT_PATH)
     HTMLFile = open(HTMLOutFileName, "w")
     HTMLFile.write(htmlCode)
     HTMLFile.close()
@@ -680,12 +690,19 @@ def main(args=None):
         dest="outputPath",
         help="outputPath for table. if it does not exist, it is created."
     )
+    parser.add_option("-w", "--withoutlinks", 
+        action="store_false", dest="logfilesInHtml", default=True,
+        help="create table without links to logfiles."
+    )
     options, args = parser.parse_args(args)
 
     if options.outputPath:
         global OUTPUT_PATH
         OUTPUT_PATH = options.outputPath if options.outputPath.endswith('/') \
                  else options.outputPath + '/'
+
+    global LOGFILES_IN_HTML
+    LOGFILES_IN_HTML = options.logfilesInHtml
 
     if options.xmltablefile:
         print ("reading table definition from '" + options.xmltablefile + "'...")
