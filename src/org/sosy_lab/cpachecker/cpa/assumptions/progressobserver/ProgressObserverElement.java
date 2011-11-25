@@ -26,11 +26,9 @@ package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver;
 import java.util.Iterator;
 import java.util.List;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
 import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula;
-import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
@@ -158,9 +156,7 @@ public class ProgressObserverElement implements AbstractElement, AvoidanceReport
       Formula result = manager.makeFalse();
       for (StopHeuristicsData d : data) {
         if (d.isBottom()) {
-          Pair<PreventingHeuristicType, Long> preventingCondition =
-            Pair.of(d.getHeuristicType(), d.getThreshold());
-          String preventingHeuristicStringFormula = HeuristicToFormula.getFormulaStringForHeuristic(preventingCondition);
+          String preventingHeuristicStringFormula = HeuristicToFormula.getFormulaStringForHeuristic(d.getHeuristicType(), d.getThreshold());
 
           result = manager.makeOr(result, manager.parse(preventingHeuristicStringFormula));
         }
