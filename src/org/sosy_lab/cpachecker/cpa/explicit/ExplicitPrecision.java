@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -32,11 +30,14 @@ import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.SetMultimap;
+
 public class ExplicitPrecision implements Precision {
 
   private final Pattern blackListPattern;
 
-  private Map<CFANode, Set<String>> whiteList = null;
+  private SetMultimap<CFANode, String> whiteList = null;
 
   CFANode currentLocation = null;
 
@@ -44,15 +45,8 @@ public class ExplicitPrecision implements Precision {
     blackListPattern = Pattern.compile(variableBlacklist);
 
     if (whiteList != null) {
-      this.whiteList = new HashMap<CFANode, Set<String>>(whiteList);
-    }
-  }
-
-  public ExplicitPrecision(ExplicitPrecision precision, Map<CFANode, Set<String>> whiteList) {
-    blackListPattern = precision.blackListPattern;
-
-    if (whiteList != null) {
-      this.whiteList = new HashMap<CFANode, Set<String>>(whiteList);
+      this.whiteList = HashMultimap.create();
+      addToWhitelist(whiteList);
     }
   }
 
@@ -60,7 +54,7 @@ public class ExplicitPrecision implements Precision {
       Map<CFANode, Set<String>> pathInfo) {
     blackListPattern = precision.blackListPattern;
 
-    this.whiteList = new HashMap<CFANode, Set<String>>(precision.whiteList);
+    this.whiteList = HashMultimap.create(precision.whiteList);
 
     addToWhitelist(predicateInfo);
 
@@ -82,7 +76,7 @@ public class ExplicitPrecision implements Precision {
 
   boolean isOnWhitelist(String variable) {
     return whiteList == null
-        || (whiteList.containsKey(currentLocation) && whiteList.get(currentLocation).contains(variable));
+        || whiteList.containsEntry(currentLocation, variable);
   }
 
   public boolean isTracking(String variable) {
@@ -99,12 +93,7 @@ public class ExplicitPrecision implements Precision {
 
   private void addToWhitelist(Map<CFANode, Set<String>> additionalInfo) {
     for (Map.Entry<CFANode, Set<String>> entry : additionalInfo.entrySet()) {
-      Set<String> variablesAtLocation = whiteList.get(entry.getKey());
-      if (variablesAtLocation == null) {
-        whiteList.put(entry.getKey(), variablesAtLocation = new HashSet<String>());
-      }
-
-      variablesAtLocation.addAll(entry.getValue());
+      whiteList.putAll(entry.getKey(), entry.getValue());
     }
   }
 }
