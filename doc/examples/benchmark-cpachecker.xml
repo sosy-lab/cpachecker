@@ -1,9 +1,8 @@
-<?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <!-- Example file that demonstrates the use of CPAchecker
      and also the use of the benchmark-script. -->
 
-<benchmark tool="cpachecker" timelimit="10" memlimit="2048">
+<benchmark tool="cpachecker" timelimit="10" memlimit="2000">
 
   <!-- global sourcefiles are tested in every test -->
   <sourcefiles>
@@ -15,15 +14,15 @@
   </sourcefiles>
 
   <!-- global options for all tests -->
-  <!-- recommended option "output.disable", as the CPAchecker output files 
-  are normally not interesting for benchmarks. -->
-  <option name="-setprop">output.disable=true</option>
-
   <!-- Set the java heap size. -->
   <option name="-heap">1000m</option>
 
 
   <test name="locks-lbe">
+    <!-- test-specific option -->
+    <option name="-setprop">output.path=test/results/${benchmark_name}.${benchmark_date}.output.${test_name}/${sourcefile_name}/</option>
+    <option name="-predicateAnalysis-lbe"/>
+
     <sourcefiles>
       <include>test/programs/benchmarks/locks/*7.c</include>
       <include>test/programs/benchmarks/locks/*8.c</include>
@@ -38,7 +37,6 @@
       <option name="-debug"></option>
     </sourcefiles>
 
-    <option name="-predicateAnalysis-lbe"/>
   </test>
 
 
@@ -47,6 +45,9 @@
       <include>test/programs/benchmarks/locks/*1?.c</include>
     </sourcefiles>
 
+    <!-- recommended option "output.disable", as the CPAchecker output files 
+    are normally not interesting for benchmarks. -->
+    <option name="-setprop">output.disable=true</option>
     <option name="-predicateAnalysis"/>
   </test>
 

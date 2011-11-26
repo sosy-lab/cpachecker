@@ -585,6 +585,30 @@ class OutputHandler:
         self.writeTestInfoToLog()
 
 
+    def substituteVars(self, sourcefile, oldList):
+        """
+        This method replaces special substrings from a list of string 
+        and return a new list.
+        """
+
+        # list with tuples (key, value): 'key' is replaced by 'value'
+        keyValueList = [('${sourcefile_name}', os.path.basename(sourcefile)),
+                        ('${benchmark_name}',  self.benchmark.name),
+                        ('${benchmark_date}',  self.benchmark.date),
+                        ('${logfile_path}',    self.logFolder),
+                        ('${test_name}',       self.test.name if self.test.name is not None else '')]
+
+        newList = []
+
+        for oldStr in oldList:
+            newStr = oldStr
+            for (key, value) in keyValueList:
+                newStr = newStr.replace(key, value)
+            newList.append(newStr)
+
+        return newList
+
+
     def outputForSkippingTest(self, test):
         '''
         This function writes a simple message to terminal and logfile,
@@ -1398,6 +1422,10 @@ def runBenchmark(benchmarkFile):
 
                 currentOptions = toSimpleList(mergeOptions(
                                     benchmark.options, test.options, fileOptions))
+
+                # replace variables with special values
+                currentOptions = outputHandler.substituteVars(sourcefile, currentOptions)
+
                 outputHandler.outputBeforeRun(sourcefile, currentOptions)
 
                 # run test
