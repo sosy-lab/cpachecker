@@ -34,9 +34,9 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.pcc.common.WithCorrespondingCFAEdgeARTEdge;
 import org.sosy_lab.pcc.common.ARTNode;
 import org.sosy_lab.pcc.common.PCCCheckResult;
+import org.sosy_lab.pcc.common.WithCorrespondingCFAEdgeARTEdge;
 import org.sosy_lab.pcc.common.WithOpDescriptionARTSBEEdge;
 
 public class SBEWithIndices_ARTProofCheckAlgorithm extends
@@ -102,13 +102,13 @@ public class SBEWithIndices_ARTProofCheckAlgorithm extends
         edge = new WithOpDescriptionARTSBEEdge(target, cfaEdge, operation);
         if(nodeS.isEdgeContained(edge)){
           return PCCCheckResult.ElementAlreadyRead;
-        }
-        nodeS.addEdge(edge);
-      } catch (InputMismatchException e2) {System.out.println("Test2");
+        }else{
+        nodeS.addEdge(edge);}
+      } catch (InputMismatchException e2) {
         return PCCCheckResult.UnknownCFAEdge;
-      } catch (NoSuchElementException e3) {System.out.println("Test3");
+      } catch (NoSuchElementException e3) {
         return PCCCheckResult.UnknownCFAEdge;
-      } catch (IllegalArgumentException e4) {System.out.println("Test4");
+      } catch (IllegalArgumentException e4) {
         return PCCCheckResult.UnknownCFAEdge;
       }
     }

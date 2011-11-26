@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -130,16 +131,12 @@ public class AdjustableLBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm
           }
         }
       } catch (NumberFormatException e1) {
-        System.out.println("Error1");
         return PCCCheckResult.UnknownCFANode;
       } catch (InputMismatchException e2) {
-        System.out.println("Error2");
         return PCCCheckResult.UnknownCFANode;
       } catch (NoSuchElementException e3) {
-        System.out.println("Error3");
         return PCCCheckResult.UnknownCFANode;
       } catch (IllegalArgumentException e4) {
-        System.out.println("Error4");
         return PCCCheckResult.UnknownCFANode;
       }
     }
@@ -177,13 +174,10 @@ public class AdjustableLBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm
         if (nodeS.isEdgeContained(edge)) { return PCCCheckResult.ElementAlreadyRead; }
         nodeS.addEdge(edge);
       } catch (InputMismatchException e2) {
-        System.out.println("Test2");
         return PCCCheckResult.UnknownCFAEdge;
       } catch (NoSuchElementException e3) {
-        System.out.println("Test3");
         return PCCCheckResult.UnknownCFAEdge;
       } catch (IllegalArgumentException e4) {
-        System.out.println("Test4");
         return PCCCheckResult.UnknownCFAEdge;
       }
     }
@@ -215,6 +209,7 @@ public class AdjustableLBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm
       for (int i = 0; i < edges.length; i++) {
         child = art.get(edges[i].getTarget());
         if (child.getCorrespondingCFANode() instanceof FunctionDefinitionNode) {
+          // TODO node ist nicht zwingend vorgänger, wähle richtigen Vorgänger
           stack = current.getSecond() + Separators.stackEntrySeparator
               + node.getCorrespondingCFANode().getLeavingSummaryEdge().getSuccessor().getNodeNumber();
         } else {
@@ -245,10 +240,6 @@ public class AdjustableLBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm
         && ((CFALabelNode) cfaNode).getLabel().toLowerCase().equals("error")) {
       if (!handler.isFalse(pNode.getAbstraction())) { return PCCCheckResult.ErrorNodeReachable; }
     }
-    // check false abstractions
-    if (handler.isFalse(pNode.getAbstraction())) {
-      if (pNode.getNumberOfEdges() != 0) { return PCCCheckResult.InvalidART; }
-    }
     // check stack
     if (cfaNode.getEnteringSummaryEdge() != null) {
       try {
@@ -262,6 +253,12 @@ public class AdjustableLBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm
     if (cfaForProof.getMainFunction().getExitNode().equals(cfaNode)) {
       if (pNode.getNumberOfEdges() != 0) { return PCCCheckResult.ART_CFA_Mismatch; }
       if (!pStack.equals("")) { return PCCCheckResult.InvalidStack; }
+      return PCCCheckResult.Success;
+    }
+    // check false abstractions
+    if (handler.isFalse(pNode.getAbstraction())) {
+      if (pNode.getNumberOfEdges() != 0) { return PCCCheckResult.InvalidART; }
+      return PCCCheckResult.Success;
     }
     // check covered element
     if (pNode instanceof CoveredARTNode) {
@@ -285,16 +282,27 @@ public class AdjustableLBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm
         cfaNode = current.getFirst();
         // check all children
         for (int i = 0; i < cfaNode.getNumLeavingEdges(); i++) {
+          if (cfaNode.getLeavingEdge(i) instanceof FunctionReturnEdge
+              && cfaNode.getLeavingEdge(i).getSuccessor().getNodeNumber() != Integer.parseInt(pStack.substring(
+                  pStack.lastIndexOf(Separators.stackEntrySeparator)+1, pStack.length()))) {
+            continue;
+          }
           // get path formula
           pf = handler.extendPath(current.getSecond(), cfaNode.getLeavingEdge(i));
           if (pf == null || pf.getFormula() == null) { return PCCCheckResult.InvalidART; }
           // check if path ends in abstraction ART node
           if (isAbstraction(cfaNode.getLeavingEdge(i).getSuccessor(), pf.getLength())) {
             // check if ART node is available
-            if (!hasAbstractionEdgeTo(cfaNode.getLeavingEdge(i).getSuccessor(), pNode.getEdges())) { return PCCCheckResult.UncoveredEdge; }
+            if (!hasAbstractionEdgeTo(cfaNode.getLeavingEdge(i).getSuccessor(), pNode.getEdges())) {
+              System.out.println("3");
+              return PCCCheckResult.UncoveredEdge;
+            }
             // check if edge is feasible
             if (!checkARTEdgePath(sourceAbstraction.getFirst(), pf, cfaNode.getLeavingEdge(i), pNode.getEdges(),
-                edgeCovered)) { return PCCCheckResult.UncoveredEdge; }
+                edgeCovered)) {
+              System.out.println("2");
+              return PCCCheckResult.UncoveredEdge;
+            }
           } else {
             // check if it is a covered art node
             if (hasCoveringEdgeTo(cfaNode.getLeavingEdge(i).getSuccessor(), pNode.getEdges())) {
@@ -335,7 +343,10 @@ public class AdjustableLBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm
       }
       // check if every successor is covered -> correct abstraction
       for (int i = 0; i < edgeCovered.length; i++) {
-        if (!edgeCovered[i]) { return PCCCheckResult.UncoveredEdge; }
+        if (!edgeCovered[i]) {
+          System.out.println("1");
+          return PCCCheckResult.UncoveredEdge;
+        }
       }
     }
     return PCCCheckResult.Success;
@@ -357,7 +368,8 @@ public class AdjustableLBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm
     if (pEdges.length != pEdgeCovered.length || pPath == null || pPath.getFormula() == null
         || pSourceAbstraction == null || pCfaEdge == null) { return false; }
     ARTNode target;
-    Formula rightAbstraction;
+    Formula rightAbstraction = null;
+    Pair<Formula, SSAMap> pair;
     boolean success = false;
     for (int i = 0; i < pEdges.length; i++) {
       target = art.get(pEdges[i].getTarget());
@@ -366,6 +378,10 @@ public class AdjustableLBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm
         // check feasible abstraction
         rightAbstraction = handler.createFormula(target.getAbstraction());
         if (rightAbstraction == null) { return false; }
+        // instantiate right formula
+        pair = handler.addIndices(pPath.getSsa(), rightAbstraction);
+        if (pair == null || pair.getFirst() == null) { return false; }
+        rightAbstraction = pair.getFirst();
         rightAbstraction = handler.buildEdgeInvariant(pSourceAbstraction, pPath.getFormula(), rightAbstraction);
         if (rightAbstraction == null) { return false; }
         if (handler.isFalse(rightAbstraction)) {
@@ -384,6 +400,7 @@ public class AdjustableLBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm
     ARTNode target;
     Formula rightAbstraction;
     boolean success = false;
+    Pair<Formula, SSAMap> pair;
     for (int i = 0; i < pEdges.length; i++) {
       target = art.get(pEdges[i].getTarget());
       if (target == null || target instanceof CoveredARTNode) { return false; }
@@ -391,6 +408,10 @@ public class AdjustableLBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm
         // check feasible abstraction
         rightAbstraction = handler.createFormula(target.getAbstraction());
         if (rightAbstraction == null) { return false; }
+        // instantiate right abstraction
+        pair = handler.addIndices(pPath.getSsa(), rightAbstraction);
+        if (pair == null || pair.getFirst() == null) { return false; }
+        rightAbstraction = pair.getFirst();
         rightAbstraction = handler.buildEdgeInvariant(pSourceAbstraction, pPath.getFormula(), rightAbstraction);
         if (rightAbstraction == null) { return false; }
         if (handler.isFalse(rightAbstraction)) {

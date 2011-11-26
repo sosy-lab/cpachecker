@@ -197,7 +197,7 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
             if (stack.length != 0) { return PCCCheckResult.InvalidARTRootSpecification; }
           }
           try {
-            for (int j = 0; i < stack.length; j++) {
+            for (int j = 0; j < stack.length; j++) {
               stack[j] = Integer.parseInt(subStr[j + 1]);
             }
           } catch (NumberFormatException e1) {
@@ -484,7 +484,7 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
       if (isReturn) {
         singleInvariant[singleInvariant.length - 1] =
             handler.createFormula(goalDes + " = "
-                + reachableCFANodes.get(pNode).getNodeNumber());
+                + Integer.toString(pNode));
         if (singleInvariant[singleInvariant.length - 1] == null) { return null; }
       }
     } catch (IllegalArgumentException e1) {
@@ -552,7 +552,7 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
         }
         // check all outgoing edges if part of component
         for (int i = 0; i < current.getNumLeavingEdges(); i++) {
-          succ = current.getEnteringEdge(i).getSuccessor().getNodeNumber();
+          succ = current.getLeavingEdge(i).getSuccessor().getNodeNumber();
           // check if same component
           if (remaining.contains(succ)) {
             remaining.remove(succ);

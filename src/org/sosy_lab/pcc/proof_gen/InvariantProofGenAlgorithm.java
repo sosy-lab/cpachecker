@@ -108,7 +108,7 @@ public abstract class InvariantProofGenAlgorithm implements ProofGenAlgorithm {
                 visiting.getSecond()
                     + Separators.stackEntrySeparator
                     + current.retrieveLocationElement().getLocationNode()
-                        .getLeavingSummaryEdge();
+                        .getLeavingSummaryEdge().getSuccessor().getNodeNumber();
             toVisit.push(new Pair<ARTElement, String>(child, newCallstack));
           } else {
             if (edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {

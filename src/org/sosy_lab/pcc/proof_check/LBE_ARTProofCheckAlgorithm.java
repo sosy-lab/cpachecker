@@ -213,6 +213,7 @@ public class LBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
       for (int i = 0; i < edges.length; i++) {
         child = art.get(edges[i].getTarget());
         if (child.getCorrespondingCFANode() instanceof FunctionDefinitionNode) {
+          // TODO node nicht Vorgänger, setze korrekten Vorgänger
           stack = current.getSecond() + Separators.stackEntrySeparator
               + node.getCorrespondingCFANode().getLeavingSummaryEdge().getSuccessor().getNodeNumber();
         } else {

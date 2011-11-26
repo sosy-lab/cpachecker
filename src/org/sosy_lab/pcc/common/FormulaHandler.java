@@ -110,7 +110,7 @@ public class FormulaHandler {
     String variable;
     while (match.find()) {
       variable = pFormula.substring(match.start() + 1, match.end() - 1);
-      if (!foundVars.contains(variable)&&!variable.equals("true")&&!variable.equals("false")) {
+      if (!foundVars.contains(variable) && !variable.equals("true") && !variable.equals("false")) {
         foundVars.add(variable);
       }
     }
@@ -120,7 +120,7 @@ public class FormulaHandler {
   public boolean isFalse(String pFormula) {
     if (pFormula == null) { return false; }
     try {
-      Formula f = fm.parseInfix(pFormula);
+      Formula f = createFormula(pFormula);
       return isFalse(f);
     } catch (IllegalArgumentException e) {
       return false;
@@ -149,7 +149,11 @@ public class FormulaHandler {
 
   public String removeIndicesStr(Formula pFormula) {
     if (pFormula == null) { return null; }
-    String pInput = pFormula.toString();
+    return removeIndicesStr(pFormula.toString());
+  }
+
+  public String removeIndicesStr(String pInput) {
+    if (pInput == null) { return null; }
     StringBuilder newStr = new StringBuilder();
     Pattern pat = Pattern.compile("[\\W&&[^@]]([_A-Za-z](\\w)*::)?([_A-Za-z](\\w)*@(\\d)+)[\\W&&[^@]]");
     // adapt input such that pattern also matches at beginning and end
@@ -207,19 +211,17 @@ public class FormulaHandler {
       String pRight) {
     if (pLeft == null || pLeft.length() == 0 || pOperation == null
         || pRight == null || pRight.length() == 0) { return null; }
-    try {
       Formula fR, fOp, fL;
-      fL = fm.parseInfix(pLeft);
-      fR = fm.parseInfix(pRight);
-      fR = fm.makeNot(fR);
+      fL = createFormula(pLeft);
+      fR = createFormula(pRight);
+      if(fL==null || fR==null){return null;}
       if (pOperation.length() != 0) {
-        fOp = fm.parseInfix(pOperation);
-        fL = fm.makeAnd(fL, fOp);
+        fOp = createFormula(pOperation);
+        if(fOp==null){return null;}
+      }else{
+        fOp=null;
       }
-      return fm.makeAnd(fL, fR);
-    } catch (IllegalArgumentException e) {
-      return null;
-    }
+      return buildEdgeInvariant(fL, fOp, fR);
   }
 
   public Formula buildEdgeInvariant(Formula pLeft, Formula pOperation,
@@ -297,7 +299,7 @@ public class FormulaHandler {
     }
   }
 
-  public PathFormula getEdgeOperationFormula(SSAMap pSSA, CFAEdge[] edges){
+  public PathFormula getEdgeOperationFormula(SSAMap pSSA, CFAEdge[] edges) {
     // TODO
     return null;
   }
@@ -365,29 +367,19 @@ public class FormulaHandler {
     }
   }
 
-  @SuppressWarnings({ "deprecation", "finally" })
   public boolean isSameFormulaWithoutSSAIndicies(String pFormula1,
       String pFormula2) {
     if (pFormula1.equals("") && pFormula2.equals("")) { return true; }
-    try {
-      Formula formula1 = fm.parseInfix(pFormula1);
-      Formula formula2 = fm.parseInfix(pFormula2);
-      try {
-        formula1 = fm.uninstantiate(formula1);
-      } finally {
-        try {
-          formula2 = fm.uninstantiate(formula2);
-        } finally {
-          return formula1.equals(formula2);
-        }
-      }
-    } catch (IllegalArgumentException e) {
-      return false;
-    }
+    pFormula1 = removeIndicesStr(pFormula1);
+    pFormula2 = removeIndicesStr(pFormula2);
+    return pFormula1.equals(pFormula2);
   }
 
   public boolean isSameFormulaWithNormalizedIndices(String pFormula1,
       String pFormula2) {
+    if(pFormula1.equals(pFormula2)){
+      return true;
+    }
     Vector<Pair<String, Integer>> first, second;
     first = getIndicesForVariables(pFormula1);
     second = getIndicesForVariables(pFormula2);
@@ -413,8 +405,10 @@ public class FormulaHandler {
 
       }
     }
-    // compare (string should be the same)
-    return pFormula1.equals(pFormula2);
+    // compare (string not necessarily the same, order by be changed)
+    Formula f = buildEdgeInvariant(pFormula1, "", pFormula2);
+    if (f == null) { return false; }
+    return isFalse(f);
   }
 
   private String replaceVariable(String pOldVar, String pInput, String pNewVar) {
@@ -529,7 +523,6 @@ public class FormulaHandler {
     // get highest indices for variables in pAbstraction
     Hashtable<String, Integer> highestIndices = getHighestIndices(pAbstraction);
     if (highestIndices == null) {
-      System.out.println("Test1");
       return false;
     }
     String intermediate;
@@ -539,8 +532,9 @@ public class FormulaHandler {
         // all variables are only allowed to have same indices as highest indices
         intermediate =
             pOperation.replaceAll(var + "@" + highestIndices.get(var), "");
-        if (intermediate.contains(var)) {
-          System.out.println("Test2");
+        if (intermediate.matches("(.)*[\\W]" + var + "[\\W](.)*")) {
+          System.out.println(var);
+          System.out.println(intermediate);
           return false;
         }
       } else {
@@ -548,14 +542,13 @@ public class FormulaHandler {
         intermediate =
             pOperation
                 .replaceAll(var + "@" + (highestIndices.get(var) + 1)
-                    + "(\\s)*=", "");
+                    + "(\\s)*(\\))*(\\s)*=", "");
         // eliminate all remaining variables of this kind
         intermediate =
             intermediate.replaceAll(
                 var + "@" + highestIndices.get(var)
-                    + "(\\s)*[p{Punct}&&[^=]]", "");
-        if (intermediate.contains(var)) {
-          System.out.println("Test3");
+                    + "(\\s)*[!\\&\\(\\)\\*\\+-/<=>\\[\\]|&&[^=]]", "");
+        if (intermediate.matches("(.)*[\\W]" + var + "[\\W](.)*")) {
           return false;
         }
       }
@@ -575,6 +568,7 @@ public class FormulaHandler {
         // check if variable is contained with highest index
         if (!pRightAbstraction.matches("(.)*[\\W]" + var + "@"
             + highestVar.get(var) + "[\\W](.)*")) { return false; }
+
       }
     }
     return true;
