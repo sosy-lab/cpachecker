@@ -27,12 +27,47 @@ import java.util.List;
 
 public class ImpreciseInputsTestCase extends TestCase {
 
-  public ImpreciseInputsTestCase(int[] pInputs) {
+  private double[] mInputs;
+
+  public ImpreciseInputsTestCase(int[] pInputs, double[] pValues) {
     super(pInputs, false);
+    copy(pValues);
   }
 
-  public ImpreciseInputsTestCase(List<Integer> pInputs) {
+  public ImpreciseInputsTestCase(List<Integer> pInputs, List<Double> pValues) {
     super(pInputs, false);
+    copy(pValues);
+  }
+
+  private void copy(double[] pValues) {
+    mInputs = new double[pValues.length];
+    for (int i = 0; i < pValues.length; i++) {
+      mInputs[i] = pValues[i];
+    }
+  }
+
+  private void copy(List<Double> pValues) {
+    mInputs = new double[pValues.size()];
+    int lIndex = 0;
+    for (Double lValue : pValues) {
+      mInputs[lIndex] = lValue;
+      lIndex++;
+    }
+  }
+
+  @Override
+  public String toString() {
+    StringBuffer lBuffer = new StringBuffer();
+    
+    for (int lIndex = 0; lIndex < mInputs.length; lIndex++) {
+      if (lIndex > 0) {
+        lBuffer.append(",");
+      }
+
+      lBuffer.append(mInputs[lIndex]);
+    }
+
+    return super.toString() + " was <" + lBuffer.toString() + ">";
   }
 
 }

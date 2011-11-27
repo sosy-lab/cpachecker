@@ -170,6 +170,10 @@ public abstract class TestCase {
 
   @Override
   public String toString() {
+    return asString();
+  }
+
+  public String asString() {
     StringBuffer lBuffer = new StringBuffer();
     lBuffer.append(isPrecise()?"p":"i");
 
@@ -207,7 +211,7 @@ public abstract class TestCase {
     PrintWriter lWriter = new PrintWriter(pTestSuiteFile);
 
     for (TestCase lTestCase : pTestSuite) {
-      lWriter.println(lTestCase.toString());
+      lWriter.println(lTestCase.asString());
     }
 
     lWriter.close();
@@ -243,7 +247,8 @@ public abstract class TestCase {
     }
     else {
       // TODO what about imprecise exeution test cases ?
-      return new ImpreciseInputsTestCase(lValues);
+      double[] lEmpty = new double[0];
+      return new ImpreciseInputsTestCase(lValues, lEmpty);
     }
   }
 
@@ -292,6 +297,7 @@ public abstract class TestCase {
     }
 
     LinkedList<Integer> lInput = new LinkedList<Integer>();
+    LinkedList<Double> lValues = new LinkedList<Double>();
 
     for (Map.Entry<Integer, Double> lEntry : lNondetMap.entrySet()) {
       Integer lKey = lEntry.getKey();
@@ -306,6 +312,7 @@ public abstract class TestCase {
         }
 
         lInput.add(lIntValue);
+        lValues.add(lValue);
       }
     }
 
@@ -313,7 +320,7 @@ public abstract class TestCase {
       return new PreciseInputsTestCase(lInput);
     }
     else {
-      return new ImpreciseInputsTestCase(lInput);
+      return new ImpreciseInputsTestCase(lInput, lValues);
     }
   }
 
