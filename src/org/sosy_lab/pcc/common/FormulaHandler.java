@@ -278,6 +278,18 @@ public class FormulaHandler {
     }
   }
 
+  public Formula buildImplication(Formula pLeft, Formula pRight){
+    if(pLeft==null || pRight == null){
+      return null;
+    }
+    try {
+      pLeft = fm.makeNot(pLeft);
+      return fm.makeOr(pLeft, pRight);
+    } catch (IllegalArgumentException e) {
+      return null;
+    }
+  }
+
   public PathFormula getTrueFormula(SSAMap pSSA) {
     if (pSSA == null) {
       return pfm.makeEmptyPathFormula();

@@ -324,11 +324,9 @@ public class LBE_InvariantProofCheckAlgorithm extends InvariantProofCheckAlgorit
   protected Formula addStackInvariant(Formula pInvariant, int[] pStack,
       boolean pLeft, CFANode pNode) {
     if (pInvariant == null || pStack == null) { return null; }
-    boolean isReturn =
-        pNode.getEnteringSummaryEdge() != null;
     Formula[] singleInvariant;
     int length = pStack.length + 1;
-    if (isReturn) {
+    if (!pLeft) {
       length++;
     }
     singleInvariant = new Formula[length];
@@ -348,16 +346,27 @@ public class LBE_InvariantProofCheckAlgorithm extends InvariantProofCheckAlgorit
 
         if (singleInvariant[j + 1] == null) { return null; }
       }
-      if (isReturn) {
+      if (!pLeft) {
+        // add stack length
         singleInvariant[singleInvariant.length - 1] =
-            handler.createFormula(goalDes + " = "
-                + reachableCFANodes.get(pNode).getNodeNumber());
+            handler.createFormula(stackLength + " = "
+                + Integer.toString(pStack.length));
         if (singleInvariant[singleInvariant.length - 1] == null) { return null; }
       }
     } catch (IllegalArgumentException e1) {
       return null;
     }
-    return handler.buildConjunction(singleInvariant);
+    if (pLeft || pNode.getEnteringSummaryEdge()==null) {
+      return handler.buildConjunction(singleInvariant);
+    } else {
+      Formula[] list = new Formula[2];
+      list[0] = handler.buildConjunction(singleInvariant);
+      if (list[0] == null) { return null; }
+        list[1] = handler.createFormula(goalDes + Separators.SSAIndexSeparator + 2 + " = "
+            + Integer.toString(pNode.getNodeNumber()));
+      if (list[1] == null) { return null; }
+      return handler.buildImplication(list[1], list[0]);
+    }
   }
 
   protected Formula buildStackOperation(int[][] pStacksBefore,
@@ -370,7 +379,7 @@ public class LBE_InvariantProofCheckAlgorithm extends InvariantProofCheckAlgorit
       for (int i = 0; i < pStacksBefore.length; i++) {
         // build stack operation for this stack
         if (pFunctionCall) {
-          subFormulaeStack = new Formula[pStacksBefore[i].length + 1];
+          subFormulaeStack = new Formula[pStacksBefore[i].length + 2];
           toTake = pStacksBefore[i].length;
           start = 1;
           // add new stack element
@@ -378,18 +387,31 @@ public class LBE_InvariantProofCheckAlgorithm extends InvariantProofCheckAlgorit
               handler.createFormula(stackName + 0
                   + Separators.SSAIndexSeparator + 2 + " = " + pReturn);
           if (subFormulaeStack[subFormulaeStack.length - 1] == null) { return null; }
+          subFormulae[subFormulae.length - 2] =
+              handler.createFormula(stackLength + " = "
+                  + Integer.toString(pStacksBefore[i].length + 1));
+          if (subFormulae[subFormulae.length - 2] == null) { return null; }
         } else {
           if (pFunctionReturn) {
             start = 2;
             toTake = pStacksBefore[i].length - 1;
-            subFormulaeStack = new Formula[pStacksBefore[i].length];
+            subFormulaeStack = new Formula[pStacksBefore[i].length + 1];
             subFormulaeStack[subFormulaeStack.length - 1] =
-                handler.createFormula(goalDes + " = " + pStacksBefore[i][pStacksBefore[i].length - 1]);
+                handler.createFormula(goalDes + Separators.SSAIndexSeparator + 2 + " = "
+                    + pStacksBefore[i][pStacksBefore[i].length - 1]);
             if (subFormulaeStack[subFormulaeStack.length - 1] == null) { return null; }
+            subFormulae[subFormulae.length - 2] =
+                handler.createFormula(stackLength + " = "
+                    + Integer.toString(pStacksBefore[i].length - 1));
+            if (subFormulae[subFormulae.length - 2] == null) { return null; }
           } else {
             start = 1;
             toTake = pStacksBefore[i].length;
-            subFormulaeStack = new Formula[pStacksBefore[i].length];
+            subFormulaeStack = new Formula[pStacksBefore[i].length + 1];
+            subFormulae[subFormulae.length - 1] =
+                handler.createFormula(stackLength + " = "
+                    + Integer.toString(pStacksBefore[i].length));
+            if (subFormulae[subFormulae.length - 1] == null) { return null; }
           }
         }
         for (int k = 0; k < toTake; k++) {

@@ -34,6 +34,8 @@ public class FourTuple<T1, T2, T3, T4> {
   public FourTuple(T1 pT1, T2 pT2, T3 pT3, T4 pT4) {
     artNodeId = pT1;
     callStack = pT2;
+    leftAbstraction = pT3;
+    pathFormula = pT4;
   }
 
   public T1 getFirst() {

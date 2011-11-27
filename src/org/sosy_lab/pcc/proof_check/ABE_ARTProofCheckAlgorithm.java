@@ -182,8 +182,12 @@ public class ABE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
 
         // add edge
         edge = new WithCorrespondingCFAEdgeARTEdge(target, cfaEdge);
-        if (nodeS.isEdgeContained(edge)) { return PCCCheckResult.ElementAlreadyRead; }
-        nodeS.addEdge(edge);
+        if (nodeS.isEdgeContained(edge)) {
+          return PCCCheckResult.ElementAlreadyRead;
+        }
+        else {
+          nodeS.addEdge(edge);
+        }
       } catch (InputMismatchException e2) {
         return PCCCheckResult.UnknownCFAEdge;
       } catch (NoSuchElementException e3) {
@@ -204,7 +208,7 @@ public class ABE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
     visited.put(Integer.toString(root.getID()), "");
     // create abstraction for root
     Pair<Formula, PathFormula> pair = buildNewPredicateAbstraction(root, null, null);
-    if (pair == null) { return PCCCheckResult.InvalidART; }
+    if (pair == null || pair.getFirst() == null || pair.getSecond() == null) { return PCCCheckResult.InvalidART; }
     waiting.push(new FourTuple<Integer, String, Formula, PathFormula>(root.getID(), "", pair.getFirst(), pair
         .getSecond()));
     PCCCheckResult intermediateRes;
@@ -294,7 +298,7 @@ public class ABE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
           if (intermediateRes != PCCCheckResult.Success) { return intermediateRes; }
           // build new predicate abstraction for target
           newPred = buildNewPredicateAbstraction(targetARTNode, pLeftAbstraction, pf);
-          if (newPred == null) { return PCCCheckResult.InvalidART; }
+          if (newPred == null || newPred.getFirst() == null || newPred.getSecond() == null) { return PCCCheckResult.InvalidART; }
           // add target node for visit
           intermediateRes = addTargetNode(
               targetARTNode,
@@ -326,6 +330,7 @@ public class ABE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
           if (intermediateRes != PCCCheckResult.Success) { return intermediateRes; }
           // get new predicate abstraction
           newPred = buildNewPredicateAbstraction(targetARTNode, pLeftAbstraction, pf);
+          if (newPred == null || newPred.getFirst() == null || newPred.getSecond() == null) { return PCCCheckResult.InvalidART; }
           //add target ART element if not checked yet
           if (edges[i].getCorrespondingCFAEdge().getEdgeType() == CFAEdgeType.FunctionCallEdge) {
             intermediateRes = addTargetNode(targetARTNode, pStack

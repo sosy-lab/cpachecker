@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.pcc.common.FormulaHandler;
 import org.sosy_lab.pcc.common.PCCCheckResult;
@@ -245,10 +246,26 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
     // check if all external edges lead to only false abstraction or all nodes of component are non-abstraction nodes
     logger.log(Level.INFO, "Check if nodes must be uncovered");
     boolean result = true;
+    boolean functionEnd;
+
     for (int i = 0; result && i < comps.size(); i++) {
       // check external edges
       for (Integer external : comps.get(i).externalEndPoints) {
-        result = result && allInvariantFormulaeFalse(external);
+        functionEnd = false;
+        if (allCFANodes.get(external).getNumLeavingEdges() > 0
+            && allCFANodes.get(external).getLeavingEdge(0) instanceof FunctionReturnEdge) {
+          functionEnd = true;
+        }
+        if (functionEnd) {
+          for (int j = 0; j < allCFANodes.get(external).getNumLeavingEdges(); j++) {
+            result =
+                result
+                    && allInvariantFormulaeFalse(external, allCFANodes.get(external).getLeavingEdge(j).getSuccessor()
+                        .getNodeNumber());
+          }
+        } else {
+          result = result && allInvariantFormulaeFalse(external, -1);
+        }
       }
       //check if only non-abstraction nodes which are non error nodes
       if (!result) {
@@ -285,7 +302,7 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
       for (int i = 0; i < current.getNumLeavingEdges(); i++) {
         edge = current.getLeavingEdge(i);
         // if it is an abstraction node and abstraction is not false, build and check edge
-        if (isSource && !allInvariantFormulaeFalse(current.getNodeNumber())) {
+        if (isSource && !allInvariantFormulaeFalse(current.getNodeNumber(), edge.getSuccessor().getNodeNumber())) {
           logger.log(Level.INFO, "Check if all edges for node " + current + " are available.");
           intermediateRes =
               buildLeavingEdgesAndCheck(current.getNodeNumber(), edge);
@@ -352,10 +369,65 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
     return foundEdges;
   }
 
-  protected boolean allInvariantFormulaeFalse(Integer pNode) {
+  protected Vector<CFANode> getDirectSuccessors(int pSource, int pSourceEdge, int pTarget) {
+    Vector<CFANode> succ = new Vector<CFANode>();
+    if (pSource == pSourceEdge) {
+      if (reachableCFANodes.get(pSource).hasEdgeTo(reachableCFANodes.get(pTarget))) {
+        succ.add(reachableCFANodes.get(pTarget));
+      } else {
+        return null;
+      }
+    } else {
+      for (int i = 0; i < reachableCFANodes.get(pSource).getNumLeavingEdges(); i++) {
+        if (isSuccessor(reachableCFANodes.get(pSource).getLeavingEdge(i).getSuccessor(), pSourceEdge, pTarget)) {
+          succ.add(reachableCFANodes.get(pSource).getLeavingEdge(i).getSuccessor());
+        }
+      }
+      if (succ.isEmpty()) { return null; }
+    }
+    return succ;
+  }
+
+  private boolean isSuccessor(CFANode pSuccessor, int pSourceEdge, int pTarget) {
+    HashSet<Integer> visitedTargets = new HashSet<Integer>();
+    Vector<CFANode> toVisit = new Vector<CFANode>();
+    toVisit.add(pSuccessor);
+    visitedTargets.add(pSuccessor.getNodeNumber());
+    CFANode current;
+    CFAEdge edge;
+    while (!toVisit.isEmpty()) {
+      current = toVisit.remove(0);
+      if (current.getNodeNumber() == pSourceEdge) {
+        if ((!current.hasEdgeTo(reachableCFANodes.get(pTarget)) || !isEndpoint(current
+            .getEdgeTo(reachableCFANodes.get(pTarget))))) {
+          logger.log(Level.SEVERE, pSuccessor.getNodeNumber() + "#" + pSourceEdge + "#" + pTarget
+              + " is not a valid edge which connects regions");
+          return false;
+        } else {
+          return true;
+        }
+      }
+      for (int i = 0; i < current.getNumLeavingEdges(); i++) {
+        edge = current.getLeavingEdge(i);
+        if (!isEndpoint(edge) && !visitedTargets.contains(edge.getSuccessor())) {
+          visitedTargets.add(edge.getSuccessor().getNodeNumber());
+          toVisit.add(edge.getSuccessor());
+        }
+      }
+    }
+    return false;
+  }
+
+  protected boolean allInvariantFormulaeFalse(Integer pNode, int pReturn) {
     Vector<Pair<String, int[]>> formulae = nodes.get(pNode);
+    boolean functionEnd = false;
+    if (allCFANodes.get(pNode).getNumLeavingEdges() > 0
+        && allCFANodes.get(pNode).getLeavingEdge(0) instanceof FunctionReturnEdge) {
+      functionEnd = true;
+    }
     for (int i = 0; i < formulae.size(); i++) {
-      if (!handler.isFalse(formulae.get(i).getFirst())) { return false; }
+      if (!handler.isFalse(formulae.get(i).getFirst())
+          && (!functionEnd || formulae.get(i).getSecond()[formulae.get(i).getSecond().length - 1] == pReturn)) { return false; }
     }
     return true;
   }
@@ -418,24 +490,39 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
     if (pFunctionCall && pFunctionReturn) { return null; }
     try {
       if (pFunctionCall) {
-        subFormulae = new Formula[pStackBefore.length + 2];
+        subFormulae = new Formula[pStackBefore.length + 3];
         elementsTakenFromStack = pStackBefore.length;
         // add new stack element
         subFormulae[subFormulae.length - 1] =
             handler.createFormula(stackName + (pStackBefore.length)
                 + Separators.SSAIndexSeparator + 2 + " = " + pReturn);
         if (subFormulae[subFormulae.length - 1] == null) { return null; }
+        // add stack length
+        subFormulae[subFormulae.length - 2] =
+            handler.createFormula(stackLength + " = "
+                + Integer.toString(pStackBefore.length + 1));
+        if (subFormulae[subFormulae.length - 2] == null) { return null; }
       } else {
-        subFormulae = new Formula[pStackBefore.length + 1];
+        subFormulae = new Formula[pStackBefore.length + 2];
         if (pFunctionReturn) {
           elementsTakenFromStack = pStackBefore.length - 1;
           // add return statement
           subFormulae[subFormulae.length - 1] =
-              handler.createFormula(goalDes + " = "
+              handler.createFormula(goalDes + Separators.SSAIndexSeparator + 2 + "  = "
                   + pStackBefore[pStackBefore.length - 1]);
           if (subFormulae[subFormulae.length - 1] == null) { return null; }
+          // add stack length
+          subFormulae[subFormulae.length - 2] =
+              handler.createFormula(stackLength + " = "
+                  + Integer.toString(pStackBefore.length - 1));
+          if (subFormulae[subFormulae.length - 2] == null) { return null; }
         } else {
           elementsTakenFromStack = pStackBefore.length;
+          // add stack length
+          subFormulae[subFormulae.length - 1] =
+              handler.createFormula(stackLength + " = "
+                  + Integer.toString(pStackBefore.length));
+          if (subFormulae[subFormulae.length - 1] == null) { return null; }
         }
       }
       for (int i = 1; i <= elementsTakenFromStack; i++) {
@@ -457,10 +544,8 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
   protected Formula addStackInvariant(Formula pInvariant, int[] pStack,
       boolean pLeft, int pNode) {
     if (pInvariant == null || pStack == null) { return null; }
-    boolean isReturn =
-        reachableCFANodes.get(pNode).getEnteringSummaryEdge() != null;
     Formula[] singleInvariant;
-    if (isReturn) {
+    if (!pLeft) {
       singleInvariant = new Formula[pStack.length + 2];
     } else {
       singleInvariant = new Formula[pStack.length + 1];
@@ -481,16 +566,27 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
 
         if (singleInvariant[j + 1] == null) { return null; }
       }
-      if (isReturn) {
+      if (!pLeft) {
+        // add stack length
         singleInvariant[singleInvariant.length - 1] =
-            handler.createFormula(goalDes + " = "
-                + Integer.toString(pNode));
+            handler.createFormula(stackLength + " = "
+                + Integer.toString(pStack.length));
         if (singleInvariant[singleInvariant.length - 1] == null) { return null; }
       }
     } catch (IllegalArgumentException e1) {
       return null;
     }
+    if(pLeft || reachableCFANodes.get(pNode).getEnteringSummaryEdge()==null){
     return handler.buildConjunction(singleInvariant);
+    }else{
+      Formula[] list = new Formula[2];
+      list[0] = handler.buildConjunction(singleInvariant);
+      if(list[0]==null){return null;}
+        list[1] =  handler.createFormula(goalDes + Separators.SSAIndexSeparator + 2 + " = "
+            + Integer.toString(pNode));
+      if(list[1]==null){return null;}
+      return handler.buildImplication(list[1], list[0]);
+    }
   }
 
   protected abstract boolean checkAbstraction(String pAbstraction);

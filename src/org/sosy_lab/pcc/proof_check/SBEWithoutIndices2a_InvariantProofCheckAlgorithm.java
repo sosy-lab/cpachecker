@@ -41,7 +41,8 @@ import org.sosy_lab.pcc.common.Separators;
 
 public class SBEWithoutIndices2a_InvariantProofCheckAlgorithm extends SBEWithoutIndices2_InvariantProofCheckAlgorithm {
 
-  public SBEWithoutIndices2a_InvariantProofCheckAlgorithm(Configuration pConfig, LogManager pLogger, String pProverType,
+  public SBEWithoutIndices2a_InvariantProofCheckAlgorithm(Configuration pConfig, LogManager pLogger,
+      String pProverType,
       boolean pAlwaysAtLoops, boolean pAlwaysAtFunctions) throws InvalidConfigurationException {
     super(pConfig, pLogger, pProverType, pAlwaysAtLoops, pAlwaysAtFunctions);
   }
@@ -110,7 +111,7 @@ public class SBEWithoutIndices2a_InvariantProofCheckAlgorithm extends SBEWithout
       operation =
           addStackOperation(operation, pInvariantS, true,
               pCfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge,
-              pCfaEdge.getSuccessor().getLeavingSummaryEdge().getSuccessor()
+              pCfaEdge.getPredecessor().getLeavingSummaryEdge().getSuccessor()
                   .getNodeNumber());
     } else {
       operation =
@@ -139,6 +140,10 @@ public class SBEWithoutIndices2a_InvariantProofCheckAlgorithm extends SBEWithout
     if (proof == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
     if (!handler.isFalse(proof)) {
       logger.log(Level.SEVERE, "Proof for edge failed.");
+      System.out.println(left);
+      System.out.println(operation);
+      System.out.println(rightInstantiated);
+      System.out.println(proof);
       return PCCCheckResult.InvalidART;
     }
 
@@ -157,24 +162,38 @@ public class SBEWithoutIndices2a_InvariantProofCheckAlgorithm extends SBEWithout
       pStackBefore = pStack.get(j).getSecond();
       try {
         if (pFunctionCall) {
-          subFormulae = new Formula[pStackBefore.length + 1];
+          subFormulae = new Formula[pStackBefore.length + 2];
           elementsTakenFromStack = pStackBefore.length;
           // add new stack element
           subFormulae[subFormulae.length - 1] =
               handler.createFormula(stackName + (pStackBefore.length)
                   + Separators.SSAIndexSeparator + 2 + " = " + pReturn);
           if (subFormulae[subFormulae.length - 1] == null) { return null; }
+          // add stack length
+          subFormulae[subFormulae.length - 2] =
+              handler.createFormula(stackLength + " = "
+                  + Integer.toString(pStackBefore.length + 1));
         } else {
-          subFormulae = new Formula[pStackBefore.length];
+          subFormulae = new Formula[pStackBefore.length + 1];
           if (pFunctionReturn) {
             elementsTakenFromStack = pStackBefore.length - 1;
             // add return statement
             subFormulae[subFormulae.length - 1] =
-                handler.createFormula(goalDes + " = "
+                handler.createFormula(goalDes + Separators.SSAIndexSeparator + 2 + " = "
                     + pStackBefore[pStackBefore.length - 1]);
             if (subFormulae[subFormulae.length - 1] == null) { return null; }
+            // add stack length
+            subFormulae[subFormulae.length - 2] =
+                handler.createFormula(stackLength + " = "
+                    + Integer.toString(pStackBefore.length - 1));
+            if (subFormulae[subFormulae.length - 2] == null) { return null; }
           } else {
             elementsTakenFromStack = pStackBefore.length;
+            // add stack length
+            subFormulae[subFormulae.length - 1] =
+                handler.createFormula(stackLength + " = "
+                    + Integer.toString(pStackBefore.length));
+            if (subFormulae[subFormulae.length - 1] == null) { return null; }
           }
         }
         for (int i = 1; i <= elementsTakenFromStack; i++) {

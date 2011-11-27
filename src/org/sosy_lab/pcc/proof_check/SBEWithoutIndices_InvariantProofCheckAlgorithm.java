@@ -35,6 +35,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -62,6 +63,8 @@ public class SBEWithoutIndices_InvariantProofCheckAlgorithm extends
     int source, target, sourceEdge;
     CFANode nodeS, nodeT, nodeSourceOpEdge;
     CFAEdge edge;
+    boolean notEdge;
+    Vector<CFANode> successors;
 
     while (pScan.hasNext()) {
       try {
@@ -87,11 +90,29 @@ public class SBEWithoutIndices_InvariantProofCheckAlgorithm extends
           logger.log(Level.SEVERE, "Edge " + source + "#" + sourceEdge + "#" + target + " is not correct edge in CFA.");
           return PCCCheckResult.InvalidEdge;
         }
+        if (allCFANodes.get(source).getNumLeavingEdges() > 0
+            && allCFANodes.get(source).getLeavingEdge(0) instanceof FunctionReturnEdge) {
+          successors = getDirectSuccessors(source, sourceEdge, target);
+          if (successors == null) {
+            logger.log(Level.INFO, "No valid edge.");
+            return PCCCheckResult.UnknownCFAEdge;
+          }
+          notEdge = true;
+          for (int i = 0; i < successors.size(); i++) {
+            if (!allInvariantFormulaeFalse(source, successors.get(i).getNodeNumber())) {
+              notEdge = false;
+            }
+          }
+          if (notEdge) {
+            logger.log(Level.INFO, "No edge expected because source node should not be reachable.");
+            return PCCCheckResult.UnknownCFAEdge;
+          }
+        } else {
 
-
-        if (allInvariantFormulaeFalse(source)) {
-          logger.log(Level.SEVERE, "Source should not be reachable, no edges allowed.");
-          return PCCCheckResult.UnknownCFAEdge;
+          if (allInvariantFormulaeFalse(source, -1)) {
+            logger.log(Level.INFO, "No edge expected because source node should not be reachable.");
+            return PCCCheckResult.UnknownCFAEdge;
+          }
         }
 
         //add edge
@@ -113,7 +134,6 @@ public class SBEWithoutIndices_InvariantProofCheckAlgorithm extends
   protected PCCCheckResult proveEdge(String pEdge, int pSource, int pTarget,
       Vector<Pair<String, int[]>> pInvariantS, CFAEdge pCfaEdge,
       Vector<Pair<String, int[]>> pInvariantT) {
-    System.out.println(pEdge);
     // build right formula without indices
     logger.log(Level.INFO, "Check a single edge.");
     Formula[] rightAbstraction = new Formula[pInvariantT.size()];
@@ -132,7 +152,6 @@ public class SBEWithoutIndices_InvariantProofCheckAlgorithm extends
       logger.log(Level.SEVERE, "Cannot build formula of right invariant.");
       return PCCCheckResult.InvalidFormulaSpecificationInProof;
     }
-    System.out.println(right);
     // iterate over all left abstractions
     for (int i = 0; i < pInvariantS.size(); i++) {
       // instantiate left abstraction

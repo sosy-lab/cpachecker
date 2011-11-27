@@ -36,6 +36,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.pcc.common.PCCCheckResult;
 import org.sosy_lab.pcc.common.Pair;
@@ -60,6 +61,8 @@ public class SBEWithIndices_InvariantProofCheckAlgorithm extends
     String op;
     PCCCheckResult intermediateRes;
     Formula[] operations;
+    Vector<CFANode> successors;
+    boolean notEdge;
     while (pScan.hasNext()) {
       try {
         // read next edge
@@ -76,9 +79,29 @@ public class SBEWithIndices_InvariantProofCheckAlgorithm extends
               + " is not a CFA node or a CFA node without abstraction.");
           return PCCCheckResult.UnknownCFAEdge;
         }
-        if (allInvariantFormulaeFalse(source)) {
-          logger.log(Level.INFO, "No edge expected because source node should not be reachable.");
-          return PCCCheckResult.UnknownCFAEdge;
+        if (allCFANodes.get(source).getNumLeavingEdges() > 0
+            && allCFANodes.get(source).getLeavingEdge(0) instanceof FunctionReturnEdge) {
+          successors = getDirectSuccessors(source, sourceEdge, target);
+          if (successors == null) {
+            logger.log(Level.INFO, "No valid edge.");
+            return PCCCheckResult.UnknownCFAEdge;
+          }
+          notEdge = true;
+          for (int i = 0; i < successors.size(); i++) {
+            if (!allInvariantFormulaeFalse(source, successors.get(i).getNodeNumber())) {
+              notEdge = false;
+            }
+          }
+          if (notEdge) {
+            logger.log(Level.INFO, "No edge expected because source node should not be reachable.");
+            return PCCCheckResult.UnknownCFAEdge;
+          }
+        } else {
+
+          if (allInvariantFormulaeFalse(source, -1)) {
+            logger.log(Level.INFO, "No edge expected because source node should not be reachable.");
+            return PCCCheckResult.UnknownCFAEdge;
+          }
         }
         // get all operations with respective SSA indices
         numOps = pScan.nextInt();
@@ -98,13 +121,11 @@ public class SBEWithIndices_InvariantProofCheckAlgorithm extends
         if (intermediateRes != PCCCheckResult.Success) {
           logger.log(Level.SEVERE, "Not a valid edge.");
           return intermediateRes;
-          }
-        //add edge
-        if(edges.contains(source + Separators.commonSeparator + sourceEdge + Separators.commonSeparator + target)){
-          return PCCCheckResult.ElementAlreadyRead;
         }
+        //add edge
+        if (edges.contains(source + Separators.commonSeparator + sourceEdge + Separators.commonSeparator + target)) { return PCCCheckResult.ElementAlreadyRead; }
         edges.add(source + Separators.commonSeparator + sourceEdge + Separators.commonSeparator + target);
-        edgeOperations.put(source + Separators.commonSeparator + sourceEdge + Separators.commonSeparator +target,
+        edgeOperations.put(source + Separators.commonSeparator + sourceEdge + Separators.commonSeparator + target,
             operations);
       } catch (IllegalArgumentException e3) {
         return PCCCheckResult.UnknownCFAEdge;
@@ -185,7 +206,7 @@ public class SBEWithIndices_InvariantProofCheckAlgorithm extends
               addStackOperation(edgeFormulae[k],
                   pInvariantS.get(i).getSecond(), true,
                   pCfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge,
-                  pCfaEdge.getSuccessor().getLeavingSummaryEdge().getSuccessor()
+                  pCfaEdge.getPredecessor().getLeavingSummaryEdge().getSuccessor()
                       .getNodeNumber());
         } else {
           completeOperation =

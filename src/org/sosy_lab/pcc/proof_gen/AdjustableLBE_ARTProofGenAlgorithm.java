@@ -30,6 +30,8 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -53,20 +55,30 @@ public class AdjustableLBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
 
   @Override
   protected boolean addARTNode(ARTElement pNode) {
+    CFANode node = pNode.retrieveLocationElement().getLocationNode();
     // only add abstraction nodes and non-abstraction nodes which are covered because they are false
     PredicateAbstractElement predicate = AbstractElements.extractElementByType(pNode, PredicateAbstractElement.class);
     if (predicate == null) { return false; }
     if (predicate.isAbstractionElement()) {
       if (!pNode.isCovered()) {
-        // build string of form ARTId#CFAId#NodeType#Abstraction#
+        // build string of form ARTId#CFAId#NodeType#Abstraction#(return_address#)?
         StringBuilder nodeRep = new StringBuilder();
         nodeRep.append(pNode.getElementId() + "#");
-        nodeRep.append(pNode.retrieveLocationElement().getLocationNode().getNodeNumber() + "#");
+        nodeRep.append(node.getNodeNumber() + "#");
         nodeRep.append(AbstractionType.Abstraction + "#");
         String f =
             fh.removeIndicesStr(predicate.getAbstractionFormula().asFormula());
         if (f == null) { return false; }
         nodeRep.append(f + "#");
+        if ((node instanceof FunctionDefinitionNode) && node.getNumEnteringEdges() != 0) {
+          if (pNode.getParents().size() != 1) {
+            System.out.println("Caller not well specified.");
+            return false;
+          }
+          nodeRep.append(pNode.getParents().iterator().next().retrieveLocationElement().getLocationNode().
+              getLeavingSummaryEdge().getSuccessor().getNodeNumber()
+              + "#");
+        }
         nodes.add(nodeRep.toString());
       }
     } else {
@@ -78,22 +90,40 @@ public class AdjustableLBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
         Formula complete = fh.buildConjunction(fList);
         if (complete == null) { return false; }
         if (fh.isFalse(complete)) {
-          // build string of form ARTId#CFAId#NodeType#Abstraction#
+          // build string of form ARTId#CFAId#NodeType#Abstraction#(return_address#)?
           StringBuilder nodeRep = new StringBuilder();
           nodeRep.append(pNode.getElementId() + "#");
-          nodeRep.append(pNode.retrieveLocationElement().getLocationNode().getNodeNumber() + "#");
+          nodeRep.append(node.getNodeNumber() + "#");
           nodeRep.append(AbstractionType.Abstraction + "#");
           nodeRep.append(false + "#");// TODO check if it works
+          if ((node instanceof FunctionDefinitionNode) && node.getNumEnteringEdges() != 0) {
+            if (pNode.getParents().size() != 1) {
+              System.out.println("Caller not well specified.");
+              return false;
+            }
+            nodeRep.append(pNode.getParents().iterator().next().retrieveLocationElement().getLocationNode().
+                getLeavingSummaryEdge().getSuccessor().getNodeNumber()
+                + "#");
+          }
           nodes.add(nodeRep.toString());
         } else {
-          // build string of form ARTId#CFAId#NodeType#coveringID#
+          // build string of form ARTId#CFAId#NodeType#coveringID#(return_address#)?
           StringBuilder nodeRep = new StringBuilder();
           nodeRep.append(pNode.getElementId() + "#");
-          nodeRep.append(pNode.retrieveLocationElement().getLocationNode().getNodeNumber() + "#");
+          nodeRep.append(node.getNodeNumber() + "#");
           nodeRep.append(AbstractionType.CoveredNonAbstraction + "#");
           ARTElement covering = getFinalCoveringElement(pNode);
           if (covering == null) { return false; }
           nodeRep.append(covering.getElementId() + "#");
+          if ((node instanceof FunctionDefinitionNode) && node.getNumEnteringEdges() != 0) {
+            if (pNode.getParents().size() != 1) {
+              System.out.println("Caller not well specified.");
+              return false;
+            }
+            nodeRep.append(pNode.getParents().iterator().next().retrieveLocationElement().getLocationNode().
+                getLeavingSummaryEdge().getSuccessor().getNodeNumber()
+                + "#");
+          }
           nodes.add(nodeRep.toString());
         }
       }
@@ -131,7 +161,7 @@ public class AdjustableLBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
       current = toVisit.remove(0);
       predicate = AbstractElements.extractElementByType(current, PredicateAbstractElement.class);
       if (predicate == null) { return null; }
-      if ((predicate.isAbstractionElement() || current.isCovered())&&!current.equals(pSource)) {
+      if ((predicate.isAbstractionElement() || current.isCovered()) && !current.equals(pSource)) {
         if (predicate.isAbstractionElement() && current.isCovered()) {
           id = getFinalCoveringElement(current).getElementId();
         } else {

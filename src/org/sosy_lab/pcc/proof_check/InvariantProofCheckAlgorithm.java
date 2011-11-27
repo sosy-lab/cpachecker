@@ -43,6 +43,7 @@ public abstract class InvariantProofCheckAlgorithm implements
 
   protected final String stackName = "_STACK";
   protected final String goalDes = "_GOAL";
+  protected final String stackLength = "_STACKLEN";
 
   public InvariantProofCheckAlgorithm(Configuration pConfig, LogManager pLogger) {
     config = pConfig;

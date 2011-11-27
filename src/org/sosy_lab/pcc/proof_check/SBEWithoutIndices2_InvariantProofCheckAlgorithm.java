@@ -43,7 +43,7 @@ import org.sosy_lab.pcc.common.Separators;
 
 
 public class SBEWithoutIndices2_InvariantProofCheckAlgorithm extends
-SBE_InvariantProofCheckAlgorithm{
+    SBE_InvariantProofCheckAlgorithm {
 
   public SBEWithoutIndices2_InvariantProofCheckAlgorithm(Configuration pConfig,
       LogManager pLogger, String pProverType, boolean pAlwaysAtLoops, boolean pAlwaysAtFunctions)
@@ -59,7 +59,7 @@ SBE_InvariantProofCheckAlgorithm{
 
   @Override
   protected PCCCheckResult readEdges(Scanner pScan) {
-  //build all edge identifications for reachable source nodes and put them to the edges
+    //build all edge identifications for reachable source nodes and put them to the edges
     HashSet<Integer> visited = new HashSet<Integer>();
     Vector<CFANode> toVisit = new Vector<CFANode>();
     logger.log(Level.INFO, "Constructall edges which must be checked in proof.");
@@ -77,7 +77,7 @@ SBE_InvariantProofCheckAlgorithm{
       for (int i = 0; i < current.getNumLeavingEdges(); i++) {
         edge = current.getLeavingEdge(i);
         // if it is an abstraction node and abstraction is not false, build and check edge
-        if (isSource && !allInvariantFormulaeFalse(current.getNodeNumber())) {
+        if (isSource && !allInvariantFormulaeFalse(current.getNodeNumber(), edge.getSuccessor().getNodeNumber())) {
           logger.log(Level.INFO, "Build all edges for node " + current + " are available.");
           result =
               buildLeavingEdges(current.getNodeNumber(), edge);
@@ -151,7 +151,7 @@ SBE_InvariantProofCheckAlgorithm{
         operation =
             addStackOperation(operation, pInvariantS.get(i).getSecond(), true,
                 pCfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge,
-                pCfaEdge.getSuccessor().getLeavingSummaryEdge().getSuccessor()
+                pCfaEdge.getPredecessor().getLeavingSummaryEdge().getSuccessor()
                     .getNodeNumber());
       } else {
         operation =
