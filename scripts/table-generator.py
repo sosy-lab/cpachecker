@@ -453,12 +453,12 @@ def getTableBody(listOfTests):
             valuesListCSV.append(valuesCSV)
 
         # append values to html and csv
-        map(list.extend, rowsForHTML, valuesListHTML)
-        map(list.extend, rowsForCSV, valuesListCSV)
+        for row, values in zip(rowsForHTML, valuesListHTML): row.extend(values)
+        for row, values in zip(rowsForCSV, valuesListCSV): row.extend(values)
 
         # get statistics
         stats = getStatsOfTest(testResult.findall('sourcefile'), columns, valuesListCSV)
-        map(list.extend, rowsForStats, stats)
+        for row, values in zip(rowsForStats, stats): row.extend(values)
 
     rowsHTML = '</tr>\n{0}<tr>'.format(HTML_SHIFT).join(map(''.join, rowsForHTML))
     statsHTML = '</tr>\n{0}<tr>'.format(HTML_SHIFT).join(map(''.join, rowsForStats))
@@ -557,6 +557,8 @@ def getStatsOfTest(fileResult, columns, valuesList):
 
     # convert:
     # [['SAFE', 0,1], ['UNSAFE', 0,2]] -->  [['SAFE', 'UNSAFE'], [0,1, 0,2]]
+    # in python2 this is a list, in python3 this is the iterator of the list 
+    # this works, because we iterate over the list some lines below
     listsOfValues = zip(*valuesList)
 
     # collect some statistics
@@ -587,12 +589,8 @@ def getStatsOfTest(fileResult, columns, valuesList):
 
         # get sums for correct, wrong, etc
         else:
-            try:
-                (sum, correctSum, wrongSafeNumber, wrongUnsafeNumber) \
-                    = getStatsOfNumber(map(toDecimal, column), statusList)
-            except InvalidOperation:
-                (sum, correctSum, wrongSafeNumber, wrongUnsafeNumber) = (0, 0, 0, 0)
-                print ("Warning: NumberParseException. Statistics may be wrong.")
+            (sum, correctSum, wrongSafeNumber, wrongUnsafeNumber) \
+                = getStatsOfNumber(column, statusList)
             sumRow.append('<td>{0}</td>'.format(sum))
             sumCorrectRow.append('<td>{0}</td>'.format(correctSum))
             wrongSafeRow.append('<td>{0}</td>'.format(wrongSafeNumber))
@@ -603,8 +601,14 @@ def getStatsOfTest(fileResult, columns, valuesList):
     return (sumRow, sumCorrectRow, wrongSafeRow, wrongUnsafeRow, scoreRow)
 
 
-def getStatsOfNumber(valueList, statusList=None):
-    assert len(valueList) == len(statusList)
+def getStatsOfNumber(column, statusList):
+    assert len(column) == len(statusList)
+    try:
+        valueList = [toDecimal(v) for v in column]
+    except InvalidOperation:
+        print ("Warning: NumberParseException. Statistics may be wrong.")
+        return (0, 0, 0, 0)
+
     correctSum = sum([value
                       for value, status in zip(valueList, statusList)
                       if (status == 'correctSafe' or status == 'correctUnsafe')])
