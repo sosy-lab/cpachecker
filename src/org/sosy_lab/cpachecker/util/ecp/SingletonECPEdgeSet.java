@@ -153,4 +153,9 @@ public class SingletonECPEdgeSet implements ECPEdgeSet {
     return false;
   }
 
+  @Override
+  public String toString() {
+    return mCFAEdge.toString();
+  }
+
 }
