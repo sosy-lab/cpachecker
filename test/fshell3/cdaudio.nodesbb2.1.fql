@@ -1,0 +1,5 @@
+COVER "EDGES(ID)*".NODES(@BASICBLOCKENTRY)."EDGES(ID)*".NODES(@BASICBLOCKENTRY)."EDGES(ID)*"
+test/programs/fql/ntdrivers-simplified/cdaudio_simpl1_BUG.cil.c
+main
+--withoutCilPreprocessing
+--nooutput

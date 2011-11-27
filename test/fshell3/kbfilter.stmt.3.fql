@@ -1,0 +1,5 @@
+COVER "EDGES(ID)*".NODES(ID)."EDGES(ID)*"
+test/programs/fql/ntdrivers-simplified/kbfiltr_simpl2.cil.c
+main
+--withoutCilPreprocessing
+--nooutput

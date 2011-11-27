@@ -2,3 +2,4 @@ COVER "EDGES(ID)*".EDGES(@BASICBLOCKENTRY)."EDGES(ID)*".EDGES(@BASICBLOCKENTRY).
 test/programs/fql/ntdrivers-simplified/kbfiltr_simpl2.cil.c
 main
 --withoutCilPreprocessing
+--nooutput

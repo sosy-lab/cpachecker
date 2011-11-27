@@ -1,0 +1,5 @@
+export PATH=/home/holzer/directed-testing/exp-holzera-tautschn/crest-0.1.1/bin:$PATH
+export LD_LIBRARY_PATH=/home/holzer/directed-testing/exp-holzera-tautschn/crest-0.1.1/yices-1.0.29/lib:$LD_LIBRARY_PATH
+cd ../..
+java -cp ./bin org.sosy_lab.cpachecker.fshell.experiments.RunCREST $1 $2
+cd test/fshell3

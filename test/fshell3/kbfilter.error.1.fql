@@ -1,0 +1,4 @@
+COVER "EDGES(ID)*".EDGES(@LABEL(ERROR))."EDGES(ID)*"
+test/fshell3/competition/kbfiltr_simpl1.cil.c
+main
+--withoutCilPreprocessing

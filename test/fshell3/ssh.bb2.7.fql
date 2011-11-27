@@ -2,3 +2,4 @@ COVER "EDGES(ID)*".EDGES(@BASICBLOCKENTRY)."EDGES(ID)*".EDGES(@BASICBLOCKENTRY).
 test/programs/fql/ssh-simplified/s3_clnt_3.cil.c
 main
 --withoutCilPreprocessing
+--nooutput

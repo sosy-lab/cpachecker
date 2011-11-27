@@ -1,0 +1,7 @@
+COVER "EDGES(ID)*".NODES(@BASICBLOCKENTRY)."EDGES(ID)*".NODES(@BASICBLOCKENTRY)."EDGES(ID)*"
+test/programs/fql/ntdrivers-simplified/cdaudio_simpl1.cil.c
+main
+--withoutCilPreprocessing
+#--out=test/fshell3/myfeasibility.txt
+#--tout=test/fshell3/mytestsuite.tst
+--nooutput

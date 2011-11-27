@@ -2,3 +2,4 @@ COVER "EDGES(ID)*".EDGES(@BASICBLOCKENTRY)."EDGES(ID)*".EDGES(@BASICBLOCKENTRY).
 test/programs/fql/ntdrivers-simplified/cdaudio_simpl1_BUG.cil.c
 main
 --withoutCilPreprocessing
+--nooutput

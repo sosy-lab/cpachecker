@@ -2,3 +2,4 @@ COVER "EDGES(ID)*".EDGES(@BASICBLOCKENTRY)."EDGES(ID)*"
 test/programs/fql/locks/test_locks_11.c
 main
 --withoutCilPreprocessing
+--nooutput

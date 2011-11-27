@@ -2,3 +2,4 @@ COVER "EDGES(ID)*".EDGES(@BASICBLOCKENTRY)."EDGES(ID)*".EDGES(@BASICBLOCKENTRY).
 test/programs/fql/ntdrivers-simplified/floppy_simpl4.cil.c
 main
 --withoutCilPreprocessing
+--nooutput

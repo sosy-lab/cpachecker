@@ -1,0 +1,16 @@
+cd ../..
+# kbfilter
+java -cp bin org.sosy_lab.cpachecker.fshell.experiments.ExperimentsRunner test/fshell3/kbfilter.bb2.1.fql
+java -cp bin org.sosy_lab.cpachecker.fshell.experiments.ExperimentsRunner test/fshell3/kbfilter.bb2.2.fql
+java -cp bin org.sosy_lab.cpachecker.fshell.experiments.ExperimentsRunner test/fshell3/kbfilter.bb2.3.fql
+# floppy
+java -cp bin org.sosy_lab.cpachecker.fshell.experiments.ExperimentsRunner test/fshell3/floppy.bb2.1.fql
+java -cp bin org.sosy_lab.cpachecker.fshell.experiments.ExperimentsRunner test/fshell3/floppy.bb2.2.fql
+java -cp bin org.sosy_lab.cpachecker.fshell.experiments.ExperimentsRunner test/fshell3/floppy.bb2.3.fql
+java -cp bin org.sosy_lab.cpachecker.fshell.experiments.ExperimentsRunner test/fshell3/floppy.bb2.4.fql
+# cdaudio
+java -cp bin org.sosy_lab.cpachecker.fshell.experiments.ExperimentsRunner test/fshell3/cdaudio.bb2.1.fql
+java -cp bin org.sosy_lab.cpachecker.fshell.experiments.ExperimentsRunner test/fshell3/cdaudio.bb2.2.fql
+# diskperf
+java -cp bin org.sosy_lab.cpachecker.fshell.experiments.ExperimentsRunner test/fshell3/diskperf.bb2.fql
+cd test/fshell3

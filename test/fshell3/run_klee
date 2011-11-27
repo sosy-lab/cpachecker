@@ -1,0 +1,6 @@
+export PATH=/home/holzer/directed-testing/exp-holzera-tautschn/klee/klee/Release/bin/:$PATH
+export PATH=/home/holzer/directed-testing/exp-holzera-tautschn/klee/llvm-gcc4.2-2.7-x86_64-linux/bin/:$PATH
+export LD_LIBRARY_PATH=/home/holzer/directed-testing/exp-holzera-tautschn/klee/klee/Release/lib/:$LD_LIBRARY_PATH
+cd ../..
+java -cp ./bin org.sosy_lab.cpachecker.fshell.experiments.RunKLEE $1 
+cd test/fshell3

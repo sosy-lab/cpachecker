@@ -2,3 +2,4 @@ COVER "EDGES(ID)*".EDGES(@BASICBLOCKENTRY)."EDGES(ID)*".EDGES(@BASICBLOCKENTRY).
 test/programs/fql/ntdrivers-simplified/diskperf_simpl1.cil.c
 main
 --withoutCilPreprocessing
+--nooutput

@@ -1,0 +1,19 @@
+cd ../..
+java -cp bin org.sosy_lab.cpachecker.fshell.experiments.ExperimentsRunner test/fshell3/ssh.bb2.1.fql
+java -cp bin org.sosy_lab.cpachecker.fshell.experiments.ExperimentsRunner test/fshell3/ssh.bb2.2.fql
+java -cp bin org.sosy_lab.cpachecker.fshell.experiments.ExperimentsRunner test/fshell3/ssh.bb2.3.fql
+java -cp bin org.sosy_lab.cpachecker.fshell.experiments.ExperimentsRunner test/fshell3/ssh.bb2.4.fql
+java -cp bin org.sosy_lab.cpachecker.fshell.experiments.ExperimentsRunner test/fshell3/ssh.bb2.5.fql
+java -cp bin org.sosy_lab.cpachecker.fshell.experiments.ExperimentsRunner test/fshell3/ssh.bb2.7.fql
+java -cp bin org.sosy_lab.cpachecker.fshell.experiments.ExperimentsRunner test/fshell3/ssh.bb2.8.fql
+java -cp bin org.sosy_lab.cpachecker.fshell.experiments.ExperimentsRunner test/fshell3/ssh.bb2.9.fql
+java -cp bin org.sosy_lab.cpachecker.fshell.experiments.ExperimentsRunner test/fshell3/ssh.bb2.10.fql
+java -cp bin org.sosy_lab.cpachecker.fshell.experiments.ExperimentsRunner test/fshell3/ssh.bb2.11.fql
+java -cp bin org.sosy_lab.cpachecker.fshell.experiments.ExperimentsRunner test/fshell3/ssh.bb2.12.fql
+java -cp bin org.sosy_lab.cpachecker.fshell.experiments.ExperimentsRunner test/fshell3/ssh.bb2.13.fql
+java -cp bin org.sosy_lab.cpachecker.fshell.experiments.ExperimentsRunner test/fshell3/ssh.bb2.14.fql
+java -cp bin org.sosy_lab.cpachecker.fshell.experiments.ExperimentsRunner test/fshell3/ssh.bb2.15.fql
+java -cp bin org.sosy_lab.cpachecker.fshell.experiments.ExperimentsRunner test/fshell3/ssh.bb2.16.fql
+java -cp bin org.sosy_lab.cpachecker.fshell.experiments.ExperimentsRunner test/fshell3/ssh.bb2.17.fql
+java -cp bin org.sosy_lab.cpachecker.fshell.experiments.ExperimentsRunner test/fshell3/ssh.bb2.18.fql
+cd test/fshell3
