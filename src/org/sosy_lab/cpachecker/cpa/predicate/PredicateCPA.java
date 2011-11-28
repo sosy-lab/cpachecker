@@ -35,6 +35,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -47,6 +48,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.util.clustering.CCVisuClusterer;
+import org.sosy_lab.cpachecker.util.clustering.ClusteringStatistics;
+import org.sosy_lab.cpachecker.util.clustering.interfaces.Clusterer;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
@@ -108,18 +112,28 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicateAbstractionManager predicateManager;
   private final PredicateCPAStatistics stats;
   private final AbstractElement topElement;
+  private final ClusteringStatistics clusteringStats;
 
-  protected PredicateCPA(Configuration config, LogManager logger, BlockOperator blk) throws InvalidConfigurationException {
-    config.inject(this, PredicateCPA.class);
+  protected PredicateCPA(Configuration pConfig, LogManager pLogger, BlockOperator pBlk, CFA pCfa) throws InvalidConfigurationException {
+    pConfig.inject(this, PredicateCPA.class);
 
-    this.config = config;
-    this.logger = logger;
+    this.config = pConfig;
+    this.logger = pLogger;
+
+    // Inject the CFA into the BlockOperator.
+    // TODO: This should be done with the "automatic" injection technique used by CPAchecker.
+    this.clusteringStats = new ClusteringStatistics();
+
+    Clusterer clusterer = new CCVisuClusterer(pConfig, pLogger, clusteringStats);
+    clusterer.buildClustering(pCfa);
+    pBlk.setCfa(pCfa);
+    pBlk.setClusterer(clusterer);
 
     regionManager = BDDRegionManager.getInstance();
-    MathsatFormulaManager mathsatFormulaManager = MathsatFactory.createFormulaManager(config, logger);
-    formulaManager = new ExtendedFormulaManager(mathsatFormulaManager, config, logger);
+    MathsatFormulaManager mathsatFormulaManager = MathsatFactory.createFormulaManager(pConfig, pLogger);
+    formulaManager = new ExtendedFormulaManager(mathsatFormulaManager, pConfig, pLogger);
 
-    PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger);
+    PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, pConfig, pLogger);
     if (useCache) {
       pfMgr = new CachingPathFormulaManager(pfMgr);
     }
@@ -128,13 +142,13 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     if (whichProver.equals("MATHSAT")) {
       theoremProver = new MathsatTheoremProver(mathsatFormulaManager);
     } else if (whichProver.equals("YICES")) {
-      theoremProver = new YicesTheoremProver(formulaManager, logger);
+      theoremProver = new YicesTheoremProver(formulaManager, pLogger);
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
 
-    predicateManager = new PredicateAbstractionManager(regionManager, formulaManager, theoremProver, config, logger);
-    transfer = new PredicateTransferRelation(this, blk);
+    predicateManager = new PredicateAbstractionManager(regionManager, formulaManager, theoremProver, pConfig, pLogger);
+    transfer = new PredicateTransferRelation(this, pBlk);
 
     topElement = PredicateAbstractElement.abstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null));
     domain = new PredicateAbstractDomain(this);
@@ -148,6 +162,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
 
     prec = new PredicatePrecisionAdjustment(this);
+
     stop = new StopSepOperator(domain);
 
     Collection<AbstractionPredicate> predicates = readPredicatesFromFile();
@@ -162,7 +177,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     initialPrecision = new PredicatePrecision(predicates);
 
-    stats = new PredicateCPAStatistics(this, blk);
+    stats = new PredicateCPAStatistics(this, pBlk);
   }
 
   private Collection<AbstractionPredicate> readPredicatesFromFile() {
@@ -256,6 +271,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
+    pStatsCollection.add(clusteringStats);
   }
 
   PredicateCPAStatistics getStats() {

@@ -41,8 +41,8 @@ public class ABMBlockOperator extends BlockOperator {
   }
 
   @Override
-  public boolean isBlockEnd(CFANode pSuccLoc, PathFormula pPf) {
-    return super.isBlockEnd(pSuccLoc, pPf) || partitioning.isCallNode(pSuccLoc) || partitioning.isReturnNode(pSuccLoc);
+  public boolean isBlockEnd(CFANode pLoc, CFANode pSuccLoc, PathFormula pPf) {
+    return super.isBlockEnd(pLoc, pSuccLoc, pPf) || partitioning.isCallNode(pSuccLoc) || partitioning.isReturnNode(pSuccLoc);
   }
 
   public BlockPartitioning getPartitioning() {

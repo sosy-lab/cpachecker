@@ -23,10 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import java.util.Random;
+
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.util.clustering.interfaces.Clusterer;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
 /**
@@ -39,6 +43,10 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
  */
 @Options(prefix="cpa.predicate.blk")
 public class BlockOperator {
+
+  private CFA cfa = null;
+  private Clusterer clusterer = null;
+  private Random rand = new Random();
 
   @Option(
       description="maximum blocksize before abstraction is forced\n"
@@ -62,6 +70,15 @@ public class BlockOperator {
   @Option(description="force abstractions at each function calls/returns, regardless of threshold")
   private boolean alwaysAtFunctions = true;
 
+  @Option(description="force abstractions at each function return, regardless of threshold")
+  private boolean alwaysAtFunctionReturns = false;
+
+  @Option(description="abstraction between clusters of the call-graph.")
+  private boolean alwaysAtClusterBorder = false;
+
+  @Option(description="propability of a random abstraction in any position of the CFA?")
+  private float alwaysWithRandomProp = 0.0f;
+
   int numBlkFunctions = 0;
   int numBlkLoops = 0;
   int numBlkThreshold = 0;
@@ -75,7 +92,27 @@ public class BlockOperator {
    * an abstraction location if it has an incoming loop-back edge, if it is
    * the start node of a function or if it is the call site from a function call.
    */
-  public boolean isBlockEnd(CFANode succLoc, PathFormula pf) {
+  public boolean isBlockEnd(CFANode loc, CFANode succLoc, PathFormula pf) {
+    if (alwaysWithRandomProp > 0) {
+      if (rand.nextFloat() > alwaysWithRandomProp) {
+        return true;
+      }
+    }
+
+    if (alwaysAtClusterBorder) {
+      String predCluster = clusterer.getClusterOfNode(loc);
+      String succCluster = clusterer.getClusterOfNode(succLoc);
+
+      if (!succCluster.equals(predCluster)) {
+        System.out.println("Abstraction because of changed cluster: " + predCluster + " >>" + succCluster);
+        return true;
+      }
+    }
+
+    if (alwaysAtFunctionReturns && isFunctionReturn(succLoc)) {
+      return true;
+    }
+
     if (alwaysAtFunctions && isFunctionCall(succLoc)) {
       numBlkFunctions++;
       return true;
@@ -126,12 +163,24 @@ public class BlockOperator {
     return false;
   }
 
+  public void setCfa(CFA pCfa) {
+    this.cfa = pCfa;
+  }
+
+  public void setClusterer(Clusterer pClusterer) {
+    this.clusterer = pClusterer;
+  }
+
   protected boolean isThresholdFulfilled(PathFormula pf) {
     return pf.getLength() >= threshold;
   }
 
   protected boolean isLoopHead(CFANode succLoc) {
     return succLoc.isLoopStart();
+  }
+
+  protected boolean isFunctionReturn(CFANode succLoc) {
+    return  (succLoc.getEnteringSummaryEdge() != null); // function return edge
   }
 
   protected boolean isFunctionCall(CFANode succLoc) {
