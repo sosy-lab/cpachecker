@@ -1,5 +1,4 @@
 #!/usr/bin/python
-from __future__ import with_statement #for python 2.5
 import os
 import re
 import sys
@@ -64,8 +63,8 @@ def call_dot(infile, outpath):
             pass # if outfile is not written, removing is impossible
 
     if code != 0:
-        print 'Error: Could not call GraphViz to create graph %s (error code %d)' % (outfile, code)
-        print 'Report generation failed'
+        print ('Error: Could not call GraphViz to create graph {0} (error code {1})'.format(outfile, code))
+        print ('Report generation failed')
         sys.exit(1)
 
 def main():
@@ -118,7 +117,7 @@ def main():
     if len(args) != 1:
          parser.error('Incorrect number of arguments, you need to specify the source code file')
 
-    print 'Generating report'
+    print ('Generating report')
     scriptdir = os.path.dirname(__file__)
     cpacheckerdir = os.path.normpath(os.path.join(scriptdir, '..'))
     cpaoutdir = options.outdir or os.path.join(cpacheckerdir, 'output')
@@ -145,7 +144,7 @@ def main():
                     raise Exception('File not found: ' + filepath)
                 else:
                     return 'Not found:' + filepath
-            print 'Reading: ' + filepath
+            print ('Reading: ' + filepath)
             with open(filepath, 'r') as fp:
                 if encode:
                     return fp.read().replace('<','&lt;').replace('>', '&gt;')
@@ -155,7 +154,7 @@ def main():
 
     def gen_functionlist():
         funclist = [x[5:-4] for x in os.listdir(cpaoutdir) if x.startswith('cfa__') and x.endswith('.dot')]
-        print 'Generating SVGs for CFA'
+        print ('Generating SVGs for CFA')
         for func in funclist:
             call_dot(os.path.join(cpaoutdir, 'cfa__' + func + '.dot'), reportdir)
         return json.dumps(funclist, indent=4)
@@ -178,7 +177,7 @@ def main():
 
     #if there is an ART.dot create an SVG in the report dir
     if os.path.isfile(artfilepath):
-        print 'Generating SVG for ART'
+        print ('Generating SVG for ART')
         call_dot(artfilepath, reportdir)
 
     inf = open(tplfilepath, 'r')
@@ -201,7 +200,7 @@ def main():
 
     inf.close()
     outf.close()
-    print 'Report generated in %s' % (outfilepath)
+    print ('Report generated in {0}'.format(outfilepath))
 
 if __name__ == '__main__':
     main()
