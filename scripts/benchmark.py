@@ -609,7 +609,7 @@ class OutputHandler:
         self.writeTestInfoToLog()
 
 
-    def substituteVars(self, sourcefile, oldList):
+    def substituteVars(self, sourcefile, benchmarkFile, oldList):
         """
         This method replaces special substrings from a list of string 
         and return a new list.
@@ -617,8 +617,11 @@ class OutputHandler:
 
         # list with tuples (key, value): 'key' is replaced by 'value'
         keyValueList = [('${sourcefile_name}', os.path.basename(sourcefile)),
+                        ('${sourcefile_path}', os.path.dirname(sourcefile)),
                         ('${benchmark_name}',  self.benchmark.name),
                         ('${benchmark_date}',  self.benchmark.date),
+                        ('${benchmark_path}',  os.path.dirname(benchmarkFile)),
+                        ('${benchmark_file}',  os.path.basename(benchmarkFile)),
                         ('${logfile_path}',    self.logFolder),
                         ('${test_name}',       self.test.name if self.test.name is not None else '')]
 
@@ -1448,7 +1451,7 @@ def runBenchmark(benchmarkFile):
                                     benchmark.options, test.options, fileOptions))
 
                 # replace variables with special values
-                currentOptions = outputHandler.substituteVars(sourcefile, currentOptions)
+                currentOptions = outputHandler.substituteVars(sourcefile, benchmarkFile, currentOptions)
 
                 outputHandler.outputBeforeRun(sourcefile, currentOptions)
 
