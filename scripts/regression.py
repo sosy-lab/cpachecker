@@ -71,7 +71,7 @@ def getSourcefileDics(listOfSourcefileTags):
             filename = sourcefileTag.get('name')
 
             if filename in dic: # file tested twice in benchmark, should not happen
-                print "file '{0}' is used twice. skipping file.".format(filename)
+                print ("file '{0}' is used twice. skipping file.".format(filename))
             else:
                 dic[filename] = sourcefileTag
 
@@ -107,18 +107,18 @@ def getFilenameList(listOfSourcefileTags, listOfSourcefileDics, compare):
     else:
         numberOfList = int(compare) - 1 # lists start with position 0
         if numberOfList < 0 or numberOfList >= len(listOfSourcefileTags):
-            print 'ERROR: number for list is invalid, give a number in range 1 to n'
+            print ('ERROR: number for list is invalid, give a number in range 1 to n')
             sys.exit()
         return [file.get('name') for file in listOfSourcefileTags[numberOfList]]
 
 
 def compareResults(xmlFiles, compare):
-    print '\ncomparing results ...'
+    print ('\ncomparing results ...')
 
     resultFiles = FileUtil.extendFileList(xmlFiles)
 
     if len(resultFiles) == 0:
-        print 'Resultfile not found. Check your filenames!'
+        print ('Resultfile not found. Check your filenames!')
         sys.exit()
 
     listOfTestTags = [ET.ElementTree().parse(resultFile)
@@ -150,9 +150,9 @@ def compareResults(xmlFiles, compare):
         (allEqual, oldStatus, newStatus) = allEqualResult(sourcefileTags)
         if not allEqual:
             isDifferent = True
-            print '    difference found:  ' + \
+            print ('    difference found:  ' + \
                     sourcefileTags[0].get('name').ljust(maxLen+2) + \
-                    oldStatus + ' --> ' + newStatus
+                    oldStatus + ' --> ' + newStatus)
             for elem, tag in zip(diffXMLList, sourcefileTags):
                 elem.append(tag)
 
@@ -170,7 +170,7 @@ def compareResults(xmlFiles, compare):
             file.close()
         generateHTML(diffFiles)
     else:
-        print "\n---> NO DIFFERENCE FOUND IN COLUMN 'STATUS'"
+        print ("\n---> NO DIFFERENCE FOUND IN COLUMN 'STATUS'")
 
 
 def copyXMLElem(elem):
@@ -199,7 +199,7 @@ def allEqualResult(sourcefileTags):
 
         for sourcefileTag in sourcefileTags:
             if name != sourcefileTag.get('name'):
-                print 'wrong filename in xml'
+                print ('wrong filename in xml')
                 sys.exit()
             currentStatus = getStatus(sourcefileTag)
             if status != currentStatus:
@@ -238,7 +238,7 @@ def main(args=None):
     options, args = parser.parse_args(args)
 
     if len(args) < 2:
-        print 'xml-file needed'
+        print ('xml-file needed')
         sys.exit()
 
     compareResults(args[1:], options.compare)
