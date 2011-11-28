@@ -257,7 +257,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
     parents.clear();
 
     if (mCoveredByThis != null) {
-      if (replacement.mCoveredByThis != null) {
+      if (replacement.mCoveredByThis == null) {
         // lazy initialization because rarely needed
         replacement.mCoveredByThis = new HashSet<ARTElement>(mCoveredByThis.size());
       }
