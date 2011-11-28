@@ -1,5 +1,29 @@
 #!/usr/bin/env python
 
+"""
+CPAchecker is a tool for configurable software verification.
+This file is part of CPAchecker.
+
+Copyright (C) 2007-2011  Dirk Beyer
+All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+
+CPAchecker web page:
+  http://cpachecker.sosy-lab.org
+"""
+
 # import our own modules
 TableGenerator = __import__('table-generator') # for '-' in module-name
 FileUtil = TableGenerator # only for different names in programm
@@ -71,7 +95,7 @@ def getSourcefileDics(listOfSourcefileTags):
             filename = sourcefileTag.get('name')
 
             if filename in dic: # file tested twice in benchmark, should not happen
-                print "file '{0}' is used twice. skipping file.".format(filename)
+                print ("file '{0}' is used twice. skipping file.".format(filename))
             else:
                 dic[filename] = sourcefileTag
 
@@ -107,18 +131,18 @@ def getFilenameList(listOfSourcefileTags, listOfSourcefileDics, compare):
     else:
         numberOfList = int(compare) - 1 # lists start with position 0
         if numberOfList < 0 or numberOfList >= len(listOfSourcefileTags):
-            print 'ERROR: number for list is invalid, give a number in range 1 to n'
+            print ('ERROR: number for list is invalid, give a number in range 1 to n')
             sys.exit()
         return [file.get('name') for file in listOfSourcefileTags[numberOfList]]
 
 
 def compareResults(xmlFiles, compare):
-    print '\ncomparing results ...'
+    print ('\ncomparing results ...')
 
     resultFiles = FileUtil.extendFileList(xmlFiles)
 
     if len(resultFiles) == 0:
-        print 'Resultfile not found. Check your filenames!'
+        print ('Resultfile not found. Check your filenames!')
         sys.exit()
 
     listOfTestTags = [ET.ElementTree().parse(resultFile)
@@ -150,9 +174,9 @@ def compareResults(xmlFiles, compare):
         (allEqual, oldStatus, newStatus) = allEqualResult(sourcefileTags)
         if not allEqual:
             isDifferent = True
-            print '    difference found:  ' + \
+            print ('    difference found:  ' + \
                     sourcefileTags[0].get('name').ljust(maxLen+2) + \
-                    oldStatus + ' --> ' + newStatus
+                    oldStatus + ' --> ' + newStatus)
             for elem, tag in zip(diffXMLList, sourcefileTags):
                 elem.append(tag)
 
@@ -170,7 +194,7 @@ def compareResults(xmlFiles, compare):
             file.close()
         generateHTML(diffFiles)
     else:
-        print "\n---> NO DIFFERENCE FOUND IN COLUMN 'STATUS'"
+        print ("\n---> NO DIFFERENCE FOUND IN COLUMN 'STATUS'")
 
 
 def copyXMLElem(elem):
@@ -199,7 +223,7 @@ def allEqualResult(sourcefileTags):
 
         for sourcefileTag in sourcefileTags:
             if name != sourcefileTag.get('name'):
-                print 'wrong filename in xml'
+                print ('wrong filename in xml')
                 sys.exit()
             currentStatus = getStatus(sourcefileTag)
             if status != currentStatus:
@@ -238,7 +262,7 @@ def main(args=None):
     options, args = parser.parse_args(args)
 
     if len(args) < 2:
-        print 'xml-file needed'
+        print ('xml-file needed')
         sys.exit()
 
     compareResults(args[1:], options.compare)
