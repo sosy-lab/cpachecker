@@ -243,6 +243,10 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
 
   @Override
   public void checkCoverage(String pFQLSpecification, Collection<TestCase> pTestSuite, boolean pPedantic) {
+    getCoverage(pFQLSpecification, pTestSuite, pPedantic);
+  }
+
+  public boolean[] getCoverage(String pFQLSpecification, Collection<TestCase> pTestSuite, boolean pPedantic) {
     // Parse FQL Specification
     FQLSpecification lFQLSpecification;
     try {
@@ -251,10 +255,10 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
       throw new RuntimeException(e);
     }
 
-    checkCoverage(lFQLSpecification, pTestSuite, pPedantic);
+    return checkCoverage(lFQLSpecification, pTestSuite, pPedantic);
   }
 
-  private void checkCoverage(FQLSpecification pFQLSpecification, Collection<TestCase> pTestSuite, boolean pPedantic) {
+  private boolean[] checkCoverage(FQLSpecification pFQLSpecification, Collection<TestCase> pTestSuite, boolean pPedantic) {
 
     GuardedEdgeAutomatonCPA lPassingCPA = null;
 
@@ -269,6 +273,8 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
     int lNumberOfTestGoals = lTranslator.getNumberOfTestGoals(pFQLSpecification.getCoverageSpecification());
 
     System.out.println("Number of test goals: " + lNumberOfTestGoals);
+
+    boolean[] lCoverage = new boolean[lNumberOfTestGoals];
 
     Iterator<ElementaryCoveragePattern> lGoalIterator = lTranslator.translate(pFQLSpecification.getCoverageSpecification());
 
@@ -342,6 +348,16 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
         if (lCoverageAnswer.equals(ThreeValuedAnswer.ACCEPT)) {
           lIsCovered = true;
 
+          /*if (lIndex == 88) {
+            int lLine = 1;
+            for (CFAEdge lEdge : lCFAPath) {
+              System.out.println(lLine + ": " + lEdge.toString());
+              lLine++;
+            }
+            System.out.println(lGoal.getPattern());
+            System.exit(-1);
+          }*/
+
           break;
         }
         else if (lCoverageAnswer.equals(ThreeValuedAnswer.UNKNOWN)) {
@@ -378,9 +394,13 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
       else {
         System.out.println("Test goal #" + lIndex + " is not covered");
       }
+
+      lCoverage[lIndex - 1] = lIsCovered;
     }
 
     System.out.println("Coverage: " + ((double)lNumberOfCoveredTestGoals)/((double)lIndex));
+
+    return lCoverage;
   }
 
   private boolean checkCoverage(TestCase pTestCase, CFAFunctionDefinitionNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
