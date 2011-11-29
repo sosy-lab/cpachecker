@@ -203,13 +203,14 @@ public class ExplicitTransferRelation implements TransferRelation
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
     List<IASTExpression> arguments = callEdge.getArguments();
 
-    assert(paramNames.size() == arguments.size());
+    if(!callEdge.getSuccessor().getFunctionDefinition().getDeclSpecifier().takesVarArgs())
+      assert(paramNames.size() == arguments.size());
 
     // visitor for getting the values of the actual parameters in caller function context
     ExpressionValueVisitor visitor = new ExpressionValueVisitor(element, callerFunctionName);
 
     // get value of actual parameter in caller function context
-    for(int i = 0; i < arguments.size(); i++)
+    for(int i = 0; i < paramNames.size(); i++)
     {
       Long value = arguments.get(i).accept(visitor);
 
@@ -722,6 +723,9 @@ public class ExplicitTransferRelation implements TransferRelation
         missingPointer = true;
         return null;
       }
+
+      case SIZEOF:
+        return null;
 
       default:
         throw new UnrecognizedCCodeException("unknown unary operator", null, unaryExpression);
