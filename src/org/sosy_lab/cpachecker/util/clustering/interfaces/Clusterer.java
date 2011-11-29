@@ -27,6 +27,18 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 public interface Clusterer {
+
+  /**
+   * Determine the clusters of the CFA.
+   * The clustering-result is stored in as internal state of the object.
+   * @param pCfa
+   */
   public void buildClustering(CFA pCfa);
-  public String getClusterOfNode(CFANode callNode);
+
+  /**
+   * Get the cluster to that the CFANode is assigned to.
+   * @param   pNode
+   * @return  Name of the cluster.
+   */
+  public String getClusterOfNode(CFANode pNode);
 }
