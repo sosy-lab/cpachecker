@@ -36,6 +36,7 @@ import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -59,9 +60,10 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
 
   private final Timer cbmcTime = new Timer();
 
-  @Option(name = "cbmc.dumpCBMCfile", type = Option.Type.OUTPUT_FILE,
+  @Option(name = "cbmc.dumpCBMCfile",
       description = "file name where to put the path program that is generated "
       + "as input for CBMC. A temporary file is used if this is unspecified.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
   private File CBMCFile;
 
   @Option(name="cbmc.timelimit",

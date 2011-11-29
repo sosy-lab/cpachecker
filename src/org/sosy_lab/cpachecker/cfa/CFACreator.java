@@ -36,6 +36,7 @@ import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -84,8 +85,9 @@ public class CFACreator {
       description="export individual CFAs for function as .dot files")
   private boolean exportCfaPerFunction = true;
 
-  @Option(name="cfa.file", type=Option.Type.OUTPUT_FILE,
+  @Option(name="cfa.file",
       description="export CFA as .dot file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
   private File exportCfaFile = new File("cfa.dot");
 
   private final LogManager logger;

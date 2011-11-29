@@ -46,6 +46,7 @@ import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -192,8 +193,9 @@ class MainCPAStatistics implements Statistics {
         description="print reached set to text file")
     private boolean exportReachedSet = true;
 
-    @Option(name="reachedSet.file", type=Option.Type.OUTPUT_FILE,
+    @Option(name="reachedSet.file",
         description="print reached set to text file")
+    @FileOption(FileOption.Type.OUTPUT_FILE)
     private File outputFile = new File("reached.txt");
 
     @Option(name="statistics.memory",

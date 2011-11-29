@@ -42,6 +42,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.OptionCollector;
@@ -80,8 +81,9 @@ public class CPAMain {
     @Option(name="export", description="write some statistics to disk")
     private boolean exportStatistics = true;
 
-    @Option(name="file", type=Option.Type.OUTPUT_FILE,
+    @Option(name="file",
         description="write some statistics to disk")
+    @FileOption(FileOption.Type.OUTPUT_FILE)
     private File exportStatisticsFile = new File("Statistics.txt");
 
     @Option(name="print", description="print statistics to console")

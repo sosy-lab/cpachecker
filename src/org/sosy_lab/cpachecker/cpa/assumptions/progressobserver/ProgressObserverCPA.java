@@ -29,6 +29,7 @@ import java.util.List;
 
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -56,8 +57,8 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis, Statist
   }
 
   @Option(name="heuristics", required=true,
-      packagePrefix="org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.heuristics",
       description="which heuristics should be used to track progress?")
+  @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.heuristics")
   private List<Class<? extends StopHeuristics<?>>> heuristics;
 
   private final ProgressObserverDomain abstractDomain;

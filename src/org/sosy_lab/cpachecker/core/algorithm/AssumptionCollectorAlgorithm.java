@@ -38,6 +38,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -109,12 +110,14 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   @Option(name="export", description="write collected assumptions to file")
   private boolean exportAssumptions = true;
 
-  @Option(name="file", type=Option.Type.OUTPUT_FILE,
+  @Option(name="file",
       description="write collected assumptions to file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
       private File assumptionsFile = new File("assumptions.txt");
 
-  @Option(name="automatonFile", type=Option.Type.OUTPUT_FILE,
+  @Option(name="automatonFile",
       description="write collected assumptions as automaton to file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
       private File assumptionAutomatonFile = new File("AssumptionAutomaton.txt");
 
   private final LogManager logger;

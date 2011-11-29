@@ -37,6 +37,7 @@ import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -68,9 +69,10 @@ public class CPABuilder {
       description="CPA to use (see doc/Configuration.txt for more documentation on this)")
   private String cpaName = CompositeCPA.class.getCanonicalName();
 
-  @Option(name="specification", type=Option.Type.OPTIONAL_INPUT_FILE,
+  @Option(name="specification",
       description="comma-separated list of files with specifications that should be checked"
         + "\n(see config/specification/ for examples)")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<File> specificationFiles = null;
 
   private final Configuration config;

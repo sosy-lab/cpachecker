@@ -49,9 +49,9 @@ import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Option.Type;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -173,7 +173,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   @Option(description="try using induction to verify programs with loops")
   private boolean induction = false;
 
-  @Option(description="dump counterexample formula to file", type=Type.OUTPUT_FILE)
+  @Option(description="dump counterexample formula to file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
   private File dumpCounterexampleFormula = new File("counterexample.msat");
 
   private final BMCStatistics stats = new BMCStatistics();
@@ -608,8 +609,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   private static class InvariantGenerator {
 
     @Option(name="invariantGenerationConfigFile",
-            type=Type.OPTIONAL_INPUT_FILE,
             description="configuration file for invariant generation")
+    @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
     private File configFile;
 
     @Option(description="generate invariants for induction in parallel to the analysis")
