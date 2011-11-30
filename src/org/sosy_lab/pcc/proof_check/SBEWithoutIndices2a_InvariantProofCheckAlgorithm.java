@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.pcc.common.PCCCheckResult;
 import org.sosy_lab.pcc.common.Pair;
-import org.sosy_lab.pcc.common.Separators;
 
 
 public class SBEWithoutIndices2a_InvariantProofCheckAlgorithm extends SBEWithoutIndices2_InvariantProofCheckAlgorithm {
@@ -77,6 +76,23 @@ public class SBEWithoutIndices2a_InvariantProofCheckAlgorithm extends SBEWithout
           addStackInvariant(handler.createFormula(pInvariantS.get(i).getFirst()), pInvariantS.get(i)
               .getSecond(), true, pSource);
       if (abstraction[i] == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
+      // add stack part of operation
+      if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+        abstraction[i] =
+            addStackOperation(abstraction[i], pInvariantS.get(i).getSecond(), true,
+                pCfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge,
+                pCfaEdge.getPredecessor().getLeavingSummaryEdge().getSuccessor()
+                    .getNodeNumber());
+      } else {
+        abstraction[i] =
+            addStackOperation(abstraction[i], pInvariantS.get(i).getSecond(), false,
+                pCfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge, -1);
+      }
+      if (abstraction[i] == null) {
+        logger.log(Level.SEVERE, "Cannot add formula for stack operation.");
+        return PCCCheckResult.InvalidFormulaSpecificationInProof;
+      }
+
     }
     left = handler.buildDisjunction(abstraction);
     if (left == null) {
@@ -106,23 +122,6 @@ public class SBEWithoutIndices2a_InvariantProofCheckAlgorithm extends SBEWithout
       logger.log(Level.SEVERE, "Cannot build formula for operation.");
       return PCCCheckResult.InvalidFormulaSpecificationInProof;
     }
-    // add stack operation to edge formula
-    if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-      operation =
-          addStackOperation(operation, pInvariantS, true,
-              pCfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge,
-              pCfaEdge.getPredecessor().getLeavingSummaryEdge().getSuccessor()
-                  .getNodeNumber());
-    } else {
-      operation =
-          addStackOperation(operation, pInvariantS, false,
-              pCfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge, -1);
-    }
-    if (operation == null) {
-      logger.log(Level.SEVERE, "Cannot build formula for operation.");
-      return PCCCheckResult.InvalidFormulaSpecificationInProof;
-    }
-
     // instantiate right abstraction
     resultAbs = handler.addIndices(op.getSsa(), right);
     if (resultAbs == null) {
@@ -149,71 +148,4 @@ public class SBEWithoutIndices2a_InvariantProofCheckAlgorithm extends SBEWithout
 
     return PCCCheckResult.Success;
   }
-
-  protected Formula addStackOperation(Formula pOperations, Vector<Pair<String, int[]>> pStack,
-      boolean pFunctionCall, boolean pFunctionReturn, int pReturn) {
-    Formula[] subFormulae;
-    Formula[] stackOps = new Formula[pStack.size()];
-    stackOps[0] = pOperations;
-    int elementsTakenFromStack;
-    int[] pStackBefore;
-    if (pFunctionCall && pFunctionReturn) { return null; }
-    for (int j = 0; j < pStack.size(); j++) {
-      pStackBefore = pStack.get(j).getSecond();
-      try {
-        if (pFunctionCall) {
-          subFormulae = new Formula[pStackBefore.length + 2];
-          elementsTakenFromStack = pStackBefore.length;
-          // add new stack element
-          subFormulae[subFormulae.length - 1] =
-              handler.createFormula(stackName + (pStackBefore.length)
-                  + Separators.SSAIndexSeparator + 2 + " = " + pReturn);
-          if (subFormulae[subFormulae.length - 1] == null) { return null; }
-          // add stack length
-          subFormulae[subFormulae.length - 2] =
-              handler.createFormula(stackLength + " = "
-                  + Integer.toString(pStackBefore.length + 1));
-        } else {
-          subFormulae = new Formula[pStackBefore.length + 1];
-          if (pFunctionReturn) {
-            elementsTakenFromStack = pStackBefore.length - 1;
-            // add return statement
-            subFormulae[subFormulae.length - 1] =
-                handler.createFormula(goalDes + Separators.SSAIndexSeparator + 2 + " = "
-                    + pStackBefore[pStackBefore.length - 1]);
-            if (subFormulae[subFormulae.length - 1] == null) { return null; }
-            // add stack length
-            subFormulae[subFormulae.length - 2] =
-                handler.createFormula(stackLength + " = "
-                    + Integer.toString(pStackBefore.length - 1));
-            if (subFormulae[subFormulae.length - 2] == null) { return null; }
-          } else {
-            elementsTakenFromStack = pStackBefore.length;
-            // add stack length
-            subFormulae[subFormulae.length - 1] =
-                handler.createFormula(stackLength + " = "
-                    + Integer.toString(pStackBefore.length));
-            if (subFormulae[subFormulae.length - 1] == null) { return null; }
-          }
-        }
-        for (int i = 1; i <= elementsTakenFromStack; i++) {
-          subFormulae[i] =
-              handler.createFormula(stackName + (i - 1)
-                  + Separators.SSAIndexSeparator + 1 + " = " + stackName
-                  + (i - 1) + Separators.SSAIndexSeparator + 2);
-          if (subFormulae[i] == null) { return null; }
-        }
-      } catch (IllegalArgumentException e) {
-        return null;
-      }
-      stackOps[j] = handler.buildConjunction(subFormulae);
-      if (stackOps[j] == null) { return null; }
-    }
-    subFormulae = new Formula[2];
-    subFormulae[0] = pOperations;
-    subFormulae[1] = handler.buildDisjunction(stackOps);
-    if (subFormulae[1] == null) { return null; }
-    return handler.buildConjunction(subFormulae);
-  }
-
 }

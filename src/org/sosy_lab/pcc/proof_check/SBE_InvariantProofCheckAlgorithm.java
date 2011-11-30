@@ -499,7 +499,7 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
         if (subFormulae[subFormulae.length - 1] == null) { return null; }
         // add stack length
         subFormulae[subFormulae.length - 2] =
-            handler.createFormula(stackLength + " = "
+            handler.createFormula(stackLength + Separators.SSAIndexSeparator + 2 + " = "
                 + Integer.toString(pStackBefore.length + 1));
         if (subFormulae[subFormulae.length - 2] == null) { return null; }
       } else {
@@ -513,14 +513,14 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
           if (subFormulae[subFormulae.length - 1] == null) { return null; }
           // add stack length
           subFormulae[subFormulae.length - 2] =
-              handler.createFormula(stackLength + " = "
+              handler.createFormula(stackLength + Separators.SSAIndexSeparator + 2 + " = "
                   + Integer.toString(pStackBefore.length - 1));
           if (subFormulae[subFormulae.length - 2] == null) { return null; }
         } else {
           elementsTakenFromStack = pStackBefore.length;
           // add stack length
           subFormulae[subFormulae.length - 1] =
-              handler.createFormula(stackLength + " = "
+              handler.createFormula(stackLength + Separators.SSAIndexSeparator + 2 + " = "
                   + Integer.toString(pStackBefore.length));
           if (subFormulae[subFormulae.length - 1] == null) { return null; }
         }
@@ -569,7 +569,7 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
       if (!pLeft) {
         // add stack length
         singleInvariant[singleInvariant.length - 1] =
-            handler.createFormula(stackLength + " = "
+            handler.createFormula(stackLength + Separators.SSAIndexSeparator + 2  +" = "
                 + Integer.toString(pStack.length));
         if (singleInvariant[singleInvariant.length - 1] == null) { return null; }
       }
