@@ -214,7 +214,8 @@ public class LBE_InvariantProofCheckAlgorithm extends InvariantProofCheckAlgorit
     HashSet<Integer> visited = new HashSet<Integer>();
     Vector<Integer> toVisit = new Vector<Integer>();
     Integer current = cfaForProof.getMainFunction().getNodeNumber();
-    Pair<Formula, SSAMap> pair;
+    Pair<Formula[], SSAMap> pair;
+    Formula left;
     PCCCheckResult intermediateRes;
     Vector<Pair<String, int[]>> invariants;
     int[][] stacks;
@@ -224,9 +225,11 @@ public class LBE_InvariantProofCheckAlgorithm extends InvariantProofCheckAlgorit
     while (!toVisit.isEmpty()) {
       current = toVisit.remove(0);
       invariants = nodes.get(current);
-      pair = buildRegionsFormula(invariants, null, reachableCFANodes.get(current), true);
+      pair = buildLeftRegionsFormula(invariants, reachableCFANodes.get(current));
       if (pair == null) { return PCCCheckResult.InvalidInvariant; }
-      if (handler.isFalse(pair.getFirst())) {
+      left = handler.buildDisjunction(pair.getFirst());
+      if (left == null) { return PCCCheckResult.InvalidInvariant; }
+      if (handler.isFalse(left)) {
         continue;
       }
       stacks = new int[invariants.size()][];
@@ -240,13 +243,15 @@ public class LBE_InvariantProofCheckAlgorithm extends InvariantProofCheckAlgorit
     return PCCCheckResult.Success;
   }
 
-  private PCCCheckResult checkCFANode(CFANode pStart, Formula pLeftAbstractions, int[][] pStacks, SSAMap pMap,
+  private PCCCheckResult checkCFANode(CFANode pStart, Formula[] pFormulas, int[][] pStacks, SSAMap pMap,
       Vector<Integer> pToVisit, HashSet<Integer> pVisited) {
     Vector<Pair<PathFormula, CFANode>> toCheck = new Vector<Pair<PathFormula, CFANode>>();
     // add start node
     PathFormula pf = handler.getTrueFormula(pMap);
     Formula f;
-    Pair<Formula, SSAMap> right;
+    Formula left = handler.buildDisjunction(pFormulas);
+    if (left == null) { return PCCCheckResult.InvalidInvariant; }
+    Formula right, leftWithStackOp;
     Formula[] fList;
     if (pf == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
     Pair<PathFormula, CFANode> current;
@@ -259,7 +264,7 @@ public class LBE_InvariantProofCheckAlgorithm extends InvariantProofCheckAlgorit
         pf = handler.extendPath(current.getFirst(), current.getSecond().getLeavingEdge(i));
         if (pf == null) { return PCCCheckResult.InvalidEdge; }
         fList = new Formula[2];
-        fList[0] = pLeftAbstractions;
+        fList[0] = left;
         fList[1] = pf.getFormula();
         f = handler.buildConjunction(fList);
         if (f == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
@@ -270,21 +275,19 @@ public class LBE_InvariantProofCheckAlgorithm extends InvariantProofCheckAlgorit
         if (isAbstractionNode(node)) {
           if (!reachableCFANodes.contains(node.getNodeNumber())) { return PCCCheckResult.UncoveredCFANode; }
           // get operation description
-          fList = new Formula[2];
-          fList[0] = pf.getFormula();
           if (node instanceof FunctionDefinitionNode) {
-            fList[1] =
-                buildStackOperation(pStacks, true, node.getEnteringSummaryEdge() != null, current.getSecond()
+            leftWithStackOp =
+                buildStackOperation(pFormulas, pStacks, true, node.getEnteringSummaryEdge() != null, current
+                    .getSecond()
                     .getLeavingEdge(i).getPredecessor().getLeavingSummaryEdge().getSuccessor().getNodeNumber());
           } else {
-            fList[1] = buildStackOperation(pStacks, false, node.getEnteringSummaryEdge() != null, 0);
+            leftWithStackOp = buildStackOperation(pFormulas, pStacks, false, node.getEnteringSummaryEdge() != null, 0);
           }
-          if (fList[0] == null || fList[1] == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
-          f = handler.buildConjunction(fList);
+          if (leftWithStackOp == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
           // get right abstraction
-          right = buildRegionsFormula(nodes.get(node.getNodeNumber()), pf.getSsa(), node, false);
-          if (right == null || right.getFirst() == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
-          f = handler.buildEdgeInvariant(pLeftAbstractions, f, right.getFirst());
+          right = buildRightRegionsFormula(nodes.get(node.getNodeNumber()), pf.getSsa(), node);
+          if (right == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
+          f = handler.buildEdgeInvariant(leftWithStackOp, pf.getFormula(), right);
           if (f == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
           if (!handler.isFalse(f)) { return PCCCheckResult.InvalidInvariant; }
           if (!pVisited.contains(node.getNodeNumber())) {
@@ -301,14 +304,39 @@ public class LBE_InvariantProofCheckAlgorithm extends InvariantProofCheckAlgorit
     return PCCCheckResult.Success;
   }
 
-  private Pair<Formula, SSAMap> buildRegionsFormula(Vector<Pair<String, int[]>> pRegions, SSAMap pMap, CFANode pNode,
-      boolean pLeft) {
+  private Pair<Formula[], SSAMap> buildLeftRegionsFormula(Vector<Pair<String, int[]>> pRegions,
+      CFANode pNode) {
     if (pRegions == null) { return null; }
     Formula[] regionFormulae = new Formula[pRegions.size()];
     Formula f;
     for (int i = 0; i < pRegions.size(); i++) {
       f = handler.createFormula(pRegions.get(i).getFirst());
-      f = addStackInvariant(f, pRegions.get(i).getSecond(), pLeft, pNode);
+      f = addStackInvariant(f, pRegions.get(i).getSecond(), true, pNode);
+      if (f == null) { return null; }
+      regionFormulae[i] = f;
+    }
+    // build disjunction
+    f = handler.buildDisjunction(regionFormulae);
+    if (f == null) { return null; }
+    // instantiate formula
+    Pair<Formula, SSAMap> result = handler.addIndices(null, f);
+    Pair<Formula, SSAMap> intermediate;
+    if (result == null || result.getFirst() == null || result.getSecond() == null) { return null; }
+    for (int i = 0; i < pRegions.size(); i++) {
+      intermediate = handler.addIndices(result.getSecond(), regionFormulae[i]);
+      if (intermediate == null || intermediate.getFirst() == null) { return null; }
+      regionFormulae[i] = intermediate.getFirst();
+    }
+    return new Pair<Formula[], SSAMap>(regionFormulae, result.getSecond());
+  }
+
+  private Formula buildRightRegionsFormula(Vector<Pair<String, int[]>> pRegions, SSAMap pMap, CFANode pNode) {
+    if (pRegions == null) { return null; }
+    Formula[] regionFormulae = new Formula[pRegions.size()];
+    Formula f;
+    for (int i = 0; i < pRegions.size(); i++) {
+      f = handler.createFormula(pRegions.get(i).getFirst());
+      f = addStackInvariant(f, pRegions.get(i).getSecond(), false, pNode);
       if (f == null) { return null; }
       regionFormulae[i] = f;
     }
@@ -318,7 +346,7 @@ public class LBE_InvariantProofCheckAlgorithm extends InvariantProofCheckAlgorit
     // instantiate formula
     Pair<Formula, SSAMap> result = handler.addIndices(pMap, f);
     if (result == null || result.getFirst() == null) { return null; }
-    return result;
+    return result.getFirst();
   }
 
   protected Formula addStackInvariant(Formula pInvariant, int[] pStack,
@@ -356,21 +384,22 @@ public class LBE_InvariantProofCheckAlgorithm extends InvariantProofCheckAlgorit
     } catch (IllegalArgumentException e1) {
       return null;
     }
-    if (pLeft || pNode.getEnteringSummaryEdge()==null) {
+    if (pLeft || pNode.getEnteringSummaryEdge() == null) {
       return handler.buildConjunction(singleInvariant);
     } else {
       Formula[] list = new Formula[2];
       list[0] = handler.buildConjunction(singleInvariant);
       if (list[0] == null) { return null; }
-        list[1] = handler.createFormula(goalDes + Separators.SSAIndexSeparator + 2 + " = "
-            + Integer.toString(pNode.getNodeNumber()));
+      list[1] = handler.createFormula(goalDes + Separators.SSAIndexSeparator + 2 + " = "
+          + Integer.toString(pNode.getNodeNumber()));
       if (list[1] == null) { return null; }
       return handler.buildImplication(list[1], list[0]);
     }
   }
 
-  protected Formula buildStackOperation(int[][] pStacksBefore,
+  protected Formula buildStackOperation(Formula[] pLeftAbstractions, int[][] pStacksBefore,
       boolean pFunctionCall, boolean pFunctionReturn, int pReturn) {
+    if (pLeftAbstractions == null || pLeftAbstractions.length != pStacksBefore.length) { return null; }
     Formula[] subFormulaeStack, subFormulae;
     int start, toTake;
     if (pFunctionCall && pFunctionReturn) { return null; }
