@@ -408,7 +408,7 @@ public class LBE_InvariantProofCheckAlgorithm extends InvariantProofCheckAlgorit
       for (int i = 0; i < pStacksBefore.length; i++) {
         // build stack operation for this stack
         if (pFunctionCall) {
-          subFormulaeStack = new Formula[pStacksBefore[i].length + 2];
+          subFormulaeStack = new Formula[pStacksBefore[i].length + 3];
           toTake = pStacksBefore[i].length;
           start = 1;
           // add new stack element
@@ -420,27 +420,30 @@ public class LBE_InvariantProofCheckAlgorithm extends InvariantProofCheckAlgorit
               handler.createFormula(stackLength + " = "
                   + Integer.toString(pStacksBefore[i].length + 1));
           if (subFormulae[subFormulae.length - 2] == null) { return null; }
+          subFormulae[subFormulae.length-3] = pLeftAbstractions[i];
         } else {
           if (pFunctionReturn) {
             start = 2;
             toTake = pStacksBefore[i].length - 1;
-            subFormulaeStack = new Formula[pStacksBefore[i].length + 1];
+            subFormulaeStack = new Formula[pStacksBefore[i].length + 2];
             subFormulaeStack[subFormulaeStack.length - 1] =
                 handler.createFormula(goalDes + Separators.SSAIndexSeparator + 2 + " = "
                     + pStacksBefore[i][pStacksBefore[i].length - 1]);
             if (subFormulaeStack[subFormulaeStack.length - 1] == null) { return null; }
-            subFormulae[subFormulae.length - 2] =
+            subFormulae[subFormulae.length - 3] =
                 handler.createFormula(stackLength + " = "
                     + Integer.toString(pStacksBefore[i].length - 1));
             if (subFormulae[subFormulae.length - 2] == null) { return null; }
+            subFormulae[subFormulae.length-2] = pLeftAbstractions[i];
           } else {
             start = 1;
             toTake = pStacksBefore[i].length;
-            subFormulaeStack = new Formula[pStacksBefore[i].length + 1];
+            subFormulaeStack = new Formula[pStacksBefore[i].length + 2];
             subFormulae[subFormulae.length - 1] =
                 handler.createFormula(stackLength + " = "
                     + Integer.toString(pStacksBefore[i].length));
             if (subFormulae[subFormulae.length - 1] == null) { return null; }
+            subFormulae[subFormulae.length-2] = pLeftAbstractions[i];
           }
         }
         for (int k = 0; k < toTake; k++) {
