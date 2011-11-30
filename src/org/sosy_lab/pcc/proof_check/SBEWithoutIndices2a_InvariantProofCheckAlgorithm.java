@@ -139,10 +139,6 @@ public class SBEWithoutIndices2a_InvariantProofCheckAlgorithm extends SBEWithout
     if (proof == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
     if (!handler.isFalse(proof)) {
       logger.log(Level.SEVERE, "Proof for edge failed.");
-      System.out.println(left);
-      System.out.println(operation);
-      System.out.println(rightInstantiated);
-      System.out.println(proof);
       return PCCCheckResult.InvalidART;
     }
 

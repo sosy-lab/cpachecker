@@ -84,7 +84,7 @@ public class FormulaHandler {
     if (vars == null) { return null; }
     for (int i = 0; i < vars.length; i++) {
       try {
-        fm.makeVariable(vars[i]); // TODO test does not work
+        fm.makeVariable(vars[i]);
       } catch (IllegalArgumentException e) {
         // variable already declared do nothing
       }
@@ -211,17 +211,17 @@ public class FormulaHandler {
       String pRight) {
     if (pLeft == null || pLeft.length() == 0 || pOperation == null
         || pRight == null || pRight.length() == 0) { return null; }
-      Formula fR, fOp, fL;
-      fL = createFormula(pLeft);
-      fR = createFormula(pRight);
-      if(fL==null || fR==null){return null;}
-      if (pOperation.length() != 0) {
-        fOp = createFormula(pOperation);
-        if(fOp==null){return null;}
-      }else{
-        fOp=null;
-      }
-      return buildEdgeInvariant(fL, fOp, fR);
+    Formula fR, fOp, fL;
+    fL = createFormula(pLeft);
+    fR = createFormula(pRight);
+    if (fL == null || fR == null) { return null; }
+    if (pOperation.length() != 0) {
+      fOp = createFormula(pOperation);
+      if (fOp == null) { return null; }
+    } else {
+      fOp = null;
+    }
+    return buildEdgeInvariant(fL, fOp, fR);
   }
 
   public Formula buildEdgeInvariant(Formula pLeft, Formula pOperation,
@@ -278,10 +278,8 @@ public class FormulaHandler {
     }
   }
 
-  public Formula buildImplication(Formula pLeft, Formula pRight){
-    if(pLeft==null || pRight == null){
-      return null;
-    }
+  public Formula buildImplication(Formula pLeft, Formula pRight) {
+    if (pLeft == null || pRight == null) { return null; }
     try {
       pLeft = fm.makeNot(pLeft);
       return fm.makeOr(pLeft, pRight);
@@ -389,9 +387,7 @@ public class FormulaHandler {
 
   public boolean isSameFormulaWithNormalizedIndices(String pFormula1,
       String pFormula2) {
-    if(pFormula1.equals(pFormula2)){
-      return true;
-    }
+    if (pFormula1.equals(pFormula2)) { return true; }
     Vector<Pair<String, Integer>> first, second;
     first = getIndicesForVariables(pFormula1);
     second = getIndicesForVariables(pFormula2);
@@ -534,9 +530,7 @@ public class FormulaHandler {
       String pOperation, boolean pAssume) {
     // get highest indices for variables in pAbstraction
     Hashtable<String, Integer> highestIndices = getHighestIndices(pAbstraction);
-    if (highestIndices == null) {
-      return false;
-    }
+    if (highestIndices == null) { return false; }
     String intermediate;
 
     for (String var : highestIndices.keySet()) {
@@ -544,11 +538,7 @@ public class FormulaHandler {
         // all variables are only allowed to have same indices as highest indices
         intermediate =
             pOperation.replaceAll(var + "@" + highestIndices.get(var), "");
-        if (intermediate.matches("(.)*[\\W]" + var + "[\\W](.)*")) {
-          System.out.println(var);
-          System.out.println(intermediate);
-          return false;
-        }
+        if (intermediate.matches("(.)*[\\W]" + var + "[\\W](.)*")) { return false; }
       } else {
         // eliminate all variables of this kind on the left hand of the assignment
         intermediate =
@@ -560,9 +550,7 @@ public class FormulaHandler {
             intermediate.replaceAll(
                 var + "@" + highestIndices.get(var)
                     + "(\\s)*[!\\&\\(\\)\\*\\+-/<=>\\[\\]|&&[^=]]", "");
-        if (intermediate.matches("(.)*[\\W]" + var + "[\\W](.)*")) {
-          return false;
-        }
+        if (intermediate.matches("(.)*[\\W]" + var + "[\\W](.)*")) { return false; }
       }
     }
     return true;

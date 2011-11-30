@@ -181,8 +181,10 @@ public class SBEWithIndices_InvariantProofCheckAlgorithm extends
   protected PCCCheckResult proveEdge(String pEdge, int pSource, int pTarget,
       Vector<Pair<String, int[]>> pInvariantS, CFAEdge pCfaEdge,
       Vector<Pair<String, int[]>> pInvariantT) {
+    logger.log(Level.INFO, "Check single edge " + pEdge);
     Formula proof, left, right, completeOperation;
     Formula[] edgeFormulae;
+    String edgeOp;
 
     boolean successfulEdgeProof, successfulAbstraction;
     edgeFormulae = edgeOperations.get(pEdge);
@@ -195,9 +197,14 @@ public class SBEWithIndices_InvariantProofCheckAlgorithm extends
           addStackInvariant(handler.createFormula(pInvariantS.get(i).getFirst()), pInvariantS.get(i)
               .getSecond(), true, pSource);
       for (int k = 0; k < edgeFormulae.length; k++) {
+        if (edgeFormulae[k] == null) {
+          edgeOp = "";
+        } else {
+          edgeOp = edgeFormulae[k].toString();
+        }
         if (!handler.operationFitsToLeftAbstraction(pInvariantS.get(i)
-            .getFirst().toString(), edgeFormulae[k].toString(),
-            pCfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge)) {
+            .getFirst().toString(), edgeOp,
+            pCfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge || pCfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge)) {
           continue;
         }
         // add stack operation to edge formula
@@ -216,15 +223,14 @@ public class SBEWithIndices_InvariantProofCheckAlgorithm extends
         }
         successfulEdgeProof = false;
         // iterate over all target abstraction at least one item
-        for (int j = 0; !successfulEdgeProof && j < pInvariantS.size(); j++) {
+        for (int j = 0; !successfulEdgeProof && j < pInvariantT.size(); j++) {
           // check if right abstraction fits to left abstraction and operation
           if (!handler.rightAbstractionFitsToOperationAndLeftAbstraction(
               pInvariantS.get(i).getFirst().toString(),
-              edgeFormulae[k].toString(), pInvariantT.get(j).getFirst()
+              edgeOp, pInvariantT.get(j).getFirst()
                   .toString())) {
             continue;
           }
-
           // build right formula
           right =
               addStackInvariant(handler.createFormula(pInvariantT.get(j).getFirst()), pInvariantT.get(j)

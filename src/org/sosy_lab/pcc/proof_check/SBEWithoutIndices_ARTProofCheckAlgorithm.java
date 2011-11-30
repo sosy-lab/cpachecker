@@ -90,7 +90,7 @@ public class SBEWithoutIndices_ARTProofCheckAlgorithm extends
         edge = new WithCorrespondingCFAEdgeARTEdge(target, cfaEdge);
         if(!nodeS.isEdgeContained(edge)){
           nodeS.addEdge(edge);
-        }else{ return PCCCheckResult.ElementAlreadyRead;}
+        }else{ /*return PCCCheckResult.ElementAlreadyRead;*/}
       } catch (InputMismatchException e2) {
         return PCCCheckResult.UnknownCFAEdge;
       } catch (NoSuchElementException e3) {
