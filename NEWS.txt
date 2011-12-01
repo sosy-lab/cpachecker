@@ -1,0 +1,2 @@
+Changes since CPAchecker 1.1
+----------------------------
