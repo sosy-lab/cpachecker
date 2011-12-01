@@ -46,7 +46,8 @@ import java.util.logging.Level;
     
     File file = new File(fileName);
     if (!file.isAbsolute()) {
-      file = new File(config.getRootDirectory(), file.getPath());    
+      File currentFile = filesStack.peek();
+      file = new File(currentFile.getParentFile(), file.getPath());    
     }
 
     if (scannedFiles.contains(file)) {
