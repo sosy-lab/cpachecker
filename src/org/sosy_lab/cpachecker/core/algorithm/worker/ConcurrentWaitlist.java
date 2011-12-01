@@ -28,7 +28,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Concurrency;
@@ -190,7 +189,7 @@ public class ConcurrentWaitlist implements Worker {
   @Override
   public void work() throws CPAException, InterruptedException {
 
-    ExecutorService threadPool = Executors.newFixedThreadPool(2);
+    ExecutorService threadPool = Concurrency.createThreadPool();
 
     while (reachedSet.hasWaitingElement()) {
 
