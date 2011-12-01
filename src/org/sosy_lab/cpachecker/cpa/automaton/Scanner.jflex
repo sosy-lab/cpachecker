@@ -32,9 +32,9 @@ import java.util.logging.Level;
   private final List<File> scannedFiles = new ArrayList<File>();
   private final Deque<File> filesStack = new ArrayDeque<File>();
 
-  public AutomatonScanner(java.io.InputStream r, String fileName, Configuration config, LogManager logger, ComplexSymbolFactory sf) {
+  public AutomatonScanner(java.io.InputStream r, File file, Configuration config, LogManager logger, ComplexSymbolFactory sf) {
     this(r);
-    filesStack.push(new File(fileName));
+    filesStack.push(file);
     this.sf = sf;
     this.config = config;
     this.logger = logger;
