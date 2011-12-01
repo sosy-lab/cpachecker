@@ -47,10 +47,9 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
   public boolean run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
     stats.totalTimer.start();
 
-    while (reachedSet.hasWaitingElement()) {
-      Worker w = WorkerFactory.createNewInstance(reachedSet, cpa, logger, stats);
-      w.work();
-    }
+    Worker w = WorkerFactory.createNewInstance(reachedSet, cpa, logger, stats);
+    w.work();
+
     stats.totalTimer.stop();
     return true;
   }

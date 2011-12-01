@@ -26,8 +26,12 @@ package org.sosy_lab.cpachecker.core.algorithm.worker;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
@@ -47,45 +51,26 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 
-public class Sequential implements Worker {
+public class ConcurrentWaitlist implements Worker {
 
-  private final ConfigurableProgramAnalysis cpa;
-  private final CPAStatistics stats;
-  private final LogManager logger;
+  private class WaitlistElementThread implements Callable<Object> {
 
-  private ReachedSet reachedSet;
+    private final AbstractElement element;
+    private final ConfigurableProgramAnalysis cpa;
 
-  public Sequential(ReachedSet reachedSet, ConfigurableProgramAnalysis cpa, LogManager logger, CPAStatistics stats) {
-    this.cpa = cpa;
-    this.stats = stats;
-    this.logger = logger;
-    this.reachedSet = reachedSet;
-  }
+    public WaitlistElementThread(AbstractElement element, ConfigurableProgramAnalysis cpa) {
+      this.element = element;
+      this.cpa = cpa;
+    }
 
-  @Override
-  public void work() throws CPAException, InterruptedException {
-    final TransferRelation transferRelation = cpa.getTransferRelation();
-    final MergeOperator mergeOperator = cpa.getMergeOperator();
-    final StopOperator stopOperator = cpa.getStopOperator();
-    final PrecisionAdjustment precisionAdjustment =
-        cpa.getPrecisionAdjustment();
+    @Override
+    public Object call() throws Exception {
+      final TransferRelation transferRelation = cpa.getTransferRelation();
+      final MergeOperator mergeOperator = cpa.getMergeOperator();
+      final StopOperator stopOperator = cpa.getStopOperator();
+      final PrecisionAdjustment precisionAdjustment =
+          cpa.getPrecisionAdjustment();
 
-    while (reachedSet.hasWaitingElement()) {
-
-      CPAchecker.stopIfNecessary();
-
-      stats.countIterations++;
-
-      // Pick next element using strategy
-      // BFS, DFS or top sort according to the configuration
-      int size = reachedSet.getWaitlistSize();
-      if (size >= stats.maxWaitlistSize) {
-        stats.maxWaitlistSize = size;
-      }
-      stats.countWaitlistSize += size;
-
-      stats.chooseTimer.start();
-      final AbstractElement element = reachedSet.popFromWaitlist();
       final Precision precision = reachedSet.getPrecision(element);
       stats.chooseTimer.stop();
 
@@ -128,7 +113,7 @@ public class Sequential implements Worker {
 
           stats.totalTimer.stop();
           //TODO used to return true. how could one restore the behaviour?
-          return;
+          return null;
         }
         assert action == Action.CONTINUE : "Enum Action has unhandled values!";
 
@@ -184,7 +169,50 @@ public class Sequential implements Worker {
           reachedSet.add(successor, successorPrecision);
         }
       }
+      return null;
+     }
+  }
+
+  private final ConfigurableProgramAnalysis cpa;
+  private final CPAStatistics stats;
+  private final LogManager logger;
+
+  private ReachedSet reachedSet;
+
+  public ConcurrentWaitlist(ReachedSet reachedSet, ConfigurableProgramAnalysis cpa, LogManager logger,
+      CPAStatistics stats) {
+    this.cpa = cpa;
+    this.stats = stats;
+    this.logger = logger;
+    this.reachedSet = reachedSet;
+  }
+
+  @Override
+  public void work() throws CPAException, InterruptedException {
+
+    ExecutorService threadPool = Executors.newFixedThreadPool(2);
+
+    while (reachedSet.hasWaitingElement()) {
+
+      CPAchecker.stopIfNecessary();
+
+      stats.countIterations++;
+
+      // Pick next element using strategy
+      // BFS, DFS or top sort according to the configuration
+      int size = reachedSet.getWaitlistSize();
+      if (size >= stats.maxWaitlistSize) {
+        stats.maxWaitlistSize = size;
+      }
+      stats.countWaitlistSize += size;
+
+      //TODO chooseTimer loses sense in concurrent context
+      stats.chooseTimer.start();
+      final AbstractElement element = reachedSet.popFromWaitlist();
+      threadPool.submit(new WaitlistElementThread(element, cpa));
     }
+
+    Concurrency.waitForTermination(threadPool);
   }
 
 }

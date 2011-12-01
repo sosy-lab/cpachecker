@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.cpachecker.core.algorithm.worker.ConcurrentWaitlist;
 import org.sosy_lab.cpachecker.core.algorithm.worker.Sequential;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -32,11 +33,17 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 public class WorkerFactory {
 
   @Option(name = "cpa.worker",
-          description = "worker is one of: sequential")
+          description = "worker is one of: sequential or concurrentwaitlist")
   private static String choice = "sequential";
 
   public static Worker createNewInstance(ReachedSet reachedSet, ConfigurableProgramAnalysis cpa, LogManager logger,
       CPAStatistics stats) {
+    final String workerChoice = choice.toLowerCase();
+    if(workerChoice.equals("concurrentwaitlist"))
+    {
+      return new ConcurrentWaitlist(reachedSet, cpa, logger, stats);
+    }
+    // workerChoice.equals("sequential")
     return new Sequential(reachedSet, cpa, logger, stats);
   }
 
