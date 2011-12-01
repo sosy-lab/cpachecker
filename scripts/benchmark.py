@@ -332,7 +332,7 @@ class OutputHandler:
             os.makedirs(self.logFolder)
 
         # get information about computer
-        (opSystem, cpuModel, numberOfCores, maxFrequency, memory) = self.getSystemInfo()
+        (opSystem, cpuModel, numberOfCores, maxFrequency, memory, hostname) = self.getSystemInfo()
         version = self.getVersion(self.benchmark.tool)
 
         memlimit = None
@@ -343,9 +343,9 @@ class OutputHandler:
             timelimit = str(self.benchmark.rlimits[resource.RLIMIT_CPU][0]) + " s"
 
         self.storeHeaderInXML(version, memlimit, timelimit, opSystem, cpuModel,
-                              numberOfCores, maxFrequency, memory)
+                              numberOfCores, maxFrequency, memory, hostname)
         self.writeHeaderToLog(version, memlimit, timelimit, opSystem, cpuModel,
-                              numberOfCores, maxFrequency, memory)
+                              numberOfCores, maxFrequency, memory, hostname)
 
         # write columntitles of tests in CSV-files, this overwrites existing files
         self.CSVFiles = dict()
@@ -360,7 +360,7 @@ class OutputHandler:
 
 
     def storeHeaderInXML(self, version, memlimit, timelimit, opSystem,
-                         cpuModel, numberOfCores, maxFrequency, memory):
+                         cpuModel, numberOfCores, maxFrequency, memory, hostname):
 
         # store benchmarkInfo in XML
         self.XMLHeader = ET.Element("test",
@@ -377,7 +377,7 @@ class OutputHandler:
             {"model": cpuModel, "cores": numberOfCores, "frequency" : maxFrequency})
         ramElem = ET.Element("ram", {"size": memory})
 
-        systemInfo = ET.Element("systeminfo")
+        systemInfo = ET.Element("systeminfo", {"hostname": hostname})
         systemInfo.append(osElem)
         systemInfo.append(cpuElem)
         systemInfo.append(ramElem)
@@ -395,7 +395,7 @@ class OutputHandler:
 
 
     def writeHeaderToLog(self, version, memlimit, timelimit, opSystem,
-                         cpuModel, numberOfCores, maxFrequency, memory):
+                         cpuModel, numberOfCores, maxFrequency, memory, hostname):
         """
         This method writes information about benchmark and system into TXTFile.
         """
@@ -416,6 +416,7 @@ class OutputHandler:
         header += simpleLine
 
         systemInfo = "   SYSTEM INFORMATION\n"\
+                + "host:".ljust(columnWidth) + hostname + "\n"\
                 + "os:".ljust(columnWidth) + opSystem + "\n"\
                 + "cpu:".ljust(columnWidth) + cpuModel + "\n"\
                 + "- cores:".ljust(columnWidth) + numberOfCores + "\n"\
@@ -576,7 +577,7 @@ class OutputHandler:
             memInfoFile.close()
         memTotal = memInfo.get('MemTotal', 'unknown').strip()
 
-        return (opSystem, cpuModel, numberOfCores, maxFrequency, memTotal)
+        return (opSystem, cpuModel, numberOfCores, maxFrequency, memTotal, name)
 
 
     def outputBeforeTest(self, test):

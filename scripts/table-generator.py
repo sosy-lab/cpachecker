@@ -349,26 +349,32 @@ def getSystemRow(listOfTests, testWidths):
     get systemRow, each cell of it spans over all tests with this system
     '''
 
+    def getSystem(systemTag):
+        cpuTag = systemTag.find('cpu')
+        system = (systemTag.find('os').get('name'),
+                  cpuTag.get('model'),
+                  cpuTag.get('cores'),
+                  cpuTag.get('frequency'),
+                  systemTag.find('ram').get('size'),
+                  systemTag.get('hostname', 'unknown'))
+        return system
+
+    systemFormatString = '<td colspan="{0}">host: {6}<br>os: {1}<br>'\
+                       + 'cpu: {2}<br>cores: {3}, frequency: {4}, ram: {5}</td>'
     systemLine = '<tr><td>system</td>'
     systemWidth = 0
     systemTag = listOfTests[0][0].find('systeminfo')
-    cpuTag = systemTag.find('cpu')
-    system = (systemTag.find('os').get('name'), cpuTag.get('model'), cpuTag.get('cores'),
-                cpuTag.get('frequency'), systemTag.find('ram').get('size'))
+    system = getSystem(systemTag)
 
     for (testResult, columns), numberOfColumns in zip(listOfTests, testWidths):
         systemTag = testResult.find('systeminfo')
-        cpuTag = systemTag.find('cpu')
-        newSystem = (systemTag.find('os').get('name'), cpuTag.get('model'), cpuTag.get('cores'),
-                    cpuTag.get('frequency'), systemTag.find('ram').get('size'))
+        newSystem = getSystem(systemTag)
         if newSystem != system:
-            systemLine += '<td colspan="{0}">os: {1}<br>cpu: {2}<br>cores: {3}, \
-            frequency: {4}, ram: {5}</td>'.format(systemWidth, *system)
+            systemLine += systemFormatString.format(systemWidth, *system)
             systemWidth = 0
             system = newSystem
         systemWidth += numberOfColumns
-    systemLine += '<td colspan="{0}">os: {1}<br>cpu: {2}<br>cores: {3}, \
-            frequency: {4}, ram: {5}</td></tr>'.format(systemWidth, *system)
+    systemLine += systemFormatString.format(systemWidth, *system) + '</tr>'
 
     return systemLine
 
