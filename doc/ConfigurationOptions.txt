@@ -10,6 +10,9 @@ analysis.externalCBMC = false
 # run interprocedural analysis
 analysis.interprocedural = true
 
+# C programs to analyze (currently only one file is supported)
+analysis.programNames = no default value
+
 # which reached set implementation to use?
 # NORMAL: just a simple set
 # LOCATIONMAPPED: a different set per location (faster, elements with

@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Iterables;
 import com.google.common.io.Closeables;
 
 public class CPAMain {
@@ -218,14 +219,14 @@ public class CPAMain {
       System.exit(1);
     }
 
-    final String cFilePath = getCodeFilePath(cpaConfig, logManager);
-
     // create everything
     CPAchecker cpachecker = null;
     ShutdownHook shutdownHook = null;
+    File cFile = null;
     try {
       shutdownHook = new ShutdownHook(cpaConfig, logManager);
       cpachecker = new CPAchecker(cpaConfig, logManager);
+      cFile = getCodeFile(cpaConfig);
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
       System.exit(1);
@@ -237,33 +238,31 @@ public class CPAMain {
     Runtime.getRuntime().addShutdownHook(shutdownHook);
 
     // run analysis
-    CPAcheckerResult result = cpachecker.run(cFilePath);
+    CPAcheckerResult result = cpachecker.run(cFile.getPath());
 
     shutdownHook.setResult(result);
 
     // statistics are displayed by shutdown hook
   }
 
-  static String getCodeFilePath(final Configuration cpaConfig, final LogManager logManager){
-    String[] names = cpaConfig.getPropertiesArray("analysis.programNames");
-    if (names.length != 1) {
-      logManager.log(Level.SEVERE, "Exactly one code file has to be given!");
-      System.exit(1);
+  @Options
+  private static class MainOptions {
+    @Option(name="analysis.programNames",
+        required=true,
+        description="C programs to analyze (currently only one file is supported)")
+    @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
+    private List<File> programs;
+  }
+
+  static File getCodeFile(final Configuration cpaConfig) throws InvalidConfigurationException {
+    MainOptions options = new MainOptions();
+    cpaConfig.inject(options);
+
+    if (options.programs.size() != 1) {
+      throw new InvalidConfigurationException("Exactly one code file has to be given!");
     }
 
-    File cFile = new File(names[0]);
-    if (!cFile.isAbsolute()) {
-      cFile = new File(cpaConfig.getRootDirectory(), cFile.getPath());
-    }
-
-    try {
-      Files.checkReadableFile(cFile);
-    } catch (FileNotFoundException e) {
-      logManager.logUserException(Level.SEVERE, e, "");
-      System.exit(1);
-    }
-
-    return cFile.getPath();
+    return Iterables.getOnlyElement(options.programs);
   }
 
   static Configuration createConfiguration(String[] args)
