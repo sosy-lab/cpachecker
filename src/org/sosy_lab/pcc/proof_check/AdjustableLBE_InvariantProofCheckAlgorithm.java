@@ -235,7 +235,7 @@ public class AdjustableLBE_InvariantProofCheckAlgorithm extends InvariantProofCh
 
   private boolean isAbstractionNode(CFANode pNode, int pPathLength) {
     if (pNode.isLoopStart() || pNode.getEnteringSummaryEdge() != null || pNode instanceof FunctionDefinitionNode
-        || pPathLength == threshold) { return true; }
+        || (pPathLength == threshold && threshold!=0)) { return true; }
     return false;
   }
 
@@ -307,7 +307,7 @@ public class AdjustableLBE_InvariantProofCheckAlgorithm extends InvariantProofCh
           if (!handler.isFalse(f)) { return PCCCheckResult.ErrorNodeReachable; }
         }
         if (isAbstractionNode(node, pf.getLength()) && !unreachableFunctionReturnEdge(pStacks, node)
-            && !edges.contains(edgeID)) { return PCCCheckResult.UncoveredEdge; }
+            && !edges.contains(edgeID)) { System.out.println(edgeID);return PCCCheckResult.UncoveredEdge; }
         // stop because path marked as stop point
         if (edges.contains(edgeID)) {
           // get stack operation description

@@ -43,6 +43,8 @@ public class LBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
 
   protected FormulaHandler fh;
 
+  private HashSet<Integer> targetsFound = new HashSet<Integer>();
+
   public LBE_ARTProofGenAlgorithm(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
     super(pConfig, pLogger);
     fh = new FormulaHandler(pConfig, pLogger, whichProver);
@@ -128,6 +130,8 @@ public class LBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
   }
 
   private Integer[] getAbstractionSuccessors(ARTElement pSource) {
+    if (targetsFound.contains(pSource.getElementId())) { return new Integer[0]; }
+    targetsFound.add(pSource.getElementId());
     HashSet<Integer> found = new HashSet<Integer>();
     HashSet<Integer> visited = new HashSet<Integer>();
     Vector<ARTElement> toVisit = new Vector<ARTElement>();
@@ -140,7 +144,7 @@ public class LBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
       current = toVisit.remove(0);
       predicate = AbstractElements.extractElementByType(current, PredicateAbstractElement.class);
       if (predicate == null) { return null; }
-      if (predicate.isAbstractionElement() || current.isCovered()) {
+      if ((predicate.isAbstractionElement() || current.isCovered())&& !current.equals(pSource)) {
         if (predicate.isAbstractionElement() && current.isCovered()) {
           id = getFinalCoveringElement(current).getElementId();
         } else {

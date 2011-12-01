@@ -101,7 +101,7 @@ public class SBEWithIndices_ARTProofCheckAlgorithm extends
         }
         edge = new WithOpDescriptionARTSBEEdge(target, cfaEdge, operation);
         if(nodeS.isEdgeContained(edge)){
-          return PCCCheckResult.ElementAlreadyRead;
+          //return PCCCheckResult.ElementAlreadyRead;
         }else{
         nodeS.addEdge(edge);}
       } catch (InputMismatchException e2) {

@@ -183,7 +183,7 @@ public class ABE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
         // add edge
         edge = new WithCorrespondingCFAEdgeARTEdge(target, cfaEdge);
         if (nodeS.isEdgeContained(edge)) {
-          return PCCCheckResult.ElementAlreadyRead;
+          //return PCCCheckResult.ElementAlreadyRead;
         }
         else {
           nodeS.addEdge(edge);
@@ -382,7 +382,7 @@ public class ABE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
     }
     if (((pCFANode instanceof FunctionDefinitionNode
         || pCFANode.getEnteringSummaryEdge() != null) && atFunction)
-        || (pCFANode.isLoopStart() && atLoop) || pPathLength == threshold) { return true; }
+        || (pCFANode.isLoopStart() && atLoop) || (pPathLength == threshold && threshold!=0)) { return true; }
     return false;
   }
 
