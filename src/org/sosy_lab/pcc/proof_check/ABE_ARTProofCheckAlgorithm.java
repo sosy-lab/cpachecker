@@ -258,6 +258,13 @@ public class ABE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
     // check covered element
     if (pNode instanceof CoveredARTNode) {
       if (pNode.getNumberOfEdges() != 0) { return PCCCheckResult.InvalidART; }
+      newPred = buildNewPredicateAbstraction(art.get(pNode), pLeftAbstraction, pPath);
+      if (newPred == null || newPred.getFirst() == null || newPred.getSecond() == null) { return PCCCheckResult.InvalidART; }
+      // add covering element
+      intermediateRes =
+          addTargetNode(art.get(((CoveredARTNode) pNode).getCoveringElement()), pStack, newPred.getFirst(),
+              newPred.getSecond(), pVisited, pWaiting);
+      return intermediateRes;
     } else {
       // check if all edges of CFA are covered
       // leaving function
@@ -372,7 +379,6 @@ public class ABE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
     if (pCFANode instanceof CFALabelNode) {
       // check if error node
       if (((CFALabelNode) pCFANode).getLabel().toLowerCase().equals("error")) { return true; }
-      // TODO correct?
     }
     if (((pCFANode instanceof FunctionDefinitionNode
         || pCFANode.getEnteringSummaryEdge() != null) && atFunction)
@@ -382,17 +388,37 @@ public class ABE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
 
   private PCCCheckResult checkARTEdge(ARTNode pTarget, Formula pLeftAbstraction, PathFormula pPath) {
     // check if abstraction needed and available
+    Pair<Formula, SSAMap> right;
+    Formula result;
     if (isAbstraction(pTarget.getCorrespondingCFANode(), pPath.getLength())) {
-
+      if (pTarget.getAbstractionType() != AbstractionType.Abstraction || pTarget.getAbstraction() == null) { return PCCCheckResult.InvalidInvariant; }
     }
     if (pTarget.getAbstractionType() == AbstractionType.Abstraction) {
-
+      if (pTarget.getAbstraction() == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
+      // check if abstraction feasible
+      //instantiate right abstraction
+      right = handler.addIndices(pPath.getSsa(), pTarget.getAbstraction());
+      if (right == null || right.getFirst() == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
+      // build edge proof
+      result = handler.buildEdgeInvariant(pLeftAbstraction, pPath.getFormula(), right.getFirst());
+      if (result == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
+      if (!handler.isFalse(result)) { return PCCCheckResult.InvalidInvariant; }
     }
     else {
       if (pTarget.getAbstractionType() == AbstractionType.CoveredNonAbstraction) {
-
+        ARTNode covering = art.get(((CoveredARTNode) pTarget).getCoveringElement());
+        // check if same CFA node
+        if (covering == null || !pTarget.getCorrespondingCFANode().equals(covering.getCorrespondingCFANode())
+            || covering.getAbstraction() == null) { return PCCCheckResult.InvalidART; }
+        // check feasible covering
+        right = handler.addIndices(pPath.getSsa(), covering.getAbstraction());
+        if (right == null || right.getFirst() == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
+        // build edge proof
+        result = handler.buildEdgeInvariant(pLeftAbstraction, pPath.getFormula(), right.getFirst());
+        if (result == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
+        if (!handler.isFalse(result)) { return PCCCheckResult.InvalidInvariant; }
       } else {
-
+        // nothing to check
       }
     }
     return PCCCheckResult.Success;

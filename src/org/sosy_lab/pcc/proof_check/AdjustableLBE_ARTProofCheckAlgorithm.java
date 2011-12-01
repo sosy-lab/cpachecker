@@ -209,6 +209,16 @@ public class AdjustableLBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm
       intermediateRes =
           checkARTNode(node, current.getSecond());
       if (intermediateRes != PCCCheckResult.Success) { return intermediateRes; }
+      if (node instanceof CoveredARTNode) {
+        child = art.get(((CoveredARTNode) node).getCoveringElement());
+        if (!visited.containsKey(child.getID())) {
+          waiting.push(new Pair<Integer, String>(child.getID(), current.getSecond()));
+          visited.put(child.getID(), current.getSecond());
+        }
+        else {
+          if (visited.get(child.getID()) == null || !visited.get(child.getID()).equals(current.getSecond())) { return PCCCheckResult.InvalidART; }
+        }
+      }
       // add children
       edges = node.getEdges();
       for (int i = 0; i < edges.length; i++) {
@@ -216,7 +226,7 @@ public class AdjustableLBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm
         stack = current.getSecond();
         if (node.getCorrespondingCFANode().getEnteringSummaryEdge() != null) {
           stack = stack.substring(0,
-             stack.lastIndexOf(Separators.stackEntrySeparator));
+              stack.lastIndexOf(Separators.stackEntrySeparator));
         }
         if (child.getCorrespondingCFANode() instanceof FunctionDefinitionNode) {
           stack = stack + Separators.stackEntrySeparator
@@ -255,7 +265,9 @@ public class AdjustableLBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm
     if (cfaForProof.getMainFunction().getExitNode().equals(cfaNode)) {
       if (pNode.getNumberOfEdges() != 0) { return PCCCheckResult.ART_CFA_Mismatch; }
       if (!pStack.equals("")) {
-        System.out.println(pStack); return PCCCheckResult.InvalidStack; }
+        System.out.println(pStack);
+        return PCCCheckResult.InvalidStack;
+      }
       return PCCCheckResult.Success;
     }
     // check false abstractions
@@ -296,14 +308,10 @@ public class AdjustableLBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm
           // check if path ends in abstraction ART node
           if (isAbstraction(cfaNode.getLeavingEdge(i).getSuccessor(), pf.getLength())) {
             // check if ART node is available
-            if (!hasAbstractionEdgeTo(cfaNode, cfaNode.getLeavingEdge(i).getSuccessor(), pNode.getEdges())) {
-              return PCCCheckResult.UncoveredEdge;
-            }
+            if (!hasAbstractionEdgeTo(cfaNode, cfaNode.getLeavingEdge(i).getSuccessor(), pNode.getEdges())) { return PCCCheckResult.UncoveredEdge; }
             // check if edge is feasible
             if (!checkARTEdgePath(sourceAbstraction.getFirst(), pf, cfaNode.getLeavingEdge(i), pNode.getEdges(),
-                edgeCovered)) {
-              return PCCCheckResult.UncoveredEdge;
-            }
+                edgeCovered)) { return PCCCheckResult.UncoveredEdge; }
           } else {
             // check if it is a covered art node
             if (hasCoveringEdgeTo(cfaNode, cfaNode.getLeavingEdge(i).getSuccessor(), pNode.getEdges())) {
@@ -344,9 +352,7 @@ public class AdjustableLBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm
       }
       // check if every successor is covered -> correct abstraction
       for (int i = 0; i < edgeCovered.length; i++) {
-        if (!edgeCovered[i]) {
-          return PCCCheckResult.UncoveredEdge;
-        }
+        if (!edgeCovered[i]) { return PCCCheckResult.UncoveredEdge; }
       }
     }
     return PCCCheckResult.Success;
@@ -428,7 +434,7 @@ public class AdjustableLBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm
       ARTEdge[] pEdges, boolean[] pEdgeCovered) {
     if (pEdges.length != pEdgeCovered.length || pPath == null || pPath.getFormula() == null
         || pSourceAbstraction == null || pEdge == null) { return false; }
-    ARTNode target;
+    ARTNode target, covering;
     Formula rightAbstraction;
     Pair<Formula, SSAMap> intermediate;
     boolean success = false;
@@ -438,11 +444,13 @@ public class AdjustableLBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm
       if (!(target instanceof CoveredARTNode)) {
         continue;
       }
+      covering = art.get(((CoveredARTNode) target).getCoveringElement());
       if (target.getCorrespondingCFANode().equals(pEdge.getSuccessor())
           && (!(pEdge.getSuccessor() instanceof FunctionDefinitionNode) || pEdge.getPredecessor().getNodeNumber() == returnAddresses
-              .get(pEdges[i].getTarget()).intValue())) {
+              .get(pEdges[i].getTarget()).intValue()) && covering != null
+          && covering.getCorrespondingCFANode().getNodeNumber() == pEdge.getSuccessor().getNodeNumber()) {
         // check feasible coverage
-        rightAbstraction = handler.createFormula(target.getAbstraction());
+        rightAbstraction = handler.createFormula(covering.getAbstraction());
         intermediate = handler.addIndices(pPath.getSsa(), rightAbstraction);
         if (intermediate == null) { return false; }
         rightAbstraction = intermediate.getFirst();
@@ -479,7 +487,7 @@ public class AdjustableLBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm
 
   private boolean hasCoveringEdgeTo(CFANode pPredecessor, CFANode pTarget, ARTEdge[] pEdges) {
     if (pEdges == null || pTarget == null) { return false; }
-    int artTarget;
+    int artTarget, covering;
     for (int i = 0; i < pEdges.length; i++) {
       artTarget = pEdges[i].getTarget();
       if ((art.get(artTarget) instanceof CoveredARTNode)
@@ -487,6 +495,11 @@ public class AdjustableLBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm
         if (pTarget instanceof FunctionDefinitionNode
             && returnAddresses.get(artTarget).intValue() != pPredecessor.getLeavingSummaryEdge().getSuccessor()
                 .getNodeNumber()) {
+          continue;
+        }
+        covering = ((CoveredARTNode) art.get(artTarget)).getCoveringElement();
+        if (art.get(covering) == null
+            || art.get(covering).getCorrespondingCFANode().getNodeNumber() != pTarget.getNodeNumber()) {
           continue;
         }
         return true;
