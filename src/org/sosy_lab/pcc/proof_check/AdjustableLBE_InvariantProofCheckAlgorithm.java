@@ -235,7 +235,7 @@ public class AdjustableLBE_InvariantProofCheckAlgorithm extends InvariantProofCh
 
   private boolean isAbstractionNode(CFANode pNode, int pPathLength) {
     if (pNode.isLoopStart() || pNode.getEnteringSummaryEdge() != null || pNode instanceof FunctionDefinitionNode
-        || (pPathLength == threshold && threshold!=0)) { return true; }
+        || (pPathLength == threshold && threshold != 0)) { return true; }
     return false;
   }
 
@@ -306,8 +306,8 @@ public class AdjustableLBE_InvariantProofCheckAlgorithm extends InvariantProofCh
         if ((node instanceof CFALabelNode) && (((CFALabelNode) node).getLabel().equalsIgnoreCase("error"))) {
           if (!handler.isFalse(f)) { return PCCCheckResult.ErrorNodeReachable; }
         }
-        if (isAbstractionNode(node, pf.getLength()) && !unreachableFunctionReturnEdge(pStacks, node)
-            && !edges.contains(edgeID)) { System.out.println(edgeID);return PCCCheckResult.UncoveredEdge; }
+        if (isAbstractionNode(node, pf.getLength()) && !unreachableFunctionReturnEdge(pFormulas, pStacks, node)
+            && !edges.contains(edgeID)) { return PCCCheckResult.UncoveredEdge; }
         // stop because path marked as stop point
         if (edges.contains(edgeID)) {
           // get stack operation description
@@ -330,7 +330,7 @@ public class AdjustableLBE_InvariantProofCheckAlgorithm extends InvariantProofCh
             pToVisit.add(node.getNodeNumber());
           }
         } else {
-          if (!handler.isFalse(f) && !unreachableFunctionReturnEdge(pStacks, node)) {
+          if (!handler.isFalse(f) && !unreachableFunctionReturnEdge(pFormulas, pStacks, node)) {
             toCheck.add(new Pair<PathFormula, CFANode>(pf, node));
           }
         }
@@ -339,10 +339,10 @@ public class AdjustableLBE_InvariantProofCheckAlgorithm extends InvariantProofCh
     return PCCCheckResult.Success;
   }
 
-  private boolean unreachableFunctionReturnEdge(int[][] pStacks, CFANode pNodeReturn) {
+  private boolean unreachableFunctionReturnEdge(Formula[] pFormulas, int[][] pStacks, CFANode pNodeReturn) {
     if (pNodeReturn.getEnteringSummaryEdge() == null) { return false; }
     for (int i = 0; i < pStacks.length; i++) {
-      if (pStacks[i][0] == pNodeReturn.getNodeNumber()) { return false; }
+      if (pStacks[i][0] == pNodeReturn.getNodeNumber() && !handler.isFalse(pFormulas[i])) { return false; }
     }
     return true;
   }

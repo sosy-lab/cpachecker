@@ -272,8 +272,8 @@ public class LBE_InvariantProofCheckAlgorithm extends InvariantProofCheckAlgorit
         if ((node instanceof CFALabelNode) && (((CFALabelNode) node).getLabel().equalsIgnoreCase("error"))) {
           if (!handler.isFalse(f)) { return PCCCheckResult.ErrorNodeReachable; }
         }
-        if (isAbstractionNode(node)) {
-          if (!reachableCFANodes.contains(node.getNodeNumber())) { return PCCCheckResult.UncoveredCFANode; }
+        if (isAbstractionNode(node) && !unreachableFunctionReturnEdge(pFormulas, pStacks, node)) {
+          if (!reachableCFANodes.containsKey(node.getNodeNumber())) { return PCCCheckResult.UncoveredCFANode; }
           // get operation description
           if (node instanceof FunctionDefinitionNode) {
             leftWithStackOp =
@@ -286,7 +286,10 @@ public class LBE_InvariantProofCheckAlgorithm extends InvariantProofCheckAlgorit
           if (leftWithStackOp == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
           // get right abstraction
           right = buildRightRegionsFormula(nodes.get(node.getNodeNumber()), pf.getSsa(), node);
-          if (right == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
+          if (right == null) {
+            System.out.println(nodes.get(node.getNodeNumber()));
+            return PCCCheckResult.InvalidFormulaSpecificationInProof;
+          }
           f = handler.buildEdgeInvariant(leftWithStackOp, pf.getFormula(), right);
           if (f == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
           if (!handler.isFalse(f)) { return PCCCheckResult.InvalidInvariant; }
@@ -295,7 +298,7 @@ public class LBE_InvariantProofCheckAlgorithm extends InvariantProofCheckAlgorit
             pToVisit.add(node.getNodeNumber());
           }
         } else {
-          if (!handler.isFalse(f)) {
+          if (!handler.isFalse(f) && !unreachableFunctionReturnEdge(pFormulas, pStacks, node)) {
             toCheck.add(new Pair<PathFormula, CFANode>(pf, node));
           }
         }
@@ -304,7 +307,15 @@ public class LBE_InvariantProofCheckAlgorithm extends InvariantProofCheckAlgorit
     return PCCCheckResult.Success;
   }
 
-   private Pair<Formula[], SSAMap> buildLeftRegionsFormula(Vector<Pair<String, int[]>> pRegions,
+  private boolean unreachableFunctionReturnEdge(Formula[] pFormulas, int[][] pStacks, CFANode pNodeReturn) {
+    if (pNodeReturn.getEnteringSummaryEdge() == null) { return false; }
+    for (int i = 0; i < pStacks.length; i++) {
+      if (pStacks[i][0] == pNodeReturn.getNodeNumber() && !handler.isFalse(pFormulas[i])) { return false; }
+    }
+    return true;
+  }
+
+  private Pair<Formula[], SSAMap> buildLeftRegionsFormula(Vector<Pair<String, int[]>> pRegions,
       CFANode pNode) {
     if (pRegions == null) { return null; }
     Formula[] regionFormulae = new Formula[pRegions.size()];
@@ -364,11 +375,11 @@ public class LBE_InvariantProofCheckAlgorithm extends InvariantProofCheckAlgorit
       for (int j = 0; j < pStack.length; j++) {
         if (pLeft) {
           singleInvariant[j + 1] =
-              handler.createFormula(stackName + (pStack.length - j)
+              handler.createFormula(stackName + (pStack.length - (j + 1))
                   + Separators.SSAIndexSeparator + 1 + " = " + pStack[j]);
         } else {
           singleInvariant[j + 1] =
-              handler.createFormula(stackName + (pStack.length - j)
+              handler.createFormula(stackName + (pStack.length - (j + 1))
                   + Separators.SSAIndexSeparator + 2 + " = " + pStack[j]);
         }
 
@@ -447,22 +458,22 @@ public class LBE_InvariantProofCheckAlgorithm extends InvariantProofCheckAlgorit
           }
         }
         for (int k = 0; k < toTake; k++) {
-          if(pFunctionCall){
+          if (pFunctionCall) {
             subFormulaeStack[k] =
-              handler.createFormula(stackName + (k)
-                  + Separators.SSAIndexSeparator + 1 + " = " + stackName
-                  + (k+start) + Separators.SSAIndexSeparator + 2);
-          }else{
-            if(pFunctionReturn){
-              subFormulaeStack[k] =
-                handler.createFormula(stackName + (k+start)
+                handler.createFormula(stackName + (k)
                     + Separators.SSAIndexSeparator + 1 + " = " + stackName
-                    + k + Separators.SSAIndexSeparator + 2);
-            }else{
+                    + (k + start) + Separators.SSAIndexSeparator + 2);
+          } else {
+            if (pFunctionReturn) {
               subFormulaeStack[k] =
-                handler.createFormula(stackName + k
-                    + Separators.SSAIndexSeparator + 1 + " = " + stackName
-                    + k + Separators.SSAIndexSeparator + 2);
+                  handler.createFormula(stackName + (k + start)
+                      + Separators.SSAIndexSeparator + 1 + " = " + stackName
+                      + k + Separators.SSAIndexSeparator + 2);
+            } else {
+              subFormulaeStack[k] =
+                  handler.createFormula(stackName + k
+                      + Separators.SSAIndexSeparator + 1 + " = " + stackName
+                      + k + Separators.SSAIndexSeparator + 2);
             }
           }
           if (subFormulaeStack[k] == null) { return null; }

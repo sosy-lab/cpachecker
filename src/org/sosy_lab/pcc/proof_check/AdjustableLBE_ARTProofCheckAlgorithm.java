@@ -262,7 +262,6 @@ public class AdjustableLBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm
     if (cfaForProof.getMainFunction().getExitNode().equals(cfaNode)) {
       if (pNode.getNumberOfEdges() != 0) { return PCCCheckResult.ART_CFA_Mismatch; }
       if (!pStack.equals("")) {
-        System.out.println(pStack);
         return PCCCheckResult.InvalidStack;
       }
       return PCCCheckResult.Success;
@@ -307,8 +306,7 @@ public class AdjustableLBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm
               && !(cfaNode.getLeavingEdge(i).getSuccessor() instanceof CFALabelNode && ((CFALabelNode) cfaNode
                   .getLeavingEdge(i).getSuccessor()).getLabel().equalsIgnoreCase("error"))) {
             // check if ART node is available
-            if (!hasAbstractionEdgeTo(cfaNode, cfaNode.getLeavingEdge(i).getSuccessor(), pNode.getEdges())) {
-              System.out.println(pNode); System.out.println(cfaNode.getLeavingEdge(i).getSuccessor());System.out.println("test");return PCCCheckResult.UncoveredEdge; }
+            if (!hasAbstractionEdgeTo(cfaNode, cfaNode.getLeavingEdge(i).getSuccessor(), pNode.getEdges())) { return PCCCheckResult.UncoveredEdge; }
             // check if edge is feasible
             if (!checkARTEdgePath(sourceAbstraction.getFirst(), pf, cfaNode.getLeavingEdge(i), pNode.getEdges(),
                 edgeCovered)) { return PCCCheckResult.UncoveredEdge; }
@@ -371,7 +369,7 @@ public class AdjustableLBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm
   private boolean isAbstraction(CFANode pCFANode, int pPathLength) {
     if (pCFANode instanceof FunctionDefinitionNode
         || pCFANode.getEnteringSummaryEdge() != null
-        || (pCFANode.isLoopStart() && atLoop) || (pPathLength == threshold && threshold!=0)) { return true; }
+        || (pCFANode.isLoopStart() && atLoop) || (pPathLength == threshold && threshold != 0)) { return true; }
     return false;
   }
 
