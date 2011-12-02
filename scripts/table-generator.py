@@ -151,6 +151,8 @@ def appendTests(listOfTests, filelist, columns=None):
                     + "you should use the option '-x' or '--xml'.").replace('\n','\n    '))
                 exit()
 
+            resultElem.set("filename", resultFile)
+
             # check for equal files in the tests
             if len(listOfTests) and not containEqualFiles(listOfTests[0][0], resultElem):
                 print ('        resultfile contains different files, skipping resultfile')
@@ -260,10 +262,12 @@ def getTableHead(listOfTests):
     systemRow = getSystemRow(listOfTests, testWidths)
     dateRow = getDateRow(listOfTests, testWidths)
     (testRow, testLine) = getTestRow(listOfTests, testWidths)
+    testBranches = getBranchRow(listOfTests, testWidths)
     testOptions = getOptionsRow(listOfTests, testWidths)
 
     return (('\n' + HTML_SHIFT).join([HTML_SHIFT + '<thead>', toolRow,
-            limitRow, systemRow, dateRow, testRow, testOptions, columnRow]) + '\n</thead>',
+            limitRow, systemRow, dateRow, testRow, testBranches, testOptions,
+            columnRow]) + '\n</thead>',
             testLine + '\n' + titleLine + '\n')
 
 
@@ -414,6 +418,19 @@ def getTestRow(listOfTests, testWidths):
 
     return ('<tr><td>test</td>' + ''.join(tests) + '</tr>',
             testLine)
+
+
+def getBranchRow(listOfTests, testWidths):
+    '''
+    create branchRow, each cell spans over the columns of a test
+    '''
+    testBranches = [os.path.basename(testResult.get('filename', '?')) for (testResult, _) in listOfTests]
+    if not any("#" in branch for branch in testBranches):
+        return ""
+    testBranches = [testBranch.split("#", 1)[0] for testBranch in testBranches]
+    branches = ['<td colspan="{0}">{1}</td>'.format(width, testBranch)
+             for (testBranch, width) in zip(testBranches, testWidths) if width]
+    return '<tr id="branch"><td>branch</td>' + ''.join(branches) + '</tr>'
 
 
 def getOptionsRow(listOfTests, testWidths):

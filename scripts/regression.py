@@ -155,8 +155,11 @@ def compareResults(xmlFiles, options):
         print ('Resultfile not found. Check your filenames!')
         sys.exit()
 
-    listOfTestTags = [ET.ElementTree().parse(resultFile)
-                       for resultFile in resultFiles]
+    listOfTestTags = []
+    for resultFile in resultFiles:
+        testTag = ET.ElementTree().parse(resultFile)
+        testTag.set("filename", os.path.basename(resultFile))
+        listOfTestTags.append(testTag)
 
     # copy some info from original data
     # collect all filenames for 'complete' diff
