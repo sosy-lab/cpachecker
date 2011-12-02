@@ -113,6 +113,7 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
           if (!rootFound) {
             // set root
             root = newNode;
+            rootFound=true;
             //check root properties
             if (root.getAbstractionType() != AbstractionType.Abstraction
                 || (!(handler.createFormula(root.getAbstraction())).isTrue())) {
@@ -125,19 +126,16 @@ public abstract class SBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm 
           }
         }
       } catch (NumberFormatException e1) {
-        System.out.println("Error1");
         return PCCCheckResult.UnknownCFANode;
       } catch (InputMismatchException e2) {
-        System.out.println("Error2");
         return PCCCheckResult.UnknownCFANode;
       } catch (NoSuchElementException e3) {
-        System.out.println("Error3");
         return PCCCheckResult.UnknownCFANode;
       } catch (IllegalArgumentException e4) {
-        System.out.println("Error4");
         return PCCCheckResult.UnknownCFANode;
       }
     }
+    if(root==null){return PCCCheckResult.UncoveredCFANode;}
     return PCCCheckResult.Success;
   }
 

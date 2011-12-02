@@ -323,7 +323,7 @@ public class ABE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
         if (f == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
         //check if all edges are covered exactly once if node reachable
         logger.log(Level.INFO, "Check if all CFA edges of the corresponding CFA node are covered by ART node");
-        if (!handler.isFalse(f) && (edges.length != cfaNode.getNumLeavingEdges()
+        if (!handler.isFalse(f) && (edges.length <cfaNode.getNumLeavingEdges()
             || !containsCFAEdges(edges, cfaNode))) { return PCCCheckResult.InvalidART; }
         // check formula for all edges and add target node to visit if necessary
         for (int i = 0; i < edges.length; i++) {
