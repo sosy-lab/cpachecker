@@ -37,8 +37,6 @@ import subprocess
 import sys
 import xml.etree.ElementTree as ET
 
-OUTPUT_PATH = "./test/results/"
-
 CSV_SEPARATOR = "\t"
 
 BUG_SUBSTRING_LIST = ['bug', 'unsafe']
@@ -1146,9 +1144,9 @@ def run_cbmc(options, sourcefile, columns, rlimits):
         try:
             tree = ET.fromstring(output)
             status = tree.findtext('cprover-status', 'ERROR')
-        except ExpatError as e:
+        except ET.ParseError as e:
             status = 'ERROR'
-            sys.stdout.write("Error parsing CBMC output: %s " % e)
+            # sys.stdout.write("Error parsing CBMC output: %s " % e)
 
         if status == "FAILURE":
             assert returncode == 10
@@ -1513,12 +1511,15 @@ def main(argv=None):
                       help="run only a special TEST from xml-file",
                       metavar="TEST")
 
-    parser.add_option("-o", dest="output_path", type="string",
+    parser.add_option("-o", "--outputpath",
+                      dest="output_path", type="string",
+                      default="./test/results/",
                       help="Output folder for the generated results")
 
     global options, OUTPUT_PATH
     (options, args) = parser.parse_args(argv)
-    OUTPUT_PATH = options.output_path
+    OUTPUT_PATH = options.output_path if options.output_path.endswith('/') \
+                 else options.output_path + '/'
 
     if len(args) < 2:
         parser.error("invalid number of arguments")
