@@ -1513,8 +1513,12 @@ def main(argv=None):
                       help="run only a special TEST from xml-file",
                       metavar="TEST")
 
-    global options
+    parser.add_option("-o", dest="output_path", type="string",
+                      help="Output folder for the generated results")
+
+    global options, OUTPUT_PATH
     (options, args) = parser.parse_args(argv)
+    OUTPUT_PATH = options.output_path
 
     if len(args) < 2:
         parser.error("invalid number of arguments")
