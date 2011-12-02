@@ -65,7 +65,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
       description = "file name where to put the path program that is generated "
       + "as input for CBMC. A temporary file is used if this is unspecified.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File CBMCFile;
+  private File cbmcFile;
 
   @Option(name="cbmc.timelimit",
       description="maximum time limit for CBMC (0 is infinite)")
@@ -86,7 +86,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
     String pathProgram = PathToCTranslator.translatePaths(cfa, pRootElement, pErrorPathElements);
 
     // write program to disk
-    File cFile = CBMCFile;
+    File cFile = cbmcFile;
     try {
       if (cFile != null) {
         Files.writeFile(cFile, pathProgram);
@@ -104,8 +104,8 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
     CBMCExecutor cbmc;
     int exitCode;
     try {
-      String CBMCArgs[] = {"cbmc", "--function", mainFunctionName + "_0", "--32"};
-      cbmc = new CBMCExecutor(logger, cFile, CBMCArgs);
+      String cbmcArgs[] = {"cbmc", "--function", mainFunctionName + "_0", "--32", cFile.getAbsolutePath()};
+      cbmc = new CBMCExecutor(logger, cbmcArgs);
       exitCode = cbmc.join(timelimit);
 
     } catch (IOException e) {
