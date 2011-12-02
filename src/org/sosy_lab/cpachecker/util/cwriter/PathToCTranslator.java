@@ -180,7 +180,8 @@ public class PathToCTranslator {
     StackElement lastStackElement = stack.peek().peek();
 
     // how many parents does the child have?
-    int noOfParents = childElement.getParents().size();
+    // ignore parents not on the error path
+    int noOfParents = Sets.intersection(childElement.getParents(), elementsOnPath).size();
     assert noOfParents >= 1;
 
     if (childElement.isTarget()) {
