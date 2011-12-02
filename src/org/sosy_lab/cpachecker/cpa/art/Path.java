@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 
-import com.google.common.base.Function;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 /**
@@ -81,8 +81,12 @@ public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
   }
 
   public List<CFAEdge> asEdgesList() {
-    Function<Pair<?, ? extends CFAEdge>, CFAEdge> projectionToSecond = Pair.getProjectionToSecond();
-    return Lists.transform(this, projectionToSecond);
+    return Lists.transform(this, Pair.<CFAEdge>getProjectionToSecond());
+  }
+
+  public ImmutableSet<ARTElement> getElementSet() {
+    List<ARTElement> elementList = Lists.transform(this, Pair.<ARTElement>getProjectionToFirst());
+    return ImmutableSet.copyOf(elementList);
   }
 
   /**
