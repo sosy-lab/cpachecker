@@ -186,8 +186,13 @@ def containEqualFiles(resultElem1, resultElem2):
 
 
 def insertLogFileNames(resultFile, resultElem):
+    filename = os.path.basename(resultElem.get("filename"))
+    parts = filename.split("#", 1)
+
     # get folder of logfiles
     logFolder = resultElem.get('benchmarkname') + "." + resultElem.get('date') + ".logfiles/"
+    if len(parts) > 1:
+        logFolder = "%s#%s" % (parts[0], logFolder)
 
     # create folder for txt-files (copies of the logfiles)
     txtFolder = 'table/' + logFolder
