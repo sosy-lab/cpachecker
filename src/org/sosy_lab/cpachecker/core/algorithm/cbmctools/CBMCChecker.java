@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 
 /**
  * Counterexample checker that creates a C program for the counterexample
@@ -82,7 +83,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
 
     String mainFunctionName = extractLocation(pRootElement).getFunctionName();
 
-    String pathProgram = AbstractPathToCTranslator.translatePaths(cfa, pRootElement, pErrorPathElements);
+    String pathProgram = PathToCTranslator.translatePaths(cfa, pRootElement, pErrorPathElements);
 
     // write program to disk
     File cFile = CBMCFile;

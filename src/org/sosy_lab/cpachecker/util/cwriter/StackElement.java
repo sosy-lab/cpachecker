@@ -21,14 +21,14 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.cbmctools;
+package org.sosy_lab.cpachecker.util.cwriter;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 
-class CBMCStackElement {
+class StackElement {
 
   private static final String SINGLE_INDENT = "  ";
 
@@ -43,13 +43,13 @@ class CBMCStackElement {
   private final String firstCodeLine;
   private final List<Object> codeList;
 
-  public CBMCStackElement(int pElementId, String pFunctionName) {
+  public StackElement(int pElementId, String pFunctionName) {
     elementId = pElementId;
     codeList = new ArrayList<Object>();
     firstCodeLine = pFunctionName;
   }
 
-  public CBMCStackElement(int pElementId, AssumeEdge pEdge, String pConditionString) {
+  public StackElement(int pElementId, AssumeEdge pEdge, String pConditionString) {
     elementId = pElementId;
     codeList = new ArrayList<Object>();
     boolean truthAssumption = pEdge.getTruthAssumption();
@@ -99,8 +99,8 @@ class CBMCStackElement {
       if (obj instanceof String) {
         ret.append(indent);
         ret.append((String)obj);
-      } else if (obj instanceof CBMCStackElement) {
-        ret.append(((CBMCStackElement)obj).getCode(indent));
+      } else if (obj instanceof StackElement) {
+        ret.append(((StackElement)obj).getCode(indent));
       } else {
         assert false;
       }

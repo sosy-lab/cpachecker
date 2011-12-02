@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.cbmctools;
+package org.sosy_lab.cpachecker.util.cwriter;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,25 +33,25 @@ import java.util.Stack;
 
 import org.sosy_lab.common.Pair;
 
-class CBMCMergeNode {
+class MergeNode {
 
   private final int elementId;
   private final Map<Integer, Pair<Boolean, Boolean>> branchesMap;
-  private final List<Stack<CBMCStackElement>> incomingElements;
+  private final List<Stack<StackElement>> incomingElements;
 
-  public CBMCMergeNode(int pElementId) {
+  public MergeNode(int pElementId) {
     elementId = pElementId;
     branchesMap = new HashMap<Integer,  Pair<Boolean, Boolean>>();
-    incomingElements = new ArrayList<Stack<CBMCStackElement>>();
+    incomingElements = new ArrayList<Stack<StackElement>>();
   }
 
-  public int addBranch(CBMCEdge pNextCBMCEdge) {
+  public int addBranch(Edge pNextCBMCEdge) {
 
-    Stack<CBMCStackElement> addedStackElement = pNextCBMCEdge.getStack().peek();
+    Stack<StackElement> addedStackElement = pNextCBMCEdge.getStack().peek();
     incomingElements.add(addedStackElement);
     Set<Integer> processedConditions = new HashSet<Integer>();
 
-    for (CBMCStackElement elementInStack: addedStackElement) {
+    for (StackElement elementInStack: addedStackElement) {
       int idOfElementInStack = elementInStack.getElementId();
       boolean nextConditionValue = elementInStack.isCondition();
       boolean isClosedBefore = elementInStack.isClosedBefore();
@@ -81,8 +81,8 @@ class CBMCMergeNode {
   }
 
   private void setProcessedElements(Set<Integer> pProcessedConditions) {
-    for (Stack<CBMCStackElement> stack: incomingElements) {
-      for (CBMCStackElement elem: stack) {
+    for (Stack<StackElement> stack: incomingElements) {
+      for (StackElement elem: stack) {
         if (pProcessedConditions.contains(elem.getElementId())) {
           elem.setClosedBefore(true);
         }
@@ -90,7 +90,7 @@ class CBMCMergeNode {
     }
   }
 
-  public List<Stack<CBMCStackElement>> getIncomingElements() {
+  public List<Stack<StackElement>> getIncomingElements() {
     return incomingElements;
   }
 

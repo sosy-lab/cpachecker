@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.cbmctools;
+package org.sosy_lab.cpachecker.util.cwriter;
 
 import static com.google.common.collect.Iterables.concat;
 
@@ -60,7 +60,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-public class AbstractPathToCTranslator {
+public class PathToCTranslator {
 
   private static Function<IASTNode, String> RAW_SIGNATURE_FUNCTION = new Function<IASTNode, String>() {
     @Override
@@ -81,12 +81,12 @@ public class AbstractPathToCTranslator {
   // the code for the function recursively starting from that node
   private final List<FunctionBody> mFunctionBodies = new ArrayList<FunctionBody>();
 
-  private AbstractPathToCTranslator(Set<ARTElement> pElementsOnPath) {
+  private PathToCTranslator(Set<ARTElement> pElementsOnPath) {
     elementsOnPath = pElementsOnPath;
   }
 
   public static String translatePaths(CFA cfa, ARTElement artRoot, Set<ARTElement> elementsOnErrorPath) {
-    AbstractPathToCTranslator translator = new AbstractPathToCTranslator(elementsOnErrorPath);
+    PathToCTranslator translator = new PathToCTranslator(elementsOnErrorPath);
 
     // Add the original function declarations to enable read-only use of function pointers;
     // there will be no code for these functions, so they can never be called via the function
@@ -117,14 +117,14 @@ public class AbstractPathToCTranslator {
 
   private void translatePath(final ARTElement firstElement) {
     // waitlist for the edges to be processed
-    List<CBMCEdge> waitlist = new ArrayList<CBMCEdge>();
+    List<Edge> waitlist = new ArrayList<Edge>();
 
     // map of nodes to check end of a condition
-    Map<Integer, CBMCMergeNode> mergeNodes = new HashMap<Integer, CBMCMergeNode>();
+    Map<Integer, MergeNode> mergeNodes = new HashMap<Integer, MergeNode>();
 
     // create initial element
     {
-      Stack<Stack<CBMCStackElement>> newStack = new Stack<Stack<CBMCStackElement>>();
+      Stack<Stack<StackElement>> newStack = new Stack<Stack<StackElement>>();
 
       // create the first function and put in into newStack
       startFunction(firstElement, newStack);
@@ -138,13 +138,13 @@ public class AbstractPathToCTranslator {
       Collections.sort(waitlist);
 
       // get the first element in the list (this is the smallest element when topologically sorted)
-      CBMCEdge nextCBMCEdge = waitlist.remove(0);
+      Edge nextEdge = waitlist.remove(0);
 
-      waitlist.addAll(handleEdge(nextCBMCEdge, mergeNodes));
+      waitlist.addAll(handleEdge(nextEdge, mergeNodes));
     }
   }
 
-  private String startFunction(ARTElement firstFunctionElement, Stack<Stack<CBMCStackElement>> currentStack) {
+  private String startFunction(ARTElement firstFunctionElement, Stack<Stack<StackElement>> currentStack) {
     // create the first stack element using the first element of the function
     FunctionDefinitionNode functionStartNode = (FunctionDefinitionNode) firstFunctionElement.retrieveLocationElement().getLocationNode();
     String freshFunctionName = getFreshFunctionName(functionStartNode);
@@ -155,11 +155,11 @@ public class AbstractPathToCTranslator {
           freshFunctionName + "(");
     // lFunctionHeader is for example "void foo_99(int a)"
 
-    CBMCStackElement firstFunctionStackElement = new CBMCStackElement(firstFunctionElement.getElementId(),
+    StackElement firstFunctionStackElement = new StackElement(firstFunctionElement.getElementId(),
         lFunctionHeader);
 
     // create a new stack to save conditions in that function
-    Stack<CBMCStackElement> newFunctionStack = new Stack<CBMCStackElement>();
+    Stack<StackElement> newFunctionStack = new Stack<StackElement>();
     newFunctionStack.push(firstFunctionStackElement);
 
     // register function
@@ -169,15 +169,15 @@ public class AbstractPathToCTranslator {
     return freshFunctionName;
   }
 
-  private Collection<CBMCEdge> handleEdge(CBMCEdge nextCBMCEdge, Map<Integer, CBMCMergeNode> mergeNodes) {
-    ARTElement childElement = nextCBMCEdge.getChildElement();
-    CFAEdge edge = nextCBMCEdge.getEdge();
-    Stack<Stack<CBMCStackElement>> stack = nextCBMCEdge.getStack();
+  private Collection<Edge> handleEdge(Edge nextEdge, Map<Integer, MergeNode> mergeNodes) {
+    ARTElement childElement = nextEdge.getChildElement();
+    CFAEdge edge = nextEdge.getEdge();
+    Stack<Stack<StackElement>> stack = nextEdge.getStack();
 
     // clone stack to have a different representation of the function calls and conditions
     // every element
     stack = cloneStack(stack);
-    CBMCStackElement lastStackElement = stack.peek().peek();
+    StackElement lastStackElement = stack.peek().peek();
 
     // how many parents does the child have?
     int noOfParents = childElement.getParents().size();
@@ -218,22 +218,22 @@ public class AbstractPathToCTranslator {
       lastStackElement.write("goto label_" + elemId + ";");
 
       // get the merge node for that node
-      CBMCMergeNode mergeNode = mergeNodes.get(elemId);
+      MergeNode mergeNode = mergeNodes.get(elemId);
       // if null create new and put in the map
       if (mergeNode == null) {
-        mergeNode = new CBMCMergeNode(elemId);
+        mergeNode = new MergeNode(elemId);
         mergeNodes.put(elemId, mergeNode);
       }
 
       // this tells us the number of edges (entering that node) processed so far
-      int noOfProcessedBranches = mergeNode.addBranch(nextCBMCEdge);
+      int noOfProcessedBranches = mergeNode.addBranch(nextEdge);
 
       // if all edges are processed
       if (noOfParents == noOfProcessedBranches) {
         // all branches are processed, now decide which nodes to remove from the stack
-        List<Stack<CBMCStackElement>> incomingStacks = mergeNode.getIncomingElements();
+        List<Stack<StackElement>> incomingStacks = mergeNode.getIncomingElements();
 
-        Stack<CBMCStackElement> lastStack = processIncomingStacks(incomingStacks);
+        Stack<StackElement> lastStack = processIncomingStacks(incomingStacks);
         stack.pop();
         stack.push(lastStack);
         lastStack.peek().write("label_" + elemId + ": ;");
@@ -246,8 +246,8 @@ public class AbstractPathToCTranslator {
     return getRelevantChildrenOfElement(childElement, stack);
   }
 
-  private Collection<CBMCEdge> getRelevantChildrenOfElement(
-      ARTElement currentElement, Stack<Stack<CBMCStackElement>> currentStack) {
+  private Collection<Edge> getRelevantChildrenOfElement(
+      ARTElement currentElement, Stack<Stack<StackElement>> currentStack) {
     // find the next elements to add to the waitlist
 
     Set<ARTElement> relevantChildrenOfElement = Sets.intersection(currentElement.getChildren(), elementsOnPath).immutableCopy();
@@ -257,19 +257,19 @@ public class AbstractPathToCTranslator {
       // get the next ART element, create a new edge using the same stack and add it to the waitlist
       ARTElement elem = Iterables.getOnlyElement(relevantChildrenOfElement);
       CFAEdge e = currentElement.getEdgeToChild(elem);
-      CBMCEdge newEdge = new CBMCEdge(currentElement, elem, e, currentStack);
+      Edge newEdge = new Edge(currentElement, elem, e, currentStack);
       return Collections.singleton(newEdge);
 
     } else if (relevantChildrenOfElement.size() > 1) {
       // if there are more than one relevant child, then this is a condition
       // we need to update the stack
       assert relevantChildrenOfElement.size() == 2;
-      Collection<CBMCEdge> result = new ArrayList<CBMCEdge>(2);
+      Collection<Edge> result = new ArrayList<Edge>(2);
       int ind = 0;
       for (ARTElement elem: relevantChildrenOfElement) {
-        Stack<Stack<CBMCStackElement>> newCondStack = cloneStack(currentStack);
+        Stack<Stack<StackElement>> newCondStack = cloneStack(currentStack);
         CFAEdge e = currentElement.getEdgeToChild(elem);
-        Stack<CBMCStackElement> lastStackOfFunction = newCondStack.peek();
+        Stack<StackElement> lastStackOfFunction = newCondStack.peek();
         assert e instanceof AssumeEdge;
         AssumeEdge assumeEdge = (AssumeEdge)e;
         boolean truthAssumption = assumeEdge.getTruthAssumption();
@@ -292,11 +292,11 @@ public class AbstractPathToCTranslator {
         }
 
         // create a new stack element
-        CBMCStackElement newStackElement = new CBMCStackElement(currentElement.getElementId(), assumeEdge, cond);
+        StackElement newStackElement = new StackElement(currentElement.getElementId(), assumeEdge, cond);
         lastStackOfFunction.peek().write(newStackElement);
 
         lastStackOfFunction.push(newStackElement);
-        CBMCEdge newEdge = new CBMCEdge(currentElement, elem, e, newCondStack);
+        Edge newEdge = new Edge(currentElement, elem, e, newCondStack);
         result.add(newEdge);
       }
       return result;
@@ -304,13 +304,13 @@ public class AbstractPathToCTranslator {
     return Collections.emptyList();
   }
 
-  private static Stack<CBMCStackElement> processIncomingStacks(
-      List<Stack<CBMCStackElement>> pIncomingStacks) {
+  private static Stack<StackElement> processIncomingStacks(
+      List<Stack<StackElement>> pIncomingStacks) {
 
-    Stack<CBMCStackElement> maxStack = null;
+    Stack<StackElement> maxStack = null;
     int maxSizeOfStack = 0;
 
-    for (Stack<CBMCStackElement> stack: pIncomingStacks) {
+    for (Stack<StackElement> stack: pIncomingStacks) {
       while (true) {
         if (stack.peek().isClosedBefore()) {
           stack.pop();
@@ -434,16 +434,16 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
     return functionStartNode.getFunctionName() + "_" + mFunctionIndex++;
   }
 
-  private Stack<Stack<CBMCStackElement>> cloneStack(Stack<Stack<CBMCStackElement>> pStack) {
+  private Stack<Stack<StackElement>> cloneStack(Stack<Stack<StackElement>> pStack) {
 
-    Stack<Stack<CBMCStackElement>>  ret = new Stack<Stack<CBMCStackElement>>();
-    Iterator<Stack<CBMCStackElement>> it = pStack.iterator();
+    Stack<Stack<StackElement>>  ret = new Stack<Stack<StackElement>>();
+    Iterator<Stack<StackElement>> it = pStack.iterator();
     while (it.hasNext()) {
-      Stack<CBMCStackElement> stackItem = it.next();
-      Stack<CBMCStackElement> newRetStack = new Stack<CBMCStackElement>();
-      Iterator<CBMCStackElement> newIt = stackItem.iterator();
+      Stack<StackElement> stackItem = it.next();
+      Stack<StackElement> newRetStack = new Stack<StackElement>();
+      Iterator<StackElement> newIt = stackItem.iterator();
       while (newIt.hasNext()) {
-        CBMCStackElement newStackElem = newIt.next();
+        StackElement newStackElem = newIt.next();
         newRetStack.push(newStackElem);
       }
       ret.push(newRetStack);
@@ -455,9 +455,9 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
   private static class FunctionBody {
     // a function is represented by its first stack element and we get
     // the code for the function recursively starting from that node
-    private final CBMCStackElement firstElement;
+    private final StackElement firstElement;
 
-    private FunctionBody(CBMCStackElement pFirstElement) {
+    private FunctionBody(StackElement pFirstElement) {
       firstElement = pFirstElement;
     }
 

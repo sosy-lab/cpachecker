@@ -21,22 +21,22 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.cbmctools;
+package org.sosy_lab.cpachecker.util.cwriter;
 
 import java.util.Stack;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 
-class CBMCEdge implements Comparable<CBMCEdge> {
+class Edge implements Comparable<Edge> {
 
   private final ARTElement parentElement;
   private final ARTElement childElement;
   private final CFAEdge edge;
-  private final Stack<Stack<CBMCStackElement>> stack;
+  private final Stack<Stack<StackElement>> stack;
 
-  public CBMCEdge(ARTElement pParentElement, ARTElement pChildElement,
-      CFAEdge pEdge, Stack<Stack<CBMCStackElement>> pStack) {
+  public Edge(ARTElement pParentElement, ARTElement pChildElement,
+      CFAEdge pEdge, Stack<Stack<StackElement>> pStack) {
     parentElement = pParentElement;
     childElement = pChildElement;
     edge = pEdge;
@@ -55,13 +55,13 @@ class CBMCEdge implements Comparable<CBMCEdge> {
     return edge;
   }
 
-  public Stack<Stack<CBMCStackElement>> getStack() {
+  public Stack<Stack<StackElement>> getStack() {
     return stack;
   }
 
   @Override
   /** comparison based on the child element*/
-  public int compareTo(CBMCEdge pO) {
+  public int compareTo(Edge pO) {
     int otherElementId = pO.getChildElement().getElementId();
     int thisElementId = this.getChildElement().getElementId();
 
@@ -78,8 +78,8 @@ class CBMCEdge implements Comparable<CBMCEdge> {
   public boolean equals(Object pObj) {
     if (pObj == this) {
       return true;
-    } else if (pObj instanceof CBMCEdge) {
-      int otherElementId = ((CBMCEdge)pObj).getChildElement().getElementId();
+    } else if (pObj instanceof Edge) {
+      int otherElementId = ((Edge)pObj).getChildElement().getElementId();
       int thisElementId = this.getChildElement().getElementId();
       return thisElementId == otherElementId;
     } else {
@@ -94,7 +94,7 @@ class CBMCEdge implements Comparable<CBMCEdge> {
 
   @Override
   public String toString() {
-    return "CBMC ELEMENT > " + parentElement.getElementId() + " --> " + childElement.getElementId();
+    return "ELEMENT > " + parentElement.getElementId() + " --> " + childElement.getElementId();
   }
 
 }
