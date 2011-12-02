@@ -184,8 +184,7 @@ public class ABE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
         edge = new WithCorrespondingCFAEdgeARTEdge(target, cfaEdge);
         if (nodeS.isEdgeContained(edge)) {
           //return PCCCheckResult.ElementAlreadyRead;
-        }
-        else {
+        } else {
           nodeS.addEdge(edge);
         }
       } catch (InputMismatchException e2) {
@@ -361,8 +360,7 @@ public class ABE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
     String id;
     if (pTarget.getAbstractionType() == AbstractionType.Abstraction) {
       id = Integer.toString(pTarget.getID());
-    }
-    else {
+    } else {
       id = Integer.toString(pTarget.getID()) + Separators.commonSeparator + pPath.toString();
     }
     if (!pVisited.containsKey(id)) {
@@ -382,7 +380,7 @@ public class ABE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
     }
     if (((pCFANode instanceof FunctionDefinitionNode
         || pCFANode.getEnteringSummaryEdge() != null) && atFunction)
-        || (pCFANode.isLoopStart() && atLoop) || (pPathLength == threshold && threshold!=0)) { return true; }
+        || (pCFANode.isLoopStart() && atLoop) || (pPathLength == threshold && threshold != 0)) { return true; }
     return false;
   }
 
@@ -402,9 +400,8 @@ public class ABE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
       // build edge proof
       result = handler.buildEdgeInvariant(pLeftAbstraction, pPath.getFormula(), right.getFirst());
       if (result == null) { return PCCCheckResult.InvalidFormulaSpecificationInProof; }
-      if (!handler.isFalse(result)) { return PCCCheckResult.InvalidInvariant; }
-    }
-    else {
+      if (!handler.isFalse(result)) { System.out.println(result); return PCCCheckResult.InvalidInvariant; }
+    } else {
       if (pTarget.getAbstractionType() == AbstractionType.CoveredNonAbstraction) {
         ARTNode covering = art.get(((CoveredARTNode) pTarget).getCoveringElement());
         // check if same CFA node
