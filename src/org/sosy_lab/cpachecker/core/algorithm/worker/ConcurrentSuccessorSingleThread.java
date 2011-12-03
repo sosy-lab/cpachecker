@@ -27,14 +27,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.logging.Level;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
-import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
@@ -76,7 +75,7 @@ public class ConcurrentSuccessorSingleThread implements Worker {
     }
 
     @Override
-    public Object call() throws  CPAException, InterruptedException {
+    public Object call() throws CPAException, InterruptedException {
       final PrecisionAdjustment precisionAdjustment =
           cpa.getPrecisionAdjustment();
 
@@ -167,8 +166,8 @@ public class ConcurrentSuccessorSingleThread implements Worker {
 
   private ReachedSet reachedSet;
 
-  public ConcurrentSuccessorSingleThread(ReachedSet reachedSet, ConfigurableProgramAnalysis 
-cpa, LogManager logger,
+  public ConcurrentSuccessorSingleThread(ReachedSet reachedSet, ConfigurableProgramAnalysis
+      cpa, LogManager logger,
       CPAStatistics stats) {
     this.cpa = cpa;
     this.stats = stats;
@@ -220,36 +219,31 @@ cpa, LogManager logger,
       stats.countSuccessors += numSuccessors;
       stats.maxSuccessors = Math.max(numSuccessors, stats.maxSuccessors);
 
-//	ArrayList<Future<Object>> jobs = new ArrayList<Future<Object>>();
       for (AbstractElement successor : successors) {
-//	jobs.add(
-	Future<Object> f = threadPool.submit(new SuccessorThread(successor, element, precision, mergeOperator, stopOperator, cpa));
-	                try {
-                        f.get();
-                }
-                catch(ExecutionException e) {
-                        Throwable th = e.getCause();
-                        if(th == null) {
+        Future<Object> f =
+            threadPool.submit(new SuccessorThread(successor, element, precision, mergeOperator, stopOperator, cpa));
+        try {
+          f.get();
+        } catch (ExecutionException e) {
+          Throwable th = e.getCause();
+          if (th == null) {
 
-                        }
-                        else if(th instanceof CPAException) {
-                                throw (CPAException) th;
-                        }
-                        else { // (th instanceof InterruptedException)
-                                throw (InterruptedException) th;
-                        }
-                }
-                catch(InterruptedException e) {
-                        throw e;
-                }
+          }
+          else if (th instanceof CPAException) {
+            throw (CPAException) th;
+          }
+          else { // (th instanceof InterruptedException)
+            throw (InterruptedException) th;
+          }
+        } catch (InterruptedException e) {
+          throw e;
+        }
       }
-
-//	for(Future<Object> f : jobs) {
-//	}
     }
-	threadPool.shutdown();
-	while(!threadPool.awaitTermination(1,TimeUnit.MILLISECONDS)) {
-	}
+
+    threadPool.shutdown();
+    while (!threadPool.awaitTermination(1, TimeUnit.MILLISECONDS)) {
+    }
   }
 
 }

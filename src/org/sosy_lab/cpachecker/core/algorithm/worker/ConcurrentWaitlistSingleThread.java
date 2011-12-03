@@ -27,15 +27,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-import java.util.logging.Level;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
-import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
@@ -183,7 +181,7 @@ public class ConcurrentWaitlistSingleThread implements Worker {
 
   private ReachedSet reachedSet;
 
-  public ConcurrentWaitlistSingleThread(ReachedSet reachedSet, ConfigurableProgramAnalysis 
+  public ConcurrentWaitlistSingleThread(ReachedSet reachedSet, ConfigurableProgramAnalysis
 cpa, LogManager logger,
       CPAStatistics stats) {
     this.cpa = cpa;
@@ -214,31 +212,27 @@ cpa, LogManager logger,
       stats.chooseTimer.start();
       final AbstractElement element = reachedSet.popFromWaitlist();
       Future<Object> f = threadPool.submit(new WaitlistElementThread(element, cpa));
-                try {
-                        f.get();
-                }
-                catch(ExecutionException e) {
-                        Throwable th = e.getCause();
-                        if(th == null) {
-
-                        }
-                        else if(th instanceof CPAException) {
-                                throw (CPAException) th;
-                        }
-                        else { // (th instanceof InterruptedException)
-                                throw (InterruptedException) th;
-                        }
-                }
-                catch(InterruptedException e) {
-                        throw e;
-                }
-	
-    }
-        threadPool.shutdown();
-        while(!threadPool.awaitTermination(1,TimeUnit.MILLISECONDS)) {
+      try {
+        f.get();
+      }
+      catch(ExecutionException e) {
+        Throwable th = e.getCause();
+        if(th == null) {
         }
+        else if(th instanceof CPAException) {
+          throw (CPAException) th;
+        }
+        else { // (th instanceof InterruptedException)
+          throw (InterruptedException) th;
+        }
+      }
+      catch(InterruptedException e) {
+        throw e;
+      }
+    }
 
-
+    threadPool.shutdown();
+    while(!threadPool.awaitTermination(1,TimeUnit.MILLISECONDS)) {
+    }
   }
-
 }

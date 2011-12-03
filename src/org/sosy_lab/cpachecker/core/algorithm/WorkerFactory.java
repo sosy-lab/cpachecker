@@ -27,43 +27,42 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.algorithm.worker.ConcurrentSuccessor;
-import org.sosy_lab.cpachecker.core.algorithm.worker.ConcurrentWaitlist;
 import org.sosy_lab.cpachecker.core.algorithm.worker.ConcurrentSuccessorSingleThread;
+import org.sosy_lab.cpachecker.core.algorithm.worker.ConcurrentWaitlist;
 import org.sosy_lab.cpachecker.core.algorithm.worker.ConcurrentWaitlistSingleThread;
 import org.sosy_lab.cpachecker.core.algorithm.worker.Sequential;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
-@Options(prefix="cpa.worker")
-
+@Options(prefix = "cpa.worker")
 public class WorkerFactory {
 
-  @Option(	name="strategy", 
-		values={"sequential",
-                        "concurrentwaitlist",
-                        "concurrentsuccessor",
-			"concurrentwaitlistsingle", 
-			"concurrentsuccessorsingle"},
-      		description="decides which strategy shall be used to process CPA algorithm. also offers concurrent processingmodels.")
+  @Option(
+      name = "strategy",
+      values = { "sequential",
+                  "concurrentwaitlist",
+                  "concurrentsuccessor",
+                  "concurrentwaitlistsingle",
+                  "concurrentsuccessorsingle" },
+      description = "decides which strategy shall be used to process CPA algorithm. also offers concurrent processingmodels.")
   private static String strategy = "sequential";
 
   public static Worker createNewInstance(ReachedSet reachedSet, ConfigurableProgramAnalysis cpa, LogManager logger,
       CPAStatistics stats) {
-	strategy = "concurrentwaitlist";
-	if(strategy.equals("concurrentwaitlistsingle")) {
-		return new ConcurrentWaitlistSingleThread(reachedSet, cpa, logger, stats);
-	}
-	else if (strategy.equals("concurrentsuccessorsingle")) {
-		return new ConcurrentSuccessorSingleThread(reachedSet, cpa, logger, stats);
-	}
-        else if (strategy.equals("concurrentsuccessor")) {
-                return new ConcurrentSuccessor(reachedSet, cpa, logger, stats);
-        }
-        else if (strategy.equals("concurrentwaitlist")) {
-                return new ConcurrentWaitlist(reachedSet, cpa, logger, stats);
-        }
-	// strategy.equals("sequential")
-	return new Sequential(reachedSet, cpa, logger, stats);
+    if (strategy.equals("concurrentwaitlistsingle")) {
+      return new ConcurrentWaitlistSingleThread(reachedSet, cpa, logger, stats);
+    }
+    else if (strategy.equals("concurrentsuccessorsingle")) {
+      return new ConcurrentSuccessorSingleThread(reachedSet, cpa, logger, stats);
+    }
+    else if (strategy.equals("concurrentsuccessor")) {
+      return new ConcurrentSuccessor(reachedSet, cpa, logger, stats);
+    }
+    else if (strategy.equals("concurrentwaitlist")) {
+      return new ConcurrentWaitlist(reachedSet, cpa, logger, stats);
+    }
+    // strategy.equals("sequential")
+    return new Sequential(reachedSet, cpa, logger, stats);
   }
 
 }

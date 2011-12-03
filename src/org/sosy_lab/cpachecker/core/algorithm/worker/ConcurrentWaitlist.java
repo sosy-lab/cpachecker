@@ -27,15 +27,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-import java.util.logging.Level;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
-import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
@@ -174,7 +172,7 @@ public class ConcurrentWaitlist implements Worker {
         }
       }
       return null;
-     }
+    }
   }
 
   private final ConfigurableProgramAnalysis cpa;
@@ -193,8 +191,10 @@ public class ConcurrentWaitlist implements Worker {
 
   @Override
   public void work() throws CPAException, InterruptedException {
+
     ExecutorService threadPool = Executors.newCachedThreadPool();
-	ArrayList<Future<Object>> jobs = new ArrayList<Future<Object>>();
+    ArrayList<Future<Object>> jobs = new ArrayList<Future<Object>>();
+
     while (reachedSet.hasWaitingElement()) {
 
       CPAchecker.stopIfNecessary();
@@ -210,38 +210,32 @@ public class ConcurrentWaitlist implements Worker {
       stats.countWaitlistSize += size;
 
       //TODO chooseTimer loses sense in concurrent context
-      stats.chooseTimer.start();	
+      stats.chooseTimer.start();
 
-        jobs.add(threadPool.submit(new WaitlistElementThread(reachedSet.popFromWaitlist(), 
-cpa)));
-
+      final AbstractElement element = reachedSet.popFromWaitlist();
+      jobs.add(threadPool.submit(new WaitlistElementThread(element, cpa)));
     }
-        for(Future<Object> f : jobs) {
-                        try {
-                        f.get();
-                }
-                catch(ExecutionException e) {
-                        Throwable th = e.getCause();
-                        if(th == null) {
 
-                        }
-                        else if(th instanceof CPAException) {
-                                throw (CPAException) th;
-                        }
-                        else { // (th instanceof InterruptedException)
-                                throw (InterruptedException) th;
-                        }
-                }
-                catch(InterruptedException e) {
-                        throw e;
-                }
+    for (Future<Object> f : jobs) {
+      try {
+        f.get();
+      } catch (ExecutionException e) {
+        Throwable th = e.getCause();
+        if (th == null) {
         }
-
-        threadPool.shutdown();
-        while(!threadPool.awaitTermination(1,TimeUnit.MILLISECONDS)) {
+        else if (th instanceof CPAException) {
+          throw (CPAException) th;
         }
+        else { // (th instanceof InterruptedException)
+          throw (InterruptedException) th;
+        }
+      } catch (InterruptedException e) {
+        throw e;
+      }
+    }
 
-
+    threadPool.shutdown();
+    while (!threadPool.awaitTermination(1, TimeUnit.MILLISECONDS)) {
+    }
   }
-
 }
