@@ -1144,7 +1144,7 @@ def run_cbmc(options, sourcefile, columns, rlimits):
         try:
             tree = ET.fromstring(output)
             status = tree.findtext('cprover-status', 'ERROR')
-        except ET.ParseError as e:
+        except: # catch all exceptions
             status = 'ERROR'
             # sys.stdout.write("Error parsing CBMC output: %s " % e)
 
