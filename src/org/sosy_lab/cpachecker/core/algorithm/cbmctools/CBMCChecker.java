@@ -49,6 +49,8 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 
+import com.google.common.base.Optional;
+
 /**
  * Counterexample checker that creates a C program for the counterexample
  * and calls CBMC on it.
@@ -83,7 +85,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
 
     String mainFunctionName = extractLocation(pRootElement).getFunctionName();
 
-    String pathProgram = PathToCTranslator.translatePaths(cfa, pRootElement, pErrorPathElements);
+    String pathProgram = PathToCTranslator.translatePaths(Optional.of(cfa), pRootElement, pErrorPathElements);
 
     // write program to disk
     File cFile = cbmcFile;

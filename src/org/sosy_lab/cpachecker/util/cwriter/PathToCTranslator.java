@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.regex.Pattern;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
@@ -53,9 +54,11 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.art.Path;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -69,10 +72,6 @@ public class PathToCTranslator {
     }
   };
 
-  // This set contains all ARTElements on the path(s) to the error
-  // (we ignore all other parts of the ART when creating the C program).
-  private final Set<ARTElement> elementsOnPath;
-
   private final List<String> mGlobalDefinitionsList = new ArrayList<String>();
   private final List<String> mFunctionDecls = new ArrayList<String>();
   private int mFunctionIndex = 0;
@@ -81,13 +80,33 @@ public class PathToCTranslator {
   // the code for the function recursively starting from that node
   private final List<FunctionBody> mFunctionBodies = new ArrayList<FunctionBody>();
 
-  private PathToCTranslator(Set<ARTElement> pElementsOnPath) {
-    elementsOnPath = pElementsOnPath;
+  private PathToCTranslator() { }
+
+  public static String translatePaths(Optional<CFA> cfa, ARTElement artRoot, Set<ARTElement> elementsOnErrorPath) {
+    PathToCTranslator translator = new PathToCTranslator();
+
+    if (cfa.isPresent()) {
+      translator.addFunctionDeclarations(cfa.get());
+    }
+
+    translator.translatePath(artRoot, elementsOnErrorPath);
+
+    return translator.generateCCode();
   }
 
-  public static String translatePaths(CFA cfa, ARTElement artRoot, Set<ARTElement> elementsOnErrorPath) {
-    PathToCTranslator translator = new PathToCTranslator(elementsOnErrorPath);
+  public static String translateSinglePath(Optional<CFA> cfa, Path pPath) {
+    PathToCTranslator translator = new PathToCTranslator();
 
+    if (cfa.isPresent()) {
+      translator.addFunctionDeclarations(cfa.get());
+    }
+
+    translator.translateSinglePath(pPath);
+
+    return translator.generateCCode();
+  }
+
+  private void addFunctionDeclarations(CFA cfa) {
     // Add the original function declarations to enable read-only use of function pointers;
     // there will be no code for these functions, so they can never be called via the function
     // pointer properly; a real solution requires function pointer support within the CPA
@@ -97,11 +116,11 @@ public class PathToCTranslator {
 
       String lFunctionHeader = pNode.getFunctionDefinition().getRawSignature();
 
-      translator.mFunctionDecls.add(lFunctionHeader + ";");
+      mFunctionDecls.add(lFunctionHeader + ";");
     }
+  }
 
-    translator.translatePath(artRoot); // this fills all the lists in translator
-
+  private String generateCCode() {
     List<String> includeList = new ArrayList<String>();
 
     // do not include stdlib.h, as some examples (ntdrivers) define
@@ -109,13 +128,15 @@ public class PathToCTranslator {
     // as "typedef int wchar_t;" - these contradicting definitions make cbmc fail
 //  includeList.add("#include<stdlib.h>");
     includeList.add("#include<stdio.h>");
+
     return Joiner.on('\n').join(concat(includeList,
-                                             translator.mGlobalDefinitionsList,
-                                             translator.mFunctionDecls,
-                                             translator.mFunctionBodies));
+                                       mGlobalDefinitionsList,
+                                       mFunctionDecls,
+                                       mFunctionBodies));
   }
 
-  private void translatePath(final ARTElement firstElement) {
+
+  private void translatePath(final ARTElement firstElement, Set<ARTElement> elementsOnPath) {
     // waitlist for the edges to be processed
     List<Edge> waitlist = new ArrayList<Edge>();
 
@@ -129,7 +150,7 @@ public class PathToCTranslator {
       // create the first function and put in into newStack
       startFunction(firstElement, newStack);
 
-      waitlist.addAll(getRelevantChildrenOfElement(firstElement, newStack));
+      waitlist.addAll(getRelevantChildrenOfElement(firstElement, newStack, elementsOnPath));
     }
 
     while (!waitlist.isEmpty()) {
@@ -140,7 +161,7 @@ public class PathToCTranslator {
       // get the first element in the list (this is the smallest element when topologically sorted)
       Edge nextEdge = waitlist.remove(0);
 
-      waitlist.addAll(handleEdge(nextEdge, mergeNodes));
+      waitlist.addAll(handleEdge(nextEdge, mergeNodes, elementsOnPath));
     }
   }
 
@@ -169,7 +190,32 @@ public class PathToCTranslator {
     return freshFunctionName;
   }
 
-  private Collection<Edge> handleEdge(Edge nextEdge, Map<Integer, MergeNode> mergeNodes) {
+  private void translateSinglePath(Path pPath) {
+    assert pPath.size() >= 1;
+    Iterator<Pair<ARTElement, CFAEdge>> pathIt = pPath.iterator();
+    Pair<ARTElement, CFAEdge> parentPair = pathIt.next();
+    ARTElement firstElement = parentPair.getFirst();
+
+    Stack<Stack<StackElement>> stack = new Stack<Stack<StackElement>>();
+
+    // create the first function and put in into the stack
+    startFunction(firstElement, stack);
+
+    while (pathIt.hasNext()) {
+      Pair<ARTElement, CFAEdge> nextPair = pathIt.next();
+
+      CFAEdge currentCFAEdge = parentPair.getSecond();
+      ARTElement childElement = nextPair.getFirst();
+
+      StackElement currentStackElement = stack.peek().peek();
+
+      processEdge(childElement, currentCFAEdge, stack, currentStackElement);
+
+      parentPair = nextPair;
+    }
+  }
+
+  private Collection<Edge> handleEdge(Edge nextEdge, Map<Integer, MergeNode> mergeNodes, Set<ARTElement> elementsOnPath) {
     ARTElement childElement = nextEdge.getChildElement();
     CFAEdge edge = nextEdge.getEdge();
     Stack<Stack<StackElement>> stack = nextEdge.getStack();
@@ -177,46 +223,25 @@ public class PathToCTranslator {
     // clone stack to have a different representation of the function calls and conditions
     // every element
     stack = cloneStack(stack);
-    StackElement lastStackElement = stack.peek().peek();
+    StackElement currentStackElement = stack.peek().peek();
 
-    // how many parents does the child have?
+    processEdge(childElement, edge, stack, currentStackElement);
+
+        // how many parents does the child have?
     // ignore parents not on the error path
     int noOfParents = Sets.intersection(childElement.getParents(), elementsOnPath).size();
     assert noOfParents >= 1;
 
-    if (childElement.isTarget()) {
-      lastStackElement.write("assert(0); // target state ");
-      assert noOfParents == 1 : "Merging target states is not supported";
-    }
-
-    // handle the edge
-
-    if (edge instanceof FunctionCallEdge) {
-      // if this is a function call edge we need to create a new element and push
-      // it to the topmost stack to represent the function
-      assert noOfParents == 1 : "Merging elements directly after function calls is not supported";
-
-      // create function and put in onto stack
-      String freshFunctionName = startFunction(childElement, stack);
-
-      // write summary edge to the caller site (with the new unique function name)
-      lastStackElement.write(processFunctionCall(edge, freshFunctionName));
-
-    } else if (edge instanceof FunctionReturnEdge) {
-      assert noOfParents == 1 : "Merging elements directly after function returns is not supported";
-      stack.pop();
-
-    } else {
-      lastStackElement.write(processSimpleEdge(edge));
-    }
-
     // handle merging if necessary
-
     if (noOfParents > 1) {
+      assert !(   (edge instanceof FunctionCallEdge)
+               || (edge instanceof FunctionReturnEdge)
+               || (childElement.isTarget()));
+
       // this is the end of a condition, determine whether we should continue or backtrack
 
       int elemId = childElement.getElementId();
-      lastStackElement.write("goto label_" + elemId + ";");
+      currentStackElement.write("goto label_" + elemId + ";");
 
       // get the merge node for that node
       MergeNode mergeNode = mergeNodes.get(elemId);
@@ -244,11 +269,12 @@ public class PathToCTranslator {
       }
     }
 
-    return getRelevantChildrenOfElement(childElement, stack);
+    return getRelevantChildrenOfElement(childElement, stack, elementsOnPath);
   }
 
   private Collection<Edge> getRelevantChildrenOfElement(
-      ARTElement currentElement, Stack<Stack<StackElement>> currentStack) {
+      ARTElement currentElement, Stack<Stack<StackElement>> currentStack,
+      Set<ARTElement> elementsOnPath) {
     // find the next elements to add to the waitlist
 
     Set<ARTElement> relevantChildrenOfElement = Sets.intersection(currentElement.getChildren(), elementsOnPath).immutableCopy();
@@ -327,6 +353,33 @@ public class PathToCTranslator {
 
     return maxStack;
 
+  }
+
+
+  private void processEdge(ARTElement childElement, CFAEdge edge, Stack<Stack<StackElement>> stack,
+      StackElement currentStackElement) {
+    if (childElement.isTarget()) {
+      currentStackElement.write("assert(0); // target state ");
+    }
+
+    // handle the edge
+
+    if (edge instanceof FunctionCallEdge) {
+      // if this is a function call edge we need to create a new element and push
+      // it to the topmost stack to represent the function
+
+      // create function and put in onto stack
+      String freshFunctionName = startFunction(childElement, stack);
+
+      // write summary edge to the caller site (with the new unique function name)
+      currentStackElement.write(processFunctionCall(edge, freshFunctionName));
+
+    } else if (edge instanceof FunctionReturnEdge) {
+      stack.pop();
+
+    } else {
+      currentStackElement.write(processSimpleEdge(edge));
+    }
   }
 
   private String processSimpleEdge(CFAEdge pCFAEdge) {
