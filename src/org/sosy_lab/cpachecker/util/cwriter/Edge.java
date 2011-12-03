@@ -30,21 +30,15 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 
 class Edge implements Comparable<Edge> {
 
-  private final ARTElement parentElement;
   private final ARTElement childElement;
   private final CFAEdge edge;
-  private final Stack<Stack<StackElement>> stack;
+  private final Stack<FunctionBody> stack;
 
-  public Edge(ARTElement pParentElement, ARTElement pChildElement,
-      CFAEdge pEdge, Stack<Stack<StackElement>> pStack) {
-    parentElement = pParentElement;
+  public Edge(ARTElement pChildElement,
+      CFAEdge pEdge, Stack<FunctionBody> pStack) {
     childElement = pChildElement;
     edge = pEdge;
     stack = pStack;
-  }
-
-  public ARTElement getParentElement() {
-    return parentElement;
   }
 
   public ARTElement getChildElement() {
@@ -55,7 +49,7 @@ class Edge implements Comparable<Edge> {
     return edge;
   }
 
-  public Stack<Stack<StackElement>> getStack() {
+  public Stack<FunctionBody> getStack() {
     return stack;
   }
 
@@ -91,10 +85,4 @@ class Edge implements Comparable<Edge> {
   public int hashCode() {
     return getChildElement().getElementId();
   }
-
-  @Override
-  public String toString() {
-    return "ELEMENT > " + parentElement.getElementId() + " --> " + childElement.getElementId();
-  }
-
 }

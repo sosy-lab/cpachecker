@@ -28,7 +28,7 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 
-class StackElement {
+class BasicBlock {
 
   private static final String SINGLE_INDENT = "  ";
 
@@ -43,13 +43,13 @@ class StackElement {
   private final String firstCodeLine;
   private final List<Object> codeList;
 
-  public StackElement(int pElementId, String pFunctionName) {
+  public BasicBlock(int pElementId, String pFunctionName) {
     elementId = pElementId;
     codeList = new ArrayList<Object>();
     firstCodeLine = pFunctionName;
   }
 
-  public StackElement(int pElementId, AssumeEdge pEdge, String pConditionString) {
+  public BasicBlock(int pElementId, AssumeEdge pEdge, String pConditionString) {
     elementId = pElementId;
     codeList = new ArrayList<Object>();
     boolean truthAssumption = pEdge.getTruthAssumption();
@@ -99,8 +99,8 @@ class StackElement {
       if (obj instanceof String) {
         ret.append(indent);
         ret.append((String)obj);
-      } else if (obj instanceof StackElement) {
-        ret.append(((StackElement)obj).getCode(indent));
+      } else if (obj instanceof BasicBlock) {
+        ret.append(((BasicBlock)obj).getCode(indent));
       } else {
         assert false;
       }

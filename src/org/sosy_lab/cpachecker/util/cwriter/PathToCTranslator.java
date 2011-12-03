@@ -76,8 +76,7 @@ public class PathToCTranslator {
   private final List<String> mFunctionDecls = new ArrayList<String>();
   private int mFunctionIndex = 0;
 
-  // list of functions - a function is represented by its first stack element and we get
-  // the code for the function recursively starting from that node
+  // list of functions
   private final List<FunctionBody> mFunctionBodies = new ArrayList<FunctionBody>();
 
   private PathToCTranslator() { }
@@ -145,7 +144,7 @@ public class PathToCTranslator {
 
     // create initial element
     {
-      Stack<Stack<StackElement>> newStack = new Stack<Stack<StackElement>>();
+      Stack<FunctionBody> newStack = new Stack<FunctionBody>();
 
       // create the first function and put in into newStack
       startFunction(firstElement, newStack);
@@ -165,7 +164,7 @@ public class PathToCTranslator {
     }
   }
 
-  private String startFunction(ARTElement firstFunctionElement, Stack<Stack<StackElement>> currentStack) {
+  private String startFunction(ARTElement firstFunctionElement, Stack<FunctionBody> functionStack) {
     // create the first stack element using the first element of the function
     FunctionDefinitionNode functionStartNode = (FunctionDefinitionNode) firstFunctionElement.retrieveLocationElement().getLocationNode();
     String freshFunctionName = getFreshFunctionName(functionStartNode);
@@ -176,17 +175,14 @@ public class PathToCTranslator {
           freshFunctionName + "(");
     // lFunctionHeader is for example "void foo_99(int a)"
 
-    StackElement firstFunctionStackElement = new StackElement(firstFunctionElement.getElementId(),
+    // create a new function
+    FunctionBody newFunction = new FunctionBody(firstFunctionElement.getElementId(),
         lFunctionHeader);
-
-    // create a new stack to save conditions in that function
-    Stack<StackElement> newFunctionStack = new Stack<StackElement>();
-    newFunctionStack.push(firstFunctionStackElement);
 
     // register function
     mFunctionDecls.add(lFunctionHeader + ";");
-    mFunctionBodies.add(new FunctionBody(firstFunctionStackElement));
-    currentStack.push(newFunctionStack); // add function to current stack
+    mFunctionBodies.add(newFunction);
+    functionStack.push(newFunction); // add function to current stack
     return freshFunctionName;
   }
 
@@ -196,10 +192,10 @@ public class PathToCTranslator {
     Pair<ARTElement, CFAEdge> parentPair = pathIt.next();
     ARTElement firstElement = parentPair.getFirst();
 
-    Stack<Stack<StackElement>> stack = new Stack<Stack<StackElement>>();
+    Stack<FunctionBody> functionStack = new Stack<FunctionBody>();
 
     // create the first function and put in into the stack
-    startFunction(firstElement, stack);
+    startFunction(firstElement, functionStack);
 
     while (pathIt.hasNext()) {
       Pair<ARTElement, CFAEdge> nextPair = pathIt.next();
@@ -207,9 +203,7 @@ public class PathToCTranslator {
       CFAEdge currentCFAEdge = parentPair.getSecond();
       ARTElement childElement = nextPair.getFirst();
 
-      StackElement currentStackElement = stack.peek().peek();
-
-      processEdge(childElement, currentCFAEdge, stack, currentStackElement);
+      processEdge(childElement, currentCFAEdge, functionStack);
 
       parentPair = nextPair;
     }
@@ -218,16 +212,15 @@ public class PathToCTranslator {
   private Collection<Edge> handleEdge(Edge nextEdge, Map<Integer, MergeNode> mergeNodes, Set<ARTElement> elementsOnPath) {
     ARTElement childElement = nextEdge.getChildElement();
     CFAEdge edge = nextEdge.getEdge();
-    Stack<Stack<StackElement>> stack = nextEdge.getStack();
+    Stack<FunctionBody> functionStack = nextEdge.getStack();
 
     // clone stack to have a different representation of the function calls and conditions
-    // every element
-    stack = cloneStack(stack);
-    StackElement currentStackElement = stack.peek().peek();
+    // for every element
+    functionStack = cloneStack(functionStack);
 
-    processEdge(childElement, edge, stack, currentStackElement);
+    processEdge(childElement, edge, functionStack);
 
-        // how many parents does the child have?
+    // how many parents does the child have?
     // ignore parents not on the error path
     int noOfParents = Sets.intersection(childElement.getParents(), elementsOnPath).size();
     assert noOfParents >= 1;
@@ -241,7 +234,8 @@ public class PathToCTranslator {
       // this is the end of a condition, determine whether we should continue or backtrack
 
       int elemId = childElement.getElementId();
-      currentStackElement.write("goto label_" + elemId + ";");
+      FunctionBody currentFunction = functionStack.peek();
+      currentFunction.write("goto label_" + elemId + ";");
 
       // get the merge node for that node
       MergeNode mergeNode = mergeNodes.get(elemId);
@@ -257,23 +251,26 @@ public class PathToCTranslator {
       // if all edges are processed
       if (noOfParents == noOfProcessedBranches) {
         // all branches are processed, now decide which nodes to remove from the stack
-        List<Stack<StackElement>> incomingStacks = mergeNode.getIncomingElements();
+        List<FunctionBody> incomingStacks = mergeNode.getIncomingElements();
 
-        Stack<StackElement> lastStack = processIncomingStacks(incomingStacks);
-        stack.pop();
-        stack.push(lastStack);
-        lastStack.peek().write("label_" + elemId + ": ;");
+        FunctionBody newFunction = processIncomingStacks(incomingStacks);
+
+        // replace the current function body with the right one
+        functionStack.pop();
+        functionStack.push(newFunction);
+
+        newFunction.write("label_" + elemId + ": ;");
 
       } else {
         return Collections.emptySet();
       }
     }
 
-    return getRelevantChildrenOfElement(childElement, stack, elementsOnPath);
+    return getRelevantChildrenOfElement(childElement, functionStack, elementsOnPath);
   }
 
   private Collection<Edge> getRelevantChildrenOfElement(
-      ARTElement currentElement, Stack<Stack<StackElement>> currentStack,
+      ARTElement currentElement, Stack<FunctionBody> functionStack,
       Set<ARTElement> elementsOnPath) {
     // find the next elements to add to the waitlist
 
@@ -284,7 +281,7 @@ public class PathToCTranslator {
       // get the next ART element, create a new edge using the same stack and add it to the waitlist
       ARTElement elem = Iterables.getOnlyElement(relevantChildrenOfElement);
       CFAEdge e = currentElement.getEdgeToChild(elem);
-      Edge newEdge = new Edge(currentElement, elem, e, currentStack);
+      Edge newEdge = new Edge(elem, e, functionStack);
       return Collections.singleton(newEdge);
 
     } else if (relevantChildrenOfElement.size() > 1) {
@@ -294,9 +291,9 @@ public class PathToCTranslator {
       Collection<Edge> result = new ArrayList<Edge>(2);
       int ind = 0;
       for (ARTElement elem: relevantChildrenOfElement) {
-        Stack<Stack<StackElement>> newCondStack = cloneStack(currentStack);
+        Stack<FunctionBody> newStack = cloneStack(functionStack);
         CFAEdge e = currentElement.getEdgeToChild(elem);
-        Stack<StackElement> lastStackOfFunction = newCondStack.peek();
+        FunctionBody currentFunction = newStack.peek();
         assert e instanceof AssumeEdge;
         AssumeEdge assumeEdge = (AssumeEdge)e;
         boolean truthAssumption = assumeEdge.getTruthAssumption();
@@ -318,12 +315,10 @@ public class PathToCTranslator {
           cond += "(!(" + assumeEdge.getExpression().getRawSignature() + "))";
         }
 
-        // create a new stack element
-        StackElement newStackElement = new StackElement(currentElement.getElementId(), assumeEdge, cond);
-        lastStackOfFunction.peek().write(newStackElement);
+        // create a new block starting with this condition
+        currentFunction.enterBlock(currentElement.getElementId(), assumeEdge, cond);
 
-        lastStackOfFunction.push(newStackElement);
-        Edge newEdge = new Edge(currentElement, elem, e, newCondStack);
+        Edge newEdge = new Edge(elem, e, newStack);
         result.add(newEdge);
       }
       return result;
@@ -331,16 +326,16 @@ public class PathToCTranslator {
     return Collections.emptyList();
   }
 
-  private static Stack<StackElement> processIncomingStacks(
-      List<Stack<StackElement>> pIncomingStacks) {
+  private static FunctionBody processIncomingStacks(
+      List<FunctionBody> pIncomingStacks) {
 
-    Stack<StackElement> maxStack = null;
+    FunctionBody maxStack = null;
     int maxSizeOfStack = 0;
 
-    for (Stack<StackElement> stack: pIncomingStacks) {
+    for (FunctionBody stack: pIncomingStacks) {
       while (true) {
-        if (stack.peek().isClosedBefore()) {
-          stack.pop();
+        if (stack.getCurrentBlock().isClosedBefore()) {
+          stack.leaveBlock();
         } else {
           break;
         }
@@ -356,10 +351,11 @@ public class PathToCTranslator {
   }
 
 
-  private void processEdge(ARTElement childElement, CFAEdge edge, Stack<Stack<StackElement>> stack,
-      StackElement currentStackElement) {
+  private void processEdge(ARTElement childElement, CFAEdge edge, Stack<FunctionBody> functionStack) {
+    FunctionBody currentFunction = functionStack.peek();
+
     if (childElement.isTarget()) {
-      currentStackElement.write("assert(0); // target state ");
+      currentFunction.write("assert(0); // target state ");
     }
 
     // handle the edge
@@ -369,16 +365,16 @@ public class PathToCTranslator {
       // it to the topmost stack to represent the function
 
       // create function and put in onto stack
-      String freshFunctionName = startFunction(childElement, stack);
+      String freshFunctionName = startFunction(childElement, functionStack);
 
       // write summary edge to the caller site (with the new unique function name)
-      currentStackElement.write(processFunctionCall(edge, freshFunctionName));
+      currentFunction.write(processFunctionCall(edge, freshFunctionName));
 
     } else if (edge instanceof FunctionReturnEdge) {
-      stack.pop();
+      functionStack.pop();
 
     } else {
-      currentStackElement.write(processSimpleEdge(edge));
+      currentFunction.write(processSimpleEdge(edge));
     }
   }
 
@@ -488,36 +484,12 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
     return functionStartNode.getFunctionName() + "_" + mFunctionIndex++;
   }
 
-  private Stack<Stack<StackElement>> cloneStack(Stack<Stack<StackElement>> pStack) {
+  private Stack<FunctionBody> cloneStack(Stack<FunctionBody> pStack) {
 
-    Stack<Stack<StackElement>>  ret = new Stack<Stack<StackElement>>();
-    Iterator<Stack<StackElement>> it = pStack.iterator();
-    while (it.hasNext()) {
-      Stack<StackElement> stackItem = it.next();
-      Stack<StackElement> newRetStack = new Stack<StackElement>();
-      Iterator<StackElement> newIt = stackItem.iterator();
-      while (newIt.hasNext()) {
-        StackElement newStackElem = newIt.next();
-        newRetStack.push(newStackElem);
-      }
-      ret.push(newRetStack);
+    Stack<FunctionBody>  ret = new Stack<FunctionBody>();
+    for (FunctionBody functionBody : pStack) {
+      ret.push(new FunctionBody(functionBody));
     }
     return ret;
-  }
-
-
-  private static class FunctionBody {
-    // a function is represented by its first stack element and we get
-    // the code for the function recursively starting from that node
-    private final StackElement firstElement;
-
-    private FunctionBody(StackElement pFirstElement) {
-      firstElement = pFirstElement;
-    }
-
-    @Override
-    public String toString() {
-      return firstElement.getCode();
-    }
   }
 }

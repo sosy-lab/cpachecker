@@ -29,7 +29,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Stack;
 
 import org.sosy_lab.common.Pair;
 
@@ -37,21 +36,21 @@ class MergeNode {
 
   private final int elementId;
   private final Map<Integer, Pair<Boolean, Boolean>> branchesMap;
-  private final List<Stack<StackElement>> incomingElements;
+  private final List<FunctionBody> incomingElements;
 
   public MergeNode(int pElementId) {
     elementId = pElementId;
     branchesMap = new HashMap<Integer,  Pair<Boolean, Boolean>>();
-    incomingElements = new ArrayList<Stack<StackElement>>();
+    incomingElements = new ArrayList<FunctionBody>();
   }
 
   public int addBranch(Edge pNextCBMCEdge) {
 
-    Stack<StackElement> addedStackElement = pNextCBMCEdge.getStack().peek();
+    FunctionBody addedStackElement = pNextCBMCEdge.getStack().peek();
     incomingElements.add(addedStackElement);
     Set<Integer> processedConditions = new HashSet<Integer>();
 
-    for (StackElement elementInStack: addedStackElement) {
+    for (BasicBlock elementInStack: addedStackElement) {
       int idOfElementInStack = elementInStack.getElementId();
       boolean nextConditionValue = elementInStack.isCondition();
       boolean isClosedBefore = elementInStack.isClosedBefore();
@@ -81,8 +80,8 @@ class MergeNode {
   }
 
   private void setProcessedElements(Set<Integer> pProcessedConditions) {
-    for (Stack<StackElement> stack: incomingElements) {
-      for (StackElement elem: stack) {
+    for (FunctionBody stack: incomingElements) {
+      for (BasicBlock elem: stack) {
         if (pProcessedConditions.contains(elem.getElementId())) {
           elem.setClosedBefore(true);
         }
@@ -90,7 +89,7 @@ class MergeNode {
     }
   }
 
-  public List<Stack<StackElement>> getIncomingElements() {
+  public List<FunctionBody> getIncomingElements() {
     return incomingElements;
   }
 
