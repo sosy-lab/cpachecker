@@ -53,7 +53,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class ConcurrentSuccessor implements Worker {
+public class ConcurrentSuccessorSingleThread implements Worker {
 
   private class SuccessorThread implements Callable<Object> {
 
@@ -167,7 +167,8 @@ public class ConcurrentSuccessor implements Worker {
 
   private ReachedSet reachedSet;
 
-  public ConcurrentSuccessor(ReachedSet reachedSet, ConfigurableProgramAnalysis cpa, LogManager logger,
+  public ConcurrentSuccessorSingleThread(ReachedSet reachedSet, ConfigurableProgramAnalysis 
+cpa, LogManager logger,
       CPAStatistics stats) {
     this.cpa = cpa;
     this.stats = stats;
@@ -181,7 +182,7 @@ public class ConcurrentSuccessor implements Worker {
     final MergeOperator mergeOperator = cpa.getMergeOperator();
     final StopOperator stopOperator = cpa.getStopOperator();
 
-    ExecutorService threadPool = Executors.newCachedThreadPool();
+    ExecutorService threadPool = Executors.newSingleThreadExecutor();
 
     while (reachedSet.hasWaitingElement()) {
 
@@ -219,13 +220,11 @@ public class ConcurrentSuccessor implements Worker {
       stats.countSuccessors += numSuccessors;
       stats.maxSuccessors = Math.max(numSuccessors, stats.maxSuccessors);
 
-	ArrayList<Future<Object>> jobs = new ArrayList<Future<Object>>();
+//	ArrayList<Future<Object>> jobs = new ArrayList<Future<Object>>();
       for (AbstractElement successor : successors) {
-	jobs.add(threadPool.submit(new SuccessorThread(successor, element, precision, mergeOperator, stopOperator, cpa)));
-      }
-
-	for(Future<Object> f : jobs) {
-                        try {
+//	jobs.add(
+	Future<Object> f = threadPool.submit(new SuccessorThread(successor, element, precision, mergeOperator, stopOperator, cpa));
+	                try {
                         f.get();
                 }
                 catch(ExecutionException e) {
@@ -243,7 +242,10 @@ public class ConcurrentSuccessor implements Worker {
                 catch(InterruptedException e) {
                         throw e;
                 }
-	}
+      }
+
+//	for(Future<Object> f : jobs) {
+//	}
     }
 	threadPool.shutdown();
 	while(!threadPool.awaitTermination(1,TimeUnit.MILLISECONDS)) {

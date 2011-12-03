@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 
-public class ConcurrentWaitlist implements Worker {
+public class ConcurrentWaitlistSingleThread implements Worker {
 
   private class WaitlistElementThread implements Callable<Object> {
 
@@ -183,7 +183,8 @@ public class ConcurrentWaitlist implements Worker {
 
   private ReachedSet reachedSet;
 
-  public ConcurrentWaitlist(ReachedSet reachedSet, ConfigurableProgramAnalysis cpa, LogManager logger,
+  public ConcurrentWaitlistSingleThread(ReachedSet reachedSet, ConfigurableProgramAnalysis 
+cpa, LogManager logger,
       CPAStatistics stats) {
     this.cpa = cpa;
     this.stats = stats;
@@ -193,8 +194,8 @@ public class ConcurrentWaitlist implements Worker {
 
   @Override
   public void work() throws CPAException, InterruptedException {
-    ExecutorService threadPool = Executors.newCachedThreadPool();
-	ArrayList<Future<Object>> jobs = new ArrayList<Future<Object>>();
+    ExecutorService threadPool = Executors.newSingleThreadExecutor();
+
     while (reachedSet.hasWaitingElement()) {
 
       CPAchecker.stopIfNecessary();
@@ -210,14 +211,10 @@ public class ConcurrentWaitlist implements Worker {
       stats.countWaitlistSize += size;
 
       //TODO chooseTimer loses sense in concurrent context
-      stats.chooseTimer.start();	
-
-        jobs.add(threadPool.submit(new WaitlistElementThread(reachedSet.popFromWaitlist(), 
-cpa)));
-
-    }
-        for(Future<Object> f : jobs) {
-                        try {
+      stats.chooseTimer.start();
+      final AbstractElement element = reachedSet.popFromWaitlist();
+      Future<Object> f = threadPool.submit(new WaitlistElementThread(element, cpa));
+                try {
                         f.get();
                 }
                 catch(ExecutionException e) {
@@ -235,8 +232,8 @@ cpa)));
                 catch(InterruptedException e) {
                         throw e;
                 }
-        }
-
+	
+    }
         threadPool.shutdown();
         while(!threadPool.awaitTermination(1,TimeUnit.MILLISECONDS)) {
         }
