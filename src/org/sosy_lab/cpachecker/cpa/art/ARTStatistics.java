@@ -39,11 +39,15 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
+
+import com.google.common.base.Optional;
 
 @Options(prefix="cpa.art")
 public class ARTStatistics implements Statistics {
@@ -121,6 +125,9 @@ public class ARTStatistics implements Statistics {
 
       if (targetPath == null) {
         // try to find one
+        // This is imprecise if there are several paths in the ARG,
+        // because we randomly select one existing path,
+        // but this path may actually be infeasible.
         ARTElement lastElement = (ARTElement)pReached.getLastElement();
         if (lastElement != null && lastElement.isTarget()) {
           targetPath = ARTUtils.getOnePathTo(lastElement);
@@ -136,9 +143,24 @@ public class ARTStatistics implements Statistics {
           ErrorPathShrinker pathShrinker = new ErrorPathShrinker();
           Path shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath);
 
+          ARTElement rootElement = targetPath.getFirst().getFirst();
+          String pathProgram;
+          if (counterexample != null && counterexample.getTargetPath() != null) {
+            // precise error path
+            pathProgram = PathToCTranslator.translateSinglePath(Optional.<CFA>absent(), targetPath);
+
+          } else {
+            // Imprecise error path.
+            // For the text export, we have no other change, but for the C code
+            // export we use all existing paths to avoid this problem.
+            ARTElement lastElement = (ARTElement)pReached.getLastElement();
+            Set<ARTElement> pathElements = ARTUtils.getAllElementsOnPathsTo(lastElement);
+            pathProgram = PathToCTranslator.translatePaths(Optional.<CFA>absent(), rootElement, pathElements);
+          }
+
           writeErrorPathFile(errorPathFile, targetPath);
           writeErrorPathFile(errorPathCoreFile, shrinkedErrorPath);
-          writeErrorPathFile(errorPathSourceFile, targetPath.toSourceCode());
+          writeErrorPathFile(errorPathSourceFile, pathProgram);
           writeErrorPathFile(errorPathJson, targetPath.toJSON());
 
           if (assignment != null) {
