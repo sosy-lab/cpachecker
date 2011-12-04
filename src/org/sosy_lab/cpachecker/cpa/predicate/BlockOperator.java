@@ -103,8 +103,16 @@ public class BlockOperator {
       String predCluster = clusterer.getClusterOfNode(loc);
       String succCluster = clusterer.getClusterOfNode(succLoc);
 
-      if (!succCluster.equals(predCluster)) {
-        System.out.println("Abstraction because of changed cluster: " + predCluster + " >>" + succCluster);
+      if (predCluster == null) {
+        System.out.println(String.format("No valid cluster (null) for %s!", loc.getFunctionName()));
+        if (succCluster != null) {
+          return true;
+        }
+      } else if (succCluster == null) {
+        System.out.println(String.format("No valid cluster (null) for %s!", succLoc.getFunctionName()));
+        return true;
+      } else if (!succCluster.equals(predCluster)) {
+        System.out.println(String.format("Abstraction because of changed cluster: %s --> %s", predCluster, succCluster));
         return true;
       }
     }

@@ -169,6 +169,19 @@ public class CCVisuClusterer implements Clusterer {
     MinimizerBarnesHut minimizer = new MinimizerBarnesHut(options);
     minimizer.minimizeEnergy();
 
+    // Maybe we should write the layout to a file.
+    if (!writeLayoutToFileName.trim().isEmpty()) {
+      try {
+        PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(writeLayoutToFileName)));
+        WriterDataLayoutLAY writerLay = new WriterDataLayoutLAY(out, graph, options);
+        writerLay.write();
+        out.flush();
+        out.close();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+
     // Do the clustering based on the layout.
     clustersOfFunctions.clear();
     clustersOfNodes.clear();
@@ -202,19 +215,6 @@ public class CCVisuClusterer implements Clusterer {
 
     // Initialize clustering statistics.
     statistics.setClusteredGraph(graph);
-
-    // Maybe we should write the layout to a file.
-    if (!writeLayoutToFileName.trim().isEmpty()) {
-      try {
-        PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(writeLayoutToFileName)));
-        WriterDataLayoutLAY writerLay = new WriterDataLayoutLAY(out, graph, options);
-        writerLay.write();
-        out.flush();
-        out.close();
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    }
   }
 
   @Override
