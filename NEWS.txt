@@ -1,6 +1,6 @@
 Changes since CPAchecker 1.1
 ----------------------------
-* r4960: If the #include directive of specification automata is used  with relative paths, 
+* r4960: If the #include directive of specification automata is used with relative paths, 
   the base directory of the relative path is now the directory of the file which contains the #include,
   not the CPAchecker root directory.
   If #include is used with relative paths in a specification file, it most probably needs adjustment.
