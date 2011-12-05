@@ -1518,8 +1518,7 @@ def main(argv=None):
 
     global options, OUTPUT_PATH
     (options, args) = parser.parse_args(argv)
-    OUTPUT_PATH = options.output_path if options.output_path.endswith('/') \
-                 else options.output_path + '/'
+    OUTPUT_PATH = options.output_path
 
     if len(args) < 2:
         parser.error("invalid number of arguments")
