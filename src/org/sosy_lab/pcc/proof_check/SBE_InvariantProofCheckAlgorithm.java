@@ -258,10 +258,12 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
         }
         if (functionEnd) {
           for (int j = 0; j < allCFANodes.get(external).getNumLeavingEdges(); j++) {
-            result =
-                result
-                    && allInvariantFormulaeFalse(external, allCFANodes.get(external).getLeavingEdge(j).getSuccessor()
-                        .getNodeNumber());
+            if (comps.get(i).nodes.contains(allCFANodes.get(external).getLeavingEdge(j).getSuccessor().getNodeNumber())) {
+              result =
+                  result
+                      && allInvariantFormulaeFalse(external, allCFANodes.get(external).getLeavingEdge(j).getSuccessor()
+                          .getNodeNumber());
+            }
           }
         } else {
           result = result && allInvariantFormulaeFalse(external, -1);
@@ -569,22 +571,22 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
       if (!pLeft) {
         // add stack length
         singleInvariant[singleInvariant.length - 1] =
-            handler.createFormula(stackLength + Separators.SSAIndexSeparator + 2  +" = "
+            handler.createFormula(stackLength + Separators.SSAIndexSeparator + 2 + " = "
                 + Integer.toString(pStack.length));
         if (singleInvariant[singleInvariant.length - 1] == null) { return null; }
       }
     } catch (IllegalArgumentException e1) {
       return null;
     }
-    if(pLeft || reachableCFANodes.get(pNode).getEnteringSummaryEdge()==null){
-    return handler.buildConjunction(singleInvariant);
-    }else{
+    if (pLeft || reachableCFANodes.get(pNode).getEnteringSummaryEdge() == null) {
+      return handler.buildConjunction(singleInvariant);
+    } else {
       Formula[] list = new Formula[2];
       list[0] = handler.buildConjunction(singleInvariant);
-      if(list[0]==null){return null;}
-        list[1] =  handler.createFormula(goalDes + Separators.SSAIndexSeparator + 2 + " = "
-            + Integer.toString(pNode));
-      if(list[1]==null){return null;}
+      if (list[0] == null) { return null; }
+      list[1] = handler.createFormula(goalDes + Separators.SSAIndexSeparator + 2 + " = "
+          + Integer.toString(pNode));
+      if (list[1] == null) { return null; }
       return handler.buildImplication(list[1], list[0]);
     }
   }
@@ -627,17 +629,18 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
       ConnectedComponent comp = new ConnectedComponent();
       Vector<Integer> toCheck = new Vector<Integer>();
       toCheck.add(pInputGraph.iterator().next());
+      remaining.remove(toCheck.get(0));
       CFANode current;
       int succ;
       while (!toCheck.isEmpty()) {
         current = pAllNodes.get(toCheck.remove(0));
+        comp.nodes.add(current.getNodeNumber());
         // check all incoming edges if part of component or external
         for (int i = 0; i < current.getNumEnteringEdges(); i++) {
-          succ = current.getEnteringEdge(i).getSuccessor().getNodeNumber();
+          succ = current.getEnteringEdge(i).getPredecessor().getNodeNumber();
           // check if same component
           if (remaining.contains(succ)) {
             remaining.remove(succ);
-            comp.nodes.add(succ);
             toCheck.add(succ);
           }
           //check if external edge
@@ -652,7 +655,6 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
           // check if same component
           if (remaining.contains(succ)) {
             remaining.remove(succ);
-            comp.nodes.add(succ);
             toCheck.add(succ);
           }
         }

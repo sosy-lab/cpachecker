@@ -123,6 +123,7 @@ public class LBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
           if (!rootFound) {
             // set root
             root = newNode;
+            rootFound = true;
             //check root properties
             if (root.getAbstractionType() != AbstractionType.Abstraction
                 || (!(handler.createFormula(root.getAbstraction())).isTrue())) {
@@ -135,19 +136,16 @@ public class LBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
           }
         }
       } catch (NumberFormatException e1) {
-        System.out.println("Error1");
         return PCCCheckResult.UnknownCFANode;
       } catch (InputMismatchException e2) {
-        System.out.println("Error2");
         return PCCCheckResult.UnknownCFANode;
       } catch (NoSuchElementException e3) {
-        System.out.println("Error3");
         return PCCCheckResult.UnknownCFANode;
       } catch (IllegalArgumentException e4) {
-        System.out.println("Error4");
         return PCCCheckResult.UnknownCFANode;
       }
     }
+    if (root == null) { return PCCCheckResult.UncoveredCFANode; }
     return PCCCheckResult.Success;
   }
 
@@ -182,13 +180,10 @@ public class LBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
         if (nodeS.isEdgeContained(edge)) { return PCCCheckResult.ElementAlreadyRead; }
         nodeS.addEdge(edge);
       } catch (InputMismatchException e2) {
-        System.out.println("Test2");
         return PCCCheckResult.UnknownCFAEdge;
       } catch (NoSuchElementException e3) {
-        System.out.println("Test3");
         return PCCCheckResult.UnknownCFAEdge;
       } catch (IllegalArgumentException e4) {
-        System.out.println("Test4");
         return PCCCheckResult.UnknownCFAEdge;
       }
     }
@@ -224,7 +219,7 @@ public class LBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
           // check stack
           try {
             if (child.getCorrespondingCFANode().getNodeNumber() != Integer.parseInt(stack.substring(
-                  stack.lastIndexOf(Separators.stackEntrySeparator) + 1, stack.length()))) { return PCCCheckResult.ART_CFA_Mismatch; }
+                stack.lastIndexOf(Separators.stackEntrySeparator) + 1, stack.length()))) { return PCCCheckResult.ART_CFA_Mismatch; }
           } catch (NumberFormatException e) {
             return PCCCheckResult.InvalidStack;
           }
@@ -239,9 +234,7 @@ public class LBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
           waiting.push(new Pair<Integer, String>(child.getID(), stack));
           visited.put(child.getID(), stack);
         } else {
-          if (visited.get(child.getID()) == null || !visited.get(child.getID()).equals(stack)) {
-            return PCCCheckResult.InvalidART;
-          }
+          if (visited.get(child.getID()) == null || !visited.get(child.getID()).equals(stack)) { return PCCCheckResult.InvalidART; }
         }
       }
     }
@@ -334,9 +327,7 @@ public class LBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm {
           } else {
             // check error node
             if (cfaNode.getLeavingEdge(i).getSuccessor() instanceof CFALabelNode
-                && ((CFALabelNode) cfaNode.getLeavingEdge(i).getSuccessor()).getLabel().toLowerCase().equals("error")) {
-               return PCCCheckResult.ErrorNodeReachable;
-            }
+                && ((CFALabelNode) cfaNode.getLeavingEdge(i).getSuccessor()).getLabel().toLowerCase().equals("error")) { return PCCCheckResult.ErrorNodeReachable; }
             toCheck.add(new Pair<CFANode, PathFormula>(cfaNode.getLeavingEdge(i).getSuccessor(), pf));
           }
         }

@@ -15,7 +15,7 @@
 	<classpathentry exported="true" kind="lib" path="lib/java/runtime/org.eclipse.osgi.jar"/>
 	<classpathentry kind="lib" path="lib/java/test/junit.jar"/>
 	<classpathentry kind="lib" path="lib/java/test/hamcrest-core.jar"/>
-	<classpathentry kind="lib" path="lib/eclipse-cdt6-parser.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/eclipse-cdt6-parser.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/yicesapijava.jar"/>
 	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry exported="true" kind="con" path="org.eclipse.pde.core.requiredPlugins"/>
