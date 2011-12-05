@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ContinueOnCounterexampleAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
@@ -134,6 +135,10 @@ public class CPAchecker {
     @Option(name="analysis.externalCBMC",
         description="use CBMC as an external tool from CPAchecker")
         boolean runCBMCasExternalTool = false;
+
+    @Option(name="analysis.contiuneOnCounterexample",
+        description="TODO")
+        boolean useContinueOnCounterexamle = true;
 
   }
 
@@ -377,6 +382,10 @@ public class CPAchecker {
 
       if (options.useRefinement) {
         algorithm = new CEGARAlgorithm(algorithm, cpa, config, logger);
+      }
+
+      if (options.useContinueOnCounterexamle) {
+        algorithm = new ContinueOnCounterexampleAlgorithm(algorithm, cpa, config, logger, reachedSetFactory, cfa);
       }
 
       if (options.useBMC) {

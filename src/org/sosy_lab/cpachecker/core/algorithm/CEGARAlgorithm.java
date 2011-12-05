@@ -35,7 +35,6 @@ import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
-import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -137,6 +136,10 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
       + "by removing everything from the reached set")
   private boolean restartOnRefinement = false;
 
+  @Option(description = "threshold (in ms) after which the CEGAR algorithm gives up refining (spurious) counterexamples")
+  private int stopRefiningThreshold = -1; //TODO maybe use ProgressObserver instead?
+
+  private long startTime;
   private final LogManager logger;
   private final Algorithm algorithm;
   private final Refiner mRefiner;
@@ -216,6 +219,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     boolean sound = true;
 
     stats.totalTimer.start();
+    startTime = System.currentTimeMillis();
 
     boolean continueAnalysis;
     do {
@@ -228,40 +232,41 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
       // if the element is a target element do refinement
       if (AbstractElements.isTargetElement(lastElement)) {
+        if(stopRefiningThreshold == -1 || System.currentTimeMillis() - startTime <= stopRefiningThreshold) {
+          logger.log(Level.FINE, "Error found, performing CEGAR");
+          stats.countRefinements++;
+          sizeOfReachedSetBeforeRefinement = reached.size();
 
-        logger.log(Level.FINE, "Error found, performing CEGAR");
-        stats.countRefinements++;
-        sizeOfReachedSetBeforeRefinement = reached.size();
+          stats.refinementTimer.start();
+          boolean refinementResult;
+          try {
+            refinementResult = mRefiner.performRefinement(reached);
 
-        stats.refinementTimer.start();
-        boolean refinementResult;
-        try {
-          refinementResult = mRefiner.performRefinement(reached);
-
-        } catch (RefinementFailedException e) {
-          stats.countFailedRefinements++;
-          throw e;
-        } finally {
-          stats.refinementTimer.stop();
-        }
-
-        if (refinementResult) {
-          // successful refinement
-
-          logger.log(Level.FINE, "Refinement successful");
-          stats.countSuccessfulRefinements++;
-
-          if (restartOnRefinement) {
-            // TODO
+          } catch (RefinementFailedException e) {
+            stats.countFailedRefinements++;
+            throw e;
+          } finally {
+            stats.refinementTimer.stop();
           }
 
-          runGC();
+          if (refinementResult) {
+            // successful refinement
 
-          continueAnalysis = true;
+            logger.log(Level.FINE, "Refinement successful");
+            stats.countSuccessfulRefinements++;
 
-        } else {
-          // no refinement found, because the counterexample is not spurious
-          logger.log(Level.FINE, "Refinement unsuccessful");
+            if (restartOnRefinement) {
+              // TODO
+            }
+
+            runGC();
+
+            continueAnalysis = true;
+
+          } else {
+            // no refinement found, because the counterexample is not spurious
+            logger.log(Level.FINE, "Refinement unsuccessful");
+          }
         }
       } // if lastElement is target element
 
