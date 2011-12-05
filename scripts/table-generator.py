@@ -34,6 +34,7 @@ import sys
 
 from datetime import date
 from decimal import *
+from urllib import quote
 
 OUTPUT_PATH = "test/results/"
 
@@ -486,7 +487,7 @@ def getTableBody(listOfTests):
 
         if LOGFILES_IN_HTML:
             rowsForHTML.append(['<td><a href="{0}">{1}</a></td>'.
-                            format(filePath, fileName.replace(commonPrefix, '', 1))])
+                            format(quote(filePath), fileName.replace(commonPrefix, '', 1))])
         else:
             rowsForHTML.append(['<td>{0}</td>'.
                             format(fileName.replace(commonPrefix, '', 1))])
@@ -570,7 +571,7 @@ def getValuesOfFileXTest(currentFile, listOfColumns):
 
                     if LOGFILES_IN_HTML:
                         valuesForHTML.append('<td class="{0}"><a href="{1}">{2}</a></td>'
-                            .format(currentFile.status, str(currentFile.get('logfileForHtml')), status))
+                            .format(currentFile.status, quote(str(currentFile.get('logfileForHtml'))), status))
                     else:
                         valuesForHTML.append('<td class="{0}">{1}</td>'
                             .format(currentFile.status, status))
@@ -696,7 +697,7 @@ def createTable(file, filesFromXML=False):
             + 'Please check the filenames in your XML-file.')
         exit()
 
-    print ('generating html ...')
+    print ('generating html into %s ...' % (HTMLOutFileName, ))
 
     (tableHeadHTML, tableHeadCSV) = getTableHead(listOfTests)
     (tableBodyHTML, tableFootHTML, tableBodyCSV) = getTableBody(listOfTests)
