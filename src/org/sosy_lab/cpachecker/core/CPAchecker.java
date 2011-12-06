@@ -139,7 +139,11 @@ public class CPAchecker {
 
     @Option(name="analysis.contiuneOnCounterexample",
         description="restarts the analysis on (spurious or not) counterexamples until the waitlist is empty")
-        boolean useContinueOnCounterexamle = true;
+        boolean useContinueOnCounterexamle = false;
+
+    @Option(name="analysis.postProcess",
+        description="if enabled post processes (cosmetic changes) the reached set as specified by the CPAs")
+        boolean usePostProcessing = false;
 
   }
 
@@ -405,7 +409,9 @@ public class CPAchecker {
         algorithm = new RestartWithConditionsAlgorithm(algorithm, cpa, config, logger);
       }
 
-      algorithm = new PostProcessingAlgorithm(algorithm, cpa, config, logger);
+      if(options.usePostProcessing) {
+        algorithm = new PostProcessingAlgorithm(algorithm, cpa, config, logger);
+      }
     }
 
     if (algorithm instanceof StatisticsProvider) {
