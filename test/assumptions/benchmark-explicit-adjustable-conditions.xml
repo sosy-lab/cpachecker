@@ -15,24 +15,24 @@
       <includesfile>test/assumptions/adjustableConditions.set</includesfile>
     </sourcefiles>
     <option name="-config">test/assumptions/explicit-adjustableConditions.properties</option>
-    <option name="-setprop">cpa.assumptions.progressobserver.heuristics=PathLengthHeuristics,TimeOutHeuristics</option>
-    <option name="-setprop">cpa.assumptions.progressobserver.heuristics.timeOutHeuristics.threshold=10000</option>
+    <option name="-setprop">cpa.assumptions.progressobserver.heuristics=PathLengthHeuristics</option>
+    <option name="-setprop">cpa.conditions.global.time.wall=10000</option>
   </test>
   <test name="adjustable-conditions-rip">
     <sourcefiles>
       <includesfile>test/assumptions/adjustableConditions.set</includesfile>
     </sourcefiles>
     <option name="-config">test/assumptions/explicit-adjustableConditions.properties</option>
-    <option name="-setprop">cpa.assumptions.progressobserver.heuristics=RepetitionsInPathHeuristics,TimeOutHeuristics</option>
-    <option name="-setprop">cpa.assumptions.progressobserver.heuristics.timeOutHeuristics.threshold=10000</option>
+    <option name="-setprop">cpa.assumptions.progressobserver.heuristics=RepetitionsInPathHeuristics</option>
+    <option name="-setprop">cpa.conditions.global.time.wall=10000</option>
   </test>
   <test name="adjustable-conditions-ae">
     <sourcefiles>
       <includesfile>test/assumptions/adjustableConditions.set</includesfile>
     </sourcefiles>
     <option name="-config">test/assumptions/explicit-adjustableConditions.properties</option>
-    <option name="-setprop">cpa.assumptions.progressobserver.heuristics=AssumeEdgesInPathHeuristics,TimeOutHeuristics</option>
-    <option name="-setprop">cpa.assumptions.progressobserver.heuristics.timeOutHeuristics.threshold=10000</option>
+    <option name="-setprop">cpa.assumptions.progressobserver.heuristics=AssumeEdgesInPathHeuristics</option>
+    <option name="-setprop">cpa.conditions.global.time.wall=10000</option>
   </test>
   <columns>
     <column title="total">time for CPAchecker</column>
