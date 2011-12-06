@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.resourcelimit;
+package org.sosy_lab.cpachecker.cpa.conditions.globalconditions;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -30,8 +30,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
-@Options(prefix="cpa.resourcelimit")
-class ResourceLimitPrecision implements Precision {
+@Options(prefix="cpa.conditions.global")
+class GlobalConditionsPrecision implements Precision {
 
   @Option(name="reached.size",
       description="Limit for size of reached set (-1 for infinite)")
@@ -65,7 +65,7 @@ class ResourceLimitPrecision implements Precision {
 
   private final String humanReadableString;
 
-  ResourceLimitPrecision(Configuration config) throws InvalidConfigurationException {
+  GlobalConditionsPrecision(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
 
     if (wallTime >= 0) {
@@ -86,11 +86,11 @@ class ResourceLimitPrecision implements Precision {
 
   private String asHumanReadableString() {
     if (!isLimitEnabled()) {
-      return "no resource limits";
+      return "global conditions: none";
     }
 
     StringBuilder sb = new StringBuilder();
-    sb.append("resource limits: ");
+    sb.append("global conditions: ");
 
     if (reachedSetSize >= 0) {
       sb.append("reached set size: ");

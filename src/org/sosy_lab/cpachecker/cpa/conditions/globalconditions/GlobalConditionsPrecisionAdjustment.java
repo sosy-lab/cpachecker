@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.resourcelimit;
+package org.sosy_lab.cpachecker.cpa.conditions.globalconditions;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 
-class ResourceLimitPrecisionAdjustment implements PrecisionAdjustment {
+class GlobalConditionsPrecisionAdjustment implements PrecisionAdjustment {
 
   private final LogManager logger;
 
@@ -56,7 +56,7 @@ class ResourceLimitPrecisionAdjustment implements PrecisionAdjustment {
   private boolean cpuTimeDisabled = false;
   private boolean processMemoryDisabled = false;
 
-  ResourceLimitPrecisionAdjustment(LogManager pLogger) {
+  GlobalConditionsPrecisionAdjustment(LogManager pLogger) {
     logger = pLogger;
 
     mbeanServer = ManagementFactory.getPlatformMBeanServer();
@@ -74,7 +74,7 @@ class ResourceLimitPrecisionAdjustment implements PrecisionAdjustment {
   public Triple<AbstractElement, Precision, Action> prec(AbstractElement pElement, Precision pPrecision,
       UnmodifiableReachedSet pElements) throws CPAException {
 
-    ResourceLimitPrecision precision = (ResourceLimitPrecision)pPrecision;
+    GlobalConditionsPrecision precision = (GlobalConditionsPrecision)pPrecision;
 
     if (checkReachedSetSize(pElements, precision)) {
       logger.log(Level.WARNING, "Reached set size threshold reached, terminating.");
@@ -105,7 +105,7 @@ class ResourceLimitPrecisionAdjustment implements PrecisionAdjustment {
   }
 
 
-  private boolean checkReachedSetSize(UnmodifiableReachedSet elements, ResourceLimitPrecision precision) {
+  private boolean checkReachedSetSize(UnmodifiableReachedSet elements, GlobalConditionsPrecision precision) {
 
     long threshold = precision.getReachedSetSizeThreshold();
     if (threshold >= 0) {
@@ -115,11 +115,11 @@ class ResourceLimitPrecisionAdjustment implements PrecisionAdjustment {
     return false;
   }
 
-  private boolean checkWallTime(ResourceLimitPrecision precision) {
+  private boolean checkWallTime(GlobalConditionsPrecision precision) {
     return (System.currentTimeMillis() > precision.getWallTimeThreshold());
   }
 
-  private boolean checkCpuTime(ResourceLimitPrecision precision) {
+  private boolean checkCpuTime(GlobalConditionsPrecision precision) {
     if (cpuTimeDisabled) {
       return false;
     }
@@ -151,7 +151,7 @@ class ResourceLimitPrecisionAdjustment implements PrecisionAdjustment {
     return (cputime > threshold);
   }
 
-  private boolean checkHeapMemory(ResourceLimitPrecision precision) {
+  private boolean checkHeapMemory(GlobalConditionsPrecision precision) {
     long threshold = precision.getHeapMemoryThreshold();
     if (threshold < 0) {
       return false;
@@ -160,7 +160,7 @@ class ResourceLimitPrecisionAdjustment implements PrecisionAdjustment {
     return (memory.getHeapMemoryUsage().getUsed() > threshold);
   }
 
-  private boolean checkProcessMemory(ResourceLimitPrecision precision) {
+  private boolean checkProcessMemory(GlobalConditionsPrecision precision) {
     if (processMemoryDisabled) {
       return false;
     }

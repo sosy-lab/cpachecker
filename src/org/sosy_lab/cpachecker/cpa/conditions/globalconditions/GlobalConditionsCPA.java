@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.resourcelimit;
+package org.sosy_lab.cpachecker.cpa.conditions.globalconditions;
 
 import java.util.logging.Level;
 
@@ -47,23 +47,23 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 
-public class ResourceLimitCPA implements ConfigurableProgramAnalysis {
+public class GlobalConditionsCPA implements ConfigurableProgramAnalysis {
 
-  private final ResourceLimitPrecision precision;
+  private final GlobalConditionsPrecision precision;
   private final PrecisionAdjustment precisionAdjustment;
 
   private final AbstractDomain domain;
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(ResourceLimitCPA.class);
+    return AutomaticCPAFactory.forType(GlobalConditionsCPA.class);
   }
 
-  private ResourceLimitCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
-    precision = new ResourceLimitPrecision(config);
+  private GlobalConditionsCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
+    precision = new GlobalConditionsPrecision(config);
 
     if (precision.isLimitEnabled()) {
       logger.log(Level.INFO, "Running CPAchecker with the following", precision);
-      precisionAdjustment = new ResourceLimitPrecisionAdjustment(logger);
+      precisionAdjustment = new GlobalConditionsPrecisionAdjustment(logger);
 
     } else {
       precisionAdjustment = StaticPrecisionAdjustment.getInstance();
