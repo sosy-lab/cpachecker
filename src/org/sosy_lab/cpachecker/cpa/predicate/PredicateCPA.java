@@ -44,10 +44,12 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.PostProcessor;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
@@ -69,7 +71,7 @@ import com.google.common.io.Files;
  * CPA that defines symbolic predicate abstraction.
  */
 @Options(prefix="cpa.predicate")
-public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
+public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProvider, PostProcessor {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PredicateCPA.class).withOptions(BlockOperator.class);
@@ -110,6 +112,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicateAbstractionManager predicateManager;
   private final PredicateCPAStatistics stats;
   private final AbstractElement topElement;
+  private final PostProcessor postProcessor;
 
   protected PredicateCPA(Configuration config, LogManager logger, BlockOperator blk) throws InvalidConfigurationException {
     config.inject(this, PredicateCPA.class);
@@ -165,6 +168,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     initialPrecision = new PredicatePrecision(predicates);
 
     stats = new PredicateCPAStatistics(this, blk);
+
+    postProcessor = new PredicatePostProcessor();
   }
 
   private Collection<AbstractionPredicate> readPredicatesFromFile() {
@@ -262,5 +267,10 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   PredicateCPAStatistics getStats() {
     return stats;
+  }
+
+  @Override
+  public void postProcess(ReachedSet pReached) {
+    postProcessor.postProcess(pReached);
   }
 }
