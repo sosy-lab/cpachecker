@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.IdentityTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonAbstractElement;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopAlwaysOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -49,7 +50,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 public class GlobalConditionsCPA implements ConfigurableProgramAnalysis {
 
-  private final GlobalConditionsPrecision precision;
   private final PrecisionAdjustment precisionAdjustment;
 
   private final AbstractDomain domain;
@@ -59,11 +59,11 @@ public class GlobalConditionsCPA implements ConfigurableProgramAnalysis {
   }
 
   private GlobalConditionsCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
-    precision = new GlobalConditionsPrecision(config);
+    GlobalConditionsThresholds thresholds = new GlobalConditionsThresholds(config);
 
-    if (precision.isLimitEnabled()) {
-      logger.log(Level.INFO, "Running CPAchecker with the following", precision);
-      precisionAdjustment = new GlobalConditionsPrecisionAdjustment(logger);
+    if (thresholds.isLimitEnabled()) {
+      logger.log(Level.INFO, "Running CPAchecker with the following", thresholds);
+      precisionAdjustment = new GlobalConditionsPrecisionAdjustment(logger, thresholds);
 
     } else {
       precisionAdjustment = StaticPrecisionAdjustment.getInstance();
@@ -79,7 +79,7 @@ public class GlobalConditionsCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public Precision getInitialPrecision(CFANode pNode) {
-    return precision;
+    return SingletonPrecision.getInstance();
   }
 
   @Override

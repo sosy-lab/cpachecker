@@ -45,6 +45,8 @@ class GlobalConditionsPrecisionAdjustment implements PrecisionAdjustment {
 
   private final LogManager logger;
 
+  private final GlobalConditionsThresholds thresholds;
+
   //necessary stuff to query the OperatingSystemMBean for the process cpu time
   private final MBeanServer mbeanServer;
   private final ObjectName osMbean;
@@ -56,8 +58,9 @@ class GlobalConditionsPrecisionAdjustment implements PrecisionAdjustment {
   private boolean cpuTimeDisabled = false;
   private boolean processMemoryDisabled = false;
 
-  GlobalConditionsPrecisionAdjustment(LogManager pLogger) {
+  GlobalConditionsPrecisionAdjustment(LogManager pLogger, GlobalConditionsThresholds pThresholds) {
     logger = pLogger;
+    thresholds = pThresholds;
 
     mbeanServer = ManagementFactory.getPlatformMBeanServer();
     memory = ManagementFactory.getMemoryMXBean();
@@ -74,29 +77,27 @@ class GlobalConditionsPrecisionAdjustment implements PrecisionAdjustment {
   public Triple<AbstractElement, Precision, Action> prec(AbstractElement pElement, Precision pPrecision,
       UnmodifiableReachedSet pElements) throws CPAException {
 
-    GlobalConditionsPrecision precision = (GlobalConditionsPrecision)pPrecision;
-
-    if (checkReachedSetSize(pElements, precision)) {
+    if (checkReachedSetSize(pElements)) {
       logger.log(Level.WARNING, "Reached set size threshold reached, terminating.");
       return Triple.of(pElement, pPrecision, Action.BREAK);
     }
 
-    if (checkWallTime(precision)) {
+    if (checkWallTime()) {
       logger.log(Level.WARNING, "Wall time threshold reached, terminating.");
       return Triple.of(pElement, pPrecision, Action.BREAK);
     }
 
-    if (checkCpuTime(precision)) {
+    if (checkCpuTime()) {
       logger.log(Level.WARNING, "Cpu time threshold reached, terminating.");
       return Triple.of(pElement, pPrecision, Action.BREAK);
     }
 
-    if (checkHeapMemory(precision)) {
+    if (checkHeapMemory()) {
       logger.log(Level.WARNING, "Java heap memory threshold reached, terminating.");
       return Triple.of(pElement, pPrecision, Action.BREAK);
     }
 
-    if (checkProcessMemory(precision)) {
+    if (checkProcessMemory()) {
       logger.log(Level.WARNING, "Process memory threshold reached, terminating.");
       return Triple.of(pElement, pPrecision, Action.BREAK);
     }
@@ -105,9 +106,9 @@ class GlobalConditionsPrecisionAdjustment implements PrecisionAdjustment {
   }
 
 
-  private boolean checkReachedSetSize(UnmodifiableReachedSet elements, GlobalConditionsPrecision precision) {
+  private boolean checkReachedSetSize(UnmodifiableReachedSet elements) {
 
-    long threshold = precision.getReachedSetSizeThreshold();
+    long threshold = thresholds.getReachedSetSizeThreshold();
     if (threshold >= 0) {
       return (elements.size() > threshold);
     }
@@ -115,15 +116,15 @@ class GlobalConditionsPrecisionAdjustment implements PrecisionAdjustment {
     return false;
   }
 
-  private boolean checkWallTime(GlobalConditionsPrecision precision) {
-    return (System.currentTimeMillis() > precision.getWallTimeThreshold());
+  private boolean checkWallTime() {
+    return (System.currentTimeMillis() > thresholds.getWallTimeThreshold());
   }
 
-  private boolean checkCpuTime(GlobalConditionsPrecision precision) {
+  private boolean checkCpuTime() {
     if (cpuTimeDisabled) {
       return false;
     }
-    long threshold = precision.getCpuTimeThreshold();
+    long threshold = thresholds.getCpuTimeThreshold();
     if (threshold < 0) {
       return false;
     }
@@ -151,8 +152,8 @@ class GlobalConditionsPrecisionAdjustment implements PrecisionAdjustment {
     return (cputime > threshold);
   }
 
-  private boolean checkHeapMemory(GlobalConditionsPrecision precision) {
-    long threshold = precision.getHeapMemoryThreshold();
+  private boolean checkHeapMemory() {
+    long threshold = thresholds.getHeapMemoryThreshold();
     if (threshold < 0) {
       return false;
     }
@@ -160,11 +161,11 @@ class GlobalConditionsPrecisionAdjustment implements PrecisionAdjustment {
     return (memory.getHeapMemoryUsage().getUsed() > threshold);
   }
 
-  private boolean checkProcessMemory(GlobalConditionsPrecision precision) {
+  private boolean checkProcessMemory() {
     if (processMemoryDisabled) {
       return false;
     }
-    long threshold = precision.getProcessMemoryThreshold();
+    long threshold = thresholds.getProcessMemoryThreshold();
     if (threshold < 0) {
       return false;
     }

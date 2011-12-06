@@ -28,10 +28,9 @@ import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 @Options(prefix="cpa.conditions.global")
-class GlobalConditionsPrecision implements Precision {
+class GlobalConditionsThresholds {
 
   @Option(name="reached.size",
       description="Limit for size of reached set (-1 for infinite)")
@@ -65,7 +64,7 @@ class GlobalConditionsPrecision implements Precision {
 
   private final String humanReadableString;
 
-  GlobalConditionsPrecision(Configuration config) throws InvalidConfigurationException {
+  GlobalConditionsThresholds(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
 
     if (wallTime >= 0) {
