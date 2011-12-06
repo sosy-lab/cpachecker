@@ -192,7 +192,7 @@ public class ARTUtils {
       } else {
         builder.append(", ");
       }
-      builder.append(explicit.toString());
+      builder.append(explicit.toCompactString());
     }
 
     builder.append(")");

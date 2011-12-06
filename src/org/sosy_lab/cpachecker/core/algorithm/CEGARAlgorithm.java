@@ -66,6 +66,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     private volatile int countRefinements = 0;
     private int countSuccessfulRefinements = 0;
     private int countFailedRefinements = 0;
+    private boolean timedOut = false;
 
     @Override
     public String getName() {
@@ -76,6 +77,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     public void printStatistics(PrintStream out, Result pResult,
         ReachedSet pReached) {
 
+      out.println("Timed out: " + timedOut);
       out.println("Number of refinements:            " + countRefinements);
 
       if (countRefinements > 0) {
@@ -268,6 +270,8 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
             // no refinement found, because the counterexample is not spurious
             logger.log(Level.FINE, "Refinement unsuccessful");
           }
+        } else {
+          stats.timedOut = true;
         }
       } // if lastElement is target element
 

@@ -271,6 +271,28 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
     return sb.append("] size->  ").append(constantsMap.size()).toString();
   }
 
+  public String toCompactString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("[");
+
+    boolean first = true;
+    for (Map.Entry<String, Long> entry: constantsMap.entrySet())
+    {
+      if(first) {
+        first = false;
+      } else {
+        sb.append(", ");
+      }
+      String key = entry.getKey();
+      sb.append(key);
+      sb.append("=");
+      sb.append(entry.getValue());
+    }
+    sb.append("]");
+
+    return sb.toString();
+  }
+
   @Override
   public Object evaluateProperty(String pProperty) throws InvalidQueryException
   {

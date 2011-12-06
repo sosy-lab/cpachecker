@@ -49,13 +49,17 @@ public class PredicatePostProcessor implements PostProcessor {
     Deque<ARTElement> leaves = new ArrayDeque<ARTElement>();
     for (AbstractElement e : pReached) {
       ARTElement artEle = (ARTElement) e;
-      if (artEle.getChildren().size() == 0 && !AbstractElements.extractElementByType(artEle, PredicateAbstractElement.class).isAbstractionElement()) {
+      if (artEle.getChildren().size() == 0 && !AbstractElements.extractElementByType(artEle, PredicateAbstractElement.class).isAbstractionElement() && !artEle.isTarget()) {
         leaves.push(artEle);
       }
     }
 
     while (!leaves.isEmpty()) {
       ARTElement leaf = leaves.pop();
+
+      if(AbstractElements.extractElementByType(leaf, PredicateAbstractElement.class).isAbstractionElement()) {
+        int i = 5;
+      }
 
       assert !AbstractElements.extractElementByType(leaf, PredicateAbstractElement.class).isAbstractionElement();
 

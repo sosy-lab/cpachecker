@@ -23,15 +23,19 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import java.util.Collection;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.PostProcessor;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class PostProcessingAlgorithm implements Algorithm {
+public class PostProcessingAlgorithm implements Algorithm, StatisticsProvider {
 
   private final Algorithm innerAlgorithm;
   private final PostProcessor postProcessor;
@@ -61,5 +65,10 @@ public class PostProcessingAlgorithm implements Algorithm {
     return sound;
   }
 
-  //TODO stats
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    if (innerAlgorithm instanceof StatisticsProvider) {
+      ((StatisticsProvider)innerAlgorithm).collectStatistics(pStatsCollection);
+    }
+  }
 }

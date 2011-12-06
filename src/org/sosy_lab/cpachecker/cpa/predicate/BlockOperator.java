@@ -62,6 +62,9 @@ public class BlockOperator {
   @Option(description="force abstractions at each function calls/returns, regardless of threshold")
   private boolean alwaysAtFunctions = true;
 
+  @Option(description="force abstractions at end of program, regardless of threshold")
+  private boolean alwaysAtEndOfProgram = false;
+
   int numBlkFunctions = 0;
   int numBlkLoops = 0;
   int numBlkThreshold = 0;
@@ -121,6 +124,10 @@ public class BlockOperator {
         numBlkLoops++;
         return true;
       }
+    }
+
+    if(alwaysAtEndOfProgram && succLoc.getNumLeavingEdges() == 0) {
+      return true;
     }
 
     return false;
