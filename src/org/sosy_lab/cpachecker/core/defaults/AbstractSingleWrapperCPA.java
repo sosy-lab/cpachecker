@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Base class for CPAs which wrap exactly one other CPA.
@@ -74,5 +75,10 @@ public abstract class AbstractSingleWrapperCPA implements ConfigurableProgramAna
     } else {
       return null;
     }
+  }
+
+  @Override
+  public ImmutableList<? extends ConfigurableProgramAnalysis> getWrappedCPAs() {
+    return ImmutableList.of(wrappedCpa);
   }
 }
