@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopAlwaysOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AdjustableConditionCPA;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -48,9 +49,10 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 
-public class GlobalConditionsCPA implements ConfigurableProgramAnalysis {
+public class GlobalConditionsCPA implements ConfigurableProgramAnalysis, AdjustableConditionCPA {
 
   private final PrecisionAdjustment precisionAdjustment;
+  private final GlobalConditionsThresholds thresholds;
 
   private final AbstractDomain domain;
 
@@ -59,7 +61,7 @@ public class GlobalConditionsCPA implements ConfigurableProgramAnalysis {
   }
 
   private GlobalConditionsCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
-    GlobalConditionsThresholds thresholds = new GlobalConditionsThresholds(config);
+    thresholds = new GlobalConditionsThresholds(config, logger);
 
     if (thresholds.isLimitEnabled()) {
       logger.log(Level.INFO, "Running CPAchecker with the following", thresholds);
@@ -70,6 +72,11 @@ public class GlobalConditionsCPA implements ConfigurableProgramAnalysis {
     }
 
     domain = new FlatLatticeDomain(SingletonAbstractElement.INSTANCE);
+  }
+
+  @Override
+  public boolean adjustPrecision() {
+    return thresholds.adjustPrecision();
   }
 
   @Override

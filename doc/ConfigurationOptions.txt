@@ -229,8 +229,18 @@ cpa.conditions.global.reached.size = -1
 # Limit for cpu time used by CPAchecker (in milliseconds; -1 for infinite)
 cpa.conditions.global.time.cpu = -1
 
+# Hard limit for cpu time used by CPAchecker (in milliseconds; -1 for
+# infinite)
+# When using adjustable conditions, analysis will end after this threshold
+cpa.conditions.global.time.cpu.hardlimit = -1
+
 # Limit for wall time used by CPAchecker (in milliseconds; -1 for infinite)
 cpa.conditions.global.time.wall = -1
+
+# Hard limit for wall time used by CPAchecker (in milliseconds; -1 for
+# infinite)
+# When using adjustable conditions, analysis will end after this threshold
+cpa.conditions.global.time.wall.hardlimit = -1
 
 # which merge operator to use for DefUseCPA
 cpa.defuse.merge = "sep"

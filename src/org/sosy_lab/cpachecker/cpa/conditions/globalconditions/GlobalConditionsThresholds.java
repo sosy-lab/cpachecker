@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.conditions.globalconditions;
 
+import java.util.logging.Level;
+
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -43,12 +46,28 @@ class GlobalConditionsThresholds {
   @IntegerOption(min=-1)
   private long wallTime = -1;
 
-  private long endTime; // when to end analysis (according to wall time limit)
+  private long wallEndTime; // when to end analysis (according to wall time limit)
+
+  @Option(name="time.wall.hardlimit",
+      description="Hard limit for wall time used by CPAchecker (in milliseconds; -1 for infinite)" +
+      		"\nWhen using adjustable conditions, analysis will end after this threshold")
+  @IntegerOption(min=-1)
+  private long wallTimeHardLimit = -1;
+
+  private long wallEndTimeHardLimit;
 
   @Option(name="time.cpu",
       description="Limit for cpu time used by CPAchecker (in milliseconds; -1 for infinite)")
   @IntegerOption(min=-1)
   private long cpuTime = -1;
+
+  private long cpuEndTime;  // when to end analysis (according to cpu time limit)
+
+  @Option(name="time.cpu.hardlimit",
+      description="Hard limit for cpu time used by CPAchecker (in milliseconds; -1 for infinite)" +
+          "\nWhen using adjustable conditions, analysis will end after this threshold")
+  @IntegerOption(min=-1)
+  private long cpuTimeHardLimit = -1;
 
 
   @Option(name="memory.heap",
@@ -61,18 +80,60 @@ class GlobalConditionsThresholds {
   @IntegerOption(min=-1)
   private long processMemory = -1;
 
+  private final LogManager logger;
+  private String humanReadableString;
 
-  private final String humanReadableString;
-
-  GlobalConditionsThresholds(Configuration config) throws InvalidConfigurationException {
+  GlobalConditionsThresholds(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
+    logger = pLogger;
 
     if (wallTime >= 0) {
-      endTime = System.currentTimeMillis() + wallTime;
+      wallEndTime = System.currentTimeMillis() + wallTime;
     } else {
-      endTime = Long.MAX_VALUE;
+      wallEndTime = Long.MAX_VALUE;
     }
+    if (wallTimeHardLimit >= 0) {
+      wallEndTimeHardLimit = System.currentTimeMillis() + wallTimeHardLimit;
+    } else {
+      wallEndTimeHardLimit = Long.MAX_VALUE;
+    }
+    wallEndTime = Math.min(wallEndTime, wallEndTimeHardLimit);
+
+    cpuEndTime = cpuTime;
+
     humanReadableString = asHumanReadableString();
+  }
+
+  boolean adjustPrecision() {
+    if (System.currentTimeMillis() >= wallEndTimeHardLimit) {
+      return false; // to not continue
+    }
+
+    if (cpuEndTime >= cpuTimeHardLimit) {
+      // TODO check current cpu time instead of cpuEndTime
+      return false; // do not continue
+    }
+
+    boolean changed = false;
+
+    if (wallTime >= 0) {
+      wallEndTime = System.currentTimeMillis() + wallTime;
+      wallEndTime = Math.min(wallEndTime,  wallEndTimeHardLimit);
+      changed = true;
+    }
+
+    if (cpuTime >= 0) {
+      cpuEndTime += cpuTime;
+      cpuEndTime = Math.min(cpuEndTime, cpuTimeHardLimit);
+      changed = true;
+    }
+
+    if (changed) {
+      humanReadableString = asHumanReadableString();
+      logger.log(Level.INFO, "Increased thresholds for", humanReadableString);
+    }
+
+    return true;
   }
 
   public boolean isLimitEnabled() {
@@ -128,11 +189,11 @@ class GlobalConditionsThresholds {
   }
 
   long getWallTimeThreshold() {
-    return endTime;
+    return wallEndTime;
   }
 
   long getCpuTimeThreshold() {
-    return cpuTime;
+    return cpuEndTime;
   }
 
   public long getHeapMemoryThreshold() {
@@ -148,4 +209,5 @@ class GlobalConditionsThresholds {
   public String toString() {
     return humanReadableString;
   }
+
 }
