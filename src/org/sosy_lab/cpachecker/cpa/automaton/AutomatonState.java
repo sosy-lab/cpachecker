@@ -38,7 +38,7 @@ import com.google.common.base.Joiner;
  * This class combines a AutomatonInternal State with a variable Configuration.
  * Instaces of this class are passed to the CPAchecker as AbstractElement.
  */
-class AutomatonState implements AbstractQueryableElement, Targetable {
+public class AutomatonState implements AbstractQueryableElement, Targetable {
   private static final String AutomatonAnalysisNamePrefix = "AutomatonAnalysis_";
 
   static class TOP extends AutomatonState {
@@ -226,6 +226,10 @@ class AutomatonState implements AbstractQueryableElement, Targetable {
 
   AutomatonInternalState getInternalState() {
     return internalState;
+  }
+
+  public String getInternalStateName() {
+    return internalState.getName();
   }
 
   Map<String, AutomatonVariable> getVars() {

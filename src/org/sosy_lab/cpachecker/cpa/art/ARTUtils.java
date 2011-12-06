@@ -39,7 +39,10 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 
@@ -137,11 +140,64 @@ public class ARTUtils {
       if (abselem != null && abselem.isAbstractionElement()) {
         color = "blue";
       } else {
-        color = "white";
+        color = "grey";
       }
     }
 
     return color;
+  }
+
+  private static String determineLabel(ARTElement currentElement) {
+    StringBuilder builder = new StringBuilder();
+
+    builder.append(currentElement.getElementId());
+    builder.append(" (");
+
+    boolean first = true;
+
+    AbstractElementWithLocation loc = currentElement.retrieveLocationElement();
+    if(loc != null) {
+      if(first) {
+        first = false;
+      } else {
+        builder.append(", ");
+      }
+      builder.append(loc.getLocationNode().toString());
+    }
+
+    AutomatonState state = AbstractElements.extractElementByType(currentElement, AutomatonState.class);
+    if(state != null) {
+      if(first) {
+        first = false;
+      } else {
+        builder.append(", ");
+      }
+      builder.append(state.getInternalStateName());
+    }
+
+    PredicateAbstractElement abstraction = AbstractElements.extractElementByType(currentElement, PredicateAbstractElement.class);
+    if(abstraction != null && abstraction.isAbstractionElement()) {
+      if(first) {
+        first = false;
+      } else {
+        builder.append(", ");
+      }
+      builder.append(abstraction.getAbstractionFormula().asFormula().toString());
+    }
+
+    ExplicitElement explicit = AbstractElements.extractElementByType(currentElement, ExplicitElement.class);
+    if(explicit != null) {
+      if(first) {
+        first = false;
+      } else {
+        builder.append(", ");
+      }
+      builder.append(explicit.toString());
+    }
+
+    builder.append(")");
+
+    return builder.toString();
   }
 
   /**
@@ -174,8 +230,7 @@ public class ARTUtils {
 
       if(!nodesList.contains(currentElement.getElementId())){
 
-        CFANode loc = currentElement.retrieveLocationElement().getLocationNode();
-        String label = ((loc == null) ? 0 : loc.getNodeNumber()) + "000" + currentElement.getElementId();
+        String label = determineLabel(currentElement);
 
         sb.append(currentElement.getElementId());
         sb.append(" [");
