@@ -141,7 +141,7 @@ public class CPAchecker {
         description="restarts the analysis on (spurious or not) counterexamples until the waitlist is empty")
         boolean useContinueOnCounterexamle = false;
 
-    @Option(name="analysis.postProcess",
+    @Option(name="analysis.postProcessing",
         description="if enabled post processes (cosmetic changes) the reached set as specified by the CPAs")
         boolean usePostProcessing = false;
 
