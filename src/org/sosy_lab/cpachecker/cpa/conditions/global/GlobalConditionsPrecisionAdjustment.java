@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.conditions.globalconditions;
+package org.sosy_lab.cpachecker.cpa.conditions.global;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
