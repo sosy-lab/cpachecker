@@ -184,13 +184,7 @@ cpa.assumptions.progressobserver.heuristics = no default value
 # threshold for heuristics of progressobserver
 cpa.assumptions.progressobserver.heuristics.assumeEdgesInPathHeuristics.threshold = -1
 cpa.assumptions.progressobserver.heuristics.edgeCountHeuristics.threshold = -1
-
-# Threshold for MemoryOutHeuristics (total memory of process in MB)
-cpa.assumptions.progressobserver.heuristics.memoryOutHeuristics.threshold = -1
-
-# threshold for heuristics of progressobserver
 cpa.assumptions.progressobserver.heuristics.pathLengthHeuristics.threshold = -1
-cpa.assumptions.progressobserver.heuristics.reachedSizeHeuristics.threshold = -1
 cpa.assumptions.progressobserver.heuristics.repetitionsInPathHeuristics.threshold = -1
 
 # how many times to adjust timeout threshold?
@@ -202,9 +196,6 @@ cpa.assumptions.progressobserver.heuristics.timeOutHeuristics.hardLimitThreshold
 
 # threshold for timeout heuristics
 cpa.assumptions.progressobserver.heuristics.timeOutHeuristics.threshold = -1
-
-# threshold for heuristics of progressobserver
-cpa.assumptions.progressobserver.heuristics.usedMemoryOutHeuristics.threshold = 0
 
 # signal the analysis to break in case of reached error state
 cpa.automaton.breakOnTargetState = true
