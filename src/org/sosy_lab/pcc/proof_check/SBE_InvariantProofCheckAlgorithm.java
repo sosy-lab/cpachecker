@@ -261,12 +261,12 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
             if (comps.get(i).nodes.contains(allCFANodes.get(external).getLeavingEdge(j).getSuccessor().getNodeNumber())) {
               result =
                   result
-                      && allInvariantFormulaeFalse(external, allCFANodes.get(external).getLeavingEdge(j).getSuccessor()
-                          .getNodeNumber());
+                      && (allInvariantFormulaeFalse(external, allCFANodes.get(external).getLeavingEdge(j).getSuccessor()
+                          .getNodeNumber())|| noUncoveredAbstractionReachable(external,comps.get(i).nodes));
             }
           }
         } else {
-          result = result && allInvariantFormulaeFalse(external, -1);
+          result = result && (allInvariantFormulaeFalse(external, -1)||noUncoveredAbstractionReachable(external, comps.get(i).nodes));
         }
       }
       //check if only non-abstraction nodes which are non error nodes
@@ -283,6 +283,27 @@ public abstract class SBE_InvariantProofCheckAlgorithm extends
     }
     if (!result) { return PCCCheckResult.UncoveredCFANode; }
     return PCCCheckResult.Success;
+  }
+
+  private boolean noUncoveredAbstractionReachable(Integer pExternalStart, HashSet<Integer> pConnectedComponentNodes){
+    Vector<Integer> toCheck = new Vector<Integer>();
+    HashSet<Integer> checked = new HashSet<Integer>();
+    CFANode node, succ;
+    toCheck.add(pExternalStart);
+    while(!toCheck.isEmpty()){
+      node = allCFANodes.get(toCheck.remove(0));
+      for(int i=0;i<node.getNumLeavingEdges();i++){
+        succ = node.getLeavingEdge(i).getSuccessor();
+        if(pConnectedComponentNodes.contains(succ.getNodeNumber()) && !checked.contains(succ.getNodeNumber())){
+          checked.add(succ.getNodeNumber());
+          toCheck.add(succ.getNodeNumber());
+          if(!isNonAbstractionNode(succ)){
+            return false;
+          }
+        }
+      }
+    }
+    return true;
   }
 
   protected PCCCheckResult structuralCheckCoverageOfCFAEdges() {
