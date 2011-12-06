@@ -480,6 +480,21 @@ cpa.predicate.useBitwiseAxioms = false
 # add special information to formulas about non-deterministic functions
 cpa.predicate.useNondetFlags = false
 
+# Limit for Java heap memory used by CPAchecker (in MiB; -1 for infinite)
+cpa.resourcelimit.memory.heap = -1
+
+# Limit for process memory used by CPAchecker (in MiB; -1 for infinite)
+cpa.resourcelimit.memory.process = -1
+
+# Limit for size of reached set (-1 for infinite)
+cpa.resourcelimit.reached.size = -1
+
+# Limit for cpu time used by CPAchecker (in milliseconds; -1 for infinite)
+cpa.resourcelimit.time.cpu = -1
+
+# Limit for wall time used by CPAchecker (in milliseconds; -1 for infinite)
+cpa.resourcelimit.time.wall = -1
+
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"
   allowed values: [sep, join]
