@@ -42,13 +42,15 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.PostProcessor;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
-public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProgramAnalysisWithABM {
+public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProgramAnalysisWithABM, PostProcessor {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ARTCPA.class);
@@ -63,6 +65,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   private final PrecisionAdjustment precisionAdjustment;
   private final Reducer reducer;
   private final Statistics stats;
+  private final PostProcessor postProcessor;
 
   private CounterexampleInfo lastCounterexample = null;
 
@@ -92,6 +95,12 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     }
     stopOperator = new ARTStopSep(getWrappedCpa().getStopOperator(), logger);
     stats = new ARTStatistics(config, this);
+
+    if(cpa instanceof PostProcessor) {
+      postProcessor = (PostProcessor)cpa;
+    } else {
+      postProcessor = null;
+    }
   }
 
   @Override
@@ -155,5 +164,12 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   public void setCounterexample(CounterexampleInfo pCounterexample) {
     checkArgument(!pCounterexample.isSpurious());
     lastCounterexample = pCounterexample;
+  }
+
+  @Override
+  public void postProcess(ReachedSet pReached) {
+    if(postProcessor != null) {
+      postProcessor.postProcess(pReached);
+    }
   }
 }

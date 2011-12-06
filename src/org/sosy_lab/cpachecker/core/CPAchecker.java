@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ContinueOnCounterexampleAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.PostProcessingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -137,7 +138,7 @@ public class CPAchecker {
         boolean runCBMCasExternalTool = false;
 
     @Option(name="analysis.contiuneOnCounterexample",
-        description="TODO")
+        description="restarts the analysis on (spurious or not) counterexamples until the waitlist is empty")
         boolean useContinueOnCounterexamle = true;
 
   }
@@ -404,6 +405,7 @@ public class CPAchecker {
         algorithm = new RestartWithConditionsAlgorithm(algorithm, cpa, config, logger);
       }
 
+      algorithm = new PostProcessingAlgorithm(algorithm, cpa, config, logger);
     }
 
     if (algorithm instanceof StatisticsProvider) {

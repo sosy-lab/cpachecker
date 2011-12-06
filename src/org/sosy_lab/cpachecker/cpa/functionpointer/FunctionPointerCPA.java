@@ -36,13 +36,15 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.PostProcessor;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
-public class FunctionPointerCPA extends AbstractSingleWrapperCPA implements ConfigurableProgramAnalysisWithABM {
+public class FunctionPointerCPA extends AbstractSingleWrapperCPA implements ConfigurableProgramAnalysisWithABM, PostProcessor {
 
   private FunctionPointerDomain abstractDomain;
   private MergeOperator mergeOperator;
@@ -50,6 +52,7 @@ public class FunctionPointerCPA extends AbstractSingleWrapperCPA implements Conf
   private TransferRelation transferRelation;
   private PrecisionAdjustment precisionAdjustment;
   private final Reducer reducer;
+  private final PostProcessor postProcessor;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(FunctionPointerCPA.class);
@@ -72,6 +75,13 @@ public class FunctionPointerCPA extends AbstractSingleWrapperCPA implements Conf
     } else {
       reducer = null;
     }
+
+    if(pCpa instanceof PostProcessor) {
+      postProcessor = (PostProcessor)pCpa;
+    } else {
+      postProcessor = null;
+    }
+
   }
 
   @Override
@@ -112,5 +122,12 @@ public class FunctionPointerCPA extends AbstractSingleWrapperCPA implements Conf
   @Override
   public Reducer getReducer() {
     return reducer;
+  }
+
+  @Override
+  public void postProcess(ReachedSet pReached) {
+    if(postProcessor != null) {
+      postProcessor.postProcess(pReached);
+    }
   }
 }

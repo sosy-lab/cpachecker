@@ -212,6 +212,9 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
 
         if (!oldPredicateMap.get(loc).containsAll(localPreds)) {
           // new predicates for this location
+
+          System.out.println(localPreds);
+
           newPredicatesFound = true;
 
           pmapBuilder.putAll(loc, localPreds);

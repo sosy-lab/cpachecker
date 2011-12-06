@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.PostProcessor;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
@@ -47,11 +48,12 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
-public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithABM
+public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithABM, PostProcessor
 {
 
   @Options(prefix="cpa.composite")
@@ -258,5 +260,14 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       }
     }
     return null;
+  }
+
+  @Override
+  public void postProcess(ReachedSet pReached) {
+    for(ConfigurableProgramAnalysis cpa : cpas) {
+      if(cpa instanceof PostProcessor) {
+        ((PostProcessor)cpa).postProcess(pReached);
+      }
+    }
   }
 }
