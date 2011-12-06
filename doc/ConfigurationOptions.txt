@@ -1,6 +1,9 @@
 # This is an auto-generated file, DO NOT EDIT!
 # Run ant to generate it.
 
+# maximum number of condition adjustments (-1 for infinite)
+adjustableconditions.adjustmentLimit = -1
+
 # entry function
 analysis.entryFunction = "main"
 
@@ -186,9 +189,6 @@ cpa.assumptions.progressobserver.heuristics.assumeEdgesInPathHeuristics.threshol
 cpa.assumptions.progressobserver.heuristics.edgeCountHeuristics.threshold = -1
 cpa.assumptions.progressobserver.heuristics.pathLengthHeuristics.threshold = -1
 cpa.assumptions.progressobserver.heuristics.repetitionsInPathHeuristics.threshold = -1
-
-# how many times to adjust timeout threshold?
-cpa.assumptions.progressobserver.heuristics.timeOutHeuristics.adjustmentLimit = -1
 
 # hard limit threshold for timeout heuristics, disable restarting after this
 # limit

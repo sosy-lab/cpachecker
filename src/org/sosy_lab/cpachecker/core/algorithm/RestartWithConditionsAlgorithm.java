@@ -29,7 +29,10 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -47,11 +50,16 @@ import org.sosy_lab.cpachecker.util.Precisions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
+@Options(prefix="adjustableconditions")
 public class RestartWithConditionsAlgorithm implements Algorithm {
 
   private final Algorithm innerAlgorithm;
   private final ARTCPA cpa;
   private final LogManager logger;
+
+  @Option(description="maximum number of condition adjustments (-1 for infinite)")
+  @IntegerOption(min=-1)
+  private int adjustmentLimit = -1;
 
   public RestartWithConditionsAlgorithm(Algorithm pAlgorithm,
         ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger)
@@ -77,6 +85,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
     boolean sound = true;
 
     boolean restartCPA;
+    int count = 0;
 
     // loop if restartCPA is set to false
     do {
@@ -85,6 +94,11 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
       sound &= innerAlgorithm.run(pReached);
 
       if (Iterables.any(pReached, AbstractElements.IS_TARGET_ELEMENT)) {
+        return sound;
+      }
+
+      count++;
+      if (adjustmentLimit >= 0 && count > adjustmentLimit) {
         return sound;
       }
 
