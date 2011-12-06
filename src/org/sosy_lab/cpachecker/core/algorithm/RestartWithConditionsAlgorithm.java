@@ -34,6 +34,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AdjustableConditionCPA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
@@ -45,8 +46,10 @@ import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
@@ -56,6 +59,8 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
   private final Algorithm innerAlgorithm;
   private final ARTCPA cpa;
   private final LogManager logger;
+
+  private final List<? extends AdjustableConditionCPA> conditionCPAs;
 
   @Option(description="maximum number of condition adjustments (-1 for infinite)")
   @IntegerOption(min=-1)
@@ -78,6 +83,8 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
     if (cpa.retrieveWrappedCpa(ProgressObserverCPA.class) == null) {
       throw new InvalidConfigurationException("ProgressObserverCPA needed for RestartWithConditionsAlgorithm");
     }
+
+    conditionCPAs = ImmutableList.copyOf(Iterables.filter(CPAs.asIterable(cpa), AdjustableConditionCPA.class));
   }
 
   @Override
@@ -115,6 +122,14 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
           // no elements adjusted but there are elements with assumptions
           // the analysis should report UNSOUND
           sound = false;
+        }
+      }
+
+      // adjust precision of condition CPAs
+      for (AdjustableConditionCPA condCpa : conditionCPAs) {
+        if (!condCpa.adjustPrecision()) {
+          // this cpa said "do not continue"
+          return sound;
         }
       }
 
