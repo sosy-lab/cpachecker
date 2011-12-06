@@ -57,15 +57,6 @@ public class PathLengthHeuristicsData implements StopHeuristicsData{
     }
   }
 
-  public static final PathLengthHeuristicsData TOP = new PathLengthHeuristicsData() {
-    @Override
-    public boolean isTop() { return true; }
-    @Override
-    public PathLengthHeuristicsData updateForEdge(StopHeuristicsData pData, int pThreshold) { return this; }
-    @Override
-    public String toString() { return "TOP"; }
-  };
-
   public static final PathLengthHeuristicsData BOTTOM = new PathLengthHeuristicsData() {
     @Override
     public boolean isBottom() { return true; }
@@ -98,11 +89,6 @@ public class PathLengthHeuristicsData implements StopHeuristicsData{
 
   @Override
   public boolean isLessThan(StopHeuristicsData pD) {
-    return false;
-  }
-
-  @Override
-  public boolean isTop() {
     return false;
   }
 

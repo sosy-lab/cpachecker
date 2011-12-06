@@ -73,11 +73,6 @@ public class RepetitionsInPathHeuristicsData implements StopHeuristicsData {
     return false;
   }
 
-  @Override
-  public boolean isTop() {
-    return frequencyMap.isEmpty();
-  }
-
   private boolean isInteresting(CFAEdge edge)
   {
     return (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge)
@@ -118,15 +113,6 @@ public class RepetitionsInPathHeuristicsData implements StopHeuristicsData {
     }
     return builder.toString();
   }
-
-  public static final RepetitionsInPathHeuristicsData TOP = new RepetitionsInPathHeuristicsData() {
-    @Override
-    public boolean isTop() { return true; }
-    @Override
-    public RepetitionsInPathHeuristicsData updateForEdge(CFAEdge edge, Function<? super CFAEdge, Integer> thresholds) { return this; }
-    @Override
-    public String toString() { return "TOP"; }
-  };
 
   public static final RepetitionsInPathHeuristicsData BOTTOM = new RepetitionsInPathHeuristicsData() {
     @Override

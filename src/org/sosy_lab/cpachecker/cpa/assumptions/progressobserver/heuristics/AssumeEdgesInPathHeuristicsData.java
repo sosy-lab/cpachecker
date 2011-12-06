@@ -61,15 +61,6 @@ public class AssumeEdgesInPathHeuristicsData implements StopHeuristicsData {
     return new AssumeEdgesInPathHeuristicsData(newValue);
   }
 
-  public static final AssumeEdgesInPathHeuristicsData TOP = new AssumeEdgesInPathHeuristicsData() {
-    @Override
-    public boolean isTop() { return true; }
-    @Override
-    public AssumeEdgesInPathHeuristicsData updateForEdge(StopHeuristicsData pData, int pThreshold, CFAEdge pEdge) { return this; }
-    @Override
-    public String toString() { return "TOP"; }
-  };
-
   public static final AssumeEdgesInPathHeuristicsData BOTTOM = new AssumeEdgesInPathHeuristicsData() {
     @Override
     public boolean isBottom() { return true; }
@@ -102,11 +93,6 @@ public class AssumeEdgesInPathHeuristicsData implements StopHeuristicsData {
 
   @Override
   public boolean isLessThan(StopHeuristicsData pD) {
-    return false;
-  }
-
-  @Override
-  public boolean isTop() {
     return false;
   }
 

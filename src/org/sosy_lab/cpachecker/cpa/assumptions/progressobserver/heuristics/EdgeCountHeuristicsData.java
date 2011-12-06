@@ -84,11 +84,6 @@ public class EdgeCountHeuristicsData
 
   @Override
   public boolean isLessThan(StopHeuristicsData d) {
-    return d == TOP;
-  }
-
-  @Override
-  public boolean isTop() {
     return false;
   }
 
@@ -131,7 +126,7 @@ public class EdgeCountHeuristicsData
   }
 
   public EdgeCountHeuristicsData collectData(ReachedHeuristicsDataSetView reached) {
-    if (isTop() || isBottom() || !isInteresting()) {
+    if (isBottom() || !isInteresting()) {
       return this;
     }
 
@@ -185,32 +180,6 @@ public class EdgeCountHeuristicsData
     @Override
     public boolean equals(Object obj) { return obj == this; }
 
-  };
-
-  /** Top singleton */
-  public static final EdgeCountHeuristicsData TOP = new EdgeCountHeuristicsData()
-  {
-    @Override
-    public boolean isTop() { return true; }
-
-    @Override
-    public boolean isLessThan(StopHeuristicsData d) { return d == this; }
-
-    @Override
-    public EdgeCountHeuristicsData updateForEdge(CFAEdge edge, Function<? super CFAEdge,Integer> thresholds) {
-      return new EdgeCountHeuristicsData(edge.getSuccessor());
-    }
-
-    @Override
-    public EdgeCountHeuristicsData collectData(ReachedHeuristicsDataSetView reached) {
-      return this;
-    }
-
-    @Override
-    public String toString() { return "TOP"; }
-
-    @Override
-    public boolean equals(Object obj) { return obj == this; }
   };
 
   @Override

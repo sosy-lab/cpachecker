@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeu
  */
 public interface StopHeuristicsData {
   public boolean isBottom();
-  public boolean isTop();
   public boolean isLessThan(StopHeuristicsData d);
   public long getThreshold();
   public PreventingHeuristicType getHeuristicType();
