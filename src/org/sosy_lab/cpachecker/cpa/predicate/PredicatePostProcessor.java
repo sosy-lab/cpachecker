@@ -57,10 +57,6 @@ public class PredicatePostProcessor implements PostProcessor {
     while (!leaves.isEmpty()) {
       ARTElement leaf = leaves.pop();
 
-      if(AbstractElements.extractElementByType(leaf, PredicateAbstractElement.class).isAbstractionElement()) {
-        int i = 5;
-      }
-
       assert !AbstractElements.extractElementByType(leaf, PredicateAbstractElement.class).isAbstractionElement();
 
       Collection<ARTElement> parents = new ArrayList<ARTElement>();
