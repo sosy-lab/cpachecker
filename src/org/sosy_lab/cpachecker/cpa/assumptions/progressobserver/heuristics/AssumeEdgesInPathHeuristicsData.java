@@ -111,11 +111,6 @@ public class AssumeEdgesInPathHeuristicsData implements StopHeuristicsData {
   }
 
   @Override
-  public boolean shouldTerminateAnalysis() {
-    return false;
-  }
-
-  @Override
   public String toString() {
     return "Number of assume edges: " + noOfAssumeEdges;
   }

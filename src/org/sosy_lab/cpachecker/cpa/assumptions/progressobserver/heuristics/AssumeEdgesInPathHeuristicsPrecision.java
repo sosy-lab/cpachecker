@@ -45,10 +45,6 @@ public class AssumeEdgesInPathHeuristicsPrecision implements HeuristicPrecision 
     return threshold;
   }
 
-  public void setThreshold(int pThreshold) {
-    threshold = pThreshold;
-  }
-
   @Override
   public boolean adjustPrecision() {
     // set the initial threshold value

@@ -214,11 +214,6 @@ public class EdgeCountHeuristicsData
   };
 
   @Override
-  public boolean shouldTerminateAnalysis() {
-    return false;
-  }
-
-  @Override
   public PreventingHeuristicType getHeuristicType() {
     return PreventingHeuristicType.EDGECOUNT;
   }

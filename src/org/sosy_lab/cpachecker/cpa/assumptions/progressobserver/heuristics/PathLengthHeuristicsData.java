@@ -107,11 +107,6 @@ public class PathLengthHeuristicsData implements StopHeuristicsData{
   }
 
   @Override
-  public boolean shouldTerminateAnalysis() {
-    return false;
-  }
-
-  @Override
   public String toString() {
     return "Path Length: " + noOfNodes;
   }
