@@ -59,7 +59,7 @@ public class AssumeEdgesInPathHeuristicsPrecision implements HeuristicPrecision 
     else {
       threshold = threshold + increaseThresholdBy;
     }
-    return false;
+    return true;
   }
 
   @Override
