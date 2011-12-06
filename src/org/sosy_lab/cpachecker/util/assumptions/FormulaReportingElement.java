@@ -23,15 +23,16 @@
  */
 package org.sosy_lab.cpachecker.util.assumptions;
 
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 /**
- * Interface to implement in order for an object (typically abstract element)
+ * Interface to implement in order for an abstract element
  * to be able to be over-approximated by a formula representing
  * the abstract element.
  */
-public interface FormulaReportingElement {
+public interface FormulaReportingElement extends AbstractElement {
 
   /**
    * Returns a formula over-approximating the element

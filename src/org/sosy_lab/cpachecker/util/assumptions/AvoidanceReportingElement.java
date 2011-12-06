@@ -23,15 +23,16 @@
  */
 package org.sosy_lab.cpachecker.util.assumptions;
 
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 /**
- * Interface to implement in order for an object to be able to
+ * Interface to implement in order for an abstract element to be able to
  * make the system generate an assumption to avoid re-considering
  * this node.
  */
-public interface AvoidanceReportingElement {
+public interface AvoidanceReportingElement extends AbstractElement {
 
   /**
    * Returns true if an invariant must be added so as to avoid
