@@ -28,7 +28,4 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 public interface HeuristicPrecision extends Precision {
 
   public boolean adjustPrecision();
-
-  public boolean shouldForceToStop();
-
 }

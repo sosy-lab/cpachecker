@@ -46,14 +46,12 @@ public class ProgressObserverPrecision implements Precision {
 
   public boolean adjustPrecisions(){
     boolean precisionAdjusted = false;
-    boolean shouldForceToStop = false;
     for(Precision pre: precisions){
       if(pre instanceof HeuristicPrecision){
         precisionAdjusted |= ((HeuristicPrecision)pre).adjustPrecision();
-        shouldForceToStop |= ((HeuristicPrecision)pre).shouldForceToStop();
       }
     }
-    return (!shouldForceToStop) & precisionAdjusted;
+    return precisionAdjusted;
   }
 
 }

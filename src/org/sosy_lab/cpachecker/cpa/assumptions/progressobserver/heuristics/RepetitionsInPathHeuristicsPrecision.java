@@ -66,10 +66,4 @@ public class RepetitionsInPathHeuristicsPrecision implements HeuristicPrecision 
     thresholdFunction = Functions.constant((threshold <= 0) ? null : threshold);
     return true;
   }
-
-  @Override
-  public boolean shouldForceToStop() {
-    return false;
-  }
-
 }

@@ -190,13 +190,6 @@ cpa.assumptions.progressobserver.heuristics.edgeCountHeuristics.threshold = -1
 cpa.assumptions.progressobserver.heuristics.pathLengthHeuristics.threshold = -1
 cpa.assumptions.progressobserver.heuristics.repetitionsInPathHeuristics.threshold = -1
 
-# hard limit threshold for timeout heuristics, disable restarting after this
-# limit
-cpa.assumptions.progressobserver.heuristics.timeOutHeuristics.hardLimitThreshold = -1
-
-# threshold for timeout heuristics
-cpa.assumptions.progressobserver.heuristics.timeOutHeuristics.threshold = -1
-
 # signal the analysis to break in case of reached error state
 cpa.automaton.breakOnTargetState = true
 

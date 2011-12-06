@@ -61,10 +61,4 @@ public class PathLengthHeuristicsPrecision implements HeuristicPrecision {
     }
     return true;
   }
-
-  @Override
-  public boolean shouldForceToStop() {
-    return false;
-  }
-
 }
