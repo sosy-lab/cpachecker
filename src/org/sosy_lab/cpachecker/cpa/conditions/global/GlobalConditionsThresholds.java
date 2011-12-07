@@ -109,7 +109,7 @@ class GlobalConditionsThresholds {
       return false; // to not continue
     }
 
-    if (cpuEndTime >= cpuTimeHardLimit) {
+    if (cpuEndTime >= 0 && cpuEndTime >= cpuTimeHardLimit) {
       // TODO check current cpu time instead of cpuEndTime
       return false; // do not continue
     }

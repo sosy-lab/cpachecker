@@ -234,6 +234,18 @@ cpa.conditions.global.time.wall = -1
 # When using adjustable conditions, analysis will end after this threshold
 cpa.conditions.global.time.wall.hardlimit = -1
 
+# maximum number of assume edges length (-1 for infinite)
+cpa.conditions.path.assumeedges.limit = -1
+
+# The condition
+cpa.conditions.path.condition = no default value
+
+# maximum path length (-1 for infinite)
+cpa.conditions.path.length.limit = -1
+
+# maximum repetitions of any edge in a path (-1 for infinite)
+cpa.conditions.path.repetitions.limit = -1
+
 # which merge operator to use for DefUseCPA
 cpa.defuse.merge = "sep"
   allowed values: [sep, join]
