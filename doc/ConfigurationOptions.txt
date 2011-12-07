@@ -184,11 +184,6 @@ cpa.art.file = "ART.dot"
 # which heuristics should be used to track progress?
 cpa.assumptions.progressobserver.heuristics = no default value
 
-# threshold for heuristics of progressobserver
-cpa.assumptions.progressobserver.heuristics.assumeEdgesInPathHeuristics.threshold = -1
-cpa.assumptions.progressobserver.heuristics.pathLengthHeuristics.threshold = -1
-cpa.assumptions.progressobserver.heuristics.repetitionsInPathHeuristics.threshold = -1
-
 # signal the analysis to break in case of reached error state
 cpa.automaton.breakOnTargetState = true
 
