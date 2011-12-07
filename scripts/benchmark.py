@@ -1022,15 +1022,19 @@ def substituteVars(oldList, benchmark, test,
     keyValueList = [('${benchmark_name}', benchmark.name),
                     ('${benchmark_date}', benchmark.date),
                     ('${benchmark_path}', os.path.dirname(benchmark.benchmarkFile)),
+                    ('${benchmark_path_abs}', os.path.abspath(os.path.dirname(benchmark.benchmarkFile))),
                     ('${benchmark_file}', os.path.basename(benchmark.benchmarkFile)),
+                    ('${benchmark_file_abs}', os.path.abspath(os.path.basename(benchmark.benchmarkFile))),
                     ('${test_name}',      test.name if test.name is not None else 'noName')]
 
     if sourcefile:
         keyValueList.append(('${sourcefile_name}', os.path.basename(sourcefile)))
         keyValueList.append(('${sourcefile_path}', os.path.dirname(sourcefile)))
+        keyValueList.append(('${sourcefile_path_abs}', os.path.dirname(os.path.abspath(sourcefile))))
 
     if outputHandler:
-        keyValueList.append(('${logfile_path}', outputHandler.logFolder))
+        keyValueList.append(('${logfile_path}', os.path.dirname(outputHandler.logFolder)))
+        keyValueList.append(('${logfile_path_abs}', os.path.abspath(outputHandler.logFolder)))
 
     # do not use keys twice
     assert len(set((key for (key, value) in keyValueList))) == len(keyValueList)
