@@ -130,7 +130,7 @@ class GlobalConditionsThresholds {
 
     if (changed) {
       humanReadableString = asHumanReadableString();
-      logger.log(Level.INFO, "Increased thresholds for", humanReadableString);
+      logger.log(Level.INFO, "Increased global condition thresholds.");
     }
 
     return true;
@@ -160,12 +160,23 @@ class GlobalConditionsThresholds {
     if (wallTime >= 0) {
       sb.append("timeout (walltime): ");
       sb.append(wallTime/1000);
-      sb.append(" s; ");
+      sb.append(" s");
+      if (wallTimeHardLimit >= 0) {
+        sb.append(" (up to ");
+        sb.append(wallTimeHardLimit/1000);
+        sb.append(" s)");
+      }
+      sb.append("; ");
     }
     if (cpuTime >= 0) {
       sb.append("timeout (cputime): ");
       sb.append(cpuTime/1000);
       sb.append(" s; ");
+      if (cpuTimeHardLimit >= 0) {
+        sb.append(" (up to ");
+        sb.append(cpuTimeHardLimit/1000);
+        sb.append(" s)");
+      }
     }
     if (heapMemory >= 0) {
       sb.append("heap usage limit: ");

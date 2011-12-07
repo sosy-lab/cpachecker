@@ -89,9 +89,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
 
     int count = 0;
 
-    // loop if restartCPA is set to false
     do {
-      restartCPA = false;
       // run the inner algorithm to fill the reached set
       sound &= innerAlgorithm.run(pReached);
 
@@ -101,6 +99,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
 
       count++;
       if (adjustmentLimit >= 0 && count > adjustmentLimit) {
+        logger.log(Level.INFO, "Terminating because adjustment limit has been reached.");
         return sound;
       }
 
@@ -117,6 +116,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
       for (AdjustableConditionCPA condCpa : conditionCPAs) {
         if (!condCpa.adjustPrecision()) {
           // this cpa said "do not continue"
+          logger.log(Level.INFO, "Terminating because of", condCpa.getClass().getSimpleName());
           return sound;
         }
       }
