@@ -23,15 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.Iterator;
 
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterators;
+import com.google.common.base.Function;
 
 /**
  * Helper functions to work with CPAs.
@@ -64,45 +61,16 @@ public class CPAs {
    */
   public static Iterable<ConfigurableProgramAnalysis> asIterable(final ConfigurableProgramAnalysis pCpa) {
 
-    return new Iterable<ConfigurableProgramAnalysis>() {
+    return new TreeIterable<ConfigurableProgramAnalysis>(pCpa, CPA_CHILDREN_FUNCTION);
+  }
+
+  private static final Function<ConfigurableProgramAnalysis, Iterator<? extends ConfigurableProgramAnalysis>> CPA_CHILDREN_FUNCTION =
+    new Function<ConfigurableProgramAnalysis, Iterator<? extends ConfigurableProgramAnalysis>>() {
       @Override
-      public Iterator<ConfigurableProgramAnalysis> iterator() {
-
-        return new Iterator<ConfigurableProgramAnalysis>() {
-
-          private final Deque<Iterator<? extends ConfigurableProgramAnalysis>> stack = new ArrayDeque<Iterator<? extends ConfigurableProgramAnalysis>>();
-          {
-            stack.push(Iterators.singletonIterator(pCpa));
-          }
-
-          @Override
-          public boolean hasNext() {
-            return !stack.isEmpty();
-          }
-
-          @Override
-          public ConfigurableProgramAnalysis next() {
-            Iterator<? extends ConfigurableProgramAnalysis> currentIterator = stack.peek();
-            Preconditions.checkState(currentIterator.hasNext());
-            ConfigurableProgramAnalysis current = currentIterator.next();
-
-            if (!currentIterator.hasNext()) {
-              stack.pop();
-            }
-
-            if (current instanceof WrapperCPA) {
-              stack.push(((WrapperCPA)current).getWrappedCPAs().iterator());
-            }
-
-            return current;
-          }
-
-          @Override
-          public void remove() {
-            throw new UnsupportedOperationException();
-          }
-        };
+      public Iterator<? extends ConfigurableProgramAnalysis> apply(ConfigurableProgramAnalysis cpa) {
+        return (cpa instanceof WrapperCPA)
+             ? ((WrapperCPA)cpa).getWrappedCPAs().iterator()
+             : null;
       }
     };
-  }
 }
