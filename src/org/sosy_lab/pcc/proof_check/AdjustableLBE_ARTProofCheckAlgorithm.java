@@ -124,6 +124,7 @@ public class AdjustableLBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm
           if (!rootFound) {
             // set root
             root = newNode;
+            rootFound = true;
             //check root properties
             if (root.getAbstractionType() != AbstractionType.Abstraction
                 || (!(handler.createFormula(root.getAbstraction())).isTrue())) {
@@ -145,6 +146,7 @@ public class AdjustableLBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm
         return PCCCheckResult.UnknownCFANode;
       }
     }
+    if (root == null) { return PCCCheckResult.UncoveredCFANode; }
     return PCCCheckResult.Success;
   }
 
@@ -227,7 +229,7 @@ public class AdjustableLBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm
           // check stack
           try {
             if (child.getCorrespondingCFANode().getNodeNumber() != Integer.parseInt(stack.substring(
-                  stack.lastIndexOf(Separators.stackEntrySeparator) + 1, stack.length()))) { return PCCCheckResult.ART_CFA_Mismatch; }
+                stack.lastIndexOf(Separators.stackEntrySeparator) + 1, stack.length()))) { return PCCCheckResult.ART_CFA_Mismatch; }
           } catch (NumberFormatException e) {
             return PCCCheckResult.InvalidStack;
           }
@@ -261,9 +263,7 @@ public class AdjustableLBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm
     // check program end
     if (cfaForProof.getMainFunction().getExitNode().equals(cfaNode)) {
       if (pNode.getNumberOfEdges() != 0) { return PCCCheckResult.ART_CFA_Mismatch; }
-      if (!pStack.equals("")) {
-        return PCCCheckResult.InvalidStack;
-      }
+      if (!pStack.equals("")) { return PCCCheckResult.InvalidStack; }
       return PCCCheckResult.Success;
     }
     // check false abstractions
@@ -453,8 +453,6 @@ public class AdjustableLBE_ARTProofCheckAlgorithm extends ARTProofCheckAlgorithm
           && (!(pEdge.getSuccessor() instanceof FunctionDefinitionNode) || pEdge.getPredecessor().getNodeNumber() == returnAddresses
               .get(pEdges[i].getTarget()).intValue()) && covering != null
           && covering.getCorrespondingCFANode().getNodeNumber() == pEdge.getSuccessor().getNodeNumber()) {
-        // check if same location node
-        // TODO falsch
         // check feasible coverage
         rightAbstraction = handler.createFormula(covering.getAbstraction());
         intermediate = handler.addIndices(pPath.getSsa(), rightAbstraction);
