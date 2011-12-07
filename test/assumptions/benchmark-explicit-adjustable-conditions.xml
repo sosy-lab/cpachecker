@@ -15,7 +15,7 @@
       <includesfile>test/assumptions/adjustableConditions.set</includesfile>
     </sourcefiles>
     <option name="-config">test/assumptions/explicit-adjustableConditions.properties</option>
-    <option name="-setprop">cpa.assumptions.progressobserver.heuristics=PathLengthHeuristics</option>
+    <option name="-setprop">cpa.conditions.path.condition=PathLengthCondition</option>
     <option name="-setprop">cpa.conditions.global.time.wall=10000</option>
   </test>
   <test name="adjustable-conditions-rip">
@@ -23,7 +23,7 @@
       <includesfile>test/assumptions/adjustableConditions.set</includesfile>
     </sourcefiles>
     <option name="-config">test/assumptions/explicit-adjustableConditions.properties</option>
-    <option name="-setprop">cpa.assumptions.progressobserver.heuristics=RepetitionsInPathHeuristics</option>
+    <option name="-setprop">cpa.conditions.path.condition=RepetitionsInPathCondition</option>
     <option name="-setprop">cpa.conditions.global.time.wall=10000</option>
   </test>
   <test name="adjustable-conditions-ae">
@@ -31,7 +31,7 @@
       <includesfile>test/assumptions/adjustableConditions.set</includesfile>
     </sourcefiles>
     <option name="-config">test/assumptions/explicit-adjustableConditions.properties</option>
-    <option name="-setprop">cpa.assumptions.progressobserver.heuristics=AssumeEdgesInPathHeuristics</option>
+    <option name="-setprop">cpa.conditions.path.condition=AssumeEdgesInPathCondition</option>
     <option name="-setprop">cpa.conditions.global.time.wall=10000</option>
   </test>
   <columns>
