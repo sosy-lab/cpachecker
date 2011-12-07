@@ -87,7 +87,6 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
   public boolean run(ReachedSet pReached) throws CPAException, InterruptedException {
     boolean sound = true;
 
-    boolean restartCPA;
     int count = 0;
 
     // loop if restartCPA is set to false
@@ -110,15 +109,8 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
       // if there are elements that an assumption is generated for
       if (!elementsWithAssumptions.isEmpty()) {
         logger.log(Level.INFO, "Adjusting heuristics thresholds.");
-        // if any of the elements' threshold is adjusted
-        if (adjustThresholds(elementsWithAssumptions, pReached)){
-          restartCPA = true;
-
-        } else {
-          // no elements adjusted but there are elements with assumptions
-          // the analysis should report UNSOUND
-          sound = false;
-        }
+        // if necessary, this will re-add elements to the waitlist
+        adjustThresholds(elementsWithAssumptions, pReached);
       }
 
       // adjust precision of condition CPAs
@@ -129,7 +121,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
         }
       }
 
-    } while (restartCPA);
+    } while (pReached.hasWaitingElement());
 
     return sound;
   }
