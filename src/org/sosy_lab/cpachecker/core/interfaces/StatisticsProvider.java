@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import java.util.Collection;
 
 /**
  * Interface for classes that provide statistics.
@@ -39,6 +38,6 @@ public interface StatisticsProvider {
    *
    * @param statsCollection The collection where the statistics are added.
    */
-  public void collectStatistics(Collection<Statistics> statsCollection);
+  public void collectStatistics(StatisticsConsumer statsConsumer);
 
 }

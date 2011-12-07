@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment.Action;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsConsumer;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -108,7 +109,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public boolean run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
+  public boolean run(final ReachedSet reachedSet, Runnable runAfterEachIteration) throws CPAException, InterruptedException {
     stats.totalTimer.start();
     final TransferRelation transferRelation = cpa.getTransferRelation();
     final MergeOperator mergeOperator = cpa.getMergeOperator();
@@ -228,13 +229,17 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
           reachedSet.add(successor, successorPrecision);
         }
       }
+
+      if (runAfterEachIteration != null) {
+        runAfterEachIteration.run();
+      }
     }
     stats.totalTimer.stop();
     return true;
   }
 
   @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(stats);
+  public void collectStatistics(StatisticsConsumer statsConsumer) {
+    statsConsumer.addTerminationStatistics(new Statistics[]{stats});
   }
 }

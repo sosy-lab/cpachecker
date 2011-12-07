@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.StatisticsContainer;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -785,8 +786,8 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     }
-    Set<Statistics> lStatistics = new HashSet<Statistics>();
-    lStatistics.add(lARTStatistics);
+    StatisticsContainer lStatistics = new StatisticsContainer(this.getClass().getSimpleName(), null);
+    lStatistics.addTerminationStatistics(new Statistics[]{lARTStatistics});
     lAlgorithm.collectStatistics(lStatistics);
 
     if (mReuseART) {
@@ -802,7 +803,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     }
 
     try {
-      lAlgorithm.run(pReachedSet);
+      lAlgorithm.run(pReachedSet, null);
     } catch (CPAException e) {
       throw new RuntimeException(e);
     } catch (InterruptedException e) {
@@ -939,7 +940,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
-      lAlgorithm.run(lReachedSet);
+      lAlgorithm.run(lReachedSet, null);
     } catch (CPAException e) {
       throw new RuntimeException(e);
     } catch (InterruptedException e) {
@@ -1018,7 +1019,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
-      lAlgorithm.run(lReachedSet);
+      lAlgorithm.run(lReachedSet, null);
     } catch (CPAException e) {
       throw new RuntimeException(e);
     } catch (InterruptedException e) {
@@ -1128,13 +1129,13 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     }
-    Set<Statistics> lStatistics = new HashSet<Statistics>();
-    lStatistics.add(lARTStatistics);
+    StatisticsContainer lStatistics = new StatisticsContainer(this.getClass().getSimpleName(),null);
+    lStatistics.addTerminationStatistics(new Statistics[]{lARTStatistics});
     lBasicAlgorithm.collectStatistics(lStatistics);
 
 
     try {
-      lBasicAlgorithm.run(pReachedSet);
+      lBasicAlgorithm.run(pReachedSet, null);
     } catch (CPAException e) {
       throw new RuntimeException(e);
     } catch (InterruptedException e) {

@@ -31,7 +31,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -43,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.StatisticsContainer;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -422,9 +422,10 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     }
-    Set<Statistics> lStatistics = new HashSet<Statistics>();
-    lStatistics.add(lARTStatistics);
-    lAlgorithm.collectStatistics(lStatistics);
+
+    StatisticsContainer lStatContainer = new StatisticsContainer(this.getClass().getSimpleName(), null);
+    lStatContainer.addTerminationStatistics(new Statistics[]{lARTStatistics});
+    lAlgorithm.collectStatistics(lStatContainer);
 
     AbstractElement lInitialElement = lARTCPA.getInitialElement(pEntryNode);
     Precision lInitialPrecision = lARTCPA.getInitialPrecision(pEntryNode);
@@ -433,7 +434,7 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
-      lAlgorithm.run(lReachedSet);
+      lAlgorithm.run(lReachedSet, null);
     } catch (CPAException e) {
       throw new RuntimeException(e);
     } catch (InterruptedException e) {
@@ -534,7 +535,7 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
-      lAlgorithm.run(lReachedSet);
+      lAlgorithm.run(lReachedSet, null);
     } catch (CPAException e) {
       throw new RuntimeException(e);
     } catch (InterruptedException e) {

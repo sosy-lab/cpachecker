@@ -135,7 +135,7 @@ public class InterpreterCPATest {
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
-      lAlgorithm.run(lReachedSet);
+      lAlgorithm.run(lReachedSet, null);
     } catch (CPAException e) {
       throw new RuntimeException(e);
     }
@@ -226,7 +226,7 @@ public class InterpreterCPATest {
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
-      lAlgorithm.run(lReachedSet);
+      lAlgorithm.run(lReachedSet, null);
     } catch (CPAException e) {
       throw new RuntimeException(e);
     }
@@ -317,7 +317,7 @@ public class InterpreterCPATest {
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
-      lAlgorithm.run(lReachedSet);
+      lAlgorithm.run(lReachedSet, null);
     } catch (CPAException e) {
       throw new RuntimeException(e);
     }
@@ -408,7 +408,7 @@ public class InterpreterCPATest {
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
-      lAlgorithm.run(lReachedSet);
+      lAlgorithm.run(lReachedSet, null);
     } catch (CPAException e) {
       throw new RuntimeException(e);
     }

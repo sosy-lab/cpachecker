@@ -446,7 +446,7 @@ public class ABMTransferRelation implements TransferRelation {
         abstractElementToReachedSet.put(initialElement, reached);
       }
 
-      algorithm.run(reached);
+      algorithm.run(reached, null);
 
       // if the element is an error element
       AbstractElement lastElement = reached.getLastElement();

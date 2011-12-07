@@ -38,6 +38,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.ContinuousStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -53,7 +54,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.predicate.predmap")
-class PredicateCPAStatistics implements Statistics {
+class PredicateCPAStatistics implements Statistics, ContinuousStatistics {
 
     @Option(description="export final predicate map, if the error location is not reached")
     private boolean export = true;
@@ -74,6 +75,16 @@ class PredicateCPAStatistics implements Statistics {
 
     void addRefiner(AbstractInterpolationBasedRefiner<?, ?> ref) {
       refiner = ref;
+    }
+
+    @Override
+    public String[] announceStatisticColumns() {
+      return new String[] {"NumerOfAbstractions"};
+    }
+
+    @Override
+    public Object[] provideStatisticValues() {
+      return new Object[] {cpa.getPrecisionAdjustment().numAbstractions};
     }
 
     @Override

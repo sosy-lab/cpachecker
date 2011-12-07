@@ -29,7 +29,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -47,6 +46,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsConsumer;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -141,7 +141,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   }
 
   @Override
-  public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
+  public boolean run(ReachedSet reached, Runnable runAfterEachIteration) throws CPAException, InterruptedException {
     boolean sound = true;
 
     boolean restartCPA = false;
@@ -151,7 +151,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       restartCPA = false;
       try {
         // run the inner algorithm to fill the reached set
-        sound &= innerAlgorithm.run(reached);
+        sound &= innerAlgorithm.run(reached, runAfterEachIteration);
       } catch (RefinementFailedException failedRefinement) {
         logger.log(Level.FINER, "Dumping assumptions due to:", failedRefinement);
 
@@ -192,6 +192,10 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       } catch (CPAException e) {
         // TODO is it really wise to swallow exceptions here?
         logger.log(Level.FINER, "Dumping assumptions due to: " + e.toString());
+      }
+
+      if (runAfterEachIteration != null) {
+        runAfterEachIteration.run();
       }
     } while (restartCPA);
 
@@ -377,10 +381,11 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   }
 
   @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+  public void collectStatistics(StatisticsConsumer statsConsumer) {
     if (innerAlgorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider)innerAlgorithm).collectStatistics(pStatsCollection);
+      ((StatisticsProvider)innerAlgorithm).collectStatistics(statsConsumer);
     }
-    pStatsCollection.add(new AssumptionCollectionStatistics());
+    statsConsumer.addTerminationStatistics(new Statistics[]{new AssumptionCollectionStatistics()});
   }
+
 }

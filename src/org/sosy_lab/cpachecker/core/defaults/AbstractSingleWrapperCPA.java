@@ -23,12 +23,10 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
-import java.util.Collection;
-
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsConsumer;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 
@@ -57,9 +55,9 @@ public abstract class AbstractSingleWrapperCPA implements ConfigurableProgramAna
   }
 
   @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+  public void collectStatistics(StatisticsConsumer statsConsumer) {
     if (wrappedCpa instanceof StatisticsProvider) {
-      ((StatisticsProvider)wrappedCpa).collectStatistics(pStatsCollection);
+      ((StatisticsProvider)wrappedCpa).collectStatistics(statsConsumer);
     }
   }
 

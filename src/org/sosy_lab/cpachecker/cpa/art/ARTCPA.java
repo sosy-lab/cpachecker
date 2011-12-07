@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.cpa.art;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.util.Collection;
-
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -45,6 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsConsumer;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
@@ -139,10 +138,10 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   }
 
   @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(stats);
-    super.collectStatistics(pStatsCollection);
-  }
+  public void collectStatistics(StatisticsConsumer statsConsumer) {
+    statsConsumer.addTerminationStatistics(new Statistics[]{stats});
+    super.collectStatistics(statsConsumer);
+  };
 
   public CounterexampleInfo getLastCounterexample() {
     return lastCounterexample;

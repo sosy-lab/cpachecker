@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
-import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -54,6 +53,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsConsumer;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 
@@ -179,7 +179,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   }
 
   @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(stats);
+  public void collectStatistics(StatisticsConsumer pStatsConsumer) {
+    pStatsConsumer.addTerminationStatistics(new Statistics[]{stats});
   }
 }

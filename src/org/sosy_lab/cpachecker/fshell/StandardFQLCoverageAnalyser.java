@@ -334,7 +334,7 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
-      lAlgorithm.run(lReachedSet);
+      lAlgorithm.run(lReachedSet, null);
     } catch (CPAException e) {
       throw new RuntimeException(e);
     } catch (InterruptedException e) {
@@ -413,7 +413,7 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
-      lAlgorithm.run(lReachedSet);
+      lAlgorithm.run(lReachedSet, null);
     } catch (CPAException e) {
       throw new RuntimeException(e);
     } catch (InterruptedException e) {

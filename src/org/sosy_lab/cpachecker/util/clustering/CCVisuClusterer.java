@@ -91,13 +91,13 @@ public class CCVisuClusterer implements Clusterer {
 
   private GraphVertex createCallGraphVertex (String pFunctionName) {
     GraphVertex result = new GraphVertex(pFunctionName);
-    result.id = nodeIdSeqNo++;
+    result.setId(nodeIdSeqNo++);
     if (deterministicInitialLayout) {
-      result.pos.x = (pFunctionName.hashCode() % 3019) * 10000 + nodeIdSeqNo;
-      result.pos.y = (pFunctionName.hashCode() + 1 % 2287) * 10000 + nodeIdSeqNo;
+      result.getPosition().x = (pFunctionName.hashCode() % 3019) * 10000 + nodeIdSeqNo;
+      result.getPosition().y = (pFunctionName.hashCode() + 1 % 2287) * 10000 + nodeIdSeqNo;
     } else {
-      result.pos.x = 2 * (float) Math.random() - 1;
-      result.pos.y = 2 * (float) Math.random() - 1;
+      result.getPosition().x = 2 * (float) Math.random() - 1;
+      result.getPosition().y = 2 * (float) Math.random() - 1;
     }
 
     return result;
@@ -203,8 +203,8 @@ public class CCVisuClusterer implements Clusterer {
         Group group = graph.getGroup(i);
         if (group.getKind().equals(GroupKind.CLUSTER)) {
           for (GraphVertex vertex :  group.getNodes()) {
-            System.out.println(group.getName() + " : " + vertex.name);
-            clustersOfFunctions.put(vertex.name, group.getName());
+            System.out.println(group.getName() + " : " + vertex.getName());
+            clustersOfFunctions.put(vertex.getName(), group.getName());
           }
         }
       }

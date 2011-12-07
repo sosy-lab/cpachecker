@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -141,6 +142,8 @@ public class CPAchecker {
   private final Configuration config;
   private final CPAcheckerOptions options;
   private final ReachedSetFactory reachedSetFactory;
+  private final StatisticsContainer statContainer;
+
 
   /**
    * This method will throw an exception if the user has requested CPAchecker to
@@ -183,6 +186,7 @@ public class CPAchecker {
     options = new CPAcheckerOptions();
     config.inject(options);
     reachedSetFactory = new ReachedSetFactory(pConfiguration, pLogManager);
+    statContainer = new StatisticsContainer(this.getClass().getSimpleName(), null);
   }
 
   public CPAcheckerResult run(String filename) {
@@ -195,6 +199,7 @@ public class CPAchecker {
 
     try {
       stats = new MainCPAStatistics(config, logger);
+      statContainer.addTerminationStatistics(new Statistics[]{stats});
 
       CFA cfa = null;
 
@@ -284,10 +289,11 @@ public class CPAchecker {
     } catch (CPAException e) {
       logger.logUserException(Level.SEVERE, e, null);
     }
-    return new CPAcheckerResult(result, reached, stats);
+    return new CPAcheckerResult(result, reached, statContainer);
   }
 
-  private boolean runAlgorithm(final Algorithm algorithm,
+  private boolean runAlgorithm(
+      final Algorithm algorithm,
       final ReachedSet reached,
       final MainCPAStatistics stats) throws CPAException, InterruptedException {
 
@@ -302,7 +308,7 @@ public class CPAchecker {
     try {
 
       do {
-        sound &= algorithm.run(reached);
+        sound &= algorithm.run(reached, statContainer);
 
         // either run only once (if stopAfterError == true)
         // or until the waitlist is empty
@@ -352,7 +358,7 @@ public class CPAchecker {
       ConfigurableProgramAnalysis cpa = builder.buildCPAs();
 
       if (cpa instanceof StatisticsProvider) {
-        ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
+        ((StatisticsProvider)cpa).collectStatistics(this.statContainer);
       }
       return cpa;
 
@@ -370,7 +376,7 @@ public class CPAchecker {
 
     if (options.useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
-      algorithm = new RestartAlgorithm(config, logger, filename, cfa);
+      algorithm = new RestartAlgorithm(config, logger, filename, cfa, this.statContainer);
 
     } else {
       algorithm = new CPAAlgorithm(cpa, logger);
@@ -398,7 +404,7 @@ public class CPAchecker {
     }
 
     if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider)algorithm).collectStatistics(stats.getSubStatistics());
+      ((StatisticsProvider)algorithm).collectStatistics(this.statContainer);
     }
     return algorithm;
   }

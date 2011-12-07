@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.heuristics;
 
 import java.io.PrintStream;
-import java.util.Collection;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -33,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsConsumer;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ReachedHeuristicsDataSetView;
@@ -88,8 +88,8 @@ public class AssumeEdgesInPathHeuristics implements StopHeuristics<AssumeEdgesIn
   }
 
   @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(stats);
+  public void collectStatistics(StatisticsConsumer statsConsumer) {
+    statsConsumer.addTerminationStatistics(new Statistics[]{stats});
   }
 
   @Override

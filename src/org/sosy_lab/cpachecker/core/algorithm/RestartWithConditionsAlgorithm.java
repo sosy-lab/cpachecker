@@ -73,7 +73,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
   }
 
   @Override
-  public boolean run(ReachedSet pReached) throws CPAException, InterruptedException {
+  public boolean run(ReachedSet pReached, Runnable runAfterEachIteration) throws CPAException, InterruptedException {
     boolean sound = true;
 
     boolean restartCPA;
@@ -82,7 +82,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
     do {
       restartCPA = false;
       // run the inner algorithm to fill the reached set
-      sound &= innerAlgorithm.run(pReached);
+      sound &= innerAlgorithm.run(pReached, runAfterEachIteration);
 
       if (Iterables.any(pReached, AbstractElements.IS_TARGET_ELEMENT)) {
         return sound;

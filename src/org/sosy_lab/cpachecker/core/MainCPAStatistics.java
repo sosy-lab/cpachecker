@@ -30,8 +30,6 @@ import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -60,7 +58,6 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
@@ -201,7 +198,6 @@ class MainCPAStatistics implements Statistics {
     private boolean monitorMemoryUsage = true;
 
     private final LogManager logger;
-    private final Collection<Statistics> subStats;
     private final MemoryStatistics memStats;
 
     final Timer programTime = new Timer();
@@ -215,8 +211,6 @@ class MainCPAStatistics implements Statistics {
         logger = pLogger;
         config.inject(this);
 
-        subStats = new ArrayList<Statistics>();
-
         if (monitorMemoryUsage) {
           memStats = new MemoryStatistics(pLogger);
           memStats.setDaemon(true);
@@ -227,10 +221,6 @@ class MainCPAStatistics implements Statistics {
 
         programTime.start();
     }
-
-    public Collection<Statistics> getSubStatistics() {
-      return subStats;
-  }
 
     @Override
     public String getName() {
@@ -259,21 +249,6 @@ class MainCPAStatistics implements Statistics {
             logger.logUserException(Level.WARNING, e,
                 "Could not write reached set to file due to memory problems");
           }
-        }
-
-        for (Statistics s : subStats) {
-            String name = s.getName();
-            if (!Strings.isNullOrEmpty(name)) {
-              name = name + " statistics";
-              out.println(name);
-              out.println(Strings.repeat("-", name.length()));
-            }
-
-            s.printStatistics(out, result, reached);
-
-            if (!Strings.isNullOrEmpty(name)) {
-              out.println();
-            }
         }
 
         Set<CFANode> allLocations = ImmutableSet.copyOf(AbstractElements.extractLocations(reached));

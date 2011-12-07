@@ -36,5 +36,5 @@ public interface Algorithm {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public boolean run(ReachedSet reachedSet) throws CPAException, InterruptedException;
+  public boolean run(ReachedSet reachedSet, Runnable runAfterEachIteration) throws CPAException, InterruptedException;
 }

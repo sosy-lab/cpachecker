@@ -27,12 +27,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.TimeAccumulator;
@@ -43,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.StatisticsContainer;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -527,8 +526,8 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     }
-    Set<Statistics> lStatistics = new HashSet<Statistics>();
-    lStatistics.add(lARTStatistics);
+    StatisticsContainer lStatistics = new StatisticsContainer(this.getClass().getSimpleName(), null);
+    lStatistics.addTerminationStatistics(new Statistics[]{lARTStatistics});
     lAlgorithm.collectStatistics(lStatistics);
 
     AbstractElement lInitialElement = lARTCPA.getInitialElement(pEntryNode);
@@ -538,7 +537,7 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
-      lAlgorithm.run(lReachedSet);
+      lAlgorithm.run(lReachedSet, null);
     } catch (CPAException e) {
       throw new RuntimeException(e);
     } catch (InterruptedException e) {
@@ -593,7 +592,7 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
-      lAlgorithm.run(lReachedSet);
+      lAlgorithm.run(lReachedSet, null);
     } catch (CPAException e) {
       throw new RuntimeException(e);
     } catch (InterruptedException e) {
@@ -672,7 +671,7 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
-      lAlgorithm.run(lReachedSet);
+      lAlgorithm.run(lReachedSet, null);
     } catch (CPAException e) {
       throw new RuntimeException(e);
     } catch (InterruptedException e) {
@@ -772,7 +771,7 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
     lReachedSet.add(lInitialElement, lInitialPrecision);
 
     try {
-      lBasicAlgorithm.run(lReachedSet);
+      lBasicAlgorithm.run(lReachedSet, null);
     } catch (CPAException e) {
       throw new RuntimeException(e);
     } catch (InterruptedException e) {

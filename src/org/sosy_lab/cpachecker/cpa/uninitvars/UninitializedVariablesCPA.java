@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.uninitvars;
 
-import java.util.Collection;
-
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -46,6 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsConsumer;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -139,8 +138,8 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
   }
 
   @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(statistics);
+  public void collectStatistics(StatisticsConsumer pStatsConsumer) {
+    pStatsConsumer.addTerminationStatistics(new Statistics[]{statistics});
   }
 
 }

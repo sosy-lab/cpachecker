@@ -28,8 +28,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
@@ -46,10 +44,12 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.StatisticsContainer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsConsumer;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 
 @Options(prefix="restartAlgorithm")
@@ -66,20 +65,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   private class RestartAlgorithmStatistics implements Statistics {
 
-    private final Collection<Statistics> subStats;
     private int noOfAlgorithmsUsed = 0;
-
-    public RestartAlgorithmStatistics() {
-      subStats = new ArrayList<Statistics>();
-    }
-
-    public Collection<Statistics> getSubStatistics() {
-      return subStats;
-    }
-
-    public void resetSubStatistics(){
-      subStats.clear();
-    }
 
     @Override
     public String getName() {
@@ -93,16 +79,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       out.println("Number of algorithms provided:    " + configFiles.size());
       out.println("Number of algorithms used:        " + noOfAlgorithmsUsed);
 
-      for (Statistics s : subStats) {
-        String name = s.getName();
-        if (name != null && !name.isEmpty()) {
-          name = name + " statistics";
-          out.println("");
-          out.println(name);
-          out.println(Strings.repeat("-", name.length()));
-        }
-        s.printStatistics(out, result, reached);
-      }
     }
 
   }
@@ -114,10 +90,11 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   private final RestartAlgorithmStatistics stats;
   private final String filename;
   private final CFA cfa;
+  private final StatisticsContainer statsContainer;
 
   private Algorithm currentAlgorithm;
 
-  public RestartAlgorithm(Configuration config, LogManager pLogger, String pFilename, CFA pCfa) throws InvalidConfigurationException {
+  public RestartAlgorithm(Configuration config, LogManager pLogger, String pFilename, CFA pCfa, StatisticsContainer pParentStatisticsContainer) throws InvalidConfigurationException {
     config.inject(this);
 
     if (configFiles.isEmpty()) {
@@ -128,10 +105,11 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     this.logger = pLogger;
     this.filename = pFilename;
     this.cfa = pCfa;
+    this.statsContainer = new StatisticsContainer(this.getClass().getSimpleName(), pParentStatisticsContainer);
   }
 
   @Override
-  public boolean run(ReachedSet pReached) throws CPAException, InterruptedException {
+  public boolean run(ReachedSet pReached, Runnable runAfterEachIteration) throws CPAException, InterruptedException {
     checkArgument(pReached instanceof ForwardingReachedSet, "RestartAlgorithm needs ForwardingReachedSet");
     checkArgument(pReached.size() <= 1, "RestartAlgorithm does not support being called several times with the same reached set");
     checkArgument(!pReached.isEmpty(), "RestartAlgorithm needs non-empty reached set");
@@ -153,14 +131,14 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
 
       if (currentAlgorithm instanceof StatisticsProvider) {
-        ((StatisticsProvider)currentAlgorithm).collectStatistics(stats.getSubStatistics());
+        ((StatisticsProvider)currentAlgorithm).collectStatistics(this.statsContainer);
       }
 
       stats.noOfAlgorithmsUsed++;
 
       // run algorithm
       try {
-        boolean sound = currentAlgorithm.run(currentReached);
+        boolean sound = currentAlgorithm.run(currentReached, runAfterEachIteration);
 
         if (Iterables.any(currentReached, AbstractElements.IS_TARGET_ELEMENT)) {
           return sound;
@@ -189,8 +167,8 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       if (configFilesIterator.hasNext()) {
-        stats.printStatistics(System.out, Result.UNKNOWN, currentReached);
-        stats.resetSubStatistics();
+        statsContainer.printStatistics(System.out, Result.UNKNOWN, currentReached);
+        statsContainer.resetStatistics();
         logger.log(Level.INFO, "RestartAlgorithm switches to the next configuration...");
       }
     }
@@ -289,7 +267,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     ConfigurableProgramAnalysis cpa = builder.buildCPAs();
 
     if (cpa instanceof StatisticsProvider) {
-      ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
+      ((StatisticsProvider)cpa).collectStatistics(this.statsContainer);
     }
     return cpa;
   }
@@ -323,10 +301,10 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+  public void collectStatistics(StatisticsConsumer statsConsumer) {
     if(currentAlgorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider)currentAlgorithm).collectStatistics(pStatsCollection);
+      ((StatisticsProvider)currentAlgorithm).collectStatistics(statsConsumer);
     }
-    pStatsCollection.add(stats);
+    statsConsumer.addTerminationStatistics(new Statistics[]{stats});
   }
 }

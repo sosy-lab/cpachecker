@@ -27,7 +27,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
@@ -43,6 +42,7 @@ import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CBMCExecutor;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsConsumer;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -86,7 +86,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+  public boolean run(ReachedSet pReachedSet, Runnable runAfterEachIteration) throws CPAException, InterruptedException {
     assert pReachedSet.isEmpty();
 
     // run CBMC
@@ -161,8 +161,8 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(stats);
+  public void collectStatistics(StatisticsConsumer statsConsumer) {
+    statsConsumer.addTerminationStatistics(new Statistics[]{stats});
   }
 
   private static class Stats implements Statistics {

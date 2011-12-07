@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsConsumer;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
@@ -99,11 +100,11 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
   }
 
   @Override
-  public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
+  public boolean run(ReachedSet reached, Runnable runAfterEachIteration) throws CPAException, InterruptedException {
     boolean sound = true;
 
     while (reached.hasWaitingElement()) {
-      sound &= algorithm.run(reached);
+      sound &= algorithm.run(reached, runAfterEachIteration);
 
       AbstractElement lastElement = reached.getLastElement();
       if (!(lastElement instanceof ARTElement)) {
@@ -283,11 +284,11 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
   }
 
   @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+  public void collectStatistics(StatisticsConsumer statsConsumer) {
     if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider)algorithm).collectStatistics(pStatsCollection);
+      ((StatisticsProvider)algorithm).collectStatistics(statsConsumer);
     }
-    pStatsCollection.add(this);
+    statsConsumer.addTerminationStatistics(new Statistics[]{this});
   }
 
   @Override

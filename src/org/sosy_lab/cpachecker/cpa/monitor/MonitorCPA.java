@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.monitor;
 
-import java.util.Collection;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -38,6 +36,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsConsumer;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 
 public class MonitorCPA extends AbstractSingleWrapperCPA {
@@ -94,8 +93,9 @@ public class MonitorCPA extends AbstractSingleWrapperCPA {
   }
 
   @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(stats);
-    super.collectStatistics(pStatsCollection);
-  }
+  public void collectStatistics(StatisticsConsumer statsConsumer) {
+    statsConsumer.addTerminationStatistics(new Statistics[]{stats});
+    super.collectStatistics(statsConsumer);
+  };
+
 }

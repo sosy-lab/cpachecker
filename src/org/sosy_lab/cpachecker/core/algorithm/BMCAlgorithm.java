@@ -33,7 +33,6 @@ import static org.sosy_lab.cpachecker.util.assumptions.ReportingUtils.extractRep
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -64,6 +63,7 @@ import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsConsumer;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -212,7 +212,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public boolean run(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
+  public boolean run(final ReachedSet pReachedSet, Runnable runAfterEachIteration) throws CPAException, InterruptedException {
     if (induction) {
       CFANode initialLocation = extractLocation(pReachedSet.getFirstElement());
       invariantGenerator.start(initialLocation);
@@ -220,7 +220,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     try {
       logger.log(Level.INFO, "Creating formula for program");
-      final boolean soundInner = algorithm.run(pReachedSet);
+      final boolean soundInner = algorithm.run(pReachedSet, runAfterEachIteration);
 
       if (any(transform(skip(pReachedSet, 1), EXTRACT_PREDICATE_ELEMENT), FILTER_ABSTRACTION_ELEMENTS)) {
         // first element of reached is always an abstraction element, so skip it
@@ -505,7 +505,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     // Run algorithm in order to create formula (A & B)
 
     logger.log(Level.INFO, "Running algorithm to create induction hypothesis");
-    algorithm.run(reached);
+    algorithm.run(reached, null);
 
     Multimap<CFANode, AbstractElement> reachedPerLocation = Multimaps.index(reached, AbstractElements.EXTRACT_LOCATION);
 
@@ -710,7 +710,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
         Algorithm invariantAlgorithm = new CPAAlgorithm(invariantCPAs, logger);
 
-        invariantAlgorithm.run(reached);
+        invariantAlgorithm.run(reached, null);
 
         return reached;
 
@@ -721,10 +721,10 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+  public void collectStatistics(StatisticsConsumer statsConsumer) {
     if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider)algorithm).collectStatistics(pStatsCollection);
+      ((StatisticsProvider)algorithm).collectStatistics(statsConsumer);
     }
-    pStatsCollection.add(stats);
+    statsConsumer.addTerminationStatistics(new Statistics[]{stats});
   }
 }

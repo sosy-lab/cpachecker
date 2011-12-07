@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import java.util.Collection;
-
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -37,6 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsConsumer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.AuxiliaryComputer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.CachingRelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RefineableOccurrenceComputer;
@@ -97,12 +96,11 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
   public void setPartitioning(BlockPartitioning partitioning) {
     blk.setPartitioning(partitioning);
   }
-
   @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    super.collectStatistics(pStatsCollection);
-    pStatsCollection.add(stats);
-  }
+  public void collectStatistics(StatisticsConsumer statsConsumer) {
+    statsConsumer.addTerminationStatistics(new Statistics[]{stats});
+    super.collectStatistics(statsConsumer);
+  };
 
   ABMPredicateCPAStatistics getABMStats() {
     return stats;

@@ -213,7 +213,7 @@ public class AlternatingRefiner implements Refiner {
     boolean lMissesInput = false;
 
     try {
-      lAlgorithm.run(lReachedSet);
+      lAlgorithm.run(lReachedSet, null);
     } catch (MissingInputException e) {
       // apply refinement (see below) and continue symbolic state space exploration
       lMissesInput = true;

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core;
 
 import java.io.PrintStream;
 
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
@@ -48,13 +47,13 @@ public class CPAcheckerResult {
 
   private final ReachedSet reached;
 
-  private final Statistics stats;
+  private final StatisticsContainer statContainer;
 
-  CPAcheckerResult(Result result, ReachedSet reached, Statistics stats) {
-    Preconditions.checkNotNull(result);
-    this.result = result;
-    this.reached = reached;
-    this.stats = stats;
+  CPAcheckerResult(Result pResult, ReachedSet pReached, StatisticsContainer pStatContainer) {
+    Preconditions.checkNotNull(pResult);
+    this.result = pResult;
+    this.reached = pReached;
+    this.statContainer = pStatContainer;
   }
 
   /**
@@ -76,8 +75,8 @@ public class CPAcheckerResult {
    * may be written here, if configuration says so.
    */
   public void printStatistics(PrintStream target) {
-    if (stats != null && reached != null && result != Result.NOT_YET_STARTED) {
-      stats.printStatistics(target, result, reached);
+    if (statContainer != null && reached != null && result != Result.NOT_YET_STARTED) {
+      statContainer.printStatistics(target, result, reached);
     }
   }
 

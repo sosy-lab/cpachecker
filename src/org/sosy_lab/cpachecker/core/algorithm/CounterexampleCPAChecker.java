@@ -99,7 +99,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       PartitionedReachedSet lReached = new PartitionedReachedSet(TraversalMethod.DFS);
       lReached.add(lCpas.getInitialElement(entryNode), lCpas.getInitialPrecision(entryNode));
 
-      lAlgorithm.run(lReached);
+      lAlgorithm.run(lReached, null);
 
       if (isEmpty(filterTargetElements(lReached))) {
         return false; // target state is not reachable, counterexample is infeasible
