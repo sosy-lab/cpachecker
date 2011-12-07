@@ -559,7 +559,7 @@ public class ABMTransferRelation implements TransferRelation {
       if(starting) {
         if(callNodes.contains(currentElement)) {
           ARTElement currentReachedElement = pPathElementToReachedElement.get(currentElement);
-          CFANode node = currentReachedElement.retrieveLocationElement().getLocationNode();
+          CFANode node = extractLocation(currentReachedElement);
           Block currentBlock = partitioning.getBlockForCallNode(node);
           AbstractElement reducedElement = wrappedReducer.getVariableReducedElement(currentReachedElement, currentBlock, node);
 
@@ -594,7 +594,7 @@ public class ABMTransferRelation implements TransferRelation {
 
       if(callNodes.contains(currentElement)) {
         ARTElement currentReachedElement = pPathElementToReachedElement.get(currentElement);
-        CFANode node = currentReachedElement.retrieveLocationElement().getLocationNode();
+        CFANode node = extractLocation(currentReachedElement);
         Block currentBlock = partitioning.getBlockForCallNode(node);
         AbstractElement reducedElement = wrappedReducer.getVariableReducedElement(currentReachedElement, currentBlock, node);
 
@@ -624,7 +624,7 @@ public class ABMTransferRelation implements TransferRelation {
     removeCachedSubtreeTimer.start();
 
     try {
-      CFANode rootNode = rootElement.retrieveLocationElement().getLocationNode();
+      CFANode rootNode = extractLocation(rootElement);
 
       logger.log(Level.FINER, "Remove cached subtree for ", removeElement, " (rootNode: ", rootNode, ") issued");
 
@@ -704,8 +704,8 @@ public class ABMTransferRelation implements TransferRelation {
 
     ARTElement prevElement = path.get(1);
     for (ARTElement currentElement : Iterables.skip(path, 2)) {
-      CFANode currNode = currentElement.retrieveLocationElement().getLocationNode();
-      CFANode prevNode = prevElement.retrieveLocationElement().getLocationNode();
+      CFANode currNode = extractLocation(currentElement);
+      CFANode prevNode = extractLocation(prevElement);
       if (partitioning.isCallNode(prevNode)
           && !partitioning.getBlockForCallNode(prevNode).equals(openSubtrees.peek())) {
         if (!(isHeadOfMainFunction(prevNode))) {
@@ -724,7 +724,7 @@ public class ABMTransferRelation implements TransferRelation {
     }
 
     ARTElement lastElement = path.get(path.size()-1);
-    if(partitioning.isCallNode(lastElement.retrieveLocationElement().getLocationNode())) {
+    if(partitioning.isCallNode(extractLocation(lastElement))) {
       openCallElements.push(lastElement);
     }
 
@@ -743,8 +743,8 @@ public class ABMTransferRelation implements TransferRelation {
     ARTElement prevElement = path.get(1).getFirst();
     for (Pair<ARTElement, CFAEdge> currentElementPair : Iterables.skip(path, 2)) {
       ARTElement currentElement = currentElementPair.getFirst();
-      CFANode currNode = currentElement.retrieveLocationElement().getLocationNode();
-      CFANode prevNode = prevElement.retrieveLocationElement().getLocationNode();
+      CFANode currNode = extractLocation(currentElement);
+      CFANode prevNode = extractLocation(prevElement);
 
       pathElementToOuterReachedSet.put(prevElement, openReachedSets.peek());
 
@@ -769,7 +769,7 @@ public class ABMTransferRelation implements TransferRelation {
     }
 
     ARTElement lastElement = path.get(path.size()-1).getFirst();
-    if(partitioning.isReturnNode(lastElement.retrieveLocationElement().getLocationNode())) {
+    if(partitioning.isReturnNode(extractLocation(lastElement))) {
       returnNodes.add(lastElement);
     }
     pathElementToOuterReachedSet.put(lastElement, openReachedSets.peek());
@@ -840,7 +840,7 @@ public class ABMTransferRelation implements TransferRelation {
    * @throws RecursiveAnalysisFailedException
    */
   private ARTElement computeCounterexampleSubgraph(ARTElement root, Precision rootPrecision, ARTElement newTreeTarget, Map<ARTElement, ARTElement> pPathElementToReachedElement) throws InterruptedException, RecursiveAnalysisFailedException {
-    CFANode rootNode = root.retrieveLocationElement().getLocationNode();
+    CFANode rootNode = extractLocation(root);
     Block rootSubtree = partitioning.getBlockForCallNode(rootNode);
 
     AbstractElement reducedRootElement = wrappedReducer.getVariableReducedElement(root, rootSubtree, rootNode);
@@ -869,7 +869,7 @@ public class ABMTransferRelation implements TransferRelation {
   }
 
   Pair<Block, ReachedSet> getCachedReachedSet(ARTElement root, Precision rootPrecision) {
-    CFANode rootNode = root.retrieveLocationElement().getLocationNode();
+    CFANode rootNode = extractLocation(root);
     Block rootSubtree = partitioning.getBlockForCallNode(rootNode);
 
     ReachedSet reachSet = abstractElementToReachedSet.get(root);

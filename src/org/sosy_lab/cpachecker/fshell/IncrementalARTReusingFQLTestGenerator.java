@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.fshell;
 
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -857,7 +859,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
           ARTElement lARTElement = (ARTElement)lAbstractElement;
 
-          if (lARTElement.retrieveLocationElement().getLocationNode() != lCFANode) {
+          if (extractLocation(lARTElement) != lCFANode) {
             continue;
           }
 

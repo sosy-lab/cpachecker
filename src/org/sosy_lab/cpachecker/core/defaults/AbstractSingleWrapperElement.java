@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.core.defaults;
 import java.util.Collections;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
@@ -93,16 +92,5 @@ public abstract class AbstractSingleWrapperElement implements AbstractWrapperEle
   @Override
   public Iterable<? extends AbstractElement> getWrappedElements() {
     return Collections.singleton(wrappedElement);
-  }
-
-  @Override
-  public AbstractElementWithLocation retrieveLocationElement() {
-    if (wrappedElement instanceof AbstractWrapperElement) {
-      return ((AbstractWrapperElement)wrappedElement).retrieveLocationElement();
-    } else if (wrappedElement instanceof AbstractElementWithLocation) {
-      return (AbstractElementWithLocation)wrappedElement;
-    } else {
-      return null;
-    }
   }
 }

@@ -34,6 +34,7 @@ import sys
 
 from datetime import date
 from decimal import *
+from urllib import quote
 
 OUTPUT_PATH = "test/results/"
 
@@ -151,6 +152,8 @@ def appendTests(listOfTests, filelist, columns=None):
                     + "you should use the option '-x' or '--xml'.").replace('\n','\n    '))
                 exit()
 
+            resultElem.set("filename", resultFile)
+
             # check for equal files in the tests
             if len(listOfTests) and not containEqualFiles(listOfTests[0][0], resultElem):
                 print ('        resultfile contains different files, skipping resultfile')
@@ -184,8 +187,13 @@ def containEqualFiles(resultElem1, resultElem2):
 
 
 def insertLogFileNames(resultFile, resultElem):
+    filename = os.path.basename(resultElem.get("filename"))
+    parts = filename.split("#", 1)
+
     # get folder of logfiles
     logFolder = resultElem.get('benchmarkname') + "." + resultElem.get('date') + ".logfiles/"
+    if len(parts) > 1:
+        logFolder = "%s#%s" % (parts[0], logFolder)
 
     # create folder for txt-files (copies of the logfiles)
     txtFolder = 'table/' + logFolder
@@ -260,10 +268,12 @@ def getTableHead(listOfTests):
     systemRow = getSystemRow(listOfTests, testWidths)
     dateRow = getDateRow(listOfTests, testWidths)
     (testRow, testLine) = getTestRow(listOfTests, testWidths)
+    testBranches = getBranchRow(listOfTests, testWidths)
     testOptions = getOptionsRow(listOfTests, testWidths)
 
     return (('\n' + HTML_SHIFT).join([HTML_SHIFT + '<thead>', toolRow,
-            limitRow, systemRow, dateRow, testRow, testOptions, columnRow]) + '\n</thead>',
+            limitRow, systemRow, dateRow, testRow, testBranches, testOptions,
+            columnRow]) + '\n</thead>',
             testLine + '\n' + titleLine + '\n')
 
 
@@ -349,26 +359,32 @@ def getSystemRow(listOfTests, testWidths):
     get systemRow, each cell of it spans over all tests with this system
     '''
 
+    def getSystem(systemTag):
+        cpuTag = systemTag.find('cpu')
+        system = (systemTag.find('os').get('name'),
+                  cpuTag.get('model'),
+                  cpuTag.get('cores'),
+                  cpuTag.get('frequency'),
+                  systemTag.find('ram').get('size'),
+                  systemTag.get('hostname', 'unknown'))
+        return system
+
+    systemFormatString = '<td colspan="{0}">host: {6}<br>os: {1}<br>'\
+                       + 'cpu: {2}<br>cores: {3}, frequency: {4}, ram: {5}</td>'
     systemLine = '<tr><td>system</td>'
     systemWidth = 0
     systemTag = listOfTests[0][0].find('systeminfo')
-    cpuTag = systemTag.find('cpu')
-    system = (systemTag.find('os').get('name'), cpuTag.get('model'), cpuTag.get('cores'),
-                cpuTag.get('frequency'), systemTag.find('ram').get('size'))
+    system = getSystem(systemTag)
 
     for (testResult, columns), numberOfColumns in zip(listOfTests, testWidths):
         systemTag = testResult.find('systeminfo')
-        cpuTag = systemTag.find('cpu')
-        newSystem = (systemTag.find('os').get('name'), cpuTag.get('model'), cpuTag.get('cores'),
-                    cpuTag.get('frequency'), systemTag.find('ram').get('size'))
+        newSystem = getSystem(systemTag)
         if newSystem != system:
-            systemLine += '<td colspan="{0}">os: {1}<br>cpu: {2}<br>cores: {3}, \
-            frequency: {4}, ram: {5}</td>'.format(systemWidth, *system)
+            systemLine += systemFormatString.format(systemWidth, *system)
             systemWidth = 0
             system = newSystem
         systemWidth += numberOfColumns
-    systemLine += '<td colspan="{0}">os: {1}<br>cpu: {2}<br>cores: {3}, \
-            frequency: {4}, ram: {5}</td></tr>'.format(systemWidth, *system)
+    systemLine += systemFormatString.format(systemWidth, *system) + '</tr>'
 
     return systemLine
 
@@ -408,6 +424,19 @@ def getTestRow(listOfTests, testWidths):
 
     return ('<tr><td>test</td>' + ''.join(tests) + '</tr>',
             testLine)
+
+
+def getBranchRow(listOfTests, testWidths):
+    '''
+    create branchRow, each cell spans over the columns of a test
+    '''
+    testBranches = [os.path.basename(testResult.get('filename', '?')) for (testResult, _) in listOfTests]
+    if not any("#" in branch for branch in testBranches):
+        return ""
+    testBranches = [testBranch.split("#", 1)[0] for testBranch in testBranches]
+    branches = ['<td colspan="{0}">{1}</td>'.format(width, testBranch)
+             for (testBranch, width) in zip(testBranches, testWidths) if width]
+    return '<tr id="branch"><td>branch</td>' + ''.join(branches) + '</tr>'
 
 
 def getOptionsRow(listOfTests, testWidths):
@@ -458,7 +487,7 @@ def getTableBody(listOfTests):
 
         if LOGFILES_IN_HTML:
             rowsForHTML.append(['<td><a href="{0}">{1}</a></td>'.
-                            format(filePath, fileName.replace(commonPrefix, '', 1))])
+                            format(quote(filePath), fileName.replace(commonPrefix, '', 1))])
         else:
             rowsForHTML.append(['<td>{0}</td>'.
                             format(fileName.replace(commonPrefix, '', 1))])
@@ -542,7 +571,7 @@ def getValuesOfFileXTest(currentFile, listOfColumns):
 
                     if LOGFILES_IN_HTML:
                         valuesForHTML.append('<td class="{0}"><a href="{1}">{2}</a></td>'
-                            .format(currentFile.status, str(currentFile.get('logfileForHtml')), status))
+                            .format(currentFile.status, quote(str(currentFile.get('logfileForHtml'))), status))
                     else:
                         valuesForHTML.append('<td class="{0}">{1}</td>'
                             .format(currentFile.status, status))
@@ -668,7 +697,7 @@ def createTable(file, filesFromXML=False):
             + 'Please check the filenames in your XML-file.')
         exit()
 
-    print ('generating html ...')
+    print ('generating html into %s ...' % (HTMLOutFileName, ))
 
     (tableHeadHTML, tableHeadCSV) = getTableHead(listOfTests)
     (tableBodyHTML, tableFootHTML, tableBodyCSV) = getTableBody(listOfTests)

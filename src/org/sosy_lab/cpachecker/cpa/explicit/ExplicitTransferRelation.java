@@ -203,13 +203,14 @@ public class ExplicitTransferRelation implements TransferRelation
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
     List<IASTExpression> arguments = callEdge.getArguments();
 
-    assert(paramNames.size() == arguments.size());
+    if(!callEdge.getSuccessor().getFunctionDefinition().getDeclSpecifier().takesVarArgs())
+      assert(paramNames.size() == arguments.size());
 
     // visitor for getting the values of the actual parameters in caller function context
     ExpressionValueVisitor visitor = new ExpressionValueVisitor(element, callerFunctionName);
 
     // get value of actual parameter in caller function context
-    for(int i = 0; i < arguments.size(); i++)
+    for(int i = 0; i < paramNames.size(); i++)
     {
       Long value = arguments.get(i).accept(visitor);
 
@@ -402,7 +403,7 @@ public class ExplicitTransferRelation implements TransferRelation
     if(op1 instanceof IASTIdExpression)
     {
       // a = ...
-      if(precision.isOnBlacklist(getScopedVariableName(op1.getRawSignature(),cfaEdge.getPredecessor().getFunctionName())))
+      if(precision.isOnBlacklist(getScopedVariableName(((IASTIdExpression)op1).getName(), cfaEdge.getPredecessor().getFunctionName())))
         return element;
 
       else
@@ -427,7 +428,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
       if(op1 instanceof IASTIdExpression)
       {
-        missingInformationLeftPointer = op1.getRawSignature();
+        missingInformationLeftPointer = ((IASTIdExpression)op1).getName();
         missingInformationRightExpression = op2;
       }
 
@@ -723,6 +724,9 @@ public class ExplicitTransferRelation implements TransferRelation
         return null;
       }
 
+      case SIZEOF:
+        return null;
+
       default:
         throw new UnrecognizedCCodeException("unknown unary operator", null, unaryExpression);
       }
@@ -853,7 +857,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
       if(unaryOperand instanceof IASTIdExpression)
       {
-        String rightVar = derefPointerToVariable(pointerElement, unaryOperand.getRawSignature());
+        String rightVar = derefPointerToVariable(pointerElement, ((IASTIdExpression)unaryOperand).getName());
         if(rightVar != null)
         {
           rightVar = getScopedVariableName(rightVar, functionName);
@@ -984,7 +988,7 @@ public class ExplicitTransferRelation implements TransferRelation
         expression.getExpressionType(),
         BigInteger.ZERO);
 
-    return new IASTBinaryExpression(expression.getRawSignature() + " " + BinaryOperator.NOT_EQUALS.getOperator() + " " + zero.getRawSignature(),
+    return new IASTBinaryExpression(expression.getRawSignature() + " " + BinaryOperator.NOT_EQUALS.getOperator() + " " + zero.getValue().toString(),
                                   expression.getFileLocation(),
                                   expression.getExpressionType(),
                                   expression,

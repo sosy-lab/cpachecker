@@ -136,7 +136,17 @@ def getFilenameList(listOfSourcefileTags, listOfSourcefileDics, compare):
         return [file.get('name') for file in listOfSourcefileTags[numberOfList]]
 
 
-def compareResults(xmlFiles, compare):
+def status(currentFile):
+    fileName = currentFile.get('name').lower()
+    isSafeFile = not TableGenerator.containsAny(fileName, TableGenerator.BUG_SUBSTRING_LIST)
+    status = [x for x in currentFile.findall("column") if x.get("title") == "status"][0].get("value").lower()
+
+    if status not in ('safe', 'unsafe'):
+        return 'unknown'
+    return "correct" if (status == 'safe') == isSafeFile else "wrong"
+
+def compareResults(xmlFiles, options):
+    compare = options.compare
     print ('\ncomparing results ...')
 
     resultFiles = FileUtil.extendFileList(xmlFiles)
@@ -145,14 +155,18 @@ def compareResults(xmlFiles, compare):
         print ('Resultfile not found. Check your filenames!')
         sys.exit()
 
-    listOfTestTags = [ET.ElementTree().parse(resultFile)
-                       for resultFile in resultFiles]
+    listOfTestTags = []
+    for resultFile in resultFiles:
+        testTag = ET.ElementTree().parse(resultFile)
+        testTag.set("filename", os.path.basename(resultFile))
+        listOfTestTags.append(testTag)
 
     # copy some info from original data
     # collect all filenames for 'complete' diff
     diffXMLList = getDiffXMLList(listOfTestTags)
     emptyElemList = getEmptyElements(listOfTestTags)
     listOfSourcefileTags = [elem.findall('sourcefile') for elem in listOfTestTags]
+    statusList = [[status(file) for file in filetag] for filetag in listOfSourcefileTags]
     maxLen = max((len(file.get('name')) for file in listOfSourcefileTags[0]))
     listOfSourcefileDics = getSourcefileDics(listOfSourcefileTags)
 
@@ -195,6 +209,12 @@ def compareResults(xmlFiles, compare):
         generateHTML(diffFiles)
     else:
         print ("\n---> NO DIFFERENCE FOUND IN COLUMN 'STATUS'")
+
+    if options.dump_counts:
+        print "STATS"
+        for elem in statusList:
+            correct, wrong, unknown = elem.count("correct"), elem.count("wrong"), elem.count("unknown")
+            print correct, wrong, unknown
 
 
 def copyXMLElem(elem):
@@ -259,13 +279,17 @@ def main(args=None):
         help="Which sourcefiles should be compared? " + \
              "Use 'a' for 'all' or a number for the position."
     )
+    parser.add_option("-d", "--dump",
+        action="store_true", dest="dump_counts",
+        help="Should the good, bad, unknown counts be printed? "
+    )
     options, args = parser.parse_args(args)
 
     if len(args) < 2:
         print ('xml-file needed')
         sys.exit()
 
-    compareResults(args[1:], options.compare)
+    compareResults(args[1:], options)
 
 
 if __name__ == '__main__':

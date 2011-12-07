@@ -85,7 +85,7 @@ parser code {:
     FileInputStream input = null;
     try {
       input = new FileInputStream(pInputFile);
-      Symbol symbol = new AutomatonParser(new AutomatonScanner(input, pInputFile.getName(), config, pLogger, sf),sf, pLogger).parse();
+      Symbol symbol = new AutomatonParser(new AutomatonScanner(input, pInputFile, config, pLogger, sf),sf, pLogger).parse();
       return ((List<Automaton>) symbol.value);
     } catch (Exception e) {
       throw new InvalidConfigurationException("Could not load automaton from file " + pInputFile.getAbsolutePath()

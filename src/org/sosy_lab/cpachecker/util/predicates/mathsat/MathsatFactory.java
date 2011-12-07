@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -46,7 +47,8 @@ public class MathsatFactory {
         + "supported in this case.")
     private boolean useBitwise = false;
 
-    @Option(min=1, max=128, description="With of the bitvectors if useBitwise is true.")
+    @Option(description="With of the bitvectors if useBitwise is true.")
+    @IntegerOption(min=1, max=128)
     private int bitWidth = 32;
 
   }

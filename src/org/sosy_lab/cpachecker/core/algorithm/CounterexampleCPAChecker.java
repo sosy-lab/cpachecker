@@ -33,9 +33,9 @@ import java.util.Set;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Option.Type;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -59,8 +59,8 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
   private final CFA cfa;
 
   @Option(name="config",
-      type=Type.REQUIRED_INPUT_FILE,
       description="configuration file for counterexample checks with CPAchecker")
+  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private File configFile = new File("config/explicitAnalysis-no-cbmc.properties");
 
   public CounterexampleCPAChecker(Configuration config, LogManager logger, ReachedSetFactory pReachedSetFactory, CFA pCfa) throws InvalidConfigurationException {

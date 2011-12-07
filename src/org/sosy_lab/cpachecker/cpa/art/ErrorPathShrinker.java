@@ -185,7 +185,7 @@ public final class ErrorPathShrinker {
 
     // exp is an Identifier, i.e. the "b" from "a = b"
     else if (exp instanceof IASTIdExpression) {
-      final String varName = exp.getRawSignature();
+      final String varName = ((IASTIdExpression)exp).getName();
       importantVars.add(varName);
       if (GLOBAL_VARS.contains(varName)) {
         importantVarsForGlobalVars.add(varName);
@@ -546,7 +546,7 @@ public final class ErrorPathShrinker {
 
       // a = ?
       if (lParam instanceof IASTIdExpression) {
-        handleAssignmentToVariable(lParam.getRawSignature(), rightExp);
+        handleAssignmentToVariable(((IASTIdExpression)lParam).getName(), rightExp);
       }
 
       // TODO: assignment to pointer, *a = ?

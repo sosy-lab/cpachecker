@@ -36,6 +36,7 @@ import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -46,6 +47,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
+
+import com.google.common.base.Optional;
 
 /**
  * Counterexample checker that creates a C program for the counterexample
@@ -59,10 +63,11 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
 
   private final Timer cbmcTime = new Timer();
 
-  @Option(name = "cbmc.dumpCBMCfile", type = Option.Type.OUTPUT_FILE,
+  @Option(name = "cbmc.dumpCBMCfile",
       description = "file name where to put the path program that is generated "
       + "as input for CBMC. A temporary file is used if this is unspecified.")
-  private File CBMCFile;
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private File cbmcFile;
 
   @Option(name="cbmc.timelimit",
       description="maximum time limit for CBMC (0 is infinite)")
@@ -80,10 +85,10 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
 
     String mainFunctionName = extractLocation(pRootElement).getFunctionName();
 
-    String pathProgram = AbstractPathToCTranslator.translatePaths(cfa, pRootElement, pErrorPathElements);
+    String pathProgram = PathToCTranslator.translatePaths(Optional.of(cfa), pRootElement, pErrorPathElements);
 
     // write program to disk
-    File cFile = CBMCFile;
+    File cFile = cbmcFile;
     try {
       if (cFile != null) {
         Files.writeFile(cFile, pathProgram);
@@ -101,8 +106,8 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
     CBMCExecutor cbmc;
     int exitCode;
     try {
-      String CBMCArgs[] = {"cbmc", "--function", mainFunctionName + "_0", "--32"};
-      cbmc = new CBMCExecutor(logger, cFile, CBMCArgs);
+      String cbmcArgs[] = {"cbmc", "--function", mainFunctionName + "_0", "--32", cFile.getAbsolutePath()};
+      cbmc = new CBMCExecutor(logger, cbmcArgs);
       exitCode = cbmc.join(timelimit);
 
     } catch (IOException e) {

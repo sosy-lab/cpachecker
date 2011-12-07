@@ -37,8 +37,6 @@ import subprocess
 import sys
 import xml.etree.ElementTree as ET
 
-OUTPUT_PATH = "./test/results/"
-
 CSV_SEPARATOR = "\t"
 
 BUG_SUBSTRING_LIST = ['bug', 'unsafe']
@@ -73,6 +71,7 @@ class Benchmark:
         The constructor of Benchmark reads the files, options, columns and the tool
         from the xml-file.
         """
+        self.benchmarkFile = benchmarkFile
 
         ## looks like trouble with pyxml, better use lxml (http://codespeak.net/lxml/).
         # try:
@@ -108,12 +107,12 @@ class Benchmark:
             self.rlimits[resource.RLIMIT_CPU] = (limit, limit)
 
         # get global files, they are tested in all tests
-        globalSourcefiles = getSourceFiles(root.findall("sourcefiles"))
+        globalSourcefiles = root.findall("sourcefiles")
 
         # get benchmarks
         self.tests = []
         for testTag in root.findall("test"):
-            self.tests.append(Test(testTag, globalSourcefiles))
+            self.tests.append(Test(testTag, self, globalSourcefiles))
 
         # get columns
         self.columns = self.loadColumns(root.find("columns"))
@@ -144,7 +143,7 @@ class Test:
     The class Test manages the import of files and options of a test.
     """
 
-    def __init__(self, testTag, globalSourcefiles=[]):
+    def __init__(self, testTag, benchmark, globalSourcefiles=[]):
         """
         The constructor of Test reads testname and the filenames from testTag.
         Filenames can be included or excluded, and imported from a list of
@@ -156,15 +155,15 @@ class Test:
         self.name = testTag.get("name")
 
         # get all sourcefiles
-        self.sourcefiles = globalSourcefiles + \
-                           getSourceFiles(testTag.findall("sourcefiles"))
+        self.sourcefiles = getSourceFiles(globalSourcefiles, benchmark, self) + \
+                           getSourceFiles(testTag.findall("sourcefiles"), benchmark, self)
         # print str(self.sourcefiles).replace('),', '),\n')
 
         # get all test-specific options from testTag
         self.options = getOptions(testTag)
 
 
-def getSourceFiles(sourcefilesTagList):
+def getSourceFiles(sourcefilesTagList, benchmark, test):
     '''
     The function getSourceFiles returns a list of tuples (filename, options).
     The files and their options are taken from the list of sourcefilesTags.
@@ -176,12 +175,12 @@ def getSourceFiles(sourcefilesTagList):
 
         # get included sourcefiles
         for includedFiles in sourcefilesTag.findall("include"):
-            currentSourcefiles += getFileList(includedFiles.text)
+            currentSourcefiles += getFileList(includedFiles.text, benchmark, test)
 
         # get sourcefiles from list in file
         for includesFilesFile in sourcefilesTag.findall("includesfile"):
 
-            for file in getFileList(includesFilesFile.text):
+            for file in getFileList(includesFilesFile.text, benchmark, test):
                 fileDir = os.path.dirname(file)
 
                 # check for code (if somebody changes 'include' and 'includesfile')
@@ -199,13 +198,13 @@ def getSourceFiles(sourcefilesTagList):
 
                     # ignore comments and empty lines
                     if not isComment(line):
-                        currentSourcefiles += getFileList(line, fileDir)
+                        currentSourcefiles += getFileList(line, benchmark, test, fileDir)
 
                 fileWithList.close()
 
         # remove excluded sourcefiles
         for excludedFiles in sourcefilesTag.findall("exclude"):
-            excludedFilesList = getFileList(excludedFiles.text)
+            excludedFilesList = getFileList(excludedFiles.text, benchmark, test)
             for excludedFile in excludedFilesList:
                 currentSourcefiles = removeAll(currentSourcefiles, excludedFile)
 
@@ -227,7 +226,8 @@ def isCode(filename):
         # ignore comments and empty lines
         if not isComment(line) \
                 and '{' in line: # <-- simple indicator for code
-            isCodeFile = True
+            if '${' not in line: # <-- ${abc} variable to substitute
+                isCodeFile = True
     file.close()
     return isCodeFile
 
@@ -240,7 +240,7 @@ def removeAll(list, elemToRemove):
     return [elem for elem in list if elem != elemToRemove]
 
 
-def getFileList(shortFile, root=""):
+def getFileList(shortFile, benchmark, test, root=""):
     """
     The function getFileList expands a short filename to a sorted list
     of filenames. The short filename can contain variables and wildcards.
@@ -248,6 +248,12 @@ def getFileList(shortFile, root=""):
     """
     # store shortFile for fallback
     shortFileFallback = shortFile
+
+    # replace vars like ${benchmark_path},
+    # with converting to list and back, we can use the function 'substituteVars()'
+    shortFileList = substituteVars([shortFile], benchmark, test)
+    assert len(shortFileList) == 1
+    shortFile = shortFileList[0]
 
     # 'join' ignores root, if shortFile is absolute.
     # 'normpath' replaces 'A/foo/../B' with 'A/B', for pretty printing only
@@ -277,7 +283,7 @@ def getFileList(shortFile, root=""):
         else: # Fallback for older test-sets
             logging.warning("Perpaps old or invalid test-set. Trying fallback for {0}."
                             .format(repr(shortFileFallback)))
-            fileList = getFileList(shortFileFallback)
+            fileList = getFileList(shortFileFallback, benchmark, test)
             if len(fileList) != 0:
                 logging.warning("Fallback has found some files for {0}."
                             .format(repr(shortFileFallback)))
@@ -324,7 +330,7 @@ class OutputHandler:
             os.makedirs(self.logFolder)
 
         # get information about computer
-        (opSystem, cpuModel, numberOfCores, maxFrequency, memory) = self.getSystemInfo()
+        (opSystem, cpuModel, numberOfCores, maxFrequency, memory, hostname) = self.getSystemInfo()
         version = self.getVersion(self.benchmark.tool)
 
         memlimit = None
@@ -335,9 +341,9 @@ class OutputHandler:
             timelimit = str(self.benchmark.rlimits[resource.RLIMIT_CPU][0]) + " s"
 
         self.storeHeaderInXML(version, memlimit, timelimit, opSystem, cpuModel,
-                              numberOfCores, maxFrequency, memory)
+                              numberOfCores, maxFrequency, memory, hostname)
         self.writeHeaderToLog(version, memlimit, timelimit, opSystem, cpuModel,
-                              numberOfCores, maxFrequency, memory)
+                              numberOfCores, maxFrequency, memory, hostname)
 
         # write columntitles of tests in CSV-files, this overwrites existing files
         self.CSVFiles = dict()
@@ -352,7 +358,7 @@ class OutputHandler:
 
 
     def storeHeaderInXML(self, version, memlimit, timelimit, opSystem,
-                         cpuModel, numberOfCores, maxFrequency, memory):
+                         cpuModel, numberOfCores, maxFrequency, memory, hostname):
 
         # store benchmarkInfo in XML
         self.XMLHeader = ET.Element("test",
@@ -369,7 +375,7 @@ class OutputHandler:
             {"model": cpuModel, "cores": numberOfCores, "frequency" : maxFrequency})
         ramElem = ET.Element("ram", {"size": memory})
 
-        systemInfo = ET.Element("systeminfo")
+        systemInfo = ET.Element("systeminfo", {"hostname": hostname})
         systemInfo.append(osElem)
         systemInfo.append(cpuElem)
         systemInfo.append(ramElem)
@@ -387,7 +393,7 @@ class OutputHandler:
 
 
     def writeHeaderToLog(self, version, memlimit, timelimit, opSystem,
-                         cpuModel, numberOfCores, maxFrequency, memory):
+                         cpuModel, numberOfCores, maxFrequency, memory, hostname):
         """
         This method writes information about benchmark and system into TXTFile.
         """
@@ -408,6 +414,7 @@ class OutputHandler:
         header += simpleLine
 
         systemInfo = "   SYSTEM INFORMATION\n"\
+                + "host:".ljust(columnWidth) + hostname + "\n"\
                 + "os:".ljust(columnWidth) + opSystem + "\n"\
                 + "cpu:".ljust(columnWidth) + cpuModel + "\n"\
                 + "- cores:".ljust(columnWidth) + numberOfCores + "\n"\
@@ -484,8 +491,12 @@ class OutputHandler:
         version = ''
         if (tool == "cpachecker"):
             exe = findExecutable("cpachecker", "scripts/cpa.sh")
-            version = subprocess.Popen([exe, '-help'],
-                stdout=subprocess.PIPE).communicate()[0].splitlines()[0].split()[1].strip()
+            try:
+                version = subprocess.Popen([exe, '-help'],
+                    stdout=subprocess.PIPE).communicate()[0].splitlines()[0].split()[1].strip()
+            except IndexError:
+                logging.critical('IndexError! Have you built CPAchecker?\n') # TODO better message
+                sys.exit()
 
         elif (tool == "cbmc"):
             defaultExe = None
@@ -564,7 +575,7 @@ class OutputHandler:
             memInfoFile.close()
         memTotal = memInfo.get('MemTotal', 'unknown').strip()
 
-        return (opSystem, cpuModel, numberOfCores, maxFrequency, memTotal)
+        return (opSystem, cpuModel, numberOfCores, maxFrequency, memTotal, name)
 
 
     def outputBeforeTest(self, test):
@@ -607,33 +618,6 @@ class OutputHandler:
 
         # write information about the test into TXTFile
         self.writeTestInfoToLog()
-
-
-    def substituteVars(self, sourcefile, benchmarkFile, oldList):
-        """
-        This method replaces special substrings from a list of string 
-        and return a new list.
-        """
-
-        # list with tuples (key, value): 'key' is replaced by 'value'
-        keyValueList = [('${sourcefile_name}', os.path.basename(sourcefile)),
-                        ('${sourcefile_path}', os.path.dirname(sourcefile)),
-                        ('${benchmark_name}',  self.benchmark.name),
-                        ('${benchmark_date}',  self.benchmark.date),
-                        ('${benchmark_path}',  os.path.dirname(benchmarkFile)),
-                        ('${benchmark_file}',  os.path.basename(benchmarkFile)),
-                        ('${logfile_path}',    self.logFolder),
-                        ('${test_name}',       self.test.name if self.test.name is not None else '')]
-
-        newList = []
-
-        for oldStr in oldList:
-            newStr = oldStr
-            for (key, value) in keyValueList:
-                newStr = newStr.replace(key, value)
-            newList.append(newStr)
-
-        return newList
 
 
     def outputForSkippingTest(self, test):
@@ -1027,6 +1011,47 @@ class FileWriter:
          file.close()
 
 
+def substituteVars(oldList, benchmark, test, 
+                   sourcefile=None, outputHandler=None):
+    """
+    This method replaces special substrings from a list of string 
+    and return a new list.
+    """
+
+    # list with tuples (key, value): 'key' is replaced by 'value'
+    keyValueList = [('${benchmark_name}', benchmark.name),
+                    ('${benchmark_date}', benchmark.date),
+                    ('${benchmark_path}', os.path.dirname(benchmark.benchmarkFile)),
+                    ('${benchmark_path_abs}', os.path.abspath(os.path.dirname(benchmark.benchmarkFile))),
+                    ('${benchmark_file}', os.path.basename(benchmark.benchmarkFile)),
+                    ('${benchmark_file_abs}', os.path.abspath(os.path.basename(benchmark.benchmarkFile))),
+                    ('${test_name}',      test.name if test.name is not None else 'noName')]
+
+    if sourcefile:
+        keyValueList.append(('${sourcefile_name}', os.path.basename(sourcefile)))
+        keyValueList.append(('${sourcefile_path}', os.path.dirname(sourcefile)))
+        keyValueList.append(('${sourcefile_path_abs}', os.path.dirname(os.path.abspath(sourcefile))))
+
+    if outputHandler:
+        keyValueList.append(('${logfile_path}', os.path.dirname(outputHandler.logFolder)))
+        keyValueList.append(('${logfile_path_abs}', os.path.abspath(outputHandler.logFolder)))
+
+    # do not use keys twice
+    assert len(set((key for (key, value) in keyValueList))) == len(keyValueList)
+
+    newList = []
+
+    for oldStr in oldList:
+        newStr = oldStr
+        for (key, value) in keyValueList:
+            newStr = newStr.replace(key, value)
+        if '${' in newStr:
+            logging.warn("a variable was not replaced in '{0}'".format(newStr))
+        newList.append(newStr)
+
+    return newList
+
+
 def findExecutable(program, default):
     def isExecutable(programPath):
         return os.path.isfile(programPath) and os.access(programPath, os.X_OK)
@@ -1123,9 +1148,9 @@ def run_cbmc(options, sourcefile, columns, rlimits):
         try:
             tree = ET.fromstring(output)
             status = tree.findtext('cprover-status', 'ERROR')
-        except ExpatError as e:
+        except: # catch all exceptions
             status = 'ERROR'
-            sys.stdout.write("Error parsing CBMC output: %s " % e)
+            # sys.stdout.write("Error parsing CBMC output: %s " % e)
 
         if status == "FAILURE":
             assert returncode == 10
@@ -1451,7 +1476,7 @@ def runBenchmark(benchmarkFile):
                                     benchmark.options, test.options, fileOptions))
 
                 # replace variables with special values
-                currentOptions = outputHandler.substituteVars(sourcefile, benchmarkFile, currentOptions)
+                currentOptions = substituteVars(currentOptions, benchmark, test, sourcefile, outputHandler)
 
                 outputHandler.outputBeforeRun(sourcefile, currentOptions)
 
@@ -1490,8 +1515,14 @@ def main(argv=None):
                       help="run only a special TEST from xml-file",
                       metavar="TEST")
 
-    global options
+    parser.add_option("-o", "--outputpath",
+                      dest="output_path", type="string",
+                      default="./test/results/",
+                      help="Output folder for the generated results")
+
+    global options, OUTPUT_PATH
     (options, args) = parser.parse_args(argv)
+    OUTPUT_PATH = options.output_path
 
     if len(args) < 2:
         parser.error("invalid number of arguments")
