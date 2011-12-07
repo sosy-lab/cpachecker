@@ -20,5 +20,6 @@
 	<classpathentry kind="lib" path="lib/yicesapijava.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="lib/source/ccvisu/lib/commons-math-2.1.jar"/>
+	<classpathentry kind="lib" path="lib/source/ccvisu/lib/org.eclipse.jdt.core_3.6.0.v_A58.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
