@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.art;
 
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -282,8 +284,8 @@ public class ARTElement extends AbstractSingleWrapperElement {
   public CFAEdge getEdgeToChild(ARTElement pChild) {
     Preconditions.checkArgument(children.contains(pChild));
 
-    CFANode currentLoc = this.retrieveLocationElement().getLocationNode();
-    CFANode childNode = pChild.retrieveLocationElement().getLocationNode();
+    CFANode currentLoc = extractLocation(this);
+    CFANode childNode = extractLocation(pChild);
 
     return currentLoc.getEdgeTo(childNode);
   }

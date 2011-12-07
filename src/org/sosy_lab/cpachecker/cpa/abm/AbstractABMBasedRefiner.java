@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.abm;
 
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -122,7 +124,7 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
 
       currentElement = child;
     }
-    path.add(Pair.of(currentElement, currentElement.retrieveLocationElement().getLocationNode().getLeavingEdge(0)));
+    path.add(Pair.of(currentElement, extractLocation(currentElement).getLeavingEdge(0)));
     return path;
   }
 

@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.cwriter;
 
 import static com.google.common.collect.Iterables.concat;
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -166,7 +167,7 @@ public class PathToCTranslator {
 
   private String startFunction(ARTElement firstFunctionElement, Stack<FunctionBody> functionStack) {
     // create the first stack element using the first element of the function
-    FunctionDefinitionNode functionStartNode = (FunctionDefinitionNode) firstFunctionElement.retrieveLocationElement().getLocationNode();
+    FunctionDefinitionNode functionStartNode = (FunctionDefinitionNode)extractLocation(firstFunctionElement);
     String freshFunctionName = getFreshFunctionName(functionStartNode);
 
     String lFunctionHeader = functionStartNode.getFunctionDefinition().getRawSignature();
