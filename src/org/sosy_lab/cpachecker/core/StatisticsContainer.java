@@ -31,18 +31,29 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.ContinuousStatistics;
+import org.sosy_lab.cpachecker.core.interfaces.RunnableInAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsConsumer;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 import com.google.common.base.Strings;
 
-@Options(prefix="ContinuousStatistics")
-public class StatisticsContainer implements StatisticsConsumer, Statistics, Runnable {
+@Options(prefix="continuousstatistics")
+public class StatisticsContainer implements StatisticsConsumer, Statistics, RunnableInAlgorithm, ContinuousStatistics {
+
+  @Option(name="export", description="write some statistics for each algorithm iteration to disk?")
+  private boolean exportStatistics = true;
+
+  @Option(name="file", description="write some statistics for each algorithm iteration to disk")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private File exportStatisticsFile = new File("ContinuousStatistics.txt");
 
   private final List<Statistics> overallStatistics;
   private final List<ContinuousStatistics> continuousStatistics;
@@ -50,18 +61,14 @@ public class StatisticsContainer implements StatisticsConsumer, Statistics, Runn
   private final List<StatisticsContainer> childStatisticsContainer;
   private final Map<ContinuousStatistics, Integer> numberOfColsByStat;
   private final String nameOfContainer;
-  private PrintStream continuousPrintWriter = null;
+  private final PrintStream continuousPrintWriter;
+
   private int statisticSequenceNumber = 0;
   private boolean csvHeaderWritten = false;
 
-  @Option(name="export", description="write some statistics for each algorithm iteration to disk?")
-  private boolean exportStatistics = true;
+  public StatisticsContainer(Configuration pConfig, String pNameOfContainer, StatisticsContainer pParentContainer) throws InvalidConfigurationException {
+    pConfig.inject(this);
 
-  @Option(name="file", type=Option.Type.OUTPUT_FILE,
-      description="write some statistics for each algorithm iteration to disk")
-  private File exportStatisticsFile = new File("ContinuousStatistics.txt");
-
-  public StatisticsContainer(String pNameOfContainer, StatisticsContainer pParentContainer) {
     this.overallStatistics = new ArrayList<Statistics>();
     this.continuousStatistics = new ArrayList<ContinuousStatistics>();
     this.continuousStatisticsColumns = new ArrayList<String>();
@@ -69,24 +76,22 @@ public class StatisticsContainer implements StatisticsConsumer, Statistics, Runn
     this.childStatisticsContainer = new ArrayList<StatisticsContainer>();
     this.nameOfContainer = pNameOfContainer;
 
-    continuousStatisticsColumns.add("StatisticName");
-    continuousStatisticsColumns.add("SequenceNumber");
-    continuousStatisticsColumns.add("TimeInMilliSec");
-
-
     if (pParentContainer != null) {
+      this.continuousPrintWriter = null;
       pParentContainer.addChildStatisticsContainer(this);
     } else {
       try {
         if (exportStatisticsFile != null) {
-          continuousPrintWriter = new PrintStream(exportStatisticsFile);
+          this.continuousPrintWriter = new PrintStream(exportStatisticsFile);
         } else {
-          continuousPrintWriter = null;
+          this.continuousPrintWriter = null;
         }
       } catch (FileNotFoundException e) {
         throw new RuntimeException(e);
       }
     }
+
+    addContinuousStatistics(new ContinuousStatistics[]{this});
   }
 
   public void printCsvHeader(PrintStream pTargetStream) {
@@ -123,22 +128,15 @@ public class StatisticsContainer implements StatisticsConsumer, Statistics, Runn
     }
   }
 
-  public void appendContinuousStatisticsSnapshot(PrintStream pTargetStream) {
+  public void appendContinuousStatisticsSnapshot(ReachedSet pReached, PrintStream pTargetStream) {
     if (!csvHeaderWritten) {
       printCsvHeader(pTargetStream);
       csvHeaderWritten = true;
     }
 
     StringBuilder csvRow = new StringBuilder();
-    csvRow.append(this.getName());
-    csvRow.append("\t");
-    csvRow.append(statisticSequenceNumber++);
-    csvRow.append("\t");
-    csvRow.append(System.currentTimeMillis());
-    csvRow.append("\t");
-
     for (ContinuousStatistics stat : this.continuousStatistics) {
-      Object[] statValues = stat.provideStatisticValues();
+      Object[] statValues = stat.provideStatisticValues(pReached);
       if (statValues.length == numberOfColsByStat.get(stat)) {
         for (Object value : statValues) {
           csvRow.append(value);
@@ -179,7 +177,7 @@ public class StatisticsContainer implements StatisticsConsumer, Statistics, Runn
   }
 
   @Override
-  public void run() {
+  public void run(ReachedSet pReached) {
     if (!exportStatistics) {
       return;
     }
@@ -188,10 +186,9 @@ public class StatisticsContainer implements StatisticsConsumer, Statistics, Runn
       return;
     }
 
-    this.appendContinuousStatisticsSnapshot(continuousPrintWriter);
-
+    this.appendContinuousStatisticsSnapshot(pReached, continuousPrintWriter);
     for (StatisticsContainer child : childStatisticsContainer) {
-      child.appendContinuousStatisticsSnapshot(continuousPrintWriter);
+      child.appendContinuousStatisticsSnapshot(pReached, continuousPrintWriter);
     }
   }
 
@@ -205,6 +202,16 @@ public class StatisticsContainer implements StatisticsConsumer, Statistics, Runn
 
   public void addChildStatisticsContainer(StatisticsContainer pChild) {
     this.childStatisticsContainer.add(pChild);
+  }
+
+  @Override
+  public String[] announceStatisticColumns() {
+    return new String[]{"StatisticName", "SequenceNumber", "TimeInMilliSec"};
+  }
+
+  @Override
+  public Object[] provideStatisticValues(ReachedSet pReached) {
+    return new Object[]{this.nameOfContainer, statisticSequenceNumber++, System.currentTimeMillis()};
   }
 
 }
