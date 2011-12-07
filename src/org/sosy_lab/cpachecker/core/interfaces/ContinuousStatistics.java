@@ -23,8 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 public interface ContinuousStatistics extends Statistics {
   public String[] announceStatisticColumns();
-  public Object[] provideStatisticValues();
+  public Object[] provideStatisticValues(ReachedSet pReached);
 }
