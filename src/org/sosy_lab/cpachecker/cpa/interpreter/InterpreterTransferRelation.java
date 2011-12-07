@@ -1172,7 +1172,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
     if(op1 instanceof IASTIdExpression) {
       // a = ...
-      return handleAssignmentToVariable(element, op1.getRawSignature(), op2, cfaEdge);
+      return handleAssignmentToVariable(element, ((IASTIdExpression)op1).getName(), op2, cfaEdge);
 
     } /*else if (op1 instanceof IASTUnaryExpression
         && ((IASTUnaryExpression)op1).getOperator() == IASTUnaryExpression.STAR) {
@@ -1295,7 +1295,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
       if (unaryOperand instanceof IASTIdExpression) {
         missingInformationLeftVariable = assignedVar;
-        missingInformationRightPointer = unaryOperand.getRawSignature();
+        missingInformationRightPointer = ((IASTIdExpression)unaryOperand).getName();
       } else{
         throw new UnrecognizedCCodeException(cfaEdge, unaryOperand);
       }
@@ -1455,7 +1455,7 @@ public class InterpreterTransferRelation implements TransferRelation {
       return parseLiteral((IASTLiteralExpression)expression, cfaEdge);
 
     } else if (expression instanceof IASTIdExpression) {
-      String varName = getvarName(expression.getRawSignature(), functionName);
+      String varName = getvarName(((IASTIdExpression)expression).getName(), functionName);
 
       return element.getValueFor(varName);
     } else if (expression instanceof IASTCastExpression) {

@@ -403,7 +403,7 @@ public class ExplicitTransferRelation implements TransferRelation
     if(op1 instanceof IASTIdExpression)
     {
       // a = ...
-      if(precision.isOnBlacklist(getScopedVariableName(op1.getRawSignature(),cfaEdge.getPredecessor().getFunctionName())))
+      if(precision.isOnBlacklist(getScopedVariableName(((IASTIdExpression)op1).getName(), cfaEdge.getPredecessor().getFunctionName())))
         return element;
 
       else
@@ -428,7 +428,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
       if(op1 instanceof IASTIdExpression)
       {
-        missingInformationLeftPointer = op1.getRawSignature();
+        missingInformationLeftPointer = ((IASTIdExpression)op1).getName();
         missingInformationRightExpression = op2;
       }
 
@@ -857,7 +857,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
       if(unaryOperand instanceof IASTIdExpression)
       {
-        String rightVar = derefPointerToVariable(pointerElement, unaryOperand.getRawSignature());
+        String rightVar = derefPointerToVariable(pointerElement, ((IASTIdExpression)unaryOperand).getName());
         if(rightVar != null)
         {
           rightVar = getScopedVariableName(rightVar, functionName);
@@ -988,7 +988,7 @@ public class ExplicitTransferRelation implements TransferRelation
         expression.getExpressionType(),
         BigInteger.ZERO);
 
-    return new IASTBinaryExpression(expression.getRawSignature() + " " + BinaryOperator.NOT_EQUALS.getOperator() + " " + zero.getRawSignature(),
+    return new IASTBinaryExpression(expression.getRawSignature() + " " + BinaryOperator.NOT_EQUALS.getOperator() + " " + zero.getValue().toString(),
                                   expression.getFileLocation(),
                                   expression.getExpressionType(),
                                   expression,

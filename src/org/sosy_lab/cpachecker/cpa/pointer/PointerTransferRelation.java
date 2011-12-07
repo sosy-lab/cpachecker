@@ -37,6 +37,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
@@ -59,10 +60,9 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
@@ -88,11 +88,11 @@ import org.sosy_lab.cpachecker.cpa.pointer.Memory.Variable;
 import org.sosy_lab.cpachecker.cpa.pointer.Pointer.PointerOperation;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerElement.ElementProperty;
 import org.sosy_lab.cpachecker.cpa.types.Type;
-import org.sosy_lab.cpachecker.cpa.types.TypesElement;
 import org.sosy_lab.cpachecker.cpa.types.Type.ArrayType;
 import org.sosy_lab.cpachecker.cpa.types.Type.FunctionType;
 import org.sosy_lab.cpachecker.cpa.types.Type.PointerType;
 import org.sosy_lab.cpachecker.cpa.types.Type.TypeClass;
+import org.sosy_lab.cpachecker.cpa.types.TypesElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -537,7 +537,7 @@ public class PointerTransferRelation implements TransferRelation {
       }
     } else if (expression instanceof IASTIdExpression) {
       // if (a)
-      String varName = expression.getRawSignature();
+      String varName = ((IASTIdExpression)expression).getName();
       Pointer p = element.lookupPointer(varName);
       if (p == null) {
         // no pointer
@@ -634,7 +634,7 @@ public class PointerTransferRelation implements TransferRelation {
         IASTExpression parameter = actualParameters.get(i);
 
         if (parameter instanceof IASTIdExpression) {
-          Pointer p = element.lookupPointer(parameter.getRawSignature());
+          Pointer p = element.lookupPointer(((IASTIdExpression)parameter).getName());
           actualValues.add(p); // either a pointer or null
 
         } else if (parameter instanceof IASTLiteralExpression) {
@@ -736,7 +736,7 @@ public class PointerTransferRelation implements TransferRelation {
 
       if (leftOperand instanceof IASTIdExpression) {
         Pointer leftPointer =
-            element.lookupPointer(leftOperand.getRawSignature());
+            element.lookupPointer(((IASTIdExpression)leftOperand).getName());
 
         if (leftPointer != null) {
           if (resultPointer != null) {
@@ -823,7 +823,7 @@ public class PointerTransferRelation implements TransferRelation {
     IASTExpression parameter = parameters.get(0);
 
     if (parameter instanceof IASTIdExpression) {
-      Pointer p = element.lookupPointer(parameter.getRawSignature());
+      Pointer p = element.lookupPointer(((IASTIdExpression)parameter).getName());
 
       if (p == null) {
         throw new UnrecognizedCCodeException("freeing non-pointer pointer",
@@ -920,7 +920,7 @@ public class PointerTransferRelation implements TransferRelation {
     if (leftExpression instanceof IASTIdExpression) {
       // a
       leftDereference = false;
-      leftVarName = leftExpression.getRawSignature();
+      leftVarName = ((IASTIdExpression)leftExpression).getName();
       leftPointer = element.lookupPointer(leftVarName);
 
     } else if (leftExpression instanceof IASTUnaryExpression) {
@@ -1064,7 +1064,7 @@ public class PointerTransferRelation implements TransferRelation {
       }
 
       if (op1 instanceof IASTIdExpression) {
-        Pointer rightPointer = element.lookupPointer(op1.getRawSignature());
+        Pointer rightPointer = element.lookupPointer(((IASTIdExpression)op1).getName());
 
         if (rightPointer == null) {
           if (leftPointer != null) {
@@ -1262,7 +1262,7 @@ public class PointerTransferRelation implements TransferRelation {
     } else if (expression instanceof IASTIdExpression) {
       // a = b
       Pointer rightPointer =
-          element.lookupPointer(expression.getRawSignature());
+          element.lookupPointer(((IASTIdExpression)expression).getName());
 
       if (leftPointer != null) {
         if (rightPointer == null) {
