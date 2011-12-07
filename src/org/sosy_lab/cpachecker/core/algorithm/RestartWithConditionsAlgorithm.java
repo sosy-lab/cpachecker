@@ -40,13 +40,11 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
-import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ProgressObserverPrecision;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.Precisions;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -152,27 +150,15 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
     return retList;
   }
 
-  private boolean adjustThresholds(List<AbstractElement> pElementsWithAssumptions, ReachedSet pReached) {
-    boolean precisionAdjusted = false;
+  private void adjustThresholds(List<AbstractElement> pElementsWithAssumptions, ReachedSet pReached) {
 
     ARTReachedSet reached = new ARTReachedSet(pReached, cpa);
     for (AbstractElement e: pElementsWithAssumptions) {
       ARTElement artElement = (ARTElement)e;
 
       for (ARTElement parent : ImmutableSet.copyOf(artElement.getParents())){
-        precisionAdjusted |= adjustThreshold(parent, pReached);
         reached.removeSubtree(parent);
       }
-    }
-    return precisionAdjusted;
-  }
-
-  private boolean adjustThreshold(AbstractElement pParent, ReachedSet pReached) {
-    ProgressObserverPrecision observerPrecision = Precisions.extractPrecisionByType(pReached.getPrecision(pParent), ProgressObserverPrecision.class);
-    if (observerPrecision != null) {
-      return observerPrecision.adjustPrecisions();
-    } else {
-      return false;
     }
   }
 }

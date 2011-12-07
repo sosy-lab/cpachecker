@@ -181,9 +181,6 @@ cpa.art.errorPath.source = "ErrorPath.c"
 cpa.art.export = true
 cpa.art.file = "ART.dot"
 
-# which heuristics should be used to track progress?
-cpa.assumptions.progressobserver.heuristics = no default value
-
 # signal the analysis to break in case of reached error state
 cpa.automaton.breakOnTargetState = true
 
