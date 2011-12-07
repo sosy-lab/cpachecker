@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopAlwaysOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AdjustableConditionCPA;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -54,6 +53,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
 
 /**
  * CPA for path conditions ({@link PathCondition}).

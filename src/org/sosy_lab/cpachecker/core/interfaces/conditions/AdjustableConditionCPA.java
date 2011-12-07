@@ -21,25 +21,27 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.assumptions;
-
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+package org.sosy_lab.cpachecker.core.interfaces.conditions;
 
 
 /**
- * Interface to implement in order for an object to be able to
- * contribute invariants to the invariant construction.
+ * This interface marks CPAs which implement "conditions" as presented in the
+ * technical report MIP-1107 ("Conditional Model Checking") by Beyer et. al.
+ *
+ * In addition to the paper, CPAs which implement this interface are conditions
+ * which are "adjustable", enabling an iterative analysis with a different
+ * (higher) threshold in each iteration. The algorithm implementing this is
+ * {@link org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm}.
  */
-public interface AssumptionReportingElement {
+public interface AdjustableConditionCPA {
 
   /**
-   * Get the assumption that the given abstract element
-   * wants to report for its containing node's location.
+   * Select the next higher threshold for the condition(s).
    *
-   * @return an assumption representing the assumptions to generate
-   *         for the given element, or the value null representing
-   *         the assumption true.
+   * @return false if precision could not be adjusted, for example because a
+   * user-specified upper hard limit was reached, and analysis should terminate;
+   * true otherwise
    */
-  public Formula getAssumption();
+  boolean adjustPrecision();
 
 }

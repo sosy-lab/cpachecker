@@ -23,25 +23,19 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 /**
- * This interface marks CPAs which implement "conditions" as presented in the
- * technical report MIP-1107 ("Conditional Model Checking") by Beyer et. al.
- *
- * In addition to the paper, CPAs which implement this interface are conditions
- * which are "adjustable", enabling an iterative analysis with a different
- * (higher) threshold in each iteration. The algorithm implementing this is
- * {@link org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm}.
+ * Interface to implement in order for an abstract element
+ * to be able to be over-approximated by a formula representing
+ * the abstract element.
  */
-public interface AdjustableConditionCPA {
+public interface FormulaReportingElement extends AbstractElement {
 
   /**
-   * Select the next higher threshold for the condition(s).
-   *
-   * @return false if precision could not be adjusted, for example because a
-   * user-specified upper hard limit was reached, and analysis should terminate;
-   * true otherwise
+   * Returns a formula over-approximating the element
    */
-  boolean adjustPrecision();
+  public Formula getFormulaApproximation(FormulaManager manager);
 
 }

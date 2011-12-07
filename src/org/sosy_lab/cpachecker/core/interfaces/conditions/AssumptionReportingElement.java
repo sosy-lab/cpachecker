@@ -21,22 +21,25 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.assumptions;
+package org.sosy_lab.cpachecker.core.interfaces.conditions;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+
 
 /**
- * Interface to implement in order for an abstract element
- * to be able to be over-approximated by a formula representing
- * the abstract element.
+ * Interface to implement in order for an object to be able to
+ * contribute invariants to the invariant construction.
  */
-public interface FormulaReportingElement extends AbstractElement {
+public interface AssumptionReportingElement {
 
   /**
-   * Returns a formula over-approximating the element
+   * Get the assumption that the given abstract element
+   * wants to report for its containing node's location.
+   *
+   * @return an assumption representing the assumptions to generate
+   *         for the given element, or the value null representing
+   *         the assumption true.
    */
-  public Formula getFormulaApproximation(FormulaManager manager);
+  public Formula getAssumption();
 
 }

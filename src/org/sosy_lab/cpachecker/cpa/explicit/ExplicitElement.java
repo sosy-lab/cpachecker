@@ -29,8 +29,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
+import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingElement;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.assumptions.FormulaReportingElement;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 

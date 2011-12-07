@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.conditions.path;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
+import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingElement;
 
 /**
  * Interface for a specific class of conditions which limit single paths
@@ -60,7 +60,7 @@ public interface PathCondition {
 
   /**
    * Adjust the precision of this condition, i.e., by increasing a threshold value.
-   * @see org.sosy_lab.cpachecker.core.interfaces.AdjustableConditionCPA#adjustPrecision()
+   * @see org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA#adjustPrecision()
    */
   boolean adjustPrecision();
 }

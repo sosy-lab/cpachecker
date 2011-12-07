@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopAlwaysOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AdjustableConditionCPA;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -47,6 +46,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
 
 
 public class GlobalConditionsCPA implements ConfigurableProgramAnalysis, AdjustableConditionCPA {
