@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
-import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ProgressObserverCPA;
 import org.sosy_lab.cpachecker.cpa.assumptions.progressobserver.ProgressObserverPrecision;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
@@ -79,9 +78,6 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
     cpa = (ARTCPA)pCpa;
     if (cpa.retrieveWrappedCpa(AssumptionStorageCPA.class) == null) {
       throw new InvalidConfigurationException("AssumptionStorageCPA needed for RestartWithConditionsAlgorithm");
-    }
-    if (cpa.retrieveWrappedCpa(ProgressObserverCPA.class) == null) {
-      throw new InvalidConfigurationException("ProgressObserverCPA needed for RestartWithConditionsAlgorithm");
     }
 
     conditionCPAs = ImmutableList.copyOf(Iterables.filter(CPAs.asIterable(cpa), AdjustableConditionCPA.class));
@@ -181,6 +177,10 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
 
   private boolean adjustThreshold(AbstractElement pParent, ReachedSet pReached) {
     ProgressObserverPrecision observerPrecision = Precisions.extractPrecisionByType(pReached.getPrecision(pParent), ProgressObserverPrecision.class);
-    return observerPrecision.adjustPrecisions();
+    if (observerPrecision != null) {
+      return observerPrecision.adjustPrecisions();
+    } else {
+      return false;
+    }
   }
 }
