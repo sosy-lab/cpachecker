@@ -165,6 +165,7 @@ public class ARTToCTranslator {
 
   private final List<String> globalDefinitionsList = new ArrayList<String>();
   private final Set<ARTElement> discoveredElements = new HashSet<ARTElement>();
+  private final Set<ARTElement> mergeElements = new HashSet<ARTElement>();
   private FunctionBody mainFunctionBody;
 
   private ARTToCTranslator() { }
@@ -283,7 +284,7 @@ public class ARTToCTranslator {
   }
 
   private void generateLabel(ARTElement currentElement, CompoundStatement block) {
-    if(!currentElement.getCoveredByThis().isEmpty()) {
+    if(!currentElement.getCoveredByThis().isEmpty() || mergeElements.contains(currentElement)) {
       //this element covers others; they may want to jump to it
       block.addStatement(new SimpleStatement("label_"+currentElement.getElementId()+":; "));
     }
@@ -298,16 +299,15 @@ public class ARTToCTranslator {
     currentBlock = processEdge(parentElement, childElement, edge, currentBlock);
 
     if (childElement.getParents().size() > 1) {
-      assert !(   (edge instanceof FunctionCallEdge)
-               || (edge instanceof FunctionReturnEdge)
-               || (childElement.isTarget()));
-      //if we merged, write the following code to the surrounding block of the parents block
-      currentBlock = currentBlock.getSurroundingBlock();
+      mergeElements.add(childElement);
     }
 
     if(!discoveredElements.contains(childElement)) {
       // this element was not already processed; find children of it
       getRelevantChildrenOfElement(childElement, waitlist, currentBlock);
+    } else {
+      //this element was already processed and code generated somewhere; jump to it
+      currentBlock.addStatement(new SimpleStatement("goto label_" + childElement.getElementId() + ";"));
     }
   }
 
