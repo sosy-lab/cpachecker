@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.art;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -51,27 +53,21 @@ import com.google.common.collect.ImmutableList;
 public class ARTReachedSet {
 
   private final ReachedSet mReached;
+  private final UnmodifiableReachedSet mUnmodifiableReached;
   private final ARTCPA mCpa;
 
+  public ARTReachedSet(ReachedSet pReached) {
+    this(pReached, null);
+  }
+
   public ARTReachedSet(ReachedSet pReached, ARTCPA pCpa) {
-    mReached = pReached;
+    mReached = checkNotNull(pReached);
+    mUnmodifiableReached = new UnmodifiableReachedSetWrapper(mReached);
     mCpa = pCpa;
   }
 
   public UnmodifiableReachedSet asReachedSet() {
-    return new UnmodifiableReachedSetWrapper(mReached);
-  }
-
-  public ARTElement getFirstElement() {
-    return (ARTElement)mReached.getFirstElement();
-  }
-
-  public ARTElement getLastElement() {
-    return (ARTElement)mReached.getLastElement();
-  }
-
-  public Precision getPrecision(ARTElement e) {
-    return mReached.getPrecision(e);
+    return mUnmodifiableReached;
   }
 
   /**
@@ -100,7 +96,8 @@ public class ARTReachedSet {
     Set<ARTElement> toWaitlist = removeSubtree0(e);
 
     for (ARTElement ae : toWaitlist) {
-      mReached.add(ae, adaptPrecision(ae, p));
+      mReached.updatePrecision(ae, adaptPrecision(ae, p));
+      mReached.reAddToWaitlist(ae);
     }
   }
 
@@ -114,7 +111,7 @@ public class ARTReachedSet {
    * @return The adapted precision.
    */
   private Precision adaptPrecision(ARTElement pARTElement, Precision pNewPrecision) {
-    Precision lOldPrecision = getPrecision(pARTElement);
+    Precision lOldPrecision = mReached.getPrecision(pARTElement);
 
     return Precisions.replaceByType(lOldPrecision, pNewPrecision, pNewPrecision.getClass());
   }
@@ -187,6 +184,7 @@ public class ARTReachedSet {
 
     workList.addAll(e.getChildren());
     removedElements.add(e);
+    removeCoverage(e);
     e.removeFromART();
 
     while (!workList.isEmpty()) {
@@ -197,16 +195,16 @@ public class ARTReachedSet {
         if (removedElements.add(currentElement)) {
           // not yet handled
           workList.addAll(currentElement.getChildren());
+
+          removedElements.addAll(currentElement.getCoveredByThis());
+          removeCoverage(currentElement);
+
           currentElement.removeFromART();
         }
       }
     }
 
     mReached.removeAll(removedElements);
-
-    for (ARTElement removedElement : removedElements) {
-      removeCoverage(removedElement);
-    }
   }
 
   /**
@@ -252,6 +250,10 @@ public class ARTReachedSet {
     Preconditions.checkNotNull(element);
     Preconditions.checkArgument(mReached.contains(element));
     assert !element.isCovered() : "element in reached set but covered";
+
+    if (mCpa == null) {
+      throw new UnsupportedOperationException("Need CPA for coverage checks");
+    }
 
     // get the reached set and remove the element itself and all its children
     Set<AbstractElement> localReached = new HashSet<AbstractElement>(mReached.getReached(element));
@@ -306,21 +308,6 @@ public class ARTReachedSet {
     @Override
     public boolean checkForCoveredBy(ARTElement pElement) throws CPAException {
       return delegate.checkForCoveredBy(pElement);
-    }
-
-    @Override
-    public ARTElement getFirstElement() {
-      return delegate.getFirstElement();
-    }
-
-    @Override
-    public ARTElement getLastElement() {
-      return delegate.getLastElement();
-    }
-
-    @Override
-    public Precision getPrecision(ARTElement pE) {
-      return delegate.getPrecision(pE);
     }
 
     @Override

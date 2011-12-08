@@ -34,13 +34,12 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
+import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 
@@ -54,8 +53,8 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
   private final LogManager logger;
 
   protected AbstractARTBasedRefiner(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
-    if (pCpa instanceof AbstractSingleWrapperCPA) {
-      mArtCpa = ((AbstractSingleWrapperCPA) pCpa).retrieveWrappedCpa(ARTCPA.class);
+    if (pCpa instanceof WrapperCPA) {
+      mArtCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(ARTCPA.class);
     } else {
       throw new InvalidConfigurationException("ART CPA needed for refinement");
     }
@@ -85,15 +84,25 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
 
   @Override
   public final boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
-    logger.log(Level.FINEST, "Starting ART based refinement");
+    return performRefinementWithInfo(pReached).isSpurious();
+  }
 
-    assert checkART(pReached);
+  /**
+   * This method does the same as {@link #performRefinement(ReachedSet)},
+   * but it returns some more information about the refinement.
+   */
+  public final CounterexampleInfo performRefinementWithInfo(ReachedSet pReached) throws CPAException, InterruptedException {
+    logger.log(Level.FINEST, "Starting ART based refinement");
+    mArtCpa.clearCounterexample();
+
+    assert checkART(pReached) : "ART and reached set do not match before refinement";
 
     AbstractElement lastElement = pReached.getLastElement();
-    assert lastElement instanceof ARTElement;
-    assert ((ARTElement)lastElement).isTarget();
+    assert lastElement instanceof ARTElement : "Element in reached set which is not an ARTElement";
+    assert ((ARTElement)lastElement).isTarget() : "Last element in reached is not a target element before refinement";
+    ARTReachedSet reached = new ARTReachedSet(pReached, mArtCpa);
 
-    Path path = computePath((ARTElement)lastElement, new UnmodifiableReachedSetWrapper(pReached));
+    Path path = computePath((ARTElement)lastElement, reached);
 
     if (logger.wouldBeLogged(Level.ALL) && path != null) {
       logger.log(Level.ALL, "Error path:\n", path);
@@ -101,9 +110,9 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
           Joiner.on("\n ").skipNulls().join(Collections2.transform(path, pathToFunctionCalls)));
     }
 
-    boolean result;
+    CounterexampleInfo counterexample;
     try {
-      result = performRefinement(new ARTReachedSet(pReached, mArtCpa), path);
+      counterexample = performRefinement(reached, path);
     } catch (RefinementFailedException e) {
       if (e.getErrorPath() == null) {
         e.setErrorPath(path);
@@ -111,25 +120,25 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
 
       // set the path from the exception as the target path
       // so it can be used for debugging
-      mArtCpa.setTargetPath(e.getErrorPath());
+      mArtCpa.setCounterexample(CounterexampleInfo.feasible(e.getErrorPath(), null));
       throw e;
     }
 
-    assert checkART(pReached);
+    assert checkART(pReached) : "ART and reached set do not match after refinement";
 
-    if (!result) {
-      Path targetPath = getTargetPath(path);
+    if (!counterexample.isSpurious()) {
+      Path targetPath = counterexample.getTargetPath();
 
       // new targetPath must contain root and error node
-      assert targetPath.getFirst().getFirst() == path.getFirst().getFirst();
-      assert targetPath.getLast().getFirst()  == path.getLast().getFirst();
+      assert targetPath.getFirst().getFirst() == path.getFirst().getFirst() : "Target path from refiner does not contain root node";
+      assert targetPath.getLast().getFirst()  == path.getLast().getFirst() : "Target path from refiner does not contain target state";
 
-      mArtCpa.setTargetPath(targetPath);
+      mArtCpa.setCounterexample(counterexample);
     }
 
-    logger.log(Level.FINEST, "ART based refinement finished, result is", result);
+    logger.log(Level.FINEST, "ART based refinement finished, result is", counterexample.isSpurious());
 
-    return result;
+    return counterexample;
   }
 
 
@@ -137,27 +146,11 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
    * Perform refinement.
    * @param pReached
    * @param pPath
-   * @return whether the refinement was successful
+   * @return Information about the counterexample.
    * @throws InterruptedException
    */
-  protected abstract boolean performRefinement(ARTReachedSet pReached, Path pPath)
+  protected abstract CounterexampleInfo performRefinement(ARTReachedSet pReached, Path pPath)
             throws CPAException, InterruptedException;
-
-  /**
-   * This method is intended to be overwritten if the implementation is able to
-   * provide a better target path than ARTCPA. This is probably the case when the
-   * ART is a DAG and not a tree.
-   *
-   * This method is called after {@link #performRefinement(ARTReachedSet, Path)}
-   * and only if the former method returned false. This method should then return
-   * the error path belonging to the latest call to performRefinement.
-   *
-   * @param pPath The target path.
-   * @return A path from the root node to the target node.
-   */
-  protected Path getTargetPath(Path pPath) {
-    return pPath;
-  }
 
   /**
    * This method may be overwritten if the standard behavior of <code>ARTUtils.getOnePathTo()</code> is not
@@ -171,12 +164,11 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
    * @return
    * @throws InterruptedException
    */
-  protected Path computePath(ARTElement pLastElement, UnmodifiableReachedSet pReached) throws InterruptedException, CPAException {
+  protected Path computePath(ARTElement pLastElement, ARTReachedSet pReached) throws InterruptedException, CPAException {
     return ARTUtils.getOnePathTo(pLastElement);
   }
 
   private static boolean checkART(ReachedSet pReached) {
-    Set<? extends AbstractElement> reached = pReached.getReached();
 
     Deque<AbstractElement> workList = new ArrayDeque<AbstractElement>();
     Set<ARTElement> art = new HashSet<ARTElement>();
@@ -184,15 +176,29 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     workList.add(pReached.getFirstElement());
     while (!workList.isEmpty()) {
       ARTElement currentElement = (ARTElement)workList.removeFirst();
+      assert !currentElement.isDestroyed();
+
       for (ARTElement parent : currentElement.getParents()) {
-        assert parent.getChildren().contains(currentElement);
+        assert parent.getChildren().contains(currentElement) : "Reference from parent to child is missing in ART";
       }
       for (ARTElement child : currentElement.getChildren()) {
-        assert child.getParents().contains(currentElement);
+        assert child.getParents().contains(currentElement) : "Reference from child to parent is missing in ART";
       }
 
       // check if (e \in ART) => (e \in Reached ^ e.isCovered())
-      assert reached.contains(currentElement) ^ currentElement.isCovered();
+      if (currentElement.isCovered()) {
+        assert !pReached.contains(currentElement) : "Reached set contains covered element";
+
+      } else {
+        // There is a special case here:
+        // If the element is the sibling of the target element, it might have not
+        // been added to the reached set if CPAAlgorithm stopped before.
+        // But in this case its parent is in the waitlist.
+
+        assert pReached.contains(currentElement)
+            || pReached.getWaitlist().containsAll(currentElement.getParents())
+            : "Element in ART but not in reached set";
+      }
 
       if (art.add(currentElement)) {
         workList.addAll(currentElement.getChildren());
@@ -200,7 +206,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     }
 
     // check if (e \in Reached) => (e \in ART)
-    assert art.containsAll(reached) : "Element in reached but not in ART";
+    assert art.containsAll(pReached.getReached()) : "Element in reached set but not in ART";
 
     return true;
   }

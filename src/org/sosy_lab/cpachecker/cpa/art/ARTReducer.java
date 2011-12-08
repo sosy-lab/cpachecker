@@ -48,17 +48,10 @@ public class ARTReducer implements Reducer {
 
   @Override
   public AbstractElement getVariableExpandedElement(
-      AbstractElement pRootElement, Block pRootContext,
+      AbstractElement pRootElement, Block pReducedContext,
       AbstractElement pReducedElement) {
 
-    return new ARTElement(wrappedReducer.getVariableExpandedElement(((ARTElement)pRootElement).getWrappedElement(), pRootContext, ((ARTElement)pReducedElement).getWrappedElement()), null);
-  }
-
-  @Override
-  public boolean isEqual(AbstractElement pReducedTargetElement,
-      AbstractElement pCandidateElement) {
-
-    return wrappedReducer.isEqual(((ARTElement)pReducedTargetElement).getWrappedElement(), ((ARTElement)pCandidateElement).getWrappedElement());
+    return new ARTElement(wrappedReducer.getVariableExpandedElement(((ARTElement)pRootElement).getWrappedElement(), pReducedContext, ((ARTElement)pReducedElement).getWrappedElement()), null);
   }
 
   @Override
@@ -71,6 +64,16 @@ public class ARTReducer implements Reducer {
   public Precision getVariableReducedPrecision(Precision pPrecision,
       Block pContext) {
     return wrappedReducer.getVariableReducedPrecision(pPrecision, pContext);
+  }
+
+  @Override
+  public Precision getVariableExpandedPrecision(Precision rootPrecision, Block rootContext, Precision reducedPrecision) {
+    return wrappedReducer.getVariableExpandedPrecision(rootPrecision, rootContext, reducedPrecision);
+  }
+
+  @Override
+  public int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
+    return wrappedReducer.measurePrecisionDifference(pPrecision, pOtherPrecision);
   }
 
 }

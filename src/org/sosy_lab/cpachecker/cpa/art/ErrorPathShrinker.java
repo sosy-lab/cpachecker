@@ -157,7 +157,7 @@ public final class ErrorPathShrinker {
           // if a variable (declarator) is no pointer variable,
           // it is added to the list of global variables
           if (!(specifier instanceof IASTPointerTypeSpecifier)) {
-            GLOBAL_VARS.add(declarationEdge.getName().toString());
+            GLOBAL_VARS.add(declarationEdge.getName());
           }
         }
       }
@@ -185,7 +185,7 @@ public final class ErrorPathShrinker {
 
     // exp is an Identifier, i.e. the "b" from "a = b"
     else if (exp instanceof IASTIdExpression) {
-      final String varName = exp.getRawSignature();
+      final String varName = ((IASTIdExpression)exp).getName();
       importantVars.add(varName);
       if (GLOBAL_VARS.contains(varName)) {
         importantVarsForGlobalVars.add(varName);
@@ -440,8 +440,7 @@ public final class ErrorPathShrinker {
       final CFAEdge lastEdge = shortFunctionPath.getFirst().getSecond();
       assert (lastEdge instanceof FunctionCallEdge);
       final FunctionCallEdge funcEdge = (FunctionCallEdge) lastEdge;
-      final CallToReturnEdge funcSummaryEdge =
-          funcEdge.getPredecessor().getLeavingSummaryEdge();
+      final CallToReturnEdge funcSummaryEdge = funcEdge.getSummaryEdge();
       final IASTFunctionCall funcExp = funcSummaryEdge.getExpression();
 
       // "f(x)", without a variable "a" as "a = f(x)".
@@ -547,7 +546,7 @@ public final class ErrorPathShrinker {
 
       // a = ?
       if (lParam instanceof IASTIdExpression) {
-        handleAssignmentToVariable(lParam.getRawSignature(), rightExp);
+        handleAssignmentToVariable(((IASTIdExpression)lParam).getName(), rightExp);
       }
 
       // TODO: assignment to pointer, *a = ?

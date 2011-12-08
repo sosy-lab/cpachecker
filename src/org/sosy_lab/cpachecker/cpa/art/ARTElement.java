@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.art;
 
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -43,9 +45,13 @@ public class ARTElement extends AbstractSingleWrapperElement {
 
   private final Set<ARTElement> children;
   private final Set<ARTElement> parents; // more than one parent if joining elements
+
   private ARTElement mCoveredBy = null;
   private Set<ARTElement> mCoveredByThis = null; // lazy initialization because rarely needed
+
+  private boolean mayCover = true;
   private boolean destroyed = false;
+
   private ARTElement mergedWith = null;
 
   private final int elementId;
@@ -67,19 +73,22 @@ public class ARTElement extends AbstractSingleWrapperElement {
   }
 
   public void addParent(ARTElement pOtherParent){
-    assert !destroyed;
+    assert !destroyed : "Don't use destroyed ARTElements!";
     if(parents.add(pOtherParent)){
       pOtherParent.children.add(this);
     }
   }
 
   public Set<ARTElement> getChildren() {
-    assert !destroyed;
+    assert !destroyed : "Don't use destroyed ARTElements!";
     return children;
   }
 
   protected void setCovered(ARTElement pCoveredBy) {
+    assert !isCovered();
     assert pCoveredBy != null;
+    assert pCoveredBy.mayCover;
+
     mCoveredBy = pCoveredBy;
     if (pCoveredBy.mCoveredByThis == null) {
       // lazy initialization because rarely needed
@@ -89,7 +98,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
   }
 
   public boolean isCovered() {
-    assert !destroyed;
+    assert !destroyed : "Don't use destroyed ARTElements!";
     return mCoveredBy != null;
   }
 
@@ -99,7 +108,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
   }
 
   public Set<ARTElement> getCoveredByThis() {
-    assert !destroyed;
+    assert !destroyed : "Don't use destroyed ARTElements!";
     if (mCoveredByThis == null) {
       return Collections.emptySet();
     } else {
@@ -108,14 +117,23 @@ public class ARTElement extends AbstractSingleWrapperElement {
   }
 
   protected void setMergedWith(ARTElement pMergedWith) {
-    assert !destroyed;
+    assert !destroyed : "Don't use destroyed ARTElements!";
     assert mergedWith == null;
 
     mergedWith = pMergedWith;
   }
 
-  public ARTElement getMergedWith() {
+  protected ARTElement getMergedWith() {
     return mergedWith;
+  }
+
+  boolean mayCover() {
+    return mayCover;
+  }
+
+  public void setNotCovering() {
+    assert !destroyed : "Don't use destroyed ARTElements!";
+    mayCover = false;
   }
 
   @Override
@@ -147,7 +165,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
 
   // TODO check
   public Set<ARTElement> getSubtree() {
-    assert !destroyed;
+    assert !destroyed : "Don't use destroyed ARTElements!";
     Set<ARTElement> result = new HashSet<ARTElement>();
     Deque<ARTElement> workList = new ArrayDeque<ARTElement>();
 
@@ -175,7 +193,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
    * elements will not be removed from the covered set.
    */
   public void removeFromART() {
-    assert !destroyed;
+    assert !destroyed : "Don't use destroyed ARTElements!";
 
     // clear children
     for (ARTElement child : children) {
@@ -204,6 +222,56 @@ public class ARTElement extends AbstractSingleWrapperElement {
         covered.mCoveredBy = null;
       }
       mCoveredByThis.clear();
+      mCoveredByThis = null;
+    }
+
+    destroyed = true;
+  }
+
+  /**
+   * This method does basically the same as removeFromART for this element, but
+   * before destroying it, it will copy all relationships to other elements to
+   * a new element. I.e., the replacement element will receive all parents and
+   * children of this element, and it will also cover all elements which are
+   * currently covered by this element.
+   *
+   * @param replacement
+   */
+  protected void replaceInARTWith(ARTElement replacement) {
+    assert !destroyed : "Don't use destroyed ARTElements!";
+    assert !replacement.destroyed : "Don't use destroyed ARTElements!";
+    assert !isCovered();
+    assert !replacement.isCovered();
+
+    // copy children
+    for (ARTElement child : children) {
+      assert (child.parents.contains(this));
+      child.parents.remove(this);
+      child.addParent(replacement);
+    }
+    children.clear();
+
+    for (ARTElement parent : parents) {
+      assert (parent.children.contains(this));
+      parent.children.remove(this);
+      replacement.addParent(parent);
+    }
+    parents.clear();
+
+    if (mCoveredByThis != null) {
+      if (replacement.mCoveredByThis == null) {
+        // lazy initialization because rarely needed
+        replacement.mCoveredByThis = new HashSet<ARTElement>(mCoveredByThis.size());
+      }
+
+      for (ARTElement covered : mCoveredByThis) {
+        assert covered.mCoveredBy == this;
+        covered.mCoveredBy = replacement;
+        replacement.mCoveredByThis.add(covered);
+      }
+
+      mCoveredByThis.clear();
+      mCoveredByThis = null;
     }
 
     destroyed = true;
@@ -216,9 +284,13 @@ public class ARTElement extends AbstractSingleWrapperElement {
   public CFAEdge getEdgeToChild(ARTElement pChild) {
     Preconditions.checkArgument(children.contains(pChild));
 
-    CFANode currentLoc = this.retrieveLocationElement().getLocationNode();
-    CFANode childNode = pChild.retrieveLocationElement().getLocationNode();
+    CFANode currentLoc = extractLocation(this);
+    CFANode childNode = extractLocation(pChild);
 
     return currentLoc.getEdgeTo(childNode);
+  }
+
+  public boolean isDestroyed() {
+    return destroyed;
   }
 }
