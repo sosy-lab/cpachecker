@@ -302,10 +302,7 @@ public class CPAMain {
 
     while (argsIt.hasNext()) {
       String arg = argsIt.next();
-      if (   handleArgument0("-dfs",     "analysis.traversal.order", "dfs",     arg, properties)
-          || handleArgument0("-bfs",     "analysis.traversal.order", "bfs",     arg, properties)
-          || handleArgument0("-topsort", "analysis.traversal.order", "topsort", arg, properties)
-          || handleArgument0("-cbmc",    "analysis.useCBMC", "true",            arg, properties)
+      if (   handleArgument0("-cbmc",    "analysis.useCBMC", "true",            arg, properties)
           || handleArgument0("-stats",   "statistics.print", "true",            arg, properties)
           || handleArgument0("-noout",   "output.disable",   "true",            arg, properties)
           || handleArgument1("-outputpath",    "output.path",             arg, argsIt, properties)
@@ -402,8 +399,6 @@ public class CPAMain {
     System.out.println(" -outputpath");
     System.out.println(" -logfile");
     System.out.println(" -entryfunction");
-    System.out.println(" -dfs");
-    System.out.println(" -bfs");
     System.out.println(" -timelimit");
     System.out.println(" -cbmc");
     System.out.println(" -stats");
