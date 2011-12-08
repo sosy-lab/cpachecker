@@ -23,8 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 
 import org.sosy_lab.common.Pair;
@@ -32,44 +33,51 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
-import com.google.common.collect.Iterators;
+/**
+ * Implementation of ReachedSet that forwards all calls to another instance.
+ * The target instance is changable.
+ */
+public class ForwardingReachedSet implements ReachedSet {
 
-public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
+  private volatile ReachedSet delegate;
 
-  private final UnmodifiableReachedSet delegate;
+  public ForwardingReachedSet(ReachedSet pDelegate) {
+    this.delegate = checkNotNull(pDelegate);
+  }
 
-  public UnmodifiableReachedSetWrapper(UnmodifiableReachedSet pDelegate) {
-    delegate = pDelegate;
+  public void setDelegate(ReachedSet pDelegate) {
+    delegate = checkNotNull(pDelegate);
   }
 
   @Override
   public Collection<AbstractElement> getReached() {
-    return Collections.unmodifiableCollection(delegate.getReached());
+    return delegate.getReached();
   }
 
   @Override
   public Iterator<AbstractElement> iterator() {
-    return Iterators.unmodifiableIterator(delegate.iterator());
+    return delegate.iterator();
   }
 
   @Override
   public Collection<Pair<AbstractElement, Precision>> getReachedWithPrecision() {
-    return Collections.unmodifiableCollection(delegate.getReachedWithPrecision());
+    return delegate.getReachedWithPrecision();
   }
 
   @Override
   public Collection<Precision> getPrecisions() {
-    return Collections.unmodifiableCollection(delegate.getPrecisions());
+    return delegate.getPrecisions();
   }
 
   @Override
-  public Collection<AbstractElement> getReached(AbstractElement pElement) throws UnsupportedOperationException {
-    return Collections.unmodifiableCollection(delegate.getReached(pElement));
+  public Collection<AbstractElement> getReached(AbstractElement pElement)
+      throws UnsupportedOperationException {
+    return delegate.getReached(pElement);
   }
 
   @Override
   public Collection<AbstractElement> getReached(CFANode pLocation) {
-    return Collections.unmodifiableCollection(delegate.getReached(pLocation));
+    return delegate.getReached(pLocation);
   }
 
   @Override
@@ -89,7 +97,7 @@ public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
 
   @Override
   public Collection<AbstractElement> getWaitlist() {
-    return Collections.unmodifiableCollection(delegate.getWaitlist());
+    return delegate.getWaitlist();
   }
 
   @Override
@@ -116,6 +124,52 @@ public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
   @Override
   public int size() {
     return delegate.size();
+  }
+
+  @Override
+  public void add(AbstractElement pElement, Precision pPrecision)
+      throws IllegalArgumentException {
+    delegate.add(pElement, pPrecision);
+  }
+
+  @Override
+  public void addAll(Iterable<Pair<AbstractElement, Precision>> pToAdd) {
+    delegate.addAll(pToAdd);
+  }
+
+  @Override
+  public void reAddToWaitlist(AbstractElement pE) {
+    delegate.reAddToWaitlist(pE);
+  }
+
+  @Override
+  public void updatePrecision(AbstractElement pE, Precision pNewPrecision) {
+    delegate.updatePrecision(pE, pNewPrecision);
+  }
+
+  @Override
+  public void remove(AbstractElement pElement) {
+    delegate.remove(pElement);
+  }
+
+  @Override
+  public void removeAll(Iterable<? extends AbstractElement> pToRemove) {
+    delegate.removeAll(pToRemove);
+  }
+
+  @Override
+  public void removeOnlyFromWaitlist(AbstractElement pElement) {
+    delegate.removeOnlyFromWaitlist(pElement);
+  }
+
+  @Override
+  public void clear() {
+    delegate.clear();
+  }
+
+  @Override
+  public AbstractElement popFromWaitlist() {
+    return delegate.popFromWaitlist();
   }
 
   @Override
