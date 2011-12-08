@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
@@ -312,25 +313,31 @@ public class ProgramToCTranslator {
 
   private CompoundStatement processEdge(ARTElement currentElement, ARTElement childElement, CFAEdge edge, CompoundStatement currentBlock) {
     String label = generateLabel(currentElement);
+    if(!label.isEmpty()) {
+      currentBlock.addStatement(new SimpleStatement(label));
+    }
+
     if (edge instanceof FunctionCallEdge) {
       // if this is a function call edge we need to inline it
-      currentBlock = processFunctionCall(edge, label, currentBlock);
+      currentBlock = processFunctionCall(edge, currentBlock);
     }
     else if (edge instanceof ReturnStatementEdge) {
       ReturnStatementEdge returnEdge = (ReturnStatementEdge)edge;
 
       if(returnEdge.getExpression() != null) {
-        String functionReturnType = "int"; //TODO: properly derive it
+        addGlobalReturnValueDecl(returnEdge, childElement.getElementId());
+
         String retval = returnEdge.getExpression().getRawSignature();
-        String returnVar = functionReturnType + " __return_" + childElement.getElementId(); //TODO: declare return vars globally rather than locally
-        currentBlock.addStatement(new SimpleStatement(label + returnVar + " = " + retval + ";"));
+        String returnVar = " __return_" + childElement.getElementId();
+        currentBlock.addStatement(new SimpleStatement(returnVar + " = " + retval + ";"));
       }
     }
     else if (edge instanceof FunctionReturnEdge) {
       // assumes that ReturnStateEdge is followed by FunctionReturnEdge
-      currentBlock = processReturnStatementCall(((FunctionReturnEdge)edge).getSummaryEdge(), label, currentBlock, currentElement.getElementId());
+      FunctionReturnEdge returnEdge = (FunctionReturnEdge)edge;
+      currentBlock = processReturnStatementCall(returnEdge.getSummaryEdge(), currentBlock, currentElement.getElementId());
     } else {
-      String statement = processSimpleEdge(edge, label);
+      String statement = processSimpleEdge(edge);
       if(!statement.isEmpty()) {
         currentBlock.addStatement(new SimpleStatement(statement));
       }
@@ -343,7 +350,28 @@ public class ProgramToCTranslator {
     return currentBlock;
   }
 
-  private String processSimpleEdge(CFAEdge pCFAEdge, String label) {
+  private void addGlobalReturnValueDecl(ReturnStatementEdge pReturnEdge, int pElementId) {
+    //derive return type of function
+    String returnType;
+
+    if(pReturnEdge.getSuccessor().getNumLeavingEdges() == 0) {
+      //default to int
+      returnType = "int";
+    } else {
+      assert pReturnEdge.getSuccessor().getNumLeavingEdges() == 1;
+      FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge)pReturnEdge.getSuccessor().getLeavingEdge(0);
+      CFANode functionDefNode = functionReturnEdge.getSummaryEdge().getPredecessor();
+      assert functionDefNode.getNumLeavingEdges() == 1;
+      assert functionDefNode.getLeavingEdge(0) instanceof FunctionCallEdge;
+      FunctionCallEdge callEdge = (FunctionCallEdge)functionDefNode.getLeavingEdge(0);
+      FunctionDefinitionNode fn = callEdge.getSuccessor();
+      returnType = fn.getFunctionDefinition().getDeclSpecifier().getReturnType().toASTString();
+    }
+
+    globalDefinitionsList.add(returnType + "__return_" + pElementId + ";");
+  }
+
+  private String processSimpleEdge(CFAEdge pCFAEdge) {
 
     switch (pCFAEdge.getEdgeType()) {
     case BlankEdge: {
@@ -359,7 +387,7 @@ public class ProgramToCTranslator {
     case StatementEdge: {
       StatementEdge lStatementEdge = (StatementEdge)pCFAEdge;
 
-      return label + lStatementEdge.getStatement().getRawSignature() + ";";
+      return lStatementEdge.getStatement().getRawSignature() + ";";
     }
 
     case DeclarationEdge: {
@@ -389,8 +417,7 @@ public class ProgramToCTranslator {
     return "";
   }
 
-  private CompoundStatement processFunctionCall(CFAEdge pCFAEdge, String label, CompoundStatement currentBlock) {
-    currentBlock.addStatement(new SimpleStatement(label));
+  private CompoundStatement processFunctionCall(CFAEdge pCFAEdge, CompoundStatement currentBlock) {
     CompoundStatement newBlock = new CompoundStatement(currentBlock);
     currentBlock.addStatement(newBlock);
 
@@ -413,9 +440,7 @@ public class ProgramToCTranslator {
     return newBlock;
   }
 
-  private CompoundStatement processReturnStatementCall(CallToReturnEdge pEdge, String pLabel, CompoundStatement pCurrentBlock, int id) {
-    pCurrentBlock.addStatement(new SimpleStatement(pLabel));
-
+  private CompoundStatement processReturnStatementCall(CallToReturnEdge pEdge, CompoundStatement pCurrentBlock, int id) {
     IASTFunctionCall retExp = pEdge.getExpression();
     if(retExp instanceof IASTFunctionCallStatement) {
       //end of void function, just leave block (no assignment needed)
