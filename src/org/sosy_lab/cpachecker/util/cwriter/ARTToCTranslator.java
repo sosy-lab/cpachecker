@@ -356,9 +356,8 @@ public class ARTToCTranslator {
 
     if(pReturnEdge.getSuccessor().getNumLeavingEdges() == 0) {
       //default to int
-      returnType = "int";
+      returnType = "int ";
     } else {
-      assert pReturnEdge.getSuccessor().getNumLeavingEdges() == 1;
       FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge)pReturnEdge.getSuccessor().getLeavingEdge(0);
       CFANode functionDefNode = functionReturnEdge.getSummaryEdge().getPredecessor();
       assert functionDefNode.getNumLeavingEdges() == 1;
