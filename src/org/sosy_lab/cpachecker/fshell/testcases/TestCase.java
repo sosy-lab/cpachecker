@@ -37,7 +37,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.util.predicates.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
@@ -252,8 +252,8 @@ public abstract class TestCase {
     }
   }
 
-  public static TestCase fromCounterexample(CounterexampleTraceInfo pTraceInfo, LogManager pLogManager) {
-    Model lModel = pTraceInfo.getCounterexample();
+  public static TestCase fromCounterexample(CounterexampleInfo pTraceInfo, LogManager pLogManager) {
+    Model lModel = (Model)pTraceInfo.getTargetPathAssignment();
 
     return fromCounterexample(lModel, pLogManager);
   }

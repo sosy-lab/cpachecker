@@ -37,6 +37,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -69,7 +70,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.fshell.testcases.PreciseInputsTestCase;
 import org.sosy_lab.cpachecker.fshell.testcases.TestCase;
-import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 
 public class AlternatingRefiner implements Refiner {
 
@@ -147,7 +147,9 @@ public class AlternatingRefiner implements Refiner {
   @Override
   public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
 
-    if (mPredicateRefiner.performRefinement(pReached)) {
+    CounterexampleInfo lTraceInfo = mPredicateRefiner.performRefinementWithInfo(pReached);
+
+    if (lTraceInfo.isSpurious()) {
       // symbolic path is infeasible, we continue symbolic
       // exploration after the refinement
 
@@ -155,12 +157,6 @@ public class AlternatingRefiner implements Refiner {
     }
 
     // symbolic path is feasible
-
-    CounterexampleTraceInfo lTraceInfo = mPredicateRefiner.getCounterexampleTraceInfo();
-
-    if (lTraceInfo == null || lTraceInfo.isSpurious()) {
-      throw new RuntimeException();
-    }
 
     // construct (partial) test case
     TestCase lTestCase = TestCase.fromCounterexample(lTraceInfo, mLogManager);

@@ -138,7 +138,7 @@ public class IncrementalAndAlternatingFQLTestGenerator implements FQLTestGenerat
     mWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCFAMap, mLogManager);
 
     try {
-      mWrapper.toDot("test/output/wrapper.dot");
+      mWrapper.toDot("output/wrapper.dot");
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -270,7 +270,7 @@ public class IncrementalAndAlternatingFQLTestGenerator implements FQLTestGenerat
 
     PredicateRefiner lRefiner;
     try {
-      lRefiner = new PredicateRefiner(lBasicAlgorithm.getCPA());
+      lRefiner = PredicateRefiner.create(lARTCPA);
     } catch (CPAException e) {
       throw new RuntimeException(e);
     } catch (InvalidConfigurationException e) {
