@@ -49,7 +49,7 @@ import com.google.common.collect.SetMultimap;
  * reached elements. This subset contains exactly those elements, whose partition
  * key is equal to the key of the element given as a parameter.
  */
-public class PartitionedReachedSet extends ReachedSet {
+public class PartitionedReachedSet extends DefaultReachedSet {
 
   private final SetMultimap<Object, AbstractElement> partitionedReached = LinkedHashMultimap.create();
 
