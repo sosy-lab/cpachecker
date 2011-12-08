@@ -169,10 +169,10 @@ public class ARTToCTranslator {
 
   private ARTToCTranslator() { }
 
-  public static String translateProgram(ARTElement artRoot) {
+  public static String translateART(ARTElement artRoot) {
     ARTToCTranslator translator = new ARTToCTranslator();
 
-    translator.translateProgram0(artRoot);
+    translator.translate(artRoot);
 
     return translator.generateCCode();
   }
@@ -190,7 +190,7 @@ public class ARTToCTranslator {
     return buffer.toString();
   }
 
-  private void translateProgram0(ARTElement rootElement) {
+  private void translate(ARTElement rootElement) {
     // waitlist for the edges to be processed
     Deque<ARTEdge> waitlist = new ArrayDeque<ARTEdge>(); //TODO: used to be sorted list and I don't know why yet ;-)
 
