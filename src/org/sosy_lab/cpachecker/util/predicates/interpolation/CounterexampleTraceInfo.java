@@ -21,22 +21,19 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates;
+package org.sosy_lab.cpachecker.util.predicates.interpolation;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.NavigableMap;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 
 
 /**
@@ -45,29 +42,29 @@ import com.google.common.collect.Multimap;
  * with new predicates that are sufficient to rule out the trace in the
  * refined abstract model.
  */
-public class CounterexampleTraceInfo {
+public class CounterexampleTraceInfo<I> {
     private final boolean spurious;
-    private final Multimap<AbstractElement, AbstractionPredicate> pmap;
+    private final List<I> pmap;
     private final Model mCounterexampleModel;
     private final List<Formula> mCounterexampleFormula;
-    private final NavigableMap<Integer, Map<Integer, Boolean>> branchingPreds;
+    private final Map<Integer, Boolean> branchingPreds;
 
     public CounterexampleTraceInfo() {
       mCounterexampleFormula = Collections.emptyList();
       mCounterexampleModel = null;
       spurious = true;
-      pmap = ArrayListMultimap.create();
-      branchingPreds = Maps.newTreeMap();
+      pmap = Lists.newArrayList();
+      branchingPreds = ImmutableMap.of();
     }
 
-    public CounterexampleTraceInfo(List<Formula> pCounterexampleFormula, Model pModel, NavigableMap<Integer, Map<Integer, Boolean>> preds) {
+    public CounterexampleTraceInfo(List<Formula> pCounterexampleFormula, Model pModel, Map<Integer, Boolean> preds) {
       Preconditions.checkNotNull(pCounterexampleFormula);
       Preconditions.checkNotNull(pModel);
 
       mCounterexampleFormula = pCounterexampleFormula;
       mCounterexampleModel = pModel;
       spurious = false;
-      pmap = ImmutableMultimap.of();
+      pmap = ImmutableList.of();
       branchingPreds = preds;
     }
 
@@ -86,17 +83,16 @@ public class CounterexampleTraceInfo {
      *
      * @return a list of predicates
      */
-    public Collection<AbstractionPredicate> getPredicatesForRefinement(AbstractElement e) {
-        return pmap.get(e);
+    public List<I> getPredicatesForRefinement() {
+        return pmap;
     }
 
     /**
      * Adds some predicates to the list of those corresponding to the given
      * AbstractElement
      */
-    public void addPredicatesForRefinement(AbstractElement e,
-                                           Iterable<AbstractionPredicate> preds) {
-      pmap.putAll(e, preds);
+    public void addPredicatesForRefinement(I preds) {
+      pmap.add(preds);
     }
 
     @Override
@@ -119,7 +115,7 @@ public class CounterexampleTraceInfo {
       return mCounterexampleModel;
     }
 
-    public NavigableMap<Integer, Map<Integer, Boolean>> getBranchingPredicates() {
+    public Map<Integer, Boolean> getBranchingPredicates() {
       return branchingPreds;
     }
 }

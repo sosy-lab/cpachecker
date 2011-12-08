@@ -41,18 +41,6 @@ public interface RegionManager {
   public boolean entails(Region f1, Region f2);
 
   /**
-   * checks whether f represents "false"
-   * @return true if f represents logical falsity, false otherwise
-   */
-  public boolean isFalse(Region f);
-
-  /**
-   * checks whether f represents "true"
-   * @return true if f represents logical truth, false otherwise
-   */
-  public boolean isTrue(Region pF);
-
-  /**
    * @return a representation of logical truth
    */
   public Region makeTrue();
@@ -109,7 +97,4 @@ public interface RegionManager {
    */
   public Triple<Region, Region, Region>
       getIfThenElse(Region f);
-
-  boolean equalRegions(Region pR1, Region pR2);
-
 }

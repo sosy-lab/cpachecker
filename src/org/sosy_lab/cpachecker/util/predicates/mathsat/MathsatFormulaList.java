@@ -36,7 +36,7 @@ public class MathsatFormulaList implements FormulaList {
    */
   public MathsatFormulaList(long... terms) {
     for (long t : terms) {
-      if (mathsat.api.MSAT_ERROR_TERM(t)) {
+      if (NativeApi.MSAT_ERROR_TERM(t)) {
         throw new IllegalArgumentException("Error term is not a valid formula");
       }
     }
@@ -57,7 +57,9 @@ public class MathsatFormulaList implements FormulaList {
 
   @Override
   public boolean equals(Object pObj) {
-    if (!(pObj instanceof MathsatFormulaList)) return false;
+    if (!(pObj instanceof MathsatFormulaList)) {
+      return false;
+    }
     return Arrays.equals(terms, ((MathsatFormulaList)pObj).terms);
   }
 

@@ -27,11 +27,11 @@ public class NumArray {
 
   private final long array;
 
-  public NumArray(long l){
+  NumArray(long l){
     array = l;
   }
 
-  public long getArray() {
+  long getArray() {
     return array;
   }
 
@@ -43,8 +43,9 @@ public class NumArray {
 
   @Override
   public boolean equals(Object pObj) {
-    if(!(pObj instanceof NumArray))
+    if(!(pObj instanceof NumArray)) {
       return false;
+    }
     NumArray otherArr = (NumArray) pObj;
     return this.array == otherArr.array;
   }

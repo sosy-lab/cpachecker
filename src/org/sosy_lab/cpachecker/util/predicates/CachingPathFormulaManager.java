@@ -24,11 +24,13 @@
 package org.sosy_lab.cpachecker.util.predicates;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -122,5 +124,21 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   @Override
   public PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM) {
     return delegate.makeNewPathFormula(pOldFormula, pM);
+  }
+
+  @Override
+  public PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException {
+    return delegate.makeFormulaForPath(pPath);
+  }
+
+  @Override
+  public Formula buildBranchingFormula(Iterable<ARTElement> pElementsOnPath)
+      throws CPATransferException {
+    return delegate.buildBranchingFormula(pElementsOnPath);
+  }
+
+  @Override
+  public Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Model pModel) {
+    return delegate.getBranchingPredicateValuesFromModel(pModel);
   }
 }

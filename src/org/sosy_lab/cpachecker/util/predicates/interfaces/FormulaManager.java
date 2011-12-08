@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 
@@ -86,7 +88,6 @@ public interface FormulaManager {
    * @param f2 a Formula
    * @return (IF atom THEN f1 ELSE f2)
    */
-
   public Formula makeIfThenElse(Formula cond,
       Formula f1, Formula f2);
 
@@ -159,8 +160,7 @@ public interface FormulaManager {
 
   public FormulaList makeList(Formula pF1, Formula pF2);
 
-  public FormulaList makeList(Formula... pF);
-
+  public FormulaList makeList(List<Formula> pFs);
 
   // ----------------- Complex formula manipulation -----------------
 
@@ -211,6 +211,13 @@ public interface FormulaManager {
      */
     public Collection<Formula> extractAtoms(Formula f,
              boolean splitArithEqualities, boolean conjunctionsOnly);
+
+    /**
+     * Extract all variables referenced in a formula.
+     * @param f the formula to analyze
+     * @return a set of variables
+     */
+    public Set<String> extractVariables(Formula f);
 
     /**
      * Create string representation of a formula in a format which may be dumped

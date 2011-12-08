@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 import java.util.Collection;
 
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 
 public interface TheoremProver {
@@ -33,6 +34,7 @@ public interface TheoremProver {
   void init();
   void push(Formula f);
   void pop();
+  boolean isUnsat();
   boolean isUnsat(Formula f);
   Model getModel();
   void reset();

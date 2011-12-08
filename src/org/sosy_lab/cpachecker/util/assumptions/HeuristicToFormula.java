@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.assumptions;
 
-import org.sosy_lab.common.Pair;
 
 /**
  * Creates a predicate as an UIF for a heuristic using the
@@ -54,9 +53,7 @@ public class HeuristicToFormula {
     }
   }
 
-  public static String getFormulaStringForHeuristic(Pair<PreventingHeuristicType, Long> preventingCondition){
-    PreventingHeuristicType type = preventingCondition.getFirst();
-    Long thresholdValue = preventingCondition.getSecond();
+  public static String getFormulaStringForHeuristic(PreventingHeuristicType type, long thresholdValue) {
     return "VAR " + type.getPredicateString() + ": INTEGER -> BOOLEAN \n\n " + "FORMULA (" + type.getPredicateString() + "(" + thresholdValue + "))";
   }
 

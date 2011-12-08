@@ -27,11 +27,11 @@ public class Octagon {
 
   private final long octId;
 
-  public Octagon(long l) {
+  Octagon(long l) {
     octId = l;
   }
 
-  public long getOctId() {
+  long getOctId() {
     return octId;
   }
 
@@ -42,8 +42,9 @@ public class Octagon {
 
   @Override
   public boolean equals(Object pObj) {
-    if(!(pObj instanceof Octagon))
-        return false;
+    if(!(pObj instanceof Octagon)) {
+      return false;
+    }
     Octagon otherOct = (Octagon) pObj;
     return this.octId == otherOct.octId;
   }
