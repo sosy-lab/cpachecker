@@ -65,6 +65,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   private final PrecisionAdjustment precisionAdjustment;
   private final Reducer reducer;
   private final Statistics stats;
+  private final PostProcessor innerPostProcessor;
   private final PostProcessor postProcessor;
 
   private CounterexampleInfo lastCounterexample = null;
@@ -97,10 +98,11 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     stats = new ARTStatistics(config, this);
 
     if(cpa instanceof PostProcessor) {
-      postProcessor = (PostProcessor)cpa;
+      innerPostProcessor = (PostProcessor)cpa;
     } else {
-      postProcessor = null;
+      innerPostProcessor = null;
     }
+    postProcessor = new ARTDumper(config, this);
   }
 
   @Override
@@ -168,8 +170,9 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
 
   @Override
   public void postProcess(ReachedSet pReached) {
-    if(postProcessor != null) {
-      postProcessor.postProcess(pReached);
+    if(innerPostProcessor != null) {
+      innerPostProcessor.postProcess(pReached);
     }
+    postProcessor.postProcess(pReached);
   }
 }
