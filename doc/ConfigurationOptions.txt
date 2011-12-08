@@ -114,6 +114,8 @@ cbmc.options.nuaf = false
 # specify the limit for unwindings (0 is infinite)
 cbmc.options.unwindings = 0
 
+# maximum time limit for CBMC (use milliseconds or specify a unit; 0 for
+# infinite)
 # maximum time limit for CBMC (0 is infinite)
 cbmc.timelimit = 0
 
@@ -210,19 +212,21 @@ cpa.conditions.global.memory.process = -1
 # Limit for size of reached set (-1 for infinite)
 cpa.conditions.global.reached.size = -1
 
-# Limit for cpu time used by CPAchecker (in milliseconds; -1 for infinite)
+# Limit for cpu time used by CPAchecker (use milliseconds or specify a unit;
+# -1 for infinite)
 cpa.conditions.global.time.cpu = -1
 
-# Hard limit for cpu time used by CPAchecker (in milliseconds; -1 for
-# infinite)
+# Hard limit for cpu time used by CPAchecker (use milliseconds or specify a
+# unit; -1 for infinite)
 # When using adjustable conditions, analysis will end after this threshold
 cpa.conditions.global.time.cpu.hardlimit = -1
 
-# Limit for wall time used by CPAchecker (in milliseconds; -1 for infinite)
+# Limit for wall time used by CPAchecker (use milliseconds or specify a unit;
+# -1 for infinite)
 cpa.conditions.global.time.wall = -1
 
-# Hard limit for wall time used by CPAchecker (in milliseconds; -1 for
-# infinite)
+# Hard limit for wall time used by CPAchecker (use milliseconds or specify a
+# unit; -1 for infinite)
 # When using adjustable conditions, analysis will end after this threshold
 cpa.conditions.global.time.wall.hardlimit = -1
 
@@ -284,10 +288,12 @@ cpa.invariants.merge = "JOIN"
 # be unsound
 cpa.loopstack.maxLoopIterations = 0
 
-# time limit for a single post computation in millseconds (0 to disable)
+# time limit for a single post computation (use milliseconds or specify a
+# unit; 0 for infinite)
 cpa.monitor.limit = 0
 
-# time limit for all computations on a path in milliseconds (0 to disable)
+# time limit for all computations on a path in milliseconds (use milliseconds
+# or specify a unit; 0 for infinite)
 cpa.monitor.pathcomputationlimit = 0
 
 # which merge operator to use for OctagonCPA?
@@ -466,7 +472,8 @@ cpa.predicate.refinement.shortestCexTraceZigZag = false
 # split arithmetic equalities when extracting predicates from interpolants
 cpa.predicate.refinement.splitItpAtoms = false
 
-# time limit for refinement (0 is infinitely long)
+# time limit for refinement (use milliseconds or specify a unit; 0 for
+# infinite)
 cpa.predicate.refinement.timelimit = 0
 
 # verify if the interpolants fulfill the interpolant properties

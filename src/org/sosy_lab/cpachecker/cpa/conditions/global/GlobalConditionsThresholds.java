@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.conditions.global;
 
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -31,6 +32,7 @@ import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.configuration.TimeSpanOption;
 
 @Options(prefix="cpa.conditions.global")
 class GlobalConditionsThresholds {
@@ -42,31 +44,39 @@ class GlobalConditionsThresholds {
 
 
   @Option(name="time.wall",
-      description="Limit for wall time used by CPAchecker (in milliseconds; -1 for infinite)")
-  @IntegerOption(min=-1)
+      description="Limit for wall time used by CPAchecker (use milliseconds or specify a unit; -1 for infinite)")
+  @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
+      defaultUserUnit=TimeUnit.MILLISECONDS,
+      min=-1)
   private long wallTime = -1;
 
   private long wallEndTime; // when to end analysis (according to wall time limit)
 
   @Option(name="time.wall.hardlimit",
-      description="Hard limit for wall time used by CPAchecker (in milliseconds; -1 for infinite)" +
+      description="Hard limit for wall time used by CPAchecker (use milliseconds or specify a unit; -1 for infinite)" +
       		"\nWhen using adjustable conditions, analysis will end after this threshold")
-  @IntegerOption(min=-1)
+  @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
+      defaultUserUnit=TimeUnit.MILLISECONDS,
+      min=-1)
   private long wallTimeHardLimit = -1;
 
   private long wallEndTimeHardLimit;
 
   @Option(name="time.cpu",
-      description="Limit for cpu time used by CPAchecker (in milliseconds; -1 for infinite)")
-  @IntegerOption(min=-1)
+      description="Limit for cpu time used by CPAchecker (use milliseconds or specify a unit; -1 for infinite)")
+  @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
+      defaultUserUnit=TimeUnit.MILLISECONDS,
+      min=-1)
   private long cpuTime = -1;
 
   private long cpuEndTime;  // when to end analysis (according to cpu time limit)
 
   @Option(name="time.cpu.hardlimit",
-      description="Hard limit for cpu time used by CPAchecker (in milliseconds; -1 for infinite)" +
+      description="Hard limit for cpu time used by CPAchecker (use milliseconds or specify a unit; -1 for infinite)" +
           "\nWhen using adjustable conditions, analysis will end after this threshold")
-  @IntegerOption(min=-1)
+  @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
+      defaultUserUnit=TimeUnit.MILLISECONDS,
+      min=-1)
   private long cpuTimeHardLimit = -1;
 
 

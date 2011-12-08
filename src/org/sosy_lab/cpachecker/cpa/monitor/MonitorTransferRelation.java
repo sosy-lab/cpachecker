@@ -42,6 +42,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -60,10 +61,16 @@ public class MonitorTransferRelation implements TransferRelation {
   long maxTotalTimeForPath = 0;
   final Timer totalTimeOfTransfer = new Timer();
 
-  @Option(name="limit", description="time limit for a single post computation in millseconds (0 to disable)")
+  @Option(name="limit", description="time limit for a single post computation (use milliseconds or specify a unit; 0 for infinite)")
+  @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
+      defaultUserUnit=TimeUnit.MILLISECONDS,
+      min=0)
   private long timeLimit = 0; // given in milliseconds
 
-  @Option(name="pathcomputationlimit", description="time limit for all computations on a path in milliseconds (0 to disable)")
+  @Option(name="pathcomputationlimit", description="time limit for all computations on a path in milliseconds (use milliseconds or specify a unit; 0 for infinite)")
+  @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
+      defaultUserUnit=TimeUnit.MILLISECONDS,
+      min=0)
   private long timeLimitForPath = 0;
 
   private final TransferRelation transferRelation;

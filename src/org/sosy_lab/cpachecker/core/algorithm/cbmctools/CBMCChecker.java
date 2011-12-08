@@ -29,6 +29,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
@@ -40,6 +41,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
@@ -70,7 +72,10 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
   private File cbmcFile;
 
   @Option(name="cbmc.timelimit",
-      description="maximum time limit for CBMC (0 is infinite)")
+      description="maximum time limit for CBMC (use milliseconds or specify a unit; 0 for infinite)")
+  @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
+        defaultUserUnit=TimeUnit.MILLISECONDS,
+        min=0)
   private int timelimit = 0; // milliseconds
 
   public CBMCChecker(Configuration config, LogManager logger, CFA pCfa) throws InvalidConfigurationException, CPAException {
