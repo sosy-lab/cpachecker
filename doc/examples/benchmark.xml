@@ -25,9 +25,9 @@
       The order of these three tags is not important.
      -->
     <sourcefiles>
-      <include>test/programs/locks/*.c</include>
-      <exclude>test/programs/locks/test_locks_1?.c</exclude>
-      <includesfile>test/test-sets/ssh-simplifiedd.set</includesfile>
+      <include>test/programs/benchmarks/locks/*.c</include>
+      <exclude>test/programs/benchmarks/locks/test_locks_1?.c</exclude>
+      <includesfile>test/test-sets/ssh-simplified.set</includesfile>
     </sourcefiles>
 
     <!-- 
@@ -48,7 +48,7 @@
   <!--
     Optional list of additional options that are added to the resulting tables.
     (Currently only available for CPAchecker).
-    The output of the tool will be search for a matching line,
+    The output of the tool will be searched for a matching line,
     and the respective value will be copied to the table.
     "numberOfDigits" gives the number of digits after the decimal separator.
     Both attributes are optional.

@@ -2,10 +2,10 @@
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <!-- Example file that demonstrates the use of CBMC. -->
 
-<benchmark tool="cbmc">
+<benchmark tool="cbmc" timelimit="5">
   <test>
     <sourcefiles>
-      <include>test/programs/simple/b*.cil.c</include>
+      <include>test/programs/simple/*.cil.c</include>
     </sourcefiles>
     
       <!--
