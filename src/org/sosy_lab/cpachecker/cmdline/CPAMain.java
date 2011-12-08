@@ -312,6 +312,7 @@ public class CPAMain {
           || handleArgument1("-logfile",       "log.file",                arg, argsIt, properties)
           || handleArgument1("-entryfunction", "analysis.entryFunction",  arg, argsIt, properties)
           || handleArgument1("-config",        CONFIGURATION_FILE_OPTION, arg, argsIt, properties)
+          || handleArgument1("-timelimit",     "cpa.conditions.global.time.wall", arg, argsIt, properties)
           || handleMultipleArgument1("-spec",  SPECIFICATION_FILE_OPTION, arg, argsIt, properties)
       ) {
         // nothing left to do
@@ -403,6 +404,7 @@ public class CPAMain {
     System.out.println(" -entryfunction");
     System.out.println(" -dfs");
     System.out.println(" -bfs");
+    System.out.println(" -timelimit");
     System.out.println(" -cbmc");
     System.out.println(" -stats");
     System.out.println(" -nolog");

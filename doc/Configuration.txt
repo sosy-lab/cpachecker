@@ -24,6 +24,7 @@ following arguments (see below to learn what the options mean):
 -dfs			sets "analysis.traversal.order = DFS"
 -bfs			sets "analysis.traversal.order = BFS"
 -cbmc			sets "analysis.useCBMC = true"
+-timelimit <TIME>	sets "cpa.conditions.global.time.wall = <TIME>"
 -topsort		sets "analysis.traversal.order = TOPSORT"
 -rand           sets "analysis.traversal.order = RAND"
 -setprop <KEY>=<VALUE>	sets any option: "KEY = VALUE"
