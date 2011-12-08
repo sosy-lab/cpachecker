@@ -55,13 +55,31 @@ public class IASTUnaryExpression extends IASTExpression {
   }
 
   public static enum UnaryOperator {
-    PLUS,
-    MINUS,
-    STAR,
-    AMPER,
-    TILDE,
-    NOT,
-    SIZEOF,
+    PLUS   ("+"),
+    MINUS  ("-"),
+    STAR   ("*"),
+    AMPER  ("&"),
+    TILDE  ("~"),
+    NOT    ("!"),
+    SIZEOF ("sizeof"),
     ;
+
+    private final String mOp;
+
+    private UnaryOperator(String pOp) {
+      mOp = pOp;
+    }
+
+    /**
+     * Returns the string representation of this operator (e.g. "*", "+").
+     */
+    public String getOperator() {
+      return mOp;
+    }
+  }
+
+  @Override
+  public String toASTString(String pPrefix) {
+    return pPrefix + operator.getOperator() + "(" + operand.toASTString() + ")";
   }
 }

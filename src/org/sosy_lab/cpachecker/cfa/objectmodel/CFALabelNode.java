@@ -27,9 +27,9 @@ public class CFALabelNode extends CFANode {
 
   private final String label;
 
-  public CFALabelNode(int lineNumber, String functionName, String label) {
-      super(lineNumber, functionName);
-      this.label = label;
+  public CFALabelNode(int pLineNumber, String pFunctionName, String pLabel) {
+    super(pLineNumber, pFunctionName);
+    label = pLabel;
   }
 
   public String getLabel() {

@@ -61,6 +61,12 @@ public class IASTBinaryExpression extends IASTExpression {
     return v.visit(this);
   }
 
+  @Override
+  public String toASTString(String pPrefix) {
+    return pPrefix + "(" + operand1.toASTString() + ") "
+        + operator.getOperator() + " (" + operand2.toASTString() + ")";
+  }
+
   public static enum BinaryOperator {
     MULTIPLY      ("*"),
     DIVIDE        ("/"),

@@ -43,4 +43,9 @@ public final class IASTFunctionDefinition extends IASTSimpleDeclaration {
   public IASTFunctionTypeSpecifier getDeclSpecifier() {
     return (IASTFunctionTypeSpecifier) super.getDeclSpecifier();
   }
+
+  @Override
+  public String toASTString(String pPrefix) {
+    return pPrefix + getDeclSpecifier().toASTString() + getName();
+  }
 }

@@ -214,12 +214,14 @@ public final class DOTBuilder2 {
               nodes.add(combo.get(0).getPredecessor());
             } else {
               outb.append(comboToDot(combo));
+
               CFAEdge first = combo.get(0);
               CFAEdge last = combo.get(combo.size() - 1);
-              outb.append("" + first.getPredecessor().getNodeNumber());
+
+              outb.append(first.getPredecessor().getNodeNumber());
               outb.append(" -> ");
-              outb.append("" + last.getSuccessor().getNodeNumber());
-              outb.append("[label=\"\" ];\n");
+              outb.append(last.getSuccessor().getNodeNumber());
+              outb.append("[label=\"\"]\n");
             }
           }
 
@@ -254,7 +256,7 @@ public final class DOTBuilder2 {
         shape = "diamond";
       }
 
-      return "node [shape = " + shape + "]; " + node.getNodeNumber() + ";\n";
+      return node.getNodeNumber() + " [shape=\"" + shape + "\"]\n";
     }
 
     @SuppressWarnings("unchecked")
@@ -264,27 +266,31 @@ public final class DOTBuilder2 {
       }
       if (edge instanceof FunctionCallEdge) {
        //create the function node
-        String ret = "node [shape = component label=\"" + edge.getSuccessor().getFunctionName() + "\"]; " + (++virtFuncCallNodeIdCounter) + ";\n";
+        String ret = (++virtFuncCallNodeIdCounter) + " [shape=\"component\" label=\"" + edge.getSuccessor().getFunctionName() + "\"]\n";
         int from = edge.getPredecessor().getNodeNumber();
-        ret += String.format("%d -> %d [label=\"%s\" fontname=\"Courier New\"];\n",
+        ret += String.format("%d -> %d [label=\"%s\" fontname=\"Courier New\"]\n",
             from,
             virtFuncCallNodeIdCounter,
             getEdgeText(edge));
+
         CFAEdge summaryEdge = edge.getPredecessor().getLeavingSummaryEdge();
+
         if (summaryEdge != null) {
           int to = summaryEdge.getSuccessor().getNodeNumber();
-          ret += String.format("%d -> %d [label=\"\" fontname=\"Courier New\"];\n",
+          ret += String.format("%d -> %d [label=\"\" fontname=\"Courier New\"]\n",
               virtFuncCallNodeIdCounter,
               to);
           virtFuncCallEdges.put(from, Lists.newArrayList(virtFuncCallNodeIdCounter, to));
         }
         return ret;
       }
+
       String extra = "";
       if (edge instanceof CallToReturnEdge) {
-        extra = "style=dotted arrowhead=empty";
+        extra = "style=\"dotted\" arrowhead=\"empty\"";
       }
-      return String.format("%d -> %d [label=\"%s\" %s fontname=\"Courier New\"];\n",
+
+      return String.format("%d -> %d [label=\"%s\" %s fontname=\"Courier New\"]\n",
           edge.getPredecessor().getNodeNumber(),
           edge.getSuccessor().getNodeNumber(),
           getEdgeText(edge),
@@ -297,7 +303,7 @@ public final class DOTBuilder2 {
       StringBuilder sb = new StringBuilder();
       int firstNo = first.getPredecessor().getNodeNumber();
       sb.append(firstNo);
-      sb.append(" [style=\"filled,bold\" penwidth=1 fillcolor=\"white\" fontname=\"Courier New\" shape=\"Mrecord\" label=");
+      sb.append(" [style=\"filled,bold\" penwidth=\"1\" fillcolor=\"white\" fontname=\"Courier New\" shape=\"Mrecord\" label=");
 
       if (combo.size() > 20) {
         // edge too long, dotty won't be able to handle it
@@ -322,15 +328,19 @@ public final class DOTBuilder2 {
                             .replaceAll("\\|", "&#124;")
                             .replaceAll("&", "&amp;")
                             .replaceAll("<", "&lt;")
-                            .replaceAll(">", "&gt;"));
+                            .replaceAll(">", "&gt;")
+                            .replaceAll("\\{", "&#123;")
+                            .replaceAll("\\}", "&#125;"));
           sb.append("</td></tr>");
-
-          node2combo.put(edge.getPredecessor().getNodeNumber(), firstNo);
         }
         sb.append("</table>>");
       }
 
-      sb.append("];\n");
+      for (CFAEdge edge: combo) {
+        node2combo.put(edge.getPredecessor().getNodeNumber(), firstNo);
+      }
+
+      sb.append("]\n");
       return sb.toString();
     }
 

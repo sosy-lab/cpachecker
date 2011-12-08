@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import java.util.List;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
 public class IASTFunctionCallExpression extends IASTRightHandSide {
@@ -67,5 +68,18 @@ public class IASTFunctionCallExpression extends IASTRightHandSide {
   @Override
   public <R, X extends Exception> R accept(RightHandSideVisitor<R, X> v) throws X {
     return v.visit(this);
+  }
+
+  @Override
+  public String toASTString(String pPrefix) {
+    StringBuilder lASTString = new StringBuilder();
+
+    lASTString.append(pPrefix);
+    lASTString.append(functionName.toASTString());
+    lASTString.append("(");
+    lASTString.append(Joiner.on(", ").join(new ASTStringIterable(parameters)));
+    lASTString.append(")");
+
+    return lASTString.toString();
   }
 }

@@ -55,7 +55,7 @@ public interface CParser {
    * @throws IOException If file cannot be read.
    * @throws ParserException If parser or CFA builder cannot handle the C code.
    */
-  CFA parseFile(String filename) throws ParserException, IOException;
+  ParseResult parseFile(String filename) throws ParserException, IOException;
 
   /**
    * Parse the content of a String into a CFA.
@@ -64,7 +64,7 @@ public interface CParser {
    * @return The CFA.
    * @throws ParserException If parser or CFA builder cannot handle the C code.
    */
-  CFA parseString(String code) throws ParserException;
+  ParseResult parseString(String code) throws ParserException;
 
   /**
    * Method for parsing a string that contains exactly one function with exactly

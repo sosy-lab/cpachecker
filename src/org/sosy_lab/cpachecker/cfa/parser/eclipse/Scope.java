@@ -30,6 +30,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
 
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 
@@ -43,25 +44,64 @@ import com.google.common.collect.Lists;
 class Scope {
 
   private final LinkedList<Map<String, IASTSimpleDeclaration>> varsStack = Lists.newLinkedList();
+  private final LinkedList<Map<String, IASTSimpleDeclaration>> varsList = Lists.newLinkedList();
 
   private final Map<String, IASTSimpleDeclaration> functions = new HashMap<String, IASTSimpleDeclaration>();
+  private String currentFunctionName = null;
 
   public Scope() {
-    enterFunction(); // enter global scope
+    enterBlock(); // enter global scope
   }
 
   public boolean isGlobalScope() {
     return varsStack.size() == 1;
   }
 
-  public void enterFunction() {
-    varsStack.addLast(new HashMap<String, IASTSimpleDeclaration>());
+  public void enterFunction(IASTFunctionDefinition pFuncDef) {
+    currentFunctionName = pFuncDef.getOrigName();
+    registerDeclaration(pFuncDef);
+
+    enterBlock();
   }
 
   public void leaveFunction() {
     checkState(!isGlobalScope());
     varsStack.removeLast();
+    while (varsList.size() > varsStack.size()) {
+      varsList.removeLast();
+    }
+    currentFunctionName = null;
   }
+
+  public void enterBlock() {
+    varsStack.addLast(new HashMap<String, IASTSimpleDeclaration>());
+    varsList.addLast(varsStack.getLast());
+  }
+
+  public void leaveBlock() {
+    checkState(varsStack.size() > 2);
+    varsStack.removeLast();
+  }
+
+  public boolean variableNameInUse(String name, String origName) {
+      checkNotNull(name);
+      checkNotNull(origName);
+
+      Iterator<Map<String, IASTSimpleDeclaration>> it = varsList.descendingIterator();
+      while (it.hasNext()) {
+        Map<String, IASTSimpleDeclaration> vars = it.next();
+
+        IASTSimpleDeclaration binding = vars.get(origName);
+        if (binding != null && binding.getName().equals(name)) {
+          return true;
+        }
+        binding = vars.get(name);
+        if (binding != null && binding.getName().equals(name)) {
+          return true;
+        }
+      }
+      return false;
+    }
 
   public IASTSimpleDeclaration lookupVariable(String name) {
     checkNotNull(name);
@@ -83,7 +123,7 @@ class Scope {
   }
 
   public void registerDeclaration(IASTSimpleDeclaration declaration) {
-    String name = declaration.getName();
+    String name = declaration.getOrigName();
 
     if (declaration.getDeclSpecifier() instanceof IASTFunctionTypeSpecifier) {
       // function
@@ -108,6 +148,10 @@ class Scope {
 
       vars.put(name, declaration);
     }
+  }
+
+  public String getCurrentFunctionName() {
+    return currentFunctionName;
   }
 
   @Override

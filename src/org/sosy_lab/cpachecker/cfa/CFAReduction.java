@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa;
 
 import static org.sosy_lab.cpachecker.util.AbstractElements.*;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
@@ -34,17 +35,21 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
-import org.sosy_lab.cpachecker.core.waitlist.Waitlist.TraversalMethod;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.CFA;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 
@@ -74,21 +79,16 @@ public class CFAReduction {
   }
 
 
-  public void removeIrrelevantForErrorLocations(final CFAFunctionDefinitionNode cfa) throws InterruptedException {
-    Set<CFANode> allNodes = CFA.allNodes(cfa, true);
-
-    Set<CFANode> errorNodes = getErrorNodesWithCPA(cfa, allNodes);
+  public void removeIrrelevantForErrorLocations(final MutableCFA cfa) throws InterruptedException {
+    Collection<CFANode> errorNodes = getErrorNodesWithCPA(cfa);
 
     if (errorNodes.isEmpty()) {
       // shortcut, all nodes are irrelevant
-
-      // remove all outgoing edges of first node
-      for (int i = cfa.getNumLeavingEdges() - 1; i >= 0; i--) {
-        cfa.removeLeavingEdge(cfa.getLeavingEdge(i));
-      }
-      cfa.addLeavingSummaryEdge(null);
+      cfa.clear();
       return;
     }
+
+    Collection<CFANode> allNodes = cfa.getAllNodes();
 
     if (errorNodes.size() == allNodes.size()) {
       // shortcut, no node is irrelevant
@@ -98,24 +98,31 @@ public class CFAReduction {
     // backwards search to determine all relevant nodes
     Set<CFANode> relevantNodes = new HashSet<CFANode>();
     for (CFANode n : errorNodes) {
-      CFA.dfs(n, relevantNodes, true, true);
+      CFAUtils.dfs(n, relevantNodes, true, true);
     }
 
     assert allNodes.containsAll(relevantNodes) : "Inconsistent CFA";
 
-    logger.log(Level.INFO, "Detected", allNodes.size()-relevantNodes.size(), "irrelevant CFA nodes.");
+    int numIrrelevantNodes = allNodes.size() - relevantNodes.size();
 
-    if (relevantNodes.size() == allNodes.size()) {
+    logger.log(Level.INFO, "Detected", numIrrelevantNodes, "irrelevant CFA nodes.");
+
+    if (numIrrelevantNodes == 0) {
       // shortcut, no node is irrelevant
       return;
     }
 
+    Predicate<CFANode> irrelevantNode = Predicates.not(Predicates.in(relevantNodes));
+    Collection<CFANode> removedNodes = ImmutableList.copyOf(Collections2.filter(allNodes, irrelevantNode));
+
     // now detach all the nodes not visited
-    pruneIrrelevantNodes(allNodes, relevantNodes, errorNodes);
+    pruneIrrelevantNodes(cfa, removedNodes, errorNodes);
   }
 
-  private Set<CFANode> getErrorNodesWithCPA(CFAFunctionDefinitionNode cfa, Set<CFANode> allNodes) throws InterruptedException {
+  private Collection<CFANode> getErrorNodesWithCPA(MutableCFA cfa) throws InterruptedException {
     try {
+      ReachedSetFactory lReachedSetFactory = new ReachedSetFactory(Configuration.defaultConfiguration(), logger);
+
       // create new configuration based on existing config but with default set of CPAs
       Configuration lConfig = Configuration.builder()
                                            .copyFrom(config)
@@ -124,11 +131,12 @@ public class CFAReduction {
                                            .clearOption("cpas")
                                            .clearOption("CompositeCPA.cpas")
                                            .build();
-      CPABuilder lBuilder = new CPABuilder(lConfig, logger);
+
+      CPABuilder lBuilder = new CPABuilder(lConfig, logger, lReachedSetFactory, cfa);
       ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs();
       Algorithm lAlgorithm = new CPAAlgorithm(lCpas, logger);
-      PartitionedReachedSet lReached = new PartitionedReachedSet(TraversalMethod.DFS);
-      lReached.add(lCpas.getInitialElement(cfa), lCpas.getInitialPrecision(cfa));
+      ReachedSet lReached = lReachedSetFactory.create();
+      lReached.add(lCpas.getInitialElement(cfa.getMainFunction()), lCpas.getInitialPrecision(cfa.getMainFunction()));
 
       lAlgorithm.run(lReached);
 
@@ -136,42 +144,44 @@ public class CFAReduction {
 
     } catch (CPAException e) {
       logger.log(Level.WARNING, "Error during CFA reduction, using full CFA");
-      logger.logException(Level.ALL, e, "");
+      logger.logDebugException(e);
     } catch (InvalidConfigurationException e) {
       logger.log(Level.WARNING, "Error during CFA reduction, using full CFA");
-      logger.logException(Level.ALL, e, "");
+      logger.logDebugException(e);
     }
-    return allNodes;
+    return cfa.getAllNodes();
   }
 
 
-  private void pruneIrrelevantNodes(Set<CFANode> allNodes,
-      Set<CFANode> relevantNodes, Set<CFANode> errorNodes) {
-    for (CFANode n : allNodes) {
-      if (!relevantNodes.contains(n)) {
+  private void pruneIrrelevantNodes(MutableCFA cfa, Collection<CFANode> irrelevantNodes,
+      Collection<CFANode> errorNodes) {
 
-        // check if node is successor of error node and remove incoming edges
-        for (int edgeIndex = n.getNumEnteringEdges() - 1; edgeIndex >= 0; edgeIndex--) {
-          CFAEdge removedEdge = n.getEnteringEdge(edgeIndex);
-          CFANode prevNode = removedEdge.getPredecessor();
+    for (CFANode n : irrelevantNodes) {
+      cfa.removeNode(n);
 
-          if (!errorNodes.contains(prevNode)) {
-            // do not remove the direct successors of error nodes
+      // check if node is successor of error node and remove incoming edges
+      for (int edgeIndex = n.getNumEnteringEdges() - 1; edgeIndex >= 0; edgeIndex--) {
+        CFAEdge removedEdge = n.getEnteringEdge(edgeIndex);
+        CFANode prevNode = removedEdge.getPredecessor();
 
-            prevNode.removeLeavingEdge(removedEdge);
-            n.removeEnteringEdge(removedEdge);
-          }
+        if (!errorNodes.contains(prevNode)) {
+          // do not remove the direct successors of error nodes
+
+          CFACreationUtils.removeEdgeFromNodes(removedEdge);
         }
+      }
 
-        // remove all outgoing edges
-        while (n.getNumLeavingEdges() > 0) {
-          CFAEdge removedEdge = n.getLeavingEdge(0);
-          CFANode succNode = removedEdge.getSuccessor();
-          n.removeLeavingEdge(removedEdge);
-          succNode.removeEnteringEdge(removedEdge);
-        }
-        n.addEnteringSummaryEdge(null);
-        n.addLeavingSummaryEdge(null);
+      // remove all outgoing edges
+      while (n.getNumLeavingEdges() > 0) {
+        CFACreationUtils.removeEdgeFromNodes(n.getLeavingEdge(0));
+      }
+
+      // remove all summary edges
+      if (n.getEnteringSummaryEdge() != null) {
+        CFACreationUtils.removeSummaryEdgeFromNodes(n.getEnteringSummaryEdge());
+      }
+      if (n.getLeavingSummaryEdge() != null) {
+        CFACreationUtils.removeSummaryEdgeFromNodes(n.getLeavingSummaryEdge());
       }
     }
   }

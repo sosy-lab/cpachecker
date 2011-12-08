@@ -82,11 +82,41 @@ public final class IASTSimpleDeclSpecifier extends IType {
     return isLongLong;
   }
 
-  public static final int t_unspecified = 0;
-  public static final int t_void = 1;
-  public static final int t_char = 2;
-  public static final int t_int = 3;
-  public static final int t_float = 4;
-  public static final int t_double = 5;
+  @Override
+  public String toASTString() {
+    StringBuilder lASTString = new StringBuilder();
+
+    if (isConst()) {
+      lASTString.append("const ");
+    }
+    if (isVolatile()) {
+      lASTString.append("volatile ");
+    }
+
+    if (isUnsigned) {
+      lASTString.append("unsigned ");
+    } else if (isSigned) {
+      lASTString.append("signed ");
+    }
+
+    if (isLongLong) {
+      lASTString.append("long long");
+    } else if (isLong) {
+      lASTString.append("long ");
+    } else if (isShort) {
+      lASTString.append("short ");
+    }
+
+    if (isImaginary) {
+      lASTString.append("_Imaginary ");
+    }
+    if (isComplex) {
+      lASTString.append("_Complex ");
+    }
+
+    lASTString.append(type.toASTString());
+    lASTString.append(" ");
+    return lASTString.toString();
+  }
 
 }

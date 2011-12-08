@@ -46,4 +46,9 @@ public class DummyType extends IType {
   public boolean isVolatile() {
     throw new UnsupportedOperationException();
   }
+
+  @Override
+  public String toASTString() {
+    return typeName + " ";
+  }
 }

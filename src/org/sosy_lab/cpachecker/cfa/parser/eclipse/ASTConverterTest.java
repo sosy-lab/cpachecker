@@ -27,14 +27,17 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
 public class ASTConverterTest {
 
   private ASTConverter converter;
 
   @Before
-  public final void setup() {
-    converter = new ASTConverter(new Scope(), false);
+  public final void setup() throws InvalidConfigurationException {
+    converter = new ASTConverter(new Scope(), false, new LogManager(Configuration.defaultConfiguration()));
   }
 
   @Test

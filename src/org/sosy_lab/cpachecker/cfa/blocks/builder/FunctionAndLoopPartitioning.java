@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
@@ -33,12 +34,16 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
  */
 public class FunctionAndLoopPartitioning extends LoopPartitioning {
 
-  public FunctionAndLoopPartitioning(LogManager pLogger) {
-    super(pLogger);
+  public FunctionAndLoopPartitioning(LogManager pLogger, CFA pCfa) {
+    super(pLogger, pCfa);
   }
 
   @Override
   protected boolean shouldBeCached(CFANode pNode) {
+    if(pNode.getFunctionName().startsWith("__VERIFIER_")) {
+      //exception for __VERIFIER helper functions
+      return false;
+    }
     return pNode instanceof CFAFunctionDefinitionNode || super.shouldBeCached(pNode);
   }
 }

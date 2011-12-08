@@ -23,25 +23,51 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.util.CFA;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
+
+import com.google.common.collect.Iterables;
 
 
 /**
  * <code>PartitioningHeuristic</code> that creates blocks for each loop- and function-body.
  */
 public class LoopPartitioning extends PartitioningHeuristic {
-  protected final LogManager logger;
 
-  public LoopPartitioning(LogManager pLogger) {
-    this.logger = pLogger;
+  private Map<CFANode, Set<CFANode>> loopHeaderToLoopBody;
+  private final CFA cfa;
+
+  public LoopPartitioning(LogManager pLogger, CFA pCfa) {
+    loopHeaderToLoopBody = null;
+    cfa = pCfa;
+  }
+
+  private void initLoopMap() {
+    loopHeaderToLoopBody = new HashMap<CFANode, Set<CFANode>>();
+    if(cfa.getLoopStructure().isPresent()) {
+      for(String functionName : cfa.getLoopStructure().get().keySet()) {
+        for(Loop loop : cfa.getLoopStructure().get().get(functionName)) {
+          if(loop.getLoopHeads().size() == 1) {
+            //currently only loops with single loop heads supported
+            loopHeaderToLoopBody.put(Iterables.getOnlyElement(loop.getLoopHeads()), loop.getLoopNodes());
+          }
+        }
+      }
+    }
   }
 
   @Override
@@ -74,19 +100,23 @@ public class LoopPartitioning extends PartitioningHeuristic {
   }
 
   @Override
-  protected Set<CFANode> getCachedSubtree(CFANode pNode) {
+  protected Set<CFANode> getBlockForNode(CFANode pNode) {
     if(pNode instanceof CFAFunctionDefinitionNode) {
       CFAFunctionDefinitionNode functionNode = (CFAFunctionDefinitionNode) pNode;
-      return CFA.exploreSubgraph(functionNode, functionNode.getExitNode());
+      return CFAUtils.exploreSubgraph(functionNode, functionNode.getExitNode());
     }
     if(pNode.isLoopStart()) {
-      LoopDetector detector = new LoopDetector();
-      Set<CFANode> loopBody = detector.detectLoopBody(pNode);
-      insertLoopStartState(loopBody, pNode);
-      if(!insertLoopBreakState(loopBody, pNode)) {
+      Set<CFANode> loopBody = new HashSet<CFANode>();
+      if(loopHeaderToLoopBody == null) {
+        initLoopMap();
+      }
+      Set<CFANode> immutableLoopBody = loopHeaderToLoopBody.get(pNode);
+      if(immutableLoopBody == null) {
         return null;
       }
-
+      loopBody.addAll(immutableLoopBody);
+      insertLoopStartState(loopBody, pNode);
+      insertLoopReturnStates(loopBody);
       return loopBody;
     }
     return null;
@@ -101,38 +131,16 @@ public class LoopPartitioning extends PartitioningHeuristic {
     }
   }
 
-  private boolean insertLoopBreakState(Set<CFANode> pLoopBody, CFANode pLoopHeader) {
-    assert pLoopHeader.getNumLeavingEdges() == 1;
-    String loopStartLabel = pLoopHeader.getLeavingEdge(0).getRawStatement();
-    //loopStartLabel is of form "Label: $loopName$continue"; e.g. "Label: while_0_continue" with loopName="while_0"
-    int i = loopStartLabel.indexOf("continue");
-    if (i < 0) {
-      logger.log(Level.WARNING, "Found no loop end for loop at node", pLoopHeader, "(loop is not considered for memorizing)");
-      return false;
-    }
-    String loopName = loopStartLabel.split(" ")[1].substring(0, i - "continue".length() + 1);
-    //breakNodes name is then loopName+"break"
-    String breakName = "Goto: " + loopName + "break";
-    CFANode breakNode = findNodeByEdgeLabel(pLoopHeader, breakName);
-    //assert breakNode != null;
-    if(breakNode == null) {
-      logger.log(Level.WARNING, "Found no loop end for loop " + loopName + " (loop is not considered for memorizing)");
-      return false;
-    }
-    pLoopBody.addAll(CFA.exploreSubgraph(pLoopHeader, breakNode));
-    return true;
-  }
-
-  private static CFANode findNodeByEdgeLabel(CFANode startNode, String label) {
-    Set<CFANode> nodes = CFA.exploreSubgraph(startNode, null);
-    for(CFANode node : nodes) {
+  private void insertLoopReturnStates(Set<CFANode> pLoopBody) {
+    List<CFANode> addNodes = new ArrayList<CFANode>();
+    for(CFANode node : pLoopBody) {
       for(int i = 0; i < node.getNumLeavingEdges(); i++) {
         CFAEdge edge = node.getLeavingEdge(i);
-        if(edge.getRawStatement().equals(label)) {
-          return edge.getSuccessor();
+        if(!pLoopBody.contains(edge.getSuccessor()) && !(node.getLeavingEdge(i) instanceof FunctionCallEdge))  {
+          addNodes.add(edge.getSuccessor());
         }
       }
     }
-    return null;
+    pLoopBody.addAll(addNodes);
   }
 }

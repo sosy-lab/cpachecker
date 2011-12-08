@@ -28,6 +28,7 @@ import org.eclipse.cdt.core.parser.FileContent;
 import org.eclipse.cdt.core.parser.IncludeFileContentProvider;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
  * Wrapper for Eclipse CDT 7 (internal version number 5.2.*)
@@ -49,12 +50,25 @@ public class EclipseCDT7Parser extends AbstractEclipseCParser<FileContent> {
   }
 
   @Override
-  protected IASTTranslationUnit getASTTranslationUnit(FileContent pCode) throws CFAGenerationRuntimeException, CoreException {
-    return language.getASTTranslationUnit(pCode,
-                                          StubScannerInfo.instance,
-                                          IncludeFileContentProvider.getSavedFilesProvider(),
-                                          null,
-                                          PARSER_OPTIONS,
-                                          parserLog);
+  protected IASTTranslationUnit getASTTranslationUnit(FileContent pCode) throws ParserException, CFAGenerationRuntimeException, CoreException {
+    try {
+      return language.getASTTranslationUnit(pCode,
+                                            StubScannerInfo.instance,
+                                            IncludeFileContentProvider.getSavedFilesProvider(),
+                                            null,
+                                            PARSER_OPTIONS,
+                                            parserLog);
+    } catch (NoClassDefFoundError e) {
+      if ("org/eclipse/core/runtime/jobs/ISchedulingRule".equals(e.getMessage())) {
+        // This error occurs if Eclipse finds an #include and tries to load that file.
+        // Unfortunately we have to catch it in this ugly way because we cannot
+        // use a stub implementation for the IncludeFileProvider.
+
+        throw new ParserException("#include is not supported");
+
+      } else {
+        throw e;
+      }
+    }
   }
 }

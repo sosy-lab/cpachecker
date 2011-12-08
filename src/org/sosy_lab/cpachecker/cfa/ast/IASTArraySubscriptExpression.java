@@ -54,4 +54,10 @@ public final class IASTArraySubscriptExpression extends IASTExpression {
   public <R, X extends Exception> R accept(RightHandSideVisitor<R, X> v) throws X {
     return v.visit(this);
   }
+
+  @Override
+  public String toASTString(String pPrefix) {
+    return pPrefix + arrayExpression.toASTString()
+        + "[" + subscriptExpression.toASTString() + "]";
+  }
 }

@@ -23,8 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
+
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
@@ -34,16 +35,21 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
  * This class takes several CFAs (each for a single function) and combines them
@@ -62,30 +68,15 @@ public class CFASecondPassBuilder {
   }
 
   /**
-   * Traverses a CFA and inserts call edges and return edges (@see {@link #insertCallEdges(CFANode)}.
-   * This method starts with a function and recursively acts on all functions
-   * reachable from the first one.
+   * Inserts call edges and return edges (@see {@link #insertCallEdges(CFANode)}
+   * in all functions.
    * @param functionName  The function where to start processing.
-   * @return A set of all functions reachable (including external functions and the function passed as argument).
+   * @throws ParserException
    */
-  public Set<String> insertCallEdgesRecursively(String functionName) {
-    Deque<String> worklist = new ArrayDeque<String>();
-    worklist.addLast(functionName);
-    Set<String> reachedFunctions = new HashSet<String>();
-
-    while (!worklist.isEmpty()) {
-      String currentFunction = worklist.pollFirst();
-      if (!reachedFunctions.add(currentFunction)) {
-        // reachedFunctions already contained function
-        continue;
-      }
-      CFAFunctionDefinitionNode functionStartNode = cfas.get(currentFunction);
-      if (functionStartNode != null) {
-        // otherwise it's an external call
-        worklist.addAll(insertCallEdges(functionStartNode));
-      }
+  public void insertCallEdgesRecursively() throws ParserException {
+    for (CFAFunctionDefinitionNode functionStartNode : cfas.values()) {
+      insertCallEdges(functionStartNode);
     }
-    return reachedFunctions;
   }
 
   /**
@@ -93,13 +84,12 @@ public class CFASecondPassBuilder {
    * and return edges from the call site and to the return site of the function
    * call.
    * @param initialNode CFANode where to start processing
-   * @return a list of all function calls encountered (may contain duplicates)
+   * @throws ParserException
    */
-  private List<String> insertCallEdges(CFAFunctionDefinitionNode initialNode) {
+  private void insertCallEdges(CFAFunctionDefinitionNode initialNode) throws ParserException {
     // we use a worklist algorithm
     Deque<CFANode> workList = new ArrayDeque<CFANode>();
     Set<CFANode> processed = new HashSet<CFANode>();
-    ArrayList<String> calledFunctions = new ArrayList<String>();
 
     workList.addLast(initialNode);
 
@@ -110,19 +100,29 @@ public class CFASecondPassBuilder {
         continue;
       }
 
-      int numLeavingEdges = node.getNumLeavingEdges();
-
-      for (int edgeIdx = 0; edgeIdx < numLeavingEdges; edgeIdx++) {
-        CFAEdge edge = node.getLeavingEdge(edgeIdx);
+      for (CFAEdge edge : leavingEdges(node)) {
         if (edge instanceof StatementEdge) {
           StatementEdge statement = (StatementEdge)edge;
           IASTStatement expr = statement.getStatement();
 
           // if statement is of the form x = call(a,b); or call(a,b);
           if (shouldCreateCallEdges(expr)) {
-            IASTFunctionCall functionCall = (IASTFunctionCall)expr;
-            String functionName = createCallAndReturnEdges(statement, functionCall);
-            calledFunctions.add(functionName);
+            createCallAndReturnEdges(statement, (IASTFunctionCall)expr);
+          }
+
+        } else if (edge instanceof DeclarationEdge) {
+          // check if this is "int x = f()" and f is a non-extern function
+          // we don't support this currently
+          IASTInitializer init = ((DeclarationEdge)edge).getInitializer();
+          if (init != null && init instanceof IASTInitializerExpression) {
+            IASTRightHandSide initExpression = ((IASTInitializerExpression)init).getExpression();
+            if (initExpression != null && initExpression instanceof IASTFunctionCallExpression) {
+              IASTFunctionCallExpression f = (IASTFunctionCallExpression)initExpression;
+              String name = f.getFunctionNameExpression().getRawSignature();
+              if (cfas.containsKey(name)) {
+                throw new ParserException("Function call in initializer not supported", edge);
+              }
+            }
           }
         }
 
@@ -133,7 +133,6 @@ public class CFASecondPassBuilder {
         }
       }
     }
-    return calledFunctions;
   }
 
   private boolean shouldCreateCallEdges(IASTStatement s) {
@@ -152,7 +151,7 @@ public class CFASecondPassBuilder {
    * this keeps only the function call expression, e.g. if statement is a = call(b);
    * then functionCall is call(b).
    */
-  private String createCallAndReturnEdges(StatementEdge edge, IASTFunctionCall functionCall) {
+  private void createCallAndReturnEdges(StatementEdge edge, IASTFunctionCall functionCall) {
     CFANode predecessorNode = edge.getPredecessor();
     CFANode successorNode = edge.getSuccessor();
     IASTFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
@@ -167,17 +166,16 @@ public class CFASecondPassBuilder {
     List<IASTExpression> parameters = functionCallExpression.getParameterExpressions();
 
     // delete old edge
-    predecessorNode.removeLeavingEdge(edge);
-    successorNode.removeEnteringEdge(edge);
+    CFACreationUtils.removeEdgeFromNodes(edge);
 
     // create new edges
-    FunctionCallEdge callEdge = new FunctionCallEdge(functionCallExpression.getRawSignature(), edge.getStatement(), lineNumber, predecessorNode, (FunctionDefinitionNode)fDefNode, parameters);
-    predecessorNode.addLeavingEdge(callEdge);
-    fDefNode.addEnteringEdge(callEdge);
-
     CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(functionCall.asStatement().getRawSignature(), lineNumber, predecessorNode, successorNode, functionCall);
     predecessorNode.addLeavingSummaryEdge(calltoReturnEdge);
     successorNode.addEnteringSummaryEdge(calltoReturnEdge);
+
+    FunctionCallEdge callEdge = new FunctionCallEdge(functionCallExpression.getRawSignature(), edge.getStatement(), lineNumber, predecessorNode, (FunctionDefinitionNode)fDefNode, parameters, calltoReturnEdge);
+    predecessorNode.addLeavingEdge(callEdge);
+    fDefNode.addEnteringEdge(callEdge);
 
     if (fExitNode.getNumEnteringEdges() == 0) {
       // exit node of called functions is not reachable, i.e. this function never returns
@@ -187,11 +185,9 @@ public class CFASecondPassBuilder {
 
     } else {
 
-      FunctionReturnEdge returnEdge = new FunctionReturnEdge("Return Edge to " + successorNode.getNodeNumber(), lineNumber, fExitNode, successorNode);
+      FunctionReturnEdge returnEdge = new FunctionReturnEdge("Return Edge to " + successorNode.getNodeNumber(), lineNumber, fExitNode, successorNode, calltoReturnEdge);
       fExitNode.addLeavingEdge(returnEdge);
       successorNode.addEnteringEdge(returnEdge);
     }
-
-    return functionName;
   }
 }

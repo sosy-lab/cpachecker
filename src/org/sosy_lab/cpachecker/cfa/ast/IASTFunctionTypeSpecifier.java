@@ -27,14 +27,15 @@ import static com.google.common.base.Preconditions.checkState;
 
 import java.util.List;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
 public class IASTFunctionTypeSpecifier extends IType {
 
-  private final IType              returnType;
-  private       String                         name = null;
+  private final IType returnType;
+  private String name = null;
   private final List<IASTParameterDeclaration> parameters;
-  private final boolean                        takesVarArgs;
+  private final boolean takesVarArgs;
 
   public IASTFunctionTypeSpecifier(
       boolean pConst,
@@ -67,5 +68,49 @@ public class IASTFunctionTypeSpecifier extends IType {
 
   public boolean takesVarArgs() {
     return takesVarArgs;
+  }
+
+  @Override
+  public String toASTString() {
+    return toASTStringHelper(false);
+  }
+
+  String toASTStringFunctionPointer() {
+    return toASTStringHelper(true);
+  }
+
+  private String toASTStringHelper(boolean pPointer) {
+    StringBuilder lASTString = new StringBuilder();
+
+    if (isConst()) {
+      lASTString.append("const ");
+    }
+    if (isVolatile()) {
+      lASTString.append("volatile ");
+    }
+
+    lASTString.append(returnType.toASTString());
+
+    if (name != null) {
+      if (pPointer) {
+        lASTString.append("(*");
+        lASTString.append(name);
+        lASTString.append(")");
+      } else {
+        lASTString.append(name);
+      }
+    }
+
+    lASTString.append("(");
+    if (parameters.isEmpty()) {
+      if (!pPointer) {
+        lASTString.append("void");
+      }
+    } else {
+      lASTString.append(Joiner.on(", ").join(new ASTStringIterable(parameters)));
+    }
+    lASTString.append(") ");
+
+    return lASTString.toString();
   }
 }
