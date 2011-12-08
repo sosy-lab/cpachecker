@@ -25,34 +25,18 @@ package org.sosy_lab.cpachecker.core.algorithm.cbmctools;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.ProcessExecutor;
 
-import com.google.common.base.Preconditions;
-
-class CBMCExecutor extends ProcessExecutor<RuntimeException> {
-
-  // TODO function name
-  private static final String[] CBMC_ARGS = {"cbmc", "--function", "main_0", "--32"};
+public class CBMCExecutor extends ProcessExecutor<RuntimeException> {
 
   private Boolean result = null;
+  private boolean unwindingAssertionFailed = false;
 
-  public CBMCExecutor(LogManager logger, File file, String mainFunctionName) throws IOException {
-    super(logger, RuntimeException.class, getCmdline(file, mainFunctionName));
-  }
-
-  private static String[] getCmdline(File file, String mainFunctionName) {
-    Preconditions.checkArgument(file.canRead());
-
-    CBMC_ARGS[2] = mainFunctionName + "_0";
-
-    String[] result = Arrays.copyOf(CBMC_ARGS, CBMC_ARGS.length + 1);
-    result[result.length-1] = file.getAbsolutePath();
-    return result;
+  public CBMCExecutor(LogManager logger, String[] args) throws IOException {
+    super(logger, RuntimeException.class, args);
   }
 
   @Override
@@ -77,6 +61,18 @@ class CBMCExecutor extends ProcessExecutor<RuntimeException> {
       // exclude the normal status output of CBMC
       super.handleErrorOutput(pLine);
     }
+  }
+
+  @Override
+  protected void handleOutput(String pLine) throws RuntimeException {
+    if(pLine.contains("unwinding assertion")){
+      unwindingAssertionFailed = true;
+    }
+    super.handleOutput(pLine);
+  }
+
+  public boolean didUnwindingAssertionFailed(){
+    return unwindingAssertionFailed;
   }
 
   public Boolean getResult() {

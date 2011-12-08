@@ -33,8 +33,11 @@ import java.util.Set;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -42,22 +45,29 @@ import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.TraversalMethod;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitCPA;
-import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 
-@Options
+@Options(prefix="counterexample.checker")
 public class CounterexampleCPAChecker implements CounterexampleChecker {
 
   private final LogManager logger;
+  private final ReachedSetFactory reachedSetFactory;
+  private final CFA cfa;
 
-  public CounterexampleCPAChecker(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  @Option(name="config",
+      description="configuration file for counterexample checks with CPAchecker")
+  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
+  private File configFile = new File("config/explicitAnalysis-no-cbmc.properties");
+
+  public CounterexampleCPAChecker(Configuration config, LogManager logger, ReachedSetFactory pReachedSetFactory, CFA pCfa) throws InvalidConfigurationException {
     this.logger = logger;
     config.inject(this);
+    this.reachedSetFactory = pReachedSetFactory;
+    this.cfa = pCfa;
   }
 
   @Override
@@ -75,23 +85,19 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       throw new CPAException("Could not write automaton for explicit analysis check (" + e.getMessage() + ")");
     }
 
-    CFAFunctionDefinitionNode cfa = (CFAFunctionDefinitionNode)extractLocation(pRootElement);
+    CFAFunctionDefinitionNode entryNode = (CFAFunctionDefinitionNode)extractLocation(pRootElement);
 
     try {
       Configuration lConfig = Configuration.builder()
-                .setOption("output.disable", "true")
-                .setOption("specification", automatonFile.getAbsolutePath())
-                .setOption("CompositeCPA.cpas", LocationCPA.class.getName()
-                                        + "," + CallstackCPA.class.getName()
-                                        + "," + ExplicitCPA.class.getName())
-                .setOption("cpa.explicit.threshold", Integer.toString(Integer.MAX_VALUE))
-                .build();
+              .loadFromFile(configFile)
+              .setOption("specification", automatonFile.getAbsolutePath())
+              .build();
 
-      CPABuilder lBuilder = new CPABuilder(lConfig, logger);
+      CPABuilder lBuilder = new CPABuilder(lConfig, logger, reachedSetFactory, cfa);
       ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs();
       Algorithm lAlgorithm = new CPAAlgorithm(lCpas, logger);
       PartitionedReachedSet lReached = new PartitionedReachedSet(TraversalMethod.DFS);
-      lReached.add(lCpas.getInitialElement(cfa), lCpas.getInitialPrecision(cfa));
+      lReached.add(lCpas.getInitialElement(entryNode), lCpas.getInitialPrecision(entryNode));
 
       lAlgorithm.run(lReached);
 
@@ -102,7 +108,9 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       }
 
     } catch (InvalidConfigurationException e) {
-      throw new AssertionError("Hard-coded configuration is invalid!");
+      throw new CPAException("Invalid configuration for counterexample check: " + e.getMessage());
+    } catch (IOException e) {
+      throw new CPAException("Error during counterexample check: " + e.getMessage());
     }
   }
 

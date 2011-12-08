@@ -43,13 +43,8 @@ public class NoOpReducer implements Reducer {
   }
 
   @Override
-  public AbstractElement getVariableExpandedElement(AbstractElement pRootElement, Block pRootContext, AbstractElement pReducedElement) {
+  public AbstractElement getVariableExpandedElement(AbstractElement pRootElement, Block pReducedContext, AbstractElement pReducedElement) {
     return pReducedElement;
-  }
-
-  @Override
-  public boolean isEqual(AbstractElement pReducedTargetElement, AbstractElement pCandidateElement) {
-    return pReducedTargetElement.equals(pCandidateElement);
   }
 
   @Override
@@ -60,6 +55,16 @@ public class NoOpReducer implements Reducer {
   @Override
   public Precision getVariableReducedPrecision(Precision pPrecision, Block pContext) {
     return pPrecision;
+  }
+
+  @Override
+  public Precision getVariableExpandedPrecision(Precision rootPrecision, Block rootContext, Precision reducedPrecision) {
+   return reducedPrecision;
+  }
+
+  @Override
+  public int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
+    return 0;
   }
 
 }

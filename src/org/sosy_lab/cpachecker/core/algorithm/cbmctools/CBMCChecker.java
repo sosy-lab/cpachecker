@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.cbmctools;
 
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -34,15 +36,20 @@ import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
+
+import com.google.common.base.Optional;
 
 /**
  * Counterexample checker that creates a C program for the counterexample
@@ -52,24 +59,23 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class CBMCChecker implements CounterexampleChecker, Statistics {
 
   private final LogManager logger;
+  private final CFA cfa;
 
   private final Timer cbmcTime = new Timer();
 
-  @Option(name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$",
-      description="entry function")
-  private String mainFunctionName = "main";
-
-  @Option(name = "cbmc.dumpCBMCfile", type = Option.Type.OUTPUT_FILE,
+  @Option(name = "cbmc.dumpCBMCfile",
       description = "file name where to put the path program that is generated "
       + "as input for CBMC. A temporary file is used if this is unspecified.")
-  private File CBMCFile;
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private File cbmcFile;
 
   @Option(name="cbmc.timelimit",
       description="maximum time limit for CBMC (0 is infinite)")
   private int timelimit = 0; // milliseconds
 
-  public CBMCChecker(Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
+  public CBMCChecker(Configuration config, LogManager logger, CFA pCfa) throws InvalidConfigurationException, CPAException {
     this.logger = logger;
+    this.cfa = pCfa;
     config.inject(this);
   }
 
@@ -77,10 +83,12 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
   public boolean checkCounterexample(ARTElement pRootElement, ARTElement pErrorElement,
       Set<ARTElement> pErrorPathElements) throws CPAException, InterruptedException {
 
-    String pathProgram = AbstractPathToCTranslator.translatePaths(pRootElement, pErrorPathElements);
+    String mainFunctionName = extractLocation(pRootElement).getFunctionName();
+
+    String pathProgram = PathToCTranslator.translatePaths(Optional.of(cfa), pRootElement, pErrorPathElements);
 
     // write program to disk
-    File cFile = CBMCFile;
+    File cFile = cbmcFile;
     try {
       if (cFile != null) {
         Files.writeFile(cFile, pathProgram);
@@ -98,7 +106,8 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
     CBMCExecutor cbmc;
     int exitCode;
     try {
-      cbmc = new CBMCExecutor(logger, cFile, mainFunctionName);
+      String cbmcArgs[] = {"cbmc", "--function", mainFunctionName + "_0", "--32", cFile.getAbsolutePath()};
+      cbmc = new CBMCExecutor(logger, cbmcArgs);
       exitCode = cbmc.join(timelimit);
 
     } catch (IOException e) {

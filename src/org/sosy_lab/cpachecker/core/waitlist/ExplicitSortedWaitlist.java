@@ -24,27 +24,29 @@
 package org.sosy_lab.cpachecker.core.waitlist;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitElement;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 
-import com.google.common.base.Preconditions;
+/**
+ * Waitlist implementation that sorts the abstract elements depending on the
+ * content of the ExplicitElement (if there is any).
+ * Elements where less variables have a value assigned are considered first.
+ * This elements are expected to cover a bigger part of the state space,
+ * so elements with more variables will probably be covered later.
+ */
+public class ExplicitSortedWaitlist extends AbstractSortedWaitlist<Integer> {
 
-public class TopologicallySortedWaitlist extends AbstractSortedWaitlist<Integer> {
-
-  @SuppressWarnings("deprecation")
-  protected TopologicallySortedWaitlist(WaitlistFactory pSecondaryStrategy) {
+  protected ExplicitSortedWaitlist(WaitlistFactory pSecondaryStrategy) {
     super(pSecondaryStrategy);
-    Preconditions.checkArgument(pSecondaryStrategy != TraversalMethod.TOPSORT);
-  }
-
-  @Override
-  public void add(AbstractElement pElement) {
-    assert AbstractElements.extractLocation(pElement) != null;
-    super.add(pElement);
   }
 
   @Override
   protected Integer getSortKey(AbstractElement pElement) {
-    return AbstractElements.extractLocation(pElement).getTopologicalSortId();
+    ExplicitElement explicitElement =
+      AbstractElements.extractElementByType(pElement, ExplicitElement.class);
+
+    // negate size so that the highest key corresponds to the smallest map
+    return (explicitElement != null) ? -explicitElement.getSize() : 0;
   }
 
   public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy) {
@@ -52,7 +54,7 @@ public class TopologicallySortedWaitlist extends AbstractSortedWaitlist<Integer>
 
       @Override
       public Waitlist createWaitlistInstance() {
-        return new TopologicallySortedWaitlist(pSecondaryStrategy);
+        return new ExplicitSortedWaitlist(pSecondaryStrategy);
       }
     };
   }

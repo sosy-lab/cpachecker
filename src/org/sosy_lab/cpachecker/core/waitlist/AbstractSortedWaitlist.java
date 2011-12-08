@@ -147,4 +147,9 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
   public int size() {
     return size;
   }
+
+  @Override
+  public String toString() {
+    return waitlist.toString();
+  }
 }

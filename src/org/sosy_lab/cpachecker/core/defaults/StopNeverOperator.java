@@ -42,12 +42,6 @@ public class StopNeverOperator implements StopOperator {
     return false;
   }
 
-  @Override
-  public boolean stop(AbstractElement el, AbstractElement reachedElement)
-      throws CPAException {
-    return false;
-  }
-
   private static final StopOperator instance = new StopNeverOperator();
 
   public static StopOperator getInstance() {

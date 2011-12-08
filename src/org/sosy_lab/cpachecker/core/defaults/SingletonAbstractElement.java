@@ -21,23 +21,17 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.interfaces;
+package org.sosy_lab.cpachecker.core.defaults;
 
-import org.sosy_lab.cpachecker.cfa.blocks.Block;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
 
-public interface Reducer {
+public enum SingletonAbstractElement implements AbstractElement {
 
-  AbstractElement getVariableReducedElement(AbstractElement expandedElement, Block context, CFANode callNode);
+  INSTANCE;
 
-  AbstractElement getVariableExpandedElement(AbstractElement rootElement, Block reducedContext, AbstractElement reducedElement);
-
-  Precision getVariableReducedPrecision(Precision precision, Block context);
-
-  Precision getVariableExpandedPrecision(Precision rootPrecision, Block rootContext, Precision reducedPrecision);
-
-  Object getHashCodeForElement(AbstractElement elementKey, Precision precisionKey);
-
-  int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision);
+  @Override
+  public String toString() {
+    return "empty element";
+  }
 }

@@ -29,6 +29,7 @@ import java.io.PrintStream;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
+import java.lang.management.MemoryUsage;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -36,10 +37,16 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
+import javax.management.JMException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
+
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -61,18 +68,73 @@ import com.google.common.collect.Iterables;
 @Options
 class MainCPAStatistics implements Statistics {
 
+  /**
+   * Some hints on memory usage numbers that I have found out so far
+   * (as of 2011-11-21 with OpenJDK 6 on Linux, obtained by pwendler).
+   *
+   * There are four ways to get memory numbers:
+   * 1) The relevant methods in the {@link Runtime} class.
+   *    (Java heap memory)
+   * 2) The {@link java.lang.management.MemoryMXBean}.
+   *    (Java heap and non-heap memory)
+   * 3) The {@link java.lang.management.MemoryPoolMXBean}.
+   *    (Java heap and non-heap memory per memory pool)
+   * 4) The method {@link com.sun.management.OperatingSystemMXBean#getCommittedVirtualMemorySize()}.
+   *    (Total memory usage of process)
+   *
+   * 1) gives the same numbers as 2) for the heap memory.
+   * The sum of heap and non-heap given by 2) is the same as the sum of all pools from 3).
+   *
+   * 3) has the benefit of also providing peak usage and "collection usage" numbers,
+   * although I currently don't know how helpful they are. "Collection usage" is
+   * defined as the memory that was used after the JVM "most recently expended
+   * effort in recycling unused objects in this memory pool"
+   * (i.e., performed garbage collection). These numbers are not available for all
+   * memory pools. There is also support for defining usage thresholds which will
+   * result in MBean notifications being emitted.
+   *
+   * 4) is only supported on Sun-family JVMs (at least the method is defined only
+   * in internal JVM classes). I do not know whether this method works on other OS.
+   * On Linux this gives the same number as the "top" command in the "VIRT" column.
+   * According to the man page this includes "all code, data and shared libraries
+   * plus pages that pages that have been mapped but not used" (and thus this
+   * measure includes more than we would like).
+   */
   private static class MemoryStatistics extends Thread {
 
     private static final long MEMORY_CHECK_INTERVAL = 100; // milliseconds
 
+    private final LogManager logger;
+
     private long maxHeap = 0;
     private long sumHeap = 0;
+    private long maxHeapAllocated = 0;
+    private long sumHeapAllocated = 0;
     private long maxNonHeap = 0;
     private long sumNonHeap = 0;
+    private long maxNonHeapAllocated = 0;
+    private long sumNonHeapAllocated = 0;
+    private long maxProcess = 0;
+    private long sumProcess = 0;
     private long count = 0;
 
-    private MemoryStatistics() {
+    // necessary stuff to query the OperatingSystemMBean
+    private final MBeanServer mbeanServer;
+    private ObjectName osMbean;
+    private static final String MEMORY_SIZE = "CommittedVirtualMemorySize";
+
+    private MemoryStatistics(LogManager pLogger) {
       super("CPAchecker memory statistics collector");
+
+      logger = pLogger;
+
+      mbeanServer = ManagementFactory.getPlatformMBeanServer();
+      try {
+        osMbean = new ObjectName("java.lang", "type", "OperatingSystem");
+      } catch (MalformedObjectNameException e) {
+        logger.logDebugException(e, "Accessing OperatingSystemMXBean failed");
+        osMbean = null;
+      }
     }
 
     @Override
@@ -80,13 +142,42 @@ class MainCPAStatistics implements Statistics {
       MemoryMXBean mxBean = ManagementFactory.getMemoryMXBean();
       while (true) { // no stop condition, call Thread#interrupt() to stop it
         count++;
-        long currentHeapUsed = mxBean.getHeapMemoryUsage().getUsed();
+
+        // get Java heap usage
+        MemoryUsage currentHeap = mxBean.getHeapMemoryUsage();
+        long currentHeapUsed = currentHeap.getUsed();
         maxHeap = Math.max(maxHeap, currentHeapUsed);
         sumHeap += currentHeapUsed;
 
-        long currentNonHeapUsed = mxBean.getNonHeapMemoryUsage().getUsed();
+        long currentHeapAllocated = currentHeap.getCommitted();
+        maxHeapAllocated = Math.max(maxHeapAllocated, currentHeapAllocated);
+        sumHeapAllocated += currentHeapAllocated;
+
+        // get Java non-heap usage
+        MemoryUsage currentNonHeap = mxBean.getNonHeapMemoryUsage();
+        long currentNonHeapUsed = currentNonHeap.getUsed();
         maxNonHeap = Math.max(maxNonHeap, currentNonHeapUsed);
         sumNonHeap += currentNonHeapUsed;
+
+        long currentNonHeapAllocated = currentNonHeap.getCommitted();
+        maxNonHeapAllocated = Math.max(maxNonHeapAllocated, currentNonHeapAllocated);
+        sumNonHeapAllocated += currentNonHeapAllocated;
+
+        // get process virtual memory usage
+        if (osMbean != null) {
+          try {
+            long memUsed = (Long) mbeanServer.getAttribute(osMbean, MEMORY_SIZE);
+            maxProcess = Math.max(maxProcess, memUsed);
+            sumProcess += memUsed;
+
+          } catch (JMException e) {
+            logger.logDebugException(e, "Querying memory size failed");
+            osMbean = null;
+          } catch (ClassCastException e) {
+            logger.logDebugException(e, "Querying memory size failed");
+            osMbean = null;
+          }
+        }
 
         try {
           sleep(MEMORY_CHECK_INTERVAL);
@@ -102,8 +193,9 @@ class MainCPAStatistics implements Statistics {
         description="print reached set to text file")
     private boolean exportReachedSet = true;
 
-    @Option(name="reachedSet.file", type=Option.Type.OUTPUT_FILE,
+    @Option(name="reachedSet.file",
         description="print reached set to text file")
+    @FileOption(FileOption.Type.OUTPUT_FILE)
     private File outputFile = new File("reached.txt");
 
     @Option(name="statistics.memory",
@@ -116,18 +208,19 @@ class MainCPAStatistics implements Statistics {
 
     final Timer programTime = new Timer();
     final Timer creationTime = new Timer();
+    final Timer cpaCreationTime = new Timer();
     final Timer analysisTime = new Timer();
 
     private CFACreator cfaCreator;
 
-    public MainCPAStatistics(Configuration config, LogManager logger) throws InvalidConfigurationException {
+    public MainCPAStatistics(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+        logger = pLogger;
         config.inject(this);
 
-        this.logger = logger;
         subStats = new ArrayList<Statistics>();
 
         if (monitorMemoryUsage) {
-          memStats = new MemoryStatistics();
+          memStats = new MemoryStatistics(pLogger);
           memStats.setDaemon(true);
           memStats.start();
         } else {
@@ -149,8 +242,12 @@ class MainCPAStatistics implements Statistics {
     @Override
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
         // call stop again in case CPAchecker was terminated abnormally
-        if (analysisTime.isRunning()) analysisTime.stop();
-        if (programTime.isRunning()) programTime.stop();
+        if (analysisTime.isRunning()) {
+          analysisTime.stop();
+        }
+        if (programTime.isRunning()) {
+          programTime.stop();
+        }
         if (memStats != null) {
           memStats.interrupt(); // stop memory statistics collection
         }
@@ -159,29 +256,32 @@ class MainCPAStatistics implements Statistics {
           try {
             Files.writeFile(outputFile, Joiner.on('\n').join(reached));
           } catch (IOException e) {
-            logger.log(Level.WARNING,
-                "Could not write reached set to file (", e.getMessage(), ")");
+            logger.logUserException(Level.WARNING, e, "Could not write reached set to file");
           } catch (OutOfMemoryError e) {
-            logger.log(Level.WARNING,
-                "Could not write reached set to file due to memory problems (", e.getMessage(), ")");
+            logger.logUserException(Level.WARNING, e,
+                "Could not write reached set to file due to memory problems");
           }
         }
 
         for (Statistics s : subStats) {
             String name = s.getName();
-            if (name != null && !name.isEmpty()) {
+            if (!Strings.isNullOrEmpty(name)) {
               name = name + " statistics";
-              out.println("");
               out.println(name);
               out.println(Strings.repeat("-", name.length()));
             }
+
             s.printStatistics(out, result, reached);
+
+            if (!Strings.isNullOrEmpty(name)) {
+              out.println();
+            }
         }
 
         Set<CFANode> allLocations = ImmutableSet.copyOf(AbstractElements.extractLocations(reached));
         Iterable<AbstractElement> allTargetElements = AbstractElements.filterTargetElements(reached);
 
-        out.println("\nCPAchecker general statistics");
+        out.println("CPAchecker general statistics");
         out.println("-----------------------------");
         out.println("Size of reached set:          " + reached.size());
         out.println("  Number of locations:        " + allLocations.size());
@@ -191,18 +291,19 @@ class MainCPAStatistics implements Statistics {
         }
         out.println("  Number of target elements:  " + Iterables.size(allTargetElements));
         out.println("Time for analysis setup:      " + creationTime);
+        out.println("  Time for loading CPAs:      " + cpaCreationTime);
         if (cfaCreator != null) {
           out.println("  Time for loading C parser:  " + cfaCreator.parserInstantiationTime);
-          out.println("Time for CFA construction:    " + cfaCreator.totalTime);
-          out.println("  Time for parsing C file:    " + cfaCreator.parsingTime);
-          out.println("  Time for AST to CFA:        " + cfaCreator.conversionTime);
-          out.println("  Time for CFA sanity checks: " + cfaCreator.checkTime);
-          out.println("  Time for post-processing:   " + cfaCreator.processingTime);
+          out.println("  Time for CFA construction:  " + cfaCreator.totalTime);
+          out.println("    Time for parsing C file:  " + cfaCreator.parsingTime);
+          out.println("    Time for AST to CFA:      " + cfaCreator.conversionTime);
+          out.println("    Time for CFA sanity check:" + cfaCreator.checkTime);
+          out.println("    Time for post-processing: " + cfaCreator.processingTime);
           if (cfaCreator.pruningTime.getNumberOfIntervals() > 0) {
-            out.println("  Time for CFA pruning:       " + cfaCreator.pruningTime);
+            out.println("    Time for CFA pruning:     " + cfaCreator.pruningTime);
           }
           if (cfaCreator.exportTime.getNumberOfIntervals() > 0) {
-            out.println("  Time for export:            " + cfaCreator.exportTime);
+            out.println("    Time for CFA export:      " + cfaCreator.exportTime);
           }
         }
         out.println("Time for Analysis:            " + analysisTime);
@@ -228,30 +329,14 @@ class MainCPAStatistics implements Statistics {
           } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
           }
-          out.println("Heap memory usage:            " + formatMem(memStats.maxHeap) + " max (" + formatMem(memStats.sumHeap/memStats.count) + " avg)");
-          out.println("Non-Heap memory usage:        " + formatMem(memStats.maxNonHeap) + " max (" + formatMem(memStats.sumNonHeap/memStats.count) + " avg)");
+          out.println("Used heap memory:             " + formatMem(memStats.maxHeap) + " max (" + formatMem(memStats.sumHeap/memStats.count) + " avg)");
+          out.println("Used non-heap memory:         " + formatMem(memStats.maxNonHeap) + " max (" + formatMem(memStats.sumNonHeap/memStats.count) + " avg)");
+          out.println("Allocated heap memory:        " + formatMem(memStats.maxHeapAllocated) + " max (" + formatMem(memStats.sumHeapAllocated/memStats.count) + " avg)");
+          out.println("Allocated non-heap memory:    " + formatMem(memStats.maxNonHeapAllocated) + " max (" + formatMem(memStats.sumNonHeapAllocated/memStats.count) + " avg)");
+          if (memStats.osMbean != null) {
+            out.println("Total process virtual memory: " + formatMem(memStats.maxProcess) + " max (" + formatMem(memStats.sumProcess/memStats.count) + " avg)");
+          }
         }
-
-        out.println("");
-        out.print("Given specification violated? ");
-        switch (result) {
-        case UNKNOWN:
-          out.println("UNKNOWN, analysis has not completed\n\n" +
-              "***********************************************************************\n" +
-              "* WARNING: Analysis interrupted!! The statistics might be unreliable! *\n" +
-              "***********************************************************************"
-            );
-          break;
-        case UNSAFE:
-          out.println("YES, there is a BUG!");
-          break;
-        case SAFE:
-          out.println("NO, the system is considered safe by the chosen CPAs");
-          break;
-        default:
-          out.println("UNKNOWN result: " + result);
-        }
-        out.flush();
     }
 
     private static String formatMem(long mem) {

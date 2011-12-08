@@ -21,23 +21,25 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.interfaces;
+package org.sosy_lab.cpachecker.core.interfaces.conditions;
 
-import org.sosy_lab.cpachecker.cfa.blocks.Block;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 
-public interface Reducer {
+/**
+ * Interface to implement in order for an object to be able to
+ * contribute invariants to the invariant construction.
+ */
+public interface AssumptionReportingElement {
 
-  AbstractElement getVariableReducedElement(AbstractElement expandedElement, Block context, CFANode callNode);
+  /**
+   * Get the assumption that the given abstract element
+   * wants to report for its containing node's location.
+   *
+   * @return an assumption representing the assumptions to generate
+   *         for the given element, or the value null representing
+   *         the assumption true.
+   */
+  public Formula getAssumption();
 
-  AbstractElement getVariableExpandedElement(AbstractElement rootElement, Block reducedContext, AbstractElement reducedElement);
-
-  Precision getVariableReducedPrecision(Precision precision, Block context);
-
-  Precision getVariableExpandedPrecision(Precision rootPrecision, Block rootContext, Precision reducedPrecision);
-
-  Object getHashCodeForElement(AbstractElement elementKey, Precision precisionKey);
-
-  int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision);
 }

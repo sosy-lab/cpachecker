@@ -24,37 +24,32 @@
 package org.sosy_lab.cpachecker.core.defaults;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 /**
- * Standard stop-sep operator
+ * This transfer relation always returns the element itself as its successor.
+ * I.e, the relation contains for all abstract states x and edges e the tuples
+ * (x,e,x).
  */
-public class StopSepOperator implements StopOperator {
+public enum IdentityTransferRelation implements TransferRelation {
 
-  private final AbstractDomain domain;
+  INSTANCE;
 
-  /**
-   * Creates a stop-sep operator based on the given
-   * partial order
-   */
-  public StopSepOperator(AbstractDomain d) {
-    domain = d;
+  @Override
+  public Collection<AbstractElement> getAbstractSuccessors(AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge) {
+    return Collections.singleton(pElement);
   }
 
   @Override
-  public boolean stop(AbstractElement el, Collection<AbstractElement> reached, Precision precision)
-    throws CPAException {
+  public Collection<AbstractElement> strengthen(AbstractElement pElement,
+      List<AbstractElement> pOtherElements, CFAEdge pCfaEdge, Precision pPrecision) {
 
-    for (AbstractElement reachedElement : reached) {
-      if (domain.isLessOrEqual(el, reachedElement)) {
-        return true;
-      }
-    }
-    return false;
+    return null;
   }
 }

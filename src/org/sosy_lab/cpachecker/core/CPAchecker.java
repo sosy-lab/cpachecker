@@ -24,18 +24,17 @@
 package org.sosy_lab.cpachecker.core;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.net.URL;
 import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -45,21 +44,26 @@ import org.sosy_lab.cpachecker.core.algorithm.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
+import com.google.common.io.Resources;
 
 public class CPAchecker {
 
@@ -100,6 +104,10 @@ public class CPAchecker {
         description="use assumption collecting algorithm")
         boolean useAssumptionCollector = false;
 
+    @Option(name="analysis.useAdjustableConditions",
+        description="use adjustable conditions algorithm")
+        boolean useAdjustableConditions = false;
+
     @Option(name = "analysis.useRefinement",
         description = "use CEGAR algorithm for lazy counter-example guided analysis"
           + "\nYou need to specify a refiner with the cegar.refiner option."
@@ -123,6 +131,10 @@ public class CPAchecker {
         description="restart the algorithm using a different CPA after unknown result")
         boolean useRestartingAlgorithm = false;
 
+    @Option(name="analysis.externalCBMC",
+        description="use CBMC as an external tool from CPAchecker")
+        boolean runCBMCasExternalTool = false;
+
   }
 
   private final LogManager logger;
@@ -140,201 +152,175 @@ public class CPAchecker {
     }
   }
 
+  // The content of this String is read from a file that is created by the
+  // ant task "init".
+  // To change the version, update the property in build.xml.
+  private static final String version;
+  static {
+    String v = "(unknown version)";
+    try {
+      URL url = CPAchecker.class.getClassLoader().getResource("org/sosy_lab/cpachecker/VERSION.txt");
+      if (url != null) {
+        String content = Resources.toString(url, Charsets.US_ASCII).trim();
+        if (content.matches("[a-zA-Z0-9 ._+:-]+")) {
+          v = content;
+        }
+      }
+    } catch (IOException e) {
+      // Ignore exception, no better idea what to do here.
+    }
+    version = v;
+  }
+
+  public static String getVersion() {
+    return version;
+  }
+
   public CPAchecker(Configuration pConfiguration, LogManager pLogManager) throws InvalidConfigurationException {
     config = pConfiguration;
     logger = pLogManager;
 
     options = new CPAcheckerOptions();
     config.inject(options);
-    reachedSetFactory = new ReachedSetFactory(pConfiguration);
+    reachedSetFactory = new ReachedSetFactory(pConfiguration, pLogManager);
   }
 
   public CPAcheckerResult run(String filename) {
 
-    logger.log(Level.INFO, "CPAchecker started");
+    logger.log(Level.INFO, "CPAchecker", getVersion(), "started");
 
     MainCPAStatistics stats = null;
     ReachedSet reached = null;
-    Result result = Result.UNKNOWN;
+    Result result = Result.NOT_YET_STARTED;
 
-    if(options.useRestartingAlgorithm){
-      logger.log(Level.INFO, "Using Restarting Algorithm");
+    try {
+      stats = new MainCPAStatistics(config, logger);
 
-      try {
-        stats = new MainCPAStatistics(config, logger);
+      // create reached set, cpa, algorithm
+      stats.creationTime.start();
+      reached = reachedSetFactory.create();
 
-        // create parser, cpa, algorithm
-        stats.creationTime.start();
+      Algorithm algorithm;
 
-        CFACreator cfaCreator = new CFACreator(config, logger);
-        stats.setCFACreator(cfaCreator);
+      if (options.runCBMCasExternalTool) {
+        algorithm = new ExternalCBMCAlgorithm(filename, config, logger);
 
-        // create CFA
-        cfaCreator.parseFileAndCreateCFA(filename);
-
-        if (cfaCreator.getFunctions().isEmpty()) {
+      } else {
+        CFA cfa = parse(filename, stats);
+        if (cfa.isEmpty()) {
           // empty program, do nothing
-          return new CPAcheckerResult(Result.UNKNOWN, null, null);
+          return new CPAcheckerResult(Result.NOT_YET_STARTED, null, null);
         }
-
-        Pair<Algorithm, ReachedSet> algorithmReachedPair = createRestartAlgorithm(config, stats, cfaCreator);
-
-        Set<String> unusedProperties = config.getUnusedProperties();
-        if (!unusedProperties.isEmpty()) {
-          logger.log(Level.WARNING, "The following configuration options were specified but are not used:\n",
-              Joiner.on("\n ").join(unusedProperties), "\n");
-        }
-
-        stats.creationTime.stop();
 
         stopIfNecessary();
 
-        // register management interface for CPAchecker
-        CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
-        try {
+        ConfigurableProgramAnalysis cpa = createCPA(stats, cfa);
 
-          result = runAlgorithm(algorithmReachedPair.getFirst(), algorithmReachedPair.getSecond(), stats);
+        algorithm = createAlgorithm(cpa, stats, filename, cfa);
 
-        } finally {
-          // unregister management interface for CPAchecker
-          mxbean.unregister();
+        if (algorithm instanceof RestartAlgorithm) {
+          // this algorithm needs an indirection so that it can change
+          // the actual reached set instance on the fly
+          reached = new ForwardingReachedSet(reached);
         }
 
-      } catch (IOException e) {
-        logger.log(Level.SEVERE, "Could not read file", filename,
-            (e.getMessage() != null ? "(" + e.getMessage() + ")" : ""));
-
-      } catch (ParserException e) {
-        // only log message, not whole exception because this is a C problem,
-        // not a CPAchecker problem
-        logger.log(Level.SEVERE, Throwables.getRootCause(e).getMessage());
-        logger.log(Level.INFO, "Make sure that the code was preprocessed using Cil (HowTo.txt).\n"
-            + "If the error still occurs, please send this error message together with the input file to cpachecker-users@sosy-lab.org.");
-
-      } catch (InvalidConfigurationException e) {
-        logger.log(Level.SEVERE, "Invalid configuration:", e.getMessage());
-
-      } catch (UnsatisfiedLinkError e) {
-        if (e.getMessage().contains("libgmpxx.so.4")) {
-          logger.log(Level.SEVERE, "Error: The GNU Multiprecision arithmetic library is required, but missing on this system!\n"
-              + "Please install libgmpxx.so.4 and try again.\n"
-              + "On Ubuntu you need to install the package 'libgmpxx4ldbl'.");
-        } else {
-          logger.logException(Level.SEVERE, e, null);
-        }
-
-      } catch (InterruptedException e) {
-        // CPAchecker must exit because it was asked to
-        // we return normally instead of propagating the exception
-        // so we can return the partial result we have so far
-
-      } catch (CPAException e) {
-        logger.logException(Level.SEVERE, e, null);
+        initializeReachedSet(reached, cpa, cfa.getMainFunction());
       }
 
-    }
+      printConfigurationWarnings();
 
-    else{
-      try {
-        stats = new MainCPAStatistics(config, logger);
+      stats.creationTime.stop();
+      stopIfNecessary();
+      // now everything necessary has been instantiated
 
-        // create parser, cpa, algorithm
-        stats.creationTime.start();
 
-        CFACreator cfaCreator = new CFACreator(config, logger);
-        stats.setCFACreator(cfaCreator);
+      // run analysis
+      result = Result.UNKNOWN; // set to unknown so that the result is correct in case of exception
 
-        ConfigurableProgramAnalysis cpa = createCPA(stats);
+      boolean sound = runAlgorithm(algorithm, reached, stats);
 
-        Algorithm algorithm = createAlgorithm(cpa, stats);
+      result = analyzeResult(reached, sound);
 
-        Set<String> unusedProperties = config.getUnusedProperties();
-        if (!unusedProperties.isEmpty()) {
-          logger.log(Level.WARNING, "The following configuration options were specified but are not used:\n",
-              Joiner.on("\n ").join(unusedProperties), "\n");
-        }
+    } catch (IOException e) {
+      logger.logUserException(Level.SEVERE, e, "Could not read file");
 
-        stats.creationTime.stop();
+    } catch (ParserException e) {
+      // only log message, not whole exception because this is a C problem,
+      // not a CPAchecker problem
+      logger.logUserException(Level.SEVERE, Throwables.getRootCause(e), "Parsing failed");
+      logger.log(Level.INFO, "Make sure that the code was preprocessed using Cil (HowTo.txt).\n"
+          + "If the error still occurs, please send this error message together with the input file to cpachecker-users@sosy-lab.org.");
 
-        stopIfNecessary();
+    } catch (InvalidConfigurationException e) {
+      logger.logUserException(Level.SEVERE, e, "Invalid configuration");
 
-        // create CFA
-        cfaCreator.parseFileAndCreateCFA(filename);
+    } catch (InterruptedException e) {
+      // CPAchecker must exit because it was asked to
+      // we return normally instead of propagating the exception
+      // so we can return the partial result we have so far
 
-        if (cfaCreator.getFunctions().isEmpty()) {
-          // empty program, do nothing
-          return new CPAcheckerResult(Result.UNKNOWN, null, null);
-        }
-
-        reached = createInitialReachedSet(cpa, cfaCreator.getMainFunction());
-
-        stopIfNecessary();
-
-        // register management interface for CPAchecker
-        CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
-        try {
-
-          result = runAlgorithm(algorithm, reached, stats);
-
-        } finally {
-          // unregister management interface for CPAchecker
-          mxbean.unregister();
-        }
-
-      } catch (IOException e) {
-        logger.log(Level.SEVERE, "Could not read file", filename,
-            (e.getMessage() != null ? "(" + e.getMessage() + ")" : ""));
-
-      } catch (ParserException e) {
-        // only log message, not whole exception because this is a C problem,
-        // not a CPAchecker problem
-        logger.log(Level.SEVERE, Throwables.getRootCause(e).getMessage());
-        logger.log(Level.INFO, "Make sure that the code was preprocessed using Cil (HowTo.txt).\n"
-            + "If the error still occurs, please send this error message together with the input file to cpachecker-users@sosy-lab.org.");
-
-      } catch (InvalidConfigurationException e) {
-        logger.log(Level.SEVERE, "Invalid configuration:", e.getMessage());
-
-      } catch (UnsatisfiedLinkError e) {
-        if (e.getMessage().contains("libgmpxx.so.4")) {
-          logger.log(Level.SEVERE, "Error: The GNU Multiprecision arithmetic library is required, but missing on this system!\n"
-              + "Please install libgmpxx.so.4 and try again.\n"
-              + "On Ubuntu you need to install the package 'libgmpxx4ldbl'.");
-        } else {
-          logger.logException(Level.SEVERE, e, null);
-        }
-
-      } catch (InterruptedException e) {
-        // CPAchecker must exit because it was asked to
-        // we return normally instead of propagating the exception
-        // so we can return the partial result we have so far
-
-      } catch (CPAException e) {
-        logger.logException(Level.SEVERE, e, null);
-      }
+    } catch (CPAException e) {
+      logger.logUserException(Level.SEVERE, e, null);
     }
     return new CPAcheckerResult(result, reached, stats);
   }
 
-  private Result runAlgorithm(final Algorithm algorithm,
+  private CFA parse(String filename, MainCPAStatistics stats) throws InvalidConfigurationException, IOException,
+      ParserException, InterruptedException {
+    // parse file and create CFA
+    CFACreator cfaCreator = new CFACreator(config, logger);
+    stats.setCFACreator(cfaCreator);
+
+    return cfaCreator.parseFileAndCreateCFA(filename);
+  }
+
+  private void printConfigurationWarnings() {
+    Set<String> unusedProperties = config.getUnusedProperties();
+    if (!unusedProperties.isEmpty()) {
+      logger.log(Level.WARNING, "The following configuration options were specified but are not used:\n",
+          Joiner.on("\n ").join(unusedProperties), "\n");
+    }
+    Set<String> deprecatedProperties = config.getDeprecatedProperties();
+    if (!deprecatedProperties.isEmpty()) {
+      logger.log(Level.WARNING, "The following options are deprecated and will be removed in the future:\n",
+          Joiner.on("\n ").join(deprecatedProperties), "\n");
+    }
+  }
+
+  private boolean runAlgorithm(final Algorithm algorithm,
       final ReachedSet reached,
       final MainCPAStatistics stats) throws CPAException, InterruptedException {
 
     logger.log(Level.INFO, "Starting analysis ...");
-    stats.analysisTime.start();
 
     boolean sound = true;
-    do {
-      sound &= algorithm.run(reached);
 
-      // either run only once (if stopAfterError == true)
-      // or until the waitlist is empty
-    } while (!options.stopAfterError && reached.hasWaitingElement());
+    // register management interface for CPAchecker
+    CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
 
-    logger.log(Level.INFO, "Stopping analysis ...");
-    stats.analysisTime.stop();
-    stats.programTime.stop();
+    stats.analysisTime.start();
+    try {
 
+      do {
+        sound &= algorithm.run(reached);
+
+        // either run only once (if stopAfterError == true)
+        // or until the waitlist is empty
+      } while (!options.stopAfterError && reached.hasWaitingElement());
+
+      logger.log(Level.INFO, "Stopping analysis ...");
+      return sound;
+
+    } finally {
+      stats.analysisTime.stop();
+      stats.programTime.stop();
+
+      // unregister management interface for CPAchecker
+      mxbean.unregister();
+    }
+  }
+
+  private Result analyzeResult(final ReachedSet reached, boolean sound) {
     if (Iterables.any(reached, AbstractElements.IS_TARGET_ELEMENT)) {
       return Result.UNSAFE;
     }
@@ -352,156 +338,73 @@ public class CPAchecker {
     return Result.SAFE;
   }
 
-  private ConfigurableProgramAnalysis createCPA(MainCPAStatistics stats) throws InvalidConfigurationException, CPAException {
+  private ConfigurableProgramAnalysis createCPA(MainCPAStatistics stats, CFA cfa) throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
+    stats.cpaCreationTime.start();
+    try {
 
-    CPABuilder builder = new CPABuilder(config, logger, reachedSetFactory);
-    ConfigurableProgramAnalysis cpa = builder.buildCPAs();
-
-    if (cpa instanceof StatisticsProvider) {
-      ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
-    }
-    return cpa;
-  }
-
-  private ConfigurableProgramAnalysis createCPA(ReachedSetFactory pReachedSetFactory, Configuration pConfig, MainCPAStatistics stats) throws InvalidConfigurationException, CPAException {
-    logger.log(Level.FINE, "Creating CPAs");
-
-    CPABuilder builder = new CPABuilder(pConfig, logger, pReachedSetFactory);
-    ConfigurableProgramAnalysis cpa = builder.buildCPAs();
-
-    if (cpa instanceof StatisticsProvider) {
-      ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
-    }
-    return cpa;
-  }
-
-  private Algorithm createAlgorithm(
-      final ConfigurableProgramAnalysis cpa, final MainCPAStatistics stats)
-  throws InvalidConfigurationException, CPAException {
-    logger.log(Level.FINE, "Creating algorithms");
-
-    Algorithm algorithm = new CPAAlgorithm(cpa, logger);
-
-    if (options.useRefinement) {
-      algorithm = new CEGARAlgorithm(algorithm, config, logger);
-    }
-
-    if (options.useBMC) {
-      algorithm = new BMCAlgorithm(algorithm, config, logger, reachedSetFactory);
-    }
-
-    if (options.useCBMC) {
-      algorithm = new CounterexampleCheckAlgorithm(algorithm, config, logger);
-    }
-
-    if (options.useAssumptionCollector) {
-      algorithm = new AssumptionCollectorAlgorithm(algorithm, config, logger);
-    }
-
-    if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider)algorithm).collectStatistics(stats.getSubStatistics());
-    }
-    return algorithm;
-  }
-
-  private Algorithm createAlgorithm(
-      final ConfigurableProgramAnalysis cpa, Configuration pConfig,
-      final MainCPAStatistics stats, ReachedSetFactory singleReachedSetFactory)
-  throws InvalidConfigurationException, CPAException {
-    logger.log(Level.FINE, "Creating algorithms");
-
-    Algorithm algorithm = new CPAAlgorithm(cpa, logger);
-
-    if (options.useRefinement) {
-      algorithm = new CEGARAlgorithm(algorithm, pConfig, logger);
-    }
-
-    if (options.useBMC) {
-      algorithm = new BMCAlgorithm(algorithm, pConfig, logger, singleReachedSetFactory);
-    }
-
-    if (options.useCBMC) {
-      algorithm = new CounterexampleCheckAlgorithm(algorithm, pConfig, logger);
-    }
-
-    if (options.useAssumptionCollector) {
-      algorithm = new AssumptionCollectorAlgorithm(algorithm, pConfig, logger);
-    }
-
-    if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider)algorithm).collectStatistics(stats.getSubStatistics());
-    }
-    return algorithm;
-  }
-
-  private Pair<Algorithm, ReachedSet> createRestartAlgorithm(Configuration config, MainCPAStatistics stats, CFACreator cfaCreator) {
-    List<Pair<Algorithm, ReachedSet>> algorithmsList = new ArrayList<Pair<Algorithm, ReachedSet>>();
-
-    String[] configFiles = config.getPropertiesArray("restartAlgorithm.configFiles");
-
-    ReachedSet reached = null;
-
-    for(String configFileName: configFiles){
-      Algorithm algorithm = null;
-      Configuration.Builder singleConfigBuilder = Configuration.builder();
-      Preconditions.checkNotNull(configFileName);
-      try {
-        singleConfigBuilder.loadFromFile(configFileName);
-        Configuration singleConfig = singleConfigBuilder.build();
-        singleConfig.inject(options);
-        ReachedSetFactory singleReachedSetFactory = new ReachedSetFactory(singleConfig);
-        ConfigurableProgramAnalysis cpa = createCPA(singleReachedSetFactory, singleConfig, stats);
-        algorithm = createAlgorithm(cpa, singleConfig, stats, singleReachedSetFactory);
-
-        reached = createInitialReachedSetForRestart(cpa, cfaCreator.getMainFunction(), singleReachedSetFactory);
-
-        stopIfNecessary();
-
-      } catch (IOException e) {
-        e.printStackTrace();
-      } catch (InvalidConfigurationException e) {
-        e.printStackTrace();
-      } catch (CPAException e) {
-        e.printStackTrace();
-      } catch (InterruptedException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
+      if (options.useRestartingAlgorithm) {
+        // hard-coded dummy CPA
+        return LocationCPA.factory().set(cfa, CFA.class).createInstance();
       }
 
-      Preconditions.checkNotNull(algorithm);
-      algorithmsList.add(Pair.of(algorithm, reached));
+      CPABuilder builder = new CPABuilder(config, logger, reachedSetFactory, cfa);
+      ConfigurableProgramAnalysis cpa = builder.buildCPAs();
+
+      if (cpa instanceof StatisticsProvider) {
+        ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
+      }
+      return cpa;
+
+    } finally {
+      stats.cpaCreationTime.stop();
     }
-
-    Algorithm restartAlgorithm = null;
-
-    try {
-      restartAlgorithm = new RestartAlgorithm(algorithmsList, config, logger);
-    } catch (InvalidConfigurationException e) {
-      e.printStackTrace();
-    } catch (CPAException e) {
-      e.printStackTrace();
-    }
-
-    Preconditions.checkNotNull(restartAlgorithm);
-    return Pair.of(restartAlgorithm, reached);
   }
 
-  private ReachedSet createInitialReachedSetForRestart(
-      ConfigurableProgramAnalysis cpa,
-      CFAFunctionDefinitionNode mainFunction,
-      ReachedSetFactory pReachedSetFactory) {
-    logger.log(Level.FINE, "Creating initial reached set");
+  private Algorithm createAlgorithm(final ConfigurableProgramAnalysis cpa,
+        final MainCPAStatistics stats, final String filename, CFA cfa)
+        throws InvalidConfigurationException, CPAException {
+    logger.log(Level.FINE, "Creating algorithms");
 
-    AbstractElement initialElement = cpa.getInitialElement(mainFunction);
-    Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
+    Algorithm algorithm;
 
-    ReachedSet reached = pReachedSetFactory.create();
-    reached.add(initialElement, initialPrecision);
-    return reached;
+    if (options.useRestartingAlgorithm) {
+      logger.log(Level.INFO, "Using Restarting Algorithm");
+      algorithm = new RestartAlgorithm(config, logger, filename, cfa);
+
+    } else {
+      algorithm = new CPAAlgorithm(cpa, logger);
+
+      if (options.useRefinement) {
+        algorithm = new CEGARAlgorithm(algorithm, cpa, config, logger);
+      }
+
+      if (options.useBMC) {
+        algorithm = new BMCAlgorithm(algorithm, cpa, config, logger, reachedSetFactory, cfa);
+      }
+
+      if (options.useCBMC) {
+        algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, config, logger, reachedSetFactory, cfa);
+      }
+
+      if (options.useAssumptionCollector) {
+        algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, config, logger);
+      }
+
+      if (options.useAdjustableConditions) {
+        algorithm = new RestartWithConditionsAlgorithm(algorithm, cpa, config, logger);
+      }
+
+    }
+
+    if (algorithm instanceof StatisticsProvider) {
+      ((StatisticsProvider)algorithm).collectStatistics(stats.getSubStatistics());
+    }
+    return algorithm;
   }
 
-  private ReachedSet createInitialReachedSet(
+  private void initializeReachedSet(
+      final ReachedSet reached,
       final ConfigurableProgramAnalysis cpa,
       final CFAFunctionDefinitionNode mainFunction) {
     logger.log(Level.FINE, "Creating initial reached set");
@@ -509,8 +412,6 @@ public class CPAchecker {
     AbstractElement initialElement = cpa.getInitialElement(mainFunction);
     Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
 
-    ReachedSet reached = reachedSetFactory.create();
     reached.add(initialElement, initialPrecision);
-    return reached;
   }
 }
