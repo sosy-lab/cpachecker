@@ -11,10 +11,7 @@
   file (only needed if JDK is in non-standard location)
 
 * Run "compile.sh <PATH_TO_MATHSAT>"
-  If everything works, you should obtain mathsat.jar and libmathsatj.so 
+  If everything works, you should obtain and libmathsatj.so
 
-* Copy the files in the appropriate locations so that CPAChecker can find
-  them:
-  - For mathsat.jar, this is lib/
-  - For libmathsatj.so, this is lib/native/$arch-$platform
-
+* Copy the file in the lib/native/$arch-$platform directory
+  so that CPAchecker can find it
