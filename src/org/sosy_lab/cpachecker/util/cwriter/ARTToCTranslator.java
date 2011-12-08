@@ -426,14 +426,28 @@ public class ARTToCTranslator {
     FunctionDefinitionNode fn = lFunctionCallEdge.getSuccessor();
     List<IASTParameterDeclaration> formalParams = fn.getFunctionParameters();
 
+    List<Statement> actualParamAssignStatements = new ArrayList<Statement>();
+    List<Statement> formalParamAssignStatements = new ArrayList<Statement>();
+
     int i = 0;
     for (IASTParameterDeclaration formalParam : formalParams) {
       // get formal parameter name
       String formalParamSignature = formalParam.getRawSignature();
       String actualParamSignature = actualParams.get(i++).getRawSignature();
 
-      SimpleStatement assignmentStatement = new SimpleStatement(formalParamSignature + " = " + actualParamSignature + ";"); //TODO: conflicting names (could be resolved using tmp variables)
-      newBlock.addStatement(assignmentStatement);
+      // create temp variable to avoid name clashes
+      String tempVariableName = "__tmp_" + getFreshIndex();
+      String tempVariableType = formalParam.getDeclSpecifier().toASTString();
+
+      actualParamAssignStatements.add(new SimpleStatement(tempVariableType + " " + tempVariableName + " = " + actualParamSignature + ";"));
+      formalParamAssignStatements.add(new SimpleStatement(formalParamSignature + " = " + tempVariableName + ";"));
+    }
+
+    for(Statement stmt : actualParamAssignStatements) {
+      newBlock.addStatement(stmt);
+    }
+    for(Statement stmt : formalParamAssignStatements) {
+      newBlock.addStatement(stmt);
     }
 
     return newBlock;
@@ -459,5 +473,10 @@ public class ARTToCTranslator {
     }
 
     return null;
+  }
+
+  private int freshIndex = 0;
+  private int getFreshIndex() {
+    return ++freshIndex;
   }
 }
