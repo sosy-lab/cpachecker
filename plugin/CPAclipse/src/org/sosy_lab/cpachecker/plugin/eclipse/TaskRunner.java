@@ -1,6 +1,8 @@
 package org.sosy_lab.cpachecker.plugin.eclipse;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
@@ -23,6 +25,7 @@ import org.eclipse.ui.console.IConsoleView;
 import org.eclipse.ui.console.IOConsole;
 import org.eclipse.ui.part.IPageBookViewPage;
 import org.eclipse.ui.progress.IProgressService;
+import org.sosy_lab.common.DuplicateOutputStream;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.LogManager.ConsoleLogFormatter;
 import org.sosy_lab.common.configuration.Configuration;
@@ -205,37 +208,19 @@ public class TaskRunner {
 					CPAchecker cpachecker = new CPAchecker(config, logger);
 					final CPAcheckerResult results = cpachecker.run(task.getTranslationUnit().getLocation().toOSString());
 					logger.flush();
+					
+					OutputStream console = null;
 					if (CPAclipse.getPlugin().getPreferenceStore().getBoolean(PreferenceConstants.P_STATS)) {
-						results.printStatistics(consoleStream);					
-					} else {
-						// cannot avoid this, because i have to generate the (log)- files
-						results.printStatistics(consoleStream);
-						switch (results.getResult()) {
-						case SAFE:
-							//color: green, doesnt work, threading issues
-							//consoleStream.setColor(new Color(CPAcheckerPlugin.getPlugin().getWorkbench().getDisplay(), 0, 255,0));
-							consoleStream.println("\nGiven specification is not violated. The system is considered safe.");
-							break;
-						case UNKNOWN:
-							//color: blue, doesnt work, threading issues
-							//consoleStream.setColor(new Color(CPAcheckerPlugin.getPlugin().getWorkbench().getDisplay(), 0, 0,255));
-							consoleStream.println("\nThe analysis did not terminate correctly. The result is unknown.");
-							break;
-						case UNSAFE:
-							// color: red, doesnt work, threading issues
-							//consoleStream.setColor(new Color(CPAcheckerPlugin.getPlugin().getWorkbench().getDisplay(), 255, 0,0));
-							consoleStream.println("\nGiven specification is violated. The program is UNSAFE!");
-							break;
-						}
+						console = consoleStream;
 					}
-					task.setLastResult(results.getResult());
+					
+					OutputStream fileStream = null;
 					IFolder outDir = task.getOutputDirectory(true);
 					if (outDir.exists()) {
 						IFile result = outDir.getFile("VerificationResult.txt");						
 						File f = new File(result.getLocation().toPortableString());
 						f.createNewFile();
-						results.printStatistics(new PrintStream(f));
-						result.refreshLocal(IResource.DEPTH_ONE, null);
+						fileStream = new FileOutputStream(f);
 						
 						IFile prevConfig = outDir.getFile("UsedConfiguration.properties");
 						if (prevConfig.exists()) {
@@ -249,6 +234,41 @@ public class TaskRunner {
 						}
 						task.getSpecFile().copy(prevSpec.getFullPath(), true, null);
 					}
+					
+					PrintStream outputStream = makePrintStream(DuplicateOutputStream.mergeStreams(console, fileStream));
+					results.printStatistics(outputStream);	
+					outputStream.println("");
+
+					switch (results.getResult()) {
+					case SAFE:
+						//color: green, doesnt work, threading issues
+						//consoleStream.setColor(new Color(CPAcheckerPlugin.getPlugin().getWorkbench().getDisplay(), 0, 255,0));
+						break;
+					case UNKNOWN:
+						//color: blue, doesnt work, threading issues
+						//consoleStream.setColor(new Color(CPAcheckerPlugin.getPlugin().getWorkbench().getDisplay(), 0, 0,255));
+						break;
+					case UNSAFE:
+						// color: red, doesnt work, threading issues
+						//consoleStream.setColor(new Color(CPAcheckerPlugin.getPlugin().getWorkbench().getDisplay(), 255, 0,0));
+						break;
+					}
+					
+					if (console == null) {
+						outputStream = makePrintStream(DuplicateOutputStream.mergeStreams(consoleStream, fileStream));
+					}
+					results.printResult(outputStream);
+					outputStream.flush();
+					
+					if (fileStream != null) {
+						fileStream.close();
+					}
+					if (outDir.exists()) {
+						outDir.refreshLocal(IResource.DEPTH_ONE, null);
+					}
+					
+					task.setLastResult(results.getResult());
+					
 					// finshedAnnouncement must be fired in Eclipse UI thread
 					fireTaskFinished(results, monitor);
 				} catch (Exception e) {
@@ -300,5 +320,13 @@ public class TaskRunner {
 				}
 			});
 		}
+
+	    private static PrintStream makePrintStream(OutputStream stream) {
+	      if (stream instanceof PrintStream) {
+	        return (PrintStream)stream;
+	      } else {
+	        return new PrintStream(stream);
+	      }
+	    }
 	}
 }
