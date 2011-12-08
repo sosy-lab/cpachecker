@@ -210,6 +210,9 @@ public class ARTToCTranslator {
   }
 
   private void getRelevantChildrenOfElement(ARTElement currentElement, Deque<ARTEdge> waitlist, CompoundStatement currentBlock) {
+    // generate label for element and add to current block if needed
+    generateLabel(currentElement, currentBlock);
+
     // find the next elements to add to the waitlist
     Set<ARTElement> childrenOfElement = currentElement.getChildren();
 
@@ -240,7 +243,7 @@ public class ARTToCTranslator {
         String cond = "";
 
         if (ind == 0) {
-          cond = generateLabel(currentElement) + "if ";
+          cond = "if ";
         } else if (ind == 1) {
           cond = "else if ";
         } else {
@@ -279,12 +282,10 @@ public class ARTToCTranslator {
     return newBlock;
   }
 
-  private String generateLabel(ARTElement currentElement) {
+  private void generateLabel(ARTElement currentElement, CompoundStatement block) {
     if(!currentElement.getCoveredByThis().isEmpty()) {
       //this element covers others; they may want to jump to it
-      return "label_"+currentElement.getElementId()+":; ";
-    } else {
-      return "";
+      block.addStatement(new SimpleStatement("label_"+currentElement.getElementId()+":; "));
     }
   }
 
@@ -312,11 +313,6 @@ public class ARTToCTranslator {
 
 
   private CompoundStatement processEdge(ARTElement currentElement, ARTElement childElement, CFAEdge edge, CompoundStatement currentBlock) {
-    String label = generateLabel(currentElement);
-    if(!label.isEmpty()) {
-      currentBlock.addStatement(new SimpleStatement(label));
-    }
-
     if (edge instanceof FunctionCallEdge) {
       // if this is a function call edge we need to inline it
       currentBlock = processFunctionCall(edge, currentBlock);
