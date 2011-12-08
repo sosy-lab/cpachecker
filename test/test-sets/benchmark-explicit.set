@@ -1,5 +1,5 @@
-test/programs/ntdrivers-simplified/*.cil.c
-test/programs/ssh-simplified/*.cil.c
+test/programs/benchmarks/ntdrivers-simplified/*.cil.c
+test/programs/benchmarks/ssh-simplified/*.cil.c
 test/programs/simple/ex2.cil.c
 test/programs/simple/loop1.c
 test/programs/simple/tempTest.c

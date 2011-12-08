@@ -1,63 +1,55 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="180" memlimit="12000">
+<benchmark tool="cpachecker" timelimit="180" memlimit="14000">
+  <option name="-noout"/>
+  <option name="-heap">12000m</option>
+
   <test name="explicit-heuristic">
-    <sourcefiles><include>test/programs/ssh-simplified/s3_srvr_10_BUG.cil.c</include></sourcefiles>
-    <options>
-      <option name="-setprop">output.disable=true</option>
-      <option name="-config">test/config/explicitAnalysis-heuristics.properties</option>
-      <option name="-setprop">cpa.assumptions.progressobserver.heuristics= </option>
-      <option name="-setprop">cpa.monitor.pathlengthlimit=200</option>
-      <option name="-heap">10000m</option>
-    </options>
+    <sourcefiles><include>test/programs/systemc/pc_sfifo_1_BUG.cil.c</include></sourcefiles>
+    <option name="-config">test/assumptions/explicitAnalysis-heuristics.properties</option>
+    <option name="-setprop">cpa.conditions.path.condition=RepetitionsInPathHeuristics</option>
+    <option name="-setprop">cpa.conditions.path.repetitions.threshold=3</option>
+  </test>
+    <test name="explicit-heuristic">
+    <sourcefiles><include>test/programs/systemc/pc_sfifo_2_BUG.cil.c</include></sourcefiles>
+    <option name="-config">test/assumptions/explicitAnalysis-heuristics.properties</option>
+    <option name="-setprop">cpa.conditions.path.condition=RepetitionsInPathCondition</option>
+    <option name="-setprop">cpa.conditions.path.repetitions.threshold=3</option>
   </test>
   <test name="explicit-heuristic">
-    <sourcefiles><include>test/programs/ssh-simplified/s3_srvr_11_BUG.cil.c</include></sourcefiles>
-    <options>
-      <option name="-setprop">output.disable=true</option>
-      <option name="-config">test/config/explicitAnalysis-heuristics.properties</option>
-      <option name="-setprop">cpa.assumptions.progressobserver.heuristics= </option>
-      <option name="-setprop">cpa.monitor.pathlengthlimit=600</option>
-      <option name="-heap">10000m</option>
-    </options>
+    <sourcefiles><include>test/programs/locks/test_locks_14.BUG.c</include></sourcefiles>
+    <option name="-config">test/assumptions/explicitAnalysis-heuristics.properties</option>
+    <option name="-setprop">cpa.conditions.path.condition=PathLengthCondition</option>
+    <option name="-setprop">cpa.conditions.path.length.threshold=85</option>
   </test>
   <test name="explicit-heuristic">
-    <sourcefiles><include>test/programs/ssh-simplified/s3_srvr_12_BUG.cil.c</include></sourcefiles>
-    <options>
-      <option name="-setprop">output.disable=true</option>
-      <option name="-config">test/config/explicitAnalysis-heuristics.properties</option>
-      <option name="-setprop">cpa.assumptions.progressobserver.heuristics= </option>
-      <option name="-setprop">cpa.monitor.pathlengthlimit=1200</option>
-      <option name="-heap">10000m</option>
-    </options>
+    <sourcefiles><include>test/programs/locks/test_locks_15.BUG.c</include></sourcefiles>
+    <option name="-config">test/assumptions/explicitAnalysis-heuristics.properties</option>
+    <option name="-setprop">cpa.conditions.path.condition=PathLengthCondition</option>
+    <option name="-setprop">cpa.conditions.path.length.threshold=90</option>
   </test>
   <test name="explicit-heuristic">
-    <sourcefiles><include>test/programs/ssh-simplified/s3_srvr_13_BUG.cil.c</include></sourcefiles>
-    <options>
-      <option name="-setprop">output.disable=true</option>
-      <option name="-config">test/config/explicitAnalysis-heuristics.properties</option>
-      <option name="-setprop">cpa.assumptions.progressobserver.heuristics= </option>
-      <option name="-setprop">cpa.monitor.pathlengthlimit=1500</option>
-      <option name="-heap">10000m</option>
-    </options>
+    <sourcefiles><include>test/programs/systemc/transmitter.15.BUG.cil.c</include></sourcefiles>
+    <option name="-config">test/assumptions/explicitAnalysis-heuristics.properties</option>
+    <option name="-setprop">cpa.conditions.path.condition=PathLengthCondition</option>
+    <option name="-setprop">cpa.conditions.path.length.threshold=600</option>
   </test>
   <test name="explicit-heuristic">
-    <sourcefiles><include>test/programs/ssh-simplified/s3_srvr_14_BUG.cil.c</include></sourcefiles>
-    <options>
-      <option name="-setprop">output.disable=true</option>
-      <option name="-config">test/config/explicitAnalysis-heuristics.properties</option>
-      <option name="-setprop">cpa.assumptions.progressobserver.heuristics= </option>
-      <option name="-setprop">cpa.monitor.pathlengthlimit=300</option>
-      <option name="-heap">10000m</option>
-    </options>
+    <sourcefiles><include>test/programs/systemc/transmitter.16.BUG.cil.c</include></sourcefiles>
+    <option name="-config">test/assumptions/explicitAnalysis-heuristics.properties</option>
+    <option name="-setprop">cpa.conditions.path.condition=PathLengthCondition</option>
+    <option name="-setprop">cpa.conditions.path.length.threshold=600</option>
   </test>
   <test name="explicit">
-    <sourcefiles><include>test/programs/ssh-simplified/s3_srvr_1[01234]_BUG.cil.c</include></sourcefiles>
-    <options>
-      <option name="-setprop">output.disable=true</option>
-      <option name="-config">test/config/explicitAnalysis.properties</option>
-      <option name="-heap">10000m</option>
-    </options>
+    <sourcefiles>
+      <include>test/programs/systemc/pc_sfifo_1_BUG.cil.c</include>
+      <include>test/programs/systemc/pc_sfifo_2_BUG.cil.c</include>
+      <include>test/programs/locks/test_locks_14.BUG.c</include>
+      <include>test/programs/locks/test_locks_15.BUG.c</include>
+      <include>test/programs/systemc/transmitter.15.BUG.cil.c</include>
+      <include>test/programs/systemc/transmitter.16.BUG.cil.c</include>
+    </sourcefiles>
+    <option name="-explicitAnalysis"/>
   </test>
   <columns>
     <column title="time">time for CPAchecker</column>

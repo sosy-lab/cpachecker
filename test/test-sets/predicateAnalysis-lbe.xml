@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" timelimit="1800" memlimit="2000">
+  <test>
+    <sourcefiles>
+      <includesfile>test/test-sets/locks.set</includesfile>
+      <includesfile>test/test-sets/ntdrivers-simplified.set</includesfile>
+      <includesfile>test/test-sets/ntdrivers.set</includesfile>
+      <includesfile>test/test-sets/ssh-simplified.set</includesfile>
+      <includesfile>test/test-sets/ssh.set</includesfile>
+      <includesfile>test/test-sets/systemc.set</includesfile>
+      <includesfile>test/test-sets/nested.set</includesfile>
+    </sourcefiles>
+    <option name="-noout"/>
+    <option name="-predicateAnalysis-lbe"/>
+    <option name="-heap">1200m</option>
+  </test>
+  <columns>
+    <column title="total">time for CPAchecker</column>
+    <column title="reached">reached set</column>
+    <column title="abstractions">Number of abstractions</column>
+    <column title="refinements">Number of refinements</column>
+    <column title="ref time">Time for refinements</column>
+    <column title="cpa time">time for CPA algorithm</column>
+  </columns>
+</benchmark>

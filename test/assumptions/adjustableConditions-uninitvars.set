@@ -1,0 +1,13 @@
+test/programs/locks/*.c
+test/programs/ntdrivers-simplified/*.cil.c
+test/programs/ssh-simplified/s3_clnt_*.cil.c
+test/programs/ssh-simplified/s3_srvr_?[._]*cil.c
+test/programs/systemc/*.cil.c
+test/programs/ntdrivers/*.cil.c
+test/programs/ssh/*.cil.c
+test/programs/LDV-tests/*.cil.c
+test/programs/olden/*.cil.c
+test/programs/linux-kernel/*.cil.c
+test/programs/cpbm/linux/*.cil.c
+test/programs/cpbm/loopfrog/*.cil.c
+test/programs/cpbm/scratch/*/*.cil.c
