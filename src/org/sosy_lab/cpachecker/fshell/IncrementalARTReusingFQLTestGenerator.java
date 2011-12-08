@@ -36,9 +36,6 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
-import org.hyperic.sigar.Mem;
-import org.hyperic.sigar.Sigar;
-import org.hyperic.sigar.SigarException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.TimeAccumulator;
@@ -79,10 +76,10 @@ import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.Product
 import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationElement;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecisionAdjustment;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
+import org.sosy_lab.cpachecker.cpa.predicate.fshell3.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.fshell3.PredicatePrecision;
+import org.sosy_lab.cpachecker.cpa.predicate.fshell3.PredicatePrecisionAdjustment;
+import org.sosy_lab.cpachecker.cpa.predicate.fshell3.PredicateRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.fshell.cfa.Wrapper;
 import org.sosy_lab.cpachecker.fshell.clustering.ClusteredElementaryCoveragePattern;
@@ -104,7 +101,7 @@ import org.sosy_lab.cpachecker.util.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.util.ecp.translators.InverseGuardedEdgeLabel;
 import org.sosy_lab.cpachecker.util.ecp.translators.ToGuardedAutomatonTranslator;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 import com.google.common.collect.ImmutableSetMultimap;
 
@@ -465,20 +462,12 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       long lStartTime = System.currentTimeMillis();
 
       if (mDoRestart) {
-        try {
-          Sigar lSigar = new Sigar();
+        if (pHadProgress && Runtime.getRuntime().freeMemory() < mRestartBound) {
+          System.out.println("SHUTDOWN TEST GENERATION");
 
-          Mem lMemory = lSigar.getMem();
+          lResultFactory.setUnfinished();
 
-          if (pHadProgress && lMemory.getFree() < mRestartBound) {
-            mOutput.println("SHUTDOWN TEST GENERATION");
-
-            lResultFactory.setUnfinished();
-
-            break;
-          }
-        } catch (SigarException e) {
-          throw new RuntimeException(e);
+          break;
         }
       }
 
