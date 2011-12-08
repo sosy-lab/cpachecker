@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 
 import com.google.common.collect.Iterables;
 
-public class ProgramToCTranslator {
+public class ARTToCTranslator {
   private static abstract class Statement {
     public abstract void translateToCode(StringBuffer buffer, int indent);
 
@@ -167,10 +167,10 @@ public class ProgramToCTranslator {
   private final Set<ARTElement> discoveredElements = new HashSet<ARTElement>();
   private FunctionBody mainFunctionBody;
 
-  private ProgramToCTranslator() { }
+  private ARTToCTranslator() { }
 
   public static String translateProgram(ARTElement artRoot) {
-    ProgramToCTranslator translator = new ProgramToCTranslator();
+    ARTToCTranslator translator = new ARTToCTranslator();
 
     translator.translateProgram0(artRoot);
 
