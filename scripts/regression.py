@@ -1,239 +1,296 @@
 #!/usr/bin/env python
 
-from subprocess import PIPE, Popen
+"""
+CPAchecker is a tool for configurable software verification.
+This file is part of CPAchecker.
 
-import operator
-import optparse
+Copyright (C) 2007-2011  Dirk Beyer
+All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+
+CPAchecker web page:
+  http://cpachecker.sosy-lab.org
+"""
+
+# import our own modules
+TableGenerator = __import__('table-generator') # for '-' in module-name
+FileUtil = TableGenerator # only for different names in programm
+
+import xml.etree.ElementTree as ET
+import sys
 import os
-import re
-import subprocess
-import time
+import optparse
 
 
-class TestResult(object):
-    pass
+OUTPUT_PATH = 'test/results/'
 
 
-project_dir = '..'
-config_dir = project_dir + '/test/config'
-log_dir = project_dir + '/test/output'
-test_set_dir = project_dir + '/test/test-sets' 
+def generateHTML(fileList):
+    '''
+    create html-table for statistics
+    '''
+    tableGenerator = TableGenerator
 
-header = '''\
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
-    "http://www.w3.org/TR/html4/strict.dtd"
-<html>
-<head>
-<title>%s</title>
-<style type="text/css">
-td, th {
-  border: 1px solid black;
-  padding-left: 10px;
-  padding-right: 10px;
-  text-align: center;
-}
-th {
-  background-color: lightgray;
-}
-tr.green {
-  background-color: green;
-}
-tr.orange {
-  background-color: orange;
-}
-tr.red {
-  background-color: red;
-}
-tr.violet {
-  background-color: violet;
-}
-</style>
-</head>
-<body>
-'''
+    # change some parameters
+    tableGenerator.OUTPUT_PATH = OUTPUT_PATH
+    tableGenerator.NAME_START = 'diff'
 
-table_head = '''\
-  <thead>
-    <tr>
-      <th>INSTANCE</th>
-      <th>TIME</th>
-      <th>OUTCOME</th>
-      <th>Reached</th>
-      <th>Refinements</th>
-      <th>Abstractions</th>
-      <th>Blocksize</th>    
-    </tr>
-  </thead>
-'''
+    # run
+    tableGenerator.main([''] +  fileList)
 
-table_row = '''\
-  <tr class="%s">
-    <td>%s</td>
-    <td>%s</td>
-    <td>%s</td>
-    <td>%s</td>
-    <td>%s</td>
-    <td>%s</td>
-    <td>%s</td>
-  </tr>
-'''
 
-def svn_revision():
-    output = Popen(['svn', 'info', project_dir], stdout=PIPE).communicate()[0]
-    svn_info = dict(map(lambda str: tuple(str.split(': ')),
-                        output.strip('\n').split('\n')))
-    return svn_info['Revision']
+def getDiffXMLList(listOfTestTags):
+    '''
+    this function copies the header of each tests into the diff-files
+    '''
+    diffXMLList = []
+    emptyElemList = getEmptyElements(listOfTestTags)
+    for elem in listOfTestTags:
+        newElem = ET.Element('test', elem.attrib)
+        extendXMLElem(newElem, elem.findall('systeminfo'))
+        extendXMLElem(newElem, elem.findall('columns'))
+        extendXMLElem(newElem, elem.findall('time'))
+        diffXMLList.append(newElem)
+    return diffXMLList
 
-def os_name():
-    return ' '.join(os.uname())
 
-footer = '''\
-<p>Host: %s</p>
-<p>Revision: %s</p>
-</body>
-</html>
-''' % (os_name(), svn_revision())
+def getEmptyElements(listOfTestTags):
+    '''
+    this function creates empty elements (dummies) for sourcefiles,
+    that do not appear in all xmlfiles
+    '''
+    emptyElemList = []
+    for elem in listOfTestTags:
+        emptyElem = ET.Element('sourcefile')
+        for column in elem.findall('sourcefile')[0].findall('column'):
+            colElem = ET.Element('column')
+            colElem.set('title', column.get('title'))
+            colElem.set('value', '-')
+            emptyElem.append(colElem)
+        emptyElemList.append(emptyElem)
+    return emptyElemList
 
-table_row_offset = 2
-table_columns = 7
-instance_column = 0
-outcome_column = 2
 
-def list_of_files_in(dir):
-    result = []
-    for dirpath, dirnames, filenames in os.walk(dir):
-        for file in filenames:
-            result.append(file)
-    return result
+def getSourcefileDics(listOfSourcefileTags):
+    '''
+    this function return a list of dictionaries
+    with key=filename and value=resultElem.
+    '''
+    listOfSourcefileDics = []
+    for sourcefileTags in listOfSourcefileTags:
+        dic = {}
+        for sourcefileTag in sourcefileTags:
+            filename = sourcefileTag.get('name')
 
-def run_tests(test_sets, configs):
-    test_results = []
-    for test_set in test_sets:
-        test_set_name = test_set.replace('.set', '')
-        for config in configs:
-            config_name = config.replace('.properties', '')
-            isodate = time.strftime('%Y-%m-%d')
-            subprocess.call(['./run_test_set.sh', test_set, config])
-            logfile = '%s/test_%s.%s.log' % (log_dir, isodate, config_name)
-            data = []
-    
-            with open(logfile) as log:
-                for line in log.readlines()[table_row_offset:]:
-                    row = re.sub('\s\s+', '\t', line).split('\t')
-                    row[len(row) - 1] = row[len(row) - 1].replace('\n', '')
-                    for i in range(table_columns - len(row)):
-                        row.append('')
-                    data.append(row)
-           
-            test_result = TestResult()
-            test_result.test_set_name = test_set_name
-            test_result.config_name = config_name
-            test_result.data = data
-            test_results.append(test_result)
-    
-    return test_results
+            if filename in dic: # file tested twice in benchmark, should not happen
+                print ("file '{0}' is used twice. skipping file.".format(filename))
+            else:
+                dic[filename] = sourcefileTag
 
-def generate_html(test_results, key_attr, value_attr, write_footer):
-    key_attrgetter = operator.attrgetter(key_attr)
-    value_attrgetter = operator.attrgetter(value_attr)
-    
-    test_result_map = {}
-    for test_result in test_results:
-        key = key_attrgetter(test_result)
-        if key in test_result_map:
-            test_result_map[key].append(test_result)
-        else:
-            test_result_map[key] = [test_result]
-    
-    for key in test_result_map.iterkeys():
-        results = test_result_map[key]
-        results.sort(key=value_attrgetter)
-        html_file = key + '.html'
-        with open(html_file, 'a') as out:
-            out.write(header % html_file)
-            out.write('\n')
-            
-            out.write('<a href="index.html"> back</a>\n')
-            out.write('\n')
-            
-            out.write('<ol>\n')
-            for test_result in results:
-                name = value_attrgetter(test_result)
-                out.write('  <li><a href="#%s">%s</a></li>\n' % (name, name))
-            out.write('</ol>\n')
-            out.write('\n')
-            
-            for test_result in results:
-                name = value_attrgetter(test_result)
-                data = test_result.data
-                
-                out.write('<a name="%s"><h1>%s</h1></a>\n' % (name, name))
-                out.write('\n')
-                
-                out.write('<table rules="groups">\n')
-                out.write(table_head)
-                out.write('  <tbody>\n')
-                for row in data:
-                    if row[outcome_column] == 'SAFE':
-                        if row[instance_column].find('BUG') == -1:
-                            color = 'green'
-                        else:
-                            color = 'red'
-                    elif row[outcome_column] == 'UNSAFE':
-                        if row[instance_column].find('BUG') == -1:
-                            color = 'red'
-                        else:
-                            color = 'green'
-                    else:
-                        color = 'violet'
-                    out.write(table_row % tuple([color] + row))
-                out.write('  </tbody>\n')
-                out.write('</table>\n')
-                out.write('\n')
-            
-            out.write('<a href="index.html"> back</a>\n')
-            out.write('\n')
-            
-            out.write(footer)
-            
-    with open('index.html', 'a') as out:
-        out.write(header % 'index.html')
-        out.write('\n')
-        
-        out.write('<ul>\n')
-        for key in test_result_map.iterkeys():
-            html_file = key + '.html'
-            out.write('  <li><a href="%s">%s</a></li>\n' % (html_file, key))
-        out.write('</ul>\n')
-        out.write('\n')
-        
-        if write_footer:
-            out.write(footer)
+        listOfSourcefileDics.append(dic)
+    return listOfSourcefileDics
 
-def main():
-    parser = optparse.OptionParser()
-    parser.add_option('-c', '--config',
-                      action='store', type='string', dest='config_re',
-                      default=r'^.+\.properties$',
-                      help='include the config files matching PCRE',
-                      metavar='PCRE')
-    parser.add_option('-s', '--set',
-                      action='store', type='string', dest='set_re',
-                      default=r'^(?!benchmark-).+\.set$',
-                      help='include the test-set files matching PCRE',
-                      metavar='PCRE')
-    (options, args) = parser.parse_args()
-    
-    test_sets = filter(lambda str: re.match(options.set_re, str),
-                       list_of_files_in(test_set_dir))
-    configs = filter(lambda str: re.match(options.config_re, str),
-                     list_of_files_in(config_dir))
 
-    test_results = run_tests(test_sets, configs)
+def getAllFilenames(listOfSourcefileDics):
+    '''
+    this function returns all filenames for a 'complete' diff,
+    in alphabetical order.
+    '''
+    # casting to set and back to list removes doubles and mixes the filenames
+    allFilenames = list(set(filename
+                            for sfDic in listOfSourcefileDics
+                            for filename in sfDic))
+    allFilenames.sort()
+    return allFilenames
 
-    generate_html(test_results, 'test_set_name', 'config_name', False)        
-    generate_html(test_results, 'config_name', 'test_set_name', True)
-            
+
+def getFilenameList(listOfSourcefileTags, listOfSourcefileDics, compare):
+    '''
+    this function return a list of sourcefiles.
+    the value 'compare' chooses the list to return:
+        'a'    -->  all sourcefiles in alphabetical order
+        number -->  sourcefiles from one resultfile
+    '''
+    if compare is None:
+        compare = '1' # default value, first resultfile
+
+    if compare.lower() == 'a':
+        return getAllFilenames(listOfSourcefileDics)
+    else:
+        numberOfList = int(compare) - 1 # lists start with position 0
+        if numberOfList < 0 or numberOfList >= len(listOfSourcefileTags):
+            print ('ERROR: number for list is invalid, give a number in range 1 to n')
+            sys.exit()
+        return [file.get('name') for file in listOfSourcefileTags[numberOfList]]
+
+
+def status(currentFile):
+    fileName = currentFile.get('name').lower()
+    isSafeFile = not TableGenerator.containsAny(fileName, TableGenerator.BUG_SUBSTRING_LIST)
+    status = [x for x in currentFile.findall("column") if x.get("title") == "status"][0].get("value").lower()
+
+    if status not in ('safe', 'unsafe'):
+        return 'unknown'
+    return "correct" if (status == 'safe') == isSafeFile else "wrong"
+
+def compareResults(xmlFiles, options):
+    compare = options.compare
+    print ('\ncomparing results ...')
+
+    resultFiles = FileUtil.extendFileList(xmlFiles)
+
+    if len(resultFiles) == 0:
+        print ('Resultfile not found. Check your filenames!')
+        sys.exit()
+
+    listOfTestTags = []
+    for resultFile in resultFiles:
+        testTag = ET.ElementTree().parse(resultFile)
+        testTag.set("filename", os.path.basename(resultFile))
+        listOfTestTags.append(testTag)
+
+    # copy some info from original data
+    # collect all filenames for 'complete' diff
+    diffXMLList = getDiffXMLList(listOfTestTags)
+    emptyElemList = getEmptyElements(listOfTestTags)
+    listOfSourcefileTags = [elem.findall('sourcefile') for elem in listOfTestTags]
+    statusList = [[status(file) for file in filetag] for filetag in listOfSourcefileTags]
+    maxLen = max((len(file.get('name')) for file in listOfSourcefileTags[0]))
+    listOfSourcefileDics = getSourcefileDics(listOfSourcefileTags)
+
+    # get list of filenames for table
+    filenames = getFilenameList(listOfSourcefileTags, listOfSourcefileDics, compare)
+
+    # iterate all results parallel
+    isDifferent = False
+    for filename in filenames:
+        sourcefileTags = []
+        for dic, emptyElem in zip(listOfSourcefileDics, emptyElemList):
+            if filename in dic:
+                sourcefileTag = dic[filename]
+            else:
+                sourcefileTag = copyXMLElem(emptyElem) # make copy, because it is changed
+                sourcefileTag.set('name', filename)
+            sourcefileTags.append(sourcefileTag)
+
+        (allEqual, oldStatus, newStatus) = allEqualResult(sourcefileTags)
+        if not allEqual:
+            isDifferent = True
+            print ('    difference found:  ' + \
+                    sourcefileTags[0].get('name').ljust(maxLen+2) + \
+                    oldStatus + ' --> ' + newStatus)
+            for elem, tag in zip(diffXMLList, sourcefileTags):
+                elem.append(tag)
+
+    # store result (differences) in xml-files
+    if isDifferent:
+        diffFiles = []
+        for filename in resultFiles:
+            dir = os.path.dirname(filename) + '/diff/'
+            if not os.path.isdir(dir):
+                os.mkdir(dir)
+            diffFiles.append(dir + os.path.basename(filename))
+        for elem, diffFilename in zip(diffXMLList, diffFiles):
+            file = open(diffFilename, 'w')
+            file.write(XMLtoString(elem).replace('  \n', ''))
+            file.close()
+        generateHTML(diffFiles)
+    else:
+        print ("\n---> NO DIFFERENCE FOUND IN COLUMN 'STATUS'")
+
+    if options.dump_counts:
+        print "STATS"
+        for elem in statusList:
+            correct, wrong, unknown = elem.count("correct"), elem.count("wrong"), elem.count("unknown")
+            print correct, wrong, unknown
+
+
+def copyXMLElem(elem):
+    '''
+    this function is needed for python < 2.7
+    '''
+    copy = ET.Element(elem.tag)
+    extendXMLElem(copy, elem.getchildren())
+    for key, value in elem.attrib:
+        copy.set(key, value)
+    return copy
+
+
+def extendXMLElem(elem, list):
+    '''
+    this function is needed for python < 2.7
+    '''
+    for child in list:
+        elem.append(child)
+
+
+def allEqualResult(sourcefileTags):
+    if len(sourcefileTags) > 1:
+        name = sourcefileTags[0].get('name')
+        status = getStatus(sourcefileTags[0])
+
+        for sourcefileTag in sourcefileTags:
+            if name != sourcefileTag.get('name'):
+                print ('wrong filename in xml')
+                sys.exit()
+            currentStatus = getStatus(sourcefileTag)
+            if status != currentStatus:
+                return (False, status, currentStatus)
+    return (True, None, None)
+
+
+def getStatus(sourcefileTag):
+    for column in sourcefileTag.findall('column'):
+        if column.get('title') == 'status':
+            return column.get('value')
+    return None
+
+
+def XMLtoString(elem):
+        """
+        Return a pretty-printed XML string for the Element.
+        """
+        from xml.dom import minidom
+        rough_string = ET.tostring(elem, 'utf-8')
+        reparsed = minidom.parseString(rough_string)
+        return reparsed.toprettyxml(indent="  ")
+
+
+def main(args=None):
+
+    if args is None:
+        args = sys.argv
+
+    parser = optparse.OptionParser('%prog [options] result_1.xml ... result_n.xml')
+    parser.add_option("-c", "--compare",
+        action="store", type="string", dest="compare",
+        help="Which sourcefiles should be compared? " + \
+             "Use 'a' for 'all' or a number for the position."
+    )
+    parser.add_option("-d", "--dump",
+        action="store_true", dest="dump_counts",
+        help="Should the good, bad, unknown counts be printed? "
+    )
+    options, args = parser.parse_args(args)
+
+    if len(args) < 2:
+        print ('xml-file needed')
+        sys.exit()
+
+    compareResults(args[1:], options)
+
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
