@@ -142,7 +142,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   @Option(description = "threshold (in ms) after which the CEGAR algorithm gives up refining (spurious) counterexamples")
   private int stopRefiningThreshold = -1; //TODO maybe use ProgressObserver instead?
 
-  private long startTime;
+  private long startTime = 0;
   private final LogManager logger;
   private final Algorithm algorithm;
   private final Refiner mRefiner;
@@ -222,7 +222,10 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     boolean sound = true;
 
     stats.totalTimer.start();
-    startTime = System.currentTimeMillis();
+
+    if(startTime == 0) {
+      startTime = System.currentTimeMillis();
+    }
 
     boolean continueAnalysis;
     do {
