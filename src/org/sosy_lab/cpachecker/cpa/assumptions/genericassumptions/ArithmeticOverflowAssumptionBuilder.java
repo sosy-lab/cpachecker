@@ -56,8 +56,6 @@ public class ArithmeticOverflowAssumptionBuilder
 implements GenericAssumptionBuilder
 {
 
-  public static boolean isDeclGlobal = false;
-
   private static Pair<IASTIntegerLiteralExpression, IASTIntegerLiteralExpression> boundsForType(IType typ)
   {
     if (typ instanceof IASTSimpleDeclSpecifier) {
@@ -127,7 +125,7 @@ implements GenericAssumptionBuilder
     if (bounds.getFirst() != null) {
 
       final String rawStatementOfsecondExpr =
-          "(" + exp.getRawSignature() + ">=" + bounds.getFirst().getRawSignature() + ")";
+          "(" + exp.getRawSignature() + ">=" + bounds.getFirst().getValue().toString() + ")";
       final IASTBinaryExpression secondExp =
           new IASTBinaryExpression(rawStatementOfsecondExpr, null, null, exp,
               bounds.getFirst(), BinaryOperator.GREATER_EQUAL);
@@ -142,7 +140,7 @@ implements GenericAssumptionBuilder
     if (bounds.getSecond() != null) {
 
       final String rawStatementOfsecondExpr =
-          "(" + exp.getRawSignature() + "<=" + bounds.getSecond().getRawSignature() + ")";
+          "(" + exp.getRawSignature() + "<=" + bounds.getSecond().getValue().toString() + ")";
       final IASTBinaryExpression secondExp =
           new IASTBinaryExpression(rawStatementOfsecondExpr, null, null, exp,
               bounds.getSecond(), BinaryOperator.LESS_EQUAL);
@@ -195,7 +193,6 @@ implements GenericAssumptionBuilder
     case DeclarationEdge:
       DeclarationEdge declarationEdge = (DeclarationEdge) pEdge;
       result = declarationEdge.getRawAST();
-      isDeclGlobal = declarationEdge.isGlobal();
       break;
     case AssumeEdge:
       AssumeEdge assumeEdge = (AssumeEdge) pEdge;
@@ -210,7 +207,7 @@ implements GenericAssumptionBuilder
         {
           String name = paramdecl.getName();
           IType type = paramdecl.getDeclSpecifier();
-          IASTExpression exp = new IASTIdExpression(paramdecl.getRawSignature(), paramdecl.getFileLocation(), type, name, paramdecl);
+          IASTExpression exp = new IASTIdExpression(paramdecl.getName(), paramdecl.getFileLocation(), type, name, paramdecl);
           result = visit(exp, result);
         }
       }
@@ -219,10 +216,6 @@ implements GenericAssumptionBuilder
       StatementEdge stmtEdge = (StatementEdge) pEdge;
 
       IASTStatement stmt = stmtEdge.getStatement();
-      // TODO replace with a global nondet variable
-      if(stmt.getRawSignature().contains("__BLAST_NONDET")){
-        break;
-      }
       if (stmt instanceof IASTAssignment) {
         result = visit(((IASTAssignment)stmt).getLeftHandSide(), result);
       }

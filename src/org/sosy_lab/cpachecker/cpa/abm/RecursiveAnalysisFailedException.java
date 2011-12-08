@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.abm;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-public class RecursiveAnalysisFailedException extends CPATransferException {
+class RecursiveAnalysisFailedException extends CPATransferException {
 
   private static final long serialVersionUID = 3822584071233172171L;
 

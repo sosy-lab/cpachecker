@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -71,7 +73,7 @@ public class CompositeTransferRelation implements TransferRelation{
     Collection<CompositeElement> results;
 
     if (cfaEdge == null) {
-      CFANode node = compositeElement.retrieveLocationElement().getLocationNode();
+      CFANode node = extractLocation(compositeElement);
       results = new ArrayList<CompositeElement>(node.getNumLeavingEdges());
 
       for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges(); edgeIdx++) {

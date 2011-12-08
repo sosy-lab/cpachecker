@@ -64,11 +64,13 @@ public class DefUseElement implements AbstractElement, Iterable<DefUseDefinition
     @Override
     public boolean equals (Object other)
     {
-        if (this == other)
-            return true;
+        if (this == other) {
+          return true;
+        }
 
-        if (!(other instanceof DefUseElement))
-            return false;
+        if (!(other instanceof DefUseElement)) {
+          return false;
+        }
 
         DefUseElement otherDefUse = (DefUseElement) other;
         return otherDefUse.definitions.equals(this.definitions);
@@ -91,26 +93,29 @@ public class DefUseElement implements AbstractElement, Iterable<DefUseDefinition
             CFAEdge assigningEdge = def.getAssigningEdge ();
             builder.append ('(').append (def.getVariableName ()).append(", ");
 
-            if (assigningEdge != null)
-                builder.append(assigningEdge.getPredecessor ().getNodeNumber ());
-            else
-                builder.append (0);
+            if (assigningEdge != null) {
+              builder.append(assigningEdge.getPredecessor ().getNodeNumber ());
+            } else {
+              builder.append (0);
+            }
 
             builder.append (", ");
 
-            if (assigningEdge != null)
-                builder.append (assigningEdge.getSuccessor ().getNodeNumber ());
-            else
-                builder.append (0);
+            if (assigningEdge != null) {
+              builder.append (assigningEdge.getSuccessor ().getNodeNumber ());
+            } else {
+              builder.append (0);
+            }
 
             builder.append("), ");
             hasAny = true;
         }
 
-        if (hasAny)
-            builder.replace (builder.length () - 2, builder.length (), "}");
-        else
-            builder.append ('}');
+        if (hasAny) {
+          builder.replace (builder.length () - 2, builder.length (), "}");
+        } else {
+          builder.append ('}');
+        }
 
         return builder.toString ();
     }

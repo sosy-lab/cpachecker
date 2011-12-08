@@ -23,24 +23,25 @@
  */
 package org.sosy_lab.cpachecker.cpa.abm;
 
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+
+import java.util.HashMap;
+import java.util.Map;
+
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.Precisions;
-
-import com.google.common.collect.Iterables;
 
 /**
  * This is an extension of {@link AbstractARTBasedRefiner} that takes care of
@@ -56,6 +57,7 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
   final Timer computeCounterexampleTimer = new Timer();
 
   private final ABMTransferRelation transfer;
+  private final Map<ARTElement, ARTElement> pathElementToReachedElement = new HashMap<ARTElement, ARTElement>();
 
   protected AbstractABMBasedRefiner(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
@@ -70,29 +72,29 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
    * When inheriting from this class, implement this method instead of
    * {@link #performRefinement(ReachedSet)}.
    */
-  protected abstract boolean performRefinement0(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException;
+  protected abstract CounterexampleInfo performRefinement0(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException;
 
   @Override
-  protected final boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
+  protected final CounterexampleInfo performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
     if (pPath == null) {
-      //TODO:  this can be implemented less drastic -> only remove calls on counterexample
-      restartAnalysis(pReached);
-      return true;
+      return CounterexampleInfo.spurious();
     } else {
-      return performRefinement0(new ABMReachedSet(pReached, pPath), pPath);
+      return performRefinement0(new ABMReachedSet(transfer, pReached, pPath, pathElementToReachedElement), pPath);
     }
   }
 
   @Override
-  protected final Path computePath(ARTElement pLastElement, UnmodifiableReachedSet pReachedSet) throws InterruptedException, CPATransferException {
+  protected final Path computePath(ARTElement pLastElement, ARTReachedSet pReachedSet) throws InterruptedException, CPATransferException {
     assert pLastElement.isTarget();
+
+    pathElementToReachedElement.clear();
 
     computePathTimer.start();
     try {
       ARTElement subgraph;
       computeSubtreeTimer.start();
       try {
-        subgraph = transfer.computeCounterexampleSubgraph(pLastElement, pReachedSet, new ARTElement(pLastElement.getWrappedElement(), null));
+        subgraph = transfer.computeCounterexampleSubgraph(pLastElement, pReachedSet, new ARTElement(pLastElement.getWrappedElement(), null), pathElementToReachedElement);
         if (subgraph == null) {
           return null;
         }
@@ -111,35 +113,6 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
     }
   }
 
-  protected final BlockPartitioning getBlockPartitioning() {
-    return transfer.getBlockPartitioning();
-  }
-
-  private void removeSubtree(ARTReachedSet reachSet, Path pPath, ARTElement element, Precision newPrecision) {
-    Precision oldPrecision = Precisions.extractPrecisionByType(reachSet.getPrecision(reachSet.getLastElement()), newPrecision.getClass());
-
-    if (newPrecision.equals(oldPrecision)) {
-      //Strategy 2
-      //restart the analysis
-      //TODO: this can be implemented less drastic -> only remove lazy caches (on path)
-      restartAnalysis(reachSet);
-      return;
-    }
-
-    transfer.removeSubtree(reachSet, pPath, element, newPrecision);
-  }
-
-
-  private void restartAnalysis(ARTReachedSet reachSet) {
-
-    Precision precision = reachSet.getPrecision(reachSet.getLastElement());
-    ARTElement child = Iterables.getOnlyElement(reachSet.getFirstElement().getChildren());
-    reachSet.removeSubtree(child, precision);
-
-    transfer.clearCaches();
-  }
-
-
   private Path computeCounterexample(ARTElement root) {
     Path path = new Path();
     ARTElement currentElement = root;
@@ -151,23 +124,26 @@ public abstract class AbstractABMBasedRefiner extends AbstractARTBasedRefiner {
 
       currentElement = child;
     }
-    path.add(Pair.of(currentElement, currentElement.retrieveLocationElement().getLocationNode().getLeavingEdge(0)));
+    path.add(Pair.of(currentElement, extractLocation(currentElement).getLeavingEdge(0)));
     return path;
   }
 
-  private class ABMReachedSet extends ARTReachedSet.ForwardingARTReachedSet {
+  private static class ABMReachedSet extends ARTReachedSet.ForwardingARTReachedSet {
 
+    private final ABMTransferRelation transfer;
     private final Path path;
+    private final Map<ARTElement, ARTElement> pathElementToReachedElement;
 
-    public ABMReachedSet(ARTReachedSet pReached, Path pPath) {
+    private ABMReachedSet(ABMTransferRelation pTransfer, ARTReachedSet pReached, Path pPath, Map<ARTElement, ARTElement> pPathElementToReachedElement) {
       super(pReached);
+      this.transfer = pTransfer;
       this.path = pPath;
+      this.pathElementToReachedElement = pPathElementToReachedElement;
     }
 
     @Override
     public void removeSubtree(ARTElement element, Precision newPrecision) {
-
-      AbstractABMBasedRefiner.this.removeSubtree(delegate, path, element, newPrecision);
+      transfer.removeSubtree(delegate, path, element, newPrecision, pathElementToReachedElement);
     }
 
     @Override

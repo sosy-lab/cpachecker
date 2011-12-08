@@ -27,11 +27,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
-import org.sosy_lab.cpachecker.util.AbstractElements;
 
 import com.google.common.collect.ImmutableList;
 
@@ -121,11 +119,6 @@ public class CompositeElement implements AbstractWrapperElement, Targetable, Par
 
   public AbstractElement get(int idx) {
     return elements.get(idx);
-  }
-
-  @Override
-  public AbstractElementWithLocation retrieveLocationElement() {
-    return AbstractElements.extractElementByType(this, AbstractElementWithLocation.class);
   }
 
   @Override

@@ -35,6 +35,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
@@ -133,7 +134,7 @@ public class MonitorTransferRelation implements TransferRelation {
       } catch (ExecutionException e) {
         Throwables.propagateIfPossible(e.getCause(), CPATransferException.class);
         // TransferRelation.getAbstractSuccessors() threw unexpected checked exception!
-        throw new AssertionError(e);
+        throw new UnexpectedCheckedException("transfer relation", e.getCause());
       }
     }
 
@@ -213,7 +214,7 @@ public class MonitorTransferRelation implements TransferRelation {
       } catch (ExecutionException e) {
         Throwables.propagateIfPossible(e.getCause(), CPATransferException.class);
         // TransferRelation.strengthen() threw unexpected checked exception!
-        throw new AssertionError(e);
+        throw new UnexpectedCheckedException("strengthen", e.getCause());
       }
     }
 

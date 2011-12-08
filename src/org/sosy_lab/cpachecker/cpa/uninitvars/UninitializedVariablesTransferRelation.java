@@ -199,7 +199,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     if (declaration.getStorageClass() != StorageClass.TYPEDEF) {
 
       if (declaration.getName() != null) {
-          String varName = declaration.getName().toString();
+          String varName = declaration.getName();
           if (declaration.isGlobal()) {
             globalVars.add(varName);
           }
@@ -317,7 +317,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     if (op1 instanceof IASTIdExpression) {
       // assignment to simple variable
 
-      String leftName = op1.getRawSignature();
+      String leftName = ((IASTIdExpression)op1).getName();
 
       if (isExpressionUninitialized(element, op2, cfaEdge)) {
         setUninitialized(element, leftName);
@@ -368,7 +368,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       return false;
 
     } else if (expression instanceof IASTIdExpression) {
-      String variable = expression.getRawSignature();
+      String variable = ((IASTIdExpression)expression).getName();
       if (element.isUninitialized(variable)) {
         addWarning(cfaEdge, variable, expression, element);
         return true;

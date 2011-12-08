@@ -26,9 +26,7 @@ package org.sosy_lab.cpachecker.cpa.mustmay;
 import java.util.ArrayList;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
-import org.sosy_lab.cpachecker.util.AbstractElements;
 
 public class MustMayAnalysisElement implements AbstractElement, AbstractWrapperElement {
 
@@ -98,10 +96,4 @@ public class MustMayAnalysisElement implements AbstractElement, AbstractWrapperE
   public Iterable<? extends AbstractElement> getWrappedElements() {
     return mWrappedElements;
   }
-
-  @Override
-  public AbstractElementWithLocation retrieveLocationElement() {
-    return AbstractElements.extractElementByType(this, AbstractElementWithLocation.class);
-  }
-
 }
