@@ -103,6 +103,9 @@ class AutomatonState implements AbstractQueryableElement, Targetable {
     if (this == pObj) {
       return true;
     }
+    if (pObj == null) {
+      return false;
+    }
     if (!pObj.getClass().equals(AutomatonState.class)) {
       return false;
     }
@@ -169,9 +172,9 @@ class AutomatonState implements AbstractQueryableElement, Targetable {
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
     // e.g. "state == name-of-state" where name-of state can be top, bottom, error, or any state defined in the automaton definition.
     String[] parts = pProperty.split("==");
-    if (parts.length != 2)
+    if (parts.length != 2) {
       throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not split the property string correctly.");
-    else {
+    } else {
       if (parts[0].trim().toLowerCase().equals("state")) {
         return this.getInternalState().getName().equals(parts[1].trim());
       } else {
@@ -194,9 +197,9 @@ class AutomatonState implements AbstractQueryableElement, Targetable {
   public void modifyProperty(String pModification) throws InvalidQueryException {
     // allows to set values of Automaton variables like "x:=6"
     String[] parts = pModification.split(":=");
-    if (parts.length != 2)
+    if (parts.length != 2) {
       throw new InvalidQueryException("The Query \"" + pModification + "\" is invalid. Could not split the string correctly.");
-    else {
+    } else {
       AutomatonVariable var = this.vars.get(parts[0].trim());
       if (var != null) {
         try {

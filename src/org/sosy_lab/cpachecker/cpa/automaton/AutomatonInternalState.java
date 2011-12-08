@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.io.PrintStream;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /** Represents a State in the automaton.
  */
@@ -72,7 +72,7 @@ class AutomatonInternalState {
   /** Lets all outgoing transitions of this state resolve their "sink" states.
    * @param pAllStates map of all states of this automaton.
    */
-  void setFollowStates(List<AutomatonInternalState> pAllStates) throws InvalidAutomatonException {
+  void setFollowStates(Map<String, AutomatonInternalState> pAllStates) throws InvalidAutomatonException {
     for (AutomatonTransition t : transitions) {
       t.setFollowState(pAllStates);
     }
@@ -89,15 +89,6 @@ class AutomatonInternalState {
 
   public boolean isTarget() {
     return mIsTarget;
-  }
-
-  /**  Writes a representation of this state (as node) in DOT file format to the argument {@link PrintStream}.
-   * @param pOut
-   */
-  public void writeTransitionsToDotFile(PrintStream pOut) {
-    for (AutomatonTransition t : transitions) {
-      t.writeTransitionToDotFile(stateId, pOut);
-    }
   }
 
   public List<AutomatonTransition> getTransitions() {
