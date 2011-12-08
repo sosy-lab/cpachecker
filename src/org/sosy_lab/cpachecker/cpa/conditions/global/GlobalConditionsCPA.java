@@ -64,7 +64,7 @@ public class GlobalConditionsCPA implements ConfigurableProgramAnalysis, Adjusta
     thresholds = new GlobalConditionsThresholds(config, logger);
 
     if (thresholds.isLimitEnabled()) {
-      logger.log(Level.INFO, "Running CPAchecker with the following", thresholds);
+      logger.log(Level.INFO, "Analyzing with the following", thresholds);
       precisionAdjustment = new GlobalConditionsPrecisionAdjustment(logger, thresholds);
 
     } else {
