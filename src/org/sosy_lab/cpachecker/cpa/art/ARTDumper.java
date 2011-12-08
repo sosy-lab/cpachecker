@@ -62,7 +62,7 @@ public class ARTDumper implements PostProcessor {
         Files.writeFile(dumpFile, ARTToCTranslator.translateART(artRoot));
       } catch (IOException e) {
         cpa.getLogger().logUserException(Level.WARNING, e,
-            "Could not information about the error path to file");
+            "Could not dump ART to file");
       }
     }
   }
