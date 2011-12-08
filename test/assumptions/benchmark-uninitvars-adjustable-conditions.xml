@@ -8,7 +8,8 @@
     <sourcefiles>
       <includesfile>test/assumptions/adjustableConditions-uninitvars.set</includesfile>
     </sourcefiles>
-    <option name="-uninitVars-heuristics"/>
+    <option name="-uninitVars"/>
+    <option name="-timelimit">10s</option>
   </test>
   <test name="uninitvars-pl">
     <sourcefiles>
