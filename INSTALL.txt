@@ -1,0 +1,50 @@
+CPAchecker Installation
+=======================
+
+For information on how to run CPAchecker, see README.txt.
+
+
+Install CPAchecker -- Binary
+----------------------------
+
+1. Install a Java Runtime Environment which is at least Java 6 compatible
+   (e.g., Sun/Oracle JRE, OpenJDK).
+   Cf. http://java.oracle.com/ or install a package from your distribution.
+
+2. Extract the content of the CPAchecker zip or tar file into a directory of your choice.
+
+
+Install CPAchecker -- Source
+----------------------------
+
+1. Install a Java SDK which is at least Java 6 compatible
+   (e.g., Sun/Oracle JDK, OpenJDK).
+   Cf. http://java.oracle.com/ or install a package from your distribution.
+
+2. Install ant (anything since version 1.7 should be ok).
+   (Ubuntu: sudo apt-get install ant)
+
+3. Install Subversion.
+   (Ubuntu: sudo apt-get install subversion)
+
+4. Checkout CPAchecker from SVN repository.
+   URL: https://svn.sosy-lab.org/software/cpachecker/trunk
+   URL (read-only mirror): http://cpachecker.googlecode.com/svn/trunk
+
+5. Run "ant" in CPAchecker directory to build CPAchecker.
+   When building CPAchecker for the first time, this will automatically
+   download all needed libraries.
+
+(For building CPAchecker within Eclipse, cf. doc/Developing.txt.)
+
+
+Install CPAchecker -- Eclipse Plugin for C projects (experimental)
+------------------------------------------------------------------
+
+1. Install Eclipse 3.5 with CDT 6, Eclipse 3.6 with CDT 7, or Eclipse 3.7 with CDT 7.
+
+2. Add the URL http://www.sosy-lab.org/~dbeyer/eclipse-download/ as an update site to Eclipse.
+
+3. Install CPAclipse plugin.
+
+
