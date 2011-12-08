@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.exceptions;
 
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+
 /**
  * Exception thrown if an error occurs during parsing step (e.g. because the
  * parser library throws an exception).
@@ -38,4 +40,9 @@ public class ParserException extends Exception {
   public ParserException(Throwable cause) {
     super(cause);
   }
+
+  public ParserException(String msg, CFAEdge edge) {
+    super(msg + " in line " + edge.getLineNumber()
+        + ": " + edge.getRawStatement());
+    }
 }

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.exceptions;
 
-public class InvalidCFAException extends CPATransferException {
+public class InvalidCFAException extends CPAException {
 
   private static final long serialVersionUID = 2154818889451437913L;
 
