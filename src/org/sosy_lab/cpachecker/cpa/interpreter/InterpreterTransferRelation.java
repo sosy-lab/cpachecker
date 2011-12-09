@@ -36,9 +36,11 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
@@ -48,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
@@ -68,7 +71,6 @@ import org.sosy_lab.cpachecker.cpa.assume.ConstrainedAssumeElement;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonPredicateElement;
 import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.AccessToUninitializedVariableException;
 import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.MissingInputException;
-import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.ReadingFromNondetVariableException;
 import org.sosy_lab.cpachecker.cpa.pointer.Memory;
 import org.sosy_lab.cpachecker.cpa.pointer.Pointer;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerElement;
@@ -160,7 +162,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
     case FunctionCallEdge: {
       FunctionCallEdge functionCallEdge = (FunctionCallEdge) cfaEdge;
-      successor = handleFunctionCall(explicitElement, functionCallEdge);
+      successor = handleFunctionCall(explicitElement, functionCallEdge, cfaEdge);
 
       // TODO remove
       if (successor == null) {
@@ -220,12 +222,11 @@ public class InterpreterTransferRelation implements TransferRelation {
    * @param functionReturnEdge return edge from a function to its call site.
    * @return new abstract element.
    * @throws MissingInputException
-   * @throws ReadingFromNondetVariableException
    * @throws AccessToUninitializedVariableException
    */
   private InterpreterElement handleFunctionReturn(InterpreterElement element,
       FunctionReturnEdge functionReturnEdge)
-  throws UnrecognizedCCodeException, ReadingFromNondetVariableException, AccessToUninitializedVariableException {
+  throws UnrecognizedCCodeException, AccessToUninitializedVariableException {
 
     CallToReturnEdge summaryEdge =
       functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
@@ -313,8 +314,8 @@ public class InterpreterTransferRelation implements TransferRelation {
   }
 
   private InterpreterElement handleFunctionCall(InterpreterElement element,
-      FunctionCallEdge callEdge)
-  throws UnrecognizedCCodeException, ReadingFromNondetVariableException, AccessToUninitializedVariableException {
+      FunctionCallEdge callEdge, CFAEdge edge)
+  throws UnrecognizedCCodeException, AccessToUninitializedVariableException {
 
     FunctionDefinitionNode functionEntryNode = callEdge.getSuccessor();
     String calledFunctionName = functionEntryNode.getFunctionName();
@@ -353,7 +354,7 @@ public class InterpreterTransferRelation implements TransferRelation {
       }
 
       else if(arg instanceof IASTLiteralExpression){
-        Long val = parseLiteral(arg);
+        Long val = parseLiteral((IASTLiteralExpression)arg, edge);
 
         if (val != null) {
           newElement.assignConstant(formalParamName, val);
@@ -389,7 +390,7 @@ public class InterpreterTransferRelation implements TransferRelation {
   private InterpreterElement handleExitFromFunction(InterpreterElement element,
       IASTExpression expression,
       ReturnStatementEdge returnEdge)
-  throws UnrecognizedCCodeException, ReadingFromNondetVariableException, MissingInputException, AccessToUninitializedVariableException {
+  throws UnrecognizedCCodeException, MissingInputException, AccessToUninitializedVariableException {
 
     InterpreterElement lSuccessor = handleAssignmentToVariable(element, "___cpa_temp_result_var_", expression, returnEdge);
 
@@ -402,7 +403,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
   private AbstractElement handleAssumption(InterpreterElement element,
                   IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
-                  throws UnrecognizedCFAEdgeException, MissingInputException, ReadingFromNondetVariableException, AccessToUninitializedVariableException {
+                  throws UnrecognizedCCodeException, MissingInputException, AccessToUninitializedVariableException {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
     // Binary operation
@@ -413,7 +414,7 @@ public class InterpreterTransferRelation implements TransferRelation {
       IASTExpression op1 = binExp.getOperand1();
       IASTExpression op2 = binExp.getOperand2();
 
-      AbstractElement lSuccessor = propagateBooleanExpression(element, opType, op1, op2, functionName, truthValue);
+      AbstractElement lSuccessor = propagateBooleanExpression(element, opType, op1, op2, functionName, truthValue, cfaEdge);
 
       if (lSuccessor == null) {
         throw new RuntimeException();
@@ -437,22 +438,22 @@ public class InterpreterTransferRelation implements TransferRelation {
         return lSuccessor;
 
       }
-      else if(expression instanceof IASTCastExpression) {
-        AbstractElement lSuccessor = handleAssumption(element, ((IASTCastExpression)expression).getOperand(), cfaEdge, truthValue);
+      else {
+        throw new UnrecognizedCCodeException("Unknown unary operator in assumption", cfaEdge, expression);
+      }
+    }
+    else if(expression instanceof IASTCastExpression) {
+      AbstractElement lSuccessor = handleAssumption(element, ((IASTCastExpression)expression).getOperand(), cfaEdge, truthValue);
 
         if (lSuccessor == null) {
           throw new RuntimeException();
         }
 
-        return lSuccessor;
-      }
-      else {
-        throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
-      }
+      return lSuccessor;
     }
     else if(expression instanceof IASTIdExpression
         || expression instanceof IASTFieldReference) {
-      AbstractElement lSuccessor = propagateBooleanExpression(element, null, expression, null, functionName, truthValue);
+      AbstractElement lSuccessor = propagateBooleanExpression(element, null, expression, null, functionName, truthValue, cfaEdge);
 
       if (lSuccessor == null) {
         throw new RuntimeException();
@@ -460,10 +461,11 @@ public class InterpreterTransferRelation implements TransferRelation {
 
       return lSuccessor;
     }
+    // TODO check
     else if (expression instanceof IASTIntegerLiteralExpression) {
       IASTIntegerLiteralExpression lIntegerLiteral = (IASTIntegerLiteralExpression)expression;
       BigInteger lValue = lIntegerLiteral.getValue();
-      
+
       if (lValue.equals(BigInteger.ZERO)) {
         return InterpreterBottomElement.INSTANCE;
       }
@@ -472,15 +474,15 @@ public class InterpreterTransferRelation implements TransferRelation {
       }
     }
     else{
-      throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement() + ", " + expression.getClass().toString());
+      throw new UnrecognizedCCodeException("Unknown expression type in assumption", cfaEdge, expression);
     }
 
   }
 
   private AbstractElement propagateBooleanExpression(AbstractElement element,
       BinaryOperator opType,IASTExpression op1,
-      IASTExpression op2, String functionName, boolean truthValue)
-  throws UnrecognizedCFAEdgeException, ReadingFromNondetVariableException, AccessToUninitializedVariableException {
+      IASTExpression op2, String functionName, boolean truthValue, CFAEdge edge)
+  throws UnrecognizedCCodeException, AccessToUninitializedVariableException {
 
     InterpreterElement newElement = ((InterpreterElement)element).clone();
 
@@ -512,17 +514,9 @@ public class InterpreterTransferRelation implements TransferRelation {
       else if (op2 instanceof IASTLiteralExpression)
       {
         String varName = op1.getRawSignature();
-        int typeOfLiteral = ((IASTLiteralExpression)op2).getKind();
-        if ( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant
-            //  || typeOfLiteral == IASTLiteralExpression.lk_float_constant
-        )
-        {
-          String literalString = op2.getRawSignature();
-          if (literalString.contains("L") || literalString.contains("U")){
-            literalString = literalString.replace("L", "");
-            literalString = literalString.replace("U", "");
-          }
-          int valueOfLiteral = Integer.valueOf(literalString).intValue();
+        if (op2 instanceof IASTIntegerLiteralExpression) {
+
+          int valueOfLiteral = ((IASTIntegerLiteralExpression)op2).getValue().intValue();
 
           // a == 9
           if (opType == BinaryOperator.EQUALS) {
@@ -533,7 +527,7 @@ public class InterpreterTransferRelation implements TransferRelation {
             }
             // ! a == 9
             else {
-              AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.NOT_EQUALS, op1, op2, functionName, !truthValue);
+              AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.NOT_EQUALS, op1, op2, functionName, !truthValue, edge);
 
               if (lSuccessor == null) {
                 throw new RuntimeException();
@@ -552,7 +546,7 @@ public class InterpreterTransferRelation implements TransferRelation {
             }
             // ! a != 9
             else {
-              AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.EQUALS, op1, op2, functionName, !truthValue);
+              AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.EQUALS, op1, op2, functionName, !truthValue, edge);
 
               if (lSuccessor == null) {
                 throw new RuntimeException();
@@ -571,7 +565,7 @@ public class InterpreterTransferRelation implements TransferRelation {
               }
             }
             else {
-              AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.LESS_EQUAL, op1, op2, functionName, !truthValue);
+              AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.LESS_EQUAL, op1, op2, functionName, !truthValue, edge);
 
               if (lSuccessor == null) {
                 throw new RuntimeException();
@@ -589,7 +583,7 @@ public class InterpreterTransferRelation implements TransferRelation {
               }
             }
             else {
-              AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.LESS_THAN, op1, op2, functionName, !truthValue);
+              AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.LESS_THAN, op1, op2, functionName, !truthValue, edge);
 
               if (lSuccessor == null) {
                 throw new RuntimeException();
@@ -607,7 +601,7 @@ public class InterpreterTransferRelation implements TransferRelation {
               }
             }
             else {
-              AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.GREATER_EQUAL, op1, op2, functionName, !truthValue);
+              AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.GREATER_EQUAL, op1, op2, functionName, !truthValue, edge);
 
               if (lSuccessor == null) {
                 throw new RuntimeException();
@@ -625,7 +619,7 @@ public class InterpreterTransferRelation implements TransferRelation {
               }
             }
             else {
-              AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.GREATER_THAN, op1, op2, functionName, !truthValue);
+              AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.GREATER_THAN, op1, op2, functionName, !truthValue, edge);
 
               if (lSuccessor == null) {
                 throw new RuntimeException();
@@ -643,7 +637,7 @@ public class InterpreterTransferRelation implements TransferRelation {
               }
             }
             else { // ! a - 9
-              AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.EQUALS, op1, op2, functionName, !truthValue);
+              AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.EQUALS, op1, op2, functionName, !truthValue, edge);
 
               if (lSuccessor == null) {
                 throw new RuntimeException();
@@ -677,11 +671,11 @@ public class InterpreterTransferRelation implements TransferRelation {
           }
 
           else{
-            throw new UnrecognizedCFAEdgeException("Unhandled case ");
+            throw new UnrecognizedCCodeException("Unhandled case", edge);
           }
         }
         else{
-          throw new UnrecognizedCFAEdgeException("Unhandled case ");
+          throw new UnrecognizedCCodeException("Unhandled case", edge);
         }
       }
       // a (bop) b
@@ -704,7 +698,7 @@ public class InterpreterTransferRelation implements TransferRelation {
             }
           }
           else{
-            AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.NOT_EQUALS, op1, op2, functionName, !truthValue);
+            AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.NOT_EQUALS, op1, op2, functionName, !truthValue, edge);
 
             if (lSuccessor == null) {
               throw new RuntimeException();
@@ -723,7 +717,7 @@ public class InterpreterTransferRelation implements TransferRelation {
             }
           }
           else {
-            AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.EQUALS, op1, op2, functionName, !truthValue);
+            AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.EQUALS, op1, op2, functionName, !truthValue, edge);
 
             if (lSuccessor == null) {
               throw new RuntimeException();
@@ -742,7 +736,7 @@ public class InterpreterTransferRelation implements TransferRelation {
             }
           }
           else {
-            AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.LESS_EQUAL, op1, op2, functionName, !truthValue);
+            AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.LESS_EQUAL, op1, op2, functionName, !truthValue, edge);
 
             if (lSuccessor == null) {
               throw new RuntimeException();
@@ -761,7 +755,7 @@ public class InterpreterTransferRelation implements TransferRelation {
             }
           }
           else {
-            AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.LESS_THAN, op1, op2, functionName, !truthValue);
+            AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.LESS_THAN, op1, op2, functionName, !truthValue, edge);
 
             if (lSuccessor == null) {
               throw new RuntimeException();
@@ -780,7 +774,7 @@ public class InterpreterTransferRelation implements TransferRelation {
             }
           }
           else {
-            AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.GREATER_EQUAL, op1, op2, functionName, !truthValue);
+            AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.GREATER_EQUAL, op1, op2, functionName, !truthValue, edge);
 
             if (lSuccessor == null) {
               throw new RuntimeException();
@@ -799,7 +793,7 @@ public class InterpreterTransferRelation implements TransferRelation {
             }
           }
           else {
-            AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.GREATER_THAN, op1, op2, functionName, !truthValue);
+            AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.GREATER_THAN, op1, op2, functionName, !truthValue, edge);
 
             if (lSuccessor == null) {
               throw new RuntimeException();
@@ -809,7 +803,7 @@ public class InterpreterTransferRelation implements TransferRelation {
           }
         }
         else{
-          throw new UnrecognizedCFAEdgeException("Unhandled case ");
+          throw new UnrecognizedCCodeException("Unhandled case", edge);
         }
       }
       else if(op2 instanceof IASTUnaryExpression)
@@ -825,18 +819,8 @@ public class InterpreterTransferRelation implements TransferRelation {
 
           if(unaryExpOp instanceof IASTLiteralExpression){
             IASTLiteralExpression literalExp = (IASTLiteralExpression)unaryExpOp;
-            int typeOfLiteral = literalExp.getKind();
-            if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant
-                //  || typeOfLiteral == IASTLiteralExpression.lk_float_constant
-            )
-            {
-              String literalValue = op2.getRawSignature();
-              if(literalValue.contains("L") || literalValue.contains("U")){
-                literalValue = literalValue.replace("L", "");
-                literalValue = literalValue.replace("U", "");
-              }
-
-              int valueOfLiteral = Integer.valueOf(literalValue).intValue();
+            if (literalExp instanceof IASTIntegerLiteralExpression) {
+              int valueOfLiteral = ((IASTIntegerLiteralExpression)literalExp).getValue().intValue();
 
               // a == 9
               if(opType == BinaryOperator.EQUALS) {
@@ -855,7 +839,7 @@ public class InterpreterTransferRelation implements TransferRelation {
                 }
                 // ! a == 9
                 else {
-                  AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.NOT_EQUALS, op1, op2, functionName, !truthValue);
+                  AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.NOT_EQUALS, op1, op2, functionName, !truthValue, edge);
 
                   if (lSuccessor == null) {
                     throw new RuntimeException();
@@ -880,7 +864,7 @@ public class InterpreterTransferRelation implements TransferRelation {
                 }
                 // ! a != 9
                 else {
-                  AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.EQUALS, op1, op2, functionName, !truthValue);
+                  AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.EQUALS, op1, op2, functionName, !truthValue, edge);
 
                   if (lSuccessor == null) {
                     throw new RuntimeException();
@@ -904,7 +888,7 @@ public class InterpreterTransferRelation implements TransferRelation {
                   }
                 }
                 else {
-                  AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.LESS_EQUAL, op1, op2, functionName, !truthValue);
+                  AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.LESS_EQUAL, op1, op2, functionName, !truthValue, edge);
 
                   if (lSuccessor == null) {
                     throw new RuntimeException();
@@ -927,7 +911,7 @@ public class InterpreterTransferRelation implements TransferRelation {
                   }
                 }
                 else {
-                  AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.LESS_THAN, op1, op2, functionName, !truthValue);
+                  AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.LESS_THAN, op1, op2, functionName, !truthValue, edge);
 
                   if (lSuccessor == null) {
                     throw new RuntimeException();
@@ -950,7 +934,7 @@ public class InterpreterTransferRelation implements TransferRelation {
                   }
                 }
                 else {
-                  AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.GREATER_EQUAL, op1, op2, functionName, !truthValue);
+                  AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.GREATER_EQUAL, op1, op2, functionName, !truthValue, edge);
 
                   if (lSuccessor == null) {
                     throw new RuntimeException();
@@ -973,7 +957,7 @@ public class InterpreterTransferRelation implements TransferRelation {
                   }
                 }
                 else {
-                  AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.GREATER_THAN, op1, op2, functionName, !truthValue);
+                  AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.GREATER_THAN, op1, op2, functionName, !truthValue, edge);
 
                   if (lSuccessor == null) {
                     throw new RuntimeException();
@@ -983,38 +967,42 @@ public class InterpreterTransferRelation implements TransferRelation {
                 }
               }
               else{
-                throw new UnrecognizedCFAEdgeException("Unhandled case ");
+                throw new UnrecognizedCCodeException("Unhandled case", edge);
               }
             }
             else{
-              throw new UnrecognizedCFAEdgeException("Unhandled case ");
+              throw new UnrecognizedCCodeException("Unhandled case", edge);
             }
           }
           else{
-            throw new UnrecognizedCFAEdgeException("Unhandled case ");
-          }
-        }
-        // right hand side is a cast exp
-        else if(op2 instanceof IASTCastExpression){
-          IASTCastExpression castExp = (IASTCastExpression)op2;
-          IASTExpression exprInCastOp = castExp.getOperand();
-
-          AbstractElement lSuccessor = propagateBooleanExpression(element, opType, op1, exprInCastOp, functionName, truthValue);
-
-          if (lSuccessor == null) {
-            throw new RuntimeException();
+            throw new UnrecognizedCCodeException("Unhandled case", edge);
           }
 
-          return lSuccessor;
+          // TODO check
+          throw new RuntimeException("CHECK!");
+          //return lSuccessor;
         }
         else{
-          throw new UnrecognizedCFAEdgeException("Unhandled case ");
+          throw new UnrecognizedCCodeException("Unhandled case", edge);
         }
       }
       else if(op2 instanceof IASTBinaryExpression){
         String varName = op1.getRawSignature();
         // TODO forgetting
         newElement.forget(varName);
+      }
+      // right hand side is a cast exp
+      else if(op2 instanceof IASTCastExpression){
+        IASTCastExpression castExp = (IASTCastExpression)op2;
+        IASTExpression exprInCastOp = castExp.getOperand();
+
+        AbstractElement lSuccessor = propagateBooleanExpression(element, opType, op1, exprInCastOp, functionName, truthValue, edge);
+
+        if (lSuccessor == null) {
+          throw new RuntimeException();
+        }
+
+        return lSuccessor;
       }
       else{
       String varName = op1.getRawSignature();
@@ -1030,7 +1018,7 @@ public class InterpreterTransferRelation implements TransferRelation {
       IASTCastExpression castExp = (IASTCastExpression) op1;
       IASTExpression castOperand = castExp.getOperand();
 
-      AbstractElement lSuccessor = propagateBooleanExpression(element, opType, castOperand, op2, functionName, truthValue);
+      AbstractElement lSuccessor = propagateBooleanExpression(element, opType, castOperand, op2, functionName, truthValue, edge);
 
       if (lSuccessor == null) {
         throw new RuntimeException();
@@ -1150,7 +1138,7 @@ public class InterpreterTransferRelation implements TransferRelation {
     if (declarationEdge.getName() != null) {
 
         // get the variable name in the declarator
-        String varName = declarationEdge.getName().toString();
+        String varName = declarationEdge.getName();
 
         // TODO check other types of variables later - just handle primitive
         // types for the moment
@@ -1172,7 +1160,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
   private InterpreterElement handleStatement(InterpreterElement element,
       IASTStatement expression, CFAEdge cfaEdge)
-  throws UnrecognizedCCodeException, ReadingFromNondetVariableException, AccessToUninitializedVariableException, MissingInputException {
+  throws UnrecognizedCCodeException, AccessToUninitializedVariableException, MissingInputException {
     // expression is an assignment operation, e.g. a = b;
     if (expression instanceof IASTAssignment) {
       return handleAssignment(element, (IASTAssignment)expression, cfaEdge);
@@ -1192,7 +1180,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
   private InterpreterElement handleAssignment(InterpreterElement element,
                             IASTAssignment assignExpression, CFAEdge cfaEdge)
-                            throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException, AccessToUninitializedVariableException {
+                            throws UnrecognizedCCodeException, MissingInputException, AccessToUninitializedVariableException {
 
     IASTExpression op1 = assignExpression.getLeftHandSide();
     IASTRightHandSide op2 = assignExpression.getRightHandSide();
@@ -1200,7 +1188,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
     if(op1 instanceof IASTIdExpression) {
       // a = ...
-      return handleAssignmentToVariable(element, op1.getRawSignature(), op2, cfaEdge);
+      return handleAssignmentToVariable(element, ((IASTIdExpression)op1).getName(), op2, cfaEdge);
 
     } /*else if (op1 instanceof IASTUnaryExpression
         && ((IASTUnaryExpression)op1).getOperator() == IASTUnaryExpression.STAR) {
@@ -1246,12 +1234,12 @@ public class InterpreterTransferRelation implements TransferRelation {
   }
 
   private InterpreterElement handleAssignmentToVariable(InterpreterElement element,
-                          String lParam, IASTRightHandSide rightExp, CFAEdge cfaEdge) throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException, AccessToUninitializedVariableException {
+                          String lParam, IASTRightHandSide rightExp, CFAEdge cfaEdge) throws UnrecognizedCCodeException, MissingInputException, AccessToUninitializedVariableException {
     String functionName = cfaEdge.getPredecessor().getFunctionName();
 
     // a = 8.2 or "return;" (when rightExp == null)
     if(rightExp == null || rightExp instanceof IASTLiteralExpression){
-      return handleAssignmentOfLiteral(element, lParam, (IASTLiteralExpression)rightExp, functionName);
+      return handleAssignmentOfLiteral(element, lParam, (IASTLiteralExpression)rightExp, functionName, cfaEdge);
     }
     // a = b
     else if (rightExp instanceof IASTIdExpression){
@@ -1285,7 +1273,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
   private InterpreterElement handleAssignmentOfCast(InterpreterElement element,
                               String lParam, IASTCastExpression castExp, CFAEdge cfaEdge)
-                              throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException, AccessToUninitializedVariableException
+                              throws UnrecognizedCCodeException, MissingInputException, AccessToUninitializedVariableException
   {
     IASTExpression castOperand = castExp.getOperand();
 
@@ -1300,7 +1288,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
   private InterpreterElement handleAssignmentOfUnaryExp(InterpreterElement element,
                                       String lParam, IASTUnaryExpression unaryExp, CFAEdge cfaEdge)
-                                      throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException, AccessToUninitializedVariableException {
+                                      throws UnrecognizedCCodeException, MissingInputException, AccessToUninitializedVariableException {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
     // name of the updated variable, so if a = -b is handled, lParam is a
@@ -1323,7 +1311,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
       if (unaryOperand instanceof IASTIdExpression) {
         missingInformationLeftVariable = assignedVar;
-        missingInformationRightPointer = unaryOperand.getRawSignature();
+        missingInformationRightPointer = ((IASTIdExpression)unaryOperand).getName();
       } else{
         throw new UnrecognizedCCodeException(cfaEdge, unaryOperand);
       }
@@ -1345,7 +1333,7 @@ public class InterpreterTransferRelation implements TransferRelation {
   private InterpreterElement handleAssignmentOfBinaryExp(InterpreterElement element,
                        String lParam, IASTExpression lVarInBinaryExp, IASTExpression rVarInBinaryExp,
                        BinaryOperator binaryOperator, CFAEdge cfaEdge)
-                       throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException, AccessToUninitializedVariableException {
+                       throws UnrecognizedCCodeException, MissingInputException, AccessToUninitializedVariableException {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
     // name of the updated variable, so if a = b + c is handled, lParam is a
@@ -1477,13 +1465,13 @@ public class InterpreterTransferRelation implements TransferRelation {
   }
 
   private Long getExpressionValue(InterpreterElement element, IASTExpression expression,
-                                  String functionName, CFAEdge cfaEdge) throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException, AccessToUninitializedVariableException {
+                                  String functionName, CFAEdge cfaEdge) throws UnrecognizedCCodeException, MissingInputException, AccessToUninitializedVariableException {
 
     if (expression instanceof IASTLiteralExpression) {
-      return parseLiteral(expression);
+      return parseLiteral((IASTLiteralExpression)expression, cfaEdge);
 
     } else if (expression instanceof IASTIdExpression) {
-      String varName = getvarName(expression.getRawSignature(), functionName);
+      String varName = getvarName(((IASTIdExpression)expression).getName(), functionName);
 
       return element.getValueFor(varName);
     } else if (expression instanceof IASTCastExpression) {
@@ -1514,13 +1502,14 @@ public class InterpreterTransferRelation implements TransferRelation {
   }
 
   private InterpreterElement handleAssignmentOfVariable(InterpreterElement element,
-      String lParam, IASTExpression op2, String functionName) throws MissingInputException, ReadingFromNondetVariableException, AccessToUninitializedVariableException
+      String lParam, IASTExpression op2, String functionName) throws MissingInputException, AccessToUninitializedVariableException
   {
     String rParam = op2.getRawSignature();
 
     String leftVarName = getvarName(lParam, functionName);
 
-    if (rParam.equals("__BLAST_NONDET")) {
+	// TODO check
+    /*if (rParam.equals("__BLAST_NONDET")) {
       InterpreterElement newElement = element.nextInputElement();
 
       // We return the input of the current element, the successor element
@@ -1529,7 +1518,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
       return newElement;
     }
-    else {
+    else*/ {
       String rightVarName = getvarName(rParam, functionName);
 
       InterpreterElement newElement = element.clone();
@@ -1540,13 +1529,13 @@ public class InterpreterTransferRelation implements TransferRelation {
   }
 
   private InterpreterElement handleAssignmentOfLiteral(InterpreterElement element,
-                        String lParam, IASTExpression op2, String functionName)
+                        String lParam, IASTLiteralExpression op2, String functionName, CFAEdge edge)
                         throws UnrecognizedCCodeException
   {
     InterpreterElement newElement = element.clone();
 
     // op2 may be null if this is a "return;" statement
-    Long val = (op2 == null ? 0L : parseLiteral(op2));
+    Long val = (op2 == null ? 0L : parseLiteral(op2, edge));
 
     String assignedVar = getvarName(lParam, functionName);
     if (val != null) {
@@ -1558,29 +1547,22 @@ public class InterpreterTransferRelation implements TransferRelation {
     return newElement;
   }
 
-  private Long parseLiteral(IASTExpression expression) throws UnrecognizedCCodeException {
-    if (expression instanceof IASTLiteralExpression) {
+  private Long parseLiteral(IASTLiteralExpression expression, CFAEdge edge) throws UnrecognizedCCodeException {
+    if (expression instanceof IASTIntegerLiteralExpression) {
+      return ((IASTIntegerLiteralExpression)expression).asLong();
 
-      int typeOfLiteral = ((IASTLiteralExpression)expression).getKind();
-      if (typeOfLiteral == IASTLiteralExpression.lk_integer_constant) {
+    } else if (expression instanceof IASTFloatLiteralExpression) {
+      return null;
 
-        String s = expression.getRawSignature();
-        if(s.endsWith("L") || s.endsWith("U") || s.endsWith("UL")){
-          s = s.replace("L", "");
-          s = s.replace("U", "");
-          s = s.replace("UL", "");
-        }
-        try {
-          return Long.valueOf(s);
-        } catch (NumberFormatException e) {
-          throw new UnrecognizedCCodeException("invalid integer literal", null, expression);
-        }
-      }
-      if (typeOfLiteral == IASTLiteralExpression.lk_string_literal) {
-        return (long) expression.hashCode();
-      }
+    } else if (expression instanceof IASTCharLiteralExpression) {
+      return (long)((IASTCharLiteralExpression)expression).getCharacter();
+
+    } else if (expression instanceof IASTStringLiteralExpression) {
+      return null;
+
+    } else {
+      throw new UnrecognizedCCodeException("unknown literal", edge, expression);
     }
-    return null;
   }
 
   public String getvarName(String variableName, String functionName){
@@ -1593,7 +1575,7 @@ public class InterpreterTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement element,
                                     List<AbstractElement> elements,
-                                    CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException, AccessToUninitializedVariableException {
+                                    CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException, MissingInputException, AccessToUninitializedVariableException {
 
     assert element instanceof InterpreterElement;
     InterpreterElement explicitElement = (InterpreterElement)element;
@@ -1613,7 +1595,7 @@ public class InterpreterTransferRelation implements TransferRelation {
   }
 
   private Collection<? extends AbstractElement> strengthen(InterpreterElement explicitElement,
-      PointerElement pointerElement, CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException, MissingInputException, ReadingFromNondetVariableException, AccessToUninitializedVariableException {
+      PointerElement pointerElement, CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException, MissingInputException, AccessToUninitializedVariableException {
 
     List<InterpreterElement> retList = new ArrayList<InterpreterElement>();
 
