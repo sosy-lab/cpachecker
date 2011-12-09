@@ -367,6 +367,9 @@ public class ARTToCTranslator {
   }
 
   private String processSimpleEdge(CFAEdge pCFAEdge) {
+    if(pCFAEdge == null) {
+      return "";
+    }
 
     switch (pCFAEdge.getEdgeType()) {
     case BlankEdge: {

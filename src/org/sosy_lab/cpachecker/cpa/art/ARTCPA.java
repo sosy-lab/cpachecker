@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.art;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.util.ArrayList;
 import java.util.Collection;
 
 import org.sosy_lab.common.LogManager;
@@ -66,7 +67,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   private final Reducer reducer;
   private final Statistics stats;
   private final PostProcessor innerPostProcessor;
-  private final PostProcessor postProcessor;
+  private final Collection<PostProcessor> postProcessors;
 
   private CounterexampleInfo lastCounterexample = null;
 
@@ -102,7 +103,9 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     } else {
       innerPostProcessor = null;
     }
-    postProcessor = new ARTDumper(config, this);
+    postProcessors = new ArrayList<PostProcessor>();
+    postProcessors.add(new RVARTSimplifier(config, this));
+    postProcessors.add(new ARTDumper(config, this));
   }
 
   @Override
@@ -173,6 +176,8 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     if(innerPostProcessor != null) {
       innerPostProcessor.postProcess(pReached);
     }
-    postProcessor.postProcess(pReached);
+    for(PostProcessor postProcessor : postProcessors) {
+      postProcessor.postProcess(pReached);
+    }
   }
 }
