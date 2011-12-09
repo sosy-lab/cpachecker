@@ -66,7 +66,7 @@ import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterElement;
 import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.MissingInputException;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationElement;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
+import org.sosy_lab.cpachecker.cpa.predicate.fshell3.PredicateRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.fshell.testcases.PreciseInputsTestCase;
 import org.sosy_lab.cpachecker.fshell.testcases.TestCase;

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.fshell;
 
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -45,12 +47,14 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
+import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
@@ -101,7 +105,6 @@ import org.sosy_lab.cpachecker.util.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.util.ecp.translators.InverseGuardedEdgeLabel;
 import org.sosy_lab.cpachecker.util.ecp.translators.ToGuardedAutomatonTranslator;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 import com.google.common.collect.ImmutableSetMultimap;
 
@@ -221,7 +224,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     mWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCFAMap, mLogManager);
 
     try {
-      mWrapper.toDot("test/output/wrapper.dot");
+      mWrapper.toDot("output/wrapper.dot");
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -603,10 +606,10 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
         }
       }
 
-      CounterexampleTraceInfo lCounterexampleTraceInfo = null;
+      CounterexampleInfo lCounterexampleInfo = null;
 
       if (lReachableViaGraphSearch) {
-        lCounterexampleTraceInfo = reach(lPredicateReachedSet, lPreviousGoalAutomaton, lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
+        lCounterexampleInfo = reach(lPredicateReachedSet, lPreviousGoalAutomaton, lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
 
         // lPredicateReachedSet and lPreviousGoalAutomaton have to be in-sync.
         lPreviousGoalAutomaton = lAutomatonCPA.getAutomaton();
@@ -617,7 +620,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
       lTimeReach.pause();
 
-      if (lCounterexampleTraceInfo == null || lCounterexampleTraceInfo.isSpurious()) {
+      if (lCounterexampleInfo == null || lCounterexampleInfo.isSpurious()) {
         mOutput.println("Goal #" + lIndex + " is infeasible!");
 
         if (lIsCovered) {
@@ -689,7 +692,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       else {
         lTimeCover.proceed();
 
-        TestCase lTestCase = TestCase.fromCounterexample(lCounterexampleTraceInfo, mLogManager);
+        TestCase lTestCase = TestCase.fromCounterexample(lCounterexampleInfo, mLogManager);
 
         mTestSuite.add(lTestCase);
 
@@ -911,7 +914,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
   ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> mBuilder = new ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate>();
   HashSet<AbstractionPredicate> mGlobalPredicates = new HashSet<AbstractionPredicate>();
 
-  private CounterexampleTraceInfo reach(ReachedSet pReachedSet, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, GuardedEdgeAutomatonCPA pAutomatonCPA, CFAFunctionDefinitionNode pEntryNode, GuardedEdgeAutomatonCPA pPassingCPA) {
+  private CounterexampleInfo reach(ReachedSet pReachedSet, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, GuardedEdgeAutomatonCPA pAutomatonCPA, CFAFunctionDefinitionNode pEntryNode, GuardedEdgeAutomatonCPA pPassingCPA) {
     mTimeInReach.proceed();
     mTimesInReach++;
 
@@ -972,9 +975,9 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     CPAAlgorithm lBasicAlgorithm = new CPAAlgorithm(lARTCPA, mLogManager);
 
-    PredicateRefiner lRefiner;
+    Refiner lRefiner;
     try {
-      lRefiner = new PredicateRefiner(lBasicAlgorithm.getCPA(), mBuilder, mGlobalPredicates);
+      lRefiner = new PredicateRefiner(lARTCPA, mBuilder, mGlobalPredicates);
     } catch (CPAException e) {
       throw new RuntimeException(e);
     } catch (InvalidConfigurationException e) {
@@ -1041,57 +1044,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
     mTimeInReach.pause();
 
-    CounterexampleTraceInfo lCounterexampleTraceInfo = lRefiner.getCounterexampleTraceInfo();
-
-    /*if (lCounterexampleTraceInfo != null && lCounterexampleTraceInfo.isSpurious()) {
-      // TODO automaton index
-      InfeasibilityCacheEntry lEntry = new InfeasibilityCacheEntry(pAutomatonCPA.getAutomaton(), pReachedSet, lPredicateCPAIndex, lProductAutomatonIndex);
-
-      mInfeasibilityCache.add(lEntry);
-    }
-    else if (lCounterexampleTraceInfo != null) {
-      // TODO feasibility cache
-
-      ARTElement lLastElement = (ARTElement)pReachedSet.getLastElement();
-
-      // TODO how many abstraction points with state >= 5 are in the reached set?
-
-      throw new RuntimeException();
-    }*/
-
-    /*if (lCounterexampleTraceInfo != null) {
-      if (lCounterexampleTraceInfo.isSpurious()) {
-        System.out.println("SPURIOUS ************************");
-      }
-      else {
-        System.out.println("NOT SPURIOUS ********************");
-      }
-
-      for (AbstractElement lReachedElement : pReachedSet) {
-        ARTElement lARTElement = (ARTElement)lReachedElement;
-
-        CompositeElement lCompositeElement = (CompositeElement)lARTElement.getWrappedElement();
-
-        PredicateAbstractElement lPredicateElement = (PredicateAbstractElement)lCompositeElement.get(lPredicateCPAIndex);
-
-        if (lPredicateElement instanceof AbstractionElement) {
-          AbstractionElement lAbstractionElement = (AbstractionElement)lPredicateElement;
-
-          if (!lAbstractionElement.getAbstractionFormula().isFalse()) {
-            ProductAutomatonElement lProductAutomatonElement = (ProductAutomatonElement)lCompositeElement.get(lProductAutomatonIndex);
-
-            // TODO generalize
-            GuardedEdgeAutomatonStateElement lStateElement = (GuardedEdgeAutomatonStateElement)lProductAutomatonElement.get(0);
-
-            if (lStateElement.getAutomatonState().ID >= 5) {
-              System.out.println("ping");
-            }
-          }
-        }
-      }
-    }*/
-
-    return lCounterexampleTraceInfo;
+    return lARTCPA.getLastCounterexample();
   }
 
   //HashSet<InfeasibilityCacheEntry> mInfeasibilityCache = new HashSet<InfeasibilityCacheEntry>();
@@ -1108,7 +1061,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
       PredicatePrecision lPredicatePrecision = (PredicatePrecision)lPrecision.get(lPredicateCPAIndex);
 
-      CFANode lLocation = ((CompositeElement)lARTElement.getWrappedElement()).retrieveLocationElement().getLocationNode();
+      CFANode lLocation = ((LocationElement)((CompositeElement)lARTElement.getWrappedElement()).get(0)).getLocationNode();
 
       int lNumberOfPredicates = lPredicatePrecision.getPredicates(lLocation).size();
 
@@ -1171,7 +1124,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       for (CFAEdge lCFAEdge : lEdgeSet) {
         CFANode lCFANode = lCFAEdge.getPredecessor();
 
-        Set<AbstractElement> lAbstractElements = pReachedSet.getReached(lCFANode);
+        Collection<AbstractElement> lAbstractElements = pReachedSet.getReached(lCFANode);
 
         LinkedList<AbstractElement> lAbstractElements2 = new LinkedList<AbstractElement>();
         lAbstractElements2.addAll(lAbstractElements);
@@ -1184,7 +1137,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
           ARTElement lARTElement = (ARTElement)lAbstractElement;
 
-          if (lARTElement.retrieveLocationElement().getLocationNode() != lCFANode) {
+          if (extractLocation(lARTElement) != lCFANode) {
             continue;
           }
 

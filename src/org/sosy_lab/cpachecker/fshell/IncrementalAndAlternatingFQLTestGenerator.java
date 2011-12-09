@@ -270,7 +270,7 @@ public class IncrementalAndAlternatingFQLTestGenerator implements FQLTestGenerat
 
     PredicateRefiner lRefiner;
     try {
-      lRefiner = PredicateRefiner.create(lARTCPA);
+      lRefiner = new PredicateRefiner(lARTCPA);
     } catch (CPAException e) {
       throw new RuntimeException(e);
     } catch (InvalidConfigurationException e) {
