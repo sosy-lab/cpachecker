@@ -71,7 +71,9 @@ public class ExplicitReducer implements Reducer {
 
     ExplicitElement expandedElement = reducedElement.clone();
     for(String rootVar : diffElement.getTrackedVariableNames()) {
-      expandedElement.copyConstant(diffElement, rootVar);
+      if(!occursInBlock(pReducedContext, rootVar)) {
+        expandedElement.copyConstant(diffElement, rootVar);
+      }
     }
 
     return expandedElement;
