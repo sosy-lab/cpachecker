@@ -9,35 +9,25 @@ void error_fn(void)
 }
 
 #line 5 "include.h"
-void __MONITOR_END_TRANSITION(void) 
-{ 
+int __MONITOR_START_TRANSITION   = 0;
 
-  {
-#line 7
-  return;
-}
-}
+#line 6 "include.h"
+int __MONITOR_END_TRANSITION   = 0;
 
-#line 9 "include.h"
-void __MONITOR_START_TRANSITION(void) 
-{ 
-
-  {
-#line 11
-  return;
-}
-}
-
-#line 13 "include.h"
+#line 11 "include.h"
 int k  ;
 
-#line 15 "include.h"
+#line 13 "include.h"
 int expensive(void) 
 { int result ;
 
   {
-#line 16
+#line 14
   result = k;
+#line 15
+  result += 13;
+#line 16
+  result += 13;
 #line 17
   result += 13;
 #line 18
@@ -51,43 +41,39 @@ int expensive(void)
 #line 22
   result += 13;
 #line 23
-  result += 13;
-#line 24
-  result += 13;
-#line 25
   return (result > 0);
 }
 }
 
-#line 28 "include.h"
+#line 26 "include.h"
 int checkProgramInvariant(void) 
 { int tmp ;
   int tmp___0 ;
 
   {
-#line 29
+#line 27
   tmp = expensive();
-#line 29
+#line 27
   if (tmp) {
-#line 29
+#line 27
     if (k < 0) {
-#line 29
+#line 27
       tmp___0 = 0;
     } else {
-#line 29
+#line 27
       if (k > 100) {
-#line 29
+#line 27
         tmp___0 = 0;
       } else {
-#line 29
+#line 27
         tmp___0 = 1;
       }
     }
   } else {
-#line 29
+#line 27
     tmp___0 = 1;
   }
-#line 29
+#line 27
   return (tmp___0);
 }
 }
@@ -142,7 +128,7 @@ int entry(void)
   k = 0;
   {
 #line 18 "spec.work"
-  __MONITOR_START_TRANSITION();
+  __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
 #line 19
   tmp = checkProgramInvariant();
 #line 19
@@ -151,7 +137,7 @@ int entry(void)
     error_fn();
   }
 #line 22
-  __MONITOR_END_TRANSITION();
+  __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
   {
 
   }
@@ -166,7 +152,7 @@ int entry(void)
     i = 0;
     {
 #line 18 "spec.work"
-    __MONITOR_START_TRANSITION();
+    __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
 #line 19
     tmp = checkProgramInvariant();
 #line 19
@@ -175,7 +161,7 @@ int entry(void)
       error_fn();
     }
 #line 22
-    __MONITOR_END_TRANSITION();
+    __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
     {
 
     }
@@ -191,7 +177,7 @@ int entry(void)
       i ++;
       {
 #line 18 "spec.work"
-      __MONITOR_START_TRANSITION();
+      __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
 #line 19
       tmp = checkProgramInvariant();
 #line 19
@@ -200,7 +186,7 @@ int entry(void)
         error_fn();
       }
 #line 22
-      __MONITOR_END_TRANSITION();
+      __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
       {
 
       }
@@ -214,7 +200,7 @@ int entry(void)
     j = 0;
     {
 #line 18 "spec.work"
-    __MONITOR_START_TRANSITION();
+    __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
 #line 19
     tmp = checkProgramInvariant();
 #line 19
@@ -223,7 +209,7 @@ int entry(void)
       error_fn();
     }
 #line 22
-    __MONITOR_END_TRANSITION();
+    __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
     {
 
     }
@@ -237,7 +223,7 @@ int entry(void)
       k ++;
       {
 #line 18 "spec.work"
-      __MONITOR_START_TRANSITION();
+      __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
 #line 19
       tmp = checkProgramInvariant();
 #line 19
@@ -246,7 +232,7 @@ int entry(void)
         error_fn();
       }
 #line 22
-      __MONITOR_END_TRANSITION();
+      __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
       {
 
       }
@@ -255,7 +241,7 @@ int entry(void)
       j ++;
       {
 #line 18 "spec.work"
-      __MONITOR_START_TRANSITION();
+      __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
 #line 19
       tmp = checkProgramInvariant();
 #line 19
@@ -264,7 +250,7 @@ int entry(void)
         error_fn();
       }
 #line 22
-      __MONITOR_END_TRANSITION();
+      __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
       {
 
       }

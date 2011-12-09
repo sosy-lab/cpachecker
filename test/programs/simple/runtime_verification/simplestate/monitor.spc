@@ -4,10 +4,10 @@ event {
   after
   pattern { $? = $?; }
   action { 
-	__MONITOR_START_TRANSITION();
+	__MONITOR_START_TRANSITION;
 	if(!checkProgramInvariant()) {
 		error_fn();
 	}
-	__MONITOR_END_TRANSITION();
+	__MONITOR_END_TRANSITION;
   }
 }
