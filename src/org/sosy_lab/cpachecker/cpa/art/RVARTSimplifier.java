@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.art;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
@@ -65,13 +66,15 @@ public class RVARTSimplifier implements PostProcessor {
     while(!waitlist.isEmpty()) {
       ARTElement currentElement = waitlist.pop();
 
-      Collection<ARTElement> children = new HashSet<ARTElement>();
+      Collection<ARTElement> toProcess = new ArrayList<ARTElement>();
+
+      Collection<ARTElement> children = new ArrayList<ARTElement>();
       children.addAll(currentElement.getChildren());
       for(ARTElement child : children) {
-        removeMonitorComponent(child, pReached); //may alter currentElement.getChildren()
+        toProcess.addAll(removeMonitorComponent(child, pReached)); //may alter currentElement.getChildren()
       }
 
-      for(ARTElement child : currentElement.getChildren()) {
+      for(ARTElement child : toProcess) {
         if(!seen.contains(child)) {
           waitlist.add(child);
           seen.add(child);
@@ -80,10 +83,10 @@ public class RVARTSimplifier implements PostProcessor {
     }
   }
 
-  private void removeMonitorComponent(ARTElement pRootElement, ReachedSet pReached) {
+  private Collection<ARTElement> removeMonitorComponent(ARTElement pRootElement, ReachedSet pReached) {
     AutomatonState automatonElement = AbstractElements.extractElementByType(pRootElement, AutomatonState.class);
     if(!automatonElement.getInternalStateName().equals(MONITOR_STATE_NAME)) {
-      return;
+      return Collections.singleton(pRootElement);
     }
 
     //find reachable non-monitor elements
@@ -121,7 +124,7 @@ public class RVARTSimplifier implements PostProcessor {
     if(newChildren.size() > 1) {
       //better leave the transition code inside
       //TODO: but we should remove __MONITOR_STATE assignments?
-      return;
+      return newChildren;
     }
 
     for(ARTElement newChild : newChildren) {
@@ -134,6 +137,8 @@ public class RVARTSimplifier implements PostProcessor {
       pReached.remove(e);
       e.removeFromART();
     }
+
+    return newChildren;
   }
 
 }
