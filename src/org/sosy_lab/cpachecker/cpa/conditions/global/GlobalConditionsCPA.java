@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.IdentityTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
 import org.sosy_lab.cpachecker.core.defaults.SingletonAbstractElement;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
@@ -40,16 +41,17 @@ import org.sosy_lab.cpachecker.core.defaults.StopAlwaysOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
 
 
-public class GlobalConditionsCPA implements ConfigurableProgramAnalysis, AdjustableConditionCPA {
+public class GlobalConditionsCPA implements ConfigurableProgramAnalysisWithABM, AdjustableConditionCPA {
 
   private final PrecisionAdjustment precisionAdjustment;
   private final GlobalConditionsThresholds thresholds;
@@ -112,5 +114,10 @@ public class GlobalConditionsCPA implements ConfigurableProgramAnalysis, Adjusta
   @Override
   public TransferRelation getTransferRelation() {
     return IdentityTransferRelation.INSTANCE;
+  }
+
+  @Override
+  public Reducer getReducer() {
+    return NoOpReducer.getInstance();
   }
 }

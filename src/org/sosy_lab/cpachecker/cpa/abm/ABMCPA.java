@@ -110,7 +110,11 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     if (blockPartitioning == null) {
       blockPartitioning = heuristic.buildPartitioning(node);
       transfer.setBlockPartitioning(blockPartitioning);
-      ((WrapperCPA) getWrappedCpa()).retrieveWrappedCpa(ABMPredicateCPA.class).setPartitioning(blockPartitioning);
+
+      ABMPredicateCPA predicateCpa = ((WrapperCPA) getWrappedCpa()).retrieveWrappedCpa(ABMPredicateCPA.class);
+      if(predicateCpa != null) {
+        predicateCpa.setPartitioning(blockPartitioning);
+      }
 
       Map<AbstractElement, Precision> forwardPrecisionToExpandedPrecision = new HashMap<AbstractElement, Precision>();
       transfer.setForwardPrecisionToExpandedPrecision(forwardPrecisionToExpandedPrecision);

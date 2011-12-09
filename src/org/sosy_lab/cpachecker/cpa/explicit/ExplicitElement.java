@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingElement;
@@ -405,5 +406,14 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
     }
 
     return formula;
+  }
+
+  public void deleteValue(String varName) {
+    this.constantsMap.remove(varName);
+    this.referenceCount.remove(varName);
+  }
+
+  public Set<String> getTrackedVariableNames() {
+    return constantsMap.keySet();
   }
 }

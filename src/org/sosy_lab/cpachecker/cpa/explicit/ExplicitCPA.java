@@ -42,15 +42,16 @@ import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 @Options(prefix="cpa.explicit")
-public class ExplicitCPA implements ConfigurableProgramAnalysis {
+public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM {
 
   public static CPAFactory factory()
   {
@@ -76,6 +77,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
   private StopOperator stopOperator;
   private TransferRelation transferRelation;
   private PrecisionAdjustment precisionAdjustment;
+  private final ExplicitReducer reducer;
 
   private final Configuration config;
   private final LogManager logger;
@@ -93,7 +95,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
     mergeOperator       = initializeMergeOperator();
     stopOperator        = initializeStopOperator();
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
-
+    reducer             = new ExplicitReducer();
   }
 
   private MergeOperator initializeMergeOperator()
@@ -186,5 +188,10 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
   {
     return this.config.getProperty("analysis.useRefinement") != null
       && this.config.getProperty("cegar.refiner").equals("cpa.explicit.ExplicitRefiner");
+  }
+
+  @Override
+  public Reducer getReducer() {
+    return reducer;
   }
 }
