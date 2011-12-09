@@ -408,12 +408,12 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
     return formula;
   }
 
-  public void deleteValue(String varName) {
+  void deleteValue(String varName) {
     this.constantsMap.remove(varName);
     this.referenceCount.remove(varName);
   }
 
-  public Set<String> getTrackedVariableNames() {
+  Set<String> getTrackedVariableNames() {
     return constantsMap.keySet();
   }
 }
