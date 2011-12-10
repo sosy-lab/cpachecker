@@ -263,7 +263,7 @@ def getTableHead(listOfTests):
     '''
 
     (columnRow, testWidths, titleLine) = getColumnsRowAndTestWidths(listOfTests)
-    toolRow = getToolRow(listOfTests, testWidths)
+    (toolRow, toolLine) = getToolRow(listOfTests, testWidths)
     limitRow = getLimitRow(listOfTests, testWidths)
     systemRow = getSystemRow(listOfTests, testWidths)
     dateRow = getDateRow(listOfTests, testWidths)
@@ -274,7 +274,7 @@ def getTableHead(listOfTests):
     return (('\n' + HTML_SHIFT).join([HTML_SHIFT + '<thead>', toolRow,
             limitRow, systemRow, dateRow, testRow, testBranches, testOptions,
             columnRow]) + '\n</thead>',
-            testLine + '\n' + titleLine + '\n')
+            toolLine + '\n' + testLine + '\n' + titleLine + '\n')
 
 
 def getColumnsRowAndTestWidths(listOfTests):
@@ -315,7 +315,8 @@ def getToolRow(listOfTests, testWidths):
     get toolRow, each cell of it spans over all tests of this tool
     '''
 
-    toolRow = '<tr><td>tool</td>'
+    toolRow = '<tr><td>Tool</td>'
+    toolLine = ['tool']
     tool = (listOfTests[0][0].get('tool'), listOfTests[0][0].get('version'))
     toolWidth = 0
 
@@ -326,9 +327,11 @@ def getToolRow(listOfTests, testWidths):
             toolWidth = 0
             tool = newTool
         toolWidth += numberOfColumns
+        for i in range(toolWidth):
+            toolLine.append(newTool[0] + ' ' + newTool[1])
     toolRow += '<td colspan="{0}">{1} {2}</td></tr>'.format(toolWidth, *tool)
 
-    return toolRow
+    return (toolRow, CSV_SEPARATOR.join(toolLine))
 
 
 def getLimitRow(listOfTests, testWidths):
@@ -336,7 +339,7 @@ def getLimitRow(listOfTests, testWidths):
     get limitRow, each cell of it spans over all tests with this limit
     '''
 
-    limitRow = '<tr><td>limits</td>'
+    limitRow = '<tr><td>Limits</td>'
     limitWidth = 0
     limit = (listOfTests[0][0].get('timelimit'), listOfTests[0][0].get('memlimit'))
 
@@ -394,7 +397,7 @@ def getDateRow(listOfTests, testWidths):
     get dateRow, each cell of it spans over all tests with this date
     '''
 
-    dateRow = '<tr><td>date of test</td>'
+    dateRow = '<tr><td>Date of run</td>'
     dateWidth = 0
     date = listOfTests[0][0].get('date')
 
@@ -422,7 +425,7 @@ def getTestRow(listOfTests, testWidths):
     testLine = CSV_SEPARATOR.join(['test'] + [CSV_SEPARATOR.join([testName]*width)
              for (testName, width) in zip(testNames, testWidths) if width])
 
-    return ('<tr><td>test</td>' + ''.join(tests) + '</tr>',
+    return ('<tr><td>Test set</td>' + ''.join(tests) + '</tr>',
             testLine)
 
 
@@ -447,7 +450,7 @@ def getOptionsRow(listOfTests, testWidths):
     testOptions = [testResult.get('options', ' ') for (testResult, _) in listOfTests]
     options = ['<td colspan="{0}">{1}</td>'.format(width, testOption.replace(' -','<br>-'))
              for (testOption, width) in zip(testOptions, testWidths) if width]
-    return '<tr id="options"><td>options</td>' + ''.join(options) + '</tr>'
+    return '<tr id="options"><td>Options</td>' + ''.join(options) + '</tr>'
 
 
 def getTableBody(listOfTests):

@@ -492,8 +492,9 @@ class OutputHandler:
         if (tool == "cpachecker"):
             exe = findExecutable("cpachecker", "scripts/cpa.sh")
             try:
-                version = subprocess.Popen([exe, '-help'],
-                    stdout=subprocess.PIPE).communicate()[0].splitlines()[0].split()[1].strip()
+                versionHelpStr = subprocess.Popen([exe, '-help'],
+                    stdout=subprocess.PIPE).communicate()[0]
+                version = ' '.join(versionHelpStr.splitlines()[0].split()[1:])  # first word is 'CPAchecker'
             except IndexError:
                 logging.critical('IndexError! Have you built CPAchecker?\n') # TODO better message
                 sys.exit()
