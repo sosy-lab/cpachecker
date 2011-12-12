@@ -175,7 +175,7 @@ public class CFACreator {
 
       // Insert call and return edges and build the supergraph
       if (interprocedural) {
-        logger.log(Level.FINE, "Analysis is interprocedural, adding super edges");
+        logger.log(Level.FINE, "Analysis is interprocedural, adding super edges.");
 
         CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfa.getAllFunctions());
         spbuilder.insertCallEdgesRecursively();
@@ -215,7 +215,7 @@ public class CFACreator {
         exportCFA(immutableCFA);
       }
 
-      logger.log(Level.FINE, "DONE, CFA for", immutableCFA.getNumberOfFunctions(), "functions created");
+      logger.log(Level.FINE, "DONE, CFA for", immutableCFA.getNumberOfFunctions(), "functions created.");
 
       return immutableCFA;
 
@@ -237,7 +237,7 @@ public class CFACreator {
 
     if (!mainFunctionName.equals("main")) {
       // function explicitly given by user, but not found
-      throw new InvalidConfigurationException("Function " + mainFunctionName + " not found!");
+      throw new InvalidConfigurationException("Function " + mainFunctionName + " not found.");
     }
 
     if (cfas.size() == 1) {
@@ -255,7 +255,7 @@ public class CFACreator {
       mainFunction = cfas.get(baseFilename);
 
       if (mainFunction == null) {
-        throw new InvalidConfigurationException("No entry function found, please specify one!");
+        throw new InvalidConfigurationException("No entry function found, please specify one.");
       }
       return mainFunction;
     }
@@ -272,7 +272,7 @@ public class CFACreator {
       loopStructure = Optional.of(loops.build());
     } catch (ParserException e) {
       // don't abort here, because if the analysis doesn't need the loop information, we can continue
-      logger.logUserException(Level.WARNING, e, "Could not analyze loop structure of program");
+      logger.logUserException(Level.WARNING, e, "Could not analyze loop structure of program.");
       loopStructure = Optional.absent();
     }
     CFACreator.loops = loopStructure.orNull();
@@ -333,7 +333,7 @@ public class CFACreator {
             DOTBuilder.generateDOT(cfa.getAllFunctionHeads(), cfa.getMainFunction()));
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
-          "Could not write CFA to dot file");
+          "Could not write CFA to dot file.");
         // continue with analysis
       }
     }
@@ -345,7 +345,7 @@ public class CFACreator {
         DOTBuilder2.writeReport(cfa.getMainFunction(), outdir);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
-          "Could not write CFA to dot and json file");
+          "Could not write CFA to dot and json file.");
         // continue with analysis
       }
     }
