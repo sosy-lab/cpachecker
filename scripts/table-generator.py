@@ -212,7 +212,7 @@ def insertLogFileNames(resultFile, resultElem):
         logFileName = os.path.basename(sourcefile.get('name'))
 
         # copy logfiles to extra folder and rename them to '.txt'
-        logFile = os.path.dirname(resultFile) + '/' + logFolder + logFileName + ".log"
+        logFile = (os.path.dirname(resultFile) or '.') + '/' + logFolder + logFileName + ".log"
         txtFile = OUTPUT_PATH + txtFolder + logFileName + ".txt"
         try:
             shutil.copyfile(logFile, txtFile)
