@@ -127,7 +127,7 @@ public class CPAMain {
           mainThread.join(2000);
         } catch (InterruptedException e) {}
         if (mainThread.isAlive()) {
-          logManager.log(Level.WARNING, "Analysis did not stop fast enough, forcing it. This might prevent the statistics from being generated.");
+          logManager.log(Level.WARNING, "Analysis did not stop fast enough, forcing immediate termination now. This might prevent the statistics from being generated.");
           mainThread.stop();
         }
       }
@@ -146,7 +146,7 @@ public class CPAMain {
             com.google.common.io.Files.createParentDirs(exportStatisticsFile);
             file = new FileOutputStream(exportStatisticsFile);
           } catch (IOException e) {
-            logManager.logUserException(Level.WARNING, e, "Could not write statistics to file");
+            logManager.logUserException(Level.WARNING, e, "Could not write statistics to file.");
           }
         }
 
@@ -228,7 +228,7 @@ public class CPAMain {
       cpachecker = new CPAchecker(cpaConfig, logManager);
       cFile = getCodeFile(cpaConfig);
     } catch (InvalidConfigurationException e) {
-      logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
+      logManager.logUserException(Level.SEVERE, e, "Invalid configuration.");
       System.exit(1);
     }
 
@@ -259,7 +259,7 @@ public class CPAMain {
     cpaConfig.inject(options);
 
     if (options.programs.size() != 1) {
-      throw new InvalidConfigurationException("Exactly one code file has to be given!");
+      throw new InvalidConfigurationException("Exactly one code file has to be given.");
     }
 
     return Iterables.getOnlyElement(options.programs);
@@ -268,7 +268,7 @@ public class CPAMain {
   static Configuration createConfiguration(String[] args)
           throws InvalidCmdlineArgumentException, IOException, InvalidConfigurationException {
     if (args == null || args.length < 1) {
-      throw new InvalidCmdlineArgumentException("Need to specify at least configuration file or list of CPAs! Use -help for more information.");
+      throw new InvalidCmdlineArgumentException("Configuration file or list of CPAs needed. Use -help for more information.");
     }
 
     // if there are some command line arguments, process them
@@ -409,7 +409,7 @@ public class CPAMain {
     System.out.println(" -printUsedOptions");
     System.out.println(" -help");
     System.out.println();
-    System.out.println("More information on how to configure CPAchecker can be found in HowToConfiguration.txt");
+    System.out.println("More information on how to configure CPAchecker can be found in 'doc/Configuration.txt'.");
     System.exit(0);
   }
 
