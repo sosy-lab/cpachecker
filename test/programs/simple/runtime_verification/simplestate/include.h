@@ -12,14 +12,59 @@ int k;
 
 int expensive() {
 	int result = k;
-	result += 13;
-	result += 13;
-	result += 13;
-	result += 13;
-	result += 13;
-	result += 13;
-	result += 13;
-	result += 13;
+
+	int mybool = nondet_int();
+	if(mybool) {
+        	result += 26;
+	} else {
+		result -= 13;
+	}
+	if(!mybool) {
+	        result += 26;
+        } else {
+		result -= 13;
+	}
+	if(mybool) {
+        	result += 26;
+	} else {
+		result -= 13;
+	}
+	if(!mybool) {
+	        result += 26;
+        } else {
+		result -= 13;
+	}
+	if(mybool) {
+        	result += 26;
+	} else {
+		result -= 13;
+	}
+	if(!mybool) {
+	        result += 26;
+        } else {
+		result -= 13;
+	}
+	if(mybool) {
+        	result += 26;
+	} else {
+		result -= 13;
+	}
+	if(!mybool) {
+	        result += 26;
+        } else {
+		result -= 13;
+	}
+	if(mybool) {
+        	result += 26;
+	} else {
+		result -= 13;
+	}
+	if(!mybool) {
+	        result += 26;
+        } else {
+		result -= 13;
+	}
+
 	return result > 0;
 }
 

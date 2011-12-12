@@ -17,63 +17,136 @@ int __MONITOR_END_TRANSITION   = 0;
 #line 11 "include.h"
 int k  ;
 
+#line 16
+extern int ( /* missing proto */  nondet_int)() ;
+
 #line 13 "include.h"
 int expensive(void) 
 { int result ;
+  int mybool ;
+  int tmp ;
 
   {
 #line 14
   result = k;
-#line 15
-  result += 13;
 #line 16
-  result += 13;
+  tmp = nondet_int();
+#line 16
+  mybool = tmp;
 #line 17
-  result += 13;
+  if (mybool) {
 #line 18
-  result += 13;
-#line 19
-  result += 13;
+    result += 26;
+  } else {
 #line 20
-  result += 13;
-#line 21
-  result += 13;
+    result -= 13;
+  }
 #line 22
-  result += 13;
+  if (! mybool) {
 #line 23
+    result += 26;
+  } else {
+#line 25
+    result -= 13;
+  }
+#line 27
+  if (mybool) {
+#line 28
+    result += 26;
+  } else {
+#line 30
+    result -= 13;
+  }
+#line 32
+  if (! mybool) {
+#line 33
+    result += 26;
+  } else {
+#line 35
+    result -= 13;
+  }
+#line 37
+  if (mybool) {
+#line 38
+    result += 26;
+  } else {
+#line 40
+    result -= 13;
+  }
+#line 42
+  if (! mybool) {
+#line 43
+    result += 26;
+  } else {
+#line 45
+    result -= 13;
+  }
+#line 47
+  if (mybool) {
+#line 48
+    result += 26;
+  } else {
+#line 50
+    result -= 13;
+  }
+#line 52
+  if (! mybool) {
+#line 53
+    result += 26;
+  } else {
+#line 55
+    result -= 13;
+  }
+#line 57
+  if (mybool) {
+#line 58
+    result += 26;
+  } else {
+#line 60
+    result -= 13;
+  }
+#line 62
+  if (! mybool) {
+#line 63
+    result += 26;
+  } else {
+#line 65
+    result -= 13;
+  }
+#line 68
   return (result > 0);
 }
 }
 
-#line 26 "include.h"
+#line 71 "include.h"
 int checkProgramInvariant(void) 
 { int tmp ;
   int tmp___0 ;
 
   {
-#line 27
+#line 72
   tmp = expensive();
-#line 27
+#line 72
   if (tmp) {
-#line 27
+#line 72
     if (k < 0) {
-#line 27
+#line 72
       tmp___0 = 0;
     } else {
-#line 27
+#line 72
       if (k > 100) {
-#line 27
+#line 72
         tmp___0 = 0;
       } else {
-#line 27
+#line 72
         tmp___0 = 1;
       }
     }
   } else {
-#line 27
+#line 72
     tmp___0 = 1;
   }
-#line 27
+#line 72
   return (tmp___0);
 }
 }
