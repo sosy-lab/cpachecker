@@ -69,7 +69,7 @@ public class PathToCTranslator {
   private static Function<IASTNode, String> RAW_SIGNATURE_FUNCTION = new Function<IASTNode, String>() {
     @Override
     public String apply(IASTNode pArg0) {
-      return pArg0.getRawSignature();
+      return pArg0.toASTString();
     }
   };
 
@@ -114,7 +114,7 @@ public class PathToCTranslator {
     for (CFAFunctionDefinitionNode node : cfa.getAllFunctionHeads()) {
       FunctionDefinitionNode pNode = (FunctionDefinitionNode)node;
 
-      String lFunctionHeader = pNode.getFunctionDefinition().getRawSignature();
+      String lFunctionHeader = pNode.getFunctionDefinition().toASTString();
 
       mFunctionDecls.add(lFunctionHeader + ";");
     }
@@ -170,7 +170,7 @@ public class PathToCTranslator {
     FunctionDefinitionNode functionStartNode = (FunctionDefinitionNode)extractLocation(firstFunctionElement);
     String freshFunctionName = getFreshFunctionName(functionStartNode);
 
-    String lFunctionHeader = functionStartNode.getFunctionDefinition().getRawSignature();
+    String lFunctionHeader = functionStartNode.getFunctionDefinition().toASTString();
     lFunctionHeader = lFunctionHeader.replaceFirst(
           Pattern.quote(functionStartNode.getFunctionName() + "("),
           freshFunctionName + "(");
@@ -311,9 +311,9 @@ public class PathToCTranslator {
         ind++;
 
         if (truthAssumption) {
-          cond += "(" + assumeEdge.getExpression().getRawSignature() + ")";
+          cond += "(" + assumeEdge.getExpression().toASTString() + ")";
         } else {
-          cond += "(!(" + assumeEdge.getExpression().getRawSignature() + "))";
+          cond += "(!(" + assumeEdge.getExpression().toASTString() + "))";
         }
 
         // create a new block starting with this condition
@@ -390,7 +390,7 @@ public class PathToCTranslator {
     case AssumeEdge: {
       AssumeEdge lAssumeEdge = (AssumeEdge)pCFAEdge;
 
-      String lExpressionString = lAssumeEdge.getExpression().getRawSignature();
+      String lExpressionString = lAssumeEdge.getExpression().toASTString();
 
       String lAssumptionString;
 
@@ -405,8 +405,7 @@ public class PathToCTranslator {
     }
     case StatementEdge: {
       StatementEdge lStatementEdge = (StatementEdge)pCFAEdge;
-
-      return lStatementEdge.getStatement().getRawSignature() + ";";
+      return lStatementEdge.getStatement().toASTString();
     }
 
     case ReturnStatementEdge: {
@@ -415,7 +414,7 @@ public class PathToCTranslator {
       IASTExpression lExpression = lStatementEdge.getExpression();
 
       if (lExpression != null) {
-        return "return " + lExpression.getRawSignature() + ";";
+        return "return " + lExpression.toASTString() + ";";
       } else {
         return "return;";
       }
@@ -472,7 +471,7 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
     IASTFunctionCall expressionOnSummaryEdge = summaryEdge.getExpression();
     if (expressionOnSummaryEdge instanceof IASTFunctionCallAssignmentStatement) {
       IASTFunctionCallAssignmentStatement assignExp = (IASTFunctionCallAssignmentStatement)expressionOnSummaryEdge;
-      String assignedVarName = assignExp.getLeftHandSide().getRawSignature();
+      String assignedVarName = assignExp.getLeftHandSide().toASTString();
       return assignedVarName + " = " + functionName + lArgumentString + ";";
 
     } else {
