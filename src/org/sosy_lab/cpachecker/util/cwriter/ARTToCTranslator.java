@@ -266,7 +266,7 @@ public class ARTToCTranslator {
       //add edges in reversed order to waitlist
       for(int i = result.size()-1; i >= 0; i--) {
         ARTEdge e = result.get(i);
-        waitlist.push(e);
+        pushToWaitlist(waitlist, e.getParentElement(), e.getChildElement(), e.getCfaEdge(), e.getCurrentBlock());
       }
     }
   }
