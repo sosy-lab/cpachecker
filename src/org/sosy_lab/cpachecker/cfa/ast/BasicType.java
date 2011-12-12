@@ -35,6 +35,9 @@ public enum BasicType {
   ;
 
   public String toASTString() {
+    if(this == UNSPECIFIED){
+      return "";
+    }
     return name().toLowerCase();
   }
 }
