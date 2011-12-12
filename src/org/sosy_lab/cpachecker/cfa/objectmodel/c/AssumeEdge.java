@@ -23,7 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
+import java.math.BigInteger;
+
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -31,7 +36,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 public class AssumeEdge extends AbstractCFAEdge {
 
   private final boolean truthAssumption;
-  private final IASTExpression expression;
+  private  IASTExpression expression;
 
   public AssumeEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor,
       CFANode pSuccessor, IASTExpression pExpression, boolean pTruthAssumption) {
@@ -39,6 +44,26 @@ public class AssumeEdge extends AbstractCFAEdge {
     super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
     truthAssumption = pTruthAssumption;
     expression = pExpression;
+
+    if(expression instanceof IASTBinaryExpression)
+    {
+      IASTBinaryExpression binaryExpression = (IASTBinaryExpression)expression;
+
+      if(binaryExpression.getOperator() == BinaryOperator.EQUALS || binaryExpression.getOperator() == BinaryOperator.NOT_EQUALS)
+        return;
+    }
+
+    IASTIntegerLiteralExpression zero = new IASTIntegerLiteralExpression("0",
+        expression.getFileLocation(),
+        expression.getExpressionType(),
+        BigInteger.ZERO);
+
+    expression = new IASTBinaryExpression(expression.getRawSignature() + " " + BinaryOperator.NOT_EQUALS.getOperator() + " " + zero.getRawSignature(),
+                                  expression.getFileLocation(),
+                                  expression.getExpressionType(),
+                                  expression,
+                                  zero,
+                                  BinaryOperator.NOT_EQUALS);
   }
 
   @Override

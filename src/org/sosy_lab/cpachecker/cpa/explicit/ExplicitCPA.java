@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
-import java.util.HashMap;
-import java.util.Set;
-
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -48,6 +45,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+
+import com.google.common.collect.HashMultimap;
 
 @Options(prefix="cpa.explicit")
 public class ExplicitCPA implements ConfigurableProgramAnalysis {
@@ -80,8 +79,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
   private final Configuration config;
   private final LogManager logger;
 
-  private ExplicitCPA(Configuration config, LogManager logger) throws InvalidConfigurationException
-  {
+  private ExplicitCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     this.config = config;
     this.logger = logger;
 
@@ -96,94 +94,88 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
 
   }
 
-  private MergeOperator initializeMergeOperator()
-  {
-    if(mergeType.equals("SEP"))
+  private MergeOperator initializeMergeOperator() {
+    if(mergeType.equals("SEP")) {
       return MergeSepOperator.getInstance();
+    }
 
-    else if(mergeType.equals("JOIN"))
+    else if(mergeType.equals("JOIN")) {
       return new MergeJoinOperator(abstractDomain);
+    }
 
     return null;
   }
 
-  private StopOperator initializeStopOperator()
-  {
-    if(stopType.equals("SEP"))
+  private StopOperator initializeStopOperator() {
+    if(stopType.equals("SEP")) {
       return new StopSepOperator(abstractDomain);
+    }
 
-    else if(stopType.equals("JOIN"))
+    else if(stopType.equals("JOIN")) {
       return new StopJoinOperator(abstractDomain);
+    }
 
-    else if(stopType.equals("NEVER"))
+    else if(stopType.equals("NEVER")) {
       return new StopNeverOperator();
+    }
 
     return null;
   }
 
-  private ExplicitPrecision initializePrecision()
-  {
-    if(this.useCegar())
-      return new ExplicitPrecision(variableBlacklist, new HashMap<CFANode, Set<String>>());
+  private ExplicitPrecision initializePrecision() {
+    HashMultimap<CFANode, String> whitelist = null;
 
-    else
-      return new ExplicitPrecision(variableBlacklist, null);
+    if(this.useCegar()) {
+      whitelist = HashMultimap.create();
+    }
+
+    return new ExplicitPrecision(variableBlacklist, whitelist);
   }
 
   @Override
-  public AbstractDomain getAbstractDomain ()
-  {
+  public AbstractDomain getAbstractDomain() {
     return abstractDomain;
   }
 
   @Override
-  public MergeOperator getMergeOperator ()
-  {
+  public MergeOperator getMergeOperator() {
     return mergeOperator;
   }
 
   @Override
-  public StopOperator getStopOperator ()
-  {
+  public StopOperator getStopOperator() {
     return stopOperator;
   }
 
   @Override
-  public TransferRelation getTransferRelation ()
-  {
+  public TransferRelation getTransferRelation() {
     return transferRelation;
   }
 
   @Override
-  public AbstractElement getInitialElement (CFANode node)
-  {
+  public AbstractElement getInitialElement(CFANode node) {
     return new ExplicitElement();
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode)
-  {
+  public Precision getInitialPrecision(CFANode pNode) {
     return precision;
   }
 
   @Override
-  public PrecisionAdjustment getPrecisionAdjustment()
-  {
+  public PrecisionAdjustment getPrecisionAdjustment() {
     return precisionAdjustment;
   }
 
-  protected Configuration getConfiguration()
-  {
+  protected Configuration getConfiguration() {
     return config;
   }
 
-  protected LogManager getLogger()
-  {
+  protected LogManager getLogger() {
     return logger;
   }
 
-  private boolean useCegar()
-  {
+  private boolean useCegar() {
     return this.config.getProperty("analysis.useRefinement") != null
       && this.config.getProperty("cegar.refiner").equals("cpa.explicit.ExplicitRefiner");
   }

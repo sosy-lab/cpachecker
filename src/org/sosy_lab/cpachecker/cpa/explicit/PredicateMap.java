@@ -24,11 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.explicit;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -37,59 +34,50 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSetMultimap;
+
 
 public class PredicateMap
 {
   /**
    * the mapping from program location to a collection of predicates
    */
-  private Map<CFANode, Set<AbstractionPredicate>> predicateMap;
-
-  /**
-   * the set of variable names, that are referenced in the path predicates
-   */
-  private Set<String> referencedVariables = new HashSet<String>();
+  private ImmutableSetMultimap<CFANode, AbstractionPredicate> predicateMap;
 
   /**
    * This method acts as the constructor of the class.
    *
-   * Given a list of sets of predicates and a program path, it creates the mapping from program location to a collection of predicates.
+   * Given afor(AbstractionPredicate predicate : predicates)
+         list of sets of predicates and a program path, it creates the mapping from program location to a collection of predicates.
    *
    * @param pathPredicates the predicates as returned from the refinement
    * @param pPath the path to the error location
    */
-  public PredicateMap(List<Collection<AbstractionPredicate>> pathPredicates, List<Pair<ARTElement, CFAEdge>> pPath)
-  {
-    predicateMap = new HashMap<CFANode, Set<AbstractionPredicate>>();
+  public PredicateMap(List<Collection<AbstractionPredicate>> pathPredicates, List<Pair<ARTElement, CFAEdge>> pPath) {
+    ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> builder = ImmutableSetMultimap.builder();
 
     int i = 0;
-    for(Collection<AbstractionPredicate> predicates : pathPredicates)
-    {
-      if(predicates.size() > 0)
-      {
+    for (Collection<AbstractionPredicate> predicates : pathPredicates) {
+      if (predicates.size() > 0) {
         CFANode currentLocation = pPath.get(i).getSecond().getSuccessor();
 
-        // get the predicates for the current location from the predicate map
-        Set<AbstractionPredicate> predicatesAtEdge = predicateMap.get(currentLocation);
-
-        // if there are not any yet, create a new set
-        if(predicatesAtEdge == null)
-          predicatesAtEdge = new HashSet<AbstractionPredicate>();
-
         // add each non-trivial predicate to the respective set of the predicate map
-        for(AbstractionPredicate predicate : predicates)
-        {
-          if(!predicate.getSymbolicAtom().isFalse())
-            predicatesAtEdge.add(predicate);
+        for (AbstractionPredicate predicate : predicates) {
+          /*if (!predicate.getSymbolicAtom().isFalse())*/ {
+            builder.put(currentLocation, predicate);
+          }
         }
-
-        // if non-trivial predicates are associated with the edge, add them to the map
-        if(predicatesAtEdge.size() > 0)
-          predicateMap.put(currentLocation, predicatesAtEdge);
       }
 
       i++;
     }
+
+    predicateMap = builder.build();
+  }
+
+  public ImmutableMultimap<CFANode, AbstractionPredicate> getPredicateMapping() {
+    return predicateMap;
   }
 
   /**
@@ -98,19 +86,8 @@ public class PredicateMap
    * @param location the location for which to decide whether it is a interpolation point or not
    * @return true if it is a interpolation point, else false
    */
-  public boolean isInterpolationPoint(CFANode location)
-  {
+  public boolean isInterpolationPoint(CFANode location) {
     return predicateMap.containsKey(location);
-  }
-
-  /**
-   * This method returns the set of variables referenced in the predicates. The return value is only valid after a call to getVariablesFromPredicates.
-   *
-   * @return the set of variables referenced in the predicates
-   */
-  public Set<String> getReferencedVariables()
-  {
-    return referencedVariables;
   }
 
   /**
@@ -118,42 +95,28 @@ public class PredicateMap
    *
    * @return a mapping from program locations to variables referenced in predicates at that program location
    */
-  public Map<CFANode, Set<String>> getVariablesFromPredicates(FormulaManager fmgr)
-  {
-    Map<CFANode, Set<String>> locToVarsMap = new HashMap<CFANode, Set<String>>();
+  public ImmutableMultimap<CFANode, String> getVariableMapping(FormulaManager fmgr) {
+    ImmutableSetMultimap.Builder<CFANode, String> builder = ImmutableSetMultimap.builder();
 
     // for each program location in the mapping ...
-    for(Map.Entry<CFANode, Set<AbstractionPredicate>> predicatesAtEdge : predicateMap.entrySet())
-    {
-      CFANode currentNode = predicatesAtEdge.getKey();
+    for (Map.Entry<CFANode, AbstractionPredicate> predicateAtLocation : predicateMap.entries()) {
+      CFANode currentLocation               = predicateAtLocation.getKey();
+      AbstractionPredicate currentPredicate = predicateAtLocation.getValue();
 
-      // ... and for each predicate in the set of that location ...
-      for(AbstractionPredicate predicate : predicatesAtEdge.getValue())
-      {
-        // ... get the names of the variables referenced in that predicate ...
-        Collection<String> atoms = fmgr.extractVariables(predicate.getSymbolicAtom());
+      // ... get the names of the variables referenced in that predicate ...
+      Collection<String> atoms = fmgr.extractVariables(currentPredicate.getSymbolicAtom());
 
-        // ... and add them to location-to-variables-mapping
-        if(!atoms.isEmpty())
-        {
-          Set<String> variables = locToVarsMap.get(currentNode);
-
-          if(variables == null)
-            locToVarsMap.put(currentNode, variables = new HashSet<String>());
-
-          variables.addAll(atoms);
-
-          referencedVariables.addAll(atoms);
-        }
+      // ... and add them to variables-at-location-mapping
+      if(!atoms.isEmpty()) {
+        builder.putAll(currentLocation, atoms);
       }
     }
 
-    return locToVarsMap;
+    return builder.build();
   }
 
   @Override
-  public String toString()
-  {
+  public String toString() {
     return predicateMap.toString();
   }
 }
