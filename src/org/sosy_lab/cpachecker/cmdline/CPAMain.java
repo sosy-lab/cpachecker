@@ -146,7 +146,7 @@ public class CPAMain {
             com.google.common.io.Files.createParentDirs(exportStatisticsFile);
             file = new FileOutputStream(exportStatisticsFile);
           } catch (IOException e) {
-            logManager.logUserException(Level.WARNING, e, "Could not write statistics to file.");
+            logManager.logUserException(Level.WARNING, e, "Could not write statistics to file");
           }
         }
 
@@ -228,7 +228,7 @@ public class CPAMain {
       cpachecker = new CPAchecker(cpaConfig, logManager);
       cFile = getCodeFile(cpaConfig);
     } catch (InvalidConfigurationException e) {
-      logManager.logUserException(Level.SEVERE, e, "Invalid configuration.");
+      logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
       System.exit(1);
     }
 
