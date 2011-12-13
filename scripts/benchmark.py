@@ -46,10 +46,12 @@ BUG_SUBSTRING_LIST = ['bug', 'unsafe']
 USE_COLORS = True
 COLOR_GREEN = "\033[32;1m{0}\033[m"
 COLOR_RED = "\033[31;1m{0}\033[m"
-COLOR_ORANGE = "\033[35;1m{0}\033[m" # not orange, magenta
+COLOR_ORANGE = "\033[33;1m{0}\033[m" # not orange, magenta
+COLOR_MAGENTA = "\033[35;1m{0}\033[m"
 COLOR_DIC = {"correctSafe": COLOR_GREEN,
              "correctUnsafe": COLOR_GREEN,
              "unknown": COLOR_ORANGE,
+             "error": COLOR_MAGENTA,
              "wrongUnsafe": COLOR_RED,
              "wrongSafe": COLOR_RED}
 
@@ -816,8 +818,10 @@ class OutputHandler:
                 return "wrongUnsafe"
             else:
                 return "correctUnsafe"
+        elif status == 'unknown':
+            return 'unknown'
         else:
-                 return "unknown"
+            return 'error'
 
 
     def containsAny(self, text, list):
@@ -909,6 +913,8 @@ class Statistics:
 
     def addResult(self, statusRelation):
         self.dic["counter"] += 1
+        if statusRelation == 'error':
+            statusRelation = 'unknown'
         assert statusRelation in self.dic
         self.dic[statusRelation] += 1
 
