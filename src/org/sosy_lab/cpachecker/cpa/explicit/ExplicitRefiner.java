@@ -117,6 +117,8 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
   private boolean predicateCpaInUse = false;
 
+  String previousPath = null;
+
   public static ExplicitRefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     if (!(pCpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(ExplicitRefiner.class.getSimpleName() + " could not find the ExplicitCPA");
@@ -202,12 +204,13 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
     ARTElement root = refinementResult.getFirst();
 
-    if (predicateCpaInUse) {
+    if (predicateCpaInUse && predicatePrecision != null) {
       pReached.removeSubtree(root, refinementResult.getSecond(), predicatePrecision);
     } else {
       pReached.removeSubtree(root, refinementResult.getSecond());
     }
 
+    predicatePrecision = null;
     artUpdate.stop();
   }
 
@@ -286,7 +289,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
     Multimap<CFANode, String> relevantVariablesOnPath = getRelevantVariablesOnPath(pPath, predicates);
     assert firstInterpolationPoint != null;
 
-System.out.println("\n" + (++refinementCounter) + ". refining ...");
+//System.out.println("\n" + (++refinementCounter) + ". refining ...");
 //System.out.println(getErrorPathAsString(pPath));
 //System.out.println("\nreferencedVariables: " + predicates.getReferencedVariables());
 //System.out.println("\nallReferencedVaraibles: " + allReferencedVaraibles);
@@ -295,13 +298,6 @@ System.out.println("\n" + (++refinementCounter) + ". refining ...");
 
     // create the new precision
     ExplicitPrecision newPrecision = new ExplicitPrecision(oldExplicitPrecision, variableMapping, relevantVariablesOnPath);
-//System.out.println(newPrecision);
-    if (predicateCpaInUse) {
-      predicatePrecision = getPredicatePrecision(getInExplicitVariables(pPath),
-          oldPredicatePrecision,
-          predicates);
-    }
-
 
     ARTElement root = firstInterpolationPoint.getFirst();
 
@@ -310,12 +306,24 @@ System.out.println("\n" + (++refinementCounter) + ". refining ...");
 //System.exit(-1);
     if(!pathHashes.add(getErrorPathAsString(pPath).hashCode()))
     {
-      System.out.println(getErrorPathAsString(pPath));
-      System.out.println(newPrecision);
-      System.out.println(predicatePrecision);
-      System.out.println("\nlast set of variables in predicates: " + variableMapping.values());
+      if (predicateCpaInUse) {
+        predicatePrecision = getPredicatePrecision(getInExplicitVariables(pPath),
+            oldPredicatePrecision,
+            predicates);
+      } else {
+        throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
+      }
 
-      throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
+      //System.out.println(getErrorPathAsString(pPath));
+      //System.out.println(newPrecision);
+      //System.out.println(predicatePrecision);
+      //System.out.println("\nlast set of variables in predicates: " + variableMapping.values());
+
+      //
+      if(getErrorPathAsString(pPath).equals(previousPath))
+        throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
+
+      previousPath = getErrorPathAsString(pPath);
     }
 
     return Pair.of(root, newPrecision);
@@ -343,12 +351,12 @@ System.out.println("\n" + (++refinementCounter) + ". refining ...");
 
           if(binary.getOperator() == BinaryOperator.EQUALS && assumeEdge.getTruthAssumption()) {
             //System.out.println("skipping vars in EQUALS from " + assumeEdge.getRawAST().toASTString());
-            //continue;
+            continue;
           }
           else if(binary.getOperator() == BinaryOperator.NOT_EQUALS && !assumeEdge.getTruthAssumption()) {
             //System.out.println("skipping vars in NOT_EQUALS from " + assumeEdge.getRawAST().toASTString());
             //System.out.println("= skipping vars in NOT_EQUALS from " + assumeEdge);
-            //continue;
+            continue;
           }
 
           switch (binary.getOperator()) {
@@ -411,6 +419,7 @@ System.out.println("\n" + (++refinementCounter) + ". refining ...");
                                                     PredicateMap predicateMap) {
 
     //System.out.println("inexplicitVars = " + inexplicitVars);
+    Set<String> newPreds = new HashSet<String>();
 
     Multimap<CFANode, AbstractionPredicate> oldPredicateMap = oldPredicatePrecision.getPredicateMap();
     Set<AbstractionPredicate> globalPredicates = oldPredicatePrecision.getGlobalPredicates();
@@ -432,12 +441,16 @@ System.out.println("\n" + (++refinementCounter) + ". refining ...");
         if (inexplicitVars.contains(variable)) {
           //System.out.println("adding prediacte for variable " + variable + " at loc " + location);
           pmapBuilder.putAll(location, predicate);
+          newPreds.add(variable);
         }
       }
 
       if(predicate.getSymbolicAtom().isFalse())
         pmapBuilder.putAll(location, predicate);
     }
+
+    //if(newPreds.size() > 0)
+      //System.out.println("newPreds = " + newPreds);
 
     return new PredicatePrecision(pmapBuilder.build(), globalPredicates);
   }
