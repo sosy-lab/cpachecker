@@ -1,13 +1,13 @@
 void init() {
-
+	anti_op();
 }
 
 void lock() {
-
+	anti_op();
 }
 
 void unlock() {
-
+	anti_op();
 }
 
 int entry() {
