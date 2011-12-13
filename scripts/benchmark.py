@@ -1126,6 +1126,15 @@ def run(args, rlimits):
     logging.debug("My subprocess returned returncode {0}.".format(returncode))
     return (returncode, output, cpuTimeDelta, wallTimeDelta)
 
+def isTimeout(cpuTimeDelta, rlimits):
+    ''' try to find out whether the tool terminated because of a timeout '''
+    if resource.RLIMIT_CPU in rlimits:
+        limit = rlimits.get(resource.RLIMIT_CPU)[0]
+    else:
+        limit = float('inf')
+
+    return cpuTimeDelta > limit*0.99
+
 
 def run_cbmc(options, sourcefile, columns, rlimits):
     if ("--xml-ui" not in options):
@@ -1149,9 +1158,12 @@ def run_cbmc(options, sourcefile, columns, rlimits):
         try:
             tree = ET.fromstring(output)
             status = tree.findtext('cprover-status', 'ERROR')
-        except: # catch all exceptions
-            status = 'ERROR'
-            # sys.stdout.write("Error parsing CBMC output: %s " % e)
+        except Exception, e: # catch all exceptions
+            if isTimeout(cpuTimeDelta, rlimits):
+                status = 'TIMEOUT'
+            else:
+                status = 'ERROR'
+                logging.warning("Error parsing CBMC output for returncode %d: %s" % (returncode, e))
 
         if status == "FAILURE":
             assert returncode == 10
@@ -1167,13 +1179,15 @@ def run_cbmc(options, sourcefile, columns, rlimits):
             else:
                 status = "SAFE"
 
-    elif returncode == -9:
-        status = "TIMEOUT"
+    elif returncode == -9 or returncode == (128+9):
+        if isTimeout(cpuTimeDelta, rlimits):
+            status = 'TIMEOUT'
+        else:
+            status = "KILLED BY SIGNAL 9"
+
     elif returncode == 134:
         status = "ABORTED"
-    elif returncode == 137:
-        status = "KILLED BY SIGNAL 9"
-    elif returncode == 143:
+    elif returncode == 15 or returncode == (128+15):
         status = "KILLED"
     else:
         status = "ERROR ({0})".format(returncode)
@@ -1357,12 +1371,7 @@ def getCPAcheckerStatus(returncode, output, rlimits, cpuTimeDelta):
         status = "ABORTED (probably by Mathsat)"
 
     elif returncode == -9:
-        if resource.RLIMIT_CPU in rlimits:
-            limit = rlimits.get(resource.RLIMIT_CPU)[0]
-        else:
-            limit = float('inf')
-
-        if cpuTimeDelta > limit*0.99:
+        if isTimeout(cpuTimeDelta, rlimits):
             status = 'TIMEOUT'
         else:
             status = "KILLED BY SIGNAL 9"
