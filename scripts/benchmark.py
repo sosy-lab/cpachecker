@@ -1166,7 +1166,10 @@ def run_cbmc(options, sourcefile, columns, rlimits):
             status = tree.findtext('cprover-status')
         
             if status is None:
-                if tree.find('message[@type="ERROR"]') is not None:
+                def isErrorMessage(msg):
+                    return msg.get('type', None) == 'ERROR'
+
+                if any(map(isErrorMessage, tree.getiterator('message'))):
                     status = 'ERROR'
                 else:
                     status = 'INVALID OUTPUT'
