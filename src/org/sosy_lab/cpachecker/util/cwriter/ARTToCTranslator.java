@@ -340,7 +340,7 @@ public class ARTToCTranslator {
     }
 
     if (childElement.isTarget()) {
-      currentBlock.addStatement(new SimpleStatement("assert(0); // target state"));
+      currentBlock.addStatement(new SimpleStatement("HALT" + childElement.getElementId() + ": goto HALT" + childElement.getElementId() + "; // target state"));
     }
 
     return currentBlock;
