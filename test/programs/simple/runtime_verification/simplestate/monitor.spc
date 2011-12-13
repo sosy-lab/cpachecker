@@ -2,7 +2,7 @@
 
 event {
   after
-  pattern { $? = $?; }
+  pattern { anti_op(); }
   action { 
 	__MONITOR_START_TRANSITION;
 	if(!checkProgramInvariant()) {

@@ -183,46 +183,64 @@ void __initialize__(void) ;
 #line 1 "nondetbranch.c"
 extern int k ;
 
-#line 8
-extern int ( /* missing proto */  anti_op)() ;
-
-#line 6
+#line 5
 extern int ( /* missing proto */  nondet_int)() ;
+
+#line 12
+extern int ( /* missing proto */  anti_op)() ;
 
 #line 3 "nondetbranch.c"
 int entry(void) 
-{ int i ;
-  int j ;
+{ int flag ;
   int tmp ;
+  int i ;
+  int tmp___0 ;
 
   {
   {
 #line 4
   k = 0;
-  {
-#line 18 "spec.work"
-  __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
-#line 19
-  tmp = checkProgramInvariant();
-#line 19
-  if (! tmp) {
-#line 20
-    error_fn();
-  }
-#line 22
-  __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
-  {
-
-  }
-  }
-#line 6 "nondetbranch.c"
+#line 5
   tmp = nondet_int();
-  }
-#line 6
-  if (tmp) {
-    {
+#line 5
+  flag = tmp;
 #line 7
-    i = 0;
+  i = 0;
+  }
+#line 7
+  while (1) {
+#line 7
+    if (flag) {
+      {
+#line 7
+      tmp___0 = 1000000;
+      }
+    } else {
+      {
+#line 7
+      tmp___0 = 100;
+      }
+    }
+#line 7
+    if (! (i < tmp___0)) {
+#line 7
+      break;
+    }
+#line 8
+    if (! flag) {
+      {
+#line 9
+      k ++;
+      }
+#line 10
+      while (1) {
+#line 10
+        break;
+      }
+    }
+    {
+#line 12
+    anti_op();
     {
 #line 18 "spec.work"
     __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
@@ -238,98 +256,9 @@ int entry(void)
     {
 
     }
-    }
-
     }
 #line 7 "nondetbranch.c"
-    while (i < 1000000) {
-      {
-#line 8 "nondetbranch.c"
-      anti_op();
-#line 7
-      i ++;
-      {
-#line 18 "spec.work"
-      __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
-#line 19
-      tmp = checkProgramInvariant();
-#line 19
-      if (! tmp) {
-#line 20
-        error_fn();
-      }
-#line 22
-      __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
-      {
-
-      }
-      }
-
-      }
-    }
-  } else {
-    {
-#line 11
-    j = 0;
-    {
-#line 18 "spec.work"
-    __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
-#line 19
-    tmp = checkProgramInvariant();
-#line 19
-    if (! tmp) {
-#line 20
-      error_fn();
-    }
-#line 22
-    __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
-    {
-
-    }
-    }
-
-    }
-#line 11 "nondetbranch.c"
-    while (j < 100) {
-      {
-#line 12 "nondetbranch.c"
-      k ++;
-      {
-#line 18 "spec.work"
-      __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
-#line 19
-      tmp = checkProgramInvariant();
-#line 19
-      if (! tmp) {
-#line 20
-        error_fn();
-      }
-#line 22
-      __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
-      {
-
-      }
-      }
-#line 11 "nondetbranch.c"
-      j ++;
-      {
-#line 18 "spec.work"
-      __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
-#line 19
-      tmp = checkProgramInvariant();
-#line 19
-      if (! tmp) {
-#line 20
-        error_fn();
-      }
-#line 22
-      __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
-      {
-
-      }
-      }
-
-      }
+    i ++;
     }
   }
 #line 15

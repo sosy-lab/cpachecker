@@ -2,15 +2,15 @@ extern int k;
 
 int entry() {
 	k = 0;
+	int flag = nondet_int();
 
-	if(nondet_int()) {
-		for(int i = 0; i < 1000000; i++) {
-			anti_op();			
+	for(int i = 0; i < (flag?1000000:100); i++) {
+		if(!flag) {
+			k+= 1;
+			while(0); //force abstraction
 		}
-	} else {
-		for(int j = 0; j < 100; j++) {
-			k += 1;			
-		}
+		anti_op();
 	}
+
 	return 1;
 }
