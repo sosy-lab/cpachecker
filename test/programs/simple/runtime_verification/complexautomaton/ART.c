@@ -4,82 +4,93 @@ int __MONITOR_END_TRANSITION   = 0;
 int __BLAST_error  ;
 int __MONITOR_STATE_lockStatus   = 0;
 void __initialize__(void) ;
-extern int ( /* missing proto */  anti_op)() ;
-int __return_157;
-int __return_159;
+extern void init() ;
+extern void lock() ;
+extern void unlock() ;
+int __return_285;
+int __return_287;
+int __return_289;
+int __return_291;
 int entry(void)
 {
     int lastLock ;
     int i ;
     __MONITOR_STATE_lockStatus = 0;
-    {
-        anti_op();;
-    }
-    {
-        anti_op();;
-    }
-    {
-        anti_op();;
-    }
-    {
-        anti_op();;
-    }
-    {
-        anti_op();;
-    }
+    init();;
+    lock();;
+    unlock();;
+    lock();;
+    unlock();;
     lastLock = 0;
-    {
-        anti_op();;
-    }
+    lock();;
     i = 1;
-    label_85:; 
     if (!(i < 1000))
     {
-         __return_157 = 1;
+         __return_285 = 1;
+        label_285:; 
     }
     else if (i < 1000)
     {
         if (!(i - lastLock == 2))
         {
-            {
-                anti_op();;
-            }
-            label_120:; 
+            unlock();;
+            label_197:; 
             i ++;
             if (!(i < 1000))
             {
-                 __return_159 = 1;
+                 __return_287 = 1;
+                label_287:; 
             }
             else if (i < 1000)
             {
-                if (!(i - lastLock == 2))
+                lastLock += 2;
+                lock();;
+                i ++;
+                label_226:; 
+                if (!(i < 1000))
                 {
-                    assert(0); // target state
+                     __return_289 = 1;
+                    goto label_285;
                 }
-                else if (i - lastLock == 2)
+                else if (i < 1000)
                 {
-                    if (!(i < 999))
+                    if (!(i - lastLock == 2))
                     {
-                        assert(0); // target state
-                    }
-                    else if (i < 999)
-                    {
-                        lastLock += 2;
-                        {
-                            anti_op();;
-                        }
+                        unlock();;
+                        label_253:; 
                         i ++;
-                        goto label_85;
+                        if (!(i < 1000))
+                        {
+                             __return_291 = 1;
+                            goto label_287;
+                        }
+                        else if (i < 1000)
+                        {
+                            if (!(i < 999))
+                            {
+                                HALT275: goto HALT275; // target state
+                            }
+                            else if (i < 999)
+                            {
+                                lastLock += 2;
+                                lock();;
+                                i ++;
+                                goto label_226;
+                            }
+                        }
+                    }
+                    else if (i - lastLock == 2)
+                    {
+                        unlock();;
+                        goto label_253;
                     }
                 }
             }
         }
         else if (i - lastLock == 2)
         {
-            {
-                anti_op();;
-            }
-            goto label_120;
+            unlock();;
+            goto label_197;
         }
     }
 }

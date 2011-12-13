@@ -12,6 +12,18 @@ int nondet_int() {
 	return rand() % 2;
 }
 
+void init() {
+	anti_op();
+}
+
+void lock() {
+	anti_op();
+}
+
+void unlock() {
+	anti_op();
+}
+
 void assert(int b) {
 	if(!b) {
 		printf("ERROR :-(");

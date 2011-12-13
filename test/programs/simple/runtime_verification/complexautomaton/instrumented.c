@@ -46,52 +46,16 @@ int __MONITOR_STATE_lockStatus   = 0;
 
 void __initialize__(void) ;
 
-#line 2 "locktest.c"
-extern int ( /* missing proto */  anti_op)() ;
-
 #line 1 "locktest.c"
-void init(void) 
-{ 
+extern void init() ;
 
-  {
-  {
 #line 2
-  anti_op();
-  }
+extern void lock() ;
+
 #line 3
-  return;
-}
-}
+extern void unlock() ;
 
 #line 5 "locktest.c"
-void lock(void) 
-{ 
-
-  {
-  {
-#line 6
-  anti_op();
-  }
-#line 7
-  return;
-}
-}
-
-#line 9 "locktest.c"
-void unlock(void) 
-{ 
-
-  {
-  {
-#line 10
-  anti_op();
-  }
-#line 11
-  return;
-}
-}
-
-#line 13 "locktest.c"
 int entry(void) 
 { int lastLock ;
   int i ;
@@ -106,8 +70,86 @@ int entry(void)
 
   }
   }
-#line 14 "locktest.c"
+#line 6 "locktest.c"
   init();
+  {
+#line 27 "spec.work"
+  __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
+#line 28
+  if (__MONITOR_STATE_lockStatus == 1) {
+#line 29
+    error_fn();
+  } else {
+#line 31
+    __MONITOR_STATE_lockStatus = 1;
+  }
+#line 33
+  __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
+  {
+
+  }
+  }
+#line 8 "locktest.c"
+  lock();
+  {
+#line 43 "spec.work"
+  __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
+#line 44
+  if (__MONITOR_STATE_lockStatus == 0) {
+#line 45
+    error_fn();
+  } else {
+#line 47
+    __MONITOR_STATE_lockStatus = 0;
+  }
+#line 49
+  __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
+  {
+
+  }
+  }
+#line 9 "locktest.c"
+  unlock();
+  {
+#line 27 "spec.work"
+  __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
+#line 28
+  if (__MONITOR_STATE_lockStatus == 1) {
+#line 29
+    error_fn();
+  } else {
+#line 31
+    __MONITOR_STATE_lockStatus = 1;
+  }
+#line 33
+  __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
+  {
+
+  }
+  }
+#line 11 "locktest.c"
+  lock();
+  {
+#line 43 "spec.work"
+  __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
+#line 44
+  if (__MONITOR_STATE_lockStatus == 0) {
+#line 45
+    error_fn();
+  } else {
+#line 47
+    __MONITOR_STATE_lockStatus = 0;
+  }
+#line 49
+  __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
+  {
+
+  }
+  }
+#line 12 "locktest.c"
+  unlock();
+#line 14
+  lastLock = 0;
   {
 #line 27 "spec.work"
   __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
@@ -127,95 +169,17 @@ int entry(void)
   }
 #line 16 "locktest.c"
   lock();
-  {
-#line 43 "spec.work"
-  __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
-#line 44
-  if (__MONITOR_STATE_lockStatus == 0) {
-#line 45
-    error_fn();
-  } else {
-#line 47
-    __MONITOR_STATE_lockStatus = 0;
-  }
-#line 49
-  __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
-  {
-
-  }
-  }
-#line 17 "locktest.c"
-  unlock();
-  {
-#line 27 "spec.work"
-  __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
-#line 28
-  if (__MONITOR_STATE_lockStatus == 1) {
-#line 29
-    error_fn();
-  } else {
-#line 31
-    __MONITOR_STATE_lockStatus = 1;
-  }
-#line 33
-  __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
-  {
-
-  }
-  }
-#line 19 "locktest.c"
-  lock();
-  {
-#line 43 "spec.work"
-  __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
-#line 44
-  if (__MONITOR_STATE_lockStatus == 0) {
-#line 45
-    error_fn();
-  } else {
-#line 47
-    __MONITOR_STATE_lockStatus = 0;
-  }
-#line 49
-  __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
-  {
-
-  }
-  }
-#line 20 "locktest.c"
-  unlock();
-#line 22
-  lastLock = 0;
-  {
-#line 27 "spec.work"
-  __MONITOR_START_TRANSITION = __MONITOR_START_TRANSITION;
-#line 28
-  if (__MONITOR_STATE_lockStatus == 1) {
-#line 29
-    error_fn();
-  } else {
-#line 31
-    __MONITOR_STATE_lockStatus = 1;
-  }
-#line 33
-  __MONITOR_END_TRANSITION = __MONITOR_END_TRANSITION;
-  {
-
-  }
-  }
-#line 24 "locktest.c"
-  lock();
-#line 25
+#line 17
   i = 1;
   }
-#line 25
+#line 17
   while (i < 1000) {
-#line 26
+#line 18
     if (i - lastLock == 2) {
-#line 26
+#line 18
       if (i < 999) {
         {
-#line 27
+#line 19
         lastLock += 2;
         {
 #line 27 "spec.work"
@@ -234,7 +198,7 @@ int entry(void)
 
         }
         }
-#line 28 "locktest.c"
+#line 20 "locktest.c"
         lock();
         }
       } else {
@@ -257,7 +221,7 @@ int entry(void)
 
         }
         }
-#line 31 "locktest.c"
+#line 23 "locktest.c"
         unlock();
         }
       }
@@ -281,16 +245,16 @@ int entry(void)
 
       }
       }
-#line 31 "locktest.c"
+#line 23 "locktest.c"
       unlock();
       }
     }
     {
-#line 25
+#line 17
     i ++;
     }
   }
-#line 35
+#line 27
   return (1);
 }
 }
