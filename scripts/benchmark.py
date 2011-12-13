@@ -1157,27 +1157,40 @@ def run_cbmc(options, sourcefile, columns, rlimits):
     if ((returncode == 0) or (returncode == 10)):
         try:
             tree = ET.fromstring(output)
-            status = tree.findtext('cprover-status', 'ERROR')
+            status = tree.findtext('cprover-status')
+        
+            if status is None:
+                if tree.find('message[@type="ERROR"]') is not None:
+                    status = 'ERROR'
+                else:
+                    status = 'INVALID OUTPUT'
+                    
+            elif status == "FAILURE":
+                assert returncode == 10
+                reason = tree.find('goto_trace').find('failure').findtext('reason')
+                if 'unwinding assertion' in reason:
+                    status = "UNKNOWN"
+                else:
+                    status = "UNSAFE"
+                    
+            elif status == "SUCCESS":
+                assert returncode == 0
+                if "--no-unwinding-assertions" in options:
+                    status = "UNKNOWN"
+                else:
+                    status = "SAFE"
+                
         except Exception, e: # catch all exceptions
             if isTimeout(cpuTimeDelta, rlimits):
+                # in this case an exception is expected as the XML is invaliddd
                 status = 'TIMEOUT'
             else:
-                status = 'ERROR'
+                status = 'INVALID OUTPUT'
                 logging.warning("Error parsing CBMC output for returncode %d: %s" % (returncode, e))
-
-        if status == "FAILURE":
-            assert returncode == 10
-            reason = tree.find('goto_trace').find('failure').findtext('reason')
-            if 'unwinding assertion' in reason:
-                status = "UNKNOWN"
-            else:
-                status = "UNSAFE"
-        elif status == "SUCCESS":
-            assert returncode == 0
-            if "--no-unwinding-assertions" in options:
-                status = "UNKNOWN"
-            else:
-                status = "SAFE"
+    
+    elif returncode == 6:
+        # parser error or something similar
+        status = 'ERROR'
 
     elif returncode == -9 or returncode == (128+9):
         if isTimeout(cpuTimeDelta, rlimits):
