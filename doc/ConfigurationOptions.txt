@@ -138,6 +138,35 @@ cfa.file = "cfa.dot"
 # remove paths from CFA that cannot lead to a error location
 cfa.removeIrrelevantForErrorLocations = false
 
+# Average number of nodes in a cluster. Determines the parameter
+# clusterMaxNumber.
+clusterer.ccvisu.avgNodesInCluster = 0
+
+# (max) number of clusters to create.
+clusterer.ccvisu.clusterMaxNumber = 0
+
+# Merge partitions within distance (percent of layout diagonal; e.g. 0.05).
+clusterer.ccvisu.clusterMergeDistancePercent = 0.05f
+
+# Stop clustering on min. distance (percent of layout diagonal; e.g. 0.4; 1
+# means one cluster for each node).
+clusterer.ccvisu.clusterMinDistancePercent = 0.4f
+
+# Calculate a deterministic initial input-layout for the minimizer?
+clusterer.ccvisu.deterministicInitialLayout = false
+
+# number of iterations to do by the minimizer.
+clusterer.ccvisu.minimizerIterations = 300
+
+# Write the layout of the clustered callgraph to this file.
+clusterer.ccvisu.writeLayoutToFileName = ""
+
+# write some statistics for each algorithm iteration to disk?
+continuousstatistics.export = true
+
+# write some statistics for each algorithm iteration to disk
+continuousstatistics.file = "ContinuousStatistics.txt"
+
 # which model checker to use for verifying counterexamples as a second check
 # Currently CBMC or CPAchecker with a different config can be used.
 counterexample.checker = "CBMC"
@@ -325,11 +354,20 @@ cpa.predicate.abstraction.solver = "MATHSAT"
 # threshold = 0)
 cpa.predicate.blk.alwaysAfterThreshold = true
 
+# abstraction between clusters of the call-graph.
+cpa.predicate.blk.alwaysAtClusterBorder = false
+
+# force abstractions at each function return, regardless of threshold
+cpa.predicate.blk.alwaysAtFunctionReturns = false
+
 # force abstractions at each function calls/returns, regardless of threshold
 cpa.predicate.blk.alwaysAtFunctions = true
 
 # force abstractions at loop heads, regardless of threshold
 cpa.predicate.blk.alwaysAtLoops = true
+
+# propability of a random abstraction in any position of the CFA?
+cpa.predicate.blk.alwaysWithRandomProp = 0.0f
 
 # abstractions at function calls/returns if threshold has been reached (no
 # effect if threshold = 0)
