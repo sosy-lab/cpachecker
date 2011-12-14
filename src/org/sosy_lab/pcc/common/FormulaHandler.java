@@ -415,8 +415,9 @@ public class FormulaHandler {
     }
     // compare (string not necessarily the same, order by be changed)
     Formula f = buildEdgeInvariant(pFormula1, "", pFormula2);
-    if (f == null) { return false; }
-    return isFalse(f);
+    Formula f2 = buildEdgeInvariant(pFormula2, "", pFormula1);
+    if (f == null || f2 == null) { return false; }
+    return isFalse(f) && isFalse(f2);
   }
 
   private String replaceVariable(String pOldVar, String pInput, String pNewVar) {
