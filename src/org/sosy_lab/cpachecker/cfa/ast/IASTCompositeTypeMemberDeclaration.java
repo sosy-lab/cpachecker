@@ -30,9 +30,10 @@ package org.sosy_lab.cpachecker.cfa.ast;
  */
 public final class IASTCompositeTypeMemberDeclaration extends IASTSimpleDeclaration {
 
-  public IASTCompositeTypeMemberDeclaration(String pRawSignature,
-      IASTFileLocation pFileLocation, IType pSpecifier, String pName) {
-    super(pRawSignature, pFileLocation, pSpecifier, pName);
+  public IASTCompositeTypeMemberDeclaration(IASTFileLocation pFileLocation,
+                                            IType pSpecifier,
+                                            String pName) {
+    super(pFileLocation, pSpecifier, pName);
   }
 
   @Override

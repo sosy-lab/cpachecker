@@ -77,10 +77,10 @@ public final class IASTEnumerationSpecifier extends IType {
 
     private final Long           value;
 
-    public IASTEnumerator(final String pRawSignature,
-        final IASTFileLocation pFileLocation, final String pName,
+    public IASTEnumerator(final IASTFileLocation pFileLocation,
+                          final String pName,
         final Long pValue) {
-      super(pRawSignature, pFileLocation, INT_TYPE, pName);
+      super(pFileLocation, INT_TYPE, pName);
 
       checkNotNull(pName);
       value = pValue;

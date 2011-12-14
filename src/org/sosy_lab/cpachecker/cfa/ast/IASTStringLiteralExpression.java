@@ -27,9 +27,10 @@ public final class IASTStringLiteralExpression extends IASTLiteralExpression {
 
   private final String value;
 
-  public IASTStringLiteralExpression(String pRawSignature,
-      IASTFileLocation pFileLocation, IType pType, String pValue) {
-    super(pRawSignature, pFileLocation, pType);
+  public IASTStringLiteralExpression(IASTFileLocation pFileLocation,
+                                     IType pType,
+                                     String pValue) {
+    super(pFileLocation, pType);
 
     value = pValue;
   }

@@ -325,7 +325,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
       if(statementEdge.getStatement() instanceof IASTAssignment)
       {
         IASTAssignment assignment = (IASTAssignment)statementEdge.getStatement();
-        String assignedVariable = assignment.getLeftHandSide().getRawSignature();
+        String assignedVariable = assignment.getLeftHandSide().toASTString();
 
         // left-hand side was already collected -> collect identifiers from right-hand side as well
         if(visitor.hasCollected(assignedVariable, false))

@@ -29,11 +29,12 @@ public class IASTBinaryExpression extends IASTExpression {
   private final IASTExpression operand2;
   private final BinaryOperator operator;
 
-  public IASTBinaryExpression(final String pRawSignature,
-      final IASTFileLocation pFileLocation, final IType pType,
-      final IASTExpression pOperand1, final IASTExpression pOperand2,
-      final BinaryOperator pOperator) {
-    super(pRawSignature, pFileLocation, pType);
+  public IASTBinaryExpression(final IASTFileLocation pFileLocation,
+                              final IType pType,
+                              final IASTExpression pOperand1,
+                              final IASTExpression pOperand2,
+                              final BinaryOperator pOperator) {
+    super(pFileLocation, pType);
     operand1 = pOperand1;
     operand2 = pOperand2;
     operator = pOperator;

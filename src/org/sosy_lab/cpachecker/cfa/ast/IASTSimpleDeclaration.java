@@ -40,17 +40,15 @@ public abstract class IASTSimpleDeclaration extends IASTNode {
   private final String   name;
   private final String   origName;
 
-  public IASTSimpleDeclaration(final String pRawSignature,
-      final IASTFileLocation pFileLocation, final IType pSpecifier,
-      final String pName) {
-    this(pRawSignature, pFileLocation, pSpecifier, pName, pName);
+  public IASTSimpleDeclaration(final IASTFileLocation pFileLocation,
+      final IType pSpecifier, final String pName) {
+    this(pFileLocation, pSpecifier, pName, pName);
   }
 
-  public IASTSimpleDeclaration(final String pRawSignature,
-      final IASTFileLocation pFileLocation, final IType pSpecifier,
-      final String pName, final String pOrigName) {
+  public IASTSimpleDeclaration(final IASTFileLocation pFileLocation,
+      final IType pSpecifier, final String pName, final String pOrigName) {
 
-    super(pRawSignature, pFileLocation);
+    super(pFileLocation);
 
     specifier = checkNotNull(pSpecifier);
     name = pName;

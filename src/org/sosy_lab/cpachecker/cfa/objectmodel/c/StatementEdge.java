@@ -35,7 +35,7 @@ public class StatementEdge extends AbstractCFAEdge {
   public StatementEdge(IASTStatement pStatement, int pLineNumber,
       CFANode pPredecessor, CFANode pSuccessor) {
 
-    super(pStatement.getRawSignature(), pLineNumber, pPredecessor, pSuccessor);
+    super(pStatement.toASTString(), pLineNumber, pPredecessor, pSuccessor);
     statement = pStatement;
   }
 

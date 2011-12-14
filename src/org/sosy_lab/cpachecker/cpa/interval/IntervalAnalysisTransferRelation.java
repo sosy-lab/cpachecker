@@ -195,7 +195,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       // left hand side of the expression has to be a variable
       if((operand1 instanceof IASTIdExpression) || (operand1 instanceof IASTFieldReference))
       {
-        String assignedVariableName = operand1.getRawSignature();
+        String assignedVariableName = operand1.toASTString();
 
         String returnedVariableName = calledFunctionName + "::" + RETURN_VARIABLE_BASE_NAME;
 
@@ -425,8 +425,8 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     //Interval orgInterval2 = evaluateInterval(element, operand2, cfaEdge.getPredecessor().getFunctionName(), cfaEdge);
     Interval tmpInterval2 = orgInterval2.clone();
 
-    String variableName1 = constructVariableName(operand1.getRawSignature(), cfaEdge.getPredecessor().getFunctionName());
-    String variableName2 = constructVariableName(operand2.getRawSignature(), cfaEdge.getPredecessor().getFunctionName());
+    String variableName1 = constructVariableName(operand1.toASTString(), cfaEdge.getPredecessor().getFunctionName());
+    String variableName2 = constructVariableName(operand2.toASTString(), cfaEdge.getPredecessor().getFunctionName());
 
     // determine whether or not the respective operand is an identifier
     boolean isIdOp1 = operand1 instanceof IASTIdExpression;
@@ -877,17 +877,15 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
   private IASTBinaryExpression convertToBinaryAssume(IASTIdExpression expression)
   {
-    IASTIntegerLiteralExpression zero = new IASTIntegerLiteralExpression("0",
-        expression.getFileLocation(),
-        expression.getExpressionType(),
-        BigInteger.ZERO);
+    IASTIntegerLiteralExpression zero = new IASTIntegerLiteralExpression(expression.getFileLocation(),
+                                                                         expression.getExpressionType(),
+                                                                         BigInteger.ZERO);
 
-    return new IASTBinaryExpression(expression.getName(),
-                                expression.getFileLocation(),
-                                expression.getExpressionType(),
-                                expression,
-                                zero,
-                                BinaryOperator.NOT_EQUALS);
+    return new IASTBinaryExpression(expression.getFileLocation(),
+                                    expression.getExpressionType(),
+                                    expression,
+                                    zero,
+                                    BinaryOperator.NOT_EQUALS);
   }
 
   /**

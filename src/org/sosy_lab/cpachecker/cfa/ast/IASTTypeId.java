@@ -28,11 +28,10 @@ public final class IASTTypeId extends IASTNode {
   private final IType  specifier;
   private final String name;
 
-  public IASTTypeId(final String pRawSignature,
-      final IASTFileLocation pFileLocation,
+  public IASTTypeId(final IASTFileLocation pFileLocation,
       final IType pSpecifier,
       final String pName) {
-    super(pRawSignature, pFileLocation);
+    super(pFileLocation);
     specifier = pSpecifier;
     name = pName;
   }

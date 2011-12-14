@@ -31,9 +31,10 @@ public class IASTIntegerLiteralExpression extends IASTLiteralExpression {
   // a Java long
   private final BigInteger value;
 
-  public IASTIntegerLiteralExpression(String pRawSignature,
-      IASTFileLocation pFileLocation, IType pType, BigInteger pValue) {
-    super(pRawSignature, pFileLocation, pType);
+  public IASTIntegerLiteralExpression(IASTFileLocation pFileLocation,
+                                      IType pType,
+                                      BigInteger pValue) {
+    super(pFileLocation, pType);
     value = pValue;
   }
 

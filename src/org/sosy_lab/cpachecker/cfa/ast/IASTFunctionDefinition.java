@@ -34,9 +34,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public final class IASTFunctionDefinition extends IASTSimpleDeclaration {
 
-  public IASTFunctionDefinition(String pRawSignature,
-      IASTFileLocation pFileLocation, IASTFunctionTypeSpecifier pSpecifier, String pName) {
-    super(pRawSignature, pFileLocation, pSpecifier, checkNotNull(pName));
+  public IASTFunctionDefinition(IASTFileLocation pFileLocation,
+                                IASTFunctionTypeSpecifier pSpecifier,
+                                String pName) {
+    super(pFileLocation, pSpecifier, checkNotNull(pName));
   }
 
   @Override

@@ -36,23 +36,23 @@ public class Defaults {
 
   public static IASTLiteralExpression forType(IType type, IASTFileLocation fileLoc) {
     if (type instanceof IASTPointerTypeSpecifier) {
-      return new IASTIntegerLiteralExpression("NULL", fileLoc, INT_TYPE, BigInteger.ZERO);
+      return new IASTIntegerLiteralExpression(fileLoc, INT_TYPE, BigInteger.ZERO);
 
     } else if (type instanceof IASTSimpleDeclSpecifier) {
       BasicType basicType = ((IASTSimpleDeclSpecifier)type).getType();
       switch (basicType) {
       case CHAR:
-        return new IASTCharLiteralExpression("'\\0'", fileLoc, type, '\0');
+        return new IASTCharLiteralExpression(fileLoc, type, '\0');
 
       case DOUBLE:
       case FLOAT:
-        return new IASTFloatLiteralExpression("0.0", fileLoc, type, BigDecimal.ZERO);
+        return new IASTFloatLiteralExpression(fileLoc, type, BigDecimal.ZERO);
 
       case UNSPECIFIED:
       case BOOL:
       case INT:
       case VOID: // is this legitimate for "void"?
-        return new IASTIntegerLiteralExpression("0", fileLoc, type, BigInteger.ZERO);
+        return new IASTIntegerLiteralExpression(fileLoc, type, BigInteger.ZERO);
 
       default:
         throw new AssertionError("Unknown basic type '" + basicType + "'");
@@ -60,11 +60,11 @@ public class Defaults {
 
     } else if (type instanceof IASTEnumerationSpecifier) {
       // enum declaration: enum e { ... } var;
-      return new IASTIntegerLiteralExpression("0", fileLoc, INT_TYPE, BigInteger.ZERO);
+      return new IASTIntegerLiteralExpression(fileLoc, INT_TYPE, BigInteger.ZERO);
 
     } else if (type instanceof IASTElaboratedTypeSpecifier && ((IASTElaboratedTypeSpecifier)type).getKind() == ElaboratedType.ENUM) {
       // enum declaration: enum e var;
-      return new IASTIntegerLiteralExpression("0", fileLoc, INT_TYPE, BigInteger.ZERO);
+      return new IASTIntegerLiteralExpression(fileLoc, INT_TYPE, BigInteger.ZERO);
 
     } else {
       // TODO create initializer for arrays, structs, enums

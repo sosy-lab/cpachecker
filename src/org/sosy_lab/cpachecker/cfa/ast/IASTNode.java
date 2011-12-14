@@ -25,21 +25,14 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 public abstract class IASTNode {
 
-  private final String           rawSignature;
   private final IASTFileLocation fileLocation;
 
-  public IASTNode(final String pRawSignature,
-      final IASTFileLocation pFileLocation) {
-    rawSignature = pRawSignature;
+  public IASTNode(final IASTFileLocation pFileLocation) {
     fileLocation = pFileLocation;
   }
 
   public IASTFileLocation getFileLocation() {
     return fileLocation;
-  }
-
-  public String getRawSignature() {
-    return rawSignature;
   }
 
   public String toASTString() {

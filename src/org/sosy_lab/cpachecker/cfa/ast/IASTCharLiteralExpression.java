@@ -27,9 +27,10 @@ public class IASTCharLiteralExpression extends IASTLiteralExpression {
 
   private final char character;
 
-  public IASTCharLiteralExpression(String pRawSignature,
-      IASTFileLocation pFileLocation, IType pType, char pCharacter) {
-    super(pRawSignature, pFileLocation, pType);
+  public IASTCharLiteralExpression(IASTFileLocation pFileLocation,
+                                   IType pType,
+                                   char pCharacter) {
+    super(pFileLocation, pType);
     character = pCharacter;
   }
 
