@@ -48,16 +48,12 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -104,9 +100,9 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
   final Timer precisionUpdate = new Timer();
   final Timer artUpdate = new Timer();
 
-  Pair<ARTElement, CFAEdge> firstInterpolationPoint = null;
+  private Pair<ARTElement, CFAEdge> firstInterpolationPoint = null;
 
-  private Set<String> allReferencedVaraibles = new HashSet<String>();
+  private Set<String> allReferencedVariables = new HashSet<String>();
 
   private Set<String> globalVars = null;
 
@@ -117,7 +113,11 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
   private boolean predicateCpaInUse = false;
 
-  String previousPath = null;
+  private Set<Integer> pathHashes = new HashSet<Integer>();
+
+  private Integer previousPathHash = null;
+
+  String lastPath;
 
   public static ExplicitRefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     if (!(pCpa instanceof WrapperCPA)) {
@@ -204,13 +204,15 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
     ARTElement root = refinementResult.getFirst();
 
+    logger.log(Level.FINEST, "Found spurious counterexample,",
+        "trying strategy 1: remove everything below", root, "from ART.");
+
     if (predicateCpaInUse && predicatePrecision != null) {
       pReached.removeSubtree(root, refinementResult.getSecond(), predicatePrecision);
     } else {
       pReached.removeSubtree(root, refinementResult.getSecond());
     }
 
-    predicatePrecision = null;
     artUpdate.stop();
   }
 
@@ -232,13 +234,11 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
     CtoFormulaConverter converter = null;
 
-    try
-    {
+    try {
       converter = new CtoFormulaConverter(explicitCPA.getConfiguration(), fmgr, logger);
     }
-    catch(InvalidConfigurationException e)
-    {
-      //System.out.println("error when configuring CtoFormulaConverter");
+    catch(InvalidConfigurationException e) {
+      System.out.println("error when configuring CtoFormulaConverter");
     }
 
     PathFormula currentPathFormula = pathFormulaManager.makeEmptyPathFormula();
@@ -246,8 +246,7 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
     List<Formula> formulas = new ArrayList<Formula>(path.size());
 
     // iterate over edges (not nodes)
-    for(Pair<ARTElement, CFAEdge> pathElement : path)
-    {
+    for (Pair<ARTElement, CFAEdge> pathElement : path) {
       currentPathFormula = converter.makeAnd(currentPathFormula, pathElement.getSecond());
 
       formulas.add(currentPathFormula.getFormula());
@@ -260,73 +259,108 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
   }
 
   private static int refinementCounter = 0;
-  Set<Integer> pathHashes = new HashSet<Integer>();
+
   private Pair<ARTElement, ExplicitPrecision> performRefinement(Precision oldPrecision,
-      List<Pair<ARTElement, CFAEdge>> pPath,
+      List<Pair<ARTElement, CFAEdge>> errorPath,
       CounterexampleTraceInfo<Collection<AbstractionPredicate>> pInfo) throws CPAException {
 
-    ExplicitPrecision oldExplicitPrecision = Precisions.extractPrecisionByType(oldPrecision, ExplicitPrecision.class);
-    if (oldExplicitPrecision == null) {
-      throw new IllegalStateException("Could not find the ExplicitPrecision for the error element");
-    }
+    // create the mapping of CFA nodes to predicates, based on the counter example trace info
+    PredicateMap predicates = new PredicateMap(pInfo.getPredicatesForRefinement(), errorPath);
 
-    PredicatePrecision oldPredicatePrecision = null;
-    if (predicateCpaInUse) {
-      oldPredicatePrecision = Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
-      if (oldPredicatePrecision == null) {
-        throw new IllegalStateException("Could not find the PredicatePrecision for the error element");
-      }
-    }
-
-    List<Collection<AbstractionPredicate>> preds = pInfo.getPredicatesForRefinement();
-
-    PredicateMap predicates = new PredicateMap(preds, pPath);
-
+    // get the mapping of CFA nodes to variable names
     Multimap<CFANode, String> variableMapping = predicates.getVariableMapping(fmgr);
 
-    allReferencedVaraibles.addAll(variableMapping.values());
+    allReferencedVariables.addAll(variableMapping.values());
 
-    Multimap<CFANode, String> relevantVariablesOnPath = getRelevantVariablesOnPath(pPath, predicates);
+    // expand the mapping of CFA nodes to variable names, with a def-use analysis along that path
+    Multimap<CFANode, String> relevantVariablesOnPath = getRelevantVariablesOnPath(errorPath, predicates);
+
     assert firstInterpolationPoint != null;
 
 //System.out.println("\n" + (++refinementCounter) + ". refining ...");
-//System.out.println(getErrorPathAsString(pPath));
-//System.out.println("\nreferencedVariables: " + predicates.getReferencedVariables());
-//System.out.println("\nallReferencedVaraibles: " + allReferencedVaraibles);
-//System.out.println("\nnew predicate map: " + predicates.toString());
-//System.out.println("\nfirstInterpolationPoint = " + firstInterpolationPoint + "\n");
+//System.out.println(getErrorPathAsString(errorPath));
+/*
+System.out.println("\nreferencedVariables: " + variableMapping.values());
+System.out.println("\nrelevantVariablesOnPath: " + relevantVariablesOnPath);
+System.out.println("\nallReferencedVariables: " + allReferencedVariables);
+System.out.println("\nnew predicate map: " + predicates.toString());
+System.out.println("\nfirstInterpolationPoint = " + firstInterpolationPoint + "\n");
+*/
+//System.exit(0);
+    // extract the precision of the available CPAs
+    ExplicitPrecision oldExplicitPrecision    = extractExplicitPrecision(oldPrecision);
+    PredicatePrecision oldPredicatePrecision  = extractPredicatePrecision(oldPrecision);
 
     // create the new precision
-    ExplicitPrecision newPrecision = new ExplicitPrecision(oldExplicitPrecision, variableMapping, relevantVariablesOnPath);
+    ExplicitPrecision explicitPrecision = new ExplicitPrecision(oldExplicitPrecision, variableMapping, relevantVariablesOnPath);
 
-    ARTElement root = firstInterpolationPoint.getFirst();
+    String errorTrace = getErrorPathAsString(errorPath);
+    Integer errorTraceHash = errorTrace.hashCode();
 
-    logger.log(Level.FINEST, "Found spurious counterexample,",
-          "trying strategy 1: remove everything below", root, "from ART.");
-//System.exit(-1);
-    if(!pathHashes.add(getErrorPathAsString(pPath).hashCode()))
-    {
-      if (predicateCpaInUse) {
-        predicatePrecision = getPredicatePrecision(getInExplicitVariables(pPath),
-            oldPredicatePrecision,
-            predicates);
-      } else {
-        throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
-      }
+    // check if there was progress
+    if (!madeProgress(errorTraceHash)) {
+      System.out.println(errorTrace);
+      System.out.println(explicitPrecision);
+      System.out.println(predicatePrecision);
+      System.out.println("\nlast set of variables in predicates: " + variableMapping.values());
 
-      //System.out.println(getErrorPathAsString(pPath));
-      //System.out.println(newPrecision);
-      //System.out.println(predicatePrecision);
-      //System.out.println("\nlast set of variables in predicates: " + variableMapping.values());
-
-      //
-      if(getErrorPathAsString(pPath).equals(previousPath))
-        throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
-
-      previousPath = getErrorPathAsString(pPath);
+      throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
     }
 
-    return Pair.of(root, newPrecision);
+    // refine the predicate precision if a path was found again
+    if (predicateCpaInUse && errorTrace.equals(lastPath)) {
+        predicatePrecision = getPredicatePrecision(getInExplicitVariables(errorPath),
+            oldPredicatePrecision,
+            predicates);
+
+        previousPathHash = errorTraceHash;
+    }
+
+    lastPath = errorTrace;
+
+    pathHashes.add(errorTraceHash);
+
+    return Pair.of(firstInterpolationPoint.getFirst(), explicitPrecision);
+  }
+
+  /**
+   * This method extracts the explicit precision.
+   *
+   * @param precision the current precision
+   * @return the explicit precision
+   */
+  private ExplicitPrecision extractExplicitPrecision(Precision precision) {
+    ExplicitPrecision explicitPrecision = Precisions.extractPrecisionByType(precision, ExplicitPrecision.class);
+    if (explicitPrecision == null) {
+      throw new IllegalStateException("Could not find the ExplicitPrecision for the error element");
+    }
+    return explicitPrecision;
+  }
+
+  /**
+   * This method extracts the predicate precision.
+   *
+   * @param precision the current precision
+   * @return the predicate precision, or null, if the PredicateCPA is not in use
+   */
+  private PredicatePrecision extractPredicatePrecision(Precision precision) {
+    PredicatePrecision predicatePrecision = null;
+    if (predicateCpaInUse) {
+      predicatePrecision = Precisions.extractPrecisionByType(precision, PredicatePrecision.class);
+      if (predicatePrecision == null) {
+        throw new IllegalStateException("Could not find the PredicatePrecision for the error element");
+      }
+    }
+    return predicatePrecision;
+  }
+
+  private boolean madeProgress(Integer currentPathHash) {
+    // if the current path was gone before, signal a failure
+    if(!predicateCpaInUse && pathHashes.contains(currentPathHash) || (predicateCpaInUse && currentPathHash.equals(previousPathHash))) {
+      return false;
+    } else {
+      return true;
+    }
   }
 
   /**
@@ -432,25 +466,17 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
       AbstractionPredicate predicate  = predicateAtLocation.getValue();
 
       for (String variable : fmgr.extractVariables(predicate.getSymbolicAtom())) {
-        //System.out.println("name of var in predicate: " + variable);
-
         variable = variable.substring(variable.lastIndexOf(":") + 1);
 
-        //System.out.println("name of var in predicate, unscoped: " + variable);
-
         if (inexplicitVars.contains(variable)) {
-          //System.out.println("adding prediacte for variable " + variable + " at loc " + location);
           pmapBuilder.putAll(location, predicate);
           newPreds.add(variable);
         }
       }
 
-      if(predicate.getSymbolicAtom().isFalse())
+      if (predicate.getSymbolicAtom().isFalse())
         pmapBuilder.putAll(location, predicate);
     }
-
-    //if(newPreds.size() > 0)
-      //System.out.println("newPreds = " + newPreds);
 
     return new PredicatePrecision(pmapBuilder.build(), globalPredicates);
   }
@@ -458,20 +484,38 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
   /**
    * This method collects the variables on the error path, on which the variables referenced by predicates depend on. Furthermore, the top-most interpolation point is identified and set.
    *
+   * This step is necessary for handling programs like this:
+   * <code>
+   *  x = 1; // <- this location will not have any associated predicates
+   *  y = x;
+   *  z = x;
+   *  if(y != z)
+   *    goto ERROR;
+   * </code>
+   *
+   * Something similar might be needed for programs, like this, where x is a global variable. This is not handled yet.
+   * <code>
+   *  x = 1;
+   *  y = getX();
+   *  z = getX();
+   *  if(y != z)
+   *    goto ERROR;
+   * </code>
    * @param errorPath the path to the found error location
    * @param predicates the predicates from the refinement
    * @return the variables on the error path, on which the variables referenced by predicates depend on
    */
   private Multimap<CFANode, String> getRelevantVariablesOnPath(List<Pair<ARTElement, CFAEdge>> errorPath, PredicateMap predicates) {
-    CollectVariablesVisitor visitor = new CollectVariablesVisitor(allReferencedVaraibles);
+    CollectVariablesVisitor visitor = new CollectVariablesVisitor(allReferencedVariables);
 
     for (int i = errorPath.size() - 1; i >= 0; --i) {
       Pair<ARTElement, CFAEdge> element = errorPath.get(i);
 
       CFAEdge edge = element.getSecond();
 
-      if (extractVariables(edge, visitor) || predicates.isInterpolationPoint(edge.getPredecessor()))
+      if (extractVariables(edge, visitor) || predicates.isInterpolationPoint(edge.getPredecessor())) {
         firstInterpolationPoint = element;
+      }
     }
 
     return visitor.getVariablesAtLocations();
@@ -613,33 +657,9 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
 
     @Override
     public Void visit(IASTFunctionCallExpression functionCallExpression) {
-      // do not visit the function name identifier but only the actual parameter expressions
+      // visit the actual parameter expressions
       for (IASTExpression param : functionCallExpression.getParameterExpressions()) {
         param.accept(this);
-      }
-
-      // also, add the formal parameters
-      // TODO: strange behaviour -> in a few cases, the edge is a statement edge here, so this would fail !?!?!
-      if(edge instanceof FunctionCallEdge) {
-        FunctionDefinitionNode functionEntryNode = ((FunctionCallEdge)edge).getSuccessor();
-
-        for (String formalParameter : functionEntryNode.getFunctionParameterNames())
-          collect(functionEntryNode, formalParameter);
-      }
-
-      // TODO: work-around for the above, however, this does not work in all cases either, as getDeclaration returns null sometimes !?!?!
-      else {
-        if(functionCallExpression.getDeclaration() == null) {
-            return null;
-        } else if (((IASTFunctionTypeSpecifier)functionCallExpression.getDeclaration().getDeclSpecifier()) == null) {
-          return null;
-        }
-
-        List<IASTParameterDeclaration> parameters = ((IASTFunctionTypeSpecifier)functionCallExpression.getDeclaration().getDeclSpecifier()).getParameters();
-
-        for(IASTParameterDeclaration parameter : parameters) {
-          collect(edge.getSuccessor(), parameter.getName());
-        }
       }
 
       return null;
