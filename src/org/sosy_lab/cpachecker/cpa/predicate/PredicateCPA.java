@@ -44,10 +44,8 @@ import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.ContinuousStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsConsumer;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -274,8 +272,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   @Override
   public void collectStatistics(StatisticsConsumer statsConsumer) {
-    statsConsumer.addTerminationStatistics(new Statistics[]{stats, clusteringStats});
-    statsConsumer.addContinuousStatistics(new ContinuousStatistics[]{stats});
+    statsConsumer.addTerminationStatistics(clusteringStats);
+    statsConsumer.addTerminationStatistics(stats);
+    statsConsumer.addContinuousStatistics(stats);
   }
 
   PredicateCPAStatistics getStats() {

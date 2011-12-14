@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 
 public interface StatisticsConsumer {
-  public void addTerminationStatistics(Statistics[] stats);
-  public void addContinuousStatistics(ContinuousStatistics[] stats);
+  public void addTerminationStatistics(Statistics stat);
+  public void addContinuousStatistics(ContinuousStatistics stat);
   public void resetStatistics();
 }

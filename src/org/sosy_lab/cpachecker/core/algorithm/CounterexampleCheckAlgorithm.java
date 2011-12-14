@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CBMCChecker;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.CallableInAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -100,7 +101,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
   }
 
   @Override
-  public boolean run(ReachedSet reached, Runnable runAfterEachIteration) throws CPAException, InterruptedException {
+  public boolean run(ReachedSet reached, CallableInAlgorithm runAfterEachIteration) throws CPAException, InterruptedException {
     boolean sound = true;
 
     while (reached.hasWaitingElement()) {
@@ -288,7 +289,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
     if (algorithm instanceof StatisticsProvider) {
       ((StatisticsProvider)algorithm).collectStatistics(statsConsumer);
     }
-    statsConsumer.addTerminationStatistics(new Statistics[]{this});
+    statsConsumer.addTerminationStatistics(this);
   }
 
   @Override

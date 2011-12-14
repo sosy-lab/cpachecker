@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsConsumer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.AuxiliaryComputer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.CachingRelevantPredicatesComputer;
@@ -98,7 +97,7 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
   }
   @Override
   public void collectStatistics(StatisticsConsumer statsConsumer) {
-    statsConsumer.addTerminationStatistics(new Statistics[]{stats});
+    statsConsumer.addTerminationStatistics(stats);
     super.collectStatistics(statsConsumer);
   };
 

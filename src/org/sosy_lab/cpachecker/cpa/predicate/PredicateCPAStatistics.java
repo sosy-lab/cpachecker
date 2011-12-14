@@ -85,7 +85,7 @@ class PredicateCPAStatistics implements Statistics, ContinuousStatistics {
     }
 
     @Override
-    public Object[] provideStatisticValues() {
+    public Object[] provideStatisticValues(ReachedSet pReached) {
       return new Object[] {cpa.getPrecisionAdjustment().numAbstractions};
     }
 

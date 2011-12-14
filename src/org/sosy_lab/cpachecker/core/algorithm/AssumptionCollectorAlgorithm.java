@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.CallableInAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsConsumer;
@@ -144,7 +145,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   }
 
   @Override
-  public boolean run(ReachedSet reached, Runnable runAfterEachIteration) throws CPAException, InterruptedException {
+  public boolean run(ReachedSet reached, CallableInAlgorithm runAfterEachIteration) throws CPAException, InterruptedException {
     boolean sound = true;
 
     boolean restartCPA = false;
@@ -198,7 +199,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       }
 
       if (runAfterEachIteration != null) {
-        runAfterEachIteration.run();
+        runAfterEachIteration.call(reached);
       }
     } while (restartCPA);
 
@@ -388,7 +389,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     if (innerAlgorithm instanceof StatisticsProvider) {
       ((StatisticsProvider)innerAlgorithm).collectStatistics(statsConsumer);
     }
-    statsConsumer.addTerminationStatistics(new Statistics[]{new AssumptionCollectionStatistics()});
+    statsConsumer.addTerminationStatistics(new AssumptionCollectionStatistics());
   }
 
 }

@@ -94,7 +94,7 @@ public class MonitorCPA extends AbstractSingleWrapperCPA {
 
   @Override
   public void collectStatistics(StatisticsConsumer statsConsumer) {
-    statsConsumer.addTerminationStatistics(new Statistics[]{stats});
+    statsConsumer.addTerminationStatistics(stats);
     super.collectStatistics(statsConsumer);
   };
 

@@ -141,6 +141,7 @@ public class CPAchecker {
   private final Configuration config;
   private final CPAcheckerOptions options;
   private final ReachedSetFactory reachedSetFactory;
+  private final StatisticsContainer statisticsContainer;
 
   /**
    * This method will throw an exception if the user has requested CPAchecker to
@@ -183,21 +184,24 @@ public class CPAchecker {
     options = new CPAcheckerOptions();
     config.inject(options);
     reachedSetFactory = new ReachedSetFactory(pConfiguration, pLogManager);
+    statisticsContainer = new StatisticsContainer(pConfiguration, this.getClass().getSimpleName(), null);
   }
 
   public CPAcheckerResult run(String filename) {
 
     logger.log(Level.INFO, "CPAchecker", getVersion(), "started");
 
-    MainCPAStatistics stats = null;
+    MainCPAStatistics stat = null;
     ReachedSet reached = null;
     Result result = Result.NOT_YET_STARTED;
 
     try {
-      stats = new MainCPAStatistics(config, logger);
+      stat = new MainCPAStatistics(config, logger);
+      statisticsContainer.addContinuousStatistics(stat);
+      statisticsContainer.addTerminationStatistics(stat);
 
       // create reached set, cpa, algorithm
-      stats.creationTime.start();
+      stat.creationTime.start();
       reached = reachedSetFactory.create();
 
       Algorithm algorithm;
@@ -206,7 +210,7 @@ public class CPAchecker {
         algorithm = new ExternalCBMCAlgorithm(filename, config, logger);
 
       } else {
-        CFA cfa = parse(filename, stats);
+        CFA cfa = parse(filename, stat);
         if (cfa.isEmpty()) {
           // empty program, do nothing
           return new CPAcheckerResult(Result.NOT_YET_STARTED, null, null);
@@ -214,9 +218,9 @@ public class CPAchecker {
 
         stopIfNecessary();
 
-        ConfigurableProgramAnalysis cpa = createCPA(stats, cfa);
+        ConfigurableProgramAnalysis cpa = createCPA(stat, cfa);
 
-        algorithm = createAlgorithm(cpa, stats, filename, cfa);
+        algorithm = createAlgorithm(cpa, statisticsContainer, filename, cfa);
 
         if (algorithm instanceof RestartAlgorithm) {
           // this algorithm needs an indirection so that it can change
@@ -229,7 +233,7 @@ public class CPAchecker {
 
       printConfigurationWarnings();
 
-      stats.creationTime.stop();
+      stat.creationTime.stop();
       stopIfNecessary();
       // now everything necessary has been instantiated
 
@@ -237,7 +241,7 @@ public class CPAchecker {
       // run analysis
       result = Result.UNKNOWN; // set to unknown so that the result is correct in case of exception
 
-      boolean sound = runAlgorithm(algorithm, reached, stats);
+      boolean sound = runAlgorithm(algorithm, reached, stat);
 
       result = analyzeResult(reached, sound);
 
@@ -262,7 +266,8 @@ public class CPAchecker {
     } catch (CPAException e) {
       logger.logUserException(Level.SEVERE, e, null);
     }
-    return new CPAcheckerResult(result, reached, stats);
+
+    return new CPAcheckerResult(result, reached, statisticsContainer);
   }
 
   private CFA parse(String filename, MainCPAStatistics stats) throws InvalidConfigurationException, IOException,
@@ -302,7 +307,7 @@ public class CPAchecker {
     try {
 
       do {
-        sound &= algorithm.run(reached);
+        sound &= algorithm.run(reached, statisticsContainer);
 
         // either run only once (if stopAfterError == true)
         // or until the waitlist is empty
@@ -352,7 +357,7 @@ public class CPAchecker {
       ConfigurableProgramAnalysis cpa = builder.buildCPAs();
 
       if (cpa instanceof StatisticsProvider) {
-        ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
+        ((StatisticsProvider)cpa).collectStatistics(statisticsContainer);
       }
       return cpa;
 
@@ -362,7 +367,7 @@ public class CPAchecker {
   }
 
   private Algorithm createAlgorithm(final ConfigurableProgramAnalysis cpa,
-        final MainCPAStatistics stats, final String filename, CFA cfa)
+        final StatisticsContainer pStatisticsContainer, final String filename, CFA cfa)
         throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating algorithms");
 
@@ -370,7 +375,7 @@ public class CPAchecker {
 
     if (options.useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
-      algorithm = new RestartAlgorithm(config, logger, filename, cfa);
+      algorithm = new RestartAlgorithm(config, logger, filename, cfa, statisticsContainer);
 
     } else {
       algorithm = new CPAAlgorithm(cpa, logger);
@@ -398,8 +403,9 @@ public class CPAchecker {
     }
 
     if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider)algorithm).collectStatistics(stats.getSubStatistics());
+      ((StatisticsProvider)algorithm).collectStatistics(pStatisticsContainer);
     }
+
     return algorithm;
   }
 

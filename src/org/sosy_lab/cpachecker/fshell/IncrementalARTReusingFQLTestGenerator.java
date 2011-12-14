@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
@@ -783,13 +782,14 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     }
 
     ARTStatistics lARTStatistics;
+    StatisticsContainer lStatistics;
     try {
       lARTStatistics = new ARTStatistics(mConfiguration, lARTCPA);
+      lStatistics = new StatisticsContainer(mConfiguration, this.getClass().getSimpleName(), null);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     }
-    StatisticsContainer lStatistics = new StatisticsContainer(this.getClass().getSimpleName(), null);
-    lStatistics.addTerminationStatistics(new Statistics[]{lARTStatistics});
+    lStatistics.addTerminationStatistics(lARTStatistics);
     lAlgorithm.collectStatistics(lStatistics);
 
     if (mReuseART) {
@@ -1126,13 +1126,14 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
 
 
     ARTStatistics lARTStatistics;
+    StatisticsContainer lStatistics;
     try {
       lARTStatistics = new ARTStatistics(mConfiguration, lARTCPA);
+      lStatistics = new StatisticsContainer(mConfiguration, this.getClass().getSimpleName(),null);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     }
-    StatisticsContainer lStatistics = new StatisticsContainer(this.getClass().getSimpleName(),null);
-    lStatistics.addTerminationStatistics(new Statistics[]{lARTStatistics});
+    lStatistics.addTerminationStatistics(lARTStatistics);
     lBasicAlgorithm.collectStatistics(lStatistics);
 
 

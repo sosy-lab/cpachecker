@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,8 +38,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.CallableInAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ContinuousStatistics;
-import org.sosy_lab.cpachecker.core.interfaces.RunnableInAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsConsumer;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -46,7 +47,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import com.google.common.base.Strings;
 
 @Options(prefix="continuousstatistics")
-public class StatisticsContainer implements StatisticsConsumer, Statistics, RunnableInAlgorithm, ContinuousStatistics {
+public class StatisticsContainer implements StatisticsConsumer, Statistics, CallableInAlgorithm, ContinuousStatistics {
 
   @Option(name="export", description="write some statistics for each algorithm iteration to disk?")
   private boolean exportStatistics = true;
@@ -82,16 +83,19 @@ public class StatisticsContainer implements StatisticsConsumer, Statistics, Runn
     } else {
       try {
         if (exportStatisticsFile != null) {
+          com.google.common.io.Files.createParentDirs(exportStatisticsFile);
           this.continuousPrintWriter = new PrintStream(exportStatisticsFile);
         } else {
           this.continuousPrintWriter = null;
         }
       } catch (FileNotFoundException e) {
         throw new RuntimeException(e);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
       }
     }
 
-    addContinuousStatistics(new ContinuousStatistics[]{this});
+    addContinuousStatistics(this);
   }
 
   public void printCsvHeader(PrintStream pTargetStream) {
@@ -109,23 +113,19 @@ public class StatisticsContainer implements StatisticsConsumer, Statistics, Runn
   }
 
   @Override
-  public void addTerminationStatistics(Statistics[] pStats) {
-    for (Statistics s : pStats) {
-      this.overallStatistics.add(s);
-    }
+  public void addTerminationStatistics(Statistics pStats) {
+    this.overallStatistics.add(pStats);
   }
 
   @Override
-  public void addContinuousStatistics(ContinuousStatistics[] pStats) {
-    for (ContinuousStatistics s : pStats) {
-      this.continuousStatistics.add(s);
+  public void addContinuousStatistics(ContinuousStatistics pStats) {
+    this.continuousStatistics.add(pStats);
 
-      String[] cols = s.announceStatisticColumns();
-      for (String col : cols) {
-        continuousStatisticsColumns.add(col);
-      }
-      numberOfColsByStat.put(s, cols.length);
+    String[] cols = pStats.announceStatisticColumns();
+    for (String col : cols) {
+      continuousStatisticsColumns.add(col);
     }
+    numberOfColsByStat.put(pStats, cols.length);
   }
 
   public void appendContinuousStatisticsSnapshot(ReachedSet pReached, PrintStream pTargetStream) {
@@ -177,7 +177,7 @@ public class StatisticsContainer implements StatisticsConsumer, Statistics, Runn
   }
 
   @Override
-  public void run(ReachedSet pReached) {
+  public void call(ReachedSet pReached) {
     if (!exportStatistics) {
       return;
     }

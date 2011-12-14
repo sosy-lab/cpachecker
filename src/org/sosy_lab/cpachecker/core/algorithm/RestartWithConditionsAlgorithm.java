@@ -34,6 +34,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.CallableInAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -82,7 +83,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
   }
 
   @Override
-  public boolean run(ReachedSet pReached, Runnable runAfterEachIteration) throws CPAException, InterruptedException {
+  public boolean run(ReachedSet pReached, CallableInAlgorithm runAfterEachIteration) throws CPAException, InterruptedException {
     boolean sound = true;
 
     int count = 0;

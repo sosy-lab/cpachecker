@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsConsumer;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -97,16 +98,6 @@ public class PathConditionsCPA implements ConfigurableProgramAnalysis, Adjustabl
   }
 
   @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (condition instanceof StatisticsProvider) {
-      ((StatisticsProvider)condition).collectStatistics(pStatsCollection);
-
-    } else if (condition instanceof Statistics) {
-      pStatsCollection.add((Statistics)condition);
-    }
-  }
-
-  @Override
   public AbstractElement getInitialElement(CFANode pNode) {
     return condition.getInitialElement(pNode);
   }
@@ -144,5 +135,15 @@ public class PathConditionsCPA implements ConfigurableProgramAnalysis, Adjustabl
   @Override
   public TransferRelation getTransferRelation() {
     return transfer;
+  }
+
+  @Override
+  public void collectStatistics(StatisticsConsumer pStatsConsumer) {
+    if (condition instanceof StatisticsProvider) {
+      ((StatisticsProvider)condition).collectStatistics(pStatsConsumer);
+
+    } else if (condition instanceof Statistics) {
+      pStatsConsumer.addTerminationStatistics((Statistics)condition);
+    }
   }
 }

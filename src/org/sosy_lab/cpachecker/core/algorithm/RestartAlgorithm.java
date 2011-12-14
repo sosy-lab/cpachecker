@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.StatisticsContainer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.CallableInAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -95,8 +96,8 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   private Algorithm currentAlgorithm;
 
-  public RestartAlgorithm(Configuration config, LogManager pLogger, String pFilename, CFA pCfa, StatisticsContainer pParentStatisticsContainer) throws InvalidConfigurationException {
-    config.inject(this);
+  public RestartAlgorithm(Configuration pConfig, LogManager pLogger, String pFilename, CFA pCfa, StatisticsContainer pParentStatisticsContainer) throws InvalidConfigurationException {
+    pConfig.inject(this);
 
     if (configFiles.isEmpty()) {
       throw new InvalidConfigurationException("Need at least one configuration for restart algorithm!");
@@ -106,11 +107,11 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     this.logger = pLogger;
     this.filename = pFilename;
     this.cfa = pCfa;
-    this.statsContainer = new StatisticsContainer(this.getClass().getSimpleName(), pParentStatisticsContainer);
+    this.statsContainer = new StatisticsContainer(pConfig, this.getClass().getSimpleName(), pParentStatisticsContainer);
   }
 
   @Override
-  public boolean run(ReachedSet pReached, Runnable runAfterEachIteration) throws CPAException, InterruptedException {
+  public boolean run(ReachedSet pReached, CallableInAlgorithm runAfterEachIteration) throws CPAException, InterruptedException {
     checkArgument(pReached instanceof ForwardingReachedSet, "RestartAlgorithm needs ForwardingReachedSet");
     checkArgument(pReached.size() <= 1, "RestartAlgorithm does not support being called several times with the same reached set");
     checkArgument(!pReached.isEmpty(), "RestartAlgorithm needs non-empty reached set");
@@ -306,6 +307,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     if(currentAlgorithm instanceof StatisticsProvider) {
       ((StatisticsProvider)currentAlgorithm).collectStatistics(statsConsumer);
     }
-    statsConsumer.addTerminationStatistics(new Statistics[]{stats});
+    statsConsumer.addTerminationStatistics(stats);
   }
 }

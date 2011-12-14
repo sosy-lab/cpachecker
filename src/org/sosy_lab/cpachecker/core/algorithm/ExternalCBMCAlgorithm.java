@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CBMCExecutor;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.CallableInAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsConsumer;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -85,7 +86,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public boolean run(ReachedSet pReachedSet, Runnable runAfterEachIteration) throws CPAException, InterruptedException {
+  public boolean run(ReachedSet pReachedSet, CallableInAlgorithm runAfterEachIteration) throws CPAException, InterruptedException {
     assert pReachedSet.isEmpty();
 
     // run CBMC
@@ -160,7 +161,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public void collectStatistics(StatisticsConsumer statsConsumer) {
-    statsConsumer.addTerminationStatistics(new Statistics[]{stats});
+    statsConsumer.addTerminationStatistics(stats);
   }
 
   private static class Stats implements Statistics {

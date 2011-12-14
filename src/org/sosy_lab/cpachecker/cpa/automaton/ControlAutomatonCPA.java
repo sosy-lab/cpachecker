@@ -183,6 +183,6 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
   @Override
   public void collectStatistics(StatisticsConsumer pStatsConsumer) {
-    pStatsConsumer.addTerminationStatistics(new Statistics[]{stats});
+    pStatsConsumer.addTerminationStatistics(stats);
   }
 }

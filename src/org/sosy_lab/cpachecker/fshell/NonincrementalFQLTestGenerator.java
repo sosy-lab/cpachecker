@@ -417,14 +417,14 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
     }
 
     Statistics lARTStatistics;
+    StatisticsContainer lStatContainer;
     try {
       lARTStatistics = new ARTStatistics(mConfiguration, lARTCPA);
+      lStatContainer = new StatisticsContainer(mConfiguration, this.getClass().getSimpleName(), null);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     }
-
-    StatisticsContainer lStatContainer = new StatisticsContainer(this.getClass().getSimpleName(), null);
-    lStatContainer.addTerminationStatistics(new Statistics[]{lARTStatistics});
+    lStatContainer.addTerminationStatistics(lARTStatistics);
     lAlgorithm.collectStatistics(lStatContainer);
 
     AbstractElement lInitialElement = lARTCPA.getInitialElement(pEntryNode);

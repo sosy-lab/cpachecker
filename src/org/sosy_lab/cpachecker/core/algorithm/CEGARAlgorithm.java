@@ -41,7 +41,9 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.CallableInAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ContinuousStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsConsumer;
@@ -57,7 +59,7 @@ import com.google.common.base.Throwables;
 @Options(prefix="cegar")
 public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
-  private static class CEGARStatistics implements Statistics {
+  private static class CEGARStatistics implements Statistics, ContinuousStatistics {
 
     private final Timer totalTimer = new Timer();
     private final Timer refinementTimer = new Timer();
@@ -88,6 +90,16 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         out.println("Max time for refinement:          " + refinementTimer.printMaxTime());
         out.println("Time for garbage collection:      " + gcTimer);
       }
+    }
+
+    @Override
+    public String[] announceStatisticColumns() {
+      return new String[]{"NumberOfRefinements", "TimeForRefinement", "TimeForGc"};
+    }
+
+    @Override
+    public Object[] provideStatisticValues(ReachedSet pReached) {
+      return new Object[]{this.countRefinements, this.refinementTimer.getLengthOfLasterInterval(), this.gcTimer.getLengthOfLasterInterval()};
     }
   }
 
@@ -212,7 +224,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public boolean run(ReachedSet reached, Runnable runAfterEachIteration) throws CPAException, InterruptedException {
+  public boolean run(ReachedSet reached, CallableInAlgorithm runAfterEachIteration) throws CPAException, InterruptedException {
     boolean sound = true;
 
     stats.totalTimer.start();
@@ -285,7 +297,8 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     if (algorithm instanceof StatisticsProvider) {
       ((StatisticsProvider)algorithm).collectStatistics(statsConsumer);
     }
-    statsConsumer.addTerminationStatistics(new Statistics[]{stats});
+    statsConsumer.addTerminationStatistics(stats);
+    statsConsumer.addContinuousStatistics(stats);
   }
 
 }

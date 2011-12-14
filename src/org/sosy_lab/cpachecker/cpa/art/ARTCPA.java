@@ -139,7 +139,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
 
   @Override
   public void collectStatistics(StatisticsConsumer statsConsumer) {
-    statsConsumer.addTerminationStatistics(new Statistics[]{stats});
+    statsConsumer.addTerminationStatistics(stats);
     super.collectStatistics(statsConsumer);
   };
 

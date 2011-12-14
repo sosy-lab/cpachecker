@@ -215,6 +215,7 @@ public class CCVisuClusterer implements Clusterer {
 
     // Initialize clustering statistics.
     statistics.setClusteredGraph(graph);
+    statistics.printStatistics(System.out, null, null);
   }
 
   @Override

@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.ContinuousStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -63,7 +64,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
 @Options
-class MainCPAStatistics implements Statistics {
+class MainCPAStatistics implements Statistics, ContinuousStatistics {
 
   /**
    * Some hints on memory usage numbers that I have found out so far
@@ -202,6 +203,10 @@ class MainCPAStatistics implements Statistics {
     private final LogManager logger;
     private final MemoryStatistics memStats;
 
+    private final MemoryMXBean memoryMxBean;
+    private final MBeanServer mbeanServer;
+    private ObjectName osMbean;
+
     final Timer programTime = new Timer();
     final Timer creationTime = new Timer();
     final Timer cpaCreationTime = new Timer();
@@ -210,18 +215,27 @@ class MainCPAStatistics implements Statistics {
     private CFACreator cfaCreator;
 
     public MainCPAStatistics(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
-        logger = pLogger;
-        config.inject(this);
+      this.memoryMxBean = ManagementFactory.getMemoryMXBean();
+      this.mbeanServer = ManagementFactory.getPlatformMBeanServer();
+      try {
+        osMbean = new ObjectName("java.lang", "type", "OperatingSystem");
+      } catch (MalformedObjectNameException e) {
+        pLogger.logDebugException(e, "Accessing OperatingSystemMXBean failed");
+        osMbean = null;
+      }
 
-        if (monitorMemoryUsage) {
-          memStats = new MemoryStatistics(pLogger);
-          memStats.setDaemon(true);
-          memStats.start();
-        } else {
-          memStats = null;
-        }
+      logger = pLogger;
+      config.inject(this);
 
-        programTime.start();
+      if (monitorMemoryUsage) {
+        memStats = new MemoryStatistics(pLogger);
+        memStats.setDaemon(true);
+        memStats.start();
+      } else {
+        memStats = null;
+      }
+
+      programTime.start();
     }
 
     @Override
@@ -322,4 +336,24 @@ class MainCPAStatistics implements Statistics {
       Preconditions.checkState(cfaCreator == null);
       cfaCreator = pCfaCreator;
     }
+
+    @Override
+    public String[] announceStatisticColumns() {
+      return new String[]{"WaitlistSize", "ReachedsetSize", "HeapUsage", "HeapAllocated", "VirtualMemoryUsage"};
+    }
+
+    @Override
+    public Object[] provideStatisticValues(ReachedSet reached) {
+
+      MemoryUsage currentHeap = this.memoryMxBean.getHeapMemoryUsage();
+      long memUsed = 0;
+      try {
+        memUsed = (Long) mbeanServer.getAttribute(osMbean, MemoryStatistics.MEMORY_SIZE);
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+
+      return new Object[]{reached.getWaitlistSize(), reached.size(), currentHeap.getUsed(), currentHeap.getCommitted(), memUsed};
+    }
+
 }

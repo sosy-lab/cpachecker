@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import org.sosy_lab.cpachecker.core.interfaces.CallableInAlgorithm;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -36,5 +37,5 @@ public interface Algorithm {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public boolean run(ReachedSet reachedSet, Runnable runAfterEachIteration) throws CPAException, InterruptedException;
+  public boolean run(ReachedSet reachedSet, CallableInAlgorithm runAfterEachIteration) throws CPAException, InterruptedException;
 }

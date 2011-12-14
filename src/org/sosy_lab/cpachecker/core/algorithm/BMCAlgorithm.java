@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.CallableInAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsConsumer;
@@ -213,7 +214,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public boolean run(final ReachedSet pReachedSet, Runnable runAfterEachIteration) throws CPAException, InterruptedException {
+  public boolean run(final ReachedSet pReachedSet, CallableInAlgorithm runAfterEachIteration) throws CPAException, InterruptedException {
     if (induction) {
       CFANode initialLocation = extractLocation(pReachedSet.getFirstElement());
       invariantGenerator.start(initialLocation);
@@ -726,6 +727,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     if (algorithm instanceof StatisticsProvider) {
       ((StatisticsProvider)algorithm).collectStatistics(statsConsumer);
     }
-    statsConsumer.addTerminationStatistics(new Statistics[]{stats});
+    statsConsumer.addTerminationStatistics(stats);
   }
 }

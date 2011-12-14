@@ -255,7 +255,7 @@ public class ABMTransferRelation implements TransferRelation {
 
   private Block currentBlock;
   private BlockPartitioning partitioning;
-  private int depth = 0;
+  int depth = 0;
 
   private final LogManager logger;
   private final CPAAlgorithm algorithm;
@@ -876,6 +876,7 @@ public class ABMTransferRelation implements TransferRelation {
     assert reachSet != null;
     return Pair.of(rootSubtree, reachSet);
   }
+
 
   @Override
   public Collection<? extends AbstractElement> strengthen(

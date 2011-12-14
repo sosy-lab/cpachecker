@@ -28,13 +28,14 @@ import static com.google.common.base.Preconditions.checkState;
 import java.io.PrintStream;
 
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.ContinuousStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 /**
  * Prints some ABM related statistics
  */
-class ABMCPAStatistics implements Statistics {
+class ABMCPAStatistics implements Statistics, ContinuousStatistics {
 
     private final ABMCPA cpa;
     private AbstractABMBasedRefiner refiner = null;
@@ -99,4 +100,16 @@ class ABMCPAStatistics implements Statistics {
     private String toPercent(double val, double full) {
       return String.format("%1.0f", val/full*100) + "%";
     }
+
+    @Override
+    public String[] announceStatisticColumns() {
+      return new String[]{"BlockDepth", "CacheMisses"};
+    }
+
+    @Override
+    public Object[] provideStatisticValues(ReachedSet pReached) {
+      return new Object[]{cpa.getTransferRelation().depth, cpa.getTransferRelation().cacheMisses};
+    }
+
+
 }
