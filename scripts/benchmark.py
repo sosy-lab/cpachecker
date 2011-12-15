@@ -46,10 +46,12 @@ BUG_SUBSTRING_LIST = ['bug', 'unsafe']
 USE_COLORS = True
 COLOR_GREEN = "\033[32;1m{0}\033[m"
 COLOR_RED = "\033[31;1m{0}\033[m"
-COLOR_ORANGE = "\033[35;1m{0}\033[m" # not orange, magenta
+COLOR_ORANGE = "\033[33;1m{0}\033[m" # not orange, magenta
+COLOR_MAGENTA = "\033[35;1m{0}\033[m"
 COLOR_DIC = {"correctSafe": COLOR_GREEN,
              "correctUnsafe": COLOR_GREEN,
              "unknown": COLOR_ORANGE,
+             "error": COLOR_MAGENTA,
              "wrongUnsafe": COLOR_RED,
              "wrongSafe": COLOR_RED}
 
@@ -816,8 +818,10 @@ class OutputHandler:
                 return "wrongUnsafe"
             else:
                 return "correctUnsafe"
+        elif status == 'unknown':
+            return 'unknown'
         else:
-                 return "unknown"
+            return 'error'
 
 
     def containsAny(self, text, list):
@@ -909,6 +913,8 @@ class Statistics:
 
     def addResult(self, statusRelation):
         self.dic["counter"] += 1
+        if statusRelation == 'error':
+            statusRelation = 'unknown'
         assert statusRelation in self.dic
         self.dic[statusRelation] += 1
 
@@ -1126,6 +1132,15 @@ def run(args, rlimits):
     logging.debug("My subprocess returned returncode {0}.".format(returncode))
     return (returncode, output, cpuTimeDelta, wallTimeDelta)
 
+def isTimeout(cpuTimeDelta, rlimits):
+    ''' try to find out whether the tool terminated because of a timeout '''
+    if resource.RLIMIT_CPU in rlimits:
+        limit = rlimits.get(resource.RLIMIT_CPU)[0]
+    else:
+        limit = float('inf')
+
+    return cpuTimeDelta > limit*0.99
+
 
 def run_cbmc(options, sourcefile, columns, rlimits):
     if ("--xml-ui" not in options):
@@ -1148,32 +1163,55 @@ def run_cbmc(options, sourcefile, columns, rlimits):
     if ((returncode == 0) or (returncode == 10)):
         try:
             tree = ET.fromstring(output)
-            status = tree.findtext('cprover-status', 'ERROR')
-        except: # catch all exceptions
-            status = 'ERROR'
-            # sys.stdout.write("Error parsing CBMC output: %s " % e)
+            status = tree.findtext('cprover-status')
+        
+            if status is None:
+                def isErrorMessage(msg):
+                    return msg.get('type', None) == 'ERROR'
 
-        if status == "FAILURE":
-            assert returncode == 10
-            reason = tree.find('goto_trace').find('failure').findtext('reason')
-            if 'unwinding assertion' in reason:
-                status = "UNKNOWN"
+                if any(map(isErrorMessage, tree.getiterator('message'))):
+                    status = 'ERROR'
+                else:
+                    status = 'INVALID OUTPUT'
+                    
+            elif status == "FAILURE":
+                assert returncode == 10
+                reason = tree.find('goto_trace').find('failure').findtext('reason')
+                if 'unwinding assertion' in reason:
+                    status = "UNKNOWN"
+                else:
+                    status = "UNSAFE"
+                    
+            elif status == "SUCCESS":
+                assert returncode == 0
+                if "--no-unwinding-assertions" in options:
+                    status = "UNKNOWN"
+                else:
+                    status = "SAFE"
+                
+        except Exception, e: # catch all exceptions
+            if isTimeout(cpuTimeDelta, rlimits):
+                # in this case an exception is expected as the XML is invaliddd
+                status = 'TIMEOUT'
+            elif 'Minisat::OutOfMemoryException' in output:
+                status = 'OUT OF MEMORY'
             else:
-                status = "UNSAFE"
-        elif status == "SUCCESS":
-            assert returncode == 0
-            if "--no-unwinding-assertions" in options:
-                status = "UNKNOWN"
-            else:
-                status = "SAFE"
+                status = 'INVALID OUTPUT'
+                logging.warning("Error parsing CBMC output for returncode %d: %s" % (returncode, e))
+    
+    elif returncode == 6:
+        # parser error or something similar
+        status = 'ERROR'
 
-    elif returncode == -9:
-        status = "TIMEOUT"
+    elif returncode == -9 or returncode == (128+9):
+        if isTimeout(cpuTimeDelta, rlimits):
+            status = 'TIMEOUT'
+        else:
+            status = "KILLED BY SIGNAL 9"
+
     elif returncode == 134:
         status = "ABORTED"
-    elif returncode == 137:
-        status = "KILLED BY SIGNAL 9"
-    elif returncode == 143:
+    elif returncode == 15 or returncode == (128+15):
         status = "KILLED"
     else:
         status = "ERROR ({0})".format(returncode)
@@ -1357,12 +1395,7 @@ def getCPAcheckerStatus(returncode, output, rlimits, cpuTimeDelta):
         status = "ABORTED (probably by Mathsat)"
 
     elif returncode == -9:
-        if resource.RLIMIT_CPU in rlimits:
-            limit = rlimits.get(resource.RLIMIT_CPU)[0]
-        else:
-            limit = float('inf')
-
-        if cpuTimeDelta > limit*0.99:
+        if isTimeout(cpuTimeDelta, rlimits):
             status = 'TIMEOUT'
         else:
             status = "KILLED BY SIGNAL 9"

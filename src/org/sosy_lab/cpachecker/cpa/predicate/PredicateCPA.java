@@ -212,11 +212,11 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return stop;
   }
 
-  RegionManager getRegionManager() {
+  public RegionManager getRegionManager() {
     return regionManager;
   }
 
-  PredicateAbstractionManager getPredicateManager() {
+  public PredicateAbstractionManager getPredicateManager() {
     return predicateManager;
   }
 

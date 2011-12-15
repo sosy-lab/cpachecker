@@ -180,7 +180,7 @@ public class ARTStatistics implements Statistics {
       try {
         Files.writeFile(artFile, ARTUtils.convertARTToDot(pReached, getEdgesOfPath(targetPath)));
       } catch (IOException e) {
-        cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ART to file");
+        cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ART to file.");
       }
     }
   }
@@ -191,7 +191,7 @@ public class ARTStatistics implements Statistics {
         Files.writeFile(file, content);
       } catch (IOException e) {
         cpa.getLogger().logUserException(Level.WARNING, e,
-            "Could not information about the error path to file");
+            "Could not write information about the error path to file.");
       }
     }
   }

@@ -74,6 +74,7 @@ CSS = '''
     .correctSafe, .correctUnsafe { text-align:center; color:green}
     .wrongSafe, .wrongUnsafe { text-align:center; color:red; font-weight: bold; }
     .unknown { text-align:center; color:orange; font-weight: bold; }
+    .error { text-align:center; color:magenta; font-weight: bold; }
     .score { text-align:center; font-size:large; font-weight:bold; }
     a { color: inherit; text-decoration: none; display: block; }
     a:hover { background: lime }
@@ -569,8 +570,10 @@ def getValuesOfFileXTest(currentFile, listOfColumns):
                             currentFile.status = 'wrongUnsafe'
                         else:
                             currentFile.status = 'correctUnsafe'
+                    elif status == 'unknown':
+                        currentFile.status = 'unknown'
                     else:
-                            currentFile.status = 'unknown'
+                        currentFile.status = 'error'
 
                     if LOGFILES_IN_HTML:
                         valuesForHTML.append('<td class="{0}"><a href="{1}">{2}</a></td>'
