@@ -1193,6 +1193,8 @@ def run_cbmc(options, sourcefile, columns, rlimits):
             if isTimeout(cpuTimeDelta, rlimits):
                 # in this case an exception is expected as the XML is invaliddd
                 status = 'TIMEOUT'
+            elif 'Minisat::OutOfMemoryException' in output:
+                status = 'OUT OF MEMORY'
             else:
                 status = 'INVALID OUTPUT'
                 logging.warning("Error parsing CBMC output for returncode %d: %s" % (returncode, e))
