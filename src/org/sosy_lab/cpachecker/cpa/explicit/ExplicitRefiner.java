@@ -426,7 +426,7 @@ System.out.println("\nfirstInterpolationPoint = " + firstInterpolationPoint + "\
               IASTFieldReference leftIdentifier = (IASTFieldReference)leftOperand;
 
               //System.out.println("leftIdentifier " + leftIdentifier.getRawSignature() + " part of binary expression " + binary.getRawSignature());
-              inexplicitVars.add(leftIdentifier.getRawSignature());
+              inexplicitVars.add(leftIdentifier.toASTString());
             }
 
             if (rightOperand instanceof IASTIdExpression) {
@@ -437,7 +437,7 @@ System.out.println("\nfirstInterpolationPoint = " + firstInterpolationPoint + "\
               IASTFieldReference rightIdentifier = (IASTFieldReference)rightOperand;
 
               //System.out.println("rightIdentifier " + rightIdentifier.getRawSignature() + " part of binary expression " + binary.getRawSignature());
-              inexplicitVars.add(rightIdentifier.getRawSignature());
+              inexplicitVars.add(rightIdentifier.toASTString());
             }
             break;
           }
