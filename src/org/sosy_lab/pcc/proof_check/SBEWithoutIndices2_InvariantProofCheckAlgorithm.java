@@ -62,7 +62,7 @@ public class SBEWithoutIndices2_InvariantProofCheckAlgorithm extends
     //build all edge identifications for reachable source nodes and put them to the edges
     HashSet<Integer> visited = new HashSet<Integer>();
     Vector<CFANode> toVisit = new Vector<CFANode>();
-    logger.log(Level.INFO, "Constructall edges which must be checked in proof.");
+    logger.log(Level.INFO, "Construct all edges which must be checked in proof.");
     //add root node
     toVisit.add(cfaForProof.getMainFunction());
     visited.add(toVisit.get(0).getNodeNumber());
@@ -78,7 +78,7 @@ public class SBEWithoutIndices2_InvariantProofCheckAlgorithm extends
         edge = current.getLeavingEdge(i);
         // if it is an abstraction node and abstraction is not false, build and check edge
         if (isSource && !allInvariantFormulaeFalse(current.getNodeNumber(), edge.getSuccessor().getNodeNumber())) {
-          logger.log(Level.INFO, "Build all edges for node " + current + " are available.");
+          logger.log(Level.INFO, "Build all edges for node " + current + ".");
           result =
               buildLeavingEdges(current.getNodeNumber(), edge);
           edges.addAll(result);
