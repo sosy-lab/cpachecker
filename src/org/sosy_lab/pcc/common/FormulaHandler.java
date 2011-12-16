@@ -105,7 +105,7 @@ public class FormulaHandler {
     //get all variables
     Pattern patVarSSAAbstraction =
         Pattern
-            .compile("[\\W&&[^@]]([_A-Za-z](\\w)*::)?[_A-Za-z](\\w)*(@(\\d)+)?[\\W&&[^@]]");
+            .compile("[\\W&&[^"+Separators.SSAIndexSeparator+"]]([_A-Za-z](\\w)*::)?[_A-Za-z](\\w)*("+Separators.SSAIndexSeparator+"(\\d)+)?[\\W&&[^"+Separators.SSAIndexSeparator+"]]");
     Matcher match = patVarSSAAbstraction.matcher(pFormula);
     String variable;
     while (match.find()) {
@@ -155,14 +155,14 @@ public class FormulaHandler {
   public String removeIndicesStr(String pInput) {
     if (pInput == null) { return null; }
     StringBuilder newStr = new StringBuilder();
-    Pattern pat = Pattern.compile("[\\W&&[^@]]([_A-Za-z](\\w)*::)?([_A-Za-z](\\w)*@(\\d)+)[\\W&&[^@]]");
+    Pattern pat = Pattern.compile("[\\W&&[^"+Separators.SSAIndexSeparator+"]]([_A-Za-z](\\w)*::)?([_A-Za-z](\\w)*"+Separators.SSAIndexSeparator+"(\\d)+)[\\W&&[^"+Separators.SSAIndexSeparator+"]]");
     // adapt input such that pattern also matches at beginning and end
     pInput = " " + pInput + " ";
     Matcher match = pat.matcher(pInput);
     int lastIndex = 0;
     while (match.find()) {
       // add content between matches plus first identifier of match which was needed to ensure that only this variable is found
-      newStr.append(pInput.substring(lastIndex, pInput.indexOf("@", match.start())));
+      newStr.append(pInput.substring(lastIndex, pInput.indexOf(Separators.SSAIndexSeparator, match.start())));
       // set lastIndex, also integrate last identifier of match
       lastIndex = match.end() - 1;
     }
@@ -182,7 +182,7 @@ public class FormulaHandler {
         // get all variable names
         Set<String> variables = fm.extractVariables(pFormula);
         for (String var : variables) {
-          if (!var.contains("@")) {
+          if (!var.contains(Separators.SSAIndexSeparator)) {
             builder.setIndex(var, 2);
           }
         }
@@ -401,14 +401,14 @@ public class FormulaHandler {
       if (firstList != 0) {
         if (firstList < 0) {
           pFormula2 =
-              replaceVariable(second.get(i).getFirst() + "@"
+              replaceVariable(second.get(i).getFirst() + Separators.SSAIndexSeparator
                   + second.get(i).getSecond(), pFormula2, first.get(i)
-                  .getFirst() + "@" + first.get(i).getSecond());
+                  .getFirst() + Separators.SSAIndexSeparator + first.get(i).getSecond());
         } else {
           pFormula1 =
-              replaceVariable(first.get(i).getFirst() + "@"
+              replaceVariable(first.get(i).getFirst() + Separators.SSAIndexSeparator
                   + first.get(i).getSecond(), pFormula1, second.get(i)
-                  .getFirst() + "@" + second.get(i).getSecond());
+                  .getFirst() + Separators.SSAIndexSeparator + second.get(i).getSecond());
         }
 
       }
@@ -453,13 +453,13 @@ public class FormulaHandler {
     //get all indices for every variable
     Pattern patVarSSAAbstraction =
         Pattern
-            .compile("[\\W&&[^@]]([_A-Za-z](\\w)*::)?([_A-Za-z](\\w)*@(\\d)+)[\\W&&[^@]]");
+            .compile("[\\W&&[^"+ Separators.SSAIndexSeparator +"]]([_A-Za-z](\\w)*::)?([_A-Za-z](\\w)*"+ Separators.SSAIndexSeparator +"(\\d)+)[\\W&&[^"+ Separators.SSAIndexSeparator +"]]");
     Matcher match = patVarSSAAbstraction.matcher(pFormula);
     String lastMatch, variable;
     int index;
     while (match.find()) {
       lastMatch = match.group();
-      index = lastMatch.indexOf("@");
+      index = lastMatch.indexOf(Separators.SSAIndexSeparator);
       // extract variable name
       variable = lastMatch.substring(1, index);
       // extract SSA index
@@ -470,7 +470,7 @@ public class FormulaHandler {
       } catch (NumberFormatException e) {
         continue;
       }
-      if (!found.contains(variable + "@" + index)) {
+      if (!found.contains(variable + Separators.SSAIndexSeparator + index)) {
         foundVar.add(new Pair<String, Integer>(variable, index));
       }
     }
@@ -500,14 +500,14 @@ public class FormulaHandler {
     //get highest index for every SSA variable in pAbstraction
     Pattern patVarSSAAbstraction =
         Pattern
-            .compile("[\\W&&[^@]]([_A-Za-z](\\w)*::)?([_A-Za-z](\\w)*@(\\d)+)[\\W&&[^@]]");
+            .compile("[\\W&&[^"+ Separators.SSAIndexSeparator +"]]([_A-Za-z](\\w)*::)?([_A-Za-z](\\w)*"+ Separators.SSAIndexSeparator +"(\\d)+)[\\W&&[^"+ Separators.SSAIndexSeparator +"]]");
     Matcher match = patVarSSAAbstraction.matcher(pFormula);
     String lastMatch, variable;
     Integer highestIndex;
     int index;
     while (match.find()) {
       lastMatch = match.group();
-      index = lastMatch.indexOf("@");
+      index = lastMatch.indexOf(Separators.SSAIndexSeparator);
       // extract variable name
       variable = lastMatch.substring(1, index);
       // extract SSA index
@@ -538,18 +538,18 @@ public class FormulaHandler {
       if (pAssume) {
         // all variables are only allowed to have same indices as highest indices
         intermediate =
-            pOperation.replaceAll(var + "@" + highestIndices.get(var), "");
+            pOperation.replaceAll(var +  Separators.SSAIndexSeparator  + highestIndices.get(var), "");
         if (intermediate.matches("(.)*[\\W]" + var + "[\\W](.)*")) { return false; }
       } else {
         // eliminate all variables of this kind on the left hand of the assignment
         intermediate =
             pOperation
-                .replaceAll(var + "@" + (highestIndices.get(var) + 1)
+                .replaceAll(var + Separators.SSAIndexSeparator + (highestIndices.get(var) + 1)
                     + "(\\s)*(\\))*(\\s)*=", "");
         // eliminate all remaining variables of this kind
         intermediate =
             intermediate.replaceAll(
-                var + "@" + highestIndices.get(var)
+                var + Separators.SSAIndexSeparator + highestIndices.get(var)
                     + "(\\s)*[!\\&\\(\\)\\*\\+-/<=>\\[\\]|&&[^=]]", "");
         if (intermediate.matches("(.)*[\\W]" + var + "[\\W](.)*")) { return false; }
       }
@@ -565,9 +565,9 @@ public class FormulaHandler {
     pRightAbstraction = " " + pRightAbstraction + " ";
     for (String var : highestVar.keySet()) {
       // check if variable is contained
-      if (pRightAbstraction.matches("(.)*[\\W]" + var + "@(.)*")) {
+      if (pRightAbstraction.matches("(.)*[\\W]" + var + Separators.SSAIndexSeparator +"(.)*")) {
         // check if variable is contained with highest index
-        if (!pRightAbstraction.matches("(.)*[\\W]" + var + "@"
+        if (!pRightAbstraction.matches("(.)*[\\W]" + var + Separators.SSAIndexSeparator
             + highestVar.get(var) + "[\\W](.)*")) { return false; }
 
       }
@@ -587,7 +587,7 @@ public class FormulaHandler {
      Hashtable<String, VariableWithIndex> result = new Hashtable<String, VariableWithIndex>();
      // collect indices for variables
      for(String var:pVariables){
-       pos = var.indexOf("@");
+       pos = var.indexOf(Separators.SSAIndexSeparator);
        if(pos!=-1){
          prefix = var.substring(0,pos);
          current = result.get(prefix);
@@ -608,8 +608,8 @@ public class FormulaHandler {
        usedIndexes = 0;
        for(Integer knownIndex:indices){
          // build old representation
-         oldVar = var+"@"+knownIndex;
-         newVar = var+"@"+usedIndexes;
+         oldVar = var+Separators.SSAIndexSeparator+knownIndex;
+         newVar = var+Separators.SSAIndexSeparator+usedIndexes;
          usedIndexes++;
          //TODO
        }
