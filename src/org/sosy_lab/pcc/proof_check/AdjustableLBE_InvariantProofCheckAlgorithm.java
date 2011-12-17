@@ -159,6 +159,7 @@ public class AdjustableLBE_InvariantProofCheckAlgorithm extends InvariantProofCh
         // read invariants
         invariants = new Vector<Pair<String, int[]>>();
         numInvariants = pScan.nextInt();
+        if (numInvariants <= 0) { return PCCCheckResult.InvalidInvariant; }
         for (int i = 0; i < numInvariants; i++) {
           // read invariant
           next = pScan.next();
