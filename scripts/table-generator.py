@@ -301,7 +301,7 @@ def appendTests(listOfTests, filelist, columns=None):
             else:
                 columnTitles = availableColumnTitles
 
-            if LOGFILES_IN_HTML: insertLogFileNames(resultFile, resultElem)
+            if options.logfilesInHtml: insertLogFileNames(resultFile, resultElem)
 
             listOfTests.append((resultElem, columnTitles))
         else:
@@ -622,7 +622,7 @@ def getTableBody(listOfTests):
     for fileName in fileNames:
         filePath = getPathOfSourceFile(fileName)
 
-        if LOGFILES_IN_HTML:
+        if options.logfilesInHtml:
             rowsForHTML.append(['<td><a href="{0}">{1}</a></td>'.
                             format(quote(filePath), fileName.replace(commonPrefix, '', 1))])
         else:
@@ -708,7 +708,7 @@ def getValuesOfFileXTest(currentFile, listOfColumns):
                     else:
                         currentFile.status = 'error'
 
-                    if LOGFILES_IN_HTML:
+                    if options.logfilesInHtml:
                         valuesForHTML.append('<td class="{0}"><a href="{1}">{2}</a></td>'
                             .format(currentFile.status, quote(str(currentFile.get('logfileForHtml'))), status))
                     else:
@@ -849,8 +849,9 @@ def createTable(file, filesFromXML=False):
                 + tableBodyHTML.replace('\n','\n' + HTML_SHIFT) \
                 + '\n</table>\n\n'
 
-    htmlCode = DOCTYPE + '<html>\n\n<head>\n' + CSS + TITLE + '\n</head>\n\n<body>\n\n' \
-                + SCRIPT + tableCode + '</body>\n\n</html>'
+    htmlCode = DOCTYPE + '<html>\n\n<head>\n' + CSS + TITLE + '\n</head>\n\n<body>\n\n'
+    if options.includeJavaScript: htmlCode += SCRIPT + '\n'
+    htmlCode += tableCode + '</body>\n\n</html>'
 
     if not os.path.isdir(OUTPUT_PATH): os.makedirs(OUTPUT_PATH)
     HTMLFile = open(HTMLOutFileName, "w")
@@ -890,15 +891,18 @@ def main(args=None):
         action="store_false", dest="logfilesInHtml", default=True,
         help="create table without links to logfiles."
     )
+    parser.add_option("-s", "--script", 
+        action="store_true", dest="includeJavaScript", default=False,
+        help="put JavaScript in html-code. This flag enables functionality in the resulting table, i.e. plotting graphs."
+    )
+
+    global options
     options, args = parser.parse_args(args)
 
     if options.outputPath:
         global OUTPUT_PATH
         OUTPUT_PATH = options.outputPath if options.outputPath.endswith('/') \
                  else options.outputPath + '/'
-
-    global LOGFILES_IN_HTML
-    LOGFILES_IN_HTML = options.logfilesInHtml
 
     if options.xmltablefile:
         print ("reading table definition from '" + options.xmltablefile + "'...")
