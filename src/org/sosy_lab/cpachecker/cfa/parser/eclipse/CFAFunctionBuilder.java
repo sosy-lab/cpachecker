@@ -720,7 +720,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       // "counter;"
     } else if (node instanceof IASTIdExpression) {
-      final BlankEdge blankEdge = new BlankEdge(node.getRawSignature(),
+      final BlankEdge blankEdge = new BlankEdge(node.toASTString(),
           filelocStart, loopEnd, loopStart);
       addToCFA(blankEdge);
 
@@ -981,9 +981,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // build condition, "a==2", TODO correct type?
     final IASTBinaryExpression binExp =
-        new IASTBinaryExpression(switchExpr.getRawSignature()
-            + IASTBinaryExpression.BinaryOperator.EQUALS.getOperator()
-            + caseExpr.getRawSignature(), astCreator.convert(fileloc),
+        new IASTBinaryExpression(astCreator.convert(fileloc),
             switchExpr.getExpressionType(), switchExpr, caseExpr,
             IASTBinaryExpression.BinaryOperator.EQUALS);
 
@@ -1006,12 +1004,12 @@ class CFAFunctionBuilder extends ASTVisitor {
     locStack.push(caseNode);
 
     // edge connecting rootNode with notCaseNode, "!(a==2)"
-    final AssumeEdge assumeEdgeFalse = new AssumeEdge("!(" + binExp.getRawSignature() + ")",
+    final AssumeEdge assumeEdgeFalse = new AssumeEdge("!(" + binExp.toASTString() + ")",
         filelocStart, rootNode, notCaseNode, binExp, false);
     addToCFA(assumeEdgeFalse);
 
     // edge connecting rootNode with caseNode, "a==2"
-    final AssumeEdge assumeEdgeTrue = new AssumeEdge(binExp.getRawSignature(),
+    final AssumeEdge assumeEdgeTrue = new AssumeEdge(binExp.toASTString(),
         filelocStart, rootNode, caseNode, binExp, true);
     addToCFA(assumeEdgeTrue);
   }

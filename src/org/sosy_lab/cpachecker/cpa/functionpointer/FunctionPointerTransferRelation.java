@@ -167,9 +167,9 @@ class FunctionPointerTransferRelation implements TransferRelation {
           List<IASTExpression> parameters = functionCallExpression.getParameterExpressions();
 
           // Create new edges.
-          CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(functionCall.asStatement().getRawSignature(), lineNumber, predecessorNode, successorNode, functionCall);
+          CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(functionCall.asStatement().toASTString(), lineNumber, predecessorNode, successorNode, functionCall);
 
-          FunctionPointerCallEdge callEdge = new FunctionPointerCallEdge(functionCallExpression.getRawSignature(), edge.getStatement(), lineNumber, predecessorNode, (FunctionDefinitionNode)fDefNode, parameters, calltoReturnEdge);
+          FunctionPointerCallEdge callEdge = new FunctionPointerCallEdge(functionCallExpression.toASTString(), edge.getStatement(), lineNumber, predecessorNode, (FunctionDefinitionNode)fDefNode, parameters, calltoReturnEdge);
           predecessorNode.addLeavingEdge(callEdge);
           fDefNode.addEnteringEdge(callEdge);
 

@@ -160,6 +160,10 @@ counterexample.removeInfeasibleErrors = false
 # CPA to use (see doc/Configuration.txt for more documentation on this)
 cpa = CompositeCPA.class.getCanonicalName()
 
+# if enabled, cache queries also consider blocks with non-matching precision
+# for reuse.
+cpa.abm.aggressiveCaching = true
+
 # Type of partitioning (FunctionAndLoopPartitioning or
 # DelayedFunctionAndLoopPartitioning)
 # or any class that implements a PartitioningHeuristic

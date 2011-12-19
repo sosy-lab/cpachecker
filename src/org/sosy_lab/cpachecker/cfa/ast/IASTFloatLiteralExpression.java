@@ -30,9 +30,10 @@ public final class IASTFloatLiteralExpression extends IASTLiteralExpression {
   // use a BigDecimal here because C code might have floating point types with bigger precision than double
   private final BigDecimal value;
 
-  public IASTFloatLiteralExpression(String pRawSignature,
-      IASTFileLocation pFileLocation, IType pType, BigDecimal pValue) {
-    super(pRawSignature, pFileLocation, pType);
+  public IASTFloatLiteralExpression(IASTFileLocation pFileLocation,
+                                    IType pType,
+                                    BigDecimal pValue) {
+    super(pFileLocation, pType);
     value = pValue;
   }
 

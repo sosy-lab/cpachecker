@@ -187,7 +187,7 @@ public class Wrapper {
     lWriter.println("  int __BLAST_NONDET;");
 
     for (IASTSimpleDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
-      lWriter.println("  " + lDeclaration.getRawSignature() + ";");
+      lWriter.println("  " + lDeclaration.toASTString() + ";");
     }
 
     for (IASTSimpleDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {

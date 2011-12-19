@@ -30,6 +30,7 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
@@ -37,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
@@ -145,11 +145,11 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     FeatureVarsElement result = element;
     if (lhs instanceof IASTIdExpression || lhs instanceof IASTFieldReference
         || lhs instanceof IASTArraySubscriptExpression) {
-      String varName = lhs.getRawSignature();//this.getvarName(op.getRawSignature(), functionName);
+      String varName = lhs.toASTString();//this.getvarName(op.getRawSignature(), functionName);
       if (pPrecision.isOnWhitelist(varName)) {
         IASTRightHandSide rhs = assignment.getRightHandSide();
         if (rhs instanceof IASTIntegerLiteralExpression) {
-          String value = rhs.getRawSignature();
+          String value = rhs.toASTString();
           /*
            * This will only work with the first assignment to the variable!
            * If the variable gets a second assignment we would have to delete the current value from the bdd first.
@@ -211,7 +211,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     Region operand = null;
     if (op instanceof IASTIdExpression || op instanceof IASTFieldReference
         || op instanceof IASTArraySubscriptExpression) {
-      String varName = op.getRawSignature();//this.getvarName(op.getRawSignature(), functionName);
+      String varName = op.toASTString();//this.getvarName(op.getRawSignature(), functionName);
       if (!precision.isOnWhitelist(varName)) {
         return null;
       }
@@ -238,7 +238,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     Region operand = null;
     if (op instanceof IASTIdExpression || op instanceof IASTFieldReference
         || op instanceof IASTArraySubscriptExpression) {
-      String varName = op.getRawSignature();//this.getvarName(op.getRawSignature(), functionName);
+      String varName = op.toASTString();//this.getvarName(op.getRawSignature(), functionName);
       if (!precision.isOnWhitelist(varName)) {
         return null;
       }
@@ -268,7 +268,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
       break;
     default:
       throw new UnrecognizedCCodeException("Unhandled case "
-          + op.getRawSignature(), edge);
+          + op.toASTString(), edge);
     }
     return returnValue;
   }
@@ -281,7 +281,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     Region operand1 = null;
     if (op1 instanceof IASTIdExpression || op1 instanceof IASTFieldReference
         || op1 instanceof IASTArraySubscriptExpression) {
-      String varName = op1.getRawSignature();// this.getvarName(op1.getRawSignature(), functionName);
+      String varName = op1.toASTString();// this.getvarName(op1.getRawSignature(), functionName);
       if (!precision.isOnWhitelist(varName)) {
         return null;
       }
@@ -302,7 +302,7 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     Region operand2 = null;
     if (op2 instanceof IASTIdExpression || op2 instanceof IASTFieldReference
         || op2 instanceof IASTArraySubscriptExpression) {
-      String varName = op2.getRawSignature(); //this.getvarName(op2.getRawSignature(), functionName);
+      String varName = op2.toASTString(); //this.getvarName(op2.getRawSignature(), functionName);
       if (!precision.isOnWhitelist(varName)) {
         return null;
       }

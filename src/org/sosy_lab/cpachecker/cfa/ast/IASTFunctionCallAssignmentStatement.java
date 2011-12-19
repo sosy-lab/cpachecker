@@ -29,10 +29,10 @@ public final class IASTFunctionCallAssignmentStatement extends IASTStatement
   private final IASTExpression leftHandSide;
   private final IASTFunctionCallExpression rightHandSide;
 
-  public IASTFunctionCallAssignmentStatement(String pRawSignature,
-      IASTFileLocation pFileLocation, IASTExpression pLeftHandSide,
-      IASTFunctionCallExpression pRightHandSide) {
-    super(pRawSignature, pFileLocation);
+  public IASTFunctionCallAssignmentStatement(IASTFileLocation pFileLocation,
+                                             IASTExpression pLeftHandSide,
+                                             IASTFunctionCallExpression pRightHandSide) {
+    super(pFileLocation);
     leftHandSide = pLeftHandSide;
     rightHandSide = pRightHandSide;
   }

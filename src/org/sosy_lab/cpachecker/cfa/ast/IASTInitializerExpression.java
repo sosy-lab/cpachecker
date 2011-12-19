@@ -27,9 +27,9 @@ public final class IASTInitializerExpression extends IASTInitializer {
 
   private final IASTRightHandSide expression;
 
-  public IASTInitializerExpression(final String pRawSignature,
-      final IASTFileLocation pFileLocation, final IASTRightHandSide pExpression) {
-    super(pRawSignature, pFileLocation);
+  public IASTInitializerExpression(final IASTFileLocation pFileLocation,
+                                   final IASTRightHandSide pExpression) {
+    super(pFileLocation);
     expression = pExpression;
   }
 
