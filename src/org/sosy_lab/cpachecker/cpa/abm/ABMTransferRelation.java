@@ -166,17 +166,19 @@ public class ABMTransferRelation implements TransferRelation {
         return Pair.of(result, returnCache.get(hash));
       }
 
-      result = unpreciseReachedCache.get(hash);
-      if(result != null) {
-        return Pair.of(result, returnCache.get(getHashCode(predicateKey, result.getPrecision(result.getFirstElement()), context)));
-      }
+      if(aggressiveCaching) {
+        result = unpreciseReachedCache.get(hash);
+        if(result != null) {
+          return Pair.of(result, returnCache.get(getHashCode(predicateKey, result.getPrecision(result.getFirstElement()), context)));
+        }
 
-      //search for similar entry
-      Pair<ReachedSet, Collection<AbstractElement>> pair = lookForSimilarElement(predicateKey, precisionKey, context);
-      if(pair != null) {
-        //found similar element, use this
-        unpreciseReachedCache.put(hash, pair.getFirst());
-        return pair;
+        //search for similar entry
+        Pair<ReachedSet, Collection<AbstractElement>> pair = lookForSimilarElement(predicateKey, precisionKey, context);
+        if(pair != null) {
+          //found similar element, use this
+          unpreciseReachedCache.put(hash, pair.getFirst());
+          return pair;
+        }
       }
 
       return Pair.of(null, null);
@@ -247,6 +249,8 @@ public class ABMTransferRelation implements TransferRelation {
     }
   }
 
+  @Option(description="if enabled, cache queries also consider blocks with non-matching precision for reuse.")
+  private boolean aggressiveCaching = true;
 
   private final Cache artCache = new Cache();
 
@@ -518,7 +522,9 @@ public class ABMTransferRelation implements TransferRelation {
       }
     }
 
-    ensureExactCacheHitsOnPath(mainReachedSet, pPath, element, newPrecision, pPathElementToReachedElement, neededRemoveCachedSubtreeCalls);
+    if(aggressiveCaching) {
+      ensureExactCacheHitsOnPath(mainReachedSet, pPath, element, newPrecision, pPathElementToReachedElement, neededRemoveCachedSubtreeCalls);
+    }
 
     for(Pair<ARTReachedSet, ARTElement> removeSubtreeArguments : neededRemoveSubtreeCalls) {
       removeSubtree(removeSubtreeArguments.getFirst(), removeSubtreeArguments.getSecond());
