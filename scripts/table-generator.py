@@ -82,6 +82,139 @@ CSS = '''
 </style>
 '''
 
+PLOTTING_SCRIPT = '''
+<script type="text/javascript">
+// add the event handler after document is fully loaded
+window.addEventListener("load", function() {
+  document.getElementById('columnTitles').onclick = function(event) {
+    document.getElementById('graph').style.display='block';
+    Processing.getInstanceById('graph').setup(event);
+  }
+}, false);
+</script>
+<script src="http://processingjs.org/content/download/processing-js-1.3.6/processing-1.3.6.js"></script>
+<script type="application/processing">
+// define some constants for the UI
+int SCALE	= 1;
+int WIDTH	= 1200 / SCALE;
+int HEIGHT	= 500 / SCALE;
+int X_OFFSET	= 50 / SCALE;
+int Y_OFFSET	= 50 / SCALE;
+
+// define the maximal value, used for normalisation
+int MAX_VALUE	= 100;
+
+// keep track of the iteration where are in
+int iteration	= 0;
+
+// the collection of values
+Array values  	= null;
+
+// Setup the Processing Canvas
+void setup(event){
+  size(WIDTH, HEIGHT);
+  strokeWeight(3);
+  frameRate(30);
+  
+  iteration = 0;
+
+  if(event == undefined) {
+    columnName = 'cputime';
+  } else {
+    columnName = event.originalTarget.innerHTML;
+  }
+
+  tableBody	= document.getElementsByTagName('tbody')[0];
+
+  rowCount	= tableBody.rows.length;
+  columnIndices	= getColumnIndicesForHeader(columnName).toArray();
+colorMode(RGB, Math.ceil(columnIndices.length / 3));
+  double max = 0;
+
+  values = new Array(rowCount);
+  for(j = 0; j < rowCount; j++) {
+    values[j] = new Array(columnIndices.length);
+
+    for(i = 0; i < columnIndices.length; i++) {
+      currentCell = tableBody.rows[j].cells[columnIndices[i]];
+      value       = currentCell.innerHTML;
+
+      if(columnName === 'status') {
+	if(currentCell.className.indexOf('correct') == 0)
+	  value = 100;
+	else if(currentCell.className.indexOf('wrong') == 0)
+	  value = 0;
+	else
+	  value = 50;
+      }
+
+      values[j][i] = parseFloat(value);
+
+      if(isNaN(values[j][i]))
+	values[j][i] = 0;
+
+      max = Math.max(max, values[j][i]);
+    }
+  }
+
+  for(j = 0; j < rowCount; j++) {
+    for(i = 0; i < columnIndices.length; i++) {
+      if(max == 0) {
+	values[j][i] = 0;
+      } else {
+	values[j][i] = (values[j][i] / max) * MAX_VALUE;
+      }
+    }
+  }
+}
+
+// Main draw loop
+void draw(){
+  if(iteration < values.length - 1) {
+    steppingX = /*Math.floor*/((WIDTH - 2 * X_OFFSET) / values.length);
+    steppingY = /*Math.floor*/((HEIGHT - 2 * Y_OFFSET) / MAX_VALUE);
+
+    currentX = iteration * steppingX + X_OFFSET;
+
+    Array previousPoints = values[iteration];
+    Array currentPoints = values[iteration + 1];
+    
+    for(i = 0; i < currentPoints.length; i++) {
+      // some experiments with transparency in last parameter, so that next line does not fully paint over previous line ...
+      stroke(255 * ((i >> 2) % 2), 255 * ((i >> 1) % 2), 255 * (i % 2));
+      // ... discarded in favour of introducing some error - adding one pixel in height per plotted graph line
+      line(currentX, HEIGHT - Y_OFFSET - previousPoints[i] * steppingY + i, currentX + steppingX, HEIGHT - Y_OFFSET - currentPoints[i] * steppingY + i);
+    }
+
+    iteration += 1;
+    //frameRate(iteration);
+  }
+}
+
+ArrayList getColumnIndicesForHeader(String header) {
+  ArrayList columnIndizes = new ArrayList();
+
+  cells = document.getElementById('columnTitles').cells;
+
+  for(i = 0; i < cells.length; i++) {
+    String currentHeader = cells[i].innerHTML;
+    if(currentHeader.equals(header)) {
+      columnIndizes.add(i);
+    }
+  }
+
+  return columnIndizes;
+}
+
+// Set circle's next destination
+void mouseClicked(){
+  document.getElementById('graph').style.display="none";
+}
+</script>
+<canvas id="graph" style="border:solid 10px black; border-radius:15px; display:none; position:fixed; left:25%; top:25%; width:50%; height:50%; background-color:grey; opacity:0.75;" width="800" height="600">
+</canvas>
+'''
+
 
 TITLE = '''
 <title>table of tests</title>
@@ -168,7 +301,7 @@ def appendTests(listOfTests, filelist, columns=None):
             else:
                 columnTitles = availableColumnTitles
 
-            if LOGFILES_IN_HTML: insertLogFileNames(resultFile, resultElem)
+            if options.logfilesInHtml: insertLogFileNames(resultFile, resultElem)
 
             listOfTests.append((resultElem, columnTitles))
         else:
@@ -489,7 +622,7 @@ def getTableBody(listOfTests):
     for fileName in fileNames:
         filePath = getPathOfSourceFile(fileName)
 
-        if LOGFILES_IN_HTML:
+        if options.logfilesInHtml:
             rowsForHTML.append(['<td><a href="{0}">{1}</a></td>'.
                             format(quote(filePath), fileName.replace(commonPrefix, '', 1))])
         else:
@@ -575,7 +708,7 @@ def getValuesOfFileXTest(currentFile, listOfColumns):
                     else:
                         currentFile.status = 'error'
 
-                    if LOGFILES_IN_HTML:
+                    if options.logfilesInHtml:
                         valuesForHTML.append('<td class="{0}"><a href="{1}">{2}</a></td>'
                             .format(currentFile.status, quote(str(currentFile.get('logfileForHtml'))), status))
                     else:
@@ -716,8 +849,9 @@ def createTable(file, filesFromXML=False):
                 + tableBodyHTML.replace('\n','\n' + HTML_SHIFT) \
                 + '\n</table>\n\n'
 
-    htmlCode = DOCTYPE + '<html>\n\n<head>\n' + CSS + TITLE + '\n</head>\n\n<body>\n\n' \
-                + tableCode + '</body>\n\n</html>'
+    htmlCode = DOCTYPE + '<html>\n\n<head>\n' + CSS + TITLE + '\n</head>\n\n<body>\n\n'
+    if options.enablePlotting: htmlCode += PLOTTING_SCRIPT + '\n'
+    htmlCode += tableCode + '</body>\n\n</html>'
 
     if not os.path.isdir(OUTPUT_PATH): os.makedirs(OUTPUT_PATH)
     HTMLFile = open(HTMLOutFileName, "w")
@@ -757,15 +891,18 @@ def main(args=None):
         action="store_false", dest="logfilesInHtml", default=True,
         help="create table without links to logfiles."
     )
+    parser.add_option("-p", "--plot", 
+        action="store_true", dest="enablePlotting", default=False,
+        help="put JavaScript in html-code that enables plotting functionality in the resulting table."
+    )
+
+    global options
     options, args = parser.parse_args(args)
 
     if options.outputPath:
         global OUTPUT_PATH
         OUTPUT_PATH = options.outputPath if options.outputPath.endswith('/') \
                  else options.outputPath + '/'
-
-    global LOGFILES_IN_HTML
-    LOGFILES_IN_HTML = options.logfilesInHtml
 
     if options.xmltablefile:
         print ("reading table definition from '" + options.xmltablefile + "'...")
