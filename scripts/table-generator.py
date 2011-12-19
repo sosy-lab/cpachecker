@@ -82,9 +82,9 @@ CSS = '''
 </style>
 '''
 
-SCRIPT = '''
+PLOTTING_SCRIPT = '''
+<script type="text/javascript">
 // add the event handler after document is fully loaded
-<script>
 window.addEventListener("load", function() {
   document.getElementById('columnTitles').onclick = function(event) {
     document.getElementById('graph').style.display='block';
@@ -181,7 +181,7 @@ void draw(){
     
     for(i = 0; i < currentPoints.length; i++) {
       // some experiments with transparency in last parameter, so that next line does not fully paint over previous line ...
-      stroke(255 * (i % 4 == 0), 255 * (i % 3 == 0), 255 * (i % 2 == 0)/*, 100 + 50 * (3 - i)*/);
+      stroke(255 * ((i >> 2) % 2), 255 * ((i >> 1) % 2), 255 * (i % 2));
       // ... discarded in favour of introducing some error - adding one pixel in height per plotted graph line
       line(currentX, HEIGHT - Y_OFFSET - previousPoints[i] * steppingY + i, currentX + steppingX, HEIGHT - Y_OFFSET - currentPoints[i] * steppingY + i);
     }
@@ -850,7 +850,7 @@ def createTable(file, filesFromXML=False):
                 + '\n</table>\n\n'
 
     htmlCode = DOCTYPE + '<html>\n\n<head>\n' + CSS + TITLE + '\n</head>\n\n<body>\n\n'
-    if options.includeJavaScript: htmlCode += SCRIPT + '\n'
+    if options.enablePlotting: htmlCode += PLOTTING_SCRIPT + '\n'
     htmlCode += tableCode + '</body>\n\n</html>'
 
     if not os.path.isdir(OUTPUT_PATH): os.makedirs(OUTPUT_PATH)
@@ -891,9 +891,9 @@ def main(args=None):
         action="store_false", dest="logfilesInHtml", default=True,
         help="create table without links to logfiles."
     )
-    parser.add_option("-s", "--script", 
-        action="store_true", dest="includeJavaScript", default=False,
-        help="put JavaScript in html-code. This flag enables functionality in the resulting table, i.e. plotting graphs."
+    parser.add_option("-p", "--plot", 
+        action="store_true", dest="enablePlotting", default=False,
+        help="put JavaScript in html-code that enables plotting functionality in the resulting table."
     )
 
     global options
