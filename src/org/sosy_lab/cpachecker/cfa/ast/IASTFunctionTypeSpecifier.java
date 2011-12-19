@@ -72,6 +72,14 @@ public class IASTFunctionTypeSpecifier extends IType {
 
   @Override
   public String toASTString() {
+    return toASTStringHelper(false);
+  }
+
+  String toASTStringFunctionPointer() {
+    return toASTStringHelper(true);
+  }
+
+  private String toASTStringHelper(boolean pPointer) {
     StringBuilder lASTString = new StringBuilder();
 
     if (isConst()) {
@@ -82,16 +90,26 @@ public class IASTFunctionTypeSpecifier extends IType {
     }
 
     lASTString.append(returnType.toASTString());
-    lASTString.append(" ");
 
     if (name != null) {
-      lASTString.append(name);
-      lASTString.append(" ");
+      if (pPointer) {
+        lASTString.append("(*");
+        lASTString.append(name);
+        lASTString.append(")");
+      } else {
+        lASTString.append(name);
+      }
     }
 
     lASTString.append("(");
-    lASTString.append(Joiner.on(", ").join(new ASTStringIterable(parameters)));
-    lASTString.append(")");
+    if (parameters.isEmpty()) {
+      if (!pPointer) {
+        lASTString.append("void");
+      }
+    } else {
+      lASTString.append(Joiner.on(", ").join(new ASTStringIterable(parameters)));
+    }
+    lASTString.append(") ");
 
     return lASTString.toString();
   }

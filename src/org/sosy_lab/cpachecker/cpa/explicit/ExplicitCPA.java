@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
-import java.util.HashMap;
-import java.util.Set;
-
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -42,25 +39,18 @@ import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
-import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
-import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
+
+import com.google.common.collect.HashMultimap;
 
 @Options(prefix="cpa.explicit")
-public class ExplicitCPA implements ConfigurableProgramAnalysis {
+public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM {
 
   public static CPAFactory factory()
   {
@@ -86,19 +76,12 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
   private StopOperator stopOperator;
   private TransferRelation transferRelation;
   private PrecisionAdjustment precisionAdjustment;
+  private final ExplicitReducer reducer;
 
   private final Configuration config;
   private final LogManager logger;
 
-  private final RegionManager regionManager;
-  private final ExtendedFormulaManager formulaManager;
-  private final PathFormulaManager pathFormulaManager;
-  private final TheoremProver theoremProver;
-
-  private final PredicateAbstractionManager predicateManager;
-
-  private ExplicitCPA(Configuration config, LogManager logger) throws InvalidConfigurationException
-  {
+  private ExplicitCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     this.config = config;
     this.logger = logger;
 
@@ -110,125 +93,97 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
     mergeOperator       = initializeMergeOperator();
     stopOperator        = initializeStopOperator();
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
-
-    MathsatFormulaManager mathsatFormulaManager = MathsatFactory.createFormulaManager(config, logger);
-
-    regionManager       = BDDRegionManager.getInstance();
-    formulaManager      = new ExtendedFormulaManager(mathsatFormulaManager, config, logger);
-    pathFormulaManager  = new PathFormulaManagerImpl(formulaManager, config, logger);
-    theoremProver       = new MathsatTheoremProver(mathsatFormulaManager);
-    predicateManager    = new PredicateAbstractionManager(regionManager, formulaManager, theoremProver, config, logger);
+    reducer             = new ExplicitReducer();
   }
 
-  private MergeOperator initializeMergeOperator()
-  {
-    if(mergeType.equals("SEP"))
+  private MergeOperator initializeMergeOperator() {
+    if(mergeType.equals("SEP")) {
       return MergeSepOperator.getInstance();
+    }
 
-    else if(mergeType.equals("JOIN"))
+    else if(mergeType.equals("JOIN")) {
       return new MergeJoinOperator(abstractDomain);
+    }
 
     return null;
   }
 
-  private StopOperator initializeStopOperator()
-  {
-    if(stopType.equals("SEP"))
+  private StopOperator initializeStopOperator() {
+    if(stopType.equals("SEP")) {
       return new StopSepOperator(abstractDomain);
+    }
 
-    else if(stopType.equals("JOIN"))
+    else if(stopType.equals("JOIN")) {
       return new StopJoinOperator(abstractDomain);
+    }
 
-    else if(stopType.equals("NEVER"))
+    else if(stopType.equals("NEVER")) {
       return new StopNeverOperator();
+    }
 
     return null;
   }
 
-  private ExplicitPrecision initializePrecision()
-  {
-    if(this.useCegar())
-      return new ExplicitPrecision(variableBlacklist, new HashMap<CFANode, Set<String>>());
+  private ExplicitPrecision initializePrecision() {
+    HashMultimap<CFANode, String> whitelist = null;
 
-    else
-      return new ExplicitPrecision(variableBlacklist, null);
+    if(this.useCegar()) {
+      whitelist = HashMultimap.create();
+    }
+
+    return new ExplicitPrecision(variableBlacklist, whitelist);
   }
 
   @Override
-  public AbstractDomain getAbstractDomain ()
-  {
+  public AbstractDomain getAbstractDomain() {
     return abstractDomain;
   }
 
   @Override
-  public MergeOperator getMergeOperator ()
-  {
+  public MergeOperator getMergeOperator() {
     return mergeOperator;
   }
 
   @Override
-  public StopOperator getStopOperator ()
-  {
+  public StopOperator getStopOperator() {
     return stopOperator;
   }
 
   @Override
-  public TransferRelation getTransferRelation ()
-  {
+  public TransferRelation getTransferRelation() {
     return transferRelation;
   }
 
   @Override
-  public AbstractElement getInitialElement (CFANode node)
-  {
+  public AbstractElement getInitialElement(CFANode node) {
     return new ExplicitElement();
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode)
-  {
+  public Precision getInitialPrecision(CFANode pNode) {
     return precision;
   }
 
   @Override
-  public PrecisionAdjustment getPrecisionAdjustment()
-  {
+  public PrecisionAdjustment getPrecisionAdjustment() {
     return precisionAdjustment;
   }
 
-  protected PredicateAbstractionManager getPredicateManager()
-  {
-    return predicateManager;
-  }
-
-  protected Configuration getConfiguration()
-  {
+  protected Configuration getConfiguration() {
     return config;
   }
 
-  protected LogManager getLogger()
-  {
+  protected LogManager getLogger() {
     return logger;
   }
 
-  protected ExtendedFormulaManager getFormulaManager()
-  {
-    return formulaManager;
-  }
-
-  protected PathFormulaManager getPathFormulaManager()
-  {
-    return pathFormulaManager;
-  }
-
-  protected TheoremProver getTheoremProver()
-  {
-    return theoremProver;
-  }
-
-  private boolean useCegar()
-  {
+  private boolean useCegar() {
     return this.config.getProperty("analysis.useRefinement") != null
       && this.config.getProperty("cegar.refiner").equals("cpa.explicit.ExplicitRefiner");
+  }
+
+  @Override
+  public Reducer getReducer() {
+    return reducer;
   }
 }

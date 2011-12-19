@@ -124,31 +124,17 @@ implements GenericAssumptionBuilder
 
     if (bounds.getFirst() != null) {
 
-      final String rawStatementOfsecondExpr =
-          "(" + exp.getRawSignature() + ">=" + bounds.getFirst().getRawSignature() + ")";
-      final IASTBinaryExpression secondExp =
-          new IASTBinaryExpression(rawStatementOfsecondExpr, null, null, exp,
+      final IASTBinaryExpression secondExp = new IASTBinaryExpression(null, null, exp,
               bounds.getFirst(), BinaryOperator.GREATER_EQUAL);
-      final String rawStatementOfNewResult =
-          "(" + result.getRawSignature() + "&&" + secondExp.getRawSignature()
-              + ")";
-      result =
-          new IASTBinaryExpression(rawStatementOfNewResult, null, null,
+      result = new IASTBinaryExpression(null, null,
               (IASTExpression) result, secondExp, BinaryOperator.LOGICAL_AND);
     }
 
     if (bounds.getSecond() != null) {
 
-      final String rawStatementOfsecondExpr =
-          "(" + exp.getRawSignature() + "<=" + bounds.getSecond().getRawSignature() + ")";
-      final IASTBinaryExpression secondExp =
-          new IASTBinaryExpression(rawStatementOfsecondExpr, null, null, exp,
+      final IASTBinaryExpression secondExp = new IASTBinaryExpression(null, null, exp,
               bounds.getSecond(), BinaryOperator.LESS_EQUAL);
-      final String rawStatementOfNewResult =
-          "(" + result.getRawSignature() + "&&" + secondExp.getRawSignature()
-              + ")";
-      result =
-          new IASTBinaryExpression(rawStatementOfNewResult, null, null,
+      result =new IASTBinaryExpression(null, null,
               (IASTExpression) result, secondExp, BinaryOperator.LOGICAL_AND);
     }
     return result;
@@ -207,7 +193,7 @@ implements GenericAssumptionBuilder
         {
           String name = paramdecl.getName();
           IType type = paramdecl.getDeclSpecifier();
-          IASTExpression exp = new IASTIdExpression(paramdecl.getRawSignature(), paramdecl.getFileLocation(), type, name, paramdecl);
+          IASTExpression exp = new IASTIdExpression(paramdecl.getFileLocation(), type, name, paramdecl);
           result = visit(exp, result);
         }
       }

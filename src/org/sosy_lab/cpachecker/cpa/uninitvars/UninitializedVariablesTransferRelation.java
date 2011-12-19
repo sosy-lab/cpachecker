@@ -317,7 +317,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     if (op1 instanceof IASTIdExpression) {
       // assignment to simple variable
 
-      String leftName = op1.getRawSignature();
+      String leftName = ((IASTIdExpression)op1).getName();
 
       if (isExpressionUninitialized(element, op2, cfaEdge)) {
         setUninitialized(element, leftName);
@@ -334,7 +334,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
           isExpressionUninitialized(element, op2, cfaEdge);
         }
       } else {
-        String leftName = op1.getRawSignature();
+        String leftName = op1.toASTString();
         if (isExpressionUninitialized(element, op2, cfaEdge)) {
           setUninitialized(element, leftName);
         } else {
@@ -368,7 +368,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       return false;
 
     } else if (expression instanceof IASTIdExpression) {
-      String variable = expression.getRawSignature();
+      String variable = ((IASTIdExpression)expression).getName();
       if (element.isUninitialized(variable)) {
         addWarning(cfaEdge, variable, expression, element);
         return true;
@@ -385,7 +385,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       if (e.isPointerDereference()) {
         return isExpressionUninitialized(element, e.getFieldOwner(), cfaEdge);
       } else {
-        String variable = expression.getRawSignature();
+        String variable = expression.toASTString();
         if (element.isUninitialized(variable)) {
           addWarning(cfaEdge, variable, expression, element);
           return true;
@@ -435,7 +435,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
         //(with enabled call to return edges), the return value is always assumed to be initialized
         boolean returnUninit = element.isUninitialized("CPAChecker_UninitVars_FunctionReturn");
         if (printWarnings && returnUninit) {
-          addWarning(cfaEdge, funcExpression.getRawSignature(), expression, element);
+          addWarning(cfaEdge, funcExpression.toASTString(), expression, element);
         }
         //get rid of the local context, as it is no longer needed and may be different on the next call.
         //only do this in case of an internal call.
@@ -524,8 +524,8 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
           IASTExpression op1 = ((IASTAssignment) exp).getLeftHandSide();
           IASTRightHandSide op2 = ((IASTAssignment) exp).getRightHandSide();
 
-          String leftName = op1.getRawSignature();
-          String rightName = op2.getRawSignature();
+          String leftName = op1.toASTString();
+          String rightName = op2.toASTString();
 
           for (AbstractElement other : otherElements) {
             //only interested in the types here
@@ -627,7 +627,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
    */
   private Type checkForFieldReferenceType(IASTRightHandSide exp, TypesElement typeElem, CFAEdge cfaEdge) {
 
-    String name = exp.getRawSignature();
+    String name = exp.toASTString();
     Type t = null;
 
     if (exp instanceof IASTFieldReference) {

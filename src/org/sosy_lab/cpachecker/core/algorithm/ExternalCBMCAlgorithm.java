@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -95,10 +94,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     CBMCExecutor cbmc;
     int exitCode;
     try {
-
-      String CBMCArgs[] = buildCBMCArguments();
-
-      cbmc = new CBMCExecutor(logger, new File(fileName), CBMCArgs);
+      cbmc = new CBMCExecutor(logger, buildCBMCArguments(fileName));
       exitCode = cbmc.join(timelimit);
 
     } catch (IOException e) {
@@ -140,7 +136,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     return true;
   }
 
-  private String[] buildCBMCArguments() {
+  private String[] buildCBMCArguments(String fileName) {
     List<String> paramsList = new ArrayList<String>();
 
     paramsList.add("cbmc");
@@ -155,6 +151,8 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     if(noUnwindingAssertions){
       paramsList.add("--no-unwinding-assertions");
     }
+
+    paramsList.add(fileName);
 
     String s[] = new String[paramsList.size()];
     return paramsList.toArray(s);

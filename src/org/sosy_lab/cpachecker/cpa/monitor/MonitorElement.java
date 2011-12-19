@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.monitor;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
+import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingElement;
 import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula;
 import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -105,7 +105,7 @@ public class MonitorElement extends AbstractSingleWrapperElement implements Avoi
   public Formula getReasonFormula(FormulaManager manager) {
 
     if (mustDumpAssumptionForAvoidance()) {
-      String preventingHeuristicStringFormula = HeuristicToFormula.getFormulaStringForHeuristic(preventingCondition);
+      String preventingHeuristicStringFormula = HeuristicToFormula.getFormulaStringForHeuristic(preventingCondition.getFirst(), preventingCondition.getSecond());
       return manager.parse(preventingHeuristicStringFormula);
 
     } else {

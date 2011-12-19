@@ -1,5 +1,29 @@
 #!/usr/bin/python
-from __future__ import with_statement #for python 2.5
+
+"""
+CPAchecker is a tool for configurable software verification.
+This file is part of CPAchecker.
+
+Copyright (C) 2007-2011  Dirk Beyer
+All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+
+CPAchecker web page:
+  http://cpachecker.sosy-lab.org
+"""
+
 import os
 import re
 import sys
@@ -19,19 +43,19 @@ class Template(object):
     """
     a pretty limited template "engine" :)
     """
-    
+
     def __init__(self, infile, outfile):
         self.infile = infile
         self.outfile = outfile
-        
+
     def render(self, **kws):
         """
         pass kwargs here. The value should be a callable that returns the string to insert for the key.
-        
+
         render(test=lambda : "This is a test!!") will substitute {{{test}}} for "This is a test!!"
-        
+
         WARNING: currently only one template var e.g. {{{test}}} may appear on a single line in the template.
-        
+
         """
         for line in self.infile:
             match = SUBSTITUTION_RE.search(line)
@@ -64,61 +88,61 @@ def call_dot(infile, outpath):
             pass # if outfile is not written, removing is impossible
 
     if code != 0:
-        print 'Error: Could not call GraphViz to create graph %s (error code %d)' % (outfile, code)
-        print 'Report generation failed'
+        print ('Error: Could not call GraphViz to create graph {0} (error code {1})'.format(outfile, code))
+        print ('Report generation failed')
         sys.exit(1)
 
 def main():
 
     parser = optparse.OptionParser('%prog [options] sourcefile')
-    parser.add_option("-r", "--reportpath", 
-        action="store", 
-        type="string", 
+    parser.add_option("-r", "--reportpath",
+        action="store",
+        type="string",
         dest="reportdir",
         help="Directory for report"
     )
-    parser.add_option("-o", "--outputpath", 
-        action="store", 
-        type="string", 
+    parser.add_option("-o", "--outputpath",
+        action="store",
+        type="string",
         dest="outdir",
         help="CPAChecker output.path"
     )
-    parser.add_option("-a", "--art", 
-        action="store", 
-        type="string", 
+    parser.add_option("-a", "--art",
+        action="store",
+        type="string",
         dest="art",
         help="CPAChecker ART.file"
     )
-    parser.add_option("-l", "--logfile", 
-        action="store", 
-        type="string", 
+    parser.add_option("-l", "--logfile",
+        action="store",
+        type="string",
         dest="logfile",
         help="CPAChecker log.file"
     )
-    parser.add_option("-s", "--statistics", 
-        action="store", 
-        type="string", 
+    parser.add_option("-s", "--statistics",
+        action="store",
+        type="string",
         dest="statsfile",
         help="CPAChecker statistics.file"
     )
-    parser.add_option("-e", "--errorpath", 
-        action="store", 
-        type="string", 
+    parser.add_option("-e", "--errorpath",
+        action="store",
+        type="string",
         dest="errorpath",
         help="CPAChecker cpa.art.errorPath.json"
     )
     parser.add_option("-c", "--config",
-        action="store", 
-        type="string", 
+        action="store",
+        type="string",
         dest="conffile",
         help="path to CPAChecker config file"
     )
-    
+
     options, args = parser.parse_args()
     if len(args) != 1:
          parser.error('Incorrect number of arguments, you need to specify the source code file')
-    
-    print 'Generating report'
+
+    print ('Generating report')
     scriptdir = os.path.dirname(__file__)
     cpacheckerdir = os.path.normpath(os.path.join(scriptdir, '..'))
     cpaoutdir = options.outdir or os.path.join(cpacheckerdir, 'output')
@@ -128,7 +152,7 @@ def main():
     artfilepath = options.art or os.path.join(cpaoutdir, 'ART.dot')
     errorpath = options.errorpath or os.path.join(cpaoutdir, 'ErrorPath.json')
     combinednodes = os.path.join(reportdir, 'combinednodes.json')
-    cfainfo = os.path.join(reportdir, 'cfainfo.json')    
+    cfainfo = os.path.join(reportdir, 'cfainfo.json')
     fcalledges = os.path.join(reportdir, 'fcalledges.json')
     logfile = options.logfile or os.path.join(cpaoutdir, 'CPALog.txt')
     statsfile = options.statsfile or os.path.join(cpaoutdir, 'Statistics.txt')
@@ -145,7 +169,7 @@ def main():
                     raise Exception('File not found: ' + filepath)
                 else:
                     return 'Not found:' + filepath
-            print 'Reading: ' + filepath
+            print ('Reading: ' + filepath)
             with open(filepath, 'r') as fp:
                 if encode:
                     return fp.read().replace('<','&lt;').replace('>', '&gt;')
@@ -155,7 +179,7 @@ def main():
 
     def gen_functionlist():
         funclist = [x[5:-4] for x in os.listdir(cpaoutdir) if x.startswith('cfa__') and x.endswith('.dot')]
-        print 'Generating SVGs for CFA'
+        print ('Generating SVGs for CFA')
         for func in funclist:
             call_dot(os.path.join(cpaoutdir, 'cfa__' + func + '.dot'), reportdir)
         return json.dumps(funclist, indent=4)
@@ -163,7 +187,7 @@ def main():
     def format_cil():
         if not os.path.isfile(cilfile):
             return '<h3>CIL file not found.</h3>'
-        else:            
+        else:
             with open(cilfile, 'r') as fp:
                 buff = ['<table id="cil_holder">']
                 for no, line in enumerate(fp):
@@ -178,7 +202,7 @@ def main():
 
     #if there is an ART.dot create an SVG in the report dir
     if os.path.isfile(artfilepath):
-        print 'Generating SVG for ART'
+        print ('Generating SVG for ART')
         call_dot(artfilepath, reportdir)
 
     inf = open(tplfilepath, 'r')
@@ -198,10 +222,10 @@ def main():
         formatted_cil=format_cil,
         sourcefile=lambda: cilfile[cilfile.rfind('/') + 1:], # get filename without path
     )
-  
+
     inf.close()
     outf.close()
-    print 'Report generated in %s' % (outfilepath)
+    print ('Report generated in {0}'.format(outfilepath))
 
 if __name__ == '__main__':
     main()

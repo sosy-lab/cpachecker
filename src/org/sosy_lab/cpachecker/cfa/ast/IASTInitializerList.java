@@ -32,10 +32,9 @@ public class IASTInitializerList extends IASTInitializer {
 
   private final List<IASTInitializer> initializerList;
 
-  public IASTInitializerList(final String pRawSignature,
-      final IASTFileLocation pFileLocation,
-      final List<IASTInitializer> pInitializerList) {
-    super(pRawSignature, pFileLocation);
+  public IASTInitializerList(final IASTFileLocation pFileLocation,
+                             final List<IASTInitializer> pInitializerList) {
+    super(pFileLocation);
     initializerList = ImmutableList.copyOf(pInitializerList);
   }
 
@@ -44,12 +43,13 @@ public class IASTInitializerList extends IASTInitializer {
   }
 
   @Override
-  public String toASTString() {
+  public String toASTString(String pPrefix) {
     StringBuilder lASTString = new StringBuilder();
 
-    lASTString.append("{");
+    lASTString.append(pPrefix);
+    lASTString.append("{ ");
     lASTString.append(Joiner.on(", ").join(new ASTStringIterable(initializerList)));
-    lASTString.append("}");
+    lASTString.append(" }");
 
     return lASTString.toString();
   }

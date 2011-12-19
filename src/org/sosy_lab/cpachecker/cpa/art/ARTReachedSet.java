@@ -100,6 +100,15 @@ public class ARTReachedSet {
       mReached.reAddToWaitlist(ae);
     }
   }
+  public void removeSubtree(ARTElement e, Precision p1, Precision p2) {
+    Set<ARTElement> toWaitlist = removeSubtree0(e);
+
+    for (ARTElement ae : toWaitlist) {
+      mReached.updatePrecision(ae, adaptPrecision(ae, p1));
+      mReached.updatePrecision(ae, adaptPrecision(ae, p2));
+      mReached.reAddToWaitlist(ae);
+    }
+  }
 
   /**
    * Adapts the precision stored in the reached set for lARTElement.

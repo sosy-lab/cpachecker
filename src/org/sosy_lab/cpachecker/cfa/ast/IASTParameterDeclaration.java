@@ -31,13 +31,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public final class IASTParameterDeclaration extends IASTSimpleDeclaration {
 
-  public IASTParameterDeclaration(String pRawSignature,
-      IASTFileLocation pFileLocation, IType pSpecifier, String pName) {
-    super(pRawSignature, pFileLocation, pSpecifier, checkNotNull(pName));
+  public IASTParameterDeclaration(IASTFileLocation pFileLocation,
+                                  IType pSpecifier,
+                                  String pName) {
+    super(pFileLocation, pSpecifier, checkNotNull(pName));
   }
 
   @Override
-  public String toASTString() {
-    return getDeclSpecifier().toASTString() + " " + getName();
+  public String toASTString(String pPrefix) {
+    return pPrefix + getDeclSpecifier().toASTString() + getName();
   }
 }

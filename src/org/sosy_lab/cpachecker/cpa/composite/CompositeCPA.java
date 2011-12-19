@@ -259,4 +259,9 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     return null;
   }
+
+  @Override
+  public ImmutableList<? extends ConfigurableProgramAnalysis> getWrappedCPAs() {
+    return cpas;
+  }
 }

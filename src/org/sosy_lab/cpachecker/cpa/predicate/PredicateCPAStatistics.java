@@ -33,6 +33,7 @@ import java.util.TreeMap;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -58,8 +59,9 @@ class PredicateCPAStatistics implements Statistics {
     @Option(description="export final predicate map, if the error location is not reached")
     private boolean export = true;
 
-    @Option(type=Option.Type.OUTPUT_FILE,
+    @Option(
         description="export final predicate map, if the error location is not reached")
+    @FileOption(FileOption.Type.OUTPUT_FILE)
     private File file = new File("predmap.txt");
 
     private final PredicateCPA cpa;

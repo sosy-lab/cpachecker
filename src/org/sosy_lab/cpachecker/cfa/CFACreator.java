@@ -36,6 +36,7 @@ import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -84,8 +85,9 @@ public class CFACreator {
       description="export individual CFAs for function as .dot files")
   private boolean exportCfaPerFunction = true;
 
-  @Option(name="cfa.file", type=Option.Type.OUTPUT_FILE,
+  @Option(name="cfa.file",
       description="export CFA as .dot file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
   private File exportCfaFile = new File("cfa.dot");
 
   private final LogManager logger;
@@ -173,7 +175,7 @@ public class CFACreator {
 
       // Insert call and return edges and build the supergraph
       if (interprocedural) {
-        logger.log(Level.FINE, "Analysis is interprocedural, adding super edges");
+        logger.log(Level.FINE, "Analysis is interprocedural, adding super edges.");
 
         CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfa.getAllFunctions());
         spbuilder.insertCallEdgesRecursively();
@@ -213,7 +215,7 @@ public class CFACreator {
         exportCFA(immutableCFA);
       }
 
-      logger.log(Level.FINE, "DONE, CFA for", immutableCFA.getNumberOfFunctions(), "functions created");
+      logger.log(Level.FINE, "DONE, CFA for", immutableCFA.getNumberOfFunctions(), "functions created.");
 
       return immutableCFA;
 
@@ -235,7 +237,7 @@ public class CFACreator {
 
     if (!mainFunctionName.equals("main")) {
       // function explicitly given by user, but not found
-      throw new InvalidConfigurationException("Function " + mainFunctionName + " not found!");
+      throw new InvalidConfigurationException("Function " + mainFunctionName + " not found.");
     }
 
     if (cfas.size() == 1) {
@@ -253,7 +255,7 @@ public class CFACreator {
       mainFunction = cfas.get(baseFilename);
 
       if (mainFunction == null) {
-        throw new InvalidConfigurationException("No entry function found, please specify one!");
+        throw new InvalidConfigurationException("No entry function found, please specify one.");
       }
       return mainFunction;
     }
@@ -270,7 +272,7 @@ public class CFACreator {
       loopStructure = Optional.of(loops.build());
     } catch (ParserException e) {
       // don't abort here, because if the analysis doesn't need the loop information, we can continue
-      logger.logUserException(Level.WARNING, e, "Could not analyze loop structure of program");
+      logger.logUserException(Level.WARNING, e, "Could not analyze loop structure of program.");
       loopStructure = Optional.absent();
     }
     CFACreator.loops = loopStructure.orNull();
@@ -318,42 +320,37 @@ public class CFACreator {
   }
 
   private void exportCFA(final CFA cfa) {
-    // execute asynchronously, this may take several seconds for large programs on slow disks
-    new Thread(new Runnable() {
-      @Override
-      public void run() {
-        exportTime.start();
+    // We used to do this asynchronously.
+    // However, FunctionPointerCPA modifies the CFA during analysis, so this is
+    // no longer safe.
 
-        // running the following in parallel is thread-safe
-        // because we don't modify the CFA from this point on
+    exportTime.start();
 
-        // write CFA to file
-        if (exportCfa) {
-          try {
-            Files.writeFile(exportCfaFile,
-                DOTBuilder.generateDOT(cfa.getAllFunctionHeads(), cfa.getMainFunction()));
-          } catch (IOException e) {
-            logger.logUserException(Level.WARNING, e,
-              "Could not write CFA to dot file");
-            // continue with analysis
-          }
-        }
-
-        // write the CFA to files (one file per function + some metainfo)
-        if (exportCfaPerFunction) {
-          try {
-            File outdir = exportCfaFile.getParentFile();
-            DOTBuilder2.writeReport(cfa.getMainFunction(), outdir);
-          } catch (IOException e) {
-            logger.logUserException(Level.WARNING, e,
-              "Could not write CFA to dot and json file");
-            // continue with analysis
-          }
-        }
-
-        exportTime.stop();
+    // write CFA to file
+    if (exportCfa) {
+      try {
+        Files.writeFile(exportCfaFile,
+            DOTBuilder.generateDOT(cfa.getAllFunctionHeads(), cfa.getMainFunction()));
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e,
+          "Could not write CFA to dot file.");
+        // continue with analysis
       }
-    }, "CFA export thread").start();
+    }
+
+    // write the CFA to files (one file per function + some metainfo)
+    if (exportCfaPerFunction) {
+      try {
+        File outdir = exportCfaFile.getParentFile();
+        DOTBuilder2.writeReport(cfa.getMainFunction(), outdir);
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e,
+          "Could not write CFA to dot and json file.");
+        // continue with analysis
+      }
+    }
+
+    exportTime.stop();
   }
 
   private static void addToCFA(CFAEdge edge) {

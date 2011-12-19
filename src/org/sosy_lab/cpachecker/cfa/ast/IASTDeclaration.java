@@ -40,23 +40,21 @@ public final class IASTDeclaration extends IASTSimpleDeclaration {
   private final StorageClass          storageClass;
   private final IASTInitializer       initializer;
 
-  public IASTDeclaration(String pRawSignature,
-      IASTFileLocation pFileLocation,
-      boolean pIsGlobal,
-      StorageClass pStorageClass,
-      IType pSpecifier, String pName,
-      IASTInitializer pInitializer) {
-    this(pRawSignature, pFileLocation, pIsGlobal, pStorageClass, pSpecifier, pName, pName, pInitializer);
+  public IASTDeclaration(IASTFileLocation pFileLocation,
+                         boolean pIsGlobal,
+                         StorageClass pStorageClass,
+                         IType pSpecifier, String pName,
+                         IASTInitializer pInitializer) {
+    this(pFileLocation, pIsGlobal, pStorageClass, pSpecifier, pName, pName, pInitializer);
   }
 
-  public IASTDeclaration(String pRawSignature,
-      IASTFileLocation pFileLocation,
-      boolean pIsGlobal,
-      StorageClass pStorageClass,
-      IType pSpecifier, String pName,
-      String pOrigName,
-      IASTInitializer pInitializer) {
-    super(pRawSignature, pFileLocation, pSpecifier, pName, pOrigName);
+  public IASTDeclaration(IASTFileLocation pFileLocation,
+                         boolean pIsGlobal,
+                         StorageClass pStorageClass,
+                         IType pSpecifier, String pName,
+                         String pOrigName,
+                         IASTInitializer pInitializer) {
+    super(pFileLocation, pSpecifier, pName, pOrigName);
     isGlobal = pIsGlobal;
     storageClass = checkNotNull(pStorageClass);
     initializer = pInitializer;
@@ -82,15 +80,17 @@ public final class IASTDeclaration extends IASTSimpleDeclaration {
   }
 
   @Override
-  public String toASTString() {
+  public String toASTString(String pPrefix) {
     StringBuilder lASTString = new StringBuilder();
 
-    lASTString.append(storageClass.toString().toLowerCase());
-    lASTString.append(" ");
+    lASTString.append(pPrefix);
+    lASTString.append(storageClass.toASTString());
     lASTString.append(getDeclSpecifier().toASTString());
 
-    if (getName() != null) {
-      lASTString.append(" ");
+    if (getName() != null
+        && !(getDeclSpecifier() instanceof IASTFunctionTypeSpecifier)
+        && !(getDeclSpecifier() instanceof IASTPointerTypeSpecifier
+            && ((IASTPointerTypeSpecifier)getDeclSpecifier()).getType() instanceof IASTFunctionTypeSpecifier)) {
       lASTString.append(getName());
     }
 

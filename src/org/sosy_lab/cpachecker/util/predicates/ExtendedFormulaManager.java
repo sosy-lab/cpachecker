@@ -31,6 +31,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -45,7 +46,8 @@ import com.google.common.base.Joiner;
 @Options(prefix="cpa.predicate")
 public final class ExtendedFormulaManager extends ForwardingFormulaManager {
 
-  @Option(name = "formulaDumpFilePattern", type = Option.Type.OUTPUT_FILE, description = "where to dump interpolation and abstraction problems (format string)")
+  @Option(name = "formulaDumpFilePattern", description = "where to dump interpolation and abstraction problems (format string)")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
   private File formulaDumpFile = new File("%s%04d-%s%03d.msat");
   private final String formulaDumpFilePattern;
 
@@ -91,6 +93,25 @@ public final class ExtendedFormulaManager extends ForwardingFormulaManager {
       result = this.makeAnd(result, formula);
     }
     return result;
+  }
+
+  /**
+   * Makes an implication from p to q.
+   *
+   * @return (p ⇒ q)
+   */
+  public Formula makeImplication(Formula p, Formula q) {
+    Formula left = makeNot(p);
+    return makeOr(left, q);
+  }
+
+  /**
+   * Makes a Formula in which f1 and f2 are not equal.
+   *
+   * @return (f1 != f2)
+   */
+  public Formula makeNotEqual(Formula f1, Formula f2) {
+    return makeNot(makeEqual(f1, f2));
   }
 
   public File formatFormulaOutputFile(String function, int call, String formula, int index) {

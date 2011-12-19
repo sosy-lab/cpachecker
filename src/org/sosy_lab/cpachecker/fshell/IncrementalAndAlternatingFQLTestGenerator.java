@@ -282,7 +282,7 @@ public class IncrementalAndAlternatingFQLTestGenerator implements FQLTestGenerat
     CEGARAlgorithm lAlgorithm;
     try {
       //lAlgorithm = new CEGARAlgorithm(lBasicAlgorithm, lRefiner, mConfiguration, mLogManager);
-      lAlgorithm = new CEGARAlgorithm(lBasicAlgorithm, lARTCPA, lAlternatingRefiner, mConfiguration, mLogManager);
+      lAlgorithm = new CEGARAlgorithm(lBasicAlgorithm, lAlternatingRefiner, mConfiguration, mLogManager);
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     } catch (CPAException e) {

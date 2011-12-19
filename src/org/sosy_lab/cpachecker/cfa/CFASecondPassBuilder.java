@@ -118,7 +118,7 @@ public class CFASecondPassBuilder {
             IASTRightHandSide initExpression = ((IASTInitializerExpression)init).getExpression();
             if (initExpression != null && initExpression instanceof IASTFunctionCallExpression) {
               IASTFunctionCallExpression f = (IASTFunctionCallExpression)initExpression;
-              String name = f.getFunctionNameExpression().getRawSignature();
+              String name = f.getFunctionNameExpression().toASTString();
               if (cfas.containsKey(name)) {
                 throw new ParserException("Function call in initializer not supported", edge);
               }
@@ -140,7 +140,7 @@ public class CFASecondPassBuilder {
       return false;
     }
     IASTFunctionCallExpression f = ((IASTFunctionCall)s).getFunctionCallExpression();
-    String name = f.getFunctionNameExpression().getRawSignature();
+    String name = f.getFunctionNameExpression().toASTString();
     return cfas.containsKey(name);
   }
 
@@ -155,7 +155,7 @@ public class CFASecondPassBuilder {
     CFANode predecessorNode = edge.getPredecessor();
     CFANode successorNode = edge.getSuccessor();
     IASTFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
-    String functionName = functionCallExpression.getFunctionNameExpression().getRawSignature();
+    String functionName = functionCallExpression.getFunctionNameExpression().toASTString();
     int lineNumber = edge.getLineNumber();
     CFAFunctionDefinitionNode fDefNode = cfas.get(functionName);
     CFAFunctionExitNode fExitNode = fDefNode.getExitNode();
@@ -169,11 +169,11 @@ public class CFASecondPassBuilder {
     CFACreationUtils.removeEdgeFromNodes(edge);
 
     // create new edges
-    CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(functionCall.asStatement().getRawSignature(), lineNumber, predecessorNode, successorNode, functionCall);
+    CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(functionCall.asStatement().toASTString(), lineNumber, predecessorNode, successorNode, functionCall);
     predecessorNode.addLeavingSummaryEdge(calltoReturnEdge);
     successorNode.addEnteringSummaryEdge(calltoReturnEdge);
 
-    FunctionCallEdge callEdge = new FunctionCallEdge(functionCallExpression.getRawSignature(), edge.getStatement(), lineNumber, predecessorNode, (FunctionDefinitionNode)fDefNode, parameters, calltoReturnEdge);
+    FunctionCallEdge callEdge = new FunctionCallEdge(functionCallExpression.toASTString(), edge.getStatement(), lineNumber, predecessorNode, (FunctionDefinitionNode)fDefNode, parameters, calltoReturnEdge);
     predecessorNode.addLeavingEdge(callEdge);
     fDefNode.addEnteringEdge(callEdge);
 

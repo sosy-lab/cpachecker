@@ -29,13 +29,9 @@ import java.util.List;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 
-import com.google.common.base.Function;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 /**
@@ -81,102 +77,11 @@ public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
   }
 
   public List<CFAEdge> asEdgesList() {
-    Function<Pair<?, ? extends CFAEdge>, CFAEdge> projectionToSecond = Pair.getProjectionToSecond();
-    return Lists.transform(this, projectionToSecond);
+    return Lists.transform(this, Pair.<CFAEdge>getProjectionToSecond());
   }
 
-  /**
-   * This method returns the path as C source code, intended to be used with CBMC.
-   *
-   * @return the path as C source code
-   */
-  public String toSourceCode()
-  {
-    StringBuilder sb = new StringBuilder();
-
-    CFAEdgeType currentEdgeType;
-
-    sb.append("int main()");
-    sb.append("\n");
-    sb.append("{");
-    sb.append("\n");
-
-    for(CFAEdge currentEdge : asEdgesList())
-    {
-      currentEdgeType = currentEdge.getEdgeType();
-
-      switch (currentEdgeType)
-      {
-        case DeclarationEdge:
-        case StatementEdge:
-        case ReturnStatementEdge:
-          sb.append(currentEdge.getRawStatement());
-          sb.append("\n");
-
-          break;
-
-        case AssumeEdge:
-          AssumeEdge assumeEdge = (AssumeEdge)currentEdge;
-          sb.append("__CPROVER_assume(");
-
-          if(assumeEdge.getTruthAssumption()) {
-            sb.append(assumeEdge.getExpression().getRawSignature());
-          } else
-          {
-            sb.append("!(");
-            sb.append(assumeEdge.getExpression().getRawSignature());
-            sb.append(")");
-          }
-
-          sb.append(");");
-          sb.append("\n");
-
-          break;
-
-        case FunctionCallEdge:
-          FunctionCallEdge functionCallEdge = (FunctionCallEdge)currentEdge;
-
-          List<IASTExpression> actualParams = functionCallEdge.getArguments();
-
-          List<String> formalParameters = functionCallEdge.getSuccessor().getFunctionParameterNames();
-
-          // define and declare a variable for each actual parameter of the called function that corresponds to its respective formal parameter
-          for(int i = 0; i < formalParameters.size(); i++)
-          {
-            sb.append("int " + formalParameters.get(i) + ";\n");
-            sb.append(formalParameters.get(i));
-            sb.append(" = ");
-            sb.append(actualParams.get(i).getRawSignature());
-            sb.append(";\n");
-          }
-
-          break;
-
-        case BlankEdge:
-          if(currentEdge.isJumpEdge())
-          {
-            String statement = currentEdge.getRawStatement();
-            if(isGotoErrorStateLabel(statement))
-            {
-              sb.append("goto ERROR;");
-              sb.append("\n");
-
-              sb.append("ERROR:");
-              sb.append("\n");
-            }
-          }
-
-          break;
-      }
-    }
-
-    sb.append("}");
-
-    return sb.toString();
-  }
-
-  private boolean isGotoErrorStateLabel(String statement)
-  {
-    return statement.contains("Goto: ERROR");
+  public ImmutableSet<ARTElement> getElementSet() {
+    List<ARTElement> elementList = Lists.transform(this, Pair.<ARTElement>getProjectionToFirst());
+    return ImmutableSet.copyOf(elementList);
   }
 }

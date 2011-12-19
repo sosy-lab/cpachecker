@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -32,87 +30,69 @@ import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
-public class ExplicitPrecision implements Precision
-{
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
+
+public class ExplicitPrecision implements Precision {
+
   private final Pattern blackListPattern;
 
-  private Map<CFANode, Set<String>> whiteList = null;
+  private SetMultimap<CFANode, String> whiteList = null;
 
   CFANode currentLocation = null;
 
-  public ExplicitPrecision(String variableBlacklist, Map<CFANode, Set<String>> whiteList)
-  {
+  public ExplicitPrecision(String variableBlacklist, SetMultimap<CFANode, String> whiteList) {
     blackListPattern = Pattern.compile(variableBlacklist);
 
-    if(whiteList != null)
-      this.whiteList = new HashMap<CFANode, Set<String>>(whiteList);
+    if (whiteList != null) {
+      this.whiteList = HashMultimap.create(whiteList);
+    }
   }
 
-  public ExplicitPrecision(ExplicitPrecision precision, Map<CFANode, Set<String>> whiteList)
-  {
+  public ExplicitPrecision(ExplicitPrecision precision, Multimap<CFANode, String> predicateInfo,
+      Multimap<CFANode, String> pathInfo) {
     blackListPattern = precision.blackListPattern;
 
-    if(whiteList != null)
-      this.whiteList = new HashMap<CFANode, Set<String>>(whiteList);
-  }
+    this.whiteList = HashMultimap.create(precision.whiteList);
 
-  public ExplicitPrecision(ExplicitPrecision precision, Map<CFANode, Set<String>> predicateInfo, Map<CFANode, Set<String>> pathInfo)
-  {
-    blackListPattern = precision.blackListPattern;
-
-    this.whiteList = new HashMap<CFANode, Set<String>>(precision.whiteList);
-
-    addToWhitelist(predicateInfo);
-
-    addToWhitelist(pathInfo);
+    this.whiteList.putAll(predicateInfo);
+    this.whiteList.putAll(pathInfo);
   }
 
   @Override
-  public String toString()
-  {
-    return whiteList.toString();
+  public String toString() {
+    return whiteList != null ? whiteList.toString() : "whitelist disabled";
   }
 
-  public void setLocation(CFANode node)
-  {
+  public void setLocation(CFANode node) {
     currentLocation = node;
   }
 
-  boolean isOnBlacklist(String variable)
-  {
+  boolean isOnBlacklist(String variable) {
     return this.blackListPattern.matcher(variable).matches();
   }
 
-  boolean isOnWhitelist(String variable)
-  {
+  boolean isOnWhitelist(String variable) {
     return whiteList == null
-      || (whiteList.containsKey(currentLocation) && whiteList.get(currentLocation).contains(variable));
+        || whiteList.containsEntry(currentLocation, variable);
   }
 
-  public boolean isTracking(String variable)
-  {
+  public boolean isTracking(String variable) {
     return isOnWhitelist(variable) && !blackListPattern.matcher(variable).matches();
   }
 
-  public boolean isNotTracking(String variable)
-  {
+  public boolean isNotTracking(String variable) {
     return !isTracking(variable);
   }
 
-  public String getBlackListPattern()
-  {
+  public String getBlackListPattern() {
     return blackListPattern.pattern();
   }
 
-  private void addToWhitelist(Map<CFANode, Set<String>> additionalInfo)
-  {
-    for(Map.Entry<CFANode, Set<String>> entry : additionalInfo.entrySet())
-    {
-      Set<String> variablesAtLocation = whiteList.get(entry.getKey());
-      if(variablesAtLocation == null)
-        whiteList.put(entry.getKey(), variablesAtLocation = new HashSet<String>());
-
-      variablesAtLocation.addAll(entry.getValue());
+  private void addToWhitelist(Map<CFANode, Set<String>> additionalInfo) {
+    for (Map.Entry<CFANode, Set<String>> entry : additionalInfo.entrySet()) {
+      whiteList.putAll(entry.getKey(), entry.getValue());
     }
   }
 }

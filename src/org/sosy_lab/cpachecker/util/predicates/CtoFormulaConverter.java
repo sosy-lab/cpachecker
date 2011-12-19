@@ -103,7 +103,6 @@ import org.sosy_lab.cpachecker.util.MachineModel;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -143,7 +142,7 @@ public class CtoFormulaConverter {
   private MachineModel machineModel = MachineModel.LINUX32;
 
   @Option(description = "handle Pointers")
-  private boolean handlePointerAliasing = false;
+  private boolean handlePointerAliasing = true;
 
   @Option(description = "list of functions that provide new memory on the heap."
     + " This is only used, when handling of pointers is enabled.")
@@ -174,6 +173,13 @@ public class CtoFormulaConverter {
   /** The prefix used for variables representing memory locations. */
   private static final String MEMORY_ADDRESS_VARIABLE_PREFIX = "&";
 
+  /**
+   * The prefix used for memory locations derived from malloc calls.
+   * (Must start with {@link MEMORY_ADDRESS_VARIABLE_PREFIX}.)
+   */
+  private static final String MALLOC_VARIABLE_PREFIX =
+      MEMORY_ADDRESS_VARIABLE_PREFIX + "#";
+
   /** The variable name that's used to store the malloc counter in the SSAMap. */
   private static final String MALLOC_COUNTER_VARIABLE_NAME = "#malloc";
 
@@ -182,13 +188,13 @@ public class CtoFormulaConverter {
   private final Map<String, Formula> stringLitToFormula = new HashMap<String, Formula>();
   private int nextStringLitIndex = 0;
 
-  protected final FormulaManager fmgr;
+  protected final ExtendedFormulaManager fmgr;
   protected final LogManager logger;
 
   private static final int                 VARIABLE_UNSET          = -1;
   private static final int                 VARIABLE_UNINITIALIZED  = 2;
 
-  public CtoFormulaConverter(Configuration config, FormulaManager fmgr, LogManager logger) throws InvalidConfigurationException {
+  public CtoFormulaConverter(Configuration config, ExtendedFormulaManager fmgr, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, CtoFormulaConverter.class);
 
     this.fmgr = fmgr;
@@ -206,7 +212,7 @@ public class CtoFormulaConverter {
   private String getLogMessage(String msg, IASTNode astNode) {
     return "Line " + astNode.getFileLocation().getStartingLineNumber()
             + ": " + msg
-            + ": " + astNode.getRawSignature();
+            + ": " + astNode.toASTString();
   }
 
   private String getLogMessage(String msg, CFAEdge edge) {
@@ -257,7 +263,7 @@ public class CtoFormulaConverter {
   }
 
   private static String exprToVarName(IASTExpression e) {
-    return e.getRawSignature().replaceAll("[ \n\t]", "");
+    return e.toASTString().replaceAll("[ \n\t]", "");
   }
 
   private String getTypeName(final IType tp) {
@@ -280,8 +286,8 @@ public class CtoFormulaConverter {
    * Produces a fresh new SSA index for an assignment
    * and updates the SSA map.
    */
-  private int makeFreshIndex(String name, SSAMapBuilder ssa) {
-    int idx = ssa.getIndex(name);
+  private int makeFreshIndex(String varName, SSAMapBuilder ssa) {
+    int idx = ssa.getIndex(varName);
     if (idx > 0) {
       idx = idx+1;
     } else {
@@ -289,7 +295,7 @@ public class CtoFormulaConverter {
       // not from 1, because this is an assignment,
       // so the SSA index must be fresh.
     }
-    ssa.setIndex(name, idx);
+    ssa.setIndex(varName, idx);
     return idx;
   }
 
@@ -307,8 +313,8 @@ public class CtoFormulaConverter {
    * Produces a fresh new SSA index for the left-hand side of an assignment
    * and updates the SSA map.
    */
-  private int makeLvalIndex(String name, FormulaList args, SSAMapBuilder ssa) {
-    int idx = ssa.getIndex(name, args);
+  private int makeLvalIndex(String varName, FormulaList args, SSAMapBuilder ssa) {
+    int idx = ssa.getIndex(varName, args);
     if (idx > 0) {
       idx = idx+1;
     } else {
@@ -318,7 +324,7 @@ public class CtoFormulaConverter {
       // here, we will have troubles later when
       // shifting indices
     }
-    ssa.setIndex(name, args, idx);
+    ssa.setIndex(varName, args, idx);
     return idx;
   }
 
@@ -341,9 +347,9 @@ public class CtoFormulaConverter {
    * Create a formula for a given variable.
    * This method does not handle scoping and the NON_DET_VARIABLE!
    */
-  private Formula makeVariable(String var, SSAMapBuilder ssa) {
-    int idx = getIndex(var, ssa);
-    return fmgr.makeVariable(var, idx);
+  private Formula makeVariable(String varName, SSAMapBuilder ssa) {
+    int idx = getIndex(varName, ssa);
+    return fmgr.makeVariable(varName, idx);
   }
 
   /**
@@ -351,40 +357,50 @@ public class CtoFormulaConverter {
    * side of an assignment.
    * This method does not handle scoping and the NON_DET_VARIABLE!
    */
-  private Formula makeFreshVariable(String var, SSAMapBuilder ssa) {
-    int idx = makeFreshIndex(var, ssa);
-    return fmgr.makeVariable(var, idx);
+  private Formula makeFreshVariable(String varName, SSAMapBuilder ssa) {
+    int idx = makeFreshIndex(varName, ssa);
+    return fmgr.makeVariable(varName, idx);
   }
 
   /** Returns the pointer variable belonging to a given IdExpression */
   private Formula makePointerVariable(IASTIdExpression expr, String function,
       SSAMapBuilder ssa) {
-    String variableName = makePointerVariableName(expr, function, ssa);
-    return makeVariable(variableName, ssa);
+    String pVarName = makePointerVariableName(expr, function, ssa);
+    return makeVariable(pVarName, ssa);
   }
 
   /** Takes a (scoped) variable name and returns the pointer variable name. */
-  private String makePointerMask(String scopedId, SSAMapBuilder ssa) {
-    String pointerId = "*<" + scopedId + "," + ssa.getIndex(scopedId) + ">";
-    return pointerId;
+  private static String makePointerMask(String scopedId, SSAMapBuilder ssa) {
+    return "*<" + scopedId + "," + ssa.getIndex(scopedId) + ">";
+  }
+
+  /**
+   * Takes a pointer variable name and returns the name of the associated
+   * variable.
+   */
+  private static String removePointerMask(String pointerVariable) {
+    assert (isPointerVariable(pointerVariable));
+
+    return pointerVariable.substring(2, pointerVariable.indexOf(','));
   }
 
   /** Returns the pointer variable name corresponding to a given IdExpression */
   private String makePointerVariableName(IASTIdExpression expr,
       String function, SSAMapBuilder ssa) {
+
     String scopedId = scopedIfNecessary(expr, function);
     return makePointerMask(scopedId, ssa);
   }
 
-  private String makeMemoryLocationVariableName(String var) {
-    return MEMORY_ADDRESS_VARIABLE_PREFIX + var;
+  private String makeMemoryLocationVariableName(String varName) {
+    return MEMORY_ADDRESS_VARIABLE_PREFIX + varName;
   }
 
   // name has to be scoped already
-  private Formula makeAssignment(String name,
+  private Formula makeAssignment(String varName,
           Formula rightHandSide, SSAMapBuilder ssa) {
 
-    Formula lhs = makeFreshVariable(name, ssa);
+    Formula lhs = makeFreshVariable(varName, ssa);
     return fmgr.makeAssignment(lhs, rightHandSide);
   }
 
@@ -412,9 +428,9 @@ public class CtoFormulaConverter {
       StatementEdge statementEdge = (StatementEdge) edge;
       StatementToFormulaVisitor v;
       if (handlePointerAliasing) {
-        v = new StatementToFormulaVisitorPointers(function, ssa, constraints);
+        v = new StatementToFormulaVisitorPointers(function, ssa, constraints, edge);
       } else {
-        v = new StatementToFormulaVisitor(function, ssa, constraints);
+        v = new StatementToFormulaVisitor(function, ssa, constraints, edge);
       }
       edgeFormula = statementEdge.getStatement().accept(v);
       break;
@@ -428,7 +444,7 @@ public class CtoFormulaConverter {
 
     case DeclarationEdge: {
       DeclarationEdge d = (DeclarationEdge)edge;
-      edgeFormula = makeDeclaration(d.getDeclSpecifier(), d.isGlobal(), d, function, ssa, constraints);
+      edgeFormula = makeDeclaration(d.getDeclSpecifier(), d.isGlobal(), d, function, ssa, constraints, edge);
       break;
     }
 
@@ -494,7 +510,7 @@ public class CtoFormulaConverter {
 
   private Formula makeDeclaration(IType spec, boolean isGlobal,
       DeclarationEdge edge, String function, SSAMapBuilder ssa,
-      Constraints constraints) throws CPATransferException {
+      Constraints constraints, CFAEdge cfaEdge) throws CPATransferException {
 
     if (spec instanceof IASTFunctionTypeSpecifier) {
       return fmgr.makeTrue();
@@ -520,11 +536,11 @@ public class CtoFormulaConverter {
       if (edge.getName() != null) {
 
         String varNameWithoutFunction = edge.getName();
-        String var;
+        String varName;
         if (isGlobal) {
-          var = varNameWithoutFunction;
+          varName = varNameWithoutFunction;
         } else {
-          var = scoped(varNameWithoutFunction, function);
+          varName = scoped(varNameWithoutFunction, function);
         }
 
         // TODO get the type of the variable, and act accordingly
@@ -543,7 +559,7 @@ public class CtoFormulaConverter {
         // (a declaration contains an implicit assignment, even without initializer)
         // In case of an existing initializer, we increment the index twice
         // (here and below) so that the index 2 only occurs for uninitialized variables.
-        makeFreshIndex(var, ssa);
+        makeFreshIndex(varName, ssa);
 
         // if there is an initializer associated to this variable,
         // take it into account
@@ -567,8 +583,21 @@ public class CtoFormulaConverter {
         if (init != null) {
           // initializer value present
 
-          Formula minit = buildTerm(init, function, ssa, constraints);
-          return makeAssignment(var, minit, ssa);
+          Formula minit = buildTerm(init, function, ssa, constraints, cfaEdge);
+          Formula assignments = makeAssignment(varName, minit, ssa);
+
+          if (handlePointerAliasing) {
+            // we need to add the pointer alias
+            Formula pAssign = buildDirectSecondLevelAssignment(spec, varName,
+                removeCast(init), function, constraints, ssa);
+            assignments = fmgr.makeAnd(pAssign, assignments);
+
+            // no need to add pointer updates:
+            // the left hand variable cannot yet be aliased
+            // because it is newly created
+          }
+
+          return assignments;
         }
       }
       return fmgr.makeTrue();
@@ -589,13 +618,24 @@ public class CtoFormulaConverter {
     } else if (retExp instanceof IASTFunctionCallAssignmentStatement) {
       IASTFunctionCallAssignmentStatement exp = (IASTFunctionCallAssignmentStatement)retExp;
 
-      Formula retvarFormula = makeVariable(scoped(VAR_RETURN_NAME, function), ssa);
+      String retVarName = scoped(VAR_RETURN_NAME, function);
+      Formula retVar = makeVariable(retVarName, ssa);
       IASTExpression e = exp.getLeftHandSide();
 
       function = ce.getSuccessor().getFunctionName();
       Formula outvarFormula = buildLvalueTerm(e, function, ssa, constraints);
-      return fmgr.makeAssignment(outvarFormula, retvarFormula);
+      Formula assignments = fmgr.makeAssignment(outvarFormula, retVar);
 
+      if (handlePointerAliasing) {
+        IASTExpression left = removeCast(e);
+        if (left instanceof IASTIdExpression) {
+          Formula ptrAssignment = buildDirectReturnSecondLevelAssignment(
+              (IASTIdExpression) left, retVarName, function, ssa);
+          assignments = fmgr.makeAnd(assignments, ptrAssignment);
+        }
+      }
+
+       return assignments;
     } else {
       throw new UnrecognizedCCodeException("Unknown function exit expression", ce, retExp.asStatement());
     }
@@ -651,9 +691,9 @@ public class CtoFormulaConverter {
     return result;
   }
 
-  private Formula makeReturn(IASTExpression exp, String function,
+  private Formula makeReturn(IASTExpression rightExp, String function,
       SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
-    if (exp == null) {
+    if (rightExp == null) {
       // this is a return from a void function, do nothing
       return fmgr.makeTrue();
     } else {
@@ -662,8 +702,18 @@ public class CtoFormulaConverter {
       // so that we can use it later on, if it is assigned to
       // a variable. We create a function::__retval__ variable
       // that will hold the return value
-      Formula retval = buildTerm(exp, function, ssa, constraints);
-      return makeAssignment(scoped(VAR_RETURN_NAME, function), retval, ssa);
+      Formula retval = buildTerm(rightExp, function, ssa, constraints);
+      String retVarName = scoped(VAR_RETURN_NAME, function);
+      Formula assignments = makeAssignment(retVarName, retval, ssa);
+
+      if (handlePointerAliasing) {
+        // if the value to be returned may be a pointer, act accordingly
+        Formula rightAssignment = buildDirectSecondLevelAssignment(null,
+            retVarName, rightExp, function, constraints, ssa);
+        assignments = fmgr.makeAnd(assignments, rightAssignment);
+      }
+
+      return assignments;
     }
   }
 
@@ -674,13 +724,9 @@ public class CtoFormulaConverter {
         function, ssa, constraints);
   }
 
-  private Formula makeNotEqual(Formula f1, Formula f2) {
-    return fmgr.makeNot(fmgr.makeEqual(f1, f2));
-  }
-
   private Formula buildTerm(IASTRightHandSide exp, String function,
-      SSAMapBuilder ssa, Constraints ax) throws UnrecognizedCCodeException {
-    return toNumericFormula(exp.accept(new RightHandSideToFormulaVisitor(function, ssa, ax)));
+      SSAMapBuilder ssa, Constraints ax, CFAEdge edge) throws UnrecognizedCCodeException {
+    return toNumericFormula(exp.accept(new RightHandSideToFormulaVisitor(function, ssa, ax, edge)));
   }
 
   private Formula buildTerm(IASTExpression exp, String function,
@@ -691,6 +737,123 @@ public class CtoFormulaConverter {
   private Formula buildLvalueTerm(IASTExpression exp, String function,
       SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
     return exp.accept(getLvalueVisitor(function, ssa, constraints));
+  }
+
+  private Formula buildDirectReturnSecondLevelAssignment(IASTIdExpression leftId,
+      String retVarName, String function, SSAMapBuilder ssa) {
+
+    // include aliases if the left or right side may be a pointer a pointer
+    if (maybePointer(leftId, function, ssa)
+        || maybePointer((IType) null, retVarName, ssa)) {
+      // we assume that either the left or the right hand side is a pointer
+      // so we add the equality: *l = *r
+      Formula lPVar = makePointerVariable(leftId, function, ssa);
+      String retPVarName = makePointerMask(retVarName, ssa);
+      Formula retPVar = makeVariable(retPVarName, ssa);
+      return fmgr.makeAssignment(lPVar, retPVar);
+
+    } else {
+      // we can assume, that no pointers are affected in this assignment
+      return fmgr.makeTrue();
+    }
+  }
+
+  private Formula buildDirectSecondLevelAssignment(IType lType,
+      String lVarName, IASTRightHandSide pRight, String function,
+      Constraints constraints, SSAMapBuilder ssa) {
+
+    IASTRightHandSide right = removeCast(pRight);
+    Formula lVar = makeVariable(lVarName, ssa);
+
+    if (isVariable(right)) {
+      // C statement like: s1 = s2;
+
+      // include aliases if the left or right side may be a pointer a pointer
+      IASTIdExpression rIdExp = (IASTIdExpression) right;
+      if (maybePointer(lType, lVarName, ssa) || maybePointer(rIdExp, function, ssa)) {
+        // we assume that either the left or the right hand side is a pointer
+        // so we add the equality: *l = *r
+        String lPVarName = makePointerMask(lVarName, ssa);
+        Formula lPVar = makeVariable(lPVarName, ssa);
+        Formula rPVar = makePointerVariable(rIdExp, function, ssa);
+        return fmgr.makeAssignment(lPVar, rPVar);
+
+      } else {
+        // we can assume, that no pointers are affected in this assignment
+        return fmgr.makeTrue();
+      }
+
+    } else if (isPointerDereferencing(right)) {
+      // C statement like: s1 = *s2;
+
+      String lPVarName = makePointerMask(lVarName, ssa);
+      makeFreshIndex(lPVarName, ssa);
+      removeOldPointerVariablesFromSsaMap(lPVarName, ssa);
+      Formula lPVar = makeVariable(lPVarName, ssa);
+
+      IASTIdExpression rIdExpr = (IASTIdExpression)
+          removeCast(((IASTUnaryExpression) right).getOperand());
+      Formula rPVar = makePointerVariable(rIdExpr, function, ssa);
+
+      // the dealiased address of the right hand side may be a pointer itself.
+      // to ensure tracking, we need to set the left side
+      // equal to the dealiased right side or update the pointer
+      // r is the right hand side variable, l is the left hand side variable
+      // ∀p ∈ maybePointer: (p = *r) ⇒ (l = p ∧ *l = *p)
+      List<String> pVars = getAllPointerVariablesFromSsaMap(ssa);
+      for (String pVarName : pVars) {
+        String varName = removePointerMask(pVarName);
+        if(!varName.equals(lVarName)) {
+
+          Formula var = makeVariable(varName, ssa);
+          Formula pVar = makeVariable(pVarName, ssa);
+
+          Formula p = fmgr.makeEqual(rPVar, var);
+
+          Formula dirEq = fmgr.makeEqual(lVar, var);
+          Formula indirEq = fmgr.makeEqual(lPVar, pVar);
+          Formula consequence = fmgr.makeAnd(dirEq, indirEq);
+
+          Formula constraint = fmgr.makeImplication(p, consequence);
+
+          constraints.addConstraint(constraint);
+        }
+      }
+
+      // no need to add a second level assignment
+      return fmgr.makeTrue();
+
+    } else if (isMemoryLocation(right)) {
+      // s = &x
+      // need to update the pointer on the left hand side
+      if (right instanceof IASTUnaryExpression
+          && ((IASTUnaryExpression) right).getOperator() == UnaryOperator.AMPER){
+
+        IASTExpression rOperand =
+            removeCast(((IASTUnaryExpression) right).getOperand());
+        if (rOperand instanceof IASTIdExpression) {
+          String rVarName = scopedIfNecessary((IASTIdExpression) rOperand, function);
+          Formula rVar = makeVariable(rVarName, ssa);
+
+          String lPVarName = makePointerMask(lVarName, ssa);
+          Formula lPVar = makeVariable(lPVarName, ssa);
+
+          return fmgr.makeAssignment(lPVar, rVar);
+        }
+      }
+
+      // s = malloc()
+      // has been handled already
+      return fmgr.makeTrue();
+
+    } else {
+      // s = 1
+      // s = someFunction()
+      // s = a + b
+
+      // no second level assignment necessary
+      return fmgr.makeTrue();
+    }
   }
 
   private Formula makePredicate(IASTExpression exp, boolean isTrue,
@@ -731,11 +894,6 @@ public class CtoFormulaConverter {
     }
   }
 
-  private boolean isPointerDereferencing(IASTExpression e) {
-    return (e instanceof IASTUnaryExpression)
-        && ((IASTUnaryExpression) e).getOperator() == UnaryOperator.STAR;
-  }
-
   private Formula toBooleanFormula(Formula f) {
     // If this is not a predicate, make it a predicate by adding a "!= 0"
     if (!fmgr.isBoolean(f)) {
@@ -752,6 +910,72 @@ public class CtoFormulaConverter {
     return f;
   }
 
+  private static boolean isVariable(IASTNode exp) {
+    return exp instanceof IASTIdExpression;
+  }
+
+  private static boolean isPointerDereferencing(IASTNode exp) {
+    return (exp instanceof IASTUnaryExpression
+        && ((IASTUnaryExpression) exp).getOperator() == UnaryOperator.STAR);
+  }
+
+  private static boolean isStaticallyDeclaredPointer(IType expr) {
+    return expr instanceof IASTPointerTypeSpecifier;
+  }
+
+  /**
+   * Returns whether the given variable name is a pointer variable name.
+   */
+  private static boolean isPointerVariable(String variableName) {
+    return variableName.matches("\\*<.*>");
+  }
+
+  private boolean isMemoryLocation(IASTNode exp) {
+
+    // memory allocating function?
+    if (exp instanceof IASTFunctionCall) {
+      IASTExpression fn =
+          ((IASTFunctionCall) exp).getFunctionCallExpression().getFunctionNameExpression();
+
+      if (fn instanceof IASTIdExpression) {
+        String functionName = ((IASTIdExpression) fn).getName();
+        if (memoryAllocationFunctions.contains(functionName)) {
+          return true;
+        }
+      }
+
+    // explicit heap/stack address?
+    } else if (exp instanceof IASTUnaryExpression
+        && ((IASTUnaryExpression) exp).getOperator() == UnaryOperator.AMPER) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /** Returns if a given expression may be a pointer. */
+  private boolean maybePointer(IASTExpression pExp, String function, SSAMapBuilder ssa) {
+    IASTExpression exp = removeCast(pExp);
+    if (exp instanceof IASTIdExpression) {
+      IASTIdExpression idExp = (IASTIdExpression) exp;
+      IType type = exp.getExpressionType();
+      return maybePointer(type, scopedIfNecessary(idExp, function), ssa);
+    }
+
+    return false;
+  }
+
+  private boolean maybePointer(IType type, String varName, SSAMapBuilder ssa) {
+    if (type != null && isStaticallyDeclaredPointer(type)) {
+      return true;
+    }
+
+    // check if it has been used as a pointer before
+    List<String> pVarNames = getAllPointerVariablesFromSsaMap(ssa);
+    String expPVarName = makePointerMask(varName, ssa);
+    return pVarNames.contains(expPVarName);
+  }
+
   /**
    * Returns a list of all variable names representing memory locations in
    * the SSAMap. These memory locations are those previously used.
@@ -759,7 +983,7 @@ public class CtoFormulaConverter {
    * Stored memory locations are prefixed with
    * {@link MEMORY_ADDRESS_VARIABLE_PREFIX}.
    */
-  private List<String> getAllMemoryLocationsFromSsaMap(SSAMapBuilder ssa) {
+  private static List<String> getAllMemoryLocationsFromSsaMap(SSAMapBuilder ssa) {
     List<String> memoryLocations = new LinkedList<String>();
     Set<String> ssaVariables = ssa.build().allVariables();
 
@@ -772,6 +996,58 @@ public class CtoFormulaConverter {
     }
 
     return memoryLocations;
+  }
+
+  /**
+   * Returns a list of all pointer variables stored in the SSAMap.
+   */
+  private static List<String> getAllPointerVariablesFromSsaMap(SSAMapBuilder ssa) {
+    List<String> pointerVariables = new LinkedList<String>();
+    Set<String> ssaVariables = ssa.build().allVariables();
+
+    for (String variable : ssaVariables) {
+      if (isPointerVariable(variable)) {
+        pointerVariables.add(variable);
+      }
+    }
+
+    return pointerVariables;
+  }
+
+  /**
+   * Removes all pointer variables belonging to a given variable from a given
+   * SSAMapBuilderthat are no longer valid. Validity of an entry expires,
+   * when the pointer variable belongs to a variable with an old index.
+   *
+   * @param newPVar The variable name of the new pointer variable.
+   * @param ssa The SSAMapBuilder from which the variables are to be deleted
+   */
+  private static void removeOldPointerVariablesFromSsaMap(String newPVar,
+      SSAMapBuilder ssa) {
+
+    String newVar = removePointerMask(newPVar);
+
+    List<String> pointerVariables = getAllPointerVariablesFromSsaMap(ssa);
+    for (String pointerVar : pointerVariables) {
+      String oldVar = removePointerMask(pointerVar);
+      if (!pointerVar.equals(newPVar) && oldVar.equals(newVar)) {
+        ssa.deleteVariable(pointerVar);
+      }
+    }
+  }
+
+  private static IASTExpression removeCast(IASTExpression exp) {
+    if (exp instanceof IASTCastExpression) {
+      return removeCast(((IASTCastExpression) exp).getOperand());
+    }
+    return exp;
+  }
+
+  private static IASTRightHandSide removeCast(IASTRightHandSide exp) {
+    if (exp instanceof IASTCastExpression) {
+      return removeCast(((IASTCastExpression) exp).getOperand());
+    }
+    return exp;
   }
 
   /**
@@ -1097,25 +1373,9 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(IASTBinaryExpression exp)
-        throws UnrecognizedCCodeException {
-      if (containsPointerDereferencing(exp)) {
-        IASTExpression e1 = exp.getOperand1();
-        Formula me1 = getExprFormula(e1);
-
-        IASTExpression e2 = exp.getOperand2();
-        Formula me2 = getExprFormula(e2);
-
-        Formula exprFormula = makeCompoundFormula(exp, me1, me2);
-        return exprFormula;
-      } else {
-        return super.visit(exp);
-      }
-    }
-
-    @Override
     public Formula visit(IASTUnaryExpression exp)
         throws UnrecognizedCCodeException {
+      IASTExpression opExp = removeCast(exp.getOperand());
       UnaryOperator op = exp.getOperator();
 
       switch (op) {
@@ -1123,8 +1383,8 @@ public class CtoFormulaConverter {
         return makeAddressVariable(exp, function);
 
       case STAR:
-        if (exp.getOperand() instanceof IASTIdExpression) {
-          return makePointerVariable((IASTIdExpression) exp.getOperand(), function, ssa);
+        if (opExp instanceof IASTIdExpression) {
+          return makePointerVariable((IASTIdExpression) opExp, function, ssa);
         }
         // fall-through
 
@@ -1133,24 +1393,17 @@ public class CtoFormulaConverter {
       }
     }
 
-    private Formula makeAddressVariable(IASTExpression exp, String function)
+    private Formula makeAddressVariable(IASTUnaryExpression exp, String function)
         throws UnrecognizedCCodeException {
 
-      if (exp instanceof IASTUnaryExpression) {
-        IASTExpression operand = ((IASTUnaryExpression) exp).getOperand();
-        UnaryOperator op = ((IASTUnaryExpression) exp).getOperator();
+        IASTExpression operand = removeCast(exp.getOperand());
+        UnaryOperator op = exp.getOperator();
 
         if (op != UnaryOperator.AMPER || !(operand instanceof IASTIdExpression)) {
           return super.visitDefault(exp);
         }
 
         return makeMemoryLocationVariable((IASTIdExpression) operand, function);
-
-      } else {
-        // not yet implemented: pointer arithmetic
-        log(Level.WARNING, exp.getRawSignature() + " is not yet implemented");
-        return fmgr.makeTrue();
-      }
     }
 
     /**
@@ -1176,53 +1429,11 @@ public class CtoFormulaConverter {
         }
 
         // a variable address is not 0
-        Formula notZero = makeNotEqual(newMemoryLocation, fmgr.makeNumber(0));
+        Formula notZero = fmgr.makeNotEqual(newMemoryLocation, fmgr.makeNumber(0));
         constraints.addConstraint(notZero);
       }
 
       return makeConstant(addressVariable, ssa);
-    }
-
-    private Formula makeCompoundFormula(IASTBinaryExpression exp, Formula me1,
-        Formula me2) throws UnrecognizedCCodeException {
-      switch (exp.getOperator()) {
-      case GREATER_THAN:
-        return fmgr.makeGt(me1, me2);
-      case GREATER_EQUAL:
-        return fmgr.makeGeq(me1, me2);
-      case LESS_THAN:
-        return fmgr.makeLt(me1, me2);
-      case LESS_EQUAL:
-        return fmgr.makeLeq(me1, me2);
-      case EQUALS:
-        return fmgr.makeEqual(me1, me2);
-      case NOT_EQUALS:
-        return fmgr.makeNot(fmgr.makeEqual(me1, me2));
-      default:
-        throw new UnrecognizedCCodeException(exp.getRawSignature(), null, exp);
-      }
-    }
-
-    private Formula getExprFormula(IASTExpression exp)
-        throws UnrecognizedCCodeException {
-      if (isPointerDereferencing(exp)) {
-
-        IASTExpression operand = ((IASTUnaryExpression) exp).getOperand();
-        if (operand instanceof IASTIdExpression) {
-          return makePointerVariable((IASTIdExpression) operand, function, ssa);
-        } else {
-          throw new UnrecognizedCCodeException(exp.getRawSignature(), null, exp);
-        }
-      }
-
-      return exp.accept(this);
-    }
-
-    private boolean containsPointerDereferencing(IASTBinaryExpression expr) {
-      IASTExpression e1 = expr.getOperand1();
-      IASTExpression e2 = expr.getOperand2();
-
-      return isPointerDereferencing(e1) || isPointerDereferencing(e2);
     }
   }
 
@@ -1233,12 +1444,14 @@ public class CtoFormulaConverter {
     protected final String        function;
     protected final SSAMapBuilder ssa;
     protected final Constraints   constraints;
+    protected final CFAEdge cfaEdge;
 
-    public RightHandSideToFormulaVisitor(String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
+    public RightHandSideToFormulaVisitor(String pFunction, SSAMapBuilder pSsa, Constraints pCo, CFAEdge edge) {
       super(getExpressionVisitor(pFunction, pSsa, pCo));
       function = pFunction;
       ssa = pSsa;
       constraints = pCo;
+      cfaEdge = edge;
     }
 
     @Override
@@ -1255,7 +1468,7 @@ public class CtoFormulaConverter {
           return makeFreshVariable(func, ssa);
 
         } else if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
-          throw new UnsupportedCCodeException(UNSUPPORTED_FUNCTIONS.get(func), fexp);
+          throw new UnsupportedCCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fexp);
 
         } else if (!PURE_EXTERNAL_FUNCTIONS.contains(func)) {
           if (pexps.isEmpty()) {
@@ -1267,7 +1480,7 @@ public class CtoFormulaConverter {
         }
       } else {
         log(Level.WARNING, getLogMessage("Ignoring function call through function pointer", fexp));
-        func = "<func>{" + fn.getRawSignature() + "}";
+        func = "<func>{" + fn.toASTString() + "}";
       }
 
       if (pexps.isEmpty()) {
@@ -1289,8 +1502,8 @@ public class CtoFormulaConverter {
 
   private class StatementToFormulaVisitor extends RightHandSideToFormulaVisitor implements StatementVisitor<Formula, UnrecognizedCCodeException> {
 
-    public StatementToFormulaVisitor(String pFunction, SSAMapBuilder pSsa, Constraints pConstraints) {
-      super(pFunction, pSsa, pConstraints);
+    public StatementToFormulaVisitor(String pFunction, SSAMapBuilder pSsa, Constraints pConstraints, CFAEdge edge) {
+      super(pFunction, pSsa, pConstraints, edge);
     }
 
     @Override
@@ -1328,8 +1541,8 @@ public class CtoFormulaConverter {
   private class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
 
     public StatementToFormulaVisitorPointers(String pFunction,
-        SSAMapBuilder pSsa, Constraints pConstraints) {
-      super(pFunction, pSsa, pConstraints);
+        SSAMapBuilder pSsa, Constraints pConstraints, CFAEdge edge) {
+      super(pFunction, pSsa, pConstraints, edge);
     }
 
     @Override
@@ -1354,12 +1567,13 @@ public class CtoFormulaConverter {
           for (String ml : memoryLocations) {
             Formula n = makeConstant(ml, ssa);
 
-            Formula notEqual = makeNotEqual(n, mallocVar);
+            Formula notEqual = fmgr.makeNotEqual(n, mallocVar);
             ineq = fmgr.makeAnd(notEqual, ineq);
           }
 
           Formula nullFormula = fmgr.makeNumber(0);
-          Formula implication = makeImplication(makeNotEqual(mallocVar, nullFormula), ineq);
+          Formula notEqual = fmgr.makeNotEqual(mallocVar, nullFormula);
+          Formula implication = fmgr.makeImplication(notEqual, ineq);
 
           constraints.addConstraint(implication);
           return mallocVar;
@@ -1372,25 +1586,31 @@ public class CtoFormulaConverter {
     @Override
     public Formula visit(IASTAssignment assignment)
         throws UnrecognizedCCodeException {
-      IASTExpression left = assignment.getLeftHandSide();
+      IASTExpression left = removeCast(assignment.getLeftHandSide());
 
       if (left instanceof IASTIdExpression) {
+        // p = ...
         return handleDirectAssignment(assignment);
 
       } else if (left instanceof IASTUnaryExpression
           && ((IASTUnaryExpression) left).getOperator() == UnaryOperator.STAR) {
+        // *p = ...
         return handleIndirectAssignment(assignment);
 
       } else {
         return super.visit(assignment);
-//        throw new UnrecognizedCCodeException(
-//            "left hand side of assignment unsupported: ", null, left);
       }
     }
 
+    /**
+     * An indirect assignment does not change the value of the variable on the
+     * left hand side. Instead it changes the value stored in the memory location
+     * aliased on the left hand side.
+     */
     private Formula handleIndirectAssignment(IASTAssignment pAssignment)
         throws UnrecognizedCCodeException {
-      assert (pAssignment.getLeftHandSide() instanceof IASTUnaryExpression);
+      IASTExpression lExp = removeCast(pAssignment.getLeftHandSide());
+      assert (lExp instanceof IASTUnaryExpression);
 
       // the following expressions are supported by cil:
       // *p = a;
@@ -1398,17 +1618,13 @@ public class CtoFormulaConverter {
       // *p = a | b; (or any other binary statement)
       // *p = function();
 
-      IASTUnaryExpression l = (IASTUnaryExpression) pAssignment.getLeftHandSide();
+      IASTUnaryExpression l = (IASTUnaryExpression) lExp;
       assert (l.getOperator() == UnaryOperator.STAR);
 
-      IASTExpression lOperand = l.getOperand();
-      while (!(lOperand instanceof IASTIdExpression)) {
-        // try to find the encapsulated IASTIdExpression, if possible
-        if (lOperand instanceof IASTCastExpression) {
-          lOperand = ((IASTCastExpression) lOperand).getOperand();
-        } else {
-          return super.visit(pAssignment);
-        }
+      IASTExpression lOperand = removeCast(l.getOperand());
+      if (!(lOperand instanceof IASTIdExpression)) {
+        // TODO: *(a + 2) = b
+        return super.visit(pAssignment);
       }
 
       IASTRightHandSide r = pAssignment.getRightHandSide();
@@ -1426,39 +1642,23 @@ public class CtoFormulaConverter {
       Formula rightVariable = pAssignment.getRightHandSide().accept(this);
       rightVariable = toNumericFormula(rightVariable);
       Formula lPVar = buildLvalueTerm(pAssignment.getLeftHandSide(), function, ssa, constraints);
-      Formula as = fmgr.makeAssignment(lPVar, rightVariable);
+      Formula assignments = fmgr.makeAssignment(lPVar, rightVariable);
 
-      // update all pointer variables (they might have a new value)
-      // every variable aliased to the left hand side,
-      // has its pointer set to the right hand side,
-      // for all other pointer variables, the index is updated
-      List<String> pVarNames = getAllPointerVariablesFromSsaMap();
-      for (String pVarName : pVarNames) {
-        String varName = getVariableNameFromPointerVariable(pVarName);
-        if (!varName.equals(lVarName) && !varName.equals(rVarName)) {
-          Formula var = makeVariable(varName, ssa);
+      updateAllPointers(lVarName, lVar, rVarName, rightVariable);
 
-          Formula oldPVar = makeVariable(pVarName, ssa);
-          makeFreshIndex(pVarName, ssa);
-          Formula newPVar = makeVariable(pVarName, ssa);
+      boolean doDeepUpdate = (r instanceof IASTIdExpression);
+      updateAllMemoryLocations(lVar, rPVar, rightVariable, doDeepUpdate);
 
-          Formula condition = fmgr.makeEqual(var, lVar);
-          Formula equality = fmgr.makeAssignment(newPVar, rightVariable);
-          Formula indexUpdate = fmgr.makeAssignment(newPVar, oldPVar);
+      return assignments;
+    }
 
-          Formula variableUpdate = fmgr.makeIfThenElse(condition, equality, indexUpdate);
-          constraints.addConstraint(variableUpdate);
-        }
-      }
-
+    private void updateAllMemoryLocations(Formula lVar, Formula rPVar, Formula rightVariable, boolean deepUpdate) {
       // for all memory addresses also update the aliasing
       // if the left variable is an alias for an address,
       // then the left side is (deep) equal to the right side
       // otherwise update the variables
-      boolean doDeepUpdate = deepUpdate(lOperand, r);
-
       List<String> memAddresses = getAllMemoryLocationsFromSsaMap(ssa);
-      if (doDeepUpdate) {
+      if (deepUpdate) {
         for (String memAddress : memAddresses) {
           String varName = getVariableNameFromMemoryAddress(memAddress);
 
@@ -1473,7 +1673,7 @@ public class CtoFormulaConverter {
           Formula newVar = makeVariable(varName, ssa);
           String newPVarName = makePointerMask(varName, ssa);
           Formula newPVar = makeVariable(varName, ssa);
-          removeOldPointerVariablesFromSsaMap(newPVarName);
+          removeOldPointerVariablesFromSsaMap(newPVarName, ssa);
 
           Formula varEquality = fmgr.makeAssignment(newVar, rightVariable);
           Formula pVarEquality = fmgr.makeAssignment(newPVar, rPVar);
@@ -1498,7 +1698,7 @@ public class CtoFormulaConverter {
 
           Formula newVar = makeVariable(varName, ssa);
           String newPVarName = makePointerMask(varName, ssa);
-          removeOldPointerVariablesFromSsaMap(newPVarName);
+          removeOldPointerVariablesFromSsaMap(newPVarName, ssa);
 
           Formula memAddressVar = makeVariable(memAddress, ssa);
 
@@ -1510,102 +1710,64 @@ public class CtoFormulaConverter {
           constraints.addConstraint(variableUpdate);
         }
       }
-
-      return as;
     }
 
-    private boolean deepUpdate(IASTExpression left, IASTRightHandSide right) {
-      return (right instanceof IASTIdExpression);
+    /**
+     * Call this method if you need to update all pointers
+     */
+    private void updateAllPointers(String leftVarName, Formula leftVar,
+        String rightVarName, Formula rightVariable) {
+
+      // update all pointer variables (they might have a new value)
+      // every variable aliased to the left hand side,
+      // has its pointer set to the right hand side,
+      // for all other pointer variables, the index is updated
+      List<String> pVarNames = getAllPointerVariablesFromSsaMap(ssa);
+      for (String pVarName : pVarNames) {
+        String varName = removePointerMask(pVarName);
+        if (!varName.equals(leftVarName) && !varName.equals(rightVarName)) {
+          Formula var = makeVariable(varName, ssa);
+
+          Formula oldPVar = makeVariable(pVarName, ssa);
+          makeFreshIndex(pVarName, ssa);
+          Formula newPVar = makeVariable(pVarName, ssa);
+
+          Formula condition = fmgr.makeEqual(var, leftVar);
+          Formula equality = fmgr.makeAssignment(newPVar, rightVariable);
+          Formula indexUpdate = fmgr.makeAssignment(newPVar, oldPVar);
+
+          Formula variableUpdate = fmgr.makeIfThenElse(condition, equality, indexUpdate);
+          constraints.addConstraint(variableUpdate);
+        }
+      }
     }
 
+    /** A direct assignment changes the value of the variable on the left side. */
     private Formula handleDirectAssignment(IASTAssignment assignment)
         throws UnrecognizedCCodeException {
-      assert(assignment.getLeftHandSide() instanceof IASTIdExpression);
+      IASTExpression lExpr = removeCast(assignment.getLeftHandSide());
+      assert(lExpr instanceof IASTIdExpression);
 
-      IASTIdExpression left = (IASTIdExpression) assignment.getLeftHandSide();
-      IASTRightHandSide right = assignment.getRightHandSide();
+      IASTIdExpression left = (IASTIdExpression) lExpr;
+      IASTRightHandSide right = removeCast(assignment.getRightHandSide());
 
       String leftVarName = scopedIfNecessary(left, function);
 
+      // assignment (first level) -- uses superclass
       Formula ri = assignment.getRightHandSide().accept(this);
       Formula rightVariable = toNumericFormula(ri);
       Formula leftVariable = buildLvalueTerm(assignment.getLeftHandSide(), function, ssa, constraints);
-      Formula assignmentFormula = fmgr.makeAssignment(leftVariable, rightVariable);
+      Formula firstLevelFormula = fmgr.makeAssignment(leftVariable, rightVariable);
 
-      if (isVariable(right)) {
-        // C statement like: s1 = s2;
+      // assignment (second level)
+      String lVarName = scopedIfNecessary(left, function);
+      Formula secondLevelFormula = buildDirectSecondLevelAssignment(
+          left.getExpressionType(), lVarName,
+          right, function, constraints, ssa);
 
-        // include aliases if the left or right side is a pointer
-        IASTIdExpression rIdExp = (IASTIdExpression) right;
-        if (maybePointer(left) || maybePointer(rIdExp)) {
-          Formula l = makePointerVariable(left, function, ssa);
-          Formula r = makePointerVariable(rIdExp, function, ssa);
-          Formula pForm = fmgr.makeAssignment(l, r);
-          assignmentFormula = fmgr.makeAnd(assignmentFormula, pForm);
-        }
+      Formula assignmentFormula = fmgr.makeAnd(firstLevelFormula, secondLevelFormula);
 
-      } else if (isPointerDereferencing(right)) {
-        // C statement like: s1 = *s2;
-        List<String> pVars = getAllPointerVariablesFromSsaMap();
-
-        String lVarName = scopedIfNecessary(left, function);
-        Formula lVar = makeVariable(lVarName, ssa);
-
-        String lPVarName = makePointerVariableName(left, function, ssa);
-        makeFreshIndex(lPVarName, ssa);
-        removeOldPointerVariablesFromSsaMap(lPVarName);
-        Formula lPVar = makePointerVariable(left, function, ssa);
-
-        IASTIdExpression rIdExpr = (IASTIdExpression) ((IASTUnaryExpression) right).getOperand();
-        Formula rPVar = makePointerVariable(rIdExpr, function, ssa);
-
-        for (String pVarName : pVars) {
-          String varName = getVariableNameFromPointerVariable(pVarName);
-          if(!varName.equals(lVarName)) {
-
-            Formula var = makeVariable(varName, ssa);
-            Formula pVar = makeVariable(pVarName, ssa);
-
-            Formula p = fmgr.makeEqual(rPVar, var);
-
-            Formula dirEq = fmgr.makeEqual(lVar, var);
-            Formula indirEq = fmgr.makeEqual(lPVar, pVar);
-            Formula consequence = fmgr.makeAnd(dirEq, indirEq);
-
-            Formula constraint = makeImplication(p, consequence);
-
-            constraints.addConstraint(constraint);
-          }
-        }
-
-      } else if (isMemoryLocation(right)) {
-        // s = malloc()
-        // has been handled already
-
-        // s = &x
-        // need to update the pointer
-        if (right instanceof IASTUnaryExpression
-            && ((IASTUnaryExpression) right).getOperator() == UnaryOperator.AMPER){
-
-          IASTExpression rOperand = ((IASTUnaryExpression) right).getOperand();
-          if (rOperand instanceof IASTIdExpression) {
-            String rVarName = scopedIfNecessary((IASTIdExpression) rOperand, function);
-            Formula rVar = makeVariable(rVarName, ssa);
-
-            Formula lPVar = makePointerVariable(left, function, ssa);
-
-            Formula pointerUpdate = fmgr.makeAssignment(lPVar, rVar);
-
-            assignmentFormula = fmgr.makeAnd(assignmentFormula, pointerUpdate);
-          }
-        }
-
-      } else {
-        // s = 1
-        // s = someFunction()
-        // s = a + b
-      }
-
+      // updates
       if (isKnownMemoryLocation(leftVarName)) {
         String leftMemLocationName = makeMemoryLocationVariableName(leftVarName);
         Formula leftMemLocation = makeConstant(leftMemLocationName, ssa);
@@ -1614,10 +1776,10 @@ public class CtoFormulaConverter {
         // if a pointer is aliased to the assigned variable,
         // update that pointer to reflect the new aliasing,
         // otherwise only update the index
-        List<String> pVarNames = getAllPointerVariablesFromSsaMap();
+        List<String> pVarNames = getAllPointerVariablesFromSsaMap(ssa);
         Formula newLeftVar = leftVariable;
         for (String pVarName : pVarNames) {
-          String varName = getVariableNameFromPointerVariable(pVarName);
+          String varName = removePointerMask(pVarName);
           if (!varName.equals(leftVarName)) {
             Formula var = makeVariable(varName, ssa);
             Formula oldPVar = makeVariable(pVarName, ssa);
@@ -1634,77 +1796,15 @@ public class CtoFormulaConverter {
         }
 
       }
-
       return assignmentFormula;
     }
 
     /** Returns whether the address of a given variable has been used before. */
-    boolean isKnownMemoryLocation(String varName) {
+    private boolean isKnownMemoryLocation(String varName) {
+      assert varName != null;
       List<String> memLocations = getAllMemoryLocationsFromSsaMap(ssa);
       String memVarName = makeMemoryLocationVariableName(varName);
-      for (String memLocation : memLocations) {
-        if (memLocation.equals(memVarName)) {
-          return true;
-        }
-      }
-
-      return false;
-    }
-
-    private boolean isPointerDereferencing(IASTNode exp) {
-      if (exp instanceof IASTUnaryExpression
-          && ((IASTUnaryExpression) exp).getOperator() == UnaryOperator.STAR) {
-        return true;
-      }
-
-      return false;
-    }
-
-    private boolean maybePointer(IASTExpression exp) {
-      if (exp instanceof IASTIdExpression) {
-        IASTIdExpression idExp = (IASTIdExpression) exp;
-        if (isStaticallyDeclaredPointer(exp.getExpressionType())) {
-          return true;
-        }
-
-        // check if it has been used as a pointer before
-        List<String> pVarNames = getAllPointerVariablesFromSsaMap();
-        String expPVarName = makePointerVariableName(idExp, function, ssa);
-        for (String pVarName : pVarNames) {
-          if (expPVarName.equals(pVarName)) {
-            return true;
-          }
-        }
-      }
-
-      return false;
-    }
-
-    private boolean isMemoryLocation(IASTNode exp) {
-      if (exp instanceof IASTFunctionCall) {
-        IASTExpression fn = ((IASTFunctionCall) exp).getFunctionCallExpression().getFunctionNameExpression();
-
-        if (fn instanceof IASTIdExpression) {
-          String functionName = ((IASTIdExpression) fn).getName();
-          if (memoryAllocationFunctions.contains(functionName)) {
-            return true;
-          }
-        }
-      } else if (exp instanceof IASTUnaryExpression
-          && ((IASTUnaryExpression) exp).getOperator() == UnaryOperator.AMPER) {
-        return true;
-      }
-
-      return false;
-    }
-
-    private boolean isVariable(IASTNode exp) {
-      return exp instanceof IASTIdExpression;
-    }
-
-    private Formula makeImplication(Formula p, Formula q) {
-      Formula left = fmgr.makeNot(p);
-      return fmgr.makeOr(left, q);
+      return memLocations.contains(memVarName);
     }
 
     /** Returns a new variable name for every malloc call. */
@@ -1716,67 +1816,14 @@ public class CtoFormulaConverter {
       }
 
       ssa.setIndex(MALLOC_COUNTER_VARIABLE_NAME, idx + 1);
-      return MEMORY_ADDRESS_VARIABLE_PREFIX + "#" + idx;
+      return MALLOC_VARIABLE_PREFIX + idx;
     }
 
-    /**
-     * Removes all pointer variables belonging to a given variable from the SSA map
-     * that are no longer valid. Validity of an entry expires, when the pointer
-     * variable belongs to a variable with an old index.
-     *
-     * @param newPVar The variable name of the new pointer variable.
-     */
-    private void removeOldPointerVariablesFromSsaMap(String newPVar) {
-      String newVar = getVariableNameFromPointerVariable(newPVar);
-
-      List<String> pointerVariables = getAllPointerVariablesFromSsaMap();
-      for (String pointerVar : pointerVariables) {
-        String oldVar = getVariableNameFromPointerVariable(pointerVar);
-        if (!pointerVar.equals(newPVar) && oldVar.equals(newVar)) {
-          ssa.deleteVariable(pointerVar);
-        }
-      }
-    }
-
-    private boolean isStaticallyDeclaredPointer(IType expr) {
-      String declaration = expr.toASTString();
-      return Pattern.matches(".*\\*", declaration);
-    }
-
-    private String getVariableNameFromPointerVariable(String pointerVariable) {
-      assert (isPointerVariable(pointerVariable));
-
-      return pointerVariable.substring(2, pointerVariable.indexOf(','));
-    }
-
+    /** Returns the variable name of a memory address variable */
     private String getVariableNameFromMemoryAddress(String memoryAddress) {
       assert(memoryAddress.startsWith(MEMORY_ADDRESS_VARIABLE_PREFIX));
 
       return memoryAddress.substring(MEMORY_ADDRESS_VARIABLE_PREFIX.length());
-    }
-
-    /**
-     * Returns whether the given variable name is a pointer variable name.
-     */
-    private boolean isPointerVariable(String variableName) {
-      final Pattern pointerVariablePattern = Pattern.compile("\\*<.*>");
-      return pointerVariablePattern.matcher(variableName).matches();
-    }
-
-    /**
-     * Returns a list of all pointer variables stored in the SSAMap.
-     */
-    private List<String> getAllPointerVariablesFromSsaMap() {
-      List<String> pointerVariables = new LinkedList<String>();
-      Set<String> ssaVariables = ssa.build().allVariables();
-
-      for (String variable : ssaVariables) {
-        if (isPointerVariable(variable)) {
-          pointerVariables.add(variable);
-        }
-      }
-
-      return pointerVariables;
     }
   }
 
@@ -1804,7 +1851,7 @@ public class CtoFormulaConverter {
       return makeFreshVariable(var, ssa);
     }
 
-    private Formula makeUIF(IASTExpression exp) {
+    protected Formula makeUIF(IASTExpression exp) {
       warnUnsafeAssignment();
       logDebug("Assigning to ", exp);
 
@@ -1917,26 +1964,38 @@ public class CtoFormulaConverter {
     }
 
     @Override
+    public Formula visit(IASTCastExpression e) throws UnrecognizedCCodeException {
+      return e.getOperand().accept(this);
+    }
+
+    private Formula getPointerFormula(IASTExpression pExp) {
+      IASTExpression exp = removeCast(pExp);
+
+      if (exp instanceof IASTIdExpression) {
+        // *a = ...
+        // *((int*) a) = ...
+        IASTIdExpression pId = (IASTIdExpression) exp;
+        String pVarName = makePointerVariableName(pId, function, ssa);
+        makeFreshIndex(pVarName, ssa);
+        return makePointerVariable(pId, function, ssa);
+
+      } else {
+        // apparently valid cil output:
+        // *(&s.f) = ...
+        // *(s->f) = ...
+        // *(a+b) = ...
+
+        return makeUIF(exp);
+      }
+    }
+
+    @Override
     public Formula visit(IASTUnaryExpression pE) throws UnrecognizedCCodeException {
-      IASTIdExpression pId = null;
-
-      if (pE.getOperator() == UnaryOperator.STAR
-          && (pE.getOperand() instanceof IASTIdExpression)) {
-        pId = (IASTIdExpression) pE.getOperand();
-
-      } else if (pE.getOperator() == UnaryOperator.STAR
-          && (pE.getOperand() instanceof IASTCastExpression)
-          && (((IASTCastExpression) pE.getOperand()).getOperand() instanceof IASTIdExpression)) {
-        pId = (IASTIdExpression) ((IASTCastExpression) pE.getOperand()).getOperand();
-
+      if (pE.getOperator() == UnaryOperator.STAR) {
+        return getPointerFormula(pE.getOperand());
       } else {
         return super.visit(pE);
       }
-
-      String pVarName = makePointerVariableName(pId, function, ssa);
-      makeFreshIndex(pVarName, ssa);
-
-      return makePointerVariable(pId, function, ssa);
     }
   }
 }

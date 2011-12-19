@@ -41,6 +41,9 @@ public final class IASTPointerTypeSpecifier extends IType {
   public String toASTString() {
     return (isConst() ? "const " : "")
         + (isVolatile() ? "volatile " : "")
-        + type.toASTString() + " *";
+        + (type instanceof IASTFunctionTypeSpecifier
+            ? ((IASTFunctionTypeSpecifier)type).toASTStringFunctionPointer()
+            : type.toASTString() + "*");
+
   }
 }

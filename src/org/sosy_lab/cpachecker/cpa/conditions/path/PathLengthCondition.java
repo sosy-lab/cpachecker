@@ -1,0 +1,143 @@
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2011  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
+package org.sosy_lab.cpachecker.cpa.conditions.path;
+
+import java.io.PrintStream;
+
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.IntegerOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingElement;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula;
+import org.sosy_lab.cpachecker.util.assumptions.HeuristicToFormula.PreventingHeuristicType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+
+/**
+ * A {@link PathCondition} where the condition is the length of the current path.
+ */
+@Options(prefix="cpa.conditions.path.length")
+public class PathLengthCondition implements PathCondition, Statistics {
+
+  @Option(description="maximum path length (-1 for infinite)",
+      name="limit")
+  @IntegerOption(min=-1)
+  private int threshold = -1;
+
+  private int increaseThresholdBy = 0;
+
+  private int maxPathLength = 0;
+
+
+
+  public PathLengthCondition(Configuration config, LogManager logger) throws InvalidConfigurationException {
+    config.inject(this);
+  }
+
+  @Override
+  public AvoidanceReportingElement getInitialElement(CFANode pNode) {
+    return new PathLengthConditionElement(0, false);
+  }
+
+  @Override
+  public AvoidanceReportingElement getAbstractSuccessor(AbstractElement pElement, CFAEdge pEdge) {
+
+    PathLengthConditionElement element = (PathLengthConditionElement)pElement;
+    if (element.thresholdReached) {
+      return element;
+    }
+
+    int pathLength = element.pathLength + 1;
+    boolean thresholdReached = (threshold >= 0) && (pathLength >= threshold);
+
+    maxPathLength = Math.max(pathLength, maxPathLength);
+
+    return new PathLengthConditionElement(pathLength, thresholdReached);
+  }
+
+  @Override
+  public boolean adjustPrecision() {
+    if (threshold == -1) {
+      // set the initial threshold value
+      // TODO PW: Do this calculations make sense? I just copied them from PathLengthHeuristicsPrecision.
+      threshold = maxPathLength / 5;
+      increaseThresholdBy = threshold / 4;
+
+    } else {
+      threshold = threshold + increaseThresholdBy;
+    }
+    return true;
+  }
+
+  @Override
+  public String getName() {
+    return "Path length condition";
+  }
+
+  @Override
+  public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
+    out.println("Maximum length of a path: " + maxPathLength);
+    out.println("Threshold value:          " + threshold);
+  }
+
+
+  private static class PathLengthConditionElement implements AbstractElement, AvoidanceReportingElement {
+
+    private final int pathLength;
+    private final boolean thresholdReached;
+
+    private PathLengthConditionElement(int pPathLength, boolean pThresholdReached) {
+      pathLength = pPathLength;
+      thresholdReached = pThresholdReached;
+    }
+
+    @Override
+    public boolean mustDumpAssumptionForAvoidance() {
+      return thresholdReached;
+    }
+
+    @Override
+    public Formula getReasonFormula(FormulaManager pMgr) {
+      String formula = HeuristicToFormula.getFormulaStringForHeuristic(PreventingHeuristicType.PATHLENGTH, pathLength);
+
+      return pMgr.parse(formula);
+    }
+
+    @Override
+    public String toString() {
+      return "path length: " + pathLength
+          + (thresholdReached ? " (threshold reached)" : "");
+    }
+  }
+
+}

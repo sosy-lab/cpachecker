@@ -64,9 +64,9 @@ public final class IASTEnumerationSpecifier extends IType {
     lASTString.append("enum ");
     lASTString.append(name);
 
-    lASTString.append(" {");
-    lASTString.append(Joiner.on(", ").join(new ASTStringIterable(enumerators)));
-    lASTString.append("}");
+    lASTString.append(" {\n  ");
+    lASTString.append(Joiner.on(",\n  ").join(new ASTStringIterable(enumerators)));
+    lASTString.append("} ");
 
     return lASTString.toString();
   }
@@ -77,10 +77,10 @@ public final class IASTEnumerationSpecifier extends IType {
 
     private final Long           value;
 
-    public IASTEnumerator(final String pRawSignature,
-        final IASTFileLocation pFileLocation, final String pName,
+    public IASTEnumerator(final IASTFileLocation pFileLocation,
+                          final String pName,
         final Long pValue) {
-      super(pRawSignature, pFileLocation, INT_TYPE, pName);
+      super(pFileLocation, INT_TYPE, pName);
 
       checkNotNull(pName);
       value = pValue;
@@ -96,8 +96,9 @@ public final class IASTEnumerationSpecifier extends IType {
     }
 
     @Override
-    public String toASTString() {
-      return getName() + (hasValue() ? " = " + String.valueOf(value) : "");
+    public String toASTString(String pPrefix) {
+      return pPrefix + getName()
+          + (hasValue() ? " = " + String.valueOf(value) : "");
     }
   }
 }

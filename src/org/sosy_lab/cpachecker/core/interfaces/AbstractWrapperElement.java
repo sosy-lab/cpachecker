@@ -26,13 +26,6 @@ package org.sosy_lab.cpachecker.core.interfaces;
 public interface AbstractWrapperElement extends AbstractElement {
 
   /**
-   * Utility method which is equal to
-   * retrieveWrappedElement(AbstractElementWithLocation.class);
-   * @return An instance of an element with type AbstractElementWithLocation or null if there is none.
-   */
-  public AbstractElementWithLocation retrieveLocationElement();
-
-  /**
    * Retrieve all wrapped abstract elements contained directly in this object.
    * @return A non-empty list of abstract elements.
    */

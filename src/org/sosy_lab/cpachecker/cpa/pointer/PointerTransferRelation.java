@@ -390,7 +390,7 @@ public class PointerTransferRelation implements TransferRelation {
         throw new UnrecognizedCCodeException("variable sized stack arrays are not supported", edge);
       }
 
-      long length = parseIntegerLiteral((IASTLiteralExpression)lengthExpression);
+      long length = parseIntegerLiteral((IASTLiteralExpression)lengthExpression, edge);
       StackArrayCell array = new StackArrayCell(element.getCurrentFunctionName(),
                                                   new StackArray(varName, length));
 
@@ -505,7 +505,7 @@ public class PointerTransferRelation implements TransferRelation {
 
       } else if (unaryExpression.getOperator() == UnaryOperator.STAR) {
         // if (*var)
-        String varName = expression.getRawSignature();
+        String varName = expression.toASTString();
         Pointer p = element.lookupPointer(varName);
 
         if (p == null) {
@@ -537,7 +537,7 @@ public class PointerTransferRelation implements TransferRelation {
       }
     } else if (expression instanceof IASTIdExpression) {
       // if (a)
-      String varName = expression.getRawSignature();
+      String varName = ((IASTIdExpression)expression).getName();
       Pointer p = element.lookupPointer(varName);
       if (p == null) {
         // no pointer
@@ -579,8 +579,8 @@ public class PointerTransferRelation implements TransferRelation {
 
     IASTExpression leftOp = expression.getOperand1();
     IASTExpression rightOp = expression.getOperand2();
-    Pointer leftPointer = element.lookupPointer(leftOp.getRawSignature());
-    Pointer rightPointer = element.lookupPointer(rightOp.getRawSignature());
+    Pointer leftPointer = element.lookupPointer(leftOp.toASTString());
+    Pointer rightPointer = element.lookupPointer(rightOp.toASTString());
 
     if (leftPointer != null && rightPointer != null) {
 
@@ -634,14 +634,14 @@ public class PointerTransferRelation implements TransferRelation {
         IASTExpression parameter = actualParameters.get(i);
 
         if (parameter instanceof IASTIdExpression) {
-          Pointer p = element.lookupPointer(parameter.getRawSignature());
+          Pointer p = element.lookupPointer(((IASTIdExpression)parameter).getName());
           actualValues.add(p); // either a pointer or null
 
         } else if (parameter instanceof IASTLiteralExpression) {
           IASTLiteralExpression literal = (IASTLiteralExpression)parameter;
 
           if (literal instanceof IASTIntegerLiteralExpression
-              && parseIntegerLiteral(literal) == 0) {
+              && parseIntegerLiteral(literal, cfaEdge) == 0) {
 
             actualValues.add(new Pointer()); // null pointer
           } else {
@@ -654,7 +654,7 @@ public class PointerTransferRelation implements TransferRelation {
           if (unaryExpression.getOperator() == UnaryOperator.AMPER
               && unaryExpression.getOperand() instanceof IASTIdExpression) {
 
-            String varName = unaryExpression.getOperand().getRawSignature();
+            String varName = unaryExpression.getOperand().toASTString();
             Variable var = element.lookupVariable(varName);
             actualValues.add(new Pointer(var));
 
@@ -692,11 +692,11 @@ public class PointerTransferRelation implements TransferRelation {
     missing = new MissingInformation();
   }
 
-  private long parseIntegerLiteral(IASTLiteralExpression expression)
+  private long parseIntegerLiteral(IASTLiteralExpression expression, CFAEdge edge)
       throws UnrecognizedCCodeException {
 
     if (!(expression instanceof IASTIntegerLiteralExpression)) {
-      throw new UnrecognizedCCodeException("integer expression expected", expression);
+      throw new UnrecognizedCCodeException("integer expression expected", edge, expression);
     }
     return ((IASTIntegerLiteralExpression)expression).asLong();
   }
@@ -736,7 +736,7 @@ public class PointerTransferRelation implements TransferRelation {
 
       if (leftOperand instanceof IASTIdExpression) {
         Pointer leftPointer =
-            element.lookupPointer(leftOperand.getRawSignature());
+            element.lookupPointer(((IASTIdExpression)leftOperand).getName());
 
         if (leftPointer != null) {
           if (resultPointer != null) {
@@ -789,7 +789,7 @@ public class PointerTransferRelation implements TransferRelation {
       IASTFunctionCallExpression funcExpression =
           ((IASTFunctionCallStatement)expression).getFunctionCallExpression();
       String functionName =
-          funcExpression.getFunctionNameExpression().getRawSignature();
+          funcExpression.getFunctionNameExpression().toASTString();
 
       if (functionName.equals("free")) {
 
@@ -823,7 +823,7 @@ public class PointerTransferRelation implements TransferRelation {
     IASTExpression parameter = parameters.get(0);
 
     if (parameter instanceof IASTIdExpression) {
-      Pointer p = element.lookupPointer(parameter.getRawSignature());
+      Pointer p = element.lookupPointer(((IASTIdExpression)parameter).getName());
 
       if (p == null) {
         throw new UnrecognizedCCodeException("freeing non-pointer pointer",
@@ -920,7 +920,7 @@ public class PointerTransferRelation implements TransferRelation {
     if (leftExpression instanceof IASTIdExpression) {
       // a
       leftDereference = false;
-      leftVarName = leftExpression.getRawSignature();
+      leftVarName = ((IASTIdExpression)leftExpression).getName();
       leftPointer = element.lookupPointer(leftVarName);
 
     } else if (leftExpression instanceof IASTUnaryExpression) {
@@ -944,8 +944,8 @@ public class PointerTransferRelation implements TransferRelation {
               leftExpression);
         }
 
-        leftPointer = element.lookupPointer(leftExpression.getRawSignature());
-        leftVarName = leftExpression.getRawSignature();
+        leftPointer = element.lookupPointer(leftExpression.toASTString());
+        leftVarName = leftExpression.toASTString();
         if (leftPointer == null) {
           element.addProperty(ElementProperty.UNSAFE_DEREFERENCE);
           if (!leftCast) {
@@ -953,9 +953,9 @@ public class PointerTransferRelation implements TransferRelation {
                 cfaEdge, leftExpression);
           } else {
             addWarning("Casting non-pointer value "
-                + leftExpression.getRawSignature()
+                + leftExpression.toASTString()
                 + " to pointer and dereferencing it", cfaEdge, leftExpression
-                .getRawSignature());
+                .toASTString());
           }
 
         } else {
@@ -970,7 +970,7 @@ public class PointerTransferRelation implements TransferRelation {
             element.addProperty(ElementProperty.POTENTIALLY_UNSAFE_DEREFERENCE);
             addWarning("Potentially unsafe deref of pointer "
                 + leftPointer.getLocation() + " = " + leftPointer, cfaEdge,
-                unaryExpression.getRawSignature());
+                unaryExpression.toASTString());
 
             // if program continues after deref, pointer did not contain NULL, INVALID or UNINITIALIZED
             element.pointerOpAssumeInequality(leftPointer, Memory.NULL_POINTER);
@@ -1038,7 +1038,7 @@ public class PointerTransferRelation implements TransferRelation {
       IASTFunctionCallExpression funcExpression =
           (IASTFunctionCallExpression)expression;
       String functionName =
-          funcExpression.getFunctionNameExpression().getRawSignature();
+          funcExpression.getFunctionNameExpression().toASTString();
 
       if (functionName.equals("malloc")) {
         handleMalloc(element, leftPointer, leftDereference, funcExpression, cfaEdge);
@@ -1064,15 +1064,15 @@ public class PointerTransferRelation implements TransferRelation {
       }
 
       if (op1 instanceof IASTIdExpression) {
-        Pointer rightPointer = element.lookupPointer(op1.getRawSignature());
+        Pointer rightPointer = element.lookupPointer(((IASTIdExpression)op1).getName());
 
         if (rightPointer == null) {
           if (leftPointer != null) {
             if (element.isPointerVariable(leftPointer.getLocation())) {
               addWarning("Assigning non-pointer value "
-                  + binExpression.getRawSignature() + " to pointer "
+                  + binExpression.toASTString() + " to pointer "
                   + leftPointer.getLocation(), cfaEdge, binExpression
-                  .getRawSignature());
+                  .toASTString());
 
               element.pointerOp(new Pointer.Assign(Memory.UNKNOWN_POINTER),
                   leftPointer, leftDereference);
@@ -1099,7 +1099,7 @@ public class PointerTransferRelation implements TransferRelation {
           }
 
           if (op2 instanceof IASTLiteralExpression) {
-            long offset = parseIntegerLiteral((IASTLiteralExpression)op2);
+            long offset = parseIntegerLiteral((IASTLiteralExpression)op2, cfaEdge);
             if (typeOfOperator == BinaryOperator.MINUS) {
               offset = -offset;
             }
@@ -1130,9 +1130,9 @@ public class PointerTransferRelation implements TransferRelation {
 
         if (op2 instanceof IASTLiteralExpression) {
           addWarning("Assigning non-pointer value "
-              + binExpression.getRawSignature() + " to pointer "
+              + binExpression.toASTString() + " to pointer "
               + leftPointer.getLocation(), cfaEdge, binExpression
-              .getRawSignature());
+              .toASTString());
 
           element.pointerOp(new Pointer.Assign(Memory.UNKNOWN_POINTER),
               leftPointer, leftDereference);
@@ -1155,7 +1155,7 @@ public class PointerTransferRelation implements TransferRelation {
         // a = &b
         Variable var =
             element.lookupVariable(unaryExpression.getOperand()
-                .getRawSignature());
+                .toASTString());
 
         element
             .pointerOp(new Pointer.Assign(var), leftPointer, leftDereference);
@@ -1163,9 +1163,9 @@ public class PointerTransferRelation implements TransferRelation {
       } else if (op == UnaryOperator.MINUS) {
         if (leftPointer != null) {
           addWarning("Assigning non-pointer value "
-              + unaryExpression.getRawSignature() + " to pointer "
+              + unaryExpression.toASTString() + " to pointer "
               + leftPointer.getLocation(), cfaEdge, unaryExpression
-              .getRawSignature());
+              .toASTString());
 
           element.pointerOp(new Pointer.Assign(Memory.UNKNOWN_POINTER),
               leftPointer, leftDereference);
@@ -1190,7 +1190,7 @@ public class PointerTransferRelation implements TransferRelation {
         }
 
         Pointer rightPointer =
-            element.lookupPointer(expression.getRawSignature());
+            element.lookupPointer(expression.toASTString());
 
         if (rightPointer == null) {
 
@@ -1199,9 +1199,9 @@ public class PointerTransferRelation implements TransferRelation {
                 cfaEdge, expression);
           } else {
             addWarning("Casting non-pointer value "
-                + expression.getRawSignature()
+                + expression.toASTString()
                 + " to pointer and dereferencing it", cfaEdge, expression
-                .getRawSignature());
+                .toASTString());
           }
 
         } else {
@@ -1217,7 +1217,7 @@ public class PointerTransferRelation implements TransferRelation {
             element.addProperty(ElementProperty.POTENTIALLY_UNSAFE_DEREFERENCE);
             addWarning("Potentially unsafe deref of pointer "
                 + rightPointer.getLocation() + " = " + rightPointer, cfaEdge,
-                unaryExpression.getRawSignature());
+                unaryExpression.toASTString());
 
             // if program continues after deref, pointer did not contain NULL or INVALID or UNINITIALIZED
             element
@@ -1232,9 +1232,9 @@ public class PointerTransferRelation implements TransferRelation {
             if (!rightPointer.isPointerToPointer()) {
               if (element.isPointerVariable(leftPointer.getLocation())) {
                 addWarning("Assigning non-pointer value "
-                    + unaryExpression.getRawSignature() + " to pointer "
+                    + unaryExpression.toASTString() + " to pointer "
                     + leftPointer.getLocation(), cfaEdge, expression
-                    .getRawSignature());
+                    .toASTString());
 
                 element.pointerOp(new Pointer.Assign(Memory.UNKNOWN_POINTER),
                     leftPointer, leftDereference);
@@ -1262,7 +1262,7 @@ public class PointerTransferRelation implements TransferRelation {
     } else if (expression instanceof IASTIdExpression) {
       // a = b
       Pointer rightPointer =
-          element.lookupPointer(expression.getRawSignature());
+          element.lookupPointer(((IASTIdExpression)expression).getName());
 
       if (leftPointer != null) {
         if (rightPointer == null) {
@@ -1276,9 +1276,9 @@ public class PointerTransferRelation implements TransferRelation {
               element.pointerOp(new Pointer.Assign(Memory.UNKNOWN_POINTER),
                   leftPointer, leftDereference);
               addWarning("Assigning non-pointer value "
-                  + expression.getRawSignature() + " to pointer "
+                  + expression.toASTString() + " to pointer "
                   + leftPointer.getLocation(), cfaEdge, expression
-                  .getRawSignature());
+                  .toASTString());
             }
 
           } else {
@@ -1336,7 +1336,7 @@ public class PointerTransferRelation implements TransferRelation {
     MemoryAddress memAddress = op.getMallocResult();
 
     if (parameter instanceof IASTLiteralExpression) {
-      long size = parseIntegerLiteral((IASTLiteralExpression)parameter);
+      long size = parseIntegerLiteral((IASTLiteralExpression)parameter, cfaEdge);
       if (size < 0) {
         throw new UnrecognizedCCodeException("malloc with size < 0, but malloc takes unsigned parameter",
                                               cfaEdge, parameter);
@@ -1476,7 +1476,7 @@ public class PointerTransferRelation implements TransferRelation {
   private Long getVariableContent(IASTNode variable,
       ExplicitElement explicitElement, CFAEdge cfaEdge) {
 
-    String varName = variable.getRawSignature();
+    String varName = variable.toASTString();
     if (!explicitElement.contains(varName)) {
       varName = cfaEdge.getPredecessor().getFunctionName() + "::" + varName;
     }
@@ -1593,7 +1593,7 @@ public class PointerTransferRelation implements TransferRelation {
   private Type checkForFieldReferenceType(IASTExpression exp, TypesElement typeElem,
                                           CFAEdge cfaEdge) {
 
-    String name = exp.getRawSignature();
+    String name = exp.toASTString();
     Type t = null;
 
     if (exp instanceof IASTFieldReference) {

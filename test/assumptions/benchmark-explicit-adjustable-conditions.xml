@@ -15,24 +15,24 @@
       <includesfile>test/assumptions/adjustableConditions.set</includesfile>
     </sourcefiles>
     <option name="-config">test/assumptions/explicit-adjustableConditions.properties</option>
-    <option name="-setprop">cpa.assumptions.progressobserver.heuristics=PathLengthHeuristics,TimeOutHeuristics</option>
-    <option name="-setprop">cpa.assumptions.progressobserver.heuristics.timeOutHeuristics.threshold=10000</option>
+    <option name="-setprop">cpa.conditions.path.condition=PathLengthCondition</option>
+    <option name="-setprop">cpa.conditions.global.time.wall=10s</option>
   </test>
   <test name="adjustable-conditions-rip">
     <sourcefiles>
       <includesfile>test/assumptions/adjustableConditions.set</includesfile>
     </sourcefiles>
     <option name="-config">test/assumptions/explicit-adjustableConditions.properties</option>
-    <option name="-setprop">cpa.assumptions.progressobserver.heuristics=RepetitionsInPathHeuristics,TimeOutHeuristics</option>
-    <option name="-setprop">cpa.assumptions.progressobserver.heuristics.timeOutHeuristics.threshold=10000</option>
+    <option name="-setprop">cpa.conditions.path.condition=RepetitionsInPathCondition</option>
+    <option name="-setprop">cpa.conditions.global.time.wall=10s</option>
   </test>
   <test name="adjustable-conditions-ae">
     <sourcefiles>
       <includesfile>test/assumptions/adjustableConditions.set</includesfile>
     </sourcefiles>
     <option name="-config">test/assumptions/explicit-adjustableConditions.properties</option>
-    <option name="-setprop">cpa.assumptions.progressobserver.heuristics=AssumeEdgesInPathHeuristics,TimeOutHeuristics</option>
-    <option name="-setprop">cpa.assumptions.progressobserver.heuristics.timeOutHeuristics.threshold=10000</option>
+    <option name="-setprop">cpa.conditions.path.condition=AssumeEdgesInPathCondition</option>
+    <option name="-setprop">cpa.conditions.global.time.wall=10s</option>
   </test>
   <columns>
     <column title="total">time for CPAchecker</column>

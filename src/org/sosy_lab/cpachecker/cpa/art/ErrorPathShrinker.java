@@ -185,7 +185,7 @@ public final class ErrorPathShrinker {
 
     // exp is an Identifier, i.e. the "b" from "a = b"
     else if (exp instanceof IASTIdExpression) {
-      final String varName = exp.getRawSignature();
+      final String varName = ((IASTIdExpression)exp).getName();
       importantVars.add(varName);
       if (GLOBAL_VARS.contains(varName)) {
         importantVarsForGlobalVars.add(varName);
@@ -215,7 +215,7 @@ public final class ErrorPathShrinker {
 
     // a fieldReference "b->c" is handled as one variable with the name "b->c".
     else if (exp instanceof IASTFieldReference) {
-      final String varName = exp.getRawSignature();
+      final String varName = exp.toASTString();
       importantVars.add(varName);
       if (GLOBAL_VARS.contains(varName)) {
         importantVarsForGlobalVars.add(varName);
@@ -463,7 +463,7 @@ public final class ErrorPathShrinker {
       // "a = f(x)"
       if (funcExp instanceof IASTFunctionCallAssignmentStatement) {
         final String lParam =
-            ((IASTFunctionCallAssignmentStatement) funcExp).getLeftHandSide().getRawSignature();
+            ((IASTFunctionCallAssignmentStatement) funcExp).getLeftHandSide().toASTString();
 
         // if the function has a important result or changes the global
         // variables, get the params from the function and update the Sets.
@@ -546,7 +546,7 @@ public final class ErrorPathShrinker {
 
       // a = ?
       if (lParam instanceof IASTIdExpression) {
-        handleAssignmentToVariable(lParam.getRawSignature(), rightExp);
+        handleAssignmentToVariable(((IASTIdExpression)lParam).getName(), rightExp);
       }
 
       // TODO: assignment to pointer, *a = ?
@@ -557,7 +557,7 @@ public final class ErrorPathShrinker {
 
       // "a->b = ?", assignment to field is handled as assignment to variable.
       else if (lParam instanceof IASTFieldReference) {
-        handleAssignmentToVariable(lParam.getRawSignature(), rightExp);
+        handleAssignmentToVariable(lParam.toASTString(), rightExp);
       }
 
       // TODO assignment to array cell, a[b] = ?
@@ -685,8 +685,8 @@ public final class ErrorPathShrinker {
                 ((IASTBinaryExpression) lastExp).getOperand1();
 
             // only the first variable of the assignment is checked
-            final boolean isEqualVarName = currentBinExpOp1.getRawSignature().
-            equals(lastBinExpOp1.getRawSignature());
+            final boolean isEqualVarName = currentBinExpOp1.toASTString().
+            equals(lastBinExpOp1.toASTString());
 
             // switchStatement:     !(x==3);(x==4);   -> operator "=="
             // similar assumption:  (x>3);(x>4);      -> operator ">"

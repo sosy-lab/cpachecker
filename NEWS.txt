@@ -1,0 +1,13 @@
+Changes since CPAchecker 1.1
+----------------------------
+* r5060: A time limit of 15 minutes is now enabled by default in most configurations.
+  If the analysis is not yet finished, CPAchecker will stop after this time and report UNKNOWN.
+  The time limit can be controlled with the "cpa.conditions.global.time.wall" option
+  and the "-timelimit" command-line argument.
+  Example:
+  scripts/cpa.sh -predicateAnalysis -timelimit 1min test.c
+* r4960: If the #include directive of specification automata is used with relative paths, 
+  the base directory of the relative path is now the directory of the file which contains the #include,
+  not the CPAchecker root directory.
+  If #include is used with relative paths in a specification file, it most probably needs adjustment.
+

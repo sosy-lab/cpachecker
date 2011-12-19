@@ -27,9 +27,9 @@ public class IASTReturnStatement extends IASTNode {
 
   private final IASTExpression expression;
 
-  public IASTReturnStatement(final String pRawSignature,
-      final IASTFileLocation pFileLocation, final IASTExpression pExpression) {
-    super(pRawSignature, pFileLocation);
+  public IASTReturnStatement(final IASTFileLocation pFileLocation,
+                             final IASTExpression pExpression) {
+    super(pFileLocation);
     expression = pExpression;
   }
 
@@ -38,7 +38,9 @@ public class IASTReturnStatement extends IASTNode {
   }
 
   @Override
-  public String toASTString() {
-    return "return " + expression.toASTString() + ";";
+  public String toASTString(String pPrefix) {
+    return pPrefix + "return"
+        + (expression != null ? " (" + expression.toASTString() + ")" : "")
+        + ";";
   }
 }

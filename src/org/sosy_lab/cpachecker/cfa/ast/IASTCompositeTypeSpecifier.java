@@ -83,7 +83,7 @@ public final class IASTCompositeTypeSpecifier extends IType {
       lASTString.append(lMember.toASTString());
       lASTString.append("\n");
     }
-    lASTString.append("}");
+    lASTString.append("} ");
 
     return lASTString.toString();
   }

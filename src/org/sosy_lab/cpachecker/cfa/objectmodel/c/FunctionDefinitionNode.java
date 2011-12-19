@@ -34,20 +34,21 @@ import com.google.common.collect.ImmutableList;
 
 public class FunctionDefinitionNode extends CFAFunctionDefinitionNode {
 
-  private final IASTFunctionDefinition                   functionDefinition;
-  private final List<IASTParameterDeclaration>           parameters;
-  private final List<String>                             parameterNames;
+  private final IASTFunctionDefinition functionDefinition;
+  private final List<IASTParameterDeclaration> parameters;
+  private final List<String> parameterNames;
 
-  public FunctionDefinitionNode(final int lineNumber,
-      final String functionName,
-      final IASTFunctionDefinition functionDefinition,
-      final CFAFunctionExitNode exitNode,
-      final List<IASTParameterDeclaration> parameters,
-      final List<String> parameterNames) {
-    super(lineNumber, functionName, exitNode);
-    this.functionDefinition = functionDefinition;
-    this.parameters = ImmutableList.copyOf(parameters);
-    this.parameterNames = ImmutableList.copyOf(parameterNames);
+  public FunctionDefinitionNode(final int pLineNumber,
+      final String pFunctionName,
+      final IASTFunctionDefinition pFunctionDefinition,
+      final CFAFunctionExitNode pExitNode,
+      final List<IASTParameterDeclaration> pParameters,
+      final List<String> pParameterNames) {
+
+    super(pLineNumber, pFunctionName, pExitNode);
+    functionDefinition = pFunctionDefinition;
+    parameters = ImmutableList.copyOf(pParameters);
+    parameterNames = ImmutableList.copyOf(pParameterNames);
   }
 
   public IASTFunctionDefinition getFunctionDefinition() {

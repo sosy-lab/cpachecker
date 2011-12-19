@@ -33,28 +33,26 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 import com.google.common.collect.ImmutableList;
 
+public class FunctionCallEdge extends AbstractCFAEdge {
 
-public class FunctionCallEdge extends AbstractCFAEdge
-{
 	private final List<IASTExpression> arguments;
 	private final IASTStatement rawAST;
 	private final CallToReturnEdge summaryEdge;
 
-    public FunctionCallEdge (String rawStatement, IASTStatement rawAST, int lineNumber,
-        CFANode predecessor, FunctionDefinitionNode successor, List<IASTExpression> arguments,
-        CallToReturnEdge pSummaryEdge) {
-      super(rawAST.getRawSignature(), lineNumber, predecessor, successor);
+  public FunctionCallEdge (String pRawStatement, IASTStatement pRawAST,
+      int pLineNumber, CFANode pPredecessor, FunctionDefinitionNode pSuccessor,
+      List<IASTExpression> pArguments, CallToReturnEdge pSummaryEdge) {
 
-      this.arguments = ImmutableList.copyOf(arguments);
-      this.rawAST = rawAST;
-      this.summaryEdge = pSummaryEdge;
-    }
+    super(pRawAST.toASTString(), pLineNumber, pPredecessor, pSuccessor);
+    arguments = ImmutableList.copyOf(pArguments);
+    rawAST = pRawAST;
+    summaryEdge = pSummaryEdge;
+  }
 
-    @Override
-    public CFAEdgeType getEdgeType ()
-    {
-        return CFAEdgeType.FunctionCallEdge;
-    }
+  @Override
+  public CFAEdgeType getEdgeType() {
+    return CFAEdgeType.FunctionCallEdge;
+  }
 
   public CallToReturnEdge getSummaryEdge() {
     return summaryEdge;

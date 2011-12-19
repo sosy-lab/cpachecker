@@ -15,21 +15,21 @@
       <includesfile>test/assumptions/adjustableConditions.set</includesfile>
     </sourcefiles>
     <option name="-config">test/assumptions/predicate-adjustableConditions.properties</option>
-    <option name="-setprop">cpa.assumptions.progressobserver.heuristics=PathLengthHeuristics,TimeOutHeuristics</option>
+    <option name="-setprop">cpa.conditions.path.condition=PathLengthCondition</option>
   </test>
   <test name="adjustable-conditions-lbe-rip">
     <sourcefiles>
       <includesfile>test/assumptions/adjustableConditions.set</includesfile>
     </sourcefiles>
     <option name="-config">test/assumptions/predicate-adjustableConditions.properties</option>
-    <option name="-setprop">cpa.assumptions.progressobserver.heuristics=RepetitionsInPathHeuristics,TimeOutHeuristics</option>
+    <option name="-setprop">cpa.conditions.path.condition=RepetitionsInPathCondition</option>
   </test>
   <test name="adjustable-conditions-lbe-ae">
     <sourcefiles>
       <includesfile>test/assumptions/adjustableConditions.set</includesfile>
     </sourcefiles>
     <option name="-config">test/assumptions/predicate-adjustableConditions.properties</option>
-    <option name="-setprop">cpa.assumptions.progressobserver.heuristics=AssumeEdgesInPathHeuristics,TimeOutHeuristics</option>
+    <option name="-setprop">cpa.conditions.path.condition=AssumeEdgesInPathCondition</option>
   </test>
   <columns>
     <column title="total">time for CPAchecker</column>
