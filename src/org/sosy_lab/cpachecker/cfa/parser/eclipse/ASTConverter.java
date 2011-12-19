@@ -43,13 +43,16 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier.ElaboratedType;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
@@ -79,16 +82,13 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeId;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IComplexType;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.ITypedef;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier.ElaboratedType;
-import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression.TypeIdOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 
 @SuppressWarnings("deprecation") // several methods are deprecated in CDT 7 but still working
 class ASTConverter {
@@ -136,24 +136,23 @@ class ASTConverter {
       }
       name += i;
 
-      IASTDeclaration decl = new IASTDeclaration(((IASTFunctionCallExpression) node).getExpressionType().toASTString() + " " + name,
-                                                                      node.getFileLocation(),
-                                                                      false,
-                                                                      StorageClass.AUTO,
-                                                                      ((IASTFunctionCallExpression) node).getExpressionType(),
-                                                                      name,
-                                                                      null);
+      IASTDeclaration decl = new IASTDeclaration(node.getFileLocation(),
+                                                 false,
+                                                 StorageClass.AUTO,
+                                                 ((IASTFunctionCallExpression) node).getExpressionType(),
+                                                 name,
+                                                 null);
 
       sideAssigment.add(decl);
-      IASTIdExpression tmp = new IASTIdExpression(name,
-                                                  convert(e.getFileLocation()),
+      IASTIdExpression tmp = new IASTIdExpression(convert(e.getFileLocation()),
                                                   convert(e.getExpressionType()),
                                                   name,
                                                   decl);
 
       scope.registerDeclaration(tmp.getDeclaration());
-      sideAssigment.add(new IASTFunctionCallAssignmentStatement(name + " = " + e.getRawSignature(),
-              convert(e.getFileLocation()), tmp, (IASTFunctionCallExpression) node));
+      sideAssigment.add(new IASTFunctionCallAssignmentStatement(convert(e.getFileLocation()),
+                                                                tmp,
+                                                                (IASTFunctionCallExpression) node));
 
       logger.log(Level.INFO, "Created side-effect assignment", sideAssigment.getLast().toASTString());
       return tmp;
@@ -1171,7 +1170,7 @@ class ASTConverter {
     IASTNode initializer = convertExpressionWithSideEffects(i.getExpression());
     if(initializer != null && initializer instanceof IASTAssignment){
       sideAssigment.add(initializer);
-      return new IASTInitializerExpression(i.getRawSignature(), convert(i.getFileLocation()), ((IASTAssignment)initializer).getLeftHandSide());
+      return new IASTInitializerExpression(convert(i.getFileLocation()), ((IASTAssignment)initializer).getLeftHandSide());
     }
 
     if (initializer != null && !(initializer instanceof IASTRightHandSide)) {
@@ -1201,7 +1200,7 @@ class ASTConverter {
 
       if(initializer != null && initializer instanceof IASTAssignment){
         sideAssigment.add(initializer);
-        return new IASTInitializerExpression(i.getRawSignature(), convert(i.getFileLocation()), ((IASTAssignment)initializer).getLeftHandSide());
+        return new IASTInitializerExpression(convert(i.getFileLocation()), ((IASTAssignment)initializer).getLeftHandSide());
       }
 
       if (initializer != null && !(initializer instanceof IASTRightHandSide)) {
