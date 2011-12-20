@@ -82,137 +82,251 @@ CSS = '''
 </style>
 '''
 
+# TODO: copy external scripts to local repository? working offline?
 PLOTTING_SCRIPT = '''
+<script type="text/javascript" src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
+<script type="text/javascript" src="http://www.jqplot.com/src/jquery.jqplot.min.js"></script>
+<script type="text/javascript" src="http://www.jqplot.com/src/plugins/jqplot.highlighter.min.js"></script>
+<script type="text/javascript" src="http://www.jqplot.com/src/plugins/jqplot.cursor.min.js"></script>
+<script type="text/javascript" src="http://www.jqplot.com/src/plugins/jqplot.canvasTextRenderer.min.js"></script>
+<script type="text/javascript" src="http://www.jqplot.com/src/plugins/jqplot.canvasAxisTickRenderer.min.js"></script>
+<script type="text/javascript" src="http://www.jqplot.com/src/plugins/jqplot.enhancedLegendRenderer.min.js"></script>
+
+<style type="text/css">
+    .jqplot-title {font-family:arial, sans serif; font-size:large }
+    .jqplot-table-legend-swatch {width:20px; height:15px }
+    .jqplot-table-legend { border-style:none; outline:none }
+    .jqplot-table-legend tbody { border-style:none }
+    .jqplot-table-legend tbody tr td { border-top:none; cursor:pointer }
+    #chartWrapperBackground { height:5000px; width:5000px;
+             position:fixed; top:0px; left:0px;
+             background-image: url(http://www.house-events.de/schnee.gif);
+             background-color:grey; 
+             opacity:0.5; display:none }
+    #chartWrapper { height:600px; width:1100px; position:fixed;
+             top:50%; left:50%; margin-top:-300px; margin-left:-550px;
+             border:solid 10px black; border-radius:15px;
+             background-color:white; opacity:1; display:none }
+    #chart { height:570px; width:1090px }
+</style>
+
+<div id="chartWrapperBackground"></div>
+<div id="chartWrapper">
+  <div id="chart"></div>
+  <!--<button class="button-reset">Reset Zoom</button>-->
+</div>
+
 <script type="text/javascript">
-// add the event handler after document is fully loaded
-window.addEventListener("load", function() {
-  document.getElementById('columnTitles').onclick = function(event) {
-    document.getElementById('graph').style.display='block';
-    Processing.getInstanceById('graph').setup(event);
-  }
-}, false);
-</script>
-<script src="http://processingjs.org/content/download/processing-js-1.3.6/processing-1.3.6.js"></script>
-<script type="application/processing">
-// define some constants for the UI
-int SCALE	= 1;
-int WIDTH	= 1200 / SCALE;
-int HEIGHT	= 500 / SCALE;
-int X_OFFSET	= 50 / SCALE;
-int Y_OFFSET	= 50 / SCALE;
 
-// define the maximal value, used for normalisation
-int MAX_VALUE	= 100;
+// this function collects the indices of columns with title "header"
+function getColumnIndicesForHeader(header) {
+    columnIndizes = [];
+    cells = document.getElementById('columnTitles').cells;
 
-// keep track of the iteration where are in
-int iteration	= 0;
-
-// the collection of values
-Array values  	= null;
-
-// Setup the Processing Canvas
-void setup(event){
-  size(WIDTH, HEIGHT);
-  strokeWeight(3);
-  frameRate(30);
-  
-  iteration = 0;
-
-  if(event == undefined) {
-    columnName = 'cputime';
-  } else {
-    columnName = event.originalTarget.innerHTML;
-  }
-
-  tableBody	= document.getElementsByTagName('tbody')[0];
-
-  rowCount	= tableBody.rows.length;
-  columnIndices	= getColumnIndicesForHeader(columnName).toArray();
-colorMode(RGB, Math.ceil(columnIndices.length / 3));
-  double max = 0;
-
-  values = new Array(rowCount);
-  for(j = 0; j < rowCount; j++) {
-    values[j] = new Array(columnIndices.length);
-
-    for(i = 0; i < columnIndices.length; i++) {
-      currentCell = tableBody.rows[j].cells[columnIndices[i]];
-      value       = currentCell.innerHTML;
-
-      if(columnName === 'status') {
-	if(currentCell.className.indexOf('correct') == 0)
-	  value = 100;
-	else if(currentCell.className.indexOf('wrong') == 0)
-	  value = 0;
-	else
-	  value = 50;
-      }
-
-      values[j][i] = parseFloat(value);
-
-      if(isNaN(values[j][i]))
-	values[j][i] = 0;
-
-      max = Math.max(max, values[j][i]);
-    }
-  }
-
-  for(j = 0; j < rowCount; j++) {
-    for(i = 0; i < columnIndices.length; i++) {
-      if(max == 0) {
-	values[j][i] = 0;
-      } else {
-	values[j][i] = (values[j][i] / max) * MAX_VALUE;
+    for(i = 0; i < cells.length; i++) {
+      currentHeader = cells[i].innerHTML;
+      if (currentHeader == header) {
+        columnIndizes.push(i);
       }
     }
-  }
-}
 
-// Main draw loop
-void draw(){
-  if(iteration < values.length - 1) {
-    steppingX = /*Math.floor*/((WIDTH - 2 * X_OFFSET) / values.length);
-    steppingY = /*Math.floor*/((HEIGHT - 2 * Y_OFFSET) / MAX_VALUE);
+    return columnIndizes;
+};
 
-    currentX = iteration * steppingX + X_OFFSET;
+// getTableData returns a list of arrays, 
+// each array is of the form: [[file1, value1], [file2, value1], ...]
+function getTableData(header) {
+    console.log("data for: " + header);
+    data = [];
 
-    Array previousPoints = values[iteration];
-    Array currentPoints = values[iteration + 1];
-    
-    for(i = 0; i < currentPoints.length; i++) {
-      // some experiments with transparency in last parameter, so that next line does not fully paint over previous line ...
-      stroke(255 * ((i >> 2) % 2), 255 * ((i >> 1) % 2), 255 * (i % 2));
-      // ... discarded in favour of introducing some error - adding one pixel in height per plotted graph line
-      line(currentX, HEIGHT - Y_OFFSET - previousPoints[i] * steppingY + i, currentX + steppingX, HEIGHT - Y_OFFSET - currentPoints[i] * steppingY + i);
+    indices = getColumnIndicesForHeader(header);
+    for (j = 0; j < indices.length; j++) {
+      data.push([]);
     }
 
-    iteration += 1;
-    //frameRate(iteration);
-  }
-}
+    tableBody = $('#dataTable > tbody')[0];
 
-ArrayList getColumnIndicesForHeader(String header) {
-  ArrayList columnIndizes = new ArrayList();
+    for(i = 0; i < tableBody.rows.length; i++) {
+      currentRow = tableBody.rows[i];
 
-  cells = document.getElementById('columnTitles').cells;
+      for (j = 0; j < indices.length; j++) {
+        index = indices[j];
+        currentCell = currentRow.cells[index];
 
-  for(i = 0; i < cells.length; i++) {
-    String currentHeader = cells[i].innerHTML;
-    if(currentHeader.equals(header)) {
-      columnIndizes.add(i);
+        if (header === 'status') {
+            if (currentCell.className.indexOf('correct') == 0)     value = 1;
+            else if (currentCell.className.indexOf('wrong') == 0)  value = 0;
+            else                                                  value = -1;
+        } else {
+          value = parseFloat(currentCell.innerHTML)
+        }
+        data[j].push([i, value]);
+      }
     }
-  }
 
-  return columnIndizes;
+    console.log(data);
+    return function inner(){ return data;};
+};
+
+
+// get labels for x-direction
+function getXTicks(){
+    xTicks = [];
+    maxLength = 40;
+    tableBody = $('#dataTable > tbody')[0];
+    for(i = 0; i < tableBody.rows.length; i++) {
+      name = tableBody.rows[i].cells[0].innerHTML;
+      if (name.length > maxLength) { name = name.substring(0, maxLength) + "..."; }
+      xTicks.push([i, name]);
+    }
+    return xTicks;
 }
 
-// Set circle's next destination
-void mouseClicked(){
-  document.getElementById('graph').style.display="none";
+
+function getLabels(header) {
+    console.log("labels for: " + header);
+    var labels = [];
+
+    indices = getColumnIndicesForHeader(header);
+
+    tableHead = $('#dataTable > thead')[0];
+    toolRow = tableHead.rows[0];
+    testRow = tableHead.rows[4];
+    dateRow = tableHead.rows[3];
+    for (i = 1; i < testRow.cells.length; i++) {
+        labels.push(toolRow.cells[i].innerHTML + " " +
+        testRow.cells[i].innerHTML + " " +
+        dateRow.cells[i].innerHTML);
+    }
+
+    console.log(labels);
+    return labels;
+};
+
+
+function addLegendActions() {
+    legendButtons = $('tr.jqplot-table-legend');
+    seriesLines = $('canvas.jqplot-series-canvas');
+
+    // assertion
+    if (legendButtons.length != seriesLines.length) {
+        console.log("ERROR: number of series does not match buttons!");
+    }
+
+    for (i = 0; i<legendButtons.length; i++) {
+      currentButton = legendButtons[i];
+      currentLine = seriesLines[i];
+
+      currentButton.onclick = function(event) {
+        hideOpacity = 0.3;
+        if (this.style.opacity == hideOpacity) {
+            this.style.opacity = 1;
+        } else {
+            this.style.opacity = hideOpacity;
+        }
+      }
+
+      currentButton.onmouseover = function(line) {
+        return function(event){ line.style.zIndex = 5; }
+      }(currentLine);
+
+      currentButton.onmouseout = function(line) {
+        return function(event){ line.style.zIndex = 0; }
+      }(currentLine);
+    }
 }
+
+function showPlot(event) {
+    header = event.target.innerHTML;
+    console.log(event + "  " + header);
+
+    background = $('#chartWrapperBackground')[0];
+    wrapper = $('#chartWrapper')[0];
+
+    // show graph
+    background.style.display='block';
+    wrapper.style.display='block';
+    drawPlot(header);
+    addLegendActions();
+
+    // add function for cleanup
+    background.onclick = function(event){
+      wrapper.style.display='none';
+      background.style.display='none';
+      $('#chart').empty();
+    };
+};
+
+
+function drawPlot(header){
+
+    if (header == "status") {
+      yTicks=[[-1.5, " "], [-1, "wrong"], [0, "unknown"], [1, "correct"], [1.5, " "]];
+    } else {
+      yTicks=[];
+    }
+
+    // data array is empty, we use "columnRenderer" option to get data.
+    var plot = $.jqplot('chart',[],{
+      title: header,
+      legend: {
+        show:true,
+        placement: 'outsideGrid',
+        renderer: $.jqplot.EnhancedLegendRenderer,
+        labels: getLabels(header),
+        location: 's',
+        rowSpacing: "0px",
+        showSwatches: true,
+      },
+      dataRenderer: getTableData(header),
+      highlighter:{
+        show: true,
+        sizeAdjust: 10,
+        showMarker: true,
+        tooltipAxes: 'y',
+      },
+      seriesDefaults:{
+        shadow: false,
+      },
+      cursor:{
+        show: false,
+        zoom: false,
+        showTooltip: false,
+      },
+      axes:{
+        xaxis:{
+          ticks: getXTicks(),
+          tickRenderer: $.jqplot.CanvasAxisTickRenderer,
+          tickOptions: {
+            angle: -50,
+          }
+        },
+        yaxis:{
+          ticks: yTicks,
+          pad: 1.2,
+          tickOptions:{
+            formatString:'%.2f'
+          }
+        }
+      },
+    });
+
+    // $('.button-reset').click(function() { plot.resetZoom(); addLegendHider(); }); // not always working
+};
+
+
+// this function adds the listeners to the table
+$(document).ready(function(){
+    columnTitles = $('#columnTitles > td');
+    for (i = 1; i< columnTitles.length; i++) { // do not use first column (i!=0)
+      column = columnTitles[i];
+      console.log(column);
+      column.style.cursor = "pointer";
+      column.onclick = showPlot;
+    }
+});
+
 </script>
-<canvas id="graph" style="border:solid 10px black; border-radius:15px; display:none; position:fixed; left:25%; top:25%; width:50%; height:50%; background-color:grey; opacity:0.75;" width="800" height="600">
-</canvas>
 '''
 
 
@@ -841,7 +955,7 @@ def createTable(file, filesFromXML=False):
     (tableHeadHTML, tableHeadCSV) = getTableHead(listOfTests)
     (tableBodyHTML, tableFootHTML, tableBodyCSV) = getTableBody(listOfTests)
 
-    tableCode = '<table>\n' \
+    tableCode = '<table id="dataTable">\n' \
                 + tableHeadHTML.replace('\n','\n' + HTML_SHIFT) \
                 + '\n' + HTML_SHIFT \
                 + tableFootHTML.replace('\n','\n' + HTML_SHIFT) \
