@@ -31,8 +31,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.invariants.interfaces.Template;
-import org.sosy_lab.cpachecker.util.invariants.redlog.Rational;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
@@ -108,7 +108,7 @@ public class TemplateFormula implements Formula, Template {
 
   public void unpurify() {}
 
-  Set<TermForm> getTopLevelTermForms() { return null; }
+  public Set<TermForm> getTopLevelTermForms() { return null; }
 
   // FIXME: Should use TemplateVariable objects instead. See comments on next method.
   public Set<String> getAllVariables(VariableWriteMode vwm) {
@@ -136,6 +136,42 @@ public class TemplateFormula implements Formula, Template {
       V.add(T);
     }
     return V;
+  }
+
+  public Set<TemplateVariable> getTopLevelLHSParameters() {
+    List<TemplateConstraint> cons = getConstraints();
+    Set<TemplateVariable> params = new HashSet<TemplateVariable>();
+    for (TemplateConstraint c : cons) {
+      params.addAll( c.getTopLevelLHSParameters() );
+    }
+    return params;
+  }
+
+  public Set<TemplateUIF> getAllTopLevelUIFs() {
+    List<TemplateConstraint> cons = getConstraints();
+    Set<TemplateUIF> uifs = new HashSet<TemplateUIF>();
+    for (TemplateConstraint c : cons) {
+      uifs.addAll( c.getAllTopLevelUIFs() );
+    }
+    return uifs;
+  }
+
+  public Set<TemplateTerm> getTopLevelTerms() {
+    List<TemplateConstraint> cons = getConstraints();
+    Set<TemplateTerm> terms = new HashSet<TemplateTerm>();
+    for (TemplateConstraint c : cons) {
+      terms.addAll( c.getTopLevelTerms() );
+    }
+    return terms;
+  }
+
+  public Set<TemplateVariable> getAllPurificationVariables() {
+    List<TemplateConstraint> cons = getConstraints();
+    Set<TemplateVariable> pvs = new HashSet<TemplateVariable>();
+    for (TemplateConstraint c : cons) {
+      pvs.addAll( c.getAllPurificationVariables() );
+    }
+    return pvs;
   }
 
   public Set<TemplateVariable> getAllParameters() {

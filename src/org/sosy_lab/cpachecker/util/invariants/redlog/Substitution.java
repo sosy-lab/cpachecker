@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util.invariants.redlog;
 
 import java.util.HashMap;
 
+import org.sosy_lab.cpachecker.util.invariants.Rational;
+
 public class Substitution {
 
   private HashMap<String,Rational> map;

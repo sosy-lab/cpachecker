@@ -26,37 +26,34 @@ package org.sosy_lab.cpachecker.util.invariants.balancer;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
+import java.util.Vector;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.util.invariants.redlog.Rational;
+import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.invariants.templates.Purification;
-import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormula;
+import org.sosy_lab.cpachecker.util.invariants.templates.TemplateBoolean;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateVariable;
+import org.sosy_lab.cpachecker.util.invariants.templates.VariableWriteMode;
 
 public class TemplateMap {
 
-  private HashMap<Location,TemplateFormula> map;
+  private HashMap<Location,Template> map;
 
   public TemplateMap() {
-    map = new HashMap<Location,TemplateFormula>();
+    map = new HashMap<Location,Template>();
   }
 
-  public void put(Location L, TemplateFormula T) {
+  public void put(Location L, Template T) {
   	map.put(L, T);
-  }
-
-  public TemplateFormula get(Location L) {
-  	return map.get(L);
   }
 
   /**
    * @param N a CFANode.
    * @return the TemplateFormula for the Location whose CFANode is N.
    */
-  public TemplateFormula get(CFANode N) {
-  	TemplateFormula T = null;
+  public Template getTemplate(CFANode N) {
+  	Template T = null;
   	for (Location L : map.keySet()) {
   		if (L.getNode() == N) {
   			T = map.get(L);
@@ -66,8 +63,8 @@ public class TemplateMap {
   	return T;
   }
 
-  public TemplateFormula getTemplate(Location L) {
-    TemplateFormula T = null;
+  public Template getTemplate(Location L) {
+    Template T = null;
     if (map.containsKey(L)) {
       T = map.get(L);
     }
@@ -76,49 +73,53 @@ public class TemplateMap {
 
   public Set<TemplateVariable> getAllVariables() {
     Set<TemplateVariable> vars = new HashSet<TemplateVariable>();
-    Collection<TemplateFormula> range = map.values();
-    for (TemplateFormula T : range) {
-      vars.addAll(T.getAllVariables());
+    Collection<Template> range = map.values();
+    for (Template t : range) {
+      vars.addAll(t.getAllVariables());
     }
     return vars;
   }
 
   public Purification purify(Purification pur) {
-    Collection<TemplateFormula> range = map.values();
-    for (TemplateFormula T : range) {
-      pur = T.purify(pur);
+    Collection<Template> range = map.values();
+    for (Template t : range) {
+      pur = t.purify(pur);
     }
     return pur;
   }
 
-  // TODO: prune.
-  /**
-  public boolean alias(String prefix, List<String> vars) {
-    boolean ans = true;
-    Collection<TemplateFormula> range = map.values();
-    for (TemplateFormula T : range) {
-      ans &= T.alias(prefix, vars);
-    }
-    return ans;
-  }
-  */
-
-  public void unalias() {
-    Collection<TemplateFormula> range = map.values();
-    for (TemplateFormula T : range) {
-      T.unalias();
-    }
-  }
-
   public boolean evaluate(HashMap<String,Rational> vals) {
     boolean ans = true;
-    Iterator<TemplateFormula> I = map.values().iterator();
-    TemplateFormula T;
-    while (I.hasNext()) {
-      T = I.next();
-      ans &= T.evaluate(vals);
+    for (Template t : map.values()) {
+      ans &= t.evaluate(vals);
     }
     return ans;
+  }
+
+  public String dumpTemplates() {
+    String s = "";
+    Template t;
+    for (Location l : map.keySet()) {
+      t = map.get(l);
+      s += l.toString()+": "+t.toString()+"\n";
+    }
+    return s;
+  }
+
+  public Vector<TemplateBoolean> getAllNonzeroParameterClauses() {
+    Vector<TemplateBoolean> clauses = new Vector<TemplateBoolean>();
+    for (Template t : map.values()) {
+      clauses.add( t.getNonzeroParameterClause() );
+    }
+    return clauses;
+  }
+
+  public Set<String> writeAllParameters(VariableWriteMode vwm) {
+    Set<String> params = new HashSet<String>();
+    for (Template t : map.values()) {
+      params.addAll( t.writeAllParameters(vwm) );
+    }
+    return params;
   }
 
 }

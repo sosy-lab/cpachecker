@@ -32,13 +32,13 @@ import java.util.Vector;
 
 import org.sosy_lab.cpachecker.util.invariants.Coeff;
 import org.sosy_lab.cpachecker.util.invariants.InfixReln;
+import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.invariants.interfaces.Constraint;
 import org.sosy_lab.cpachecker.util.invariants.interfaces.VariableManager;
-import org.sosy_lab.cpachecker.util.invariants.redlog.Rational;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
-public class TemplateConstraint extends TemplateConjunction implements Constraint {
+public class TemplateConstraint extends TemplateBoolean implements Constraint {
 
   private TemplateSum LHS = null;
   private InfixReln reln = null;
@@ -53,6 +53,22 @@ public class TemplateConstraint extends TemplateConjunction implements Constrain
   }
 
   public TemplateConstraint(TemplateSum s1, InfixReln R, TemplateSum s2) {
+    construct(s1,R,s2);
+  }
+
+  /*
+   * Special constructor for comparing a variable to 0.
+   */
+  public TemplateConstraint(TemplateVariable v, InfixReln R) {
+    TemplateTerm t = new TemplateTerm();
+    t.setParameter(v);
+    TemplateTerm z = TemplateTerm.makeZero();
+    LHS = t;
+    reln = R;
+    RHS = z;
+  }
+
+  private void construct(TemplateSum s1, InfixReln R, TemplateSum s2) {
     reln = R;
     // Store in normal form.
     TemplateSum C1 = s1.getConstantPart();
@@ -73,6 +89,52 @@ public class TemplateConstraint extends TemplateConjunction implements Constrain
     return c;
   }
 
+  //----------------------------------------------------------------
+  // boolean operations
+
+  @Override
+  public void flatten() {}
+
+  @Override
+  public TemplateBoolean makeCNF() {
+    Vector<TemplateBoolean> v = new Vector<TemplateBoolean>(1);
+    v.add(this);
+    return new TemplateConjunction(v);
+  }
+
+  @Override
+  public TemplateBoolean makeDNF() {
+    Vector<TemplateBoolean> v = new Vector<TemplateBoolean>(1);
+    v.add(this);
+    return new TemplateDisjunction(v);
+  }
+
+  @Override
+  public TemplateBoolean logicNegate() {
+    TemplateBoolean tb = null;
+    switch (reln) {
+    case LEQ:
+      tb = new TemplateConstraint(RHS.copy(), InfixReln.LT, LHS.copy());
+      break;
+    case LT:
+      tb = new TemplateConstraint(RHS.copy(), InfixReln.LEQ, LHS.copy());
+      break;
+    case EQUAL:
+      Vector<TemplateBoolean> v = new Vector<TemplateBoolean>(2);
+      TemplateConstraint tc1 = new TemplateConstraint(LHS.copy(), InfixReln.LT, RHS.copy());
+      TemplateConstraint tc2 = new TemplateConstraint(RHS.copy(), InfixReln.LT, LHS.copy());
+      v.add(tc1);
+      v.add(tc2);
+      tb = new TemplateDisjunction(v);
+      break;
+    }
+    return tb;
+  }
+
+  @Override
+  public TemplateBoolean absorbNegations() {
+    return this;
+  }
 
 //------------------------------------------------------------------
 // Alter and Undo
@@ -153,6 +215,13 @@ public class TemplateConstraint extends TemplateConjunction implements Constrain
     return params;
   }
 
+  public Set<TemplateVariable> getTopLevelParameters() {
+    HashSet<TemplateVariable> tlp = new HashSet<TemplateVariable>();
+    tlp.addAll(LHS.getTopLevelParameters());
+    tlp.addAll(RHS.getTopLevelParameters());
+    return tlp;
+  }
+
   @Override
   public HashMap<String,Integer> getMaxIndices(HashMap<String,Integer> map) {
     map = LHS.getMaxIndices(map);
@@ -183,6 +252,7 @@ public class TemplateConstraint extends TemplateConjunction implements Constrain
   	switch (reln) {
   	case EQUAL: form = fmgr.makeEqual(lhs, rhs); break;
   	case LEQ:   form = fmgr.makeLeq(lhs, rhs);   break;
+  	case LT:    form = fmgr.makeLt(lhs, rhs); break;
   	}
   	return form;
   }
@@ -203,7 +273,32 @@ public class TemplateConstraint extends TemplateConjunction implements Constrain
   }
 
   @Override
-  Set<TermForm> getTopLevelTermForms() {
+  public Set<TemplateUIF> getAllTopLevelUIFs() {
+    return LHS.getAllTopLevelUIFs();
+  }
+
+  @Override
+  public Set<TemplateVariable> getTopLevelLHSParameters() {
+    return LHS.getTopLevelParameters();
+  }
+
+  @Override
+  public Set<TemplateTerm> getTopLevelTerms() {
+    List<TemplateTerm> terms = LHS.getTerms();
+    terms.addAll(RHS.getTerms());
+    Set<TemplateTerm> set = new HashSet<TemplateTerm>(terms);
+    return set;
+  }
+
+  @Override
+  public Set<TemplateVariable> getAllPurificationVariables() {
+    Set<TemplateVariable> pvs = LHS.getAllPurificationVariables();
+    pvs.addAll( RHS.getAllPurificationVariables() );
+    return pvs;
+  }
+
+  @Override
+  public Set<TermForm> getTopLevelTermForms() {
     // Get a copy of the LHS.
     TemplateSum copy = LHS.copy();
 
@@ -257,7 +352,7 @@ public class TemplateConstraint extends TemplateConjunction implements Constrain
 
   @Override
   public Coeff getNormalFormConstant(VariableWriteMode vwm) {
-    return new Coeff(RHS.toString(vwm));
+    return new Coeff(RHS, vwm);
   }
 
   @Override

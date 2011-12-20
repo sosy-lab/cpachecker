@@ -23,9 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.redlog;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
+
+import org.sosy_lab.cpachecker.util.invariants.Rational;
 
 public class EliminationHandler {
 
@@ -35,7 +37,7 @@ public class EliminationHandler {
     this.EA = EA;
   }
 
-  public HashMap<String,Rational> getParameterValues(List<String> params) {
+  public HashMap<String,Rational> getParameterValues(Collection<String> params) {
     // Pass the list of parameters for which you want values.  We
     // look for values in the EliminationAnswer that was passed to
     // the constructor.  If we find an EAPair in which every

@@ -23,13 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.redlog;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
+import org.sosy_lab.cpachecker.util.invariants.Rational;
 
 public class ParameterManager {
 
@@ -49,12 +50,14 @@ public class ParameterManager {
     makePAs();
   }
 
-  public ParameterManager(EAPair EAP, List<String> pParams) {
+  public ParameterManager(EAPair EAP, Collection<String> pParams) {
     this.EAP = EAP;
     PAmap = new HashMap<String, ParameterAssignment>();
     this.params = new String[pParams.size()];
-    for (int i = 0; i < pParams.size(); i++) {
-      this.params[i] = pParams.get(i);
+    int i = 0;
+    for (String s : pParams) {
+      this.params[i] = s;
+      i++;
     }
     makePAs();
   }

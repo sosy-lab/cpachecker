@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
+import org.sosy_lab.cpachecker.util.invariants.Rational;
 
 public class TreeReader {
 

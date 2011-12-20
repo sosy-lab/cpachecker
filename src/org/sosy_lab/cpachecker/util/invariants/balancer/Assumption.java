@@ -21,30 +21,34 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.invariants.templates;
+package org.sosy_lab.cpachecker.util.invariants.balancer;
 
-public class TermForm {
 
-  private final TemplateTerm asTemplate;
-  private final TemplateTerm asForm;
+public class Assumption {
 
-  public TermForm(TemplateTerm t) {
-    t = t.copy();
-    t.generalize();
-    asTemplate = t;
+  private final RationalFunction func;
+  private final AssumptionType atype;
 
-    t = t.copy();
-    t.writeAsForm(true);
-    asForm = t;
+  public Assumption(RationalFunction f, AssumptionType a) {
+    func = f;
+    atype = a;
+  }
+
+  public RationalFunction getRationalFunction() {
+    return func;
+  }
+
+  public AssumptionType getAssumptionType() {
+    return atype;
   }
 
   @Override
   public boolean equals(Object o) {
     boolean ans = false;
-    if (o instanceof TermForm) {
-      TermForm f = (TermForm) o;
+    if (o instanceof Assumption) {
+      Assumption a = (Assumption) o;
       String s1 = toString();
-      String s2 = f.toString();
+      String s2 = a.toString();
       ans = s1.equals(s2);
     }
     return ans;
@@ -61,11 +65,28 @@ public class TermForm {
 
   @Override
   public String toString() {
-    return asForm.toString();
+    return func.toString()+atype.toString();
   }
 
-  public TemplateTerm getTemplate() {
-    return asTemplate;
+  public enum AssumptionType {
+    ZERO          (" = 0"),
+    NONZERO       (" <> 0"),
+    POSITIVE      (" > 0"),
+    NONNEGATIVE   (" >= 0"),
+    NONPOSITIVE   (" <= 0"),
+    NEGATIVE      (" < 0");
+
+    private final String text;
+
+    private AssumptionType(String t) {
+      text = t;
+    }
+
+    @Override
+    public String toString() {
+      return text;
+    }
+
   }
 
 }

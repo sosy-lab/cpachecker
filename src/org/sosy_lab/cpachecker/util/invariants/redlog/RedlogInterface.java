@@ -59,6 +59,7 @@ public class RedlogInterface {
     // Redlog's output is first preprocessed by the rlwrapper.py
     // script. Then we pass the results to our build method, which
     // creates the EliminationAnswer object that we return.
+    // If Redlog has a segfault, then we return null.
     List<String> output = null;
     String wrapper_path = "src/org/sosy_lab/cpachecker/util/invariants/redlog/rlwrapper.py";
     try {
@@ -72,7 +73,10 @@ public class RedlogInterface {
       System.err.println(e.getMessage());
     }
     logger.log(Level.ALL,"Redlog output:\n",output);
-    EliminationAnswer EA = build(output);
+    EliminationAnswer EA = null;
+    if (output.size() > 0 && !output.get(0).equals("segfault")) {
+      EA = build(output);
+    }
     return EA;
   }
 

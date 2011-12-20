@@ -5,7 +5,7 @@
 package org.sosy_lab.cpachecker.util.invariants.balancer;
 
 //--------------------------------------
-//Systematically generate permutations. 
+//Systematically generate permutations.
 //--------------------------------------
 
 import java.math.BigInteger;

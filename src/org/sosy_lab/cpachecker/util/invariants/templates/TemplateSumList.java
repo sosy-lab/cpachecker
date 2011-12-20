@@ -34,7 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import org.sosy_lab.cpachecker.util.invariants.redlog.Rational;
+import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -217,6 +217,10 @@ public class TemplateSumList extends TemplateFormulaList {
 
 //------------------------------------------------------------------
 // Other
+
+  public int size() {
+    return sums.length;
+  }
 
   public Iterator<TemplateSum> iterator() {
     Vector<TemplateSum> V = new Vector<TemplateSum>();

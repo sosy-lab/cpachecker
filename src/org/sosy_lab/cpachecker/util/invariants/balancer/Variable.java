@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,34 +23,21 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.balancer;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+public class Variable implements Comparable<Variable> {
 
-public class Location {
+  private final String name;
 
-  private final int num;
-  private CFANode node = null;
-
-  public Location(int n) {
-    num = n;
+  public Variable(String x) {
+    name = x;
   }
 
-  public Location(CFANode N) {
-    node = N;
-    num = N.getNodeNumber();
-  }
-
-  public int getNumber() {
-    return num;
-  }
-
-  public CFANode getNode() {
-    return node;
+  public int compareTo(Variable v) {
+    return name.compareTo(v.name);
   }
 
   @Override
   public String toString() {
-    String s = "l"+Integer.toString(num);
-    return s;
+    return name;
   }
 
 }

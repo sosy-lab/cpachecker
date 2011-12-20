@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,36 +21,15 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.invariants.balancer;
+package org.sosy_lab.cpachecker.util.invariants.choosers;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.util.invariants.balancer.Template;
 
-public class Location {
+public interface TemplateChooser {
 
-  private final int num;
-  private CFANode node = null;
-
-  public Location(int n) {
-    num = n;
-  }
-
-  public Location(CFANode N) {
-    node = N;
-    num = N.getNodeNumber();
-  }
-
-  public int getNumber() {
-    return num;
-  }
-
-  public CFANode getNode() {
-    return node;
-  }
-
-  @Override
-  public String toString() {
-    String s = "l"+Integer.toString(num);
-    return s;
-  }
+  /**
+   * @return The next choice of template, or null if there are no further choices.
+   */
+  public Template chooseNextTemplate();
 
 }

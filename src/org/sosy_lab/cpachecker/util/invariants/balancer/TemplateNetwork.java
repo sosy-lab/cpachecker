@@ -24,9 +24,13 @@
 package org.sosy_lab.cpachecker.util.invariants.balancer;
 
 import java.util.HashMap;
+import java.util.Set;
 import java.util.Vector;
 
-import org.sosy_lab.cpachecker.util.invariants.redlog.Rational;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.util.invariants.Rational;
+import org.sosy_lab.cpachecker.util.invariants.templates.TemplateBoolean;
+import org.sosy_lab.cpachecker.util.invariants.templates.VariableWriteMode;
 
 public class TemplateNetwork {
 
@@ -58,9 +62,25 @@ public class TemplateNetwork {
     return tmap;
   }
 
+  public Template getTemplate(CFANode n) {
+    return tmap.getTemplate(n);
+  }
+
   public boolean evaluate(HashMap<String,Rational> vals) {
     boolean ans = tmap.evaluate(vals);
     return ans;
+  }
+
+  public String dumpTemplates() {
+    return tmap.dumpTemplates();
+  }
+
+  public Vector<TemplateBoolean> getAllNonzeroParameterClauses() {
+    return tmap.getAllNonzeroParameterClauses();
+  }
+
+  public Set<String> writeAllParameters(VariableWriteMode vwm) {
+    return tmap.writeAllParameters(vwm);
   }
 
 }
