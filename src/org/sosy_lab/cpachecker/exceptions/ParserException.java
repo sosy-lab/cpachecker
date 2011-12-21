@@ -42,7 +42,6 @@ public class ParserException extends Exception {
   }
 
   public ParserException(String msg, CFAEdge edge) {
-    super(msg + " in line " + edge.getLineNumber()
-        + ": " + edge.getRawStatement());
-    }
+    super(UnrecognizedCCodeException.createMessage(msg, null, edge, null));
+  }
 }
