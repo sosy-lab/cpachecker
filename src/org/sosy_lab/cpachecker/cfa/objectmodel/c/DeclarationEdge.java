@@ -35,10 +35,10 @@ public class DeclarationEdge extends AbstractCFAEdge {
 
   private final IASTDeclaration declaration;
 
-  public DeclarationEdge(final IASTDeclaration pDeclaration, final int pLineNumber,
-      final CFANode pPredecessor,final CFANode pSuccessor) {
+  public DeclarationEdge(final String pRawSignature, final int pLineNumber,
+      final CFANode pPredecessor, final CFANode pSuccessor, final IASTDeclaration pDeclaration) {
 
-    super(pDeclaration.toASTString(), pLineNumber, pPredecessor, pSuccessor);
+    super(pRawSignature, pLineNumber, pPredecessor, pSuccessor);
     declaration = pDeclaration;
   }
 

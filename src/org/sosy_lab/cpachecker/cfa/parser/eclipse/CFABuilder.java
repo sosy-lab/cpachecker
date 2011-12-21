@@ -40,6 +40,7 @@ import org.eclipse.cdt.core.dom.ast.IASTProblemDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -62,7 +63,7 @@ class CFABuilder extends ASTVisitor {
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
 
   // Data structure for storing global declarations
-  private final List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> globalDeclarations = Lists.newArrayList();
+  private final List<Pair<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration, String>> globalDeclarations = Lists.newArrayList();
 
   private final Scope scope = new Scope();
   private final ASTConverter astCreator;
@@ -105,7 +106,7 @@ class CFABuilder extends ASTVisitor {
    * Retrieves list of all global declarations
    * @return global declarations
    */
-  public List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> getGlobalDeclarations() {
+  public List<Pair<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration, String>> getGlobalDeclarations() {
     return globalDeclarations;
   }
 
@@ -163,7 +164,11 @@ class CFABuilder extends ASTVisitor {
 
     assert (sd.getParent() instanceof IASTTranslationUnit) : "not a real global declaration";
 
-    globalDeclarations.addAll(newDs);
+    String rawSignature = sd.getRawSignature();
+
+    for (org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD : newDs) {
+      globalDeclarations.add(Pair.of(newD, rawSignature));
+    }
 
     return PROCESS_SKIP; // important to skip here, otherwise we would visit nested declarations
   }

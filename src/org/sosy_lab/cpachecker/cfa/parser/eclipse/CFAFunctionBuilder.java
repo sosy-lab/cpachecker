@@ -187,6 +187,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     CFANode prevNode = locStack.pop();
     CFANode nextNode = null;
+    String rawSignature = sd.getRawSignature();
 
     for (org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD : newDs) {
       assert !newD.isGlobal();
@@ -195,8 +196,8 @@ class CFAFunctionBuilder extends ASTVisitor {
       cfaNodes.add(nextNode);
 
       final DeclarationEdge edge =
-          new DeclarationEdge(newD, fileloc.getStartingLineNumber(), prevNode,
-              nextNode);
+          new DeclarationEdge(rawSignature, fileloc.getStartingLineNumber(), prevNode,
+              nextNode, newD);
       addToCFA(edge);
 
       prevNode = nextNode;
@@ -646,7 +647,7 @@ class CFAFunctionBuilder extends ASTVisitor {
           astCreator.convert((IASTSimpleDeclaration)eclipseDecl);
 
       // add to CFA
-      addDeclarationsToCFA(declList, filelocStart, loopInit, loopStart);
+      addDeclarationsToCFA(declList, statement.getRawSignature(), filelocStart, loopInit, loopStart);
 
     // "counter = 0;"
     } else if (statement instanceof IASTExpressionStatement) {
@@ -670,7 +671,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    * The edges are inserted between startNode and endNode.
    */
   private void addDeclarationsToCFA(final List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> declList,
-      final int filelocStart, CFANode startNode, final CFANode endNode) {
+      final String rawSignature, final int filelocStart, CFANode startNode, final CFANode endNode) {
 
     // create one edge for every declaration
     // (if there is only one declaration, this loop is skipped)
@@ -679,8 +680,8 @@ class CFAFunctionBuilder extends ASTVisitor {
       cfaNodes.add(nextNode);
 
       final org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration decl = declList.get(i);
-      final DeclarationEdge initEdge = new DeclarationEdge(decl, filelocStart,
-          startNode, nextNode);
+      final DeclarationEdge initEdge = new DeclarationEdge(rawSignature, filelocStart,
+          startNode, nextNode, decl);
       addToCFA(initEdge);
 
       startNode = nextNode;
@@ -693,8 +694,8 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // create the last declaration-edge (if only one declaration, this is the only edge)
     final org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration decl = declList.get(declList.size() - 1);
-    final DeclarationEdge initEdge = new DeclarationEdge(decl, filelocStart,
-        startNode, endNode);
+    final DeclarationEdge initEdge = new DeclarationEdge(rawSignature, filelocStart,
+        startNode, endNode, decl);
     addToCFA(initEdge);
 
     // storageClass must not be typedef, struct prototype or function declaration
