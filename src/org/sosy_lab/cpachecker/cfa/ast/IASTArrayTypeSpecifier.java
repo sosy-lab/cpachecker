@@ -45,6 +45,12 @@ public class IASTArrayTypeSpecifier extends IType {
 
   @Override
   public String toASTString() {
+    if(length == null){
+      return (isConst() ? "const " : "")
+          + (isVolatile() ? "volatile " : "")
+          + type.toASTString()
+          + "[] ";
+    }
     return (isConst() ? "const " : "")
       + (isVolatile() ? "volatile " : "")
       + type.toASTString()
