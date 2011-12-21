@@ -59,7 +59,7 @@ public class IASTIntegerLiteralExpression extends IASTLiteralExpression {
   }
 
   @Override
-  public String toASTString(String pPrefix) {
+  public String toASTString() {
     String suffix = "";
 
     IType iType = getExpressionType();
@@ -75,6 +75,6 @@ public class IASTIntegerLiteralExpression extends IASTLiteralExpression {
       }
     }
 
-    return pPrefix + value.toString() + suffix;
+    return value.toString() + suffix;
   }
 }

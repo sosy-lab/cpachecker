@@ -70,7 +70,7 @@ public final class IASTTypeIdExpression extends IASTExpression {
   }
 
   @Override
-  public String toASTString(String pPrefix) {
-    return pPrefix + operator.getOperator() + "(" + type.toASTString() + ")";
+  public String toASTString() {
+    return operator.getOperator() + "(" + type.toASTString() + ")";
   }
 }

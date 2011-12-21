@@ -59,7 +59,7 @@ public class IASTIdExpression extends IASTExpression {
   }
 
   @Override
-  public String toASTString(String pPrefix) {
-    return pPrefix + name;
+  public String toASTString() {
+    return name;
   }
 }

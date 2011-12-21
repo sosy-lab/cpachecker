@@ -56,8 +56,8 @@ public final class IASTArraySubscriptExpression extends IASTExpression {
   }
 
   @Override
-  public String toASTString(String pPrefix) {
-    return pPrefix + arrayExpression.toASTString()
+  public String toASTString() {
+    return arrayExpression.toASTString()
         + "[" + subscriptExpression.toASTString() + "]";
   }
 }

@@ -63,8 +63,8 @@ public final class IASTFunctionCallAssignmentStatement extends IASTStatement
   }
 
   @Override
-  public String toASTString(String pPrefix) {
-    return pPrefix + leftHandSide.toASTString()
+  public String toASTString() {
+    return leftHandSide.toASTString()
         + " = " + rightHandSide.toASTString() + ";";
   }
 }

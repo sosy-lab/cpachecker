@@ -51,8 +51,8 @@ public final class IASTStringLiteralExpression extends IASTLiteralExpression {
   }
 
   @Override
-  public String toASTString(String pPrefix) {
-    return pPrefix + value;
+  public String toASTString() {
+    return value;
   }
 
 }

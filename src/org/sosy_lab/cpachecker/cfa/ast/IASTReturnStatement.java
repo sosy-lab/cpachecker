@@ -38,8 +38,8 @@ public class IASTReturnStatement extends IASTNode {
   }
 
   @Override
-  public String toASTString(String pPrefix) {
-    return pPrefix + "return"
+  public String toASTString() {
+    return "return"
         + (expression != null ? " (" + expression.toASTString() + ")" : "")
         + ";";
   }
