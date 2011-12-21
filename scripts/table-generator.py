@@ -98,16 +98,18 @@ PLOTTING_SCRIPT = '''
     .jqplot-table-legend { border-style:none; outline:none }
     .jqplot-table-legend tbody { border-style:none }
     .jqplot-table-legend tbody tr td { border-top:none; cursor:pointer }
+    .jqplot-highlighter-tooltip {font-family:arial, sans serif; font-size:large;
+             background-color:yellow; opacity:0.8; }
     #chartWrapperBackground { height:5000px; width:5000px;
              position:fixed; top:0px; left:0px;
              background-image: url(http://www.house-events.de/schnee.gif);
              background-color:grey; 
              opacity:0.5; display:none }
-    #chartWrapper { height:600px; width:1100px; position:fixed;
-             top:50%; left:50%; margin-top:-300px; margin-left:-550px;
+    #chartWrapper { height:650px; width:1100px; position:fixed;
+             top:50%; left:50%; margin-top:-325px; margin-left:-550px;
              border:solid 10px black; border-radius:15px;
              background-color:white; opacity:1; display:none }
-    #chart { height:570px; width:1090px }
+    #chart { height:620px; width:1090px }
 </style>
 
 <div id="chartWrapperBackground"></div>
@@ -124,7 +126,7 @@ function getColumnIndicesForHeader(header) {
     cells = document.getElementById('columnTitles').cells;
 
     for(i = 0; i < cells.length; i++) {
-      currentHeader = cells[i].innerHTML;
+      currentHeader = cells[i].textContent;
       if (currentHeader == header) {
         columnIndizes.push(i);
       }
@@ -158,7 +160,7 @@ function getTableData(header) {
             else if (currentCell.className.indexOf('wrong') == 0)  value = 0;
             else                                                  value = -1;
         } else {
-          value = parseFloat(currentCell.innerHTML)
+          value = parseFloat(currentCell.textContent)
         }
         data[j].push([i, value]);
       }
@@ -175,11 +177,24 @@ function getXTicks(){
     maxLength = 40;
     tableBody = $('#dataTable > tbody')[0];
     for(i = 0; i < tableBody.rows.length; i++) {
-      name = tableBody.rows[i].cells[0].childNodes[0].innerHTML;
+      name = tableBody.rows[i].cells[0].textContent;
       if (name.length > maxLength) { name = name.substring(0, maxLength) + "..."; }
       xTicks.push([i, name]);
     }
     return xTicks;
+}
+
+
+// returns a list of cells, each cell is multiplied by value of its colspan.
+function expandColSpan(row) {
+    list = [];
+    for (i=0; i<row.cells.length; i++) {
+      cell = row.cells[i];
+      for (j=0; j<parseInt(cell.colSpan); j++) {
+        list.push(cell);
+      }
+    }
+    return list;
 }
 
 
@@ -190,13 +205,22 @@ function getLabels(header) {
     indices = getColumnIndicesForHeader(header);
 
     tableHead = $('#dataTable > thead')[0];
-    toolRow = tableHead.rows[0];
-    testRow = tableHead.rows[4];
-    dateRow = tableHead.rows[3];
-    for (i = 1; i < testRow.cells.length; i++) {
-        labels.push(/*toolRow.cells[i].innerHTML + " " +
-        */testRow.cells[i].innerHTML/* + " " +
-        dateRow.cells[i].innerHTML*/);
+
+    toolRow = expandColSpan(tableHead.rows[0]);
+    dateRow = expandColSpan(tableHead.rows[3]);
+    testRow = expandColSpan(tableHead.rows[4]);
+
+    // assertion
+    if ((toolRow.length != dateRow.length) || 
+        (toolRow.length != testRow.length)) {
+        debug("ERROR: number of columns is invalid!");
+    }
+
+    for (i = 0; i < indices.length; i++) {
+        index = indices[i];
+        labels.push(toolRow[index].textContent + " " +
+                    testRow[index].textContent + " " +
+                    dateRow[index].textContent);
     }
 
     debug(labels);
@@ -237,7 +261,7 @@ function addLegendActions() {
 }
 
 function showPlot(event) {
-    header = event.target.innerHTML;
+    header = event.target.textContent;
     debug(event + "  " + header);
 
     background = $('#chartWrapperBackground')[0];
@@ -258,6 +282,19 @@ function showPlot(event) {
 };
 
 
+function getFormatter(labels, header) {
+    return function(str, seriesIndex, pointIndex){
+        debug(str, seriesIndex, pointIndex);
+        filename = labels[pointIndex][1];
+        if (header == "status") {
+            return filename;
+        } else {
+            return filename + "<br>" + str;
+        }
+    };
+}
+
+
 function drawPlot(header){
 
     if (header == "status") {
@@ -265,6 +302,7 @@ function drawPlot(header){
     } else {
       yTicks=[];
     }
+    xTicks = getXTicks(); // filenames for labels
 
     // data array is empty, we use "columnRenderer" option to get data.
     var plot = $.jqplot('chart',[],{
@@ -284,6 +322,8 @@ function drawPlot(header){
         sizeAdjust: 10,
         showMarker: true,
         tooltipAxes: 'y',
+        tooltipLocation: 'ne',
+        tooltipContentEditor: getFormatter(xTicks, header),
       },
       seriesDefaults:{
         shadow: false,
@@ -295,7 +335,7 @@ function drawPlot(header){
       },
       axes:{
         xaxis:{
-          ticks: getXTicks(),
+          ticks: xTicks,
           tickRenderer: $.jqplot.CanvasAxisTickRenderer,
           tickOptions: {
             fontSize: '9px',	      
