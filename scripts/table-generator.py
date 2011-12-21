@@ -136,7 +136,7 @@ function getColumnIndicesForHeader(header) {
 // getTableData returns a list of arrays, 
 // each array is of the form: [[file1, value1], [file2, value1], ...]
 function getTableData(header) {
-    console.log("data for: " + header);
+    debug("data for: " + header);
     data = [];
 
     indices = getColumnIndicesForHeader(header);
@@ -164,7 +164,7 @@ function getTableData(header) {
       }
     }
 
-    console.log(data);
+    debug(data);
     return function inner(){ return data;};
 };
 
@@ -175,7 +175,7 @@ function getXTicks(){
     maxLength = 40;
     tableBody = $('#dataTable > tbody')[0];
     for(i = 0; i < tableBody.rows.length; i++) {
-      name = tableBody.rows[i].cells[0].innerHTML;
+      name = tableBody.rows[i].cells[0].childNodes[0].innerHTML;
       if (name.length > maxLength) { name = name.substring(0, maxLength) + "..."; }
       xTicks.push([i, name]);
     }
@@ -184,7 +184,7 @@ function getXTicks(){
 
 
 function getLabels(header) {
-    console.log("labels for: " + header);
+    debug("labels for: " + header);
     var labels = [];
 
     indices = getColumnIndicesForHeader(header);
@@ -194,12 +194,12 @@ function getLabels(header) {
     testRow = tableHead.rows[4];
     dateRow = tableHead.rows[3];
     for (i = 1; i < testRow.cells.length; i++) {
-        labels.push(toolRow.cells[i].innerHTML + " " +
-        testRow.cells[i].innerHTML + " " +
-        dateRow.cells[i].innerHTML);
+        labels.push(/*toolRow.cells[i].innerHTML + " " +
+        */testRow.cells[i].innerHTML/* + " " +
+        dateRow.cells[i].innerHTML*/);
     }
 
-    console.log(labels);
+    debug(labels);
     return labels;
 };
 
@@ -210,7 +210,7 @@ function addLegendActions() {
 
     // assertion
     if (legendButtons.length != seriesLines.length) {
-        console.log("ERROR: number of series does not match buttons!");
+        debug("ERROR: number of series does not match buttons!");
     }
 
     for (i = 0; i<legendButtons.length; i++) {
@@ -238,7 +238,7 @@ function addLegendActions() {
 
 function showPlot(event) {
     header = event.target.innerHTML;
-    console.log(event + "  " + header);
+    debug(event + "  " + header);
 
     background = $('#chartWrapperBackground')[0];
     wrapper = $('#chartWrapper')[0];
@@ -298,7 +298,8 @@ function drawPlot(header){
           ticks: getXTicks(),
           tickRenderer: $.jqplot.CanvasAxisTickRenderer,
           tickOptions: {
-            angle: -50,
+            fontSize: '9px',	      
+            angle: -60,
           }
         },
         yaxis:{
@@ -320,11 +321,17 @@ $(document).ready(function(){
     columnTitles = $('#columnTitles > td');
     for (i = 1; i< columnTitles.length; i++) { // do not use first column (i!=0)
       column = columnTitles[i];
-      console.log(column);
+      debug(column);
       column.style.cursor = "pointer";
       column.onclick = showPlot;
     }
 });
+
+function debug(logInfo) {
+  if(!true) {
+    console.log(logInfo);
+  }
+}
 
 </script>
 '''
