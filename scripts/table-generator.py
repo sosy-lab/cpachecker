@@ -99,7 +99,9 @@ PLOTTING_SCRIPT = '''
     .jqplot-table-legend tbody { border-style:none }
     .jqplot-table-legend tbody tr td { border-top:none; cursor:pointer }
     .jqplot-highlighter-tooltip {font-family:arial, sans serif; font-size:large;
-             background-color:yellow; opacity:0.8; }
+             border:solid 1px black; padding:2px;
+             border-radius:8px; border-bottom-left-radius:0px;
+             background-color:white; opacity:0.8; }
     #chartWrapperBackground { height:5000px; width:5000px;
              position:fixed; top:0px; left:0px;
              background-image: url(http://www.house-events.de/schnee.gif);
@@ -669,7 +671,7 @@ def getSystemRow(listOfTests, testWidths):
 
     systemFormatString = '<td colspan="{0}">host: {6}<br>os: {1}<br>'\
                        + 'cpu: {2}<br>cores: {3}, frequency: {4}, ram: {5}</td>'
-    systemLine = '<tr><td>system</td>'
+    systemLine = '<tr><td>System</td>'
     systemWidth = 0
     systemTag = listOfTests[0][0].find('systeminfo')
     system = getSystem(systemTag)
