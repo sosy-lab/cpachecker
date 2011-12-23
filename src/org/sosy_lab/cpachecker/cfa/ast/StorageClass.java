@@ -35,10 +35,4 @@ public enum StorageClass {
   TYPEDEF,
   ;
 
-  public String toASTString() {
-    if (equals(AUTO)) {
-      return "";
-    }
-    return name().toLowerCase() + " ";
-  }
 }

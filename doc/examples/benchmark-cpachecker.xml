@@ -1,59 +1,43 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<!-- Example file that demonstrates the use of CPAchecker
-     and also the use of the benchmark-script. -->
+<!-- Example file that demonstrates the use of CPAchecker. -->
 
-<benchmark tool="cpachecker" timelimit="10" memlimit="2000">
+<benchmark tool="cpachecker" timelimit="10" memlimit="2048">
 
-  <!-- global sourcefiles are tested in every test -->
-  <sourcefiles>
-    <include>test/programs/benchmarks/locks/*_5.c</include>
-    <!-- next line shows the use of a variable,
-    in this case it has no effect, because of the path '../' after it -->
-    <include>test/programs/${test_name}/../benchmarks/locks/*_6.c</include>
-    
-    <!-- file-specific option for global files -->
-    <option name="-heap">999m</option>
-  </sourcefiles>
+  <!-- recommended option "output.disable", as the CPAchecker output files 
+  are normally not interesting for benchmarks. -->
+  <option name="-setprop">output.disable=true</option>
 
-  <!-- global options for all tests -->
   <!-- Set the java heap size. -->
   <option name="-heap">1000m</option>
 
 
   <test name="locks-lbe">
-    <!-- test-specific option -->
-    <option name="-setprop">output.path=test/results/${benchmark_name}.${benchmark_date}.output.${test_name}/${sourcefile_name}/</option>
-    <option name="-predicateAnalysis-lbe"/>
-
     <sourcefiles>
-    <!-- next line shows the use of a variable,
-    in this case it has no effect, because of the path '../' after it -->
-      <include>${benchmark_path}/../../test/programs/benchmarks/locks/*7.c</include>
-      <include>test/programs/benchmarks/locks/*8.c</include>
+
+      <!-- This option overrides the global option "-heap".
+      It is only valid for this sourcefiles-tag. -->
+      <option name="-heap">500m</option>
+
+      <include>test/programs/locks/*7.c</include>
+      <include>test/programs/locks/*8.c</include>
     </sourcefiles>
 
     <sourcefiles>
-      <!-- files can be "included" and "excluded" -->
-      <include>test/programs/benchmarks/locks/*1*.c</include>
-      <exclude>test/programs/benchmarks/locks/*1?.c</exclude>
-      
-      <!-- file-specific option -->
       <option name="-debug"></option>
+      <include>test/programs/locks/*1?.c</include>
     </sourcefiles>
 
+    <option name="-config">test/config/symbpredabsCPA-lbe.properties</option>    
   </test>
 
 
   <test>
     <sourcefiles>
-      <include>test/programs/benchmarks/locks/*1?.c</include>
+      <include>test/programs/locks/*.c</include>
     </sourcefiles>
 
-    <!-- recommended option "output.disable", as the CPAchecker output files 
-    are normally not interesting for benchmarks. -->
-    <option name="-setprop">output.disable=true</option>
-    <option name="-predicateAnalysis"/>
+    <option name="-config">test/config/symbpredabsCPA-lbe.properties</option>
   </test>
 
   <!-- Example columns from CPAchecker output -->

@@ -40,7 +40,7 @@ import com.google.common.collect.HashBiMap;
  * see {@link Variable}.
  *
  */
-class OctElement implements AbstractElement{
+public class OctElement implements AbstractElement{
 
   // the octagon representation
   private Octagon octagon;
@@ -65,9 +65,8 @@ class OctElement implements AbstractElement{
 
   @Override
   public boolean equals(Object pObj) {
-    if(!(pObj instanceof OctElement)) {
+    if(!(pObj instanceof OctElement))
       return false;
-    }
     OctElement otherOct = (OctElement) pObj;
     return this.octagon.equals(otherOct.octagon);
   }
@@ -115,7 +114,7 @@ class OctElement implements AbstractElement{
   }
 
   @Override
-  protected OctElement clone() {
+  protected Object clone() throws CloneNotSupportedException {
     Octagon newOct = OctagonManager.full_copy(octagon);
     BiMap<String, Integer> newMap = HashBiMap.create();
 

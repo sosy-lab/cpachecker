@@ -28,14 +28,12 @@ public abstract class CFAFunctionDefinitionNode extends CFANode {
   // Check if call edges are added in the second pass
   private final CFAFunctionExitNode exitNode;
 
-  public CFAFunctionDefinitionNode(int pLineNumber, String pFunctionName,
-      CFAFunctionExitNode pExitNode) {
-
-    super(pLineNumber, pFunctionName);
-    exitNode = pExitNode;
+  public CFAFunctionDefinitionNode(int lineNumber, String functionName, CFAFunctionExitNode exitNode) {
+    super(lineNumber, functionName);
+    this.exitNode = exitNode;
   }
 
   public CFAFunctionExitNode getExitNode() {
-    return exitNode;
+    return this.exitNode;
   }
 }

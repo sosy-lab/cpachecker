@@ -76,6 +76,16 @@ public class BDDRegionManager implements RegionManager {
   }
 
   @Override
+  public boolean isFalse(Region f) {
+    return ((BDDRegion)f).getBDD().isZero();
+  }
+
+  @Override
+  public boolean isTrue(Region f) {
+    return ((BDDRegion)f).getBDD().isOne();
+  }
+
+  @Override
   public Region makeTrue() {
     return trueFormula;
   }
@@ -132,5 +142,13 @@ public class BDDRegionManager implements RegionManager {
     BDD f2 = ((BDDRegion)pF2).getBDD();
 
     return new BDDRegion(f1.exist(f2));
+  }
+
+  @Override
+  public boolean equalRegions(Region r1, Region r2) {
+    BDDRegion f1 = (BDDRegion)r1;
+    BDDRegion f2 = (BDDRegion)r2;
+
+    return f1.getBDD().equals(f2.getBDD());
   }
 }

@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.loopstack;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
+import org.sosy_lab.cpachecker.util.CFA.Loop;
 
 public class LoopstackCPA extends AbstractCPA {
 
@@ -41,11 +41,8 @@ public class LoopstackCPA extends AbstractCPA {
     return AutomaticCPAFactory.forType(LoopstackCPA.class);
   }
 
-  private final CFA cfa;
-
-  public LoopstackCPA(Configuration config, CFA pCfa) throws InvalidConfigurationException, CPAException {
-    super("sep", "sep", new LoopstackTransferRelation(config, pCfa));
-    cfa = pCfa;
+  public LoopstackCPA(Configuration config) throws InvalidConfigurationException, CPAException {
+    super("sep", "sep", new LoopstackTransferRelation(config));
   }
 
   @Override
@@ -57,7 +54,7 @@ public class LoopstackCPA extends AbstractCPA {
     }
 
     Loop loop = null;
-    for (Loop l : cfa.getLoopStructure().get().get(pNode.getFunctionName())) {
+    for (Loop l : CFACreator.loops.get(pNode.getFunctionName())) {
       if (l.getLoopNodes().contains(pNode)) {
         assert loop == null : "Cannot create initial nodes for locations in nested loops";
       }

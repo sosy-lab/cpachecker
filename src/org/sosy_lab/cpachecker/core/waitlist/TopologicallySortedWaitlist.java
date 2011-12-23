@@ -30,7 +30,6 @@ import com.google.common.base.Preconditions;
 
 public class TopologicallySortedWaitlist extends AbstractSortedWaitlist<Integer> {
 
-  @SuppressWarnings("deprecation")
   protected TopologicallySortedWaitlist(WaitlistFactory pSecondaryStrategy) {
     super(pSecondaryStrategy);
     Preconditions.checkArgument(pSecondaryStrategy != TraversalMethod.TOPSORT);

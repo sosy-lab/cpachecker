@@ -23,11 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.List;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
 public final class IASTEnumerationSpecifier extends IType {
@@ -50,36 +49,15 @@ public final class IASTEnumerationSpecifier extends IType {
     return name;
   }
 
-  @Override
-  public String toASTString() {
-    StringBuilder lASTString = new StringBuilder();
-
-    if (isConst()) {
-      lASTString.append("const ");
-    }
-    if (isVolatile()) {
-      lASTString.append("volatile ");
-    }
-
-    lASTString.append("enum ");
-    lASTString.append(name);
-
-    lASTString.append(" {\n  ");
-    lASTString.append(Joiner.on(",\n  ").join(new ASTStringIterable(enumerators)));
-    lASTString.append("} ");
-
-    return lASTString.toString();
-  }
-
   public static final class IASTEnumerator extends IASTSimpleDeclaration {
 
     private static final IType INT_TYPE = new IASTSimpleDeclSpecifier(true, false, BasicType.INT, false, false, true, false, false, false, false);
 
-    private final Long           value;
+    private final long           value;
 
     public IASTEnumerator(final String pRawSignature,
         final IASTFileLocation pFileLocation, final String pName,
-        final Long pValue) {
+        final long pValue) {
       super(pRawSignature, pFileLocation, INT_TYPE, pName);
 
       checkNotNull(pName);
@@ -87,18 +65,7 @@ public final class IASTEnumerationSpecifier extends IType {
     }
 
     public long getValue() {
-      checkState(value != null, "Need to check hasValue() before calling getValue()");
       return value;
-    }
-
-    public boolean hasValue() {
-      return value != null;
-    }
-
-    @Override
-    public String toASTString(String pPrefix) {
-      return pPrefix + getName()
-          + (hasValue() ? " = " + String.valueOf(value) : "");
     }
   }
 }

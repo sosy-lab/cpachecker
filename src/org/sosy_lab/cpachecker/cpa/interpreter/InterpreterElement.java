@@ -23,15 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.interpreter;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.AccessToUninitializedVariableException;
 import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.MissingInputException;
-
-import com.google.common.base.Joiner;
+import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.ReadingFromNondetVariableException;
 
 public class InterpreterElement implements AbstractElement {
 
@@ -45,6 +44,10 @@ public class InterpreterElement implements AbstractElement {
   // TODO make final
   private int mInputIndex;
   private int[] mInputs;
+
+  @Option(description="variables whose name contains this will be seen by InterpreterCPA as having non-deterministic values")
+  // TODO this is completely broken, name doesn't match, the option is never read from file etc.
+  private String noAutoInitPrefix = "__BLAST_NONDET";
 
   public InterpreterElement() {
     this(new int[0]);
@@ -107,14 +110,22 @@ public class InterpreterElement implements AbstractElement {
   public void assignConstant(String nameOfVar, long value) {
 
     if(mConstantsMap.containsKey(nameOfVar) &&
-        mConstantsMap.get(nameOfVar).longValue() == value) {
+        mConstantsMap.get(nameOfVar).intValue() == value) {
       return;
+    }
+
+    if(nameOfVar.contains(noAutoInitPrefix)){
+      throw new RuntimeException(nameOfVar);
     }
 
     mConstantsMap.put(nameOfVar, value);
   }
 
-  public long getValueFor(String pVariableName) throws AccessToUninitializedVariableException {
+  public long getValueFor(String pVariableName) throws ReadingFromNondetVariableException, AccessToUninitializedVariableException {
+    if (pVariableName.endsWith("::__BLAST_NONDET")) {
+      throw new ReadingFromNondetVariableException();
+    }
+
     if (!mConstantsMap.containsKey(pVariableName)) {
       throw new AccessToUninitializedVariableException(pVariableName);
     }
@@ -165,9 +176,8 @@ public class InterpreterElement implements AbstractElement {
 
   @Override
   public boolean equals (Object other) {
-    if (this == other) {
+    if (this == other)
       return true;
-    }
 
     if (other == null) {
       return false;
@@ -215,25 +225,20 @@ public class InterpreterElement implements AbstractElement {
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder();
-    sb.append("{");
+    String s = "{";
 
-    Joiner.on(", ").appendTo(sb, Arrays.asList(mInputs));
-
-    sb.append("}[");
-    sb.append(mInputIndex);
-    sb.append("] [");
-
-    for (Map.Entry<String, Long> entry: mConstantsMap.entrySet()){
-      String key = entry.getKey();
-      long val = entry.getValue();
-      sb.append(" <");
-      sb.append(key);
-      sb.append(" = ");
-      sb.append(val);
-      sb.append("> ");
+    for (int lIndex = 0; lIndex < mInputs.length; lIndex++) {
+      s += mInputs[lIndex] + ", ";
     }
-    return sb.append("] size->  ").append(mConstantsMap.size()).toString();
+
+    s += "}[" + mInputIndex + "]";
+
+    s += " [";
+    for (String key: mConstantsMap.keySet()){
+      long val = mConstantsMap.get(key);
+      s = s  + " <" +key + " = " + val + "> ";
+    }
+    return s + "] size->  " + mConstantsMap.size();
   }
 
   public Map<String, Long> getConstantsMap(){

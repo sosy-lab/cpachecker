@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-import static junit.framework.Assert.*;
+import static junit.framework.Assert.assertNotNull;
 import static org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval.*;
 
 import java.math.BigInteger;
@@ -59,52 +59,5 @@ public class SimpleIntervalTest {
   @Test(expected=IllegalArgumentException.class)
   public void testInvalidConstruction2() {
     of(BigInteger.valueOf(Long.MAX_VALUE), BigInteger.valueOf(Long.MIN_VALUE));
-  }
-
-  @Test
-  public void testIsSingleton() {
-    assertTrue(singleton(BigInteger.ZERO).isSingleton());
-    assertTrue(singleton(BigInteger.valueOf(Long.MAX_VALUE)).isSingleton());
-    assertTrue(singleton(BigInteger.valueOf(Long.MIN_VALUE)).isSingleton());
-
-    assertFalse(lessOrEqual(BigInteger.ZERO).isSingleton());
-    assertFalse(lessOrEqual(BigInteger.valueOf(Long.MAX_VALUE)).isSingleton());
-    assertFalse(lessOrEqual(BigInteger.valueOf(Long.MIN_VALUE)).isSingleton());
-
-    assertFalse(greaterOrEqual(BigInteger.ZERO).isSingleton());
-    assertFalse(greaterOrEqual(BigInteger.valueOf(Long.MAX_VALUE)).isSingleton());
-    assertFalse(greaterOrEqual(BigInteger.valueOf(Long.MIN_VALUE)).isSingleton());
-
-    assertTrue(of(BigInteger.ZERO, BigInteger.ZERO).isSingleton());
-    assertFalse(of(BigInteger.ZERO, BigInteger.ONE).isSingleton());
-    assertFalse(of(BigInteger.valueOf(Long.MIN_VALUE), BigInteger.valueOf(Long.MAX_VALUE)).isSingleton());
-  }
-
-  @Test
-  public void testSize() {
-    assertEquals(BigInteger.ONE, singleton(BigInteger.ZERO).size());
-    assertEquals(BigInteger.ONE, singleton(BigInteger.valueOf(Long.MAX_VALUE)).size());
-    assertEquals(BigInteger.ONE, singleton(BigInteger.valueOf(Long.MIN_VALUE)).size());
-
-    assertNull(lessOrEqual(BigInteger.ZERO).size());
-    assertNull(lessOrEqual(BigInteger.valueOf(Long.MAX_VALUE)).size());
-    assertNull(lessOrEqual(BigInteger.valueOf(Long.MIN_VALUE)).size());
-
-    assertNull(greaterOrEqual(BigInteger.ZERO).size());
-    assertNull(greaterOrEqual(BigInteger.valueOf(Long.MAX_VALUE)).size());
-    assertNull(greaterOrEqual(BigInteger.valueOf(Long.MIN_VALUE)).size());
-
-    assertEquals(BigInteger.ONE, of(BigInteger.ZERO, BigInteger.ZERO).size());
-    assertEquals(BigInteger.valueOf(2L), of(BigInteger.ZERO, BigInteger.ONE).size());
-    assertEquals(BigInteger.TEN, of(BigInteger.ONE, BigInteger.TEN).size());
-
-    assertEquals(BigInteger.valueOf(201L),
-                 of(BigInteger.valueOf(-100L), BigInteger.valueOf(100L)).size()
-                 );
-
-    assertEquals(BigInteger.valueOf(Long.MAX_VALUE).subtract(BigInteger.valueOf(Long.MIN_VALUE)).add(BigInteger.ONE),
-                 of(BigInteger.valueOf(Long.MIN_VALUE), BigInteger.valueOf(Long.MAX_VALUE)).size()
-                );
-
   }
 }

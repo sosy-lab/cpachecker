@@ -31,6 +31,14 @@ public class InvalidQueryException extends CPATransferException {
   private static final long serialVersionUID = 3410773868391514648L;
 
   /**
+   * Constructs an {@code InvalidQueryException} with {@code null}
+   * as its error detail message.
+   */
+  public InvalidQueryException() {
+      super();
+  }
+
+  /**
    * Constructs an {@code InvalidQueryException} with the specified detail message.
    *
    * @param message

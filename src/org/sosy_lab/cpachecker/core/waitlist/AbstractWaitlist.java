@@ -78,9 +78,4 @@ public abstract class AbstractWaitlist<T extends Collection<AbstractElement>> im
   public int size() {
     return waitlist.size();
   }
-
-  @Override
-  public String toString() {
-    return waitlist.toString();
-  }
 }

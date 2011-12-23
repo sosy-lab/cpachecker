@@ -25,23 +25,23 @@ package org.sosy_lab.cpachecker.cfa.objectmodel;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 
-public interface CFAEdge {
 
-  public CFAEdgeType getEdgeType();
 
-  public CFANode getPredecessor();
+public interface CFAEdge
+{
+    public CFAEdgeType getEdgeType ();
 
-  public CFANode getSuccessor();
+    public CFANode getPredecessor ();
+    public CFANode getSuccessor ();
 
-  public String getRawStatement();
+    public String getRawStatement ();
+    public IASTNode getRawAST();
 
-  public IASTNode getRawAST();
+    public int getLineNumber();
 
-  public int getLineNumber();
-
-  /**
-   * Gives information whether this information represents a jump to a
-   * distant program location (e.g. a return or a goto statement).
-   */
-  public boolean isJumpEdge();
+    /**
+     * Gives information whether this information represents a jump to a
+     * distant program location (e.g. a return or a goto statement).
+     */
+    public boolean isJumpEdge ();
 }

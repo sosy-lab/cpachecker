@@ -50,7 +50,7 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
 
         env = mgr.createEnvironment(useSharedEnv, false);
 
-        int ok = NativeApi.msat_init_interpolation(env);
+        int ok = mathsat.api.msat_init_interpolation(env);
         assert(ok == 0);
     }
 
@@ -60,11 +60,11 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
 
         long t = ((MathsatFormula)f).getTerm();
         if (!useSharedEnv) {
-            t = NativeApi.msat_make_copy_from(env, t, mgr.getMsatEnv());
+            t = mathsat.api.msat_make_copy_from(env, t, mgr.getMsatEnv());
         }
-        int group = NativeApi.msat_create_itp_group(env);
-        NativeApi.msat_set_itp_group(env, group);
-        NativeApi.msat_assert_formula(env, t);
+        int group = mathsat.api.msat_create_itp_group(env);
+        mathsat.api.msat_set_itp_group(env, group);
+        mathsat.api.msat_assert_formula(env, t);
         return group;
     }
 
@@ -72,10 +72,10 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
     public boolean isUnsat() {
         Preconditions.checkState(env != 0);
 
-        int res = NativeApi.msat_solve(env);
-        assert(res != NativeApi.MSAT_UNKNOWN);
+        int res = mathsat.api.msat_solve(env);
+        assert(res != mathsat.api.MSAT_UNKNOWN);
 
-        return res == NativeApi.MSAT_UNSAT;
+        return res == mathsat.api.MSAT_UNSAT;
     }
 
     @Override
@@ -87,10 +87,10 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
         for (Integer f : formulasOfA) {
           groupsOfA[i++] = f;
         }
-        long itp = NativeApi.msat_get_interpolant(env, groupsOfA);
-        assert(!NativeApi.MSAT_ERROR_TERM(itp));
+        long itp = mathsat.api.msat_get_interpolant(env, groupsOfA);
+        assert(!mathsat.api.MSAT_ERROR_TERM(itp));
         if (!useSharedEnv) {
-            itp = NativeApi.msat_make_copy_from(mgr.getMsatEnv(), itp, env);
+            itp = mathsat.api.msat_make_copy_from(mgr.getMsatEnv(), itp, env);
         }
         return new MathsatFormula(itp);
     }
@@ -99,7 +99,7 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
     public void reset() {
         Preconditions.checkState(env != 0);
 
-        NativeApi.msat_destroy_env(env);
+        mathsat.api.msat_destroy_env(env);
         env = 0;
     }
 
@@ -107,7 +107,7 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
     public Model getModel() {
       Preconditions.checkState(env != 0);
 
-      return MathsatModel.createMathsatModel(env, mgr);
+      return MathsatModel.createMathsatModel(env);
     }
 
 }

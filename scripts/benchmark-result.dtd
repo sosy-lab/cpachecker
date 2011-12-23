@@ -1,15 +1,14 @@
 <!ELEMENT test (systeminfo, columns, sourcefile+, time)>
 <!ATTLIST test name CDATA #IMPLIED
-               benchmarkname CDATA #REQUIRED
+	       benchmarkname CDATA #REQUIRED
                date CDATA #REQUIRED
                tool CDATA #REQUIRED
                version CDATA #REQUIRED
-               options CDATA #IMPLIED
+               options CDATA #REQUIRED
                memlimit CDATA #IMPLIED
-               timelimit CDATA #IMPLIED>
+	       timelimit CDATA #IMPLIED>
 
 <!ELEMENT systeminfo (os, cpu, ram)>
-<!ATTLIST systeminfo hostname CDATA #IMPLIED>
 <!ATTLIST os name CDATA #REQUIRED>
 <!ATTLIST cpu cores CDATA #REQUIRED
               frequency CDATA #REQUIRED
@@ -21,8 +20,7 @@
                  value CDATA #IMPLIED>
 
 <!ELEMENT sourcefile (column*)>
-<!ATTLIST sourcefile name CDATA #REQUIRED
-                     options CDATA #IMPLIED>
+<!ATTLIST sourcefile name CDATA #REQUIRED>
 
 <!ATTLIST time cputime CDATA #REQUIRED
                walltime CDATA #REQUIRED>

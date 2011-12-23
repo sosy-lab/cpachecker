@@ -23,13 +23,10 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.cbmctools;
 
-import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
@@ -37,21 +34,15 @@ import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.configuration.TimeSpanOption;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
-
-import com.google.common.base.Optional;
 
 /**
  * Counterexample checker that creates a C program for the counterexample
@@ -61,26 +52,24 @@ import com.google.common.base.Optional;
 public class CBMCChecker implements CounterexampleChecker, Statistics {
 
   private final LogManager logger;
-  private final CFA cfa;
 
   private final Timer cbmcTime = new Timer();
 
-  @Option(name = "cbmc.dumpCBMCfile",
+  @Option(name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$",
+      description="entry function")
+  private String mainFunctionName = "main";
+
+  @Option(name = "cbmc.dumpCBMCfile", type = Option.Type.OUTPUT_FILE,
       description = "file name where to put the path program that is generated "
       + "as input for CBMC. A temporary file is used if this is unspecified.")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File cbmcFile;
+  private File CBMCFile;
 
   @Option(name="cbmc.timelimit",
-      description="maximum time limit for CBMC (use milliseconds or specify a unit; 0 for infinite)")
-  @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
-        defaultUserUnit=TimeUnit.MILLISECONDS,
-        min=0)
+      description="maximum time limit for CBMC (0 is infinite)")
   private int timelimit = 0; // milliseconds
 
-  public CBMCChecker(Configuration config, LogManager logger, CFA pCfa) throws InvalidConfigurationException, CPAException {
+  public CBMCChecker(Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
     this.logger = logger;
-    this.cfa = pCfa;
     config.inject(this);
   }
 
@@ -88,12 +77,10 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
   public boolean checkCounterexample(ARTElement pRootElement, ARTElement pErrorElement,
       Set<ARTElement> pErrorPathElements) throws CPAException, InterruptedException {
 
-    String mainFunctionName = extractLocation(pRootElement).getFunctionName();
-
-    String pathProgram = PathToCTranslator.translatePaths(Optional.of(cfa), pRootElement, pErrorPathElements);
+    String pathProgram = AbstractPathToCTranslator.translatePaths(pRootElement, pErrorPathElements);
 
     // write program to disk
-    File cFile = cbmcFile;
+    File cFile = CBMCFile;
     try {
       if (cFile != null) {
         Files.writeFile(cFile, pathProgram);
@@ -111,8 +98,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
     CBMCExecutor cbmc;
     int exitCode;
     try {
-      String cbmcArgs[] = {"cbmc", "--function", mainFunctionName + "_0", "--32", cFile.getAbsolutePath()};
-      cbmc = new CBMCExecutor(logger, cbmcArgs);
+      cbmc = new CBMCExecutor(logger, cFile, mainFunctionName);
       exitCode = cbmc.join(timelimit);
 
     } catch (IOException e) {

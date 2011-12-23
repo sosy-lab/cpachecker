@@ -29,8 +29,6 @@ import java.util.Map;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
-import com.google.common.collect.Maps;
-
 public class Automaton {
   private final String name;
   /* The internal variables used by the actions/ assignments of this automaton.
@@ -46,21 +44,23 @@ public class Automaton {
     this.initVars = pVars;
     this.states = pStates;
 
-    Map<String, AutomatonInternalState> statesMap = Maps.newHashMapWithExpectedSize(pStates.size());
+    AutomatonInternalState lInitState = null;
     for (AutomatonInternalState s : pStates) {
-      if (statesMap.put(s.getName(), s) != null) {
-        throw new InvalidAutomatonException("State " + s.getName() + " exists twice in automaton " + pName);
+      if (s.getName().equals(pInit)) {
+        lInitState = s;
       }
     }
-
-    initState = statesMap.get(pInit);
-    if (initState == null) {
+    if (lInitState == null) {
       throw new InvalidAutomatonException("Inital state " + pInit + " not found in automaton " + pName);
     }
+    initState = lInitState;
+
+    // implicit error State (might be followState of Transitions)
+    // pStates.add(AutomatonInternalState.ERROR);
 
     // set the FollowStates of all Transitions
     for (AutomatonInternalState s : pStates) {
-      s.setFollowStates(statesMap);
+      s.setFollowStates(pStates);
     }
   }
 
@@ -83,41 +83,19 @@ public class Automaton {
   void writeDotFile(PrintStream pOut) {
     pOut.println("digraph " + name + "{");
 
-    boolean errorState = false;
-    boolean bottomState = false;
+    pOut.println(AutomatonInternalState.ERROR.getStateId() + " [shape=\"circle\" color=\"red\" label=\"" +  AutomatonInternalState.ERROR.getName() + "\"]");
+    pOut.println(AutomatonInternalState.BOTTOM.getStateId() + " [shape=\"circle\" color=\"red\" label=\"" +  AutomatonInternalState.BOTTOM.getName() + "\"]");
 
     for (AutomatonInternalState s : states) {
-      String color = initState.equals(s) ? "green" : "black";
-
-      pOut.println(formatState(s, color));
-
-      for (AutomatonTransition t : s.getTransitions()) {
-        pOut.println(formatTransition(s, t));
-
-        errorState = errorState || t.getFollowState().equals(AutomatonInternalState.ERROR);
-        bottomState = bottomState || t.getFollowState().equals(AutomatonInternalState.BOTTOM);
+      if (initState.equals(s)) {
+        pOut.println(s.getStateId() + " [shape=\"circle\" color=\"green\" label=\"" +  s.getName() + "\"]");
+      } else {
+        pOut.println(s.getStateId() + " [shape=\"circle\" color=\"black\" label=\"" +  s.getName() + "\"]");
       }
-    }
-
-    if (errorState) {
-      pOut.println(formatState(AutomatonInternalState.ERROR, "red"));
-    }
-
-    if (bottomState) {
-      pOut.println(formatState(AutomatonInternalState.BOTTOM, "red"));
+      s.writeTransitionsToDotFile(pOut);
     }
     pOut.println("}");
   }
-
-  private static String formatState(AutomatonInternalState s, String color) {
-    String name = s.getName().replace("_predefinedState_", "");
-    return String.format("%d [shape=\"circle\" color=\"%s\" label=\"%s\"]", s.getStateId(), color, name);
-  }
-
-  private static String formatTransition(AutomatonInternalState sourceState, AutomatonTransition t) {
-    return String.format("%d -> %d [label=\"" /*+ pattern */ + "\"]", sourceState.getStateId(), t.getFollowState().getStateId());
-  }
-
 
   public Map<String, AutomatonVariable> getInitialVariables() {
     return initVars;

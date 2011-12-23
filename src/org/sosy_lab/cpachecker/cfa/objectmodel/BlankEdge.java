@@ -23,34 +23,36 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel;
 
-public class BlankEdge extends AbstractCFAEdge {
 
-  private final boolean jumpEdge;
 
-  public BlankEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor,
-      CFANode pSuccessor) {
+public class BlankEdge extends AbstractCFAEdge
+{
+    private final boolean jumpEdge;
 
-    this(pRawStatement, pLineNumber, pPredecessor, pSuccessor, false);
-  }
+    public BlankEdge(String rawStatement, int lineNumber, CFANode predecessor, CFANode successor) {
+      this(rawStatement, lineNumber, predecessor, successor, false);
+    }
 
-  public BlankEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor,
-      CFANode pSuccessor, boolean pJumpEdge) {
+    public BlankEdge(String rawStatement, int lineNumber, CFANode predecessor, CFANode successor, boolean jumpEdge)
+    {
+        super(rawStatement, lineNumber, predecessor, successor);
+        this.jumpEdge = jumpEdge;
+    }
 
-    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
-    jumpEdge = pJumpEdge;
-  }
+    /**
+     * Gives information whether this edge is a jump as produced by a goto,
+     * continue and break statements.
+     */
+    @Override
+    public boolean isJumpEdge ()
+    {
+        return jumpEdge;
+    }
 
-  /**
-   * Gives information whether this edge is a jump as produced by a goto,
-   * continue and break statements.
-   */
-  @Override
-  public boolean isJumpEdge() {
-    return jumpEdge;
-  }
+    @Override
+    public CFAEdgeType getEdgeType ()
+    {
+        return CFAEdgeType.BlankEdge;
+    }
 
-  @Override
-  public CFAEdgeType getEdgeType() {
-    return CFAEdgeType.BlankEdge;
-  }
 }

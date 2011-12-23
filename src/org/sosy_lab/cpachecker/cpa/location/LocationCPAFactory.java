@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
@@ -33,30 +30,16 @@ class LocationCPAFactory extends AbstractCPAFactory {
 
   private final boolean inverse;
 
-  private CFA cfa;
-
   public LocationCPAFactory(boolean pInverse) {
     inverse = pInverse;
   }
 
   @Override
-  public <T> LocationCPAFactory set(T pObject, Class<T> pClass) {
-    if (CFA.class.isAssignableFrom(pClass)) {
-      cfa = (CFA)pObject;
-    } else {
-      super.set(pObject, pClass);
-    }
-    return this;
-  }
-
-  @Override
   public ConfigurableProgramAnalysis createInstance() {
-    checkNotNull(cfa, "CFA instance needed to create LocationCPA");
-
     if (inverse) {
-      return new InverseLocationCPA(cfa);
+      return new InverseLocationCPA();
     } else {
-      return new LocationCPA(cfa);
+      return new LocationCPA();
     }
   }
 }

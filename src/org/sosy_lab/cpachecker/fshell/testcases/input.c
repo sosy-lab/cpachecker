@@ -18,7 +18,7 @@ int input()
 		{
           FILE* errorfile;
           testcase = fopen(INPUTFILE_STR(INPUTFILE), "r");
-          char errorfilename[] = "output/errorXXXXXX";
+          char errorfilename[] = "test/output/errorXXXXXX";
 
           mkstemp(errorfilename);
 

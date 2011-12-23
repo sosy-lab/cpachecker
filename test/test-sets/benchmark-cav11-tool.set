@@ -1,4 +1,4 @@
-test/programs/benchmarks/ntdrivers-simplified/*.cil.c
-test/programs/benchmarks/ssh-simplified/*.cil.c
-test/programs/benchmarks/systemc/*.cil.c
+test/programs/ntdrivers-simplified/*.cil.c
+test/programs/ssh-simplified/*.cil.c
+test/programs/systemc/*.cil.c
 

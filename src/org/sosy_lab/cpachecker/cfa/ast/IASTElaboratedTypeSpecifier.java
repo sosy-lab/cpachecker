@@ -25,49 +25,26 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 public final class IASTElaboratedTypeSpecifier extends IType {
 
-  private final ElaboratedType kind;
+  private final int      kind;
   private final String   name;
 
   public IASTElaboratedTypeSpecifier(boolean pConst, final boolean pVolatile,
-      final ElaboratedType pKind, final String pName) {
+      final int pKind, final String pName) {
     super(pConst, pVolatile);
     kind = pKind;
     name = pName;
+  }
+
+  public int getKind() {
+    return kind;
   }
 
   public String getName() {
     return name;
   }
 
-  public ElaboratedType getKind() {
-    return kind;
-  }
+  public static final int k_enum = 0;
+  public static final int k_struct = 1;
+  public static final int k_union = 2;
 
-  @Override
-  public String toASTString() {
-    StringBuilder lASTString = new StringBuilder();
-
-    if (isConst()) {
-      lASTString.append("const ");
-    }
-    if (isVolatile()) {
-      lASTString.append("volatile ");
-    }
-
-    lASTString.append(kind.toASTString());
-    lASTString.append(name);
-    lASTString.append(" ");
-
-    return lASTString.toString();
-  }
-
-  public static enum ElaboratedType {
-    ENUM,
-    STRUCT,
-    UNION;
-
-    public String toASTString() {
-      return name().toLowerCase() + " ";
-    }
-  }
 }

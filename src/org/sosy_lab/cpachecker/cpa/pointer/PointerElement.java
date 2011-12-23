@@ -872,9 +872,7 @@ public class PointerElement implements AbstractQueryableElement, Memory,
     while (tempIt.hasNext()) {
       PointerLocation loc = tempIt.next();
 
-      if ((loc instanceof LocalVariable)
-          && oldFunctionName.equals(((LocalVariable) loc).getFunctionName())) {
-
+      if (oldFunctionName.equals(((LocalVariable) loc).getFunctionName())) {
         tempIt.remove(); // instead of tempTracked.remove(loc);
       }
     }
@@ -1043,11 +1041,8 @@ public class PointerElement implements AbstractQueryableElement, Memory,
         return false;
       } else {
         boolean leak = !checkMemoryLeak().isEmpty();
-        if (leak) {
-          properties.add(ElementProperty.MEMORY_LEAK);
-        } else {
-          properties.add(ElementProperty.NO_MEMORY_LEAK);
-        }
+        if (leak) properties.add(ElementProperty.MEMORY_LEAK);
+        else properties.add(ElementProperty.NO_MEMORY_LEAK);
         return leak;
       }
     } else {

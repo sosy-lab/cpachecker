@@ -93,18 +93,6 @@ public class SSAMap {
       funcsBuilder.setCount(key, idx);
     }
 
-    public void deleteVariable(String variable) {
-      int index = getIndex(variable);
-      if (index != -1) {
-
-        if (varsBuilder == null) {
-          varsBuilder = LinkedHashMultiset.create(ssa.vars);
-        }
-
-        varsBuilder.remove(variable, index);
-      }
-    }
-
     /**
      * Returns an immutable SSAMap with all the changes made to the builder.
      */

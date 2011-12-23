@@ -28,45 +28,53 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
-public class AssumeEdge extends AbstractCFAEdge {
 
-  private final boolean truthAssumption;
-  private final IASTExpression expression;
 
-  public AssumeEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor,
-      CFANode pSuccessor, IASTExpression pExpression, boolean pTruthAssumption) {
+public class AssumeEdge extends AbstractCFAEdge
+{
+    private final boolean truthAssumption;
+    private final IASTExpression expression;
 
-    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
-    truthAssumption = pTruthAssumption;
-    expression = pExpression;
-  }
+    public AssumeEdge (String rawStatement, int lineNumber, CFANode predecessor, CFANode successor,
+                           IASTExpression expression,
+                           boolean truthAssumption)
+    {
+        super (rawStatement, lineNumber, predecessor, successor);
 
-  @Override
-  public CFAEdgeType getEdgeType() {
-    return CFAEdgeType.AssumeEdge;
-  }
+        this.truthAssumption = truthAssumption;
+        this.expression = expression;
+    }
 
-  public boolean getTruthAssumption() {
-    return truthAssumption;
-  }
+    @Override
+    public CFAEdgeType getEdgeType ()
+    {
+        return CFAEdgeType.AssumeEdge;
+    }
 
-  public IASTExpression getExpression() {
-    return expression;
-  }
+    public boolean getTruthAssumption ()
+    {
+        return truthAssumption;
+    }
 
-  @Override
-  public String getRawStatement() {
-    return "[" + super.getRawStatement() + "]";
-  }
+    public IASTExpression getExpression ()
+    {
+        return expression;
+    }
 
-  /**
-   * TODO
-   * Warning: for instances with {@link #getTruthAssumption()} == false, the
-   * return value of this method does not represent exactly the return value
-   * of {@link #getRawStatement()} (it misses the outer negation of the expression).
-   */
-  @Override
-  public IASTExpression getRawAST() {
-    return expression;
-  }
+    @Override
+    public String getRawStatement ()
+    {
+        return "[" + super.getRawStatement () + "]";
+    }
+
+    /**
+     * TODO
+     * Warning: for instances with {@link #getTruthAssumption()} == false, the
+     * return value of this method does not represent exactly the return value
+     * of {@link #getRawStatement()} (it misses the outer negation of the expression).
+     */
+    @Override
+    public IASTExpression getRawAST() {
+      return expression;
+    }
 }

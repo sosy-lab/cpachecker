@@ -268,7 +268,7 @@ public class NondetToInput {
 
     ProcessBuilder lBuilder = new ProcessBuilder();
     lBuilder.command(lCommand);
-    lBuilder.redirectErrorStream(true);
+    lBuilder.redirectErrorStream();
 
     Process lProcess = lBuilder.start();
 

@@ -25,20 +25,18 @@ package org.sosy_lab.cpachecker.cpa.abm;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.Classes;
+import org.sosy_lab.common.Classes.ClassInstantiationException;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
-import org.sosy_lab.cpachecker.cfa.blocks.builder.FunctionAndLoopPartitioning;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.PartitioningHeuristic;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
@@ -55,10 +53,11 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.predicate.ABMPredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+import com.google.common.base.Throwables;
 
 
 @Options(prefix="cpa.abm")
@@ -73,22 +72,38 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   private final LogManager logger;
   private final TimedReducer reducer;
   private final ABMTransferRelation transfer;
-  private final ABMPrecisionAdjustment prec;
   private final ABMCPAStatistics stats;
   private final PartitioningHeuristic heuristic;
-  private final CFA cfa;
 
   @Option(description="Type of partitioning (FunctionAndLoopPartitioning or DelayedFunctionAndLoopPartitioning)\n"
   		              + "or any class that implements a PartitioningHeuristic")
-  @ClassOption(packagePrefix="org.sosy_lab.cpachecker.cfa.blocks.builder")
-  private Class<? extends PartitioningHeuristic> blockHeuristic = FunctionAndLoopPartitioning.class;
+  private String blockHeuristic = "FunctionAndLoopPartitioning";
 
-  public ABMCPA(ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger, ReachedSetFactory pReachedSetFactory, CFA pCfa) throws InvalidConfigurationException, CPAException {
+  private static final String PACKAGE_NAME_PREFIX = "org.sosy_lab.cpachecker.cfa.blocks.builder";
+
+  private <T> T createInstance(String className, Object[] argumentList, Class<T> type) throws CPAException, InvalidConfigurationException {
+    Class<?> argumentTypes[] = {LogManager.class};
+
+    try {
+      return Classes.createInstance(className, PACKAGE_NAME_PREFIX, argumentTypes, argumentList, type);
+
+    } catch (ClassInstantiationException e) {
+      throw new InvalidConfigurationException("Invalid block heuristic specified (" + e.getMessage() + ")!");
+
+    } catch (InvocationTargetException e) {
+      Throwable t = e.getCause();
+      Throwables.propagateIfPossible(t, CPAException.class, InvalidConfigurationException.class);
+
+      logger.logException(Level.FINE, t, "Unexpected exception during CPA instantiation!");
+      throw new CPAException("Unexpected exception " + t.getClass().getSimpleName() + " during CPA instantiation (" + t.getMessage() + ")!");
+    }
+  }
+
+  public ABMCPA(ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger, ReachedSetFactory pReachedSetFactory) throws InvalidConfigurationException, CPAException {
     super(pCpa);
     config.inject(this);
 
     logger = pLogger;
-    cfa = pCfa;
 
     if (!(pCpa instanceof ConfigurableProgramAnalysisWithABM)) {
       throw new InvalidConfigurationException("ABM needs CPAs that are capable for ABM");
@@ -99,7 +114,6 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     }
     reducer = new TimedReducer(wrappedReducer);
     transfer = new ABMTransferRelation(config, logger, this, pReachedSetFactory);
-    prec = new ABMPrecisionAdjustment(getWrappedCpa().getPrecisionAdjustment());
 
     stats = new ABMCPAStatistics(this);
     heuristic = getPartitioningHeuristic();
@@ -110,11 +124,9 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     if (blockPartitioning == null) {
       blockPartitioning = heuristic.buildPartitioning(node);
       transfer.setBlockPartitioning(blockPartitioning);
-      ((WrapperCPA) getWrappedCpa()).retrieveWrappedCpa(ABMPredicateCPA.class).setPartitioning(blockPartitioning);
-
-      Map<AbstractElement, Precision> forwardPrecisionToExpandedPrecision = new HashMap<AbstractElement, Precision>();
-      transfer.setForwardPrecisionToExpandedPrecision(forwardPrecisionToExpandedPrecision);
-      prec.setForwardPrecisionToExpandedPrecision(forwardPrecisionToExpandedPrecision);
+      ((AbstractSingleWrapperCPA) getWrappedCpa()).retrieveWrappedCpa(ABMPredicateCPA.class).getTransferRelation().setPartitioning(blockPartitioning);
+    } else {
+      assert blockPartitioning.getBlockForNode(node) != null : "CPA re-used for other CFA, this is currently not supported.";
     }
     return getWrappedCpa().getInitialElement(node);
   }
@@ -125,7 +137,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   }
 
   private PartitioningHeuristic getPartitioningHeuristic() throws CPAException, InvalidConfigurationException {
-    return Classes.createInstance(PartitioningHeuristic.class, blockHeuristic, new Class[]{LogManager.class, CFA.class}, new Object[]{logger, cfa}, CPAException.class);
+    return createInstance(blockHeuristic, new Object[]{logger}, PartitioningHeuristic.class);
   }
 
   @Override
@@ -145,7 +157,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return prec;
+    return getWrappedCpa().getPrecisionAdjustment();
   }
 
   @Override
@@ -157,13 +169,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     return reducer;
   }
 
-  @Override
-  protected ConfigurableProgramAnalysis getWrappedCpa() {
-    // override for visibility
-    return super.getWrappedCpa();
-  }
-
-  BlockPartitioning getBlockPartitioning() {
+  public BlockPartitioning getBlockPartitioning() {
     checkState(blockPartitioning != null);
     return blockPartitioning;
   }

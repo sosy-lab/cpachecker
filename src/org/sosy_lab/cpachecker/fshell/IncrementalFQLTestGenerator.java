@@ -42,14 +42,12 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
@@ -86,6 +84,7 @@ import org.sosy_lab.cpachecker.util.ecp.SingletonECPEdgeSet;
 import org.sosy_lab.cpachecker.util.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.util.ecp.translators.InverseGuardedEdgeLabel;
 import org.sosy_lab.cpachecker.util.ecp.translators.ToGuardedAutomatonTranslator;
+import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 
 /*
  * TODO AutomatonBuilder <- integrate State-Pool there to ensure correct time
@@ -141,7 +140,7 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
     mWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCFAMap, mLogManager);
 
     try {
-      mWrapper.toDot("output/wrapper.dot");
+      mWrapper.toDot("test/output/wrapper.dot");
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -349,10 +348,10 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
 
       boolean lReachableViaIntervalAnalysis = reach_intervalCPA(lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
 
-      CounterexampleInfo lCounterexampleInfo = null;
+      CounterexampleTraceInfo lCounterexampleTraceInfo = null;
 
       if (lReachableViaIntervalAnalysis) {
-        lCounterexampleInfo = reach2(lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
+        lCounterexampleTraceInfo = reach2(lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
       }
       else {
         lNumberOfCFAInfeasibleGoals++;
@@ -360,7 +359,7 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
 
       lTimeReach.pause();
 
-      if (lCounterexampleInfo == null || lCounterexampleInfo.isSpurious()) {
+      if (lCounterexampleTraceInfo == null || lCounterexampleTraceInfo.isSpurious()) {
         System.out.println("Goal #" + lIndex + " is infeasible!");
 
         if (lIsCovered) {
@@ -376,7 +375,7 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
       else {
         lTimeCover.proceed();
 
-        TestCase lTestCase = TestCase.fromCounterexample(lCounterexampleInfo, mLogManager);
+        TestCase lTestCase = TestCase.fromCounterexample(lCounterexampleTraceInfo, mLogManager);
 
         if (lTestCase.isPrecise()) {
           CFAEdge[] lCFAPath = null;
@@ -449,7 +448,7 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
     return lResult;
   }
 
-  private CounterexampleInfo reach2(GuardedEdgeAutomatonCPA pAutomatonCPA, CFAFunctionDefinitionNode pEntryNode, GuardedEdgeAutomatonCPA pPassingCPA) {
+  private CounterexampleTraceInfo reach2(GuardedEdgeAutomatonCPA pAutomatonCPA, CFAFunctionDefinitionNode pEntryNode, GuardedEdgeAutomatonCPA pPassingCPA) {
     mTimeInReach.proceed();
     mTimesInReach++;
 
@@ -503,9 +502,9 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
 
     CPAAlgorithm lBasicAlgorithm = new CPAAlgorithm(lARTCPA, mLogManager);
 
-    Refiner lRefiner;
+    PredicateRefiner lRefiner;
     try {
-      lRefiner = PredicateRefiner.create(lARTCPA);
+      lRefiner = new PredicateRefiner(lBasicAlgorithm.getCPA());
     } catch (CPAException e) {
       throw new RuntimeException(e);
     } catch (InvalidConfigurationException e) {
@@ -548,7 +547,7 @@ public class IncrementalFQLTestGenerator implements FQLTestGenerator {
 
     mTimeInReach.pause();
 
-    return lARTCPA.getLastCounterexample();
+    return lRefiner.getCounterexampleTraceInfo();
   }
 
   private boolean checkCoverage(TestCase pTestCase, CFAFunctionDefinitionNode pEntry, GuardedEdgeAutomatonCPA pCoverAutomatonCPA, GuardedEdgeAutomatonCPA pPassingAutomatonCPA, CFANode pEndNode) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {

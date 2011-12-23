@@ -24,16 +24,16 @@
 package org.sosy_lab.cpachecker.util.predicates.mathsat;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static mathsat.api.*;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager.*;
-import static org.sosy_lab.cpachecker.util.predicates.mathsat.NativeApi.*;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
 
 import org.sosy_lab.common.Timer;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.Model;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
@@ -52,28 +52,19 @@ public class MathsatTheoremProver implements TheoremProver {
   }
 
   @Override
-  public boolean isUnsat() {
-    int res = msat_solve(curEnv);
-    assert(res != MSAT_UNKNOWN);
-    return res == MSAT_UNSAT;
-  }
-
-  @Override
   public boolean isUnsat(Formula f) {
     push(f);
-    try {
-      return isUnsat();
-
-    } finally {
-      pop();
-    }
+    int res = msat_solve(curEnv);
+    pop();
+    assert(res != MSAT_UNKNOWN);
+    return res == MSAT_UNSAT;
   }
 
   @Override
   public Model getModel() {
     Preconditions.checkState(curEnv != 0);
 
-    return MathsatModel.createMathsatModel(curEnv, mgr);
+    return MathsatModel.createMathsatModel(curEnv);
   }
 
   @Override
@@ -141,7 +132,7 @@ public class MathsatTheoremProver implements TheoremProver {
   /**
    * callback used to build the predicate abstraction of a formula
    */
-  static class MathsatAllSatCallback implements NativeApi.AllSatModelCallback, TheoremProver.AllSatResult {
+  static class MathsatAllSatCallback implements mathsat.AllSatModelCallback, TheoremProver.AllSatResult {
     private final AbstractionManager amgr;
     private final RegionManager rmgr;
 

@@ -30,11 +30,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 
-/**
- * Advanced implementation of ReachedSet.
- * It groups elements by location and allows fast access to all elements with
- * the same location as a given one.
- */
 public class LocationMappedReachedSet extends PartitionedReachedSet {
 
   public LocationMappedReachedSet(WaitlistFactory waitlistFactory) {

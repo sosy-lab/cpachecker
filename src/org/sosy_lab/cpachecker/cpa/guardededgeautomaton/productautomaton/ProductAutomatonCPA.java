@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeDomain;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeStopOperator;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.progress.product.ProgressProductAutomatonPrecisionAdjustment;
 
 import com.google.common.base.Preconditions;
@@ -62,7 +61,7 @@ public class ProductAutomatonCPA extends CompositeCPA {
 
     CompositeDomain compositeDomain = new CompositeDomain(domains.build());
     ProductAutomatonTransferRelation compositeTransfer = new ProductAutomatonTransferRelation(transferRelations.build());
-    StopOperator compositeStop = new CompositeStopOperator(stopOperators.build());
+    ProductAutomatonStopOperator compositeStop = new ProductAutomatonStopOperator(stopOperators.build());
 
     return new ProductAutomatonCPA(compositeDomain, compositeTransfer, compositeStop, lCPAs.build(), pUseProgressPrecisionAdjustment);
   }

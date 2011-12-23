@@ -59,9 +59,8 @@ public class DefUseDefinition implements AbstractElement
     @Override
     public boolean equals (Object other)
     {
-        if (!(other instanceof DefUseDefinition)) {
-          return false;
-        }
+        if (!(other instanceof DefUseDefinition))
+            return false;
 
         DefUseDefinition otherDef = (DefUseDefinition) other;
         return otherDef.variableName.equals(this.variableName)

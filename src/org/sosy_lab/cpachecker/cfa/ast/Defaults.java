@@ -26,8 +26,6 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier.ElaboratedType;
-
 public class Defaults {
 
   private Defaults() { }
@@ -62,7 +60,7 @@ public class Defaults {
       // enum declaration: enum e { ... } var;
       return new IASTIntegerLiteralExpression("0", fileLoc, INT_TYPE, BigInteger.ZERO);
 
-    } else if (type instanceof IASTElaboratedTypeSpecifier && ((IASTElaboratedTypeSpecifier)type).getKind() == ElaboratedType.ENUM) {
+    } else if (type instanceof IASTElaboratedTypeSpecifier && ((IASTElaboratedTypeSpecifier)type).getKind() == IASTElaboratedTypeSpecifier.k_enum) {
       // enum declaration: enum e var;
       return new IASTIntegerLiteralExpression("0", fileLoc, INT_TYPE, BigInteger.ZERO);
 

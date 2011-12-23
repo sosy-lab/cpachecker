@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -43,15 +42,10 @@ import org.sosy_lab.cpachecker.cpa.location.LocationElement.LocationElementFacto
 
 public class InverseLocationCPA implements ConfigurableProgramAnalysis{
 
-  private final LocationElementFactory elementFactory;
+  private final LocationElementFactory elementFactory = new LocationElementFactory();
   private final AbstractDomain abstractDomain = new FlatLatticeDomain();
-  private final TransferRelation transferRelation;
+  private final TransferRelation transferRelation = new InverseLocationTransferRelation(elementFactory);
   private final StopOperator stopOperator = new StopSepOperator(abstractDomain);
-
-  public InverseLocationCPA(CFA pCfa) {
-    elementFactory = new LocationElementFactory(pCfa);
-    transferRelation = new InverseLocationTransferRelation(elementFactory);
-  }
 
   public static CPAFactory factory() {
     return new LocationCPAFactory(true);
@@ -84,6 +78,7 @@ public class InverseLocationCPA implements ConfigurableProgramAnalysis{
 
   @Override
   public AbstractElement getInitialElement (CFANode node) {
+    elementFactory.initialize(node);
     return elementFactory.getElement(node);
   }
 

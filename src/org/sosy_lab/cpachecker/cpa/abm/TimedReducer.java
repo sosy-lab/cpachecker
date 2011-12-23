@@ -36,7 +36,6 @@ class TimedReducer implements Reducer {
   final Timer reduceTime = new Timer();
   final Timer expandTime = new Timer();
   final Timer reducePrecisionTime = new Timer();
-  final Timer expandPrecisionTime = new Timer();
 
   private final Reducer wrappedReducer;
 
@@ -59,15 +58,21 @@ class TimedReducer implements Reducer {
 
   @Override
   public AbstractElement getVariableExpandedElement(
-      AbstractElement pRootElement, Block pReducedContext,
+      AbstractElement pRootElement, Block pRootContext,
       AbstractElement pReducedElement) {
 
     expandTime.start();
     try {
-      return wrappedReducer.getVariableExpandedElement(pRootElement, pReducedContext, pReducedElement);
+      return wrappedReducer.getVariableExpandedElement(pRootElement, pRootContext, pReducedElement);
     } finally {
       expandTime.stop();
     }
+  }
+
+  @Override
+  public boolean isEqual(AbstractElement pReducedTargetElement,
+      AbstractElement pCandidateElement) {
+    return wrappedReducer.isEqual(pReducedTargetElement, pCandidateElement);
   }
 
   @Override
@@ -84,22 +89,6 @@ class TimedReducer implements Reducer {
     } finally {
       reducePrecisionTime.stop();
     }
-  }
-
-  @Override
-  public Precision getVariableExpandedPrecision(Precision rootPrecision, Block rootContext, Precision reducedPrecision) {
-    expandPrecisionTime.start();
-    try{
-      return wrappedReducer.getVariableExpandedPrecision(rootPrecision, rootContext, reducedPrecision);
-    } finally {
-      expandPrecisionTime.stop();
-    }
-
-  }
-
-  @Override
-  public int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
-    return wrappedReducer.measurePrecisionDifference(pPrecision, pOtherPrecision);
   }
 
 }

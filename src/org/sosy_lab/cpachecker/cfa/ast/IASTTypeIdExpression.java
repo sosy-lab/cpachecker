@@ -68,9 +68,4 @@ public final class IASTTypeIdExpression extends IASTExpression {
       return toString().toLowerCase();
     }
   }
-
-  @Override
-  public String toASTString(String pPrefix) {
-    return pPrefix + operator.getOperator() + "(" + type.toASTString() + ")";
-  }
 }

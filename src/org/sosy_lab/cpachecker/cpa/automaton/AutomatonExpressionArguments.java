@@ -59,16 +59,14 @@ class AutomatonExpressionArguments {
   AutomatonExpressionArguments(Map<String, AutomatonVariable> pAutomatonVariables,
       List<AbstractElement> pAbstractElements, CFAEdge pCfaEdge, LogManager pLogger) {
     super();
-    if (pAutomatonVariables == null) {
+    if (pAutomatonVariables == null)
       automatonVariables = Collections.emptyMap();
-    } else {
+    else
       automatonVariables = pAutomatonVariables;
-    }
-    if (pAbstractElements == null) {
+    if (pAbstractElements == null)
       abstractElements = Collections.emptyList();
-    } else {
+    else
       abstractElements = pAbstractElements;
-    }
     cfaEdge = pCfaEdge;
     logger = pLogger;
   }

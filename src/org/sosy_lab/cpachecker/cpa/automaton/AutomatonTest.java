@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
 import com.google.common.collect.ImmutableMap;
 
 public class AutomatonTest {
-  private static final String OUTPUT_FILE = "output/AutomatonExport.dot";
+  private static final String OUTPUT_FILE = "test/output/AutomatonExport.dot";
 
   // Specification Tests
   @Test
@@ -57,8 +57,8 @@ public class AutomatonTest {
       );
 
       File tmpSpc = new File("test/config/automata/tmpSpecification.spc");
-      String content = "#include UninitializedVariablesTestAutomaton.txt \n" +
-      "#include tmpSpecification.spc \n";
+      String content = "#include test/config/automata/UninitializedVariablesTestAutomaton.txt \n" +
+      "#include test/config/automata/tmpSpecification.spc \n";
       Files.writeFile(tmpSpc, content);
       TestResults results = run(prop, "test/programs/simple/UninitVarsErrors.c");
       Assert.assertTrue(results.isSafe());

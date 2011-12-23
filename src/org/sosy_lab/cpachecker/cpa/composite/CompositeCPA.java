@@ -32,7 +32,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -80,35 +79,23 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       ImmutableList.Builder<StopOperator> stopOperators = ImmutableList.builder();
       ImmutableList.Builder<PrecisionAdjustment> precisionAdjustments = ImmutableList.builder();
 
-      boolean mergeSep = true;
-
       for (ConfigurableProgramAnalysis sp : cpas) {
         domains.add(sp.getAbstractDomain());
         transferRelations.add(sp.getTransferRelation());
+        mergeOperators.add(sp.getMergeOperator());
         stopOperators.add(sp.getStopOperator());
         precisionAdjustments.add(sp.getPrecisionAdjustment());
-
-        MergeOperator merge = sp.getMergeOperator();
-        if (merge != MergeSepOperator.getInstance()) {
-          mergeSep = false;
-        }
-        mergeOperators.add(merge);
       }
 
       ImmutableList<StopOperator> stopOps = stopOperators.build();
 
       MergeOperator compositeMerge;
-      if (mergeSep) {
-        compositeMerge = MergeSepOperator.getInstance();
+      if (options.merge.equals("AGREE")) {
+        compositeMerge = new CompositeMergeAgreeOperator(mergeOperators.build(), stopOps);
+      } else if (options.merge.equals("PLAIN")) {
+        compositeMerge = new CompositeMergePlainOperator(mergeOperators.build());
       } else {
-
-        if (options.merge.equals("AGREE")) {
-          compositeMerge = new CompositeMergeAgreeOperator(mergeOperators.build(), stopOps);
-        } else if (options.merge.equals("PLAIN")) {
-          compositeMerge = new CompositeMergePlainOperator(mergeOperators.build());
-        } else {
-          throw new AssertionError();
-        }
+        throw new AssertionError();
       }
 
       CompositeDomain compositeDomain = new CompositeDomain(domains.build());
@@ -258,10 +245,5 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       }
     }
     return null;
-  }
-
-  @Override
-  public ImmutableList<? extends ConfigurableProgramAnalysis> getWrappedCPAs() {
-    return cpas;
   }
 }

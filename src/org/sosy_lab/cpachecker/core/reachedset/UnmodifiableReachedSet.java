@@ -80,40 +80,30 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractElement> {
    */
   public Collection<AbstractElement> getReached(CFANode location);
 
-  /**
-   * Returns the first element that was added to the reached set.
-   * @throws IllegalStateException If the reached set is empty.
-   */
   public AbstractElement getFirstElement();
 
-  /**
-   * Returns the last element that was added to the reached set.
-   * May be null if it is unknown, which element was added last.
-   */
   public AbstractElement getLastElement();
 
   public boolean hasWaitingElement();
 
   /**
-   * An unmodifiable view of the waitlist as an Collection.
+   * An unmodifiable view of the waitlist as an Iterable.
    */
-  public Collection<AbstractElement> getWaitlist();
+  public Iterable<AbstractElement> getWaitlist();
 
   public int getWaitlistSize();
 
   /**
    * Returns the precision for an element.
-   * @param element The element to look for. Has to be in the reached set.
-   * @return The precision for the element.
-   * @throws IllegalArgumentException If the element is not in the reached set.
+   * @param element The element to look for.
+   * @return The precision for the element or null.
    */
   public Precision getPrecision(AbstractElement element)
     throws UnsupportedOperationException;
 
-
-  public boolean contains(AbstractElement element);
-
-  public boolean isEmpty();
-
   public int size();
+
+  @Override
+  public String toString();
+
 }

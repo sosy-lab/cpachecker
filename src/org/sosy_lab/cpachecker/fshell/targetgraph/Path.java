@@ -95,11 +95,6 @@ public class Path implements Iterable<Edge> {
   }
 
   @Override
-  public int hashCode() {
-    return (mStartNode.hashCode() * 17 + mEndNode.hashCode()) * 31 + mEdges.hashCode();
-  }
-
-  @Override
   public String toString() {
     StringBuffer lBuffer = new StringBuffer();
 

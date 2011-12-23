@@ -32,7 +32,6 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -68,18 +67,16 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
       description="export automaton to file")
   private boolean export = false;
 
-  @Option(name="dotExportFile",
-      description="file for saving the automaton in DOT format (%s will be replaced with automaton name)")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File exportFile = new File("%s.dot");
+  @Option(name="dotExportFile", type=Option.Type.OUTPUT_FILE,
+      description="file for saving the automaton in DOT format")
+  private File exportFile = new File("automaton.dot");
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ControlAutomatonCPA.class);
   }
 
-  @Option(required=false,
+  @Option(required=false, type=Option.Type.OPTIONAL_INPUT_FILE,
       description="file with automaton specification for ObserverAutomatonCPA and ControlAutomatonCPA")
-  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private File inputFile = null;
 
   @Option(description="signal the analysis to break in case of reached error state")
@@ -121,8 +118,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
     if (export && exportFile != null) {
       try {
-        String fileName = String.format(exportFile.getAbsolutePath(), automaton.getName());
-        automaton.writeDotFile(new PrintStream(fileName));
+        this.automaton.writeDotFile(new PrintStream(exportFile));
       } catch (FileNotFoundException e) {
         logger.log(Level.WARNING, "Could not create/write to the Automaton DOT file \"" + exportFile + "\"");
       }

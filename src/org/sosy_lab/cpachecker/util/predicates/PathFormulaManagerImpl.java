@@ -23,34 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.regex.Pattern;
-
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.AbstractElements;
-import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
-import org.sosy_lab.cpachecker.util.predicates.Model.TermType;
-import org.sosy_lab.cpachecker.util.predicates.Model.Variable;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-
-import com.google.common.base.Function;
-import com.google.common.base.Predicates;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 
 /**
  * Class implementing the FormulaManager interface,
@@ -60,28 +40,25 @@ import com.google.common.collect.Maps;
  */
 public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathFormulaManager {
 
-  private static final String BRANCHING_PREDICATE_NAME = "__ART__";
-  private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
-      "^.*" + BRANCHING_PREDICATE_NAME + "(?=\\d+$)");
-
-  public PathFormulaManagerImpl(ExtendedFormulaManager pFmgr,
+  public PathFormulaManagerImpl(FormulaManager pFmgr,
       Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     super(config, pFmgr, pLogger);
   }
 
   @Override
   public PathFormula makeEmptyPathFormula() {
-    return new PathFormula(fmgr.makeTrue(), SSAMap.emptySSAMap(), 0);
+    return new PathFormula(fmgr.makeTrue(), SSAMap.emptySSAMap(), 0, fmgr.makeTrue(), 0);
   }
 
   @Override
   public PathFormula makeEmptyPathFormula(PathFormula oldFormula) {
-    return new PathFormula(fmgr.makeTrue(), oldFormula.getSsa(), 0);
+    return new PathFormula(fmgr.makeTrue(), oldFormula.getSsa(), 0,
+        oldFormula.getReachingPathsFormula(), oldFormula.getBranchingCounter());
   }
 
   @Override
   public PathFormula makeNewPathFormula(PathFormula oldFormula, SSAMap m) {
-    return new PathFormula(oldFormula.getFormula(), m, oldFormula.getLength());
+    return new PathFormula(oldFormula.getFormula(), m, oldFormula.getLength(), oldFormula.getReachingPathsFormula(), oldFormula.getBranchingCounter());
   }
 
   @Override
@@ -101,8 +78,12 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     SSAMap newSsa = pm.getSecond();
 
     int newLength = Math.max(pF1.getLength(), pF2.getLength());
+    Formula newReachingPathsFormula
+    = fmgr.makeOr(pF1.getReachingPathsFormula(), pF2.getReachingPathsFormula());
+    int newBranchingCounter = Math.max(pF1.getBranchingCounter(), pF2.getBranchingCounter());
 
-    return new PathFormula(newFormula, newSsa, newLength);
+    return new PathFormula(newFormula, newSsa, newLength,
+        newReachingPathsFormula, newBranchingCounter);
   }
 
   @Override
@@ -110,7 +91,8 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     SSAMap ssa = pPathFormula.getSsa();
     Formula otherFormula =  fmgr.instantiate(pOtherFormula, ssa);
     Formula resultFormula = fmgr.makeAnd(pPathFormula.getFormula(), otherFormula);
-    return new PathFormula(resultFormula, ssa, pPathFormula.getLength());
+    return new PathFormula(resultFormula, ssa, pPathFormula.getLength(),
+        pPathFormula.getReachingPathsFormula(), pPathFormula.getBranchingCounter());
   }
 
   /**
@@ -228,121 +210,5 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
       result = fmgr.makeAnd(result, e);
     }
     return result;
-  }
-
-  @Override
-  public PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException {
-    PathFormula pathFormula = makeEmptyPathFormula();
-    for (CFAEdge edge : pPath) {
-      pathFormula = makeAnd(pathFormula, edge);
-    }
-    return pathFormula;
-  }
-
-
-  /**
-   * Build a formula containing a predicate for all branching situations in the
-   * ART. If a satisfying assignment is created for this formula, it can be used
-   * to find out which paths in the ART are feasible.
-   *
-   * This method may be called with an empty set, in which case it does nothing
-   * and returns the formula "true".
-   *
-   * @param elementsOnPath The ART elements that should be considered.
-   * @return A formula containing a predicate for each branching.
-   * @throws CPATransferException
-   */
-  @Override
-  public Formula buildBranchingFormula(Iterable<ARTElement> elementsOnPath) throws CPATransferException {
-    // build the branching formula that will help us find the real error path
-    Formula branchingFormula = fmgr.makeTrue();
-    for (final ARTElement pathElement : elementsOnPath) {
-
-      if (pathElement.getChildren().size() > 1) {
-        if (pathElement.getChildren().size() > 2) {
-          // can't create branching formula
-          logger.log(Level.WARNING, "ART branching with more than two outgoing edges");
-          return fmgr.makeTrue();
-        }
-
-        Iterable<CFAEdge> outgoingEdges = Iterables.transform(pathElement.getChildren(),
-            new Function<ARTElement, CFAEdge>() {
-              @Override
-              public CFAEdge apply(ARTElement child) {
-                return pathElement.getEdgeToChild(child);
-              }
-        });
-        if (!Iterables.all(outgoingEdges, Predicates.instanceOf(AssumeEdge.class))) {
-          logger.log(Level.WARNING, "ART branching without AssumeEdge");
-          return fmgr.makeTrue();
-        }
-
-        AssumeEdge edge = null;
-        for (CFAEdge currentEdge : outgoingEdges) {
-          if (((AssumeEdge)currentEdge).getTruthAssumption()) {
-            edge = (AssumeEdge)currentEdge;
-            break;
-          }
-        }
-        assert edge != null;
-
-        Formula pred = fmgr.makePredicateVariable(BRANCHING_PREDICATE_NAME + pathElement.getElementId(), 0);
-
-        // create formula by edge, be sure to use the correct SSA indices!
-        // TODO the class PathFormulaManagerImpl should not depend on PredicateAbstractElement,
-        // it is used without PredicateCPA as well.
-        PredicateAbstractElement pe = AbstractElements.extractElementByType(pathElement, PredicateAbstractElement.class);
-        if (pe == null) {
-          logger.log(Level.WARNING, "Cannot find precise error path information without PredicateCPA");
-          return fmgr.makeTrue();
-        }
-        PathFormula pf = pe.getPathFormula();
-        pf = this.makeEmptyPathFormula(pf); // reset everything except SSAMap
-        pf = this.makeAnd(pf, edge);        // conjunct with edge
-
-        Formula equiv = fmgr.makeEquivalence(pred, pf.getFormula());
-        branchingFormula = fmgr.makeAnd(branchingFormula, equiv);
-      }
-    }
-    return branchingFormula;
-  }
-
-  /**
-   * Extract the information about the branching predicates created by
-   * {@link #buildBranchingFormula(Set)} from a satisfying assignment.
-   *
-   * A map is created that stores for each ARTElement (using its element id as
-   * the map key) which edge was taken (the positive or the negated one).
-   *
-   * @param model A satisfying assignment that should contain values for branching predicates.
-   * @return A map from ART element id to a boolean value indicating direction.
-   */
-  @Override
-  public Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Model model) {
-    if (model.isEmpty()) {
-      logger.log(Level.WARNING, "No satisfying assignment given by solver!");
-      return Collections.emptyMap();
-    }
-
-    Map<Integer, Boolean> preds = Maps.newHashMap();
-    for (AssignableTerm a : model.keySet()) {
-      if (a instanceof Variable && a.getType() == TermType.Boolean) {
-
-        String name = BRANCHING_PREDICATE_NAME_PATTERN.matcher(a.getName()).replaceFirst("");
-        if (!name.equals(a.getName())) {
-          // pattern matched, so it's a variable with __ART__ in it
-
-          // no NumberFormatException because of RegExp match earlier
-          Integer nodeId = Integer.parseInt(name);
-
-          assert !preds.containsKey(nodeId);
-
-
-          Boolean value = (Boolean)model.get(a);
-          preds.put(nodeId, value);
-        }
-      }
-    }
-    return preds;
   }
 }

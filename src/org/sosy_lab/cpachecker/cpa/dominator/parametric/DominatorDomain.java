@@ -71,13 +71,11 @@ public class DominatorDomain implements AbstractDomain {
     @Override
     public boolean isLessOrEqual(AbstractElement element1, AbstractElement element2) throws CPAException
     {
-        if (element1.equals(element2)) {
-          return true;
-        }
+        if (element1.equals(element2))
+            return true;
 
-        if (element2.equals(topElement)) {
-          return true;
-        }
+        if (element2.equals(topElement))
+            return true;
 
         if (element1 instanceof DominatorElement && element2 instanceof DominatorElement) {
         	DominatorElement dominatorElement1 = (DominatorElement)element1;

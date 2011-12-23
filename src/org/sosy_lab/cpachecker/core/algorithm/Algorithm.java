@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -37,4 +38,6 @@ public interface Algorithm {
    * @throws InterruptedException
    */
   public boolean run(ReachedSet reachedSet) throws CPAException, InterruptedException;
+
+  public ConfigurableProgramAnalysis getCPA();
 }

@@ -36,11 +36,4 @@ public class IASTReturnStatement extends IASTNode {
   public IASTExpression getReturnValue() {
     return expression;
   }
-
-  @Override
-  public String toASTString(String pPrefix) {
-    return pPrefix + "return"
-        + (expression != null ? " (" + expression.toASTString() + ")" : "")
-        + ";";
-  }
 }

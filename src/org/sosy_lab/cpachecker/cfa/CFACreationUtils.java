@@ -32,8 +32,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 
 /**
  * Helper class that contains some complex operations that may be useful during
@@ -72,10 +70,7 @@ public class CFACreationUtils {
     }
 
     // check if predecessor is reachable
-    // or if the predecessor is a loopStart of a forLoop
-    // and the edge is the "counter++"-edge
-    if (isReachableNode(predecessor) ||
-        (edge instanceof StatementEdge && edge.getSuccessor().isLoopStart())) {
+    if (isReachableNode(predecessor)) {
 
       // all checks passed, add it to the CFA
       edge.getPredecessor().addLeavingEdge(edge);
@@ -85,14 +80,8 @@ public class CFACreationUtils {
       // unreachable edge, don't add it to the CFA
 
       if (!edge.getRawStatement().isEmpty()) {
-        // warn user, but not if its due to dead code produced by CIL
-        Level level = Level.INFO;
-        if (edge.getRawStatement().matches("^Goto: (switch|while)_\\d+_[a-z0-9]+$")) {
-          // don't mention dead code produced by CIL on normal log levels
-          level = Level.FINER;
-        }
-
-        logger.log(level, "Dead code detected at line", edge.getLineNumber() + ":", edge.getRawStatement());
+        // warn user
+        logger.log(Level.INFO, "Dead code detected at line", edge.getLineNumber() + ":", edge.getRawStatement());
       }
     }
   }
@@ -100,14 +89,11 @@ public class CFACreationUtils {
   /**
    * Returns true if a node is reachable, that is if it contains an incoming edge.
    * Label nodes and function start nodes are always considered to be reachable.
-   * If a LabelNode has an empty labelText, it is not reachable through gotos.
    */
   public static boolean isReachableNode(CFANode node) {
     return (node.getNumEnteringEdges() > 0)
         || (node instanceof CFAFunctionDefinitionNode)
-        || (node.isLoopStart())
-        || ((node instanceof CFALabelNode)
-            && !((CFALabelNode)node).getLabel().isEmpty());
+        || (node instanceof CFALabelNode);
   }
 
   /**
@@ -124,18 +110,9 @@ public class CFACreationUtils {
       CFAEdge e = n.getLeavingEdge(i);
       CFANode succ = e.getSuccessor();
 
-      removeEdgeFromNodes(e);
+      n.removeLeavingEdge(e);
+      succ.removeEnteringEdge(e);
       removeChainOfNodesFromCFA(succ);
     }
-  }
-
-  public static void removeEdgeFromNodes(CFAEdge e) {
-    e.getPredecessor().removeLeavingEdge(e);
-    e.getSuccessor().removeEnteringEdge(e);
-  }
-
-  public static void removeSummaryEdgeFromNodes(CallToReturnEdge e) {
-    e.getPredecessor().removeLeavingSummaryEdge(e);
-    e.getSuccessor().removeEnteringSummaryEdge(e);
   }
 }

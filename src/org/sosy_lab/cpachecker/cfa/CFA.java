@@ -23,35 +23,51 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import java.util.Collection;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.SortedSetMultimap;
 
-public interface CFA {
+/**
+ * Class representing the result of parsing a C file before function calls
+ * are bound to their targets.
+ *
+ * It consists of a map that stores the CFAs for each function and a list of
+ * declarations of global variables.
+ *
+ * This class is immutable, but it does not ensure that it's content also is.
+ * It is recommended to use it only as a "transport" data class, not for
+ * permanent storage.
+ */
+public class CFA {
 
-  boolean isEmpty();
+  private final Map<String, CFAFunctionDefinitionNode> functions;
 
-  int getNumberOfFunctions();
+  private final SortedSetMultimap<String, CFANode> cfaNodes;
 
-  Set<String> getAllFunctionNames();
+  private final List<IASTDeclaration> globalDeclarations;
 
-  Collection<CFAFunctionDefinitionNode> getAllFunctionHeads();
+  public CFA(Map<String, CFAFunctionDefinitionNode> pFunctions,
+      SortedSetMultimap<String, CFANode> pCfaNodes,
+      List<IASTDeclaration> pGlobalDeclarations) {
+    functions = pFunctions;
+    cfaNodes = pCfaNodes;
+    globalDeclarations = pGlobalDeclarations;
+  }
 
-  CFAFunctionDefinitionNode getFunctionHead(String name);
+  public Map<String, CFAFunctionDefinitionNode> getFunctions() {
+    return functions;
+  }
 
-  Map<String, CFAFunctionDefinitionNode> getAllFunctions();
+  public SortedSetMultimap<String, CFANode> getCFANodes() {
+    return cfaNodes;
+  }
 
-  Collection<CFANode> getAllNodes();
-
-  CFAFunctionDefinitionNode getMainFunction();
-
-  Optional<ImmutableMultimap<String, Loop>> getLoopStructure();
-
+  public List<IASTDeclaration> getGlobalDeclarations() {
+    return globalDeclarations;
+  }
 }

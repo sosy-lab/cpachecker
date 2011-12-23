@@ -54,7 +54,7 @@ public class CallstackReducer implements Reducer {
 
   @Override
   public AbstractElement getVariableExpandedElement(
-      AbstractElement pRootElement, Block pReducedContext,
+      AbstractElement pRootElement, Block pRootContext,
       AbstractElement pReducedElement) {
 
     CallstackElement rootElement = (CallstackElement)pRootElement;
@@ -77,7 +77,17 @@ public class CallstackReducer implements Reducer {
     }
   }
 
- private static boolean isEqual(CallstackElement reducedTargetElement,
+  @Override
+  public boolean isEqual(AbstractElement pReducedTargetElement,
+      AbstractElement pCandidateElement) {
+
+    CallstackElement reducedTargetElement = (CallstackElement)pReducedTargetElement;
+    CallstackElement candidateElement = (CallstackElement)pCandidateElement;
+
+    return isEqual(reducedTargetElement, candidateElement);
+  }
+
+  private static boolean isEqual(CallstackElement reducedTargetElement,
       CallstackElement candidateElement) {
     if (reducedTargetElement.getDepth() != candidateElement.getDepth()) {
       return false;
@@ -126,15 +136,5 @@ public class CallstackReducer implements Reducer {
   public Precision getVariableReducedPrecision(Precision pPrecision,
       Block pContext) {
     return pPrecision;
-  }
-
-  @Override
-  public Precision getVariableExpandedPrecision(Precision rootPrecision, Block rootContext, Precision reducedPrecision) {
-    return reducedPrecision;
-  }
-
-  @Override
-  public int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
-    return 0;
   }
 }

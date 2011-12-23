@@ -38,17 +38,7 @@ class BDDRegion implements Region {
         bddRepr = pBDD;
     }
 
-    @Override
-    public boolean isTrue() {
-      return bddRepr.isOne();
-    }
-
-    @Override
-    public boolean isFalse() {
-      return bddRepr.isZero();
-    }
-
-    BDD getBDD() {
+    protected BDD getBDD() {
         return bddRepr;
     }
 

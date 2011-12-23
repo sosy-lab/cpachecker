@@ -26,12 +26,11 @@ package org.sosy_lab.cpachecker.cfa.blocks.builder;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.CFA;
 
 
 /**
@@ -40,18 +39,18 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
  */
 public class DelayedFunctionAndLoopPartitioning extends FunctionAndLoopPartitioning {
 
-  public DelayedFunctionAndLoopPartitioning(LogManager pLogger, CFA pCfa) {
-    super(pLogger, pCfa);
+  public DelayedFunctionAndLoopPartitioning(LogManager pLogger) {
+    super(pLogger);
   }
 
   @Override
-  protected Set<CFANode> getBlockForNode(CFANode pNode) {
+  protected Set<CFANode> getCachedSubtree(CFANode pNode) {
     if(pNode instanceof CFAFunctionDefinitionNode) {
       CFAFunctionDefinitionNode functionNode = (CFAFunctionDefinitionNode) pNode;
-      return removeInitialDeclarations(functionNode, CFAUtils.exploreSubgraph(functionNode, functionNode.getExitNode()));
+      return removeInitialDeclarations(functionNode, CFA.exploreSubgraph(functionNode, functionNode.getExitNode()));
     }
 
-    return super.getBlockForNode(pNode);
+    return super.getCachedSubtree(pNode);
   }
 
   private Set<CFANode> removeInitialDeclarations(CFAFunctionDefinitionNode functionNode, Set<CFANode> functionBody) {

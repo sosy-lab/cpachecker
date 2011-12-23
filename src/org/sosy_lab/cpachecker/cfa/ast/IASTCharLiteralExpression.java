@@ -29,17 +29,12 @@ public class IASTCharLiteralExpression extends IASTLiteralExpression {
 
   public IASTCharLiteralExpression(String pRawSignature,
       IASTFileLocation pFileLocation, IType pType, char pCharacter) {
-    super(pRawSignature, pFileLocation, pType);
+    super(pRawSignature, pFileLocation, pType, IASTLiteralExpression.lk_char_constant);
     character = pCharacter;
   }
 
   public char getCharacter() {
     return character;
-  }
-
-  @Override
-  public Character getValue() {
-    return getCharacter();
   }
 
   @Override
@@ -50,10 +45,5 @@ public class IASTCharLiteralExpression extends IASTLiteralExpression {
   @Override
   public <R, X extends Exception> R accept(RightHandSideVisitor<R, X> v) throws X {
     return v.visit(this);
-  }
-
-  @Override
-  public String toASTString(String pPrefix) {
-    return pPrefix + String.valueOf(character);
   }
 }

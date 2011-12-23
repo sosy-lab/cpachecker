@@ -35,9 +35,9 @@ import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 
 import com.google.common.collect.BiMap;
 
-class OctDomain implements AbstractDomain{
+public class OctDomain implements AbstractDomain{
 
-  static long totaltime = 0;
+  public static long totaltime = 0;
 
   @Override
   public boolean isLessOrEqual(AbstractElement element1, AbstractElement element2) {
@@ -51,6 +51,13 @@ class OctDomain implements AbstractDomain{
     if(covers.containsKey(octElement2) && ((HashSet<OctElement>)(covers.get(octElement2))).contains(octElement1)){
       return true;
     }
+
+//    System.out.println("Octagon 1: ");
+//    OctagonManager.print(octElement1.getOctagon());
+//    System.out.println("Octagon 2: ");
+//    OctagonManager.print(octElement2.getOctagon());
+//    octElement1.printOctagon();
+//    octElement2.printOctagon();
 
     int result = OctagonManager.isIncludedInLazy(octElement1.getOctagon(), octElement2.getOctagon());
     if(result == 1) {

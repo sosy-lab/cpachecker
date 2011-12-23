@@ -58,10 +58,4 @@ public class IASTExpressionAssignmentStatement extends IASTStatement implements 
   public <R, X extends Exception> R accept(StatementVisitor<R, X> v) throws X {
     return v.visit(this);
   }
-
-  @Override
-  public String toASTString(String pPrefix) {
-    return pPrefix + leftHandSide.toASTString()
-        + " = " + rightHandSide.toASTString() + ";";
-  }
 }

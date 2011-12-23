@@ -119,30 +119,12 @@ enum InvariantsTransferRelation implements TransferRelation {
           SimpleInterval varValue = element.get(var);
 
           SimpleInterval value = binExp.getOperand2().accept(SimpleRightHandSideValueVisitor.VISITOR_INSTANCE);
-          // value may be either a single value or (-INF, +INF)
 
-          if (value.isSingleton()) {
-
-            if (edge.getTruthAssumption()) {
-              if (!varValue.intersectsWith(value)) {
-                // not a possible edge
-                return null;
-              } else {
-                element = element.copyAndSet(var, value);
-              }
-
-            } else {
-              // negated edge
-              if (varValue.equals(value)) {
-                // not a possible edge
-                return null;
-              } else {
-                // don't change interval
-              }
-            }
-
+          if (!varValue.intersectsWith(value)) {
+            // not a possible edge
+            return null;
           } else {
-            assert !value.hasLowerBound() && !value.hasUpperBound();
+            element = element.copyAndSet(var, value);
           }
         }
       }
@@ -167,7 +149,7 @@ enum InvariantsTransferRelation implements TransferRelation {
 
     SimpleInterval value = SimpleInterval.infinite();
     if (edge.getInitializer() != null && edge.getInitializer() instanceof IASTInitializerExpression) {
-      IASTRightHandSide init = ((IASTInitializerExpression)edge.getInitializer()).getExpression();
+      IASTExpression init = ((IASTInitializerExpression)edge.getInitializer()).getExpression();
       value = init.accept(SimpleRightHandSideValueVisitor.VISITOR_INSTANCE);
     }
 

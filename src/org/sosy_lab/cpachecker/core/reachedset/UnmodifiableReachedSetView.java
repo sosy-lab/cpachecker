@@ -32,7 +32,9 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
 /**
@@ -67,6 +69,14 @@ public class UnmodifiableReachedSetView
               mapPrecisionFunction.apply(from.getSecond()));
         }
       };
+  }
+
+  public UnmodifiableReachedSetView(UnmodifiableReachedSet pUnderlyingSet)
+  {
+    underlying = pUnderlyingSet;
+    mapElementFunction = Functions.<AbstractElement>identity();
+    mapPrecisionFunction = Functions.<Precision>identity();
+    mapElementAndPrecisionFunction = Functions.<Pair<AbstractElement, Precision>>identity();
   }
 
   @Override
@@ -110,8 +120,8 @@ public class UnmodifiableReachedSetView
   }
 
   @Override
-  public Collection<AbstractElement> getWaitlist() {
-    return Collections2.transform(underlying.getWaitlist(), mapElementFunction);
+  public Iterable<AbstractElement> getWaitlist() {
+    return Iterables.transform(underlying.getWaitlist(), mapElementFunction);
   }
 
   @Override
@@ -127,16 +137,6 @@ public class UnmodifiableReachedSetView
   @Override
   public Iterator<AbstractElement> iterator() {
     return Iterators.transform(underlying.iterator(), mapElementFunction);
-  }
-
-  @Override
-  public boolean contains(AbstractElement pElement) {
-    throw new UnsupportedOperationException("Unwrapping may prevent to check contains");
-  }
-
-  @Override
-  public boolean isEmpty() {
-    return underlying.isEmpty();
   }
 
   @Override

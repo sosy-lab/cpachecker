@@ -38,14 +38,16 @@ public class Block {
   private final ImmutableSet<ReferencedVariable> referencedVariables;
   private final ImmutableSet<CFANode> callNodes;
   private final ImmutableSet<CFANode> returnNodes;
+  private final ImmutableSet<CFANode> uniqueNodes;
   private final ImmutableSet<CFANode> nodes;
 
   public Block(Set<ReferencedVariable> pReferencedVariables,
-      Set<CFANode> pCallNodes, Set<CFANode> pReturnNodes, Set<CFANode> allNodes) {
+      Set<CFANode> pCallNodes, Set<CFANode> pReturnNodes, Set<CFANode> pUniqueNodeSet, Set<CFANode> allNodes) {
 
     referencedVariables = ImmutableSet.copyOf(pReferencedVariables);
     callNodes = ImmutableSet.copyOf(pCallNodes);
     returnNodes = ImmutableSet.copyOf(pReturnNodes);
+    uniqueNodes = ImmutableSet.copyOf(pUniqueNodeSet);
     nodes = ImmutableSet.copyOf(allNodes);
   }
 
@@ -72,6 +74,10 @@ public class Block {
 
   public Set<CFANode> getReturnNodes() {
     return returnNodes;
+  }
+
+  public Set<CFANode> getUniqueNodes() {
+    return uniqueNodes;
   }
 
   public boolean isCallNode(CFANode pNode) {

@@ -57,7 +57,7 @@ public class CompositeReducer implements Reducer {
 
   @Override
   public AbstractElement getVariableExpandedElement(
-      AbstractElement pRootElement, Block pReducedContext,
+      AbstractElement pRootElement, Block pRootContext,
       AbstractElement pReducedElement) {
 
     List<AbstractElement> rootElements = ((CompositeElement)pRootElement).getWrappedElements();
@@ -66,9 +66,25 @@ public class CompositeReducer implements Reducer {
     List<AbstractElement> result = new ArrayList<AbstractElement>();
     int i = 0;
     for (Pair<AbstractElement, AbstractElement> p : Pair.zipList(rootElements, reducedElements)) {
-      result.add(wrappedReducers.get(i++).getVariableExpandedElement(p.getFirst(), pReducedContext, p.getSecond()));
+      result.add(wrappedReducers.get(i++).getVariableExpandedElement(p.getFirst(), pRootContext, p.getSecond()));
     }
     return new CompositeElement(result);
+  }
+
+  @Override
+  public boolean isEqual(AbstractElement pReducedTargetElement,
+      AbstractElement pCandidateElement) {
+
+    List<AbstractElement> reducedTargetElements = ((CompositeElement)pReducedTargetElement).getWrappedElements();
+    List<AbstractElement> candidateElements = ((CompositeElement)pCandidateElement).getWrappedElements();
+
+    int i = 0;
+    for (Pair<AbstractElement, AbstractElement> p : Pair.zipList(reducedTargetElements, candidateElements)) {
+      if (!wrappedReducers.get(i++).isEqual(p.getFirst(), p.getSecond())) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @Override
@@ -97,35 +113,5 @@ public class CompositeReducer implements Reducer {
     }
 
     return new CompositePrecision(result);
-  }
-
-  @Override
-  public Precision getVariableExpandedPrecision(Precision pRootPrecision, Block pRootContext, Precision pReducedPrecision) {
-    List<Precision> rootPrecisions = ((CompositePrecision)pRootPrecision).getPrecisions();
-    List<Precision> reducedPrecisions = ((CompositePrecision)pReducedPrecision).getPrecisions();
-    List<Precision> result = new ArrayList<Precision>(rootPrecisions.size());
-
-    int i = 0;
-    for (Precision rootPrecision : rootPrecisions) {
-      result.add(wrappedReducers.get(i).getVariableExpandedPrecision(rootPrecision, pRootContext, reducedPrecisions.get(i)));
-      i++;
-    }
-
-    return new CompositePrecision(result);
-  }
-
-  @Override
-  public int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
-    List<Precision> precisions = ((CompositePrecision)pPrecision).getPrecisions();
-    List<Precision> otherPrecisions = ((CompositePrecision)pOtherPrecision).getPrecisions();
-
-    int i = 0;
-    int sum = 0;
-    for (Precision rootPrecision : precisions) {
-      sum += wrappedReducers.get(i).measurePrecisionDifference(rootPrecision, otherPrecisions.get(i));
-      i++;
-    }
-
-    return sum;
   }
 }

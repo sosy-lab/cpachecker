@@ -38,13 +38,13 @@ import org.sosy_lab.cpachecker.fshell.fql2.normalization.pathpattern.IdentityRew
 
 public class QuotePredicates implements CoverageSpecificationRewriter {
 
-  private final static FQLSpecificationRewriter mFQLRewriter = new CompositeFQLSpecificationRewriter(new QuotePredicates(), IdentityRewriter.getInstance());
+  public static FQLSpecificationRewriter mFQLRewriter = new CompositeFQLSpecificationRewriter(new QuotePredicates(), IdentityRewriter.getInstance());
 
   public static FQLSpecificationRewriter getFQLSpecificationRewriter() {
     return mFQLRewriter;
   }
 
-  private final static QuotePredicates mInstance = new QuotePredicates();
+  public static QuotePredicates mInstance = new QuotePredicates();
 
   public static QuotePredicates getRewriter() {
     return mInstance;

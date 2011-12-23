@@ -35,11 +35,4 @@ public final class ITypedef extends IComplexType {
   public IType getType() {
     return type;
   }
-
-  @Override
-  public String toASTString() {
-    return type.toASTString()
-        + ((getName() != null) ? (" " + getName()) : "")
-        + " ";
-  }
 }

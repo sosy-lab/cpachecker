@@ -13,8 +13,6 @@ import java.util.Deque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
-
-@javax.annotation.Generated("JFlex")
 @SuppressWarnings(value = { "all" })
 %%
 
@@ -29,12 +27,12 @@ import java.util.logging.Level;
   private ComplexSymbolFactory sf;
   private Configuration config;
   private LogManager logger;
-  private final List<File> scannedFiles = new ArrayList<File>();
-  private final Deque<File> filesStack = new ArrayDeque<File>();
+  private final List<String> scannedFiles = new ArrayList<String>();
+  private final Deque<String> filesStack = new ArrayDeque<String>();
 
-  public AutomatonScanner(java.io.InputStream r, File file, Configuration config, LogManager logger, ComplexSymbolFactory sf) {
+  public AutomatonScanner(java.io.InputStream r, String fileName, Configuration config, LogManager logger, ComplexSymbolFactory sf) {
     this(r);
-    filesStack.push(file);
+    filesStack.push(fileName);
     this.sf = sf;
     this.config = config;
     this.logger = logger;
@@ -43,30 +41,26 @@ import java.util.logging.Level;
   private File getFile(String pYytext) throws FileNotFoundException {
     assert pYytext.startsWith("#include ");
     String fileName = pYytext.replaceFirst("#include ", "").trim();
-    
+    if (scannedFiles.contains(fileName)) {
+      logger.log(Level.WARNING, "File \"" + fileName + "\" was referenced multiple times. Redundant or cyclic references were ignored.");
+      return null;
+    }
     File file = new File(fileName);
     if (!file.isAbsolute()) {
-      File currentFile = filesStack.peek();
-      file = new File(currentFile.getParentFile(), file.getPath());    
-    }
-
-    if (scannedFiles.contains(file)) {
-      logger.log(Level.WARNING, "File \"" + file + "\" was referenced multiple times. Redundant or cyclic references were ignored.");
-      return null;
+      file = new File(config.getRootDirectory(), file.getPath());    
     }
 
     Files.checkReadableFile(file);
-    scannedFiles.add(file);
-    filesStack.push(file);
+    scannedFiles.add(fileName);
     return file;
   }
   
   private Location getStartLocation() {
-    return new Location(filesStack.peek().getPath(), yyline+1,yycolumn+1-yylength());
+    return new Location(filesStack.peek(), yyline+1,yycolumn+1-yylength());
   }
 
   private Location getEndLocation() {
-    return new Location(filesStack.peek().getPath(), yyline+1,yycolumn+1);
+    return new Location(filesStack.peek(), yyline+1,yycolumn+1);
   }
   
   private Symbol symbol(String name, int sym) {
@@ -113,6 +107,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 	{ File file = getFile(yytext()); 
 	  if (file != null) {
 	    yypushStream(new FileReader(file));
+	    filesStack.push(file.getName());
 	  }
 	}
 <YYINITIAL> ";"                 { return symbol(";", AutomatonSym.SEMICOLON); }

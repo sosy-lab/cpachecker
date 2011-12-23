@@ -1,13 +1,15 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cbmc" timelimit="900" memlimit="14000">
+<benchmark tool="cbmc" timelimit="900" memlimit="12000">
   <test>
     <sourcefiles>
       <includesfile>test/assumptions/assumptions.set</includesfile>
     </sourcefiles>
-    <option name="--32"/>
-    <option name="--error-label">ERROR</option>
-    <option name="--unwind">10</option>
-    <option name="--xml-ui"/>
+    <options>
+      <option name="--32"/>
+      <option name="--error-label">ERROR</option>
+      <option name="--unwind">10</option>
+      <option name="--xml-ui"/>
+    </options>
   </test>
 </benchmark>

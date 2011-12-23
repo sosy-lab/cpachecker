@@ -1,4 +1,4 @@
-<!ELEMENT benchmark ((test | option | sourcefiles)*, columns?)>
+<!ELEMENT benchmark ((test | option)*, columns?)>
 <!ELEMENT test (sourcefiles | option)*>
 
 <!ELEMENT sourcefiles (include | includesfile | exclude | option)*>

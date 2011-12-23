@@ -269,12 +269,14 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
 
     // parse code file
     try {
-      return lCFACreator.parseFileAndCreateCFA(pSourceFileName).getAllFunctions();
+      lCFACreator.parseFileAndCreateCFA(pSourceFileName);
     } catch (Exception e) {
       e.printStackTrace();
 
       throw new RuntimeException(e);
     }
+
+    return lCFACreator.getFunctions();
   }
 
   public static ThreeValuedAnswer accepts(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, CFAEdge[] pCFAPath) {
@@ -337,7 +339,7 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
     Map<String, String> lCommandLineOptions = new HashMap<String, String>();
 
     lCommandLineOptions.put("analysis.programNames", Joiner.on(", ").join(pSourceFiles));
-    //lCommandLineOptions.put("output.path", "output");
+    //lCommandLineOptions.put("output.path", "test/output");
 
     Configuration lConfiguration = null;
     try {

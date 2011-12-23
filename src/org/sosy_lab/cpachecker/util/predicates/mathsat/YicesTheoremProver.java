@@ -35,15 +35,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.Model;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
@@ -53,25 +51,25 @@ import com.google.common.base.Joiner;
 
 public class YicesTheoremProver implements TheoremProver {
 
-    private final Map<Long, String> msatVarToYicesVar;
-    private final Map<Long, String> msatToYicesCache;
-    private final Map<String, Long> yicesPredToMsat;
+    private Map<Long, String> msatVarToYicesVar;
+    private Map<Long, String> msatToYicesCache;
+    private Map<String, Long> yicesPredToMsat;
     private int curVarIndex;
-    private final int yicesContext;
-    private final yices.YicesLite yicesManager;
-    private final FormulaManager smgr;
+    private int yicesContext;
+    private yices.YicesLite yicesManager;
+    private FormulaManager smgr;
 
-    private final Deque<Collection<String>> declStack;
-    private final Set<String> globalDecls;
+    private Deque<Collection<String>> declStack;
+    private Set<String> globalDecls;
 
-    private int curLevel = 0;
+    int curLevel = 0;
 
     // TODO
     // restart yices every once in a while, otherwise it starts eating too
     // much memory
     // private final int MAX_NUM_YICES_CALLS = 100;
 
-    public YicesTheoremProver(FormulaManager mgr, LogManager logger) {
+    public YicesTheoremProver(FormulaManager mgr) {
         msatVarToYicesVar = new HashMap<Long, String>();
         msatToYicesCache = new HashMap<Long, String>();
         yicesPredToMsat = new HashMap<String, Long>();
@@ -80,7 +78,8 @@ public class YicesTheoremProver implements TheoremProver {
         yicesContext = yicesManager.yicesl_mk_context();
         yicesManager.yicesl_set_verbosity((short)0);
         yicesManager.yicesl_set_output_file("/dev/null");
-        logger.log(Level.FINEST, "Using Yices version", yicesManager.yicesl_version());
+        //System.out.println("USING YICES VERSION: " +
+        //                   yicesManager.yicesl_version());
         smgr = mgr;
         declStack = new ArrayDeque<Collection<String>>();
         globalDecls = new HashSet<String>();
@@ -98,9 +97,9 @@ public class YicesTheoremProver implements TheoremProver {
                 continue;
             }
             boolean childrenDone = true;
-            String[] children = new String[NativeApi.msat_term_arity(term)];
-            for (int i = 0; i < NativeApi.msat_term_arity(term); ++i) {
-                long c = NativeApi.msat_term_get_arg(term, i);
+            String[] children = new String[mathsat.api.msat_term_arity(term)];
+            for (int i = 0; i < mathsat.api.msat_term_arity(term); ++i) {
+                long c = mathsat.api.msat_term_get_arg(term, i);
                 if (msatToYicesCache.containsKey(c)) {
                     children[i] = msatToYicesCache.get(c);
                 } else {
@@ -110,13 +109,13 @@ public class YicesTheoremProver implements TheoremProver {
             }
             if (childrenDone) {
                 toProcess.pop();
-                if (NativeApi.msat_term_is_variable(term) != 0) {
-                    long d = NativeApi.msat_term_get_decl(term);
+                if (mathsat.api.msat_term_is_variable(term) != 0) {
+                    long d = mathsat.api.msat_term_get_decl(term);
                     String yicesVar = null;
                     if (!msatVarToYicesVar.containsKey(d)) {
                         yicesVar = "v" + (curVarIndex++);
                         String decl = null;
-                        if (NativeApi.msat_term_is_boolean_var(term) != 0) {
+                        if (mathsat.api.msat_term_is_boolean_var(term) != 0) {
                             decl = "(define " + yicesVar + "::bool)";
                         } else {
                             decl = "(define " + yicesVar + "::int)";
@@ -127,14 +126,14 @@ public class YicesTheoremProver implements TheoremProver {
                         yicesVar = msatVarToYicesVar.get(d);
                     }
                     msatToYicesCache.put(term, yicesVar);
-                } else if (NativeApi.msat_term_is_uif(term) != 0) {
-                    long d = NativeApi.msat_term_get_decl(term);
+                } else if (mathsat.api.msat_term_is_uif(term) != 0) {
+                    long d = mathsat.api.msat_term_get_decl(term);
                     String yicesFun = null;
                     if (!msatVarToYicesVar.containsKey(d)) {
                         yicesFun = "f" + (curVarIndex++);
                         StringBuilder tp = new StringBuilder();
                         tp.append("(->");
-                        int arity = NativeApi.msat_term_arity(term);
+                        int arity = mathsat.api.msat_term_arity(term);
                         for (int i = 0; i < arity; i++) {
                             tp.append(" int");
                         }
@@ -147,48 +146,48 @@ public class YicesTheoremProver implements TheoremProver {
                     }
                     String s = "(" + yicesFun + " " + Joiner.on(' ').join(children) + ")";
                     msatToYicesCache.put(term, s);
-                } else if (NativeApi.msat_term_is_number(term) != 0) {
-                    msatToYicesCache.put(term, NativeApi.msat_term_repr(term));
-                } else if (NativeApi.msat_term_is_true(term) != 0) {
+                } else if (mathsat.api.msat_term_is_number(term) != 0) {
+                    msatToYicesCache.put(term, mathsat.api.msat_term_repr(term));
+                } else if (mathsat.api.msat_term_is_true(term) != 0) {
                     msatToYicesCache.put(term, "true");
-                } else if (NativeApi.msat_term_is_false(term) != 0) {
+                } else if (mathsat.api.msat_term_is_false(term) != 0) {
                     msatToYicesCache.put(term, "false");
                 } else {
                     String op = null;
-                    if (NativeApi.msat_term_is_bool_ite(term) != 0 ||
-                        NativeApi.msat_term_is_term_ite(term) != 0) {
+                    if (mathsat.api.msat_term_is_bool_ite(term) != 0 ||
+                        mathsat.api.msat_term_is_term_ite(term) != 0) {
                         op = "ite";
-                    } else if (NativeApi.msat_term_is_and(term) != 0) {
+                    } else if (mathsat.api.msat_term_is_and(term) != 0) {
                         op = "and";
-                    } else if (NativeApi.msat_term_is_or(term) != 0) {
+                    } else if (mathsat.api.msat_term_is_or(term) != 0) {
                         op = "or";
-                    } else if (NativeApi.msat_term_is_not(term) != 0) {
+                    } else if (mathsat.api.msat_term_is_not(term) != 0) {
                         op = "not";
-                    } else if (NativeApi.msat_term_is_implies(term) != 0) {
+                    } else if (mathsat.api.msat_term_is_implies(term) != 0) {
                         op = "=>";
-                    } else if (NativeApi.msat_term_is_iff(term) != 0) {
+                    } else if (mathsat.api.msat_term_is_iff(term) != 0) {
                         op = "=";
-                    } else if (NativeApi.msat_term_is_equal(term) != 0) {
+                    } else if (mathsat.api.msat_term_is_equal(term) != 0) {
                         op = "=";
-                    } else if (NativeApi.msat_term_is_lt(term) != 0) {
+                    } else if (mathsat.api.msat_term_is_lt(term) != 0) {
                         op = "<";
-                    } else if (NativeApi.msat_term_is_leq(term) != 0) {
+                    } else if (mathsat.api.msat_term_is_leq(term) != 0) {
                         op = "<=";
-                    } else if (NativeApi.msat_term_is_gt(term) != 0) {
+                    } else if (mathsat.api.msat_term_is_gt(term) != 0) {
                         op = ">";
-                    } else if (NativeApi.msat_term_is_geq(term) != 0) {
+                    } else if (mathsat.api.msat_term_is_geq(term) != 0) {
                         op = ">=";
-                    } else if (NativeApi.msat_term_is_plus(term) != 0) {
+                    } else if (mathsat.api.msat_term_is_plus(term) != 0) {
                         op = "+";
-                    } else if (NativeApi.msat_term_is_minus(term) != 0) {
+                    } else if (mathsat.api.msat_term_is_minus(term) != 0) {
                         op = "-";
-                    } else if (NativeApi.msat_term_is_times(term) != 0) {
+                    } else if (mathsat.api.msat_term_is_times(term) != 0) {
                         op = "*";
-                    } else if (NativeApi.msat_term_is_negate(term) != 0) {
+                    } else if (mathsat.api.msat_term_is_negate(term) != 0) {
                         op = "-";
                     } else {
                       throw new IllegalArgumentException("UNRECOGNIZED TERM: " +
-                                NativeApi.msat_term_repr(term));
+                                mathsat.api.msat_term_repr(term));
                     }
                     String s = "(" + op;
                     for (String c : children) {
@@ -271,8 +270,8 @@ public class YicesTheoremProver implements TheoremProver {
         Set<String> ret = new HashSet<String>(important.size());
         for (Formula f : important) {
             long pred = ((MathsatFormula)f).getTerm();
-            assert(NativeApi.msat_term_is_boolean_var(pred) != 0);
-            long d = NativeApi.msat_term_get_decl(pred);
+            assert(mathsat.api.msat_term_is_boolean_var(pred) != 0);
+            long d = mathsat.api.msat_term_get_decl(pred);
             assert(msatVarToYicesVar.containsKey(d));
             String name = msatVarToYicesVar.get(d);
             ret.add(name);
@@ -333,16 +332,16 @@ public class YicesTheoremProver implements TheoremProver {
             StringBuilder buf = new StringBuilder();
             for (Formula m : model) {
                 long t = ((MathsatFormula)m).getTerm();
-                if (NativeApi.msat_term_is_not(t) != 0) {
-                    t = NativeApi.msat_term_get_arg(t, 0);
-                    assert(NativeApi.msat_term_is_boolean_var(t) != 0);
-                    long d = NativeApi.msat_term_get_decl(t);
+                if (mathsat.api.msat_term_is_not(t) != 0) {
+                    t = mathsat.api.msat_term_get_arg(t, 0);
+                    assert(mathsat.api.msat_term_is_boolean_var(t) != 0);
+                    long d = mathsat.api.msat_term_get_decl(t);
                     String yv = msatVarToYicesVar.get(d);
                     assert(yv != null);
                     buf.append(yv + " ");
                 } else {
-                    assert(NativeApi.msat_term_is_boolean_var(t) != 0);
-                    long d = NativeApi.msat_term_get_decl(t);
+                    assert(mathsat.api.msat_term_is_boolean_var(t) != 0);
+                    long d = mathsat.api.msat_term_get_decl(t);
                     String yv = msatVarToYicesVar.get(d);
                     assert(yv != null);
                     buf.append("(not " + yv + ") ");
@@ -367,11 +366,6 @@ public class YicesTheoremProver implements TheoremProver {
 
     @Override
     public void init() {}
-
-    @Override
-    public boolean isUnsat() {
-        return yicesInconsistent();
-    }
 
     @Override
     public boolean isUnsat(Formula f) {
@@ -424,7 +418,7 @@ public class YicesTheoremProver implements TheoremProver {
 
     @Override
     public Model getModel() {
-      return new Model(smgr);
+      return new Model();
     }
 
 }

@@ -26,16 +26,19 @@ package org.sosy_lab.cpachecker.util.assumptions;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
+import org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions.ArithmeticOverflowAssumptionBuilder;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.CtoFormulaConverter;
-import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFactory;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 
 
 /**
@@ -64,13 +67,13 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
     }
   }
 
-  private static volatile ExtendedFormulaManager fmgr = null;
+  private static volatile FormulaManager fmgr = null;
 
   // TODO Ugly, probably better to remove singleton pattern here.
-  public static ExtendedFormulaManager createFormulaManager(Configuration pConfig, LogManager pLogger)
+  public static FormulaManager createFormulaManager(Configuration pConfig, LogManager pLogger)
   throws InvalidConfigurationException {
     if (fmgr == null) {
-      fmgr = new ExtendedFormulaManager(MathsatFactory.createFormulaManager(pConfig, pLogger), pConfig, pLogger);
+      fmgr = new MathsatFormulaManager(pConfig, pLogger);
     }
     return fmgr;
   }
@@ -89,7 +92,21 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
       // called that used De Morgan's law to transform any occurrence of
       // (!(a && b)) into (!a && !b)
       // I don't see a point in doing this, so I removed it.
-      f = fmgr.makeAnd(f, makePredicate((IASTExpression)p, function, mapBuilder));
+      return fmgr.makeAnd(f, makePredicate((IASTExpression)p, true, function, mapBuilder));
+    }
+    else if(p instanceof IASTSimpleDeclaration){
+      IASTSimpleDeclaration decl = (IASTSimpleDeclaration)p;
+
+      boolean isGlobal = ArithmeticOverflowAssumptionBuilder.isDeclGlobal;
+      if (isGlobal) {
+        assert decl instanceof IASTDeclaration;
+        assert ((IASTDeclaration)decl).isGlobal();
+      }
+
+      String var = decl.getName();
+      if (isGlobal) {
+        super.addToGlobalVars(var);
+      }
     }
     return f;
   }

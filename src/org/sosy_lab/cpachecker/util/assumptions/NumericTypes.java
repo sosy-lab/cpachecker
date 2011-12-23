@@ -42,7 +42,6 @@ public class NumericTypes {
   public static final IASTIntegerLiteralExpression TRUE = ONE;
 
   /* type bounds, assuming 32-bit machine */
-  // TODO use MachineModel here
   public static final IASTIntegerLiteralExpression INT_MAX = create(2147483647L);
   public static final IASTIntegerLiteralExpression INT_MIN = create(-2147483648L);
   public static final IASTIntegerLiteralExpression UINT_MIN = ZERO;

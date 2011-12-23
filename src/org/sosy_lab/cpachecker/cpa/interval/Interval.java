@@ -41,7 +41,7 @@ public class Interval
   /**
    * an interval representing a false value
    */
-  public static final Interval FALSE = new Interval(0L, 0L);
+  public static final Interval FALSE = new Interval(0, 0);
 
   /**
    * an interval representing an impossible interval
@@ -51,18 +51,21 @@ public class Interval
   /**
    * This method acts as constructor for an empty interval.
    */
-  private Interval() { }
+  private Interval()
+  {
+  }
 
   /**
-   * This method acts as constructor for a single-value interval.
+   * This method acts as constructor for an integer-based interval.
    *
-   * @param value for the lower and upper bound
+   * @param low the lower bound
+   * @param high the upper bound
    */
-  public Interval(Long value)
+  public Interval(Integer low, Integer high)
   {
-    this.low  = value;
+    this.low  = low.longValue();
 
-    this.high = value;
+    this.high = high.longValue();
 
     isSane();
   }
@@ -91,6 +94,20 @@ public class Interval
   }
 
   /**
+   * This method acts as constructor for a single-value interval.
+   *
+   * @param value for the lower and upper bound
+   */
+  public Interval(Long value)
+  {
+    this.low  = value;
+
+    this.high = value;
+
+    isSane();
+  }
+
+  /**
    * This method returns the lower bound of the interval.
    *
    * @return the lower bound
@@ -110,13 +127,33 @@ public class Interval
     return high;
   }
 
+  /**
+   * This method set the lower bound of the interval.
+   *
+   * @param the lower bound
+   */
+  public void setLow(Long low)
+  {
+    this.low = low;
+  }
+
+  /**
+   * This method sets the upper bound of the interval.
+   *
+   * @param the upper bound
+   */
+  public void setHigh(Long high)
+  {
+    this.high = high;
+  }
+
   /* (non-Javadoc)
    * @see java.lang.Object#equals(java.lang.Object)
    */
   @Override
   public boolean equals(Object other)
   {
-    if(other != null && getClass().equals(other.getClass()))
+    if(getClass().equals(other.getClass()))
     {
       Interval another = (Interval)other;
 
@@ -401,7 +438,7 @@ public class Interval
    * @param offset the constant offset to add
    * @return a new interval with the respective bounds
    */
-  public Interval plus(Long offset)
+  public Interval plus(int offset)
   {
     return plus(new Interval(offset, offset));
   }
@@ -409,12 +446,12 @@ public class Interval
   /**
    * This method subtracts an interval from this interval, overflow is handled by setting the bound to Long.MIN_VALUE or Long.MAX_VALUE respectively.
    *
-   * @param other interval to subtract
+   * @param interval the interval to subtract
    * @return a new interval with the respective bounds
    */
-  public Interval minus(Interval other)
+  public Interval minus(Interval interval)
   {
-    return plus(other.negate());
+    return plus(new Interval(interval.low * (-1), interval.high * (-1)));
   }
 
   /**
@@ -423,7 +460,7 @@ public class Interval
    * @param offset the constant offset to subtract
    * @return a new interval with the respective bounds
    */
-  public Interval minus(Long offset)
+  public Interval minus(int offset)
   {
     return plus(-offset);
   }
@@ -437,10 +474,10 @@ public class Interval
   public Interval times(Interval other)
   {
     Long[] values = {
-                      scalarTimes(low, other.low),
-                      scalarTimes(low, other.high),
-                      scalarTimes(high, other.low),
-                      scalarTimes(high, other.high)
+                      scalarTimes(low.longValue(), other.low.longValue()),
+                      scalarTimes(low.longValue(), other.high.longValue()),
+                      scalarTimes(high.longValue(), other.low.longValue()),
+                      scalarTimes(high.longValue(), other.high.longValue())
                     };
 
     return new Interval(Collections.min(Arrays.asList(values)), Collections.max(Arrays.asList(values)));
@@ -452,7 +489,7 @@ public class Interval
    * @param other interval to divide this interval by
    * @return new interval that represents the result of the division of the two intervals
    */
-  public Interval divide(Interval other)
+  public Interval divde(Interval other)
   {
     // other interval contains "0", return unbound interval
     if(other.contains(FALSE))
@@ -461,12 +498,11 @@ public class Interval
     else
     {
       Long[] values = {
-                        low / other.low,
-                        low / other.high,
-                        high / other.low,
-                        high / other.high
+                        low.longValue() / other.low.longValue(),
+                        low.longValue() / other.high.longValue(),
+                        high.longValue() / other.low.longValue(),
+                        high.longValue() / other.high.longValue()
                       };
-
       return new Interval(Collections.min(Arrays.asList(values)), Collections.max(Arrays.asList(values)));
     }
   }
@@ -479,48 +515,26 @@ public class Interval
   */
   public Interval shiftLeft(Interval offset)
   {
-    // create an unbound interval upon trying to shift by a possibly negative offset
     if(offset.mayBeLessThan(FALSE))
       return createUnboundInterval();
 
     else
-    {
-      // if lower bound is negative, shift it by upper bound of offset, else by lower bound of offset
-      Long newLow   = low << ((low < 0L) ? offset.high : offset.low);
-
-      // if upper bound is negative, shift it by lower bound of offset, else by upper bound of offset
-      Long newHigh  = high << ((high < 0L) ? offset.low : offset.high);
-
-      if((low < 0 && newLow > low) || (high > 0 && newHigh < high))
-        return createUnboundInterval();
-
-      else
-        return new Interval(newLow, newHigh);
-    }
+      return new Interval(low << offset.low, high << offset.high);
   }
 
-  /**
-  * This method performs an arithmetical right shift of the interval bounds. If the offset maybe less than zero an unbound interval is returned.
-  *
-  * @param Interval offset to perform an arithmetical right shift on the interval bounds
-  * @return new interval that represents the result of the arithmetical right shift
-  */
+ /**
+ * This method performs an arithmetical right shift of the interval bounds. If the offset maybe less than zero an unbound interval is returned.
+ *
+ * @param Interval offset to perform an arithmetical right shift on the interval bounds
+ * @return new interval that represents the result of the arithmetical right shift
+ */
   public Interval shiftRight(Interval offset)
   {
-    // create an unbound interval upon trying to shift by a possibly negative offset
     if(offset.mayBeLessThan(FALSE))
       return createUnboundInterval();
 
     else
-    {
-      // if lower bound is negative, shift it by lower bound of offset, else by upper bound of offset
-      Long newLow   = low >> ((low < 0L) ? offset.low : offset.high);
-
-      // if upper bound is negative, shift it by upper bound of offset, else by lower bound of offset
-      Long newHigh  = high >> ((high < 0L) ? offset.high : offset.low);
-
-      return new Interval(newLow, newHigh);
-    }
+      return new Interval(low >> offset.high, high >> offset.low);
   }
 
   /**
@@ -530,7 +544,7 @@ public class Interval
    */
   public Interval negate()
   {
-    return new Interval(scalarTimes(high, -1L), scalarTimes(low, -1L));
+    return new Interval(high.longValue() * (-1), low.longValue() * (-1));
   }
 
   /**
@@ -601,17 +615,7 @@ public class Interval
    */
   public static Interval createFalseInterval()
   {
-    return new Interval(0L);
-  }
-
-  /**
-   * This method is a factory method for an interval representing the TRUE value.
-   *
-   * @return an interval representing the TRUE value, i.e. the lower and upper bound are set to 1
-   */
-  public static Interval createTrueInterval()
-  {
-    return new Interval(1L);
+    return new Interval(0, 0);
   }
 
   /**
@@ -648,7 +652,7 @@ public class Interval
     Long bound = (Long.signum(x) == Long.signum(y)) ? Long.MAX_VALUE : Long.MIN_VALUE;
 
     // if overflow occurs, return the respective bound
-    if (x != 0 && (y > 0 && y > (bound / x) || y < 0 && y < (bound / x)))
+    if (x != 0 && (y > 0 && y > bound / x || y < 0 && y < bound / x))
       return bound;
 
     else

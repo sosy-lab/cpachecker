@@ -38,7 +38,10 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.CFA;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.SetMultimap;
 
 
 /**
@@ -70,7 +73,7 @@ public class BlockPartitioningBuilder {
           if(functionVars == null || functionBody == null) {
             assert functionVars == null && functionBody == null;
             //compute it only the fly
-            functionBody = CFAUtils.exploreSubgraph(calledFun, ((CFAFunctionDefinitionNode)calledFun).getExitNode());
+            functionBody = CFA.exploreSubgraph(calledFun, ((CFAFunctionDefinitionNode)calledFun).getExitNode());
             functionVars = collectReferencedVariables(functionBody);
             //and save it
             blockNodesMap.put(calledFun, functionBody);
@@ -90,10 +93,31 @@ public class BlockPartitioningBuilder {
       }
     }
 
+    //copy block nodes
+    SetMultimap<CFANode, CFANode> uniqueNodesMap = HashMultimap.create();
+    for(CFANode key : blockNodesMap.keySet()) {
+      uniqueNodesMap.putAll(key, blockNodesMap.get(key));
+    }
+
+    //fix unique nodes set by removing interleavings
+    for(CFANode key : returnNodesMap.keySet()) {
+      Set<CFANode> outerNodes = uniqueNodesMap.get(key);
+      for(CFANode innerKey : returnNodesMap.keySet()) {
+        if(innerKey.equals(key)) {
+          continue;
+        }
+        if(outerNodes.containsAll(callNodesMap.get(innerKey))) {
+          Set<CFANode> innerNodes = uniqueNodesMap.get(innerKey);
+          outerNodes.removeAll(innerNodes);
+        }
+      }
+    }
+
+
     //now we can create the Blocks   for the BlockPartitioning
     Collection<Block> blocks = new ArrayList<Block>(returnNodesMap.keySet().size());
     for(CFANode key : returnNodesMap.keySet()) {
-      blocks.add(new Block(referencedVariablesMap.get(key), callNodesMap.get(key), returnNodesMap.get(key), blockNodesMap.get(key)));
+      blocks.add(new Block(referencedVariablesMap.get(key), callNodesMap.get(key), returnNodesMap.get(key), uniqueNodesMap.get(key), blockNodesMap.get(key)));
     }
     return new BlockPartitioning(blocks);
   }
@@ -176,21 +200,12 @@ public class BlockPartitioningBuilder {
       for(int i = 0; i < node.getNumLeavingEdges(); i++) {
         CFANode succ = node.getLeavingEdge(i).getSuccessor();
         if(!pNodes.contains(succ)) {
+          //TODO: BUG: block ending directly with a function call
           //leaving edge from inside of the given set of nodes to outside
           //-> this is a either return-node or a function call
           if(!(node.getLeavingEdge(i) instanceof FunctionCallEdge)) {
             //-> only add if its not a function call
             result.add(node);
-          } else {
-            //otherwise check if the summary edge is inside of the block
-            CFANode sumSucc = ((FunctionCallEdge)node.getLeavingEdge(i)).getSummaryEdge().getSuccessor();
-            if(!pNodes.contains(sumSucc)) {
-              //summary edge successor not in nodes set; this is a leaving edge
-              //add entering nodes
-              for(int j = 0; j < sumSucc.getNumEnteringEdges(); j++) {
-                result.add(sumSucc.getEnteringEdge(j).getPredecessor());
-              }
-            }
           }
         }
       }

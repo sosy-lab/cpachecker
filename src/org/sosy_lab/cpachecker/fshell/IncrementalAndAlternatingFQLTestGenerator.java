@@ -67,8 +67,8 @@ import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.progress.ProgressCPA;
 import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationElement;
-import org.sosy_lab.cpachecker.cpa.predicate.fshell3.PredicateCPA;
-import org.sosy_lab.cpachecker.cpa.predicate.fshell3.PredicateRefiner;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.fshell.cfa.Wrapper;
 import org.sosy_lab.cpachecker.fshell.fql2.ast.FQLSpecification;
@@ -138,7 +138,7 @@ public class IncrementalAndAlternatingFQLTestGenerator implements FQLTestGenerat
     mWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCFAMap, mLogManager);
 
     try {
-      mWrapper.toDot("output/wrapper.dot");
+      mWrapper.toDot("test/output/wrapper.dot");
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -270,7 +270,7 @@ public class IncrementalAndAlternatingFQLTestGenerator implements FQLTestGenerat
 
     PredicateRefiner lRefiner;
     try {
-      lRefiner = new PredicateRefiner(lARTCPA);
+      lRefiner = new PredicateRefiner(lBasicAlgorithm.getCPA());
     } catch (CPAException e) {
       throw new RuntimeException(e);
     } catch (InvalidConfigurationException e) {

@@ -35,9 +35,4 @@ public final class IASTCompositeTypeMemberDeclaration extends IASTSimpleDeclarat
     super(pRawSignature, pFileLocation, pSpecifier, pName);
   }
 
-  @Override
-  public String toASTString(String pPrefix) {
-    return pPrefix + getDeclSpecifier().toASTString() + getName() + ";";
-  }
-
 }

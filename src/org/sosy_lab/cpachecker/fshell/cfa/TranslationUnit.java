@@ -31,11 +31,11 @@ import java.util.Map;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFASecondPassBuilder;
 import org.sosy_lab.cpachecker.cfa.CFATopologicalSort;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.DOTBuilder;
-import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -95,7 +95,7 @@ class TranslationUnit {
   }
 
   public static TranslationUnit parseString(String pSource, LogManager pLogManager) {
-    ParseResult c;
+    CFA c;
     try {
       CParser parser = CParser.Factory.getParser(pLogManager, CParser.Factory.getDefaultOptions());
       c = parser.parseString(pSource);
@@ -119,12 +119,7 @@ class TranslationUnit {
 
   public void insertCallEdgesRecursively(String pEntryFunction) {
     CFASecondPassBuilder lBuilder = new CFASecondPassBuilder(mCFAs);
-    try {
-      lBuilder.insertCallEdgesRecursively();
-    } catch (ParserException e) {
-      throw new RuntimeException("Error during parsing C code \""
-          + pEntryFunction + "\": " + e.getMessage());
-    }
+    lBuilder.insertCallEdgesRecursively(pEntryFunction);
   }
 
   public void toDot(String pFunction, File pFile) throws IOException {

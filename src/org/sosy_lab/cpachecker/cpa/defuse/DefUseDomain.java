@@ -46,15 +46,13 @@ public class DefUseDomain implements AbstractDomain
             DefUseElement defUseElement2 = (DefUseElement) element2;
 
             Set<DefUseDefinition> joined = new HashSet<DefUseDefinition> ();
-            for (DefUseDefinition definition : defUseElement1) {
-              joined.add(definition);
-            }
+            for (DefUseDefinition definition : defUseElement1)
+                joined.add(definition);
 
             for (DefUseDefinition definition : defUseElement2)
             {
-                if (!joined.contains(definition)) {
-                  joined.add (definition);
-                }
+                if (!joined.contains(definition))
+                    joined.add (definition);
             }
 
             return new DefUseElement (joined);

@@ -35,7 +35,6 @@ import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -168,7 +167,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
           stats.countBreak++;
           // re-add the old element to the waitlist, there may be unhandled
           // successors left that otherwise would be forgotten
-          reachedSet.reAddToWaitlist(element);
+          reachedSet.add(element, precision);
           reachedSet.add(successor, successorPrecision);
 
           stats.totalTimer.stop();
@@ -178,9 +177,9 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
         Collection<AbstractElement> reached = reachedSet.getReached(successor);
 
-        // An optimization, we don't bother merging if we know that the
-        // merge operator won't do anything (i.e., it is merge-sep).
-        if (mergeOperator != MergeSepOperator.getInstance() && !reached.isEmpty()) {
+        // AG as an optimization, we allow the mergeOperator to be null,
+        // as a synonym of a trivial operator that never merges
+        if (mergeOperator != null && !reached.isEmpty()) {
           stats.mergeTimer.start();
 
           List<AbstractElement> toRemove = new ArrayList<AbstractElement>();
@@ -231,6 +230,11 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     }
     stats.totalTimer.stop();
     return true;
+  }
+
+  @Override
+  public ConfigurableProgramAnalysis getCPA() {
+    return cpa;
   }
 
   @Override

@@ -25,15 +25,14 @@ package org.sosy_lab.cpachecker.cpa.featurevariables;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
-public class FeatureVarsElement implements AbstractQueryableElement {
+public class FeatureVarsElement implements AbstractQueryableElement, Cloneable {
 
   private final Region currentState;
-  private final NamedRegionManager manager;
+  private final FeatureVarsManager manager;
 
-  public FeatureVarsElement(Region currentState, NamedRegionManager manager) {
+  public FeatureVarsElement(Region currentState, FeatureVarsManager manager) {
     this.currentState = currentState;
     this.manager = manager;
   }
@@ -44,7 +43,7 @@ public class FeatureVarsElement implements AbstractQueryableElement {
 
   @Override
   public String toString() {
-    return manager.dumpRegion(currentState);
+    return manager.regionToString(currentState);
   }
 
   @Override
@@ -55,10 +54,9 @@ public class FeatureVarsElement implements AbstractQueryableElement {
   @Override
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
     if (pProperty.equals("VALUES")) {
-      return manager.dumpRegion(this.currentState);
-    } else {
-      throw new InvalidQueryException("Feature Vars Element can only return the current values (\"VALUES\")");
-    }
+      return manager.regionToString(this.currentState);
+    } else
+    throw new InvalidQueryException("Feature Vars Element can only return the current values (\"VALUES\")");
   }
 
   @Override

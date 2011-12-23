@@ -30,7 +30,7 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.CFA;
 
 
 /**
@@ -44,7 +44,7 @@ public abstract class PartitioningHeuristic {
    * @see org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning
    */
   public final BlockPartitioning buildPartitioning(CFANode mainFunction) {
-    Set<CFANode> mainFunctionBody = CFAUtils.exploreSubgraph(mainFunction, null);
+    Set<CFANode> mainFunctionBody = CFA.exploreSubgraph(mainFunction, null);
     BlockPartitioningBuilder builder = new BlockPartitioningBuilder(mainFunctionBody);
 
     //traverse CFG
@@ -58,7 +58,7 @@ public abstract class PartitioningHeuristic {
       CFANode node = stack.pop();
 
       if(shouldBeCached(node)) {
-        Set<CFANode> subtree = getBlockForNode(node);
+        Set<CFANode> subtree = getCachedSubtree(node);
         if(subtree != null) {
           builder.addBlock(subtree);
         }
@@ -86,5 +86,5 @@ public abstract class PartitioningHeuristic {
    * @param pNode CFANode that should be cached.
    * @return set of nodes that represent a <code>Block</code>.
    */
-  protected abstract Set<CFANode> getBlockForNode(CFANode pNode);
+  protected abstract Set<CFANode> getCachedSubtree(CFANode pNode);
 }

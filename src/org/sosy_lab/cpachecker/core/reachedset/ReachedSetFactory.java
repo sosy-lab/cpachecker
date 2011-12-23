@@ -23,18 +23,13 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
-import java.util.logging.Level;
-
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
-import org.sosy_lab.cpachecker.core.waitlist.ExplicitSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.TopologicallySortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
-import org.sosy_lab.cpachecker.core.waitlist.Waitlist.TraversalMethod;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 
 @Options(prefix="analysis")
@@ -45,8 +40,7 @@ public class ReachedSetFactory {
   }
 
   @Option(name="traversal.order",
-      description="which strategy to adopt for visiting states? "
-      		      + "TOPSORT is deprecated, use the option analysis.traversal.useTopsort instead")
+      description="which strategy to adopt for visiting states?")
   Waitlist.TraversalMethod traversalMethod = Waitlist.TraversalMethod.DFS;
 
   @Option(name = "traversal.useCallstack",
@@ -61,10 +55,6 @@ public class ReachedSetFactory {
       + "The secondary strategy may not be TOPSORT.")
   boolean useTopSort = false;
 
-  @Option(name = "traversal.useExplicitInformation",
-      description = "handle more abstract states (with less information) first? (only for ExplicitCPA)")
-  boolean useExplicitInformation = false;
-
   @Option(name = "reachedSet",
       description = "which reached set implementation to use?"
       + "\nNORMAL: just a simple set"
@@ -73,17 +63,8 @@ public class ReachedSetFactory {
       + "\nPARTITIONED: partitioning depending on CPAs (e.g Location, Callstack etc.)")
   ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
 
-  @SuppressWarnings("deprecation")
-  public ReachedSetFactory(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  public ReachedSetFactory(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
-
-    if (traversalMethod == TraversalMethod.TOPSORT) {
-      logger.log(Level.WARNING, "Using the option 'analysis.traversal.order = TOPSORT' is deprecated, please switch to 'analysis.traversal.useTopSort = true'");
-
-      if (useTopSort) {
-        throw new InvalidConfigurationException("Cannot use both 'analysis.traversal.order = TOPSORT' and 'analysis.traversal.useTopSort = true'");
-      }
-    }
   }
 
   public ReachedSet create() {
@@ -93,9 +74,6 @@ public class ReachedSetFactory {
     }
     if (useCallstack) {
       waitlistFactory = CallstackSortedWaitlist.factory(waitlistFactory);
-    }
-    if (useExplicitInformation) {
-      waitlistFactory = ExplicitSortedWaitlist.factory(waitlistFactory);
     }
 
     switch (reachedSet) {
@@ -107,7 +85,7 @@ public class ReachedSetFactory {
 
     case NORMAL:
     default:
-      return new DefaultReachedSet(waitlistFactory);
+      return new ReachedSet(waitlistFactory);
     }
   }
 }

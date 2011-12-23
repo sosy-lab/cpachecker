@@ -41,8 +41,8 @@ import org.eclipse.cdt.core.parser.ParserFactory;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CParser;
-import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
@@ -83,13 +83,13 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
   protected abstract T wrapFile(String pFilename) throws IOException;
 
   @Override
-  public ParseResult parseFile(String pFilename) throws ParserException, IOException {
+  public CFA parseFile(String pFilename) throws ParserException, IOException {
 
     return buildCFA(parse(wrapFile(pFilename)));
   }
 
   @Override
-  public ParseResult parseString(String pCode) throws ParserException {
+  public CFA parseString(String pCode) throws ParserException {
 
     return buildCFA(parse(wrapCode(pCode)));
   }
@@ -119,7 +119,7 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
       throw new ParserException("Not exactly one statement in function body: " + body);
     }
 
-    return new ASTConverter(new Scope(), ignoreCasts, logger).convert(statements[0]);
+    return new ASTConverter(new Scope(), ignoreCasts).convert(statements[0]);
   }
 
   protected static final int PARSER_OPTIONS =
@@ -141,9 +141,9 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
     }
   }
 
-  protected abstract IASTTranslationUnit getASTTranslationUnit(T code) throws ParserException, CFAGenerationRuntimeException, CoreException;
+  protected abstract IASTTranslationUnit getASTTranslationUnit(T code) throws CFAGenerationRuntimeException, CoreException;
 
-  private ParseResult buildCFA(IASTTranslationUnit ast) throws ParserException {
+  private CFA buildCFA(IASTTranslationUnit ast) throws ParserException {
     cfaTimer.start();
     try {
       CFABuilder builder = new CFABuilder(logger, ignoreCasts);
@@ -153,7 +153,7 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
         throw new ParserException(e);
       }
 
-      return new ParseResult(builder.getCFAs(), builder.getCFANodes(), builder.getGlobalDeclarations());
+      return new CFA(builder.getCFAs(), builder.getCFANodes(), builder.getGlobalDeclarations());
     } finally {
       cfaTimer.stop();
     }
@@ -196,7 +196,7 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
    */
   protected static class StubScannerInfo implements IScannerInfo {
 
-    protected final static IScannerInfo instance = new StubScannerInfo();
+    protected static IScannerInfo instance = new StubScannerInfo();
 
     @Override
     public Map<String, String> getDefinedSymbols() {

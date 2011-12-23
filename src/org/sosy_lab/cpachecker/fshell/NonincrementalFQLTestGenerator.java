@@ -42,14 +42,12 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
@@ -83,6 +81,7 @@ import org.sosy_lab.cpachecker.util.ecp.SingletonECPEdgeSet;
 import org.sosy_lab.cpachecker.util.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.util.ecp.translators.InverseGuardedEdgeLabel;
 import org.sosy_lab.cpachecker.util.ecp.translators.ToGuardedAutomatonTranslator;
+import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -138,7 +137,7 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
     mWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCFAMap, mLogManager);
 
     try {
-      mWrapper.toDot("output/wrapper.dot");
+      mWrapper.toDot("test/output/wrapper.dot");
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -282,13 +281,13 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
 
       lTimeReach.proceed();
 
-      CounterexampleInfo lCounterexampleInfo = reach2(lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
+      CounterexampleTraceInfo lCounterexampleTraceInfo = reach2(lAutomatonCPA, mWrapper.getEntry(), lPassingCPA);
 
       lTimeReach.pause();
 
       boolean lIsFeasible;
 
-      if (lCounterexampleInfo == null || lCounterexampleInfo.isSpurious()) {
+      if (lCounterexampleTraceInfo == null || lCounterexampleTraceInfo.isSpurious()) {
         lIsFeasible = false;
 
         lResultFactory.addInfeasibleTestCase(lGoal.getPattern());
@@ -304,7 +303,7 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
 
         lIsFeasible = true;
 
-        TestCase lTestCase = TestCase.fromCounterexample(lCounterexampleInfo, mLogManager);
+        TestCase lTestCase = TestCase.fromCounterexample(lCounterexampleTraceInfo, mLogManager);
 
         if (lTestCase.isPrecise()) {
           lResultFactory.addFeasibleTestCase(lGoal.getPattern(), lTestCase);
@@ -344,7 +343,7 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
     return lResultFactory.create(lTimeReach.getSeconds(), lTimeCover.getSeconds(), lTimeAccu.getSeconds(lFeasibleTestGoalsTimeSlot), lTimeAccu.getSeconds(lInfeasibleTestGoalsTimeSlot));
   }
 
-  private CounterexampleInfo reach2(GuardedEdgeAutomatonCPA pAutomatonCPA, CFAFunctionDefinitionNode pEntryNode, GuardedEdgeAutomatonCPA pPassingCPA) {
+  private CounterexampleTraceInfo reach2(GuardedEdgeAutomatonCPA pAutomatonCPA, CFAFunctionDefinitionNode pEntryNode, GuardedEdgeAutomatonCPA pPassingCPA) {
     mTimeInReach.proceed();
     mTimesInReach++;
 
@@ -398,9 +397,9 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
 
     CPAAlgorithm lBasicAlgorithm = new CPAAlgorithm(lARTCPA, mLogManager);
 
-    Refiner lRefiner;
+    PredicateRefiner lRefiner;
     try {
-      lRefiner = PredicateRefiner.create(lARTCPA);
+      lRefiner = new PredicateRefiner(lBasicAlgorithm.getCPA());
     } catch (CPAException e) {
       throw new RuntimeException(e);
     } catch (InvalidConfigurationException e) {
@@ -443,7 +442,7 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
 
     mTimeInReach.pause();
 
-    return lARTCPA.getLastCounterexample();
+    return lRefiner.getCounterexampleTraceInfo();
   }
 
   private void removeCoveredGoals(Deque<Goal> pGoals, FShell3Result.Factory pResultFactory, TestCase pTestCase, Wrapper pWrapper, GuardedEdgeAutomatonCPA pAutomatonCPA, GuardedEdgeAutomatonCPA pPassingCPA) throws ImpreciseExecutionException {

@@ -36,8 +36,4 @@ public final class IASTParameterDeclaration extends IASTSimpleDeclaration {
     super(pRawSignature, pFileLocation, pSpecifier, checkNotNull(pName));
   }
 
-  @Override
-  public String toASTString(String pPrefix) {
-    return pPrefix + getDeclSpecifier().toASTString() + getName();
-  }
 }

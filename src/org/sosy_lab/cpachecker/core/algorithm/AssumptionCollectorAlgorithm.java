@@ -28,17 +28,14 @@ import static org.sosy_lab.cpachecker.util.AbstractElements.*;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -92,7 +89,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
           try {
             Files.writeFile(assumptionsFile, resultAssumption);
           } catch (IOException e) {
-            logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");
+            logger.log(Level.WARNING,
+                "Could not write assumptions to file ", assumptionsFile.getAbsolutePath(),
+                ", (", e.getMessage(), ")");
           }
         }
 
@@ -100,7 +99,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
           try {
             Files.writeFile(assumptionAutomatonFile, produceAssumptionAutomaton(pReached));
           } catch (IOException e) {
-            logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");
+            logger.log(Level.WARNING,
+                "Could not write assumptions to file ", assumptionAutomatonFile.getAbsolutePath(),
+                ", (", e.getMessage(), ")");
           }
         }
       }
@@ -110,15 +111,13 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   @Option(name="export", description="write collected assumptions to file")
   private boolean exportAssumptions = true;
 
-  @Option(name="file",
+  @Option(name="file", type=Option.Type.OUTPUT_FILE,
       description="write collected assumptions to file")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-      private File assumptionsFile = new File("assumptions.txt");
+  private File assumptionsFile = new File("assumptions.txt");
 
-  @Option(name="automatonFile",
-      description="write collected assumptions as automaton to file")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-      private File assumptionAutomatonFile = new File("AssumptionAutomaton.txt");
+  @Option(name="automatonFile", type=Option.Type.OUTPUT_FILE,
+          description="write collected assumptions as automaton to file")
+  private File assumptionAutomatonFile = new File("AssumptionAutomaton.txt");
 
   private final LogManager logger;
   private final Algorithm innerAlgorithm;
@@ -129,18 +128,23 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   // store only the ids, not the elements in order to prevent memory leaks
   private final Set<Integer> exceptionElements = new HashSet<Integer>();
 
-  public AssumptionCollectorAlgorithm(Algorithm algo, ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger) throws InvalidConfigurationException
+  public AssumptionCollectorAlgorithm(Algorithm algo, Configuration config, LogManager logger) throws InvalidConfigurationException
   {
     config.inject(this);
 
     this.logger = logger;
     innerAlgorithm = algo;
-    cpa = ((WrapperCPA)pCpa).retrieveWrappedCpa(AssumptionStorageCPA.class);
+    cpa = ((WrapperCPA)getCPA()).retrieveWrappedCpa(AssumptionStorageCPA.class);
     if (cpa == null) {
       throw new InvalidConfigurationException("AssumptionStorageCPA needed for AssumptionCollectionAlgorithm");
     }
     formulaManager = cpa.getFormulaManager();
     exceptionAssumptions = new AssumptionWithLocation(formulaManager);
+  }
+
+  @Override
+  public ConfigurableProgramAnalysis getCPA() {
+    return innerAlgorithm.getCPA();
   }
 
   @Override
@@ -163,14 +167,14 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         assert errorElement == reached.getLastElement();
 
         // old code, perhaps we can use the information from getFailurePoint()
-        //        int pos = failedRefinement.getFailurePoint();
-        //
-        //        if (pos == -1)
-        //          pos = path.size() - 2; // the node before the error node
-        //
-        //        ARTElement element = path.get(pos).getFirst();
-        //        addAvoidingAssumptions(exceptionAssumptions, element);
-        //        exceptionElements.add(element.getElementId());
+//        int pos = failedRefinement.getFailurePoint();
+//
+//        if (pos == -1)
+//          pos = path.size() - 2; // the node before the error node
+//
+//        ARTElement element = path.get(pos).getFirst();
+//        addAvoidingAssumptions(exceptionAssumptions, element);
+//        exceptionElements.add(element.getElementId());
 
         // remove element
         // remove it's parents from waitlist (CPAAlgorithm re-added them)
@@ -190,8 +194,6 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
         restartCPA = true;
 
-        sound = false;
-
       } catch (CPAException e) {
         // TODO is it really wise to swallow exceptions here?
         logger.log(Level.FINER, "Dumping assumptions due to: " + e.toString());
@@ -207,22 +209,17 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     // collect and dump all assumptions stored in abstract states
     logger.log(Level.FINER, "Dumping assumptions resulting from tool assumptions");
     for (AbstractElement element : reached) {
+      AssumptionStorageElement e = AbstractElements.extractElementByType(element, AssumptionStorageElement.class);
 
-      if (AbstractElements.isTargetElement(element)) {
-        // create assumptions for target element
-        addAvoidingAssumptions(result, element);
+      Formula assumption = formulaManager.makeAnd(e.getAssumption(), e.getStopFormula());
 
-      } else {
-        // get stored assumption
+      addAssumption(result, assumption, element);
+    }
 
-        AssumptionStorageElement e = AbstractElements.extractElementByType(element, AssumptionStorageElement.class);
-
-        Formula assumption = formulaManager.makeAnd(e.getAssumption(), e.getStopFormula());
-
-        if (!assumption.isTrue()) {
-          addAssumption(result, assumption, element);
-        }
-      }
+    // create assumptions for target elements
+    logger.log(Level.FINER, "Dumping assumptions resulting from target elements");
+    for (AbstractElement element : filterTargetElements(reached)) {
+      addAvoidingAssumptions(result, element);
     }
 
     // dump invariants to prevent going further with nodes in the waitlist
@@ -283,8 +280,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     sb.append("    TRUE -> ASSUME \"false\" GOTO __FALSE;\n\n");
 
     for (ARTElement e : artNodes) {
-      if (e.isCovered() || falseAssumptions.contains(e) ||
-          (!e.getParents().isEmpty() && trueAssumptions.containsAll(e.getParents()))){
+      if (falseAssumptions.contains(e)
+        || (!e.getParents().isEmpty() && trueAssumptions.containsAll(e.getParents()))) {
         continue;
       }
 
@@ -321,7 +318,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
             sb.append(";\n");
           }
         }
-        sb.append("   TRUE -> GOTO __TRUE;\n\n");
+        sb.append("    TRUE -> ERROR;\n\n");
       }
     }
     sb.append("END AUTOMATON\n");
@@ -353,28 +350,16 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       return;
     }
 
-    List<ARTElement> childrenAndCoveredList = new ArrayList<ARTElement>();
-    childrenAndCoveredList.addAll(e.getChildren());
-    if(e.isCovered()){
-      childrenAndCoveredList.add(e.getCoveringElement());
-    }
-
-    for (ARTElement child : childrenAndCoveredList) {
+    for (ARTElement child : e.getChildren()) {
       getTrueAssumptionElements(child, visited, trueAssumptions, falseAssumptions);
     }
 
     AssumptionStorageElement asmptElement = AbstractElements.extractElementByType(e, AssumptionStorageElement.class);
-
-    List<ARTElement> tempChildrenAndCoveredList = new ArrayList<ARTElement>();
-    tempChildrenAndCoveredList.addAll(e.getChildren());
-    if(e.isCovered()){
-      tempChildrenAndCoveredList.add(e.getCoveringElement());
-    }
-
     if (asmptElement.getAssumption().isTrue()
-        && asmptElement.getStopFormula().isTrue()
+        && asmptElement.getAssumption().isTrue()
         && !falseAssumptions.contains(e)
-        && trueAssumptions.containsAll(tempChildrenAndCoveredList)){
+        && trueAssumptions.containsAll(e.getChildren())) {
+
       trueAssumptions.add(e);
     }
   }

@@ -29,7 +29,15 @@ public class MissingInputException extends CPATransferException {
 
   private static final long serialVersionUID = 1661234220479181479L;
 
+  private final String mVariableName;
+
   public MissingInputException(String pVariableName) {
-    super("Missing input for variable " + pVariableName);
+    mVariableName = pVariableName;
   }
+
+  @Override
+  public String toString() {
+    return "Missing input for variable " + mVariableName;
+  }
+
 }

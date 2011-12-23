@@ -39,6 +39,11 @@ public class StopAlwaysOperator implements StopOperator {
     return true;
   }
 
+  @Override
+  public boolean stop(AbstractElement el, AbstractElement reachedElement) {
+    return true;
+  }
+
   private static final StopOperator instance = new StopAlwaysOperator();
 
   public static StopOperator getInstance() {

@@ -25,81 +25,91 @@ package org.sosy_lab.cpachecker.cmdline;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CParser;
-import org.sosy_lab.cpachecker.cfa.MutableCFA;
-import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cmdline.CPAMain.InvalidCmdlineArgumentException;
+import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
-
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMultimap;
 
 public class CPASelfCheck {
 
   private static LogManager logManager;
-  private static Configuration config;
 
   /**
    * @param args
    */
-  public static void main(String[] args) throws Exception {
-    config = Configuration.defaultConfiguration();
-    logManager = new LogManager(config);
-
-    CFA cfa = createCFA();
-    CFAFunctionDefinitionNode main = cfa.getMainFunction();
-
-    logManager.log(Level.INFO, "Searching for CPAs");
-    List<Class<ConfigurableProgramAnalysis>> cpas = getCPAs();
-
-    for (Class<ConfigurableProgramAnalysis> cpa : cpas) {
-      logManager.log(Level.INFO, "Checking " + cpa.getCanonicalName() + " ...");
-      ConfigurableProgramAnalysis cpaInst;
+  public static void main(String[] args) {
+    CPAchecker cpachecker = null;
+    try {
+      Configuration cpaConfig = null;
       try {
-        cpaInst = tryToInstantiate(cpa, cfa);
-      } catch (InvocationTargetException e) {
-        logManager.logException(Level.WARNING, e,
-            "Getting factory instance for " + cpa.getCanonicalName() + " failed!");
-        continue;
-      } catch (NoSuchMethodException e) {
-        logManager.logException(Level.WARNING, e,
-            "Getting factory instance for " + cpa.getCanonicalName() +
-            " failed: no factory method!");
-        continue;
-      } catch (Exception e) {
-        logManager.logException(Level.WARNING, e, "Could not instantiate " + cpa.getCanonicalName());
-        continue;
-      } catch (UnsatisfiedLinkError e) {
-        logManager.logException(Level.WARNING, e, "Could not instantiate " + cpa.getCanonicalName());
-        continue;
+        cpaConfig = CPAMain.createConfiguration(args);
+      } catch (InvalidCmdlineArgumentException e) {
+        System.err.println("Could not parse command line arguments: " + e.getMessage());
+        System.exit(1);
+      } catch (IOException e) {
+        System.err.println("Could not read config file " + e.getMessage());
+        System.exit(1);
       }
-      assert cpaInst != null;
 
-      try {
-        cpaInst.getInitialElement(main);
+      logManager = new LogManager(cpaConfig);
+      cpachecker = new CPAchecker(cpaConfig, logManager);
+    } catch (InvalidConfigurationException e) {
+      System.err.println("Invalid configuration: " + e.getMessage());
+      System.exit(1);
+    }
+
+    try {
+      logManager.log(Level.INFO, "Searching for CPAs");
+      List<Class<ConfigurableProgramAnalysis>> cpas = getCPAs();
+
+      for (Class<ConfigurableProgramAnalysis> cpa : cpas) {
+        logManager.log(Level.INFO, "Checking " + cpa.getCanonicalName() + " ...");
+        ConfigurableProgramAnalysis cpaInst = null;
+        try {
+          cpaInst = tryToInstantiate(cpa);
+        } catch (InvocationTargetException e) {
+          logManager.logException(Level.WARNING, e,
+              "Instantiating " + cpa.getCanonicalName() + " failed!");
+          continue;
+        } catch (NoSuchMethodException e) {
+          logManager.logException(Level.WARNING, e,
+              "Instantiating " + cpa.getCanonicalName() +
+              " failed: no (String, String) constructor!");
+          continue;
+        }
+        assert(cpaInst != null);
+
+        CFAFunctionDefinitionNode main = createCFA(cpachecker, logManager);
+
+        try {
+          cpaInst.getInitialElement(main);
+        } catch (Exception e) {
+          logManager.logException(Level.WARNING, e,
+              "Getting initial element failed!");
+          continue;
+        }
 
         boolean ok = true;
         // check domain and lattice
@@ -111,40 +121,39 @@ public class CPASelfCheck {
         ok &= checkStopEmptyReached(cpa, cpaInst, main);
         ok &= checkStopReached(cpa, cpaInst, main);
         /// TODO check invariants of precision adjustment
-        logManager.log(Level.INFO, ok ? " OK" : " ERROR");
-      } catch (Exception e) {
-        logManager.logException(Level.WARNING, e, "");
+        System.out.println(ok ? " OK" : " ERROR");
       }
+    } catch (Exception e) {
+      logManager.logException(Level.WARNING, e, "");
     }
   }
 
-  private static CFA createCFA() throws IOException, ParserException {
-    String code = "int main() {\n"
-                + "  int a;\n"
-                + "  a = 1;\n"
-                + "  return (a);\n"
-                + "}\n";
+  private static CFAFunctionDefinitionNode createCFA(CPAchecker cpachecker, LogManager logManager) throws IOException, ParserException {
+    String code =
+"int main() {\n" +
+"  int a;\n" +
+"  a = 1;" +
+"  return (a);\n" +
+"}\n"
+    		;
 
     CParser parser = CParser.Factory.getParser(logManager, CParser.Factory.getDefaultOptions());
-    ParseResult cfas = parser.parseString(code);
-    MutableCFA cfa = new MutableCFA(cfas.getFunctions(), cfas.getCFANodes(), cfas.getFunctions().get("main"));
-    return cfa.makeImmutableCFA(Optional.<ImmutableMultimap<String,Loop>>absent());
+    Map<String, CFAFunctionDefinitionNode> cfas
+      = parser.parseString(code).getFunctions();
+    return cfas.get("main");
   }
 
-  private static ConfigurableProgramAnalysis tryToInstantiate(Class<ConfigurableProgramAnalysis> pCpa,
-      CFA cfa) throws NoSuchMethodException, InvocationTargetException, InvalidConfigurationException, CPAException, IllegalAccessException {
-    Method factoryMethod = pCpa.getMethod("factory", new Class<?>[0]);
+  private static ConfigurableProgramAnalysis tryToInstantiate(Class<ConfigurableProgramAnalysis> pCpa) throws NoSuchMethodException, IllegalArgumentException, InstantiationException, IllegalAccessException, InvocationTargetException {
+    Constructor<ConfigurableProgramAnalysis> ct = pCpa.getConstructor(String.class, String.class);
+    Object argumentlist[] = {"sep", "sep"};
 
-    CPAFactory factory = (CPAFactory)factoryMethod.invoke(null, new Object[0]);
-    return factory.setLogger(logManager)
-                  .setConfiguration(config)
-                  .set(cfa, CFA.class)
-                  .createInstance();
+    return ct.newInstance(argumentlist);
   }
 
   private static boolean ensure(boolean pB, String pString) {
     if (!pB) {
       logManager.log(Level.WARNING, pString);
+      // assert(false);
       return false;
     }
     return true;
@@ -155,8 +164,10 @@ public class CPASelfCheck {
     AbstractDomain d = pCpaInst.getAbstractDomain();
     AbstractElement initial = pCpaInst.getInitialElement(pMain);
 
-    return ensure(d.isLessOrEqual(initial, d.join(initial,initial)),
+    boolean ok = true;
+    ok &= ensure(d.isLessOrEqual(initial, d.join(initial,initial)),
         "Join of same elements is unsound!");
+    return ok;
   }
 
   private static boolean checkMergeSoundness(Class<ConfigurableProgramAnalysis> pCpa,
@@ -166,8 +177,12 @@ public class CPASelfCheck {
     AbstractElement initial = pCpaInst.getInitialElement(pMain);
     Precision initialPrec = pCpaInst.getInitialPrecision(pMain);
 
-    return ensure(d.isLessOrEqual(initial, merge.merge(initial,initial,initialPrec)),
+    boolean ok = true;
+    ok &= ensure(merge != null, "Merge-hack: mergeOperator is null!");
+    if (!ok) return false;
+    ok &= ensure(d.isLessOrEqual(initial, merge.merge(initial,initial,initialPrec)),
         "Merging same elements was unsound!");
+    return ok;
   }
 
 
@@ -179,7 +194,9 @@ public class CPASelfCheck {
     AbstractElement initial = pCpaInst.getInitialElement(pMain);
     Precision initialPrec = pCpaInst.getInitialPrecision(pMain);
 
-    return ensure(!stop.stop(initial, reached, initialPrec), "Stopped on empty set!");
+    boolean ok = true;
+    ok &= ensure(!stop.stop(initial, reached, initialPrec), "Stopped on empty set!");
+    return ok;
   }
 
   private static boolean checkStopReached(Class<ConfigurableProgramAnalysis> pCpa,
@@ -190,7 +207,9 @@ public class CPASelfCheck {
     reached.add(initial);
     Precision initialPrec = pCpaInst.getInitialPrecision(pMain);
 
-    return ensure(stop.stop(initial, reached, initialPrec), "Did not stop on same element!");
+    boolean ok = true;
+    ok &= ensure(stop.stop(initial, reached, initialPrec), "Did not stop on same element!");
+    return ok;
   }
 
   private static List<Class<ConfigurableProgramAnalysis>> getCPAs() throws ClassNotFoundException, IOException {

@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.dominator;
 
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -45,8 +44,8 @@ public class PostDominatorCPA implements ConfigurableProgramAnalysis {
 
 	private org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorCPA parametricDominatorCPA;
 
-	public PostDominatorCPA(CFA pCfa) {
-		this.parametricDominatorCPA = new org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorCPA(new InverseLocationCPA(pCfa));
+	public PostDominatorCPA() {
+		this.parametricDominatorCPA = new org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorCPA(new InverseLocationCPA());
 	}
 
   @Override

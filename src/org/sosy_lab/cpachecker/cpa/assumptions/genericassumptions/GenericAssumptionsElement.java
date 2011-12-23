@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.conditions.AssumptionReportingElement;
+import org.sosy_lab.cpachecker.util.assumptions.AssumptionReportingElement;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 import com.google.common.base.Preconditions;
@@ -53,11 +53,10 @@ public class GenericAssumptionsElement implements AbstractElement, AssumptionRep
 
   @Override
   public boolean equals(Object pObj) {
-    if (pObj instanceof GenericAssumptionsElement) {
+    if (pObj instanceof GenericAssumptionsElement)
       return assumption.equals(((GenericAssumptionsElement)pObj).assumption);
-    } else {
+    else
       return false;
-    }
   }
 
   @Override

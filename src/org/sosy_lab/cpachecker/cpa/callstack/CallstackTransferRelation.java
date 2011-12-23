@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 
 public class CallstackTransferRelation implements TransferRelation {
 
@@ -51,14 +50,6 @@ public class CallstackTransferRelation implements TransferRelation {
         CallstackElement element = (CallstackElement)pElement;
         String functionName = cfaEdge.getSuccessor().getFunctionName();
         CFANode callNode = cfaEdge.getPredecessor();
-
-        CallstackElement e = element;
-        while (e != null) {
-          if (e.getCurrentFunction().equals(functionName)) {
-            throw new UnsupportedCCodeException("recursion", pCfaEdge);
-          }
-          e = e.getPreviousElement();
-        }
 
         return Collections.singleton(new CallstackElement(element, functionName, callNode));
       }

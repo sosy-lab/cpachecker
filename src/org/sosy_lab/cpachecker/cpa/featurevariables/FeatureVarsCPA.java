@@ -42,8 +42,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 
 @Options(prefix="cpa.featurevars")
 public class FeatureVarsCPA implements ConfigurableProgramAnalysis {
@@ -71,9 +69,9 @@ public class FeatureVarsCPA implements ConfigurableProgramAnalysis {
     config.inject(this);
     FeatureVarsCPA.logger = logger;
 
-    NamedRegionManager manager = new NamedRegionManager(BDDRegionManager.getInstance());
+    FeatureVarsManager manager = new FeatureVarsManager();
 
-    initialElement = new FeatureVarsElement(manager.makeTrue(), manager);
+    initialElement = new FeatureVarsElement(manager.getRegionManager().makeTrue(), manager);
     initialPrecision = new FeatureVarsPrecision(variableWhitelist);
 
     abstractDomain = new FeatureVarsDomain(manager);

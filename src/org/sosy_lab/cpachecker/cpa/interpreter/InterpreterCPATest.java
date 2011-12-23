@@ -114,7 +114,7 @@ public class InterpreterCPATest {
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCFAMap, lLogManager);
 
     try {
-      lWrapper.toDot("output/wrapper.dot");
+      lWrapper.toDot("test/output/wrapper.dot");
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -205,7 +205,7 @@ public class InterpreterCPATest {
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCFAMap, lLogManager);
 
     try {
-      lWrapper.toDot("output/wrapper.dot");
+      lWrapper.toDot("test/output/wrapper.dot");
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -296,7 +296,7 @@ public class InterpreterCPATest {
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCFAMap, lLogManager);
 
     try {
-      lWrapper.toDot("output/wrapper.dot");
+      lWrapper.toDot("test/output/wrapper.dot");
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -387,7 +387,7 @@ public class InterpreterCPATest {
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCFAMap, lLogManager);
 
     try {
-      lWrapper.toDot("output/wrapper.dot");
+      lWrapper.toDot("test/output/wrapper.dot");
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

@@ -27,8 +27,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Joiner.MapJoiner;
@@ -182,25 +180,18 @@ public class Model extends ForwardingMap<AssignableTerm, Object> {
   }
 
   private final Map<AssignableTerm, Object> mModel;
-  private final Formula formulaRepresentation;
 
   @Override
   protected Map<AssignableTerm, Object> delegate() {
     return mModel;
   }
 
-  public Model(FormulaManager fmgr) {
+  public Model() {
     mModel = ImmutableMap.of();
-    formulaRepresentation = fmgr.makeTrue();
   }
 
-  public Model(Map<AssignableTerm, Object> content, Formula f) {
+  public Model(Map<AssignableTerm, Object> content) {
     mModel = ImmutableMap.copyOf(content);
-    formulaRepresentation = f;
-  }
-
-  public Formula getFormulaRepresentation() {
-    return formulaRepresentation;
   }
 
   private static final MapJoiner joiner = Joiner.on('\n').withKeyValueSeparator(": ");

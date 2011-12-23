@@ -32,11 +32,10 @@ public final class IASTFloatLiteralExpression extends IASTLiteralExpression {
 
   public IASTFloatLiteralExpression(String pRawSignature,
       IASTFileLocation pFileLocation, IType pType, BigDecimal pValue) {
-    super(pRawSignature, pFileLocation, pType);
+    super(pRawSignature, pFileLocation, pType, IASTLiteralExpression.lk_float_constant);
     value = pValue;
   }
 
-  @Override
   public BigDecimal getValue() {
     return value;
   }
@@ -49,10 +48,5 @@ public final class IASTFloatLiteralExpression extends IASTLiteralExpression {
   @Override
   public <R, X extends Exception> R accept(RightHandSideVisitor<R, X> v) throws X {
     return v.visit(this);
-  }
-
-  @Override
-  public String toASTString(String pPrefix) {
-    return pPrefix + value.toString();
   }
 }

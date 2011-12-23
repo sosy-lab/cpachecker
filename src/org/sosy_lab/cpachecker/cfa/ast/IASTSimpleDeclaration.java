@@ -38,23 +38,14 @@ public abstract class IASTSimpleDeclaration extends IASTNode {
 
   private final IType    specifier;
   private final String   name;
-  private final String   origName;
 
   public IASTSimpleDeclaration(final String pRawSignature,
       final IASTFileLocation pFileLocation, final IType pSpecifier,
       final String pName) {
-    this(pRawSignature, pFileLocation, pSpecifier, pName, pName);
-  }
-
-  public IASTSimpleDeclaration(final String pRawSignature,
-      final IASTFileLocation pFileLocation, final IType pSpecifier,
-      final String pName, final String pOrigName) {
-
     super(pRawSignature, pFileLocation);
 
     specifier = checkNotNull(pSpecifier);
     name = pName;
-    origName = pOrigName;
   }
 
   public IType getDeclSpecifier() {
@@ -63,9 +54,5 @@ public abstract class IASTSimpleDeclaration extends IASTNode {
 
   public String getName() {
     return name;
-  }
-
-  public String getOrigName() {
-    return origName;
   }
 }

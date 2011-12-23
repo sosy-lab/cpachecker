@@ -38,14 +38,12 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 
 
@@ -65,7 +63,7 @@ public class ReferencedVariablesCollector {
     for(CFANode node : nodes) {
       for(int i = 0; i < node.getNumLeavingEdges(); i++) {
         CFAEdge leavingEdge = node.getLeavingEdge(i);
-        if(nodes.contains(leavingEdge.getSuccessor()) || (leavingEdge instanceof FunctionCallEdge)) {
+        if(nodes.contains(leavingEdge.getSuccessor())) {
           collectVars(leavingEdge, collectedVars);
         }
       }
@@ -76,7 +74,6 @@ public class ReferencedVariablesCollector {
 
   private void collectVars(CFAEdge edge, Set<ReferencedVariable> pCollectedVars) {
     String currentFunction = edge.getPredecessor().getFunctionName();
-
     switch(edge.getEdgeType()) {
     case AssumeEdge:
       AssumeEdge assumeEdge = (AssumeEdge)edge;
@@ -98,10 +95,6 @@ public class ReferencedVariablesCollector {
       //putVariable(currentFunction, varName, pCollectedVars);
       break;
     case FunctionCallEdge:
-      FunctionCallEdge functionCallEdge = (FunctionCallEdge)edge;
-      for(IASTExpression argument : functionCallEdge.getArguments()) {
-        collectVars(currentFunction, argument, null, pCollectedVars);
-      }
       break;
     case ReturnStatementEdge:
       break;
@@ -139,24 +132,20 @@ public class ReferencedVariablesCollector {
       collectedVars = pCollectedVars;
     }
 
-    private void collectVar(String var) {
+    @Override
+    public Void visit(IASTIdExpression pE) {
+      String var = pE.getName();
       if(lhsVar == null) {
         collectedVars.add(scoped(new ReferencedVariable(var, true, false, null), currentFunction));
       }
       else {
         collectedVars.add(scoped(new ReferencedVariable(var, false, false, lhsVar), currentFunction));
       }
-    }
-
-    @Override
-    public Void visit(IASTIdExpression pE) {
-      collectVar(pE.getName());
       return null;
     }
 
     @Override
     public Void visit(IASTArraySubscriptExpression pE) {
-      collectVar(pE.getRawSignature());
       pE.getArrayExpression().accept(this);
       pE.getSubscriptExpression().accept(this);
       return null;
@@ -177,7 +166,6 @@ public class ReferencedVariablesCollector {
 
     @Override
     public Void visit(IASTFieldReference pE) {
-      collectVar(pE.getRawSignature());
       pE.getFieldOwner().accept(this);
       return null;
     }
@@ -193,17 +181,7 @@ public class ReferencedVariablesCollector {
 
     @Override
     public Void visit(IASTUnaryExpression pE) {
-      UnaryOperator op = pE.getOperator();
-
-      switch(op) {
-      case AMPER:
-      case STAR:
-        collectVar(pE.getRawSignature());
-      default:
-        pE.getOperand().accept(this);
-      }
-
-
+      pE.getOperand().accept(this);
       return null;
     }
 

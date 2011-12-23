@@ -25,15 +25,16 @@ package org.sosy_lab.cpachecker.cpa.featurevariables;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
 public class FeatureVarsDomain implements AbstractDomain {
 
-  private final NamedRegionManager rmgr;
+  private final FeatureVarsManager fmgr;
+  private final RegionManager rmgr;
 
-  public FeatureVarsDomain(NamedRegionManager manager) {
-    this.rmgr = manager;
+  public FeatureVarsDomain(FeatureVarsManager manager) {
+    this.fmgr = manager;
+    this.rmgr = manager.getRegionManager();
   }
 
   @Override
@@ -51,16 +52,17 @@ public class FeatureVarsDomain implements AbstractDomain {
 
   @Override
   public AbstractElement join(AbstractElement element1, AbstractElement element2) {
-    FeatureVarsElement fv1 = (FeatureVarsElement)element1;
-    FeatureVarsElement fv2 = (FeatureVarsElement)element2;
+    if (element1 instanceof FeatureVarsElement && element2 instanceof FeatureVarsElement){
+      FeatureVarsElement fv1 = (FeatureVarsElement)element1;
+      FeatureVarsElement fv2 = (FeatureVarsElement)element2;
+      // TODO: check if this implementation is efficient
+      if (rmgr.equalRegions(fv1.getRegion(), fv2.getRegion()))
+        return fv2;
+      else
+        return new FeatureVarsElement(rmgr.makeOr(fv1.getRegion(), fv2.getRegion()), fmgr);
 
-    Region result = rmgr.makeOr(fv1.getRegion(), fv2.getRegion());
-    if (result.equals(fv2.getRegion())) {
-      return fv2;
-    } else if (result.equals(fv1.getRegion())) {
-      return fv1;
     } else {
-      return new FeatureVarsElement(result, rmgr);
+      throw new IllegalArgumentException("Called with non-FeatureVars-Elements");
     }
   }
 }

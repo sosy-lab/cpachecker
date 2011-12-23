@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
+
 /**
  * An edge to store declarations for global variables. These are different
  * from standard declarations, in that they can have also an initializer
@@ -33,14 +34,12 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
  */
 public class GlobalDeclarationEdge extends DeclarationEdge {
 
-  public GlobalDeclarationEdge(IASTDeclaration pDeclaration, int pLineNumber,
-      CFANode predecessor, CFANode pSuccessor) {
+    public GlobalDeclarationEdge(IASTDeclaration declaration, int lineNumber, CFANode predecessor, CFANode successor) {
+        super(declaration, lineNumber, predecessor, successor);
+    }
 
-    super(pDeclaration, pLineNumber, predecessor, pSuccessor);
-  }
-
-  @Override
-  public boolean isGlobal() {
-    return true;
-  }
+    @Override
+    public boolean isGlobal() {
+      return true;
+    }
 }

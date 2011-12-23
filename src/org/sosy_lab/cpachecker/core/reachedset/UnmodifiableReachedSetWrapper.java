@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
 public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
@@ -88,8 +89,8 @@ public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
   }
 
   @Override
-  public Collection<AbstractElement> getWaitlist() {
-    return Collections.unmodifiableCollection(delegate.getWaitlist());
+  public Iterable<AbstractElement> getWaitlist() {
+    return Iterables.unmodifiableIterable(delegate.getWaitlist());
   }
 
   @Override
@@ -101,16 +102,6 @@ public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
   public Precision getPrecision(AbstractElement pElement)
       throws UnsupportedOperationException {
     return delegate.getPrecision(pElement);
-  }
-
-  @Override
-  public boolean contains(AbstractElement pElement) {
-    return delegate.contains(pElement);
-  }
-
-  @Override
-  public boolean isEmpty() {
-    return delegate.isEmpty();
   }
 
   @Override

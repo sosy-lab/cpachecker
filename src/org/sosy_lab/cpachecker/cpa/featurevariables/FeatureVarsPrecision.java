@@ -36,7 +36,7 @@ public class FeatureVarsPrecision implements Precision {
   }
 
   boolean isDisabled() {
-    return whiteListPattern.pattern().isEmpty();
+    return whiteListPattern.pattern() == "";
   }
 
   boolean isOnWhitelist(String variable) {
