@@ -58,7 +58,10 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
    */
   private RelyGuaranteeAbstractElement mergedInto = null;
 
-
+  /**
+   * Information on env. edges applied.
+   */
+  private RelyGuaranteeApplicationInfo appInfo;
 
   /**
    * If env. edges have been applied, then this path formula represents
@@ -70,6 +73,7 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
     this.pathFormula = pf;
     this.abstractionFormula = a;
     this.tid = tid;
+    this.appInfo = null;
   }
 
   public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a, CFAEdge edge, int tid) {
@@ -77,6 +81,22 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
     this.abstractionFormula = a;
     this.parentEdge = edge;
     this.tid = tid;
+    this.appInfo = null;
+  }
+
+  public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a, int tid, RelyGuaranteeApplicationInfo appInfo) {
+    this.pathFormula = pf;
+    this.abstractionFormula = a;
+    this.tid = tid;
+    this.appInfo = appInfo;
+  }
+
+  public RelyGuaranteeAbstractElement(PathFormula pf, AbstractionFormula a, CFAEdge edge, int tid, RelyGuaranteeApplicationInfo appInfo) {
+    this.pathFormula = pf;
+    this.abstractionFormula = a;
+    this.parentEdge = edge;
+    this.tid = tid;
+    this.appInfo = appInfo;
   }
 
   public void setTid(int tid){
@@ -85,6 +105,14 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
 
   public int getTid(){
     return this.tid;
+  }
+
+  public RelyGuaranteeApplicationInfo getAppInfo() {
+    return appInfo;
+  }
+
+  public void setAppInfo(RelyGuaranteeApplicationInfo pAppInfo) {
+    appInfo = pAppInfo;
   }
 
   public static Predicate<AbstractElement> FILTER_ABSTRACTION_ELEMENTS = new Predicate<AbstractElement>() {
@@ -148,22 +176,25 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
    */
   public static class AbstractionElement extends RelyGuaranteeAbstractElement {
 
-    /**
-     * Information on env. edges applied.
-     */
-    private final RelyGuaranteeApplicationInfo appInfo;
+    /** Path formula that generated this abstraction */
+    private final PathFormula blockPathFormula;
 
-    public AbstractionElement(PathFormula pf, AbstractionFormula pA,  int tid, RelyGuaranteeApplicationInfo appInfo) {
+    /** Information on env. app in the path formula that generated the block */
+    private final RelyGuaranteeApplicationInfo blockAppInfo;
+
+    public AbstractionElement(PathFormula pf, AbstractionFormula pA,  int tid, PathFormula blockPF, RelyGuaranteeApplicationInfo blockAppInfo) {
       super(pf, pA, tid);
-      this.appInfo = appInfo;
+      this.blockPathFormula = blockPF;
+      this.blockAppInfo     = blockAppInfo;
       // Check whether the pathFormula of an abstraction element is just "true".
       // partialOrder relies on this for optimization.
     }
 
 
-    public AbstractionElement(PathFormula pf, AbstractionFormula pA, CFAEdge edge, int tid, RelyGuaranteeApplicationInfo appInfo) {
-      super(pf, pA, edge, tid);
-      this.appInfo = appInfo;
+    public AbstractionElement(PathFormula pf, AbstractionFormula pA, CFAEdge edge, int tid, PathFormula blockPF, RelyGuaranteeApplicationInfo blockAppInfo) {
+      super(pf, pA, edge, tid, null);
+      this.blockPathFormula = blockPF;
+      this.blockAppInfo = blockAppInfo;
       // Check whether the pathFormula of an abstraction element is just "true".
       // partialOrder relies on this for optimization.
 
@@ -180,8 +211,13 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
       }
     }
 
-    public RelyGuaranteeApplicationInfo getAppInfo() {
-      return appInfo;
+
+    public PathFormula getBlockPathFormula() {
+      return blockPathFormula;
+    }
+
+    public RelyGuaranteeApplicationInfo getBlockAppInfo() {
+      return blockAppInfo;
     }
 
 
@@ -206,18 +242,15 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
     /**
      * Information on env. edges applied.
      */
-    private final RelyGuaranteeApplicationInfo appInfo;
 
     public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc,  int tid,   RelyGuaranteeApplicationInfo appInfo) {
-      super(pf, pA,  tid);
+      super(pf, pA,  tid, appInfo);
       location = pLoc;
-      this.appInfo = appInfo;
     }
 
     public ComputeAbstractionElement(PathFormula pf, AbstractionFormula pA, CFANode pLoc, CFAEdge edge,  int tid, RelyGuaranteeApplicationInfo appInfo) {
-      super(pf, pA, edge,  tid);
+      super(pf, pA, edge,  tid, appInfo);
       location = pLoc;
-      this.appInfo = appInfo;
     }
 
 
@@ -235,12 +268,12 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
       return location;
     }
 
-    public RelyGuaranteeApplicationInfo getAppInfo() {
-      return appInfo;
-    }
 
 
   }
+
+
+
 
 
 }

@@ -185,7 +185,7 @@ public class RelyGuaranteeCPA extends PredicateCPA{
       predicates = ImmutableSet.of(p);
     }
     // TODO make-shift solution
-    this.topElement = new RelyGuaranteeAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null),  tid, null);
+    this.topElement = new RelyGuaranteeAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null),  tid, pathFormulaManager.makeEmptyPathFormula(), null);
 
     this.initialPrecision= new RelyGuaranteePrecision(predicates);
 

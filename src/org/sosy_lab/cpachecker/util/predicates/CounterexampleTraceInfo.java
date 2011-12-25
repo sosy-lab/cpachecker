@@ -46,7 +46,8 @@ import com.google.common.collect.ImmutableMap;
  */
 public class CounterexampleTraceInfo {
     private final boolean spurious;
-    private final Map<AbstractElement, Set<AbstractionPredicate>> pmap;
+    private final Map<AbstractElement, Set<AbstractionPredicate>> artMap;
+    private final Map<AbstractElement, Set<AbstractionPredicate>> envMap;
     private final Model mCounterexampleModel;
     private final List<Formula> mCounterexampleFormula;
     private final Map<Integer, Boolean> branchingPreds;
@@ -55,7 +56,8 @@ public class CounterexampleTraceInfo {
       mCounterexampleFormula = Collections.emptyList();
       mCounterexampleModel = null;
       spurious = true;
-      pmap = new HashMap<AbstractElement, Set<AbstractionPredicate>>();
+      artMap = new HashMap<AbstractElement, Set<AbstractionPredicate>>();
+      envMap = new HashMap<AbstractElement, Set<AbstractionPredicate>>();
       branchingPreds = ImmutableMap.of();
     }
 
@@ -66,7 +68,8 @@ public class CounterexampleTraceInfo {
       mCounterexampleFormula = pCounterexampleFormula;
       mCounterexampleModel = pModel;
       spurious = false;
-      pmap = ImmutableMap.of();
+      artMap = ImmutableMap.of();
+      envMap = ImmutableMap.of();
       branchingPreds = ImmutableMap.copyOf(preds);
     }
 
@@ -75,7 +78,8 @@ public class CounterexampleTraceInfo {
       mCounterexampleFormula = null;
       mCounterexampleModel = null;
       this.spurious = spurious;
-      pmap = null;
+      artMap = null;
+      envMap = null;
       branchingPreds = null;
     }
 
@@ -95,8 +99,13 @@ public class CounterexampleTraceInfo {
      * @return a list of predicates
      */
     public Collection<AbstractionPredicate> getPredicatesForRefinement(AbstractElement e) {
-        return pmap.get(e);
+        return artMap.get(e);
     }
+
+    public Collection<AbstractionPredicate> getEnvPredicatesForRefinement(AbstractElement e) {
+      return envMap.get(e);
+  }
+
 
     /**
      * Adds some predicates to the list of those corresponding to the given
@@ -104,22 +113,35 @@ public class CounterexampleTraceInfo {
      */
     public void addPredicatesForRefinement(AbstractElement e,
                                            Collection<AbstractionPredicate> preds) {
-      Set<AbstractionPredicate> currentSet = pmap.get(e);
+      Set<AbstractionPredicate> currentSet = artMap.get(e);
       if (currentSet == null){
         currentSet = new HashSet<AbstractionPredicate>(preds.size());
       }
       currentSet.addAll(preds);
-      pmap.put(e, currentSet);
+      artMap.put(e, currentSet);
+    }
+
+    public void addEnvPredicatesForRefinement(AbstractElement e,  Collection<AbstractionPredicate> preds) {
+      Set<AbstractionPredicate> currentSet = envMap.get(e);
+      if (currentSet == null){
+        currentSet = new HashSet<AbstractionPredicate>(preds.size());
+      }
+      currentSet.addAll(preds);
+      envMap.put(e, currentSet);
     }
 
     public Set<AbstractElement> getPredicatesForRefinmentKeys() {
-      return pmap.keySet();
+      return artMap.keySet();
+    }
+
+    public Set<AbstractElement> getEnvPredicatesForRefinmentKeys() {
+      return envMap.keySet();
     }
 
     @Override
     public String toString() {
       return "Spurious: " + isSpurious() +
-        (isSpurious() ? ", new predicates: " + pmap : "");
+        (isSpurious() ? ", new predicates: " + artMap : "");
     }
 
     public boolean hasCounterexample() {

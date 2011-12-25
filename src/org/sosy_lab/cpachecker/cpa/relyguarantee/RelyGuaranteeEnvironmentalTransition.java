@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
 import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
 /**
@@ -35,11 +36,12 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
  */
 public class RelyGuaranteeEnvironmentalTransition {
 
-  private final PathFormula abstractionPathFormula;
+  private  final AbstractionFormula abstractionFormula;
   private final PathFormula pathFormula;
   private final CFAEdge edge;
   private final int sourceThread;
   private ARTElement sourceARTElement;
+
 
  /* public RelyGuaranteeEnvironmentalTransition (Formula formula, PathFormula pathFormula, CFAEdge edge, int sourceThread) {
     this.formula = formula;
@@ -54,7 +56,8 @@ public class RelyGuaranteeEnvironmentalTransition {
     CFANode node = cElement.retrieveLocationElement().getLocationNode();
     RelyGuaranteeAbstractElement predElement = AbstractElements.extractElementByType(cElement, RelyGuaranteeAbstractElement.class);
 
-    this.abstractionPathFormula = predElement.getAbstractionFormula().asPathFormula();
+    this.abstractionFormula = predElement.getAbstractionFormula();
+   // this.abstractionPathFormula = predElement.getAbstractionFormula();
     this.pathFormula = predElement.getPathFormula();
     this.edge = edge;
     this.sourceThread = tid;
@@ -66,10 +69,12 @@ public class RelyGuaranteeEnvironmentalTransition {
     return pathFormula;
   }
 
-
-
   public PathFormula getAbstractionPathFormula() {
-    return abstractionPathFormula;
+    return this.abstractionFormula.asPathFormula();
+  }
+
+  public AbstractionFormula getAbstractionFormula() {
+    return abstractionFormula;
   }
 
 
@@ -92,7 +97,7 @@ public class RelyGuaranteeEnvironmentalTransition {
   }
 
   public String toString() {
-    return "RelyGuaranteeEnvironemtalTransition from "+this.sourceThread+": "+edge.getRawStatement()+",'"+this.abstractionPathFormula+"','"+this.pathFormula+"'";
+    return "RelyGuaranteeEnvironemtalTransition from "+this.sourceThread+": "+edge.getRawStatement()+",'"+this.abstractionFormula.asPathFormula()+"','"+this.pathFormula+"'";
   }
 
   // returns true if 'other' is syntactially equivalent to this env transtion
@@ -100,7 +105,7 @@ public class RelyGuaranteeEnvironmentalTransition {
     if (! this.getEdge().equals(other.getEdge())) {
       return false;
     }
-    if (! this.abstractionPathFormula.equals(other.abstractionPathFormula)){
+    if (! this.abstractionFormula.equals(other.abstractionFormula)){
       return false;
     }
     if (! this.pathFormula.equals(other.pathFormula)){

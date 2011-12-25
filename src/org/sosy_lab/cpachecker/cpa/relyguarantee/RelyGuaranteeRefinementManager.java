@@ -32,6 +32,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -92,7 +93,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
   @Option(name="refinement.DAGRefinement",
       description="Extracts interpolants from a DAG representation of threads and environmental transitions.")
-      private boolean DAGRefinement = true;
+      private boolean DAGRefinement = false;
 
   @Option(name="refinement.dumpDAGfile",
       description="Dump a DAG representation of interpolation formulas to the choosen file. Valid only with DAGRefinement")
@@ -104,6 +105,9 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
   @Option(description="Print debugging info?")
   private boolean debug=false;
+
+  @Option(description="Abstract environmental transitions using their own predicates.")
+  private boolean abstractEnvTransitions = false;
 
   private static int  uniqueNumber = 90;
 
@@ -156,10 +160,11 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     if (this.whichItpProver.equals("MATHSAT")){
       if (this.DAGRefinement){
-        return interpolateDagsMathsat(targetElement,  reachedSets, tid, firstItpProver, stats);
+        throw new InterruptedException("Curretly only Tree refinement is supported.");
+        //return interpolateDagsMathsat(targetElement,  reachedSets, tid, firstItpProver, stats);
       } else {
-        //return interpolateTreeMathsat(targetElement,  reachedSets, tid, firstItpProver, stats);
-        throw new InterruptedException("Curretly only DAG refinement is supported.");
+        return interpolateTreeMathsat(targetElement,  reachedSets, tid, firstItpProver, stats);
+        //throw new InterruptedException("Curretly only DAG refinement is supported.");
       }
 
     } else {
@@ -167,6 +172,8 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     }
 
   }
+
+
 
 
   protected Path computePath(ARTElement pLastElement, ReachedSet pReached) throws InterruptedException, CPAException {
@@ -317,7 +324,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
    * @throws InterruptedException
    * @throws CPAException
    */
-  public List<InterpolationDag> getDags(ReachedSet[] reachedSets, ARTElement errorElem, int tid) throws InterruptedException, CPAException {
+  /*public List<InterpolationDag> getDags(ReachedSet[] reachedSets, ARTElement errorElem, int tid) throws InterruptedException, CPAException {
 
     List<InterpolationDag> dags = new Vector<InterpolationDag>();
 
@@ -372,12 +379,12 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
        * Reconstruct formulas in other threads, so they don't contain env. applications
        * from removed nodes.
        */
-      retainApplications(dag, tid, branch);
+   /*   retainApplications(dag, tid, branch);
       dags.add(dag);
     }
 
     return dags;
-  }
+  }*/
 
   /**
    * In thread tid of the dag, remove all env. applications that don't originate
@@ -386,7 +393,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
    * @param pOtherTid
    * @param pErrorPath
    */
-  private void retainApplications(InterpolationDag dag, int tid, Collection<InterpolationDagNodeKey> retain) {
+ /* private void retainApplications(InterpolationDag dag, int tid, Collection<InterpolationDagNodeKey> retain) {
 
     Set<InterpolationDagNode> nodes = dag.getNodesInThread(tid);
 
@@ -399,7 +406,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     for(InterpolationDagNode node : nodes){
       retainApplications(node, artRetain);
     }
-  }
+  }*/
 
   /**
    * Remove all env. applications from the node's path formula that don't originate
@@ -407,7 +414,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
    * @param node
    * @param artRetain
    */
-  private void retainApplications(InterpolationDagNode node, Set<ARTElement> artRetain) {
+ /* private void retainApplications(InterpolationDagNode node, Set<ARTElement> artRetain) {
 
     RelyGuaranteeApplicationInfo appInfo = node.getAppInfo();
 
@@ -437,7 +444,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
 
     node.setPathFormula(appPf);
-  }
+  }*/
 
 /*
   private List<RelyGuaranteeCFAEdge> edgesOutOfThread(InterpolationDag dag, int tid) {
@@ -541,7 +548,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       boolean newNode = false;
       InterpolationDagNode node = dag.getNode(tid, artElement.getElementId());
       if (node == null){
-        node = new InterpolationDagNode(artElement, rgElement.getAbstractionFormula().getBlockPathFormula(), rgElement.getAppInfo(), tid);
+        node = new InterpolationDagNode(artElement, rgElement.getAbstractionFormula().getBlockPathFormula(), rgElement.getBlockAppInfo(), tid);
         dag.getNodeMap().put(node.getKey(), node);
         newNode = true;
 
@@ -569,16 +576,17 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       }
 
       // retrieve info about env. edges applied
-      Map<RelyGuaranteeCFAEdge, PathFormula> envMap = null;
-      if (rgElement.getAppInfo() != null){
-        envMap = rgElement.getAppInfo().getEnvMap();
+      Map<Integer, RelyGuaranteeCFAEdge> envMap = null;
+      if (rgElement.getBlockAppInfo() != null){
+        envMap = rgElement.getBlockAppInfo().getEnvMap();
       } else {
-        envMap = new HashMap<RelyGuaranteeCFAEdge, PathFormula>(0);
+        envMap = new HashMap<Integer, RelyGuaranteeCFAEdge>(0);
       }
 
       if (debug && !envMap.isEmpty() ){
         System.out.print("\t env. tr. from id:");
-        for(RelyGuaranteeCFAEdge rgEdge : rgElement.getAppInfo().getEnvMap().keySet()){
+        for(Integer id: envMap.keySet()){
+          RelyGuaranteeCFAEdge rgEdge = envMap.get(id);
           //ARTElement lastARTAbstraction = rgEdge.getLastARTAbstractionElement();
           System.out.print(rgEdge.getSourceARTElement().getElementId()+" ");
         }
@@ -586,7 +594,8 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       }
 
       // rename env. transitions to their source thread numbers
-      for(RelyGuaranteeCFAEdge rgEdge : envMap.keySet()){
+      for(Integer id : envMap.keySet()){
+        RelyGuaranteeCFAEdge rgEdge = envMap.get(id);
         ARTElement sourceARTElement = rgEdge.getSourceARTElement();
         Integer sourceTid           = rgEdge.getSourceTid();
         assert sourceTid != tid;
@@ -960,7 +969,330 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
   }
 
-  private <T> CounterexampleTraceInfo interpolateDagsMathsat(ARTElement targetElement,  ReachedSet[] reachedSets, int tid , InterpolatingTheoremProver<T> itpProver, RelyGuaranteeRefinerStatistics stats) throws CPAException, InterruptedException{
+  /*
+   *
+   *              Interpolate Tree
+   *
+   */
+
+  /**
+   * Checks if the target element is reachable by unwinding error DAG into a tree. If the element
+   * is unreachable, then interpolants are found.
+   * @param targetElement
+   * @param reachedSets
+   * @param tid
+   * @param itpProver
+   * @param stats
+   * @return
+   * @throws CPAException
+   * @throws InterruptedException
+   */
+  private <T> CounterexampleTraceInfo interpolateTreeMathsat(ARTElement targetElement,  ReachedSet[] reachedSets, int tid , InterpolatingTheoremProver<T> itpProver, RelyGuaranteeRefinerStatistics stats) throws CPAException, InterruptedException{
+
+     stats.formulaTimer.start();
+
+     /*
+      * Prepare formulas for interpolation
+      */
+
+    // get the full DAG for the error element
+    InterpolationDag dag = new InterpolationDag();
+    getRootsForElement(reachedSets, targetElement, tid, dag);
+
+    if (debug){
+      System.out.println();
+      System.out.println("Main DAG:");
+      for (InterpolationDagNodeKey key : dag.getNodeMap().keySet()){
+        System.out.println(dag.getNodeMap().get(key));
+      }
+      dag.writeToDOT(dagFilePredix+"_main.dot");
+    }
+
+    InterpolationTree tree = unwindDag(dag, targetElement);
+    List<InterpolationTreeNode> topList = tree.topSort();
+
+    stats.formulaTimer.stop();
+    stats.formulaNo = topList.size();
+
+    if (debug){
+      tree.writeToDOT(dagFilePredix+"_tree.dot");
+    }
+
+    if (debug){
+      System.out.println();
+      System.out.println("Interpolation formulas - element: formula");
+      for (InterpolationTreeNode node : topList){
+        System.out.println("\t-"+node+": "+node.getPathFormula());
+      }
+    }
+
+    /*
+     * Interpolate formulas.
+     */
+
+    refStats.cexAnalysisSolverTimer.start();
+    CounterexampleTraceInfo info  = new CounterexampleTraceInfo();
+
+    if (debug){
+      System.out.println();
+      System.out.println("Interpolants:");
+    }
+
+    stats.interpolationTimer.start();
+
+    InterpolationTreeNode prevNode = null;
+
+    Map<InterpolationTreeNode, T> idMap = new HashMap<InterpolationTreeNode, T>(tree.size());
+
+    for (InterpolationTreeNode node : topList) {
+
+      if (prevNode == null || !node.uniqueId.equals(prevNode.uniqueId)){
+        /*
+         *  New branch taken
+         */
+
+
+        // reconstruct formulas
+        if (prevNode != null){
+          itpProver.reset();
+          tree.removeAncestorsOf(prevNode);
+        }
+        itpProver.init();
+        idMap.clear();
+        List<InterpolationTreeNode> nodeTopList = tree.topSort();
+        for (InterpolationTreeNode n : nodeTopList){
+          T id = itpProver.addFormula(n.getPathFormula().getFormula());
+          idMap.put(n, id);
+        }
+
+        // run the prover
+        boolean spurious = itpProver.isUnsat();
+        stats.unsatChecks++;
+
+        if (!spurious){
+          // if trace is feasible, then it should be detected in the first iteration
+          assert prevNode == null;
+          info = new CounterexampleTraceInfo(false);
+
+          if (debug){
+            System.out.println("\tFeasbile error trace.");
+          }
+
+          break;
+        }
+      }
+
+      // find the list of id that correspond to A-part of interpolation formulas
+      List<InterpolationTreeNode> ancList = tree.getAncestorsOf(node);
+      ancList.add(0, node);
+      List<T> idList = new Vector<T>(ancList.size());
+      for (InterpolationTreeNode ancNode : ancList){
+        T id = idMap.get(ancNode);
+        idList.add(id);
+      }
+
+      Formula itp = itpProver.getInterpolant(idList);
+
+      // replace the node with the interpolant and drop all children
+      PathFormula oldPF = node.getPathFormula();
+      PathFormula newPF = new PathFormula(itp, oldPF.getSsa(), oldPF.getLength());
+      node.setPathFormula(newPF);
+
+      if (debug){
+        System.out.print("\t-"+node+": "+itp);
+      }
+
+      // rename the interpolant to its source and divide into atoms
+      if (!itp.isTrue()){
+        Map<Integer, Integer> rMap = new HashMap<Integer, Integer>(node.children.size()+1);
+        rMap.put(node.uniqueId, node.tid);
+        for (InterpolationTreeNode child : node.children){
+          rMap.put(child.uniqueId, child.tid);
+        }
+
+        itp = fmgr.adjustedPrimedNo(itp, rMap);
+      }
+      Set<AbstractionPredicate> preds = getPredicates(itp);
+
+      // add predicates to ART precision or to env. precision
+      assert node.isARTAbstraction || node.isEnvAbstraction;
+      if (node.isARTAbstraction){
+        info.addPredicatesForRefinement(node.artElement, preds);
+      }
+      if (node.isEnvAbstraction){
+        assert this.abstractEnvTransitions;
+        info.addEnvPredicatesForRefinement(node.artElement, preds);
+      }
+
+      if (itp.isFalse()){
+        break;
+      }
+
+      if (debug){
+        System.out.println("\t"+preds);
+      }
+
+      prevNode = node;
+    }
+
+    itpProver.reset();
+    stats.interpolationTimer.stop();
+    refStats.cexAnalysisTimer.stop();
+
+    return info;
+  }
+
+
+  private InterpolationTree unwindDag(InterpolationDag dag, ARTElement target){
+    Pair<InterpolationTree, Integer> pair = unwindDag(dag, target, new Integer(10));
+    return pair.getFirst();
+  }
+
+  /**
+   * Unwinds env. applications in the DAG into separate branches. The branches are renamed starting from
+   * the unique id. The result is a tree structure ready for interpolation and a new unique id.
+   * @param dag
+   * @param target
+   * @param uniqueId
+   * @return
+   */
+  private Pair<InterpolationTree, Integer> unwindDag(InterpolationDag dag, ARTElement target, Integer uniqueId) {
+    // tree to be created
+    InterpolationTree tree = new InterpolationTree();
+
+    // next free unique id
+    Integer appUniqueId = uniqueId + 1;
+
+    // find the node corresponding to the target
+    Integer elemId = target.getElementId();
+    RelyGuaranteeAbstractElement rgTarget = AbstractElements.extractElementByType(target, RelyGuaranteeAbstractElement.class);
+    Integer tid = rgTarget.tid;
+
+    // how to rename path formula parts to their unique ids
+    Map<Integer, Integer> renameMap = new HashMap<Integer, Integer>();
+
+    // the local branch from the root to the target
+    List<InterpolationTreeNode> lBranch = null;
+
+    if (rgTarget instanceof RelyGuaranteeAbstractElement.AbstractionElement){
+      // the target is an abstraction point
+      InterpolationDagNode targetNode = dag.getNode(tid, elemId);
+      List<InterpolationDagNodeKey> lPath = dag.getModularPathToNode(targetNode);
+      Collections.reverse(lPath);
+
+      // convert the path to a tree branch
+      lBranch = new Vector<InterpolationTreeNode>(lPath.size());
+
+      for (InterpolationDagNodeKey key : lPath){
+        InterpolationDagNode node = dag.getNode(key);
+        assert node != null;
+        InterpolationTreeNode treeNode = new InterpolationTreeNode(node, uniqueId);
+        lBranch.add(treeNode);
+      }
+
+    } else {
+      // it's NOT an abstraction element, so only its last abstraction element is in the DAG
+      assert this.abstractEnvTransitions;
+      ARTElement aARTElement = RelyGuaranteeEnvironment.findLastAbstractionARTElement(target);
+      assert aARTElement != null;
+      InterpolationDagNode aNode = dag.getNode(tid, aARTElement.getElementId());
+      assert aNode != null;
+
+      List<InterpolationDagNodeKey> lPath = dag.getModularPathToNode(aNode);
+      Collections.reverse(lPath);
+
+      lBranch = new Vector<InterpolationTreeNode>(lPath.size()+1);
+
+      // construct a node for the target
+      InterpolationTreeNode treeNode = new InterpolationTreeNode(target, rgTarget.getPathFormula(), rgTarget.getAppInfo(), rgTarget.getTid(), uniqueId, false, false);
+      lBranch.add(treeNode);
+
+      for (InterpolationDagNodeKey key : lPath){
+        InterpolationDagNode node = dag.getNode(key);
+        assert node != null;
+        treeNode = new InterpolationTreeNode(node, uniqueId);
+        lBranch.add(treeNode);
+      }
+    }
+
+    //  local path from the root to the target
+    InterpolationTreeNode previous = null;
+
+
+    for (InterpolationTreeNode treeNode : lBranch){
+
+      if (previous != null){
+        treeNode.parent = previous;
+        previous.children.add(treeNode);
+      }
+
+      renameMap.clear();
+      renameMap.put(tid, uniqueId);
+
+      // add the node to the tree
+      tree.addNode(treeNode);
+
+      // construct and attach subtrees for env. applications\
+      RelyGuaranteeApplicationInfo appInfo = treeNode.getAppInfo();
+
+      if (appInfo != null){
+        for (Integer id : appInfo.getEnvMap().keySet()){
+          RelyGuaranteeCFAEdge rgEdge = appInfo.getEnvMap().get(id);
+
+          // create a sub-tree for the the element that generated the transition
+          ARTElement sARTElement = null;
+          if (this.abstractEnvTransitions){
+            // env. transitions were abstracted, so use their source element
+            sARTElement = rgEdge.getSourceARTElement();
+          } else {
+            // env. transitions were unabstracted, so use the last abstraction point
+            sARTElement = rgEdge.getLastARTAbstractionElement();
+          }
+
+          int sTid = rgEdge.getSourceTid();
+          Pair<InterpolationTree, Integer> pair = unwindDag(dag, sARTElement, appUniqueId);
+          InterpolationTree appTree = pair.getFirst();
+          InterpolationTreeNode appNode = appTree.getNode(sTid, sARTElement.getElementId(), appUniqueId);
+          if (appNode == null || appNode.parent != null){
+            System.out.println();
+          }
+          assert appNode != null && appNode.parent == null;
+
+          // mark the root of the sub-tree as an env. abstraction
+          appNode.setEnvAbstraction(this.abstractEnvTransitions);
+
+          // add the sub tree to the main tree
+          treeNode.children.add(appNode);
+          appNode.parent = treeNode;
+          tree.addSubTree(appTree);
+
+          renameMap.put(id, appUniqueId);
+
+          // get the next free unique id
+          appUniqueId = pair.getSecond();
+
+
+        }
+      }
+
+      // rename the node's path formula
+      PathFormula nodePF = treeNode.getPathFormula();
+      nodePF = pmgr.adjustPrimedNo(nodePF, renameMap);
+      treeNode.setPathFormula(nodePF);
+
+      previous = treeNode;
+    }
+
+    // get the abstraction elements on the path from the root to the error element
+    uniqueId++;
+    return Pair.of(tree, appUniqueId);
+  }
+
+
+
+
+
+  /*private <T> CounterexampleTraceInfo interpolateDagsMathsat(ARTElement targetElement,  ReachedSet[] reachedSets, int tid , InterpolatingTheoremProver<T> itpProver, RelyGuaranteeRefinerStatistics stats) throws CPAException, InterruptedException{
 
     stats.formulaTimer.start();
 
@@ -997,11 +1329,11 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     } while(i<dags.size());
 
     return info;
-  }
+  }*/
 
   private <T> DAGInterpolationResult interpolateDag(InterpolationDag dag, InterpolatingTheoremProver<T> itpProver, RelyGuaranteeRefinerStatistics stats) throws InterruptedException{
 
-    List<InterpolationDagNodeKey> topNodes = topSortDag(dag);
+    List<InterpolationDagNodeKey> topNodes = dag.topSort();
 
     if (debug){
       System.out.println();
@@ -1033,7 +1365,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       InterpolationDagNode node = dag.getNode(key);
 
       // TODO write comment
-      Pair<List<InterpolationDagNode>, Integer> pair = parentSortDag2(dag.getRoots(), node);
+      Pair<List<InterpolationDagNode>, Integer> pair = parentSort(dag.getRoots(), node);
 
       // prepare formula list
       stats.interpolationTimer.start();
@@ -1362,120 +1694,15 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     return newRoots;
   }*/
 
-  /**
-   * Return the node keys of the DAG in topogical order.
-   */
-  private List<InterpolationDagNodeKey> topSortDag(InterpolationDag dag) {
-
-    Set<InterpolationDagNode> visited = new HashSet<InterpolationDagNode>();
-    List<InterpolationDagNode> topList = new Vector<InterpolationDagNode>();
-
-    topList.addAll(dag.getRoots());
-
-    int i=0;
-    while(i<topList.size()){
-      InterpolationDagNode node = topList.get(i);
-      for (InterpolationDagNode child : node.getChildren()){
-        if (!visited.contains(child) && topList.containsAll(child.getParents())){
-          visited.add(child);
-          topList.add(child);
-        }
-      }
-      i++;
-    }
-
-    List<InterpolationDagNodeKey> topListKeys = new Vector<InterpolationDagNodeKey>(topList.size());
-    for (InterpolationDagNode node : topList){
-      topListKeys.add(node.getKey());
-    }
-
-    return topListKeys;
-  }
-
-
-
-  private Pair<List<Formula>, Integer> childrenSortDag(List<InterpolationDagNode> roots, InterpolationDagNode target){
-
-    List<InterpolationDagNode> children = new Vector<InterpolationDagNode>();
-    Set<InterpolationDagNode> visisted = new HashSet<InterpolationDagNode>();
-    Deque<InterpolationDagNode> toProcess = new LinkedList<InterpolationDagNode>();
-    List<Formula> formulas = new Vector<Formula>();
-    Integer idx = null;
-
-    toProcess.addAll(target.getChildren());
-    // find all nodes that can be reached from target
-    while(!toProcess.isEmpty()){
-      InterpolationDagNode node = toProcess.poll();
-      if (!visisted.contains(node)){
-        visisted.add(node);
-        children.add(node);
-        for (InterpolationDagNode child : node.getChildren()){
-          toProcess.add(child);
-        }
-      }
-    }
-
-
-    idx = children.size()-1;
-
-    // add children
-    if (false){
-      System.out.println();
-      System.out.println("Children of "+target.getArtElement().getElementId()+": ");
-      for (InterpolationDagNode child : children){
-        System.out.print("["+child.getArtElement().getElementId()+"], ");
-      }
-      System.out.println();
-      System.out.println("Rest: ");
-    }
-
-
-    // add the rest of the nodes
-    visisted.clear();
-    assert toProcess.isEmpty();
-    toProcess.addAll(roots);
-
-    while (!toProcess.isEmpty()){
-      InterpolationDagNode node = toProcess.poll();
-      if (!visisted.contains(node)){
-        visisted.add(node);
-
-        if (!children.contains(node)){
-          if (false){
-            System.out.print("["+node.getArtElement().getElementId()+"], ");
-          }
-
-          formulas.add(node.getPathFormula().getFormula());
-        }
-
-        for (InterpolationDagNode child : node.getChildren()){
-          toProcess.add(child);
-        }
-      }
-    }
-
-    if (false){
-      System.out.println();
-    }
-
-
-    idx = formulas.size() - 1;
-
-    // add children
-
-    for (InterpolationDagNode child : children){
-      formulas.add(child.getPathFormula().getFormula());
-    }
 
 
 
 
-    return Pair.of(formulas, idx);
-  }
 
 
 
-  private Pair<List<InterpolationDagNode>, Integer> parentSortDag2(List<InterpolationDagNode> roots, InterpolationDagNode target) {
+
+  private Pair<List<InterpolationDagNode>, Integer> parentSort(List<InterpolationDagNode> roots, InterpolationDagNode target) {
     boolean print = false && debug;
 
     List<InterpolationDagNode> nodeList = new Vector<InterpolationDagNode>();
@@ -1681,7 +1908,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     boolean spurious = itpProver.isUnsat();
     stats.unsatChecks++;
 
-    if (spurious){
+    if (spurious){*/
       /* Here interpolants are computed.
    *
    * To obtain well-scoped predicates, we use the technique described in Section 5.2 of
@@ -1982,22 +2209,17 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     Set <AbstractionPredicate> result = new HashSet<AbstractionPredicate>();
     // TODO maybe handling of non-atomic predicates
-    if (!itp.isTrue()){
-      if (itp.isFalse()){
-        // add false
-        AbstractionPredicate atomPredicate = amgr.makeFalsePredicate();
+    if (!itp.isTrue() && !itp.isFalse()){
+
+      Collection<Formula> atoms = null;
+      atoms = fmgr.extractAtoms(itp, splitItpAtoms, false);
+
+      for (Formula atom : atoms){
+        //Formula unprimedAtom = fmgr.unprimeFormula(atom);
+        AbstractionPredicate atomPredicate = amgr.makePredicate(atom);
         result.add(atomPredicate);
       }
-      else {
-        Collection<Formula> atoms = null;
-        atoms = fmgr.extractAtoms(itp, splitItpAtoms, false);
 
-        for (Formula atom : atoms){
-          Formula unprimedAtom = fmgr.unprimeFormula(atom);
-          AbstractionPredicate atomPredicate = amgr.makePredicate(unprimedAtom);
-          result.add(atomPredicate);
-        }
-      }
     }
     return result;
   }

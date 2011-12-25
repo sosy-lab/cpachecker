@@ -96,14 +96,6 @@ public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustme
     PathFormula pathFormula = element.getPathFormula();
     CFANode loc = element.getLocation();
 
-    /*PathFormula pathByBuilder = null;
-    try {
-      pathByBuilder = this.cpa.getPathFormulaConstructor().constructFromEdges(element.getPathBuilder());
-    } catch (CPATransferException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
-    assert pathByBuilder.equals(pathFormula);*/
 
     numAbstractions++;
     logger.log(Level.FINEST, "Computing abstraction on node", loc);
@@ -136,7 +128,7 @@ public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustme
     }
 
 
-    return new RelyGuaranteeAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula, element.getParentEdge(),this.cpa.getTid(), element.getAppInfo());
+    return new RelyGuaranteeAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula, element.getParentEdge(),this.cpa.getTid(), element.getPathFormula(), element.getAppInfo());
   }
 
 

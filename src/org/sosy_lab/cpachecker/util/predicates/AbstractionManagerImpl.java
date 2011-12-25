@@ -41,6 +41,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
@@ -81,6 +82,7 @@ public class AbstractionManagerImpl implements AbstractionManager {
   private final LogManager logger;
   private final RegionManager rmgr;
   private final FormulaManager fmgr;
+  private final PathFormulaManager pfManager;
 
   // Here we keep the mapping abstract predicate variable -> predicate
   private final Map<Region, AbstractionPredicate> absVarToPredicate;
@@ -92,11 +94,12 @@ public class AbstractionManagerImpl implements AbstractionManager {
 
   private final Map<Region, Formula> toConcreteCache;
 
-  public AbstractionManagerImpl(RegionManager pRmgr, FormulaManager pFmgr,
+  public AbstractionManagerImpl(RegionManager pRmgr, FormulaManager pFmgr, PathFormulaManager pPfMgr,
       Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this, AbstractionManagerImpl.class);
     logger = pLogger;
     rmgr = pRmgr;
+    pfManager = pPfMgr;
     fmgr = pFmgr;
 
     absVarToPredicate = new HashMap<Region, AbstractionPredicate>();
@@ -245,7 +248,7 @@ public class AbstractionManagerImpl implements AbstractionManager {
     if (previousBlockFormula == null) {
       previousBlockFormula = new PathFormula(fmgr.makeTrue(), SSAMap.emptySSAMap(), 0);
     }
-    return new AbstractionFormula(rmgr.makeTrue(), previousBlockFormula, previousBlockFormula);
+    return new AbstractionFormula(rmgr.makeTrue(), pfManager.makeEmptyPathFormula(previousBlockFormula), previousBlockFormula);
   }
 
   @Override

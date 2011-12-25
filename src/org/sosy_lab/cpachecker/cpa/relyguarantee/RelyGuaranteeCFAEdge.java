@@ -50,12 +50,16 @@ public class RelyGuaranteeCFAEdge implements CFAEdge{
   }
 
   public ARTElement getLastARTAbstractionElement() {
-    return template.lastARTAbstractionElement;
+    return this.template.lastAbstraction;
   }
 
   @Override
   public CFAEdgeType getEdgeType() {
     return CFAEdgeType.RelyGuaranteeCFAEdge;
+  }
+
+  public RelyGuaranteeEnvironmentalTransition getSourceEnvTransition(){
+    return template.getSourceEnvTransition();
   }
 
   @Override
@@ -84,12 +88,16 @@ public class RelyGuaranteeCFAEdge implements CFAEdge{
     return this.successor;
   }
 
-  public PathFormula getPathFormula() {
-    return this.template.pathFormula;
+ /* public PathFormula getPathFormula() {
+    return this.template.getPathFormula();
   }
 
   public PathFormula getAbstractionFormula() {
-    return this.template.abstractionFormula;
+    return this.template.getAbstractionFormula();
+  }*/
+
+  public PathFormula getFilter() {
+    return this.template.getFilter();
   }
 
   @Override
@@ -97,9 +105,13 @@ public class RelyGuaranteeCFAEdge implements CFAEdge{
     return false;
   }
 
+  public CFAEdge getLocalEdge(){
+    return this.template.getLocalEdge();
+  }
+
   @Override
   public String toString() {
-    return "RG edge T:"+this.getSourceTid()+", source ART:"+this.getSourceARTElement().getElementId()+", last abstr. ART:"+this.getLastARTAbstractionElement().getElementId()+", operation:"+this.getOpPathFormula()+", opVar:"+this.getOpVar()+", path formula:"+this.getPathFormula()+", abstraction formula:"+this.getAbstractionFormula();
+    return "RG edge -- op:"+this.getRawStatement()+", filter:"+this.getFilter()+",  T:"+this.getSourceTid()+", sART:"+this.getSourceARTElement().getElementId();
   }
 
   public int getSourceTid(){
@@ -111,15 +123,7 @@ public class RelyGuaranteeCFAEdge implements CFAEdge{
   }
 
   public CFAEdge getOperation() {
-    return this.template.operation;
-  }
-
-  public PathFormula getOpPathFormula() {
-    return this.template.opPathFormula;
-  }
-
-  public String getOpVar() {
-    return this.template.opVar;
+    return this.template.getOperation();
   }
 
 

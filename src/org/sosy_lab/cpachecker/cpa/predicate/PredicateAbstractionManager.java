@@ -80,6 +80,9 @@ class PredicateAbstractionManager {
     public Timer extractTimer = new Timer();
   }
 
+  // singleton instance of the manager
+  private static PredicateAbstractionManager instance;
+
   public final Stats stats;
 
   protected final LogManager logger;
@@ -117,7 +120,15 @@ class PredicateAbstractionManager {
   private final Map<Pair<Formula, AbstractionPredicate>, Byte> cartesianAbstractionCache;
   private final Map<Formula, Boolean> feasibilityCache;
 
-  public PredicateAbstractionManager(
+  public static PredicateAbstractionManager getInstance( RegionManager pRmgr, FormulaManager pFmgr,PathFormulaManager pPmgr, TheoremProver pThmProver, Configuration config, LogManager pLogger) throws InvalidConfigurationException{
+    if (instance == null){
+      instance = new PredicateAbstractionManager(pRmgr, pFmgr, pPmgr, pThmProver, config, pLogger);
+    }
+
+    return instance;
+  }
+
+  protected PredicateAbstractionManager(
       RegionManager pRmgr,
       FormulaManager pFmgr,
       PathFormulaManager pPmgr,
@@ -137,7 +148,7 @@ class PredicateAbstractionManager {
     logger = pLogger;
     fmgr = pFmgr;
     pmgr = pPmgr;
-    amgr = new AbstractionManagerImpl(pRmgr, pFmgr, config, pLogger);
+    amgr = new AbstractionManagerImpl(pRmgr, pFmgr, pPmgr, config, pLogger);
     thmProver = pThmProver;
 
     if (useCache) {
@@ -152,6 +163,8 @@ class PredicateAbstractionManager {
       cartesianAbstractionCache = null;
       feasibilityCache = null;
     }
+
+    instance = this;
   }
 
   /**

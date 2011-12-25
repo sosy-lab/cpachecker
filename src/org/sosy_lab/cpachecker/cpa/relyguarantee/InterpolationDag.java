@@ -36,9 +36,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import com.google.common.collect.LinkedListMultimap;
-import com.google.common.collect.ListMultimap;
-
 /**
  * Directed acyclic graph representing ARTs linked by env. transitions.
  */
@@ -216,6 +213,34 @@ public class InterpolationDag {
     return nodeMap;
   }
 
+  /**
+   * Adds the node to the DAG. If it doesn't have any parents, then its added as a root.
+   * Method doesn't change parent-child relations.
+   * @return
+   */
+  public void addNode(InterpolationDagNode node){
+    nodeMap.put(node.key, node);
+
+    if (node.parents.isEmpty()){
+      roots.add(node);
+    }
+  }
+
+  /**
+   * Add all nodes from the other DAG to this one. If any root from the other DAG that doesn't
+   * have parents becomes a root in the current DAG. Method doesn't change parent-child relations.
+   * @param other
+   */
+  public void addDag(InterpolationDag other) {
+    nodeMap.putAll(other.nodeMap);
+
+    for (InterpolationDagNode root : other.roots){
+      if (root.parents.isEmpty()){
+        roots.add(root);
+      }
+    }
+  }
+
   public InterpolationDagNode getNode(Integer tid, Integer elementId){
     InterpolationDagNodeKey key = new InterpolationDagNodeKey(tid, elementId);
 
@@ -382,7 +407,7 @@ public class InterpolationDag {
    * @param tid
    * @return
    */
-  public  ListMultimap<InterpolationDagNode, RelyGuaranteeCFAEdge> getAppliedEnvEdges(int tid) {
+ /* public  ListMultimap<InterpolationDagNode, RelyGuaranteeCFAEdge> getAppliedEnvEdges(int tid) {
     ListMultimap<InterpolationDagNode, RelyGuaranteeCFAEdge> appliedMap = LinkedListMultimap.create();
 
     Deque<InterpolationDagNode> toProcess = new LinkedList<InterpolationDagNode>();
@@ -410,7 +435,7 @@ public class InterpolationDag {
     }
 
     return appliedMap;
-  }
+  }*/
 
   /**
    * List of leaves nodes in thread tid. Leaf is a node without any children in the same thread.
@@ -464,6 +489,38 @@ public class InterpolationDag {
 
     return nodes;
   }
+
+
+  /**
+   * Return the node keys of the DAG in topogical order.
+   */
+  public List<InterpolationDagNodeKey> topSort() {
+
+    Set<InterpolationDagNode> visited = new HashSet<InterpolationDagNode>();
+    List<InterpolationDagNode> topList = new Vector<InterpolationDagNode>();
+
+    topList.addAll(roots);
+
+    int i=0;
+    while(i<topList.size()){
+      InterpolationDagNode node = topList.get(i);
+      for (InterpolationDagNode child : node.getChildren()){
+        if (!visited.contains(child) && topList.containsAll(child.getParents())){
+          visited.add(child);
+          topList.add(child);
+        }
+      }
+      i++;
+    }
+
+    List<InterpolationDagNodeKey> topListKeys = new Vector<InterpolationDagNodeKey>(topList.size());
+    for (InterpolationDagNode node : topList){
+      topListKeys.add(node.getKey());
+    }
+
+    return topListKeys;
+  }
+
 
 
 

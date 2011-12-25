@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 /**
  * Represents a abstraction point.
  */
-public class InterpolationDagNode {
+public class InterpolationDagNode{
 
   /** ART element, where the path formula was abstracted */
   protected final ARTElement artElement;
@@ -53,7 +53,7 @@ public class InterpolationDagNode {
   /** Thread id. */
   protected final int tid;
 
-  protected final InterpolationDagNodeKey key;
+  protected InterpolationDagNodeKey key;
 
   /**
    * Makes a deep copy of the node, except for children and parents.
@@ -81,6 +81,8 @@ public class InterpolationDagNode {
     this.tid          = tid;
     this.key          = new InterpolationDagNodeKey(tid, artElement.getElementId());
   }
+
+
 
   /*public InterpolationDagNode(PathFormula pf, int traceNo, ARTElement artElement, List<InterpolationDagNode> children, List<InterpolationDagNode> parents, int tid) {
     super(pf, traceNo, artElement, null);
@@ -141,6 +143,8 @@ public class InterpolationDagNode {
   public int hashCode(){
     return key.hashCode();
   }
+
+
 
 
 }

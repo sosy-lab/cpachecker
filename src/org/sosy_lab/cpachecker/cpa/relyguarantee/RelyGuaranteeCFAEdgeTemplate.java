@@ -40,29 +40,8 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
  */
 public class RelyGuaranteeCFAEdgeTemplate{
 
-  /** The operation. */
-  protected final CFAEdge operation;
-
-  /**  Abstraction formula. */
-  protected final PathFormula abstractionFormula;
-
-  /** Path formula before the operation. */
-  protected final PathFormula pathFormula;
-
-  /** Path formula after the operation. */
-  protected final PathFormula opPathFormula;
-
-  /** Variable assigned by the operation */
-  protected final String opVar;
-
-  /** ART element that generated this edge. */
-  protected ARTElement  sourceARTElement;
-
-  /** The last abstraction point before the source element */
-  protected final ARTElement  lastARTAbstractionElement;
-
-  /** Source thread id. */
-  protected final int sourceTid;
+  /** Describes the precondition for appling the env. operation */
+  protected final PathFormula filter;
 
   /** Environmental transition form which this edge was generated from */
   protected final RelyGuaranteeEnvironmentalTransition sourceEnvTransition;
@@ -73,15 +52,12 @@ public class RelyGuaranteeCFAEdgeTemplate{
   /** Unkilled env. edges that are less general that this one. */
   private final Set<RelyGuaranteeCFAEdgeTemplate> covers;
 
-  public RelyGuaranteeCFAEdgeTemplate(CFAEdge operation, PathFormula abstractionFormula, PathFormula pathFormula, PathFormula opPathFormula, String opVar, ARTElement sourceARTElement, ARTElement lastARTAbstractionElement, int sourceTid, RelyGuaranteeEnvironmentalTransition sourceEnvTransition){
-    this.operation = operation;
-    this.abstractionFormula = abstractionFormula;
-    this.pathFormula = pathFormula;
-    this.opPathFormula = opPathFormula;
-    this.opVar = opVar;
-    this.sourceARTElement = sourceARTElement;
-    this.lastARTAbstractionElement = lastARTAbstractionElement;
-    this.sourceTid = sourceTid;
+  /** Last abstracton point before the element that generated the env. transition */
+  protected final ARTElement lastAbstraction;
+
+  public RelyGuaranteeCFAEdgeTemplate(PathFormula filter, ARTElement lastARTAbstractionElement, RelyGuaranteeEnvironmentalTransition sourceEnvTransition){
+    this.filter = filter;
+    this.lastAbstraction = lastARTAbstractionElement;
     this.sourceEnvTransition = sourceEnvTransition;
     this.coveredBy = null;
     this.covers = new HashSet<RelyGuaranteeCFAEdgeTemplate>();
@@ -95,49 +71,48 @@ public class RelyGuaranteeCFAEdgeTemplate{
 
 
   public ARTElement getSourceARTElement() {
-    return this.sourceARTElement;
+    return this.sourceEnvTransition.getSourceARTElement();
   }
 
   public void setSourceARTElement(ARTElement newElem) {
-    this.sourceARTElement =  newElem;
+    this.sourceEnvTransition.setSourceARTElement(newElem);
   }
-
-  /*public ARTElement getLastARTAbstractionElement() {
-    return nextARTAbstractionElement;
-  }*/
 
   public PathFormula getAbstractionFormula() {
-    return abstractionFormula;
-  }
-
-  public ARTElement getLastARTAbstractionElement() {
-    return lastARTAbstractionElement;
+    return this.sourceEnvTransition.getAbstractionPathFormula();
   }
 
   public IASTNode getRawAST() {
     return null;
   }
 
+  public ARTElement getLastAbstraction() {
+    return lastAbstraction;
+  }
+
   public String getRawStatement() {
-    return operation.getRawStatement();
+    return this.sourceEnvTransition.getEdge().getRawStatement();
   }
 
   public PathFormula getPathFormula() {
-    return this.pathFormula;
+    return this.sourceEnvTransition.getPathFormula();
   }
 
+  public PathFormula getFilter() {
+    return filter;
+  }
 
   @Override
   public String toString() {
-    return "RG edge template  T:"+this.sourceTid+", source ART:"+this.sourceARTElement.getElementId()+", last abstr. ART:"+this.lastARTAbstractionElement.getElementId()+", operation:"+opPathFormula+", opVar:"+opVar+", path formula:"+this.pathFormula+", abstraction formula:"+this.abstractionFormula;
+    return "RG template -- op:"+this.getRawStatement()+", filter:"+this.getFilter()+",  T:"+this.getSourceTid()+", sART:"+this.getSourceARTElement().getElementId();
   }
 
   public CFAEdge getLocalEdge() {
-    return this.operation;
+    return this.sourceEnvTransition.getEdge();
   }
 
   public int getSourceTid(){
-    return this.sourceTid;
+    return this.sourceEnvTransition.getSourceThread();
   }
 
   public RelyGuaranteeEnvironmentalTransition getSourceEnvTransition() {
@@ -151,17 +126,8 @@ public class RelyGuaranteeCFAEdgeTemplate{
     return covers;
   }
 
-
   public CFAEdge getOperation() {
-    return operation;
-  }
-
-  public PathFormula getOpPathFormula() {
-    return opPathFormula;
-  }
-
-  public String getOpVar() {
-    return opVar;
+    return this.sourceEnvTransition.getEdge();
   }
 
   /**
@@ -173,7 +139,7 @@ public class RelyGuaranteeCFAEdgeTemplate{
     assert other != null;
     assert other != this;
     assert !other.covers.contains(this);
-    assert other.operation.equals(this.operation);
+    assert other.getOperation().equals(this.getOperation());
     // TODO change it - only null should be allowed
     if (coveredBy == null){
       coveredBy  = other;

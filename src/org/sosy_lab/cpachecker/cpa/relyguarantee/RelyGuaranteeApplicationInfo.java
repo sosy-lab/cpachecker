@@ -26,59 +26,52 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-
 /**
  * Contains information on applications of environmental edges.
  */
 public class RelyGuaranteeApplicationInfo {
 
-  /**
-   * Local part of an env. application.
-   */
-  public final PathFormula localPf;
 
   /**
    * Env. edges that have been applied.
    */
-  public final Map<RelyGuaranteeCFAEdge, PathFormula> envMap;
+  public final Map<Integer, RelyGuaranteeCFAEdge> envMap;
 
-  public RelyGuaranteeApplicationInfo(PathFormula localPf){
-    assert localPf != null;
-
-    this.localPf = localPf;
-    this.envMap = new HashMap<RelyGuaranteeCFAEdge, PathFormula>();
+  public RelyGuaranteeApplicationInfo(){
+    this.envMap = new HashMap<Integer, RelyGuaranteeCFAEdge>();
   }
 
-  public RelyGuaranteeApplicationInfo(PathFormula localPf, Map<RelyGuaranteeCFAEdge, PathFormula> envMap){
-    assert localPf != null;
-    assert envMap != null;
-
-    this.localPf = localPf;
-    this.envMap = envMap;
+  /** Makes a copy of another application info. */
+  public RelyGuaranteeApplicationInfo(RelyGuaranteeApplicationInfo other){
+    this.envMap = new HashMap<Integer, RelyGuaranteeCFAEdge>(other.envMap);
   }
 
-  public PathFormula getLocalPf() {
-    return localPf;
+  /**
+   * Add all entries from the other element into this one.
+   * @param other
+   * @return
+   */
+  public void mergeWith(RelyGuaranteeApplicationInfo other){
+    envMap.putAll(other.envMap);
   }
 
-  public Map<RelyGuaranteeCFAEdge, PathFormula> getEnvMap() {
+  public Map<Integer, RelyGuaranteeCFAEdge> getEnvMap() {
     return envMap;
   }
 
   /**
-   * Shorthand for getEnvMap().put(rgEdge, pf).
+   * Shorthand for getEnvMap().put(i, rgEdge).
    * @param rgEdge
    * @param pf
    * @return
    */
-  public PathFormula putEnvApplication(RelyGuaranteeCFAEdge rgEdge, PathFormula pf){
-    return envMap.put(rgEdge, pf);
+  public RelyGuaranteeCFAEdge putEnvApplication(Integer i, RelyGuaranteeCFAEdge rgEdge){
+    return envMap.put(i, rgEdge);
   }
 
   @Override
   public String toString(){
-    return "local pf:"+localPf+", rgEdges: "+envMap.keySet();
+    return "rgEdges: "+envMap.keySet();
   }
 
 }

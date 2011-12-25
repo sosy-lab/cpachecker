@@ -154,23 +154,26 @@ public class RelyGuaranteeRefiner{
   private RelyGuaranteeRefinerStatistics stats;
   private RelyGuaranteeRefinementManager manager;
   private final ARTCPA[] artCpas;
+
+  private RelyGuaranteeEnvironment rgEnvironment;
   private static RelyGuaranteeRefiner rgRefiner;
 
   /**
    * Singleton instance of RelyGuaranteeRefiner.
    * @param cpas
+   * @param rgEnvironment
    * @param pConfig
    * @return
    * @throws InvalidConfigurationException
    */
-  public static RelyGuaranteeRefiner getInstance(final ConfigurableProgramAnalysis[] cpas, Configuration pConfig) throws InvalidConfigurationException {
+  public static RelyGuaranteeRefiner getInstance(final ConfigurableProgramAnalysis[] cpas, RelyGuaranteeEnvironment rgEnvironment, Configuration pConfig) throws InvalidConfigurationException {
     if (rgRefiner == null){
-      rgRefiner = new RelyGuaranteeRefiner(cpas, pConfig);
+      rgRefiner = new RelyGuaranteeRefiner(cpas, rgEnvironment, pConfig);
     }
     return rgRefiner;
   }
 
-  public RelyGuaranteeRefiner(final ConfigurableProgramAnalysis[] cpas, Configuration pConfig) throws InvalidConfigurationException{
+  public RelyGuaranteeRefiner(final ConfigurableProgramAnalysis[] cpas, RelyGuaranteeEnvironment rgEnvironment, Configuration pConfig) throws InvalidConfigurationException{
     pConfig.inject(this, RelyGuaranteeRefiner.class);
     artCpas = new ARTCPA[cpas.length];
     for (int i=0; i<cpas.length; i++){
@@ -180,6 +183,8 @@ public class RelyGuaranteeRefiner{
         throw new InvalidConfigurationException("ART CPA needed for refinement");
       }
     }
+
+    this.rgEnvironment = rgEnvironment;
 
     RelyGuaranteeCPA rgCPA = artCpas[0].retrieveWrappedCpa(RelyGuaranteeCPA.class);
     if (rgCPA != null){
@@ -279,22 +284,15 @@ public class RelyGuaranteeRefiner{
           RelyGuaranteePrecision precision = pair.getSecond();
           Set<ARTElement> parents = new HashSet<ARTElement>(root.getParents());
 
-          if (debug){
-            System.out.println();
-            System.out.println("BEFORE: parents of id:"+root.getElementId());
-            for (ARTElement parent : parents){
-              System.out.println("-parent id:"+parent.getElementId()+" precision: "+Precisions.extractPrecisionByType(artReachedSets[tid].getPrecision(parent), RelyGuaranteePrecision.class));
-            }
-          }
 
           // TODO why does it take so long?
           artReachedSets[tid].removeSubtree(root, precision);
 
           if (debug){
             System.out.println();
-            System.out.println("AFTER: parents of id:"+root.getElementId());
             for (ARTElement parent : parents){
               System.out.println("-parent id:"+parent.getElementId()+" precision: "+Precisions.extractPrecisionByType(artReachedSets[tid].getPrecision(parent), RelyGuaranteePrecision.class));
+              System.out.println("           env precision: "+this.rgEnvironment.getEnvPrecision()[tid]);
             }
           }
         }
@@ -369,6 +367,29 @@ public class RelyGuaranteeRefiner{
     // multimap : thread no -> (ART element)
     Multimap<Integer, ARTElement> artMap = HashMultimap.create();
 
+    boolean newPredicates = false;
+
+    // add env. predicates to precision
+    for (AbstractElement aElement : info.getEnvPredicatesForRefinmentKeys()){
+      assert aElement instanceof ARTElement;
+      ARTElement artElement = (ARTElement) aElement;
+      RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(artElement, RelyGuaranteeAbstractElement.class);
+      int tid = rgElement.getTid();
+      CFANode loc = AbstractElements.extractLocation(artElement);
+      Collection<AbstractionPredicate> preds = info.getEnvPredicatesForRefinement(aElement);
+      SetMultimap<CFANode, AbstractionPredicate> tPrec = this.rgEnvironment.getEnvPrecision()[tid];
+      if (!tPrec.get(loc).containsAll(preds)){
+        newPredicates = true;
+        Collection<AbstractionPredicate> cNewPreds = new HashSet<AbstractionPredicate>(preds);
+        cNewPreds.removeAll(tPrec.get(loc));
+        if (debug){
+          System.out.println("\tNew predicates (env) "+loc+" "+cNewPreds);
+        }
+      }
+      tPrec.putAll(loc, preds);
+    }
+
+
     // group interpolation elements  by threads
     for (AbstractElement aElement : info.getPredicatesForRefinmentKeys()){
       //Collection<AbstractionPredicate> newpreds = info.getPredicatesForRefinement(aElement);
@@ -381,7 +402,7 @@ public class RelyGuaranteeRefiner{
       }
     }
 
-    boolean newPredicates = false;
+
     // for every thread sum up interpolants and add it to the initial element
     for (int tid=0 ; tid < reachedSets.length; tid++){
       ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
@@ -401,6 +422,11 @@ public class RelyGuaranteeRefiner{
         pmapBuilder.putAll(loc, newpreds);
         if (!oldPreds.get(loc).containsAll(newpreds)){
           newPredicates = true;
+          Collection<AbstractionPredicate> cNewPreds = new HashSet<AbstractionPredicate>(newpreds);
+          cNewPreds.removeAll(oldPreds.get(loc));
+          if (debug){
+            System.out.println("\tNew predicates (art) "+loc+" "+cNewPreds);
+          }
         }
       }
 
@@ -418,6 +444,7 @@ public class RelyGuaranteeRefiner{
         if (debug){
           System.out.println();
           System.out.println("Thread "+tid+": cut-off node id:"+initChild.getElementId()+" precision "+newPrecision);
+          System.out.println("env precision: "+this.rgEnvironment.getEnvPrecision()[tid]);
         }
 
       }
