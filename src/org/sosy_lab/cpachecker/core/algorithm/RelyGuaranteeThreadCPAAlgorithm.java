@@ -195,7 +195,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
         System.out.println();
         System.out.println("@ Successor of '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+" id:"+aElement.getElementId()+" at "+loc);
 
-        if (aElement.getElementId() == 400){
+        if (aElement.getElementId() == 381){
           System.out.println();
         }
       }

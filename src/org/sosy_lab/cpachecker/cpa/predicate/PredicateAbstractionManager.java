@@ -93,7 +93,7 @@ class PredicateAbstractionManager {
 
   @Option(name="abstraction.cartesian",
       description="whether to use Boolean (false) or Cartesian (true) abstraction")
-  private boolean cartesianAbstraction = false;
+  private boolean cartesianAbstraction = true;
 
   @Option(name="abstraction.dumpHardQueries",
       description="dump the abstraction formulas if they took to long")
@@ -113,7 +113,7 @@ class PredicateAbstractionManager {
   @Option(name="abs.useCache", description="use caching of abstractions")
   private boolean useCache = true;
 
-  private final Map<Pair<Formula, Collection<AbstractionPredicate>>, AbstractionFormula> abstractionCache;
+  private final Map<Pair<PathFormula, Collection<AbstractionPredicate>>, AbstractionFormula> abstractionCache;
   //cache for cartesian abstraction queries. For each predicate, the values
   // are -1: predicate is false, 0: predicate is don't care,
   // 1: predicate is true
@@ -152,7 +152,7 @@ class PredicateAbstractionManager {
     thmProver = pThmProver;
 
     if (useCache) {
-      abstractionCache = new HashMap<Pair<Formula, Collection<AbstractionPredicate>>, AbstractionFormula>();
+      abstractionCache = new HashMap<Pair<PathFormula, Collection<AbstractionPredicate>>, AbstractionFormula>();
     } else {
       abstractionCache = null;
     }
@@ -174,10 +174,10 @@ class PredicateAbstractionManager {
 
     stats.numCallsAbstraction++;
 
-    if (predicates.isEmpty()) {
+   /* if (predicates.isEmpty()) {
       stats.numSymbolicAbstractions++;
       return makeTrueAbstractionFormula(pathFormula);
-    }
+    }*/
 
     logger.log(Level.ALL, "Old abstraction:", abstractionFormula);
     logger.log(Level.ALL, "Path formula:", pathFormula);
@@ -186,11 +186,12 @@ class PredicateAbstractionManager {
     Formula absFormula = abstractionFormula.asFormula();
     Formula symbFormula = buildFormula(pathFormula.getFormula());
     Formula f = fmgr.makeAnd(absFormula, symbFormula);
+    PathFormula pf = new PathFormula(f, pathFormula.getSsa(), pathFormula.getLength());
 
     // caching
-    Pair<Formula, Collection<AbstractionPredicate>> absKey = null;
+    Pair<PathFormula, Collection<AbstractionPredicate>> absKey = null;
     if (useCache) {
-      absKey = Pair.of(f, predicates);
+      absKey = Pair.of(pf, predicates);
       AbstractionFormula result = abstractionCache.get(absKey);
 
       if (result != null) {
@@ -228,10 +229,10 @@ class PredicateAbstractionManager {
 
     stats.numCallsAbstraction++;
 
-    if (predicates.isEmpty()) {
+    /*if (predicates.isEmpty()) {
       stats.numSymbolicAbstractions++;
       return makeTrueAbstractionFormula(pathFormula);
-    }
+    }*/
 
     logger.log(Level.ALL, "Old abstraction:", abstractionFormula);
     logger.log(Level.ALL, "Path formula:", pathFormula);
@@ -240,11 +241,12 @@ class PredicateAbstractionManager {
     Formula absFormula = abstractionFormula.asFormula();
     Formula symbFormula = buildFormula(pathFormula.getFormula());
     Formula f = fmgr.makeAnd(absFormula, symbFormula);
+    PathFormula pf = new PathFormula(f, pathFormula.getSsa(), pathFormula.getLength());
 
     // caching
-    Pair<Formula, Collection<AbstractionPredicate>> absKey = null;
+    Pair<PathFormula, Collection<AbstractionPredicate>> absKey = null;
     if (useCache) {
-      absKey = Pair.of(f, predicates);
+      absKey = Pair.of(pf, predicates);
       AbstractionFormula result = abstractionCache.get(absKey);
 
       if (result != null) {

@@ -156,6 +156,10 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
 
       // check whether to do abstraction
       boolean doAbstraction = isBlockEnd(loc, newPF, edge);
+      boolean isEnvEdge = (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge || edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge);
+
+      //doAbstraction = doAbstraction || isEnvEdge;W
+      doAbstraction = true;
 
       if (doAbstraction) {
         return Collections.singleton(
@@ -378,9 +382,9 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
   protected boolean isBlockEnd(CFANode succLoc, PathFormula pf, CFAEdge edge) {
     boolean result = false;
 
-    if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge || edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge){
+   /* if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge || edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge){
       return true;
-    }
+    }*/
 
     if (absOnLoop) {
       result = succLoc.isLoopStart();

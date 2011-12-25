@@ -107,6 +107,6 @@ public class AbstractionFormula {
 
   @Override
   public int hashCode() {
-    return region.hashCode();
+    return 13 * region.hashCode() + this.pathformula.hashCode();
   }
 }

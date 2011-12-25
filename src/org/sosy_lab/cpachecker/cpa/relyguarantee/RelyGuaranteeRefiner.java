@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -78,7 +79,12 @@ public class RelyGuaranteeRefiner{
   @Option(name="refinement.addPredicatesGlobally",
       description="refinement will add all discovered predicates "
         + "to all the locations in the abstract trace")
-        private boolean addPredicatesGlobally = false;
+        private boolean addPredicatesGlobally = true;
+
+  @Option(name="refinement.addPredicatesGlobally",
+      description="refinement will add all discovered predicates "
+        + "to all the locations in the abstract trace")
+        private boolean addEnvPredicatesGlobally = true;
 
   @Option(name="errorPath.export",
       description="export one satisfying assignment for the error path")
@@ -98,6 +104,7 @@ public class RelyGuaranteeRefiner{
 
   @Option(description="List of variables global to multiple threads")
   protected String[] globalVariables = {};
+
 
 
   public abstract class  RelyGuaranteeRefinerStatistics implements Statistics {
@@ -377,16 +384,34 @@ public class RelyGuaranteeRefiner{
       int tid = rgElement.getTid();
       CFANode loc = AbstractElements.extractLocation(artElement);
       Collection<AbstractionPredicate> preds = info.getEnvPredicatesForRefinement(aElement);
-      SetMultimap<CFANode, AbstractionPredicate> tPrec = this.rgEnvironment.getEnvPrecision()[tid];
-      if (!tPrec.get(loc).containsAll(preds)){
-        newPredicates = true;
-        Collection<AbstractionPredicate> cNewPreds = new HashSet<AbstractionPredicate>(preds);
-        cNewPreds.removeAll(tPrec.get(loc));
-        if (debug){
-          System.out.println("\tNew predicates (env) "+loc+" "+cNewPreds);
+
+      if (!this.addEnvPredicatesGlobally){
+        SetMultimap<CFANode, AbstractionPredicate> tPrec = this.rgEnvironment.getEnvPrecision()[tid];
+        if (!tPrec.get(loc).containsAll(preds)){
+          newPredicates = true;
+          Collection<AbstractionPredicate> cNewPreds = new HashSet<AbstractionPredicate>(preds);
+          cNewPreds.removeAll(tPrec.get(loc));
+          if (debug){
+            System.out.println("\tNew predicates (env) "+loc+" "+cNewPreds);
+          }
         }
+        tPrec.putAll(loc, preds);
+      } else {
+        Set<AbstractionPredicate> tPrec = this.rgEnvironment.getEnvGlobalPrecision()[tid];
+        if (!tPrec.containsAll(preds)){
+          newPredicates = true;
+          Collection<AbstractionPredicate> cNewPreds = new HashSet<AbstractionPredicate>(preds);
+          cNewPreds.removeAll(tPrec);
+          if (debug){
+            System.out.println("\tNew predicates (env) "+loc+" "+cNewPreds);
+          }
+        }
+        tPrec.addAll(preds);
       }
-      tPrec.putAll(loc, preds);
+
+    if (!this.rgEnvironment.getEnvPrecision()[tid].isEmpty()){
+      System.out.println();
+    }
     }
 
 
@@ -419,7 +444,16 @@ public class RelyGuaranteeRefiner{
 
         Collection<AbstractionPredicate> newpreds = info.getPredicatesForRefinement(artElement);
         CFANode loc = AbstractElements.extractLocation(artElement);
-        pmapBuilder.putAll(loc, newpreds);
+        if (this.addPredicatesGlobally){
+          Set<AbstractionPredicate> gpreds = rgPrecision.getGlobalPredicates();
+          Set<AbstractionPredicate> ngpreds = new HashSet<AbstractionPredicate>(gpreds);
+          ngpreds.addAll(newpreds);
+          rgPrecision.setGlobalPredicates(ImmutableSet.copyOf(ngpreds));
+        } else {
+
+          pmapBuilder.putAll(loc, newpreds);
+        }
+
         if (!oldPreds.get(loc).containsAll(newpreds)){
           newPredicates = true;
           Collection<AbstractionPredicate> cNewPreds = new HashSet<AbstractionPredicate>(newpreds);
@@ -443,8 +477,10 @@ public class RelyGuaranteeRefiner{
 
         if (debug){
           System.out.println();
-          System.out.println("Thread "+tid+": cut-off node id:"+initChild.getElementId()+" precision "+newPrecision);
-          System.out.println("env precision: "+this.rgEnvironment.getEnvPrecision()[tid]);
+          System.out.println("Thread "+tid+": cut-off node id:"+initChild.getElementId());
+          System.out.println("\t ART precision: "+newPrecision);
+          System.out.println("\tEnv precision: "+this.rgEnvironment.getEnvPrecision()[tid]+"\n\tglobal "+this.rgEnvironment.getEnvGlobalPrecision()[tid]);
+          System.out.println();
         }
 
       }

@@ -102,6 +102,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     logger.log(Level.FINEST, "Computing abstraction on node", loc);
 
     Collection<AbstractionPredicate> preds = precision.getPredicates(loc);
+    preds.addAll(precision.getGlobalPredicates());
 
     maxBlockSize = Math.max(maxBlockSize, pathFormula.getLength());
     maxPredsPerAbstraction = Math.max(maxPredsPerAbstraction, preds.size());

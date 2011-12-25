@@ -106,8 +106,11 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
   @Option(description="Print debugging info?")
   private boolean debug=false;
 
-  @Option(description="Abstract environmental transitions using their own predicates.")
-  private boolean abstractEnvTransitions = false;
+  @Option(description="Abstract environmental transitions using their own predicates:"
+      + "0 - don't abstract, 1 - abstract filter, 2 - abstract filter and operation.")
+  private int abstractEnvTransitions = 1;
+
+
 
   private static int  uniqueNumber = 90;
 
@@ -1120,7 +1123,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
         info.addPredicatesForRefinement(node.artElement, preds);
       }
       if (node.isEnvAbstraction){
-        assert this.abstractEnvTransitions;
+        assert this.abstractEnvTransitions == 1;
         info.addEnvPredicatesForRefinement(node.artElement, preds);
       }
 
@@ -1192,7 +1195,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
     } else {
       // it's NOT an abstraction element, so only its last abstraction element is in the DAG
-      assert this.abstractEnvTransitions;
+      assert this.abstractEnvTransitions == 1;
       ARTElement aARTElement = RelyGuaranteeEnvironment.findLastAbstractionARTElement(target);
       assert aARTElement != null;
       InterpolationDagNode aNode = dag.getNode(tid, aARTElement.getElementId());
@@ -1241,7 +1244,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
 
           // create a sub-tree for the the element that generated the transition
           ARTElement sARTElement = null;
-          if (this.abstractEnvTransitions){
+          if (this.abstractEnvTransitions == 1){
             // env. transitions were abstracted, so use their source element
             sARTElement = rgEdge.getSourceARTElement();
           } else {
@@ -1259,7 +1262,7 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
           assert appNode != null && appNode.parent == null;
 
           // mark the root of the sub-tree as an env. abstraction
-          appNode.setEnvAbstraction(this.abstractEnvTransitions);
+          appNode.setEnvAbstraction(true);
 
           // add the sub tree to the main tree
           treeNode.children.add(appNode);

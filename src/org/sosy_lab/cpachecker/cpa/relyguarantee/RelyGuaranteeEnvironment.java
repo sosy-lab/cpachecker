@@ -90,8 +90,9 @@ public class RelyGuaranteeEnvironment {
   " if false perform only a syntatic check for equivalence")
   private boolean checkEnvTransitionCoverage = true;
 
-  @Option(description="Abstract environmental transitions using their own predicates.")
-  private boolean abstractEnvTransitions = false;
+  @Option(description="Abstract environmental transitions using their own predicates:"
+      + "0 - don't abstract, 1 - abstract filter, 2 - abstract filter and operation.")
+  private int abstractEnvTransitions = 1;
 
   @Option(description="List of variables global to multiple threads")
   protected String[] globalVariables = {};
@@ -158,6 +159,8 @@ public class RelyGuaranteeEnvironment {
   // envPrecision[i] are predicates for generating env. edges from thread i.
   private final SetMultimap<CFANode, AbstractionPredicate>[] envPrecision;
 
+  private final Set<AbstractionPredicate>[] envGlobalPrecision;
+
   // Managers
   private PathFormulaManager pfManager;
   private MathsatFormulaManager fManager;
@@ -198,6 +201,7 @@ public class RelyGuaranteeEnvironment {
     unappliedEnvEdgesForThread = new Vector[threadNo];
     coveredEnvEdgesFromThread = new HashSet[threadNo];
     envPrecision = new SetMultimap[threadNo];
+    envGlobalPrecision = new HashSet[threadNo];
 
     for (int i=0; i< threadNo; i++){
       //envTransProcessedBeforeFromThread[i] = HashMultimap.<ARTElement, RelyGuaranteeEnvironmentalTransition>create();
@@ -205,6 +209,7 @@ public class RelyGuaranteeEnvironment {
       unappliedEnvEdgesForThread[i] = new Vector<RelyGuaranteeCFAEdgeTemplate>();
       coveredEnvEdgesFromThread[i] = new HashSet<RelyGuaranteeCFAEdgeTemplate>();
       envPrecision[i] = HashMultimap.create();
+      envGlobalPrecision[i] = new HashSet<AbstractionPredicate>();
     }
   }
 
@@ -343,13 +348,37 @@ public class RelyGuaranteeEnvironment {
 
     PathFormula filter = null;
 
-    if (this.abstractEnvTransitions){
+    if (this.abstractEnvTransitions == 2){
+      // abstract the conjuction of abstraction and path formula plus the operation
+      assert false;
+      /*int sourceTid = et.getSourceThread();
+      CFANode loc = et.getEdge().getPredecessor();
+
+      PathFormula opPF = null;
+      try {
+        opPF = this.pfManager.makeAnd(et.getPathFormula(), et.getEdge(), sourceTid);
+      } catch (CPATransferException e) {
+        e.printStackTrace();
+      }
+
+      SetMultimap<CFANode, AbstractionPredicate> prec = envPrecision[sourceTid];
+      Set<AbstractionPredicate> preds = prec.get(loc);
+
+      AbstractionFormula aFilter = paManager.buildAbstraction(et.getAbstractionFormula(), et.getPathFormula(), preds);
+      filter = aFilter.asPathFormula();*/
+    }
+    else if (this.abstractEnvTransitions == 1){
       // abstract the conjuction of abstraction and path formula using set of predicates.
       int sourceTid = et.getSourceThread();
       CFANode loc = et.getEdge().getPredecessor();
       // preds is the set of env. predicates for the location
       SetMultimap<CFANode, AbstractionPredicate> prec = envPrecision[sourceTid];
-      Set<AbstractionPredicate> preds = prec.get(loc);
+      Set<AbstractionPredicate> preds = new HashSet<AbstractionPredicate>(prec.get(loc));
+      preds.addAll(envGlobalPrecision[sourceTid]);
+
+      if (et.getSourceARTElement().getElementId() == 341){
+        System.out.println();
+      }
 
       AbstractionFormula aFilter = paManager.buildAbstraction(et.getAbstractionFormula(), et.getPathFormula(), preds);
       filter = aFilter.asPathFormula();
@@ -1085,6 +1114,12 @@ public class RelyGuaranteeEnvironment {
   public void addPredicatesToEnvPrecision(Integer tid, CFANode loc, Collection<AbstractionPredicate> preds){
     this.envPrecision[tid].putAll(loc, preds);
   }
+
+  public Set<AbstractionPredicate>[] getEnvGlobalPrecision() {
+    return envGlobalPrecision;
+  }
+
+
 
 }
 

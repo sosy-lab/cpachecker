@@ -37,7 +37,12 @@ import com.google.common.collect.SetMultimap;
 public class PredicatePrecision implements Precision {
 
   protected final ImmutableSetMultimap<CFANode, AbstractionPredicate> predicateMap;
-  private final ImmutableSet<AbstractionPredicate> globalPredicates;
+  private ImmutableSet<AbstractionPredicate> globalPredicates;
+  public void setGlobalPredicates(
+      ImmutableSet<AbstractionPredicate> pGlobalPredicates) {
+    globalPredicates = pGlobalPredicates;
+  }
+
   private final int id = idCounter++;
   private static int idCounter = 0;
 
