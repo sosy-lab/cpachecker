@@ -124,11 +124,11 @@ PLOTTING_SCRIPT = '''
 
 // this function collects the indices of columns with title "header"
 function getColumnIndicesForHeader(header) {
-    columnIndizes = [];
-    cells = document.getElementById('columnTitles').cells;
+    var columnIndizes = [];
+    var cells = document.getElementById('columnTitles').cells;
 
     for(i = 0; i < cells.length; i++) {
-      currentHeader = cells[i].textContent;
+      var currentHeader = cells[i].textContent;
       if (currentHeader == header) {
         columnIndizes.push(i);
       }
@@ -141,22 +141,23 @@ function getColumnIndicesForHeader(header) {
 // each array is of the form: [[file1, value1], [file2, value1], ...]
 function getTableData(header) {
     debug("data for: " + header);
-    data = [];
+    var data = [];
 
-    indices = getColumnIndicesForHeader(header);
+    var indices = getColumnIndicesForHeader(header);
     for (j = 0; j < indices.length; j++) {
       data.push([]);
     }
 
-    tableBody = $('#dataTable > tbody')[0];
+    var tableBody = $('#dataTable > tbody')[0];
 
     for(i = 0; i < tableBody.rows.length; i++) {
-      currentRow = tableBody.rows[i];
+      var currentRow = tableBody.rows[i];
 
       for (j = 0; j < indices.length; j++) {
-        index = indices[j];
-        currentCell = currentRow.cells[index];
+        var index = indices[j];
+        var currentCell = currentRow.cells[index];
 
+        var value;
         if (header === 'status') {
             if (currentCell.className.indexOf('correct') == 0)     value = 1;
             else if (currentCell.className.indexOf('wrong') == 0)  value = 0;
@@ -199,11 +200,11 @@ function sortData(data) {
 
 // get labels for x-direction
 function getXTicks(){
-    xTicks = [];
-    maxLength = 40;
-    tableBody = $('#dataTable > tbody')[0];
+    var xTicks = [];
+    var maxLength = 40;
+    var tableBody = $('#dataTable > tbody')[0];
     for(i = 0; i < tableBody.rows.length; i++) {
-      name = tableBody.rows[i].cells[0].textContent;
+      var name = tableBody.rows[i].cells[0].textContent;
       if (name.length > maxLength) { name = name.substring(0, maxLength) + "..."; }
       xTicks.push([i, name]);
     }
@@ -232,9 +233,9 @@ function getYTicks(header) {
 
 // returns a list of cells, each cell is multiplied by value of its colspan.
 function expandColSpan(row) {
-    list = [];
+    var list = [];
     for (i=0; i<row.cells.length; i++) {
-      cell = row.cells[i];
+      var cell = row.cells[i];
       for (j=0; j<parseInt(cell.colSpan); j++) {
         list.push(cell);
       }
@@ -248,13 +249,11 @@ function getLabels(header) {
     debug("labels for: " + header);
     var labels = [];
 
-    indices = getColumnIndicesForHeader(header);
-
-    tableHead = $('#dataTable > thead')[0];
-
-    toolRow = expandColSpan(tableHead.rows[0]);
-    dateRow = expandColSpan(tableHead.rows[3]);
-    testRow = expandColSpan(tableHead.rows[4]);
+    var indices = getColumnIndicesForHeader(header);
+    var tableHead = $('#dataTable > thead')[0];
+    var toolRow = expandColSpan(tableHead.rows[0]);
+    var dateRow = expandColSpan(tableHead.rows[3]);
+    var testRow = expandColSpan(tableHead.rows[4]);
 
     // assertion
     if ((toolRow.length != dateRow.length) || 
@@ -263,7 +262,7 @@ function getLabels(header) {
     }
 
     for (i = 0; i < indices.length; i++) {
-        index = indices[i];
+        var index = indices[i];
         labels.push(toolRow[index].textContent + " " +
                     testRow[index].textContent + " " +
                     dateRow[index].textContent);
@@ -275,8 +274,8 @@ function getLabels(header) {
 
 
 function addLegendActions() {
-    legendButtons = $('tr.jqplot-table-legend');
-    seriesLines = $('canvas.jqplot-series-canvas');
+    var legendButtons = $('tr.jqplot-table-legend');
+    var seriesLines = $('canvas.jqplot-series-canvas');
 
     // assertion
     if (legendButtons.length != seriesLines.length) {
@@ -284,11 +283,11 @@ function addLegendActions() {
     }
 
     for (i = 0; i<legendButtons.length; i++) {
-      currentButton = legendButtons[i];
-      currentLine = seriesLines[i];
+      var currentButton = legendButtons[i];
+      var currentLine = seriesLines[i];
 
       currentButton.onclick = function(event) {
-        hideOpacity = 0.3;
+        var hideOpacity = 0.3;
         if (this.style.opacity == hideOpacity) {
             this.style.opacity = 1;
         } else {
@@ -317,7 +316,7 @@ function showPlot(header) {
 
     drawPlot(header, data, xTicks, yTicks);
 
-    var button = $('#button-trend')[0]
+    var button = $('#button-trend')[0];
     button.onclick = function() { showTrend(header); };
     button.textContent = 'Show Trend';
 };
@@ -329,11 +328,11 @@ function showTrend(header) {
 
     var yTicks = getYTicks(header);
     var xTicks = getXTicksWithNumbers();
-
     var data = sortData(getTableData(header)());
+
     drawPlot(header, data, xTicks, yTicks);
 
-    var button = $('#button-trend')[0]
+    var button = $('#button-trend')[0];
     button.onclick = function() { showPlot(header); };
     button.textContent = 'Show Plot';
 };
@@ -342,7 +341,7 @@ function showTrend(header) {
 function getFormatter(labels, header) {
     return function(str, seriesIndex, pointIndex){
         debug(str, seriesIndex, pointIndex);
-        filename = labels[pointIndex][1];
+        var filename = labels[pointIndex][1];
         if (header == "status") {
             if (str == 1)       str = "correct";
             else if (str == 0)  str = "unknown";
@@ -358,8 +357,7 @@ function getFormatter(labels, header) {
 }
 
 
-function drawPlot(header, data, xTicks, yTicks){
-
+function drawPlot(header, data, xTicks, yTicks) {
     var background = $('#chartWrapperBackground')[0];
     var wrapper = $('#chartWrapper')[0];
 
@@ -428,9 +426,9 @@ function drawPlot(header, data, xTicks, yTicks){
 
 // this function adds the listeners to the table
 $(document).ready(function(){
-    columnTitles = $('#columnTitles > td');
+    var columnTitles = $('#columnTitles > td');
     for (i = 1; i< columnTitles.length; i++) { // do not use first column (i!=0)
-      column = columnTitles[i];
+      var column = columnTitles[i];
       debug(column);
       column.style.cursor = "pointer";
       column.onclick = function (event) {
