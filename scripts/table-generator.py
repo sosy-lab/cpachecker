@@ -107,17 +107,17 @@ PLOTTING_SCRIPT = '''
              background-image: url(http://www.house-events.de/schnee.gif);
              background-color:grey; 
              opacity:0.5; display:none }
-    #chartWrapper { height:650px; width:1100px; position:fixed;
-             top:50%; left:50%; margin-top:-325px; margin-left:-550px;
+    #chartWrapper { height:90%; width:90%; position:fixed; top:5%; left:5%;
              border:solid 10px black; border-radius:15px;
              background-color:white; opacity:1; display:none }
-    #chart { height:620px; width:1090px }
+    #chart { height:100%; width:100% }
+    #button-trend { position:absolute; bottom:0px; }
 </style>
 
 <div id="chartWrapperBackground"></div>
 <div id="chartWrapper">
   <div id="chart"></div>
-  <!--<button class="button-reset">Reset Zoom</button>-->
+  <button id="button-trend"></button>
 </div>
 
 <script type="text/javascript">
@@ -173,6 +173,30 @@ function getTableData(header) {
 };
 
 
+// this method returns sorted data for showTrend().
+function sortData(data) {
+    var newData = [];
+    for (i = 0; i < data.length; i++) {
+        var line = data[i];
+        var array = [];
+
+        for (j = 0; j < line.length; j++) {
+            if (line[j].length != 2) {debug("ERROR: data is invalid!");}
+            array.push(line[j][1]);
+        }
+
+        array.sort( function(a, b) { return a - b;} ); // compare numbers!
+
+        var newLine = [];
+        for (j = 0; j < line.length; j++) {
+            newLine.push([j, array[j]]);
+        }
+
+        newData.push(newLine);
+    }
+    return function inner(){ return newData;};
+}
+
 // get labels for x-direction
 function getXTicks(){
     xTicks = [];
@@ -186,6 +210,25 @@ function getXTicks(){
     return xTicks;
 }
 
+// get labels for x-direction as [[0," 0"],[1," "],...] with a number in each 5th element
+function getXTicksWithNumbers(){
+    var xTicks = [];
+    var maxLength = 40;
+    var tableBody = $('#dataTable > tbody')[0];
+    for(i = 0; i < tableBody.rows.length; i++) {
+      xTicks.push([i, ((i%5)?" ":" " + i)]);
+    }
+    return xTicks;
+}
+
+// get labels for y-direction
+function getYTicks(header) {
+    if (header == "status") {
+      return [[-1.5, " "], [-1, "wrong"], [0, "unknown"], [1, "correct"], [1.5, " "]];
+    } else {
+      return [];
+    }
+}
 
 // returns a list of cells, each cell is multiplied by value of its colspan.
 function expandColSpan(row) {
@@ -200,6 +243,7 @@ function expandColSpan(row) {
 }
 
 
+// returns label of a test: 'tool+test+date'.
 function getLabels(header) {
     debug("labels for: " + header);
     var labels = [];
@@ -262,25 +306,36 @@ function addLegendActions() {
     }
 }
 
-function showPlot(event) {
-    header = event.target.textContent;
-    debug(event + "  " + header);
 
-    background = $('#chartWrapperBackground')[0];
-    wrapper = $('#chartWrapper')[0];
+function showPlot(header) {
+    debug("show plot of: " + header);
+    $('#chartWrapperBackground').trigger('click');
 
-    // show graph
-    background.style.display='block';
-    wrapper.style.display='block';
-    drawPlot(header);
-    addLegendActions();
+    var yTicks = getYTicks(header);
+    var xTicks = getXTicks(); // filenames for labels
+    var data = getTableData(header);
 
-    // add function for cleanup
-    background.onclick = function(event){
-      wrapper.style.display='none';
-      background.style.display='none';
-      $('#chart').empty();
-    };
+    drawPlot(header, data, xTicks, yTicks);
+
+    var button = $('#button-trend')[0]
+    button.onclick = function() { showTrend(header); };
+    button.textContent = 'Show Trend';
+};
+
+
+function showTrend(header) {
+    debug("show trend of: " + header);
+    $('#chartWrapperBackground').trigger('click');
+
+    var yTicks = getYTicks(header);
+    var xTicks = getXTicksWithNumbers();
+
+    var data = sortData(getTableData(header)());
+    drawPlot(header, data, xTicks, yTicks);
+
+    var button = $('#button-trend')[0]
+    button.onclick = function() { showPlot(header); };
+    button.textContent = 'Show Plot';
 };
 
 
@@ -289,22 +344,35 @@ function getFormatter(labels, header) {
         debug(str, seriesIndex, pointIndex);
         filename = labels[pointIndex][1];
         if (header == "status") {
-            return filename;
-        } else {
-            return filename + "<br>" + str;
+            if (str == 1)       str = "correct";
+            else if (str == 0)  str = "unknown";
+            else                str = "wrong";
         }
+        if (filename.indexOf(" ") == 0) { // for showTrend(), all labels start with space.
+            filename = "";
+        } else {
+            filename = filename + "<br>";
+        }
+        return filename + str;
     };
 }
 
 
-function drawPlot(header){
+function drawPlot(header, data, xTicks, yTicks){
 
-    if (header == "status") {
-      yTicks=[[-1.5, " "], [-1, "wrong"], [0, "unknown"], [1, "correct"], [1.5, " "]];
-    } else {
-      yTicks=[];
-    }
-    xTicks = getXTicks(); // filenames for labels
+    var background = $('#chartWrapperBackground')[0];
+    var wrapper = $('#chartWrapper')[0];
+
+    // show graph
+    background.style.display='block';
+    wrapper.style.display='block';
+
+    // add function for cleanup
+    background.onclick = function(event){
+      wrapper.style.display = 'none';
+      background.style.display = 'none';
+      $('#chart').empty();
+    };
 
     // data array is empty, we use "columnRenderer" option to get data.
     var plot = $.jqplot('chart',[],{
@@ -318,7 +386,7 @@ function drawPlot(header){
         rowSpacing: "0px",
         showSwatches: true,
       },
-      dataRenderer: getTableData(header),
+      dataRenderer: data,
       highlighter:{
         show: true,
         sizeAdjust: 10,
@@ -354,7 +422,7 @@ function drawPlot(header){
       },
     });
 
-    // $('.button-reset').click(function() { plot.resetZoom(); addLegendHider(); }); // not always working
+    addLegendActions();
 };
 
 
@@ -365,7 +433,10 @@ $(document).ready(function(){
       column = columnTitles[i];
       debug(column);
       column.style.cursor = "pointer";
-      column.onclick = showPlot;
+      column.onclick = function (event) {
+          var header = event.target.textContent;
+          return showPlot(header);
+      }
     }
 });
 
