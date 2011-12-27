@@ -314,7 +314,7 @@ function showPlot(header) {
     var xTicks = getXTicks(); // filenames for labels
     var data = getTableData(header);
 
-    drawPlot(header, data, xTicks, yTicks);
+    drawPlot(header, data, xTicks, yTicks, "plot");
 
     var button = $('#button-trend')[0];
     button.onclick = function() { showTrend(header); };
@@ -330,7 +330,7 @@ function showTrend(header) {
     var xTicks = getXTicksWithNumbers();
     var data = sortData(getTableData(header)());
 
-    drawPlot(header, data, xTicks, yTicks);
+    drawPlot(header, data, xTicks, yTicks, "trend");
 
     var button = $('#button-trend')[0];
     button.onclick = function() { showPlot(header); };
@@ -356,8 +356,9 @@ function getFormatter(labels, header) {
     };
 }
 
+plotCache = {};
 
-function drawPlot(header, data, xTicks, yTicks) {
+function drawPlot(header, data, xTicks, yTicks, type) {
     var background = $('#chartWrapperBackground')[0];
     var wrapper = $('#chartWrapper')[0];
 
@@ -372,6 +373,15 @@ function drawPlot(header, data, xTicks, yTicks) {
       $('#chart').empty();
     };
 
+    var key = type + "@" + header;
+    if (plotCache.hasOwnProperty(key)) {
+
+    debug("object in cache: " + key);
+    var plot = plotCache[key];
+    plot.replot();
+
+    } else {
+    
     // data array is empty, we use "columnRenderer" option to get data.
     var plot = $.jqplot('chart',[],{
       title: header,
@@ -419,6 +429,9 @@ function drawPlot(header, data, xTicks, yTicks) {
         }
       },
     });
+
+    plotCache[key] = plot;
+    }
 
     addLegendActions();
 };
