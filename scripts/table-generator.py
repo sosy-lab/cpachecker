@@ -375,62 +375,60 @@ function drawPlot(header, data, xTicks, yTicks, type) {
 
     var key = type + "@" + header;
     if (plotCache.hasOwnProperty(key)) {
-
-    debug("object in cache: " + key);
-    var plot = plotCache[key];
-    plot.replot();
+        debug("object in cache: " + key);
+        var plot = plotCache[key];
+        plot.replot();
 
     } else {
-    
-    // data array is empty, we use "columnRenderer" option to get data.
-    var plot = $.jqplot('chart',[],{
-      title: header,
-      legend: {
-        show:true,
-        placement: 'outsideGrid',
-        renderer: $.jqplot.EnhancedLegendRenderer,
-        labels: getLabels(header),
-        location: 's',
-        rowSpacing: "0px",
-        showSwatches: true,
-      },
-      dataRenderer: data,
-      highlighter:{
-        show: true,
-        sizeAdjust: 10,
-        showMarker: true,
-        tooltipAxes: 'y',
-        tooltipLocation: 'ne',
-        tooltipContentEditor: getFormatter(xTicks, header),
-      },
-      seriesDefaults:{
-        shadow: false,
-      },
-      cursor:{
-        show: false,
-        zoom: false,
-        showTooltip: false,
-      },
-      axes:{
-        xaxis:{
-          ticks: xTicks,
-          tickRenderer: $.jqplot.CanvasAxisTickRenderer,
-          tickOptions: {
-            fontSize: '9px',	      
-            angle: -60,
-          }
-        },
-        yaxis:{
-          ticks: yTicks,
-          pad: 1.2,
-          tickOptions:{
-            formatString:'%.2f'
-          }
-        }
-      },
-    });
+        // data array is empty, we use "columnRenderer" option to get data.
+        var plot = $.jqplot('chart',[],{
+          title: header,
+          legend: {
+            show:true,
+            placement: 'outsideGrid',
+            renderer: $.jqplot.EnhancedLegendRenderer,
+            labels: getLabels(header),
+            location: 's',
+            rowSpacing: "0px",
+            showSwatches: true,
+          },
+          dataRenderer: data,
+          highlighter:{
+            show: true,
+            sizeAdjust: 10,
+            showMarker: true,
+            tooltipAxes: 'y',
+            tooltipLocation: 'ne',
+            tooltipContentEditor: getFormatter(xTicks, header),
+          },
+          seriesDefaults:{
+            shadow: false,
+          },
+          cursor:{
+            show: false,
+            zoom: false,
+            showTooltip: false,
+          },
+          axes:{
+            xaxis:{
+              ticks: xTicks,
+              tickRenderer: $.jqplot.CanvasAxisTickRenderer,
+              tickOptions: {
+                fontSize: '9px',
+                angle: -60,
+              }
+            },
+            yaxis:{
+              ticks: yTicks,
+              pad: 1.2,
+              tickOptions:{
+                formatString:'%.2f'
+              }
+            }
+          },
+        });
 
-    plotCache[key] = plot;
+        plotCache[key] = plot;
     }
 
     addLegendActions();
