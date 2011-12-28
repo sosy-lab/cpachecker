@@ -68,15 +68,17 @@ public class ExplicitReducer implements Reducer {
     for(String trackedVar : reducedElement.getTrackedVariableNames()) {
       diffElement.deleteValue(trackedVar);
     }
-
-    ExplicitElement expandedElement = reducedElement.clone();
-    for(String rootVar : diffElement.getTrackedVariableNames()) {
-      if(!occursInBlock(pReducedContext, rootVar)) {
-        expandedElement.copyConstant(diffElement, rootVar);
+    //TODO: following is needed with threshold != inf
+  /*  for(String trackedVar : diffElement.getTrackedVariableNames()) {
+      if(occursInBlock(pReducedContext, trackedVar)) {
+        diffElement.deleteValue(trackedVar);
       }
+    }*/
+    for(String trackedVar : reducedElement.getTrackedVariableNames()) {
+      diffElement.copyConstant(reducedElement, trackedVar);
     }
 
-    return expandedElement;
+    return diffElement;
   }
 
   @Override
@@ -104,7 +106,7 @@ public class ExplicitReducer implements Reducer {
     ExplicitElement elementKey = (ExplicitElement)pElementKey;
     ExplicitPrecision precisionKey = (ExplicitPrecision)pPrecisionKey;
 
-    return Pair.of(elementKey, precisionKey);
+    return Pair.of(elementKey.getConstantsMap(), precisionKey);
   }
 
   @Override
