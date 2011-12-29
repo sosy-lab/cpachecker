@@ -25,6 +25,7 @@ CPAchecker web page:
 """
 
 from datetime import date
+from threading import Timer
 
 import time
 import glob
@@ -684,6 +685,7 @@ class OutputHandler:
     def outputBeforeRun(self, sourcefile, currentOptions):
         """
         The method outputBeforeRun() prints the name of a file to terminal.
+        It returns the name of the logfile.
         @param sourcefile: the name of a sourcefile
         """
 
@@ -695,6 +697,14 @@ class OutputHandler:
         sys.stdout.write(time.strftime("%H:%M:%S", time.localtime()) \
             + '   ' + sourcefile.ljust(self.maxLengthOfFileName + 4))
         sys.stdout.flush()
+
+        # write output to file-specific log-file
+        logfileName = self.logFolder
+        if self.test.name is not None:
+            logfileName += self.test.name + "."
+        logfileName += os.path.basename(sourcefile) + ".log"
+        
+        return logfileName
 
 
     def outputAfterRun(self, sourcefile, fileOptions, status,
@@ -722,15 +732,6 @@ class OutputHandler:
                     column.value = self.formatNumber(floatValue, column.numberOfDigits)
                 except ValueError: # if value is no float, don't format it
                     pass
-
-        # write output to file-specific log-file
-        logFileName = self.logFolder
-        if self.test.name is not None:
-            logFileName += self.test.name + "."
-        logFileName += os.path.basename(sourcefile) + ".log"
-        logFile = FileWriter(logFileName, ' '.join(args))
-        logFile.append('\n\n\n' + '-'*80 + '\n\n\n')
-        logFile.append(output)
 
         # output in terminal/console
         statusRelation = self.isCorrectResult(sourcefile, status)
@@ -1084,9 +1085,13 @@ def killSubprocess(process):
     os.killpg(process.pid, signal.SIGTERM)
 
 
-def run(args, rlimits):
+def run(args, rlimits, outputfilename):
     args = [os.path.expandvars(arg) for arg in args]
     args = [os.path.expanduser(arg) for arg in args]
+
+    outputfile = open(outputfilename, 'w') # override existing file
+    outputfile.write(' '.join(args) + '\n\n\n' + '-'*80 + '\n\n\n')
+    outputfile.flush()
 
     def preSubprocess():
         os.setpgrp() # make subprocess to group-leader
@@ -1097,31 +1102,33 @@ def run(args, rlimits):
     wallTimeBefore = time.time()
 
     try:
-        global p
         p = subprocess.Popen(args,
-                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                             stdout=outputfile, stderr=outputfile,
                              preexec_fn=preSubprocess)
+
+        # if rlimit does not work, a seperate Timer is started to kill the subprocess,
+        # Timer has 10 seconds 'overhead'
+        if (resource.RLIMIT_CPU in rlimits):
+          timelimit = rlimits[resource.RLIMIT_CPU][0]
+          timer = Timer(timelimit + 10, killSubprocess, [p])
+          timer.start()
+
+        returncode = p.wait()
+
     except OSError:
         logging.critical("I caught an OSError. Assure that the directory "
                          + "containing the tool to be benchmarked is included "
                          + "in the PATH environment variable or an alias is set.")
         sys.exit("A critical exception caused me to exit non-gracefully. Bye.")
 
-    # if rlimit does not work, a seperate Timer is started to kill the subprocess,
-    # Timer has 10 seconds 'overhead'
-    from threading import Timer
-    if (resource.RLIMIT_CPU in rlimits):
-        timelimit = rlimits[resource.RLIMIT_CPU][0]
-        global timer # "global" for KeyboardInterrupt from user
-        timer = Timer(timelimit + 10, killSubprocess, [p])
-        timer.start()
+    except KeyboardInterrupt:
+        print ("killing subprocess...")
+        killSubprocess(p)
+        raise KeyboardInterrupt # throw again to stop script
 
-    output = p.communicate()[0]
-    output = decodeToString(output)
-    returncode = p.wait()
-
-    if (0 in rlimits) and timer.isAlive():
-        timer.cancel()
+    finally:
+        if (resource.RLIMIT_CPU in rlimits) and timer.isAlive():
+            timer.cancel()
 
     wallTimeAfter = time.time()
     wallTimeDelta = wallTimeAfter - wallTimeBefore
@@ -1130,6 +1137,15 @@ def run(args, rlimits):
         - (ru_before.ru_utime + ru_before.ru_stime)
 
     logging.debug("My subprocess returned returncode {0}.".format(returncode))
+
+ 
+    outputfile.close() # normally subprocess closes file, we do this again
+
+    outputfile = open(outputfilename, 'r') # re-open file for reading output
+    output = ''.join(outputfile.readlines()[6:]) # first 6 lines are for logging, rest is output of subprocess
+    outputfile.close()
+    output = decodeToString(output)
+
     return (returncode, output, cpuTimeDelta, wallTimeDelta)
 
 def isTimeout(cpuTimeDelta, rlimits):
@@ -1142,7 +1158,7 @@ def isTimeout(cpuTimeDelta, rlimits):
     return cpuTimeDelta > limit*0.99
 
 
-def run_cbmc(options, sourcefile, columns, rlimits):
+def run_cbmc(options, sourcefile, columns, rlimits, file):
     if ("--xml-ui" not in options):
         options = options + ["--xml-ui"]
 
@@ -1154,7 +1170,7 @@ def run_cbmc(options, sourcefile, columns, rlimits):
 
     exe = findExecutable("cbmc", defaultExe)
     args = [exe] + options + [sourcefile]
-    (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
+    (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
 
     #an empty tag cannot be parsed into a tree
     output = output.replace("<>", "<emptyTag>")
@@ -1219,7 +1235,7 @@ def run_cbmc(options, sourcefile, columns, rlimits):
     return (status, cpuTimeDelta, wallTimeDelta, output, args)
 
 
-def run_satabs(options, sourcefile, columns, rlimits):
+def run_satabs(options, sourcefile, columns, rlimits, file):
     exe = findExecutable("satabs", None)
     args = [exe] + options + [sourcefile]
 
@@ -1229,7 +1245,7 @@ def run_satabs(options, sourcefile, columns, rlimits):
     # on timeout of rlimit the signal SIGTERM is thrown, catch and ignore it
     signal.signal(signal.SIGTERM, doNothing)
 
-    (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
+    (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
 
     # reset signal-handler
     signal.signal(signal.SIGTERM, signal_handler_ignore)
@@ -1254,10 +1270,10 @@ def run_satabs(options, sourcefile, columns, rlimits):
     return (status, cpuTimeDelta, wallTimeDelta, output, args)
 
 
-def run_wolverine(options, sourcefile, columns, rlimits):
+def run_wolverine(options, sourcefile, columns, rlimits, file):
     exe = findExecutable("wolverine", None)
     args = [exe] + options + [sourcefile]
-    (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
+    (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
     if "VERIFICATION SUCCESSFUL" in output:
         assert returncode == 0
         status = "SAFE"
@@ -1275,7 +1291,7 @@ def run_wolverine(options, sourcefile, columns, rlimits):
     return (status, cpuTimeDelta, wallTimeDelta, output, args)
 
 
-def run_acsar(options, sourcefile, columns, rlimits):
+def run_acsar(options, sourcefile, columns, rlimits, file):
     exe = findExecutable("acsar", None)
 
     # create tmp-files for acsar, acsar needs special error-labels
@@ -1286,7 +1302,7 @@ def run_acsar(options, sourcefile, columns, rlimits):
 
     args = [exe] + ["--file"] + [prepSourcefile] + options
 
-    (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
+    (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
     if "syntax error" in output:
         status = "SYNTAX ERROR"
 
@@ -1342,17 +1358,17 @@ def prepareSourceFileForAcsar(sourcefile):
 # perhaps someone can use these function again someday,
 # to use them you need a normal benchmark-xml-file 
 # with the tool and sourcefiles, however options are ignored
-def run_safe(options, sourcefile, columns, rlimits):
+def run_safe(options, sourcefile, columns, rlimits, file):
     args = ['safe'] + options + [sourcefile]
     (returncode, output, cpuTimeDelta, wallTimeDelta) = (0, 'no output', 0, 0)
     return ('safe', cpuTimeDelta, wallTimeDelta, output, args)
 
-def run_unsafe(options, sourcefile, columns, rlimits):
+def run_unsafe(options, sourcefile, columns, rlimits, file):
     args = ['unsafe'] + options + [sourcefile]
     (returncode, output, cpuTimeDelta, wallTimeDelta) = (0, 'no output', 0, 0)
     return ('unsafe', cpuTimeDelta, wallTimeDelta, output, args)
 
-def run_random(options, sourcefile, columns, rlimits):
+def run_random(options, sourcefile, columns, rlimits, file):
     args = ['random'] + options + [sourcefile]
     (returncode, output, cpuTimeDelta, wallTimeDelta) = (0, 'no output', 0, 0)
     from random import random
@@ -1360,13 +1376,13 @@ def run_random(options, sourcefile, columns, rlimits):
     return (status, cpuTimeDelta, wallTimeDelta, output, args)
 
 
-def run_cpachecker(options, sourcefile, columns, rlimits):
+def run_cpachecker(options, sourcefile, columns, rlimits, file):
     if ("-stats" not in options):
         options = options + ["-stats"]
 
     exe = findExecutable("cpachecker", "scripts/cpa.sh")
     args = [exe] + options + [sourcefile]
-    (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
+    (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
 
     status = getCPAcheckerStatus(returncode, output, rlimits, cpuTimeDelta)
     getCPAcheckerColumns(output, columns)
@@ -1455,10 +1471,10 @@ def getCPAcheckerColumns(output, columns):
                 break
 
 
-def run_blast(options, sourcefile, columns, rlimits):
+def run_blast(options, sourcefile, columns, rlimits, file):
     exe = findExecutable("pblast.opt", None)
     args = [exe] + options + [sourcefile]
-    (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
+    (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
 
     status = "UNKNOWN"
     for line in output.splitlines():
@@ -1512,11 +1528,11 @@ def runBenchmark(benchmarkFile):
                 # replace variables with special values
                 currentOptions = substituteVars(currentOptions, benchmark, test, sourcefile, outputHandler)
 
-                outputHandler.outputBeforeRun(sourcefile, currentOptions)
+                logfile = outputHandler.outputBeforeRun(sourcefile, currentOptions)
 
                 # run test
                 (status, cpuTimeDelta, wallTimeDelta, output, args) = \
-                    run_func(currentOptions, sourcefile, benchmark.columns, benchmark.rlimits)
+                    run_func(currentOptions, sourcefile, benchmark.columns, benchmark.rlimits, logfile)
 
                 outputHandler.outputAfterRun(sourcefile, fileOptions, status,
                                              cpuTimeDelta, wallTimeDelta, output, args)
@@ -1587,21 +1603,4 @@ if __name__ == "__main__":
     try:
         sys.exit(main())
     except KeyboardInterrupt:
-
-        try:
-            timer.cancel() # Timer, that kills a subprocess after timelimit
-        except NameError:
-            pass # if no timer is defined, do nothing
-
-        try:
-            killSubprocess(p) # kill running tool
-        except NameError:
-            pass # if tool not running, do nothing
-
-        interruptMessage = "\n\nscript was interrupted by user, some tests may not be done"
-        logging.debug(interruptMessage)
-
-        print(interruptMessage)
-
-        pass
-
+        print ("\n\nscript was interrupted by user, some tests may not be done")
