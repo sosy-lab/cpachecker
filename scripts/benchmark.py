@@ -30,7 +30,7 @@ from threading import Timer
 import time
 import glob
 import logging
-import os.path
+import os
 import platform
 import resource
 import signal
@@ -1098,7 +1098,6 @@ def run(args, rlimits, outputfilename):
         for rsrc in rlimits:
             resource.setrlimit(rsrc, rlimits[rsrc])
 
-    ru_before = resource.getrusage(resource.RUSAGE_CHILDREN)
     wallTimeBefore = time.time()
 
     try:
@@ -1113,7 +1112,12 @@ def run(args, rlimits, outputfilename):
           timer = Timer(timelimit + 10, killSubprocess, [p])
           timer.start()
 
-        returncode = p.wait()
+        (pid, returnvalue, ru_child) = os.wait4(p.pid, 0)
+
+        # calculation: returnvalue == (returncode * 256) + returnsignal
+        returnsignal = returnvalue % 256
+        returncode = returnvalue // 256
+        assert pid == p.pid
 
     except OSError:
         logging.critical("I caught an OSError. Assure that the directory "
@@ -1132,9 +1136,7 @@ def run(args, rlimits, outputfilename):
 
     wallTimeAfter = time.time()
     wallTimeDelta = wallTimeAfter - wallTimeBefore
-    ru_after = resource.getrusage(resource.RUSAGE_CHILDREN)
-    cpuTimeDelta = (ru_after.ru_utime + ru_after.ru_stime)\
-        - (ru_before.ru_utime + ru_before.ru_stime)
+    cpuTimeDelta = (ru_child.ru_utime + ru_child.ru_stime)
 
     logging.debug("My subprocess returned returncode {0}.".format(returncode))
 
@@ -1146,7 +1148,7 @@ def run(args, rlimits, outputfilename):
     outputfile.close()
     output = decodeToString(output)
 
-    return (returncode, output, cpuTimeDelta, wallTimeDelta)
+    return (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta)
 
 def isTimeout(cpuTimeDelta, rlimits):
     ''' try to find out whether the tool terminated because of a timeout '''
@@ -1170,7 +1172,7 @@ def run_cbmc(options, sourcefile, columns, rlimits, file):
 
     exe = findExecutable("cbmc", defaultExe)
     args = [exe] + options + [sourcefile]
-    (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
+    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
 
     #an empty tag cannot be parsed into a tree
     output = output.replace("<>", "<emptyTag>")
@@ -1219,15 +1221,15 @@ def run_cbmc(options, sourcefile, columns, rlimits, file):
         # parser error or something similar
         status = 'ERROR'
 
-    elif returncode == -9 or returncode == (128+9):
+    elif returnsignal == 9 or returncode == (128+9):
         if isTimeout(cpuTimeDelta, rlimits):
             status = 'TIMEOUT'
         else:
             status = "KILLED BY SIGNAL 9"
 
-    elif returncode == 134:
+    elif returnsignal == 6:
         status = "ABORTED"
-    elif returncode == 15 or returncode == (128+15):
+    elif returnsignal == 15 or returncode == (128+15):
         status = "KILLED"
     else:
         status = "ERROR ({0})".format(returncode)
@@ -1245,7 +1247,7 @@ def run_satabs(options, sourcefile, columns, rlimits, file):
     # on timeout of rlimit the signal SIGTERM is thrown, catch and ignore it
     signal.signal(signal.SIGTERM, doNothing)
 
-    (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
+    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
 
     # reset signal-handler
     signal.signal(signal.SIGTERM, signal_handler_ignore)
@@ -1256,9 +1258,9 @@ def run_satabs(options, sourcefile, columns, rlimits, file):
     elif "VERIFICATION FAILED" in output:
         assert returncode == 10
         status = "UNSAFE"
-    elif returncode == -9:
+    elif returnsignal == 9:
         status = "TIMEOUT"
-    elif returncode == -6:
+    elif returnsignal == 6:
         if "Assertion `!counterexample.steps.empty()' failed" in output:
             status = 'COUNTEREXAMPLE FAILED' # TODO: other status?
         else:
@@ -1273,16 +1275,16 @@ def run_satabs(options, sourcefile, columns, rlimits, file):
 def run_wolverine(options, sourcefile, columns, rlimits, file):
     exe = findExecutable("wolverine", None)
     args = [exe] + options + [sourcefile]
-    (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
+    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
     if "VERIFICATION SUCCESSFUL" in output:
         assert returncode == 0
         status = "SAFE"
     elif "VERIFICATION FAILED" in output:
         assert returncode == 10
         status = "UNSAFE"
-    elif returncode == -9:
+    elif returnsignal == 9:
         status = "TIMEOUT"
-    elif returncode == -6 or (returncode == 6 and "Out of memory" in output):
+    elif returnsignal == 6 or (returncode == 6 and "Out of memory" in output):
         status = "OUT OF MEMORY"
     elif returncode == 6 and "PARSING ERROR" in output:
         status = "PARSING ERROR"
@@ -1302,7 +1304,7 @@ def run_acsar(options, sourcefile, columns, rlimits, file):
 
     args = [exe] + ["--file"] + [prepSourcefile] + options
 
-    (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
+    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
     if "syntax error" in output:
         status = "SYNTAX ERROR"
 
@@ -1337,7 +1339,6 @@ def run_acsar(options, sourcefile, columns, rlimits, file):
         status = "UNKNOWN"
 
     # delete tmp-files
-    import os
     os.remove(prepSourcefile)
 
     return (status, cpuTimeDelta, wallTimeDelta, output, args)
@@ -1382,17 +1383,18 @@ def run_cpachecker(options, sourcefile, columns, rlimits, file):
 
     exe = findExecutable("cpachecker", "scripts/cpa.sh")
     args = [exe] + options + [sourcefile]
-    (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
+    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
 
-    status = getCPAcheckerStatus(returncode, output, rlimits, cpuTimeDelta)
+    status = getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
     getCPAcheckerColumns(output, columns)
 
     return (status, cpuTimeDelta, wallTimeDelta, output, args)
 
 
-def getCPAcheckerStatus(returncode, output, rlimits, cpuTimeDelta):
+def getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta):
     """
     @param returncode: code returned by CPAchecker
+    @param returnsignal: signal, which terminated CPAchecker
     @param output: the output of CPAchecker
     @return: status of CPAchecker after running a testfile
     """
@@ -1404,23 +1406,23 @@ def getCPAcheckerStatus(returncode, output, rlimits, cpuTimeDelta):
              or line.startswith('out of memory')
              )
 
-    if returncode == 0:
+    if returnsignal == 0:
         status = None
 
-    elif returncode == -6:
+    elif returnsignal == 6:
         status = "ABORTED (probably by Mathsat)"
 
-    elif returncode == -9:
+    elif returnsignal == 9:
         if isTimeout(cpuTimeDelta, rlimits):
             status = 'TIMEOUT'
         else:
             status = "KILLED BY SIGNAL 9"
 
-    elif returncode == (128+15):
+    elif returnsignal == (128+15):
         status = "KILLED"
 
     else:
-        status = "ERROR ({0})".format(returncode)
+        status = "ERROR ({0})".format(returnsignal)
 
     for line in output.splitlines():
         if isOutOfMemory(line):
@@ -1474,7 +1476,7 @@ def getCPAcheckerColumns(output, columns):
 def run_blast(options, sourcefile, columns, rlimits, file):
     exe = findExecutable("pblast.opt", None)
     args = [exe] + options + [sourcefile]
-    (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
+    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
 
     status = "UNKNOWN"
     for line in output.splitlines():
