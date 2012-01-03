@@ -191,17 +191,17 @@ public class CPAchecker {
 
     logger.log(Level.INFO, "CPAchecker", getVersion(), "started");
 
-    MainCPAStatistics stat = null;
+    MainCPAStatistics mainStats = null;
     ReachedSet reached = null;
     Result result = Result.NOT_YET_STARTED;
 
     try {
-      stat = new MainCPAStatistics(config, logger);
-      statisticsContainer.addContinuousStatistics(stat);
-      statisticsContainer.addTerminationStatistics(stat);
+      mainStats = new MainCPAStatistics(config, logger);
+      statisticsContainer.addContinuousStatistics(mainStats);
+      statisticsContainer.addTerminationStatistics(mainStats);
 
       // create reached set, cpa, algorithm
-      stat.creationTime.start();
+      mainStats.creationTime.start();
       reached = reachedSetFactory.create();
 
       Algorithm algorithm;
@@ -210,7 +210,9 @@ public class CPAchecker {
         algorithm = new ExternalCBMCAlgorithm(filename, config, logger);
 
       } else {
-        CFA cfa = parse(filename, stat);
+        CFA cfa = parse(filename, mainStats);
+        CFAStatistics cfaStats = new CFAStatistics(cfa);
+        statisticsContainer.addTerminationStatistics(cfaStats);
         if (cfa.isEmpty()) {
           // empty program, do nothing
           return new CPAcheckerResult(Result.NOT_YET_STARTED, null, null);
@@ -218,7 +220,7 @@ public class CPAchecker {
 
         stopIfNecessary();
 
-        ConfigurableProgramAnalysis cpa = createCPA(stat, cfa);
+        ConfigurableProgramAnalysis cpa = createCPA(mainStats, cfa);
 
         algorithm = createAlgorithm(cpa, statisticsContainer, filename, cfa);
 
@@ -233,7 +235,7 @@ public class CPAchecker {
 
       printConfigurationWarnings();
 
-      stat.creationTime.stop();
+      mainStats.creationTime.stop();
       stopIfNecessary();
       // now everything necessary has been instantiated
 
@@ -241,7 +243,7 @@ public class CPAchecker {
       // run analysis
       result = Result.UNKNOWN; // set to unknown so that the result is correct in case of exception
 
-      boolean sound = runAlgorithm(algorithm, reached, stat);
+      boolean sound = runAlgorithm(algorithm, reached, mainStats);
 
       result = analyzeResult(reached, sound);
 

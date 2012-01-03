@@ -191,7 +191,7 @@ public class CCVisuClusterer implements Clusterer {
         maxNumberOfClusters = graph.getVertices().size() / avgNodesInCluster;
       }
 
-      ClustererMinDistPerc clusterer = new ClustererMinDistPerc(
+      ClustererMinDistPerc clusterer = new ClustererMinDistPerc (
             graph,
             maxNumberOfClusters,
             this.clusterMergeDistancePercent,
@@ -214,6 +214,7 @@ public class CCVisuClusterer implements Clusterer {
     }
 
     // Initialize clustering statistics.
+    statistics.setClusterer(this);
     statistics.setClusteredGraph(graph);
     statistics.printStatistics(System.out, null, null);
   }

@@ -124,7 +124,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     // Inject the CFA into the BlockOperator.
     // TODO: This should be done with the "automatic" injection technique used by CPAchecker.
-    this.clusteringStats = new ClusteringStatistics();
+    this.clusteringStats = new ClusteringStatistics(pConfig);
 
     Clusterer clusterer = new CCVisuClusterer(pConfig, pLogger, clusteringStats);
     clusterer.buildClustering(pCfa);
@@ -273,6 +273,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Override
   public void collectStatistics(StatisticsConsumer statsConsumer) {
     statsConsumer.addTerminationStatistics(clusteringStats);
+    statsConsumer.addContinuousStatistics(clusteringStats);
     statsConsumer.addTerminationStatistics(stats);
     statsConsumer.addContinuousStatistics(stats);
   }

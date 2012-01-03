@@ -122,6 +122,10 @@ public class StatisticsContainer implements StatisticsConsumer, Statistics, Call
     this.continuousStatistics.add(pStats);
 
     String[] cols = pStats.announceStatisticColumns();
+    if (cols == null) {
+      cols = new String[]{};
+    }
+
     for (String col : cols) {
       continuousStatisticsColumns.add(col);
     }
