@@ -43,6 +43,8 @@ CSV_SEPARATOR = "\t"
 BUG_SUBSTRING_LIST = ['bug', 'unsafe']
 
 
+BYTE_FACTOR = 1024 # byte in kilobyte
+
 # colors for column status in terminal
 USE_COLORS = True
 COLOR_GREEN = "\033[32;1m{0}\033[m"
@@ -70,11 +72,6 @@ class Benchmark:
     """
 
     def __init__(self, benchmarkFile):
-        self.readXML(benchmarkFile)
-        self.outputBeforeBenchmark()
-
-
-    def readXML(self, benchmarkFile):
         """
         The constructor of Benchmark reads the files, options, columns and the tool
         from the xml-file.
@@ -100,7 +97,7 @@ class Benchmark:
         self.rlimits = {}
         keys = list(root.keys())
         if ("memlimit" in keys):
-            limit = int(root.get("memlimit")) * 1024 * 1024
+            limit = int(root.get("memlimit")) * BYTE_FACTOR * BYTE_FACTOR
             self.rlimits[resource.RLIMIT_AS] = (limit, limit)
         if ("timelimit" in keys):
             limit = int(root.get("timelimit"))
@@ -136,14 +133,6 @@ class Benchmark:
                 logging.debug('Column "{0}" with title "{1}" loaded from xml-file.'
                           .format(column.text, column.title))
         return columns
-
-
-    def outputBeforeBenchmark(self):
-        # create folder for file-specific log-files.
-        # existing files (with the same name) will be OVERWRITTEN!
-        self.logFolder = OUTPUT_PATH + self.name + "." + self.date + ".logfiles/"
-        if not os.path.isdir(self.logFolder):
-            os.makedirs(self.logFolder)
 
 
 class Test:
@@ -449,7 +438,13 @@ class OutputHandler:
 
         self.benchmark = benchmark
         self.statistics = Statistics()
-        self.logFolder = self.benchmark.logFolder
+
+        # create folder for file-specific log-files.
+        # existing files (with the same name) will be OVERWRITTEN!
+        self.logFolder = OUTPUT_PATH + self.benchmark.name + "." + self.benchmark.date + ".logfiles/"
+        if not os.path.isdir(self.logFolder):
+            os.makedirs(self.logFolder)
+        self.benchmark.logFolder = self.logFolder # inject benchmark with logFolder
 
         # get information about computer
         (opSystem, cpuModel, numberOfCores, maxFrequency, memory, hostname) = self.getSystemInfo()
@@ -458,7 +453,7 @@ class OutputHandler:
         memlimit = None
         timelimit = None
         if (resource.RLIMIT_AS in self.benchmark.rlimits):
-            memlimit = str(self.benchmark.rlimits[resource.RLIMIT_AS][0] // 1024 // 1024) + " MB"
+            memlimit = str(self.benchmark.rlimits[resource.RLIMIT_AS][0] // BYTE_FACTOR // BYTE_FACTOR) + " MB"
         if (resource.RLIMIT_CPU in self.benchmark.rlimits):
             timelimit = str(self.benchmark.rlimits[resource.RLIMIT_CPU][0]) + " s"
 
@@ -1196,6 +1191,7 @@ def run(args, rlimits, outputfilename):
     output = Util.decodeToString(output)
 
     return (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta)
+
 
 def isTimeout(cpuTimeDelta, rlimits):
     ''' try to find out whether the tool terminated because of a timeout '''
