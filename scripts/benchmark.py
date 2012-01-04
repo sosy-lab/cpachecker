@@ -70,21 +70,18 @@ class Benchmark:
     """
 
     def __init__(self, benchmarkFile):
+        self.readXML(benchmarkFile)
+        self.outputBeforeBenchmark()
+
+
+    def readXML(self, benchmarkFile):
         """
         The constructor of Benchmark reads the files, options, columns and the tool
         from the xml-file.
         """
-        self.benchmarkFile = benchmarkFile
-
-        ## looks like trouble with pyxml, better use lxml (http://codespeak.net/lxml/).
-        # try:
-        #     from xml.parsers.xmlproc  import xmlval
-        #     validator = xmlval.XMLValidator()
-        #     validator.parse_resource(benchmarkFile)
-        # except ImportError:
-        #     logging.debug("I cannot import xmlval so I'm skipping the validation.")
-        #     logging.debug("If you want xml validation please install pyxml.")
         logging.debug("I'm loading the benchmark {0}.".format(benchmarkFile))
+
+        self.benchmarkFile = benchmarkFile
         root = ET.ElementTree().parse(benchmarkFile)
 
         # get benchmark-name
@@ -109,6 +106,9 @@ class Benchmark:
             limit = int(root.get("timelimit"))
             self.rlimits[resource.RLIMIT_CPU] = (limit, limit)
 
+        # get global options
+        self.options = getOptions(root)
+
         # get global files, they are tested in all tests
         globalSourcefiles = root.findall("sourcefiles")
 
@@ -119,9 +119,6 @@ class Benchmark:
 
         # get columns
         self.columns = self.loadColumns(root.find("columns"))
-
-        # get global options
-        self.options = getOptions(root)
 
 
     def loadColumns(self, columnsTag):
@@ -141,12 +138,20 @@ class Benchmark:
         return columns
 
 
+    def outputBeforeBenchmark(self):
+        # create folder for file-specific log-files.
+        # existing files (with the same name) will be OVERWRITTEN!
+        self.logFolder = OUTPUT_PATH + self.name + "." + self.date + ".logfiles/"
+        if not os.path.isdir(self.logFolder):
+            os.makedirs(self.logFolder)
+
+
 class Test:
     """
     The class Test manages the import of files and options of a test.
     """
 
-    def __init__(self, testTag, benchmark, globalSourcefiles=[]):
+    def __init__(self, testTag, benchmark, globalSourcefileTags=[]):
         """
         The constructor of Test reads testname and the filenames from testTag.
         Filenames can be included or excluded, and imported from a list of
@@ -154,36 +159,49 @@ class Test:
         @param testTag: a testTag from the xml-file
         """
 
+        self.benchmark = benchmark
+
         # get name of test, name is optional, the result can be "None"
         self.name = testTag.get("name")
-
-        # get all sourcefiles
-        self.sourcefiles = getSourceFiles(globalSourcefiles, benchmark, self) + \
-                           getSourceFiles(testTag.findall("sourcefiles"), benchmark, self)
-        # print str(self.sourcefiles).replace('),', '),\n')
 
         # get all test-specific options from testTag
         self.options = getOptions(testTag)
 
+        # get all runs, a run contains one sourcefile with options
+        self.runs = self.getRuns(globalSourcefileTags + testTag.findall("sourcefiles"))
 
-def getSourceFiles(sourcefilesTagList, benchmark, test):
-    '''
-    The function getSourceFiles returns a list of tuples (filename, options).
-    The files and their options are taken from the list of sourcefilesTags.
-    '''
-    sourcefiles = []
 
-    for sourcefilesTag in sourcefilesTagList:
-        currentSourcefiles = []
+    def getRuns(self, sourcefilesTagList):
+        '''
+        This function returns a list of Runs (filename with options).
+        The files and their options are taken from the list of sourcefilesTags.
+        '''
+        runs = []
+
+        for sourcefilesTag in sourcefilesTagList:
+            # get list of filenames
+            sourcefiles = self.getSourcefiles(sourcefilesTag)
+
+            # get file-specific options for filenames
+            fileOptions = getOptions(sourcefilesTag)
+
+            for sourcefile in sourcefiles:
+                runs.append(Run(sourcefile, fileOptions, self))
+
+        return runs
+
+
+    def getSourcefiles(self, sourcefilesTag):
+        sourcefiles = []
 
         # get included sourcefiles
         for includedFiles in sourcefilesTag.findall("include"):
-            currentSourcefiles += getFileList(includedFiles.text, benchmark, test)
+            sourcefiles += self.getFileList(includedFiles.text)
 
         # get sourcefiles from list in file
         for includesFilesFile in sourcefilesTag.findall("includesfile"):
 
-            for file in getFileList(includesFilesFile.text, benchmark, test):
+            for file in self.getFileList(includesFilesFile.text):
                 fileDir = os.path.dirname(file)
 
                 # check for code (if somebody changes 'include' and 'includesfile')
@@ -201,22 +219,98 @@ def getSourceFiles(sourcefilesTagList, benchmark, test):
 
                     # ignore comments and empty lines
                     if not isComment(line):
-                        currentSourcefiles += getFileList(line, benchmark, test, fileDir)
+                        sourcefiles += self.getFileList(line, fileDir)
 
                 fileWithList.close()
 
         # remove excluded sourcefiles
         for excludedFiles in sourcefilesTag.findall("exclude"):
-            excludedFilesList = getFileList(excludedFiles.text, benchmark, test)
+            excludedFilesList = self.getFileList(excludedFiles.text)
             for excludedFile in excludedFilesList:
-                currentSourcefiles = removeAll(currentSourcefiles, excludedFile)
+                sourcefiles = removeAll(sourcefiles, excludedFile)
 
-        # get file-specific options for filenames
-        fileOptions = getOptions(sourcefilesTag)
+        return sourcefiles
 
-        sourcefiles.extend((file, fileOptions) for file in currentSourcefiles)
 
-    return sourcefiles
+    def getFileList(self, shortFile, root=""):
+        """
+        The function getFileList expands a short filename to a sorted list
+        of filenames. The short filename can contain variables and wildcards.
+        If root is given and shortFile is not absolute, root and shortFile are joined.
+        """
+        # store shortFile for fallback
+        shortFileFallback = shortFile
+
+        # replace vars like ${benchmark_path},
+        # with converting to list and back, we can use the function 'substituteVars()'
+        shortFileList = substituteVars([shortFile], self)
+        assert len(shortFileList) == 1
+        shortFile = shortFileList[0]
+
+        # 'join' ignores root, if shortFile is absolute.
+        # 'normpath' replaces 'A/foo/../B' with 'A/B', for pretty printing only
+        shortFile = os.path.normpath(os.path.join(root, shortFile))
+
+        # expand tilde and variables
+        expandedFile = os.path.expandvars(os.path.expanduser(shortFile))
+
+        # expand wildcards
+        fileList = glob.glob(expandedFile)
+
+        # sort alphabetical,
+        # if list is emtpy, sorting returns None, so better do not sort
+        if len(fileList) != 0:
+            fileList.sort()
+
+        if expandedFile != shortFile:
+            logging.debug("Expanded tilde and/or shell variables in expression {0} to {1}."
+                .format(repr(shortFile), repr(expandedFile)))
+
+        if len(fileList) == 0:
+
+            if root == "":
+                logging.warning("No files found matching {0}."
+                                .format(repr(shortFile)))
+
+            else: # Fallback for older test-sets
+                logging.warning("Perpaps old or invalid test-set. Trying fallback for {0}."
+                                .format(repr(shortFileFallback)))
+                fileList = self.getFileList(shortFileFallback)
+                if len(fileList) != 0:
+                    logging.warning("Fallback has found some files for {0}."
+                                .format(repr(shortFileFallback)))
+
+        return fileList
+
+
+class Run():
+    """
+    A Run contains one sourcefile and options.
+    """
+
+    def __init__(self, sourcefile, fileOptions, test):
+        self.sourcefile = sourcefile
+        self.options = fileOptions
+        self.test = test
+
+
+    def getMergedOptions(self):
+        """
+        This function returns a list of Strings.
+        It contains all options for this Run (global + testwide + local) without 'None'-Values.
+        """
+
+        # merge options to list
+        currentOptions = mergeOptions(self.test.benchmark.options,
+                                      self.test.options,
+                                      self.options)
+
+        # replace variables with special values
+        currentOptions = substituteVars(currentOptions,
+                                        self.test,
+                                        self.sourcefile,
+                                        self.test.benchmark.logFolder)
+        return currentOptions
 
 
 def isCode(filename):
@@ -241,57 +335,6 @@ def isComment(line):
 
 def removeAll(list, elemToRemove):
     return [elem for elem in list if elem != elemToRemove]
-
-
-def getFileList(shortFile, benchmark, test, root=""):
-    """
-    The function getFileList expands a short filename to a sorted list
-    of filenames. The short filename can contain variables and wildcards.
-    If root is given and shortFile is not absolute, root and shortFile are joined.
-    """
-    # store shortFile for fallback
-    shortFileFallback = shortFile
-
-    # replace vars like ${benchmark_path},
-    # with converting to list and back, we can use the function 'substituteVars()'
-    shortFileList = substituteVars([shortFile], benchmark, test)
-    assert len(shortFileList) == 1
-    shortFile = shortFileList[0]
-
-    # 'join' ignores root, if shortFile is absolute.
-    # 'normpath' replaces 'A/foo/../B' with 'A/B', for pretty printing only
-    shortFile = os.path.normpath(os.path.join(root, shortFile))
-
-    # expand tilde and variables
-    expandedFile = os.path.expandvars(os.path.expanduser(shortFile))
-
-    # expand wildcards
-    fileList = glob.glob(expandedFile)
-
-    # sort alphabetical,
-    # if list is emtpy, sorting returns None, so better do not sort
-    if len(fileList) != 0:
-        fileList.sort()
-
-    if expandedFile != shortFile:
-        logging.debug("Expanded tilde and/or shell variables in expression {0} to {1}."
-            .format(repr(shortFile), repr(expandedFile)))
-
-    if len(fileList) == 0:
-
-        if root == "":
-            logging.warning("No files found matching {0}."
-                            .format(repr(shortFile)))
-
-        else: # Fallback for older test-sets
-            logging.warning("Perpaps old or invalid test-set. Trying fallback for {0}."
-                            .format(repr(shortFileFallback)))
-            fileList = getFileList(shortFileFallback, benchmark, test)
-            if len(fileList) != 0:
-                logging.warning("Fallback has found some files for {0}."
-                            .format(repr(shortFileFallback)))
-
-    return fileList
 
 
 class Column:
@@ -323,14 +366,7 @@ class OutputHandler:
 
         self.benchmark = benchmark
         self.statistics = Statistics()
-
-        # create folder for file-specific log-files.
-        # if the folder exists, it will be used.
-        # if there are files in the folder (with the same name than the testfiles),
-        # they will be OVERWRITTEN without a message!
-        self.logFolder = OUTPUT_PATH + self.benchmark.name + "." + self.benchmark.date + ".logfiles/"
-        if not os.path.isdir(self.logFolder):
-            os.makedirs(self.logFolder)
+        self.logFolder = self.benchmark.logFolder
 
         # get information about computer
         (opSystem, cpuModel, numberOfCores, maxFrequency, memory, hostname) = self.getSystemInfo()
@@ -593,20 +629,20 @@ class OutputHandler:
         self.test = test
         numberOfTest = self.benchmark.tests.index(self.test) + 1
 
-        if len(self.test.sourcefiles) == 1:
+        if len(self.test.runs) == 1:
             logging.debug("test {0} consists of 1 sourcefile.".format(
                     numberOfTest))
         else:
             logging.debug("test {0} consists of {1} sourcefiles.".format(
-                    numberOfTest, len(self.test.sourcefiles)))
+                    numberOfTest, len(self.test.runs)))
 
         # length of the first column in terminal
         self.maxLengthOfFileName = 20
-        for (sourcefile, _) in self.test.sourcefiles:
-            self.maxLengthOfFileName = max(len(sourcefile), self.maxLengthOfFileName)
+        for run in self.test.runs:
+            self.maxLengthOfFileName = max(len(run.sourcefile), self.maxLengthOfFileName)
 
         # write testname to terminal
-        numberOfFiles = len(self.test.sourcefiles)
+        numberOfFiles = len(self.test.runs)
         print("\nrunning test" + \
             (" '" + test.name + "'" if test.name is not None else "") + \
             ("     (1 file)" if numberOfFiles == 1
@@ -616,7 +652,7 @@ class OutputHandler:
         # copy benchmarkinfo, limits, columntitles, systeminfo from XMLHeader
         self.testElem = self.getCopyOfXMLElem(self.XMLHeader)
         testOptions = mergeOptions(self.benchmark.options, self.test.options)
-        self.testElem.set("options", " ".join(toSimpleList(testOptions)))
+        self.testElem.set("options", " ".join(testOptions))
         if self.test.name is not None:
             self.testElem.set("name", self.test.name)
 
@@ -671,7 +707,7 @@ class OutputHandler:
             testInfo = self.test.name + "\n"
         testInfo += "test {0} of {1} with options: {2}\n\n".format(
                 numberOfTest, len(self.benchmark.tests),
-                " ".join(toSimpleList(testOptions)))
+                " ".join(testOptions))
 
         titleLine = self.createOutputLine("sourcefile", "status", "cpu time",
                             "wall time", self.benchmark.columns, True)
@@ -744,7 +780,7 @@ class OutputHandler:
         # store filename, status, times, columns in XML
         fileElem = ET.Element("sourcefile", {"name": sourcefile})
         if len(fileOptions) != 0:
-            fileElem.set("options", " ".join(toSimpleList(mergeOptions(fileOptions))))
+            fileElem.set("options", " ".join(mergeOptions(fileOptions)))
         fileElem.append(ET.Element("column", {"title": "status", "value": status}))
         fileElem.append(ET.Element("column", {"title": "cputime", "value": cpuTimeDelta}))
         fileElem.append(ET.Element("column", {"title": "walltime", "value": wallTimeDelta}))
@@ -787,7 +823,7 @@ class OutputHandler:
         FileWriter(self.getFileName(self.test.name, "xml"), XMLtoString(self.testElem))
 
         # write endline into TXTFile
-        numberOfFiles = len(self.test.sourcefiles)
+        numberOfFiles = len(self.test.runs)
         numberOfTest = self.benchmark.tests.index(self.test) + 1
         if numberOfFiles == 1:
             endline = ("test {0} consisted of 1 sourcefile.".format(numberOfTest))
@@ -943,7 +979,7 @@ def getOptions(optionsTag):
 
 def mergeOptions(benchmarkOptions, testOptions=[], fileOptions=[]):
     '''
-    This function merges lists of optionpairs into one list of pairs.
+    This function merges lists of optionpairs into one list.
     If a option is part of several lists,
     the option appears in the list several times.
     '''
@@ -959,7 +995,7 @@ def mergeOptions(benchmarkOptions, testOptions=[], fileOptions=[]):
     # insert fileOptions
     currentOptions.extend(fileOptions)
 
-    return currentOptions
+    return toSimpleList(currentOptions)
 
 
 def toSimpleList(listOfPairs):
@@ -970,9 +1006,8 @@ def toSimpleList(listOfPairs):
     '''
     simpleList = []
     for (key, value) in listOfPairs:
-        simpleList.append(key)
-        if value is not None:
-            simpleList.append(value)
+        if key is not None:    simpleList.append(key)
+        if value is not None:  simpleList.append(value)
     return simpleList
 
 
@@ -1019,12 +1054,13 @@ class FileWriter:
          file.close()
 
 
-def substituteVars(oldList, benchmark, test, 
-                   sourcefile=None, outputHandler=None):
+def substituteVars(oldList, test, sourcefile=None, logFolder=None):
     """
     This method replaces special substrings from a list of string 
     and return a new list.
     """
+
+    benchmark = test.benchmark
 
     # list with tuples (key, value): 'key' is replaced by 'value'
     keyValueList = [('${benchmark_name}', benchmark.name),
@@ -1040,9 +1076,9 @@ def substituteVars(oldList, benchmark, test,
         keyValueList.append(('${sourcefile_path}', os.path.dirname(sourcefile)))
         keyValueList.append(('${sourcefile_path_abs}', os.path.dirname(os.path.abspath(sourcefile))))
 
-    if outputHandler:
-        keyValueList.append(('${logfile_path}', os.path.dirname(outputHandler.logFolder)))
-        keyValueList.append(('${logfile_path_abs}', os.path.abspath(outputHandler.logFolder)))
+    if logFolder:
+        keyValueList.append(('${logfile_path}', os.path.dirname(logFolder)))
+        keyValueList.append(('${logfile_path_abs}', os.path.abspath(logFolder)))
 
     # do not use keys twice
     assert len(set((key for (key, value) in keyValueList))) == len(keyValueList)
@@ -1522,21 +1558,17 @@ def runBenchmark(benchmarkFile):
 
             outputHandler.outputBeforeTest(test)
 
-            for (sourcefile, fileOptions) in test.sourcefiles:
+            for run in test.runs:
 
-                currentOptions = toSimpleList(mergeOptions(
-                                    benchmark.options, test.options, fileOptions))
+                currentOptions = run.getMergedOptions()
 
-                # replace variables with special values
-                currentOptions = substituteVars(currentOptions, benchmark, test, sourcefile, outputHandler)
-
-                logfile = outputHandler.outputBeforeRun(sourcefile, currentOptions)
+                logfile = outputHandler.outputBeforeRun(run.sourcefile, currentOptions)
 
                 # run test
                 (status, cpuTimeDelta, wallTimeDelta, output, args) = \
-                    run_func(currentOptions, sourcefile, benchmark.columns, benchmark.rlimits, logfile)
+                    run_func(currentOptions, run.sourcefile, benchmark.columns, benchmark.rlimits, logfile)
 
-                outputHandler.outputAfterRun(sourcefile, fileOptions, status,
+                outputHandler.outputAfterRun(run.sourcefile, run.options, status,
                                              cpuTimeDelta, wallTimeDelta, output, args)
 
             # get times after test
