@@ -205,7 +205,7 @@ class Test:
                 fileDir = os.path.dirname(file)
 
                 # check for code (if somebody changes 'include' and 'includesfile')
-                if isCode(file):
+                if Util.isCode(file):
                     logging.error("'" + file + "' is no includesfile (set-file).\n" + \
                         "please check your benchmark-xml-file or remove bracket '{' from this file.")
                     sys.exit()
@@ -218,7 +218,7 @@ class Test:
                     line = line.strip()
 
                     # ignore comments and empty lines
-                    if not isComment(line):
+                    if not Util.isComment(line):
                         sourcefiles += self.getFileList(line, fileDir)
 
                 fileWithList.close()
@@ -227,7 +227,7 @@ class Test:
         for excludedFiles in sourcefilesTag.findall("exclude"):
             excludedFilesList = self.getFileList(excludedFiles.text)
             for excludedFile in excludedFilesList:
-                sourcefiles = removeAll(sourcefiles, excludedFile)
+                sourcefiles = Util.removeAll(sourcefiles, excludedFile)
 
         return sourcefiles
 
@@ -313,30 +313,6 @@ class Run():
         return currentOptions
 
 
-def isCode(filename):
-    '''
-    This function returns True, if  a line of the file contains bracket '{'.
-    '''
-    isCodeFile = False
-    file = open(filename, "r")
-    for line in file:
-        # ignore comments and empty lines
-        if not isComment(line) \
-                and '{' in line: # <-- simple indicator for code
-            if '${' not in line: # <-- ${abc} variable to substitute
-                isCodeFile = True
-    file.close()
-    return isCodeFile
-
-
-def isComment(line):
-    return not line or line.startswith("#") or line.startswith("//")
-
-
-def removeAll(list, elemToRemove):
-    return [elem for elem in list if elem != elemToRemove]
-
-
 class Column:
     """
     The class Column sets text, title and numberOfDigits of a column.
@@ -351,6 +327,113 @@ class Column:
 
         # get number of digits behind comma
         self.numberOfDigits = columnTag.get("numberOfDigits")
+
+
+class Util:
+    """
+    This Class contains some useful functions for Strings, XML or Lists.
+    """
+
+    @staticmethod
+    def isCode(filename):
+        """
+        This function returns True, if  a line of the file contains bracket '{'.
+        """
+        isCodeFile = False
+        file = open(filename, "r")
+        for line in file:
+            # ignore comments and empty lines
+            if not Util.isComment(line) \
+                    and '{' in line: # <-- simple indicator for code
+                if '${' not in line: # <-- ${abc} variable to substitute
+                    isCodeFile = True
+        file.close()
+        return isCodeFile
+
+
+    @staticmethod
+    def isComment(line):
+        return not line or line.startswith("#") or line.startswith("//")
+
+
+    @staticmethod
+    def containsAny(text, list):
+        '''
+        This function returns True, iff any string in list is a substring of text.
+        '''
+        for elem in list:
+            if elem in text:
+                return True
+        return False
+
+    @staticmethod
+    def removeAll(list, elemToRemove):
+        return [elem for elem in list if elem != elemToRemove]
+
+
+    @staticmethod
+    def toSimpleList(listOfPairs):
+        """
+        This function converts a list of pairs to a list.
+        Each pair of key and value is divided into 2 listelements.
+        All "None"-values are removed.
+        """
+        simpleList = []
+        for (key, value) in listOfPairs:
+            if key is not None:    simpleList.append(key)
+            if value is not None:  simpleList.append(value)
+        return simpleList
+
+
+    @staticmethod
+    def getCopyOfXMLElem(elem):
+        """
+        This method returns a shallow copy of a XML-Element.
+        This method is for compatibility with Python 2.6 or earlier..
+        In Python 2.7 you can use  'copyElem = elem.copy()'  instead.
+        """
+
+        copyElem = ET.Element(elem.tag, elem.attrib)
+        for child in elem:
+            copyElem.append(child)
+        return copyElem
+
+
+    @staticmethod
+    def XMLtoString(elem):
+        """
+        Return a pretty-printed XML string for the Element.
+        """
+        from xml.dom import minidom
+        rough_string = ET.tostring(elem, 'utf-8')
+        reparsed = minidom.parseString(rough_string)
+        return reparsed.toprettyxml(indent="  ")
+
+
+    @staticmethod
+    def decodeToString(toDecode):
+        """
+        This function is needed for Python 3,
+        because a subprocess can return bytes instead of a string.
+        """
+        try: 
+            return toDecode.decode('utf-8')
+        except AttributeError: # bytesToDecode was of type string before
+            return toDecode
+
+
+    @staticmethod
+    def formatNumber(number, numberOfDigits):
+        """
+        The function formatNumber() return a string-representation of a number
+        with a number of digits after the decimal separator.
+        If the number has more digits, it is rounded.
+        If the number has less digits, zeros are added.
+
+        @param number: the number to format
+        @param digits: the number of digits
+        """
+        return "%.{0}f".format(numberOfDigits) % number
 
 
 class OutputHandler:
@@ -565,7 +648,7 @@ class OutputHandler:
                               stdout=subprocess.PIPE,
                               stderr=subprocess.STDOUT).communicate()[0][6:9]
 
-        return decodeToString(version)
+        return Util.decodeToString(version)
 
 
     def getSystemInfo(self):
@@ -650,7 +733,7 @@ class OutputHandler:
 
         # store testname and options in XML,
         # copy benchmarkinfo, limits, columntitles, systeminfo from XMLHeader
-        self.testElem = self.getCopyOfXMLElem(self.XMLHeader)
+        self.testElem = Util.getCopyOfXMLElem(self.XMLHeader)
         testOptions = mergeOptions(self.benchmark.options, self.test.options)
         self.testElem.set("options", " ".join(testOptions))
         if self.test.name is not None:
@@ -679,19 +762,6 @@ class OutputHandler:
         testInfo += "test {0} of {1}: skipped\n".format(
                 numberOfTest, len(self.benchmark.tests))
         self.TXTFile.append(testInfo)
-
-
-    def getCopyOfXMLElem(self, elem):
-        '''
-        This method returns a shallow copy of a XML-Element.
-        This method is for compatibility with Python 2.6 or earlier..
-        In Python 2.7 you can use  'copyElem = elem.copy()'  instead.
-        '''
-
-        copyElem = ET.Element(elem.tag, elem.attrib)
-        for child in elem:
-            copyElem.append(child)
-        return copyElem
 
 
     def writeTestInfoToLog(self):
@@ -752,8 +822,8 @@ class OutputHandler:
         """
 
         # format times, type is changed from float to string!
-        cpuTimeDelta = self.formatNumber(cpuTimeDelta, TIME_PRECISION)
-        wallTimeDelta = self.formatNumber(wallTimeDelta, TIME_PRECISION)
+        cpuTimeDelta = Util.formatNumber(cpuTimeDelta, TIME_PRECISION)
+        wallTimeDelta = Util.formatNumber(wallTimeDelta, TIME_PRECISION)
 
         # format numbers, numberOfDigits is optional, so it can be None
         for column in self.benchmark.columns:
@@ -765,7 +835,7 @@ class OutputHandler:
 
                 try:
                     floatValue = float(column.value)
-                    column.value = self.formatNumber(floatValue, column.numberOfDigits)
+                    column.value = Util.formatNumber(floatValue, column.numberOfDigits)
                 except ValueError: # if value is no float, don't format it
                     pass
 
@@ -812,15 +882,15 @@ class OutputHandler:
         """
 
         # format time, type is changed from float to string!
-        cpuTimeTest = self.formatNumber(cpuTimeTest, TIME_PRECISION)
-        wallTimeTest = self.formatNumber(wallTimeTest, TIME_PRECISION)
+        cpuTimeTest = Util.formatNumber(cpuTimeTest, TIME_PRECISION)
+        wallTimeTest = Util.formatNumber(wallTimeTest, TIME_PRECISION)
 
         # store testtime in XML
         timesElem = ET.Element("time", {"cputime": cpuTimeTest, "walltime": wallTimeTest})
         self.testElem.append(timesElem)
 
         # write XML-file
-        FileWriter(self.getFileName(self.test.name, "xml"), XMLtoString(self.testElem))
+        FileWriter(self.getFileName(self.test.name, "xml"), Util.XMLtoString(self.testElem))
 
         # write endline into TXTFile
         numberOfFiles = len(self.test.runs)
@@ -843,7 +913,7 @@ class OutputHandler:
         that shows the relation between status and file.
         '''
         status = status.lower()
-        isSafeFile = not self.containsAny(filename.lower(), BUG_SUBSTRING_LIST)
+        isSafeFile = not Util.containsAny(filename.lower(), BUG_SUBSTRING_LIST)
 
         if status == 'safe':
             if isSafeFile:
@@ -859,16 +929,6 @@ class OutputHandler:
             return 'unknown'
         else:
             return 'error'
-
-
-    def containsAny(self, text, list):
-        '''
-        This function returns True, iff any string in list is a substring of text.
-        '''
-        for elem in list:
-            if elem in text:
-                return True
-        return False
 
 
     def createOutputLine(self, sourcefile, status, cpuTimeDelta, wallTimeDelta, columns, isFirstLine):
@@ -906,20 +966,6 @@ class OutputHandler:
 
     def outputAfterBenchmark(self):
         self.statistics.printToTerminal()
-
-
-    def formatNumber(self, number, numberOfDigits):
-            """
-            The function formatNumber() return a string-representation of a number
-            with a number of digits after the decimal separator.
-            If the number has more digits, it is rounded.
-            If the number has less digits, zeros are added.
-
-            @param number: the number to format
-            @param digits: the number of digits
-            """
-
-            return "%.{0}f".format(numberOfDigits) % number
 
 
     def getFileName(self, testname, fileExtension):
@@ -995,41 +1041,7 @@ def mergeOptions(benchmarkOptions, testOptions=[], fileOptions=[]):
     # insert fileOptions
     currentOptions.extend(fileOptions)
 
-    return toSimpleList(currentOptions)
-
-
-def toSimpleList(listOfPairs):
-    '''
-    This function converts a list of pairs to a list.
-    Each pair of key and value is divided into 2 listelements.
-    All "None"-values are removed.
-    '''
-    simpleList = []
-    for (key, value) in listOfPairs:
-        if key is not None:    simpleList.append(key)
-        if value is not None:  simpleList.append(value)
-    return simpleList
-
-
-def XMLtoString(elem):
-        """
-        Return a pretty-printed XML string for the Element.
-        """
-        from xml.dom import minidom
-        rough_string = ET.tostring(elem, 'utf-8')
-        reparsed = minidom.parseString(rough_string)
-        return reparsed.toprettyxml(indent="  ")
-
-
-def decodeToString(toDecode):
-    """
-    This function is needed for Python 3,
-    because a subprocess can return bytes instead of a string.
-    """
-    try: 
-        return toDecode.decode('utf-8')
-    except AttributeError: # bytesToDecode was of type string before
-        return toDecode
+    return Util.toSimpleList(currentOptions)
 
 
 class FileWriter:
@@ -1182,7 +1194,7 @@ def run(args, rlimits, outputfilename):
     outputfile = open(outputfilename, 'r') # re-open file for reading output
     output = ''.join(outputfile.readlines()[6:]) # first 6 lines are for logging, rest is output of subprocess
     outputfile.close()
-    output = decodeToString(output)
+    output = Util.decodeToString(output)
 
     return (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta)
 
