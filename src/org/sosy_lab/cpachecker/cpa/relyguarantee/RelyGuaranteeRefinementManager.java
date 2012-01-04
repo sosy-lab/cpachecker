@@ -99,12 +99,12 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
       description="Detect and skip interpolation branches that don't give new predicates.")
       private boolean itpEnvSkip = false;
 
-  @Option(name="refinement.DAGRefinement",
-      description="Extracts interpolants from a DAG representation of threads and environmental transitions.")
-      private boolean DAGRefinement = false;
+  @Option(name="refinement.refinementMethod",
+      description="How to refine the counterexample DAG: 0 - unfoald to a tree, 1 - insert env. edges")
+      private int refinementMethod = 0;
 
   @Option(name="refinement.dumpDAGfile",
-      description="Dump a DAG representation of interpolation formulas to the choosen file. Valid only with DAGRefinement")
+      description="Dump a DAG representation of interpolation formulas to the choosen file.")
       private String dagFilePredix = "test/output/itpDAG";
 
   @Option(name="refinement.splitItpAtoms",
@@ -186,12 +186,10 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
     //return buildCounterexampleTraceWithSpecifiedItp(pAbstractTrace, elementsOnPath, firstItpProver);
 
     if (this.whichItpProver.equals("MATHSAT")){
-      if (this.DAGRefinement){
-        throw new InterruptedException("Curretly only Tree refinement is supported.");
-        //return interpolateDagsMathsat(targetElement,  reachedSets, tid, firstItpProver, stats);
-      } else {
+      if (this.refinementMethod == 0){
         return interpolateTreeMathsat(targetElement,  reachedSets, tid, firstItpProver, stats);
-        //throw new InterruptedException("Curretly only DAG refinement is supported.");
+      } else {
+        throw new UnsupportedOperationException("Curretly only tree refinement is supported.");
       }
 
     } else {

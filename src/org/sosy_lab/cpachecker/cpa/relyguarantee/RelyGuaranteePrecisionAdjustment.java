@@ -49,9 +49,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 @Options(prefix="cpa.relyguarantee")
 public class RelyGuaranteePrecisionAdjustment implements PrecisionAdjustment {
 
-  @Option(name="refinement.DAGRefinement",
-      description="Extracts interpolants from a DAG representation of threads and environmental transitions.")
-      private boolean DAGRefinement = true;
+  @Option(name="refinement.refinementMethod",
+      description="How to refine the counterexample DAG: 0 - unfoald to a tree, 1 - insert env. edges")
+      private int refinementMethod = 0;
 
   private RelyGuaranteeCPA cpa;
   // statistics
@@ -151,7 +151,7 @@ public class RelyGuaranteePrecisionAdjustment implements PrecisionAdjustment {
 
   protected AbstractionFormula computeAbstraction(AbstractionFormula pAbstractionFormula, PathFormula pPathFormula, Collection<AbstractionPredicate> pPreds, CFANode node) {
     //return formulaManager.buildAbstraction(pAbstractionFormula, pPathFormula, pPreds);
-     if (DAGRefinement){
+     if (this.refinementMethod == 3){
        // TODO use ordinary abstraction,, but still clean ssa map
       return formulaManager.buildNonModularAbstraction(pAbstractionFormula, pPathFormula, pPreds, cpa.getTid());
     } else {

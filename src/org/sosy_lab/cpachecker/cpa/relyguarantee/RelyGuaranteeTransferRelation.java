@@ -99,9 +99,6 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
   @Option(description="check satisfiability when a target state has been found (should be true)")
   private boolean targetStateSatCheck = true;
 
-  @Option(name="refinement.DAGRefinement",
-      description="Extracts interpolants from a DAG representation of threads and environmental transitions.")
-      private boolean DAGRefinement = true;
 
   // statistics
   public final Timer postTimer = new Timer();
@@ -178,7 +175,6 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
       } else {
         return handleNonAbstractionFormulaLocation(pair.getFirst(), element.getAbstractionFormula(), edge, pair.getSecond());
       }
-
 
     } finally {
       postTimer.stop();

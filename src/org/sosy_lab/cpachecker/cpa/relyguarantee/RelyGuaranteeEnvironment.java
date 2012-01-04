@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement.AbstractionElement;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
@@ -64,7 +63,6 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -92,7 +90,7 @@ public class RelyGuaranteeEnvironment {
 
   @Option(description="Abstract environmental transitions using their own predicates:"
       + "0 - don't abstract, 1 - abstract filter, 2 - abstract filter and operation.")
-  private int abstractEnvTransitions = 0;
+  private int abstractEnvTransitions = 1;
 
   @Option(description="List of variables global to multiple threads")
   protected String[] globalVariables = {};
@@ -269,7 +267,7 @@ public class RelyGuaranteeEnvironment {
       assert tid == i;
 
       // apply the env operation on env pf
-      PathFormula opPf = null;
+     /* PathFormula opPf = null;
       try {
         opPf = pfManager.makePureAnd(et.getPathFormula(), et.getEdge(), tid);
       } catch (CPATransferException e) {
@@ -290,7 +288,7 @@ public class RelyGuaranteeEnvironment {
         }
       }
 
-      assert opVar != null;
+      assert opVar != null;*/
 
       // find the last abstraction element
 
@@ -348,37 +346,36 @@ public class RelyGuaranteeEnvironment {
 
     PathFormula filter = null;
 
-    if (this.abstractEnvTransitions == 2){
-      // abstract the conjuction of abstraction and path formula plus the operation
-      assert false;
-      /*int sourceTid = et.getSourceThread();
-      CFANode loc = et.getEdge().getPredecessor();
 
-      PathFormula opPF = null;
+    if (this.abstractEnvTransitions == 2){
+      assert false;
+      // compute the sucessor's path formula
+     /* PathFormula newPf = null;
       try {
-        opPF = this.pfManager.makeAnd(et.getPathFormula(), et.getEdge(), sourceTid);
+        PathFormula newPf = this.pfManager.makeAnd(et.getPathFormula(), et.getEdge());
+
       } catch (CPATransferException e) {
         e.printStackTrace();
       }
 
+      // get the predicates for the transition
+      int sourceTid = et.getSourceThread();
+      CFANode loc = et.getEdge().getPredecessor();
+      // preds is the set of env. predicates for the location plus the global predicates
       SetMultimap<CFANode, AbstractionPredicate> prec = envPrecision[sourceTid];
-      Set<AbstractionPredicate> preds = prec.get(loc);
+      Set<AbstractionPredicate> preds = new HashSet<AbstractionPredicate>(prec.get(loc));
+      preds.addAll(envGlobalPrecision[sourceTid]);*/
 
-      AbstractionFormula aFilter = paManager.buildAbstraction(et.getAbstractionFormula(), et.getPathFormula(), preds);
-      filter = aFilter.asPathFormula();*/
+
     }
     else if (this.abstractEnvTransitions == 1){
       // abstract the conjuction of abstraction and path formula using set of predicates.
       int sourceTid = et.getSourceThread();
       CFANode loc = et.getEdge().getPredecessor();
-      // preds is the set of env. predicates for the location
+      // preds is the set of env. predicates for the location plus the global predicates
       SetMultimap<CFANode, AbstractionPredicate> prec = envPrecision[sourceTid];
       Set<AbstractionPredicate> preds = new HashSet<AbstractionPredicate>(prec.get(loc));
       preds.addAll(envGlobalPrecision[sourceTid]);
-
-      if (et.getSourceARTElement().getElementId() == 341){
-        System.out.println();
-      }
 
       AbstractionFormula aFilter = paManager.buildAbstraction(et.getAbstractionFormula(), et.getPathFormula(), preds);
       filter = aFilter.asPathFormula();
