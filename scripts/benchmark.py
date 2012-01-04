@@ -814,11 +814,10 @@ class OutputHandler:
 
 
     def outputAfterRun(self, sourcefile, fileOptions, status,
-                       cpuTimeDelta, wallTimeDelta, output, args):
+                       cpuTimeDelta, wallTimeDelta, args):
         """
         The method outputAfterRun() prints filename, result, time and status
         of a test to terminal and stores all data in XML
-        The output is written to a file-specific log-file.
         """
 
         # format times, type is changed from float to string!
@@ -1282,7 +1281,7 @@ def run_cbmc(options, sourcefile, columns, rlimits, file):
     else:
         status = "ERROR ({0})".format(returncode)
 
-    return (status, cpuTimeDelta, wallTimeDelta, output, args)
+    return (status, cpuTimeDelta, wallTimeDelta, args)
 
 
 def run_satabs(options, sourcefile, columns, rlimits, file):
@@ -1317,7 +1316,7 @@ def run_satabs(options, sourcefile, columns, rlimits, file):
         status = "PARSING ERROR"
     else:
         status = "FAILURE"
-    return (status, cpuTimeDelta, wallTimeDelta, output, args)
+    return (status, cpuTimeDelta, wallTimeDelta, args)
 
 
 def run_wolverine(options, sourcefile, columns, rlimits, file):
@@ -1338,7 +1337,7 @@ def run_wolverine(options, sourcefile, columns, rlimits, file):
         status = "PARSING ERROR"
     else:
         status = "FAILURE"
-    return (status, cpuTimeDelta, wallTimeDelta, output, args)
+    return (status, cpuTimeDelta, wallTimeDelta, args)
 
 
 def run_acsar(options, sourcefile, columns, rlimits, file):
@@ -1389,7 +1388,7 @@ def run_acsar(options, sourcefile, columns, rlimits, file):
     # delete tmp-files
     os.remove(prepSourcefile)
 
-    return (status, cpuTimeDelta, wallTimeDelta, output, args)
+    return (status, cpuTimeDelta, wallTimeDelta, args)
 
 
 def prepareSourceFileForAcsar(sourcefile):
@@ -1409,20 +1408,20 @@ def prepareSourceFileForAcsar(sourcefile):
 # with the tool and sourcefiles, however options are ignored
 def run_safe(options, sourcefile, columns, rlimits, file):
     args = ['safe'] + options + [sourcefile]
-    (returncode, output, cpuTimeDelta, wallTimeDelta) = (0, 'no output', 0, 0)
-    return ('safe', cpuTimeDelta, wallTimeDelta, output, args)
+    cpuTimeDelta = wallTimeDelta = 0
+    return ('safe', cpuTimeDelta, wallTimeDelta, args)
 
 def run_unsafe(options, sourcefile, columns, rlimits, file):
     args = ['unsafe'] + options + [sourcefile]
-    (returncode, output, cpuTimeDelta, wallTimeDelta) = (0, 'no output', 0, 0)
-    return ('unsafe', cpuTimeDelta, wallTimeDelta, output, args)
+    cpuTimeDelta = wallTimeDelta = 0
+    return ('unsafe', cpuTimeDelta, wallTimeDelta, args)
 
 def run_random(options, sourcefile, columns, rlimits, file):
     args = ['random'] + options + [sourcefile]
-    (returncode, output, cpuTimeDelta, wallTimeDelta) = (0, 'no output', 0, 0)
+    cpuTimeDelta = wallTimeDelta = 0
     from random import random
     status = 'safe' if random() < 0.5 else 'unsafe'
-    return (status, cpuTimeDelta, wallTimeDelta, output, args)
+    return (status, cpuTimeDelta, wallTimeDelta, args)
 
 
 def run_cpachecker(options, sourcefile, columns, rlimits, file):
@@ -1436,7 +1435,7 @@ def run_cpachecker(options, sourcefile, columns, rlimits, file):
     status = getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
     getCPAcheckerColumns(output, columns)
 
-    return (status, cpuTimeDelta, wallTimeDelta, output, args)
+    return (status, cpuTimeDelta, wallTimeDelta, args)
 
 
 def getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta):
@@ -1539,7 +1538,7 @@ def run_blast(options, sourcefile, columns, rlimits, file):
         elif (returncode == 2) and line.startswith('Ack! The gremlins again!: Sys_error("Broken pipe")'):
             status = 'TIMEOUT'
 
-    return (status, cpuTimeDelta, wallTimeDelta, output, args)
+    return (status, cpuTimeDelta, wallTimeDelta, args)
 
 
 def runBenchmark(benchmarkFile):
@@ -1577,11 +1576,11 @@ def runBenchmark(benchmarkFile):
                 logfile = outputHandler.outputBeforeRun(run.sourcefile, currentOptions)
 
                 # run test
-                (status, cpuTimeDelta, wallTimeDelta, output, args) = \
+                (status, cpuTimeDelta, wallTimeDelta, args) = \
                     run_func(currentOptions, run.sourcefile, benchmark.columns, benchmark.rlimits, logfile)
 
                 outputHandler.outputAfterRun(run.sourcefile, run.options, status,
-                                             cpuTimeDelta, wallTimeDelta, output, args)
+                                             cpuTimeDelta, wallTimeDelta, args)
 
             # get times after test
             wallTimeAfter = time.time()
