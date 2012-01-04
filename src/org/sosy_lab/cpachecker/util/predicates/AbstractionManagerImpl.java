@@ -94,6 +94,19 @@ public class AbstractionManagerImpl implements AbstractionManager {
 
   private final Map<Region, Formula> toConcreteCache;
 
+  // singleton instance
+  private static AbstractionManagerImpl instance;
+
+  public static AbstractionManagerImpl getInstance (RegionManager pRmgr, FormulaManager pFmgr, PathFormulaManager pPfMgr,
+      Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+
+    if (instance == null){
+      new AbstractionManagerImpl(pRmgr, pFmgr, pPfMgr, config, pLogger);
+    }
+
+    return instance;
+  }
+
   public AbstractionManagerImpl(RegionManager pRmgr, FormulaManager pFmgr, PathFormulaManager pPfMgr,
       Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this, AbstractionManagerImpl.class);
@@ -112,6 +125,7 @@ public class AbstractionManagerImpl implements AbstractionManager {
     }
 
     new AbstractionPredicatesMBean(); // don't store it, we wouldn't know when to unregister anyway
+    instance = this;
   }
 
   @Override

@@ -79,7 +79,7 @@ public class RelyGuaranteeRefiner{
   @Option(name="refinement.addPredicatesGlobally",
       description="refinement will add all discovered predicates "
         + "to all the locations in the abstract trace")
-        private boolean addPredicatesGlobally = true;
+        private boolean addPredicatesGlobally = false;
 
   @Option(name="refinement.addPredicatesGlobally",
       description="refinement will add all discovered predicates "
@@ -479,7 +479,7 @@ public class RelyGuaranteeRefiner{
           System.out.println();
           System.out.println("Thread "+tid+": cut-off node id:"+initChild.getElementId());
           System.out.println("\t ART precision: "+newPrecision);
-          System.out.println("\tEnv precision: "+this.rgEnvironment.getEnvPrecision()[tid]+"\n\tglobal "+this.rgEnvironment.getEnvGlobalPrecision()[tid]);
+          System.out.println("\t Env precision: "+this.rgEnvironment.getEnvPrecision()[tid]+"\n\t Global env "+this.rgEnvironment.getEnvGlobalPrecision()[tid]);
           System.out.println();
         }
 

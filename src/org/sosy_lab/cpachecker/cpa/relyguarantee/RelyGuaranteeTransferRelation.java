@@ -33,6 +33,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -40,21 +41,15 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
-import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonPredicateElement;
-import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonElement;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement.ComputeAbstractionElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
-import org.sosy_lab.cpachecker.fshell.fql2.translators.cfa.ToFlleShAssumeEdgeTranslator;
 import org.sosy_lab.cpachecker.util.AbstractElements;
-import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -67,7 +62,7 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
  * computes an abstraction.
  */
 @Options(prefix="cpa.relyguarantee")
-public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
+public class RelyGuaranteeTransferRelation  implements TransferRelation {
 
   @Option(name="blk.threshold",
       description="maximum blocksize before abstraction is forced\n"
@@ -109,10 +104,24 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
       private boolean DAGRefinement = true;
 
   // statistics
+  public final Timer postTimer = new Timer();
+  public final Timer satCheckTimer = new Timer();
+  public final Timer pathFormulaTimer = new Timer();
+  public final Timer strengthenTimer = new Timer();
+  public final Timer strengthenCheckTimer = new Timer();
+
+  public int numBlkFunctions = 0;
+  public int numBlkLoops = 0;
+  public int numBlkThreshold = 0;
+  public int numAtomThreshold = 0;
+  public int numSatChecksFalse = 0;
+  public int numStrengthenChecksFalse = 0;
 
   private final LogManager logger;
-  private final PredicateAbstractionManager fManager;
+  private final PredicateAbstractionManager paManager;
   private final PathFormulaManager pfManager;
+  protected final  PredicateAbstractionManager formulaManager;
+  protected  MathsatFormulaManager manager;
 
   //private final MathsatFormulaManager manager;
   private final RelyGuaranteeCPA cpa;
@@ -123,11 +132,12 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
   public RelyGuaranteeTransferRelation(RelyGuaranteeCPA pCpa) throws InvalidConfigurationException {
     pCpa.getConfiguration().inject(this, RelyGuaranteeTransferRelation.class);
 
-    logger = pCpa.getLogger();
+    logger = pCpa.logger;
     cpa = pCpa;
-    fManager = pCpa.getPredicateManager();
-    pfManager = pCpa.getPathFormulaManager();
-    manager = (MathsatFormulaManager)pCpa.getFormulaManager();
+    paManager = pCpa.predicateManager;
+    pfManager = pCpa.pathFormulaManager;
+    manager = (MathsatFormulaManager)pCpa.formulaManager;
+    formulaManager = cpa.predicateManager;
     uniqueId = 10;
   }
 
@@ -155,11 +165,11 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
 
 
       // check whether to do abstraction
-      boolean doAbstraction = isBlockEnd(loc, newPF, edge);
+      boolean doAbstraction = isBlockEnd(loc, newPF);
       boolean isEnvEdge = (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge || edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge);
 
-      //doAbstraction = doAbstraction || isEnvEdge;W
-      doAbstraction = true;
+      doAbstraction = doAbstraction || isEnvEdge;
+      //doAbstraction = true;
 
       if (doAbstraction) {
         return Collections.singleton(
@@ -189,7 +199,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
     if (satCheck) {
       satCheckTimer.start();
 
-      boolean unsat = fManager.unsat(abstractionFormula, pathFormula);
+      boolean unsat = paManager.unsat(abstractionFormula, pathFormula);
 
       satCheckTimer.stop();
 
@@ -366,7 +376,6 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
 
 
 
-
   /**
    * Check whether an abstraction should be computed.
    *
@@ -379,7 +388,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
    * an abstraction location if it has an incoming loop-back edge, if it is
    * the start node of a function or if it is the call site from a function call.
    */
-  protected boolean isBlockEnd(CFANode succLoc, PathFormula pf, CFAEdge edge) {
+  protected boolean isBlockEnd(CFANode succLoc, PathFormula pf) {
     boolean result = false;
 
    /* if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge || edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge){
@@ -476,7 +485,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
     }
   }
 
-  private PredicateAbstractElement strengthen(CFANode pNode, PredicateAbstractElement pElement, GuardedEdgeAutomatonPredicateElement pAutomatonElement) throws CPATransferException {
+ /* private PredicateAbstractElement strengthen(CFANode pNode, PredicateAbstractElement pElement, GuardedEdgeAutomatonPredicateElement pAutomatonElement) throws CPATransferException {
     PathFormula pf = pElement.getPathFormula();
 
     for (ECPPredicate lPredicate : pAutomatonElement) {
@@ -498,7 +507,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
     }
 
     return replacePathFormula(pElement, pf);
-  }
+  }*/
   /*
   private PredicateAbstractElement strengthen(CFANode pNode, RelyGuaranteeAbstractElement pElement, ConstrainedAssumeElement pAssumeElement) throws CPATransferException {
     AssumeEdge lEdge = new AssumeEdge(pAssumeElement.getExpression().getRawSignature(), pNode.getLineNumber(), pNode, pNode, pAssumeElement.getExpression(), true);
@@ -546,7 +555,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
 
     strengthenCheckTimer.start();
     PathFormula pathFormula = pElement.getPathFormula();
-    boolean unsat = fManager.unsat(pElement.getAbstractionFormula(), pathFormula);
+    boolean unsat = paManager.unsat(pElement.getAbstractionFormula(), pathFormula);
     strengthenCheckTimer.stop();
 
     if (unsat) {
@@ -559,7 +568,7 @@ public class RelyGuaranteeTransferRelation  extends PredicateTransferRelation {
       logger.log(Level.FINEST, "Last part of the path is not infeasible.");
 
       // set abstraction to true (we don't know better)
-      AbstractionFormula abs = fManager.makeTrueAbstractionFormula(pathFormula);
+      AbstractionFormula abs = paManager.makeTrueAbstractionFormula(pathFormula);
 
       PathFormula newPathFormula = pfManager.makeEmptyPathFormula(pathFormula);
 

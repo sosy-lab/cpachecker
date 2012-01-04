@@ -28,8 +28,8 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.TreeMap;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
@@ -42,13 +42,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractDomain;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecisionAdjustment;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefinementManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 
@@ -85,7 +80,7 @@ public class  RelyGuaranteeCPAStatistics implements Statistics {
 
     @Override
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-      PredicateRefinementManager<?, ?> amgr = cpa.getPredicateManager();
+      RelyGuaranteeRefinementManager<?, ?> amgr = cpa.refinerManager;
 
       Multimap<CFANode, AbstractionPredicate> predicates = HashMultimap.create();
 
@@ -128,15 +123,15 @@ public class  RelyGuaranteeCPAStatistics implements Statistics {
       int avgPredsPerLocation = allLocs > 0 ? totPredsUsed/allLocs : 0;
       int allDistinctPreds = (new HashSet<AbstractionPredicate>(predicates.values())).size();
 
-      PredicateAbstractionManager.Stats as = amgr.stats;
-      PredicateRefinementManager.Stats bs = amgr.refStats;
-      PredicateAbstractDomain domain = cpa.getAbstractDomain();
-      PredicateTransferRelation trans = cpa.getTransferRelation();
-      PredicatePrecisionAdjustment prec = cpa.getPrecisionAdjustment();
+      RelyGuaranteeRefinementManager.PredStats as = amgr.stats;
+      RelyGuaranteeRefinementManager.RefStats bs = amgr.refStats;
+      RelyGuaranteeAbstractDomain domain = cpa.domain;
+      RelyGuaranteeTransferRelation trans = cpa.transfer;
+      RelyGuaranteePrecisionAdjustment prec = cpa.prec;
 
       CachingPathFormulaManager pfMgr = null;
-      if (cpa.getPathFormulaManager() instanceof CachingPathFormulaManager) {
-        pfMgr = (CachingPathFormulaManager)cpa.getPathFormulaManager();
+      if (cpa.pathFormulaManager instanceof CachingPathFormulaManager) {
+        pfMgr = (CachingPathFormulaManager)cpa.pathFormulaManager;
       }
 
       out.println("Number of abstractions:            " + prec.numAbstractions + " (" + toPercent(prec.numAbstractions, trans.postTimer.getNumberOfIntervals()) + " of all post computations)");
@@ -194,7 +189,7 @@ public class  RelyGuaranteeCPAStatistics implements Statistics {
       out.println("  Time for abstraction:              " + prec.computingAbstractionTime + " (Max: " + prec.computingAbstractionTime.printMaxTime() + ", Count: " + prec.computingAbstractionTime.getNumberOfIntervals() + ")");
       out.println("    Solving time:                    " + as.abstractionTime.printOuterSumTime() + " (Max: " + as.abstractionTime.printOuterMaxTime() + ")");
       out.println("    Time for BDD construction:       " + as.abstractionTime.printInnerSumTime()   + " (Max: " + as.abstractionTime.printInnerMaxTime() + ")");
-      out.println("Time for merge operator:             " + cpa.getMergeOperator().totalMergeTime);
+      out.println("Time for merge operator:             " + cpa.merge.totalMergeTime);
       out.println("Time for coverage check:             " + domain.coverageCheckTimer);
       if (domain.bddCoverageCheckTimer.getNumberOfIntervals() > 0) {
         out.println("  Time for BDD entailment checks:    " + domain.bddCoverageCheckTimer);

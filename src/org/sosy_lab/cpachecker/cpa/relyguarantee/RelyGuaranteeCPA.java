@@ -36,19 +36,28 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CSIsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatInterpolatingProver;
@@ -60,7 +69,7 @@ import com.google.common.collect.ImmutableSet;
 
 
 @Options(prefix="cpa.relyguarantee")
-public class RelyGuaranteeCPA extends PredicateCPA{
+public class RelyGuaranteeCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(RelyGuaranteeCPA.class);
@@ -92,6 +101,22 @@ public class RelyGuaranteeCPA extends PredicateCPA{
   @Option(description="List of variables global to multiple threads")
   protected String[] globalVariables = {};
 
+
+  protected final Configuration config;
+  protected final LogManager logger;
+  protected final RelyGuaranteeAbstractDomain domain;
+  protected final RelyGuaranteeTransferRelation transfer;
+  protected final RelyGuaranteeMergeOperator merge;
+  protected final RelyGuaranteePrecisionAdjustment prec;
+  protected final StopOperator stop;
+  protected RelyGuaranteePrecision initialPrecision;
+  protected final RegionManager regionManager;
+  protected final FormulaManager formulaManager;
+  protected final PathFormulaManager pathFormulaManager;
+  protected final TheoremProver theoremProver;
+  protected final PredicateAbstractionManager predicateManager;
+  protected AbstractElement topElement;
+  protected final  RelyGuaranteeRefinementManager<?, ?> refinerManager;
   public Set<String> globalVariablesSet;
 
   @Option(name="blk.useCache", description="use caching of path formulas")
@@ -103,6 +128,8 @@ public class RelyGuaranteeCPA extends PredicateCPA{
   public RelyGuaranteeVariables variables;
 
 
+
+
   public static TheoremProver getTheoremProver(Configuration config, LogManager logger,String type) throws InvalidConfigurationException{
     if (tProver == null){
       MathsatFormulaManager msatFormulaManager =  MathsatFormulaManager.getInstance(config, logger);
@@ -111,8 +138,6 @@ public class RelyGuaranteeCPA extends PredicateCPA{
   }
 
   public RelyGuaranteeCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
-    super();
-
     this.config = config;
     this.logger = logger;
     config.inject(this, RelyGuaranteeCPA.class);
@@ -164,7 +189,8 @@ public class RelyGuaranteeCPA extends PredicateCPA{
       throw new InternalError("Update list of allowed solvers!");
     }
 
-    this.predicateManager = RelyGuaranteeRefinementManager.getInstance(regionManager, formulaManager, pathFormulaManager, theoremProver, itpProver, alternativeItpProver, config, logger);
+    this.refinerManager = RelyGuaranteeRefinementManager.getInstance(regionManager, formulaManager, pathFormulaManager, theoremProver, itpProver, alternativeItpProver, config, logger);
+    this.predicateManager = PredicateAbstractionManager.getInstance(regionManager, formulaManager, pathFormulaManager, theoremProver, config, logger);
     this.transfer = new RelyGuaranteeTransferRelation(this);
     this.domain = new RelyGuaranteeAbstractDomain(this);
     this.merge = new RelyGuaranteeMergeOperator(this);
@@ -205,13 +231,14 @@ public class RelyGuaranteeCPA extends PredicateCPA{
   // set the inital predicates as a formula
   // TODO for debugging
   public void setPredicates(Formula predicateFormula){
-    Collection<AbstractionPredicate> predicates = this.predicateManager.getAtomsAsPredicates(predicateFormula);
+    Collection<AbstractionPredicate> predicates = this.refinerManager.getAtomsAsPredicates(predicateFormula);
     this.initialPrecision = new RelyGuaranteePrecision(predicates);
   }
 
-  public PredicatePrecision getPredicates(){
+  /*
+  public RelyGuaranteePrecision getPredicates(){
     return this.initialPrecision;
-  }
+  }*/
 
   @Override
   public AbstractElement getInitialElement(CFANode node) {
@@ -228,7 +255,49 @@ public class RelyGuaranteeCPA extends PredicateCPA{
   }
 
   public RelyGuaranteeRefinementManager<?, ?> getRelyGuaranteeManager() {
-    return (RelyGuaranteeRefinementManager<?, ?>) this.predicateManager;
+    return this.refinerManager;
+  }
+
+  @Override
+  public AbstractDomain getAbstractDomain() {
+    return this.domain;
+  }
+
+  @Override
+  public TransferRelation getTransferRelation() {
+    return this.transfer;
+  }
+
+
+  @Override
+  public MergeOperator getMergeOperator() {
+    return this.merge;
+  }
+
+
+  @Override
+  public StopOperator getStopOperator() {
+    return this.stop;
+  }
+
+
+  @Override
+  public PrecisionAdjustment getPrecisionAdjustment() {
+    return this.prec;
+  }
+
+
+  @Override
+  public Precision getInitialPrecision(CFANode pNode) {
+    return this.initialPrecision;
+  }
+
+  public Configuration getConfiguration() {
+    return this.config;
+  }
+
+  public LogManager getLogger() {
+    return this.logger;
   }
 
 

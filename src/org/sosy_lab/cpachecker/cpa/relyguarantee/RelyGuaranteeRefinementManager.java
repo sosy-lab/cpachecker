@@ -31,6 +31,7 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -45,7 +46,9 @@ import java.util.Vector;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -56,16 +59,17 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
 import org.sosy_lab.cpachecker.cpa.art.Path;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefinementManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeRefiner.RelyGuaranteeRefinerStatistics;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
@@ -77,11 +81,15 @@ import com.google.common.collect.Lists;
 
 
 @Options(prefix="cpa.relyguarantee")
-public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementManager<T1, T2>  {
+public class RelyGuaranteeRefinementManager<T1, T2>  {
 
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
       "^.*" + BRANCHING_PREDICATE_NAME + "(?=\\d+$)");
+
+  @Option(description="only use the atoms from the interpolants as predicates, "
+      + "and not the whole interpolant")
+    private boolean atomicPredicates = true;
 
   @Option(name="refinement.interpolatingProver", toUppercase=true, values={"MATHSAT", "CSISAT"},
       description="which interpolating solver to use for interpolant generation?")
@@ -110,8 +118,15 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
       + "0 - don't abstract, 1 - abstract filter, 2 - abstract filter and operation.")
   private int abstractEnvTransitions = 1;
 
-
-
+  public final PredStats stats;
+  public final RefStats refStats;
+  protected final InterpolatingTheoremProver<T1> firstItpProver;
+  private final InterpolatingTheoremProver<T2> secondItpProver;
+  private final LogManager logger;
+  private final FormulaManager fmgr;
+  private final PathFormulaManager pmgr;
+  private final AbstractionManager amgr;
+  private final TheoremProver thmProver;
   private static int  uniqueNumber = 90;
 
 
@@ -144,8 +159,17 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
   public RelyGuaranteeRefinementManager(RegionManager pRmgr, FormulaManager pFmgr, PathFormulaManager pPmgr, TheoremProver pThmProver,
       InterpolatingTheoremProver<T1> pItpProver, InterpolatingTheoremProver<T2> pAltItpProver, Configuration pConfig,
       LogManager pLogger) throws InvalidConfigurationException {
-    super(pRmgr, pFmgr, pPmgr, pThmProver, pItpProver, pAltItpProver, pConfig, pLogger);
     pConfig.inject(this, RelyGuaranteeRefinementManager.class);
+    this.logger = pLogger;
+    this.amgr = AbstractionManagerImpl.getInstance(pRmgr, pFmgr, pPmgr, pConfig, pLogger);
+    this.fmgr = pFmgr;
+    this.pmgr = pPmgr;
+    this.thmProver = pThmProver;
+    this.stats = new PredStats();
+    this.refStats = new RefStats();
+    this.firstItpProver = pItpProver;
+    this.secondItpProver = pAltItpProver;
+
   }
 
 
@@ -2317,6 +2341,26 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     return result;
   }
 
+  /**
+   * Create predicates for all atoms in a formula.
+   */
+  @SuppressWarnings("deprecation")
+  public List<AbstractionPredicate> getAtomsAsPredicates(Formula f) {
+    Collection<Formula> atoms;
+    if (atomicPredicates) {
+      atoms = fmgr.extractAtoms(f, splitItpAtoms, false);
+    } else {
+      atoms = Collections.singleton(fmgr.uninstantiate(f));
+    }
+
+    List<AbstractionPredicate> preds = new ArrayList<AbstractionPredicate>(atoms.size());
+
+    for (Formula atom : atoms) {
+      preds.add(amgr.makePredicate(atom));
+    }
+    return preds;
+  }
+
 
   /*private ListMultimap<ARTElement, AbstractionPredicate> getModularDagPredicates(Formula itp, InterpolationDagNode node) {
 
@@ -2384,6 +2428,23 @@ public class RelyGuaranteeRefinementManager<T1, T2> extends PredicateRefinementM
     }
   }
 
+  public static class PredStats {
+    public int numCallsAbstraction = 0;
+    public int numSymbolicAbstractions = 0;
+    public int numSatCheckAbstractions = 0;
+    public int numCallsAbstractionCached = 0;
+    public final NestedTimer abstractionTime = new NestedTimer(); // outer: solve time, inner: bdd time
+
+    public long allSatCount = 0;
+    public int maxAllSatCount = 0;
+    public Timer extractTimer = new Timer();
+  }
+
+  public static class RefStats {
+    public final Timer cexAnalysisTimer = new Timer();
+    public final Timer cexAnalysisSolverTimer = new Timer();
+    public final Timer cexAnalysisGetUsefulBlocksTimer = new Timer();
+  }
 
 
 }

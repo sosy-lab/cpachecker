@@ -23,21 +23,35 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractDomain;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
 @Options(prefix="cpa.relyguarantee")
 
-public class RelyGuaranteeAbstractDomain extends PredicateAbstractDomain {
+public class RelyGuaranteeAbstractDomain implements AbstractDomain {
 
-  public RelyGuaranteeAbstractDomain(PredicateCPA pCpa)
-      throws InvalidConfigurationException {
-    super(pCpa);
-    // TODO Auto-generated constructor stub
+  @Option(description="whether to include the symbolic path formula in the "
+      + "coverage checks or do only the fast abstract checks")
+    protected boolean symbolicCoverageCheck = false;
+
+  public final Timer coverageCheckTimer = new Timer();
+  public final Timer bddCoverageCheckTimer = new Timer();
+  public final Timer symbolicCoverageCheckTimer = new Timer();
+
+  protected final RegionManager mRegionManager;
+  protected final PredicateAbstractionManager mgr;
+
+  public RelyGuaranteeAbstractDomain(RelyGuaranteeCPA pCpa)  throws InvalidConfigurationException {
+    pCpa.config.inject(this, RelyGuaranteeAbstractDomain.class);
+    mRegionManager = pCpa.regionManager;
+    mgr = pCpa.predicateManager;
   }
 
   @Override
@@ -49,16 +63,6 @@ public class RelyGuaranteeAbstractDomain extends PredicateAbstractDomain {
       RelyGuaranteeAbstractElement e1 = (RelyGuaranteeAbstractElement)element1;
       RelyGuaranteeAbstractElement e2 = (RelyGuaranteeAbstractElement)element2;
 
-      // TODO time statistics (previously in formula manager)
-      /*
-  long start = System.currentTimeMillis();
-  entails(f1, f2);
-  long end = System.currentTimeMillis();
-  stats.bddCoverageCheckMaxTime = Math.max(stats.bddCoverageCheckMaxTime,
-      (end - start));
-  stats.bddCoverageCheckTime += (end - start);
-  ++stats.numCoverageChecks;
-       */
 
       if (e1 instanceof RelyGuaranteeAbstractElement.AbstractionElement && e2 instanceof RelyGuaranteeAbstractElement.AbstractionElement) {
         bddCoverageCheckTimer.start();
@@ -93,6 +97,12 @@ public class RelyGuaranteeAbstractDomain extends PredicateAbstractDomain {
     } finally {
       coverageCheckTimer.stop();
     }
+  }
+
+  @Override
+  public AbstractElement join(AbstractElement pElement1,
+      AbstractElement pElement2) throws CPAException {
+    throw new UnsupportedOperationException();
   }
 
 }

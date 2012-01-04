@@ -24,24 +24,32 @@
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
 import java.util.Collection;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.SetMultimap;
 
-  public class RelyGuaranteePrecision extends PredicatePrecision {
+  public class RelyGuaranteePrecision implements Precision {
 
     //private final int id = idCounter++;
     //private static int idCounter = 0;
+    private final ImmutableSetMultimap<CFANode, AbstractionPredicate> predicateMap;
+    private ImmutableSet<AbstractionPredicate> globalPredicates;
 
     public RelyGuaranteePrecision(ImmutableSetMultimap<CFANode, AbstractionPredicate> predicateMap, Collection<AbstractionPredicate> globalPredicates) {
-      super(predicateMap, globalPredicates);
+      assert predicateMap != null;
+      this.predicateMap = predicateMap;
+      this.globalPredicates = ImmutableSet.copyOf(globalPredicates);
     }
 
     public RelyGuaranteePrecision(Collection<AbstractionPredicate> globalPredicates) {
-      super(globalPredicates);
+      predicateMap = ImmutableSetMultimap.of();
+      this.globalPredicates = (globalPredicates == null ? ImmutableSet.<AbstractionPredicate>of() : ImmutableSet.copyOf(globalPredicates));
     }
 
     @Override
@@ -57,11 +65,28 @@ import com.google.common.collect.ImmutableSetMultimap;
 
     @Override
     public String toString(){
-      if (getGlobalPredicates().isEmpty()){
+      if (this.globalPredicates.isEmpty()){
         return predicateMap.toString();
       } else {
-        return predicateMap + " global: "+getGlobalPredicates();
+        return predicateMap + " global: "+this.globalPredicates;
       }
+    }
+
+    public SetMultimap<CFANode, AbstractionPredicate> getPredicateMap() {
+      return this.predicateMap;
+    }
+
+    public Set<AbstractionPredicate> getGlobalPredicates() {
+      return this.globalPredicates;
+    }
+
+    public Set<AbstractionPredicate> getPredicates(CFANode pLoc) {
+      return this.predicateMap.get(pLoc);
+    }
+
+    public void setGlobalPredicates(ImmutableSet<AbstractionPredicate> newGlob) {
+      this.globalPredicates = newGlob;
+
     }
 
 

@@ -92,7 +92,7 @@ public class RelyGuaranteeEnvironment {
 
   @Option(description="Abstract environmental transitions using their own predicates:"
       + "0 - don't abstract, 1 - abstract filter, 2 - abstract filter and operation.")
-  private int abstractEnvTransitions = 1;
+  private int abstractEnvTransitions = 0;
 
   @Option(description="List of variables global to multiple threads")
   protected String[] globalVariables = {};

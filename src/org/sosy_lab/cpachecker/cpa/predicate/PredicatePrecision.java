@@ -38,6 +38,7 @@ public class PredicatePrecision implements Precision {
 
   protected final ImmutableSetMultimap<CFANode, AbstractionPredicate> predicateMap;
   private ImmutableSet<AbstractionPredicate> globalPredicates;
+
   public void setGlobalPredicates(
       ImmutableSet<AbstractionPredicate> pGlobalPredicates) {
     globalPredicates = pGlobalPredicates;

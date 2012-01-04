@@ -93,7 +93,7 @@ class PredicateAbstractionManager {
 
   @Option(name="abstraction.cartesian",
       description="whether to use Boolean (false) or Cartesian (true) abstraction")
-  private boolean cartesianAbstraction = true;
+  private boolean cartesianAbstraction = false;
 
   @Option(name="abstraction.dumpHardQueries",
       description="dump the abstraction formulas if they took to long")
@@ -148,7 +148,7 @@ class PredicateAbstractionManager {
     logger = pLogger;
     fmgr = pFmgr;
     pmgr = pPmgr;
-    amgr = new AbstractionManagerImpl(pRmgr, pFmgr, pPmgr, config, pLogger);
+    amgr = AbstractionManagerImpl.getInstance(pRmgr, pFmgr, pPmgr, config, pLogger);
     thmProver = pThmProver;
 
     if (useCache) {

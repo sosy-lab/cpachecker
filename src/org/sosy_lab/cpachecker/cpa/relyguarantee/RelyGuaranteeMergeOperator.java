@@ -25,17 +25,19 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
 import java.util.logging.Level;
 
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateMergeOperator;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
 @Options(prefix="cpa.relyguarantee")
-public class RelyGuaranteeMergeOperator extends PredicateMergeOperator {
+public class RelyGuaranteeMergeOperator implements MergeOperator {
   @Option(name="blk.threshold",
       description="maximum blocksize before abstraction is forced\n"
         + "(non-negative number, special values: 0 = don't check threshold, 1 = SBE)")
@@ -60,10 +62,14 @@ public class RelyGuaranteeMergeOperator extends PredicateMergeOperator {
   private boolean absOnlyIfBoth = false;
 
   private RelyGuaranteeCPA cpa;
+  protected final LogManager logger;
+  protected final PathFormulaManager formulaManager;
+  public final Timer totalMergeTime = new Timer();
 
-  public RelyGuaranteeMergeOperator(PredicateCPA pCpa) {
-    super(pCpa.getLogger(), pCpa.getPathFormulaManager());
-    cpa = (RelyGuaranteeCPA) pCpa;
+  public RelyGuaranteeMergeOperator(RelyGuaranteeCPA pCpa) {
+    cpa = pCpa;
+    logger = pCpa.logger;
+    formulaManager = pCpa.pathFormulaManager;
     try {
       pCpa.getConfiguration().inject(this, RelyGuaranteeMergeOperator.class);
     } catch (InvalidConfigurationException e) {
@@ -71,8 +77,6 @@ public class RelyGuaranteeMergeOperator extends PredicateMergeOperator {
       e.printStackTrace();
     }
   }
-
-
 
   @Override
   public AbstractElement merge(AbstractElement element1,

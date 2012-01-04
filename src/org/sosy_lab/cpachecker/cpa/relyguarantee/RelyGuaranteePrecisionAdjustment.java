@@ -25,10 +25,12 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -36,27 +38,41 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecisionAdjustment;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
 @Options(prefix="cpa.relyguarantee")
-public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustment {
+public class RelyGuaranteePrecisionAdjustment implements PrecisionAdjustment {
 
   @Option(name="refinement.DAGRefinement",
       description="Extracts interpolants from a DAG representation of threads and environmental transitions.")
       private boolean DAGRefinement = true;
 
   private RelyGuaranteeCPA cpa;
-
   // statistics
+  public final Timer totalPrecTime = new Timer();
+  public final Timer computingAbstractionTime = new Timer();
+
+  public int numAbstractions = 0;
+  public int numAbstractionsFalse = 0;
+  public int maxBlockSize = 0;
+  public int maxPredsPerAbstraction = 0;
+
+  protected final LogManager logger;
+  protected final PredicateAbstractionManager formulaManager;
+  protected final PathFormulaManager pathFormulaManager;
 
 
 
   public RelyGuaranteePrecisionAdjustment(RelyGuaranteeCPA pCpa) {
-    super(pCpa.getLogger(), pCpa.getPredicateManager(), pCpa.getPathFormulaManager() );
+    logger = pCpa.logger;
+    formulaManager = pCpa.predicateManager;
+    pathFormulaManager = pCpa.pathFormulaManager;
     try {
       pCpa.getConfiguration().inject(this, RelyGuaranteePrecisionAdjustment.class);
     } catch (InvalidConfigurationException e) {
@@ -100,7 +116,8 @@ public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustme
     numAbstractions++;
     logger.log(Level.FINEST, "Computing abstraction on node", loc);
 
-    Collection<AbstractionPredicate> preds = precision.getPredicates(loc);
+    Collection<AbstractionPredicate> preds = new HashSet<AbstractionPredicate>(precision.getPredicates(loc));
+    preds.addAll(precision.getGlobalPredicates());
 
     maxBlockSize = Math.max(maxBlockSize, pathFormula.getLength());
     maxPredsPerAbstraction = Math.max(maxPredsPerAbstraction, preds.size());
@@ -143,7 +160,6 @@ public class RelyGuaranteePrecisionAdjustment extends PredicatePrecisionAdjustme
 
   }
 
-  @Override
   protected LogManager getLogger() {
     return logger;
   }
