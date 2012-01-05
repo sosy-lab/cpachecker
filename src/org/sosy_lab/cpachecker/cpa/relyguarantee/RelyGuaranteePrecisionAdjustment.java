@@ -33,7 +33,6 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -48,10 +47,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
 @Options(prefix="cpa.relyguarantee")
 public class RelyGuaranteePrecisionAdjustment implements PrecisionAdjustment {
-
-  @Option(name="refinement.refinementMethod",
-      description="How to refine the counterexample DAG: 0 - unfoald to a tree, 1 - insert env. edges")
-      private int refinementMethod = 0;
 
   private RelyGuaranteeCPA cpa;
   // statistics
@@ -150,13 +145,13 @@ public class RelyGuaranteePrecisionAdjustment implements PrecisionAdjustment {
 
 
   protected AbstractionFormula computeAbstraction(AbstractionFormula pAbstractionFormula, PathFormula pPathFormula, Collection<AbstractionPredicate> pPreds, CFANode node) {
-    //return formulaManager.buildAbstraction(pAbstractionFormula, pPathFormula, pPreds);
-     if (this.refinementMethod == 3){
+    return formulaManager.buildAbstraction(pAbstractionFormula, pPathFormula, pPreds);
+   /*  if (this.refinementMethod == 3){
        // TODO use ordinary abstraction,, but still clean ssa map
       return formulaManager.buildNonModularAbstraction(pAbstractionFormula, pPathFormula, pPreds, cpa.getTid());
     } else {
       return formulaManager.buildAbstraction(pAbstractionFormula, pPathFormula, pPreds);
-    }
+    }*/
 
   }
 

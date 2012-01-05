@@ -197,6 +197,16 @@ public interface FormulaManager {
     public Formula instantiate(Formula f, SSAMap ssa);
 
     /**
+     * Instantiates unhashed variables to the old SSA map and the hashed ones to
+     * the new map.
+     * @param del
+     * @param oldSsa
+     * @param newSsa
+     * @return
+     */
+    public Formula instantiateNextVal(Formula del, SSAMap oldSsa, SSAMap newSsa);
+
+    /**
      * Given an "instantiated" formula, returns the corresponding formula in
      * which all the variables are "generic" ones. This is the inverse of the
      * instantiate() method above
@@ -218,6 +228,15 @@ public interface FormulaManager {
      */
     public Collection<Formula> extractAtoms(Formula f,
              boolean splitArithEqualities, boolean conjunctionsOnly);
+
+    /**
+     * Extract atoms from the given formula. Variables with SSA index equal to the
+     * map are given a '#' suffix.
+     * @param itp
+     * @param pSsa
+     * @return
+     */
+    public Collection<Formula> extractNextValAtoms(Formula itp, SSAMap pSsa);
 
     /**
      * Create string representation of a formula in a format which may be dumped
@@ -292,6 +311,10 @@ public interface FormulaManager {
      * @return
      */
     public Formula renameIndexes(Formula fr, SSAMap ssa, int p);
+
+
+
+
 
 
 

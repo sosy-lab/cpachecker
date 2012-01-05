@@ -57,9 +57,10 @@ public class RelyGuaranteeCFA extends CFA {
   private final Multimap<CFANode, String> lhsVariables;
   private final Set<String> scopedLocalVars;
   private final List<CFANode> noEnvList;
+  protected final CFANode startNode;
 
 
-  public RelyGuaranteeCFA(CFA other, int tid) throws UnrecognizedCFAEdgeException{
+  public RelyGuaranteeCFA(CFA other, CFANode startNode, int tid) throws UnrecognizedCFAEdgeException{
     super(other);
 
     rhsVariables = HashMultimap.create();
@@ -85,6 +86,9 @@ public class RelyGuaranteeCFA extends CFA {
         }
       }
     }
+
+    // find the inital node
+    this.startNode = startNode;
   }
 
 
@@ -158,6 +162,8 @@ public class RelyGuaranteeCFA extends CFA {
   }
 
 
-
+  public CFANode getStartNode() {
+    return startNode;
+  }
 
 }

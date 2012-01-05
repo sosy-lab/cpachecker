@@ -107,6 +107,8 @@ public class MathsatFormulaManager implements FormulaManager  {
 
   // cache for uninstantiating terms (see uninstantiate() below)
   private final Map<Formula, Formula> uninstantiateCache = new HashMap<Formula, Formula>();
+  // cache for next val uninstantiating terms
+  private final Map<Pair<Formula,SSAMap>, Formula> uninstantiateNextValCache = new HashMap<Pair<Formula,SSAMap>, Formula>();
 
   // cache Formula x NumberOfPrimes -> PrimedFormula
   private Map<Pair<Formula, Integer>, Formula> primingCache = new HashMap<Pair<Formula, Integer>, Formula>();
@@ -642,6 +644,87 @@ public class MathsatFormulaManager implements FormulaManager  {
     return result;
   }
 
+  @Override
+  public Formula instantiateNextVal(Formula f, SSAMap oldSsa, SSAMap newSsa) {
+    Deque<Formula> toProcess = new ArrayDeque<Formula>();
+    Map<Formula, Formula> cache = new HashMap<Formula, Formula>();
+
+    toProcess.push(f);
+    while (!toProcess.isEmpty()) {
+      final Formula tt = toProcess.peek();
+      if (cache.containsKey(tt)) {
+        toProcess.pop();
+        continue;
+      }
+      final long t = getTerm(tt);
+
+      if (msat_term_is_variable(t) != 0) {
+        toProcess.pop();
+        String name = msat_term_repr(t);
+        String uname = PathFormula.getUnhashed(name);
+        int idx = uname == null ?  oldSsa.getIndex(name) : newSsa.getIndex(uname);
+        name = uname == null ? name : uname;
+
+        if (idx > 0) {
+          // ok, the variable has an instance in the SSA, replace it
+          long newt = buildMsatVariable(makeName(name, idx), msat_term_get_type(t));
+          cache.put(tt, encapsulate(newt));
+        } else {
+          // TODO changes
+          // the variable is not used in the SSA, keep it as is
+          long newt = buildMsatVariable(makeName(name, 1), msat_term_get_type(t));
+          cache.put(tt, encapsulate(newt));
+        }
+      } else {
+        boolean childrenDone = true;
+        long[] newargs = new long[msat_term_arity(t)];
+        for (int i = 0; i < newargs.length; ++i) {
+          Formula c = encapsulate(msat_term_get_arg(t, i));
+          Formula newC = cache.get(c);
+          if (newC != null) {
+            newargs[i] = getTerm(newC);
+          } else {
+            toProcess.push(c);
+            childrenDone = false;
+          }
+        }
+
+        if (childrenDone) {
+          toProcess.pop();
+          long newt;
+          if (msat_term_is_uif(t) != 0) {
+            // not supported
+            newt = -1;
+            assert false;
+            /*
+            String name = msat_decl_get_name(msat_term_get_decl(t));
+            assert name != null;
+
+            if (ufCanBeLvalue(name)) {
+              int idx = ssa.getIndex(name, encapsulate(newargs));
+              if (idx > 0) {
+                // ok, the variable has an instance in the SSA, replace it
+                newt = buildMsatUF(makeName(name, idx), newargs);
+              } else {
+                newt = msat_replace_args(msatEnv, t, newargs);
+              }
+            } else {
+              newt = msat_replace_args(msatEnv, t, newargs);
+            }*/
+          } else {
+            newt = msat_replace_args(msatEnv, t, newargs);
+          }
+
+          cache.put(tt, encapsulate(newt));
+        }
+      }
+    }
+
+    Formula result = cache.get(f);
+    assert result != null;
+    return result;
+  }
+
   private boolean ufCanBeLvalue(String name) {
     return name.startsWith(".{") || name.startsWith("->{");
   }
@@ -704,6 +787,71 @@ public class MathsatFormulaManager implements FormulaManager  {
     }
 
     Formula result = cache.get(f);
+    assert result != null;
+    return result;
+  }
+
+  private Formula uninstantiateNextVal(Formula f, SSAMap ssa) {
+    Map<Pair<Formula, SSAMap>, Formula> cache = uninstantiateNextValCache;
+    Deque<Formula> toProcess = new ArrayDeque<Formula>();
+
+    toProcess.push(f);
+    while (!toProcess.isEmpty()) {
+      final Formula tt = toProcess.peek();
+      if (cache.containsKey(Pair.of(tt, ssa))) {
+        toProcess.pop();
+        continue;
+      }
+      final long t = getTerm(tt);
+
+      if (msat_term_is_variable(t) != 0) {
+        Pair<String, Integer> pair = parseName(msat_term_repr(t));
+        String name = pair.getFirst();
+        Integer idx = pair.getSecond();
+        if (ssa.getIndex(name) == idx){
+          name = name + PathFormula.NEXTVAL_SYMBOL;
+        }
+        long newt = buildMsatVariable(name, msat_term_get_type(t));
+        cache.put(Pair.of(tt, ssa), encapsulate(newt));
+
+      } else {
+        boolean childrenDone = true;
+        long[] newargs = new long[msat_term_arity(t)];
+        for (int i = 0; i < newargs.length; ++i) {
+          Formula c = encapsulate(msat_term_get_arg(t, i));
+          Formula newC = cache.get(Pair.of(c, ssa));
+          if (newC != null) {
+            newargs[i] = getTerm(newC);
+          } else {
+            toProcess.push(c);
+            childrenDone = false;
+          }
+        }
+
+        if (childrenDone) {
+          toProcess.pop();
+          long newt;
+          if (msat_term_is_uif(t) != 0) {
+            String name = msat_decl_get_name(msat_term_get_decl(t));
+            assert name != null;
+
+            if (ufCanBeLvalue(name)) {
+              name = parseName(name).getFirst();
+
+              newt = buildMsatUF(name, newargs);
+            } else {
+              newt = msat_replace_args(msatEnv, t, newargs);
+            }
+          } else {
+            newt = msat_replace_args(msatEnv, t, newargs);
+          }
+
+          cache.put(Pair.of(tt, ssa), encapsulate(newt));
+        }
+      }
+    }
+
+    Formula result = cache.get(Pair.of(f, ssa));
     assert result != null;
     return result;
   }
@@ -821,6 +969,46 @@ public class MathsatFormulaManager implements FormulaManager  {
 
     return atoms;
   }
+
+  @Override
+  public Collection<Formula> extractNextValAtoms(Formula f, SSAMap ssa) {
+    Set<Formula> cache = new HashSet<Formula>();
+    List<Formula> atoms = new ArrayList<Formula>();
+
+    Deque<Formula> toProcess = new ArrayDeque<Formula>();
+    toProcess.push(f);
+
+    while (!toProcess.isEmpty()) {
+      Formula tt = toProcess.pop();
+      long t = getTerm(tt);
+      assert !cache.contains(tt);
+      cache.add(tt);
+
+      if (msat_term_is_true(t) != 0 || msat_term_is_false(t) != 0) {
+        continue;
+      }
+
+      if (msat_term_is_atom(t) != 0) {
+        tt = uninstantiateNextVal(tt, ssa);
+        t = getTerm(tt);
+        atoms.add(tt);
+
+      } else {
+        // ok, go into this formula
+        for (int i = 0; i < msat_term_arity(t); ++i){
+          Formula c = encapsulate(msat_term_get_arg(t, i));
+          if (!cache.contains(c)) {
+            toProcess.push(c);
+          }
+        }
+      }
+    }
+
+    return atoms;
+  }
+
+
+
 
   // returns true if the given term is a pure arithmetic term
   private boolean isPurelyArithmetic(Formula f) {
@@ -1998,6 +2186,12 @@ public class MathsatFormulaManager implements FormulaManager  {
     assert result != null;
     return result;
   }
+
+
+
+
+
+
 
 
 

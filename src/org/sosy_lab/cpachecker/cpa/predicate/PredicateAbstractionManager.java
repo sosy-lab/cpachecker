@@ -222,6 +222,64 @@ class PredicateAbstractionManager {
   }
 
   /**
+   * Builds abstraction formula that shows the change between oldPf and newPf.
+   * @param aFormula
+   * @param pf
+   * @param newPf
+   * @param predicates
+   * @return
+   */
+  public AbstractionFormula buildNextValAbstraction(AbstractionFormula aFormula, PathFormula oldPf,PathFormula newPf, Collection<AbstractionPredicate> predicates) {
+    stats.numCallsAbstraction++;
+
+    /* if (predicates.isEmpty()) {
+       stats.numSymbolicAbstractions++;
+       return makeTrueAbstractionFormula(pathFormula);
+     }*/
+
+    // formula for abstraction
+     PathFormula oldAbsPf = pmgr.makeAnd(oldPf, aFormula.asPathFormula());
+     PathFormula newAbsPf = pmgr.makeAnd(newPf, aFormula.asPathFormula());
+
+     // caching
+    /* Pair<PathFormula, Collection<AbstractionPredicate>> absKey = null;
+     if (useCache) {
+       absKey = Pair.of(pf, predicates);
+       AbstractionFormula result = abstractionCache.get(absKey);
+
+       if (result != null) {
+         // create new abstraction object to have a unique abstraction id
+         result = new AbstractionFormula(result.asRegion(), result.asPathFormula(), newPf);
+         logger.log(Level.ALL, "Abstraction was cached, result is", result);
+         stats.numCallsAbstractionCached++;
+         return result;
+       }
+     }*/
+
+     Region abs = null;
+     if (cartesianAbstraction) {
+       // unsupported for the moment
+       assert false;
+     } else {
+       abs = buildNextValBooleanAbstraction(oldAbsPf, newAbsPf, predicates);
+     }
+
+     // a little work-around : symbolicPathAbs is a path formula without indexes
+     Formula symbolicAbs = amgr.toConcrete(abs);
+     //Formula symbolicAbs = fmgr.instantiateNextVal(amgr.toConcrete(abs), oldPf.getSsa(), newPf.getSsa());
+     PathFormula symbolicPathAbs = new PathFormula(symbolicAbs, newPf.getSsa(), 0);
+     AbstractionFormula result = new AbstractionFormula(abs, symbolicPathAbs, newPf);
+
+     /*if (useCache) {
+       abstractionCache.put(absKey, result);
+     }*/
+
+     return result;
+  }
+
+
+
+  /**
    * Abstract post operation.
    * @param pMap
    */
@@ -557,6 +615,60 @@ class PredicateAbstractionManager {
   }
 
   /**
+   * Builds a Boolean abstraction of the change between oldAbsPf and newAbsPf. Unhashed predicates are instantiated to the old formula
+   * and the hashed ones to the new formula.
+   * @param oldAbsPf
+   * @param newAbsPf
+   * @param predicates
+   * @return
+   */
+  private Region buildNextValBooleanAbstraction(PathFormula oldAbsPf, PathFormula newAbsPf, Collection<AbstractionPredicate> predicates) {
+
+    Formula predDef = fmgr.makeTrue();
+    List<Formula> predVars = new ArrayList<Formula>(predicates.size());
+
+    for (AbstractionPredicate p : predicates) {
+      // get propositional variable and definition of predicate
+      Formula var = p.getSymbolicVariable();
+      Formula def = p.getSymbolicAtom();
+      if (def.isFalse()) {
+        continue;
+      }
+      //def = fmgr.instantiate(def, ssa);
+      def = fmgr.instantiateNextVal(def, oldAbsPf.getSsa(), newAbsPf.getSsa());
+
+      // build the formula (var <-> def) and add it to the list of definitions
+      Formula equiv = fmgr.makeEquivalence(var, def);
+      predDef = fmgr.makeAnd(predDef, equiv);
+
+      predVars.add(var);
+    }
+    if (predVars.isEmpty()) {
+      stats.numSatCheckAbstractions++;
+    }
+
+    // the formula is (abstractionFormula & pathFormula & predDef)
+    Formula fm = fmgr.makeAnd(newAbsPf.getFormula(), predDef);
+    logger.log(Level.ALL, "COMPUTING ALL-SMT ON FORMULA: ", fm);
+
+    stats.abstractionTime.startOuter();
+    AllSatResult allSatResult = thmProver.allSat(fm, predVars, amgr, stats.abstractionTime.getInnerTimer());
+    long solveTime = stats.abstractionTime.stopOuter();
+
+    // update statistics
+    int numModels = allSatResult.getCount();
+    if (numModels < Integer.MAX_VALUE) {
+      stats.maxAllSatCount = Math.max(numModels, stats.maxAllSatCount);
+      stats.allSatCount += numModels;
+    }
+
+
+    Region result = allSatResult.getResult();
+    logger.log(Level.ALL, "Abstraction computed, result is", result);
+    return result;
+  }
+
+  /**
    * Checks if (a1 & p1) => a2
    */
   public boolean checkCoverage(AbstractionFormula a1, PathFormula p1, AbstractionFormula a2) {
@@ -664,4 +776,6 @@ class PredicateAbstractionManager {
   public PathFormulaManager getPathFormulaManager() {
     return pmgr;
   }
+
+
 }

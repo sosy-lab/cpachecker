@@ -425,6 +425,10 @@ cpa.predicate.useBitwiseAxioms = false
 # add special information to formulas about non-deterministic functions
 cpa.predicate.useNondetFlags = false
 
+# Abstract environmental transitions using their own predicates:0 - don't
+# abstract, 1 - abstract filter, 2 - abstract filter and operation.
+cpa.relyguarantee.abstractEnvTransitions = 1
+
 # get an initial set of predicates from a file in MSAT format
 cpa.relyguarantee.abstraction.initialPredicates0 = 
 cpa.relyguarantee.abstraction.initialPredicates1 = 
@@ -432,6 +436,10 @@ cpa.relyguarantee.abstraction.initialPredicates1 =
 # which solver to use?
 cpa.relyguarantee.abstraction.solver = "MATHSAT"
   allowed values: [MATHSAT, YICES]
+
+# only use the atoms from the interpolants as predicates, and not the whole
+# interpolant
+cpa.relyguarantee.atomicPredicates = true
 
 # maximum number of atoms in a path formula before abstraction is forced
 # (non-negative number, special values: 0 = don't check threshold, 1 = SBE)
@@ -458,7 +466,7 @@ cpa.relyguarantee.blk.useCache = true
 cpa.relyguarantee.checkBlockFeasibility = true
 
 # Combine all valid environmental edges for thread in two one edge?
-cpa.relyguarantee.combineEnvEdges = true
+cpa.relyguarantee.combineEnvEdges = false
 
 # Print debugging info?
 cpa.relyguarantee.debug = true
@@ -484,12 +492,9 @@ cpa.relyguarantee.interpolation.changesolverontimeout = false
 cpa.relyguarantee.predmap.export = true
 cpa.relyguarantee.predmap.file = "predmap.txt"
 
-# Extracts interpolants from a DAG representation of threads and
-# environmental transitions.
-cpa.relyguarantee.refinement.DAGRefinement = true
-
 # refinement will add all discovered predicates to all the locations in the
 # abstract trace
+cpa.relyguarantee.refinement.addPredicatesGlobally = true
 cpa.relyguarantee.refinement.addPredicatesGlobally = false
 
 # If true, the analysis continues in the previous thread. If false, the first
@@ -497,7 +502,6 @@ cpa.relyguarantee.refinement.addPredicatesGlobally = false
 cpa.relyguarantee.refinement.continueThread = false
 
 # Dump a DAG representation of interpolation formulas to the choosen file.
-# Valid only with DAGRefinement
 cpa.relyguarantee.refinement.dumpDAGfile = "test/output/itpDAG"
 
 # which interpolating solver to use for interpolant generation?
@@ -510,6 +514,10 @@ cpa.relyguarantee.refinement.itpEnvSkip = false
 # where to dump the counterexample formula in case the error location is
 # reached
 cpa.relyguarantee.refinement.msatCexFile = "counterexample.msat"
+
+# How to refine the counterexample DAG: 0 - unfoald to a tree, 1 - insert
+# env. edges
+cpa.relyguarantee.refinement.refinementMethod = 0
 
 # restart analysis after refinement
 cpa.relyguarantee.refinement.restartAnalysis = false
@@ -524,7 +532,10 @@ cpa.relyguarantee.satCheck = 0
 
 # Use a theorem prover to remove covered environemtal transitions if false
 # perform only a syntatic check for equivalence
+# whether to include the symbolic path formula in the coverage checks or do
+# only the fast abstract checks
 cpa.relyguarantee.symbolicCoverageCheck = true
+cpa.relyguarantee.symbolicCoverageCheck = false
 
 # check satisfiability when a target state has been found (should be true)
 cpa.relyguarantee.targetStateSatCheck = true

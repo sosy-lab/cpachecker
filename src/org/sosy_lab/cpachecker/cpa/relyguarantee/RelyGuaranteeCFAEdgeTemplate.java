@@ -55,6 +55,7 @@ public class RelyGuaranteeCFAEdgeTemplate{
   /** Last abstracton point before the element that generated the env. transition */
   protected final ARTElement lastAbstraction;
 
+
   public RelyGuaranteeCFAEdgeTemplate(PathFormula filter, ARTElement lastARTAbstractionElement, RelyGuaranteeEnvironmentalTransition sourceEnvTransition){
     this.filter = filter;
     this.lastAbstraction = lastARTAbstractionElement;
@@ -62,6 +63,8 @@ public class RelyGuaranteeCFAEdgeTemplate{
     this.coveredBy = null;
     this.covers = new HashSet<RelyGuaranteeCFAEdgeTemplate>();
   }
+
+
 
   // instantiate
   public RelyGuaranteeCFAEdge instantiate(CFANode successor, CFANode predecessor){
@@ -129,6 +132,7 @@ public class RelyGuaranteeCFAEdgeTemplate{
   public CFAEdge getOperation() {
     return this.sourceEnvTransition.getEdge();
   }
+
 
   /**
    * Remember that environmental edge 'other' is more general than this one.

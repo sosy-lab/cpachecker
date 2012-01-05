@@ -40,6 +40,7 @@ public class PathFormula {
   // for RelyGuarantee
   public static final String PRIME_SYMBOL   = "^";
   public static final String THREAD_SYMBOL  = "$";
+  public static final char NEXTVAL_SYMBOL = '#';
 
 
 
@@ -107,7 +108,24 @@ public class PathFormula {
     return (formula.hashCode() * 17 + ssa.hashCode()) * 31 + length;
   }
 
+  /**
+   * If the string end with an next val symbol "#", the function returns the string
+   * without the hash. Otherwise it returns null.
+   * @param str
+   * @return
+   */
+  public static String getUnhashed(String str){
+    if (str == null){
+      return null;
+    }
 
+    int l = str.length();
+    if (str.charAt(l-1) == '#'){
+      return str.substring(0, l-1);
+    }
+
+    return null;
+  }
 
   /**
    * Returns unprimed variable name and the primed no. If the variable is
@@ -130,6 +148,7 @@ public class PathFormula {
 
     return new Pair<String, Integer>(bareName, currentPrime);
   }
+
 //TODO maybe some caching?
   // returns (unprimed name, number of primes)
 

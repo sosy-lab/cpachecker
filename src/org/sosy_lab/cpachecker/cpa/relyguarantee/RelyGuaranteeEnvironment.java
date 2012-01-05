@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement.AbstractionElement;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
@@ -90,7 +91,7 @@ public class RelyGuaranteeEnvironment {
 
   @Option(description="Abstract environmental transitions using their own predicates:"
       + "0 - don't abstract, 1 - abstract filter, 2 - abstract filter and operation.")
-  private int abstractEnvTransitions = 1;
+  private int abstractEnvTransitions = 2;
 
   @Option(description="List of variables global to multiple threads")
   protected String[] globalVariables = {};
@@ -348,12 +349,10 @@ public class RelyGuaranteeEnvironment {
 
 
     if (this.abstractEnvTransitions == 2){
-      assert false;
       // compute the sucessor's path formula
-     /* PathFormula newPf = null;
+      PathFormula newPf = null;
       try {
-        PathFormula newPf = this.pfManager.makeAnd(et.getPathFormula(), et.getEdge());
-
+        newPf = pfManager.makeAnd(et.getPathFormula(), et.getEdge(), et.getSourceThread());
       } catch (CPATransferException e) {
         e.printStackTrace();
       }
@@ -364,9 +363,15 @@ public class RelyGuaranteeEnvironment {
       // preds is the set of env. predicates for the location plus the global predicates
       SetMultimap<CFANode, AbstractionPredicate> prec = envPrecision[sourceTid];
       Set<AbstractionPredicate> preds = new HashSet<AbstractionPredicate>(prec.get(loc));
-      preds.addAll(envGlobalPrecision[sourceTid]);*/
+      preds.addAll(envGlobalPrecision[sourceTid]);
 
+      AbstractionFormula aFilter = paManager.buildNextValAbstraction(et.getAbstractionFormula(), et.getPathFormula(), newPf, preds);
+      filter = aFilter.asPathFormula();
 
+      ARTElement lastARTAbstractionElement = findLastAbstractionARTElement(et.getSourceARTElement());
+      assert lastARTAbstractionElement != null;
+
+      return new RelyGuaranteeCFAEdgeTemplate(filter, lastARTAbstractionElement, et);
     }
     else if (this.abstractEnvTransitions == 1){
       // abstract the conjuction of abstraction and path formula using set of predicates.

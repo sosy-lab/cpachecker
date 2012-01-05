@@ -53,7 +53,15 @@ public class InterpolationDagNode{
   /** Thread id. */
   protected final int tid;
 
+  /** Does it represent an env. abstraction */
+  protected  boolean isEnvAbstraction;
+
+  /** Unique id */
+  protected Integer uniqueId;
+
+
   protected InterpolationDagNodeKey key;
+
 
   /**
    * Makes a deep copy of the node, except for children and parents.
@@ -67,6 +75,7 @@ public class InterpolationDagNode{
     this.parents      = new Vector<InterpolationDagNode>();
     this.tid          = node.tid;
     this.key          = node.key;
+    this.isEnvAbstraction = node.isEnvAbstraction;
   }
 
   public InterpolationDagNode(ARTElement artElement, PathFormula pathFormula, RelyGuaranteeApplicationInfo appInfo, int tid){
@@ -80,6 +89,22 @@ public class InterpolationDagNode{
     this.parents      = new Vector<InterpolationDagNode>();
     this.tid          = tid;
     this.key          = new InterpolationDagNodeKey(tid, artElement.getElementId());
+    this.isEnvAbstraction = false;
+  }
+
+  public InterpolationDagNode(ARTElement artElement, PathFormula pathFormula, RelyGuaranteeApplicationInfo appInfo, int tid, boolean isEnvAbstraction, Integer uniqueId){
+    assert artElement   != null;
+    assert pathFormula  != null;
+
+    this.artElement   = artElement;
+    this.pathFormula  = pathFormula;
+    this.appInfo      = appInfo;
+    this.children     = new Vector<InterpolationDagNode>();
+    this.parents      = new Vector<InterpolationDagNode>();
+    this.tid          = tid;
+    this.key          = new InterpolationDagNodeKey(tid, artElement.getElementId());
+    this.isEnvAbstraction = isEnvAbstraction;
+    this.uniqueId     = uniqueId;
   }
 
 

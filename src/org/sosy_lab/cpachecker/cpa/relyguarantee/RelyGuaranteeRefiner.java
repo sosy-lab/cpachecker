@@ -298,8 +298,12 @@ public class RelyGuaranteeRefiner{
           if (debug){
             System.out.println();
             for (ARTElement parent : parents){
-              System.out.println("-parent id:"+parent.getElementId()+" precision: "+Precisions.extractPrecisionByType(artReachedSets[tid].getPrecision(parent), RelyGuaranteePrecision.class));
-              System.out.println("           env precision: "+this.rgEnvironment.getEnvPrecision()[tid]);
+              RelyGuaranteePrecision prec = Precisions.extractPrecisionByType(artReachedSets[tid].getPrecision(parent), RelyGuaranteePrecision.class);
+              System.out.println("Precision for thread "+tid+":");
+              System.out.println("\t-ART local " + prec.getPredicateMap());
+              System.out.println("\t-ART global " + prec.getGlobalPredicates());
+              System.out.println("\t-Env local "  +  rgEnvironment.getEnvPrecision()[tid]);
+              System.out.println("\t-Env global " + rgEnvironment.getEnvGlobalPrecision()[tid]);
             }
           }
         }
@@ -376,6 +380,10 @@ public class RelyGuaranteeRefiner{
 
     boolean newPredicates = false;
 
+    if (debug){
+      System.out.println("New predicates:");
+    }
+
     // add env. predicates to precision
     for (AbstractElement aElement : info.getEnvPredicatesForRefinmentKeys()){
       assert aElement instanceof ARTElement;
@@ -392,7 +400,7 @@ public class RelyGuaranteeRefiner{
           Collection<AbstractionPredicate> cNewPreds = new HashSet<AbstractionPredicate>(preds);
           cNewPreds.removeAll(tPrec.get(loc));
           if (debug){
-            System.out.println("\tNew predicates (env) "+loc+" "+cNewPreds);
+            System.out.println("\t- env: "+loc+" -> "+cNewPreds);
           }
         }
         tPrec.putAll(loc, preds);
@@ -403,7 +411,7 @@ public class RelyGuaranteeRefiner{
           Collection<AbstractionPredicate> cNewPreds = new HashSet<AbstractionPredicate>(preds);
           cNewPreds.removeAll(tPrec);
           if (debug){
-            System.out.println("\tNew predicates (env) "+loc+" "+cNewPreds);
+            System.out.println("\t- env: "+loc+" -> "+cNewPreds);
           }
         }
         tPrec.addAll(preds);
@@ -450,7 +458,6 @@ public class RelyGuaranteeRefiner{
           ngpreds.addAll(newpreds);
           rgPrecision.setGlobalPredicates(ImmutableSet.copyOf(ngpreds));
         } else {
-
           pmapBuilder.putAll(loc, newpreds);
         }
 
@@ -459,7 +466,7 @@ public class RelyGuaranteeRefiner{
           Collection<AbstractionPredicate> cNewPreds = new HashSet<AbstractionPredicate>(newpreds);
           cNewPreds.removeAll(oldPreds.get(loc));
           if (debug){
-            System.out.println("\tNew predicates (art) "+loc+" "+cNewPreds);
+            System.out.println("\t- ART: "+loc+" -> "+cNewPreds);
           }
         }
       }
@@ -474,15 +481,6 @@ public class RelyGuaranteeRefiner{
 
       for (ARTElement initChild : inital.getChildren()){
         refinementMap.put(tid, Pair.of(initChild, newPrecision));
-
-        if (debug){
-          System.out.println();
-          System.out.println("Thread "+tid+": cut-off node id:"+initChild.getElementId());
-          System.out.println("\t ART precision: "+newPrecision);
-          System.out.println("\t Env precision: "+this.rgEnvironment.getEnvPrecision()[tid]+"\n\t Global env "+this.rgEnvironment.getEnvGlobalPrecision()[tid]);
-          System.out.println();
-        }
-
       }
 
     }

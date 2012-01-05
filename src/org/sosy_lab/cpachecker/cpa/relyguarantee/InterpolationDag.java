@@ -123,17 +123,17 @@ public class InterpolationDag {
    * @param target
    * @return
    */
-  public List<InterpolationDagNodeKey> getModularPathToNode(InterpolationDagNode target){
+  public List<InterpolationDagNode> getModularPathToNode(InterpolationDagNode target){
     assert nodeMap.containsValue(target);
 
-    List<InterpolationDagNodeKey> path = new Vector<InterpolationDagNodeKey>();
+    List<InterpolationDagNode> path = new Vector<InterpolationDagNode>();
     InterpolationDagNode toProcess = target;
     int tid = target.getTid();
 
     while(toProcess != null){
       InterpolationDagNode node = toProcess;
       toProcess = null;
-      path.add(0, node.key);
+      path.add(0, node);
       for (InterpolationDagNode parent : node.getParents()){
         if (parent.getTid() == tid){
           toProcess = parent;
@@ -145,8 +145,34 @@ public class InterpolationDag {
     return path;
   }
 
+
   /**
-   * In the given thread removes all nodes whose keys are not in the collection. Returns removed nodes.
+   * Retains given nodes in the DAG.
+   * @param retain
+   */
+  public void retainNodes(Collection<InterpolationDagNode> retain){
+    Deque<InterpolationDagNode> toProcess = new LinkedList<InterpolationDagNode>();
+
+    toProcess.addAll(roots);
+
+
+    while(!toProcess.isEmpty()){
+      InterpolationDagNode node = toProcess.poll();
+
+      for (InterpolationDagNode child : node.getChildren()){
+        if (!toProcess.contains(child)){
+          toProcess.addLast(child);
+        }
+      }
+
+      if (!retain.contains(node)){
+        removeNode(node.key);
+      }
+    }
+  }
+
+  /**
+   * In the given thread removes all nodes whose keys are not in the collection.
    * @param retain
    */
   public void retainNodesInThread(Collection<InterpolationDagNodeKey> retain, int tid){
@@ -494,7 +520,7 @@ public class InterpolationDag {
   /**
    * Return the node keys of the DAG in topogical order.
    */
-  public List<InterpolationDagNodeKey> topSort() {
+  public List<InterpolationDagNode> topSort() {
 
     Set<InterpolationDagNode> visited = new HashSet<InterpolationDagNode>();
     List<InterpolationDagNode> topList = new Vector<InterpolationDagNode>();
@@ -513,12 +539,48 @@ public class InterpolationDag {
       i++;
     }
 
-    List<InterpolationDagNodeKey> topListKeys = new Vector<InterpolationDagNodeKey>(topList.size());
+
+    return topList;
+  }
+
+  @Deprecated
+  public List<InterpolationDagNodeKey> topSort2() {
+    List<InterpolationDagNode> topList = topSort();
+    List<InterpolationDagNodeKey> topKeyList = new Vector<InterpolationDagNodeKey>(topList.size());
     for (InterpolationDagNode node : topList){
-      topListKeys.add(node.getKey());
+      topKeyList.add(node.key);
     }
 
-    return topListKeys;
+    return topKeyList;
+  }
+
+  public int size() {
+    return nodeMap.size();
+  }
+
+  /**
+   * Returns all ancestors of the node.
+   * @param node
+   * @return
+   */
+  public Set<InterpolationDagNode> getAncestorsOf(InterpolationDagNode node) {
+
+    Deque<InterpolationDagNode> toProcess = new LinkedList<InterpolationDagNode>();
+    Set<InterpolationDagNode> ancestors = new HashSet<InterpolationDagNode>();
+    toProcess.addAll(node.parents);
+
+    while (!toProcess.isEmpty()){
+      InterpolationDagNode nd = toProcess.poll();
+      ancestors.add(nd);
+
+      for (InterpolationDagNode child : nd.parents){
+        if (!ancestors.contains(child)){
+          toProcess.addLast(child);
+        }
+      }
+    }
+
+    return ancestors;
   }
 
 

@@ -40,7 +40,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.RelyGuaranteeCFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -60,7 +59,6 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCombinedCFAEdge;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvironment;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeVariables;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -129,8 +127,9 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
   public RelyGuaranteeVariables variables;
 
 
-  public RelyGuaranteeAlgorithm(CFA[] pCfas, CFAFunctionDefinitionNode[] pMainFunctions, ConfigurableProgramAnalysis[] pCpas, RelyGuaranteeVariables vars, Configuration config, LogManager logger) {
-    this.threadNo = pCfas.length;
+  public RelyGuaranteeAlgorithm(RelyGuaranteeCFA[] cfas, CFAFunctionDefinitionNode[] pMainFunctions, ConfigurableProgramAnalysis[] pCpas, RelyGuaranteeVariables vars, Configuration config, LogManager logger) {
+    this.cfas = cfas;
+    this.threadNo = cfas.length;
     this.mainFunctions = pMainFunctions;
     this.variables = vars;
     this.cpas = pCpas;
@@ -138,17 +137,14 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
 
     environment = new RelyGuaranteeEnvironment(threadNo, config, logger);
     threadCPA = new RelyGuaranteeThreadCPAAlgorithm[threadNo];
-    cfas = new RelyGuaranteeCFA[threadNo];
+   // cfas = new RelyGuaranteeCFA[threadNo];
 
     try {
       config.inject(this, RelyGuaranteeAlgorithm.class);
-      for (int i=0; i<threadNo; i++) {
+      /*for (int i=0; i<threadNo; i++) {
         cfas[i] = new RelyGuaranteeCFA(pCfas[i], i);
-      }
+      }*/
     } catch (InvalidConfigurationException e) {
-      e.printStackTrace();
-    } catch (UnrecognizedCFAEdgeException e) {
-      // TODO Auto-generated catch block
       e.printStackTrace();
     }
 
@@ -353,6 +349,10 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
       if (!node.isEnvAllowed()){
         continue;
       }
+
+     /* if (cfa.getStartNode().equals(node)){
+        toApply.add(node);
+      }*/
 
       for (String var : allVars.get(node)){
         if (globalVarsSet.contains(var)){

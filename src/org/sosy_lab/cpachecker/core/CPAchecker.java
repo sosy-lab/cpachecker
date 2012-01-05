@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.EmptyCFAException;
 import org.sosy_lab.cpachecker.cfa.RelyGuaranteeCFA;
 import org.sosy_lab.cpachecker.cfa.RelyGuaranteeCFACreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
@@ -657,9 +658,10 @@ public class CPAchecker {
     List<CFAFunctionDefinitionNode> funs = creator.getMainFunctions();
     CFAFunctionDefinitionNode[] funsArr = funs.toArray(new CFAFunctionDefinitionNode[funs.size()]);
     List<CFA> cfas = creator.getCfas();
+    List<CFANode> startNodes = creator.getStartNodes();
     RelyGuaranteeCFA[] rgCfas = new RelyGuaranteeCFA[cfas.size()];
     for (int i=0; i<cfas.size(); i++){
-      RelyGuaranteeCFA rgCfa = new RelyGuaranteeCFA(cfas.get(i),i);
+      RelyGuaranteeCFA rgCfa = new RelyGuaranteeCFA(cfas.get(i),startNodes.get(i),i);
       rgCfas[i] = rgCfa;
     }
 

@@ -52,6 +52,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
@@ -98,6 +100,10 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
 
   @Option(description="check satisfiability when a target state has been found (should be true)")
   private boolean targetStateSatCheck = true;
+
+  @Option(description="Abstract environmental transitions using their own predicates:"
+      + "0 - don't abstract, 1 - abstract filter, 2 - abstract filter and operation.")
+  private int abstractEnvTransitions = 2;
 
 
   // statistics
@@ -354,16 +360,45 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
    */
   public PathFormula envApplicationPF(PathFormula localPf, RelyGuaranteeCFAEdge rgEdge, int tid) throws CPATransferException{
 
-    // take the filter of the env transition
-    PathFormula appPf = rgEdge.getFilter();
+    PathFormula appPf = null;
+    if (abstractEnvTransitions == 0 || abstractEnvTransitions == 1){
+      // take the filter of the env transition
+      appPf = rgEdge.getFilter();
 
-    // build equalities over last values in the filter and local pf
-    // TODO shorter equalities for abstraction
-    PathFormula eqPf    = pfManager.makePrimedEqualities(localPf, tid, appPf, rgEdge.getSourceTid());
-    appPf = pfManager.makeAnd(appPf, eqPf);
+      // build equalities over last values in the filter and local pf
+      // TODO shorter equalities for abstraction
+      PathFormula eqPf    = pfManager.makePrimedEqualities(localPf, tid, appPf, rgEdge.getSourceTid());
+      appPf = pfManager.makeAnd(appPf, eqPf);
 
-    // apply the env. operation in thread tid
-    appPf = pfManager.makeAnd(appPf, rgEdge.getLocalEdge(), tid);
+      // apply the env. operation in thread tid
+      appPf = pfManager.makeAnd(appPf, rgEdge.getLocalEdge(), tid);
+    } else if (abstractEnvTransitions == 2){
+      PathFormula filter = rgEdge.getFilter();
+      PathFormula oldPf = rgEdge.getSourceEnvTransition().getPathFormula();
+
+      // instantiate filter using ssa maps
+      Formula iFilter = manager.instantiateNextVal(filter.getFormula(), oldPf.getSsa(), filter.getSsa());
+      appPf = new PathFormula(iFilter, filter.getSsa(), filter.getLength());
+
+
+      // build equalities between the lowest indexes of the instantiated filter
+      PathFormula lowPf = pfManager.makePrimedEqualities(localPf, tid, oldPf, rgEdge.getSourceTid());
+      appPf = pfManager.makeAnd(appPf, lowPf);
+
+      // increment all indexes of localPf by 1
+      SSAMap lSsa = localPf.getSsa();
+      SSAMapBuilder newlSsaBldr = SSAMap.emptySSAMap().builder();
+      for (String var : lSsa.allVariables()){
+        newlSsaBldr.setIndex(var, lSsa.getIndex(var)+1);
+      }
+      PathFormula newLocalPf = new PathFormula(localPf.getFormula(), newlSsaBldr.build(), localPf.getLength());
+
+      // build equalities between the highest indexes of the instantiated filter
+      PathFormula hiPf = pfManager.makePrimedEqualities(newLocalPf, tid, appPf, rgEdge.getSourceTid());
+
+      appPf = pfManager.makeAnd(appPf, hiPf);
+    }
+
 
     return appPf;
   }

@@ -86,8 +86,11 @@ public class RelyGuaranteeCFACreator {
 
   private final LogManager logger;
   private final CParser parser;
-  //private       CFA cfa;
-  List<CFA> cfas;
+
+  private List<CFA> cfas;
+
+  // nodes after global declarations
+  private List<CFANode> startNodes;
 
   private Map<String, CFAFunctionDefinitionNode> functions;
   private List<CFAFunctionDefinitionNode> mainFunctions;
@@ -215,6 +218,7 @@ public class RelyGuaranteeCFACreator {
 
       // process per main thread function
       cfas = new Vector<CFA>(mainFunctions.size());
+      startNodes = new Vector<CFANode>(mainFunctions.size());
 
 
       for (int i=0; i<mainFunctions.size(); i++){
@@ -263,7 +267,7 @@ public class RelyGuaranteeCFACreator {
         tCfaFunctions.keySet().retainAll(calledFunctions);
 
         // add global declarations
-        insertGlobalDeclarations(mainFunction, tCfa.getGlobalDeclarations(), logger);
+        insertGlobalDeclarations(mainFunction, tCfa.getGlobalDeclarations(), i, logger);
 
         //Files.writeFile(exportCfaFile, DOTBuilder.generateDOT(tCfa.getFunctions().values(), mainFunction));
       }
@@ -305,6 +309,10 @@ public class RelyGuaranteeCFACreator {
     return cfas;
   }
 
+  public List<CFANode> getStartNodes(){
+    return startNodes;
+  }
+
 
   public List<CFAFunctionDefinitionNode> getMainFunctions() {
     return mainFunctions;
@@ -313,8 +321,9 @@ public class RelyGuaranteeCFACreator {
 
   /**
    * Insert nodes for global declarations after first node of CFA.
+   * @param i
    */
-  public static void insertGlobalDeclarations(final CFAFunctionDefinitionNode cfa, List<IASTDeclaration> globalVars, LogManager logger) {
+  public void insertGlobalDeclarations(final CFAFunctionDefinitionNode cfa, List<IASTDeclaration> globalVars, int i, LogManager logger) {
     if (globalVars.isEmpty()) {
       return;
     }
@@ -347,6 +356,9 @@ public class RelyGuaranteeCFACreator {
     // and a blank edge connecting the declarations with the second node of CFA
     be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode);
     addToCFA(be);
+
+    // rember where the program  starts
+    startNodes.add(i, secondNode);
   }
 
   private static void addToCFA(CFAEdge edge) {

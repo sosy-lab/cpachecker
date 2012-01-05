@@ -24,10 +24,14 @@
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 
 public class DOTDagBuilder {
@@ -40,21 +44,28 @@ public class DOTDagBuilder {
 
 
   public static String generateDOT(List<InterpolationDagNode> roots){
-    assert tColors.length >= roots.size();
-
     StringBuilder sb = new StringBuilder();
 
     sb.append("digraph "+graphName+" {\n\n");
 
-    // the ARTs
+    // map tid -> roots
+    Multimap<Integer, InterpolationDagNode> rootMap = HashMultimap.create();
     for (InterpolationDagNode root : roots){
-      int tid = root.getTid();
+      rootMap.put(root.tid, root);
+    }
+
+    // the ARTs
+    for (Integer tid : rootMap.keys()){
       sb.append("subgraph cluster_"+tLabel+tid+" {\n");
       sb.append("\tnode [style=filled,fillcolor="+tColors[tid]+"];\n");
       sb.append("\tlabel = \""+tLabel+tid+"\";\n");
-      sb.append(generateART(root));
+      Collection<InterpolationDagNode> rColl = rootMap.get(tid);
+      for (InterpolationDagNode root : rColl){
+        sb.append(generateART(root));
+      }
       sb.append("}\n\n");
     }
+
 
     // env transitions
     for (int tid=0; tid<roots.size(); tid++){
@@ -99,10 +110,15 @@ public class DOTDagBuilder {
     Deque<InterpolationDagNode> queue = new ArrayDeque<InterpolationDagNode>();
     queue.addLast(root);
 
-    while(!queue.isEmpty()){
-      InterpolationDagNode node = queue.removeFirst();
+    sb.append("\t");
+    sb.append(generateARTElement(root.getArtElement()));
 
-      if (node.getChildren().isEmpty()){
+    while(!queue.isEmpty()){
+      InterpolationDagNode node = queue.poll();
+
+
+
+      if (node.children.isEmpty()){
         sb.append("\t");
         sb.append(generateARTElement(node.getArtElement()));
         sb.append(" [fillcolor="+errorColor+"];\n");
@@ -118,6 +134,8 @@ public class DOTDagBuilder {
           queue.addLast(child);
         }
       }
+
+
     }
 
     return sb;
