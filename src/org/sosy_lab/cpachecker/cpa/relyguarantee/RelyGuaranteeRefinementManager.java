@@ -120,7 +120,7 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
   private int abstractEnvTransitions = 2;
 
   @Option(description="Limit of nodes in an interpolation tree (0 - no limit).")
-  private int itpTreeNodeLimit = 50;
+  private int itpTreeNodeLimit = 70;
 
   public final PredStats stats;
   public final RefStats refStats;

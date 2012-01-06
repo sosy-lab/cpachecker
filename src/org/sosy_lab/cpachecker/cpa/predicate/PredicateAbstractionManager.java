@@ -95,6 +95,9 @@ class PredicateAbstractionManager {
       description="whether to use Boolean (false) or Cartesian (true) abstraction")
   private boolean cartesianAbstraction = false;
 
+  @Option(description="whether to use Boolean (false) or Cartesian (true) abstraction for enviromental transitions.")
+  private boolean cartesianNextValAbstraction = true;
+
   @Option(name="abstraction.dumpHardQueries",
       description="dump the abstraction formulas if they took to long")
   private boolean dumpHardAbstractions = false;
@@ -257,9 +260,8 @@ class PredicateAbstractionManager {
      }*/
 
      Region abs = null;
-     if (cartesianAbstraction) {
-       // unsupported for the moment
-       assert false;
+     if (cartesianNextValAbstraction) {
+       abs = buildNextValCartesianAbstraction(oldAbsPf, newAbsPf, predicates);
      } else {
        abs = buildNextValBooleanAbstraction(oldAbsPf, newAbsPf, predicates);
      }
@@ -276,6 +278,7 @@ class PredicateAbstractionManager {
 
      return result;
   }
+
 
 
 
@@ -433,6 +436,81 @@ class PredicateAbstractionManager {
 
             if (useCache) {
               cartesianAbstractionCache.put(cacheKey, predVal);
+            }
+          }
+        }
+
+        return absbdd;
+
+      } finally {
+        thmProver.pop();
+      }
+
+    } finally {
+      thmProver.reset();
+
+      stats.abstractionTime.stopOuter();
+    }
+  }
+
+
+  private Region buildNextValCartesianAbstraction(PathFormula oldPf, PathFormula newPf, Collection<AbstractionPredicate> predicates) {
+    stats.abstractionTime.startOuter();
+
+    final RegionManager rmgr = amgr.getRegionManager();
+
+    thmProver.init();
+    try {
+
+      boolean feasibility;
+      feasibility = !thmProver.isUnsat(newPf.getFormula());
+
+
+      if (!feasibility) {
+        // abstract post leads to false, we can return immediately
+        return rmgr.makeFalse();
+      }
+
+      thmProver.push(newPf.getFormula());
+      try {
+        Region absbdd = rmgr.makeTrue();
+
+        // check whether each of the predicate is implied in the next state...
+
+        for (AbstractionPredicate p : predicates) {
+
+          logger.log(Level.ALL, "DEBUG_1",
+              "CHECKING VALUE OF PREDICATE: ", p.getSymbolicAtom());
+
+          // instantiate the definition of the predicate
+          Formula predTrue = fmgr.instantiateNextVal(p.getSymbolicAtom(), oldPf.getSsa(), newPf.getSsa());
+          Formula predFalse = fmgr.makeNot(predTrue);
+
+          // check whether this predicate has a truth value in the next
+          // state
+          byte predVal = 0; // pred is neither true nor false
+
+          boolean isTrue = thmProver.isUnsat(predFalse);
+
+          if (isTrue) {
+            stats.abstractionTime.getInnerTimer().start();
+            Region v = p.getAbstractVariable();
+            absbdd = rmgr.makeAnd(absbdd, v);
+            stats.abstractionTime.getInnerTimer().stop();
+
+            predVal = 1;
+          } else {
+            // check whether it's false...
+            boolean isFalse = thmProver.isUnsat(predTrue);
+
+            if (isFalse) {
+              stats.abstractionTime.getInnerTimer().start();
+              Region v = p.getAbstractVariable();
+              v = rmgr.makeNot(v);
+              absbdd = rmgr.makeAnd(absbdd, v);
+              stats.abstractionTime.getInnerTimer().stop();
+
+              predVal = -1;
             }
           }
         }
