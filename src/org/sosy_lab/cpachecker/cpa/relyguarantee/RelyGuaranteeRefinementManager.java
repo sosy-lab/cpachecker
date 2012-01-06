@@ -119,6 +119,9 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
       + "0 - don't abstract, 1 - abstract filter, 2 - abstract filter and operation.")
   private int abstractEnvTransitions = 2;
 
+  @Option(description="Limit of nodes in an interpolation tree (0 - no limit).")
+  private int itpTreeNodeLimit = 50;
+
   public final PredStats stats;
   public final RefStats refStats;
   protected final InterpolatingTheoremProver<T1> firstItpProver;
@@ -1375,14 +1378,23 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
    }
 
    InterpolationTree tree = unwindDag(dag, targetElement);
+
+   if (debug){
+     tree.writeToDOT(dagFilePredix+"_tree.dot");
+   }
+
+   trimInterpolationTree(tree, itpTreeNodeLimit);
+
+   if (debug){
+     tree.writeToDOT(dagFilePredix+"_trimmed.dot");
+   }
+
    List<InterpolationTreeNode> topList = tree.topSort();
 
    stats.formulaTimer.stop();
    stats.formulaNo = topList.size();
 
-   if (debug){
-     tree.writeToDOT(dagFilePredix+"_tree.dot");
-   }
+
 
    if (debug){
      System.out.println();
@@ -1455,6 +1467,9 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
      List<T> idList = new Vector<T>(ancList.size());
      for (InterpolationTreeNode ancNode : ancList){
        T id = idMap.get(ancNode);
+       if (id == null){
+         System.out.println();
+       }
        idList.add(id);
      }
 
@@ -1519,6 +1534,101 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
    refStats.cexAnalysisTimer.stop();
 
    return info;
+  }
+
+
+  /**
+   * If interpolation tree has more nodes then the limit, then some branches will be trimmed.
+   * Cut-off are replaced by their abstraction.
+   * @param tree
+   * @param itpTreeNodeLimit
+   * @return
+   */
+  private void trimInterpolationTree(InterpolationTree tree, int limit) {
+    if (tree.size() <= limit){
+      return;
+    }
+
+
+    // calculate the maximum number of nodes per env. application to the trunk
+    List<InterpolationTreeNode> trunk = tree.getTrunk();
+
+    int envApp = 0;
+    for (InterpolationTreeNode node : trunk){
+      RelyGuaranteeApplicationInfo appInfo = node.getAppInfo();
+      if (appInfo != null){
+        envApp += appInfo.envMap.keySet().size();
+      }
+    }
+
+    float s = (limit - trunk.size())/envApp;
+    int nodePerApp = Math.round(s);
+    nodePerApp = Math.max(nodePerApp, 1);
+
+    if (debug){
+      System.out.print("Trimmed interpolation tree from "+tree.size()+" to "+limit+" (per application:"+nodePerApp+")");
+    }
+
+
+    // trim env. applicaions
+    for (InterpolationTreeNode node : trunk){
+      for (InterpolationTreeNode child : node.children){
+        if (!child.uniqueId.equals(node.uniqueId)){
+          trimBranch(tree, child, nodePerApp);
+        }
+      }
+    }
+  }
+
+  /**
+   * Removes nodes in the branch over the limit. Removed nodes are replaced by their abstractions.
+   * @param tree
+   * @param start
+   * @param limit
+   */
+  private void trimBranch(InterpolationTree tree, InterpolationTreeNode start, int limit) {
+
+    Set<InterpolationTreeNode> nodes = tree.bfs(start, limit);
+    assert nodes.size() <= limit;
+    Set<InterpolationTreeNode> toDelete = new HashSet<InterpolationTreeNode>();
+
+    // add abstraction to nodes with missing children
+    Map<Integer, Integer> rMap = new HashMap<Integer, Integer>();
+    for (InterpolationTreeNode node : nodes){
+      Formula replacement = fmgr.makeTrue();
+      for (InterpolationTreeNode child : node.children){
+        if (!nodes.contains(child)){
+          // find abstraction for the missing child
+          Formula abs = null;
+          if (child.isARTAbstraction){
+             RelyGuaranteeAbstractElement rgElem = AbstractElements.extractElementByType(node.artElement, RelyGuaranteeAbstractElement.class);
+            assert rgElem != null;
+            abs = rgElem.getAbstractionFormula().asFormula();
+            // rename the abstract to its branch id
+            rMap.clear();
+            rMap.put(child.getTid(), child.uniqueId);
+            abs  = fmgr.adjustedPrimedNo(abs, rMap);
+          } else if (child.isEnvAbstraction){
+            abs = child.getPathFormula().getFormula();
+          }
+
+
+          replacement = fmgr.makeAnd(replacement, abs);
+          toDelete.add(child);
+        }
+      }
+
+      if (!replacement.isTrue()){
+
+        PathFormula newPf = pmgr.makeAnd(node.getPathFormula(), replacement);
+        node.setPathFormula(newPf);
+      }
+    }
+
+    // delete trimmed nodes
+    for (InterpolationTreeNode del : toDelete){
+      tree.removeSubtree(del);
+    }
   }
 
 

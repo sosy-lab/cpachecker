@@ -74,6 +74,18 @@ public class InterpolationTree {
   }
 
   /**
+   * Removes node from the tree.
+   * @param node
+   */
+  public void removeNode(InterpolationTreeNode node) {
+    nodeMap.remove(node.key);
+    if (root.equals(node)){
+      root = null;
+    }
+    leafs.remove(node);
+  }
+
+  /**
    * Attaches a non-empty subtree. Parent-child relationships should be set before.
    * @param sTree
    */
@@ -127,7 +139,7 @@ public class InterpolationTree {
     while(!queue.isEmpty()){
       InterpolationTreeNode node = queue.pop();
 
-      if (node.children.size() <=1 || topList.containsAll(node.children)){
+      if (topList.containsAll(node.children)){
         // all children haven been visited
         topList.add(node);
 
@@ -195,6 +207,46 @@ public class InterpolationTree {
     return this.nodeMap.get(key);
   }
 
+
+  /**
+   * Removes subtree root at the node.
+   * @param node
+   */
+  public void removeSubtree(InterpolationTreeNode node){
+    if (node.equals(root)){
+      root = null;
+    } else {
+      node.parent.children.remove(node);
+
+      boolean hasSucc = false;
+      for (InterpolationTreeNode child : node.parent.children){
+        if (child.uniqueId.equals(node.parent.uniqueId)){
+          hasSucc = true;
+          break;
+        }
+      }
+      if (!hasSucc){
+        leafs.add(node.parent);
+      }
+
+
+      node.parent = null;
+    }
+
+    leafs.remove(node);
+    nodeMap.remove(node.key);
+
+    Deque<InterpolationTreeNode> queue = new LinkedList<InterpolationTreeNode>();
+
+    queue.addAll(node.children);
+    while(!queue.isEmpty()){
+      InterpolationTreeNode cNode = queue.pop();
+      nodeMap.remove(cNode.key);
+      leafs.remove(cNode);
+      queue.addAll(cNode.children);
+    }
+  }
+
   /**
    * Removes all ancestors of the node.
    * @param node
@@ -215,9 +267,109 @@ public class InterpolationTree {
 
   }
 
+  /**
+   * Returns the length of the branch that has the same id as the root.
+   * If there are many branches with the same id, it picks a random one.
+   * @return
+   */
+  public int lengthOfTheTrunk() {
+    if (root == null){
+      return 0;
+    }
+
+    InterpolationTreeNode node = root;
+    Integer uid = root.uniqueId;
+    int length = 0;
+    while (node != null){
+      InterpolationTreeNode newNode = null;
+      for (InterpolationTreeNode child : node.children){
+        if (child.uniqueId.equals(uid)){
+          length++;
+          newNode = child;
+          break;
+        }
+      }
+      node = newNode;
+    }
+
+    return length;
+  }
+
+  /**
+   * Returns a branch that has the same id as the root. We assume that there is only
+   * one such branch.
+   * @return
+   */
+  public List<InterpolationTreeNode> getTrunk() {
+    List<InterpolationTreeNode> trunk = new Vector<InterpolationTreeNode>();
+    InterpolationTreeNode toProcess = root;
+
+    while(toProcess != null){
+      trunk.add(toProcess);
+      InterpolationTreeNode newNode = null;
+      for (InterpolationTreeNode child : toProcess.children){
+        if (child.uniqueId.equals(toProcess.uniqueId)){
+          newNode = child;
+          break;
+        }
+      }
+      toProcess = newNode;
+    }
+
+    return trunk;
+  }
+
+  /**
+   * Performs a bfs search and returns the required number of nodes.
+   * @param start
+   * @param limit
+   * @return
+   */
+  public Set<InterpolationTreeNode> bfs(InterpolationTreeNode start, int limit) {
+
+    Deque<InterpolationTreeNode> toProcess = new LinkedList<InterpolationTreeNode>();
+    Set<InterpolationTreeNode> result = new HashSet<InterpolationTreeNode>(limit);
+    if (start != null){
+      toProcess.addLast(start);
+    }
+
+    int count = 0;
+    while (!toProcess.isEmpty() && count < limit){
+      InterpolationTreeNode node = toProcess.pop();
+      result.add(node);
+      count++;
+
+      for (InterpolationTreeNode child : node.children){
+        toProcess.addLast(child);
+      }
+    }
+
+    return result;
+  }
+
+
   public Integer size() {
     return nodeMap.size();
   }
+
+  public InterpolationTreeNode getRoot() {
+    return root;
+  }
+
+  public void setRoot(InterpolationTreeNode pRoot) {
+    root = pRoot;
+  }
+
+  public Set<InterpolationTreeNode> getLeafs() {
+    return leafs;
+  }
+
+  public Map<InterpolationTreeNodeKey, InterpolationTreeNode> getNodeMap() {
+    return nodeMap;
+  }
+
+
+
 
 
 
