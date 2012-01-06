@@ -96,6 +96,8 @@ public class RelyGuaranteeEnvironment {
   @Option(description="List of variables global to multiple threads")
   protected String[] globalVariables = {};
 
+
+
   /**
    * Statiscs about processing env transitions transitions.
    */

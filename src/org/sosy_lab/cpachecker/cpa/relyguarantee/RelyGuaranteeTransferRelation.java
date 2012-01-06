@@ -240,10 +240,8 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
     }
     else if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge){
       // combined edges
-      throw new UnrecognizedCFAEdgeException("Combined edges currently not supported");
-      /*RelyGuaranteeApplicationInfo appInfo = element.getAppInfo();
       RelyGuaranteeCombinedCFAEdge rgEdge = (RelyGuaranteeCombinedCFAEdge) edge;
-      pair = handleCombinedEnvFormula(oldPathFormula, rgEdge);*/
+      pair = handleCombinedEnvFormula(oldPathFormula, rgEdge, element);
     }
     else {
       // local application
@@ -257,7 +255,14 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
   }
 
 
-  // Create a path formula from an env. edge and a local pathFormula
+  /**
+   * Create a path formula from an env. edge and a local pathFormula.
+   * @param localPf
+   * @param rgEdge
+   * @param element
+   * @return
+   * @throws CPATransferException
+   */
   private Pair<PathFormula, RelyGuaranteeApplicationInfo>  handleEnvFormula(PathFormula localPf, RelyGuaranteeCFAEdge rgEdge, RelyGuaranteeAbstractElement element) throws CPATransferException {
 
     RelyGuaranteeApplicationInfo appInfo = element.getAppInfo();
@@ -282,39 +287,36 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
     return Pair.of(appPf, appInfo);
   }
 
-
-
   /**
-   *  Create a path formula from combined environmental edges.
+   * Create a path formula for an application of a comined env. edge.
    * @param localPf
-   * @param edge
+   * @param rgEdge
+   * @param element
    * @return
    * @throws CPATransferException
    */
- /*private Pair<PathFormula, RelyGuaranteeApplicationInfo>  handleCombinedEnvFormula(PathFormula localPf, RelyGuaranteeCombinedCFAEdge edge) throws CPATransferException {
-    // holds if env. applications are abstracted
-    int tid = cpa.getTid();
-    assert localPf.getPrimedNo() == tid;
-    assert edge.getEnvEdges().size() >= 1;
+  private Pair<PathFormula, RelyGuaranteeApplicationInfo> handleCombinedEnvFormula(PathFormula localPf, RelyGuaranteeCombinedCFAEdge rgCombEdge, RelyGuaranteeAbstractElement element) throws CPATransferException {
+    RelyGuaranteeApplicationInfo appInfo = element.getAppInfo();
+    if (appInfo == null){
+      appInfo = new RelyGuaranteeApplicationInfo();
+    }
 
-    RelyGuaranteeApplicationInfo appInfo = new RelyGuaranteeApplicationInfo(localPf);
-
-    // construct path formulas after applying env. transitions and merge them
-    PathFormula combinedPf = pfManager.makeEmptyPathFormula();
-    for (int i=0; i<edge.getEdgeNo(); i++){
-      RelyGuaranteeCFAEdge rgEdge = edge.getEnvEdges().get(i);
-
+    // renamed & apply env transition
+    PathFormula combinedPf = null;
+    for (RelyGuaranteeCFAEdge rgEdge: rgCombEdge.getEnvEdges()){
+      Pair<PathFormula, Integer> pair = renamedEnvApplication(localPf, rgEdge, cpa.getTid());
+      PathFormula appPf = pair.getFirst();
       // remember env application for refinement
-      PathFormula appPf = envApplicationPF(localPf, rgEdge, tid);
-      appInfo.putEnvApplication(rgEdge, appPf);
+      appInfo.putEnvApplication(pair.getSecond(), rgEdge);
 
-      if (!combinedPf.getFormula().isTrue()){
-        combinedPf = pfManager.makeRelyGuaranteeOr(combinedPf, appPf, tid);
-      } else {
+      if (combinedPf == null){
         combinedPf = appPf;
+      } else {
+        combinedPf = this.pfManager.makeRelyGuaranteeOr(appPf, combinedPf, cpa.getTid());
       }
     }
 
+    // add local formula
     combinedPf = pfManager.makeAnd(localPf, combinedPf);
 
     if (debug){
@@ -322,7 +324,8 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
     }
 
     return Pair.of(combinedPf, appInfo);
-  }*/
+  }
+
 
   /**
    * Returns a path formula representing the effect of applying env. edge on a path formula.
@@ -402,10 +405,6 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
 
     return appPf;
   }
-
-
-
-
 
   /**
    * Check whether an abstraction should be computed.

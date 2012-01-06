@@ -300,7 +300,7 @@ public class RelyGuaranteeRefiner{
             for (ARTElement parent : parents){
               RelyGuaranteePrecision prec = Precisions.extractPrecisionByType(artReachedSets[tid].getPrecision(parent), RelyGuaranteePrecision.class);
               System.out.println("Precision for thread "+tid+":");
-              System.out.println("\t-ART local " + prec.getPredicateMap());
+              System.out.println("\t-ART local "  + prec.getPredicateMap());
               System.out.println("\t-ART global " + prec.getGlobalPredicates());
               System.out.println("\t-Env local "  +  rgEnvironment.getEnvPrecision()[tid]);
               System.out.println("\t-Env global " + rgEnvironment.getEnvGlobalPrecision()[tid]);

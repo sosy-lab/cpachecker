@@ -109,7 +109,7 @@ public class PathFormula {
   }
 
   /**
-   * If the string end with an next val symbol "#", the function returns the string
+   * If the string starts with the next value symbol "#", the function returns the string
    * without the hash. Otherwise it returns null.
    * @param str
    * @return
@@ -120,8 +120,8 @@ public class PathFormula {
     }
 
     int l = str.length();
-    if (str.charAt(l-1) == '#'){
-      return str.substring(0, l-1);
+    if (str.charAt(0) == '#'){
+      return str.substring(1, l);
     }
 
     return null;

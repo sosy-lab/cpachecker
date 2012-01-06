@@ -791,6 +791,13 @@ public class MathsatFormulaManager implements FormulaManager  {
     return result;
   }
 
+  /**
+   * Strips the formula out of indexes. Variables with indexes equal to the map
+   * are given a '#' prefix.
+   * @param f
+   * @param ssa
+   * @return
+   */
   private Formula uninstantiateNextVal(Formula f, SSAMap ssa) {
     Map<Pair<Formula, SSAMap>, Formula> cache = uninstantiateNextValCache;
     Deque<Formula> toProcess = new ArrayDeque<Formula>();
@@ -809,7 +816,7 @@ public class MathsatFormulaManager implements FormulaManager  {
         String name = pair.getFirst();
         Integer idx = pair.getSecond();
         if (ssa.getIndex(name) == idx){
-          name = name + PathFormula.NEXTVAL_SYMBOL;
+          name = PathFormula.NEXTVAL_SYMBOL + name;
         }
         long newt = buildMsatVariable(name, msat_term_get_type(t));
         cache.put(Pair.of(tt, ssa), encapsulate(newt));
@@ -1534,16 +1541,27 @@ public class MathsatFormulaManager implements FormulaManager  {
         continue;
       }
       final long t = getTerm(tt);
-
       if (msat_term_is_variable(t) != 0) {
-        Pair<String, Integer> lVariable = parseName(msat_term_repr(t));
-        Pair<String, Integer> data = PathFormula.getPrimeData(lVariable.getFirst());
+        String name = null;
+        Integer index = null;
+        String repr = msat_term_repr(t);
+        String[] s = repr.split(INDEX_SEPARATOR);
+        if (s.length == 2) {
+          name = s[0];
+          index = Integer.parseInt(s[1]);
+        } else {
+          name = s[0];
+        }
+        Pair<String, Integer> data = PathFormula.getPrimeData(name);
         Integer newPrimeNo = ttMap.get(data.getSecond());
         key = Pair.of(tt, ttMap);
         if (newPrimeNo != null){
           int shift = newPrimeNo - data.getSecond();
-          String newName = PathFormula.primeVariable(lVariable.getFirst(),shift);
-          long newt = buildMsatVariable(makeName(newName, lVariable.getSecond()), msat_term_get_type(t));
+          String newName = PathFormula.primeVariable(name,shift);
+          if (index != null){
+            newName = makeName(newName, index);
+          }
+          long newt = buildMsatVariable(newName, msat_term_get_type(t));
           cache.put(key, encapsulate(newt));
         } else {
           cache.put(key, tt);

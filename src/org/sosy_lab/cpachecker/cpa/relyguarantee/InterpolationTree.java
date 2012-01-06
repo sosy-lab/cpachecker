@@ -135,7 +135,7 @@ public class InterpolationTree {
           queue.addLast(node.parent);
         }
       } else {
-        // find the fist missing child
+        // find the first missing child
         InterpolationTreeNode mChild = null;
         for(InterpolationTreeNode child : node.children){
           if (!topList.contains(child)){
@@ -149,11 +149,12 @@ public class InterpolationTree {
         // find the leaf for the missing child
         InterpolationTreeNode mLeaf = null;
         for (InterpolationTreeNode leaf : this.leafs){
-          if (leaf.uniqueId == mChild.uniqueId){
+          if (leaf.uniqueId.equals(mChild.uniqueId)){
             mLeaf = leaf;
             break;
           }
         }
+
         assert mLeaf != null;
 
         queue.addLast(mLeaf);

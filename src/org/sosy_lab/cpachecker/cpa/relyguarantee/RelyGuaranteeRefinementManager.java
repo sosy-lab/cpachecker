@@ -1369,7 +1369,7 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
 
    if (debug){
      System.out.println();
-     System.out.println("Interpolation formulas - element: formula");
+     System.out.println("Interpolation formulas - element: formula\t\t size:"+tree.size());
      for (InterpolationTreeNode node : topList){
        System.out.println("\t-"+node+": "+node.getPathFormula());
      }
@@ -1389,9 +1389,6 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
 
    stats.interpolationTimer.start();
 
-   if (tree.size() > 100){
-     System.out.println();
-   }
 
    InterpolationTreeNode prevNode = null;
 
@@ -1464,13 +1461,14 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
        }
 
 
-       itp = fmgr.adjustedPrimedNo(itp, rMap);
+
      }
 
      Set<AbstractionPredicate> preds = null;
      // add predicates to ART precision or to env. precision
      assert node.isARTAbstraction || node.isEnvAbstraction;
      if (node.isARTAbstraction){
+       itp = fmgr.adjustedPrimedNo(itp, rMap);
        preds = getPredicates(itp);
        info.addPredicatesForRefinement(node.artElement, preds);
      }
@@ -1478,13 +1476,12 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
        assert abstractEnvTransitions == 1 || abstractEnvTransitions == 2;
 
        if (this.abstractEnvTransitions == 1){
+         itp = fmgr.adjustedPrimedNo(itp, rMap);
          preds = getPredicates(itp);
          info.addEnvPredicatesForRefinement(node.artElement, preds);
        } else if (this.abstractEnvTransitions == 2){
          // TODO trick to get an adjusted SSA map
-         PathFormula ssaPf = pmgr.makeEmptyPathFormula(node.getPathFormula());
-         ssaPf = pmgr.adjustPrimedNo(ssaPf, rMap);
-         preds = getNextValPredicates(itp, ssaPf.getSsa());
+         preds = getNextValPredicates(itp, node.getPathFormula().getSsa(), rMap);
          info.addEnvPredicatesForRefinement(node.artElement, preds);
        }
      }
@@ -2448,9 +2445,10 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
    * are given '#' suffix.
    * @param itp
    * @param ssa
+   * @param rMap
    * @return
    */
-  private Set<AbstractionPredicate> getNextValPredicates(Formula itp, SSAMap ssa) {
+  private Set<AbstractionPredicate> getNextValPredicates(Formula itp, SSAMap ssa, Map<Integer, Integer> rMap) {
 
     Set <AbstractionPredicate> result = new HashSet<AbstractionPredicate>();
     // TODO maybe handling of non-atomic predicates
@@ -2460,8 +2458,9 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
       atoms = fmgr.extractNextValAtoms(itp, ssa);
 
       for (Formula atom : atoms){
+        Formula rAtom = fmgr.adjustedPrimedNo(atom, rMap);
         //Formula unprimedAtom = fmgr.unprimeFormula(atom);
-        AbstractionPredicate atomPredicate = amgr.makePredicate(atom);
+        AbstractionPredicate atomPredicate = amgr.makePredicate(rAtom);
         result.add(atomPredicate);
       }
 

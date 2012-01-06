@@ -81,7 +81,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
   protected String[] globalVariables = {};
 
   @Option(description="Combine all valid environmental edges for thread in two one edge?")
-  boolean combineEnvEdges = false;
+  boolean combineEnvEdges = true;
 
   public class RelyGuaranteeAlgorithmStatistics implements Statistics {
     private Timer totalTimer = new Timer();
