@@ -64,6 +64,8 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -351,6 +353,7 @@ public class RelyGuaranteeEnvironment {
 
 
     if (this.abstractEnvTransitions == 2){
+
       // compute the sucessor's path formula
       PathFormula newPf = null;
       try {
@@ -358,6 +361,25 @@ public class RelyGuaranteeEnvironment {
       } catch (CPATransferException e) {
         e.printStackTrace();
       }
+
+      // increment all index in the SSA Map of path formula by one.
+      SSAMapBuilder incrSsaBldr = SSAMap.emptySSAMap().builder();
+      SSAMap ssa = et.getPathFormula().getSsa();
+      for (String var : ssa.allVariables()){
+        if (newPf.getSsa().getIndex(var) <= ssa.getIndex(var)){
+          incrSsaBldr.setIndex(var, ssa.getIndex(var)+1);
+        } else {
+          incrSsaBldr.setIndex(var, newPf.getSsa().getIndex(var));
+        }
+      }
+      SSAMap incrSsa = incrSsaBldr.build();
+
+      // here we ensure that every SSA index is at least one higher - it's required for correct abstraction
+      Pair<Pair<Formula, Formula>, SSAMap> equivs = this.pfManager.mergeRelyGuaranteeSSAMaps(newPf.getSsa(), incrSsa, et.getSourceThread());
+      Formula newF = this.fManager.makeAnd(newPf.getFormula(), equivs.getFirst().getFirst());
+
+      newPf = new PathFormula(newF, equivs.getSecond(), newPf.getLength());
+
 
       // get the predicates for the transition
       int sourceTid = et.getSourceThread();
@@ -641,31 +663,23 @@ public class RelyGuaranteeEnvironment {
   }
 
   /**
-   * Returns true if env1 => env2, sound but not complete
+   * Returns true if env1 => env2 is valid, sound but not complete if operation is not abstracted.
    */
   public boolean isCovered(RelyGuaranteeCFAEdgeTemplate env1, RelyGuaranteeCFAEdgeTemplate env2) {
     if (env1.equals(env2)){
       return true;
     }
-    if (!env1.getLocalEdge().equals(env2.getLocalEdge())){
-      return false;
+    if (this.abstractEnvTransitions == 0 || this.abstractEnvTransitions == 1){
+      if (!env1.getLocalEdge().equals(env2.getLocalEdge())){
+        return false;
+      }
     }
-    Formula f1a= env1.getAbstractionFormula().getFormula();
-    Formula f1pf = env1.getPathFormula().getFormula();
-    Formula f2a = env2.getAbstractionFormula().getFormula();
-    Formula f2pf = env2.getPathFormula().getFormula();
+    Formula f1= env1.getFilter().getFormula();
+    Formula f2 = env2.getFilter().getFormula();
 
-    if (f1a.isFalse() || f1pf.isFalse()) {
+    if (f1.isFalse() || f2.isTrue()) {
       return true;
     }
-
-    Formula f2 = fManager.makeAnd(f2a, f2pf);
-
-    if (f2.isTrue()){
-      return true;
-    }
-
-    Formula f1 = fManager.makeAnd(f1a, f1pf);
 
     Formula nImpl = fManager.makeAnd(f1, fManager.makeNot(f2));
     tProver.init();

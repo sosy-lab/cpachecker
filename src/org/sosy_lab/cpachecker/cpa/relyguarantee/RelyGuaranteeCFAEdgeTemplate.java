@@ -143,7 +143,7 @@ public class RelyGuaranteeCFAEdgeTemplate{
     assert other != null;
     assert other != this;
     assert !other.covers.contains(this);
-    assert other.getOperation().equals(this.getOperation());
+    //assert other.getOperation().equals(this.getOperation());
     // TODO change it - only null should be allowed
     if (coveredBy == null){
       coveredBy  = other;

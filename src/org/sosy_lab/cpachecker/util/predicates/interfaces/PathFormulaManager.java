@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -61,6 +62,8 @@ public interface PathFormulaManager {
    * @return
    */
   PathFormula makeRelyGuaranteeOr(PathFormula pf1, PathFormula pf2, int i);
+
+  Pair<Pair<Formula, Formula>, SSAMap> mergeRelyGuaranteeSSAMaps(SSAMap ssa1, SSAMap ssa2, int tid);
 
   PathFormula makeAnd(PathFormula pf1, PathFormula pf2);
 

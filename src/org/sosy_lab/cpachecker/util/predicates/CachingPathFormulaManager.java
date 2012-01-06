@@ -264,5 +264,11 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
 
+  @Override
+  public Pair<Pair<Formula, Formula>, SSAMap> mergeRelyGuaranteeSSAMaps(SSAMap pSsa1, SSAMap pSsa2, int pTid) {
+    return delegate.mergeRelyGuaranteeSSAMaps(pSsa1, pSsa2, pTid);
+  }
+
+
 
 }

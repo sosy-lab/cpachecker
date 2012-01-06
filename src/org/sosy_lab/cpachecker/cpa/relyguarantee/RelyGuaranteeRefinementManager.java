@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -1284,8 +1285,24 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
           assert appNode != null && appNode.parent == null;
 
           if (abstractEnvTransitions == 2){
+            // TODO make more elegant
             // if edge was abstracted, then apply it for interpolation
             PathFormula newPf = pmgr.makeAnd(appNode.getPathFormula(), rgEdge.getLocalEdge(), appUniqueId);
+            // rename filter SSAMap
+            SSAMap fltrSsa = rgEdge.getFilter().getSsa();
+            SSAMapBuilder rfltrSsaBldr = SSAMap.emptySSAMap().builder();
+            for (String var : fltrSsa.allVariables()){
+              Pair<String, Integer> data = PathFormula.getPrimeData(var);
+              if (data.getSecond().equals(rgEdge.getSourceTid())){
+                String newName = data.getFirst() + PathFormula.PRIME_SYMBOL + appUniqueId;
+                rfltrSsaBldr.setIndex(newName, fltrSsa.getIndex(var));
+              }
+            }
+            // add equivalences so the path formula's indexes match the filter
+            Pair<Pair<Formula, Formula>, SSAMap> equivs = pmgr.mergeRelyGuaranteeSSAMaps(newPf.getSsa(), rfltrSsaBldr.build(), appUniqueId);
+            Formula newrF = this.fmgr.makeAnd(newPf.getFormula(), equivs.getFirst().getFirst());
+            newPf = new PathFormula(newrF, equivs.getSecond(), 0);
+
             appNode.setPathFormula(newPf);
           }
 
@@ -1468,8 +1485,8 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
      // add predicates to ART precision or to env. precision
      assert node.isARTAbstraction || node.isEnvAbstraction;
      if (node.isARTAbstraction){
-       itp = fmgr.adjustedPrimedNo(itp, rMap);
-       preds = getPredicates(itp);
+       Formula rItp = fmgr.adjustedPrimedNo(itp, rMap);
+       preds = getPredicates(rItp);
        info.addPredicatesForRefinement(node.artElement, preds);
      }
      if (node.isEnvAbstraction){
@@ -2453,7 +2470,6 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
     Set <AbstractionPredicate> result = new HashSet<AbstractionPredicate>();
     // TODO maybe handling of non-atomic predicates
     if (!itp.isTrue() && !itp.isFalse()){
-
       Collection<Formula> atoms = null;
       atoms = fmgr.extractNextValAtoms(itp, ssa);
 
