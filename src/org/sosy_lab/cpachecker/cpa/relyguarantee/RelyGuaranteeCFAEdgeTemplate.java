@@ -32,6 +32,9 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
+
+
+
 /**
  * Represents one type of environmental edge, which consists of:
  * path formula, local edge and source thread id. The class contains
@@ -40,11 +43,15 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
  */
 public class RelyGuaranteeCFAEdgeTemplate{
 
+  /** Type indicators for edges. */
+  public static int RelyGuaranteeCFAEdgeTemplate = 0;
+  public static int RelyGuaranteeAbstractCFAEdgeTemplate = 1;
+
   /** Describes the precondition for appling the env. operation */
-  protected final PathFormula filter;
+  private final PathFormula filter;
 
   /** Environmental transition form which this edge was generated from */
-  protected final RelyGuaranteeEnvironmentalTransition sourceEnvTransition;
+  private final RelyGuaranteeEnvironmentalTransition sourceEnvTransition;
 
   /** Unkilled env. edge that is more general than this one. */
   private RelyGuaranteeCFAEdgeTemplate coveredBy;
@@ -53,7 +60,7 @@ public class RelyGuaranteeCFAEdgeTemplate{
   private final Set<RelyGuaranteeCFAEdgeTemplate> covers;
 
   /** Last abstracton point before the element that generated the env. transition */
-  protected final ARTElement lastAbstraction;
+  private final ARTElement lastAbstraction;
 
 
   public RelyGuaranteeCFAEdgeTemplate(PathFormula filter, ARTElement lastARTAbstractionElement, RelyGuaranteeEnvironmentalTransition sourceEnvTransition){
@@ -64,12 +71,19 @@ public class RelyGuaranteeCFAEdgeTemplate{
     this.covers = new HashSet<RelyGuaranteeCFAEdgeTemplate>();
   }
 
-
-
-  // instantiate
+  /**
+   * Instantiate.
+   * @param successor
+   * @param predecessor
+   * @return
+   */
   public RelyGuaranteeCFAEdge instantiate(CFANode successor, CFANode predecessor){
     RelyGuaranteeCFAEdge edge = new RelyGuaranteeCFAEdge(this, successor, predecessor);
     return edge;
+  }
+
+  public int getType() {
+    return RelyGuaranteeCFAEdgeTemplate;
   }
 
 

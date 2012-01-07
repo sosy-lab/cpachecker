@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
@@ -378,8 +379,8 @@ public class RelyGuaranteeEnvironment {
    */
   private RelyGuaranteeCFAEdgeTemplate generateEnvTransition(RelyGuaranteeEnvironmentalTransition et) {
 
-    PathFormula filter = null;
-
+    ARTElement lastARTAbstractionElement = findLastAbstractionARTElement(et.getSourceARTElement());
+    assert lastARTAbstractionElement != null;
 
     if (this.abstractEnvTransitions == 2){
 
@@ -409,7 +410,6 @@ public class RelyGuaranteeEnvironment {
 
       newPf = new PathFormula(newF, equivs.getSecond(), newPf.getLength());
 
-
       // get the predicates for the transition
       int sourceTid = et.getSourceThread();
       CFANode loc = et.getEdge().getPredecessor();
@@ -419,12 +419,9 @@ public class RelyGuaranteeEnvironment {
       preds.addAll(envGlobalPrecision[sourceTid]);
 
       AbstractionFormula aFilter = paManager.buildNextValAbstraction(et.getAbstractionFormula(), et.getPathFormula(), newPf, preds);
-      filter = aFilter.asPathFormula();
-
-      ARTElement lastARTAbstractionElement = findLastAbstractionARTElement(et.getSourceARTElement());
       assert lastARTAbstractionElement != null;
 
-      return new RelyGuaranteeCFAEdgeTemplate(filter, lastARTAbstractionElement, et);
+      return new RelyGuaranteeAbstractCFAEdgeTemplate(aFilter, lastARTAbstractionElement, et);
     }
     else if (this.abstractEnvTransitions == 1){
       // abstract the conjuction of abstraction and path formula using set of predicates.
@@ -436,16 +433,12 @@ public class RelyGuaranteeEnvironment {
       preds.addAll(envGlobalPrecision[sourceTid]);
 
       AbstractionFormula aFilter = paManager.buildAbstraction(et.getAbstractionFormula(), et.getPathFormula(), preds);
-      filter = aFilter.asPathFormula();
+      return new RelyGuaranteeAbstractCFAEdgeTemplate(aFilter, lastARTAbstractionElement, et);
     } else {
       // don't abstract - the filer is conjuction of abstraction and path formula of  the generating elements
-      filter = pfManager.makeAnd(et.getPathFormula(), et.getAbstractionPathFormula());
+      PathFormula filter = pfManager.makeAnd(et.getPathFormula(), et.getAbstractionPathFormula());
+      return new RelyGuaranteeCFAEdgeTemplate(filter, lastARTAbstractionElement, et);
     }
-
-    ARTElement lastARTAbstractionElement = findLastAbstractionARTElement(et.getSourceARTElement());
-    assert lastARTAbstractionElement != null;
-
-    return new RelyGuaranteeCFAEdgeTemplate(filter, lastARTAbstractionElement, et);
   }
 
   private void assertion(){
@@ -698,11 +691,14 @@ public class RelyGuaranteeEnvironment {
     if (env1.equals(env2)){
       return true;
     }
+
+    // if operation was unabstracted, then they must match
     if (this.abstractEnvTransitions == 0 || this.abstractEnvTransitions == 1){
       if (!env1.getLocalEdge().equals(env2.getLocalEdge())){
         return false;
       }
     }
+
     Formula f1= env1.getFilter().getFormula();
     Formula f2 = env2.getFilter().getFormula();
 
@@ -710,13 +706,31 @@ public class RelyGuaranteeEnvironment {
       return true;
     }
 
-    Formula nImpl = fManager.makeAnd(f1, fManager.makeNot(f2));
-    tProver.init();
-    try {
-      return tProver.isUnsat(nImpl);
-    } finally {
-      tProver.reset();
+    if (this.abstractEnvTransitions == 0){
+      // check coverage by thm. prover
+
+
+      Formula nImpl = fManager.makeAnd(f1, fManager.makeNot(f2));
+      tProver.init();
+      try {
+        return tProver.isUnsat(nImpl);
+      } finally {
+        tProver.reset();
+      }
+    } else {
+      // check coverage by BDDs
+      assert env1.getType() == RelyGuaranteeCFAEdgeTemplate.RelyGuaranteeAbstractCFAEdgeTemplate;
+      assert env2.getType() == RelyGuaranteeCFAEdgeTemplate.RelyGuaranteeAbstractCFAEdgeTemplate;
+      RelyGuaranteeAbstractCFAEdgeTemplate aEnv1 = (RelyGuaranteeAbstractCFAEdgeTemplate) env1;
+      RelyGuaranteeAbstractCFAEdgeTemplate aEnv2 = (RelyGuaranteeAbstractCFAEdgeTemplate) env2;
+      Region r1 = aEnv1.getAbstractFilter().asRegion();
+      Region r2 = aEnv2.getAbstractFilter().asRegion();
+
+      return rManager.entails(r1, r2);
     }
+
+
+
   }
 
   /**

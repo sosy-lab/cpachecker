@@ -50,7 +50,7 @@ public class RelyGuaranteeCFAEdge implements CFAEdge{
   }
 
   public ARTElement getLastARTAbstractionElement() {
-    return this.template.lastAbstraction;
+    return this.template.getLastAbstraction();
   }
 
   @Override
