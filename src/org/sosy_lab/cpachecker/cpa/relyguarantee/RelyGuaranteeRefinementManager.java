@@ -120,7 +120,7 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
   private int abstractEnvTransitions = 2;
 
   @Option(description="Limit of nodes in an interpolation tree (0 - no limit).")
-  private int itpTreeNodeLimit = 70;
+  private int itpTreeNodeLimit = 60;
 
   public final PredStats stats;
   public final RefStats refStats;
@@ -1545,7 +1545,7 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
    * @return
    */
   private void trimInterpolationTree(InterpolationTree tree, int limit) {
-    if (tree.size() <= limit){
+    if (tree.size() <= limit || limit == 0){
       return;
     }
 
@@ -1620,7 +1620,8 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
 
       if (!replacement.isTrue()){
 
-        PathFormula newPf = pmgr.makeAnd(node.getPathFormula(), replacement);
+        Formula newF = fmgr.makeAnd(node.getPathFormula().getFormula(), replacement);
+        PathFormula newPf = new PathFormula(newF, node.getPathFormula().getSsa(), 0);
         node.setPathFormula(newPf);
       }
     }

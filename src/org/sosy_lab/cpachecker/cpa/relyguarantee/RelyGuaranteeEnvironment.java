@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -169,16 +170,27 @@ public class RelyGuaranteeEnvironment {
   private MathsatFormulaManager fManager;
   private MathsatTheoremProver tProver;
   private PredicateAbstractionManager paManager;
+  private RegionManager rManager;
+  private AbstractionManagerImpl absManager;
 
   // set of global variables
   private HashSet<String> globalVarsSet;
 
-  public RelyGuaranteeEnvironment(int threadNo, Configuration config, LogManager logger){
+  private RelyGuaranteeVariables vars;
+
+
+
+
+
+  public RelyGuaranteeEnvironment(int threadNo, RelyGuaranteeVariables vars, Configuration config, LogManager logger){
     // TODO add option for caching
     MathsatFormulaManager msatFormulaManager;
+
+
     try {
       config.inject(this, RelyGuaranteeEnvironment.class);
       // set up managers
+      rManager = BDDRegionManager.getInstance();
       msatFormulaManager = MathsatFormulaManager.getInstance(config, logger);
       fManager = msatFormulaManager;
       tProver = MathsatTheoremProver.getInstance(msatFormulaManager);
@@ -187,6 +199,7 @@ public class RelyGuaranteeEnvironment {
       pfManager = pfMgr;
       RegionManager rManager = BDDRegionManager.getInstance();
       paManager = PredicateAbstractionManager.getInstance(rManager, fManager, pfMgr, tProver, config, logger);
+      absManager = AbstractionManagerImpl.getInstance(rManager, msatFormulaManager, pfManager, config, logger);
     } catch (InvalidConfigurationException e) {
       e.printStackTrace();
     }
@@ -196,6 +209,8 @@ public class RelyGuaranteeEnvironment {
     for (String var : globalVariables) {
       globalVarsSet.add(var);
     }
+
+    this.vars = vars;
 
     this.threadNo = threadNo;
     unprocessedTransitions = new Vector<RelyGuaranteeEnvironmentalTransition>();
@@ -214,6 +229,20 @@ public class RelyGuaranteeEnvironment {
       envPrecision[i] = HashMultimap.create();
       envGlobalPrecision[i] = new HashSet<AbstractionPredicate>();
     }
+
+    // test
+/*
+    for (int i=0; i<threadNo; i++){
+      for (String var : vars.globalVars){
+        Formula vh = this.fManager.makeVariable(PathFormula.NEXTVAL_SYMBOL + var + PathFormula.PRIME_SYMBOL + i);
+        Formula v =  this.fManager.makeVariable(var + PathFormula.PRIME_SYMBOL + i);
+        Formula atom = this.fManager.makeEqual(vh, v);
+        AbstractionPredicate pred = absManager.makePredicate(atom);
+        envGlobalPrecision[i].add(pred);
+      }
+    }*/
+
+
   }
 
   /**

@@ -135,7 +135,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     this.cpas = pCpas;
     this.logger = logger;
 
-    environment = new RelyGuaranteeEnvironment(threadNo, config, logger);
+    environment = new RelyGuaranteeEnvironment(threadNo, vars, config, logger);
     threadCPA = new RelyGuaranteeThreadCPAAlgorithm[threadNo];
    // cfas = new RelyGuaranteeCFA[threadNo];
 
