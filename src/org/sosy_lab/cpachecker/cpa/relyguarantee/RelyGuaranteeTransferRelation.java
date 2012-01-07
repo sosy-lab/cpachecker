@@ -172,7 +172,7 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
       boolean isEnvEdge = (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge || edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge);
 
       doAbstraction = doAbstraction || isEnvEdge;
-      //doAbstraction = true;
+      doAbstraction = true;
 
       if (doAbstraction) {
         return Collections.singleton(
@@ -218,7 +218,7 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
 
   /**
    * Converts an edge into a formula and creates a conjunction of it with the
-   * previous pathFormula.
+   * previous pathFormula. Returns null the the transitions has been appleid before
    *
    * This method implements the strongest post operator.
    *
@@ -254,7 +254,6 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
     return pair;
   }
 
-
   /**
    * Create a path formula from an env. edge and a local pathFormula.
    * @param localPf
@@ -270,12 +269,17 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
       appInfo = new RelyGuaranteeApplicationInfo();
     }
 
+    // check if the transition has been applied before
+    if (appInfo.envMap.containsValue(rgEdge.getTemplate())){
+      return null;
+    }
+
     // renamed & apply env transition
     Pair<PathFormula, Integer> pair = renamedEnvApplication(localPf, rgEdge, cpa.getTid());
     PathFormula appPf = pair.getFirst();
 
     // remember env application for refinement
-    appInfo.putEnvApplication(pair.getSecond(), rgEdge);
+    appInfo.putEnvApplication(pair.getSecond(), rgEdge.getTemplate());
 
     // add local formula
     appPf = pfManager.makeAnd(localPf, appPf);
@@ -304,16 +308,27 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
     // renamed & apply env transition
     PathFormula combinedPf = null;
     for (RelyGuaranteeCFAEdge rgEdge: rgCombEdge.getEnvEdges()){
+
+      // skip if the transition has been applied before
+      if (appInfo.envMap.containsValue(rgEdge.getTemplate())){
+        continue;
+      }
+
       Pair<PathFormula, Integer> pair = renamedEnvApplication(localPf, rgEdge, cpa.getTid());
       PathFormula appPf = pair.getFirst();
       // remember env application for refinement
-      appInfo.putEnvApplication(pair.getSecond(), rgEdge);
+      appInfo.putEnvApplication(pair.getSecond(), rgEdge.getTemplate());
 
       if (combinedPf == null){
         combinedPf = appPf;
       } else {
         combinedPf = this.pfManager.makeRelyGuaranteeOr(appPf, combinedPf, cpa.getTid());
       }
+    }
+
+    if (combinedPf == null){
+      // all transitions have been applied
+      return null;
     }
 
     // add local formula

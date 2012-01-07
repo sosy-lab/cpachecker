@@ -35,15 +35,17 @@ public class RelyGuaranteeApplicationInfo {
   /**
    * Env. edges that have been applied.
    */
-  public final Map<Integer, RelyGuaranteeCFAEdge> envMap;
+  public final Map<Integer, RelyGuaranteeCFAEdgeTemplate> envMap;
+
+
 
   public RelyGuaranteeApplicationInfo(){
-    this.envMap = new HashMap<Integer, RelyGuaranteeCFAEdge>();
+    this.envMap = new HashMap<Integer, RelyGuaranteeCFAEdgeTemplate>();
   }
 
   /** Makes a copy of another application info. */
   public RelyGuaranteeApplicationInfo(RelyGuaranteeApplicationInfo other){
-    this.envMap = new HashMap<Integer, RelyGuaranteeCFAEdge>(other.envMap);
+    this.envMap = new HashMap<Integer, RelyGuaranteeCFAEdgeTemplate>(other.envMap);
   }
 
   /**
@@ -55,7 +57,7 @@ public class RelyGuaranteeApplicationInfo {
     envMap.putAll(other.envMap);
   }
 
-  public Map<Integer, RelyGuaranteeCFAEdge> getEnvMap() {
+  public Map<Integer, RelyGuaranteeCFAEdgeTemplate> getEnvMap() {
     return envMap;
   }
 
@@ -65,7 +67,7 @@ public class RelyGuaranteeApplicationInfo {
    * @param pf
    * @return
    */
-  public RelyGuaranteeCFAEdge putEnvApplication(Integer i, RelyGuaranteeCFAEdge rgEdge){
+  public RelyGuaranteeCFAEdgeTemplate putEnvApplication(Integer i, RelyGuaranteeCFAEdgeTemplate rgEdge){
     return envMap.put(i, rgEdge);
   }
 

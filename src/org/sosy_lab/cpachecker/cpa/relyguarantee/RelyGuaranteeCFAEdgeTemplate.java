@@ -103,7 +103,7 @@ public class RelyGuaranteeCFAEdgeTemplate{
     return null;
   }
 
-  public ARTElement getLastAbstraction() {
+  public ARTElement getLastARTAbstractionElement() {
     return lastAbstraction;
   }
 

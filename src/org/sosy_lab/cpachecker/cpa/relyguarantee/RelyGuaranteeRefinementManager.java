@@ -120,7 +120,7 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
   private int abstractEnvTransitions = 2;
 
   @Option(description="Limit of nodes in an interpolation tree (0 - no limit).")
-  private int itpTreeNodeLimit = 60;
+  private int itpTreeNodeLimit = 0;
 
   public final PredStats stats;
   public final RefStats refStats;
@@ -609,17 +609,17 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
       }
 
       // retrieve info about env. edges applied
-      Map<Integer, RelyGuaranteeCFAEdge> envMap = null;
+      Map<Integer, RelyGuaranteeCFAEdgeTemplate> envMap = null;
       if (rgElement.getBlockAppInfo() != null){
         envMap = rgElement.getBlockAppInfo().getEnvMap();
       } else {
-        envMap = new HashMap<Integer, RelyGuaranteeCFAEdge>(0);
+        envMap = new HashMap<Integer, RelyGuaranteeCFAEdgeTemplate>(0);
       }
 
       if (debug && !envMap.isEmpty() ){
         System.out.print("\t env. tr. from id:");
         for(Integer id: envMap.keySet()){
-          RelyGuaranteeCFAEdge rgEdge = envMap.get(id);
+          RelyGuaranteeCFAEdgeTemplate rgEdge = envMap.get(id);
           //ARTElement lastARTAbstraction = rgEdge.getLastARTAbstractionElement();
           System.out.print(rgEdge.getSourceARTElement().getElementId()+" ");
         }
@@ -628,7 +628,7 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
 
       // rename env. transitions to their source thread numbers
       for(Integer id : envMap.keySet()){
-        RelyGuaranteeCFAEdge rgEdge = envMap.get(id);
+        RelyGuaranteeCFAEdgeTemplate rgEdge = envMap.get(id);
         ARTElement sourceARTElement = rgEdge.getSourceARTElement();
         Integer sourceTid           = rgEdge.getSourceTid();
         assert sourceTid != tid;
@@ -1269,7 +1269,7 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
 
       if (appInfo != null){
         for (Integer id : appInfo.getEnvMap().keySet()){
-          RelyGuaranteeCFAEdge rgEdge = appInfo.getEnvMap().get(id);
+          RelyGuaranteeCFAEdgeTemplate rgEdge = appInfo.getEnvMap().get(id);
 
           // create a sub-tree for the the element that generated the transition
           ARTElement sARTElement = null;

@@ -79,7 +79,7 @@ public class RelyGuaranteeRefiner{
   @Option(name="refinement.addPredicatesGlobally",
       description="refinement will add all discovered predicates "
         + "to all the locations in the abstract trace")
-        private boolean addPredicatesGlobally = false;
+        private boolean addPredicatesGlobally = true;
 
   @Option(name="refinement.addPredicatesGlobally",
       description="refinement will add all discovered predicates "

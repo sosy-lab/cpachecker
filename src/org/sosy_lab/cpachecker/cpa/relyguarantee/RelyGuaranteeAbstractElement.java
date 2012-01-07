@@ -40,8 +40,9 @@ import com.google.common.base.Predicate;
 public class RelyGuaranteeAbstractElement implements AbstractElement, Partitionable, FormulaReportingElement {
 
   protected int tid;
-  public static int UNKOWN = -1;
   private CFAEdge parentEdge = null;
+
+
 
 
   /** The path formula for the path from the last abstraction node to this node.
@@ -114,6 +115,7 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
   public void setAppInfo(RelyGuaranteeApplicationInfo pAppInfo) {
     appInfo = pAppInfo;
   }
+
 
   public static Predicate<AbstractElement> FILTER_ABSTRACTION_ELEMENTS = new Predicate<AbstractElement>() {
     @Override

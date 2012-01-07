@@ -93,7 +93,7 @@ class PredicateAbstractionManager {
 
   @Option(name="abstraction.cartesian",
       description="whether to use Boolean (false) or Cartesian (true) abstraction")
-  private boolean cartesianAbstraction = false;
+  private boolean cartesianAbstraction = true;
 
   @Option(description="whether to use Boolean (false) or Cartesian (true) abstraction for enviromental transitions.")
   private boolean cartesianNextValAbstraction = true;
