@@ -842,7 +842,7 @@ class OutputHandler:
         if USE_COLORS and sys.stdout.isatty(): # is terminal, not file
             statusStr = COLOR_DIC[statusRelation].format(run.status.ljust(8))
         else:
-            statusStr = status.ljust(8)
+            statusStr = run.status.ljust(8)
         print(statusStr + run.cpuTimeStr.rjust(8) + run.wallTimeStr.rjust(8))
 
         # write resultline in TXTFile
