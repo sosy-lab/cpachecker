@@ -92,6 +92,8 @@ class Benchmark:
 
         # get tool
         self.tool = root.get("tool")
+        self.run_func = eval("run_" + self.tool)
+
         logging.debug("The tool to be benchmarked is {0}.".format(repr(self.tool)))
 
         self.rlimits = {}
@@ -117,6 +119,8 @@ class Benchmark:
         # get columns
         self.columns = self.loadColumns(root.find("columns"))
 
+        self.outputHandler = OutputHandler(self)
+
 
     def loadColumns(self, columnsTag):
         """
@@ -128,7 +132,10 @@ class Benchmark:
         columns = []
         if columnsTag != None: # columnsTag is optional in xml-file
             for columnTag in columnsTag.findall("column"):
-                column = Column(columnTag)
+                text = columnTag.text
+                title = columnTag.get("title", text)
+                numberOfDigits = columnTag.get("numberOfDigits") # digits behind comma
+                column = Column(text, title, numberOfDigits)
                 columns.append(column)
                 logging.debug('Column "{0}" with title "{1}" loaded from xml-file.'
                           .format(column.text, column.title))
@@ -281,6 +288,9 @@ class Run():
         self.sourcefile = sourcefile
         self.options = fileOptions
         self.test = test
+        self.benchmark = test.benchmark
+        self.mergedOptions = []
+        self.resultline = self.sourcefile # empty resultline for TXTFile, filled later
 
 
     def getMergedOptions(self):
@@ -289,33 +299,48 @@ class Run():
         It contains all options for this Run (global + testwide + local) without 'None'-Values.
         """
 
-        # merge options to list
-        currentOptions = mergeOptions(self.test.benchmark.options,
+        if not self.mergedOptions: # cache mergeOptions
+            # merge options to list
+            currentOptions = mergeOptions(self.benchmark.options,
                                       self.test.options,
                                       self.options)
 
-        # replace variables with special values
-        currentOptions = substituteVars(currentOptions,
+            # replace variables with special values
+            currentOptions = substituteVars(currentOptions,
                                         self.test,
                                         self.sourcefile,
-                                        self.test.benchmark.logFolder)
-        return currentOptions
+                                        self.benchmark.outputHandler.logFolder)
+            self.mergedOptions = currentOptions
+
+        return self.mergedOptions
+
+
+    def run(self):
+        logfile = self.benchmark.outputHandler.outputBeforeRun(self)
+
+        self.columns = [Column(c.text, c.title, c.numberOfDigits) for c in self.benchmark.columns]
+
+        (status, cpuTime, wallTime, args) = \
+             self.benchmark.run_func(self.getMergedOptions(),
+                                     self.sourcefile, 
+                                     self.columns,
+                                     self.benchmark.rlimits,
+                                     logfile)
+
+        (self.status, self.cpuTime, self.wallTime, self.args) = (status, cpuTime, wallTime, args)
+
+        self.benchmark.outputHandler.outputAfterRun(self)
 
 
 class Column:
     """
-    The class Column sets text, title and numberOfDigits of a column.
+    The class Column contains text, title and numberOfDigits of a column.
     """
 
-    def __init__(self, columnTag):
-        # get text
-        self.text = columnTag.text
-
-        # get title (title is optional, default: get text)
-        self.title = columnTag.get("title", self.text)
-
-        # get number of digits behind comma
-        self.numberOfDigits = columnTag.get("numberOfDigits")
+    def __init__(self, text, title, numOfDigits):
+        self.text = text
+        self.title = title
+        self.numberOfDigits = numOfDigits
 
 
 class Util:
@@ -444,7 +469,6 @@ class OutputHandler:
         self.logFolder = OUTPUT_PATH + self.benchmark.name + "." + self.benchmark.date + ".logfiles/"
         if not os.path.isdir(self.logFolder):
             os.makedirs(self.logFolder)
-        self.benchmark.logFolder = self.logFolder # inject benchmark with logFolder
 
         # get information about computer
         (opSystem, cpuModel, numberOfCores, maxFrequency, memory, hostname) = self.getSystemInfo()
@@ -461,17 +485,6 @@ class OutputHandler:
                               numberOfCores, maxFrequency, memory, hostname)
         self.writeHeaderToLog(version, memlimit, timelimit, opSystem, cpuModel,
                               numberOfCores, maxFrequency, memory, hostname)
-
-        # write columntitles of tests in CSV-files, this overwrites existing files
-        self.CSVFiles = dict()
-        CSVLine = CSV_SEPARATOR.join(
-                      ["sourcefile", "status", "cputime", "walltime"] \
-                    + [column.title for column in self.benchmark.columns])
-        for test in benchmark.tests:
-            if options.testRunOnly is None \
-                    or options.testRunOnly == test.name:
-                CSVFileName = self.getFileName(test.name, "csv")
-                self.CSVFiles[CSVFileName] = FileWriter(CSVFileName, CSVLine + "\n")
 
 
     def storeHeaderInXML(self, version, memlimit, timelimit, opSystem,
@@ -540,7 +553,8 @@ class OutputHandler:
                 + simpleLine
 
         # write to file
-        self.TXTFile = FileWriter(self.getFileName(None, "txt"), header + systemInfo)
+        self.TXTContent = header + systemInfo
+        self.TXTFile = FileWriter(self.getFileName(None, "txt"), self.TXTContent)
 
 
     def getToolnameForPrinting(self):
@@ -726,14 +740,6 @@ class OutputHandler:
             ("     (1 file)" if numberOfFiles == 1
                         else "     ({0} files)".format(numberOfFiles)))
 
-        # store testname and options in XML,
-        # copy benchmarkinfo, limits, columntitles, systeminfo from XMLHeader
-        self.testElem = Util.getCopyOfXMLElem(self.XMLHeader)
-        testOptions = mergeOptions(self.benchmark.options, self.test.options)
-        self.testElem.set("options", " ".join(testOptions))
-        if self.test.name is not None:
-            self.testElem.set("name", self.test.name)
-
         # write information about the test into TXTFile
         self.writeTestInfoToLog()
 
@@ -774,53 +780,51 @@ class OutputHandler:
                 numberOfTest, len(self.benchmark.tests),
                 " ".join(testOptions))
 
-        titleLine = self.createOutputLine("sourcefile", "status", "cpu time",
+        self.test.titleLine = self.createOutputLine("sourcefile", "status", "cpu time",
                             "wall time", self.benchmark.columns, True)
 
-        self.test.simpleLine = "-" * (len(titleLine)) + "\n"
+        self.test.simpleLine = "-" * (len(self.test.titleLine))
 
         # write into TXTFile
-        self.TXTFile.append("\n\n" + testInfo + titleLine + "\n" + self.test.simpleLine)
+        self.TXTContent += "\n\n" + testInfo
+        self.TXTFile.append("\n\n" + testInfo + self.test.titleLine + "\n" + self.test.simpleLine  + "\n")
 
 
-    def outputBeforeRun(self, sourcefile, currentOptions):
+    def outputBeforeRun(self, run):
         """
         The method outputBeforeRun() prints the name of a file to terminal.
         It returns the name of the logfile.
         @param sourcefile: the name of a sourcefile
         """
 
-        options = " ".join(currentOptions)
         logging.debug("I'm running '{0} {1} {2}'.".format(
-            self.getToolnameForPrinting(), options, sourcefile))
+            self.getToolnameForPrinting(), " ".join(run.mergedOptions), run.sourcefile))
 
         # output in terminal
         sys.stdout.write(time.strftime("%H:%M:%S", time.localtime()) \
-            + '   ' + sourcefile.ljust(self.maxLengthOfFileName + 4))
+            + '   ' + run.sourcefile.ljust(self.maxLengthOfFileName + 4))
         sys.stdout.flush()
 
         # write output to file-specific log-file
         logfileName = self.logFolder
-        if self.test.name is not None:
-            logfileName += self.test.name + "."
-        logfileName += os.path.basename(sourcefile) + ".log"
-        
+        if run.test.name is not None:
+            logfileName += run.test.name + "."
+        logfileName += os.path.basename(run.sourcefile) + ".log"
         return logfileName
 
 
-    def outputAfterRun(self, sourcefile, fileOptions, status,
-                       cpuTimeDelta, wallTimeDelta, args):
+    def outputAfterRun(self, run):
         """
         The method outputAfterRun() prints filename, result, time and status
         of a test to terminal and stores all data in XML
         """
 
         # format times, type is changed from float to string!
-        cpuTimeDelta = Util.formatNumber(cpuTimeDelta, TIME_PRECISION)
-        wallTimeDelta = Util.formatNumber(wallTimeDelta, TIME_PRECISION)
+        run.cpuTimeStr = Util.formatNumber(run.cpuTime, TIME_PRECISION)
+        run.wallTimeStr = Util.formatNumber(run.wallTime, TIME_PRECISION)
 
         # format numbers, numberOfDigits is optional, so it can be None
-        for column in self.benchmark.columns:
+        for column in run.columns:
             if column.numberOfDigits is not None:
 
                 # if the number ends with "s" or another letter, remove it
@@ -834,37 +838,17 @@ class OutputHandler:
                     pass
 
         # output in terminal/console
-        statusRelation = self.isCorrectResult(sourcefile, status)
+        statusRelation = self.isCorrectResult(run.sourcefile, run.status)
         if USE_COLORS and sys.stdout.isatty(): # is terminal, not file
-            statusStr = COLOR_DIC[statusRelation].format(status.ljust(8))
+            statusStr = COLOR_DIC[statusRelation].format(run.status.ljust(8))
         else:
             statusStr = status.ljust(8)
-        print(statusStr + cpuTimeDelta.rjust(8) + wallTimeDelta.rjust(8))
-
-        # store filename, status, times, columns in XML
-        fileElem = ET.Element("sourcefile", {"name": sourcefile})
-        if len(fileOptions) != 0:
-            fileElem.set("options", " ".join(mergeOptions(fileOptions)))
-        fileElem.append(ET.Element("column", {"title": "status", "value": status}))
-        fileElem.append(ET.Element("column", {"title": "cputime", "value": cpuTimeDelta}))
-        fileElem.append(ET.Element("column", {"title": "walltime", "value": wallTimeDelta}))
-
-        for column in self.benchmark.columns:
-            fileElem.append(ET.Element("column",
-                    {"title": column.title, "value": column.value}))
-
-        self.testElem.append(fileElem)
+        print(statusStr + run.cpuTimeStr.rjust(8) + run.wallTimeStr.rjust(8))
 
         # write resultline in TXTFile
-        resultline = self.createOutputLine(sourcefile, status,
-                    cpuTimeDelta, wallTimeDelta, self.benchmark.columns, False)
-        self.TXTFile.append(resultline + "\n")
-
-        # write columnvalues of the test into CSVFile
-        CSVLine = CSV_SEPARATOR.join(
-                  [sourcefile, status, cpuTimeDelta, wallTimeDelta] \
-                + [column.value for column in self.benchmark.columns])
-        self.CSVFiles[self.getFileName(self.test.name, "csv")].append(CSVLine + "\n")
+        run.resultline = self.createOutputLine(run.sourcefile, run.status,
+                    run.cpuTimeStr, run.wallTimeStr, run.columns)
+        self.TXTFile.replace(self.TXTContent + self.testToTXT(self.test))
 
         self.statistics.addResult(statusRelation)
 
@@ -876,29 +860,94 @@ class OutputHandler:
         """
 
         # format time, type is changed from float to string!
-        cpuTimeTest = Util.formatNumber(cpuTimeTest, TIME_PRECISION)
-        wallTimeTest = Util.formatNumber(wallTimeTest, TIME_PRECISION)
+        self.test.cpuTimeStr = Util.formatNumber(cpuTimeTest, TIME_PRECISION)
+        self.test.wallTimeStr = Util.formatNumber(wallTimeTest, TIME_PRECISION)
 
-        # store testtime in XML
-        timesElem = ET.Element("time", {"cputime": cpuTimeTest, "walltime": wallTimeTest})
-        self.testElem.append(timesElem)
+        # write testresults to files
+        FileWriter(self.getFileName(self.test.name, "xml"), Util.XMLtoString(self.testToXML(self.test)))
+        FileWriter(self.getFileName(self.test.name, "csv"), self.testToCSV(self.test))
 
-        # write XML-file
-        FileWriter(self.getFileName(self.test.name, "xml"), Util.XMLtoString(self.testElem))
+        self.TXTContent += self.testToTXT(self.test, True)
+        self.TXTFile.replace(self.TXTContent)
+
+
+    def testToTXT(self, test, finished=False):
+        lines = [test.titleLine, test.simpleLine]
+
+        # store values of each run
+        for run in test.runs:
+            lines.append(run.resultline)
+
+        lines.append(test.simpleLine)
 
         # write endline into TXTFile
-        numberOfFiles = len(self.test.runs)
-        numberOfTest = self.benchmark.tests.index(self.test) + 1
-        if numberOfFiles == 1:
-            endline = ("test {0} consisted of 1 sourcefile.".format(numberOfTest))
-        else:
-            endline = ("test {0} consisted of {1} sourcefiles.".format(
+        if finished:
+            numberOfFiles = len(test.runs)
+            numberOfTest = test.benchmark.tests.index(test) + 1
+            if numberOfFiles == 1:
+                endline = ("test {0} consisted of 1 sourcefile.".format(numberOfTest))
+            else:
+                endline = ("test {0} consisted of {1} sourcefiles.".format(
                     numberOfTest, numberOfFiles))
 
-        endline = self.createOutputLine(endline, "done", cpuTimeTest,
-                             wallTimeTest, [], False)
+            lines.append(self.createOutputLine(endline, "done", test.cpuTimeStr,
+                             test.wallTimeStr, []))
 
-        self.TXTFile.append(self.test.simpleLine + endline + "\n")
+        return "\n".join(lines) + "\n"
+
+
+    def testToXML(self, test):
+        """
+        This function dumps a test with results into a XML-file.
+        """
+
+        # store test with options and results in XML,
+        # copy benchmarkinfo, limits, columntitles, systeminfo from XMLHeader
+        testElem = Util.getCopyOfXMLElem(self.XMLHeader)
+        testOptions = mergeOptions(test.benchmark.options, test.options)
+        testElem.set("options", " ".join(testOptions))
+        if test.name is not None:
+            testElem.set("name", test.name)
+
+        # collect XMLelements from all runs
+        for run in test.runs:
+            runElem = ET.Element("sourcefile", {"name": run.sourcefile})
+            if len(run.options) != 0:
+                runElem.set("options", " ".join(mergeOptions(run.options)))
+            runElem.append(ET.Element("column", {"title": "status", "value": run.status}))
+            runElem.append(ET.Element("column", {"title": "cputime", "value": run.cpuTimeStr}))
+            runElem.append(ET.Element("column", {"title": "walltime", "value": run.wallTimeStr}))
+    
+            for column in run.columns:
+                runElem.append(ET.Element("column",
+                        {"title": column.title, "value": column.value}))
+    
+            testElem.append(runElem)
+
+        # store testtime in XML
+        timesElem = ET.Element("time", {"cputime": test.cpuTimeStr, "walltime": test.wallTimeStr})
+        testElem.append(timesElem)
+
+        return testElem
+
+
+    def testToCSV(self, test):
+        """
+        This function dumps a test with results into a CSV-file.
+        """
+
+        # store columntitles of tests
+        CSVLines = [CSV_SEPARATOR.join(
+                      ["sourcefile", "status", "cputime", "walltime"] \
+                    + [column.title for column in test.benchmark.columns])]
+
+        # store columnvalues of each run
+        for run in test.runs:
+            CSVLines.append(CSV_SEPARATOR.join(
+                  [run.sourcefile, run.status, run.cpuTimeStr, run.wallTimeStr] \
+                + [column.value for column in run.columns]))
+
+        return "\n".join(CSVLines) + "\n"
 
 
     def isCorrectResult(self, filename, status):
@@ -925,7 +974,7 @@ class OutputHandler:
             return 'error'
 
 
-    def createOutputLine(self, sourcefile, status, cpuTimeDelta, wallTimeDelta, columns, isFirstLine):
+    def createOutputLine(self, sourcefile, status, cpuTimeDelta, wallTimeDelta, columns, isFirstLine=False):
         """
         @param sourcefile: title of a sourcefile
         @param status: status of programm
@@ -1056,6 +1105,11 @@ class FileWriter:
 
      def append(self, content):
          file = open(self.__filename, "a")
+         file.write(content)
+         file.close()
+
+     def replace(self, content):
+         file = open(self.__filename, "w")
          file.write(content)
          file.close()
 
@@ -1542,7 +1596,6 @@ def runBenchmark(benchmarkFile):
 
     assert benchmark.tool in ["cbmc", "satabs", "cpachecker", "blast", "acsar", "wolverine",
                               "safe", "unsafe", "random"]
-    run_func = eval("run_" + benchmark.tool)
 
     if len(benchmark.tests) == 1:
         logging.debug("I'm benchmarking {0} consisting of 1 test.".format(repr(benchmarkFile)))
@@ -1550,7 +1603,7 @@ def runBenchmark(benchmarkFile):
         logging.debug("I'm benchmarking {0} consisting of {1} tests.".format(
                 repr(benchmarkFile), len(benchmark.tests)))
 
-    outputHandler = OutputHandler(benchmark)
+    outputHandler = benchmark.outputHandler
 
     for test in benchmark.tests:
 
@@ -1565,18 +1618,7 @@ def runBenchmark(benchmarkFile):
 
             outputHandler.outputBeforeTest(test)
 
-            for run in test.runs:
-
-                currentOptions = run.getMergedOptions()
-
-                logfile = outputHandler.outputBeforeRun(run.sourcefile, currentOptions)
-
-                # run test
-                (status, cpuTimeDelta, wallTimeDelta, args) = \
-                    run_func(currentOptions, run.sourcefile, benchmark.columns, benchmark.rlimits, logfile)
-
-                outputHandler.outputAfterRun(run.sourcefile, run.options, status,
-                                             cpuTimeDelta, wallTimeDelta, args)
+            for run in test.runs: run.run()
 
             # get times after test
             wallTimeAfter = time.time()
