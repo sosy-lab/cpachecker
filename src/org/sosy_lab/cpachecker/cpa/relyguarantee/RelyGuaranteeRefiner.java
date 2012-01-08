@@ -102,10 +102,6 @@ public class RelyGuaranteeRefiner{
       description="restart analysis after refinement")
       private boolean restartAnalysis = false;
 
-  @Option(description="List of variables global to multiple threads")
-  protected String[] globalVariables = {};
-
-
 
   public abstract class  RelyGuaranteeRefinerStatistics implements Statistics {
 

@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
  */
 public class RelyGuaranteeEnvironmentalTransition {
 
-  private  final AbstractionFormula abstractionFormula;
+  private final AbstractionFormula abstractionFormula;
   private final PathFormula pathFormula;
   private final CFAEdge edge;
   private final int sourceThread;

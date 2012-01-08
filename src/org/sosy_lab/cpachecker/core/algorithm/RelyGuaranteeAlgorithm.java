@@ -108,12 +108,9 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
   private LogManager logger;
 
 
-
-
   // CPAAlgorithm for each thread
   private RelyGuaranteeThreadCPAAlgorithm[] threadCPA;
   // data structure for deciding whether a variable is global
-  private Set<String> globalVarsSet;
 
   // managers
   private PathFormulaManager  pfManager;
@@ -135,27 +132,14 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     this.cpas = pCpas;
     this.logger = logger;
 
-    environment = new RelyGuaranteeEnvironment(threadNo, vars, config, logger);
     threadCPA = new RelyGuaranteeThreadCPAAlgorithm[threadNo];
-   // cfas = new RelyGuaranteeCFA[threadNo];
 
     try {
+      environment = new RelyGuaranteeEnvironment(threadNo, vars, config, logger);
       config.inject(this, RelyGuaranteeAlgorithm.class);
-      /*for (int i=0; i<threadNo; i++) {
-        cfas[i] = new RelyGuaranteeCFA(pCfas[i], i);
-      }*/
     } catch (InvalidConfigurationException e) {
       e.printStackTrace();
     }
-
-    // create a set of global variables
-    globalVarsSet = new HashSet<String>();
-    for (String var : globalVariables) {
-      globalVarsSet.add(var);
-    }
-
-    assert vars.allVars.containsAll(globalVarsSet);
-    assert globalVarsSet.containsAll(vars.allVars);
 
     for (int i=0; i< this.threadNo; i++){
       threadCPA[i] = new RelyGuaranteeThreadCPAAlgorithm(cpas[i],environment,config, logger, i);
@@ -350,12 +334,8 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
         continue;
       }
 
-     /* if (cfa.getStartNode().equals(node)){
-        toApply.add(node);
-      }*/
-
       for (String var : allVars.get(node)){
-        if (globalVarsSet.contains(var)){
+        if (variables.globalVars.contains(var)){
           toApply.add(node);
           break;
         }

@@ -51,11 +51,15 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 
 /**
@@ -123,8 +127,9 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
   private final LogManager logger;
   private final PredicateAbstractionManager paManager;
   private final PathFormulaManager pfManager;
-  protected final  PredicateAbstractionManager formulaManager;
-  protected  MathsatFormulaManager manager;
+  private final MathsatFormulaManager fManager;
+  private final RegionManager rManager;
+  private final AbstractionManager aManager;
 
   //private final MathsatFormulaManager manager;
   private final RelyGuaranteeCPA cpa;
@@ -139,8 +144,9 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
     cpa = pCpa;
     paManager = pCpa.predicateManager;
     pfManager = pCpa.pathFormulaManager;
-    manager = (MathsatFormulaManager)pCpa.formulaManager;
-    formulaManager = cpa.predicateManager;
+    fManager = (MathsatFormulaManager)pCpa.formulaManager;
+    rManager = BDDRegionManager.getInstance();
+    aManager = AbstractionManagerImpl.getInstance(rManager, fManager, pfManager, cpa.getConfiguration(), logger);
     uniqueId = 10;
   }
 
@@ -166,7 +172,6 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
       PathFormula newPF = pair.getFirst();
       logger.log(Level.ALL, "New path formula is", newPF);
 
-
       // check whether to do abstraction
       boolean doAbstraction = isBlockEnd(loc, newPF);
       boolean isEnvEdge = (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge || edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge);
@@ -186,6 +191,7 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
       postTimer.stop();
     }
   }
+
 
   /**
    * Does special things when we do not compute an abstraction for the
@@ -395,7 +401,7 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
       PathFormula oldPf = rgEdge.getSourceEnvTransition().getPathFormula();
 
       // instantiate filter using ssa maps
-      Formula iFilter = manager.instantiateNextVal(filter.getFormula(), oldPf.getSsa(), filter.getSsa());
+      Formula iFilter = fManager.instantiateNextVal(filter.getFormula(), oldPf.getSsa(), filter.getSsa());
       appPf = new PathFormula(iFilter, filter.getSsa(), filter.getLength());
 
 
@@ -459,7 +465,7 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
     // atom number threshold
     boolean athreshold = false;
     if(atomThreshold > 0) {
-      athreshold = (this.manager.countAtoms(pf.getFormula()) >= atomThreshold) ;
+      athreshold = (this.fManager.countAtoms(pf.getFormula()) >= atomThreshold) ;
       if (athreshold) {
         numAtomThreshold++;
       }

@@ -96,10 +96,6 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
       description="which interpolating solver to use for interpolant generation?")
       private String whichItpProver = "MATHSAT";
 
-  @Option(name="refinement.itpEnvSkip",
-      description="Detect and skip interpolation branches that don't give new predicates.")
-      private boolean itpEnvSkip = false;
-
   @Option(name="refinement.refinementMethod",
       description="How to refine the counterexample DAG: 0 - unfoald to a tree, 1 - insert env. edges")
       private int refinementMethod = 1;
@@ -147,7 +143,7 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
    * @param pAltItpProver
    * @param pConfig
    * @param pLogger
-   * @param globalVariables
+   * @param ables
    * @return
    * @throws InvalidConfigurationException
    */

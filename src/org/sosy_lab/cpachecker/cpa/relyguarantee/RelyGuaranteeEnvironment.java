@@ -97,13 +97,8 @@ public class RelyGuaranteeEnvironment {
       + "0 - don't abstract, 1 - abstract filter, 2 - abstract filter and operation.")
   private int abstractEnvTransitions = 2;
 
-  @Option(description="List of variables global to multiple threads")
-  protected String[] globalVariables = {};
-
-
-
   /**
-   * Statiscs about processing env transitions transitions.
+   * Statiscs for processing env transitions transitions.
    */
   public class RelyGuaranteeEnvironmentProcessStatistics implements Statistics {
 
@@ -143,8 +138,6 @@ public class RelyGuaranteeEnvironment {
   // Statitics about processing env. transitions
   private RelyGuaranteeEnvironmentProcessStatistics processStats;
 
-  // TODO more efficient data structures
-
   // number of threads
   private int threadNo;
   // map from ART elements to unprocessed env transitions
@@ -163,72 +156,54 @@ public class RelyGuaranteeEnvironment {
   private final Set<RelyGuaranteeCFAEdgeTemplate>[] coveredEnvEdgesFromThread;
   // envPrecision[i] are predicates for generating env. edges from thread i.
   private final SetMultimap<CFANode, AbstractionPredicate>[] envPrecision;
-
+  // envGlobalPrecision[i] contains global env. predicates for thread i
   private final Set<AbstractionPredicate>[] envGlobalPrecision;
+  // information about variables in threads
+  private final RelyGuaranteeVariables variables;
 
   // Managers
-  private PathFormulaManager pfManager;
-  private MathsatFormulaManager fManager;
-  private MathsatTheoremProver tProver;
-  private PredicateAbstractionManager paManager;
-  private RegionManager rManager;
-  private AbstractionManagerImpl absManager;
-
-  // set of global variables
-  private HashSet<String> globalVarsSet;
-
-  private RelyGuaranteeVariables vars;
+  private final PathFormulaManager pfManager;
+  private final MathsatFormulaManager fManager;
+  private final MathsatTheoremProver tProver;
+  private final PredicateAbstractionManager paManager;
+  private final RegionManager rManager;
+  private final AbstractionManagerImpl absManager;
 
 
-
-
-
-  public RelyGuaranteeEnvironment(int threadNo, RelyGuaranteeVariables vars, Configuration config, LogManager logger){
+  public RelyGuaranteeEnvironment(int threadNo, RelyGuaranteeVariables vars, Configuration config, LogManager logger) throws InvalidConfigurationException{
     // TODO add option for caching
-    MathsatFormulaManager msatFormulaManager;
-
-
-    try {
-      config.inject(this, RelyGuaranteeEnvironment.class);
-      // set up managers
-      rManager = BDDRegionManager.getInstance();
-      msatFormulaManager = MathsatFormulaManager.getInstance(config, logger);
-      fManager = msatFormulaManager;
-      tProver = MathsatTheoremProver.getInstance(msatFormulaManager);
-      PathFormulaManager pfMgr  = PathFormulaManagerImpl.getInstance(msatFormulaManager, config, logger);
-      pfMgr = CachingPathFormulaManager.getInstance(pfMgr);
-      pfManager = pfMgr;
-      RegionManager rManager = BDDRegionManager.getInstance();
-      paManager = PredicateAbstractionManager.getInstance(rManager, fManager, pfMgr, tProver, config, logger);
-      absManager = AbstractionManagerImpl.getInstance(rManager, msatFormulaManager, pfManager, config, logger);
-    } catch (InvalidConfigurationException e) {
-      e.printStackTrace();
-    }
-
-    // create a set of global variables
-    globalVarsSet = new HashSet<String>();
-    for (String var : globalVariables) {
-      globalVarsSet.add(var);
-    }
-
-    this.vars = vars;
+    config.inject(this, RelyGuaranteeEnvironment.class);
 
     this.threadNo = threadNo;
-    unprocessedTransitions = new Vector<RelyGuaranteeEnvironmentalTransition>();
-    //envTransProcessedBeforeFromThread = new Multimap[threadNo];
-    validEnvEdgesFromThread = new Vector[threadNo];
-    unappliedEnvEdgesForThread = new Vector[threadNo];
-    coveredEnvEdgesFromThread = new HashSet[threadNo];
-    envPrecision = new SetMultimap[threadNo];
-    envGlobalPrecision = new HashSet[threadNo];
+    this.unprocessedTransitions = new Vector<RelyGuaranteeEnvironmentalTransition>();
+    this.validEnvEdgesFromThread = new Vector[threadNo];
+    this.unappliedEnvEdgesForThread = new Vector[threadNo];
+    this.coveredEnvEdgesFromThread = new HashSet[threadNo];
+    this.envPrecision = new SetMultimap[threadNo];
+    this.envGlobalPrecision = new HashSet[threadNo];
+    this.variables = vars;
+
+    // set up managers
+    MathsatFormulaManager msatFormulaManager;
+    this.rManager = BDDRegionManager.getInstance();
+    msatFormulaManager = MathsatFormulaManager.getInstance(config, logger);
+    this.fManager = msatFormulaManager;
+    this.tProver = MathsatTheoremProver.getInstance(msatFormulaManager);
+    PathFormulaManager pfMgr  = PathFormulaManagerImpl.getInstance(msatFormulaManager, config, logger);
+    pfMgr = CachingPathFormulaManager.getInstance(pfMgr);
+    this.pfManager = pfMgr;
+    RegionManager rManager = BDDRegionManager.getInstance();
+    this.paManager = PredicateAbstractionManager.getInstance(rManager, fManager, pfMgr, tProver, config, logger);
+    this.absManager = AbstractionManagerImpl.getInstance(rManager, msatFormulaManager, pfManager, config, logger);
+
 
     for (int i=0; i< threadNo; i++){
       //envTransProcessedBeforeFromThread[i] = HashMultimap.<ARTElement, RelyGuaranteeEnvironmentalTransition>create();
-      validEnvEdgesFromThread[i] = new Vector<RelyGuaranteeCFAEdgeTemplate>();
-      unappliedEnvEdgesForThread[i] = new Vector<RelyGuaranteeCFAEdgeTemplate>();
-      coveredEnvEdgesFromThread[i] = new HashSet<RelyGuaranteeCFAEdgeTemplate>();
-      envPrecision[i] = HashMultimap.create();
-      envGlobalPrecision[i] = new HashSet<AbstractionPredicate>();
+      this.validEnvEdgesFromThread[i] = new Vector<RelyGuaranteeCFAEdgeTemplate>();
+      this.unappliedEnvEdgesForThread[i] = new Vector<RelyGuaranteeCFAEdgeTemplate>();
+      this.coveredEnvEdgesFromThread[i] = new HashSet<RelyGuaranteeCFAEdgeTemplate>();
+      this.envPrecision[i] = HashMultimap.create();
+      this.envGlobalPrecision[i] = new HashSet<AbstractionPredicate>();
     }
 
     // test
@@ -242,9 +217,51 @@ public class RelyGuaranteeEnvironment {
         envGlobalPrecision[i].add(pred);
       }
     }*/
-
-
   }
+
+
+
+  public int getThreadNo() {
+    return threadNo;
+  }
+
+  public void setThreadNo(int pThreadNo) {
+    threadNo = pThreadNo;
+  }
+
+  public RelyGuaranteeVariables getVariables() {
+    return variables;
+  }
+
+  public PathFormulaManager getPfManager() {
+    return pfManager;
+  }
+
+  public MathsatFormulaManager getfManager() {
+    return fManager;
+  }
+
+  public MathsatTheoremProver gettProver() {
+    return tProver;
+  }
+
+  public PredicateAbstractionManager getPaManager() {
+    return paManager;
+  }
+
+
+
+  public RegionManager getrManager() {
+    return rManager;
+  }
+
+
+
+  public AbstractionManagerImpl getAbsManager() {
+    return absManager;
+  }
+
+
 
   /**
    * Add new environmental transitions for processing.
@@ -738,7 +755,7 @@ public class RelyGuaranteeEnvironment {
    */
   private boolean isLocalAssigment(CFAEdge edge) {
     String var = getLhsVariable(edge);
-    if (var == null || !globalVarsSet.contains(var)){
+    if (var == null || !variables.globalVars.contains(var)){
       return true;
     }
     return false;

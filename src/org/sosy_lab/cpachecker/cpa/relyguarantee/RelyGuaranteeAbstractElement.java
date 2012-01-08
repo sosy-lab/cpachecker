@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 
-
+// TODO use a method instead of instanceof
 public class RelyGuaranteeAbstractElement implements AbstractElement, Partitionable, FormulaReportingElement {
 
   protected int tid;

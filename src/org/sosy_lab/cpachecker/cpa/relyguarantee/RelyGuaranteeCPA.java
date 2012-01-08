@@ -23,10 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
-import java.io.File;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -83,24 +80,12 @@ public class RelyGuaranteeCPA implements ConfigurableProgramAnalysis, Statistics
       description="which interpolating solver to use for interpolant generation?")
       private String whichItpProver = "MATHSAT";
 
-  @Option(name="abstraction.initialPredicates0", type=Option.Type.OPTIONAL_INPUT_FILE,
-      description="get an initial set of predicates from a file in MSAT format")
-      private File predicatesFile0 = null;
-
-  @Option(name="abstraction.initialPredicates1", type=Option.Type.OPTIONAL_INPUT_FILE,
-      description="get an initial set of predicates from a file in MSAT format")
-      private File predicatesFile1 = null;
-
   @Option(description="always check satisfiability at end of block, even if precision is empty")
   private boolean checkBlockFeasibility = true;
 
   @Option(name="interpolation.changesolverontimeout",
       description="try second interpolating solver if the first takes too long")
       private boolean changeItpSolveOTF = false;
-
-  @Option(description="List of variables global to multiple threads")
-  protected String[] globalVariables = {};
-
 
   protected final Configuration config;
   protected final LogManager logger;
@@ -117,7 +102,6 @@ public class RelyGuaranteeCPA implements ConfigurableProgramAnalysis, Statistics
   protected final PredicateAbstractionManager predicateManager;
   protected AbstractElement topElement;
   protected final  RelyGuaranteeRefinementManager<?, ?> refinerManager;
-  public Set<String> globalVariablesSet;
 
   @Option(name="blk.useCache", description="use caching of path formulas")
   private boolean useCache = true;
@@ -126,8 +110,6 @@ public class RelyGuaranteeCPA implements ConfigurableProgramAnalysis, Statistics
   private RelyGuaranteeCPAStatistics stats;
   private int tid;
   public RelyGuaranteeVariables variables;
-
-
 
 
   public static TheoremProver getTheoremProver(Configuration config, LogManager logger,String type) throws InvalidConfigurationException{
@@ -141,11 +123,6 @@ public class RelyGuaranteeCPA implements ConfigurableProgramAnalysis, Statistics
     this.config = config;
     this.logger = logger;
     config.inject(this, RelyGuaranteeCPA.class);
-
-    globalVariablesSet = new HashSet<String>();
-    for (String var : globalVariables){
-      globalVariablesSet.add(var);
-    }
 
     this.regionManager = BDDRegionManager.getInstance();
     MathsatFormulaManager mathsatFormulaManager = MathsatFormulaManager.getInstance(config, logger);
@@ -223,8 +200,6 @@ public class RelyGuaranteeCPA implements ConfigurableProgramAnalysis, Statistics
 
   public void setVariables(RelyGuaranteeVariables pVariables) {
     variables = pVariables;
-    assert globalVariablesSet.containsAll(variables.allVars);
-    assert variables.allVars.containsAll(globalVariablesSet);
   }
 
 
