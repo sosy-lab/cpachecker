@@ -355,9 +355,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
     List<ARTElement> childrenAndCoveredList = new ArrayList<ARTElement>();
     childrenAndCoveredList.addAll(e.getChildren());
-    if(e.isCovered()){
-      childrenAndCoveredList.add(e.getCoveringElement());
-    }
+    childrenAndCoveredList.addAll(e.getCoveredByThis());
 
     for (ARTElement child : childrenAndCoveredList) {
       getTrueAssumptionElements(child, visited, trueAssumptions, falseAssumptions);
@@ -365,16 +363,10 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
     AssumptionStorageElement asmptElement = AbstractElements.extractElementByType(e, AssumptionStorageElement.class);
 
-    List<ARTElement> tempChildrenAndCoveredList = new ArrayList<ARTElement>();
-    tempChildrenAndCoveredList.addAll(e.getChildren());
-    if(e.isCovered()){
-      tempChildrenAndCoveredList.add(e.getCoveringElement());
-    }
-
     if (asmptElement.getAssumption().isTrue()
         && asmptElement.getStopFormula().isTrue()
         && !falseAssumptions.contains(e)
-        && trueAssumptions.containsAll(tempChildrenAndCoveredList)){
+        && trueAssumptions.containsAll(childrenAndCoveredList)){
       trueAssumptions.add(e);
     }
   }
