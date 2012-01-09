@@ -173,18 +173,6 @@ class CFABuilder extends ASTVisitor {
     return PROCESS_SKIP; // important to skip here, otherwise we would visit nested declarations
   }
 
-  void addFunctionCfa(String pNameOfFunction,
-      final CFAFunctionDefinitionNode pStartNode,
-      final IASTFunctionDefinition pDeclaration) {
-
-    if (cfas.containsKey(pNameOfFunction)) {
-      throw new CFAGenerationRuntimeException("Duplicate function "
-          + pNameOfFunction, pDeclaration);
-    }
-
-    cfas.put(pNameOfFunction, pStartNode);
-  }
-
   //Method to handle visiting a parsing problem.  Hopefully none exist
   /* (non-Javadoc)
    * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IASTProblem)
@@ -197,8 +185,19 @@ class CFABuilder extends ASTVisitor {
   @Override
   public int leave(IASTTranslationUnit translationUnit) {
     for (IASTFunctionDefinition declaration : functionDeclarations) {
-      declaration.accept(new CFAFunctionBuilder(logger, ignoreCasts, this,
-          scope, astCreator));
+      CFAFunctionBuilder functionBuilder = new CFAFunctionBuilder(logger, ignoreCasts,
+          scope, astCreator);
+
+      declaration.accept(functionBuilder);
+
+      CFAFunctionDefinitionNode startNode = functionBuilder.getStartNode();
+      String functionName = startNode.getFunctionName();
+
+      if (cfas.containsKey(functionName)) {
+        throw new CFAGenerationRuntimeException("Duplicate function " + functionName);
+      }
+      cfas.put(functionName, startNode);
+      cfaNodes.putAll(functionName, functionBuilder.getCfaNodes());
     }
     return PROCESS_CONTINUE;
   }

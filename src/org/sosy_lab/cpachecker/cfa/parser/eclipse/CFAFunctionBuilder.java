@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
+import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.cfa.CFACreationUtils.isReachableNode;
 
 import java.util.ArrayDeque;
@@ -34,7 +35,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
@@ -104,9 +104,9 @@ class CFAFunctionBuilder extends ASTVisitor {
   private final Deque<CFANode> elseStack      = new ArrayDeque<CFANode>();
 
   // Data structure for handling switch-statements
-  private Deque<org.sosy_lab.cpachecker.cfa.ast.IASTExpression> switchExprStack =
+  private final Deque<org.sosy_lab.cpachecker.cfa.ast.IASTExpression> switchExprStack =
     new ArrayDeque<org.sosy_lab.cpachecker.cfa.ast.IASTExpression>();
-  private Deque<CFANode> switchCaseStack = new ArrayDeque<CFANode>();
+  private final Deque<CFANode> switchCaseStack = new ArrayDeque<CFANode>();
 
   // Data structures for handling goto
   private final Map<String, CFALabelNode> labelMap = new HashMap<String, CFALabelNode>();
@@ -114,21 +114,19 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   // Data structures for handling function declarations
   private CFAFunctionDefinitionNode cfa = null;
-  private SortedSet<CFANode> cfaNodes = null;
+  private final Set<CFANode> cfaNodes = new HashSet<CFANode>();
 
   private final Scope scope;
   private final ASTConverter astCreator;
 
   private final LogManager logger;
-  private final CFABuilder cfaBuilder;
 
   private boolean printedAsmWarning = false;
 
   public CFAFunctionBuilder(LogManager pLogger, boolean pIgnoreCasts,
-      CFABuilder pCfaBuilder, Scope pScope, ASTConverter pAstCreator) {
+      Scope pScope, ASTConverter pAstCreator) {
 
     logger = pLogger;
-    cfaBuilder = pCfaBuilder;
     scope = pScope;
     astCreator = pAstCreator;
 
@@ -137,6 +135,16 @@ class CFAFunctionBuilder extends ASTVisitor {
     shouldVisitParameterDeclarations = true;
     shouldVisitProblems = true;
     shouldVisitStatements = true;
+  }
+
+  CFAFunctionDefinitionNode getStartNode() {
+    checkState(cfa != null);
+    return cfa;
+  }
+
+  Set<CFANode> getCfaNodes() {
+    checkState(cfa != null);
+    return cfaNodes;
   }
 
   /* (non-Javadoc)
@@ -221,7 +229,6 @@ class CFAFunctionBuilder extends ASTVisitor {
     assert labelMap.isEmpty();
     assert gotoLabelNeeded.isEmpty();
     assert cfa == null;
-    assert cfaNodes == null;
 
     final org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDefinition fdef = astCreator.convert(declaration);
     final String nameOfFunction = fdef.getName();
@@ -237,15 +244,12 @@ class CFAFunctionBuilder extends ASTVisitor {
       parameterNames.add(param.getName());
     }
 
-    cfaNodes = cfaBuilder.getCFANodes().get(nameOfFunction);
-
     final CFAFunctionExitNode returnNode = new CFAFunctionExitNode(fileloc.getEndingLineNumber(), nameOfFunction);
     cfaNodes.add(returnNode);
 
     final CFAFunctionDefinitionNode startNode = new FunctionDefinitionNode(
         fileloc.getStartingLineNumber(), nameOfFunction, fdef, returnNode, parameters, parameterNames);
     cfaNodes.add(startNode);
-    cfaBuilder.addFunctionCfa(nameOfFunction, startNode, declaration);
     cfa = startNode;
 
     final CFANode nextNode = new CFANode(fileloc.getStartingLineNumber(), nameOfFunction);
@@ -329,9 +333,7 @@ class CFAFunctionBuilder extends ASTVisitor {
           it.remove(); // remove n from currentCFANodes
         }
       }
-      cfaNodes = null;
 
-      cfa = null;
       scope.leaveFunction();
     }
 
