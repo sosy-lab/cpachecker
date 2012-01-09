@@ -180,7 +180,7 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
   }
 
   @Override
-  public FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating) {
+  public FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating,TestCase pTestCase ) {
     return run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation);
   }
 

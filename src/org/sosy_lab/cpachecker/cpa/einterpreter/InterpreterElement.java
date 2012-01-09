@@ -88,7 +88,7 @@ public class InterpreterElement implements AbstractElement {
       return prev;
     }
 
-    public BigInteger getNonDetNumber() {
+    public BigInteger getNonDetNumber() throws Exception {
       // TODO Auto-generated method stub
       return provider.getValue(this);
     }

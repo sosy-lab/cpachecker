@@ -31,6 +31,7 @@ import java.util.List;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.fshell.testcases.TestCase;
 import org.sosy_lab.cpachecker.util.Cilly;
 
 public class Main {
@@ -49,10 +50,10 @@ public class Main {
   public static final String BASIC_BLOCK_NODES_3_COVERAGE = BASIC_BLOCK_NODES_2_COVERAGE + ".NODES(@BASICBLOCKENTRY).\"EDGES(ID)*\"";
 
   public static void main(String[] pArguments) throws IOException, InvalidConfigurationException {
-    run(pArguments);
+    //run(pArguments,TestCase pTestCase);
   }
 
-  public static FShell3Result run(String[] pArguments) throws IOException, InvalidConfigurationException {
+  public static FShell3Result run(String[] pArguments,TestCase pTestCase) throws IOException, InvalidConfigurationException {
     assert(pArguments != null);
     assert(pArguments.length > 1);
 
@@ -86,7 +87,7 @@ public class Main {
 
     FShell3 lFlleSh = new FShell3(lSourceFileName, lEntryFunction);
 
-    FShell3Result lResult = lFlleSh.run(lFQLSpecificationString);
+    FShell3Result lResult = lFlleSh.run(lFQLSpecificationString,pTestCase);
 
    // System.out.println("#Goals: " + lResult.getNumberOfTestGoals() + ", #Feas: " + lResult.getNumberOfFeasibleTestGoals() + ", #Infeas: " + lResult.getNumberOfInfeasibleTestGoals() + ", #Imprecise: " + lResult.getNumberOfImpreciseTestCases());
 

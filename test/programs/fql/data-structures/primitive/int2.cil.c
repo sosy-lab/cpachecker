@@ -15,6 +15,8 @@ int main(void)
 { int x ;
   int z ;
   int v ;
+  int v___0 ;
+  int __cil_tmp5 ;
 
   {
 #line 14
@@ -24,8 +26,14 @@ int main(void)
 #line 16
   z = 2;
 #line 17
-  multiply(x, z * v);
-#line 20
+  __cil_tmp5 = z * v;
+#line 17
+  multiply(x, __cil_tmp5);
+#line 18
+  v___0 = 0;
+#line 19
+  v___0 = multiply(v___0, x);
+#line 21
   return (0);
 }
 }

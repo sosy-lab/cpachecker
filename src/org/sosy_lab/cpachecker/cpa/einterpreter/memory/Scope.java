@@ -75,11 +75,23 @@ public class Scope {
           s = s.parent;
         }
 
-        return s.getVariable(pname,tmp);
+        k= s.getVariable(pname,tmp);
+        if(k!= null)
+          return k;
+
+      }
+      if(k==null&& !s.name.equals("global")){
+        while(!s.name.equals("global")&& s.parent!=null){
+          s = s.parent;
+        }
+
+        k= s.getVariable(pname,tmp);
+        if(k!= null)
+          return k;
 
       }
 
-      k = vtmp.get(pname);
+      //k = vtmp.get(pname);
       if(k==null){
 
       }

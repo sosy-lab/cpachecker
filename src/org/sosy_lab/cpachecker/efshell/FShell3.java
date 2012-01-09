@@ -18,9 +18,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.fshell.interfaces.FQLCoverageAnalyser;
-import org.sosy_lab.cpachecker.fshell.testcases.ImpreciseExecutionException;
 import org.sosy_lab.cpachecker.fshell.testcases.TestCase;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.ecp.translators.GuardedEdgeLabel;
@@ -39,7 +37,6 @@ import com.google.common.base.Joiner;
 
 public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
 
-  private final NonincrementalFQLTestGenerator mNonincrementalTestGenerator;
   private final IncrementalFQLTestGenerator mIncrementalTestGenerator;
   private final IncrementalAndAlternatingFQLTestGenerator mIncrementalAndAlternatingTestGenerator;
   private final StandardFQLCoverageAnalyser mCoverageAnalyser;
@@ -47,7 +44,6 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
   private final IncrementalARTReusingFQLTestGenerator mIncrementalARTReusingTestGenerator;
 
   public FShell3(String pSourceFileName, String pEntryFunction) {
-    mNonincrementalTestGenerator = new NonincrementalFQLTestGenerator(pSourceFileName, pEntryFunction);
     mIncrementalTestGenerator = new IncrementalFQLTestGenerator(pSourceFileName, pEntryFunction);
     mIncrementalAndAlternatingTestGenerator = new IncrementalAndAlternatingFQLTestGenerator(pSourceFileName, pEntryFunction);
 
@@ -56,33 +52,31 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
     mIncrementalARTReusingTestGenerator = new IncrementalARTReusingFQLTestGenerator(pSourceFileName, pEntryFunction);
   }
 
-  public void seed(Collection<TestCase> pTestSuite) throws InvalidConfigurationException, CPAException, ImpreciseExecutionException {
-    mIncrementalARTReusingTestGenerator.seed(pTestSuite);
-  }
-
-  public FShell3Result run(String pFQLSpecification) {
-    return run(pFQLSpecification, true, false, false, false, true, false);
+  public FShell3Result run(String pFQLSpecification,TestCase pTestCase) {
+    return run(pFQLSpecification, true, false, false, false, true, false,pTestCase);
   }
 
   @Override
-  public FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating) {
+  public FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating,TestCase pTestCase) {
     if (pGenerateTestGoalAutomataInAdvance) {
-      return mNonincrementalTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
+      //return mNonincrementalTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
+
     }
     else {
       if (pAlternating) {
-        return mIncrementalAndAlternatingTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
+       // return mIncrementalAndAlternatingTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
       }
       else {
         // TODO make configurable
         if (!pAlternating) {
-          return mIncrementalARTReusingTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
+          return mIncrementalARTReusingTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating,pTestCase);
         }
         else {
-          return mIncrementalTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
+          return mIncrementalTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating,pTestCase);
         }
       }
     }
+    return null;
   }
 
   @Override

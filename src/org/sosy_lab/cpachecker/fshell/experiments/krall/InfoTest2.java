@@ -10,7 +10,7 @@ public class InfoTest2 extends ExperimentalSeries  {
   @Test
   public void test002() throws Exception {
     String[] lArguments = Main.getParameters(Main.STATEMENT_COVERAGE,
-                                        "test/programs/fql/data-structures/primitive/dint2.cil.c",
+                                        "test/programs/fql/data-structures/primitive/int2.cil.c",
                                         "main",
                                         true);
 

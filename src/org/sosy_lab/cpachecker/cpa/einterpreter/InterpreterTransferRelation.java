@@ -186,7 +186,7 @@ public class InterpreterTransferRelation implements TransferRelation {
     successor = explicitElement.copy();
 
     // check the type of the edge
-     System.out.println(cfaEdge.getRawStatement());
+     //System.out.println(cfaEdge.getRawStatement());
     /*System.out.println(cfaEdge.getEdgeType());
     System.out.println(cfaEdge.getPredecessor());
     System.out.println(cfaEdge.getPredecessor().getNumLeavingEdges());

@@ -43,7 +43,7 @@ public class NonDetProvider {
     rnd = new Random();
   }
 
-  public BigInteger getValue(InterpreterElement el){
+  public BigInteger getValue(InterpreterElement el) throws Exception{
     BigInteger numb;
     InterpreterElement pel = el;
     Integer index = null;
@@ -59,12 +59,13 @@ public class NonDetProvider {
        index++;
        indexs.put(el, index);
     }else{
-      numb = BigInteger.valueOf(rnd.nextLong());
+      throw new Exception("Rnd number currently not supported");
+     /* numb = BigInteger.valueOf(rnd.nextLong());
       values.add(index, numb);
       index++;
-      indexs.put(el,index);
+      indexs.put(el,index);*/
     }
-    System.out.println("__BLAST_NONDET returns " + numb);
+    //System.out.println("__BLAST_NONDET returns " + numb);
     return numb;
   }
 

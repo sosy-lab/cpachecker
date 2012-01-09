@@ -16,6 +16,8 @@ int main(void)
 { int x ;
   int z ;
   int v ;
+  int v___0 ;
+  int __cil_tmp5 ;
 
   {
 # 14 "int2.c"
@@ -25,8 +27,14 @@ int main(void)
 # 16 "int2.c"
   z = 2;
 # 17 "int2.c"
-  multiply(x, z * v);
-# 20 "int2.c"
+  __cil_tmp5 = z * v;
+# 17 "int2.c"
+  multiply(x, __cil_tmp5);
+# 18 "int2.c"
+  v___0 = 0;
+# 19 "int2.c"
+  v___0 = multiply(v___0, x);
+# 21 "int2.c"
   return (0);
 }
 }
