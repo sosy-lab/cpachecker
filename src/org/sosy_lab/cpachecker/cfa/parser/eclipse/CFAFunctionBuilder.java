@@ -333,7 +333,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   private void logDeadLabel(CFALabelNode n) {
     Level level = Level.INFO;
-    if (n.getLabel().matches("(switch|while)_\\d+_[a-z0-9]+")) {
+    if (n.getLabel().matches("(switch|while)_(\\d+_[a-z0-9]+|[a-z0-9]+___\\d+)")) {
       // don't mention dead code produced by CIL on normal log levels
       level = Level.FINER;
     }
