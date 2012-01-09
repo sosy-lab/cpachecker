@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.InvalidComponentException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 
@@ -149,17 +150,17 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     try {
       factoryMethod = refiner.getMethod("create", ConfigurableProgramAnalysis.class);
     } catch (NoSuchMethodException e) {
-      throw new CPAException("Each Refiner class has to offer a public static method \"create\" with one parameters, but " + refiner.getSimpleName() + " does not!");
+      throw new InvalidComponentException(refiner, "Refiner", "No public static method \"create\" with exactly one parameter of type ConfigurableProgramAnalysis.");
     }
 
     // verify signature
     if (!Modifier.isStatic(factoryMethod.getModifiers())) {
-      throw new CPAException("The factory method of the refiner " + refiner.getSimpleName() + " is not static!");
+      throw new InvalidComponentException(refiner, "Refiner", "Factory method is not static");
     }
 
     String exception = Classes.verifyDeclaredExceptions(factoryMethod, CPAException.class, InvalidConfigurationException.class);
     if (exception != null) {
-      throw new CPAException("The factory method of the refiner " + refiner.getSimpleName() + " declares the unsupported checked exception: " + exception);
+      throw new InvalidComponentException(refiner, "Refiner", "Factory method declares the unsupported checked exception " + exception + ".");
     }
 
     // invoke factory method
@@ -168,7 +169,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
       refinerObj = factoryMethod.invoke(null, pCpa);
 
     } catch (IllegalAccessException e) {
-      throw new CPAException("The factory method of the refiner " + refiner.getSimpleName() + " is not public!");
+      throw new InvalidComponentException(refiner, "Refiner", "Factory method is not public.");
 
     } catch (InvocationTargetException e) {
       Throwable cause = e.getCause();
@@ -178,7 +179,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     if ((refinerObj == null) || !(refinerObj instanceof Refiner)) {
-      throw new CPAException("The factory method of the refiner " + refiner.getSimpleName() + " didn't return a Refiner!");
+      throw new InvalidComponentException(refiner, "Refiner", "Factory method did not return a Refiner instance.");
     }
 
     return (Refiner)refinerObj;
