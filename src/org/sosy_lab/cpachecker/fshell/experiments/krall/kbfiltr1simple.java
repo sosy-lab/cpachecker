@@ -15,12 +15,6 @@ public class kbfiltr1simple extends ExperimentalSeries  {
   public void test002() throws Exception {
 
 
-    fil = new FileWriter("data",true);
-    out = new PrintWriter(fil);
-    out.println();
-    out.println("------------------------");
-    out.println("test/programs/fql/ntdrivers-simplified/kbfiltr_simpl1.cil.c");
-    out.close();
 
 
     String[] lArguments;
@@ -29,9 +23,14 @@ public class kbfiltr1simple extends ExperimentalSeries  {
                                         "main",
                                         true);
 
+    fil = new FileWriter("test/programs/fql/result/kbfiltr_simpl1.cil.c.data",true);
+    out = new PrintWriter(fil);
+
+
+
     TestCase pTestCase;
      pTestCase= TestCase.fromString("p,10,0,95");
-    Main.run(lArguments, pTestCase);
+    Main.run(lArguments, pTestCase,out);
 
 
 
@@ -42,12 +41,9 @@ public class kbfiltr1simple extends ExperimentalSeries  {
   @Test
   public void test003() throws Exception{
 
-    fil = new FileWriter("data",true);
+    fil = new FileWriter("test/programs/fql/result/kbfiltr_simpl2.cil.c.data",true);
     out = new PrintWriter(fil);
-    out.println();
-    out.println("------------------------");
-    out.println("test/programs/fql/ntdrivers-simplified/kbfiltr_simpl2.cil.c");
-    out.close();
+
 
 
     String[] lArguments;
@@ -58,17 +54,13 @@ public class kbfiltr1simple extends ExperimentalSeries  {
 
     TestCase pTestCase;
      pTestCase= TestCase.fromString("p,10,0,95");
-    Main.run(lArguments, pTestCase);
+    Main.run(lArguments, pTestCase,out);
   }
   @Test
   public void test004() throws Exception{
 
-    fil = new FileWriter("data",true);
+    fil = new FileWriter("test/programs/fql/result/floppy_simpl3.cil.c.data",true);
     out = new PrintWriter(fil);
-    out.println();
-    out.println("------------------------");
-    out.println("test/programs/fql/ntdrivers-simplified/floppy_simpl3.cil.c");
-    out.close();
 
 
     String[] lArguments;
@@ -79,18 +71,15 @@ public class kbfiltr1simple extends ExperimentalSeries  {
 
     TestCase pTestCase;
      pTestCase= TestCase.fromString("p,10,0,95");
-    Main.run(lArguments, pTestCase);
+    Main.run(lArguments, pTestCase,out);
   }
 
   @Test
   public void test005() throws Exception{
 
-    fil = new FileWriter("data",true);
+    fil = new FileWriter("test/programs/fql/result/floppy_simpl4.cil.c.data",true);
     out = new PrintWriter(fil);
-    out.println();
-    out.println("------------------------");
-    out.println("test/programs/fql/ntdrivers-simplified/floppy_simpl4.cil.c");
-    out.close();
+
 
 
     String[] lArguments;
@@ -101,19 +90,16 @@ public class kbfiltr1simple extends ExperimentalSeries  {
 
     TestCase pTestCase;
      pTestCase= TestCase.fromString("p,10,0,95");
-    Main.run(lArguments, pTestCase);
+    Main.run(lArguments, pTestCase,out);
   }
 
 
   @Test
   public void test006() throws Exception{
 
-    fil = new FileWriter("data",true);
+    fil = new FileWriter("test/programs/fql/result/cdaudio_simpl1.cil.c.data",true);
     out = new PrintWriter(fil);
-    out.println();
-    out.println("------------------------");
-    out.println("test/programs/fql/ntdrivers-simplified/cdaudio_simpl1.cil.c");
-    out.close();
+
 
 
     String[] lArguments;
@@ -124,19 +110,16 @@ public class kbfiltr1simple extends ExperimentalSeries  {
 
     TestCase pTestCase;
      pTestCase= TestCase.fromString("p,10,0,95,33,44,66");
-    Main.run(lArguments, pTestCase);
+    Main.run(lArguments, pTestCase,out);
   }
 
 
   @Test
   public void test007() throws Exception{
 
-    fil = new FileWriter("data",true);
+    fil = new FileWriter("test/programs/fql/result/diskperf_simpl1.cil.c.data",true);
     out = new PrintWriter(fil);
-    out.println();
-    out.println("------------------------");
-    out.println("test/programs/fql/ntdrivers-simplified/diskperf_simpl1.cil.c");
-    out.close();
+
 
 
     String[] lArguments;
@@ -147,7 +130,7 @@ public class kbfiltr1simple extends ExperimentalSeries  {
 
     TestCase pTestCase;
      pTestCase= TestCase.fromString("p,10,0,95,44,55,66");
-    Main.run(lArguments, pTestCase);
+    Main.run(lArguments, pTestCase,out);
   }
 
 

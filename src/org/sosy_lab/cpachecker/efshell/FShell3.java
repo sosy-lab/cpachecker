@@ -52,12 +52,12 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
     mIncrementalARTReusingTestGenerator = new IncrementalARTReusingFQLTestGenerator(pSourceFileName, pEntryFunction);
   }
 
-  public FShell3Result run(String pFQLSpecification,TestCase pTestCase) {
-    return run(pFQLSpecification, true, false, false, false, true, false,pTestCase);
+  public FShell3Result run(String pFQLSpecification,TestCase pTestCase, PrintWriter out) {
+    return run(pFQLSpecification, true, false, false, false, true, false,pTestCase,out);
   }
 
   @Override
-  public FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating,TestCase pTestCase) {
+  public FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating,TestCase pTestCase,PrintWriter out) {
     if (pGenerateTestGoalAutomataInAdvance) {
       //return mNonincrementalTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating);
 
@@ -69,10 +69,10 @@ public class FShell3 implements FQLTestGenerator, FQLCoverageAnalyser {
       else {
         // TODO make configurable
         if (!pAlternating) {
-          return mIncrementalARTReusingTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating,pTestCase);
+          return mIncrementalARTReusingTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating,pTestCase,out);
         }
         else {
-          return mIncrementalTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating,pTestCase);
+          return mIncrementalTestGenerator.run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation, pGenerateTestGoalAutomataInAdvance, pCheckCorrectnessOfCoverageCheck, pPedantic, pAlternating,pTestCase,out);
         }
       }
     }

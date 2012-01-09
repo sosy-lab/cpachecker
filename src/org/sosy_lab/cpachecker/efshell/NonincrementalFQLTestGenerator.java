@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.efshell;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
@@ -180,7 +181,7 @@ public class NonincrementalFQLTestGenerator implements FQLTestGenerator {
   }
 
   @Override
-  public FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating,TestCase pTestCase ) {
+  public FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating,TestCase pTestCase,PrintWriter out ) {
     return run(pFQLSpecification, pApplySubsumptionCheck, pApplyInfeasibilityPropagation);
   }
 

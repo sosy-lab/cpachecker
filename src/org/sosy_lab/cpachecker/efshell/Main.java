@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.efshell;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -53,7 +54,7 @@ public class Main {
     //run(pArguments,TestCase pTestCase);
   }
 
-  public static FShell3Result run(String[] pArguments,TestCase pTestCase) throws IOException, InvalidConfigurationException {
+  public static FShell3Result run(String[] pArguments,TestCase pTestCase, PrintWriter out) throws IOException, InvalidConfigurationException {
     assert(pArguments != null);
     assert(pArguments.length > 1);
 
@@ -87,7 +88,7 @@ public class Main {
 
     FShell3 lFlleSh = new FShell3(lSourceFileName, lEntryFunction);
 
-    FShell3Result lResult = lFlleSh.run(lFQLSpecificationString,pTestCase);
+    FShell3Result lResult = lFlleSh.run(lFQLSpecificationString,pTestCase,out);
 
    // System.out.println("#Goals: " + lResult.getNumberOfTestGoals() + ", #Feas: " + lResult.getNumberOfFeasibleTestGoals() + ", #Infeas: " + lResult.getNumberOfInfeasibleTestGoals() + ", #Imprecise: " + lResult.getNumberOfImpreciseTestCases());
 

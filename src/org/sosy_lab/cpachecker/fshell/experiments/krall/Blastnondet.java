@@ -13,7 +13,7 @@ public class Blastnondet extends ExperimentalSeries  {
                                         "main",
                                         true);
     TestCase pTestCase = TestCase.fromString("p,10,0,95,44,4");
-    Main.run(lArguments, pTestCase);
+    Main.run(lArguments, pTestCase,null);
   }
 
 }

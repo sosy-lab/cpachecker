@@ -1,6 +1,5 @@
 package org.sosy_lab.cpachecker.efshell;
 
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.LinkedList;
@@ -82,18 +81,9 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     }
   }
 
-  @Override
-  public FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating,TestCase pTestCase) {
 
-    FileWriter fil=null;
-    PrintWriter out;
-    try {
-      fil = new FileWriter("data",true);
-    } catch (IOException e1) {
-      // TODO Auto-generated catch block
-      e1.printStackTrace();
-    }
-    out = new PrintWriter(fil);
+  @Override
+  public FShell3Result run(String pFQLSpecification, boolean pApplySubsumptionCheck, boolean pApplyInfeasibilityPropagation, boolean pGenerateTestGoalAutomataInAdvance, boolean pCheckCorrectnessOfCoverageCheck, boolean pPedantic, boolean pAlternating,TestCase pTestCase, PrintWriter out) {
 
 
     Timer k = new Timer();
@@ -107,7 +97,8 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       e.printStackTrace();
     }
     time = k.stop();
-    out.println("Time new: "+Long.toString(time));
+    out.print(Long.toString(time)+", ");
+
     k.start();
 
     // old interpreter cpa
@@ -120,7 +111,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
     }
     time = k.stop();
 
-    out.println("Time old: " +Long.toString(time));
+    out.println(Long.toString(time));
     out.close();
     return null;
   }

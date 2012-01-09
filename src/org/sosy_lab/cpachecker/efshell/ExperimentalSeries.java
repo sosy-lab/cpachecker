@@ -43,7 +43,7 @@ public abstract class ExperimentalSeries {
 
     lTime.proceed();
 
-    FShell3Result lResult = Main.run(lArguments,null);
+    FShell3Result lResult = Main.run(lArguments,null,null);
 
    // lTime.pause();
 
