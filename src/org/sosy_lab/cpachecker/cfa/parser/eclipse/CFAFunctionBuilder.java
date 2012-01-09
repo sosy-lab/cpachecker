@@ -122,6 +122,8 @@ class CFAFunctionBuilder extends ASTVisitor {
   private final LogManager logger;
   private final CFABuilder cfaBuilder;
 
+  private boolean printedAsmWarning = false;
+
   public CFAFunctionBuilder(LogManager pLogger, boolean pIgnoreCasts,
       CFABuilder pCfaBuilder, Scope pScope, ASTConverter pAstCreator) {
 
@@ -259,8 +261,13 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   private int ignoreASMDeclaration(final IASTFileLocation fileloc) {
     // TODO Assembler code is ignored here
-    logger.log(Level.WARNING, "Ignoring inline assembler code at line "
-        + fileloc.getStartingLineNumber() + ", analysis is probably unsound!");
+    logger.log(Level.FINER, "Ignoring inline assembler code at line", fileloc.getStartingLineNumber());
+
+    if (!printedAsmWarning) {
+      logger.log(Level.WARNING, "Inline assembler ignored in function "
+          + cfa.getFunctionName() + ", analysis is probably unsound!");
+      printedAsmWarning = true;
+    }
 
     final CFANode prevNode = locStack.pop();
 
