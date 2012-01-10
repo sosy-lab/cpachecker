@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterCPA;
+import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterElement;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -499,6 +500,7 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
 
     // explicit CPA
     InterpreterCPA lInterpreterCPA = new InterpreterCPA(pTestCase.getInputs());
+    int lInterpreterCPAIndex = lComponentAnalyses.size();
     lComponentAnalyses.add(lInterpreterCPA);
 
     // CFA path CPA
@@ -556,6 +558,12 @@ public class StandardFQLCoverageAnalyser implements FQLCoverageAnalyser {
     }
 
     CFAPathStandardElement lPathElement = (CFAPathStandardElement)lEndNode.get(lCFAPathCPAIndex);
+
+    InterpreterElement lInterpreterElement = (InterpreterElement)lEndNode.get(lInterpreterCPAIndex);
+
+    if (lInterpreterElement.getInputs().length != lInterpreterElement.getInputIndex()) {
+      throw new RuntimeException("Unused Inputs!!!");
+    }
 
     return lPathElement.toArray();
   }
