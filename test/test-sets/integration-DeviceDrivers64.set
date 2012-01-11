@@ -26,7 +26,6 @@
 ../../test/programs/benchmarks/ldv-drivers/module_get_put-drivers-net-sis900.ko-safe.cil.out.i.pp.cil.c
 ../../test/programs/benchmarks/ldv-drivers/module_get_put-drivers-scsi-megaraid.ko-safe.cil.out.i.pp.cil.c
 ../../test/programs/benchmarks/ldv-drivers/module_get_put-drivers-staging-et131x-et131x.ko-safe.cil.out.i.pp.cil.c
-../../test/programs/benchmarks/ldv-drivers/module_get_put-drivers-video-aty-aty128fb.ko-safe.cil.out.i.pp.cil.c
 ../../test/programs/benchmarks/ldv-drivers/usb_urb-drivers-input-tablet-kbtab.ko-safe.cil.out.i.pp.cil.c
 ../../test/programs/benchmarks/ldv-drivers/usb_urb-drivers-media-video-c-qcam.ko-safe.cil.out.i.pp.cil.c
 ../../test/programs/benchmarks/ldv-drivers/usb_urb-drivers-media-video-msp3400.ko-safe.cil.out.i.pp.cil.c
