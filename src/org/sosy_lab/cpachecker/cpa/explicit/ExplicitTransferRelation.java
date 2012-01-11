@@ -207,7 +207,7 @@ public class ExplicitTransferRelation implements TransferRelation
       assert(paramNames.size() == arguments.size());
 
     // visitor for getting the values of the actual parameters in caller function context
-    ExpressionValueVisitor visitor = new ExpressionValueVisitor(element, callerFunctionName);
+    ExpressionValueVisitor visitor = new ExpressionValueVisitor(callEdge, element, callerFunctionName);
 
     // get value of actual parameter in caller function context
     for(int i = 0; i < paramNames.size(); i++)
@@ -234,7 +234,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
     String functionName       = returnEdge.getPredecessor().getFunctionName();
 
-    return handleAssignmentToVariable("___cpa_temp_result_var_", expression, new ExpressionValueVisitor(element, functionName));
+    return handleAssignmentToVariable("___cpa_temp_result_var_", expression, new ExpressionValueVisitor(returnEdge, element, functionName));
   }
 
   /**
@@ -307,12 +307,12 @@ public class ExplicitTransferRelation implements TransferRelation
     String functionName = cfaEdge.getPredecessor().getFunctionName();
 
     // get the value of the expression (either true[1L], false[0L], or unknown[null])
-    Long value = getExpressionValue(element, expression, functionName);
+    Long value = getExpressionValue(element, expression, functionName, cfaEdge);
 
     // value is null, try to derive further information
     if(value == null)
     {
-      AssigningValueVisitor avv = new AssigningValueVisitor(element, functionName, truthValue);
+      AssigningValueVisitor avv = new AssigningValueVisitor(cfaEdge, element, functionName, truthValue);
 
       expression.accept(avv);
 
@@ -360,7 +360,7 @@ public class ExplicitTransferRelation implements TransferRelation
     {
       IASTRightHandSide exp = ((IASTInitializerExpression)init).getExpression();
 
-      initialValue = getExpressionValue(element, exp, functionName);
+      initialValue = getExpressionValue(element, exp, functionName, declarationEdge);
     }
 
     // assign initial value if necessary
@@ -410,7 +410,7 @@ public class ExplicitTransferRelation implements TransferRelation
       {
         String functionName = cfaEdge.getPredecessor().getFunctionName();
 
-        return handleAssignmentToVariable(op1.toASTString(), op2, new ExpressionValueVisitor(element, functionName));
+        return handleAssignmentToVariable(op1.toASTString(), op2, new ExpressionValueVisitor(cfaEdge, element, functionName));
       }
     }
 
@@ -449,7 +449,7 @@ public class ExplicitTransferRelation implements TransferRelation
       {
         String functionName = cfaEdge.getPredecessor().getFunctionName();
 
-        return handleAssignmentToVariable(op1.toASTString(), op2, new ExpressionValueVisitor(element, functionName));
+        return handleAssignmentToVariable(op1.toASTString(), op2, new ExpressionValueVisitor(cfaEdge, element, functionName));
       }
     }
 
@@ -495,13 +495,15 @@ public class ExplicitTransferRelation implements TransferRelation
   private class ExpressionValueVisitor extends DefaultExpressionVisitor<Long, UnrecognizedCCodeException>
                                        implements RightHandSideVisitor<Long, UnrecognizedCCodeException>
   {
-    protected ExplicitElement element;
-    protected String functionName;
+    protected final CFAEdge edge;
+    protected final ExplicitElement element;
+    protected final String functionName;
 
     private boolean missingPointer = false;
 
-    public ExpressionValueVisitor(ExplicitElement pElement, String pFunctionName)
+    public ExpressionValueVisitor(CFAEdge pEdge, ExplicitElement pElement, String pFunctionName)
     {
+      edge = pEdge;
       element = pElement;
       functionName = pFunctionName;
     }
@@ -526,7 +528,7 @@ public class ExplicitTransferRelation implements TransferRelation
       case MODULO:
         // TODO check which cases can be handled (I think all)
         //return null;
-        throw new UnrecognizedCCodeException("unsupported binary operator", null, pE);
+        throw new UnrecognizedCCodeException("unsupported binary operator", edge, pE);
 
       case PLUS:
       case MINUS:
@@ -728,7 +730,7 @@ public class ExplicitTransferRelation implements TransferRelation
         return null;
 
       default:
-        throw new UnrecognizedCCodeException("unknown unary operator", null, unaryExpression);
+        throw new UnrecognizedCCodeException("unknown unary operator", edge, unaryExpression);
       }
     }
 
@@ -753,9 +755,9 @@ public class ExplicitTransferRelation implements TransferRelation
   {
     protected boolean truthValue = false;
 
-    public AssigningValueVisitor(ExplicitElement pElement, String pFunctionName, boolean truthValue)
+    public AssigningValueVisitor(CFAEdge pEdge, ExplicitElement pElement, String pFunctionName, boolean truthValue)
     {
-      super(pElement, pFunctionName);
+      super(pEdge, pElement, pFunctionName);
 
       this.truthValue = truthValue;
     }
@@ -836,9 +838,9 @@ public class ExplicitTransferRelation implements TransferRelation
   {
     private final PointerElement pointerElement;
 
-    public PointerExpressionValueVisitor(ExplicitElement pElement, String pFunctionName, PointerElement pPointerElement)
+    public PointerExpressionValueVisitor(CFAEdge pEdge, ExplicitElement pElement, String pFunctionName, PointerElement pPointerElement)
     {
-      super(pElement, pFunctionName);
+      super(pEdge, pElement, pFunctionName);
       pointerElement = pPointerElement;
     }
 
@@ -868,16 +870,16 @@ public class ExplicitTransferRelation implements TransferRelation
       }
 
       else
-        throw new UnrecognizedCCodeException("Pointer dereference of something that is not a variable", null, unaryExpression);
+        throw new UnrecognizedCCodeException("Pointer dereference of something that is not a variable", edge, unaryExpression);
 
       return null;
     }
   }
 
-  private Long getExpressionValue(ExplicitElement element, IASTRightHandSide expression, String functionName)
+  private Long getExpressionValue(ExplicitElement element, IASTRightHandSide expression, String functionName, CFAEdge edge)
     throws UnrecognizedCCodeException
   {
-    return expression.accept(new ExpressionValueVisitor(element, functionName));
+    return expression.accept(new ExpressionValueVisitor(edge, element, functionName));
   }
 
   public String getScopedVariableName(String variableName, String functionName)
@@ -920,7 +922,7 @@ public class ExplicitTransferRelation implements TransferRelation
       if(missingInformationRightExpression != null)
       {
         String functionName = cfaEdge.getPredecessor().getFunctionName();
-        ExpressionValueVisitor v = new PointerExpressionValueVisitor(explicitElement, functionName, pointerElement);
+        ExpressionValueVisitor v = new PointerExpressionValueVisitor(cfaEdge, explicitElement, functionName, pointerElement);
 
         if(missingInformationLeftVariable != null)
         {
