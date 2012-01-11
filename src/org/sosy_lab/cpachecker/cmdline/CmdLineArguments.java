@@ -106,7 +106,7 @@ class CmdLineArguments {
           properties.put("cpa", CompositeCPA.class.getName());
           properties.put(CompositeCPA.class.getSimpleName() + ".cpas", argsIt.next());
         } else {
-          throw new InvalidCmdlineArgumentException("-cpas argument missing!");
+          throw new InvalidCmdlineArgumentException("-cpas argument missing.");
         }
 
       } else if (arg.equals("-nolog")) {
@@ -115,13 +115,14 @@ class CmdLineArguments {
 
       } else if (arg.equals("-setprop")) {
         if (argsIt.hasNext()) {
-          String[] bits = argsIt.next().split("=");
+          String s = argsIt.next();
+          String[] bits = s.split("=");
           if (bits.length != 2) {
-            throw new InvalidCmdlineArgumentException("-setprop argument must be a key=value pair!");
+            throw new InvalidCmdlineArgumentException("-setprop argument must be a key=value pair, but \"" + s + "\" is not.");
           }
           putIfNotExistent(properties, bits[0], bits[1]);
         } else {
-          throw new InvalidCmdlineArgumentException("-setprop argument missing!");
+          throw new InvalidCmdlineArgumentException("-setprop argument missing.");
         }
 
       } else if ("-printOptions".equals(arg)) {
@@ -204,7 +205,7 @@ class CmdLineArguments {
       throws InvalidCmdlineArgumentException {
 
     if (properties.containsKey(key)) {
-      throw new InvalidCmdlineArgumentException("Duplicate option " + key + " specified on command-line");
+      throw new InvalidCmdlineArgumentException("Duplicate option " + key + " specified on command-line.");
     }
 
     properties.put(key, value);
@@ -233,7 +234,7 @@ class CmdLineArguments {
       if (args.hasNext()) {
         putIfNotExistent(properties, option, args.next());
       } else {
-        throw new InvalidCmdlineArgumentException(currentArg + " argument missing!");
+        throw new InvalidCmdlineArgumentException(currentArg + " argument missing.");
       }
       return true;
     } else {
@@ -259,7 +260,7 @@ class CmdLineArguments {
         properties.put(option, value);
 
       } else {
-        throw new InvalidCmdlineArgumentException(currentArg + " argument missing!");
+        throw new InvalidCmdlineArgumentException(currentArg + " argument missing.");
       }
       return true;
     } else {
