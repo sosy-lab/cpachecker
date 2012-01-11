@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.pcc.proof_gen;
 
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Stack;
@@ -66,7 +68,7 @@ public class AdjustableLBE_InvariantProofGenAlgorithm extends InvariantProofGenA
 
   private boolean addAbstractSuccesors(ARTElement pSource){
     if(pSource == null){return false;}
-    CFANode node = pSource.retrieveLocationElement().getLocationNode();
+    CFANode node = extractLocation(pSource);;
     if(node == null){return false;}
     String sourceID = node.getNodeNumber()+Separators.commonSeparator;
     String edgeID;
@@ -76,14 +78,14 @@ public class AdjustableLBE_InvariantProofGenAlgorithm extends InvariantProofGenA
     PredicateAbstractElement predicate;
     while(!toVisit.isEmpty()){
       current = toVisit.pop();
-      node = current.retrieveLocationElement().getLocationNode();
+      node = extractLocation(current);;
       if(node == null){return false;}
       edgeID = sourceID + node.getNodeNumber() + Separators.commonSeparator;
       for(ARTElement child:current.getChildren()){
         predicate = AbstractElements.extractElementByType(child, PredicateAbstractElement.class);
         if(predicate == null){return false;}
         if(predicate.isAbstractionElement() || child.isCovered()){
-          node = child.retrieveLocationElement().getLocationNode();
+          node = extractLocation(child);;
           if(node == null){return false;}
           // add edge
           edges.add(edgeID+node.getNodeNumber()+Separators.commonSeparator);
@@ -113,7 +115,7 @@ public class AdjustableLBE_InvariantProofGenAlgorithm extends InvariantProofGenA
         AbstractElements.extractElementByType(pNode,
             PredicateAbstractElement.class);
     if (predicate == null) { return false; }
-    CFANode corresponding = pNode.retrieveLocationElement().getLocationNode();
+    CFANode corresponding = extractLocation(pNode);
     //check if it is an abstraction element, otherwise nothing to do
     if (predicate.isAbstractionElement()) {
       StringBuilder builder =

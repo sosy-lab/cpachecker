@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.pcc.proof_gen;
 
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -56,7 +58,7 @@ public class ABE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
         // build string of form ARTId#CFAId#NodeType#Abstraction#
         StringBuilder nodeRep = new StringBuilder();
         nodeRep.append(pNode.getElementId() + "#");
-        nodeRep.append(pNode.retrieveLocationElement().getLocationNode().getNodeNumber() + "#");
+        nodeRep.append(extractLocation(pNode).getNodeNumber() + "#");
         nodeRep.append(AbstractionType.Abstraction + "#");
         String f =
             fh.removeIndicesStr(predicate.getAbstractionFormula().asFormula());
@@ -76,7 +78,7 @@ public class ABE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
           // build string of form ARTId#CFAId#NodeType#Abstraction#
           StringBuilder nodeRep = new StringBuilder();
           nodeRep.append(pNode.getElementId() + "#");
-          nodeRep.append(pNode.retrieveLocationElement().getLocationNode().getNodeNumber() + "#");
+          nodeRep.append(extractLocation(pNode).getNodeNumber() + "#");
           nodeRep.append(AbstractionType.Abstraction + "#");
           nodeRep.append(false + "#");// TODO check if it works
           nodes.add(nodeRep.toString());
@@ -84,7 +86,7 @@ public class ABE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
           // build string of form ARTId#CFAId#NodeType#coveringID#
           StringBuilder nodeRep = new StringBuilder();
           nodeRep.append(pNode.getElementId() + "#");
-          nodeRep.append(pNode.retrieveLocationElement().getLocationNode().getNodeNumber() + "#");
+          nodeRep.append(extractLocation(pNode).getNodeNumber() + "#");
           nodeRep.append(AbstractionType.CoveredNonAbstraction + "#");
           ARTElement covering = getFinalCoveringElement(pNode);
           if (covering == null) { return false; }
@@ -95,7 +97,7 @@ public class ABE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
         // build string of form ARTId#CFAId#NodeType#
         StringBuilder nodeRep = new StringBuilder();
         nodeRep.append(pNode.getElementId() + "#");
-        nodeRep.append(pNode.retrieveLocationElement().getLocationNode().getNodeNumber() + "#");
+        nodeRep.append(extractLocation(pNode).getNodeNumber() + "#");
         nodeRep.append(AbstractionType.NoAbstraction + "#");
         nodes.add(nodeRep.toString());
       }

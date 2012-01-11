@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.pcc.proof_gen;
 
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -36,7 +38,6 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackElement;
-import org.sosy_lab.cpachecker.cpa.location.LocationElement;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.pcc.common.PCCAlgorithmType;
 
@@ -210,8 +211,7 @@ public class ProofGenerator {
     if (pResult.getResult() != Result.SAFE
         || reached.getFirstElement() == null
         || !(reached.getFirstElement() instanceof ARTElement)
-        || (((ARTElement) reached.getFirstElement()).retrieveLocationElement() == null)
-        || !(((ARTElement) reached.getFirstElement()).retrieveLocationElement() instanceof LocationElement)
+        || (extractLocation(reached.getFirstElement()) == null)
         || AbstractElements.extractElementByType(reached.getFirstElement(),
             CallstackElement.class) == null) {
       logger

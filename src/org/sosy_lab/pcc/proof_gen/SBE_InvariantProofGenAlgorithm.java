@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.pcc.proof_gen;
 
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+
 import java.util.Vector;
 import java.util.logging.Level;
 
@@ -57,7 +59,7 @@ public abstract class SBE_InvariantProofGenAlgorithm extends
         AbstractElements.extractElementByType(pNode,
             PredicateAbstractElement.class);
     if (predicate == null) { return false; }
-    CFANode corresponding = pNode.retrieveLocationElement().getLocationNode();
+    CFANode corresponding = extractLocation(pNode);
     //check if it is an abstraction element, otherwise nothing to do
     if (predicate.isAbstractionElement()
         || (corresponding instanceof CFAFunctionDefinitionNode)
@@ -84,7 +86,7 @@ public abstract class SBE_InvariantProofGenAlgorithm extends
             PredicateAbstractElement.class);
     if(predicate == null){return false;}
     //check if it is not start of an edge (no abstraction, no function exit node, no function definition node, no node with entering summary edge
-    CFANode corresponding = pSource.retrieveLocationElement().getLocationNode();
+    CFANode corresponding = extractLocation(pSource);
     if (!predicate.isAbstractionElement()
         && !(corresponding instanceof CFAFunctionDefinitionNode)
         && corresponding.getEnteringSummaryEdge() == null) { return true; }
@@ -100,7 +102,7 @@ public abstract class SBE_InvariantProofGenAlgorithm extends
     predicate =
         AbstractElements.extractElementByType(target,
             PredicateAbstractElement.class);
-    corresponding = target.retrieveLocationElement().getLocationNode();
+    corresponding = extractLocation(target);
     // check if no abstraction needed for target, than look for children as target
     if ((!predicate.isAbstractionElement() || (pTarget.isCovered() && !AbstractElements.extractElementByType(pTarget,
         PredicateAbstractElement.class).isAbstractionElement()))
@@ -119,7 +121,7 @@ public abstract class SBE_InvariantProofGenAlgorithm extends
           predicate =
               AbstractElements.extractElementByType(child,
                   PredicateAbstractElement.class);
-          corresponding = child.retrieveLocationElement().getLocationNode();
+          corresponding = extractLocation(child);
           if (!predicate.isAbstractionElement()
               && !(corresponding instanceof CFAFunctionDefinitionNode)
               && corresponding.getEnteringSummaryEdge() == null) {

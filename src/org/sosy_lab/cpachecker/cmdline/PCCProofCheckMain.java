@@ -30,12 +30,13 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.cmdline.CPAMain.InvalidCmdlineArgumentException;
+import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.pcc.common.PCCAlgorithmType;
 import org.sosy_lab.pcc.common.PCCCheckResult;
@@ -77,8 +78,8 @@ public class PCCProofCheckMain {
     private int switchToLBEAfter = 0;
     @Option(
         name = "pcc.profgen.file",
-        type = Option.Type.OUTPUT_FILE,
         description = "export ART representation needed for proof checking in PCC, if the error location is not reached, the representation depends on the algorithm used for proof checking")
+    @FileOption(FileOption.Type.OUTPUT_FILE)
     private File file = new File("pccProof.txt");
     @Option(
         name = "cpa.predicate.blk.alwaysAtLoops",
@@ -248,8 +249,7 @@ public class PCCProofCheckMain {
       time.start();
       CFACreator cfaCreator = new CFACreator(config, logger);
       cfa =
-          cfaCreator.parseFileAndCreateCFA(CPAMain.getCodeFilePath(config,
-              logger));
+          cfaCreator.parseFileAndCreateCFA(CPAMain.getCodeFile(config).getPath());
       System.out.println("Reading CFA lasted " + Timer.formatTime(time.stop()));
       logger.log(Level.INFO, "CFA construction finished.");
       // get algorithm for checking

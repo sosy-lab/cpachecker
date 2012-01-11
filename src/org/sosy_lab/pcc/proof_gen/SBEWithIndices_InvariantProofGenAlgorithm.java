@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.pcc.proof_gen;
 
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+
 import java.util.Hashtable;
 import java.util.logging.Level;
 
@@ -57,7 +59,7 @@ public class SBEWithIndices_InvariantProofGenAlgorithm extends
     if (operation == null) { return false; }
     // build identification of edge
     String id =
-        buildEdgeId(pNode.retrieveLocationElement().getLocationNode(), pEdge);
+        buildEdgeId(extractLocation(pNode), pEdge);
     StringBuilder current = operationsPerEdge.get(id);
     // add operation
     logger.log(Level.INFO,"Add an edge which connects two regions");

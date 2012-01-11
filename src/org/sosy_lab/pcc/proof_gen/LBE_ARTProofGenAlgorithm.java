@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.pcc.proof_gen;
 
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+
 import java.util.HashSet;
 import java.util.Vector;
 
@@ -52,7 +54,7 @@ public class LBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
 
   @Override
   protected boolean addARTNode(ARTElement pNode) {
-    CFANode node = pNode.retrieveLocationElement().getLocationNode();
+    CFANode node =extractLocation(pNode);
     // only add abstraction nodes
     PredicateAbstractElement predicate = AbstractElements.extractElementByType(pNode, PredicateAbstractElement.class);
     if (predicate == null) { return false; }
@@ -61,7 +63,7 @@ public class LBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
         // build string of form ARTId#CFAId#NodeType#Abstraction#(return_address#)?
         StringBuilder nodeRep = new StringBuilder();
         nodeRep.append(pNode.getElementId() + "#");
-        nodeRep.append(pNode.retrieveLocationElement().getLocationNode().getNodeNumber() + "#");
+        nodeRep.append(extractLocation(pNode).getNodeNumber() + "#");
         nodeRep.append(AbstractionType.Abstraction + "#");
         String f =
             fh.removeIndicesStr(predicate.getAbstractionFormula().asFormula());
@@ -72,7 +74,7 @@ public class LBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
             System.out.println("Caller not well specified.");
             return false;
           }
-          nodeRep.append(pNode.getParents().iterator().next().retrieveLocationElement().getLocationNode().
+          nodeRep.append(extractLocation(pNode.getParents().iterator().next()).
               getLeavingSummaryEdge().getSuccessor().getNodeNumber()+"#");
         }
         nodes.add(nodeRep.toString());

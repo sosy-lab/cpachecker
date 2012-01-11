@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.pcc.proof_gen;
 
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+
 import java.util.HashSet;
 import java.util.Vector;
 
@@ -55,7 +57,7 @@ public class AdjustableLBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
 
   @Override
   protected boolean addARTNode(ARTElement pNode) {
-    CFANode node = pNode.retrieveLocationElement().getLocationNode();
+    CFANode node = extractLocation(pNode);;
     // only add abstraction nodes and non-abstraction nodes which are covered because they are false
     PredicateAbstractElement predicate = AbstractElements.extractElementByType(pNode, PredicateAbstractElement.class);
     if (predicate == null) { return false; }
@@ -75,7 +77,7 @@ public class AdjustableLBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
             System.out.println("Caller not well specified.");
             return false;
           }
-          nodeRep.append(pNode.getParents().iterator().next().retrieveLocationElement().getLocationNode().
+          nodeRep.append(extractLocation(pNode.getParents().iterator().next()).
               getLeavingSummaryEdge().getSuccessor().getNodeNumber()
               + "#");
         }
@@ -101,7 +103,7 @@ public class AdjustableLBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
               System.out.println("Caller not well specified.");
               return false;
             }
-            nodeRep.append(pNode.getParents().iterator().next().retrieveLocationElement().getLocationNode().
+            nodeRep.append(extractLocation(pNode.getParents().iterator().next()).
                 getLeavingSummaryEdge().getSuccessor().getNodeNumber()
                 + "#");
           }
@@ -120,7 +122,7 @@ public class AdjustableLBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
               System.out.println("Caller not well specified.");
               return false;
             }
-            nodeRep.append(pNode.getParents().iterator().next().retrieveLocationElement().getLocationNode().
+            nodeRep.append(extractLocation(pNode.getParents().iterator().next()).
                 getLeavingSummaryEdge().getSuccessor().getNodeNumber()
                 + "#");
           }

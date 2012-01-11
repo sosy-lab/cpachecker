@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.pcc.proof_gen;
 
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+
 import java.util.HashSet;
 import java.util.logging.Level;
 
@@ -48,7 +50,7 @@ public class SBEWithoutIndices_InvariantProofGenAlgorithm extends
   protected boolean addSingleOperation(ARTElement pNode, CFAEdge pEdge) {
     // build identification of edge
     String id =
-        buildEdgeId(pNode.retrieveLocationElement().getLocationNode(), pEdge);
+        buildEdgeId(extractLocation(pNode), pEdge);
     // add operation
     if (!edges.contains(id)) {
       logger.log(Level.INFO, "Add an edge connecting two regions.");

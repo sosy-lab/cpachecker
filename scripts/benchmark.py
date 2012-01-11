@@ -25,7 +25,9 @@ CPAchecker web page:
 """
 
 from datetime import date
-from threading import Timer
+
+import threading
+import Queue
 
 import time
 import glob
@@ -64,6 +66,14 @@ COLOR_DIC = {"correctSafe": COLOR_GREEN,
 TIME_PRECISION = 2
 
 USE_ONLY_DATE = False # use date or date+time for filenames
+
+
+# next lines are needed for stopping the script
+WORKER_THREADS = []
+SUB_PROCESSES = set()
+SUB_PROCESSES_LOCK = threading.Lock()
+STOPPED_BY_INTERRUPT = False
+
 
 class Benchmark:
     """
@@ -105,8 +115,17 @@ class Benchmark:
             limit = int(root.get("timelimit"))
             self.rlimits[resource.RLIMIT_CPU] = (limit, limit)
 
+        # get number of threads, default value is 1
+        self.numOfThreads = int(root.get("threads")) if ("threads" in keys) else 1
+        if self.numOfThreads < 1:
+            logging.error("At least ONE thread must be given!")
+            sys.exit()
+
         # get global options
         self.options = getOptions(root)
+
+        # get columns
+        self.columns = self.loadColumns(root.find("columns"))
 
         # get global files, they are tested in all tests
         globalSourcefiles = root.findall("sourcefiles")
@@ -115,9 +134,6 @@ class Benchmark:
         self.tests = []
         for testTag in root.findall("test"):
             self.tests.append(Test(testTag, self, globalSourcefiles))
-
-        # get columns
-        self.columns = self.loadColumns(root.find("columns"))
 
         self.outputHandler = OutputHandler(self)
 
@@ -290,8 +306,18 @@ class Run():
         self.test = test
         self.benchmark = test.benchmark
         self.mergedOptions = []
-        self.resultline = self.sourcefile # empty resultline for TXTFile, filled later
 
+        # copy columns for having own objects in run
+        self.columns = [Column(c.text, c.title, c.numberOfDigits) for c in self.benchmark.columns]
+
+        # dummy values, for output in case of interrupt
+        self.resultline = self.sourcefile
+        self.status = ""
+        self.cpuTime = 0
+        self.cpuTimeStr = ""
+        self.wallTime = 0
+        self.wallTimeStr = ""
+        self.args = ""
 
     def getMergedOptions(self):
         """
@@ -316,18 +342,18 @@ class Run():
 
 
     def run(self):
+        """
+        This function runs the tool with a sourcefile with options.
+        It also calls functions for output before and after the run.
+        """
         logfile = self.benchmark.outputHandler.outputBeforeRun(self)
 
-        self.columns = [Column(c.text, c.title, c.numberOfDigits) for c in self.benchmark.columns]
-
-        (status, cpuTime, wallTime, args) = \
+        (self.status, self.cpuTime, self.wallTime, self.args) = \
              self.benchmark.run_func(self.getMergedOptions(),
                                      self.sourcefile, 
                                      self.columns,
                                      self.benchmark.rlimits,
                                      logfile)
-
-        (self.status, self.cpuTime, self.wallTime, self.args) = (status, cpuTime, wallTime, args)
 
         self.benchmark.outputHandler.outputAfterRun(self)
 
@@ -341,6 +367,7 @@ class Column:
         self.text = text
         self.title = title
         self.numberOfDigits = numOfDigits
+        self.value = ""
 
 
 class Util:
@@ -454,6 +481,8 @@ class OutputHandler:
     """
     The class OutputHandler manages all outputs to the terminal and to files.
     """
+
+    printLock = threading.Lock()
 
     def __init__(self, benchmark):
         """
@@ -801,11 +830,19 @@ class OutputHandler:
             self.getToolnameForPrinting(), " ".join(run.mergedOptions), run.sourcefile))
 
         # output in terminal
-        sys.stdout.write(time.strftime("%H:%M:%S", time.localtime()) \
-            + '   ' + run.sourcefile.ljust(self.maxLengthOfFileName + 4))
-        sys.stdout.flush()
+        try:
+            OutputHandler.printLock.acquire()
 
-        # write output to file-specific log-file
+            timeStr = time.strftime("%H:%M:%S", time.localtime()) + "   "
+            if run.benchmark.numOfThreads == 1:
+                sys.stdout.write(timeStr + run.sourcefile.ljust(self.maxLengthOfFileName + 4))
+                sys.stdout.flush()
+            else:
+                print(timeStr + "starting   " + run.sourcefile)
+        finally:
+            OutputHandler.printLock.release()
+
+        # get name of file-specific log-file
         logfileName = self.logFolder
         if run.test.name is not None:
             logfileName += run.test.name + "."
@@ -843,14 +880,28 @@ class OutputHandler:
             statusStr = COLOR_DIC[statusRelation].format(run.status.ljust(8))
         else:
             statusStr = run.status.ljust(8)
-        print(statusStr + run.cpuTimeStr.rjust(8) + run.wallTimeStr.rjust(8))
 
-        # write resultline in TXTFile
-        run.resultline = self.createOutputLine(run.sourcefile, run.status,
+        try:
+            OutputHandler.printLock.acquire()
+
+            # if there was an interupt in run, we do not print the result
+            if not STOPPED_BY_INTERRUPT:
+                valueStr = statusStr + run.cpuTimeStr.rjust(8) + run.wallTimeStr.rjust(8)
+                if run.benchmark.numOfThreads == 1:
+                    print(valueStr)
+                else:
+                    timeStr = time.strftime("%H:%M:%S", time.localtime()) + " "*14
+                    print(timeStr + run.sourcefile.ljust(self.maxLengthOfFileName + 4) + valueStr)
+
+            # write resultline in TXTFile
+            run.resultline = self.createOutputLine(run.sourcefile, run.status,
                     run.cpuTimeStr, run.wallTimeStr, run.columns)
-        self.TXTFile.replace(self.TXTContent + self.testToTXT(self.test))
+            self.TXTFile.replace(self.TXTContent + self.testToTXT(self.test))
 
-        self.statistics.addResult(statusRelation)
+            self.statistics.addResult(statusRelation)
+
+        finally:
+            OutputHandler.printLock.release()
 
 
     def outputAfterTest(self, cpuTimeTest, wallTimeTest):
@@ -917,7 +968,7 @@ class OutputHandler:
             runElem.append(ET.Element("column", {"title": "status", "value": run.status}))
             runElem.append(ET.Element("column", {"title": "cputime", "value": run.cpuTimeStr}))
             runElem.append(ET.Element("column", {"title": "walltime", "value": run.wallTimeStr}))
-    
+
             for column in run.columns:
                 runElem.append(ET.Element("column",
                         {"title": column.title, "value": column.value}))
@@ -1009,6 +1060,9 @@ class OutputHandler:
 
     def outputAfterBenchmark(self):
         self.statistics.printToTerminal()
+
+        if STOPPED_BY_INTERRUPT:
+            print ("\nscript was interrupted by user, some tests may not be done\n")
 
 
     def getFileName(self, testname, fileExtension):
@@ -1201,11 +1255,17 @@ def run(args, rlimits, outputfilename):
                              stdout=outputfile, stderr=outputfile,
                              preexec_fn=preSubprocess)
 
+        try:
+            SUB_PROCESSES_LOCK.acquire()
+            SUB_PROCESSES.add(p)
+        finally:
+            SUB_PROCESSES_LOCK.release()
+
         # if rlimit does not work, a seperate Timer is started to kill the subprocess,
         # Timer has 10 seconds 'overhead'
         if (resource.RLIMIT_CPU in rlimits):
           timelimit = rlimits[resource.RLIMIT_CPU][0]
-          timer = Timer(timelimit + 10, killSubprocess, [p])
+          timer = threading.Timer(timelimit + 10, killSubprocess, [p])
           timer.start()
 
         (pid, returnvalue, ru_child) = os.wait4(p.pid, 0)
@@ -1221,23 +1281,24 @@ def run(args, rlimits, outputfilename):
                          + "in the PATH environment variable or an alias is set.")
         sys.exit("A critical exception caused me to exit non-gracefully. Bye.")
 
-    except KeyboardInterrupt:
-        print ("killing subprocess...")
-        killSubprocess(p)
-        raise KeyboardInterrupt # throw again to stop script
-
     finally:
+        try:
+            SUB_PROCESSES_LOCK.acquire()
+            assert p in SUB_PROCESSES
+            SUB_PROCESSES.remove(p)
+        finally:
+            SUB_PROCESSES_LOCK.release()
+        
         if (resource.RLIMIT_CPU in rlimits) and timer.isAlive():
             timer.cancel()
+
+        outputfile.close() # normally subprocess closes file, we do this again
 
     wallTimeAfter = time.time()
     wallTimeDelta = wallTimeAfter - wallTimeBefore
     cpuTimeDelta = (ru_child.ru_utime + ru_child.ru_stime)
 
     logging.debug("My subprocess returned returncode {0}.".format(returncode))
-
- 
-    outputfile.close() # normally subprocess closes file, we do this again
 
     outputfile = open(outputfilename, 'r') # re-open file for reading output
     output = ''.join(outputfile.readlines()[6:]) # first 6 lines are for logging, rest is output of subprocess
@@ -1591,6 +1652,24 @@ def run_blast(options, sourcefile, columns, rlimits, file):
     return (status, cpuTimeDelta, wallTimeDelta, args)
 
 
+class Worker(threading.Thread):
+    """
+    A Worker is a deamonic thread, that takes jobs from the workingQueue and runs them.
+    """
+    workingQueue = Queue.Queue()
+
+    def __init__(self):
+        threading.Thread.__init__(self) # constuctor of superclass
+        self.setDaemon(True)
+        self.start()
+
+    def run(self):
+        while not Worker.workingQueue.empty() and not STOPPED_BY_INTERRUPT:
+            currentRun = Worker.workingQueue.get_nowait()
+            currentRun.run()
+            Worker.workingQueue.task_done()
+
+
 def runBenchmark(benchmarkFile):
     benchmark = Benchmark(benchmarkFile)
 
@@ -1605,7 +1684,12 @@ def runBenchmark(benchmarkFile):
 
     outputHandler = benchmark.outputHandler
 
+    logging.debug("I will use {0} threads.".format(benchmark.numOfThreads))
+
+    # iterate over tests and runs
     for test in benchmark.tests:
+
+        if STOPPED_BY_INTERRUPT: break
 
         if options.testRunOnly is not None \
                 and options.testRunOnly != test.name:
@@ -1618,7 +1702,30 @@ def runBenchmark(benchmarkFile):
 
             outputHandler.outputBeforeTest(test)
 
-            for run in test.runs: run.run()
+            # put all runs into a queue
+            for run in test.runs:
+                Worker.workingQueue.put(run)
+    
+            # create some workers
+            for i in range(benchmark.numOfThreads):
+                WORKER_THREADS.append(Worker())
+
+            # wait until all tasks are done,
+            # instead of queue.join(), we use a loop and sleep(1) to handle KeyboardInterrupt
+            finished = False
+            while not finished and not STOPPED_BY_INTERRUPT:
+                try:
+                    Worker.workingQueue.all_tasks_done.acquire()
+                    finished = (Worker.workingQueue.unfinished_tasks == 0)
+                finally:
+                    Worker.workingQueue.all_tasks_done.release()
+
+                try:
+                    time.sleep(0.1) # sleep some time
+                except KeyboardInterrupt:
+                    killScript()
+                
+            assert (len(SUB_PROCESSES) == 0) or STOPPED_BY_INTERRUPT
 
             # get times after test
             wallTimeAfter = time.time()
@@ -1670,11 +1777,31 @@ def main(argv=None):
             parser.error("File {0} does not exist.".format(repr(arg)))
 
     for arg in args[1:]:
+        if STOPPED_BY_INTERRUPT: break
         logging.debug("Benchmark {0} is started.".format(repr(arg)))
         runBenchmark(arg)
         logging.debug("Benchmark {0} is done.".format(repr(arg)))
 
     logging.debug("I think my job is done. Have a nice day!")
+
+
+def killScript():
+        # set global flag
+        global STOPPED_BY_INTERRUPT
+        STOPPED_BY_INTERRUPT = True
+
+        # kill running jobs
+        print ("killing subprocesses...")
+        try:
+            SUB_PROCESSES_LOCK.acquire()
+            for process in SUB_PROCESSES:
+                killSubprocess(process)
+        finally:
+            SUB_PROCESSES_LOCK.release()
+
+        # wait until all threads are stopped
+        for worker in WORKER_THREADS:
+            worker.join()
 
 
 def signal_handler_ignore(signum, frame):
@@ -1685,5 +1812,6 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, signal_handler_ignore)
     try:
         sys.exit(main())
-    except KeyboardInterrupt:
+    except KeyboardInterrupt: # this block is reched, when interrupt is thrown before or after a test
+        killScript()
         print ("\n\nscript was interrupted by user, some tests may not be done")

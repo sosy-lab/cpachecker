@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.pcc.proof_gen;
 
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -66,7 +68,7 @@ public class LBE_InvariantProofGenAlgorithm extends InvariantProofGenAlgorithm {
         AbstractElements.extractElementByType(pNode,
             PredicateAbstractElement.class);
     if (predicate == null) { return false; }
-    CFANode corresponding = pNode.retrieveLocationElement().getLocationNode();
+    CFANode corresponding = extractLocation(pNode);
     //check if it is an abstraction element, otherwise nothing to do
     if (predicate.isAbstractionElement()) {
       StringBuilder builder =

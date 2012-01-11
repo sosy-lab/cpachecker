@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.pcc.proof_gen;
 
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -53,7 +55,7 @@ public abstract class SBE_ARTProofGenAlgorithm extends ARTProofGenAlgorithm {
     // build string of form ARTId#CFAId#isAbstractionNode(#Abstraction)?#
     nodeRep.append(pNode.getElementId());
     nodeRep.append(Separators.commonSeparator);
-    nodeRep.append(pNode.retrieveLocationElement().getLocationNode()
+    nodeRep.append(extractLocation(pNode)
         .getNodeNumber());
     nodeRep.append(Separators.commonSeparator);
     // get PredicateAbstractElement

@@ -33,6 +33,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -50,8 +51,8 @@ public abstract class ARTProofGenAlgorithm implements ProofGenAlgorithm {
   protected LogManager logger;
 
   @Option(
-      type = Option.Type.OUTPUT_FILE,
       description = "export ART representation needed for proof checking in PCC, if the error location is not reached, the representation depends on the algorithm used for proof checking")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
   private File file = new File("pccProof.txt");
 
   @Option(name="cpa.predicate.abstraction.solver", toUppercase=true, values={"MATHSAT", "YICES"},
