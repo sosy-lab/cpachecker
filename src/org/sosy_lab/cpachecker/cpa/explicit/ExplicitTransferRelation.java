@@ -526,6 +526,7 @@ public class ExplicitTransferRelation implements TransferRelation
       switch(binaryOperator)
       {
       case MODULO:
+      case SHIFT_RIGHT:
         // TODO check which cases can be handled (I think all)
         return null;
 
