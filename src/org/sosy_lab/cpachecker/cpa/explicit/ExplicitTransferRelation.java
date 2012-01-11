@@ -527,8 +527,7 @@ public class ExplicitTransferRelation implements TransferRelation
       {
       case MODULO:
         // TODO check which cases can be handled (I think all)
-        //return null;
-        throw new UnrecognizedCCodeException("unsupported binary operator", edge, pE);
+        return null;
 
       case PLUS:
       case MINUS:
@@ -631,7 +630,7 @@ public class ExplicitTransferRelation implements TransferRelation
       }
 
       default:
-        return null;
+        throw new UnrecognizedCCodeException("unsupported binary operator", edge, pE);
       }
     }
 
