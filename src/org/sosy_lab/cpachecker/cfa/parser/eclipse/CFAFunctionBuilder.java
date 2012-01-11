@@ -435,7 +435,8 @@ class CFAFunctionBuilder extends ASTVisitor {
     cfaNodes.add(nextNode);
     locStack.push(nextNode);
 
-    StatementEdge edge = new StatementEdge(astCreator.convert(exprStatement),
+    String rawStatement = exprStatement.getRawSignature();
+    StatementEdge edge = new StatementEdge(rawStatement, astCreator.convert(exprStatement),
         fileloc.getStartingLineNumber(), prevNode, nextNode);
     addToCFA(edge);
   }
@@ -660,7 +661,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // "counter = 0;"
     } else if (statement instanceof IASTExpressionStatement) {
-      final StatementEdge initEdge = new StatementEdge(
+      final StatementEdge initEdge = new StatementEdge(statement.getRawSignature(),
               astCreator.convert((IASTExpressionStatement) statement),
               filelocStart, loopInit, loopStart);
       addToCFA(initEdge);
@@ -736,13 +737,13 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       // "counter++;"
     } else if (node instanceof IASTExpressionAssignmentStatement) {
-      final StatementEdge lastEdge = new StatementEdge((IASTExpressionAssignmentStatement) node,
-          filelocStart, loopEnd, loopStart);
+      final StatementEdge lastEdge = new StatementEdge(exp.getRawSignature(),
+          (IASTExpressionAssignmentStatement) node, filelocStart, loopEnd, loopStart);
       addToCFA(lastEdge);
 
     } else if (node instanceof IASTFunctionCallAssignmentStatement) {
-      final StatementEdge edge = new StatementEdge((IASTFunctionCallAssignmentStatement)node,
-          filelocStart, loopEnd, loopStart);
+      final StatementEdge edge = new StatementEdge(exp.getRawSignature(),
+          (IASTFunctionCallAssignmentStatement)node, filelocStart, loopEnd, loopStart);
       addToCFA(edge);
 
     } else { // TODO: are there other iteration-expressions in a for-loop?
@@ -910,8 +911,8 @@ class CFAFunctionBuilder extends ASTVisitor {
     CFANode prevNode = locStack.pop();
     CFAFunctionExitNode functionExitNode = cfa.getExitNode();
 
-    ReturnStatementEdge edge = new ReturnStatementEdge(astCreator.convert(returnStatement),
-        fileloc.getStartingLineNumber(), prevNode, functionExitNode);
+    ReturnStatementEdge edge = new ReturnStatementEdge(returnStatement.getRawSignature(),
+        astCreator.convert(returnStatement), fileloc.getStartingLineNumber(), prevNode, functionExitNode);
     addToCFA(edge);
 
     CFANode nextNode = new CFANode(fileloc.getEndingLineNumber(),
