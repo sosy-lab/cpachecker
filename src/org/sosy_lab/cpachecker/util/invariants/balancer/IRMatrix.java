@@ -46,6 +46,7 @@ public class IRMatrix {
   private int numAugCols = 0;
   private InfixReln[] augIneq = new InfixReln[0];
 
+  @SuppressWarnings("unused")
   private int numPivotRows = 0;
 
   /*

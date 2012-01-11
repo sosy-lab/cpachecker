@@ -275,6 +275,7 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
 
   }
 
+  @Override
   public TemplateNetwork nextNetwork() {
     Template invTemp = chooser.chooseNextTemplate();
 

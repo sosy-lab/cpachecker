@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
-import java.util.Map;
-import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -88,11 +86,5 @@ public class ExplicitPrecision implements Precision {
 
   public String getBlackListPattern() {
     return blackListPattern.pattern();
-  }
-
-  private void addToWhitelist(Map<CFANode, Set<String>> additionalInfo) {
-    for (Map.Entry<CFANode, Set<String>> entry : additionalInfo.entrySet()) {
-      whiteList.putAll(entry.getKey(), entry.getValue());
-    }
   }
 }

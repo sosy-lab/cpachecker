@@ -31,6 +31,7 @@ public class Variable implements Comparable<Variable> {
     name = x;
   }
 
+  @Override
   public int compareTo(Variable v) {
     return name.compareTo(v.name);
   }

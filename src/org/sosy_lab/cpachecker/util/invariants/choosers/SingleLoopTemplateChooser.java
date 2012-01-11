@@ -106,6 +106,7 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
 
   }
 
+  @Override
   public Template chooseNextTemplate() {
     Template choice = null;
     boolean another = strategy.advance();
