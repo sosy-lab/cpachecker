@@ -62,8 +62,8 @@ class ShutdownHook extends Thread {
   @Option(name="print", description="print statistics to console")
   private boolean printStatistics = false;
 
-  private final Configuration config;
   private final LogManager logManager;
+  private final String outputDirectory;
   private final Thread mainThread;
 
   // if still null when run() is executed, analysis has been interrupted by user
@@ -73,11 +73,12 @@ class ShutdownHook extends Thread {
    * Create a shutdown hook. This constructor needs to be called from the
    * thread in which CPAchecker is run.
    */
-  public ShutdownHook(Configuration pConfig, LogManager logger) throws InvalidConfigurationException {
-    config = pConfig;
-    logManager = logger;
-
+  public ShutdownHook(Configuration config, LogManager logger, String pOutputDirectory) throws InvalidConfigurationException {
     config.inject(this);
+
+    logManager = logger;
+    outputDirectory = pOutputDirectory;
+
     mainThread = Thread.currentThread();
   }
 
@@ -150,7 +151,6 @@ class ShutdownHook extends Thread {
         }
         mResult.printResult(stream);
 
-        String outputDirectory = config.getOutputDirectory();
         if (outputDirectory != null && mResult.getResult() != Result.NOT_YET_STARTED) {
           stream.println("More details about the verification run can be found in the directory \"" + outputDirectory + "\".");
         }

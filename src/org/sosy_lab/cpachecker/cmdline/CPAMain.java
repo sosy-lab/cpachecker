@@ -36,6 +36,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
@@ -48,6 +49,7 @@ public class CPAMain {
     // initialize various components
     Configuration cpaConfig = null;
     LogManager logManager = null;
+    String outputDirectory = null;
     try {
       try {
         cpaConfig = createConfiguration(args);
@@ -57,6 +59,24 @@ public class CPAMain {
       } catch (IOException e) {
         System.err.println("Could not read config file " + e.getMessage());
         System.exit(1);
+      }
+
+      {
+        // We want to be able to use options of type "File" with some additional
+        // logic provided by FileTypeConverter, so we create such a converter,
+        // add it to our Configuration object and to the the map of default converters.
+        // The latter will ensure that it is used whenever a Configuration object
+        // is created.
+        FileTypeConverter fileTypeConverter = new FileTypeConverter(cpaConfig);
+        outputDirectory = fileTypeConverter.getOutputDirectory();
+
+        cpaConfig = Configuration.builder()
+                            .copyFrom(cpaConfig)
+                            .addConverter(FileOption.class, fileTypeConverter)
+                            .build();
+
+        Configuration.getDefaultConverters()
+                     .put(FileOption.class, fileTypeConverter);
       }
 
       logManager = new LogManager(cpaConfig);
@@ -71,7 +91,7 @@ public class CPAMain {
     ShutdownHook shutdownHook = null;
     File cFile = null;
     try {
-      shutdownHook = new ShutdownHook(cpaConfig, logManager);
+      shutdownHook = new ShutdownHook(cpaConfig, logManager, outputDirectory);
       cpachecker = new CPAchecker(cpaConfig, logManager);
       cFile = getCodeFile(cpaConfig);
     } catch (InvalidConfigurationException e) {

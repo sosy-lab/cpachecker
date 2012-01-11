@@ -545,6 +545,9 @@ log.level = Level.OFF
 # maximum size of log output strings before they will be truncated
 log.truncateSize = 10000
 
+# use colors for log messages on console
+log.useColors = true
+
 # all used options are printed
 log.usedOptions.export = false
 
