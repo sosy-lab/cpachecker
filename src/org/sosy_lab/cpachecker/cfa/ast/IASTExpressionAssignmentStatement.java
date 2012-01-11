@@ -31,10 +31,10 @@ public class IASTExpressionAssignmentStatement extends IASTStatement implements 
   private final IASTExpression leftHandSide;
   private final IASTExpression rightHandSide;
 
-  public IASTExpressionAssignmentStatement(String pRawSignature,
-      IASTFileLocation pFileLocation,
-      IASTExpression pLeftHandSide, IASTExpression pRightHandSide) {
-    super(pRawSignature, pFileLocation);
+  public IASTExpressionAssignmentStatement(IASTFileLocation pFileLocation,
+                                           IASTExpression pLeftHandSide,
+                                           IASTExpression pRightHandSide) {
+    super(pFileLocation);
     leftHandSide = pLeftHandSide;
     rightHandSide = pRightHandSide;
   }
@@ -60,8 +60,8 @@ public class IASTExpressionAssignmentStatement extends IASTStatement implements 
   }
 
   @Override
-  public String toASTString(String pPrefix) {
-    return pPrefix + leftHandSide.toASTString()
+  public String toASTString() {
+    return leftHandSide.toASTString()
         + " = " + rightHandSide.toASTString() + ";";
   }
 }

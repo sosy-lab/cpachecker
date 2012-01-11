@@ -25,50 +25,68 @@ package org.sosy_lab.cpachecker.exceptions;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTFileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+
+import com.google.common.base.CharMatcher;
 
 /**
  * Exception thrown when a CPA cannot handle some C code attached to a CFAEdge.
  */
 public class UnrecognizedCCodeException extends CPATransferException {
 
+  private static final String MESSAGE = "Unrecognized C code";
+
   private static final long serialVersionUID = -8319167530363457020L;
 
-  protected UnrecognizedCCodeException(String msg1, String msg2, IASTFileLocation loc, String rawSignature, CFAEdge pEdge) {
-    super(msg1
-        + (msg2 != null ? " (" + msg2 + ") " : " ")
-        + "in line " + loc.getStartingLineNumber()
-        + ": " + rawSignature);
+  protected UnrecognizedCCodeException(String msg1, String msg2, CFAEdge edge, IASTNode astNode) {
+    super(createMessage(msg1, msg2, edge, astNode));
   }
 
-  public UnrecognizedCCodeException(String msg, CFAEdge edge, IASTNode astNode) {
-    this("Unrecognized C code", msg, astNode.getFileLocation(), astNode.getRawSignature(), edge);
+  public UnrecognizedCCodeException(String msg2, CFAEdge edge, IASTNode astNode) {
+    super(createMessage(MESSAGE, msg2, edge, astNode));
+  }
+
+  public UnrecognizedCCodeException(String msg2, CFAEdge edge) {
+    super(createMessage(MESSAGE, msg2, edge, edge.getRawAST()));
   }
 
   public UnrecognizedCCodeException(CFAEdge edge, IASTNode astNode) {
-    this(null, edge, astNode);
+    super(createMessage(MESSAGE, null, edge, astNode));
   }
 
-  public UnrecognizedCCodeException(String msg, CFAEdge edge) {
-    this(msg, edge, edge.getRawAST());
-  }
 
-  /**
-   * Deprecated because this exception should always contain the relevant edge.
-   */
-  @Deprecated
-  public UnrecognizedCCodeException(String msg, IASTNode astNode) {
-    this(msg, null, astNode);
-  }
+  protected static String createMessage(String msg1, String msg2, CFAEdge edge, IASTNode astNode) {
+    checkNotNull(msg1);
+    if (astNode == null) {
+      astNode = edge.getRawAST();
+    }
+    checkNotNull(astNode, "Either edge or astNode need to be given");
 
-  /**
-   * Create an UnrecognizedCCodeException only with a message.
-   * Deprecated because such an exception should always contain the relevant source code.
-   */
-  @Deprecated
-  public UnrecognizedCCodeException(String msg) {
-    super("Unrecognized C code (" + checkNotNull(msg) + ")");
+    String code = astNode.toASTString();
+    String rawCode = edge.getRawStatement();
+
+    StringBuilder sb = new StringBuilder();
+    sb.append(msg1);
+    if (msg2 != null) {
+      sb.append(" (");
+      sb.append(msg2);
+      sb.append(")");
+    }
+    sb.append(" in line ");
+    sb.append(edge.getLineNumber());
+    sb.append(": ");
+    sb.append(code);
+
+    String codeWithoutWhitespace = CharMatcher.WHITESPACE.removeFrom(code);
+    String rawCodeWithoutWhitespace = CharMatcher.WHITESPACE.removeFrom(rawCode);
+
+    if (!codeWithoutWhitespace.equals(rawCodeWithoutWhitespace)) {
+      sb.append(" (line was originally ");
+      sb.append(rawCode);
+      sb.append(")");
+    }
+
+    return sb.toString();
   }
 }

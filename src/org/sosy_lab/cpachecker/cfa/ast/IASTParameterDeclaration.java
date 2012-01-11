@@ -31,13 +31,38 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public final class IASTParameterDeclaration extends IASTSimpleDeclaration {
 
-  public IASTParameterDeclaration(String pRawSignature,
-      IASTFileLocation pFileLocation, IType pSpecifier, String pName) {
-    super(pRawSignature, pFileLocation, pSpecifier, checkNotNull(pName));
+  public IASTParameterDeclaration(IASTFileLocation pFileLocation,
+                                  IType pSpecifier,
+                                  String pName) {
+    super(pFileLocation, pSpecifier, checkNotNull(pName));
   }
 
   @Override
-  public String toASTString(String pPrefix) {
-    return pPrefix + getDeclSpecifier().toASTString() + getName();
+  public String toASTString() {
+    String result = getDeclSpecifier().toASTString();
+
+    // only append the name of the parameter if it is not a function pointer,
+    // as then the parameter name is already in the result as part of the
+    // function definition of the function pointer
+    if(!isFunctionPointerParameter()) {
+      return result += getName();
+    }
+    return result;
+  }
+
+  /**
+   * This method determines if this is a function pointer parameter.
+   *
+   * @return true, if it is a function pointer, else false
+   */
+  private boolean isFunctionPointerParameter() {
+    IType type = getDeclSpecifier();
+    if(type instanceof IASTPointerTypeSpecifier) {
+      IASTPointerTypeSpecifier pts = (IASTPointerTypeSpecifier)type;
+      if(pts.getType() instanceof IASTFunctionTypeSpecifier) {
+        return true;
+      }
+    }
+    return false;
   }
 }

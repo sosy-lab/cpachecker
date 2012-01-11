@@ -196,60 +196,38 @@ public class CPAchecker {
     try {
       stats = new MainCPAStatistics(config, logger);
 
-      CFA cfa = null;
-
-      // parse file and create CFA
-      if (!options.runCBMCasExternalTool) {
-        CFACreator cfaCreator = new CFACreator(config, logger);
-        stats.setCFACreator(cfaCreator);
-
-        cfa = cfaCreator.parseFileAndCreateCFA(filename);
-
-        if (cfa.isEmpty()) {
-          // empty program, do nothing
-          return new CPAcheckerResult(Result.NOT_YET_STARTED, null, null);
-        }
-
-        stopIfNecessary();
-      }
-
-      // create cpa, algorithm, reached set
+      // create reached set, cpa, algorithm
       stats.creationTime.start();
-      ConfigurableProgramAnalysis cpa = null;
+      reached = reachedSetFactory.create();
+
       Algorithm algorithm;
 
       if (options.runCBMCasExternalTool) {
         algorithm = new ExternalCBMCAlgorithm(filename, config, logger);
 
       } else {
-        assert cfa != null;
+        CFA cfa = parse(filename, stats);
+        if (cfa.isEmpty()) {
+          // empty program, do nothing
+          return new CPAcheckerResult(Result.NOT_YET_STARTED, null, null);
+        }
 
-        cpa = createCPA(stats, cfa);
+        stopIfNecessary();
+
+        ConfigurableProgramAnalysis cpa = createCPA(stats, cfa);
 
         algorithm = createAlgorithm(cpa, stats, filename, cfa);
-      }
 
-      // create reached set
-      reached = reachedSetFactory.create();
-      if (algorithm instanceof RestartAlgorithm) {
-        // this algorithm needs an indirection so that it can change
-        // the actual reached set instance on the fly
-        reached = new ForwardingReachedSet(reached);
-      }
-      if (!options.runCBMCasExternalTool) {
+        if (algorithm instanceof RestartAlgorithm) {
+          // this algorithm needs an indirection so that it can change
+          // the actual reached set instance on the fly
+          reached = new ForwardingReachedSet(reached);
+        }
+
         initializeReachedSet(reached, cpa, cfa.getMainFunction());
       }
 
-      Set<String> unusedProperties = config.getUnusedProperties();
-      if (!unusedProperties.isEmpty()) {
-        logger.log(Level.WARNING, "The following configuration options were specified but are not used:\n",
-            Joiner.on("\n ").join(unusedProperties), "\n");
-      }
-      Set<String> deprecatedProperties = config.getDeprecatedProperties();
-      if (!deprecatedProperties.isEmpty()) {
-        logger.log(Level.WARNING, "The following options are deprecated and will be removed in the future:\n",
-            Joiner.on("\n ").join(deprecatedProperties), "\n");
-      }
+      printConfigurationWarnings();
 
       stats.creationTime.stop();
       stopIfNecessary();
@@ -285,6 +263,28 @@ public class CPAchecker {
       logger.logUserException(Level.SEVERE, e, null);
     }
     return new CPAcheckerResult(result, reached, stats);
+  }
+
+  private CFA parse(String filename, MainCPAStatistics stats) throws InvalidConfigurationException, IOException,
+      ParserException, InterruptedException {
+    // parse file and create CFA
+    CFACreator cfaCreator = new CFACreator(config, logger);
+    stats.setCFACreator(cfaCreator);
+
+    return cfaCreator.parseFileAndCreateCFA(filename);
+  }
+
+  private void printConfigurationWarnings() {
+    Set<String> unusedProperties = config.getUnusedProperties();
+    if (!unusedProperties.isEmpty()) {
+      logger.log(Level.WARNING, "The following configuration options were specified but are not used:\n",
+          Joiner.on("\n ").join(unusedProperties), "\n");
+    }
+    Set<String> deprecatedProperties = config.getDeprecatedProperties();
+    if (!deprecatedProperties.isEmpty()) {
+      logger.log(Level.WARNING, "The following options are deprecated and will be removed in the future:\n",
+          Joiner.on("\n ").join(deprecatedProperties), "\n");
+    }
   }
 
   private boolean runAlgorithm(final Algorithm algorithm,

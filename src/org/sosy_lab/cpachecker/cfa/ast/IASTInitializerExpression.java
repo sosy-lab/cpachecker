@@ -27,9 +27,9 @@ public final class IASTInitializerExpression extends IASTInitializer {
 
   private final IASTRightHandSide expression;
 
-  public IASTInitializerExpression(final String pRawSignature,
-      final IASTFileLocation pFileLocation, final IASTRightHandSide pExpression) {
-    super(pRawSignature, pFileLocation);
+  public IASTInitializerExpression(final IASTFileLocation pFileLocation,
+                                   final IASTRightHandSide pExpression) {
+    super(pFileLocation);
     expression = pExpression;
   }
 
@@ -38,7 +38,7 @@ public final class IASTInitializerExpression extends IASTInitializer {
   }
 
   @Override
-  public String toASTString(String pPrefix) {
-    return pPrefix + expression.toASTString();
+  public String toASTString() {
+    return expression.toASTString();
   }
 }

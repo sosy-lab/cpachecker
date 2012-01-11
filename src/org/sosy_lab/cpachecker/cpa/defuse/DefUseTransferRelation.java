@@ -46,7 +46,7 @@ public class DefUseTransferRelation implements TransferRelation
     {
       IASTAssignment assignExpression = (IASTAssignment) expression;
 
-      String lParam = assignExpression.getLeftHandSide().getRawSignature ();
+      String lParam = assignExpression.getLeftHandSide().toASTString();
       // String lParam2 = binaryExpression.getOperand2 ().getRawSignature ();
 
       DefUseDefinition definition = new DefUseDefinition (lParam, cfaEdge);

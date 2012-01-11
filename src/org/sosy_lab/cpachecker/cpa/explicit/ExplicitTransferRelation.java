@@ -203,13 +203,14 @@ public class ExplicitTransferRelation implements TransferRelation
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
     List<IASTExpression> arguments = callEdge.getArguments();
 
-    assert(paramNames.size() == arguments.size());
+    if(!callEdge.getSuccessor().getFunctionDefinition().getDeclSpecifier().takesVarArgs())
+      assert(paramNames.size() == arguments.size());
 
     // visitor for getting the values of the actual parameters in caller function context
     ExpressionValueVisitor visitor = new ExpressionValueVisitor(element, callerFunctionName);
 
     // get value of actual parameter in caller function context
-    for(int i = 0; i < arguments.size(); i++)
+    for(int i = 0; i < paramNames.size(); i++)
     {
       Long value = arguments.get(i).accept(visitor);
 
@@ -274,7 +275,7 @@ public class ExplicitTransferRelation implements TransferRelation
       {
         String returnVarName = getScopedVariableName("___cpa_temp_result_var_", calledFunctionName);
 
-        String assignedVarName = getScopedVariableName(op1.getRawSignature(), callerFunctionName);
+        String assignedVarName = getScopedVariableName(op1.toASTString(), callerFunctionName);
 
         if(element.contains(returnVarName))
           newElement.assignConstant(assignedVarName, element.getValueFor(returnVarName), this.threshold);
@@ -402,14 +403,14 @@ public class ExplicitTransferRelation implements TransferRelation
     if(op1 instanceof IASTIdExpression)
     {
       // a = ...
-      if(precision.isOnBlacklist(getScopedVariableName(op1.getRawSignature(),cfaEdge.getPredecessor().getFunctionName())))
+      if(precision.isOnBlacklist(getScopedVariableName(((IASTIdExpression)op1).getName(), cfaEdge.getPredecessor().getFunctionName())))
         return element;
 
       else
       {
         String functionName = cfaEdge.getPredecessor().getFunctionName();
 
-        return handleAssignmentToVariable(op1.getRawSignature(), op2, new ExpressionValueVisitor(element, functionName));
+        return handleAssignmentToVariable(op1.toASTString(), op2, new ExpressionValueVisitor(element, functionName));
       }
     }
 
@@ -427,7 +428,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
       if(op1 instanceof IASTIdExpression)
       {
-        missingInformationLeftPointer = op1.getRawSignature();
+        missingInformationLeftPointer = ((IASTIdExpression)op1).getName();
         missingInformationRightExpression = op2;
       }
 
@@ -441,14 +442,14 @@ public class ExplicitTransferRelation implements TransferRelation
     else if(op1 instanceof IASTFieldReference)
     {
       // a->b = ...
-      if(precision.isOnBlacklist(getScopedVariableName(op1.getRawSignature(),cfaEdge.getPredecessor().getFunctionName())))
+      if(precision.isOnBlacklist(getScopedVariableName(op1.toASTString(),cfaEdge.getPredecessor().getFunctionName())))
         return element.clone();
 
       else
       {
         String functionName = cfaEdge.getPredecessor().getFunctionName();
 
-        return handleAssignmentToVariable(op1.getRawSignature(), op2, new ExpressionValueVisitor(element, functionName));
+        return handleAssignmentToVariable(op1.toASTString(), op2, new ExpressionValueVisitor(element, functionName));
       }
     }
 
@@ -723,6 +724,9 @@ public class ExplicitTransferRelation implements TransferRelation
         return null;
       }
 
+      case SIZEOF:
+        return null;
+
       default:
         throw new UnrecognizedCCodeException("unknown unary operator", null, unaryExpression);
       }
@@ -731,7 +735,7 @@ public class ExplicitTransferRelation implements TransferRelation
     @Override
     public Long visit(IASTFieldReference fieldReferenceExpression) throws UnrecognizedCCodeException
     {
-      String varName = getScopedVariableName(fieldReferenceExpression.getRawSignature(), functionName);
+      String varName = getScopedVariableName(fieldReferenceExpression.toASTString(), functionName);
 
       if(element.contains(varName))
         return element.getValueFor(varName);
@@ -800,7 +804,7 @@ public class ExplicitTransferRelation implements TransferRelation
       {
         if(leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp))
         {
-          String leftVariableName = getScopedVariableName(lVarInBinaryExp.getRawSignature(), functionName);
+          String leftVariableName = getScopedVariableName(lVarInBinaryExp.toASTString(), functionName);
           if(currentPrecision.isTracking(leftVariableName))
           {
             //System.out.println("assigning " + leftVariableName + " value of " + rightValue);
@@ -810,7 +814,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
         else if(rightValue == null && leftValue != null && isAssignable(rVarInBinaryExp))
         {
-          String rightVariableName = getScopedVariableName(rVarInBinaryExp.getRawSignature(), functionName);
+          String rightVariableName = getScopedVariableName(rVarInBinaryExp.toASTString(), functionName);
           if(currentPrecision.isTracking(rightVariableName))
           {
             //System.out.println("assigning " + rightVariableName + " value of " + leftValue);
@@ -853,7 +857,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
       if(unaryOperand instanceof IASTIdExpression)
       {
-        String rightVar = derefPointerToVariable(pointerElement, unaryOperand.getRawSignature());
+        String rightVar = derefPointerToVariable(pointerElement, ((IASTIdExpression)unaryOperand).getName());
         if(rightVar != null)
         {
           rightVar = getScopedVariableName(rightVar, functionName);
@@ -979,17 +983,15 @@ public class ExplicitTransferRelation implements TransferRelation
         return binaryExpression;
     }
 
-    IASTIntegerLiteralExpression zero = new IASTIntegerLiteralExpression("0",
-        expression.getFileLocation(),
-        expression.getExpressionType(),
-        BigInteger.ZERO);
+    IASTIntegerLiteralExpression zero = new IASTIntegerLiteralExpression(expression.getFileLocation(),
+                                                                         expression.getExpressionType(),
+                                                                         BigInteger.ZERO);
 
-    return new IASTBinaryExpression(expression.getRawSignature() + " " + BinaryOperator.NOT_EQUALS.getOperator() + " " + zero.getRawSignature(),
-                                  expression.getFileLocation(),
-                                  expression.getExpressionType(),
-                                  expression,
-                                  zero,
-                                  BinaryOperator.NOT_EQUALS);
+    return new IASTBinaryExpression(expression.getFileLocation(),
+                                    expression.getExpressionType(),
+                                    expression,
+                                    zero,
+                                    BinaryOperator.NOT_EQUALS);
   }
 
   /**
@@ -1023,20 +1025,17 @@ public class ExplicitTransferRelation implements TransferRelation
           {
             BinaryOperator newOperation = (operation == BinaryOperator.PLUS) ? BinaryOperator.MINUS : BinaryOperator.PLUS;
 
-            IASTBinaryExpression sum = new IASTBinaryExpression(riteOperand.getRawSignature() + " " + newOperation.getOperator() + " " + riteAddend.getRawSignature(),
-                expr.getFileLocation(),
-                expr.getExpressionType(),
-                riteOperand,
-                riteAddend,
-                newOperation);
+            IASTBinaryExpression sum = new IASTBinaryExpression(expr.getFileLocation(),
+                                                                expr.getExpressionType(),
+                                                                riteOperand,
+                                                                riteAddend,
+                                                                newOperation);
 
-            IASTBinaryExpression assume = new IASTBinaryExpression(leftAddend.getRawSignature() + " " + operator.getOperator() + " " + sum.getRawSignature(),
-                  expression.getFileLocation(),
-                  expression.getExpressionType(),
-                  leftAddend,
-                  sum,
-                  operator);
-
+            IASTBinaryExpression assume = new IASTBinaryExpression(expression.getFileLocation(),
+                                                                   expression.getExpressionType(),
+                                                                   leftAddend,
+                                                                   sum,
+                                                                   operator);
             return assume;
           }
         }

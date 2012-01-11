@@ -29,6 +29,7 @@ import java.io.IOException;
 
 import static org.sosy_lab.cpachecker.fshell.fql2.parser.FQLSym.*;
 
+@javax.annotation.Generated("JFlex")
 @SuppressWarnings("all")
 %%
 

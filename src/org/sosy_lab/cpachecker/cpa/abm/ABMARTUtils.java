@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.abm;
 
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -88,8 +90,8 @@ class ABMARTUtils {
   }
 
   public static CFAEdge getEdgeToChild(ARTElement parent, ARTElement child) {
-    CFANode currentLoc = parent.retrieveLocationElement().getLocationNode();
-    CFANode childNode = child.retrieveLocationElement().getLocationNode();
+    CFANode currentLoc = extractLocation(parent);
+    CFANode childNode = extractLocation(child);
 
     return getEdgeTo(currentLoc, childNode);
   }

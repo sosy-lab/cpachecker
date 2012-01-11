@@ -29,11 +29,12 @@ public final class IASTFieldReference extends IASTExpression {
   private final IASTExpression owner;
   private final boolean        isPointerDereference;
 
-  public IASTFieldReference(final String pRawSignature,
-      final IASTFileLocation pFileLocation, final IType pType,
-      final String pName, final IASTExpression pOwner,
-      final boolean pIsPointerDereference) {
-    super(pRawSignature, pFileLocation, pType);
+  public IASTFieldReference(final IASTFileLocation pFileLocation,
+                            final IType pType,
+                            final String pName,
+                            final IASTExpression pOwner,
+                            final boolean pIsPointerDereference) {
+    super(pFileLocation, pType);
     name = pName;
     owner = pOwner;
     isPointerDereference = pIsPointerDereference;
@@ -62,8 +63,8 @@ public final class IASTFieldReference extends IASTExpression {
   }
 
   @Override
-  public String toASTString(String pPrefix) {
-    return pPrefix + owner.toASTString() + (isPointerDereference ? "->" : ".")
+  public String toASTString() {
+    return owner.toASTString() + (isPointerDereference ? "->" : ".")
         + name;
   }
 }

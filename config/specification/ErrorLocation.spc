@@ -1,4 +1,4 @@
 // check for assertions
-#include config/specification/Assertion.spc
+#include Assertion.spc
 // and "ERROR" labels
-#include config/specification/ErrorLabel.spc
+#include ErrorLabel.spc

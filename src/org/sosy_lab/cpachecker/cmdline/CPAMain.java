@@ -42,6 +42,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.OptionCollector;
@@ -53,6 +54,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.pcc.proof_gen.ProofGenerator;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Iterables;
 import com.google.common.io.Closeables;
 
 public class CPAMain {
@@ -81,8 +83,9 @@ public class CPAMain {
     @Option(name="export", description="write some statistics to disk")
     private boolean exportStatistics = true;
 
-    @Option(name="file", type=Option.Type.OUTPUT_FILE,
+    @Option(name="file",
         description="write some statistics to disk")
+    @FileOption(FileOption.Type.OUTPUT_FILE)
     private File exportStatisticsFile = new File("Statistics.txt");
 
     @Option(name="print", description="print statistics to console")
@@ -125,7 +128,7 @@ public class CPAMain {
           mainThread.join(2000);
         } catch (InterruptedException e) {}
         if (mainThread.isAlive()) {
-          logManager.log(Level.WARNING, "Analysis did not stop fast enough, forcing it. This might prevent the statistics from being generated.");
+          logManager.log(Level.WARNING, "Analysis did not stop fast enough, forcing immediate termination now. This might prevent the statistics from being generated.");
           mainThread.stop();
         }
       }
@@ -216,14 +219,14 @@ public class CPAMain {
       System.exit(1);
     }
 
-    final String cFilePath = getCodeFilePath(cpaConfig, logManager);
-
     // create everything
     CPAchecker cpachecker = null;
     ShutdownHook shutdownHook = null;
+    File cFile = null;
     try {
       shutdownHook = new ShutdownHook(cpaConfig, logManager);
       cpachecker = new CPAchecker(cpaConfig, logManager);
+      cFile = getCodeFile(cpaConfig);
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
       System.exit(1);
@@ -235,7 +238,7 @@ public class CPAMain {
     Runtime.getRuntime().addShutdownHook(shutdownHook);
 
     // run analysis
-    CPAcheckerResult result = cpachecker.run(cFilePath);
+    CPAcheckerResult result = cpachecker.run(cFile.getPath());
 
     shutdownHook.setResult(result);
 
@@ -252,32 +255,30 @@ public class CPAMain {
     }
   }
 
-  static String getCodeFilePath(final Configuration cpaConfig, final LogManager logManager){
-    String[] names = cpaConfig.getPropertiesArray("analysis.programNames");
-    if (names.length != 1) {
-      logManager.log(Level.SEVERE, "Exactly one code file has to be given!");
-      System.exit(1);
+  @Options
+  private static class MainOptions {
+    @Option(name="analysis.programNames",
+        required=true,
+        description="C programs to analyze (currently only one file is supported)")
+    @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
+    private List<File> programs;
+  }
+
+  static File getCodeFile(final Configuration cpaConfig) throws InvalidConfigurationException {
+    MainOptions options = new MainOptions();
+    cpaConfig.inject(options);
+
+    if (options.programs.size() != 1) {
+      throw new InvalidConfigurationException("Exactly one code file has to be given.");
     }
 
-    File cFile = new File(names[0]);
-    if (!cFile.isAbsolute()) {
-      cFile = new File(cpaConfig.getRootDirectory(), cFile.getPath());
-    }
-
-    try {
-      Files.checkReadableFile(cFile);
-    } catch (FileNotFoundException e) {
-      logManager.logUserException(Level.SEVERE, e, "");
-      System.exit(1);
-    }
-
-    return cFile.getPath();
+    return Iterables.getOnlyElement(options.programs);
   }
 
   static Configuration createConfiguration(String[] args)
           throws InvalidCmdlineArgumentException, IOException, InvalidConfigurationException {
     if (args == null || args.length < 1) {
-      throw new InvalidCmdlineArgumentException("Need to specify at least configuration file or list of CPAs! Use -help for more information.");
+      throw new InvalidCmdlineArgumentException("Configuration file or list of CPAs needed. Use -help for more information.");
     }
 
     // if there are some command line arguments, process them
@@ -311,16 +312,14 @@ public class CPAMain {
 
     while (argsIt.hasNext()) {
       String arg = argsIt.next();
-      if (   handleArgument0("-dfs",     "analysis.traversal.order", "dfs",     arg, properties)
-          || handleArgument0("-bfs",     "analysis.traversal.order", "bfs",     arg, properties)
-          || handleArgument0("-topsort", "analysis.traversal.order", "topsort", arg, properties)
-          || handleArgument0("-cbmc",    "analysis.useCBMC", "true",            arg, properties)
+      if (   handleArgument0("-cbmc",    "analysis.useCBMC", "true",            arg, properties)
           || handleArgument0("-stats",   "statistics.print", "true",            arg, properties)
           || handleArgument0("-noout",   "output.disable",   "true",            arg, properties)
           || handleArgument1("-outputpath",    "output.path",             arg, argsIt, properties)
           || handleArgument1("-logfile",       "log.file",                arg, argsIt, properties)
           || handleArgument1("-entryfunction", "analysis.entryFunction",  arg, argsIt, properties)
           || handleArgument1("-config",        CONFIGURATION_FILE_OPTION, arg, argsIt, properties)
+          || handleArgument1("-timelimit",     "cpa.conditions.global.time.wall", arg, argsIt, properties)
           || handleMultipleArgument1("-spec",  SPECIFICATION_FILE_OPTION, arg, argsIt, properties)
       ) {
         // nothing left to do
@@ -410,8 +409,7 @@ public class CPAMain {
     System.out.println(" -outputpath");
     System.out.println(" -logfile");
     System.out.println(" -entryfunction");
-    System.out.println(" -dfs");
-    System.out.println(" -bfs");
+    System.out.println(" -timelimit");
     System.out.println(" -cbmc");
     System.out.println(" -stats");
     System.out.println(" -nolog");
@@ -421,7 +419,7 @@ public class CPAMain {
     System.out.println(" -printUsedOptions");
     System.out.println(" -help");
     System.out.println();
-    System.out.println("More information on how to configure CPAchecker can be found in HowToConfiguration.txt");
+    System.out.println("More information on how to configure CPAchecker can be found in 'doc/Configuration.txt'.");
     System.exit(0);
   }
 

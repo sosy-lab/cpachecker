@@ -37,6 +37,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 
+import com.google.common.collect.ImmutableList;
+
 /*
  * CAUTION: The cache for precision adjustment is only correct for CPAs that do
  * _NOT_ depend on the reached set when performing prec.
@@ -125,4 +127,8 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
     return null;
   }
 
+  @Override
+  public ImmutableList<? extends ConfigurableProgramAnalysis> getWrappedCPAs() {
+    return ImmutableList.of(mCachedCPA);
+  }
 }

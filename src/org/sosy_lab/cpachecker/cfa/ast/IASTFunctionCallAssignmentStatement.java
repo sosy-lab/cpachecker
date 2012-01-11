@@ -29,10 +29,10 @@ public final class IASTFunctionCallAssignmentStatement extends IASTStatement
   private final IASTExpression leftHandSide;
   private final IASTFunctionCallExpression rightHandSide;
 
-  public IASTFunctionCallAssignmentStatement(String pRawSignature,
-      IASTFileLocation pFileLocation, IASTExpression pLeftHandSide,
-      IASTFunctionCallExpression pRightHandSide) {
-    super(pRawSignature, pFileLocation);
+  public IASTFunctionCallAssignmentStatement(IASTFileLocation pFileLocation,
+                                             IASTExpression pLeftHandSide,
+                                             IASTFunctionCallExpression pRightHandSide) {
+    super(pFileLocation);
     leftHandSide = pLeftHandSide;
     rightHandSide = pRightHandSide;
   }
@@ -63,8 +63,8 @@ public final class IASTFunctionCallAssignmentStatement extends IASTStatement
   }
 
   @Override
-  public String toASTString(String pPrefix) {
-    return pPrefix + leftHandSide.toASTString()
-        + " = " + rightHandSide.toASTString();
+  public String toASTString() {
+    return leftHandSide.toASTString()
+        + " = " + rightHandSide.toASTString() + ";";
   }
 }

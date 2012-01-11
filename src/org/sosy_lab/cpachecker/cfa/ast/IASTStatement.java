@@ -25,9 +25,8 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 public abstract class IASTStatement extends IASTNode {
 
-  public IASTStatement(final String pRawSignature,
-      final IASTFileLocation pFileLocation) {
-    super(pRawSignature, pFileLocation);
+  public IASTStatement(final IASTFileLocation pFileLocation) {
+    super(pFileLocation);
   }
 
   public abstract <R, X extends Exception> R accept(StatementVisitor<R, X> v) throws X;

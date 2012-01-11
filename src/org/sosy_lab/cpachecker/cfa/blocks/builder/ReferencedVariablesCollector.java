@@ -109,7 +109,7 @@ public class ReferencedVariablesCollector {
       StatementEdge statementEdge = (StatementEdge)edge;
       if (statementEdge.getStatement() instanceof IASTAssignment) {
         IASTAssignment assignment = (IASTAssignment)statementEdge.getStatement();
-        String lhsVarName = assignment.getLeftHandSide().getRawSignature();
+        String lhsVarName = assignment.getLeftHandSide().toASTString();
         ReferencedVariable lhsVar = scoped(new ReferencedVariable(lhsVarName, false, true, null), currentFunction);
         pCollectedVars.add(lhsVar);
 
@@ -156,7 +156,7 @@ public class ReferencedVariablesCollector {
 
     @Override
     public Void visit(IASTArraySubscriptExpression pE) {
-      collectVar(pE.getRawSignature());
+      collectVar(pE.toASTString());
       pE.getArrayExpression().accept(this);
       pE.getSubscriptExpression().accept(this);
       return null;
@@ -177,7 +177,7 @@ public class ReferencedVariablesCollector {
 
     @Override
     public Void visit(IASTFieldReference pE) {
-      collectVar(pE.getRawSignature());
+      collectVar(pE.toASTString());
       pE.getFieldOwner().accept(this);
       return null;
     }
@@ -198,7 +198,7 @@ public class ReferencedVariablesCollector {
       switch(op) {
       case AMPER:
       case STAR:
-        collectVar(pE.getRawSignature());
+        collectVar(pE.toASTString());
       default:
         pE.getOperand().accept(this);
       }

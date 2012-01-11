@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 
 public class ARTPrecisionAdjustment implements PrecisionAdjustment {
 
@@ -68,20 +67,7 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
 
     ARTElement resultElement = new ARTElement(newElement, null);
 
-    for (ARTElement parent : element.getParents()) {
-      resultElement.addParent(parent);
-    }
-    for (ARTElement child : element.getChildren()) {
-      child.addParent(resultElement);
-    }
-
-    // first copy list of covered elements, then remove element from ART, then set elements covered by new element
-    ImmutableList<ARTElement> coveredElements = ImmutableList.copyOf(element.getCoveredByThis());
-    element.removeFromART();
-
-    for (ARTElement covered : coveredElements) {
-      covered.setCovered(resultElement);
-    }
+    element.replaceInARTWith(resultElement); // this completely eliminates element
 
     return new Triple<AbstractElement, Precision, Action>(resultElement, newPrecision, action);
   }

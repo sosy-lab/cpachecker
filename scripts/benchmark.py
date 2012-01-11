@@ -1,11 +1,36 @@
 #!/usr/bin/env python
 
+"""
+CPAchecker is a tool for configurable software verification.
+This file is part of CPAchecker.
+
+Copyright (C) 2007-2011  Dirk Beyer
+All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+
+CPAchecker web page:
+  http://cpachecker.sosy-lab.org
+"""
+
 from datetime import date
+from threading import Timer
 
 import time
 import glob
 import logging
-import os.path
+import os
 import platform
 import resource
 import signal
@@ -13,21 +38,23 @@ import subprocess
 import sys
 import xml.etree.ElementTree as ET
 
-OUTPUT_PATH = "./test/results/"
-
 CSV_SEPARATOR = "\t"
 
 BUG_SUBSTRING_LIST = ['bug', 'unsafe']
 
 
+BYTE_FACTOR = 1024 # byte in kilobyte
+
 # colors for column status in terminal
 USE_COLORS = True
 COLOR_GREEN = "\033[32;1m{0}\033[m"
 COLOR_RED = "\033[31;1m{0}\033[m"
-COLOR_ORANGE = "\033[35;1m{0}\033[m" # not orange, magenta
+COLOR_ORANGE = "\033[33;1m{0}\033[m" # not orange, magenta
+COLOR_MAGENTA = "\033[35;1m{0}\033[m"
 COLOR_DIC = {"correctSafe": COLOR_GREEN,
              "correctUnsafe": COLOR_GREEN,
              "unknown": COLOR_ORANGE,
+             "error": COLOR_MAGENTA,
              "wrongUnsafe": COLOR_RED,
              "wrongSafe": COLOR_RED}
 
@@ -49,16 +76,9 @@ class Benchmark:
         The constructor of Benchmark reads the files, options, columns and the tool
         from the xml-file.
         """
-
-        ## looks like trouble with pyxml, better use lxml (http://codespeak.net/lxml/).
-        # try:
-        #     from xml.parsers.xmlproc  import xmlval
-        #     validator = xmlval.XMLValidator()
-        #     validator.parse_resource(benchmarkFile)
-        # except ImportError:
-        #     logging.debug("I cannot import xmlval so I'm skipping the validation.")
-        #     logging.debug("If you want xml validation please install pyxml.")
         logging.debug("I'm loading the benchmark {0}.".format(benchmarkFile))
+
+        self.benchmarkFile = benchmarkFile
         root = ET.ElementTree().parse(benchmarkFile)
 
         # get benchmark-name
@@ -72,30 +92,34 @@ class Benchmark:
 
         # get tool
         self.tool = root.get("tool")
+        self.run_func = eval("run_" + self.tool)
+
         logging.debug("The tool to be benchmarked is {0}.".format(repr(self.tool)))
 
         self.rlimits = {}
         keys = list(root.keys())
         if ("memlimit" in keys):
-            limit = int(root.get("memlimit")) * 1024 * 1024
+            limit = int(root.get("memlimit")) * BYTE_FACTOR * BYTE_FACTOR
             self.rlimits[resource.RLIMIT_AS] = (limit, limit)
         if ("timelimit" in keys):
             limit = int(root.get("timelimit"))
             self.rlimits[resource.RLIMIT_CPU] = (limit, limit)
 
+        # get global options
+        self.options = getOptions(root)
+
         # get global files, they are tested in all tests
-        globalSourcefiles = getSourceFiles(root.findall("sourcefiles"))
+        globalSourcefiles = root.findall("sourcefiles")
 
         # get benchmarks
         self.tests = []
         for testTag in root.findall("test"):
-            self.tests.append(Test(testTag, globalSourcefiles))
+            self.tests.append(Test(testTag, self, globalSourcefiles))
 
         # get columns
         self.columns = self.loadColumns(root.find("columns"))
 
-        # get global options
-        self.options = getOptions(root)
+        self.outputHandler = OutputHandler(self)
 
 
     def loadColumns(self, columnsTag):
@@ -108,7 +132,10 @@ class Benchmark:
         columns = []
         if columnsTag != None: # columnsTag is optional in xml-file
             for columnTag in columnsTag.findall("column"):
-                column = Column(columnTag)
+                text = columnTag.text
+                title = columnTag.get("title", text)
+                numberOfDigits = columnTag.get("numberOfDigits") # digits behind comma
+                column = Column(text, title, numberOfDigits)
                 columns.append(column)
                 logging.debug('Column "{0}" with title "{1}" loaded from xml-file.'
                           .format(column.text, column.title))
@@ -120,7 +147,7 @@ class Test:
     The class Test manages the import of files and options of a test.
     """
 
-    def __init__(self, testTag, globalSourcefiles=[]):
+    def __init__(self, testTag, benchmark, globalSourcefileTags=[]):
         """
         The constructor of Test reads testname and the filenames from testTag.
         Filenames can be included or excluded, and imported from a list of
@@ -128,40 +155,53 @@ class Test:
         @param testTag: a testTag from the xml-file
         """
 
+        self.benchmark = benchmark
+
         # get name of test, name is optional, the result can be "None"
         self.name = testTag.get("name")
-
-        # get all sourcefiles
-        self.sourcefiles = globalSourcefiles + \
-                           getSourceFiles(testTag.findall("sourcefiles"))
-        # print str(self.sourcefiles).replace('),', '),\n')
 
         # get all test-specific options from testTag
         self.options = getOptions(testTag)
 
+        # get all runs, a run contains one sourcefile with options
+        self.runs = self.getRuns(globalSourcefileTags + testTag.findall("sourcefiles"))
 
-def getSourceFiles(sourcefilesTagList):
-    '''
-    The function getSourceFiles returns a list of tuples (filename, options).
-    The files and their options are taken from the list of sourcefilesTags.
-    '''
-    sourcefiles = []
 
-    for sourcefilesTag in sourcefilesTagList:
-        currentSourcefiles = []
+    def getRuns(self, sourcefilesTagList):
+        '''
+        This function returns a list of Runs (filename with options).
+        The files and their options are taken from the list of sourcefilesTags.
+        '''
+        runs = []
+
+        for sourcefilesTag in sourcefilesTagList:
+            # get list of filenames
+            sourcefiles = self.getSourcefiles(sourcefilesTag)
+
+            # get file-specific options for filenames
+            fileOptions = getOptions(sourcefilesTag)
+
+            for sourcefile in sourcefiles:
+                runs.append(Run(sourcefile, fileOptions, self))
+
+        return runs
+
+
+    def getSourcefiles(self, sourcefilesTag):
+        sourcefiles = []
 
         # get included sourcefiles
         for includedFiles in sourcefilesTag.findall("include"):
-            currentSourcefiles += getFileList(includedFiles.text)
+            sourcefiles += self.getFileList(includedFiles.text)
 
         # get sourcefiles from list in file
         for includesFilesFile in sourcefilesTag.findall("includesfile"):
 
-            for file in getFileList(includesFilesFile.text):
+            for file in self.getFileList(includesFilesFile.text):
                 fileDir = os.path.dirname(file)
 
                 # check for code (if somebody changes 'include' and 'includesfile')
-                if isCode(file):
+                if Util.isCode(file):
                     logging.error("'" + file + "' is no includesfile (set-file).\n" + \
                         "please check your benchmark-xml-file or remove bracket '{' from this file.")
                     sys.exit()
@@ -174,107 +214,240 @@ def getSourceFiles(sourcefilesTagList):
                     line = line.strip()
 
                     # ignore comments and empty lines
-                    if not isComment(line):
-                        currentSourcefiles += getFileList(line, fileDir)
+                    if not Util.isComment(line):
+                        sourcefiles += self.getFileList(line, fileDir)
 
                 fileWithList.close()
 
         # remove excluded sourcefiles
         for excludedFiles in sourcefilesTag.findall("exclude"):
-            excludedFilesList = getFileList(excludedFiles.text)
+            excludedFilesList = self.getFileList(excludedFiles.text)
             for excludedFile in excludedFilesList:
-                currentSourcefiles = removeAll(currentSourcefiles, excludedFile)
+                sourcefiles = Util.removeAll(sourcefiles, excludedFile)
 
-        # get file-specific options for filenames
-        fileOptions = getOptions(sourcefilesTag)
-
-        sourcefiles.extend((file, fileOptions) for file in currentSourcefiles)
-
-    return sourcefiles
+        return sourcefiles
 
 
-def isCode(filename):
-    '''
-    This function returns True, if  a line of the file contains bracket '{'.
-    '''
-    isCodeFile = False
-    file = open(filename, "r")
-    for line in file:
-        # ignore comments and empty lines
-        if not isComment(line) \
-                and '{' in line: # <-- simple indicator for code
-            isCodeFile = True
-    file.close()
-    return isCodeFile
+    def getFileList(self, shortFile, root=""):
+        """
+        The function getFileList expands a short filename to a sorted list
+        of filenames. The short filename can contain variables and wildcards.
+        If root is given and shortFile is not absolute, root and shortFile are joined.
+        """
+        # store shortFile for fallback
+        shortFileFallback = shortFile
+
+        # replace vars like ${benchmark_path},
+        # with converting to list and back, we can use the function 'substituteVars()'
+        shortFileList = substituteVars([shortFile], self)
+        assert len(shortFileList) == 1
+        shortFile = shortFileList[0]
+
+        # 'join' ignores root, if shortFile is absolute.
+        # 'normpath' replaces 'A/foo/../B' with 'A/B', for pretty printing only
+        shortFile = os.path.normpath(os.path.join(root, shortFile))
+
+        # expand tilde and variables
+        expandedFile = os.path.expandvars(os.path.expanduser(shortFile))
+
+        # expand wildcards
+        fileList = glob.glob(expandedFile)
+
+        # sort alphabetical,
+        # if list is emtpy, sorting returns None, so better do not sort
+        if len(fileList) != 0:
+            fileList.sort()
+
+        if expandedFile != shortFile:
+            logging.debug("Expanded tilde and/or shell variables in expression {0} to {1}."
+                .format(repr(shortFile), repr(expandedFile)))
+
+        if len(fileList) == 0:
+
+            if root == "":
+                logging.warning("No files found matching {0}."
+                                .format(repr(shortFile)))
+
+            else: # Fallback for older test-sets
+                logging.warning("Perpaps old or invalid test-set. Trying fallback for {0}."
+                                .format(repr(shortFileFallback)))
+                fileList = self.getFileList(shortFileFallback)
+                if len(fileList) != 0:
+                    logging.warning("Fallback has found some files for {0}."
+                                .format(repr(shortFileFallback)))
+
+        return fileList
 
 
-def isComment(line):
-    return not line or line.startswith("#") or line.startswith("//")
-
-
-def removeAll(list, elemToRemove):
-    return [elem for elem in list if elem != elemToRemove]
-
-
-def getFileList(shortFile, root=""):
+class Run():
     """
-    The function getFileList expands a short filename to a sorted list
-    of filenames. The short filename can contain variables and wildcards.
-    If root is given and shortFile is not absolute, root and shortFile are joined.
+    A Run contains one sourcefile and options.
     """
-    # store shortFile for fallback
-    shortFileFallback = shortFile
 
-    # 'join' ignores root, if shortFile is absolute.
-    # 'normpath' replaces 'A/foo/../B' with 'A/B', for pretty printing only
-    shortFile = os.path.normpath(os.path.join(root, shortFile))
+    def __init__(self, sourcefile, fileOptions, test):
+        self.sourcefile = sourcefile
+        self.options = fileOptions
+        self.test = test
+        self.benchmark = test.benchmark
+        self.mergedOptions = []
+        self.resultline = self.sourcefile # empty resultline for TXTFile, filled later
 
-    # expand tilde and variables
-    expandedFile = os.path.expandvars(os.path.expanduser(shortFile))
 
-    # expand wildcards
-    fileList = glob.glob(expandedFile)
+    def getMergedOptions(self):
+        """
+        This function returns a list of Strings.
+        It contains all options for this Run (global + testwide + local) without 'None'-Values.
+        """
 
-    # sort alphabetical,
-    # if list is emtpy, sorting returns None, so better do not sort
-    if len(fileList) != 0:
-        fileList.sort()
+        if not self.mergedOptions: # cache mergeOptions
+            # merge options to list
+            currentOptions = mergeOptions(self.benchmark.options,
+                                      self.test.options,
+                                      self.options)
 
-    if expandedFile != shortFile:
-        logging.debug("Expanded tilde and/or shell variables in expression {0} to {1}."
-            .format(repr(shortFile), repr(expandedFile)))
+            # replace variables with special values
+            currentOptions = substituteVars(currentOptions,
+                                        self.test,
+                                        self.sourcefile,
+                                        self.benchmark.outputHandler.logFolder)
+            self.mergedOptions = currentOptions
 
-    if len(fileList) == 0:
+        return self.mergedOptions
 
-        if root == "":
-            logging.warning("No files found matching {0}."
-                            .format(repr(shortFile)))
 
-        else: # Fallback for older test-sets
-            logging.warning("Perpaps old or invalid test-set. Trying fallback for {0}."
-                            .format(repr(shortFileFallback)))
-            fileList = getFileList(shortFileFallback)
-            if len(fileList) != 0:
-                logging.warning("Fallback has found some files for {0}."
-                            .format(repr(shortFileFallback)))
+    def run(self):
+        logfile = self.benchmark.outputHandler.outputBeforeRun(self)
 
-    return fileList
+        self.columns = [Column(c.text, c.title, c.numberOfDigits) for c in self.benchmark.columns]
+
+        (status, cpuTime, wallTime, args) = \
+             self.benchmark.run_func(self.getMergedOptions(),
+                                     self.sourcefile, 
+                                     self.columns,
+                                     self.benchmark.rlimits,
+                                     logfile)
+
+        (self.status, self.cpuTime, self.wallTime, self.args) = (status, cpuTime, wallTime, args)
+
+        self.benchmark.outputHandler.outputAfterRun(self)
 
 
 class Column:
     """
-    The class Column sets text, title and numberOfDigits of a column.
+    The class Column contains text, title and numberOfDigits of a column.
     """
 
-    def __init__(self, columnTag):
-        # get text
-        self.text = columnTag.text
+    def __init__(self, text, title, numOfDigits):
+        self.text = text
+        self.title = title
+        self.numberOfDigits = numOfDigits
 
-        # get title (title is optional, default: get text)
-        self.title = columnTag.get("title", self.text)
 
-        # get number of digits behind comma
-        self.numberOfDigits = columnTag.get("numberOfDigits")
+class Util:
+    """
+    This Class contains some useful functions for Strings, XML or Lists.
+    """
+
+    @staticmethod
+    def isCode(filename):
+        """
+        This function returns True, if  a line of the file contains bracket '{'.
+        """
+        isCodeFile = False
+        file = open(filename, "r")
+        for line in file:
+            # ignore comments and empty lines
+            if not Util.isComment(line) \
+                    and '{' in line: # <-- simple indicator for code
+                if '${' not in line: # <-- ${abc} variable to substitute
+                    isCodeFile = True
+        file.close()
+        return isCodeFile
+
+
+    @staticmethod
+    def isComment(line):
+        return not line or line.startswith("#") or line.startswith("//")
+
+
+    @staticmethod
+    def containsAny(text, list):
+        '''
+        This function returns True, iff any string in list is a substring of text.
+        '''
+        for elem in list:
+            if elem in text:
+                return True
+        return False
+
+    @staticmethod
+    def removeAll(list, elemToRemove):
+        return [elem for elem in list if elem != elemToRemove]
+
+
+    @staticmethod
+    def toSimpleList(listOfPairs):
+        """
+        This function converts a list of pairs to a list.
+        Each pair of key and value is divided into 2 listelements.
+        All "None"-values are removed.
+        """
+        simpleList = []
+        for (key, value) in listOfPairs:
+            if key is not None:    simpleList.append(key)
+            if value is not None:  simpleList.append(value)
+        return simpleList
+
+
+    @staticmethod
+    def getCopyOfXMLElem(elem):
+        """
+        This method returns a shallow copy of a XML-Element.
+        This method is for compatibility with Python 2.6 or earlier..
+        In Python 2.7 you can use  'copyElem = elem.copy()'  instead.
+        """
+
+        copyElem = ET.Element(elem.tag, elem.attrib)
+        for child in elem:
+            copyElem.append(child)
+        return copyElem
+
+
+    @staticmethod
+    def XMLtoString(elem):
+        """
+        Return a pretty-printed XML string for the Element.
+        """
+        from xml.dom import minidom
+        rough_string = ET.tostring(elem, 'utf-8')
+        reparsed = minidom.parseString(rough_string)
+        return reparsed.toprettyxml(indent="  ")
+
+
+    @staticmethod
+    def decodeToString(toDecode):
+        """
+        This function is needed for Python 3,
+        because a subprocess can return bytes instead of a string.
+        """
+        try: 
+            return toDecode.decode('utf-8')
+        except AttributeError: # bytesToDecode was of type string before
+            return toDecode
+
+
+    @staticmethod
+    def formatNumber(number, numberOfDigits):
+        """
+        The function formatNumber() return a string-representation of a number
+        with a number of digits after the decimal separator.
+        If the number has more digits, it is rounded.
+        If the number has less digits, zeros are added.
+
+        @param number: the number to format
+        @param digits: the number of digits
+        """
+        return "%.{0}f".format(numberOfDigits) % number
 
 
 class OutputHandler:
@@ -292,43 +465,30 @@ class OutputHandler:
         self.statistics = Statistics()
 
         # create folder for file-specific log-files.
-        # if the folder exists, it will be used.
-        # if there are files in the folder (with the same name than the testfiles),
-        # they will be OVERWRITTEN without a message!
+        # existing files (with the same name) will be OVERWRITTEN!
         self.logFolder = OUTPUT_PATH + self.benchmark.name + "." + self.benchmark.date + ".logfiles/"
         if not os.path.isdir(self.logFolder):
             os.makedirs(self.logFolder)
 
         # get information about computer
-        (opSystem, cpuModel, numberOfCores, maxFrequency, memory) = self.getSystemInfo()
+        (opSystem, cpuModel, numberOfCores, maxFrequency, memory, hostname) = self.getSystemInfo()
         version = self.getVersion(self.benchmark.tool)
 
         memlimit = None
         timelimit = None
         if (resource.RLIMIT_AS in self.benchmark.rlimits):
-            memlimit = str(self.benchmark.rlimits[resource.RLIMIT_AS][0] // 1024 // 1024) + " MB"
+            memlimit = str(self.benchmark.rlimits[resource.RLIMIT_AS][0] // BYTE_FACTOR // BYTE_FACTOR) + " MB"
         if (resource.RLIMIT_CPU in self.benchmark.rlimits):
             timelimit = str(self.benchmark.rlimits[resource.RLIMIT_CPU][0]) + " s"
 
         self.storeHeaderInXML(version, memlimit, timelimit, opSystem, cpuModel,
-                              numberOfCores, maxFrequency, memory)
+                              numberOfCores, maxFrequency, memory, hostname)
         self.writeHeaderToLog(version, memlimit, timelimit, opSystem, cpuModel,
-                              numberOfCores, maxFrequency, memory)
-
-        # write columntitles of tests in CSV-files, this overwrites existing files
-        self.CSVFiles = dict()
-        CSVLine = CSV_SEPARATOR.join(
-                      ["sourcefile", "status", "cputime", "walltime"] \
-                    + [column.title for column in self.benchmark.columns])
-        for test in benchmark.tests:
-            if options.testRunOnly is None \
-                    or options.testRunOnly == test.name:
-                CSVFileName = self.getFileName(test.name, "csv")
-                self.CSVFiles[CSVFileName] = FileWriter(CSVFileName, CSVLine + "\n")
+                              numberOfCores, maxFrequency, memory, hostname)
 
 
     def storeHeaderInXML(self, version, memlimit, timelimit, opSystem,
-                         cpuModel, numberOfCores, maxFrequency, memory):
+                         cpuModel, numberOfCores, maxFrequency, memory, hostname):
 
         # store benchmarkInfo in XML
         self.XMLHeader = ET.Element("test",
@@ -345,7 +505,7 @@ class OutputHandler:
             {"model": cpuModel, "cores": numberOfCores, "frequency" : maxFrequency})
         ramElem = ET.Element("ram", {"size": memory})
 
-        systemInfo = ET.Element("systeminfo")
+        systemInfo = ET.Element("systeminfo", {"hostname": hostname})
         systemInfo.append(osElem)
         systemInfo.append(cpuElem)
         systemInfo.append(ramElem)
@@ -363,7 +523,7 @@ class OutputHandler:
 
 
     def writeHeaderToLog(self, version, memlimit, timelimit, opSystem,
-                         cpuModel, numberOfCores, maxFrequency, memory):
+                         cpuModel, numberOfCores, maxFrequency, memory, hostname):
         """
         This method writes information about benchmark and system into TXTFile.
         """
@@ -384,6 +544,7 @@ class OutputHandler:
         header += simpleLine
 
         systemInfo = "   SYSTEM INFORMATION\n"\
+                + "host:".ljust(columnWidth) + hostname + "\n"\
                 + "os:".ljust(columnWidth) + opSystem + "\n"\
                 + "cpu:".ljust(columnWidth) + cpuModel + "\n"\
                 + "- cores:".ljust(columnWidth) + numberOfCores + "\n"\
@@ -392,7 +553,8 @@ class OutputHandler:
                 + simpleLine
 
         # write to file
-        self.TXTFile = FileWriter(self.getFileName(None, "txt"), header + systemInfo)
+        self.TXTContent = header + systemInfo
+        self.TXTFile = FileWriter(self.getFileName(None, "txt"), self.TXTContent)
 
 
     def getToolnameForPrinting(self):
@@ -460,8 +622,13 @@ class OutputHandler:
         version = ''
         if (tool == "cpachecker"):
             exe = findExecutable("cpachecker", "scripts/cpa.sh")
-            version = subprocess.Popen([exe, '-help'],
-                stdout=subprocess.PIPE).communicate()[0].splitlines()[0].split()[1].strip()
+            try:
+                versionHelpStr = subprocess.Popen([exe, '-help'],
+                    stdout=subprocess.PIPE).communicate()[0]
+                version = ' '.join(versionHelpStr.splitlines()[0].split()[1:])  # first word is 'CPAchecker'
+            except IndexError:
+                logging.critical('IndexError! Have you built CPAchecker?\n') # TODO better message
+                sys.exit()
 
         elif (tool == "cbmc"):
             defaultExe = None
@@ -490,7 +657,7 @@ class OutputHandler:
                               stdout=subprocess.PIPE,
                               stderr=subprocess.STDOUT).communicate()[0][6:9]
 
-        return decodeToString(version)
+        return Util.decodeToString(version)
 
 
     def getSystemInfo(self):
@@ -540,7 +707,7 @@ class OutputHandler:
             memInfoFile.close()
         memTotal = memInfo.get('MemTotal', 'unknown').strip()
 
-        return (opSystem, cpuModel, numberOfCores, maxFrequency, memTotal)
+        return (opSystem, cpuModel, numberOfCores, maxFrequency, memTotal, name)
 
 
     def outputBeforeTest(self, test):
@@ -554,32 +721,24 @@ class OutputHandler:
         self.test = test
         numberOfTest = self.benchmark.tests.index(self.test) + 1
 
-        if len(self.test.sourcefiles) == 1:
+        if len(self.test.runs) == 1:
             logging.debug("test {0} consists of 1 sourcefile.".format(
                     numberOfTest))
         else:
             logging.debug("test {0} consists of {1} sourcefiles.".format(
-                    numberOfTest, len(self.test.sourcefiles)))
+                    numberOfTest, len(self.test.runs)))
 
         # length of the first column in terminal
         self.maxLengthOfFileName = 20
-        for (sourcefile, _) in self.test.sourcefiles:
-            self.maxLengthOfFileName = max(len(sourcefile), self.maxLengthOfFileName)
+        for run in self.test.runs:
+            self.maxLengthOfFileName = max(len(run.sourcefile), self.maxLengthOfFileName)
 
         # write testname to terminal
-        numberOfFiles = len(self.test.sourcefiles)
+        numberOfFiles = len(self.test.runs)
         print("\nrunning test" + \
             (" '" + test.name + "'" if test.name is not None else "") + \
             ("     (1 file)" if numberOfFiles == 1
                         else "     ({0} files)".format(numberOfFiles)))
-
-        # store testname and options in XML,
-        # copy benchmarkinfo, limits, columntitles, systeminfo from XMLHeader
-        self.testElem = self.getCopyOfXMLElem(self.XMLHeader)
-        testOptions = mergeOptions(self.benchmark.options, self.test.options)
-        self.testElem.set("options", " ".join(toSimpleList(testOptions)))
-        if self.test.name is not None:
-            self.testElem.set("name", self.test.name)
 
         # write information about the test into TXTFile
         self.writeTestInfoToLog()
@@ -606,19 +765,6 @@ class OutputHandler:
         self.TXTFile.append(testInfo)
 
 
-    def getCopyOfXMLElem(self, elem):
-        '''
-        This method returns a shallow copy of a XML-Element.
-        This method is for compatibility with Python 2.6 or earlier..
-        In Python 2.7 you can use  'copyElem = elem.copy()'  instead.
-        '''
-
-        copyElem = ET.Element(elem.tag, elem.attrib)
-        for child in elem:
-            copyElem.append(child)
-        return copyElem
-
-
     def writeTestInfoToLog(self):
         """
         This method writes the information about a test into the TXTFile.
@@ -632,47 +778,53 @@ class OutputHandler:
             testInfo = self.test.name + "\n"
         testInfo += "test {0} of {1} with options: {2}\n\n".format(
                 numberOfTest, len(self.benchmark.tests),
-                " ".join(toSimpleList(testOptions)))
+                " ".join(testOptions))
 
-        titleLine = self.createOutputLine("sourcefile", "status", "cpu time",
+        self.test.titleLine = self.createOutputLine("sourcefile", "status", "cpu time",
                             "wall time", self.benchmark.columns, True)
 
-        self.test.simpleLine = "-" * (len(titleLine)) + "\n"
+        self.test.simpleLine = "-" * (len(self.test.titleLine))
 
         # write into TXTFile
-        self.TXTFile.append("\n\n" + testInfo + titleLine + "\n" + self.test.simpleLine)
+        self.TXTContent += "\n\n" + testInfo
+        self.TXTFile.append("\n\n" + testInfo + self.test.titleLine + "\n" + self.test.simpleLine  + "\n")
 
 
-    def outputBeforeRun(self, sourcefile, currentOptions):
+    def outputBeforeRun(self, run):
         """
         The method outputBeforeRun() prints the name of a file to terminal.
+        It returns the name of the logfile.
         @param sourcefile: the name of a sourcefile
         """
 
-        options = " ".join(currentOptions)
         logging.debug("I'm running '{0} {1} {2}'.".format(
-            self.getToolnameForPrinting(), options, sourcefile))
+            self.getToolnameForPrinting(), " ".join(run.mergedOptions), run.sourcefile))
 
         # output in terminal
         sys.stdout.write(time.strftime("%H:%M:%S", time.localtime()) \
-            + '   ' + sourcefile.ljust(self.maxLengthOfFileName + 4))
+            + '   ' + run.sourcefile.ljust(self.maxLengthOfFileName + 4))
         sys.stdout.flush()
 
+        # write output to file-specific log-file
+        logfileName = self.logFolder
+        if run.test.name is not None:
+            logfileName += run.test.name + "."
+        logfileName += os.path.basename(run.sourcefile) + ".log"
+        return logfileName
 
-    def outputAfterRun(self, sourcefile, fileOptions, status,
-                       cpuTimeDelta, wallTimeDelta, output, args):
+
+    def outputAfterRun(self, run):
         """
         The method outputAfterRun() prints filename, result, time and status
         of a test to terminal and stores all data in XML
-        The output is written to a file-specific log-file.
         """
 
         # format times, type is changed from float to string!
-        cpuTimeDelta = self.formatNumber(cpuTimeDelta, TIME_PRECISION)
-        wallTimeDelta = self.formatNumber(wallTimeDelta, TIME_PRECISION)
+        run.cpuTimeStr = Util.formatNumber(run.cpuTime, TIME_PRECISION)
+        run.wallTimeStr = Util.formatNumber(run.wallTime, TIME_PRECISION)
 
         # format numbers, numberOfDigits is optional, so it can be None
-        for column in self.benchmark.columns:
+        for column in run.columns:
             if column.numberOfDigits is not None:
 
                 # if the number ends with "s" or another letter, remove it
@@ -681,51 +833,22 @@ class OutputHandler:
 
                 try:
                     floatValue = float(column.value)
-                    column.value = self.formatNumber(floatValue, column.numberOfDigits)
+                    column.value = Util.formatNumber(floatValue, column.numberOfDigits)
                 except ValueError: # if value is no float, don't format it
                     pass
 
-        # write output to file-specific log-file
-        logFileName = self.logFolder
-        if self.test.name is not None:
-            logFileName += self.test.name + "."
-        logFileName += os.path.basename(sourcefile) + ".log"
-        logFile = FileWriter(logFileName, ' '.join(args))
-        logFile.append('\n\n\n' + '-'*80 + '\n\n\n')
-        logFile.append(output)
-
         # output in terminal/console
-        statusRelation = self.isCorrectResult(sourcefile, status)
+        statusRelation = self.isCorrectResult(run.sourcefile, run.status)
         if USE_COLORS and sys.stdout.isatty(): # is terminal, not file
-            statusStr = COLOR_DIC[statusRelation].format(status.ljust(8))
+            statusStr = COLOR_DIC[statusRelation].format(run.status.ljust(8))
         else:
-            statusStr = status.ljust(8)
-        print(statusStr + cpuTimeDelta.rjust(8) + wallTimeDelta.rjust(8))
-
-        # store filename, status, times, columns in XML
-        fileElem = ET.Element("sourcefile", {"name": sourcefile})
-        if len(fileOptions) != 0:
-            fileElem.set("options", " ".join(toSimpleList(mergeOptions(fileOptions))))
-        fileElem.append(ET.Element("column", {"title": "status", "value": status}))
-        fileElem.append(ET.Element("column", {"title": "cputime", "value": cpuTimeDelta}))
-        fileElem.append(ET.Element("column", {"title": "walltime", "value": wallTimeDelta}))
-
-        for column in self.benchmark.columns:
-            fileElem.append(ET.Element("column",
-                    {"title": column.title, "value": column.value}))
-
-        self.testElem.append(fileElem)
+            statusStr = run.status.ljust(8)
+        print(statusStr + run.cpuTimeStr.rjust(8) + run.wallTimeStr.rjust(8))
 
         # write resultline in TXTFile
-        resultline = self.createOutputLine(sourcefile, status,
-                    cpuTimeDelta, wallTimeDelta, self.benchmark.columns, False)
-        self.TXTFile.append(resultline + "\n")
-
-        # write columnvalues of the test into CSVFile
-        CSVLine = CSV_SEPARATOR.join(
-                  [sourcefile, status, cpuTimeDelta, wallTimeDelta] \
-                + [column.value for column in self.benchmark.columns])
-        self.CSVFiles[self.getFileName(self.test.name, "csv")].append(CSVLine + "\n")
+        run.resultline = self.createOutputLine(run.sourcefile, run.status,
+                    run.cpuTimeStr, run.wallTimeStr, run.columns)
+        self.TXTFile.replace(self.TXTContent + self.testToTXT(self.test))
 
         self.statistics.addResult(statusRelation)
 
@@ -737,29 +860,94 @@ class OutputHandler:
         """
 
         # format time, type is changed from float to string!
-        cpuTimeTest = self.formatNumber(cpuTimeTest, TIME_PRECISION)
-        wallTimeTest = self.formatNumber(wallTimeTest, TIME_PRECISION)
+        self.test.cpuTimeStr = Util.formatNumber(cpuTimeTest, TIME_PRECISION)
+        self.test.wallTimeStr = Util.formatNumber(wallTimeTest, TIME_PRECISION)
 
-        # store testtime in XML
-        timesElem = ET.Element("time", {"cputime": cpuTimeTest, "walltime": wallTimeTest})
-        self.testElem.append(timesElem)
+        # write testresults to files
+        FileWriter(self.getFileName(self.test.name, "xml"), Util.XMLtoString(self.testToXML(self.test)))
+        FileWriter(self.getFileName(self.test.name, "csv"), self.testToCSV(self.test))
 
-        # write XML-file
-        FileWriter(self.getFileName(self.test.name, "xml"), XMLtoString(self.testElem))
+        self.TXTContent += self.testToTXT(self.test, True)
+        self.TXTFile.replace(self.TXTContent)
+
+
+    def testToTXT(self, test, finished=False):
+        lines = [test.titleLine, test.simpleLine]
+
+        # store values of each run
+        for run in test.runs:
+            lines.append(run.resultline)
+
+        lines.append(test.simpleLine)
 
         # write endline into TXTFile
-        numberOfFiles = len(self.test.sourcefiles)
-        numberOfTest = self.benchmark.tests.index(self.test) + 1
-        if numberOfFiles == 1:
-            endline = ("test {0} consisted of 1 sourcefile.".format(numberOfTest))
-        else:
-            endline = ("test {0} consisted of {1} sourcefiles.".format(
+        if finished:
+            numberOfFiles = len(test.runs)
+            numberOfTest = test.benchmark.tests.index(test) + 1
+            if numberOfFiles == 1:
+                endline = ("test {0} consisted of 1 sourcefile.".format(numberOfTest))
+            else:
+                endline = ("test {0} consisted of {1} sourcefiles.".format(
                     numberOfTest, numberOfFiles))
 
-        endline = self.createOutputLine(endline, "done", cpuTimeTest,
-                             wallTimeTest, [], False)
+            lines.append(self.createOutputLine(endline, "done", test.cpuTimeStr,
+                             test.wallTimeStr, []))
 
-        self.TXTFile.append(self.test.simpleLine + endline + "\n")
+        return "\n".join(lines) + "\n"
+
+
+    def testToXML(self, test):
+        """
+        This function dumps a test with results into a XML-file.
+        """
+
+        # store test with options and results in XML,
+        # copy benchmarkinfo, limits, columntitles, systeminfo from XMLHeader
+        testElem = Util.getCopyOfXMLElem(self.XMLHeader)
+        testOptions = mergeOptions(test.benchmark.options, test.options)
+        testElem.set("options", " ".join(testOptions))
+        if test.name is not None:
+            testElem.set("name", test.name)
+
+        # collect XMLelements from all runs
+        for run in test.runs:
+            runElem = ET.Element("sourcefile", {"name": run.sourcefile})
+            if len(run.options) != 0:
+                runElem.set("options", " ".join(mergeOptions(run.options)))
+            runElem.append(ET.Element("column", {"title": "status", "value": run.status}))
+            runElem.append(ET.Element("column", {"title": "cputime", "value": run.cpuTimeStr}))
+            runElem.append(ET.Element("column", {"title": "walltime", "value": run.wallTimeStr}))
+    
+            for column in run.columns:
+                runElem.append(ET.Element("column",
+                        {"title": column.title, "value": column.value}))
+    
+            testElem.append(runElem)
+
+        # store testtime in XML
+        timesElem = ET.Element("time", {"cputime": test.cpuTimeStr, "walltime": test.wallTimeStr})
+        testElem.append(timesElem)
+
+        return testElem
+
+
+    def testToCSV(self, test):
+        """
+        This function dumps a test with results into a CSV-file.
+        """
+
+        # store columntitles of tests
+        CSVLines = [CSV_SEPARATOR.join(
+                      ["sourcefile", "status", "cputime", "walltime"] \
+                    + [column.title for column in test.benchmark.columns])]
+
+        # store columnvalues of each run
+        for run in test.runs:
+            CSVLines.append(CSV_SEPARATOR.join(
+                  [run.sourcefile, run.status, run.cpuTimeStr, run.wallTimeStr] \
+                + [column.value for column in run.columns]))
+
+        return "\n".join(CSVLines) + "\n"
 
 
     def isCorrectResult(self, filename, status):
@@ -768,7 +956,7 @@ class OutputHandler:
         that shows the relation between status and file.
         '''
         status = status.lower()
-        isSafeFile = not self.containsAny(filename.lower(), BUG_SUBSTRING_LIST)
+        isSafeFile = not Util.containsAny(filename.lower(), BUG_SUBSTRING_LIST)
 
         if status == 'safe':
             if isSafeFile:
@@ -780,21 +968,13 @@ class OutputHandler:
                 return "wrongUnsafe"
             else:
                 return "correctUnsafe"
+        elif status == 'unknown':
+            return 'unknown'
         else:
-                 return "unknown"
+            return 'error'
 
 
-    def containsAny(self, text, list):
-        '''
-        This function returns True, iff any string in list is a substring of text.
-        '''
-        for elem in list:
-            if elem in text:
-                return True
-        return False
-
-
-    def createOutputLine(self, sourcefile, status, cpuTimeDelta, wallTimeDelta, columns, isFirstLine):
+    def createOutputLine(self, sourcefile, status, cpuTimeDelta, wallTimeDelta, columns, isFirstLine=False):
         """
         @param sourcefile: title of a sourcefile
         @param status: status of programm
@@ -831,20 +1011,6 @@ class OutputHandler:
         self.statistics.printToTerminal()
 
 
-    def formatNumber(self, number, numberOfDigits):
-            """
-            The function formatNumber() return a string-representation of a number
-            with a number of digits after the decimal separator.
-            If the number has more digits, it is rounded.
-            If the number has less digits, zeros are added.
-
-            @param number: the number to format
-            @param digits: the number of digits
-            """
-
-            return "%.{0}f".format(numberOfDigits) % number
-
-
     def getFileName(self, testname, fileExtension):
         '''
         This function returns the name of the file of a test
@@ -873,6 +1039,8 @@ class Statistics:
 
     def addResult(self, statusRelation):
         self.dic["counter"] += 1
+        if statusRelation == 'error':
+            statusRelation = 'unknown'
         assert statusRelation in self.dic
         self.dic[statusRelation] += 1
 
@@ -900,7 +1068,7 @@ def getOptions(optionsTag):
 
 def mergeOptions(benchmarkOptions, testOptions=[], fileOptions=[]):
     '''
-    This function merges lists of optionpairs into one list of pairs.
+    This function merges lists of optionpairs into one list.
     If a option is part of several lists,
     the option appears in the list several times.
     '''
@@ -916,42 +1084,7 @@ def mergeOptions(benchmarkOptions, testOptions=[], fileOptions=[]):
     # insert fileOptions
     currentOptions.extend(fileOptions)
 
-    return currentOptions
-
-
-def toSimpleList(listOfPairs):
-    '''
-    This function converts a list of pairs to a list.
-    Each pair of key and value is divided into 2 listelements.
-    All "None"-values are removed.
-    '''
-    simpleList = []
-    for (key, value) in listOfPairs:
-        simpleList.append(key)
-        if value is not None:
-            simpleList.append(value)
-    return simpleList
-
-
-def XMLtoString(elem):
-        """
-        Return a pretty-printed XML string for the Element.
-        """
-        from xml.dom import minidom
-        rough_string = ET.tostring(elem, 'utf-8')
-        reparsed = minidom.parseString(rough_string)
-        return reparsed.toprettyxml(indent="  ")
-
-
-def decodeToString(toDecode):
-    """
-    This function is needed for Python 3,
-    because a subprocess can return bytes instead of a string.
-    """
-    try: 
-        return toDecode.decode('utf-8')
-    except AttributeError: # bytesToDecode was of type string before
-        return toDecode
+    return Util.toSimpleList(currentOptions)
 
 
 class FileWriter:
@@ -974,6 +1107,53 @@ class FileWriter:
          file = open(self.__filename, "a")
          file.write(content)
          file.close()
+
+     def replace(self, content):
+         file = open(self.__filename, "w")
+         file.write(content)
+         file.close()
+
+
+def substituteVars(oldList, test, sourcefile=None, logFolder=None):
+    """
+    This method replaces special substrings from a list of string 
+    and return a new list.
+    """
+
+    benchmark = test.benchmark
+
+    # list with tuples (key, value): 'key' is replaced by 'value'
+    keyValueList = [('${benchmark_name}', benchmark.name),
+                    ('${benchmark_date}', benchmark.date),
+                    ('${benchmark_path}', os.path.dirname(benchmark.benchmarkFile)),
+                    ('${benchmark_path_abs}', os.path.abspath(os.path.dirname(benchmark.benchmarkFile))),
+                    ('${benchmark_file}', os.path.basename(benchmark.benchmarkFile)),
+                    ('${benchmark_file_abs}', os.path.abspath(os.path.basename(benchmark.benchmarkFile))),
+                    ('${test_name}',      test.name if test.name is not None else 'noName')]
+
+    if sourcefile:
+        keyValueList.append(('${sourcefile_name}', os.path.basename(sourcefile)))
+        keyValueList.append(('${sourcefile_path}', os.path.dirname(sourcefile)))
+        keyValueList.append(('${sourcefile_path_abs}', os.path.dirname(os.path.abspath(sourcefile))))
+
+    if logFolder:
+        keyValueList.append(('${logfile_path}', os.path.dirname(logFolder)))
+        keyValueList.append(('${logfile_path_abs}', os.path.abspath(logFolder)))
+
+    # do not use keys twice
+    assert len(set((key for (key, value) in keyValueList))) == len(keyValueList)
+
+    newList = []
+
+    for oldStr in oldList:
+        newStr = oldStr
+        for (key, value) in keyValueList:
+            newStr = newStr.replace(key, value)
+        if '${' in newStr:
+            logging.warn("a variable was not replaced in '{0}'".format(newStr))
+        newList.append(newStr)
+
+    return newList
 
 
 def findExecutable(program, default):
@@ -1001,56 +1181,83 @@ def killSubprocess(process):
     os.killpg(process.pid, signal.SIGTERM)
 
 
-def run(args, rlimits):
+def run(args, rlimits, outputfilename):
     args = [os.path.expandvars(arg) for arg in args]
     args = [os.path.expanduser(arg) for arg in args]
+
+    outputfile = open(outputfilename, 'w') # override existing file
+    outputfile.write(' '.join(args) + '\n\n\n' + '-'*80 + '\n\n\n')
+    outputfile.flush()
 
     def preSubprocess():
         os.setpgrp() # make subprocess to group-leader
         for rsrc in rlimits:
             resource.setrlimit(rsrc, rlimits[rsrc])
 
-    ru_before = resource.getrusage(resource.RUSAGE_CHILDREN)
     wallTimeBefore = time.time()
 
     try:
-        global p
         p = subprocess.Popen(args,
-                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                             stdout=outputfile, stderr=outputfile,
                              preexec_fn=preSubprocess)
+
+        # if rlimit does not work, a seperate Timer is started to kill the subprocess,
+        # Timer has 10 seconds 'overhead'
+        if (resource.RLIMIT_CPU in rlimits):
+          timelimit = rlimits[resource.RLIMIT_CPU][0]
+          timer = Timer(timelimit + 10, killSubprocess, [p])
+          timer.start()
+
+        (pid, returnvalue, ru_child) = os.wait4(p.pid, 0)
+
+        # calculation: returnvalue == (returncode * 256) + returnsignal
+        returnsignal = returnvalue % 256
+        returncode = returnvalue // 256
+        assert pid == p.pid
+
     except OSError:
         logging.critical("I caught an OSError. Assure that the directory "
                          + "containing the tool to be benchmarked is included "
                          + "in the PATH environment variable or an alias is set.")
         sys.exit("A critical exception caused me to exit non-gracefully. Bye.")
 
-    # if rlimit does not work, a seperate Timer is started to kill the subprocess,
-    # Timer has 10 seconds 'overhead'
-    from threading import Timer
-    if (resource.RLIMIT_CPU in rlimits):
-        timelimit = rlimits[resource.RLIMIT_CPU][0]
-        global timer # "global" for KeyboardInterrupt from user
-        timer = Timer(timelimit + 10, killSubprocess, [p])
-        timer.start()
+    except KeyboardInterrupt:
+        print ("killing subprocess...")
+        killSubprocess(p)
+        raise KeyboardInterrupt # throw again to stop script
 
-    output = p.communicate()[0]
-    output = decodeToString(output)
-    returncode = p.wait()
-
-    if (0 in rlimits) and timer.isAlive():
-        timer.cancel()
+    finally:
+        if (resource.RLIMIT_CPU in rlimits) and timer.isAlive():
+            timer.cancel()
 
     wallTimeAfter = time.time()
     wallTimeDelta = wallTimeAfter - wallTimeBefore
-    ru_after = resource.getrusage(resource.RUSAGE_CHILDREN)
-    cpuTimeDelta = (ru_after.ru_utime + ru_after.ru_stime)\
-        - (ru_before.ru_utime + ru_before.ru_stime)
+    cpuTimeDelta = (ru_child.ru_utime + ru_child.ru_stime)
 
     logging.debug("My subprocess returned returncode {0}.".format(returncode))
-    return (returncode, output, cpuTimeDelta, wallTimeDelta)
+
+ 
+    outputfile.close() # normally subprocess closes file, we do this again
+
+    outputfile = open(outputfilename, 'r') # re-open file for reading output
+    output = ''.join(outputfile.readlines()[6:]) # first 6 lines are for logging, rest is output of subprocess
+    outputfile.close()
+    output = Util.decodeToString(output)
+
+    return (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta)
 
 
-def run_cbmc(options, sourcefile, columns, rlimits):
+def isTimeout(cpuTimeDelta, rlimits):
+    ''' try to find out whether the tool terminated because of a timeout '''
+    if resource.RLIMIT_CPU in rlimits:
+        limit = rlimits.get(resource.RLIMIT_CPU)[0]
+    else:
+        limit = float('inf')
+
+    return cpuTimeDelta > limit*0.99
+
+
+def run_cbmc(options, sourcefile, columns, rlimits, file):
     if ("--xml-ui" not in options):
         options = options + ["--xml-ui"]
 
@@ -1062,7 +1269,7 @@ def run_cbmc(options, sourcefile, columns, rlimits):
 
     exe = findExecutable("cbmc", defaultExe)
     args = [exe] + options + [sourcefile]
-    (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
+    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
 
     #an empty tag cannot be parsed into a tree
     output = output.replace("<>", "<emptyTag>")
@@ -1071,40 +1278,63 @@ def run_cbmc(options, sourcefile, columns, rlimits):
     if ((returncode == 0) or (returncode == 10)):
         try:
             tree = ET.fromstring(output)
-            status = tree.findtext('cprover-status', 'ERROR')
-        except ExpatError as e:
-            status = 'ERROR'
-            sys.stdout.write("Error parsing CBMC output: %s " % e)
+            status = tree.findtext('cprover-status')
+        
+            if status is None:
+                def isErrorMessage(msg):
+                    return msg.get('type', None) == 'ERROR'
 
-        if status == "FAILURE":
-            assert returncode == 10
-            reason = tree.find('goto_trace').find('failure').findtext('reason')
-            if 'unwinding assertion' in reason:
-                status = "UNKNOWN"
+                if any(map(isErrorMessage, tree.getiterator('message'))):
+                    status = 'ERROR'
+                else:
+                    status = 'INVALID OUTPUT'
+                    
+            elif status == "FAILURE":
+                assert returncode == 10
+                reason = tree.find('goto_trace').find('failure').findtext('reason')
+                if 'unwinding assertion' in reason:
+                    status = "UNKNOWN"
+                else:
+                    status = "UNSAFE"
+                    
+            elif status == "SUCCESS":
+                assert returncode == 0
+                if "--no-unwinding-assertions" in options:
+                    status = "UNKNOWN"
+                else:
+                    status = "SAFE"
+                
+        except Exception, e: # catch all exceptions
+            if isTimeout(cpuTimeDelta, rlimits):
+                # in this case an exception is expected as the XML is invaliddd
+                status = 'TIMEOUT'
+            elif 'Minisat::OutOfMemoryException' in output:
+                status = 'OUT OF MEMORY'
             else:
-                status = "UNSAFE"
-        elif status == "SUCCESS":
-            assert returncode == 0
-            if "--no-unwinding-assertions" in options:
-                status = "UNKNOWN"
-            else:
-                status = "SAFE"
+                status = 'INVALID OUTPUT'
+                logging.warning("Error parsing CBMC output for returncode %d: %s" % (returncode, e))
+    
+    elif returncode == 6:
+        # parser error or something similar
+        status = 'ERROR'
 
-    elif returncode == -9:
-        status = "TIMEOUT"
-    elif returncode == 134:
+    elif returnsignal == 9 or returncode == (128+9):
+        if isTimeout(cpuTimeDelta, rlimits):
+            status = 'TIMEOUT'
+        else:
+            status = "KILLED BY SIGNAL 9"
+
+    elif returnsignal == 6:
         status = "ABORTED"
-    elif returncode == 137:
-        status = "KILLED BY SIGNAL 9"
-    elif returncode == 143:
+    elif returnsignal == 15 or returncode == (128+15):
         status = "KILLED"
     else:
         status = "ERROR ({0})".format(returncode)
 
-    return (status, cpuTimeDelta, wallTimeDelta, output, args)
+    return (status, cpuTimeDelta, wallTimeDelta, args)
 
 
-def run_satabs(options, sourcefile, columns, rlimits):
+def run_satabs(options, sourcefile, columns, rlimits, file):
     exe = findExecutable("satabs", None)
     args = [exe] + options + [sourcefile]
 
@@ -1114,7 +1344,7 @@ def run_satabs(options, sourcefile, columns, rlimits):
     # on timeout of rlimit the signal SIGTERM is thrown, catch and ignore it
     signal.signal(signal.SIGTERM, doNothing)
 
-    (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
+    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
 
     # reset signal-handler
     signal.signal(signal.SIGTERM, signal_handler_ignore)
@@ -1125,9 +1355,9 @@ def run_satabs(options, sourcefile, columns, rlimits):
     elif "VERIFICATION FAILED" in output:
         assert returncode == 10
         status = "UNSAFE"
-    elif returncode == -9:
+    elif returnsignal == 9:
         status = "TIMEOUT"
-    elif returncode == -6:
+    elif returnsignal == 6:
         if "Assertion `!counterexample.steps.empty()' failed" in output:
             status = 'COUNTEREXAMPLE FAILED' # TODO: other status?
         else:
@@ -1136,31 +1366,31 @@ def run_satabs(options, sourcefile, columns, rlimits):
         status = "PARSING ERROR"
     else:
         status = "FAILURE"
-    return (status, cpuTimeDelta, wallTimeDelta, output, args)
+    return (status, cpuTimeDelta, wallTimeDelta, args)
 
 
-def run_wolverine(options, sourcefile, columns, rlimits):
+def run_wolverine(options, sourcefile, columns, rlimits, file):
     exe = findExecutable("wolverine", None)
     args = [exe] + options + [sourcefile]
-    (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
+    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
     if "VERIFICATION SUCCESSFUL" in output:
         assert returncode == 0
         status = "SAFE"
     elif "VERIFICATION FAILED" in output:
         assert returncode == 10
         status = "UNSAFE"
-    elif returncode == -9:
+    elif returnsignal == 9:
         status = "TIMEOUT"
-    elif returncode == -6 or (returncode == 6 and "Out of memory" in output):
+    elif returnsignal == 6 or (returncode == 6 and "Out of memory" in output):
         status = "OUT OF MEMORY"
     elif returncode == 6 and "PARSING ERROR" in output:
         status = "PARSING ERROR"
     else:
         status = "FAILURE"
-    return (status, cpuTimeDelta, wallTimeDelta, output, args)
+    return (status, cpuTimeDelta, wallTimeDelta, args)
 
 
-def run_acsar(options, sourcefile, columns, rlimits):
+def run_acsar(options, sourcefile, columns, rlimits, file):
     exe = findExecutable("acsar", None)
 
     # create tmp-files for acsar, acsar needs special error-labels
@@ -1171,7 +1401,7 @@ def run_acsar(options, sourcefile, columns, rlimits):
 
     args = [exe] + ["--file"] + [prepSourcefile] + options
 
-    (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
+    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
     if "syntax error" in output:
         status = "SYNTAX ERROR"
 
@@ -1206,10 +1436,9 @@ def run_acsar(options, sourcefile, columns, rlimits):
         status = "UNKNOWN"
 
     # delete tmp-files
-    import os
     os.remove(prepSourcefile)
 
-    return (status, cpuTimeDelta, wallTimeDelta, output, args)
+    return (status, cpuTimeDelta, wallTimeDelta, args)
 
 
 def prepareSourceFileForAcsar(sourcefile):
@@ -1227,41 +1456,42 @@ def prepareSourceFileForAcsar(sourcefile):
 # perhaps someone can use these function again someday,
 # to use them you need a normal benchmark-xml-file 
 # with the tool and sourcefiles, however options are ignored
-def run_safe(options, sourcefile, columns, rlimits):
+def run_safe(options, sourcefile, columns, rlimits, file):
     args = ['safe'] + options + [sourcefile]
-    (returncode, output, cpuTimeDelta, wallTimeDelta) = (0, 'no output', 0, 0)
-    return ('safe', cpuTimeDelta, wallTimeDelta, output, args)
+    cpuTimeDelta = wallTimeDelta = 0
+    return ('safe', cpuTimeDelta, wallTimeDelta, args)
 
-def run_unsafe(options, sourcefile, columns, rlimits):
+def run_unsafe(options, sourcefile, columns, rlimits, file):
     args = ['unsafe'] + options + [sourcefile]
-    (returncode, output, cpuTimeDelta, wallTimeDelta) = (0, 'no output', 0, 0)
-    return ('unsafe', cpuTimeDelta, wallTimeDelta, output, args)
+    cpuTimeDelta = wallTimeDelta = 0
+    return ('unsafe', cpuTimeDelta, wallTimeDelta, args)
 
-def run_random(options, sourcefile, columns, rlimits):
+def run_random(options, sourcefile, columns, rlimits, file):
     args = ['random'] + options + [sourcefile]
-    (returncode, output, cpuTimeDelta, wallTimeDelta) = (0, 'no output', 0, 0)
+    cpuTimeDelta = wallTimeDelta = 0
     from random import random
     status = 'safe' if random() < 0.5 else 'unsafe'
-    return (status, cpuTimeDelta, wallTimeDelta, output, args)
+    return (status, cpuTimeDelta, wallTimeDelta, args)
 
 
-def run_cpachecker(options, sourcefile, columns, rlimits):
+def run_cpachecker(options, sourcefile, columns, rlimits, file):
     if ("-stats" not in options):
         options = options + ["-stats"]
 
     exe = findExecutable("cpachecker", "scripts/cpa.sh")
     args = [exe] + options + [sourcefile]
-    (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
+    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
 
-    status = getCPAcheckerStatus(returncode, output, rlimits, cpuTimeDelta)
+    status = getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
     getCPAcheckerColumns(output, columns)
 
-    return (status, cpuTimeDelta, wallTimeDelta, output, args)
+    return (status, cpuTimeDelta, wallTimeDelta, args)
 
 
-def getCPAcheckerStatus(returncode, output, rlimits, cpuTimeDelta):
+def getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta):
     """
     @param returncode: code returned by CPAchecker
+    @param returnsignal: signal, which terminated CPAchecker
     @param output: the output of CPAchecker
     @return: status of CPAchecker after running a testfile
     """
@@ -1273,28 +1503,23 @@ def getCPAcheckerStatus(returncode, output, rlimits, cpuTimeDelta):
              or line.startswith('out of memory')
              )
 
-    if returncode == 0:
+    if returnsignal == 0:
         status = None
 
-    elif returncode == -6:
+    elif returnsignal == 6:
         status = "ABORTED (probably by Mathsat)"
 
-    elif returncode == -9:
-        if resource.RLIMIT_CPU in rlimits:
-            limit = rlimits.get(resource.RLIMIT_CPU)[0]
-        else:
-            limit = float('inf')
-
-        if cpuTimeDelta > limit*0.99:
+    elif returnsignal == 9:
+        if isTimeout(cpuTimeDelta, rlimits):
             status = 'TIMEOUT'
         else:
             status = "KILLED BY SIGNAL 9"
 
-    elif returncode == (128+15):
+    elif returnsignal == (128+15):
         status = "KILLED"
 
     else:
-        status = "ERROR ({0})".format(returncode)
+        status = "ERROR ({0})".format(returnsignal)
 
     for line in output.splitlines():
         if isOutOfMemory(line):
@@ -1345,10 +1570,10 @@ def getCPAcheckerColumns(output, columns):
                 break
 
 
-def run_blast(options, sourcefile, columns, rlimits):
+def run_blast(options, sourcefile, columns, rlimits, file):
     exe = findExecutable("pblast.opt", None)
     args = [exe] + options + [sourcefile]
-    (returncode, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits)
+    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
 
     status = "UNKNOWN"
     for line in output.splitlines():
@@ -1363,7 +1588,7 @@ def run_blast(options, sourcefile, columns, rlimits):
         elif (returncode == 2) and line.startswith('Ack! The gremlins again!: Sys_error("Broken pipe")'):
             status = 'TIMEOUT'
 
-    return (status, cpuTimeDelta, wallTimeDelta, output, args)
+    return (status, cpuTimeDelta, wallTimeDelta, args)
 
 
 def runBenchmark(benchmarkFile):
@@ -1371,7 +1596,6 @@ def runBenchmark(benchmarkFile):
 
     assert benchmark.tool in ["cbmc", "satabs", "cpachecker", "blast", "acsar", "wolverine",
                               "safe", "unsafe", "random"]
-    run_func = eval("run_" + benchmark.tool)
 
     if len(benchmark.tests) == 1:
         logging.debug("I'm benchmarking {0} consisting of 1 test.".format(repr(benchmarkFile)))
@@ -1379,7 +1603,7 @@ def runBenchmark(benchmarkFile):
         logging.debug("I'm benchmarking {0} consisting of {1} tests.".format(
                 repr(benchmarkFile), len(benchmark.tests)))
 
-    outputHandler = OutputHandler(benchmark)
+    outputHandler = benchmark.outputHandler
 
     for test in benchmark.tests:
 
@@ -1394,18 +1618,7 @@ def runBenchmark(benchmarkFile):
 
             outputHandler.outputBeforeTest(test)
 
-            for (sourcefile, fileOptions) in test.sourcefiles:
-
-                currentOptions = toSimpleList(mergeOptions(
-                                    benchmark.options, test.options, fileOptions))
-                outputHandler.outputBeforeRun(sourcefile, currentOptions)
-
-                # run test
-                (status, cpuTimeDelta, wallTimeDelta, output, args) = \
-                    run_func(currentOptions, sourcefile, benchmark.columns, benchmark.rlimits)
-
-                outputHandler.outputAfterRun(sourcefile, fileOptions, status,
-                                             cpuTimeDelta, wallTimeDelta, output, args)
+            for run in test.runs: run.run()
 
             # get times after test
             wallTimeAfter = time.time()
@@ -1435,8 +1648,14 @@ def main(argv=None):
                       help="run only a special TEST from xml-file",
                       metavar="TEST")
 
-    global options
+    parser.add_option("-o", "--outputpath",
+                      dest="output_path", type="string",
+                      default="./test/results/",
+                      help="Output folder for the generated results")
+
+    global options, OUTPUT_PATH
     (options, args) = parser.parse_args(argv)
+    OUTPUT_PATH = options.output_path
 
     if len(args) < 2:
         parser.error("invalid number of arguments")
@@ -1467,21 +1686,4 @@ if __name__ == "__main__":
     try:
         sys.exit(main())
     except KeyboardInterrupt:
-
-        try:
-            timer.cancel() # Timer, that kills a subprocess after timelimit
-        except NameError:
-            pass # if no timer is defined, do nothing
-
-        try:
-            killSubprocess(p) # kill running tool
-        except NameError:
-            pass # if tool not running, do nothing
-
-        interruptMessage = "\n\nscript was interrupted by user, some tests may not be done"
-        logging.debug(interruptMessage)
-
-        print(interruptMessage)
-
-        pass
-
+        print ("\n\nscript was interrupted by user, some tests may not be done")

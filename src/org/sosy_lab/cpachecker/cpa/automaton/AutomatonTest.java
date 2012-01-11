@@ -57,8 +57,8 @@ public class AutomatonTest {
       );
 
       File tmpSpc = new File("test/config/automata/tmpSpecification.spc");
-      String content = "#include test/config/automata/UninitializedVariablesTestAutomaton.txt \n" +
-      "#include test/config/automata/tmpSpecification.spc \n";
+      String content = "#include UninitializedVariablesTestAutomaton.txt \n" +
+      "#include tmpSpecification.spc \n";
       Files.writeFile(tmpSpc, content);
       TestResults results = run(prop, "test/programs/simple/UninitVarsErrors.c");
       Assert.assertTrue(results.isSafe());

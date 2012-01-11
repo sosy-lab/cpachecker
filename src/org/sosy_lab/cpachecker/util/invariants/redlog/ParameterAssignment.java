@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.invariants.redlog;
 import java.util.HashSet;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
+import org.sosy_lab.cpachecker.util.invariants.Rational;
 
 public class ParameterAssignment {
 

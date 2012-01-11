@@ -165,4 +165,16 @@ public class Purification {
     return T;
   }
 
+  @Override
+  public String toString() {
+    String s = "";
+    String t;
+    Set<String> signatures = defs.keySet();
+    for (String sig : signatures) {
+      t = defs.get(sig).toString();
+      s += t+" = "+sig+"\n";
+    }
+    return s;
+  }
+
 }

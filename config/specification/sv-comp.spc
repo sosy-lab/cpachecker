@@ -1,4 +1,4 @@
-#include config/specification/ErrorLabel.spc
+#include ErrorLabel.spc
 
 CONTROL AUTOMATON ExitFunction
 

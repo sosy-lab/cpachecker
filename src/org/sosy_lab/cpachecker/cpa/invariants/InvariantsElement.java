@@ -32,7 +32,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.util.assumptions.FormulaReportingElement;
+import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingElement;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 

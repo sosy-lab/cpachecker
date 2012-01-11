@@ -27,9 +27,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
-public class CallstackElement implements AbstractElement, Partitionable {
+public class CallstackElement implements AbstractElement, Partitionable, AbstractQueryableElement {
 
   private final CallstackElement previousElement;
   private final String currentFunction;
@@ -94,5 +96,32 @@ public class CallstackElement implements AbstractElement, Partitionable {
   @Override
   public int hashCode() {
     return callerNode.hashCode();
+  }
+
+  @Override
+  public String getCPAName() {
+    return "Callstack";
+  }
+
+  @Override
+  public boolean checkProperty(String pProperty) throws InvalidQueryException {
+    return false;
+  }
+
+  @Override
+  public Object evaluateProperty(String pProperty) throws InvalidQueryException {
+    if (pProperty.compareToIgnoreCase("caller") == 0) {
+      if (callerNode != null)
+        return this.callerNode.getFunctionName();
+      else
+        return "";
+    }
+
+    throw new InvalidQueryException(String.format("Evaluating %s not supported by %s", pProperty, this.getClass().getCanonicalName()));
+  }
+
+  @Override
+  public void modifyProperty(String pModification) throws InvalidQueryException {
+    throw new InvalidQueryException("modifyProperty not implemented by " + this.getClass().getCanonicalName());
   }
 }

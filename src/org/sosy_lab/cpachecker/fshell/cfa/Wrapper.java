@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
@@ -187,7 +188,7 @@ public class Wrapper {
     lWriter.println("  int __BLAST_NONDET;");
 
     for (IASTSimpleDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
-      lWriter.println("  " + lDeclaration.getRawSignature() + ";");
+      lWriter.println("  " + lDeclaration.toASTString() + ";");
     }
 
     for (IASTSimpleDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
@@ -229,7 +230,7 @@ public class Wrapper {
    * started to use a CFA object.
    * TODO: Adjust this class so that the CFACreator method can be used again.
    */
-  private void insertGlobalDeclarations(final CFAFunctionDefinitionNode firstNode, List<IASTDeclaration> globalVars) {
+  private void insertGlobalDeclarations(final CFAFunctionDefinitionNode firstNode, List<Pair<IASTDeclaration, String>> globalVars) {
     if (globalVars.isEmpty()) {
       return;
     }
@@ -248,12 +249,14 @@ public class Wrapper {
     addToCFA(be);
 
     // create a series of GlobalDeclarationEdges, one for each declaration
-    for (IASTDeclaration d : globalVars) {
+    for (Pair<IASTDeclaration, String> p : globalVars) {
+      IASTDeclaration d = p.getFirst();
+      String rawSignature = p.getSecond();
       assert d.isGlobal();
 
       CFANode n = new CFANode(d.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
-      GlobalDeclarationEdge e = new GlobalDeclarationEdge(d,
-          d.getFileLocation().getStartingLineNumber(), cur, n);
+      GlobalDeclarationEdge e = new GlobalDeclarationEdge(rawSignature,
+          d.getFileLocation().getStartingLineNumber(), cur, n, d);
       addToCFA(e);
       cur = n;
     }

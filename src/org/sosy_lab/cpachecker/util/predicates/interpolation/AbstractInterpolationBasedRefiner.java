@@ -34,6 +34,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -64,8 +65,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 @Options(prefix="cpa.predicate.refinement")
 public abstract class AbstractInterpolationBasedRefiner<I, P> extends AbstractARTBasedRefiner {
 
-  @Option(name="msatCexFile", type=Option.Type.OUTPUT_FILE,
+  @Option(name="msatCexFile",
       description="where to dump the counterexample formula in case the error location is reached")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
   private File dumpCexFile = new File("counterexample.msat");
 
   public final Timer totalRefinement = new Timer();

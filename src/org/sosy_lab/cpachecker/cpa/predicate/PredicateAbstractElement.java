@@ -27,8 +27,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
-import org.sosy_lab.cpachecker.util.assumptions.FormulaReportingElement;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;

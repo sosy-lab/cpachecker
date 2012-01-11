@@ -25,7 +25,8 @@ package org.sosy_lab.cpachecker.util.invariants;
 
 public enum InfixReln {
   EQUAL    ("="),
-  LEQ      ("<=");
+  LEQ      ("<="),
+  LT       ("<");
 
   private String reln = "";
 

@@ -30,9 +30,9 @@ public abstract class IASTRightHandSide extends IASTNode {
 
   private final IType type;
 
-  public IASTRightHandSide(final String pRawSignature,
-      final IASTFileLocation pFileLocation, final IType pType) {
-    super(pRawSignature, pFileLocation);
+  public IASTRightHandSide(final IASTFileLocation pFileLocation,
+                           final IType pType) {
+    super(pFileLocation);
     type = pType;
   }
 

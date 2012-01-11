@@ -27,10 +27,9 @@ public final class IASTFunctionCallStatement extends IASTStatement implements IA
 
   private final IASTFunctionCallExpression functionCall;
 
-  public IASTFunctionCallStatement(String pRawSignature,
-      IASTFileLocation pFileLocation,
-      IASTFunctionCallExpression pFunctionCall) {
-    super(pRawSignature, pFileLocation);
+  public IASTFunctionCallStatement(IASTFileLocation pFileLocation,
+                                   IASTFunctionCallExpression pFunctionCall) {
+    super(pFileLocation);
     functionCall = pFunctionCall;
   }
 
@@ -50,7 +49,7 @@ public final class IASTFunctionCallStatement extends IASTStatement implements IA
   }
 
   @Override
-  public String toASTString(String pPrefix) {
-    return pPrefix + functionCall.toASTString() + ";";
+  public String toASTString() {
+    return functionCall.toASTString() + ";";
   }
 }

@@ -25,12 +25,9 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 public abstract class IASTNode {
 
-  private final String           rawSignature;
   private final IASTFileLocation fileLocation;
 
-  public IASTNode(final String pRawSignature,
-      final IASTFileLocation pFileLocation) {
-    rawSignature = pRawSignature;
+  public IASTNode(final IASTFileLocation pFileLocation) {
     fileLocation = pFileLocation;
   }
 
@@ -38,21 +35,5 @@ public abstract class IASTNode {
     return fileLocation;
   }
 
-  public String getRawSignature() {
-    return rawSignature;
-  }
-
-  public String toASTString() {
-    return toASTString("");
-  }
-
-  public String toASTString(int pOffset) {
-    StringBuilder prefix = new StringBuilder();
-    for (int i = 0; i < pOffset; i++) {
-      prefix.append(" ");
-    }
-    return toASTString(prefix.toString());
-  }
-
-  public abstract String toASTString(String pPrefix);
+  public abstract String toASTString();
 }

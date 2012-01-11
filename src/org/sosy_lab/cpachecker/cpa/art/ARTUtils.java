@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.art;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -97,7 +98,7 @@ public class ARTUtils {
     // add the error node and its -first- outgoing edge
     // that edge is not important so we pick the first even
     // if there are more outgoing edges
-    CFANode loc = currentARTElement.retrieveLocationElement().getLocationNode();
+    CFANode loc = extractLocation(currentARTElement);
     CFAEdge lastEdge = null;
     if (loc.getNumLeavingEdges() > 0) {
       lastEdge = loc.getLeavingEdge(0);
@@ -174,7 +175,7 @@ public class ARTUtils {
 
       if(!nodesList.contains(currentElement.getElementId())){
 
-        CFANode loc = currentElement.retrieveLocationElement().getLocationNode();
+        CFANode loc = extractLocation(currentElement);
         String label = ((loc == null) ? 0 : loc.getNodeNumber()) + "000" + currentElement.getElementId();
 
         sb.append(currentElement.getElementId());
@@ -325,7 +326,7 @@ public class ARTUtils {
 
 
     // need to add another pair with target element and one (arbitrary) outgoing edge
-    CFANode loc = currentElement.retrieveLocationElement().getLocationNode();
+    CFANode loc = extractLocation(currentElement);
     CFAEdge lastEdge = null;
     if (loc.getNumLeavingEdges() > 0) {
       lastEdge = loc.getLeavingEdge(0);

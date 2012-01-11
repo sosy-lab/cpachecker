@@ -31,6 +31,7 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
@@ -52,7 +53,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
@@ -211,7 +211,7 @@ class OctTransferRelation implements TransferRelation{
       if(op1 instanceof IASTIdExpression ||
           op1 instanceof IASTFieldReference)
       {
-        String varName = op1.getRawSignature();
+        String varName = op1.toASTString();
         String returnVarName = calledFunctionName + "::" + "___cpa_temp_result_var_";
 
         String assignedVarName = getvarName(varName, callerFunctionName);
@@ -368,7 +368,7 @@ class OctTransferRelation implements TransferRelation{
     {
       // [literal]
       if(op2 == null && opType == null){
-        String varName = op1.getRawSignature();
+        String varName = op1.toASTString();
         if(truthValue){
           String variableName = getvarName(varName, functionName);
           return addIneqConstraint(pElement, variableName, 0);
@@ -383,7 +383,7 @@ class OctTransferRelation implements TransferRelation{
       else if(op2 instanceof IASTLiteralExpression)
       {
         IASTLiteralExpression literalExp = (IASTLiteralExpression)op2;
-        String varName = op1.getRawSignature();
+        String varName = op1.toASTString();
         String variableName = getvarName(varName, functionName);
 
         if (literalExp instanceof IASTIntegerLiteralExpression
@@ -498,8 +498,8 @@ class OctTransferRelation implements TransferRelation{
               (((IASTUnaryExpression)op2).getOperator() == UnaryOperator.AMPER) ||
               (((IASTUnaryExpression)op2).getOperator() == UnaryOperator.STAR))))
       {
-        String leftVarName = op1.getRawSignature();
-        String rightVarName = op2.getRawSignature();
+        String leftVarName = op1.toASTString();
+        String rightVarName = op2.toASTString();
 
         String leftVariableName = getvarName(leftVarName, functionName);
         String rightVariableName = getvarName(rightVarName, functionName);
@@ -570,7 +570,7 @@ class OctTransferRelation implements TransferRelation{
       }
       else if(op2 instanceof IASTUnaryExpression)
       {
-        String varName = op1.getRawSignature();
+        String varName = op1.toASTString();
 
         IASTUnaryExpression unaryExp = (IASTUnaryExpression)op2;
         IASTExpression unaryExpOp = unaryExp.getOperand();
@@ -666,7 +666,7 @@ class OctTransferRelation implements TransferRelation{
         }
       }
       else if(op2 instanceof IASTBinaryExpression){
-        String varName = op1.getRawSignature();
+        String varName = op1.toASTString();
         String variableName = getvarName(varName, functionName);
         return forgetElement(pElement, variableName);
       }
@@ -677,7 +677,7 @@ class OctTransferRelation implements TransferRelation{
         return propagateBooleanExpression(pElement, opType, op1, exprInCastOp, functionName, truthValue, edge);
       }
       else{
-        String varName = op1.getRawSignature();
+        String varName = op1.toASTString();
         String variableName = getvarName(varName, functionName);
         return forgetElement(pElement, variableName);
       }
@@ -688,7 +688,7 @@ class OctTransferRelation implements TransferRelation{
       return propagateBooleanExpression(pElement, opType, castOperand, op2, functionName, truthValue, edge);
     }
     else{
-      String varName = op1.getRawSignature();
+      String varName = op1.toASTString();
       String variableName = getvarName(varName, functionName);
       return forgetElement(pElement, variableName);
     }
@@ -925,7 +925,7 @@ class OctTransferRelation implements TransferRelation{
 
     if(op1 instanceof IASTIdExpression) {
       // a = ...
-      return handleAssignmentToVariable(pElement, op1.getRawSignature(), op2, cfaEdge);
+      return handleAssignmentToVariable(pElement, ((IASTIdExpression)op1).getName(), op2, cfaEdge);
 
     } else if (op1 instanceof IASTUnaryExpression
         && ((IASTUnaryExpression)op1).getOperator() == UnaryOperator.STAR) {
@@ -1052,7 +1052,7 @@ class OctTransferRelation implements TransferRelation{
       if (value != null) {
         return assignConstant(pElement, assignedVar, value);
       } else {
-        String rVarName = unaryOperand.getRawSignature();
+        String rVarName = unaryOperand.toASTString();
         return assignVariable(pElement, assignedVar, rVarName, -1);
       }
     }
@@ -1122,7 +1122,7 @@ class OctTransferRelation implements TransferRelation{
 
       if(val1 == null && val2 != null){
         if(lVarInBinaryExp instanceof IASTIdExpression){
-          lVarName = lVarInBinaryExp.getRawSignature();
+          lVarName = ((IASTIdExpression)lVarInBinaryExp).getName();
 
           switch (binaryOperator) {
 
@@ -1155,7 +1155,7 @@ class OctTransferRelation implements TransferRelation{
 
       else if(val1 != null && val2 == null){
         if(lVarInBinaryExp instanceof IASTIdExpression){
-          rVarName = rVarInBinaryExp.getRawSignature();
+          rVarName = ((IASTIdExpression)rVarInBinaryExp).getName();
 
           switch (binaryOperator) {
 
@@ -1188,8 +1188,8 @@ class OctTransferRelation implements TransferRelation{
 
       else if(val1 == null && val2 == null){
         if(lVarInBinaryExp instanceof IASTIdExpression){
-          lVarName = lVarInBinaryExp.getRawSignature();
-          rVarName = rVarInBinaryExp.getRawSignature();
+          lVarName = ((IASTIdExpression)lVarInBinaryExp).getName();
+          rVarName = ((IASTIdExpression)rVarInBinaryExp).getName();
 
           switch (binaryOperator) {
 
@@ -1295,7 +1295,7 @@ class OctTransferRelation implements TransferRelation{
   private OctElement handleAssignmentOfVariable(OctElement pElement,
       String lParam, IASTExpression op2, String functionName, int coef)
   {
-    String rParam = op2.getRawSignature();
+    String rParam = op2.toASTString();
 
     String leftVarName = getvarName(lParam, functionName);
     String rightVarName = getvarName(rParam, functionName);

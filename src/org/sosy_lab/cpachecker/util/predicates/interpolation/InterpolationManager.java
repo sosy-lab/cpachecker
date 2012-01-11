@@ -48,6 +48,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -130,7 +131,10 @@ public abstract class InterpolationManager<I> {
   private boolean verifyInterpolants = false;
 
   @Option(name="timelimit",
-      description="time limit for refinement (0 is infinitely long)")
+      description="time limit for refinement (use milliseconds or specify a unit; 0 for infinite)")
+  @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
+      defaultUserUnit=TimeUnit.MILLISECONDS,
+      min=0)
   private long itpTimeLimit = 0;
 
   @Option(name="changesolverontimeout",

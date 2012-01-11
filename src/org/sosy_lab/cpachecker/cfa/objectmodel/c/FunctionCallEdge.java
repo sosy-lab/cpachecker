@@ -43,7 +43,7 @@ public class FunctionCallEdge extends AbstractCFAEdge {
       int pLineNumber, CFANode pPredecessor, FunctionDefinitionNode pSuccessor,
       List<IASTExpression> pArguments, CallToReturnEdge pSummaryEdge) {
 
-    super(pRawAST.getRawSignature(), pLineNumber, pPredecessor, pSuccessor);
+    super(pRawAST.toASTString(), pLineNumber, pPredecessor, pSuccessor);
     arguments = ImmutableList.copyOf(pArguments);
     rawAST = pRawAST;
     summaryEdge = pSummaryEdge;

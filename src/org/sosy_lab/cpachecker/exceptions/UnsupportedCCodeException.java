@@ -35,15 +35,7 @@ public class UnsupportedCCodeException extends UnrecognizedCCodeException {
   private static final long serialVersionUID = -8319167530363457020L;
 
   public UnsupportedCCodeException(String msg, CFAEdge edge, IASTNode astNode) {
-    super("Unsupported C feature", msg, astNode.getFileLocation(), astNode.getRawSignature(), edge);
-  }
-
-  /**
-   * Deprecated because this exception should always contain the relevant edge.
-   */
-  @Deprecated
-  public UnsupportedCCodeException(String msg, IASTNode astNode) {
-    this(msg, null, astNode);
+    super("Unsupported C feature", msg, edge, astNode);
   }
 
   public UnsupportedCCodeException(String msg, CFAEdge cfaEdge) {

@@ -27,10 +27,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
+import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingElement;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.assumptions.FormulaReportingElement;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
@@ -405,5 +406,19 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
     }
 
     return formula;
+  }
+
+  void deleteValue(String varName) {
+    this.constantsMap.remove(varName);
+    this.referenceCount.remove(varName);
+  }
+
+  Set<String> getTrackedVariableNames() {
+    return constantsMap.keySet();
+  }
+
+
+  Map<String, Long> getConstantsMap() {
+    return constantsMap;
   }
 }

@@ -67,6 +67,6 @@ public class ToFlleShAssumeEdgeTranslator {
       mExpressionCache.put(lPredicateFunction, lPredicateExpression);
     }
 
-    return new AssumeEdge(lPredicateExpression.getRawSignature(), pNode.getLineNumber(), pNode, pNode, lPredicateExpression, true);
+    return new AssumeEdge(lPredicateExpression.toASTString(), pNode.getLineNumber(), pNode, pNode, lPredicateExpression, true);
   }
 }

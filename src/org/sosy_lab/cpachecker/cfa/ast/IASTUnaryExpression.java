@@ -28,10 +28,10 @@ public class IASTUnaryExpression extends IASTExpression {
   private final IASTExpression operand;
   private final UnaryOperator  operator;
 
-  public IASTUnaryExpression(final String pRawSignature,
-      final IASTFileLocation pFileLocation, final IType pType,
-      final IASTExpression pOperand, final UnaryOperator pOperator) {
-    super(pRawSignature, pFileLocation, pType);
+  public IASTUnaryExpression(final IASTFileLocation pFileLocation,
+                             final IType pType, final IASTExpression pOperand,
+                             final UnaryOperator pOperator) {
+    super(pFileLocation, pType);
     operand = pOperand;
     operator = pOperator;
   }
@@ -79,7 +79,7 @@ public class IASTUnaryExpression extends IASTExpression {
   }
 
   @Override
-  public String toASTString(String pPrefix) {
-    return pPrefix + operator.getOperator() + "(" + operand.toASTString() + ")";
+  public String toASTString() {
+    return operator.getOperator() + "(" + operand.toASTString() + ")";
   }
 }

@@ -31,6 +31,7 @@ import java.util.Vector;
 import org.sosy_lab.cpachecker.util.invariants.templates.Purification;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormula;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateUIF;
+import org.sosy_lab.cpachecker.util.invariants.templates.TemplateVariable;
 import org.sosy_lab.cpachecker.util.invariants.templates.VariableWriteMode;
 
 /**
@@ -40,12 +41,14 @@ public class UIFAxiomSet {
 
   Vector<UIFAxiom> axioms;
 
+  int maxk;
+
   int N;
   SubsetGenerator SG;
   PermutationGenerator PG;
 
   int k;
-  Vector<UIFAxiom> axiom_subset;
+  Vector<UIFAxiom> axiomSubset;
 
   public UIFAxiomSet(Purification P, TemplateFormula[] F) {
     // Limit attention to those purification definitions for purification variables
@@ -55,7 +58,7 @@ public class UIFAxiomSet {
     // First get the set of all variables appearing in F
     Set<String> allVars = new HashSet<String>();
     for (int i = 0; i < F.length; i++) {
-      allVars.addAll( F[i].getAllVariables(VariableWriteMode.PLAIN) );
+      allVars.addAll( getAllPurificationVariablesAsStrings(F[i],VariableWriteMode.PLAIN) );
     }
 
     // go through the value that 'name' maps to, searching for those
@@ -100,16 +103,56 @@ public class UIFAxiomSet {
 
     // Now let N be the size of the set of axioms.
     N = axioms.size();
-    k = 0;
-    // declare a subset generator for subsets of order k out of N
-    SG = new SubsetGenerator(N,k);
-    // we also need a permutation generator for k
-    PG = new PermutationGenerator(k);
+    if (N > 0) {
+      k = 1;
+      // declare a subset generator for subsets of order k out of N
+      SG = new SubsetGenerator(N,k);
+      // we also need a permutation generator for k
+      PG = new PermutationGenerator(k);
+      // and we must initialize the first subset
+      HashSet<Integer> index_subset = SG.getNext();
+      axiomSubset = new Vector<UIFAxiom>();
+      for (Integer I : index_subset) {
+        axiomSubset.add( axioms.get(I.intValue()) );
+      }
+      maxk = getMaxk(N);
+    } else {
+      // FIXME:
+      // We need to handle this case properly.
+      //diag:
+      System.out.println("error, axiom set of size 0:");
+      //
+    }
+  }
 
+  /*
+   * We compute the function:
+   * 1 -> 1, 2 -> 2, 3 -> 3, 4 -> 2, 5 -> 2, and N -> 1 for all N > 5.
+   * This is to bound the size of the subsets, as a function of N, the number of
+   * axioms, so that we will finish after at most 30 total ordered subsets.
+   */
+  private int getMaxk(int N) {
+    int M = 1;
+    if (N < 6 && 1 < N) {
+      M = 2;
+      if (N == 3) {
+        M = 3;
+      }
+    }
+    return M;
+  }
+
+  private Set<String> getAllPurificationVariablesAsStrings(TemplateFormula F, VariableWriteMode vwm) {
+    Set<TemplateVariable> vars = F.getAllPurificationVariables();
+    Set<String> str = new HashSet<String>();
+    for (TemplateVariable v : vars) {
+      str.add( v.toString(vwm) );
+    }
+    return str;
   }
 
   public boolean hasMore() {
-    return ( k < N || SG.hasMore() || PG.hasMore() );
+    return ( (k < N && k < maxk) || SG.hasMore() || PG.hasMore() );
   }
 
   public Vector<UIFAxiom> getNext() {
@@ -131,9 +174,9 @@ public class UIFAxiomSet {
         HashSet<Integer> index_subset = SG.getNext();
 
         //create the axiom subset
-        axiom_subset = new Vector<UIFAxiom>();
+        axiomSubset = new Vector<UIFAxiom>();
         for (Integer I : index_subset) {
-          axiom_subset.add( axioms.get(I.intValue()) );
+          axiomSubset.add( axioms.get(I.intValue()) );
         }
         PG = new PermutationGenerator(k);
       }
@@ -141,7 +184,7 @@ public class UIFAxiomSet {
       int[] index_perm = PG.getNext();
       next = new Vector<UIFAxiom>();
       for (int i = 0; i < index_perm.length; i++) {
-        next.add( axiom_subset.get( index_perm[i] ) );
+        next.add( axiomSubset.get( index_perm[i] ) );
       }
 
     }
@@ -150,21 +193,3 @@ public class UIFAxiomSet {
   }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

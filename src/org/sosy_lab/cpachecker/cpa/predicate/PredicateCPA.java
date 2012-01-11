@@ -32,6 +32,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -78,8 +79,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       description="which solver to use?")
   private String whichProver = "MATHSAT";
 
-  @Option(name="abstraction.initialPredicates", type=Option.Type.OPTIONAL_INPUT_FILE,
+  @Option(name="abstraction.initialPredicates",
       description="get an initial set of predicates from a file in MSAT format")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private File predicatesFile = null;
 
   @Option(description="always check satisfiability at end of block, even if precision is empty")
@@ -210,11 +212,11 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return stop;
   }
 
-  RegionManager getRegionManager() {
+  public RegionManager getRegionManager() {
     return regionManager;
   }
 
-  PredicateAbstractionManager getPredicateManager() {
+  public PredicateAbstractionManager getPredicateManager() {
     return predicateManager;
   }
 

@@ -62,7 +62,7 @@ public class AssumeTransferRelation implements TransferRelation {
       if (lExpression instanceof IASTFunctionCallStatement) {
         IASTFunctionCallExpression lCallExpression = ((IASTFunctionCallStatement)lExpression).getFunctionCallExpression();
 
-        if (lCallExpression.getFunctionNameExpression().getRawSignature().equals(mFunctionName)) {
+        if (lCallExpression.getFunctionNameExpression().toASTString().equals(mFunctionName)) {
           List<IASTExpression> lParameterExpressions = lCallExpression.getParameterExpressions();
           if (lParameterExpressions.size() != 1) {
             throw new UnrecognizedCCodeException("Function " + mFunctionName + " called with wrong number of arguments",

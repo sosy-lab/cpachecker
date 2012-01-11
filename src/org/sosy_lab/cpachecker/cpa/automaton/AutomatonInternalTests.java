@@ -59,7 +59,7 @@ class AutomatonInternalTests {
       Configuration emptyConfig = Configuration.defaultConfiguration();
       LogManager logger = new LogManager(emptyConfig);
       ComplexSymbolFactory sf1 = new ComplexSymbolFactory();
-      AutomatonScanner s = new AutomatonScanner(new FileInputStream(f), f.getName(), emptyConfig, logger, sf1);
+      AutomatonScanner s = new AutomatonScanner(new FileInputStream(f), f, emptyConfig, logger, sf1);
       Symbol symb = s.next_token();
       while (symb.sym != AutomatonSym.EOF) {
         System.out.println(symb);

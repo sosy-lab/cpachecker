@@ -44,37 +44,23 @@
     </condition>
 
     <target name="generate-scanner" unless="scanner.uptodate" description="Generate automaton scanner">
-        <echo message="Generate scanner..." level="info"/>
         <jflex file="${dir.parser}/${scanner.source}" destdir="${dir.src}" skel="${dir.parser}/${skeleton.source}"/>
-
-        <!-- remove generation date to not interfere with SVN -->
-        <replaceregexp file="${dir.parser}/${scanner.target}.java" match="\d\d\.\d\d.\d\d \d\d:\d\d" replace="[date omitted]" flags="g" />
-        <replaceregexp file="${dir.parser}/${scanner.target}.java" match="(.tt>).*/(${scanner.source}./tt>)" replace="\1\2" />
     </target>
 
     <target name="generate-parser" depends="generate-scanner" unless="parser.uptodate" description="Generate automaton parser">
-        <echo message="Generate parser..." level="info"/>
         <cup srcfile="${dir.parser}/${parser.source}"
             destdir="${dir.src}"
             interface="true"
             parser="${parser.target}"
             symbols="${symbols.target}"
             nopositions="true"
+            nosummary="true"
         />
 
-        <!-- remove generation date to not interfere with SVN -->
-        <replaceregexp match="(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \w\w\w \d\d \d\d:\d\d:\d\d \w+ \d\d\d\d" replace="[date omitted]" flags="g">
-            <fileset dir="${dir.parser}">
-                <include name="${parser.target}.java"/>
-                <include name="${symbols.target}.java"/>
-            </fileset>
-        </replaceregexp>
-
         <!-- places the suppressWarnings-tag in front of the outer class -->
-        <replace file="${dir.parser}/${parser.target}.java" token="public class " value="@SuppressWarnings(value = { &quot;all&quot; }) public    class "/>
+        <property name="annotation" value="@javax.annotation.Generated(&quot;JFlex&quot;)${line.separator}@SuppressWarnings(value = &quot;all&quot;)${line.separator}"/>
+        <replace file="${dir.parser}/${parser.target}.java" token="public class " value="${annotation}public  class "/>
         <!-- places the suppressWarnings-tag in front of the inner class -->
-        <replace file="${dir.parser}/${parser.target}.java" token="class CUP$" value="@SuppressWarnings(value = { &quot;all&quot; }) class    CUP$"/>
-        <!-- SVN had "inconsistent line endings"-Problems. Let ANT fix it, uses the system default line ending -->
-        <fixcrlf file="${dir.parser}/${parser.target}.java" />
+        <replace file="${dir.parser}/${parser.target}.java" token="class CUP$" value="${annotation}class  CUP$"/>
     </target>
 </project>

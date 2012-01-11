@@ -33,9 +33,9 @@ import java.util.Set;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Option.Type;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.TraversalMethod;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 
 @Options(prefix="counterexample.checker")
@@ -59,8 +60,8 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
   private final CFA cfa;
 
   @Option(name="config",
-      type=Type.REQUIRED_INPUT_FILE,
       description="configuration file for counterexample checks with CPAchecker")
+  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private File configFile = new File("config/explicitAnalysis-no-cbmc.properties");
 
   public CounterexampleCPAChecker(Configuration config, LogManager logger, ReachedSetFactory pReachedSetFactory, CFA pCfa) throws InvalidConfigurationException {
@@ -82,7 +83,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
     try {
       automatonFile = Files.createTempFile("automaton", ".txt", automaton);
     } catch (IOException e) {
-      throw new CPAException("Could not write automaton for explicit analysis check (" + e.getMessage() + ")");
+      throw new CounterexampleAnalysisFailed("Could not write path automaton to file " + e.getMessage(), e);
     }
 
     CFAFunctionDefinitionNode entryNode = (CFAFunctionDefinitionNode)extractLocation(pRootElement);
@@ -108,9 +109,9 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       }
 
     } catch (InvalidConfigurationException e) {
-      throw new CPAException("Invalid configuration for counterexample check: " + e.getMessage());
+      throw new CounterexampleAnalysisFailed("Invalid configuration in counterexample-check config: " + e.getMessage(), e);
     } catch (IOException e) {
-      throw new CPAException("Error during counterexample check: " + e.getMessage());
+      throw new CounterexampleAnalysisFailed(e.getMessage(), e);
     }
   }
 

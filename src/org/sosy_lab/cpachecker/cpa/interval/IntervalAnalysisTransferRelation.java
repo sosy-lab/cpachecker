@@ -39,8 +39,10 @@ import org.sosy_lab.cpachecker.cfa.ast.DefaultExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
@@ -59,10 +61,8 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
@@ -195,7 +195,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       // left hand side of the expression has to be a variable
       if((operand1 instanceof IASTIdExpression) || (operand1 instanceof IASTFieldReference))
       {
-        String assignedVariableName = operand1.getRawSignature();
+        String assignedVariableName = operand1.toASTString();
 
         String returnedVariableName = calledFunctionName + "::" + RETURN_VARIABLE_BASE_NAME;
 
@@ -425,8 +425,8 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     //Interval orgInterval2 = evaluateInterval(element, operand2, cfaEdge.getPredecessor().getFunctionName(), cfaEdge);
     Interval tmpInterval2 = orgInterval2.clone();
 
-    String variableName1 = constructVariableName(operand1.getRawSignature(), cfaEdge.getPredecessor().getFunctionName());
-    String variableName2 = constructVariableName(operand2.getRawSignature(), cfaEdge.getPredecessor().getFunctionName());
+    String variableName1 = constructVariableName(operand1.toASTString(), cfaEdge.getPredecessor().getFunctionName());
+    String variableName2 = constructVariableName(operand2.toASTString(), cfaEdge.getPredecessor().getFunctionName());
 
     // determine whether or not the respective operand is an identifier
     boolean isIdOp1 = operand1 instanceof IASTIdExpression;
@@ -688,7 +688,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
     {
       ExpressionValueVisitor visitor = new ExpressionValueVisitor(element, cfaEdge.getPredecessor().getFunctionName(), cfaEdge);
 
-      return handleAssignmentToVariable(op1.getRawSignature(), op2, visitor);
+      return handleAssignmentToVariable(((IASTIdExpression)op1).getName(), op2, visitor);
     }
 
     // TODO: assignment to pointer, *a = ?
@@ -751,7 +751,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
     else if(expression instanceof IASTIdExpression)
     {
-      String varName = constructVariableName(expression.getRawSignature(), functionName);
+      String varName = constructVariableName(((IASTIdExpression)expression).getName(), functionName);
 
       return (element.contains(varName)) ? element.getInterval(varName) : Interval.createUnboundInterval();
     }
@@ -877,17 +877,15 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
   private IASTBinaryExpression convertToBinaryAssume(IASTIdExpression expression)
   {
-    IASTIntegerLiteralExpression zero = new IASTIntegerLiteralExpression("0",
-        expression.getFileLocation(),
-        expression.getExpressionType(),
-        BigInteger.ZERO);
+    IASTIntegerLiteralExpression zero = new IASTIntegerLiteralExpression(expression.getFileLocation(),
+                                                                         expression.getExpressionType(),
+                                                                         BigInteger.ZERO);
 
-    return new IASTBinaryExpression(expression.getRawSignature(),
-                                expression.getFileLocation(),
-                                expression.getExpressionType(),
-                                expression,
-                                zero,
-                                BinaryOperator.NOT_EQUALS);
+    return new IASTBinaryExpression(expression.getFileLocation(),
+                                    expression.getExpressionType(),
+                                    expression,
+                                    zero,
+                                    BinaryOperator.NOT_EQUALS);
   }
 
   /**

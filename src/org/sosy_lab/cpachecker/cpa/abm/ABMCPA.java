@@ -31,6 +31,7 @@ import java.util.Map;
 
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -77,9 +78,9 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   private final PartitioningHeuristic heuristic;
   private final CFA cfa;
 
-  @Option(packagePrefix="org.sosy_lab.cpachecker.cfa.blocks.builder",
-          description="Type of partitioning (FunctionAndLoopPartitioning or DelayedFunctionAndLoopPartitioning)\n"
+  @Option(description="Type of partitioning (FunctionAndLoopPartitioning or DelayedFunctionAndLoopPartitioning)\n"
   		              + "or any class that implements a PartitioningHeuristic")
+  @ClassOption(packagePrefix="org.sosy_lab.cpachecker.cfa.blocks.builder")
   private Class<? extends PartitioningHeuristic> blockHeuristic = FunctionAndLoopPartitioning.class;
 
   public ABMCPA(ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger, ReachedSetFactory pReachedSetFactory, CFA pCfa) throws InvalidConfigurationException, CPAException {
@@ -109,7 +110,11 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     if (blockPartitioning == null) {
       blockPartitioning = heuristic.buildPartitioning(node);
       transfer.setBlockPartitioning(blockPartitioning);
-      ((WrapperCPA) getWrappedCpa()).retrieveWrappedCpa(ABMPredicateCPA.class).setPartitioning(blockPartitioning);
+
+      ABMPredicateCPA predicateCpa = ((WrapperCPA) getWrappedCpa()).retrieveWrappedCpa(ABMPredicateCPA.class);
+      if(predicateCpa != null) {
+        predicateCpa.setPartitioning(blockPartitioning);
+      }
 
       Map<AbstractElement, Precision> forwardPrecisionToExpandedPrecision = new HashMap<AbstractElement, Precision>();
       transfer.setForwardPrecisionToExpandedPrecision(forwardPrecisionToExpandedPrecision);

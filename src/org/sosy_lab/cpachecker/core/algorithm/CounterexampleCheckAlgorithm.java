@@ -124,7 +124,13 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
 
         Set<ARTElement> elementsOnErrorPath = ARTUtils.getAllElementsOnPathsTo(errorElement);
 
-        boolean feasibility = checker.checkCounterexample(rootElement, errorElement, elementsOnErrorPath);
+        boolean feasibility;
+        try {
+          feasibility = checker.checkCounterexample(rootElement, errorElement, elementsOnErrorPath);
+        } catch (CPAException e) {
+          logger.logUserException(Level.WARNING, e, "Counterexample found, but feasibility could not be verified");
+          return false;
+        }
 
         if (feasibility) {
           logger.log(Level.INFO, "Error path found and confirmed by counterexample check with " + checkerName + ".");
@@ -162,11 +168,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
             throw new RefinementFailedException(Reason.InfeasibleCounterexample, path);
           }
         }
-      } catch (CPAException e) {
-        logger.logUserException(Level.WARNING, e, "Counterexample found, but feasibility could not be verified");
-        sound = false;
-      }
-      finally {
+      } finally {
         checkTime.stop();
       }
     }

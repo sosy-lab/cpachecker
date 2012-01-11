@@ -28,10 +28,10 @@ public final class IASTTypeIdExpression extends IASTExpression {
   private final TypeIdOperator operator;
   private final IASTTypeId type;
 
-  public IASTTypeIdExpression(final String pRawSignature,
-      final IASTFileLocation pFileLocation, final IType pType,
-      final TypeIdOperator pOperator, final IASTTypeId pTypeId) {
-    super(pRawSignature, pFileLocation, pType);
+  public IASTTypeIdExpression(final IASTFileLocation pFileLocation,
+                              final IType pType, final TypeIdOperator pOperator,
+                              final IASTTypeId pTypeId) {
+    super(pFileLocation, pType);
     operator = pOperator;
     type = pTypeId;
   }
@@ -70,7 +70,7 @@ public final class IASTTypeIdExpression extends IASTExpression {
   }
 
   @Override
-  public String toASTString(String pPrefix) {
-    return pPrefix + operator.getOperator() + "(" + type.toASTString() + ")";
+  public String toASTString() {
+    return operator.getOperator() + "(" + type.toASTString() + ")";
   }
 }

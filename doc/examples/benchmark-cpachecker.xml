@@ -3,29 +3,33 @@
 <!-- Example file that demonstrates the use of CPAchecker
      and also the use of the benchmark-script. -->
 
-<benchmark tool="cpachecker" timelimit="10" memlimit="2048">
+<benchmark tool="cpachecker" timelimit="10" memlimit="2000">
 
   <!-- global sourcefiles are tested in every test -->
   <sourcefiles>
     <include>test/programs/benchmarks/locks/*_5.c</include>
-    <include>test/programs/benchmarks/locks/*_6.c</include>
+    <!-- next line shows the use of a variable,
+    in this case it has no effect, because of the path '../' after it -->
+    <include>test/programs/${test_name}/../benchmarks/locks/*_6.c</include>
     
     <!-- file-specific option for global files -->
     <option name="-heap">999m</option>
   </sourcefiles>
 
   <!-- global options for all tests -->
-  <!-- recommended option "output.disable", as the CPAchecker output files 
-  are normally not interesting for benchmarks. -->
-  <option name="-setprop">output.disable=true</option>
-
   <!-- Set the java heap size. -->
   <option name="-heap">1000m</option>
 
 
   <test name="locks-lbe">
+    <!-- test-specific option -->
+    <option name="-setprop">output.path=test/results/${benchmark_name}.${benchmark_date}.output.${test_name}/${sourcefile_name}/</option>
+    <option name="-predicateAnalysis-lbe"/>
+
     <sourcefiles>
-      <include>test/programs/benchmarks/locks/*7.c</include>
+    <!-- next line shows the use of a variable,
+    in this case it has no effect, because of the path '../' after it -->
+      <include>${benchmark_path}/../../test/programs/benchmarks/locks/*7.c</include>
       <include>test/programs/benchmarks/locks/*8.c</include>
     </sourcefiles>
 
@@ -38,7 +42,6 @@
       <option name="-debug"></option>
     </sourcefiles>
 
-    <option name="-predicateAnalysis-lbe"/>
   </test>
 
 
@@ -47,6 +50,9 @@
       <include>test/programs/benchmarks/locks/*1?.c</include>
     </sourcefiles>
 
+    <!-- recommended option "output.disable", as the CPAchecker output files 
+    are normally not interesting for benchmarks. -->
+    <option name="-setprop">output.disable=true</option>
     <option name="-predicateAnalysis"/>
   </test>
 

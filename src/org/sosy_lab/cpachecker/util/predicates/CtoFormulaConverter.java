@@ -212,7 +212,7 @@ public class CtoFormulaConverter {
   private String getLogMessage(String msg, IASTNode astNode) {
     return "Line " + astNode.getFileLocation().getStartingLineNumber()
             + ": " + msg
-            + ": " + astNode.getRawSignature();
+            + ": " + astNode.toASTString();
   }
 
   private String getLogMessage(String msg, CFAEdge edge) {
@@ -263,7 +263,7 @@ public class CtoFormulaConverter {
   }
 
   private static String exprToVarName(IASTExpression e) {
-    return e.getRawSignature().replaceAll("[ \n\t]", "");
+    return e.toASTString().replaceAll("[ \n\t]", "");
   }
 
   private String getTypeName(final IType tp) {
@@ -1480,7 +1480,7 @@ public class CtoFormulaConverter {
         }
       } else {
         log(Level.WARNING, getLogMessage("Ignoring function call through function pointer", fexp));
-        func = "<func>{" + fn.getRawSignature() + "}";
+        func = "<func>{" + fn.toASTString() + "}";
       }
 
       if (pexps.isEmpty()) {

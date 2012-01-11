@@ -28,11 +28,11 @@ public final class IASTArraySubscriptExpression extends IASTExpression {
   private final IASTExpression arrayExpression;
   private final IASTExpression subscriptExpression;
 
-  public IASTArraySubscriptExpression(final String pRawSignature,
-      final IASTFileLocation pFileLocation, final IType pType,
-      final IASTExpression pArrayExpression,
-      final IASTExpression pSubscriptExpression) {
-    super(pRawSignature, pFileLocation, pType);
+  public IASTArraySubscriptExpression(final IASTFileLocation pFileLocation,
+                                      final IType pType,
+                                      final IASTExpression pArrayExpression,
+                                      final IASTExpression pSubscriptExpression) {
+    super(pFileLocation, pType);
     arrayExpression = pArrayExpression;
     subscriptExpression = pSubscriptExpression;
   }
@@ -56,8 +56,8 @@ public final class IASTArraySubscriptExpression extends IASTExpression {
   }
 
   @Override
-  public String toASTString(String pPrefix) {
-    return pPrefix + arrayExpression.toASTString()
+  public String toASTString() {
+    return arrayExpression.toASTString()
         + "[" + subscriptExpression.toASTString() + "]";
   }
 }

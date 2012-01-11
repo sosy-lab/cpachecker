@@ -1,0 +1,223 @@
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2011  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
+package org.sosy_lab.cpachecker.util.invariants.balancer;
+
+import org.sosy_lab.cpachecker.util.invariants.Rational;
+
+public class RationalFunction {
+
+  private Polynomial num;
+  private Polynomial denom;
+
+  public RationalFunction(Polynomial n, Polynomial d) {
+    num = n;
+    denom = d;
+  }
+
+  public RationalFunction(int n) {
+    makeConstant(new Rational(n,1));
+  }
+
+  public RationalFunction(Variable v) {
+    num = new Polynomial(v);
+    denom = new Polynomial(1);
+  }
+
+  public RationalFunction(Rational r) {
+    makeConstant(r);
+  }
+
+  public Polynomial getNumerator() {
+    return num;
+  }
+
+  public Polynomial getDenominator() {
+    return denom;
+  }
+
+  public static RationalFunction buildVar(String x) {
+    Variable v = new Variable(x);
+    RationalFunction f = new RationalFunction(v);
+    return f;
+  }
+
+  private void makeConstant(Rational r) {
+    num = new Polynomial(r);
+    denom = new Polynomial(1);
+  }
+
+  public static RationalFunction makeZero() {
+    return new RationalFunction(Polynomial.makeZero(), Polynomial.makeUnity());
+  }
+
+  public static RationalFunction add(RationalFunction f1, RationalFunction f2) {
+    Polynomial n1 = f1.num;
+    Polynomial d1 = f1.denom;
+    Polynomial n2 = f2.num;
+    Polynomial d2 = f2.denom;
+    // So we want to compute a/b = n1/d1 + n2/d2.
+    // Compute numerator a = n1*d2 + n2*d1.
+    Polynomial n1d2 = Polynomial.multiply(n1, d2);
+    Polynomial n2d1 = Polynomial.multiply(n2, d1);
+    Polynomial a = Polynomial.add(n1d2, n2d1);
+    // Compute denominator b = d1*d2.
+    Polynomial b = Polynomial.multiply(d1, d2);
+    RationalFunction f = new RationalFunction(a,b);
+    f.simplify();
+    return f;
+  }
+
+  public static RationalFunction subtract(RationalFunction f1, RationalFunction f2) {
+    Polynomial n1 = f1.num;
+    Polynomial d1 = f1.denom;
+    Polynomial n2 = f2.num;
+    Polynomial d2 = f2.denom;
+    // So we want to compute a/b = n1/d1 - n2/d2.
+    // Compute numerator a = n1*d2 - n2*d1.
+    Polynomial n1d2 = Polynomial.multiply(n1, d2);
+    Polynomial n2d1 = Polynomial.multiply(n2, d1);
+    Polynomial a = Polynomial.subtract(n1d2, n2d1);
+    // Compute denominator b = d1*d2.
+    Polynomial b = Polynomial.multiply(d1, d2);
+    RationalFunction f = new RationalFunction(a,b);
+    f.simplify();
+    return f;
+  }
+
+  public static RationalFunction multiply(RationalFunction f1, RationalFunction f2) {
+    Polynomial n1 = f1.num;
+    Polynomial d1 = f1.denom;
+    Polynomial n2 = f2.num;
+    Polynomial d2 = f2.denom;
+    // So we want to compute a/b = (n1*n2)/(d1*d2).
+    // Compute numerator a = n1*n2.
+    Polynomial a = Polynomial.multiply(n1, n2);
+    // Compute denominator b = d1*d2.
+    Polynomial b = Polynomial.multiply(d1, d2);
+    RationalFunction f = new RationalFunction(a,b);
+    f.simplify();
+    return f;
+  }
+
+  public static RationalFunction divide(RationalFunction f1, RationalFunction f2) {
+    Polynomial n1 = f1.num;
+    Polynomial d1 = f1.denom;
+    Polynomial n2 = f2.num;
+    Polynomial d2 = f2.denom;
+    // So we want to compute a/b = (n1*d2)/(d1*n2).
+    // Compute numerator a = n1*d2.
+    Polynomial a = Polynomial.multiply(n1, d2);
+    // Compute denominator b = d1*n2.
+    Polynomial b = Polynomial.multiply(d1, n2);
+    RationalFunction f = new RationalFunction(a,b);
+    f.simplify();
+    return f;
+  }
+
+  public static RationalFunction makeReciprocal(RationalFunction f) {
+    return new RationalFunction(f.denom,f.num);
+  }
+
+  public static RationalFunction makeNegative(RationalFunction f) {
+    Polynomial negnum = Polynomial.makeNegative(f.num);
+    return new RationalFunction(negnum,f.denom);
+  }
+
+  public boolean isZero() {
+    return num.isZero();
+  }
+
+  public boolean isConstant() {
+    return num.isConstant() && denom.isConstant();
+  }
+
+  public boolean isPolynomial() {
+    return denom.isUnity();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    boolean ans = false;
+    if (o instanceof RationalFunction) {
+      String s1 = toString();
+      String s2 = o.toString();
+      ans = s1.equals(s2);
+    }
+    return ans;
+  }
+
+  /**
+   * HashSet only looks to the equals method if the hashCodes of the
+   * two objects are the same.
+   */
+  @Override
+  public int hashCode() {
+    return 0;
+  }
+
+  @Override
+  public String toString() {
+    //simplify();
+    String s = num.toString();
+    // Only bother to write denominator if we are not a polynomial, and we are not zero.
+    if (!isPolynomial() && !isZero()) {
+      //s += " / "+denom.toString();
+      s = "("+s+") / ("+denom.toString()+")";
+    }
+    return s;
+  }
+
+  public void simplify() {
+
+    // If num is 0, set denom to 1.
+    if (num.isZero()) {
+      denom = Polynomial.makeUnity();
+    }
+    // If not, then check whether num = denom, and in that case set both to 1.
+    else if (num.equals(denom)) {
+      num = Polynomial.makeUnity();
+      denom = Polynomial.makeUnity();
+    }
+
+    // Cancel common monomial content of num and denom.
+    Monomial mn = num.getMonomialContent();
+    Monomial md = denom.getMonomialContent();
+    Monomial mc = Monomial.gcd(mn,md);
+    if (!mc.isConstant()) {
+      num.factorOut(mc);
+      denom.factorOut(mc);
+    }
+
+    // Divide through by a constant denominator different from 1.
+    if (denom.isConstant() && !denom.isUnity()) {
+      Rational c = denom.getConstant();
+      Polynomial cinv = new Polynomial(c.makeReciprocal());
+      num = Polynomial.multiply(cinv,num);
+      denom = new Polynomial(1);
+    }
+
+  }
+
+
+}

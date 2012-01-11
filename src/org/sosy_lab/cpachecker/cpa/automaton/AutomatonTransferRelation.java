@@ -226,7 +226,10 @@ class AutomatonTransferRelation implements TransferRelation {
       Collection<? extends AbstractElement> lSuccessors = getFollowStates(lUnknownState.getPreviousState(), pOtherElements, pCfaEdge, true);
       totalStrengthenTime.stop();
       for (AbstractElement succ : lSuccessors) {
-        assert (!(succ instanceof AutomatonUnknownState)): "automaton.strengthen returned an unknownState!";
+        if (succ instanceof AutomatonUnknownState) {
+          // TODO this should give more details
+          throw new CPATransferException("Automaton transition could not be matched against CFA edge");
+        }
       }
       return lSuccessors;
     }

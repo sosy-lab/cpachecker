@@ -1,0 +1,8 @@
+../programs/benchmarks/systemc/token_ring.01.BUG.cil.c
+../programs/benchmarks/systemc/token_ring.03.BUG.cil.c
+../programs/benchmarks/systemc/token_ring.04.BUG.cil.c
+../programs/benchmarks/systemc/transmitter.01.BUG.cil.c
+../programs/benchmarks/systemc/transmitter.02.BUG.cil.c
+../programs/benchmarks/systemc/transmitter.03.BUG.cil.c
+../programs/benchmarks/systemc/transmitter.04.BUG.cil.c
+../programs/benchmarks/systemc/*[!1][!G56789].cil.c

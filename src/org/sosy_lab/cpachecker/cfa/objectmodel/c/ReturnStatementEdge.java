@@ -37,7 +37,7 @@ public class ReturnStatementEdge extends AbstractCFAEdge {
   public ReturnStatementEdge(IASTReturnStatement pRawAST, int pLineNumber,
       CFANode pPredecessor, CFAFunctionExitNode pSuccessor) {
 
-    super(pRawAST.getRawSignature(), pLineNumber, pPredecessor, pSuccessor);
+    super(pRawAST.toASTString(), pLineNumber, pPredecessor, pSuccessor);
     rawAST = pRawAST;
   }
 

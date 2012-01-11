@@ -25,33 +25,18 @@ package org.sosy_lab.cpachecker.core.algorithm.cbmctools;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.ProcessExecutor;
 
-import com.google.common.base.Preconditions;
-
 public class CBMCExecutor extends ProcessExecutor<RuntimeException> {
-
-  private static String[] CBMC_ARGS;
 
   private Boolean result = null;
   private boolean unwindingAssertionFailed = false;
 
-  public CBMCExecutor(LogManager logger, File file, String[] args) throws IOException {
-    super(logger, RuntimeException.class, getCmdline(file, args));
-  }
-
-  private static String[] getCmdline(File file, String[] args) {
-    CBMC_ARGS = args;
-    Preconditions.checkArgument(file.canRead());
-
-    String[] result = Arrays.copyOf(CBMC_ARGS, CBMC_ARGS.length + 1);
-    result[result.length-1] = file.getAbsolutePath();
-    return result;
+  public CBMCExecutor(LogManager logger, String[] args) throws IOException {
+    super(logger, RuntimeException.class, args);
   }
 
   @Override

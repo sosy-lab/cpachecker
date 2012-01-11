@@ -34,11 +34,12 @@ public class IASTFunctionCallExpression extends IASTRightHandSide {
   private final List<IASTExpression> parameters;
   private final IASTSimpleDeclaration declaration;
 
-  public IASTFunctionCallExpression(final String pRawSignature,
-      final IASTFileLocation pFileLocation, final IType pType,
-      final IASTExpression pFunctionName, final List<IASTExpression> pParameters,
-      final IASTSimpleDeclaration pDeclaration) {
-    super(pRawSignature, pFileLocation, pType);
+  public IASTFunctionCallExpression(final IASTFileLocation pFileLocation,
+                                    final IType pType,
+                                    final IASTExpression pFunctionName,
+                                    final List<IASTExpression> pParameters,
+                                    final IASTSimpleDeclaration pDeclaration) {
+    super(pFileLocation, pType);
     functionName = pFunctionName;
     parameters = ImmutableList.copyOf(pParameters);
     declaration = pDeclaration;
@@ -71,13 +72,12 @@ public class IASTFunctionCallExpression extends IASTRightHandSide {
   }
 
   @Override
-  public String toASTString(String pPrefix) {
+  public String toASTString() {
     StringBuilder lASTString = new StringBuilder();
 
-    lASTString.append(pPrefix);
     lASTString.append(functionName.toASTString());
     lASTString.append("(");
-    lASTString.append(Joiner.on(", ").join(new ASTStringIterable(parameters)));
+    Joiner.on(", ").appendTo(lASTString, new ASTStringIterable(parameters));
     lASTString.append(")");
 
     return lASTString.toString();

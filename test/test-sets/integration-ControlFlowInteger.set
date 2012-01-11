@@ -1,0 +1,10 @@
+../../test/programs/benchmarks/ntdrivers-simplified/*_BUG.cil.c
+../../test/programs/benchmarks/ntdrivers-simplified/*[!G].cil.c
+../../test/programs/benchmarks/ntdrivers/*.BUG.i.cil.c
+../../test/programs/benchmarks/ntdrivers/*[!G].i.cil.c
+../../test/programs/benchmarks/ssh-simplified/*_BUG.cil.c
+../../test/programs/benchmarks/ssh-simplified/*[!G].cil.c
+../../test/programs/benchmarks/ssh/*[!9].BUG.i.cil.c
+../../test/programs/benchmarks/ssh/*[!G].i.cil.c
+../../test/programs/benchmarks/locks/*.BUG.c
+../../test/programs/benchmarks/locks/*[!G].c

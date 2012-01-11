@@ -31,9 +31,9 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.conditions.AssumptionReportingElement;
+import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingElement;
 import org.sosy_lab.cpachecker.util.AbstractElements;
-import org.sosy_lab.cpachecker.util.assumptions.AssumptionReportingElement;
-import org.sosy_lab.cpachecker.util.assumptions.AvoidanceReportingElement;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 

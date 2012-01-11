@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.util;
 
 import static com.google.common.collect.Iterables.*;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.Iterator;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -38,7 +36,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
@@ -152,51 +149,24 @@ public final class AbstractElements {
    */
   public static Iterable<AbstractElement> asIterable(final AbstractElement ae) {
 
-    return new Iterable<AbstractElement>() {
+    return new TreeIterable<AbstractElement>(ae, ABSTRACT_ELEMENT_CHILDREN_FUNCTION);
+  }
+
+  private static final Function<AbstractElement, Iterator<? extends AbstractElement>> ABSTRACT_ELEMENT_CHILDREN_FUNCTION
+    = new Function<AbstractElement, Iterator<? extends AbstractElement>>() {
       @Override
-      public Iterator<AbstractElement> iterator() {
+      public Iterator<? extends AbstractElement> apply(AbstractElement element) {
+        if (element instanceof AbstractSingleWrapperElement) {
+          AbstractElement wrapped = ((AbstractSingleWrapperElement)element).getWrappedElement();
+          return Iterators.singletonIterator(wrapped);
 
-        return new Iterator<AbstractElement>() {
+        } else if (element instanceof AbstractWrapperElement) {
+          return ((AbstractWrapperElement)element).getWrappedElements().iterator();
+        }
 
-          private final Deque<Iterator<? extends AbstractElement>> stack = new ArrayDeque<Iterator<? extends AbstractElement>>();
-          {
-            stack.push(Iterators.singletonIterator(ae));
-          }
-
-          @Override
-          public boolean hasNext() {
-            return !stack.isEmpty();
-          }
-
-          @Override
-          public AbstractElement next() {
-            Iterator<? extends AbstractElement> currentIterator = stack.peek();
-            Preconditions.checkState(currentIterator.hasNext());
-            AbstractElement current = currentIterator.next();
-
-            if (!currentIterator.hasNext()) {
-              stack.pop();
-            }
-
-            if (current instanceof AbstractSingleWrapperElement) {
-              AbstractElement wrapped = ((AbstractSingleWrapperElement)current).getWrappedElement();
-              stack.push(Iterators.singletonIterator(wrapped));
-
-            } else if (current instanceof AbstractWrapperElement) {
-              stack.push(((AbstractWrapperElement)current).getWrappedElements().iterator());
-            }
-
-            return current;
-          }
-
-          @Override
-          public void remove() {
-            throw new UnsupportedOperationException();
-          }
-        };
+        return null;
       }
     };
-  }
 
   private static final Function<AbstractElement, Iterable<AbstractElement>> AS_ITERABLE
     = new Function<AbstractElement, Iterable<AbstractElement>>() {

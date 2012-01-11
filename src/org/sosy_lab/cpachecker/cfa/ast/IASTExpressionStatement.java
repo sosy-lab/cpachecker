@@ -27,9 +27,9 @@ public class IASTExpressionStatement extends IASTStatement {
 
   private final IASTExpression expression;
 
-  public IASTExpressionStatement(final String pRawSignature,
-      final IASTFileLocation pFileLocation, final IASTExpression pExpression) {
-    super(pRawSignature, pFileLocation);
+  public IASTExpressionStatement(final IASTFileLocation pFileLocation,
+                                 final IASTExpression pExpression) {
+    super(pFileLocation);
     expression = pExpression;
   }
 
@@ -43,7 +43,7 @@ public class IASTExpressionStatement extends IASTStatement {
   }
 
   @Override
-  public String toASTString(String pPrefix) {
-    return pPrefix + expression.toASTString() + ";";
+  public String toASTString() {
+    return expression.toASTString() + ";";
   }
 }

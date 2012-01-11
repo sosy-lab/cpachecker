@@ -28,9 +28,9 @@ package org.sosy_lab.cpachecker.cfa.ast;
  */
 public abstract class IASTExpression extends IASTRightHandSide {
 
-  public IASTExpression(final String pRawSignature,
-      final IASTFileLocation pFileLocation, final IType pType) {
-    super(pRawSignature, pFileLocation, pType);
+  public IASTExpression(final IASTFileLocation pFileLocation,
+                        final IType pType) {
+    super(pFileLocation, pType);
   }
 
   public abstract <R, X extends Exception> R accept(ExpressionVisitor<R, X> v) throws X;

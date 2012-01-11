@@ -46,6 +46,7 @@ import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -192,8 +193,9 @@ class MainCPAStatistics implements Statistics {
         description="print reached set to text file")
     private boolean exportReachedSet = true;
 
-    @Option(name="reachedSet.file", type=Option.Type.OUTPUT_FILE,
+    @Option(name="reachedSet.file",
         description="print reached set to text file")
+    @FileOption(FileOption.Type.OUTPUT_FILE)
     private File outputFile = new File("reached.txt");
 
     @Option(name="statistics.memory",
@@ -291,17 +293,17 @@ class MainCPAStatistics implements Statistics {
         out.println("Time for analysis setup:      " + creationTime);
         out.println("  Time for loading CPAs:      " + cpaCreationTime);
         if (cfaCreator != null) {
-          out.println("Time for loading C parser:    " + cfaCreator.parserInstantiationTime);
-          out.println("Time for CFA construction:    " + cfaCreator.totalTime);
-          out.println("  Time for parsing C file:    " + cfaCreator.parsingTime);
-          out.println("  Time for AST to CFA:        " + cfaCreator.conversionTime);
-          out.println("  Time for CFA sanity checks: " + cfaCreator.checkTime);
-          out.println("  Time for post-processing:   " + cfaCreator.processingTime);
+          out.println("  Time for loading C parser:  " + cfaCreator.parserInstantiationTime);
+          out.println("  Time for CFA construction:  " + cfaCreator.totalTime);
+          out.println("    Time for parsing C file:  " + cfaCreator.parsingTime);
+          out.println("    Time for AST to CFA:      " + cfaCreator.conversionTime);
+          out.println("    Time for CFA sanity check:" + cfaCreator.checkTime);
+          out.println("    Time for post-processing: " + cfaCreator.processingTime);
           if (cfaCreator.pruningTime.getNumberOfIntervals() > 0) {
-            out.println("  Time for CFA pruning:       " + cfaCreator.pruningTime);
+            out.println("    Time for CFA pruning:     " + cfaCreator.pruningTime);
           }
           if (cfaCreator.exportTime.getNumberOfIntervals() > 0) {
-            out.println("  Time for CFA export:        " + cfaCreator.exportTime);
+            out.println("    Time for CFA export:      " + cfaCreator.exportTime);
           }
         }
         out.println("Time for Analysis:            " + analysisTime);

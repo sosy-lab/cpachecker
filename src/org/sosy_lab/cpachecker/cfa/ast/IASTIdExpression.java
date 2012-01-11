@@ -28,23 +28,16 @@ public class IASTIdExpression extends IASTExpression {
   private final String name;
   private final IASTSimpleDeclaration declaration;
 
-  public IASTIdExpression(final String pRawSignature,
-      final IASTFileLocation pFileLocation, final IType pType,
-      final String pName, final IASTSimpleDeclaration pDeclaration) {
-    super(pRawSignature, pFileLocation, pType);
+  public IASTIdExpression(final IASTFileLocation pFileLocation,
+                          final IType pType, final String pName,
+                          final IASTSimpleDeclaration pDeclaration) {
+    super(pFileLocation, pType);
     name = pName;
     declaration = pDeclaration;
   }
 
   public String getName() {
     return name;
-  }
-
-  @Deprecated
-  @Override
-  public String getRawSignature() {
-    // TODO Auto-generated method stub
-    return super.getRawSignature();
   }
 
   /**
@@ -66,7 +59,7 @@ public class IASTIdExpression extends IASTExpression {
   }
 
   @Override
-  public String toASTString(String pPrefix) {
-    return pPrefix + name;
+  public String toASTString() {
+    return name;
   }
 }

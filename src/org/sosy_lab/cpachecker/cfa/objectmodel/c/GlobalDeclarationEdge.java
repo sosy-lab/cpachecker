@@ -33,10 +33,10 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
  */
 public class GlobalDeclarationEdge extends DeclarationEdge {
 
-  public GlobalDeclarationEdge(IASTDeclaration pDeclaration, int pLineNumber,
-      CFANode predecessor, CFANode pSuccessor) {
+  public GlobalDeclarationEdge(final String pRawSignature, final int pLineNumber,
+      final CFANode pPredecessor, final CFANode pSuccessor, final IASTDeclaration pDeclaration) {
 
-    super(pDeclaration, pLineNumber, predecessor, pSuccessor);
+    super(pRawSignature, pLineNumber, pPredecessor, pSuccessor, pDeclaration);
   }
 
   @Override

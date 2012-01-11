@@ -25,16 +25,11 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 public abstract class IASTLiteralExpression extends IASTExpression {
 
-  public IASTLiteralExpression(final String pRawSignature,
-      final IASTFileLocation pFileLocation, final IType pType) {
-    super(pRawSignature, pFileLocation, pType);
+  public IASTLiteralExpression(final IASTFileLocation pFileLocation,
+                               final IType pType) {
+    super(pFileLocation, pType);
   }
 
   public abstract Object getValue();
 
-  @Override
-  @Deprecated
-  public String getRawSignature() {
-    return super.getRawSignature();
-  }
 }
