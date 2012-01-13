@@ -114,7 +114,7 @@ class PredicateAbstractionManager {
   protected boolean useBitwiseAxioms = false;
 
   @Option(name="abs.useCache", description="use caching of abstractions")
-  private boolean useCache = true;
+  private boolean useCache = false;
 
   private final Map<Pair<PathFormula, Collection<AbstractionPredicate>>, AbstractionFormula> abstractionCache;
   //cache for cartesian abstraction queries. For each predicate, the values
@@ -383,6 +383,7 @@ class PredicateAbstractionManager {
 
         for (AbstractionPredicate p : predicates) {
           Pair<Formula, AbstractionPredicate> cacheKey = Pair.of(f, p);
+          // TODO this cache is wrong for rely-guarantee
           if (useCache && cartesianAbstractionCache.containsKey(cacheKey)) {
             byte predVal = cartesianAbstractionCache.get(cacheKey);
 

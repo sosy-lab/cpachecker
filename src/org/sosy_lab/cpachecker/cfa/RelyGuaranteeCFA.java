@@ -75,7 +75,7 @@ public class RelyGuaranteeCFA extends CFA {
           if (!de.isGlobal() && de.getDeclSpecifier() instanceof IASTSimpleDeclSpecifier){
             // TODO use some method
             String function = edge.getPredecessor().getFunctionName();
-            String name = "t"+tid+"_"+function+"::"+de.getName();
+            String name = function+"::"+de.getName();
             scopedLocalVars.add(name);
           }
         }

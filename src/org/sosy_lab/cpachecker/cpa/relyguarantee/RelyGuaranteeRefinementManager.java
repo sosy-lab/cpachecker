@@ -205,7 +205,7 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
 
 
 
-  protected Path computePath(ARTElement pLastElement, ReachedSet pReached) throws InterruptedException, CPAException {
+  protected Path computePath(ARTElement pLastElement) throws InterruptedException, CPAException {
     return ARTUtils.getOnePathTo(pLastElement);
   }
 
@@ -538,9 +538,9 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
    * @throws InterruptedException
    * @throws CPAException
    */
-  public void getRootsForElement(ReachedSet[] reachedSets, ARTElement target, int tid, InterpolationDag dag) throws InterruptedException, CPAException {
-    assert !target.isDestroyed() && reachedSets[tid].contains(target);
-    assert dag != null;
+  public void constructDagForElement(ReachedSet[] reachedSets, ARTElement target, int tid, InterpolationDag dag) throws InterruptedException, CPAException {
+    // Note: in case of abstracted operations, the target may be cover, ergo not in the reached set.
+    assert !target.isDestroyed();
 
     if (debug){
       System.out.println();
@@ -548,7 +548,7 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
     }
 
     // get the abstraction elements on the path from the root to the error element
-    Path cfaPath = computePath(target, reachedSets[tid]);
+    Path cfaPath = computePath(target);
     List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> path = transformFullPath(cfaPath);
 
     // exit if the target has already been added to the target
@@ -577,7 +577,15 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
       boolean newNode = false;
       InterpolationDagNode node = dag.getNode(tid, artElement.getElementId());
       if (node == null){
-        node = new InterpolationDagNode(artElement, rgElement.getAbstractionFormula().getBlockPathFormula(), rgElement.getBlockAppInfo(), tid);
+        RelyGuaranteeApplicationInfo appInfo = rgElement.getBlockAppInfo();
+        PathFormula pf;
+        if (appInfo != null){
+          pf = appInfo.getRefinementPf();
+        } else {
+          pf = rgElement.getAbstractionFormula().getBlockPathFormula();
+        }
+
+        node = new InterpolationDagNode(artElement, pf, appInfo, tid);
         dag.getNodeMap().put(node.getKey(), node);
         newNode = true;
 
@@ -625,15 +633,15 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
       // rename env. transitions to their source thread numbers
       for(Integer id : envMap.keySet()){
         RelyGuaranteeCFAEdgeTemplate rgEdge = envMap.get(id);
-        ARTElement sourceARTElement = rgEdge.getSourceARTElement();
+        ARTElement targetARTElement = rgEdge.getTargetARTElement();
         Integer sourceTid           = rgEdge.getSourceTid();
         assert sourceTid != tid;
 
         // construct missing nodes for the source element
-        getRootsForElement(reachedSets, sourceARTElement, sourceTid, dag);
+        constructDagForElement(reachedSets, targetARTElement, sourceTid, dag);
 
         // get nodes for the last abstraction for the source element.
-        Path envCfaPath = computePath(sourceARTElement, reachedSets[sourceTid]);
+        Path envCfaPath = computePath(targetARTElement);
         List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> envPath = transformFullPath(envCfaPath);
         ARTElement sourceAbstrElement = envPath.get(envPath.size()-1).getFirst();
 
@@ -1026,7 +1034,7 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
 
     // get the full DAG for the error element
     InterpolationDag dag = new InterpolationDag();
-    getRootsForElement(reachedSets, targetElement, tid, dag);
+    constructDagForElement(reachedSets, targetElement, tid, dag);
 
     if (debug){
       System.out.println();
@@ -1269,8 +1277,11 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
 
           // create a sub-tree for the the element that generated the transition
           ARTElement sARTElement = null;
-          if (abstractEnvTransitions == 1 || abstractEnvTransitions == 2){
-            // env. transitions were abstracted, so use their source element
+          if (abstractEnvTransitions == 2){
+            // operations was abstracted, so use the element after it
+            sARTElement = rgEdge.getTargetARTElement();
+          } else if(abstractEnvTransitions == 1){
+            // the element before the operation was abstracted, so use it
             sARTElement = rgEdge.getSourceARTElement();
           } else {
             // env. transitions were unabstracted, so use the last abstraction point
@@ -1285,8 +1296,7 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
 
           if (abstractEnvTransitions == 2){
             // TODO make more elegant
-            // if edge was abstracted, then apply it for interpolation
-            PathFormula newPf = pmgr.makeAnd(appNode.getPathFormula(), rgEdge.getLocalEdge(), appUniqueId);
+            PathFormula newPf = appNode.getPathFormula();
             // rename filter SSAMap
             SSAMap fltrSsa = rgEdge.getFilter().getSsa();
             SSAMapBuilder rfltrSsaBldr = SSAMap.emptySSAMap().builder();
@@ -1362,7 +1372,7 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
 
    // get the full DAG for the error element
    InterpolationDag dag = new InterpolationDag();
-   getRootsForElement(reachedSets, targetElement, tid, dag);
+   constructDagForElement(reachedSets, targetElement, tid, dag);
 
    if (debug){
      System.out.println();

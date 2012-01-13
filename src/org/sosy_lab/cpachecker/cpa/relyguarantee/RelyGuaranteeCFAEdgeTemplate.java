@@ -91,6 +91,10 @@ public class RelyGuaranteeCFAEdgeTemplate{
     return this.sourceEnvTransition.getSourceARTElement();
   }
 
+  public ARTElement getTargetARTElement() {
+    return this.sourceEnvTransition.getTargetARTElement();
+  }
+
   public void setSourceARTElement(ARTElement newElem) {
     this.sourceEnvTransition.setSourceARTElement(newElem);
   }

@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+
 /**
  * Contains information on applications of environmental edges.
  */
@@ -36,6 +38,9 @@ public class RelyGuaranteeApplicationInfo {
    * Env. edges that have been applied.
    */
   public final Map<Integer, RelyGuaranteeCFAEdgeTemplate> envMap;
+
+  /** Path formula for refinement */
+  private PathFormula refinementPf;
 
 
 
@@ -75,5 +80,19 @@ public class RelyGuaranteeApplicationInfo {
   public String toString(){
     return "rgEdges: "+envMap.keySet();
   }
+
+  public void setRefinementFormula(PathFormula pf) {
+    this.refinementPf = pf;
+  }
+
+  public PathFormula getRefinementPf() {
+    return refinementPf;
+  }
+
+  public void setRefinementPf(PathFormula pRefinementPf) {
+    refinementPf = pRefinementPf;
+  }
+
+
 
 }

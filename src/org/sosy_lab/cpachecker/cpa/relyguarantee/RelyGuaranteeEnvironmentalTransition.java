@@ -41,6 +41,7 @@ public class RelyGuaranteeEnvironmentalTransition {
   private final CFAEdge edge;
   private final int sourceThread;
   private ARTElement sourceARTElement;
+  private ARTElement targetARTElement;
 
 
  /* public RelyGuaranteeEnvironmentalTransition (Formula formula, PathFormula pathFormula, CFAEdge edge, int sourceThread) {
@@ -51,8 +52,8 @@ public class RelyGuaranteeEnvironmentalTransition {
   }*/
 
   // TODO some type-check would be good
-  public RelyGuaranteeEnvironmentalTransition(ARTElement aElement, CFAEdge edge, int tid) {
-    CompositeElement cElement = (CompositeElement)  aElement.getWrappedElement();
+  public RelyGuaranteeEnvironmentalTransition(ARTElement source, ARTElement target, CFAEdge edge, int tid) {
+    CompositeElement cElement = (CompositeElement)  source.getWrappedElement();
     CFANode node = cElement.retrieveLocationElement().getLocationNode();
     RelyGuaranteeAbstractElement predElement = AbstractElements.extractElementByType(cElement, RelyGuaranteeAbstractElement.class);
 
@@ -61,7 +62,8 @@ public class RelyGuaranteeEnvironmentalTransition {
     this.pathFormula = predElement.getPathFormula();
     this.edge = edge;
     this.sourceThread = tid;
-    this.sourceARTElement = aElement;
+    this.sourceARTElement = source;
+    this.targetARTElement = target;
   }
 
 
@@ -90,7 +92,9 @@ public class RelyGuaranteeEnvironmentalTransition {
     return sourceARTElement;
   }
 
-
+  public ARTElement getTargetARTElement() {
+    return targetARTElement;
+  }
 
   public void setSourceARTElement(ARTElement pSourceARTElement) {
     sourceARTElement = pSourceARTElement;

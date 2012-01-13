@@ -170,6 +170,17 @@ public class InterpolationDagNode{
   }
 
 
+  public boolean equals(Object other){
+    if (!(other instanceof InterpolationDagNode)){
+      return false;
+    };
+
+    InterpolationDagNode oNode = (InterpolationDagNode) other;
+
+    return key.equals(oNode.key);
+  }
+
+
 
 
 }

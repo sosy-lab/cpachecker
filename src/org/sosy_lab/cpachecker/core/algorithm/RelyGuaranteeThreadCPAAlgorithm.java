@@ -27,7 +27,6 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Vector;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -198,12 +197,12 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
 
       stats.transferTimer.start();
       Collection<? extends AbstractElement> successors = transferRelation.getAbstractSuccessors(element, precision, null);
-      stats.transferTimer.stop();
+
 
       // create and environmental edge and add it the global storage
-      stats.envGenTimer.start();
-      Vector<RelyGuaranteeEnvironmentalTransition> newEnvTransitions = createEnvTransitions(element);
-      environment.addEnvTransitions(newEnvTransitions);
+
+      //Vector<RelyGuaranteeEnvironmentalTransition> newEnvTransitions = createEnvTransitions(element);
+      //environment.addEnvTransitions(newEnvTransitions);
       stats.envGenTimer.stop();
 
       int numSuccessors = successors.size();
@@ -213,13 +212,15 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
 
       for (AbstractElement successor : successors) {
         // TODO for statistics, could slower down the analysis
-        RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(successor, RelyGuaranteeAbstractElement.class);
         boolean byEnvEdge = false;
+        RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(successor, RelyGuaranteeAbstractElement.class);
 
         if (rgElement.getParentEdge() != null && (rgElement.getParentEdge().getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge || rgElement.getParentEdge().getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge)){
           byEnvEdge = true;
           stats.countEnvSuccessors++;
         }
+
+
 
         logger.log(Level.FINER, "Considering successor of current element");
         logger.log(Level.ALL, "Successor of", element, "\nis", successor);
@@ -236,6 +237,14 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
         successor = precAdjustmentResult.getFirst();
         Precision successorPrecision = precAdjustmentResult.getSecond();
         Action action = precAdjustmentResult.getThird();
+
+        // generate env edge
+        stats.envGenTimer.start();
+        RelyGuaranteeEnvironmentalTransition newEnvTransition = createEnvTransitions(element, successor);
+        if (newEnvTransition != null){
+          environment.addEnvTransition(newEnvTransition);
+        }
+        stats.transferTimer.stop();
 
         if (debug){
           printRelyGuaranteeAbstractElement(successor);
@@ -382,27 +391,22 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
   }
 
   // generate  environmental edges for every outgoing
-  private Vector<RelyGuaranteeEnvironmentalTransition> createEnvTransitions(AbstractElement pElement) {
-    // get the underlying PredicateAbstractElement
-    Vector<RelyGuaranteeEnvironmentalTransition> envTransitions = new  Vector<RelyGuaranteeEnvironmentalTransition>();
-    ARTElement aElement  = (ARTElement) pElement;
-    CompositeElement cElement = (CompositeElement)  aElement.getWrappedElement();
-    CFANode node = cElement.retrieveLocationElement().getLocationNode();
-    // find the predicate CPA
-    RelyGuaranteeAbstractElement predElement = AbstractElements.extractElementByType(cElement, RelyGuaranteeAbstractElement.class);
+  private RelyGuaranteeEnvironmentalTransition createEnvTransitions(AbstractElement element, AbstractElement successor) {
+    RelyGuaranteeEnvironmentalTransition newEnvTransition = null;
 
-    // create an environmental edge for every outgoing assignment
-    CFAEdge edge;
-    for (int i=0; i<node.getNumLeavingEdges(); i++){
-      edge = node.getLeavingEdge(i);
-      if (this.createsEnvTransition(edge)) {
-        //RelyGuaranteeEnvironmentalTransition newEnvTransition = new RelyGuaranteeEnvironmentalTransition(predElement.getAbstractionFormula().asFormula(), predElement.getPathFormula(), edge,  this.tid);
-        RelyGuaranteeEnvironmentalTransition newEnvTransition = new RelyGuaranteeEnvironmentalTransition(aElement, edge,  this.tid);
-        envTransitions.add(newEnvTransition);
-      }
+    ARTElement aElement  = (ARTElement) element;
+    ARTElement aSucc     = (ARTElement) successor;
+    CompositeElement cElement = (CompositeElement)  aElement.getWrappedElement();
+    CompositeElement  cSucc    = (CompositeElement)  aSucc.getWrappedElement();
+    CFANode elemNode = cElement.retrieveLocationElement().getLocationNode();
+    CFANode succNode = cSucc.retrieveLocationElement().getLocationNode();
+    CFAEdge edge = elemNode.getEdgeTo(succNode);
+    if (createsEnvTransition(edge)) {
+      //RelyGuaranteeEnvironmentalTransition newEnvTransition = new RelyGuaranteeEnvironmentalTransition(predElement.getAbstractionFormula().asFormula(), predElement.getPathFormula(), edge,  this.tid);
+       newEnvTransition = new RelyGuaranteeEnvironmentalTransition(aElement, aSucc, edge,  this.tid);
     }
 
-    return envTransitions;
+    return newEnvTransition;
   }
 
 

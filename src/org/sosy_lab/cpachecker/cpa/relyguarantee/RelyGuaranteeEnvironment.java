@@ -274,6 +274,10 @@ public class RelyGuaranteeEnvironment {
     }
   }
 
+  public void addEnvTransition(RelyGuaranteeEnvironmentalTransition newTransition) {
+    unprocessedTransitions.add(newTransition);
+  }
+
   public void clearUnappliedEnvEdgesForThread(int i) {
     unappliedEnvEdgesForThread[i].removeAllElements();
   }
@@ -395,50 +399,55 @@ public class RelyGuaranteeEnvironment {
    * @return
    */
   private RelyGuaranteeCFAEdgeTemplate generateEnvTransition(RelyGuaranteeEnvironmentalTransition et) {
+    if (et.getSourceARTElement().getElementId() == 4315){
+      System.out.println();
+    }
 
     ARTElement lastARTAbstractionElement = findLastAbstractionARTElement(et.getSourceARTElement());
     assert lastARTAbstractionElement != null;
 
     if (this.abstractEnvTransitions == 2){
 
-      // compute the sucessor's path formula
+      int sourceTid = et.getSourceThread();
+      PathFormula oldPf = et.getPathFormula();
+      AbstractionFormula oldAbs = et.getAbstractionFormula();
       PathFormula newPf = null;
+
+      // compute the sucessor's path formula
       try {
-        newPf = pfManager.makeAnd(et.getPathFormula(), et.getEdge(), et.getSourceThread());
+        newPf = pfManager.makeAnd(oldPf, et.getEdge(), sourceTid);
       } catch (CPATransferException e) {
         e.printStackTrace();
       }
 
-      // increment all index in the SSA Map of path formula by one.
-      SSAMapBuilder incrSsaBldr = SSAMap.emptySSAMap().builder();
-      SSAMap ssa = et.getPathFormula().getSsa();
-      for (String var : ssa.allVariables()){
-        if (newPf.getSsa().getIndex(var) <= ssa.getIndex(var)){
-          incrSsaBldr.setIndex(var, ssa.getIndex(var)+1);
-        } else {
-          incrSsaBldr.setIndex(var, newPf.getSsa().getIndex(var));
-        }
+      // increment indexes of variables global and local to this thread by 1, mimimal index is 2
+      Set<String> vars = new HashSet<String>(variables.globalVars);
+      vars.addAll(variables.localVars.get(sourceTid));
+      SSAMapBuilder newSsaBldr = SSAMap.emptySSAMap().builder();
+      SSAMap oldSsa = oldPf.getSsa();
+      for (String var : vars){
+        String pVar = var + PathFormula.PRIME_SYMBOL + sourceTid;
+        int idx = Math.max(oldSsa.getIndex(pVar) + 1, 2);
+        newSsaBldr.setIndex(pVar, idx);
       }
-      SSAMap incrSsa = incrSsaBldr.build();
+      SSAMap newSsa = newSsaBldr.build();
 
-      // here we ensure that every SSA index is at least one higher - it's required for correct abstraction
-      Pair<Pair<Formula, Formula>, SSAMap> equivs = this.pfManager.mergeRelyGuaranteeSSAMaps(newPf.getSsa(), incrSsa, et.getSourceThread());
-      Formula newF = this.fManager.makeAnd(newPf.getFormula(), equivs.getFirst().getFirst());
-
-      newPf = new PathFormula(newF, equivs.getSecond(), newPf.getLength());
+      // create a formula, where every index is increased - either by operation or by equivalence
+      Pair<Pair<Formula, Formula>, SSAMap> equivs = pfManager.mergeRelyGuaranteeSSAMaps(newPf.getSsa(), newSsa, sourceTid);
+      Formula newF = fManager.makeAnd(newPf.getFormula(), equivs.getFirst().getFirst());
+      newPf = new PathFormula(newF, newSsa, newPf.getLength());
 
       // get the predicates for the transition
-      int sourceTid = et.getSourceThread();
       CFANode loc = et.getEdge().getPredecessor();
-      // preds is the set of env. predicates for the location plus the global predicates
       SetMultimap<CFANode, AbstractionPredicate> prec = envPrecision[sourceTid];
       Set<AbstractionPredicate> preds = new HashSet<AbstractionPredicate>(prec.get(loc));
       preds.addAll(envGlobalPrecision[sourceTid]);
 
-      AbstractionFormula aFilter = paManager.buildNextValAbstraction(et.getAbstractionFormula(), et.getPathFormula(), newPf, preds);
+      // abstract
+      AbstractionFormula newAbs = paManager.buildNextValAbstraction(oldAbs, oldPf, newPf, preds);
       assert lastARTAbstractionElement != null;
 
-      return new RelyGuaranteeAbstractCFAEdgeTemplate(aFilter, lastARTAbstractionElement, et);
+      return new RelyGuaranteeAbstractCFAEdgeTemplate(newAbs, lastARTAbstractionElement, et);
     }
     else if (this.abstractEnvTransitions == 1){
       // abstract the conjuction of abstraction and path formula using set of predicates.
@@ -1196,6 +1205,10 @@ public class RelyGuaranteeEnvironment {
   public Set<AbstractionPredicate>[] getEnvGlobalPrecision() {
     return envGlobalPrecision;
   }
+
+
+
+
 
 
 

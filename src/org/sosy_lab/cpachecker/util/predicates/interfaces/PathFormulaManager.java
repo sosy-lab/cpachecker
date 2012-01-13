@@ -139,7 +139,7 @@ public interface PathFormulaManager {
    * @param pUniquePrime
    * @return
    */
-  PathFormula makePrimedEqualities(PathFormula pf1, int i, PathFormula pf2, int j);
+  PathFormula makePrimedEqualities(SSAMap ssa1, int i, SSAMap ssa2, int j);
 
 
 

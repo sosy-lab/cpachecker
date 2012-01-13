@@ -369,7 +369,7 @@ public class RelyGuaranteeRefiner{
    * @return
    */
   private Multimap<Integer, Pair<ARTElement, RelyGuaranteePrecision>> restartingRefinement(ReachedSet[] reachedSets, CounterexampleTraceInfo info) {
-
+    // TODO rewrite - a bit sloopy
     Multimap<Integer, Pair<ARTElement, RelyGuaranteePrecision>> refinementMap = HashMultimap.create();
     // multimap : thread no -> (ART element)
     Multimap<Integer, ARTElement> artMap = HashMultimap.create();
@@ -390,7 +390,7 @@ public class RelyGuaranteeRefiner{
       Collection<AbstractionPredicate> preds = info.getEnvPredicatesForRefinement(aElement);
 
       if (!this.addEnvPredicatesGlobally){
-        SetMultimap<CFANode, AbstractionPredicate> tPrec = this.rgEnvironment.getEnvPrecision()[tid];
+        SetMultimap<CFANode, AbstractionPredicate> tPrec = rgEnvironment.getEnvPrecision()[tid];
         if (!tPrec.get(loc).containsAll(preds)){
           newPredicates = true;
           Collection<AbstractionPredicate> cNewPreds = new HashSet<AbstractionPredicate>(preds);
@@ -401,7 +401,7 @@ public class RelyGuaranteeRefiner{
         }
         tPrec.putAll(loc, preds);
       } else {
-        Set<AbstractionPredicate> tPrec = this.rgEnvironment.getEnvGlobalPrecision()[tid];
+        Set<AbstractionPredicate> tPrec = rgEnvironment.getEnvGlobalPrecision()[tid];
         if (!tPrec.containsAll(preds)){
           newPredicates = true;
           Collection<AbstractionPredicate> cNewPreds = new HashSet<AbstractionPredicate>(preds);
@@ -412,12 +412,7 @@ public class RelyGuaranteeRefiner{
         }
         tPrec.addAll(preds);
       }
-
-    if (!this.rgEnvironment.getEnvPrecision()[tid].isEmpty()){
-      System.out.println();
     }
-    }
-
 
     // group interpolation elements  by threads
     for (AbstractElement aElement : info.getPredicatesForRefinmentKeys()){
@@ -448,23 +443,33 @@ public class RelyGuaranteeRefiner{
 
         Collection<AbstractionPredicate> newpreds = info.getPredicatesForRefinement(artElement);
         CFANode loc = AbstractElements.extractLocation(artElement);
-        if (this.addPredicatesGlobally){
-          Set<AbstractionPredicate> gpreds = rgPrecision.getGlobalPredicates();
+        if (addPredicatesGlobally){
+          Set<AbstractionPredicate> gpreds  = rgPrecision.getGlobalPredicates();
+          if (!gpreds.containsAll(newpreds)){
+            newPredicates = true;
+            if (debug){
+              Collection<AbstractionPredicate> cNewPreds = new HashSet<AbstractionPredicate>(newpreds);
+              cNewPreds.removeAll(gpreds);
+              System.out.println("\t- ART: "+loc+" -> "+cNewPreds);
+            }
+
+          }
           Set<AbstractionPredicate> ngpreds = new HashSet<AbstractionPredicate>(gpreds);
           ngpreds.addAll(newpreds);
           rgPrecision.setGlobalPredicates(ImmutableSet.copyOf(ngpreds));
         } else {
           pmapBuilder.putAll(loc, newpreds);
-        }
-
-        if (!oldPreds.get(loc).containsAll(newpreds)){
-          newPredicates = true;
-          Collection<AbstractionPredicate> cNewPreds = new HashSet<AbstractionPredicate>(newpreds);
-          cNewPreds.removeAll(oldPreds.get(loc));
-          if (debug){
-            System.out.println("\t- ART: "+loc+" -> "+cNewPreds);
+          if (!oldPreds.get(loc).containsAll(newpreds)){
+            newPredicates = true;
+            if (debug){
+              Collection<AbstractionPredicate> cNewPreds = new HashSet<AbstractionPredicate>(newpreds);
+              cNewPreds.removeAll(oldPreds.get(loc));
+              System.out.println("\t- ART: "+loc+" -> "+cNewPreds);
+            }
           }
         }
+
+
       }
 
       ImmutableSetMultimap<CFANode, AbstractionPredicate> newPredMap = pmapBuilder.build();

@@ -636,31 +636,30 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
   }
 
   @Override
-  public PathFormula makePrimedEqualities(PathFormula pf1, int i, PathFormula pf2, int j) {
+  public PathFormula makePrimedEqualities(SSAMap ssa1, int i, SSAMap ssa2, int j) {
 
     Set<String> allUnprimedVars = new HashSet<String>();
 
-    for (String var : pf1.getSsa().allVariables()){
+    for (String var :ssa1.allVariables()){
       Pair<String, Integer> data = PathFormula.getPrimeData(var);
       allUnprimedVars.add(data.getFirst());
     }
 
-    for (String var : pf2.getSsa().allVariables()){
+    for (String var : ssa2.allVariables()){
       Pair<String, Integer> data = PathFormula.getPrimeData(var);
       allUnprimedVars.add(data.getFirst());
     }
 
     Formula alleq = fmgr.makeTrue();
-    SSAMap ssa = pf1.getSsa();
     SSAMapBuilder newssa = SSAMap.emptySSAMap().builder();
 
     for (String var : allUnprimedVars){
       String var1 = var+PathFormula.PRIME_SYMBOL+i;
-      int idx1    = pf1.getSsa().getIndex(var1);
+      int idx1    = ssa1.getIndex(var1);
       idx1        = idx1 > 0 ? idx1 : 1;
 
       String var2 = var+PathFormula.PRIME_SYMBOL+j;
-      int idx2    = pf2.getSsa().getIndex(var2);
+      int idx2    = ssa2.getIndex(var2);
       idx2        = idx2 > 0 ? idx2 : 1;
 
       Formula fv1   = fmgr.makeVariable(var1, idx1);

@@ -124,6 +124,11 @@ public class InterpolationDag {
    * @return
    */
   public List<InterpolationDagNode> getModularPathToNode(InterpolationDagNode target){
+
+    if (!nodeMap.containsValue(target)){
+      System.out.println();
+    }
+
     assert nodeMap.containsValue(target);
 
     List<InterpolationDagNode> path = new Vector<InterpolationDagNode>();

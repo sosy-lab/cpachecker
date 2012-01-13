@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -133,6 +134,7 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
 
   //private final MathsatFormulaManager manager;
   private final RelyGuaranteeCPA cpa;
+
 
   // unique number for env. applications in this thread
   private Integer uniqueId;
@@ -281,14 +283,15 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
     }
 
     // renamed & apply env transition
-    Pair<PathFormula, Integer> pair = renamedEnvApplication(localPf, rgEdge, cpa.getTid());
+    Pair<PathFormula, PathFormula> pair = renamedEnvApplication(localPf, rgEdge, appInfo, cpa.getTid());
     PathFormula appPf = pair.getFirst();
-
-    // remember env application for refinement
-    appInfo.putEnvApplication(pair.getSecond(), rgEdge.getTemplate());
+    PathFormula refPf = pair.getSecond();
 
     // add local formula
     appPf = pfManager.makeAnd(localPf, appPf);
+    refPf = pfManager.makeAnd(localPf, refPf);
+
+    appInfo.setRefinementFormula(refPf);
 
     if (debug){
       System.out.println("\tby pf '"+appPf+"'");
@@ -312,7 +315,8 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
     }
 
     // renamed & apply env transition
-    PathFormula combinedPf = null;
+    PathFormula combinedAbstractionPf = null;
+    PathFormula combinedRefinementPf = null;
     for (RelyGuaranteeCFAEdge rgEdge: rgCombEdge.getEnvEdges()){
 
       // skip if the transition has been applied before
@@ -320,69 +324,79 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
         continue;
       }
 
-      Pair<PathFormula, Integer> pair = renamedEnvApplication(localPf, rgEdge, cpa.getTid());
+      Pair<PathFormula, PathFormula> pair = renamedEnvApplication(localPf, rgEdge, appInfo, cpa.getTid());
       PathFormula appPf = pair.getFirst();
-      // remember env application for refinement
-      appInfo.putEnvApplication(pair.getSecond(), rgEdge.getTemplate());
+      PathFormula refPf = pair.getSecond();
 
-      if (combinedPf == null){
-        combinedPf = appPf;
+      if (combinedAbstractionPf == null){
+        combinedAbstractionPf = appPf;
+        combinedRefinementPf = refPf;
       } else {
-        combinedPf = this.pfManager.makeRelyGuaranteeOr(appPf, combinedPf, cpa.getTid());
+        combinedAbstractionPf = pfManager.makeRelyGuaranteeOr(appPf, combinedAbstractionPf, cpa.getTid());
+        combinedRefinementPf  = pfManager.makeRelyGuaranteeOr(refPf, combinedRefinementPf, cpa.getTid());
       }
+
     }
 
-    if (combinedPf == null){
+    if (combinedAbstractionPf == null){
       // all transitions have been applied
       return null;
     }
 
     // add local formula
-    combinedPf = pfManager.makeAnd(localPf, combinedPf);
+    combinedAbstractionPf = pfManager.makeAnd(localPf, combinedAbstractionPf);
+    combinedRefinementPf = pfManager.makeAnd(localPf, combinedRefinementPf);
 
     if (debug){
-      System.out.println("\tby pf '"+combinedPf+"'");
+      System.out.println("\tby pf '"+combinedAbstractionPf+"'");
     }
 
-    return Pair.of(combinedPf, appInfo);
+    return Pair.of(combinedAbstractionPf, appInfo);
   }
 
 
   /**
-   * Returns a path formula representing the effect of applying env. edge on a path formula.
-   * This formula is renamed to an unique number, which is given globally.
+   * Returns a two path formulas representing the effect of an applying env.
+   * The first one is meant for abstraction and the second one for refinement.
    * @param localPf
    * @param rgEdge
+   * @param appInfo
    * @param tid
    * @return
    * @throws CPATransferException
    */
-  private Pair<PathFormula, Integer> renamedEnvApplication(PathFormula localPf, RelyGuaranteeCFAEdge rgEdge, int tid) throws CPATransferException {
+  private Pair<PathFormula, PathFormula> renamedEnvApplication(PathFormula localPf, RelyGuaranteeCFAEdge rgEdge, RelyGuaranteeApplicationInfo appInfo, int tid) throws CPATransferException {
+    assert appInfo != null;
 
-    // apply
-    PathFormula appPf = envApplicationPF(localPf, rgEdge, tid);
+    // get abstraction & refinement formulas
+    PathFormula appPf = envAbstractionPf(localPf, rgEdge, tid);
+    PathFormula refPf = envRefinementPf(localPf, rgEdge, tid);
 
     // rename
     Map<Integer, Integer> aMap = new HashMap<Integer, Integer>();
-    Integer id = uniqueId;
-    aMap.put(rgEdge.getSourceTid(), id);
+    aMap.put(rgEdge.getSourceTid(), uniqueId);
     appPf = pfManager.adjustPrimedNo(appPf, aMap);
+    refPf = pfManager.adjustPrimedNo(refPf, aMap);
+
+    // remember the application
+    appInfo.putEnvApplication(uniqueId, rgEdge.getTemplate());
 
     // increment unique number
     uniqueId++;
 
-    return Pair.of(appPf, id);
+    return Pair.of(appPf, refPf);
   }
 
   /**
    * Returns a path formula representing the effect of applying env. edge on a path formula.
+   * This formula is ment for abstraction.
    * @param localPf path formula of the destination element
    * @param edge environmental edge
    * @param tid destination thread
    * @return
    * @throws CPATransferException
    */
-  public PathFormula envApplicationPF(PathFormula localPf, RelyGuaranteeCFAEdge rgEdge, int tid) throws CPATransferException{
+  public PathFormula envAbstractionPf(PathFormula localPf, RelyGuaranteeCFAEdge rgEdge, int tid) throws CPATransferException{
 
     PathFormula appPf = null;
     if (abstractEnvTransitions == 0 || abstractEnvTransitions == 1){
@@ -391,7 +405,68 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
 
       // build equalities over last values in the filter and local pf
       // TODO shorter equalities for abstraction
-      PathFormula eqPf    = pfManager.makePrimedEqualities(localPf, tid, appPf, rgEdge.getSourceTid());
+      PathFormula eqPf    = pfManager.makePrimedEqualities(localPf.getSsa(), tid, appPf.getSsa(), rgEdge.getSourceTid());
+      appPf = pfManager.makeAnd(appPf, eqPf);
+
+      // apply the env. operation in thread tid
+      appPf = pfManager.makeAnd(appPf, rgEdge.getLocalEdge(), tid);
+    } else if (abstractEnvTransitions == 2){
+      // rename filter to tid
+      Formula filter = rgEdge.getFilter().getFormula();
+      Map<Integer, Integer> rMap = new HashMap<Integer, Integer>();
+      rMap.put(rgEdge.getSourceTid(), tid);
+      filter = fManager.adjustedPrimedNo(filter, rMap);
+
+      // increment all indexes that the transition can change by 1, minimal index is 2
+      int sourceTid = rgEdge.getSourceTid();
+      Set<String> nlVars = new HashSet<String>(cpa.variables.globalVars);
+      nlVars.addAll(cpa.variables.localVars.get(sourceTid));
+      SSAMap oldSsa = localPf.getSsa();
+      SSAMapBuilder newSsaBldr = SSAMap.emptySSAMap().builder();
+      for (String var : nlVars){
+        String pVar = var + PathFormula.PRIME_SYMBOL + tid;
+        int idx = Math.max(oldSsa.getIndex(pVar)+1, 2);
+        newSsaBldr.setIndex(pVar, idx);
+      }
+
+      // add remaining indexes from the path formula
+      for (String var : oldSsa.allVariables()){
+        if (newSsaBldr.getIndex(var) < 1){
+          newSsaBldr.setIndex(var, oldSsa.getIndex(var));
+        }
+      }
+
+      SSAMap newSsa = newSsaBldr.build();
+
+
+
+      // instantiate the filter
+      Formula iFilter = fManager.instantiateNextVal(filter, oldSsa, newSsa);
+      appPf = new PathFormula(iFilter, newSsa, rgEdge.getFilter().getLength());
+    }
+
+    return appPf;
+  }
+
+  /**
+   * Returns a path formula representing the effect of applying env. edge on a path formula.
+   * This formula is ment for refinement.
+   * @param localPf path formula of the destination element
+   * @param edge environmental edge
+   * @param tid destination thread
+   * @return
+   * @throws CPATransferException
+   */
+  public PathFormula envRefinementPf(PathFormula localPf, RelyGuaranteeCFAEdge rgEdge, int tid) throws CPATransferException{
+
+    PathFormula appPf = null;
+    if (abstractEnvTransitions == 0 || abstractEnvTransitions == 1){
+      // take the filter of the env transition
+      appPf = rgEdge.getFilter();
+
+      // build equalities over last values in the filter and local pf
+      // TODO shorter equalities for abstraction
+      PathFormula eqPf    = pfManager.makePrimedEqualities(localPf.getSsa(), tid, appPf.getSsa(), rgEdge.getSourceTid());
       appPf = pfManager.makeAnd(appPf, eqPf);
 
       // apply the env. operation in thread tid
@@ -400,29 +475,27 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
       PathFormula filter = rgEdge.getFilter();
       PathFormula oldPf = rgEdge.getSourceEnvTransition().getPathFormula();
 
-      // instantiate filter using ssa maps
-      Formula iFilter = fManager.instantiateNextVal(filter.getFormula(), oldPf.getSsa(), filter.getSsa());
-      appPf = new PathFormula(iFilter, filter.getSsa(), filter.getLength());
+      // build equalities between the local variables and the variables that generated the transition
+      PathFormula lowPf = pfManager.makePrimedEqualities(localPf.getSsa(), tid, oldPf.getSsa(), rgEdge.getSourceTid());
 
-
-      // build equalities between the lowest indexes of the instantiated filter
-      PathFormula lowPf = pfManager.makePrimedEqualities(localPf, tid, oldPf, rgEdge.getSourceTid());
-      appPf = pfManager.makeAnd(appPf, lowPf);
-
-      // increment all indexes of localPf by 1
-      SSAMap lSsa = localPf.getSsa();
-      SSAMapBuilder newlSsaBldr = SSAMap.emptySSAMap().builder();
-      for (String var : lSsa.allVariables()){
-        newlSsaBldr.setIndex(var, lSsa.getIndex(var)+1);
+      // increment all indexes of all non-local variables by 1
+      int sourceTid = rgEdge.getSourceTid();
+      Set<String> nlVars = new HashSet<String>(cpa.variables.globalVars);
+      nlVars.addAll(cpa.variables.localVars.get(sourceTid));
+      SSAMap ssa = localPf.getSsa();
+      SSAMapBuilder newSsaBldr = SSAMap.emptySSAMap().builder();
+      for (String var : nlVars){
+        String pVar = var + PathFormula.PRIME_SYMBOL + tid;
+        int idx = Math.max(ssa.getIndex(pVar)+1, 2);
+        newSsaBldr.setIndex(pVar, idx);
       }
-      PathFormula newLocalPf = new PathFormula(localPf.getFormula(), newlSsaBldr.build(), localPf.getLength());
+      SSAMap newSsa = newSsaBldr.build();
 
       // build equalities between the highest indexes of the instantiated filter
-      PathFormula hiPf = pfManager.makePrimedEqualities(newLocalPf, tid, appPf, rgEdge.getSourceTid());
+      PathFormula hiPf = pfManager.makePrimedEqualities(newSsa, tid, filter.getSsa(), rgEdge.getSourceTid());
 
-      appPf = pfManager.makeAnd(appPf, hiPf);
+      appPf = pfManager.makeAnd(lowPf, hiPf);
     }
-
 
     return appPf;
   }
