@@ -74,6 +74,11 @@ class NativeApi {
 
     // wrappers for some of the native methods with a different number
     // of arguments
+    public static long msat_declare_uif(long e, String name, int out_type,
+                                       int[] args_types) {
+      return msat_declare_uif(e, name, out_type, args_types.length, args_types);
+    }
+
     public static int msat_all_sat(long e, long[] important,
                                    AllSatModelCallback func) {
         return msat_all_sat(e, important, important.length, func, 0);
@@ -110,7 +115,7 @@ class NativeApi {
     public static native void msat_destroy_env(long e);
     public static native int msat_set_option(long e, String option, String value);
     public static native long msat_declare_variable(long e, String name, int type);
-    public static native long msat_declare_uif(long e, String name, int out_type, int num_args, int[] args_types);
+    private static native long msat_declare_uif(long e, String name, int out_type, int num_args, int[] args_types);
     public static native long msat_make_true(long e);
     public static native long msat_make_false(long e);
     public static native long msat_make_iff(long e, long t1, long t2);

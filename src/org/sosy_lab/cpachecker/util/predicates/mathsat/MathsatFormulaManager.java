@@ -101,7 +101,7 @@ public abstract class MathsatFormulaManager implements FormulaManager {
     trueFormula = encapsulate(msat_make_true(msatEnv));
     falseFormula = encapsulate(msat_make_false(msatEnv));
 
-    stringLitUfDecl = msat_declare_uif(msatEnv, "__string__", msatVarType, 1, new int[]{ MSAT_INT });
+    stringLitUfDecl = msat_declare_uif(msatEnv, "__string__", msatVarType, new int[]{ MSAT_INT });
   }
 
   long getMsatEnv() {
@@ -213,7 +213,7 @@ public abstract class MathsatFormulaManager implements FormulaManager {
 
     int[] tp = new int[args.length];
     Arrays.fill(tp, msatVarType);
-    long decl = msat_declare_uif(msatEnv, name, msatVarType, tp.length, tp);
+    long decl = msat_declare_uif(msatEnv, name, msatVarType, tp);
     if (MSAT_ERROR_DECL(decl)) {
       return MSAT_MAKE_ERROR_TERM();
     }
