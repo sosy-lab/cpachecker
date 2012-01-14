@@ -231,7 +231,7 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     TemplateFormula exitFormula = (TemplateFormula) pExitFormula.getFormula();
     TemplateFormula exitHead = (TemplateFormula) pExitHead.getFormula();
     TemplateFormula exitTail = (TemplateFormula) pExitTail.getFormula();
-    TemplateChooser chooser = new SingleLoopTemplateChooser(entryFormula, loopFormula, exitFormula, exitHead, exitTail);
+    TemplateChooser chooser = new SingleLoopTemplateChooser(logger, entryFormula, loopFormula, exitFormula, exitHead, exitTail);
     return chooser;
   }
 

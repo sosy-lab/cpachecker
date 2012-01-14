@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.invariants.Farkas;
 import org.sosy_lab.cpachecker.util.invariants.LinearInequality;
 import org.sosy_lab.cpachecker.util.invariants.Rational;
+import org.sosy_lab.cpachecker.util.invariants.balancer.interfaces.MatrixI;
 import org.sosy_lab.cpachecker.util.invariants.interfaces.VariableManager;
 import org.sosy_lab.cpachecker.util.invariants.redlog.EliminationAnswer;
 import org.sosy_lab.cpachecker.util.invariants.redlog.EliminationHandler;
@@ -56,6 +57,14 @@ public class Balancer {
   // options:
   private UIFAxiomStrategy strategy = UIFAxiomStrategy.DONOTUSEAXIOMS;
 
+  // Get a matriciser (turns formulas into matrices).
+  // Here we decide between "basic" and "IR" matrices.
+  private FormulaMatriciser formMat = new BasicFormulaMatriciser();
+  //private FormulaMatriciser formMat = new BasicReversedFormulaMatriciser();
+  //private FormulaMatriciser formMat = new IRFormulaMatriciser();
+
+  // end options.
+
   private Map<String,Variable> paramVars = null;
 
   private final LogManager logger;
@@ -73,7 +82,8 @@ public class Balancer {
   }
 
   public boolean balance(TemplateNetwork tnet) throws RefinementFailedException {
-    int[] methods = {0,1};
+    //int[] methods = {0,1};
+    int[] methods = {0};
     boolean succeed = false;
     for (int i = 0; i < methods.length; i++) {
       int method = methods[i];
@@ -112,16 +122,23 @@ public class Balancer {
       aset.addAll( getRREFassumptions(t, tnet) );
     }
 
-    // Write the QE formula for the assumptions.
-    String phi = writeRREFassumptionQEformula(aset);
-    logger.log(Level.ALL, "QE formula for all RREF assumptions:\n", phi);
-
-    // Attempt quantifier elimination, and determination of values for all parameters.
+    HashMap<String,Rational> map;
     boolean succeed = false;
-    redlog.start();
-    HashMap<String,Rational> map = getParameterValuesFromRedlog(phi, params);
-    redlog.stop();
-    logger.log(Level.ALL, "Redlog took", redlog.getSumTime(), "milliseconds.");
+
+    // If set is empty, then there are no conditions on the parameters.
+    if (aset.size() == 0) {
+      map = new HashMap<String,Rational>();
+    } else {
+      // Write the QE formula for the assumptions.
+      String phi = writeRREFassumptionQEformula(aset);
+      logger.log(Level.ALL, "QE formula for all RREF assumptions:\n", phi);
+
+      // Attempt quantifier elimination, and determination of values for all parameters.
+      redlog.start();
+      map = getParameterValuesFromRedlog(phi, params);
+      redlog.stop();
+      logger.log(Level.ALL, "Redlog took", redlog.getSumTime(), "milliseconds.");
+    }
 
     if (map == null) {
       logger.log(Level.FINEST, "Redlog could not find values for all parameters.");
@@ -404,8 +421,12 @@ public class Balancer {
     try {
       EliminationAnswer EA = RLI.rlqea(phi);
       if (EA != null) {
-        EliminationHandler EH = new EliminationHandler(EA);
-        map = EH.getParameterValues(params);
+        if (EA.getTruthValue() == false) {
+          logger.log(Level.ALL, "Redlog says formula is unsatisfiable.");
+        } else {
+          EliminationHandler EH = new EliminationHandler(EA);
+          map = EH.getParameterValues(params);
+        }
       }
     } catch (Exception e) {
       logger.log(Level.SEVERE, "Failed to read a result from Redlog.");
@@ -618,21 +639,21 @@ public class Balancer {
 
     // Build matrices.
     // Create Vector containing the linearization of each disjunct in ant:
-    Vector<IRMatrix> matrixAntParts = new Vector<IRMatrix>(ant.getNumDisjuncts());
+    Vector<MatrixI> matrixAntParts = new Vector<MatrixI>(ant.getNumDisjuncts());
     Vector<TemplateBoolean> disjuncts = ant.getDisjuncts();
     for (TemplateBoolean d : disjuncts) {
-      IRMatrix m = TemplateLinearizer.buildMatrix(d, vmgr, paramVars);
+      MatrixI m = formMat.buildMatrix(d, vmgr, paramVars);
       matrixAntParts.add(m);
     }
 
-    IRMatrix Q = TemplateLinearizer.buildMatrix(t2, vmgr, paramVars);
+    MatrixI Q = formMat.buildMatrix(t2, vmgr, paramVars);
 
     // Logically speaking, we require that each disjunct in ant taken individually imply each
     // of the constraints in Q.
 
     // Declare loop variables.
-    IRMatrix concl;
-    for (IRMatrix prem : matrixAntParts) {
+    MatrixI concl;
+    for (MatrixI prem : matrixAntParts) {
       //loop
       //Example: (A = antecedent, C = consequent)
       //  U = <Ax0, Ax1, Ax2>
@@ -642,25 +663,63 @@ public class Balancer {
       //  P ^ R ^ C0 ^ C1 ^ C2 --> Q
       for (int i = 0; i < U.size(); i++) {
         UIFAxiom A = U.get(i);
-        concl = TemplateLinearizer.buildMatrix(A.getAntecedent(), vmgr, paramVars);
+        concl = formMat.buildMatrix(A.getAntecedent(), vmgr, paramVars);
         logger.log(Level.ALL, "UIFAxiom:\n",A);
-        logger.log(Level.ALL,"Linearized premises and conclusions:\nPremises:\n",prem,"\nConclusions:\n",concl);
+        logger.log(Level.ALL,"Linearized premises and conclusions:\nPremises:","\n"+prem.toString(),
+            "\nConclusions:","\n"+concl.toString());
         aset.addAll( applyRREFheuristic(prem, concl) );
-        prem = IRMatrix.concat(prem, TemplateLinearizer.buildMatrix(A.getConsequent(), vmgr, paramVars));
+        prem = prem.concat(formMat.buildMatrix(A.getConsequent(), vmgr, paramVars));
       }
       concl = Q;
-      logger.log(Level.ALL,"Linearized premises and conclusions:\nPremises:\n",prem,"\nConclusions:\n",concl);
+      //logger.log(Level.ALL,"Linearized premises and conclusions:\nPremises:\n",prem,"\nConclusions:\n",concl);
+      logger.log(Level.ALL,"Linearized premises and conclusions:\nPremises:","\n"+prem.toString(),
+          "\nConclusions:","\n"+concl.toString());
       aset.addAll( applyRREFheuristic(prem, concl) );
     }
 
     return aset;
   }
 
-  private Set<Assumption> applyRREFheuristic(IRMatrix prem, IRMatrix concl) {
-    IRMatrix aug = IRMatrix.augment(prem, concl);
-    Set<Assumption> aset = aug.putInRREF();
-    aset.addAll( aug.getAlmostZeroRowAssumptions() );
-    return aset;
+  private Set<Assumption> applyRREFheuristic(MatrixI prem, MatrixI concl) {
+    MatrixI aug = prem.augment(concl);
+    Matrix au = null;
+    try {
+      au = (Matrix)aug;
+    } catch (ClassCastException e) {
+      return applyRREFheuristicOLD(prem, concl);
+    }
+    logger.log(Level.ALL,"Augmented Matrix:","\n"+au.toString());
+    MatrixSolver ms = new MatrixSolver(au,logger);
+    Set<Set<Assumption>> asetset;
+    try {
+      asetset = ms.solve();
+    } catch (MatrixSolvingFailedException e) {
+      logger.log(Level.ALL, e.getReason());
+      return new HashSet<Assumption>();
+    }
+    // For the moment we just return the first set.
+    if (asetset.size() == 0) {
+      return new HashSet<Assumption>();
+    }
+    return asetset.iterator().next();
+  }
+
+  private Set<Assumption> applyRREFheuristicOLD(MatrixI prem, MatrixI concl) {
+    MatrixI aug = prem.augment(concl);
+    logger.log(Level.ALL,"Augmented Matrix:","\n"+aug.toString());
+    // We gather two types of assumptions.
+    // First, those made during the process of putting the matrix into RREF:
+    // Verbose:
+    List<Assumption> alist = aug.putInRREF(logger);
+    // Quiet:
+    //Set<Assumption> alist = aug.putInRREF();
+    MatrixI E = aug.getElemMatProd();
+    // Write the RREF and the matrix E to the log, for debugging.
+    logger.log(Level.ALL,"RREF:","\n"+aug.toString());
+    logger.log(Level.ALL,"Matrix representing row operations performed:","\n"+E.toString());
+    // Then, the "almost-zero row" assumptions:
+    alist.addAll( aug.getAlmostZeroRowAssumptions() );
+    return new HashSet<Assumption>(alist);
   }
 
   public enum UIFAxiomStrategy {

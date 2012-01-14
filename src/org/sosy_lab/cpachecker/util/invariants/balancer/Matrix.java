@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,43 +27,39 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.cpachecker.util.invariants.InfixReln;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption.AssumptionType;
 import org.sosy_lab.cpachecker.util.invariants.balancer.interfaces.MatrixI;
 
-/*
- * "IRMatrix" stands for "Inequality Row Matrix", i.e., a matrix with an "inequality row".
- */
-public class IRMatrix implements MatrixI {
+public class Matrix implements MatrixI {
 
-  private final int rowNum;
-  private final int colNum;
+  private int rowNum;
+  private int colNum;
   private RationalFunction[][] entry;
-
-  private final boolean hasInequalityRow = true;
-  private InfixReln[] colIneq;
-
   private int numAugCols = 0;
-  private InfixReln[] augIneq = new InfixReln[0];
+
+  private List<Integer> pivotRows = null;
+  private Matrix elemMatProd = null;
+  private boolean verbose = false;
+
+  public Matrix() {}
 
   /*
    * Basic constructor.
    */
-  public IRMatrix(int m, int n) {
+  public Matrix(int m, int n) {
     rowNum = m;
     colNum = n;
     entry = new RationalFunction[m][n];
     zeroFill();
-    colIneq = new InfixReln[n];
-    leqFill();
   }
 
   /*
    * Construct a single column.
    */
-  public IRMatrix(List<RationalFunction> rfs, InfixReln reln) {
+  public Matrix(List<RationalFunction> rfs) {
     int m = rfs.size();
     int n = 1;
     rowNum = m;
@@ -72,18 +68,80 @@ public class IRMatrix implements MatrixI {
     for (int i = 0; i < m; i++) {
       entry[i][0] = rfs.get(i);
     }
-    colIneq = new InfixReln[1];
-    colIneq[0] = reln;
   }
 
-  public IRMatrix getElemMatProd() {
-    return null;
+  /*
+   * Construct from a 2D array.
+   */
+  public Matrix(RationalFunction[][] a) {
+    int m = a.length;
+    if (m == 0) {
+      return;
+    }
+    int n = a[0].length;
+    rowNum = m; colNum = n;
+    entry = a;
+  }
+
+  /*
+   * Return a copy of this Matrix.
+   */
+  public Matrix copy() {
+    RationalFunction[][] a = new RationalFunction[rowNum][colNum];
+    for (int i = 0; i < rowNum; i++) {
+      for (int j = 0; j < colNum; j++) {
+        a[i][j] = entry[i][j].copy();
+      }
+    }
+    Matrix m = new Matrix(a);
+    m.numAugCols = numAugCols;
+    return m;
+  }
+
+  public static Matrix makeIdentity(int n) {
+    Matrix id = new Matrix(n,n);
+    for (int i = 0; i < n; i++) {
+      id.entry[i][i] = RationalFunction.makeUnity();
+    }
+    return id;
+  }
+
+  public void setVerbosity(boolean b) {
+    verbose = b;
+  }
+
+  public int getRowNum() {
+    return rowNum;
+  }
+
+  public int getColNum() {
+    return colNum;
+  }
+
+  public int getNumAugCols() {
+    return numAugCols;
+  }
+
+  public boolean isPivotRow(int i) {
+    return pivotRows != null && pivotRows.contains(i);
+  }
+
+  public RationalFunction getEntry(int i, int j) {
+    return entry[i][j];
+  }
+
+  public void setEntry(int i, int j, RationalFunction f) {
+    entry[i][j] = f;
+  }
+
+  public Matrix getElemMatProd() {
+    return elemMatProd;
   }
 
   /*
    * Concatenate two matrices. We presume that neither has any augmentation columns.
    */
-  public static IRMatrix concat(IRMatrix a, IRMatrix b) {
+  public static Matrix concat(Matrix a, Matrix b) {
     int m = a.rowNum;
     if (m != b.rowNum) {
       System.err.println("Tried to concatenate matrices with different numbers of rows.");
@@ -91,7 +149,7 @@ public class IRMatrix implements MatrixI {
     }
     int an = a.colNum;
     int bn = b.colNum;
-    IRMatrix c = new IRMatrix(m, an + bn);
+    Matrix c = new Matrix(m, an + bn);
     // copy entries
     for (int i = 0; i < m; i++) {
       for (int j = 0; j < an; j++) {
@@ -101,49 +159,33 @@ public class IRMatrix implements MatrixI {
         c.entry[i][an+j] = b.entry[i][j];
       }
     }
-    // copy column inequalities
-    for (int j = 0; j < an; j++) {
-      c.colIneq[j] = a.colIneq[j];
-    }
-    for (int j = 0; j < bn; j++) {
-      c.colIneq[an+j] = b.colIneq[j];
-    }
     return c;
   }
 
-  public IRMatrix concat(MatrixI b) {
-    IRMatrix m = (IRMatrix)b;
-    return IRMatrix.concat(this, m);
+  public Matrix concat(MatrixI b) {
+    Matrix m = (Matrix)b;
+    return Matrix.concat(this, m);
   }
 
   /*
    * We create a matrix in which the ordinary columns come from a, and the
    * augmentation columns come from b.
    */
-  public static IRMatrix augment(IRMatrix a, IRMatrix b) {
-    IRMatrix c = concat(a,b);
+  public static Matrix augment(Matrix a, Matrix b) {
+    Matrix c = concat(a,b);
     int bn = b.colNum;
     c.numAugCols = bn;
-    c.augIneq = new InfixReln[bn];
-    for (int j = 0; j < bn; j++) {
-      // For now we do this simplistically.
-      // Really, strict ineqs can be relaxed when a strong column on the left is used.
-      // Alternately, as a heuristic method, we might simply try relaxing them all, when
-      // we fail to get the strict ineq., just to see if it works.
-      c.augIneq[j] = b.colIneq[j];
-    }
     return c;
   }
 
-  public IRMatrix augment(MatrixI b) {
-    IRMatrix m = (IRMatrix) b;
-    return IRMatrix.augment(this,m);
+  public Matrix augment(MatrixI b) {
+    Matrix m = (Matrix)b;
+    return Matrix.augment(this,m);
   }
 
   /*
    * Fill this matrix will zeros.
    */
-  @Override
   public void zeroFill() {
     for (int i = 0; i < rowNum; i++) {
       for (int j = 0; j < colNum; j++) {
@@ -152,28 +194,10 @@ public class IRMatrix implements MatrixI {
     }
   }
 
-  /*
-   * Make every column inequality lax.
-   */
-  public void leqFill() {
-    for (int j = 0; j < colNum; j++) {
-      colIneq[j] = InfixReln.LEQ;
-    }
-  }
-
-  /*
-   * Use this only to override the automatic computation of the ineqRow inequality.
-   */
-  public void setIneqRowIneq(int j, InfixReln reln) {
-    augIneq[j] = reln;
-  }
-
-  @Override
   public RationalFunction get(int i, int j) {
     return entry[i][j];
   }
 
-  @Override
   public void set(int i, int j, RationalFunction f) {
     entry[i][j] = f;
   }
@@ -181,7 +205,6 @@ public class IRMatrix implements MatrixI {
   /*
    * Swap rows i1 and i2.
    */
-  @Override
   public void swapRows(int i1, int i2) {
     RationalFunction temp;
     for (int j = 0; j < colNum; j++) {
@@ -194,7 +217,6 @@ public class IRMatrix implements MatrixI {
   /*
    * Multiply row i by RationalFunction f.
    */
-  @Override
   public void multRow(int i, RationalFunction f) {
     for (int j = 0; j < colNum; j++) {
       entry[i][j] = RationalFunction.multiply(entry[i][j],f);
@@ -204,7 +226,6 @@ public class IRMatrix implements MatrixI {
   /*
    * Add row i2 times RationalFunction f to row i1.
    */
-  @Override
   public void addMultiple(int i1, int i2, RationalFunction f) {
     for (int j = 0; j < colNum; j++) {
       RationalFunction product = RationalFunction.multiply(f,entry[i2][j]);
@@ -243,10 +264,8 @@ public class IRMatrix implements MatrixI {
   /*
    * An "almost zero row" is one in which every nonaug entry is zero.
    * For such a row, the "terminals" are the entries in the aug columns.
-   * We write the assumptions that the almost zero row terminals be zero, or satisfy
-   * the appropriate constraint for the inequality row.
+   * We write the assumptions that the almost zero row terminals be zero
    */
-  @Override
   public Set<Assumption> getAlmostZeroRowAssumptions() {
     Set<Assumption> aset = new HashSet<Assumption>();
     for (int i = 0; i < rowNum; i++) {
@@ -257,23 +276,7 @@ public class IRMatrix implements MatrixI {
         for (int j = 0; j < numAugCols; j++) {
           RationalFunction f = entry[i][colNum - numAugCols + j];
           if (!f.isZero()) {
-            AssumptionType atype;
-            // If we're in the inequality row...
-            if (hasInequalityRow && i == rowNum - 1) {
-              if (augIneq[j] == InfixReln.LEQ) {
-                // If the ineq for this column is <=, then we assume the entry is nonnegative.
-                atype = AssumptionType.NONNEGATIVE;
-              } else {
-             // If the ineq for this column is <, then we assume the entry is positive.
-                atype = AssumptionType.POSITIVE;
-              }
-            // Else we're in an ordinary row, and we must assume the the entry in the
-            // aug col is actually equal to zero.
-            } else {
-              atype = AssumptionType.ZERO;
-            }
-            Assumption a = new Assumption(f,atype);
-            aset.add(a);
+            aset.add( new Assumption(f, AssumptionType.ZERO ) );
           }
         }
       }
@@ -314,24 +317,34 @@ public class IRMatrix implements MatrixI {
 
   /*
    * Put this matrix into reduced row-echelon form, using Gaussian elimination.
-   * Return set of nonzero assumptions made when dividing.
+   * Returns the set of nonzero assumptions made each time we divided a pivot row by its lead entry.
    */
-  @Override
   public List<Assumption> putInRREF() {
+    LogManager lm = null;
+    return putInRREF(lm);
+  }
+
+  /*
+   * Version of RREF algorithm that takes a logger.
+   * Returns the set of nonzero assumptions made each time we divided a pivot row by its lead entry.
+   */
+  public List<Assumption> putInRREF(LogManager logger) {
     int m = rowNum;
     int n = colNum;
     int i0 = 0;
     int j0 = 0;
-    List<Assumption> assume = new Vector<Assumption>();
+    pivotRows = new Vector<Integer>();
+
+    List<Assumption> alist = new Vector<Assumption>();
 
     int M = m;
     int N = n;
-    // An inequality row cannot have a pivot.
-    if (hasInequalityRow) {
-      M--;
-    }
     // Augmented columns cannot have pivots.
     N -= numAugCols;
+
+    // We maintain E as the product of all elementary matrices we would have multiplied by,
+    // in order to achieve the row operations that we have done.
+    Matrix E = Matrix.makeIdentity(M);
 
     while (true) {
       // Look for the next pivot.
@@ -346,38 +359,59 @@ public class IRMatrix implements MatrixI {
       // If i1 > i0, then swap these rows, and set i1 = i0.
       if (i1 > i0) {
         swapRows(i1,i0);
+        // and do the same to E
+        E.swapRows(i1, i0);
+        // log it
+        if (verbose && logger != null) {
+          logger.log(Level.ALL,"Swapped rows",i1,"and",i0);
+          logger.log(Level.ALL,"Matrix:","\n"+this.toString());
+          logger.log(Level.ALL,"E:","\n"+E.toString());
+        }
+        // set i1 = i0.
         i1 = i0;
       }
+      // Record the pivot row.
+      pivotRows.add(i1);
       // Get the rational function at the pivot.
       RationalFunction f = entry[i1][j1];
       // Divide row i1 by f.
       RationalFunction fRecip = RationalFunction.makeReciprocal(f);
       multRow(i1,fRecip);
-      // If f has any parameters, then add the assumption that f's numerator is nonzero.
-      if (!f.isConstant()) {
-        Polynomial num = f.getNumerator();
-        RationalFunction numOverUnity = new RationalFunction(num,new Polynomial(1));
-        assume.add( new Assumption(numOverUnity, AssumptionType.NONZERO) );
+      // and do the same to E
+      E.multRow(i1,fRecip);
+      // log it
+      if (verbose && logger != null) {
+        logger.log(Level.ALL,"Multiplied row",i1,"by",fRecip);
+        logger.log(Level.ALL,"Matrix:","\n"+this.toString());
+        logger.log(Level.ALL,"E:","\n"+E.toString());
       }
+      // Record the nonzero assumption involved.
+      if (!f.getNumerator().isConstant()) {
+        alist.add( new Assumption(f.getNumerator(),AssumptionType.NONZERO) );
+      }
+
       // Now clear out all other entries in column j1.
       for (int i = 0; i < m; i++) {
         if (i != i1 && !entry[i][j1].isZero()) {
           RationalFunction g = entry[i][j1];
           RationalFunction gneg = RationalFunction.makeNegative(g);
           addMultiple(i,i1,gneg);
+          // and do the same to E
+          E.addMultiple(i,i1,gneg);
+          // log it
+          if (verbose && logger != null) {
+            logger.log(Level.ALL,"Added",gneg,"times row",i1,"to row",i);
+            logger.log(Level.ALL,"Matrix:","\n"+this.toString());
+            logger.log(Level.ALL,"E:","\n"+E.toString());
+          }
         }
       }
       // Advance to the next row and column.
       i0 = i1 + 1;
       j0 = j1 + 1;
     }
-
-    return assume;
-  }
-
-  public List<Assumption> putInRREF(LogManager logger) {
-    // TODO
-    return null;
+    elemMatProd = E;
+    return alist;
   }
 
   // Let j1 be the first column, with j0 <= j1 < n, in which there is a nonzero
@@ -412,55 +446,105 @@ public class IRMatrix implements MatrixI {
 
   @Override
   public String toString() {
-    String s = "";
+    // End caps and gaps:
     String left = "[ ";
     String right = " ]\n";
     String gap = "  ";
-    for (int i = 0; i < rowNum; i++) {
-      // Write inequalities.
-      if (hasInequalityRow && i == rowNum - 1) {
-        s += left;
-        for (int j = 0; j < colNum; j++) {
-          if (j > 0) {
-            s += gap;
-          }
-          if (j == colNum - numAugCols) {
-            s += "|"+gap;
-          }
-          //s += colIneq[j].toString();
-          s += "<";
+
+    // Set max line length:
+    int maxLen = 150;
+
+    // How many chars for max row number?
+    int maxrownumchars = Integer.toString(rowNum-1).length();
+    maxLen -= maxrownumchars; // if maxrownumchars >= 150, you're nuts.
+
+    // Get the width of each column.
+    int[] widths = new int[colNum];
+    for (int j = 0; j < colNum; j++) {
+      int w = 0; int l;
+      for (int i = 0; i < rowNum; i++) {
+        l = entry[i][j].toString().length();
+        if (l > w) {
+          w = l;
         }
-        s += right;
-        s += left;
-        for (int j = 0; j < colNum; j++) {
-          if (j > 0) {
-            s += gap;
-          }
-          if (j == colNum - numAugCols) {
-            s += "|"+gap;
-          }
-          if (colIneq[j].toString().equals("<=")) {
-            s += "=";
-          } else {
-            s += " ";
-          }
-        }
-        s += right;
       }
-      // Write row of entries.
+      widths[j] = w;
+    }
+
+    // Write linebreak and gap prefixes.
+    String[] pre = new String[colNum];
+    int c = 0; int w;
+    String prefix;
+    for (int j = 0; j < colNum; j++) {
+      w = widths[j];
+
+      // Prepare prefix.
+      prefix = "";
+      if (c > 0) {
+        prefix += gap;
+      }
+      if (j == colNum - numAugCols) {
+        prefix += "|"+gap;
+      }
+      w = w + prefix.length();
+
+      if (c == 0) {
+        // an empty line takes the next column, no matter how wide it is
+        c = w;
+        pre[j] = prefix;
+      } else if (c + w <= maxLen) {
+        // a nonempty line takes the next column if it fits
+        c = c + w;
+        pre[j] = prefix;
+      } else {
+        // when the next column overflows a nonempty line, we go to the next line
+        // So the prefix is '\n' plus the one we thought we'd use, minus the initial gap
+        // we put on it.
+        c = w;
+        pre[j] = "\n"+prefix.substring(gap.length());
+      }
+    }
+
+    // Construct a "space string", of which substrings can be used.
+    char sp = " ".charAt(0);
+    char[] sps = new char[maxLen];
+    for (int k = 0; k < maxLen; k++) {
+      sps[k] = sp;
+    }
+    String spaces = new String(sps);
+
+    // Now write.
+    String s = "";
+    String e;
+    int W;
+    for (int i = 0; i < rowNum; i++) {
+      String rn = Integer.toString(i);
+      s += spaces.substring(0,maxrownumchars-rn.length()) + rn + " ";
       s += left;
       for (int j = 0; j < colNum; j++) {
-        if (j > 0) {
-          s += gap;
+        e = entry[i][j].toString();
+        if (widths[j] < maxLen) {
+          W = widths[j] - e.length();
+          s += pre[j] + spaces.substring(0,W) + e;
+        } else {
+          s += pre[j] + e;
         }
-        if (j == colNum - numAugCols) {
-          s += "|"+gap;
-        }
-        s += entry[i][j].toString();
       }
       s += right;
     }
     return s;
+  }
+
+  /*
+   * Modify this matrix in-place, applying the substitution to each of its entries.
+   */
+  public void applySubstitution(Substitution subs) {
+    for (int i = 0; i < rowNum; i++) {
+      for (int j = 0; j < colNum; j++) {
+        RationalFunction f = entry[i][j];
+        entry[i][j] = RationalFunction.applySubstitution(subs,f);
+      }
+    }
   }
 
 }

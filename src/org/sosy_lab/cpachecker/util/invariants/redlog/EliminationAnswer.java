@@ -29,9 +29,18 @@ import java.util.Vector;
 public class EliminationAnswer {
 
   private Vector<EAPair> pairs;
+  private boolean truthValue = true; // for use when Redlog says 'false'.
 
   public EliminationAnswer() {
     pairs = new Vector<EAPair>();
+  }
+
+  public EliminationAnswer(boolean value) {
+    this.truthValue = value;
+  }
+
+  public boolean getTruthValue() {
+    return truthValue;
   }
 
   public void addPair(EAPair pair) {

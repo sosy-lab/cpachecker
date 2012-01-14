@@ -159,12 +159,8 @@ public class InvariantRefiner extends AbstractARTBasedRefiner {
     while (tnet != null) {
 
       logger.log(Level.ALL, "\nAxiom strategy:\n", axiomStrategy);
-      //diag:
-      System.out.println("axiom strategy:");
-      System.out.println(axiomStrategy);
-      //
 
-      // Reset indices.
+      // Reset indices, so they do not grow needlessly out of bound.
       Farkas.resetConstantIndices();
       TemplateTerm.resetParameterIndices();
 
@@ -180,13 +176,10 @@ public class InvariantRefiner extends AbstractARTBasedRefiner {
 
         logger.log(Level.FINEST, "Invariants refuted counterexample path.");
         logger.log(Level.ALL, "Invariants:\n", tnet.dumpTemplates());
-        //diag:
-        System.out.println("Invariants: "+tnet.dumpTemplates());
-        //
 
         // Build a CounterexampleTraceInfo object.
         ceti = new CounterexampleTraceInfo<Collection<AbstractionPredicate>>();
-        // Add to it the predicates for phi, at the loop head location.
+        // Add the predicates for each of the computed invariants.
         addPredicates(ceti, tnet, pPath);
         // Break out of the while loop on invariant template choices.
         break;
@@ -194,12 +187,21 @@ public class InvariantRefiner extends AbstractARTBasedRefiner {
       } else {
         // Could not balance the template network.
         logger.log(Level.FINEST, "Could not balance template network.");
+
+        // If we were not using axioms, then we should try using them,
+        // on the same network.
         if (axiomStrategy == UIFAxiomStrategy.DONOTUSEAXIOMS) {
           axiomStrategy = UIFAxiomStrategy.USEAXIOMS;
+
+        // Else even axioms did not work, so try the next network, if
+        // there is one.
         } else {
           tnet = nbuilder.nextNetwork();
           axiomStrategy = UIFAxiomStrategy.DONOTUSEAXIOMS;
         }
+
+        // If tnet is null, then we have run out of networks to try.
+        // Fail.
         if (tnet == null) {
           throw new RefinementFailedException(Reason.InvariantRefinementFailed, pPath);
         }

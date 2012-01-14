@@ -355,6 +355,15 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
     return new Coeff(RHS, vwm);
   }
 
+  /*
+   * This method is for use when we assume that the program variables
+   * are integers, and we transform strict inequalities into lax.
+   */
+  @Override
+  public Coeff getNormalFormConstantMinusOne(VariableWriteMode vwm) {
+    return new Coeff(RHS.minusOne(), vwm);
+  }
+
   @Override
   public InfixReln getInfixReln() {
     return reln;

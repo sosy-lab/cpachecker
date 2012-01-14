@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.balancer;
 
+
 public class Variable implements Comparable<Variable> {
 
   private final String name;
@@ -31,9 +32,32 @@ public class Variable implements Comparable<Variable> {
     name = x;
   }
 
+  public String getName() {
+    return name;
+  }
+
   @Override
   public int compareTo(Variable v) {
     return name.compareTo(v.name);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    boolean ans = false;
+    if (o instanceof Variable) {
+      Variable v = (Variable) o;
+      ans = this.name.equals(v.name);
+    }
+    return ans;
+  }
+
+  /**
+   * HashSet only looks to the equals method if the hashCodes of the
+   * two objects are the same.
+   */
+  @Override
+  public int hashCode() {
+    return 0;
   }
 
   @Override

@@ -103,6 +103,10 @@ public class Rational {
     return !isInfinite() && num == denom;
   }
 
+  public boolean isPositive() {
+    return !isInfinite() && ( (denom > 0 && num > 0) || (denom < 0 && num < 0) );
+  }
+
   /*
    * Create an Integer with the same value as this Rational, in the case that
    * this Rational is integral. Otherwise, return null.

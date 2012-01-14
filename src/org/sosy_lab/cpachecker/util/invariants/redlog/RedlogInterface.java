@@ -101,6 +101,12 @@ public class RedlogInterface {
       } else if (line.equals("~begin-cond")) {
         C = new Condition();
       } else if (line.equals("~end-cond")) {
+        if (formula.equals("false")) {
+          // If Redlog said 'false', then it will give no parameter values,
+          // and in fact the constraints are unsatisfiable.
+          EA = new EliminationAnswer(false);
+          break;
+        }
         C.setFormula(formula);
         formula = "";
         EAP.setCondition(C);

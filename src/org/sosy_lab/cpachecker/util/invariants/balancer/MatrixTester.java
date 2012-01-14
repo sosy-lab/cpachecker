@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.balancer;
 
+import java.util.List;
 import java.util.Set;
 
 public class MatrixTester {
@@ -81,11 +82,11 @@ public class MatrixTester {
     System.out.println("filled:");
     System.out.println(A);
 
-    Set<Assumption> aset = A.putInRREF();
+    List<Assumption> alist = A.putInRREF();
     System.out.println("RREF:");
     System.out.println(A);
     System.out.println("assumptions:");
-    System.out.println(aset);
+    System.out.println(alist);
 
   }
 
@@ -137,7 +138,7 @@ public class MatrixTester {
 
     System.out.println(A);
 
-    Set<Assumption> aset1 = A.putInRREF();
+    List<Assumption> aset1 = A.putInRREF();
     Set<Assumption> aset2 = A.getAlmostZeroRowAssumptions();
     System.out.println("RREF:");
     System.out.println(A);

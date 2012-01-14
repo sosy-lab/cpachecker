@@ -29,6 +29,11 @@ public class Assumption {
   private final RationalFunction func;
   private final AssumptionType atype;
 
+  public Assumption(Polynomial f, AssumptionType a) {
+    func = new RationalFunction(f);
+    atype = a;
+  }
+
   public Assumption(RationalFunction f, AssumptionType a) {
     func = f;
     atype = a;
@@ -40,6 +45,10 @@ public class Assumption {
 
   public AssumptionType getAssumptionType() {
     return atype;
+  }
+
+  public Polynomial getNumerator() {
+    return func.getNumerator();
   }
 
   @Override

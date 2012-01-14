@@ -35,8 +35,19 @@ public class RationalFunction {
     denom = d;
   }
 
+  public RationalFunction(Polynomial n) {
+    num = n;
+    denom = new Polynomial(1);
+  }
+
   public RationalFunction(int n) {
     makeConstant(new Rational(n,1));
+  }
+
+  public RationalFunction(String x) {
+    Variable v = new Variable(x);
+    num = new Polynomial(v);
+    denom = new Polynomial(1);
   }
 
   public RationalFunction(Variable v) {
@@ -46,6 +57,10 @@ public class RationalFunction {
 
   public RationalFunction(Rational r) {
     makeConstant(r);
+  }
+
+  public RationalFunction copy() {
+    return new RationalFunction(num.copy(), denom.copy());
   }
 
   public Polynomial getNumerator() {
@@ -69,6 +84,10 @@ public class RationalFunction {
 
   public static RationalFunction makeZero() {
     return new RationalFunction(Polynomial.makeZero(), Polynomial.makeUnity());
+  }
+
+  public static RationalFunction makeUnity() {
+    return new RationalFunction(Polynomial.makeUnity(), Polynomial.makeUnity());
   }
 
   public static RationalFunction add(RationalFunction f1, RationalFunction f2) {
@@ -144,8 +163,20 @@ public class RationalFunction {
     return new RationalFunction(negnum,f.denom);
   }
 
+  public static RationalFunction applySubstitution(Substitution subs, RationalFunction f) {
+    Polynomial n = Polynomial.applySubstitution(subs, f.num);
+    Polynomial d = Polynomial.applySubstitution(subs, f.denom);
+    RationalFunction g = new RationalFunction(n,d);
+    g.simplify();
+    return g;
+  }
+
   public boolean isZero() {
     return num.isZero();
+  }
+
+  public boolean isPositive() {
+    return isConstant() && num.isPositive();
   }
 
   public boolean isConstant() {
@@ -207,6 +238,21 @@ public class RationalFunction {
     if (!mc.isConstant()) {
       num.factorOut(mc);
       denom.factorOut(mc);
+    }
+
+    // Cancel common integer content.
+    Integer cnI = num.getIntegerContent();
+    Integer cdI = denom.getIntegerContent();
+    int cn = cnI.intValue();
+    int cd = cdI.intValue();
+    if (cn >= 2 && cd >= 2) {
+      Integer c = Polynomial.gcd(cnI, cdI);
+      if (c.intValue() > 1) {
+        Rational d = new Rational(1,c);
+        Polynomial p = new Polynomial(d);
+        num = Polynomial.multiply(p,num);
+        denom = Polynomial.multiply(p,denom);
+      }
     }
 
     // Divide through by a constant denominator different from 1.

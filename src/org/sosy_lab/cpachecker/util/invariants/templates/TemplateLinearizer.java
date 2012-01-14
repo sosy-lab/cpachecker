@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.util.invariants.Coeff;
 import org.sosy_lab.cpachecker.util.invariants.InfixReln;
 import org.sosy_lab.cpachecker.util.invariants.LinearInequality;
 import org.sosy_lab.cpachecker.util.invariants.balancer.IRMatrix;
+import org.sosy_lab.cpachecker.util.invariants.balancer.Matrix;
 import org.sosy_lab.cpachecker.util.invariants.balancer.RationalFunction;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Variable;
 import org.sosy_lab.cpachecker.util.invariants.interfaces.Constraint;
@@ -98,13 +99,13 @@ public class TemplateLinearizer {
     return lineq;
   }
 
-  public static IRMatrix buildMatrix(TemplateFormula t, VariableManager vmgr, Map<String,Variable> paramVars) {
+  public static IRMatrix buildIRMatrix(TemplateFormula t, VariableManager vmgr, Map<String,Variable> paramVars) {
     if (t.isTrue()) {
-      return booleanMatrix(vmgr, true);
+      return booleanIRMatrix(vmgr, true);
     }
 
     if (t.isFalse()) {
-      return booleanMatrix(vmgr, false);
+      return booleanIRMatrix(vmgr, false);
     }
 
     List<TemplateConstraint> constraints = t.getConstraints();
@@ -151,6 +152,56 @@ public class TemplateLinearizer {
     return a;
   }
 
+  public static Matrix buildMatrix(TemplateFormula t, VariableManager vmgr, Map<String,Variable> paramVars) {
+    if (t.isTrue()) {
+      return booleanMatrix(vmgr, true);
+    }
+
+    if (t.isFalse()) {
+      return booleanMatrix(vmgr, false);
+    }
+
+    List<TemplateConstraint> constraints = t.getConstraints();
+    if (constraints.size() < 1) {
+      System.err.println("Tried to build matrix on no constraints.");
+      return null;
+    }
+
+    // Make a column matrix for each constraint.
+    Constraint cons;
+    List<Coeff> coeffs;
+    List<RationalFunction> rfs;
+    Coeff rhs;
+    InfixReln reln;
+    List<Matrix> cols = new Vector<Matrix>();
+    for (int i = 0; i < constraints.size(); i++) {
+
+      cons = constraints.get(i);
+      coeffs = cons.getNormalFormCoeffs(vmgr, VariableWriteMode.REDLOG);
+      rhs = cons.getNormalFormConstant(VariableWriteMode.REDLOG);
+      coeffs.add(rhs.negative());
+      rfs = makeRationalFunctions(coeffs, paramVars);
+      cols.add( new Matrix(rfs) );
+
+      reln = cons.getInfixReln();
+      if (reln == InfixReln.EQUAL) {
+        // We consider EQUAL to be two LEQs, which means that
+        // in addition to the column itself, we add its negation.
+        coeffs = negative(coeffs);
+        rfs = makeRationalFunctions(coeffs,paramVars);
+        cols.add( new Matrix(rfs) );
+      }
+    }
+
+    // Put the columns together.
+    Matrix a = cols.get(0);
+    for (int i = 1; i < cols.size(); i++) {
+      a = a.concat(cols.get(i));
+    }
+
+    return a;
+  }
+
   private static List<RationalFunction> makeRationalFunctions(List<Coeff> clist, Map<String,Variable> paramVars) {
     List<RationalFunction> rfs = new Vector<RationalFunction>(clist.size());
     for (Coeff c : clist) {
@@ -180,7 +231,7 @@ public class TemplateLinearizer {
   	return lineq;
   }
 
-  private static IRMatrix booleanMatrix(VariableManager vmgr, boolean trueStatement) {
+  private static IRMatrix booleanIRMatrix(VariableManager vmgr, boolean trueStatement) {
     int n = vmgr.getNumVars();
     List<RationalFunction> rfs = Collections.nCopies(n+1, new RationalFunction(0));
     InfixReln reln;
@@ -190,6 +241,19 @@ public class TemplateLinearizer {
       reln = InfixReln.LT;
     }
     return new IRMatrix(rfs,reln);
+  }
+
+  private static Matrix booleanMatrix(VariableManager vmgr, boolean trueStatement) {
+    int n = vmgr.getNumVars();
+    List<RationalFunction> rfs = Collections.nCopies(n, new RationalFunction(0));
+    RationalFunction constant;
+    if (trueStatement) {
+      constant = new RationalFunction(-1);
+    } else {
+      constant = new RationalFunction(1);
+    }
+    rfs.add(constant);
+    return new Matrix(rfs);
   }
 
   /**

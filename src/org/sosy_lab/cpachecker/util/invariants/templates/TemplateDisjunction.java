@@ -503,7 +503,7 @@ public class TemplateDisjunction extends TemplateBoolean {
         s = "true";
         break;
       } else {
-        s += " or "+C.toString(vwm);
+        s += " OR "+C.toString(vwm);
       }
     }
     if (s.length() > 0) {

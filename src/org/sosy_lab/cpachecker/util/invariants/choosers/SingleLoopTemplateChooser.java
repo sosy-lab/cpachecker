@@ -6,7 +6,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.util.invariants.InfixReln;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Template;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateBoolean;
@@ -25,6 +27,7 @@ import org.sosy_lab.cpachecker.util.invariants.templates.TermForm;
 
 public class SingleLoopTemplateChooser implements TemplateChooser {
 
+  private final LogManager logger;
   private final TemplateFormula entryFormula;
   private final TemplateFormula loopFormula;
   private final TemplateFormula exitFormula;
@@ -33,9 +36,10 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
   private final TemplateChooserStrategy strategy;
 
 
-  public SingleLoopTemplateChooser(TemplateFormula entryFormula,
+  public SingleLoopTemplateChooser(LogManager logger, TemplateFormula entryFormula,
       TemplateFormula loopFormula, TemplateFormula exitFormula, TemplateFormula exitHead,
       TemplateFormula exitTail) {
+    this.logger = logger;
     this.entryFormula = entryFormula;
     this.loopFormula = loopFormula;
     this.exitFormula = exitFormula;
@@ -63,10 +67,10 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
   private class TemplateChooserStrategy {
 
     private TemplateChooserMethod[] methods = {
-        TemplateChooserMethod.TOPLEVELTERMFORMS,
-        TemplateChooserMethod.LOOPVARSFREECOMB,
+        TemplateChooserMethod.EXITTAILCOMB,
         TemplateChooserMethod.EXITHEADNEGATION,
-        TemplateChooserMethod.EXITTAILCOMB
+        TemplateChooserMethod.LOOPVARSFREECOMB,
+        TemplateChooserMethod.TOPLEVELTERMFORMS
     };
     private InfixReln[] relns = {
         InfixReln.EQUAL, InfixReln.LT, InfixReln.LEQ
@@ -115,6 +119,8 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
     }
     TemplateChooserMethod method = strategy.getMethod();
     InfixReln relation = strategy.getRelation();
+
+    logger.log(Level.ALL, "Template choice method:", method, "Template infix relation:", relation);
 
     switch (method) {
     case TOPLEVELTERMFORMS:

@@ -92,6 +92,17 @@ public class TemplateSum extends TemplateFormula {
     return new TemplateSum(v);
   }
 
+  /*
+   * Return this sum minus one.
+   */
+  public TemplateSum minusOne() {
+    return TemplateSum.subtract(this, TemplateSum.makeUnity());
+  }
+
+  public static TemplateSum makeUnity() {
+    return new TemplateSum( TemplateTerm.makeUnity() );
+  }
+
 //------------------------------------------------------------------
 // copy
 

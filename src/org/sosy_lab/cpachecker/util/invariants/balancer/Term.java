@@ -35,6 +35,11 @@ public class Term {
     coeff = Rational.makeZero();
   }
 
+  public Term(Rational c, Monomial m) {
+    coeff = c;
+    monom = m;
+  }
+
   public Term(int n) {
     makeConstant(new Rational(n,1));
   }
@@ -46,6 +51,10 @@ public class Term {
   public Term(Variable v) {
     monom = new Monomial(v);
     coeff = Rational.makeUnity();
+  }
+
+  public Term copy() {
+    return new Term(coeff.copy(), monom.copy());
   }
 
   public static Term divide(Term t, Monomial m) {
@@ -119,8 +128,23 @@ public class Term {
     return this.isConstant() && coeff.isUnity();
   }
 
+  public boolean isPositive() {
+    return this.isConstant() && coeff.isPositive();
+  }
+
   public boolean isConstant() {
     return monom.isConstant();
+  }
+
+  public boolean isLinear() {
+    return monom.isLinear();
+  }
+
+  /*
+   * If this term is linear, then return its one variable; else return null.
+   */
+  public Variable getLinearVariable() {
+    return monom.getLinearVariable();
   }
 
   public void setCoeff(Rational r) {
@@ -139,8 +163,16 @@ public class Term {
     return monom;
   }
 
+  public int getDegree() {
+    return monom.getDegree();
+  }
+
   public void setPower(Variable v, int n) {
     monom.setPower(v, n);
+  }
+
+  public int getPower(Variable v) {
+    return monom.getPower(v);
   }
 
   @Override

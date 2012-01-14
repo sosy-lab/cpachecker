@@ -32,6 +32,9 @@ import java.util.Vector;
 
 public class Monomial {
 
+  // Whether or to write monomials like p1(p2^3) or like p1*(p2^3):
+  private final boolean writeStars = true;
+
   private Map<Variable,Integer> vars = new HashMap<Variable,Integer>();
 
   public Monomial() {
@@ -45,6 +48,27 @@ public class Monomial {
   public Monomial(Variable v) {
     vars = new HashMap<Variable,Integer>();
     vars.put(v, new Integer(1));
+  }
+
+  public Monomial copy() {
+    Map<Variable,Integer> v = new HashMap<Variable,Integer>();
+    for (Variable x : vars.keySet()) {
+      Variable xp = new Variable(x.getName());
+      Integer pow = new Integer( vars.get(x).intValue() );
+      v.put(xp, pow);
+    }
+    return new Monomial(v);
+  }
+
+  /*
+   * Compute the total degree of this monomial.
+   */
+  public int getDegree() {
+    int d = 0;
+    for (Integer e : vars.values()) {
+      d += e.intValue();
+    }
+    return d;
   }
 
   public boolean divides(Term t) {
@@ -173,6 +197,48 @@ public class Monomial {
     return true;
   }
 
+  public boolean isLinear() {
+    // To be linear is to have precisely one exponent equal to 1, and the rest 0.
+    if (vars.keySet().size() == 0) {
+      // then we have no variables, and we are not linear.
+      return false;
+    }
+    // We will count how many exponents are equal to 1,
+    // quitting immediately if we get one that is greater than 1, or if we
+    // get more than one 1.
+    Collection<Integer> exps = vars.values();
+    int ones = 0;
+    for (Integer e : exps) {
+      if (e.intValue() == 0) {
+        continue;
+      }
+      else if (e.intValue() == 1) {
+        ones += 1;
+        if (ones > 1) {
+          return false;
+        }
+      }
+      else if (e.intValue() > 1) {
+        return false;
+      }
+    }
+    return (ones == 1);
+  }
+
+  /*
+   * If this monomial is linear, then return its one variable; else return null.
+   */
+  public Variable getLinearVariable() {
+    if (isLinear()) {
+      for (Variable u : vars.keySet()) {
+        if (vars.get(u).intValue() == 1) {
+          return u;
+        }
+      }
+    }
+    return null;
+  }
+
   public void setMonomial(Map<Variable,Integer> m) {
     vars = m;
   }
@@ -183,6 +249,14 @@ public class Monomial {
 
   public void setPower(Variable v, int n) {
     vars.put(v, new Integer(n));
+  }
+
+  public int getPower(Variable v) {
+    int e = 0;
+    if (vars.containsKey(v)) {
+      e = vars.get(v).intValue();
+    }
+    return e;
   }
 
   @Override
@@ -205,14 +279,25 @@ public class Monomial {
       }
       // Else, write variable.
       String t = v.toString();
-      // Write power, and parenthesize, if power not unity.
+      // If power not unity, then write power and parenthesize.
       if (p != 1) {
         t = "("+t+"^"+pow.toString()+")";
+      }
+      if (writeStars) {
+        s += "*";
       }
       s += t;
     }
     if (s.length() == 0) {
+      // In this case there were no variables of positive power,
+      // so the monomial is just 1.
       s = "1";
+    }
+    else if (writeStars) {
+      // In this case we had at least one variable of positive power,
+      // so if we are writing stars *, then our string now begins with
+      // one superfluous *. So we delete it.
+      s = s.substring(1);
     }
     return s;
   }
