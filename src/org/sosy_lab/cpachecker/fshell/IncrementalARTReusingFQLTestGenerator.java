@@ -143,7 +143,7 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
   private long mRestartBound = 100000000; // 100 MB
 
   private boolean mUseAutomatonOptimization = true;
-  private boolean mUseGraphCPA = true; // TODO shall we constantly disable it?
+  private boolean mUseGraphCPA = false; // TODO disabled it since it causes a bug when doing FQL queries with PASSING clause 
   private boolean mReuseART = true;
   private boolean mUseInfeasibilityPropagation = true;
 
