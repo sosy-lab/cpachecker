@@ -34,7 +34,14 @@ import org.sosy_lab.common.LogManager;
 
 /*
  * Handles a series of substitutions, automatically applying them in order of lowest degree first,
- * and applying each one to all the others, when it is applied.
+ * and applying each one to all the others, at the time that it is applied.
+ * For example, if it is constructed on the two substitutions
+ *  p1 <-- p2
+ *  p1 <-- p3
+ * the second will be useful even after the first is applied, since the first will automatically be
+ * applied to the second, giving
+ *  p2 <-- p3.
+ *
  * Can serve up substitutions one after another so that you can apply them yourself, or can
  * automatically apply them to various structures, such as polynomials, rational functions,
  * and matrices.

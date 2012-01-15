@@ -691,13 +691,21 @@ public class Balancer {
     logger.log(Level.ALL,"Augmented Matrix:","\n"+au.toString());
     MatrixSolver ms = new MatrixSolver(au,logger);
     Set<Set<Assumption>> asetset;
+    Timer msTimer = new Timer();
+    msTimer.start();
     try {
       asetset = ms.solve();
+      msTimer.stop();
+      logger.log(Level.ALL, "MatrixSolver took", msTimer.getSumTime(), "milliseconds.");
     } catch (MatrixSolvingFailedException e) {
+      msTimer.stop();
       logger.log(Level.ALL, e.getReason());
+      logger.log(Level.ALL, "MatrixSolver took", msTimer.getSumTime(), "milliseconds.");
       return new HashSet<Assumption>();
     }
     // For the moment we just return the first set.
+    // In reality, we need to return a set of sets of conditions, and try different combinations
+    // of sets of conditions for the various matrices involved in balancing the network.
     if (asetset.size() == 0) {
       return new HashSet<Assumption>();
     }

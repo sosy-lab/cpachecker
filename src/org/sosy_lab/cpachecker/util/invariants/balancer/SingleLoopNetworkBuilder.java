@@ -25,20 +25,25 @@ package org.sosy_lab.cpachecker.util.invariants.balancer;
 
 import static com.google.common.base.Predicates.instanceOf;
 
+import java.util.Collection;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.Vector;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.Path;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.invariants.GraphUtil;
 import org.sosy_lab.cpachecker.util.invariants.choosers.SingleLoopTemplateChooser;
@@ -49,7 +54,6 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
 
 public class SingleLoopNetworkBuilder implements NetworkBuilder {
 
@@ -72,21 +76,9 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     logger = pLogger;
     tpfb = new TemplatePathFormulaBuilder();
 
-    Multimap<String, Loop> loops = CFACreator.loops;
-    if (loops.size() > 1) {
-      // there are too many loops
-      logger.log(Level.FINEST, "Could not use invariant generation for proving program safety, program has too many loops.");
-      throw new RefinementFailedException(Reason.InvariantRefinementFailed, cePath);
-    }
-
-    if (loops.isEmpty()) {
-      // invariant generation is unnecessary, program has no loops
-      logger.log(Level.FINEST, "Could not use invariant generation for proving program safety, program has no loops.");
-      throw new RefinementFailedException(Reason.InvariantRefinementFailed, cePath);
-    }
-
-    // There is just one loop. Get a hold of it.
-    loop = Iterables.getOnlyElement(loops.values());
+    // If there is just one loop, get a hold of it. Otherwise throw exception.
+    //loop = oldGetSingleLoopOrDie();
+    loop = getSingleLoopOrDie();
 
     // function edges do not count as incoming edges
     Iterable<CFAEdge> incomingEdges = Iterables.filter(loop.getIncomingEdges(),
@@ -136,6 +128,46 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     // Choose an invariant template for the loop head.
     chooser = buildChooser(entryFormula, loopFormula, exitFormula, exitHead, exitTail);
 
+  }
+
+  private Loop getSingleLoopOrDie() throws RefinementFailedException {
+    // Form a sorted set of all the CFANodes in the counterexample path.
+    // If we are going to use the CFAUtils.findLoops method, we have to essentially "cut" the counterexample path
+    // out of the CFA it belongs to; i.e. for each node in the path delete all those of its edges that point to
+    // nodes not in the path. Otherwise CFAUtils.findLoops will have an error.
+    SortedSet<CFANode> nodes = new TreeSet<CFANode>(getAllNodes());
+    // Now ask CFAUtils to find any and all the loops in the counterexample path.
+    try {
+      Collection<Loop> loops = CFAUtils.findLoops(nodes);
+
+      if (loops.size() > 1) {
+        // there are too many loops
+        logger.log(Level.FINEST, "Could not use invariant generation for proving program safety, program has too many loops.");
+        throw new RefinementFailedException(Reason.InvariantRefinementFailed, cePath);
+      }
+
+      if (loops.isEmpty()) {
+        // invariant generation is unnecessary, program has no loops
+        logger.log(Level.FINEST, "Could not use invariant generation for proving program safety, program has no loops.");
+        throw new RefinementFailedException(Reason.InvariantRefinementFailed, cePath);
+      }
+
+      // There is just one loop. Get a hold of it.
+      Loop loop = Iterables.getOnlyElement(loops);
+      return loop;
+
+    } catch (ParserException e) {
+      logger.logUserException(Level.WARNING, e, "Could not analyze loop structure of program.");
+      throw new RefinementFailedException(Reason.InvariantRefinementFailed, cePath);
+    }
+
+  }
+
+  private Set<CFANode> getAllNodes() {
+    Pair<ARTElement, CFAEdge> rootPair = cePath.getFirst();
+    ARTElement ae = rootPair.getFirst();
+    CFANode root = AbstractElements.extractLocation(ae);
+    return CFAUtils.transitiveSuccessors(root, true);
   }
 
   private PathFormula buildEntryFormula(Path pPath, CFANode loopHead) {

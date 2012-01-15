@@ -217,7 +217,7 @@ public class PivotRowHandler {
   private Set<Assumption> firstPass() throws MatrixSolvingFailedException {
     Set<Assumption> aset = new HashSet<Assumption>();
     Vector<Integer> discard = new Vector<Integer>();
-    logger.log(Level.ALL, "Processing rows:\n",remainingRows);
+    logger.log(Level.ALL, "Processing pivot rows:\n",remainingRows);
     for (Integer r : remainingRows) {
       if (FAar01(r)) {
         // If every augmentation entry in row r is of code 0 or 1, then we need not worry about
@@ -249,6 +249,11 @@ public class PivotRowHandler {
           logger.log(Level.ALL, "But there are no augmentation entries in row",r,"that are negative constants.",
               "Therefore we add assumptions that all variable augmentation entries in row",r,
               "be nonnegative:\n",nonneg,"\nand discard row",r,"from further consideration.");
+          // FIXME
+          // We should switch over to using the AssumptionSet class, instead of Set<Assumption>.
+          // Let's try one out here:
+          AssumptionSet as1 = new AssumptionSet(nonneg);
+          logger.log(Level.ALL, "Constructed using AssumptionSet class:\n",as1);
         }
       }
     }

@@ -358,6 +358,25 @@ public class Polynomial {
   }
 
   /*
+   * If this polynomial is 0, return 0;
+   * else if all coefficients are negative, return -1;
+   * else return 1.
+   */
+  public int getUnitContent() {
+    if (isZero()) {
+      return 0;
+    } else {
+      int u = -1;
+      for (Term t : terms) {
+        if (t.getCoeff().isPositive()) {
+          u = 1; break;
+        }
+      }
+      return u;
+    }
+  }
+
+  /*
    * If all coefficients are integral, return their positive gcd.
    * Else return 0.
    */

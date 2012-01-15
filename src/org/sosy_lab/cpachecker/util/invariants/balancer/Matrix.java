@@ -385,9 +385,15 @@ public class Matrix implements MatrixI {
         logger.log(Level.ALL,"Matrix:","\n"+this.toString());
         logger.log(Level.ALL,"E:","\n"+E.toString());
       }
-      // Record the nonzero assumption involved.
+      // Consider recording the nonzero assumption involved.
+      // First, make sure we divided by a nonconstant.
       if (!f.getNumerator().isConstant()) {
-        alist.add( new Assumption(f.getNumerator(),AssumptionType.NONZERO) );
+        // Form the assumption.
+        Assumption a = new Assumption(f.getNumerator(),AssumptionType.NONZERO);
+        // Make sure we don't already have it.
+        if (!alist.contains(a)) {
+          alist.add( a );
+        }
       }
 
       // Now clear out all other entries in column j1.
