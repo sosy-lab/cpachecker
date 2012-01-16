@@ -102,10 +102,15 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
           } catch (IOException e) {
             logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");
           }
+          out.println("Number of states in automaton:        " + automatonStates);
         }
       }
     }
   }
+
+  // statistics
+  private int automatonStates = 0;
+
 
   @Option(name="export", description="write collected assumptions to file")
   private boolean exportAssumptions = true;
@@ -288,12 +293,14 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         continue;
       }
 
-      CFANode loc = AbstractElements.extractLocation(e);
       sb.append("STATE USEFIRST ART" + e.getElementId() + " :\n");
+      automatonStates++;
+
       if (trueAssumptions.contains(e)) {
         sb.append("   TRUE -> GOTO __TRUE;\n\n");
 
       } else {
+        CFANode loc = AbstractElements.extractLocation(e);
         for (ARTElement child : e.getChildren()) {
           if (child.isCovered()) {
             child = child.getCoveringElement();
@@ -355,9 +362,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
     List<ARTElement> childrenAndCoveredList = new ArrayList<ARTElement>();
     childrenAndCoveredList.addAll(e.getChildren());
-    if(e.isCovered()){
-      childrenAndCoveredList.add(e.getCoveringElement());
-    }
+    childrenAndCoveredList.addAll(e.getCoveredByThis());
 
     for (ARTElement child : childrenAndCoveredList) {
       getTrueAssumptionElements(child, visited, trueAssumptions, falseAssumptions);
@@ -365,16 +370,10 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
     AssumptionStorageElement asmptElement = AbstractElements.extractElementByType(e, AssumptionStorageElement.class);
 
-    List<ARTElement> tempChildrenAndCoveredList = new ArrayList<ARTElement>();
-    tempChildrenAndCoveredList.addAll(e.getChildren());
-    if(e.isCovered()){
-      tempChildrenAndCoveredList.add(e.getCoveringElement());
-    }
-
     if (asmptElement.getAssumption().isTrue()
         && asmptElement.getStopFormula().isTrue()
         && !falseAssumptions.contains(e)
-        && trueAssumptions.containsAll(tempChildrenAndCoveredList)){
+        && trueAssumptions.containsAll(childrenAndCoveredList)){
       trueAssumptions.add(e);
     }
   }

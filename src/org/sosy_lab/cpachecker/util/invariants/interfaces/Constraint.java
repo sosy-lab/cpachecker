@@ -58,6 +58,12 @@ public interface Constraint {
    */
   public Coeff getNormalFormConstant(VariableWriteMode vwm);
 
+  /*
+   * This method is for use when we assume that the program variables
+   * are integers, and we transform strict inequalities into lax.
+   */
+  public Coeff getNormalFormConstantMinusOne(VariableWriteMode vwm);
+
   /**
    * @return the infix relation of this constraint.
    */

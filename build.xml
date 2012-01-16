@@ -100,7 +100,13 @@
 
     <target depends="build-dependencies" name="build-project">
         <depend srcdir="${source.dir}" destdir="${class.dir}"/>
-        <javac debug="true" debuglevel="${debuglevel}" destdir="${class.dir}" source="${source.format}" target="${class.format}" encoding="UTF-8">
+        <javac debug="true"
+               debuglevel="${debuglevel}"
+               includeAntRuntime="false"
+               destdir="${class.dir}"
+               source="${source.format}"
+               target="${class.format}"
+               encoding="UTF-8">
             <src path="${source.dir}"/>
             <classpath refid="CPAchecker.classpath"/>
         </javac>

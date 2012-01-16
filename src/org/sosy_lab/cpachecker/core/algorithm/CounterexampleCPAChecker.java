@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.TraversalMethod;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 
 @Options(prefix="counterexample.checker")
@@ -82,7 +83,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
     try {
       automatonFile = Files.createTempFile("automaton", ".txt", automaton);
     } catch (IOException e) {
-      throw new CPAException("Could not write automaton for explicit analysis check (" + e.getMessage() + ")");
+      throw new CounterexampleAnalysisFailed("Could not write path automaton to file " + e.getMessage(), e);
     }
 
     CFAFunctionDefinitionNode entryNode = (CFAFunctionDefinitionNode)extractLocation(pRootElement);
@@ -108,9 +109,9 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       }
 
     } catch (InvalidConfigurationException e) {
-      throw new CPAException("Invalid configuration for counterexample check: " + e.getMessage());
+      throw new CounterexampleAnalysisFailed("Invalid configuration in counterexample-check config: " + e.getMessage(), e);
     } catch (IOException e) {
-      throw new CPAException("Error during counterexample check: " + e.getMessage());
+      throw new CounterexampleAnalysisFailed(e.getMessage(), e);
     }
   }
 

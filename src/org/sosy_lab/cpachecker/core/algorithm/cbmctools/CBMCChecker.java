@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 
 import com.google.common.base.Optional;
@@ -101,7 +102,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
         cFile = Files.createTempFile("path", ".c", pathProgram);
       }
     } catch (IOException e) {
-      throw new CPAException("Could not write program for CBMC check (" + e.getMessage() + ")");
+      throw new CounterexampleAnalysisFailed("Could not write path program to file " + e.getMessage(), e);
     }
     assert(cFile != null);
 
@@ -116,10 +117,10 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
       exitCode = cbmc.join(timelimit);
 
     } catch (IOException e) {
-      throw new CPAException("Could not verify program with CBMC (" + e.getMessage() + ")");
+      throw new CounterexampleAnalysisFailed(e.getMessage(), e);
 
     } catch (TimeoutException e) {
-      throw new CPAException("CBMC took too long to verify the counterexample");
+      throw new CounterexampleAnalysisFailed("CBMC took too long to verify the counterexample.");
 
     } finally {
       cbmcTime.stop();
@@ -128,7 +129,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
 
     if (cbmc.getResult() == null) {
       // exit code and stderr are already logged with level WARNING
-      throw new CPAException("CBMC could not verify the program (CBMC exit code was " + exitCode + ")!");
+      throw new CounterexampleAnalysisFailed("CBMC could not verify the program (CBMC exit code was " + exitCode + ")!");
     }
     return cbmc.getResult();
   }

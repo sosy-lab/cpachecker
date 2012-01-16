@@ -416,4 +416,9 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
   Set<String> getTrackedVariableNames() {
     return constantsMap.keySet();
   }
+
+
+  Map<String, Long> getConstantsMap() {
+    return constantsMap;
+  }
 }

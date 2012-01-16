@@ -53,7 +53,7 @@ public final class IASTFloatLiteralExpression extends IASTLiteralExpression {
   }
 
   @Override
-  public String toASTString(String pPrefix) {
-    return pPrefix + value.toString();
+  public String toASTString() {
+    return value.toString();
   }
 }

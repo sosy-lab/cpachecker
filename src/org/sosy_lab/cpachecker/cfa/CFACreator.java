@@ -34,6 +34,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -282,7 +283,7 @@ public class CFACreator {
   /**
    * Insert nodes for global declarations after first node of CFA.
    */
-  public static void insertGlobalDeclarations(final MutableCFA cfa, List<IASTDeclaration> globalVars) {
+  public static void insertGlobalDeclarations(final MutableCFA cfa, List<Pair<IASTDeclaration, String>> globalVars) {
     if (globalVars.isEmpty()) {
       return;
     }
@@ -303,13 +304,15 @@ public class CFACreator {
     addToCFA(be);
 
     // create a series of GlobalDeclarationEdges, one for each declaration
-    for (IASTDeclaration d : globalVars) {
+    for (Pair<IASTDeclaration, String> p : globalVars) {
+      IASTDeclaration d = p.getFirst();
+      String rawSignature = p.getSecond();
       assert d.isGlobal();
 
       CFANode n = new CFANode(d.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
       cfa.addNode(n);
-      GlobalDeclarationEdge e = new GlobalDeclarationEdge(d,
-          d.getFileLocation().getStartingLineNumber(), cur, n);
+      GlobalDeclarationEdge e = new GlobalDeclarationEdge(rawSignature,
+          d.getFileLocation().getStartingLineNumber(), cur, n, d);
       addToCFA(e);
       cur = n;
     }

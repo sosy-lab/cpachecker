@@ -64,7 +64,7 @@ public class TermForm {
     return asForm.toString();
   }
 
-  TemplateTerm getTemplate() {
+  public TemplateTerm getTemplate() {
     return asTemplate;
   }
 

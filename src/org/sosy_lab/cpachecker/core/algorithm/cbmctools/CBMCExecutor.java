@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.cbmctools;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.io.IOException;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.ProcessExecutor;
@@ -34,6 +35,7 @@ public class CBMCExecutor extends ProcessExecutor<RuntimeException> {
 
   private Boolean result = null;
   private boolean unwindingAssertionFailed = false;
+  private boolean gaveErrorOutput = false;
 
   public CBMCExecutor(LogManager logger, String[] args) throws IOException {
     super(logger, RuntimeException.class, args);
@@ -44,10 +46,16 @@ public class CBMCExecutor extends ProcessExecutor<RuntimeException> {
     switch (pCode) {
     case 0: // Verification successful (Path is infeasible)
       result = false;
+      if (gaveErrorOutput) {
+        logger.log(Level.WARNING, "CBMC returned successfully, but printed warnings. Please check the log above!");
+      }
       break;
 
     case 10: // Verification failed (Path is feasible)
       result = true;
+      if (gaveErrorOutput) {
+        logger.log(Level.WARNING, "CBMC returned successfully, but printed warnings. Please check the log above!");
+      }
       break;
 
     default:
@@ -59,6 +67,8 @@ public class CBMCExecutor extends ProcessExecutor<RuntimeException> {
   protected void handleErrorOutput(String pLine) throws RuntimeException {
     if (!(pLine.startsWith("Verified ") && pLine.endsWith("original clauses."))) {
       // exclude the normal status output of CBMC
+
+      gaveErrorOutput = true;
       super.handleErrorOutput(pLine);
     }
   }

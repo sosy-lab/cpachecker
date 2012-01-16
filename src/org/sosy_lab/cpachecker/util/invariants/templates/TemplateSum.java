@@ -23,18 +23,23 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.templates;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
 import org.sosy_lab.cpachecker.util.invariants.Coeff;
+import org.sosy_lab.cpachecker.util.invariants.Rational;
+import org.sosy_lab.cpachecker.util.invariants.balancer.Polynomial;
+import org.sosy_lab.cpachecker.util.invariants.balancer.Term;
+import org.sosy_lab.cpachecker.util.invariants.balancer.Variable;
 import org.sosy_lab.cpachecker.util.invariants.interfaces.GeneralVariable;
 import org.sosy_lab.cpachecker.util.invariants.interfaces.VariableManager;
-import org.sosy_lab.cpachecker.util.invariants.redlog.Rational;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
@@ -58,7 +63,7 @@ public class TemplateSum extends TemplateFormula {
     terms = t;
   }
 
-  public TemplateSum(Set<TemplateTerm> s) {
+  public TemplateSum(Collection<TemplateTerm> s) {
     terms = new Vector<TemplateTerm>(s);
   }
 
@@ -66,6 +71,36 @@ public class TemplateSum extends TemplateFormula {
     terms = new Vector<TemplateTerm>();
     terms.addAll(s1.getTerms());
     terms.addAll(s2.getTerms());
+  }
+
+//------------------------------------------------------------------
+// Other creation methods.
+
+  /*
+   * Create a linear combination over the passed terms, with
+   * fresh parameters as coefficients.
+   */
+  public static TemplateSum freshParamLinComb(Collection<TemplateTerm> c) {
+    TemplateVariable param;
+    Vector<TemplateTerm> v = new Vector<TemplateTerm>(c.size());
+    for (TemplateTerm t : c) {
+      param = TemplateTerm.getNextFreshParameter();
+      t = t.copy();
+      t.setParameter(param);
+      v.add(t);
+    }
+    return new TemplateSum(v);
+  }
+
+  /*
+   * Return this sum minus one.
+   */
+  public TemplateSum minusOne() {
+    return TemplateSum.subtract(this, TemplateSum.makeUnity());
+  }
+
+  public static TemplateSum makeUnity() {
+    return new TemplateSum( TemplateTerm.makeUnity() );
   }
 
 //------------------------------------------------------------------
@@ -79,6 +114,15 @@ public class TemplateSum extends TemplateFormula {
     }
     TemplateSum s = new TemplateSum(v);
     return s;
+  }
+
+  public Polynomial makePolynomial(Map<String,Variable> paramVars) {
+    List<Term> tlist = new Vector<Term>(terms.size());
+    for (TemplateTerm t : terms) {
+      Term u = t.makeRationalFunctionTerm(paramVars);
+      tlist.add(u);
+    }
+    return new Polynomial(tlist);
   }
 
 //------------------------------------------------------------------
@@ -110,6 +154,7 @@ public class TemplateSum extends TemplateFormula {
       T = getTerm(i);
       ans &= T.evaluate(map);
     }
+    dropZeroTerms();
     return ans;
   }
 
@@ -203,6 +248,42 @@ public class TemplateSum extends TemplateFormula {
     return params;
   }
 
+  public Set<TemplateVariable> getTopLevelParameters() {
+    HashSet<TemplateVariable> tlp = new HashSet<TemplateVariable>();
+    TemplateTerm T;
+    for (int i = 0; i < getNumTerms(); i++) {
+      T = getTerm(i);
+      if (T.hasParameter()) {
+        tlp.add(T.getParameter());
+      }
+    }
+    return tlp;
+  }
+
+  @Override
+  public Set<TemplateUIF> getAllTopLevelUIFs() {
+    HashSet<TemplateUIF> tlu = new HashSet<TemplateUIF>();
+    TemplateTerm T;
+    for (int i = 0; i < getNumTerms(); i++) {
+      T = getTerm(i);
+      if (T.hasUIF()) {
+        tlu.add(T.getUIF());
+      }
+    }
+    return tlu;
+  }
+
+  @Override
+  public Set<TemplateVariable> getAllPurificationVariables() {
+    Set<TemplateVariable> pvs = new HashSet<TemplateVariable>();
+    TemplateTerm T;
+    for (int i = 0; i < getNumTerms(); i++) {
+      T = getTerm(i);
+      pvs.addAll(T.getAllPurificationVariables());
+    }
+    return pvs;
+  }
+
   @Override
   public HashMap<String,Integer> getMaxIndices(HashMap<String,Integer> map) {
     TemplateTerm T;
@@ -263,6 +344,19 @@ public class TemplateSum extends TemplateFormula {
 
   public void sort(MonomialOrder mo) {
     Collections.sort(terms, mo);
+  }
+
+  public void dropZeroTerms() {
+    Vector<TemplateTerm> v = new Vector<TemplateTerm>();
+    for (TemplateTerm t : terms) {
+      if (!t.isZero()) {
+        v.add(t);
+      }
+    }
+    if (v.size() == 0) {
+      v.add(TemplateTerm.makeZero());
+    }
+    terms = v;
   }
 
   /**
@@ -354,19 +448,20 @@ public class TemplateSum extends TemplateFormula {
     // term has one and the same variable in it. Then the returned
     // Coeff is the total coefficient of that variable, including
     // both constants and parameters.
-    String s = "";
-    TemplateTerm T;
-    String c;
-    for (int i = 0; i < getNumTerms(); i++) {
-      T = getTerm(i);
-      c = T.getCoeffWithParam(vwm).toString();
-      s += " + "+c;
+    Collection<TemplateTerm> c = new Vector<TemplateTerm>();
+    TemplateTerm u;
+    for (TemplateTerm t : getTerms()) {
+      u = t.copy();
+      u.setVariable(null);
+      u.setUIF(null);
+      if (!u.hasCoefficient()) {
+        u.setCoefficient( TemplateNumber.makeUnity() );
+      }
+      c.add(u);
     }
-    if (s.length() > 0) {
-      s = s.substring(3);
-    }
-    Coeff C = new Coeff(s);
-    return C;
+    TemplateSum s = new TemplateSum(c);
+    Coeff co = new Coeff(s,vwm);
+    return co;
   }
 
   /**
@@ -499,28 +594,27 @@ public class TemplateSum extends TemplateFormula {
   }
 
   public static TemplateFormula divide(TemplateSum s1, TemplateSum s2) {
-    TemplateFormula F = null;
-    /*
-    int n = s2.getNumTerms();
-    if (n==1) {
-      Integer D = s2.getInteger();
-      // Now we need to go through s1 and check whether D
-      // actually divides the coefficient of each term (since at
-      // least for now we are using only integer coefficients),
-      // and then actually divide those coefficients by D.
-      //
-      // For now I'm putting this off, because I really doubt
-      // that it is terribly important.
-      // Hence:
-      F = new NonTemplate();
-      // In other words, for now trying to divide simply gives
-      // you a nontemplate.
-    } else {
-      F = new NonTemplate();
+    // First make sure that s2 is actually just a single number, quitting if it is not.
+    TemplateNumber n = null;
+    int t = s2.getNumTerms();
+    if (t == 1) {
+      TemplateTerm term = s2.getTerm(0);
+      if (term.isANumber()) {
+        n = term.getCoefficient();
+      }
     }
-    */
-    F = new NonTemplate();
-    return F;
+    if (n == null) {
+      System.err.println("Tried to divide by a TemplateSum that was not a single number.");
+      System.exit(1);
+    }
+    // Now n is the number that we are dividing by.
+    TemplateTerm q;
+    Collection<TemplateTerm> c = new Vector<TemplateTerm>(s1.getNumTerms());
+    for (TemplateTerm term : s1.getTerms()) {
+      q = term.divideBy(n);
+      c.add(q);
+    }
+    return new TemplateSum(c);
   }
 
   void writeAsForm(boolean b) {

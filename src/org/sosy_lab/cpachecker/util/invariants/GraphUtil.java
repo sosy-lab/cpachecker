@@ -7,7 +7,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
@@ -48,8 +50,10 @@ public class GraphUtil {
    * a list of CFAEdges, or it might return null. In the former
    * case, the list might form a loop, or it might not.
    */
-  public static Vector<CFAEdge> makeEdgeLoop(List<CFANode> nodes) {
+  public static Vector<CFAEdge> makeEdgeLoop(List<CFANode> nodes, LogManager logger) {
     Vector<CFAEdge> edges = new Vector<CFAEdge>();
+
+    writeAllSuccessors(nodes, logger);
 
     // Identify loop head.
     CFANode loopHead = null;
@@ -59,21 +63,23 @@ public class GraphUtil {
         break;
       }
     }
+    // If didn't find one, then give up.
     if (loopHead == null) {
       return null;
     }
-    // Remove it from the list.
-    nodes.remove(loopHead);
+    logger.log(Level.ALL, "Loop head is: ", loopHead);
 
     CFANode current = loopHead;
     // Compute a loop.
-    while (nodes.size() > 0) {
+    //while (nodes.size() > 0) {
+    do {
       // Try to find an outgoing edge from current to some
       // node in the list.
       for (CFANode N : nodes) {
         if (current.hasEdgeTo(N)) {
           // Found such an edge.
           // Add it to list of edges, set current to N, and remove N from list of nodes.
+          logger.log(Level.ALL, "Found next node in loop: ", N);
           CFAEdge e = current.getEdgeTo(N);
           edges.add(e);
           current = N;
@@ -81,7 +87,7 @@ public class GraphUtil {
           break;
         }
       }
-    }
+    } while (current != loopHead);
 
     // Finally, look for edge returning to loop head.
     if (current.hasEdgeTo(loopHead)) {
@@ -90,6 +96,24 @@ public class GraphUtil {
     }
 
     return edges;
+  }
+
+  /*
+   * This method is purely for debugging purposes.
+   */
+  private static void writeAllSuccessors(List<CFANode> nodes, LogManager logger) {
+    logger.log(Level.ALL, "Computing successors of all nodes.");
+    for (CFANode n : nodes) {
+      logger.log(Level.ALL, "Successors of ",n);
+      int e = n.getNumLeavingEdges();
+      List<CFANode> list = new Vector<CFANode>(e);
+      for (int i = 0; i < e; i++) {
+        CFAEdge edge = n.getLeavingEdge(i);
+        CFANode s = edge.getSuccessor();
+        list.add(s);
+      }
+      logger.log(Level.ALL, list);
+    }
   }
 
   /**

@@ -79,7 +79,7 @@ public class IASTUnaryExpression extends IASTExpression {
   }
 
   @Override
-  public String toASTString(String pPrefix) {
-    return pPrefix + operator.getOperator() + "(" + operand.toASTString() + ")";
+  public String toASTString() {
+    return operator.getOperator() + "(" + operand.toASTString() + ")";
   }
 }

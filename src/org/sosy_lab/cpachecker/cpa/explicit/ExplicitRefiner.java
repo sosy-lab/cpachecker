@@ -258,8 +258,6 @@ public class ExplicitRefiner extends AbstractInterpolationBasedRefiner<Collectio
     return formulas;
   }
 
-  private static int refinementCounter = 0;
-
   private Pair<ARTElement, ExplicitPrecision> performRefinement(Precision oldPrecision,
       List<Pair<ARTElement, CFAEdge>> errorPath,
       CounterexampleTraceInfo<Collection<AbstractionPredicate>> pInfo) throws CPAException {

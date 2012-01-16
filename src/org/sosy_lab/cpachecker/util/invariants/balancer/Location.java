@@ -27,24 +27,30 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 public class Location {
 
-  private int num;
+  private final int num;
   private CFANode node = null;
-  
+
   public Location(int n) {
     num = n;
   }
-  
+
   public Location(CFANode N) {
     node = N;
     num = N.getNodeNumber();
   }
-  
+
   public int getNumber() {
     return num;
   }
-  
+
   public CFANode getNode() {
     return node;
+  }
+
+  @Override
+  public String toString() {
+    String s = "l"+Integer.toString(num);
+    return s;
   }
 
 }

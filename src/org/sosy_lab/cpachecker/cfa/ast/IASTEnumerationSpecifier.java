@@ -96,8 +96,8 @@ public final class IASTEnumerationSpecifier extends IType {
     }
 
     @Override
-    public String toASTString(String pPrefix) {
-      return pPrefix + getName()
+    public String toASTString() {
+      return getName()
           + (hasValue() ? " = " + String.valueOf(value) : "");
     }
   }

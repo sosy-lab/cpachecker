@@ -490,6 +490,11 @@ cpa.uninitvars.printWarnings = "true"
 cpa.uninitvars.stop = "sep"
   allowed values: [sep, join]
 
+# export ART representation needed for proof checking in PCC, if the error
+# location is not reached, the representation depends on the algorithm used
+# for proof checking
+file = "pccProof.txt"
+
 # Possible log levels in descending order 
 # (lower levels include higher ones):
 # OFF:      no logs published
@@ -521,6 +526,9 @@ log.level = Level.OFF
 # maximum size of log output strings before they will be truncated
 log.truncateSize = 10000
 
+# use colors for log messages on console
+log.useColors = true
+
 # all used options are printed
 log.usedOptions.export = false
 
@@ -537,6 +545,28 @@ parser.dialect = GNUC
 
 # Ignore all casts that appear in the source code.
 parser.ignoreCasts = false
+
+# export ART representation needed for proof checking in PCC, if the error
+# location is not reached, the representation depends on the algorithm used
+# for proof checking
+pcc.profgen.file = "pccProof.txt"
+
+# Type of the algorithm which should be used for PCC
+pcc.proofgen.algorithm = SBENOINDART
+  enum:     [SBEINDART, SBENOINDART, SBEINDINVARIANT, SBENOINDINVARIANT,
+             SBENOEDGENOINDINVARIANT, SBENOEDGENOINDINVARIANT2, ABENOINDART,
+             LBENOINDART, ALBENOINDART, LBENOINDINVARIANT, ALBENOINDINVARIANT]
+
+# which solver to use?
+pcc.proofgen.cpa.predicate.abstraction.solver = "MATHSAT"
+  allowed values: [MATHSAT, YICES]
+
+pcc.proofgen.doPCC = false
+
+# export ART representation needed for proof checking in PCC, if the error
+# location is not reached, the representation depends on the algorithm used
+# for proof checking
+pcc.proofgen.file = "pccProof.txt"
 
 # print reached set to text file
 reachedSet.export = true

@@ -60,8 +60,8 @@ public class IASTExpressionAssignmentStatement extends IASTStatement implements 
   }
 
   @Override
-  public String toASTString(String pPrefix) {
-    return pPrefix + leftHandSide.toASTString()
+  public String toASTString() {
+    return leftHandSide.toASTString()
         + " = " + rightHandSide.toASTString() + ";";
   }
 }

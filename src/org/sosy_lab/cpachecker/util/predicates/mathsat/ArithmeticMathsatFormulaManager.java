@@ -63,15 +63,15 @@ class ArithmeticMathsatFormulaManager extends MathsatFormulaManager {
     final int[] msatVarType1 = {msatVarType};
     final int[] msatVarType2 = {msatVarType, msatVarType};
 
-    bitwiseAndUfDecl = msat_declare_uif(msatEnv, "_&_", msatVarType, 2, msatVarType2);
-    bitwiseOrUfDecl = msat_declare_uif(msatEnv, "_|_", msatVarType, 2, msatVarType2);
-    bitwiseXorUfDecl = msat_declare_uif(msatEnv, "_^_", msatVarType, 2, msatVarType2);
-    bitwiseNotUfDecl = msat_declare_uif(msatEnv, "_~_", msatVarType, 1, msatVarType1);
-    leftShiftUfDecl = msat_declare_uif(msatEnv, "_<<_", msatVarType, 2, msatVarType2);
-    rightShiftUfDecl = msat_declare_uif(msatEnv, "_>>_", msatVarType, 2, msatVarType2);
-    multUfDecl = msat_declare_uif(msatEnv, "_*_", msatVarType, 2, msatVarType2);
-    divUfDecl = msat_declare_uif(msatEnv, "_/_", msatVarType, 2, msatVarType2);
-    modUfDecl = msat_declare_uif(msatEnv, "_%_", msatVarType, 2, msatVarType2);
+    bitwiseAndUfDecl = msat_declare_uif(msatEnv, "_&_", msatVarType, msatVarType2);
+    bitwiseOrUfDecl = msat_declare_uif(msatEnv, "_|_", msatVarType, msatVarType2);
+    bitwiseXorUfDecl = msat_declare_uif(msatEnv, "_^_", msatVarType, msatVarType2);
+    bitwiseNotUfDecl = msat_declare_uif(msatEnv, "_~_", msatVarType, msatVarType1);
+    leftShiftUfDecl = msat_declare_uif(msatEnv, "_<<_", msatVarType, msatVarType2);
+    rightShiftUfDecl = msat_declare_uif(msatEnv, "_>>_", msatVarType, msatVarType2);
+    multUfDecl = msat_declare_uif(msatEnv, "_*_", msatVarType, msatVarType2);
+    divUfDecl = msat_declare_uif(msatEnv, "_/_", msatVarType, msatVarType2);
+    modUfDecl = msat_declare_uif(msatEnv, "_%_", msatVarType, msatVarType2);
   }
 
   @Override

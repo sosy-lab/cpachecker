@@ -40,8 +40,9 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
 import com.google.common.base.Preconditions;
+import com.google.common.primitives.Ints;
 
-public class ARTElement extends AbstractSingleWrapperElement {
+public class ARTElement extends AbstractSingleWrapperElement implements Comparable<ARTElement> {
 
   private final Set<ARTElement> children;
   private final Set<ARTElement> parents; // more than one parent if joining elements
@@ -292,5 +293,16 @@ public class ARTElement extends AbstractSingleWrapperElement {
 
   public boolean isDestroyed() {
     return destroyed;
+  }
+
+  /**
+   * The ordering of this class is the chronological creation order.
+   *
+   * Note: Although equals() is not overwritten, this ordering is consistent
+   * with equals() as the elementId field is unique.
+   */
+  @Override
+  public int compareTo(ARTElement pO) {
+    return Ints.compare(this.elementId, pO.elementId);
   }
 }

@@ -6,27 +6,27 @@
 
   <test name="lbe-tests">
     <sourcefiles>
-      <include>test/programs/systemc/token_ring*.cil.c</include>
-      <include>test/programs/systemc/mem_slave_tlm.*.cil.c</include>
-      <include>test/programs/systemc/toy.cil.c</include>
+      <include>test/programs/benchmarks/systemc/token_ring*.cil.c</include>
+      <include>test/programs/benchmarks/systemc/mem_slave_tlm.*.cil.c</include>
+      <include>test/programs/benchmarks/systemc/toy.cil.c</include>
     </sourcefiles>
     <option name="-predicateAnalysis-lbe-cbmc"/>
   </test>
 
   <test name="explicit-tests">
     <sourcefiles>
-      <include>test/programs/systemc/token_ring*.cil.c</include>
-      <include>test/programs/systemc/mem_slave_tlm.*.cil.c</include>
-      <include>test/programs/systemc/toy.cil.c</include>
+      <include>test/programs/benchmarks/systemc/token_ring*.cil.c</include>
+      <include>test/programs/benchmarks/systemc/mem_slave_tlm.*.cil.c</include>
+      <include>test/programs/benchmarks/systemc/toy.cil.c</include>
     </sourcefiles>
     <option name="-explicitAnalysis"/>
   </test>
 
   <test name="restart-with-automaton-tests">
     <sourcefiles>
-      <include>test/programs/systemc/token_ring*.cil.c</include>
-      <include>test/programs/systemc/mem_slave_tlm.*.cil.c</include>
-      <include>test/programs/systemc/toy.cil.c</include>
+      <include>test/programs/benchmarks/systemc/token_ring*.cil.c</include>
+      <include>test/programs/benchmarks/systemc/mem_slave_tlm.*.cil.c</include>
+      <include>test/programs/benchmarks/systemc/toy.cil.c</include>
     </sourcefiles>
     <option name="-config">test/assumptions/assumptionAutomaton.properties</option>
   </test>

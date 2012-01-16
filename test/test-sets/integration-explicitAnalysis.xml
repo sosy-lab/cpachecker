@@ -12,7 +12,7 @@
         	<option name="-setprop">cegar.refiner=cpa.explicit.ExplicitRefiner</option>
             <sourcefiles>
                     <includesfile>test/programs/benchmarks/Concurrency.set</includesfile>
-                    <includesfile>test/programs/benchmarks/ControlFlowInteger.set</includesfile>
+                    <includesfile>test/test-sets/integration-ControlFlowInteger.set</includesfile>
                     <includesfile>test/programs/benchmarks/HeapManipulation.set</includesfile>
                     <includesfile>test/test-sets/integration-SystemC.set</includesfile>
             </sourcefiles>
@@ -20,8 +20,8 @@
                     <includesfile>test/programs/benchmarks/DeviceDrivers.set</includesfile>
             </sourcefiles>
             <sourcefiles>
-                    <includesfile>test/programs/benchmarks/DeviceDrivers64.set</includesfile>
-            <option name="-setprop">cpa.predicate.machineModel=Linux64</option>
+                    <includesfile>test/test-sets/integration-DeviceDrivers64.set</includesfile>
+                    <option name="-setprop">cpa.predicate.machineModel=Linux64</option>
             </sourcefiles>
 	</test>
 

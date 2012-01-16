@@ -80,10 +80,9 @@ public final class IASTDeclaration extends IASTSimpleDeclaration {
   }
 
   @Override
-  public String toASTString(String pPrefix) {
+  public String toASTString() {
     StringBuilder lASTString = new StringBuilder();
 
-    lASTString.append(pPrefix);
     lASTString.append(storageClass.toASTString());
     lASTString.append(getDeclSpecifier().toASTString());
 
