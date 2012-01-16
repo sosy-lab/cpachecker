@@ -1,5 +1,10 @@
-
+ln -s /usr/lib/libgmp.so.10 /tmp/libgmp.so.3 
 export LD_LIBRARY_PATH=/tmp:usr/local/lib:$LD_LIBRARY_PATH
+i=1
+while [ $i -le 1000 ]
+do
 java  -Djava.library.path=lib/native/x86-linux -cp /home/krall/install/junit4.9b2/junit4.9b2/junit-4.9b2.jar:bin:lib/guava-r09.jar:lib/eclipse/icu4j-4_2_1.jar:lib/javabdd-1.0b2.jar:lib/java-cup-11a.jar:lib/build-only/JFlex.jar:lib/jgrapht-jdk1.6.jar:lib/mathsat.jar:lib/eclipse/org.eclipse.cdt.core_5.2.1.201102110609.jar:lib/eclipse/org.eclipse.core.contenttype_3.4.1.R35x_v20090826-0451.jar:lib/eclipse/org.eclipse.core.jobs_3.4.100.v20090429-1800.jar:lib/eclipse/org.eclipse.core.resources_3.6.1.R36x_v20110131-1630.jar:lib/eclipse/org.eclipse.core.runtime_3.5.0.v20090525.jar:lib/eclipse/org.eclipse.equinox.common_3.6.0.v20100503.jar:lib/eclipse/org.eclipse.equinox.preferences_3.2.301.R35x_v20091117.jar:lib/eclipse/org.eclipse.equinox.registry_3.4.100.v20090520-1800.jar:lib/eclipse/org.eclipse.osgi_3.6.2.R36x_v20110210.jar:lib/build-only/org.hamcrest.core_1.1.0.v20090501071000.jar:lib/json_simple-1.1.jar:lib/eclipse-cdt6-parser.jar org.junit.runner.JUnitCore org.sosy_lab.cpachecker.fshell.experiments.krall.kbfiltr1simple
-
+java  -Djava.library.path=lib/native/x86-linux -cp /home/krall/install/junit4.9b2/junit4.9b2/junit-4.9b2.jar:bin:lib/guava-r09.jar:lib/eclipse/icu4j-4_2_1.jar:lib/javabdd-1.0b2.jar:lib/java-cup-11a.jar:lib/build-only/JFlex.jar:lib/jgrapht-jdk1.6.jar:lib/mathsat.jar:lib/eclipse/org.eclipse.cdt.core_5.2.1.201102110609.jar:lib/eclipse/org.eclipse.core.contenttype_3.4.1.R35x_v20090826-0451.jar:lib/eclipse/org.eclipse.core.jobs_3.4.100.v20090429-1800.jar:lib/eclipse/org.eclipse.core.resources_3.6.1.R36x_v20110131-1630.jar:lib/eclipse/org.eclipse.core.runtime_3.5.0.v20090525.jar:lib/eclipse/org.eclipse.equinox.common_3.6.0.v20100503.jar:lib/eclipse/org.eclipse.equinox.preferences_3.2.301.R35x_v20091117.jar:lib/eclipse/org.eclipse.equinox.registry_3.4.100.v20090520-1800.jar:lib/eclipse/org.eclipse.osgi_3.6.2.R36x_v20110210.jar:lib/build-only/org.hamcrest.core_1.1.0.v20090501071000.jar:lib/json_simple-1.1.jar:lib/eclipse-cdt6-parser.jar org.junit.runner.JUnitCore org.sosy_lab.cpachecker.fshell.experiments.krall.sshtests
+i=`expr $i + 1`
+done
 
