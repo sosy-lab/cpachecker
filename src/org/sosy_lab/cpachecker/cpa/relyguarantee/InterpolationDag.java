@@ -124,11 +124,6 @@ public class InterpolationDag {
    * @return
    */
   public List<InterpolationDagNode> getModularPathToNode(InterpolationDagNode target){
-
-    if (!nodeMap.containsValue(target)){
-      System.out.println();
-    }
-
     assert nodeMap.containsValue(target);
 
     List<InterpolationDagNode> path = new Vector<InterpolationDagNode>();
@@ -347,7 +342,6 @@ public class InterpolationDag {
       for (InterpolationDagNode bn : path){
         System.out.println(bn.getArtElement().getElementId()+" ");
       }*/
-      System.out.println();
       List<InterpolationDagNodeKey> branch = new Vector<InterpolationDagNodeKey>(path);
       branches.add(branch);
     }
@@ -374,17 +368,10 @@ public class InterpolationDag {
 
   private void dagAssertions(List<InterpolationDagNode> nodes){
     for (InterpolationDagNode node : nodes){
-
-      if (!nodeMap.containsValue(node)){
-        System.out.println(node);
-      }
       assert nodeMap.containsValue(node);
 
 
       for (InterpolationDagNode child : node.getChildren()){
-        if (!child.getParents().contains(node)){
-          System.out.println();
-        }
 
         assert child.getParents().contains(node);
       }

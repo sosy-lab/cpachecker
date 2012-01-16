@@ -754,9 +754,6 @@ public class RelyGuaranteeEnvironment {
 
       return rManager.entails(r1, r2);
     }
-
-
-
   }
 
   /**

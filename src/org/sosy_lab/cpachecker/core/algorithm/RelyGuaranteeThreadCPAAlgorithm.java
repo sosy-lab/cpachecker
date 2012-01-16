@@ -197,13 +197,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
 
       stats.transferTimer.start();
       Collection<? extends AbstractElement> successors = transferRelation.getAbstractSuccessors(element, precision, null);
-
-
-      // create and environmental edge and add it the global storage
-
-      //Vector<RelyGuaranteeEnvironmentalTransition> newEnvTransitions = createEnvTransitions(element);
-      //environment.addEnvTransitions(newEnvTransitions);
-      stats.envGenTimer.stop();
+      stats.transferTimer.stop();
 
       int numSuccessors = successors.size();
       logger.log(Level.FINER, "Current element has", numSuccessors,"successors");
@@ -244,7 +238,8 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
         if (newEnvTransition != null){
           environment.addEnvTransition(newEnvTransition);
         }
-        stats.transferTimer.stop();
+        stats.envGenTimer.stop();
+
 
         if (debug){
           printRelyGuaranteeAbstractElement(successor);

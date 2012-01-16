@@ -920,9 +920,7 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
       // check if the traceNo is OK
       // check parent - children relationships
       for (InterpolationDagNode child : node.getChildren()){
-        if (!child.getParents().contains(node)){
-          System.out.println();
-        }
+
         assert child.getParents().contains(node);
       }
 
@@ -1473,9 +1471,6 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
      List<T> idList = new Vector<T>(ancList.size());
      for (InterpolationTreeNode ancNode : ancList){
        T id = idMap.get(ancNode);
-       if (id == null){
-         System.out.println();
-       }
        idList.add(id);
      }
 

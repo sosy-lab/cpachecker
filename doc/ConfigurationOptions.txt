@@ -274,9 +274,10 @@ cpa.predicate.abm.auxiliaryPredicateComputer = true
 # use caching of region to formula conversions
 # use caching of abstractions
 cpa.predicate.abs.useCache = true
+cpa.predicate.abs.useCache = false
 
 # whether to use Boolean (false) or Cartesian (true) abstraction
-cpa.predicate.abstraction.cartesian = false
+cpa.predicate.abstraction.cartesian = true
 
 # dump the abstraction formulas if they took to long
 cpa.predicate.abstraction.dumpHardQueries = false
@@ -304,6 +305,10 @@ cpa.predicate.blk.threshold = 0
 
 # use caching of path formulas
 cpa.predicate.blk.useCache = true
+
+# whether to use Boolean (false) or Cartesian (true) abstraction for
+# enviromental transitions.
+cpa.predicate.cartesianNextValAbstraction = true
 
 # always check satisfiability at end of block, even if precision is empty
 cpa.predicate.checkBlockFeasibility = false
@@ -427,11 +432,7 @@ cpa.predicate.useNondetFlags = false
 
 # Abstract environmental transitions using their own predicates:0 - don't
 # abstract, 1 - abstract filter, 2 - abstract filter and operation.
-cpa.relyguarantee.abstractEnvTransitions = 1
-
-# get an initial set of predicates from a file in MSAT format
-cpa.relyguarantee.abstraction.initialPredicates0 = 
-cpa.relyguarantee.abstraction.initialPredicates1 = 
+cpa.relyguarantee.abstractEnvTransitions = 2
 
 # which solver to use?
 cpa.relyguarantee.abstraction.solver = "MATHSAT"
@@ -488,6 +489,9 @@ cpa.relyguarantee.interpolatingProver = "MATHSAT"
 # try second interpolating solver if the first takes too long
 cpa.relyguarantee.interpolation.changesolverontimeout = false
 
+# Limit of nodes in an interpolation tree (0 - no limit).
+cpa.relyguarantee.itpTreeNodeLimit = 0
+
 # export final predicate map, if the error location is not reached
 cpa.relyguarantee.predmap.export = true
 cpa.relyguarantee.predmap.file = "predmap.txt"
@@ -495,7 +499,6 @@ cpa.relyguarantee.predmap.file = "predmap.txt"
 # refinement will add all discovered predicates to all the locations in the
 # abstract trace
 cpa.relyguarantee.refinement.addPredicatesGlobally = true
-cpa.relyguarantee.refinement.addPredicatesGlobally = false
 
 # If true, the analysis continues in the previous thread. If false, the first
 # thread is analysed first.
@@ -508,16 +511,13 @@ cpa.relyguarantee.refinement.dumpDAGfile = "test/output/itpDAG"
 cpa.relyguarantee.refinement.interpolatingProver = "MATHSAT"
   allowed values: [MATHSAT, CSISAT]
 
-# Detect and skip interpolation branches that don't give new predicates.
-cpa.relyguarantee.refinement.itpEnvSkip = false
-
 # where to dump the counterexample formula in case the error location is
 # reached
 cpa.relyguarantee.refinement.msatCexFile = "counterexample.msat"
 
 # How to refine the counterexample DAG: 0 - unfoald to a tree, 1 - insert
 # env. edges
-cpa.relyguarantee.refinement.refinementMethod = 0
+cpa.relyguarantee.refinement.refinementMethod = 1
 
 # restart analysis after refinement
 cpa.relyguarantee.refinement.restartAnalysis = false
