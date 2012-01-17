@@ -4,6 +4,7 @@ Bundle-Name: CPAchecker runtime
 Bundle-SymbolicName: org.sosy_lab.cpachecker.runtime;singleton:=true
 Bundle-Version: 1.0.1.qualifier
 Bundle-ClassPath: bin/,
+ lib/java/runtime/common.jar,
  lib/java/runtime/java-cup-runtime.jar,
  lib/java/runtime/javabdd.jar,
  lib/java/runtime/jgrapht-jdk1.6.jar,
