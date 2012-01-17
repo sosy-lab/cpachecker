@@ -88,7 +88,7 @@ import org.sosy_lab.cpachecker.util.assumptions.NumericTypes;
 public class ExplicitTransferRelation implements TransferRelation
 {
   private final Set<String> globalVariables = new HashSet<String>();
-  public static Set<String> globalVarsStatic = null;
+  static Set<String> globalVarsStatic = null;
 
   @Option(description="threshold for amount of different values that "
     + "are tracked for one variable in ExplicitCPA (0 means infinitely)")
