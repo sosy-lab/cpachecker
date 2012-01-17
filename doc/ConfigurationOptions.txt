@@ -1,6 +1,55 @@
 # This is an auto-generated file, DO NOT EDIT!
 # Run ant to generate it.
 
+# Possible log levels in descending order 
+# (lower levels include higher ones):
+# OFF:      no logs published
+# SEVERE:   error messages
+# WARNING:  warnings
+# INFO:     messages
+# FINE:     logs on main application level
+# FINER:    logs on central CPA algorithm level
+# FINEST:   logs published by specific CPAs
+# ALL:      debugging information
+# Care must be taken with levels of FINER or lower, as output files may
+# become quite large and memory usage might become an issue.
+
+# single levels to be excluded from being logged
+log.consoleExclude = ImmutableList.of()
+
+# log level of console output
+log.consoleLevel = Level.INFO
+
+# name of the log file
+log.file = "CPALog.txt"
+
+# single levels to be excluded from being logged
+log.fileExclude = ImmutableList.of()
+
+# log level of file output
+log.level = Level.OFF
+
+# maximum size of log output strings before they will be truncated
+log.truncateSize = 10000
+
+# use colors for log messages on console
+log.useColors = true
+
+# all used options are printed
+log.usedOptions.export = false
+
+# disable all default output files
+# (any explicitly given file will still be written)
+output.disable = false
+
+# directory to put all output files in
+output.path = "output/"
+
+# base directory for all input & output files
+# (except for the configuration file itself)
+rootDirectory = "."
+
+
 # maximum number of condition adjustments (-1 for infinite)
 adjustableconditions.adjustmentLimit = -1
 
@@ -522,50 +571,6 @@ cpa.uninitvars.stop = "sep"
 # for proof checking
 file = "pccProof.txt"
 
-# Possible log levels in descending order 
-# (lower levels include higher ones):
-# OFF:      no logs published
-# SEVERE:   error messages
-# WARNING:  warnings
-# INFO:     messages
-# FINE:     logs on main application level
-# FINER:    logs on central CPA algorithm level
-# FINEST:   logs published by specific CPAs
-# ALL:      debugging information
-# Care must be taken with levels of FINER or lower, as output files may
-# become quite large and memory usage might become an issue.
-
-# single levels to be excluded from being logged
-log.consoleExclude = ImmutableList.of()
-
-# log level of console output
-log.consoleLevel = Level.INFO
-
-# name of the log file
-log.file = "CPALog.txt"
-
-# single levels to be excluded from being logged
-log.fileExclude = ImmutableList.of()
-
-# log level of file output
-log.level = Level.OFF
-
-# maximum size of log output strings before they will be truncated
-log.truncateSize = 10000
-
-# use colors for log messages on console
-log.useColors = true
-
-# all used options are printed
-log.usedOptions.export = false
-
-# disable all default output files
-# (any explicitly given file will still be written)
-output.disable = false
-
-# directory to put all output files in
-output.path = "output/"
-
 # C dialect for parser
 parser.dialect = GNUC
   enum:     [C99, GNUC]
@@ -601,10 +606,6 @@ reachedSet.file = "reached.txt"
 
 # list of files with configurations to use
 restartAlgorithm.configFiles = no default value
-
-# base directory for all input & output files
-# (except for the configuration file itself)
-rootDirectory = "."
 
 # comma-separated list of files with specifications that should be checked
 # (see config/specification/ for examples)
