@@ -157,7 +157,11 @@ class ASTConverter {
       logger.log(Level.INFO, "Created side-effect assignment", sideAssigment.getLast().toASTString());
       return tmp;
 
+    } else if (node instanceof IASTAssignment) {
+        sideAssigment.add(node);
+        return ((IASTAssignment) node).getLeftHandSide();
     } else {
+      System.out.println(node.toASTString());
       throw new AssertionError("unknown expression " + node);
     }
   }
