@@ -204,7 +204,7 @@ public class TaskRunner {
 				try {
 					Configuration config = task.createConfig();
 					logger = new LogManager(config, new StreamHandler(
-							consoleStream, new ConsoleLogFormatter()));
+							consoleStream, new ConsoleLogFormatter(config)));
 					CPAchecker cpachecker = new CPAchecker(config, logger);
 					final CPAcheckerResult results = cpachecker.run(task.getTranslationUnit().getLocation().toOSString());
 					logger.flush();
