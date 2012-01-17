@@ -29,6 +29,8 @@ import org.sosy_lab.common.DuplicateOutputStream;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.LogManager.ConsoleLogFormatter;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.plugin.eclipse.preferences.PreferenceConstants;
@@ -203,6 +205,24 @@ public class TaskRunner {
 			} else {
 				try {
 					Configuration config = task.createConfig();
+					
+					{
+				        // We want to be able to use options of type "File" with some additional
+				        // logic provided by FileTypeConverter, so we create such a converter,
+				        // add it to our Configuration object and to the the map of default converters.
+				        // The latter will ensure that it is used whenever a Configuration object
+				        // is created.
+				        FileTypeConverter fileTypeConverter = new FileTypeConverter(config);
+	
+				        config = Configuration.builder()
+				                            .copyFrom(config)
+				                            .addConverter(FileOption.class, fileTypeConverter)
+				                            .build();
+	
+				        Configuration.getDefaultConverters()
+				                     .put(FileOption.class, fileTypeConverter);
+				    }
+					
 					logger = new LogManager(config, new StreamHandler(
 							consoleStream, new ConsoleLogFormatter(config)));
 					CPAchecker cpachecker = new CPAchecker(config, logger);
