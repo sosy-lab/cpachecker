@@ -482,8 +482,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     locStack.push(nextNode);
 
-    String rawStatement = exprStatement.getRawSignature();
-    StatementEdge edge = new StatementEdge(rawStatement, astCreator.convert(exprStatement),
+    StatementEdge edge = new StatementEdge(rawSignature, statement,
         fileloc.getStartingLineNumber(), prevNode, nextNode);
     addToCFA(edge);
   }
