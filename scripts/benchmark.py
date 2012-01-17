@@ -115,8 +115,28 @@ class Benchmark:
             limit = int(root.get("timelimit"))
             self.rlimits[resource.RLIMIT_CPU] = (limit, limit)
 
+        # override limits from xml with option-given limits
+        if options.memorylimit != None:
+            memorylimit = int(options.memorylimit)
+            if memorylimit == -1: # infinity
+                if resource.RLIMIT_AS in self.rlimits:
+                    self.rlimits.pop(resource.RLIMIT_AS)                
+            else:
+                memorylimit = memorylimit * BYTE_FACTOR * BYTE_FACTOR
+                self.rlimits[resource.RLIMIT_AS] = (memorylimit, memorylimit)
+
+        if options.timelimit != None:
+            timelimit = int(options.timelimit)
+            if timelimit == -1: # infinity
+                if resource.RLIMIT_CPU in self.rlimits:
+                    self.rlimits.pop(resource.RLIMIT_CPU)                
+            else:
+                self.rlimits[resource.RLIMIT_CPU] = (timelimit, timelimit)
+
         # get number of threads, default value is 1
         self.numOfThreads = int(root.get("threads")) if ("threads" in keys) else 1
+        if options.numOfThreads != None:
+            self.numOfThreads = int(options.numOfThreads)
         if self.numOfThreads < 1:
             logging.error("At least ONE thread must be given!")
             sys.exit()
@@ -354,6 +374,14 @@ class Run():
                                      self.columns,
                                      self.benchmark.rlimits,
                                      logfile)
+
+        # sometimes we should check for timeout again, 
+        # because tools can produce results after they are killed
+        # we use an overhead of 20 seconds
+        if resource.RLIMIT_CPU in self.benchmark.rlimits:
+            timeLimit = self.benchmark.rlimits[resource.RLIMIT_CPU][0] + 20
+            if self.wallTime > timeLimit or self.cpuTime > timeLimit:
+                self.status = "TIMEOUT"
 
         self.benchmark.outputHandler.outputAfterRun(self)
 
@@ -1399,16 +1427,7 @@ def run_satabs(options, sourcefile, columns, rlimits, file):
     exe = findExecutable("satabs", None)
     args = [exe] + options + [sourcefile]
 
-    def doNothing(signum, frame):
-        pass
-
-    # on timeout of rlimit the signal SIGTERM is thrown, catch and ignore it
-    signal.signal(signal.SIGTERM, doNothing)
-
     (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, file)
-
-    # reset signal-handler
-    signal.signal(signal.SIGTERM, signal_handler_ignore)
 
     if "VERIFICATION SUCCESSFUL" in output:
         assert returncode == 0
@@ -1759,6 +1778,25 @@ def main(argv=None):
                       dest="output_path", type="string",
                       default="./test/results/",
                       help="Output folder for the generated results")
+
+    parser.add_option("-T", "--timelimit",
+                      dest="timelimit", default=None,
+                      help="set timelimit for benchmarks, " + \
+                      "this option overrides the limit given in the xml-file, " + \
+                      "use -1 to delete the limit of xml, " + \
+                      "other negative numbers are useless")
+
+    parser.add_option("-M", "--memorylimit",
+                      dest="memorylimit", default=None,
+                      help="set memorylimit for benchmarks, " + \
+                      "this option overrides the limit given in the xml-file, " + \
+                      "use -1 to delete the limit of xml, " + \
+                      "other negative numbers are useless")
+
+    parser.add_option("-N", "--numOfThreads",
+                      dest="numOfThreads", default=None,
+                      help="set number of threads for benchmarks, " + \
+                      "this option overrides the number given in the xml-file")
 
     global options, OUTPUT_PATH
     (options, args) = parser.parse_args(argv)
