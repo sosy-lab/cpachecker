@@ -207,10 +207,10 @@ public class ExplicitElement implements AbstractQueryableElement, FormulaReporti
     ExplicitElement newElement = new ExplicitElement(previousElement);
 
     for(String variableName: constantsMap.keySet())
-      newElement.constantsMap.put(variableName, constantsMap.get(variableName).longValue());
+      newElement.constantsMap.put(variableName, constantsMap.get(variableName));
 
     for(String variableName: referenceCount.keySet())
-      newElement.referenceCount.put(variableName, referenceCount.get(variableName).intValue());
+      newElement.referenceCount.put(variableName, referenceCount.get(variableName));
 
     return newElement;
   }
