@@ -73,7 +73,7 @@ public class GenericAssumptionsTransferRelation implements TransferRelation {
     for (GenericAssumptionBuilder b : assumptionBuilders)
     {
       assumptionFormula =
-        manager.makeAnd(assumptionFormula, b.assumptionsForEdge(edge), function);
+        manager.makeAnd(assumptionFormula, b.assumptionsForEdge(edge), edge, function);
     }
     return Collections.singleton(new GenericAssumptionsElement(assumptionFormula));
   }

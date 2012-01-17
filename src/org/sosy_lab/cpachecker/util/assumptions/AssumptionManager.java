@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.assumptions;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
@@ -36,9 +37,10 @@ public interface AssumptionManager {
    * Creates a formula representing an AND of the two argument
    * @param f1 a Formula
    * @param p an invariant predicate
+   * @param edge TODO
    * @return The formula (f1 & e)
    */
-  public Formula makeAnd(Formula f1, IASTNode p, String function) throws UnrecognizedCCodeException;
+  public Formula makeAnd(Formula f1, IASTNode p, CFAEdge edge, String function) throws UnrecognizedCCodeException;
 
   /**
    * @return a Formula representing logical truth

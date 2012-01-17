@@ -438,7 +438,7 @@ public class CtoFormulaConverter {
 
     case ReturnStatementEdge: {
       ReturnStatementEdge returnEdge = (ReturnStatementEdge)edge;
-      edgeFormula = makeReturn(returnEdge.getExpression(), function, ssa, constraints);
+      edgeFormula = makeReturn(returnEdge.getExpression(), returnEdge, function, ssa, constraints);
       break;
     }
 
@@ -623,7 +623,7 @@ public class CtoFormulaConverter {
       IASTExpression e = exp.getLeftHandSide();
 
       function = ce.getSuccessor().getFunctionName();
-      Formula outvarFormula = buildLvalueTerm(e, function, ssa, constraints);
+      Formula outvarFormula = buildLvalueTerm(e, ce, function, ssa, constraints);
       Formula assignments = fmgr.makeAssignment(outvarFormula, retVar);
 
       if (handlePointerAliasing) {
@@ -681,7 +681,7 @@ public class CtoFormulaConverter {
       }
 
       // get value of actual parameter
-      Formula actualParam = buildTerm(actualParams.get(i++), callerFunction, ssa, constraints);
+      Formula actualParam = buildTerm(actualParams.get(i++), edge, callerFunction, ssa, constraints);
 
       Formula eq = makeAssignment(scoped(formalParamName, calledFunction), actualParam, ssa);
 
@@ -691,7 +691,7 @@ public class CtoFormulaConverter {
     return result;
   }
 
-  private Formula makeReturn(IASTExpression rightExp, String function,
+  private Formula makeReturn(IASTExpression rightExp, ReturnStatementEdge edge, String function,
       SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
     if (rightExp == null) {
       // this is a return from a void function, do nothing
@@ -702,7 +702,7 @@ public class CtoFormulaConverter {
       // so that we can use it later on, if it is assigned to
       // a variable. We create a function::__retval__ variable
       // that will hold the return value
-      Formula retval = buildTerm(rightExp, function, ssa, constraints);
+      Formula retval = buildTerm(rightExp, edge, function, ssa, constraints);
       String retVarName = scoped(VAR_RETURN_NAME, function);
       Formula assignments = makeAssignment(retVarName, retval, ssa);
 
@@ -721,7 +721,7 @@ public class CtoFormulaConverter {
       SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
 
     return makePredicate(assume.getExpression(), assume.getTruthAssumption(),
-        function, ssa, constraints);
+        assume, function, ssa, constraints);
   }
 
   private Formula buildTerm(IASTRightHandSide exp, String function,
@@ -729,14 +729,14 @@ public class CtoFormulaConverter {
     return toNumericFormula(exp.accept(new RightHandSideToFormulaVisitor(function, ssa, ax, edge)));
   }
 
-  private Formula buildTerm(IASTExpression exp, String function,
+  private Formula buildTerm(IASTExpression exp, CFAEdge edge, String function,
       SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
-    return toNumericFormula(exp.accept(getExpressionVisitor(function, ssa, constraints)));
+    return toNumericFormula(exp.accept(getExpressionVisitor(edge, function, ssa, constraints)));
   }
 
-  private Formula buildLvalueTerm(IASTExpression exp, String function,
+  private Formula buildLvalueTerm(IASTExpression exp, CFAEdge edge, String function,
       SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
-    return exp.accept(getLvalueVisitor(function, ssa, constraints));
+    return exp.accept(getLvalueVisitor(edge, function, ssa, constraints));
   }
 
   private Formula buildDirectReturnSecondLevelAssignment(IASTIdExpression leftId,
@@ -856,10 +856,10 @@ public class CtoFormulaConverter {
     }
   }
 
-  private Formula makePredicate(IASTExpression exp, boolean isTrue,
+  private Formula makePredicate(IASTExpression exp, boolean isTrue, CFAEdge edge,
       String function, SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
 
-    Formula result = toBooleanFormula(exp.accept(getExpressionVisitor(function, ssa, constraints)));
+    Formula result = toBooleanFormula(exp.accept(getExpressionVisitor(edge, function, ssa, constraints)));
 
     if (!isTrue) {
       result = fmgr.makeNot(result);
@@ -867,30 +867,30 @@ public class CtoFormulaConverter {
     return result;
   }
 
-  protected Formula makePredicate(IASTExpression exp, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
+  protected Formula makePredicate(IASTExpression exp, CFAEdge edge, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
     Constraints constraints = new Constraints();
-    Formula f = makePredicate(exp, true, function, ssa, constraints);
+    Formula f = makePredicate(exp, true, edge, function, ssa, constraints);
     return fmgr.makeAnd(f, constraints.get());
   }
 
-  private ExpressionToFormulaVisitor getExpressionVisitor(String pFunction,
+  private ExpressionToFormulaVisitor getExpressionVisitor(CFAEdge pEdge, String pFunction,
       SSAMapBuilder pSsa, Constraints pCo) {
     if (lvalsAsUif) {
-      return new ExpressionToFormulaVisitorUIF(pFunction, pSsa, pCo);
+      return new ExpressionToFormulaVisitorUIF(pEdge, pFunction, pSsa, pCo);
     } else if (handlePointerAliasing) {
-      return new ExpressionToFormulaVisitorPointers(pFunction, pSsa, pCo);
+      return new ExpressionToFormulaVisitorPointers(pEdge, pFunction, pSsa, pCo);
     } else {
-      return new ExpressionToFormulaVisitor(pFunction, pSsa, pCo);
+      return new ExpressionToFormulaVisitor(pEdge, pFunction, pSsa, pCo);
     }
   }
 
-  private LvalueVisitor getLvalueVisitor(String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
+  private LvalueVisitor getLvalueVisitor(CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
     if (lvalsAsUif) {
-      return new LvalueVisitorUIF(pFunction, pSsa, pCo);
+      return new LvalueVisitorUIF(pEdge, pFunction, pSsa, pCo);
     } else if (handlePointerAliasing) {
-      return new LvalueVisitorPointers(pFunction, pSsa, pCo);
+      return new LvalueVisitorPointers(pEdge, pFunction, pSsa, pCo);
     } else {
-      return new LvalueVisitor(pFunction, pSsa, pCo);
+      return new LvalueVisitor(pEdge, pFunction, pSsa, pCo);
     }
   }
 
@@ -1069,11 +1069,13 @@ public class CtoFormulaConverter {
 
   private class ExpressionToFormulaVisitor extends DefaultExpressionVisitor<Formula, UnrecognizedCCodeException> {
 
+    protected final CFAEdge       edge;
     protected final String        function;
     protected final SSAMapBuilder ssa;
     protected final Constraints   constraints;
 
-    public ExpressionToFormulaVisitor(String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
+    public ExpressionToFormulaVisitor(CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
+      edge = pEdge;
       function = pFunction;
       ssa = pSsa;
       constraints = pCo;
@@ -1150,7 +1152,7 @@ public class CtoFormulaConverter {
           return fmgr.makeNot(fmgr.makeEqual(me1, me2));
 
         default:
-          throw new UnrecognizedCCodeException("Unknown binary operator", null, exp);
+          throw new UnrecognizedCCodeException("Unknown binary operator", edge, exp);
         }
       }
       }
@@ -1265,7 +1267,7 @@ public class CtoFormulaConverter {
         }
 
       default:
-        throw new UnrecognizedCCodeException("Unknown unary operator", null, exp);
+        throw new UnrecognizedCCodeException("Unknown unary operator", edge, exp);
       }
     }
 
@@ -1295,8 +1297,8 @@ public class CtoFormulaConverter {
 
   private class ExpressionToFormulaVisitorUIF extends ExpressionToFormulaVisitor {
 
-    public ExpressionToFormulaVisitorUIF(String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
-      super(pFunction, pSsa, pCo);
+    public ExpressionToFormulaVisitorUIF(CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
+      super(pEdge, pFunction, pSsa, pCo);
     }
 
     private Formula makeUIF(String name, FormulaList args, SSAMapBuilder ssa) {
@@ -1367,9 +1369,9 @@ public class CtoFormulaConverter {
   private class ExpressionToFormulaVisitorPointers extends
       ExpressionToFormulaVisitor {
 
-    public ExpressionToFormulaVisitorPointers(String pFunction,
+    public ExpressionToFormulaVisitorPointers(CFAEdge pEdge, String pFunction,
         SSAMapBuilder pSsa, Constraints pCo) {
-      super(pFunction, pSsa, pCo);
+      super(pEdge, pFunction, pSsa, pCo);
     }
 
     @Override
@@ -1441,17 +1443,17 @@ public class CtoFormulaConverter {
       ForwardingExpressionVisitor<Formula, UnrecognizedCCodeException>
       implements RightHandSideVisitor<Formula, UnrecognizedCCodeException> {
 
+    protected final CFAEdge       edge;
     protected final String        function;
     protected final SSAMapBuilder ssa;
     protected final Constraints   constraints;
-    protected final CFAEdge cfaEdge;
 
-    public RightHandSideToFormulaVisitor(String pFunction, SSAMapBuilder pSsa, Constraints pCo, CFAEdge edge) {
-      super(getExpressionVisitor(pFunction, pSsa, pCo));
+    public RightHandSideToFormulaVisitor(String pFunction, SSAMapBuilder pSsa, Constraints pCo, CFAEdge pEdge) {
+      super(getExpressionVisitor(pEdge, pFunction, pSsa, pCo));
+      edge = pEdge;
       function = pFunction;
       ssa = pSsa;
       constraints = pCo;
-      cfaEdge = edge;
     }
 
     @Override
@@ -1468,7 +1470,7 @@ public class CtoFormulaConverter {
           return makeFreshVariable(func, ssa);
 
         } else if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
-          throw new UnsupportedCCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fexp);
+          throw new UnsupportedCCodeException(UNSUPPORTED_FUNCTIONS.get(func), edge, fexp);
 
         } else if (!PURE_EXTERNAL_FUNCTIONS.contains(func)) {
           if (pexps.isEmpty()) {
@@ -1515,7 +1517,7 @@ public class CtoFormulaConverter {
     public Formula visit(IASTAssignment assignment) throws UnrecognizedCCodeException {
       Formula rightVariable = assignment.getRightHandSide().accept(this);
       Formula r = toNumericFormula(rightVariable);
-      Formula l = buildLvalueTerm(assignment.getLeftHandSide(), function, ssa, constraints);
+      Formula l = buildLvalueTerm(assignment.getLeftHandSide(), edge, function, ssa, constraints);
       return fmgr.makeAssignment(l, r);
     }
 
@@ -1641,7 +1643,7 @@ public class CtoFormulaConverter {
 
       Formula rightVariable = pAssignment.getRightHandSide().accept(this);
       rightVariable = toNumericFormula(rightVariable);
-      Formula lPVar = buildLvalueTerm(pAssignment.getLeftHandSide(), function, ssa, constraints);
+      Formula lPVar = buildLvalueTerm(pAssignment.getLeftHandSide(), edge, function, ssa, constraints);
       Formula assignments = fmgr.makeAssignment(lPVar, rightVariable);
 
       updateAllPointers(lVarName, lVar, rVarName, rightVariable);
@@ -1756,7 +1758,7 @@ public class CtoFormulaConverter {
       // assignment (first level) -- uses superclass
       Formula ri = assignment.getRightHandSide().accept(this);
       Formula rightVariable = toNumericFormula(ri);
-      Formula leftVariable = buildLvalueTerm(assignment.getLeftHandSide(), function, ssa, constraints);
+      Formula leftVariable = buildLvalueTerm(assignment.getLeftHandSide(), edge, function, ssa, constraints);
       Formula firstLevelFormula = fmgr.makeAssignment(leftVariable, rightVariable);
 
       // assignment (second level)
@@ -1830,11 +1832,13 @@ public class CtoFormulaConverter {
   private class LvalueVisitor extends
       DefaultExpressionVisitor<Formula, UnrecognizedCCodeException> {
 
+    protected final CFAEdge       edge;
     protected final String        function;
     protected final SSAMapBuilder ssa;
     protected final Constraints   constraints;
 
-    public LvalueVisitor(String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
+    public LvalueVisitor(CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
+      edge = pEdge;
       function = pFunction;
       ssa = pSsa;
       constraints = pCo;
@@ -1842,7 +1846,7 @@ public class CtoFormulaConverter {
 
     @Override
     protected Formula visitDefault(IASTExpression exp) throws UnrecognizedCCodeException {
-      throw new UnrecognizedCCodeException("Unknown lvalue", null, exp);
+      throw new UnrecognizedCCodeException("Unknown lvalue", edge, exp);
     }
 
     @Override
@@ -1891,8 +1895,8 @@ public class CtoFormulaConverter {
 
   private class LvalueVisitorUIF extends LvalueVisitor {
 
-    public LvalueVisitorUIF(String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
-      super(pFunction, pSsa, pCo);
+    public LvalueVisitorUIF(CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
+      super(pEdge, pFunction, pSsa, pCo);
     }
 
     @Override
@@ -1908,9 +1912,9 @@ public class CtoFormulaConverter {
         opname = OP_STAR_NAME;
         break;
       default:
-        throw new UnrecognizedCCodeException("Invalid unary operator for lvalue", null, uExp);
+        throw new UnrecognizedCCodeException("Invalid unary operator for lvalue", edge, uExp);
       }
-      Formula term = buildTerm(operand, function, ssa, constraints);
+      Formula term = buildTerm(operand, edge, function, ssa, constraints);
 
       // PW make SSA index of * independent from argument
       int idx = makeFreshIndex(opname, ssa);
@@ -1929,7 +1933,7 @@ public class CtoFormulaConverter {
     public Formula visit(IASTFieldReference fexp) throws UnrecognizedCCodeException {
       String field = fexp.getFieldName();
       IASTExpression owner = fexp.getFieldOwner();
-      Formula term = buildTerm(owner, function, ssa, constraints);
+      Formula term = buildTerm(owner, edge, function, ssa, constraints);
 
       String tpname = getTypeName(owner.getExpressionType());
       String ufname =
@@ -1946,8 +1950,8 @@ public class CtoFormulaConverter {
     public Formula visit(IASTArraySubscriptExpression aexp) throws UnrecognizedCCodeException {
       IASTExpression arrexp = aexp.getArrayExpression();
       IASTExpression subexp = aexp.getSubscriptExpression();
-      Formula aterm = buildTerm(arrexp, function, ssa, constraints);
-      Formula sterm = buildTerm(subexp, function, ssa, constraints);
+      Formula aterm = buildTerm(arrexp, edge, function, ssa, constraints);
+      Formula sterm = buildTerm(subexp, edge, function, ssa, constraints);
 
       String ufname = OP_ARRAY_SUBSCRIPT;
       FormulaList args = fmgr.makeList(aterm, sterm);
@@ -1959,8 +1963,8 @@ public class CtoFormulaConverter {
   }
 
   private class LvalueVisitorPointers extends LvalueVisitor {
-    public LvalueVisitorPointers(String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
-      super(pFunction, pSsa, pCo);
+    public LvalueVisitorPointers(CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
+      super(pEdge, pFunction, pSsa, pCo);
     }
 
     @Override
