@@ -1,0 +1,287 @@
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2011  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
+package org.sosy_lab.cpachecker.cpa.automaton;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+
+import java_cup.runtime.ComplexSymbolFactory;
+import java_cup.runtime.Scanner;
+import java_cup.runtime.Symbol;
+import java_cup.runtime.SymbolFactory;
+
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.CParser;
+
+parser code {:
+  private LogManager logger;
+  // this int is used to determine unique names for anonymous automata
+  private static int anonymousCounter;
+
+  public AutomatonParser(Scanner scanner, SymbolFactory sf, LogManager pLogger) {
+      super(scanner, sf);
+      this.logger = pLogger;
+  }
+
+  @Override
+  public void report_error(String message, Object info) {
+    String errorString = message;
+    if (info != null) {
+      errorString += " near " + info;
+    }
+    logger.log(Level.WARNING, errorString);
+  }
+  
+  Automaton generateSkeletonForAssertion(AutomatonBoolExpr pA) throws InvalidAutomatonException {
+    AutomatonTransition trans = new AutomatonTransition(
+        AutomatonBoolExpr.TRUE, 
+        Collections.singletonList(pA),
+        Collections.<AutomatonAction>emptyList(),
+        "OK");
+    AutomatonInternalState okState = new AutomatonInternalState("OK", 
+        Collections.singletonList(trans));
+    Automaton ret = new Automaton("AnonymousAutomaton" + anonymousCounter++,
+                                  Collections.<String, AutomatonVariable>emptyMap(), 
+                                  Collections.singletonList(okState), "OK");
+    return ret;
+  }
+  /**
+  * Parses a Specification File and returns the Automata found in the file.
+  */
+  public static List<Automaton> parseAutomatonFile(File pInputFile, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+    AutomatonASTComparator.parser = CParser.Factory.getParser(pLogger, CParser.Factory.getOptions(config));
+    
+    ComplexSymbolFactory sf = new ComplexSymbolFactory();
+    FileInputStream input = null;
+    try {
+      input = new FileInputStream(pInputFile);
+      Symbol symbol = new AutomatonParser(new AutomatonScanner(input, pInputFile, config, pLogger, sf),sf, pLogger).parse();
+      return ((List<Automaton>) symbol.value);
+    } catch (Exception e) {
+      throw new InvalidConfigurationException("Could not load automaton from file " + pInputFile.getAbsolutePath()
+          + " (" + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()) + ")", e);
+    } finally {
+      if (input!= null) {
+        try {
+          input.close();
+        } catch (IOException e) {
+          throw new InvalidConfigurationException(
+              "IO Exception when closing the FileStream to \"" + pInputFile.getAbsolutePath() + "\": "+e.getMessage(), e);
+        }
+      }
+    }
+  }
+:};
+
+
+
+terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COMMA, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON,OBSERVER, CONTROL, END, LOCAL, INITIAL, STATE, ERROR, STOP, EXIT, ASSERT, ASSUME, MATCH, LABEL, CHECK, EVAL, MODIFY, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, USEALL, USEFIRST, TARGET ;
+non terminal List<Automaton> initial ;  
+non terminal Automaton Specification ;
+non terminal Automaton Automaton ;
+non terminal String InitDef ;
+non terminal Automaton Body ;
+non terminal Map<String, AutomatonVariable> LocalDefs ;
+non terminal List<AutomatonInternalState> StateDefs ;
+non terminal List<AutomatonTransition> Transitions ;
+non terminal List<AutomatonBoolExpr> Assertions ;
+non terminal String Assume ;
+non terminal List<AutomatonAction> Actions ;
+
+non terminal AutomatonVariable LocalDef ;
+non terminal AutomatonInternalState StateDef ;
+non terminal Boolean StateTypeDef ;
+non terminal Boolean StateNonDetDef ;
+non terminal AutomatonTransition Transition ;
+non terminal AutomatonBoolExpr Assertion ;
+non terminal AutomatonAction Action ;
+
+non terminal List<AutomatonExpression> PrintArguments ;
+
+non terminal AutomatonIntExpr.Constant ConstantInt ;
+non terminal AutomatonIntExpr Int ;
+non terminal AutomatonIntExpr InnerInt ;
+non terminal AutomatonBoolExpr Bool ;
+non terminal AutomatonExpression Expression ;
+
+precedence left PLUS, MINUS;
+precedence left AND, OR;
+precedence left EQEQ, NEQ;
+precedence left EXCLAMATION;
+//precedence left EVAL;
+
+initial ::= Specification:s initial:lst {: lst.add(0, s); RESULT = lst; :}
+          | /* empty */ {: RESULT = new LinkedList<Automaton>(); :}
+          ;
+
+Specification ::= Automaton:a
+                  {: RESULT = a; :}
+                | Assertion:a SEMICOLON 
+              	  {: RESULT = parser.generateSkeletonForAssertion(a); :} 
+                ;
+
+Automaton ::= OBSERVER Body:b 
+              {: RESULT = b; b.assertObserverAutomaton(); :}
+            | CONTROL Body:b 
+              {: RESULT = b; :}
+            | Body:b // the CONTROL keyword is optional
+              {: RESULT = b; :}
+            ;
+
+Body      ::= AUTOMATON IDENTIFIER:id LocalDefs:vars InitDef:init StateDefs:states END AUTOMATON
+              {: RESULT = new Automaton(id.toString(), vars, states, init); :}
+            ;
+
+InitDef    ::= INITIAL STATE IDENTIFIER:id SEMICOLON {: RESULT = id.toString(); :};
+
+LocalDefs ::= LocalDef:d LocalDefs:lst {: lst.put(d.getName(), d); RESULT = lst; :}
+              | /* empty */ {: RESULT = new HashMap<String, AutomatonVariable>(); :}
+              ;
+
+LocalDef  ::= LOCAL IDENTIFIER:type IDENTIFIER:name  SEMICOLON {: RESULT = new AutomatonVariable(type.toString(), name.toString()); :}
+            | LOCAL IDENTIFIER:type IDENTIFIER:name  EQ ConstantInt:ci SEMICOLON 
+            {: RESULT = new AutomatonVariable(type.toString(), name.toString()); RESULT.setValue(ci.getIntValue()); :}
+            ;
+
+StateDefs ::= StateDef:s StateDefs:lst  {: lst.add(0, s); RESULT = lst; :}
+            | /* empty */ {: RESULT = new LinkedList<AutomatonInternalState>(); :}
+              ;
+
+StateDef  ::= StateTypeDef:type STATE StateNonDetDef:nd IDENTIFIER:id COLON  Transitions:ts
+              {: RESULT = new AutomatonInternalState(id.toString(), ts, type, nd); :}
+            ;
+            
+StateTypeDef ::= TARGET {: RESULT = true; :}
+	       | /* empty */ {: RESULT = false; :}
+	       ;
+
+StateNonDetDef ::= USEFIRST {: RESULT = false; :}
+	       | USEALL {: RESULT = true; :}
+	       | /* empty */ {: RESULT = true; :}
+	       ;
+
+Transitions   ::= Transition:t Transitions:lst {: lst.add(0, t); RESULT = lst; :}
+            | /* empty */ {: RESULT = new LinkedList<AutomatonTransition>(); :}
+            ;
+
+Transition   ::= Bool:trigger  ARROW Assertions:ass Assume Actions:acts GOTO IDENTIFIER:follow SEMICOLON
+              {: RESULT = new AutomatonTransition(trigger, ass, acts, follow.toString()); :}
+               | Bool:trigger  ARROW Assertions:ass Assume Actions:acts ERROR SEMICOLON
+              {: RESULT = new AutomatonTransition(trigger, ass, acts, AutomatonInternalState.ERROR); :}
+               | Bool:trigger  ARROW Assertions:ass Assume Actions:acts STOP SEMICOLON
+              {: RESULT = new AutomatonTransition(trigger, ass, acts, AutomatonInternalState.BOTTOM); :}
+              ;
+
+Assertions ::= Assertion:a Assertions:lst {: lst.add(0,a); RESULT = lst; :}
+             | /* empty */ {: RESULT = new LinkedList<AutomatonBoolExpr>(); :}
+             ;
+Assertion  ::= ASSERT  Bool:b   {: RESULT = b; :};
+
+Assume    ::= ASSUME STRING_LITERAL:a {: RESULT = a.toString(); :}
+             | /* empty */ {: RESULT = ""; :};
+
+Actions   ::= Action:a Actions:lst {: lst.add(0,a); RESULT = lst; :} // insert at the beginning of the list to preserve the order.
+            | /* empty */ {: RESULT = new LinkedList<AutomatonAction>(); :}
+            ;
+Action    ::= DO  IDENTIFIER:var EQ InnerInt:i   {: RESULT = new AutomatonAction.Assignment(var.toString(), i); :}
+			// InnerInt in this position allows for x = EVAL(..) Statements
+            | PRINT PrintArguments:args {: RESULT = new AutomatonAction.Print(args); :}
+/*next statement is deprecated*/            
+            | MODIFY OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
+              {: RESULT = new AutomatonAction.CPAModification(cpa.toString(), query.toString()); :}
+            | MODIFY OPEN_BRACKETS IDENTIFIER:cpa COMMA STRING_LITERAL:query CLOSE_BRACKETS
+              {: RESULT = new AutomatonAction.CPAModification(cpa.toString(), query.toString()); :}
+            ;
+            
+PrintArguments ::= Expression:a PrintArguments:lst {: lst.add(0,a); RESULT = lst; :}
+             | /* empty */ {: RESULT = new LinkedList<AutomatonExpression>(); :}
+             ;
+            
+Int       ::= ConstantInt:c  {: RESULT = c; :}
+			| OPEN_BRACKETS Int:i CLOSE_BRACKETS {: RESULT = i; :}
+            | IDENTIFIER:x  {: RESULT = new AutomatonIntExpr.VarAccess(x.toString()); :}
+            | InnerInt:a PLUS InnerInt:b  {: RESULT = new AutomatonIntExpr.Plus(a,b); :}
+            | InnerInt:a MINUS InnerInt:b  {: RESULT = new AutomatonIntExpr.Minus(a,b); :}
+            ;
+            
+// the int Expression "( EVAL(...) )" is forbidden (would conflict with the same BoolExpression if Bool would use EVAL instead of CHECK)
+
+InnerInt  ::= Int:i {: RESULT = i; :}
+/*next statement is deprecated*/
+			| EVAL OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
+             {: RESULT = new AutomatonIntExpr.CPAQuery(cpa.toString(), query.toString()); :}
+            | EVAL OPEN_BRACKETS IDENTIFIER:cpa COMMA STRING_LITERAL:query CLOSE_BRACKETS
+             {: RESULT = new AutomatonIntExpr.CPAQuery(cpa.toString(), query.toString()); :}
+             ;
+            
+ConstantInt ::= INTEGER_LITERAL:c  {: RESULT = new AutomatonIntExpr.Constant(c.toString()); :}
+			;
+
+Bool      ::= TRUE  {: RESULT = AutomatonBoolExpr.TRUE; :}
+            | FALSE  {: RESULT = AutomatonBoolExpr.FALSE; :}
+            | EXCLAMATION Bool:b  {: RESULT = new AutomatonBoolExpr.Negation(b); :}
+            | OPEN_BRACKETS Bool:b CLOSE_BRACKETS {: RESULT = b; :}
+            | InnerInt:a EQEQ InnerInt:b  {: RESULT = new AutomatonBoolExpr.IntEqTest(a,b); :}
+            | InnerInt:a NEQ InnerInt:b  {: RESULT = new AutomatonBoolExpr.IntNotEqTest(a,b); :}
+            | Bool:a EQEQ Bool:b  {: RESULT = new AutomatonBoolExpr.BoolEqTest(a,b); :}
+            | Bool:a NEQ Bool:b  {: RESULT = new AutomatonBoolExpr.BoolNotEqTest(a,b); :}
+            | Bool:a AND Bool:b {: RESULT = new AutomatonBoolExpr.And(a,b); :}
+            | Bool:a OR Bool:b {: RESULT = new AutomatonBoolExpr.Or(a,b); :}
+            | MATCH STRING_LITERAL:lit
+              {: RESULT = new AutomatonBoolExpr.MatchCFAEdgeExact(lit.toString()); :}
+            | MATCH CURLYEXPR:expr
+              {: RESULT = new AutomatonBoolExpr.MatchCFAEdgeASTComparison(expr.toString()); :}
+            | MATCH SQUAREEXPR:expr
+              {: RESULT = new AutomatonBoolExpr.MatchCFAEdgeRegEx(expr.toString()); :}
+            | MATCH LABEL SQUAREEXPR:expr
+              {: RESULT = new AutomatonBoolExpr.MatchLabelRegEx(expr.toString()); :}
+            | MATCH EXIT
+              {: RESULT = new AutomatonBoolExpr.MatchProgramExit(); :}
+/*next statement is deprecated*/ 
+            | CHECK OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
+              {: RESULT = new AutomatonBoolExpr.CPAQuery(cpa.toString(), query.toString()); :}
+            | CHECK OPEN_BRACKETS IDENTIFIER:cpa COMMA STRING_LITERAL:query CLOSE_BRACKETS
+              {: RESULT = new AutomatonBoolExpr.CPAQuery(cpa.toString(), query.toString()); :}
+            | CHECK OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS
+              {: RESULT = new AutomatonBoolExpr.ALLCPAQuery(query.toString()); :}
+            ;
+            
+Expression	  ::= Int:i {: RESULT = i; :}
+			| Bool:b {: RESULT = b; :}
+			| STRING_LITERAL:lit {: RESULT = new AutomatonExpression.StringExpression(lit.toString()); :}
+/*next statement is deprecated*/
+			| EVAL OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
+             {: RESULT = new AutomatonExpression.CPAQuery(cpa.toString(), query.toString()); :}
+            | EVAL OPEN_BRACKETS IDENTIFIER:cpa COMMA STRING_LITERAL:query CLOSE_BRACKETS
+             {: RESULT = new AutomatonExpression.CPAQuery(cpa.toString(), query.toString()); :}
+             ; 

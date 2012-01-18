@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" timelimit="60" memlimit="2000">
+  
+  <test name="k1">
+    <sourcefiles>
+      <include>test/programs/induction/*.c</include>
+      <include>test/programs/benchmarks/ssh-simplified/s3_srvr*.cil.c</include>
+    </sourcefiles>
+    <option name="-noout"/>
+    <option name="-bmc-induction"/>
+    <option name="-setprop">cpa.loopstack.maxLoopIterations=1</option>
+    <option name="-setprop">bmc.invariantGenerationConfigFile=config/explicitAnalysis-no-cbmc.properties</option>
+    <option name="-heap">1200m</option>
+  </test>
+
+  <test name="k10">
+    <sourcefiles>
+      <include>test/programs/induction/*.c</include>
+      <include>test/programs/benchmarks/ssh-simplified/s3_srvr*.cil.c</include>
+      <include>test/programs/benchmarks/ssh/s3_srvr*.cil.c</include>
+    </sourcefiles>
+    <option name="-noout"/>
+    <option name="-bmc-induction"/>
+    <option name="-setprop">cpa.loopstack.maxLoopIterations=10</option>
+    <option name="-setprop">bmc.invariantGenerationConfigFile=config/explicitAnalysis-no-cbmc.properties</option>
+    <option name="-heap">1200m</option>
+  </test>
+  
+  <columns>
+    <column title="total">time for CPAchecker</column>
+    <column title="cut points">cut points for induction</column>
+    <column title="formula creation">Time for induction formula creation</column>
+    <column title="induction check">Time for induction check</column>
+    <column title="invariant creation">Time for invariant generation</column>
+  </columns>
+</benchmark>

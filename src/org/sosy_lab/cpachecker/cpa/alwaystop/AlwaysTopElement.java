@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,6 +25,13 @@ package org.sosy_lab.cpachecker.cpa.alwaystop;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
-public interface AlwaysTopElement extends AbstractElement {
+enum AlwaysTopElement implements AbstractElement {
+
+  INSTANCE;
+
+  @Override
+  public String toString() {
+    return "TRUE";
+  }
 
 }

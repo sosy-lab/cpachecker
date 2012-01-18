@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,43 +25,36 @@ package org.sosy_lab.cpachecker.core.defaults;
 
 import java.util.Collection;
 
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * Standard stop-sep operator
- * @author g.theoduloz
  */
 public class StopSepOperator implements StopOperator {
 
-  private final PartialOrder partialOrder;
+  private final AbstractDomain domain;
 
   /**
    * Creates a stop-sep operator based on the given
    * partial order
    */
-  public StopSepOperator(PartialOrder order) {
-    partialOrder = order;
+  public StopSepOperator(AbstractDomain d) {
+    domain = d;
   }
 
   @Override
   public boolean stop(AbstractElement el, Collection<AbstractElement> reached, Precision precision)
-    throws CPAException
-  {
+    throws CPAException {
+
     for (AbstractElement reachedElement : reached) {
-      if (partialOrder.satisfiesPartialOrder(el, reachedElement))
+      if (domain.isLessOrEqual(el, reachedElement)) {
         return true;
+      }
     }
     return false;
   }
-
-  @Override
-  public boolean stop(AbstractElement el, AbstractElement reachedElement)
-      throws CPAException {
-    return partialOrder.satisfiesPartialOrder(el, reachedElement);
-  }
-
 }

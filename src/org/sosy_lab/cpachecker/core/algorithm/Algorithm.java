@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,13 +23,18 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public interface Algorithm {
 
-  public void run(ReachedSet reachedSet) throws CPAException;
-
-  public ConfigurableProgramAnalysis getCPA();
+  /**
+   * Run the algorithm on the given set of abstract elements and the given waitlist.
+   *
+   * @param reachedSet Input.
+   * @return False if the analysis was unsound (this is not the analysis result!).
+   * @throws CPAException
+   * @throws InterruptedException
+   */
+  public boolean run(ReachedSet reachedSet) throws CPAException, InterruptedException;
 }

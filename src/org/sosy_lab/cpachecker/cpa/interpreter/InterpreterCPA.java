@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.interpreter;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
@@ -45,20 +44,37 @@ public class InterpreterCPA implements ConfigurableProgramAnalysis {
   private StopOperator stopOperator;
   private TransferRelation transferRelation;
   private PrecisionAdjustment precisionAdjustment;
+  private int[] mInitialValuesForNondeterministicAssignments;
 
-  public InterpreterCPA(int[] pValuesForNondeterministicAssignments) {
-    InterpreterDomain explicitAnalysisDomain = new InterpreterDomain ();
-    MergeOperator explicitAnalysisMergeOp = MergeSepOperator.getInstance();
-    
-    StopOperator explicitAnalysisStopOp = StopNeverOperator.getInstance();
+  public InterpreterCPA(int[] pInitialValuesForNondeterministicAssignments) {
+    this(pInitialValuesForNondeterministicAssignments, false);
+  }
 
-    TransferRelation explicitAnalysisTransferRelation = new InterpreterTransferRelation(pValuesForNondeterministicAssignments);
+  public InterpreterCPA(int[] pInitialValuesForNondeterministicAssignments, boolean pExtendInputs) {
+    if (pInitialValuesForNondeterministicAssignments == null) {
+      throw new IllegalArgumentException();
+    }
 
-    this.abstractDomain = explicitAnalysisDomain;
-    this.mergeOperator = explicitAnalysisMergeOp;
-    this.stopOperator = explicitAnalysisStopOp;
-    this.transferRelation = explicitAnalysisTransferRelation;
+    InterpreterDomain lDomain = new InterpreterDomain ();
+    MergeOperator lMergeOp = MergeSepOperator.getInstance();
+    StopOperator lStopOp = StopNeverOperator.getInstance();
+
+    TransferRelation lTransferRelation;
+
+    if (pExtendInputs) {
+      lTransferRelation = new InterpreterInputExtendingTransferRelation();
+    }
+    else {
+      lTransferRelation = new InterpreterTransferRelation();
+    }
+
+    this.abstractDomain = lDomain;
+    this.mergeOperator = lMergeOp;
+    this.stopOperator = lStopOp;
+    this.transferRelation = lTransferRelation;
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+
+    this.mInitialValuesForNondeterministicAssignments = pInitialValuesForNondeterministicAssignments;
   }
 
   @Override
@@ -86,13 +102,13 @@ public class InterpreterCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractElement getInitialElement (CFAFunctionDefinitionNode node)
+  public AbstractElement getInitialElement (CFANode node)
   {
-    return new InterpreterElement();
+    return new InterpreterElement(mInitialValuesForNondeterministicAssignments);
   }
 
   @Override
-  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+  public Precision getInitialPrecision(CFANode pNode) {
     return SingletonPrecision.getInstance();
   }
 

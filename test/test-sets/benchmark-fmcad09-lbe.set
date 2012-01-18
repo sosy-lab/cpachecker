@@ -1,3 +1,0 @@
-test/programs/locks/*.c
-test/programs/ntdrivers/*.c
-test/programs/ssh/*.c

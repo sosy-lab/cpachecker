@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,22 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-/**
- *
- */
 package org.sosy_lab.cpachecker.core.interfaces;
 
-/**
- * @author Michael Tautschnig <tautschnig@forsyte.de>
- *
- */
 public interface Precision {
-
-  /**
-   * This method is for the CPAAlgorithm to determine whether it should break
-   * at the point after calling precision adjustment or not.
-   * 
-   * It is not used in any other situation.
-   */
-  public boolean isBreak();
 }

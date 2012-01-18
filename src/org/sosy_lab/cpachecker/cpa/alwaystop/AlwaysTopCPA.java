@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,13 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.alwaystop;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.SingletonCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -39,65 +34,52 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class AlwaysTopCPA implements ConfigurableProgramAnalysis {
+/**
+ * Implementation of a CPA with only one element in the abstract state space.
+ * Contains various assertions that may be used to test algorithms and wrapper CPAs.
+ */
+public enum AlwaysTopCPA implements ConfigurableProgramAnalysis {
 
-  private static class AlwaysTopCPAFactory extends AbstractCPAFactory {
-
-    @Override
-    public ConfigurableProgramAnalysis createInstance() throws CPAException {
-      return new AlwaysTopCPA();
-    }
-  }
+  INSTANCE;
 
   public static CPAFactory factory() {
-    return new AlwaysTopCPAFactory();
-  }
-
-  FlatLatticeDomain mDomain;
-  MergeSepOperator mMergeOperator;
-  StopSepOperator mStopOperator;
-
-  public AlwaysTopCPA() {
-    mDomain = new FlatLatticeDomain(AlwaysTopTopElement.getInstance(), AlwaysTopBottomElement.getInstance());
-    mMergeOperator = new MergeSepOperator();
-    mStopOperator = new StopSepOperator(mDomain.getPartialOrder());
+    return SingletonCPAFactory.forInstance(INSTANCE);
   }
 
   @Override
   public AbstractDomain getAbstractDomain() {
-    return mDomain;
+    return AlwaysTopDomain.INSTANCE;
   }
 
   @Override
-  public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
-    return AlwaysTopTopElement.getInstance();
+  public AbstractElement getInitialElement(CFANode pNode) {
+    return AlwaysTopElement.INSTANCE;
   }
 
   @Override
-  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    return SingletonPrecision.getInstance();
+  public Precision getInitialPrecision(CFANode pNode) {
+    return AlwaysTopPrecision.INSTANCE;
   }
 
   @Override
   public MergeOperator getMergeOperator() {
-    return mMergeOperator;
+    return AlwaysTopMergeOperator.INSTANCE;
   }
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return StaticPrecisionAdjustment.getInstance();
+    return AlwaysTopPrecisionAdjustment.INSTANCE;
   }
 
   @Override
   public StopOperator getStopOperator() {
-    return mStopOperator;
+    return AlwaysTopStopOperator.INSTANCE;
   }
 
   @Override
   public TransferRelation getTransferRelation() {
-    return AlwaysTopTransferRelation.getInstance();
+    return AlwaysTopTransferRelation.INSTANCE;
   }
 
 }

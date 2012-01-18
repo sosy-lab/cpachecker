@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,22 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
-import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
-import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
-import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
-
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.IType;
+import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 public class DeclarationEdge extends AbstractCFAEdge {
 
-  private final IASTSimpleDeclaration declaration;
+  private final IASTDeclaration declaration;
 
-  public DeclarationEdge(IASTSimpleDeclaration declaration, int lineNumber,
-      CFANode predecessor, CFANode successor) {
-    super(declaration.getRawSignature(), lineNumber, predecessor, successor);
-    this.declaration = declaration;
+  public DeclarationEdge(final String pRawSignature, final int pLineNumber,
+      final CFANode pPredecessor, final CFANode pSuccessor, final IASTDeclaration pDeclaration) {
+
+    super(pRawSignature, pLineNumber, pPredecessor, pSuccessor);
+    declaration = pDeclaration;
   }
 
   @Override
@@ -46,16 +47,28 @@ public class DeclarationEdge extends AbstractCFAEdge {
     return CFAEdgeType.DeclarationEdge;
   }
 
-  public IASTDeclarator[] getDeclarators() {
-    return declaration.getDeclarators();
+  public StorageClass getStorageClass() {
+    return declaration.getStorageClass();
   }
 
-  public IASTDeclSpecifier getDeclSpecifier() {
+  public IType getDeclSpecifier() {
     return declaration.getDeclSpecifier();
   }
 
+  public String getName() {
+    return declaration.getName();
+  }
+
+  public IASTInitializer getInitializer() {
+    return declaration.getInitializer();
+  }
+
   @Override
-  public IASTSimpleDeclaration getRawAST() {
+  public IASTDeclaration getRawAST() {
     return declaration;
+  }
+
+  public boolean isGlobal() {
+    return false;
   }
 }

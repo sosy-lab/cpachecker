@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.core.defaults;
 import java.util.Collections;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
@@ -84,7 +83,7 @@ public abstract class AbstractSingleWrapperElement implements AbstractWrapperEle
       return null;
     }
   }
-  
+
   @Override
   public String toString() {
     return wrappedElement.toString();
@@ -93,29 +92,5 @@ public abstract class AbstractSingleWrapperElement implements AbstractWrapperEle
   @Override
   public Iterable<? extends AbstractElement> getWrappedElements() {
     return Collections.singleton(wrappedElement);
-  }
-
-  @Override
-  public <T extends AbstractElement> T retrieveWrappedElement(Class<T> pType) {
-    if (pType.isAssignableFrom(getClass())) {
-      return pType.cast(this);
-    } else if (pType.isAssignableFrom(wrappedElement.getClass())) {
-      return pType.cast(wrappedElement);
-    } else if (wrappedElement instanceof AbstractWrapperElement) {
-      return ((AbstractWrapperElement)wrappedElement).retrieveWrappedElement(pType);
-    } else {
-      return null;
-    }
-  }
-
-  @Override
-  public AbstractElementWithLocation retrieveLocationElement() {
-    if (wrappedElement instanceof AbstractWrapperElement) {
-      return ((AbstractWrapperElement)wrappedElement).retrieveLocationElement();
-    } else if (wrappedElement instanceof AbstractElementWithLocation) {
-      return (AbstractElementWithLocation)wrappedElement;
-    } else {
-      return null;
-    }
   }
 }

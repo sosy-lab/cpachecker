@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,13 +29,19 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.SetMultimap;
 
 /**
- * Special implementation of the reached set that needs abstract elements which
- * implement {@link Partitionable}.
+ * Special implementation of the reached set that partitions the set by keys that
+ * depend on the abstract element.
+ * Which key is used for an abstract element can be changed by overriding
+ * {@link #getPartitionKey(AbstractElement)} in a sub-class.
+ * By default, this implementation needs abstract elements which implement
+ * {@link Partitionable} and uses the return value of {@link Partitionable#getPartitionKey()}
+ * as the key.
  *
  * Whenever the method {@link PartitionedReachedSet#getReached(AbstractElement)}
  * is called (which is usually done by the CPAAlgorithm to get the candidates
@@ -43,43 +49,54 @@ import com.google.common.collect.SetMultimap;
  * reached elements. This subset contains exactly those elements, whose partition
  * key is equal to the key of the element given as a parameter.
  */
-public class PartitionedReachedSet extends ReachedSet {
+public class PartitionedReachedSet extends DefaultReachedSet {
 
   private final SetMultimap<Object, AbstractElement> partitionedReached = LinkedHashMultimap.create();
-  
-  public PartitionedReachedSet(TraversalMethod traversal) {
-    super(traversal);
+
+  public PartitionedReachedSet(WaitlistFactory waitlistFactory) {
+    super(waitlistFactory);
   }
-  
+
   @Override
   public void add(AbstractElement pElement, Precision pPrecision) {
     super.add(pElement, pPrecision);
-    
-    assert pElement instanceof Partitionable : "Partitionable elements necessary for PartitionedReachedSet";
-    Object key = ((Partitionable)pElement).getPartitionKey();
-    partitionedReached.put(key, pElement);
+
+    partitionedReached.put(getPartitionKey(pElement), pElement);
   }
-  
+
   @Override
   public void remove(AbstractElement pElement) {
     super.remove(pElement);
-    
-    assert pElement instanceof Partitionable : "Partitionable elements necessary for PartitionedReachedSet";
-    Object key = ((Partitionable)pElement).getPartitionKey();
-    partitionedReached.remove(key, pElement);
+
+    partitionedReached.remove(getPartitionKey(pElement), pElement);
   }
-  
+
   @Override
   public void clear() {
     super.clear();
-    
+
     partitionedReached.clear();
   }
-  
+
   @Override
   public Set<AbstractElement> getReached(AbstractElement pElement) {
+    return getReachedForKey(getPartitionKey(pElement));
+  }
+
+  public int getNumberOfPartitions() {
+    return partitionedReached.keySet().size();
+  }
+
+  protected Object getPartitionKey(AbstractElement pElement) {
     assert pElement instanceof Partitionable : "Partitionable elements necessary for PartitionedReachedSet";
-    Object key = ((Partitionable)pElement).getPartitionKey();
+    return ((Partitionable)pElement).getPartitionKey();
+  }
+
+  protected Set<AbstractElement> getReachedForKey(Object key) {
     return Collections.unmodifiableSet(partitionedReached.get(key));
+  }
+
+  protected Set<?> getKeySet() {
+    return Collections.unmodifiableSet(partitionedReached.keySet());
   }
 }

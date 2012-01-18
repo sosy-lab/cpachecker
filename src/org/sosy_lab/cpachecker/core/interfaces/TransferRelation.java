@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,8 +32,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 /**
  * Interface for transfer relations.
  * The instance of the relation is used to calculate the post operation
- * @author erkan
- *
  */
 public interface TransferRelation {
 
@@ -46,7 +44,7 @@ public interface TransferRelation {
    * @return list of all successors of the current state (may be empty)
    */
   public Collection<? extends AbstractElement> getAbstractSuccessors(AbstractElement element, Precision precision, CFAEdge cfaEdge)
-    throws CPATransferException;
+    throws CPATransferException, InterruptedException;
 
   /**
    * Updates an abstract element with information from the abstract elements of
@@ -61,5 +59,7 @@ public interface TransferRelation {
   public Collection<? extends AbstractElement> strengthen (AbstractElement element,
                                      List<AbstractElement> otherElements,
                                      CFAEdge cfaEdge,
-                                     Precision precision) throws CPATransferException;
+                                     Precision precision)
+                                     throws CPATransferException,
+                                            InterruptedException;
 }

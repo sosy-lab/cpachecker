@@ -1,0 +1,17 @@
+<?xml version="1.0" ?>
+
+<table>
+
+<!-- a list of testfiles, where each file was created automatically by benchmark.py for a test -->
+
+  <test filename="test/results/benchmark-cpachecker.11-??-??.????.results.xml">
+    <!-- columns "status" and "cputime" of the testfile will be part of the table -->
+    <column title="status"/>
+    <column title="cputime"/>
+  </test>
+
+  <test filename="test/results/benchmark-cpachecker.11-??-??.????.results.xml">
+    <!-- all columns of the testfile will be part of the table -->
+  </test>
+
+</table>

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,37 +23,56 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 
-public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProvider, WrapperCPA
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+
+public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithABM
 {
+
+  @Options(prefix="cpa.composite")
+  private static class CompositeOptions {
+    @Option(toUppercase=true, values={"PLAIN", "AGREE"},
+        description="which composite merge operator to use (plain or agree)\n"
+          + "Both delegate to the component cpas, but agree only allows "
+          + "merging if all cpas agree on this. This is probably what you want.")
+    private String merge = "AGREE";
+  }
+
   private static class CompositeCPAFactory extends AbstractCPAFactory {
 
     private ImmutableList<ConfigurableProgramAnalysis> cpas = null;
 
     @Override
-    public ConfigurableProgramAnalysis createInstance() {
+    public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
       Preconditions.checkState(cpas != null, "CompositeCPA needs wrapped CPAs!");
+
+      CompositeOptions options = new CompositeOptions();
+      getConfiguration().inject(options);
 
       ImmutableList.Builder<AbstractDomain> domains = ImmutableList.builder();
       ImmutableList.Builder<TransferRelation> transferRelations = ImmutableList.builder();
@@ -61,19 +80,41 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       ImmutableList.Builder<StopOperator> stopOperators = ImmutableList.builder();
       ImmutableList.Builder<PrecisionAdjustment> precisionAdjustments = ImmutableList.builder();
 
+      boolean mergeSep = true;
+
       for (ConfigurableProgramAnalysis sp : cpas) {
         domains.add(sp.getAbstractDomain());
         transferRelations.add(sp.getTransferRelation());
-        mergeOperators.add(sp.getMergeOperator());
         stopOperators.add(sp.getStopOperator());
         precisionAdjustments.add(sp.getPrecisionAdjustment());
+
+        MergeOperator merge = sp.getMergeOperator();
+        if (merge != MergeSepOperator.getInstance()) {
+          mergeSep = false;
+        }
+        mergeOperators.add(merge);
+      }
+
+      ImmutableList<StopOperator> stopOps = stopOperators.build();
+
+      MergeOperator compositeMerge;
+      if (mergeSep) {
+        compositeMerge = MergeSepOperator.getInstance();
+      } else {
+
+        if (options.merge.equals("AGREE")) {
+          compositeMerge = new CompositeMergeAgreeOperator(mergeOperators.build(), stopOps);
+        } else if (options.merge.equals("PLAIN")) {
+          compositeMerge = new CompositeMergePlainOperator(mergeOperators.build());
+        } else {
+          throw new AssertionError();
+        }
       }
 
       CompositeDomain compositeDomain = new CompositeDomain(domains.build());
       CompositeTransferRelation compositeTransfer = new CompositeTransferRelation(transferRelations.build());
-      CompositeMergeOperator compositeMerge = new CompositeMergeOperator(mergeOperators.build());
-      CompositeStopOperator compositeStop = new CompositeStopOperator(compositeDomain, stopOperators.build());
-      CompositePrecisionAdjustment compositePrecisionAdjustment = new CompositePrecisionAdjustment(precisionAdjustments.build());
+      CompositeStopOperator compositeStop = new CompositeStopOperator(stopOps);
+      CompositePrecisionAdjustment compositePrecisionAdjustment = new CompositePrecisionAdjustment(precisionAdjustments.build(), compositeStop);
 
       return new CompositeCPA(compositeDomain, compositeTransfer, compositeMerge, compositeStop,
           compositePrecisionAdjustment, cpas);
@@ -105,10 +146,11 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
+  private final Reducer reducer;
 
   private final ImmutableList<ConfigurableProgramAnalysis> cpas;
 
-  private CompositeCPA (AbstractDomain abstractDomain,
+  protected CompositeCPA (AbstractDomain abstractDomain,
       TransferRelation transferRelation,
       MergeOperator mergeOperator,
       StopOperator stopOperator,
@@ -121,6 +163,21 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
     this.stopOperator = stopOperator;
     this.precisionAdjustment = precisionAdjustment;
     this.cpas = cpas;
+
+    List<Reducer> wrappedReducers = new ArrayList<Reducer>();
+    for (ConfigurableProgramAnalysis cpa : cpas) {
+      if (cpa instanceof ConfigurableProgramAnalysisWithABM) {
+        wrappedReducers.add(((ConfigurableProgramAnalysisWithABM) cpa).getReducer());
+      } else {
+        wrappedReducers.clear();
+        break;
+      }
+    }
+    if (!wrappedReducers.isEmpty()) {
+      reducer = new CompositeReducer(wrappedReducers);
+    } else {
+      reducer = null;
+    }
   }
 
   @Override
@@ -147,8 +204,14 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   public PrecisionAdjustment getPrecisionAdjustment () {
     return precisionAdjustment;
   }
+
   @Override
-  public AbstractElement getInitialElement (CFAFunctionDefinitionNode node) {
+  public Reducer getReducer() {
+    return reducer;
+  }
+
+  @Override
+  public AbstractElement getInitialElement (CFANode node) {
     Preconditions.checkNotNull(node);
 
     ImmutableList.Builder<AbstractElement> initialElements = ImmutableList.builder();
@@ -160,7 +223,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public Precision getInitialPrecision (CFAFunctionDefinitionNode node) {
+  public Precision getInitialPrecision (CFANode node) {
     Preconditions.checkNotNull(node);
 
     ImmutableList.Builder<Precision> initialPrecisions = ImmutableList.builder();
@@ -195,5 +258,10 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       }
     }
     return null;
+  }
+
+  @Override
+  public ImmutableList<? extends ConfigurableProgramAnalysis> getWrappedCPAs() {
+    return cpas;
   }
 }

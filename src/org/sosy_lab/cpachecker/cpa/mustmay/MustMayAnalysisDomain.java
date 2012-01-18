@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.mustmay;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /*
  * This join operator is defined point wise.
@@ -32,9 +34,6 @@ public class MustMayAnalysisDomain implements AbstractDomain {
 
   AbstractDomain mMustDomain;
   AbstractDomain mMayDomain;
-
-  MustMayAnalysisElement mTopElement;
-  MustMayAnalysisElement mBottomElement;
 
   MustMayAnalysisJoinOperator mJoinOperator;
   MustMayAnalysisPartialOrder mPartialOrder;
@@ -46,31 +45,19 @@ public class MustMayAnalysisDomain implements AbstractDomain {
     mMustDomain = pMustDomain;
     mMayDomain = pMayDomain;
 
-    mTopElement = new MustMayAnalysisElement(pMustDomain.getTopElement(), pMayDomain.getTopElement());
-    mBottomElement = new MustMayAnalysisElement(pMustDomain.getBottomElement(), pMayDomain.getBottomElement());
-
-    mJoinOperator = new MustMayAnalysisJoinOperator(mMustDomain.getJoinOperator(), mMayDomain.getJoinOperator());
-    mPartialOrder = new MustMayAnalysisPartialOrder(mMustDomain.getPartialOrder(), mMayDomain.getPartialOrder());
+    mJoinOperator = new MustMayAnalysisJoinOperator(mMustDomain, mMayDomain);
+    mPartialOrder = new MustMayAnalysisPartialOrder(mMustDomain, mMayDomain);
   }
 
   @Override
-  public MustMayAnalysisElement getBottomElement() {
-    return mBottomElement;
+  public AbstractElement join(AbstractElement pElement1,
+      AbstractElement pElement2) throws CPAException {
+    return mJoinOperator.join(pElement1, pElement2);
   }
 
   @Override
-  public MustMayAnalysisElement getTopElement() {
-    return mTopElement;
+  public boolean isLessOrEqual(AbstractElement pElement1,
+      AbstractElement pElement2) throws CPAException {
+    return mPartialOrder.satisfiesPartialOrder(pElement1, pElement2);
   }
-
-  @Override
-  public MustMayAnalysisJoinOperator getJoinOperator() {
-    return mJoinOperator;
-  }
-
-  @Override
-  public MustMayAnalysisPartialOrder getPartialOrder() {
-    return mPartialOrder;
-  }
-
 }

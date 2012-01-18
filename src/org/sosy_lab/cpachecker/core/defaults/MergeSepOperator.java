@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * Standard merge-sep operator
- * @author g.theoduloz
  */
 public class MergeSepOperator implements MergeOperator {
 

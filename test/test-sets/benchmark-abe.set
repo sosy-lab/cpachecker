@@ -1,4 +1,0 @@
-test/programs/locks/test_locks_?.c
-test/programs/locks/test_locks_??.c
-test/programs/ntdrivers-simplified/*.cil.c
-test/programs/ssh-simplified/*.cil.c

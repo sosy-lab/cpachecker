@@ -1,0 +1,2 @@
+test/programs/benchmarks/ntdrivers/*.BUG.i.cil.c
+test/programs/benchmarks/ntdrivers/*[!G].i.cil.c

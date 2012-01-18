@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.mustmay;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -36,22 +36,14 @@ import org.sosy_lab.cpachecker.cpa.interpreter.InterpreterCPA;
 
 public class SimpleMustMayAnalysisCPA implements ConfigurableProgramAnalysis {
 
-  private static class SimpleMustMayAnalysisCPAFactory extends AbstractCPAFactory {
-
-    @Override
-    public ConfigurableProgramAnalysis createInstance() {
-      return new SimpleMustMayAnalysisCPA(getLogger());
-    }
-  }
-
   public static CPAFactory factory() {
-    return new SimpleMustMayAnalysisCPAFactory();
+    return AutomaticCPAFactory.forType(SimpleMustMayAnalysisCPA.class);
   }
 
   private final MustMayAnalysisCPA mMustMayAnalysisCPA;
 
   public SimpleMustMayAnalysisCPA(LogManager pLogManager) {
-    AlwaysTopCPA lMayCPA = new AlwaysTopCPA();
+    AlwaysTopCPA lMayCPA = AlwaysTopCPA.INSTANCE;
     //InterpreterCPA lMustCPA = new InterpreterCPA(pLogManager);
     InterpreterCPA lMustCPA = new InterpreterCPA(null);
 
@@ -60,7 +52,7 @@ public class SimpleMustMayAnalysisCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public MustMayAnalysisElement getInitialElement(
-      CFAFunctionDefinitionNode pNode) {
+      CFANode pNode) {
     return mMustMayAnalysisCPA.getInitialElement(pNode);
   }
 
@@ -70,7 +62,7 @@ public class SimpleMustMayAnalysisCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public MustMayAnalysisPrecision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+  public MustMayAnalysisPrecision getInitialPrecision(CFANode pNode) {
     return mMustMayAnalysisCPA.getInitialPrecision(pNode);
   }
 

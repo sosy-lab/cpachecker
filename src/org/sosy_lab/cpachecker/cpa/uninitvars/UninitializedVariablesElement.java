@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,9 +35,6 @@ import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
-/**
- * @author Philipp Wendler
- */
 public class UninitializedVariablesElement implements AbstractQueryableElement {
 
   private final Collection<String> globalVars;
@@ -106,7 +103,7 @@ public class UninitializedVariablesElement implements AbstractQueryableElement {
   }
 
   public void callFunction(String functionName) {
-    localVars.addLast(new Pair<String, Collection<String>>(functionName, new ArrayList<String>()));
+    localVars.addLast(Pair.of(functionName, (Collection<String>)new ArrayList<String>()));
   }
 
   public void returnFromFunction() {
@@ -142,12 +139,12 @@ public class UninitializedVariablesElement implements AbstractQueryableElement {
 
   @Override
   protected UninitializedVariablesElement clone() {
-    LinkedList<Pair<String, Collection<String>>> newLocalVars = 
+    LinkedList<Pair<String, Collection<String>>> newLocalVars =
                                     new LinkedList<Pair<String, Collection<String>>>();
 
     for (Pair<String, Collection<String>> localContext : localVars) {
-      newLocalVars.addLast(new Pair<String, Collection<String>>(localContext.getFirst(),
-                                                     new ArrayList<String>(localContext.getSecond())));
+      newLocalVars.addLast(Pair.of(localContext.getFirst(),
+                                   (Collection<String>)new ArrayList<String>(localContext.getSecond())));
     }
 
     return new UninitializedVariablesElement(new ArrayList<String>(globalVars), newLocalVars,
@@ -156,7 +153,7 @@ public class UninitializedVariablesElement implements AbstractQueryableElement {
 
   @Override
   public String toString() {
-    StringBuffer sb = new StringBuffer();
+    StringBuilder sb = new StringBuilder();
     sb.append("[<global:");
     for (String var : globalVars) {
       sb.append(" " + var + " ");

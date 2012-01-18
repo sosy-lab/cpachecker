@@ -19,8 +19,8 @@ public class ErrorPathSourceViewerConfiguration extends TextSourceViewerConfigur
 	
 	@SuppressWarnings("unchecked") // this part of the API is not generic
 	@Override
-	protected Map getHyperlinkDetectorTargets(ISourceViewer sourceViewer) {
-		Map targets= super.getHyperlinkDetectorTargets(sourceViewer);
+	protected Map<Object, Object> getHyperlinkDetectorTargets(ISourceViewer sourceViewer) {
+		Map<Object, Object> targets= super.getHyperlinkDetectorTargets(sourceViewer);
 		targets.put("org.sosy_lab.cpachecker.plugin.eclipse.editors.errorPathEditor.ErrorPathEditor", fEditor);
 		return targets;
 	}

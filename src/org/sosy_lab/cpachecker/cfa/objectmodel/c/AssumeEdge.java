@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,64 +23,50 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
-import org.eclipse.cdt.core.dom.ast.IASTExpression;
-
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
+public class AssumeEdge extends AbstractCFAEdge {
 
+  private final boolean truthAssumption;
+  private final IASTExpression expression;
 
-public class AssumeEdge extends AbstractCFAEdge
-{
-    private final boolean truthAssumption;
-    private final IASTExpression expression;
-    private final int assumeEdgeId;
+  public AssumeEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor,
+      CFANode pSuccessor, IASTExpression pExpression, boolean pTruthAssumption) {
 
-    public AssumeEdge (String rawStatement, int lineNumber, CFANode predecessor, CFANode successor,
-                           IASTExpression expression, boolean truthAssumption,
-                           int assumeEdgeId) {
-        super (rawStatement, lineNumber, predecessor, successor);
+    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
+    truthAssumption = pTruthAssumption;
+    expression = pExpression;
+  }
 
-        this.truthAssumption = truthAssumption;
-        this.expression = expression;
-        this.assumeEdgeId = assumeEdgeId;
-    }
+  @Override
+  public CFAEdgeType getEdgeType() {
+    return CFAEdgeType.AssumeEdge;
+  }
 
-    @Override
-    public CFAEdgeType getEdgeType ()
-    {
-        return CFAEdgeType.AssumeEdge;
-    }
+  public boolean getTruthAssumption() {
+    return truthAssumption;
+  }
 
-    public boolean getTruthAssumption ()
-    {
-        return truthAssumption;
-    }
+  public IASTExpression getExpression() {
+    return expression;
+  }
 
-    public IASTExpression getExpression ()
-    {
-        return expression;
-    }
+  @Override
+  public String getRawStatement() {
+    return "[" + super.getRawStatement() + "]";
+  }
 
-    @Override
-    public String getRawStatement ()
-    {
-        return "[" + super.getRawStatement () + "]";
-    }
-    
-    public int getAssumeEdgeId() {
-      return assumeEdgeId;
-    }
-
-    /**
-     * TODO
-     * Warning: for instances with {@link #getTruthAssumption()} == false, the
-     * return value of this method does not represent exactly the return value
-     * of {@link #getRawStatement()} (it misses the outer negation of the expression).
-     */
-    @Override
-    public IASTExpression getRawAST() {
-      return expression;
-    }
+  /**
+   * TODO
+   * Warning: for instances with {@link #getTruthAssumption()} == false, the
+   * return value of this method does not represent exactly the return value
+   * of {@link #getRawStatement()} (it misses the outer negation of the expression).
+   */
+  @Override
+  public IASTExpression getRawAST() {
+    return expression;
+  }
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,29 +24,17 @@
 package org.sosy_lab.cpachecker.cpa.types;
 
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
-import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
-/**
- * @author Philipp Wendler
- */
 public class TypesCPA extends AbstractCPA {
 
-  private static class TypesCPAFactory extends AbstractCPAFactory {
-
-    @Override
-    public ConfigurableProgramAnalysis createInstance() {
-      return new TypesCPA();
-    }
-  }
-
   public static CPAFactory factory() {
-    return new TypesCPAFactory();
+    return AutomaticCPAFactory.forType(TypesCPA.class);
   }
 
   private TypesCPA() {
@@ -54,10 +42,11 @@ public class TypesCPA extends AbstractCPA {
   }
 
   @Override
-  public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
-    TypesElement element = new TypesElement();
-    //remember the entry function definition node for later use
-    ((TypesTransferRelation)getTransferRelation()).setEntryFunctionDefinitionNode((FunctionDefinitionNode)pNode);
-    return element;
+  public AbstractElement getInitialElement(CFANode pNode) {
+    if (pNode instanceof FunctionDefinitionNode) {
+      //remember the entry function definition node for later use
+      ((TypesTransferRelation)getTransferRelation()).setEntryFunctionDefinitionNode((FunctionDefinitionNode)pNode);
+    }
+    return new TypesElement();
   }
 }

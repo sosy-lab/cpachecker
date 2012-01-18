@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,38 +23,34 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
+public class BlankEdge extends AbstractCFAEdge {
 
+  private final boolean jumpEdge;
 
-public class BlankEdge extends AbstractCFAEdge
-{
-    private final boolean jumpEdge;
+  public BlankEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor,
+      CFANode pSuccessor) {
 
-    public BlankEdge(String rawStatement, int lineNumber, CFANode predecessor, CFANode successor) {
-      this(rawStatement, lineNumber, predecessor, successor, false);
-    }
+    this(pRawStatement, pLineNumber, pPredecessor, pSuccessor, false);
+  }
 
-    public BlankEdge(String rawStatement, int lineNumber, CFANode predecessor, CFANode successor, boolean jumpEdge)
-    {
-        super(rawStatement, lineNumber, predecessor, successor);
-        this.jumpEdge = jumpEdge;
-    }
+  public BlankEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor,
+      CFANode pSuccessor, boolean pJumpEdge) {
 
-    /**
-     * Gives information whether this edge is a jump as produced by a goto,
-     * continue and break statements.
-     */
-    @Override
-    public boolean isJumpEdge ()
-    {
-        return jumpEdge;
-    }
+    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
+    jumpEdge = pJumpEdge;
+  }
 
-    @Override
-    public CFAEdgeType getEdgeType ()
-    {
-        return CFAEdgeType.BlankEdge;
-    }
+  /**
+   * Gives information whether this edge is a jump as produced by a goto,
+   * continue and break statements.
+   */
+  @Override
+  public boolean isJumpEdge() {
+    return jumpEdge;
+  }
 
+  @Override
+  public CFAEdgeType getEdgeType() {
+    return CFAEdgeType.BlankEdge;
+  }
 }

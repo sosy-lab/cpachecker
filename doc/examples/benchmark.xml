@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<!-- Example file that demonstrates all available options. -->
+
+<!--
+  "tool" can be one of "cbmc", "cpachecker" or "satabs"
+  "timelimit" is an optional time limit in seconds.
+  "memlimit" is an optional memory limit in megabytes.
+-->
+<benchmark tool="cbmc" timelimit="1800" memlimit="200">
+
+  <!--
+    A "test" is a set of input files that are analyzed using the same configuration.
+    There may be any number of tests in a file.
+    "name" is an optional identifier to distinguish the test.
+   -->
+  <test name="testname">
+  
+    <!-- 
+      This is the list of programs that will be analyzed.
+      "include" gives a pattern (with shell wildcards) of files.
+      "includesfile" gives files, which contains lists of input files.
+        Both the name of the includes file as well as the content can contain shell wildcards.
+      "exclude" gives a pattern of excluded files.
+      The order of these three tags is not important.
+     -->
+    <sourcefiles>
+      <include>test/programs/benchmarks/locks/*.c</include>
+      <exclude>test/programs/benchmarks/locks/test_locks_1?.c</exclude>
+      <includesfile>test/test-sets/ssh-simplified.set</includesfile>
+    </sourcefiles>
+
+    <!-- 
+      This is the list of command-line options passed to the model checker.
+      The "name" attribute is mandatory, the content of the tag isn't.
+     -->
+      <option name="--32"/>
+      <option name="--error-label">ERROR</option>
+      <option name="--xml-ui"/>
+  </test>
+  
+  <!-- Optional further tests -->
+  <test>
+    <sourcefiles><!-- ... --></sourcefiles>
+    <option name="..."><!-- ... --></option>
+  </test>
+    
+  <!--
+    Optional list of additional options that are added to the resulting tables.
+    (Currently only available for CPAchecker).
+    The output of the tool will be searched for a matching line,
+    and the respective value will be copied to the table.
+    "numberOfDigits" gives the number of digits after the decimal separator.
+    Both attributes are optional.
+  -->
+  <columns>
+    <column title="column heading" numberOfDigits="2">output line string</column>
+  </columns>
+  
+</benchmark>

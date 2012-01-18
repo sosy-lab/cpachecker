@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
@@ -66,7 +65,7 @@ public class CompositeElement implements AbstractWrapperElement, Targetable, Par
   public Object getPartitionKey() {
     if (partitionKey == null) {
       List<Object> keys = new ArrayList<Object>(elements.size());
-      
+
       for (int i = 0; i < elements.size(); i++) {
         AbstractElement element = elements.get(i);
         if (element instanceof Partitionable) {
@@ -75,13 +74,13 @@ public class CompositeElement implements AbstractWrapperElement, Targetable, Par
           keys.add(null);
         }
       }
-      
+
       partitionKey = keys;
     }
-    
+
     return partitionKey;
   }
-  
+
   @Override
   public boolean equals(Object other) {
     if (other == this) {
@@ -120,34 +119,6 @@ public class CompositeElement implements AbstractWrapperElement, Targetable, Par
 
   public AbstractElement get(int idx) {
     return elements.get(idx);
-  }
-
-  @Override
-  public <T extends AbstractElement> T retrieveWrappedElement(Class<T> pType) {
-    if (pType.isAssignableFrom(getClass())) {
-      return pType.cast(this);
-    }
-    for (AbstractElement element : elements) {
-      if (pType.isAssignableFrom(element.getClass())) {
-        return pType.cast(element);
-      } else if (element instanceof AbstractWrapperElement) {
-        T result = ((AbstractWrapperElement)element).retrieveWrappedElement(pType);
-        if (result != null) {
-          return result;
-        }
-      }
-    }
-    return null;
-  }
-
-  @Override
-  public AbstractElementWithLocation retrieveLocationElement() {
-    if (elements.get(0) instanceof AbstractElementWithLocation) {
-      return (AbstractElementWithLocation)elements.get(0);
-    } else {
-      assert false;
-      return retrieveWrappedElement(AbstractElementWithLocation.class);
-    }
   }
 
   @Override

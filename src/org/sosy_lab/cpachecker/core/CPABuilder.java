@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core;
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -33,21 +34,28 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Classes;
+import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.cpa.automatonanalysis.Automaton;
-import org.sosy_lab.cpachecker.cpa.automatonanalysis.AutomatonParser;
-import org.sosy_lab.cpachecker.cpa.automatonanalysis.ControlAutomatonCPA;
-import org.sosy_lab.cpachecker.cpa.automatonanalysis.ControlAutomatonCPA.AutomatonCPAFactory;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
+import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.InvalidComponentException;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 
 @Options
@@ -56,42 +64,55 @@ public class CPABuilder {
   private static final String CPA_OPTION_NAME = "cpa";
   private static final String CPA_CLASS_PREFIX = "org.sosy_lab.cpachecker";
 
-  @Option(name=CPA_OPTION_NAME)
+  private static final Splitter LIST_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings();
+
+  @Option(name=CPA_OPTION_NAME,
+      description="CPA to use (see doc/Configuration.txt for more documentation on this)")
   private String cpaName = CompositeCPA.class.getCanonicalName();
 
-  @Option(name="specification", type=Option.Type.OPTIONAL_INPUT_FILE)
-  private File specificationFile = null;
-  
+  @Option(name="specification",
+      description="comma-separated list of files with specifications that should be checked"
+        + "\n(see config/specification/ for examples)")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private List<File> specificationFiles = null;
+
   private final Configuration config;
   private final LogManager logger;
+  private final ReachedSetFactory reachedSetFactory;
+  private final CFA cfa;
 
-  public CPABuilder(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+  public CPABuilder(Configuration pConfig, LogManager pLogger, ReachedSetFactory pReachedSetFactory, CFA pCfa) throws InvalidConfigurationException {
     this.config = pConfig;
     this.logger = pLogger;
+    this.reachedSetFactory = pReachedSetFactory;
+    this.cfa = pCfa;
     config.inject(this);
   }
 
   public ConfigurableProgramAnalysis buildCPAs() throws InvalidConfigurationException, CPAException {
     Set<String> usedAliases = new HashSet<String>();
-    
+
     // create automata cpas for specification given in specification file
     List<ConfigurableProgramAnalysis> cpas = null;
-    if (specificationFile != null) {
-      List<Automaton> automata = AutomatonParser.parseAutomatonFile(specificationFile, config, logger);
-      cpas = new ArrayList<ConfigurableProgramAnalysis>(automata.size());
-      
-      for (Automaton automaton : automata) {
-        String cpaAlias = automaton.getName();
-        if (!usedAliases.add(cpaAlias)) {
-          throw new InvalidConfigurationException("Name " + cpaAlias + " used twice for an automaton.");
+    if (specificationFiles != null) {
+      cpas = new ArrayList<ConfigurableProgramAnalysis>();
+
+      for (File specFile : specificationFiles) {
+        List<Automaton> automata = AutomatonParser.parseAutomatonFile(specFile, config, logger);
+
+        for (Automaton automaton : automata) {
+          String cpaAlias = automaton.getName();
+          if (!usedAliases.add(cpaAlias)) {
+            throw new InvalidConfigurationException("Name " + cpaAlias + " used twice for an automaton.");
+          }
+
+          CPAFactory factory = ControlAutomatonCPA.factory();
+          factory.setConfiguration(Configuration.copyWithNewPrefix(config, cpaAlias));
+          factory.setLogger(logger);
+          factory.set(automaton, Automaton.class);
+          cpas.add(factory.createInstance());
+          logger.log(Level.FINER, "Loaded Automaton\"" + automaton.getName() + "\"");
         }
-        
-        AutomatonCPAFactory factory = ControlAutomatonCPA.factory();
-        factory.setConfiguration(new Configuration(config, cpaAlias));
-        factory.setLogger(logger);
-        factory.setAutomaton(automaton);
-        cpas.add(factory.createInstance());
-        logger.log(Level.FINE, "Loaded Automaton\"" + automaton.getName() + "\"");
       }
     }
     return buildCPAs(cpaName, CPA_OPTION_NAME, usedAliases, cpas);
@@ -113,15 +134,23 @@ public class CPABuilder {
 
     Class<?> cpaClass = getCPAClass(optionName, cpaName);
 
+    logger.log(Level.FINER, "Instantiating CPA " + cpaClass.getName() + " with alias " + cpaAlias);
+
     CPAFactory factory = getFactoryInstance(cpaName, cpaClass);
 
     // now use factory to get an instance of the CPA
 
-    factory.setConfiguration(new Configuration(config, cpaAlias));
+    factory.setConfiguration(Configuration.copyWithNewPrefix(config, cpaAlias));
     factory.setLogger(logger);
+    if (reachedSetFactory != null) {
+      factory.set(reachedSetFactory, ReachedSetFactory.class);
+    }
+    if (cfa != null) {
+      factory.set(cfa, CFA.class);
+    }
 
     createAndSetChildrenCPAs(cpaName, cpaAlias, factory, usedAliases, cpas);
-    
+
     if (cpas != null && !cpas.isEmpty()) {
       throw new InvalidConfigurationException("Option specification gave specification automata, but no CompositeCPA was used");
     }
@@ -131,8 +160,12 @@ public class CPABuilder {
     try {
       cpa = factory.createInstance();
     } catch (IllegalStateException e) {
-      throw new InvalidConfigurationException(e.getMessage());
+      throw new InvalidComponentException(cpaClass, "CPA", e);
     }
+    if (cpa == null) {
+      throw new InvalidComponentException(cpaClass, "CPA", "Factory returned null.");
+    }
+    logger.log(Level.FINER, "Sucessfully instantiated CPA " + cpa.getClass().getName() + " with alias " + cpaAlias);
     return cpa;
   }
 
@@ -157,7 +190,7 @@ public class CPABuilder {
     try {
       cpaClass = Classes.forName(cpaName, CPA_CLASS_PREFIX);
     } catch (ClassNotFoundException e) {
-      throw new InvalidConfigurationException("Option " + optionName + " is set to unknown CPA " + cpaName);
+      throw new InvalidConfigurationException("Option " + optionName + " is set to unknown CPA " + cpaName, e);
     }
 
     if (!ConfigurableProgramAnalysis.class.isAssignableFrom(cpaClass)) {
@@ -168,32 +201,42 @@ public class CPABuilder {
   }
 
   private CPAFactory getFactoryInstance(String cpaName, Class<?> cpaClass) throws CPAException {
+
+    // get factory method
+    Method factoryMethod;
+    try {
+      factoryMethod = cpaClass.getMethod("factory", (Class<?>[]) null);
+    } catch (NoSuchMethodException e) {
+      throw new InvalidComponentException(cpaClass, "CPA", "No public static method \"factory\" with zero parameters.");
+    }
+
+    // verify signature
+    if (!Modifier.isStatic(factoryMethod.getModifiers())) {
+      throw new InvalidComponentException(cpaClass, "CPA", "Factory method is not static.");
+    }
+
+    String exception = Classes.verifyDeclaredExceptions(factoryMethod, CPAException.class);
+    if (exception != null) {
+      throw new InvalidComponentException(cpaClass, "CPA", "Factory method declares the unsupported checked exception " + exception + " .");
+    }
+
+    // invoke factory method
     Object factoryObj;
     try {
-      Method factoryMethod = cpaClass.getMethod("factory", (Class<?>[]) null);
       factoryObj = factoryMethod.invoke(null, (Object[])null);
-    
-    } catch (NoSuchMethodException e) {
-      throw new CPAException("Each CPA class has to offer a public static method factory with zero parameters, but " + cpaName + " does not!");
-    
-    } catch (IllegalArgumentException e) {
-      // method is not static
-      throw new CPAException("Each CPA class has to offer a public static method factory with zero parameters, but " + cpaName + " does not!");
-    
+
     } catch (IllegalAccessException e) {
-      // method is not public
-      throw new CPAException("Each CPA class has to offer a public static method factory with zero parameters, but " + cpaName + " does not!");
+      throw new InvalidComponentException(cpaClass, "CPA", "Factory method is not public.");
 
     } catch (InvocationTargetException e) {
       Throwable cause = e.getCause();
-      Classes.throwExceptionIfPossible(cause, CPAException.class);
-      
-      logger.logException(Level.FINE, cause, "CPA factory methods should never throw an exception!");
-      throw new CPAException("Cannot create CPA because of unexpected exception: " + cause.getMessage());
+      Throwables.propagateIfPossible(cause, CPAException.class);
+
+      throw new UnexpectedCheckedException("instantiation of CPA " + cpaName, cause);
     }
 
     if ((factoryObj == null) || !(factoryObj instanceof CPAFactory)) {
-      throw new CPAException("The factory method of a CPA has to return an instance of CPAFactory!");
+      throw new InvalidComponentException(cpaClass, "CPA", "Factory method did not return a CPAFactory instance.");
     }
 
     return (CPAFactory)factoryObj;
@@ -206,6 +249,12 @@ public class CPABuilder {
     String childCpaName = config.getProperty(childOptionName);
     String childrenCpaNames = config.getProperty(childrenOptionName);
 
+    if (childrenCpaNames == null && childCpaName == null && cpaAlias.equals("CompositeCPA")
+        && cpas != null && !cpas.isEmpty()) {
+      // if a specification was given, but no CPAs, insert a LocationCPA
+      childrenCpaNames = LocationCPA.class.getCanonicalName();
+    }
+
     if (childCpaName != null) {
       // only one child CPA
       if (childrenCpaNames != null) {
@@ -213,17 +262,19 @@ public class CPABuilder {
             + childOptionName + " and " + childrenOptionName + " are specified!");
       }
 
+      ConfigurableProgramAnalysis child = buildCPAs(childCpaName, childOptionName, usedAliases, cpas);
       try {
-        factory.setChild(buildCPAs(childCpaName, childOptionName, usedAliases, cpas));
+        factory.setChild(child);
       } catch (UnsupportedOperationException e) {
-        throw new InvalidConfigurationException(cpaName + " is no wrapper CPA, but option " + childOptionName + " was specified!");
+        throw new InvalidConfigurationException(cpaName + " is no wrapper CPA, but option " + childOptionName + " was specified!", e);
       }
+      logger.log(Level.FINER, "CPA " + cpaAlias + " got child " + childCpaName);
 
     } else if (childrenCpaNames != null) {
       // several children CPAs
       ImmutableList.Builder<ConfigurableProgramAnalysis> childrenCpas = ImmutableList.builder();
 
-      for (String currentChildCpaName : childrenCpaNames.split("\\s*,\\s*")) {
+      for (String currentChildCpaName : LIST_SPLITTER.split(childrenCpaNames)) {
         childrenCpas.add(buildCPAs(currentChildCpaName, childrenOptionName, usedAliases, null));
       }
       if (cpas != null) {
@@ -234,8 +285,9 @@ public class CPABuilder {
       try {
         factory.setChildren(childrenCpas.build());
       } catch (UnsupportedOperationException e) {
-        throw new InvalidConfigurationException(cpaName + " is no wrapper CPA, but option " + childrenOptionName + " was specified!");
+        throw new InvalidConfigurationException(cpaName + " is no wrapper CPA, but option " + childrenOptionName + " was specified!", e);
       }
+      logger.log(Level.FINER, "CPA " + cpaAlias + " got children " + childrenCpaNames);
     }
   }
 }

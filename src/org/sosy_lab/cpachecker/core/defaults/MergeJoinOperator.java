@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,34 +23,33 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * Standard merge-join operator
- * @author g.theoduloz
  */
 public class MergeJoinOperator implements MergeOperator {
 
-  private final JoinOperator joinOperator;
+  private final AbstractDomain domain;
 
   /**
    * Creates a merge-join operator, based on the given join
    * operator
    */
-  public MergeJoinOperator(JoinOperator op)
+  public MergeJoinOperator(AbstractDomain d)
   {
-    joinOperator = op;
+    this.domain = d;
   }
 
   @Override
   public AbstractElement merge(AbstractElement el1, AbstractElement el2, Precision p)
     throws CPAException
   {
-    return joinOperator.join(el1, el2);
+    return domain.join(el1, el2);
   }
 
 }

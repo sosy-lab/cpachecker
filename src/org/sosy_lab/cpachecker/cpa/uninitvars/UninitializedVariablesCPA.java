@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,13 +30,13 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -50,29 +50,20 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-/**
- * @author Philipp Wendler
- */
-@Options
+@Options(prefix="cpa.uninitvars")
 public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
-  private static class UninitializedVariablesCPAFactory extends AbstractCPAFactory {
-
-    @Override
-    public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
-      return new UninitializedVariablesCPA(getConfiguration(), getLogger());
-    }
-  }
-
   public static CPAFactory factory() {
-    return new UninitializedVariablesCPAFactory();
+    return AutomaticCPAFactory.forType(UninitializedVariablesCPA.class);
   }
 
-  @Option(name="uninitVars.printWarnings")
+  @Option(description="print warnings during analysis when uninitialized variables are used")
   private String printWarnings = "true";
-  @Option(name="uninitVars.merge", values={"sep", "join"})
+  @Option(name="merge", values={"sep", "join"},
+      description="which merge operator to use for UninitializedVariablesCPA?")
   private String mergeType = "sep";
-  @Option(name="uninitVars.stop", values={"sep", "join"})
+  @Option(name="stop", values={"sep", "join"},
+      description="which stop operator to use for UninitializedVariablesCPA?")
   private String stopType = "sep";
 
   private final AbstractDomain abstractDomain;
@@ -91,18 +82,16 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
     MergeOperator mergeOp = null;
     if(mergeType.equals("sep")) {
       mergeOp = MergeSepOperator.getInstance();
-    }
-    if(mergeType.equals("join")) {
-      mergeOp = new MergeJoinOperator(domain.getJoinOperator());
+    } else if(mergeType.equals("join")) {
+      mergeOp = new MergeJoinOperator(domain);
     }
 
     StopOperator stopOp = null;
 
     if(stopType.equals("sep")) {
-      stopOp = new StopSepOperator(domain.getPartialOrder());
-    }
-    if(stopType.equals("join")){
-      stopOp = new UninitializedVariablesStopJoin(domain);
+      stopOp = new StopSepOperator(domain);
+    } else if(stopType.equals("join")){
+      stopOp = new StopJoinOperator(domain);
     }
 
     this.abstractDomain = domain;
@@ -120,12 +109,12 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
   }
 
   @Override
-  public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
+  public AbstractElement getInitialElement(CFANode pNode) {
     return new UninitializedVariablesElement(pNode.getFunctionName());
   }
 
   @Override
-  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+  public Precision getInitialPrecision(CFANode pNode) {
     return SingletonPrecision.getInstance();
   }
 

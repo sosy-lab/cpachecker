@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,25 +39,17 @@ public class MustMayAnalysisTransferRelation implements TransferRelation {
   private TransferRelation mMustTransferRelation;
   private TransferRelation mMayTransferRelation;
 
-  private MustMayAnalysisElement mBottomElement;
-
-  private AbstractElement mMayBottomElement;
-
-  public MustMayAnalysisTransferRelation(TransferRelation pMustTransferRelation, TransferRelation pMayTransferRelation, MustMayAnalysisElement pBottomElement) {
+  public MustMayAnalysisTransferRelation(TransferRelation pMustTransferRelation, TransferRelation pMayTransferRelation) {
     assert(pMustTransferRelation != null);
     assert(pMayTransferRelation != null);
-    assert(pBottomElement != null);
 
     mMustTransferRelation = pMustTransferRelation;
     mMayTransferRelation = pMayTransferRelation;
-
-    mBottomElement = pBottomElement;
-    mMayBottomElement = mBottomElement.getMayElement();
   }
 
   @Override
   // TODO: public <T extends AbstractElement> Collection<AbstractElement> getAbstractSuccessors(T pCurrentElement, Precision pPrecision, CFAEdge pCfaEdge)
-  public Collection<AbstractElement> getAbstractSuccessors(AbstractElement pCurrentElement, Precision pPrecision, CFAEdge pCfaEdge) throws CPATransferException {
+  public Collection<AbstractElement> getAbstractSuccessors(AbstractElement pCurrentElement, Precision pPrecision, CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
 
     assert(pCurrentElement != null);
     assert(pCurrentElement instanceof MustMayAnalysisElement);
@@ -79,10 +71,7 @@ public class MustMayAnalysisTransferRelation implements TransferRelation {
     HashSet<AbstractElement> lConsolidatedMaySuccessors = new HashSet<AbstractElement>();
 
     for (AbstractElement lSuccessor : lMaySuccessors) {
-      if (!lSuccessor.equals(mMayBottomElement)) {
-        // lSuccessor is not bottom element of may analysis
-        lConsolidatedMaySuccessors.add(lSuccessor);
-      }
+      lConsolidatedMaySuccessors.add(lSuccessor);
     }
 
     if (lConsolidatedMaySuccessors.isEmpty()) {
@@ -93,7 +82,10 @@ public class MustMayAnalysisTransferRelation implements TransferRelation {
       return Collections.emptySet();
     }
 
-    Collection<? extends AbstractElement> lMustSuccessors = mMustTransferRelation.getAbstractSuccessors(lCurrentMustElement, lPrecision.getMustPrecision(), pCfaEdge);
+    Collection<? extends AbstractElement> lMustSuccessors = Collections.emptySet();
+    if (lCurrentMustElement != MustMayAnalysisElement.DONT_KNOW_ELEMENT) {
+      lMustSuccessors = mMustTransferRelation.getAbstractSuccessors(lCurrentMustElement, lPrecision.getMustPrecision(), pCfaEdge);
+    }
 
     HashSet<AbstractElement> lConsolidatedMustSuccessors = new HashSet<AbstractElement>();
 
@@ -101,7 +93,7 @@ public class MustMayAnalysisTransferRelation implements TransferRelation {
 
     if (lConsolidatedMustSuccessors.isEmpty()) {
       // add bottom element for cross product generation
-      lConsolidatedMustSuccessors.add(mBottomElement.getMustElement());
+      lConsolidatedMustSuccessors.add(MustMayAnalysisElement.DONT_KNOW_ELEMENT);
     }
 
     HashSet<AbstractElement> lSuccessors = new HashSet<AbstractElement>();
@@ -117,7 +109,7 @@ public class MustMayAnalysisTransferRelation implements TransferRelation {
         }
         else{
           if (lStrengthenList.isEmpty()) {
-            lSuccessors.add(new MustMayAnalysisElement(mBottomElement, lMaySuccessor));
+            lSuccessors.add(new MustMayAnalysisElement(MustMayAnalysisElement.DONT_KNOW_ELEMENT, lMaySuccessor));
           }
           else {
             for (AbstractElement lStrengthenedSuccessor : lStrengthenList) {

@@ -1,0 +1,50 @@
+Time profiling
+--------------
+CPAchecker has internal time statistics, which are dumped into Statistics.txt.
+With -stats or statistics.print=true they are printed to the console, too.
+
+1. Get latest JRat (Development Release) from http://jrat.sourceforge.net
+2. Set the option "-javaagent:<PATH>/shiftone-jrat.jar" for the Java VM,
+   where <PATH> has to be replaced by the path to the JRat JAR file.
+   a) When running from Eclipse: Insert the option into the box
+      "VM arguments"  of the run configuration.
+   b) When running from command line: Set the environment variable
+      JAVA_VM_ARGUMENTS to this value by executing
+      export JAVA_VM_ARGUMENTS="-javaagent:<PATH>/shiftone-jrat.jar"
+3. Run CPAchecker.
+4. Run the JRat GUI with "java -Xmx256M -jar shiftone-jrat.jar".
+5. Open the file "<CPAcheckerDIR>/jrat.output/<TIMESTAMP>/my_code_tree.jrat"
+   in JRat and look at the results.
+   The results may be incomplete if CPAchecker has been terminated by
+   pressing Ctrl+C.
+
+Memory profiling
+----------------
+
+For graphing Memory consumption over time:
+1. Run CPAchecker with JRat as described above.
+2. Look at the file "memory.csv" in the JRat output directory.
+Or:
+1. Run "jconsole <PID>" where <PID> is the process ID of the running
+   java process.
+
+For viewing heap statistics (object count and memory usage per type):
+1. Run "jmap -histo <PID>" where <PID> is the process ID of the running
+   java process. This prints statistics of a current snapshot of the heap.
+2. More information at http://java.sun.com/javase/6/docs/technotes/tools/share/jmap.html
+
+For viewing heap statistics for a complete CPAchecker run:
+1. Set the option "-agentlib:hprof=heap=sites,depth=0" for the Java VM
+   as described above.
+2. Run CPAchecker.
+3. Open the file "java.hprof.txt" in the CPAchecker directory.
+4. More information at http://java.sun.com/developer/technicalArticles/Programming/HPROF.html
+
+For viewing detailed heap content after an OutOfMemoryError:
+1. Set the option "-XX:+HeapDumpOnOutOfMemoryError" for the Java VM
+   as described above.
+2. Run CPAchecker and wait for OutOfMemoryError. A file "java_pid<PID>.hprof"
+   is produced in the CPAchecker directory.
+3. Run "jhat java_pid<PID>.hprof".
+4. Open http://localhost:7000/ with your web browser.
+5. More information at http://java.sun.com/javase/6/docs/technotes/tools/share/jhat.html

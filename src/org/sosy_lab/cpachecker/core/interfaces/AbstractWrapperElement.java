@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,27 +24,6 @@
 package org.sosy_lab.cpachecker.core.interfaces;
 
 public interface AbstractWrapperElement extends AbstractElement {
-
-  /**
-   * Retrieve one of the wrapped abstract elements by type. If the hierarchy of
-   * (wrapped) abstract elements has several levels, this method searches through
-   * them recursively.
-   *
-   * The type does not need to match exactly, the returned element has just to
-   * be a sub-type of the type passed as argument.
-   *
-   * @param <T> The type of the wrapped element.
-   * @param type The class object of the type of the wrapped element.
-   * @return An instance of an element with type T or null if there is none.
-   */
-  public <T extends AbstractElement> T retrieveWrappedElement(Class<T> type);
-
-  /**
-   * Utility method which is equal to
-   * retrieveWrappedElement(AbstractElementWithLocation.class);
-   * @return An instance of an element with type AbstractElementWithLocation or null if there is none.
-   */
-  public AbstractElementWithLocation retrieveLocationElement();
 
   /**
    * Retrieve all wrapped abstract elements contained directly in this object.

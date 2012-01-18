@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,52 +23,33 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
-import org.eclipse.cdt.core.dom.ast.IASTExpression;
-import org.eclipse.cdt.core.dom.ast.IASTStatement;
-
+import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
+public class StatementEdge extends AbstractCFAEdge {
 
+  private final IASTStatement statement;
 
-public class StatementEdge extends AbstractCFAEdge
-{
-    private final IASTExpression expression;
-    private final IASTStatement rawAST;
-    private final boolean jumpEdge;
+  public StatementEdge(String pRawStatement, IASTStatement pStatement,
+      int pLineNumber, CFANode pPredecessor, CFANode pSuccessor) {
 
-    public StatementEdge(IASTStatement rawAST, int lineNumber, CFANode predecessor, CFANode successor,
-                              IASTExpression expression, boolean jumpEdge)
-    {
-        super(rawAST.getRawSignature(), lineNumber, predecessor, successor);
-        this.expression = expression;
-        this.rawAST = rawAST;
-        this.jumpEdge = jumpEdge;
-    }
+    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
+    statement = pStatement;
+  }
 
-    /**
-     * Gives information whether this edge is a return statement.
-     */
-    @Override
-    public boolean isJumpEdge ()
-    {
-        return jumpEdge;
-    }
+  @Override
+  public CFAEdgeType getEdgeType() {
+    return CFAEdgeType.StatementEdge;
+  }
 
-    @Override
-    public CFAEdgeType getEdgeType ()
-    {
-        return CFAEdgeType.StatementEdge;
-    }
+  public IASTStatement getStatement() {
+    return statement;
+  }
 
-    public IASTExpression getExpression ()
-    {
-        return expression;
-    }
-
-    @Override
-    public IASTStatement getRawAST() {
-      return rawAST;
-    }
+  @Override
+  public IASTStatement getRawAST() {
+    return statement;
+  }
 }

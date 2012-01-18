@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,36 +30,54 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.eclipse.cdt.core.dom.ast.IASTArraySubscriptExpression;
-import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
-import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
-import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
-import org.eclipse.cdt.core.dom.ast.IASTExpression;
-import org.eclipse.cdt.core.dom.ast.IASTFieldReference;
-import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
-import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
-import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
-import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
-import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
-import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.pointeranalysis.Memory;
-import org.sosy_lab.cpachecker.cpa.pointeranalysis.Pointer;
-import org.sosy_lab.cpachecker.cpa.pointeranalysis.PointerAnalysisElement;
+import org.sosy_lab.cpachecker.cpa.assume.ConstrainedAssumeElement;
+import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonPredicateElement;
+import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.AccessToUninitializedVariableException;
+import org.sosy_lab.cpachecker.cpa.interpreter.exceptions.MissingInputException;
+import org.sosy_lab.cpachecker.cpa.pointer.Memory;
+import org.sosy_lab.cpachecker.cpa.pointer.Pointer;
+import org.sosy_lab.cpachecker.cpa.pointer.PointerElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.fshell.fql2.translators.cfa.ToFlleShAssumeEdgeTranslator;
+import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 
 public class InterpreterTransferRelation implements TransferRelation {
 
@@ -69,37 +87,40 @@ public class InterpreterTransferRelation implements TransferRelation {
   private String missingInformationRightPointer = null;
   private String missingInformationLeftPointer  = null;
   private IASTExpression missingInformationRightExpression = null;
-  
-  private int[] mInputs;
-
-  public InterpreterTransferRelation(int[] pInputs) {
-    mInputs = pInputs;
-  }
 
   @Override
-  public Collection<AbstractElement> getAbstractSuccessors(
+  public Collection<? extends AbstractElement> getAbstractSuccessors(
       AbstractElement element, Precision precision, CFAEdge cfaEdge) throws CPATransferException {
     AbstractElement successor;
     InterpreterElement explicitElement = (InterpreterElement)element;
-    
+
     // check the type of the edge
     switch (cfaEdge.getEdgeType ()) {
 
     // if edge is a statement edge, e.g. a = b + c
     case StatementEdge: {
       StatementEdge statementEdge = (StatementEdge) cfaEdge;
+      successor = handleStatement(explicitElement, statementEdge.getStatement(), cfaEdge);
 
-      if (statementEdge.isJumpEdge()) {
-        // this statement is a function return, e.g. return (a);
-        // note that this is different from return edge
-        // this is a statement edge which leads the function to the
-        // last node of its CFA, where return edge is from that last node
-        // to the return site of the caller function
+      // TODO remove
+      if (successor == null) {
+        throw new RuntimeException();
+      }
+      break;
+    }
 
-        successor = handleExitFromFunction(explicitElement, statementEdge.getExpression(), statementEdge);
-      } else {
-        // this is a regular statement
-        successor = handleStatement(explicitElement, statementEdge.getExpression(), cfaEdge);
+    case ReturnStatementEdge: {
+      ReturnStatementEdge returnEdge = (ReturnStatementEdge)cfaEdge;
+      // this statement is a function return, e.g. return (a);
+      // note that this is different from return edge
+      // this is a statement edge which leads the function to the
+      // last node of its CFA, where return edge is from that last node
+      // to the return site of the caller function
+      successor = handleExitFromFunction(explicitElement, returnEdge.getExpression(), returnEdge);
+
+      // TODO remove
+      if (successor == null) {
+        throw new RuntimeException();
       }
       break;
     }
@@ -108,6 +129,11 @@ public class InterpreterTransferRelation implements TransferRelation {
     case DeclarationEdge: {
       DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
       successor = handleDeclaration(explicitElement, declarationEdge);
+
+      // TODO remove
+      if (successor == null) {
+        throw new RuntimeException();
+      }
       break;
     }
 
@@ -115,45 +141,74 @@ public class InterpreterTransferRelation implements TransferRelation {
     case AssumeEdge: {
       AssumeEdge assumeEdge = (AssumeEdge) cfaEdge;
       successor = handleAssumption(explicitElement, assumeEdge.getExpression(), cfaEdge, assumeEdge.getTruthAssumption());
+
+      // TODO remove
+      if (successor == null) {
+        throw new RuntimeException();
+      }
       break;
     }
 
     case BlankEdge: {
       successor = explicitElement.clone();
+
+      // TODO remove
+      if (successor == null) {
+        throw new RuntimeException();
+      }
       break;
     }
 
     case FunctionCallEdge: {
       FunctionCallEdge functionCallEdge = (FunctionCallEdge) cfaEdge;
+      successor = handleFunctionCall(explicitElement, functionCallEdge, cfaEdge);
 
-      if (functionCallEdge.isExternalCall()) {
-        // call to an external function
-        // TODO external function call
-        throw new UnrecognizedCCodeException("external function calls not yet supported", functionCallEdge);
-//      try {
-//      handleExternalFunctionCall(expAnalysisElement, functionCallEdge);
-//      } catch (ExplicitAnalysisTransferException e) {
-//        CPAMain.logManager.logException(Level.WARNING, e, "");
-//      }
-      } else {
-        successor = handleFunctionCall(explicitElement, functionCallEdge);
+      // TODO remove
+      if (successor == null) {
+        throw new RuntimeException();
       }
       break;
     }
 
     // this is a return edge from function, this is different from return statement
     // of the function. See case for statement edge for details
-    case ReturnEdge: {
-      ReturnEdge functionReturnEdge = (ReturnEdge) cfaEdge;
+    case FunctionReturnEdge: {
+      FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge) cfaEdge;
       successor = handleFunctionReturn(explicitElement, functionReturnEdge);
+
+      // TODO remove
+      if (successor == null) {
+        throw new RuntimeException();
+      }
+
+      InterpreterElement lSuccessor = (InterpreterElement)successor;
+
+      if (lSuccessor.getInputIndex() != explicitElement.getInputIndex()) {
+        throw new RuntimeException();
+      }
+
       break;
     }
 
     default:
       throw new UnrecognizedCFAEdgeException(cfaEdge);
     }
-    
-    if (successor == null) {
+
+    // TODO implement a debugger like interpreter
+    /*try {
+      System.out.println(cfaEdge);
+      System.in.read();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }*/
+
+    /*System.out.println("INTERPRETER: ");
+    System.out.println("(" + element.toString() + ", " + precision.toString() + ")");
+    System.out.println("--[" + cfaEdge.toString() + "]->");
+    System.out.println(successor.toString());
+    System.out.println("--------------");*/
+
+    if (InterpreterBottomElement.INSTANCE.equals(successor)) {
       return Collections.emptySet();
     } else {
       return Collections.singleton(successor);
@@ -165,34 +220,40 @@ public class InterpreterTransferRelation implements TransferRelation {
    * @param element previous abstract element.
    * @param functionReturnEdge return edge from a function to its call site.
    * @return new abstract element.
+   * @throws MissingInputException
+   * @throws AccessToUninitializedVariableException
    */
   private InterpreterElement handleFunctionReturn(InterpreterElement element,
-      ReturnEdge functionReturnEdge)
-  throws UnrecognizedCCodeException {
+      FunctionReturnEdge functionReturnEdge)
+  throws UnrecognizedCCodeException, AccessToUninitializedVariableException {
 
     CallToReturnEdge summaryEdge =
       functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
-    IASTExpression exprOnSummary = summaryEdge.getExpression();
+    IASTFunctionCall exprOnSummary = summaryEdge.getExpression();
+
     // TODO get from stack
-    InterpreterElement previousElem = element.getPreviousElement();
+    /*InterpreterElement previousElem = element.getPreviousElement();
     InterpreterElement newElement = previousElem.clone();
+
+    newElement.setInputIndex(element.getInputIndex());*/
+
+    InterpreterElement newElement = element.getUpdatedPreviousElement();
+
     String callerFunctionName = functionReturnEdge.getSuccessor().getFunctionName();
     String calledFunctionName = functionReturnEdge.getPredecessor().getFunctionName();
-    //System.out.println(exprOnSummary.getRawSignature());
-    //expression is a binary operation, e.g. a = g(b);
-    if (exprOnSummary instanceof IASTBinaryExpression) {
-      IASTBinaryExpression binExp = ((IASTBinaryExpression)exprOnSummary);
-      int opType = binExp.getOperator ();
-      IASTExpression op1 = binExp.getOperand1();
 
-      assert(opType == IASTBinaryExpression.op_assign);
+    //System.out.println(exprOnSummary.getRawSignature());
+    //expression is an assignment operation, e.g. a = g(b);
+    if (exprOnSummary instanceof IASTFunctionCallAssignmentStatement) {
+      IASTFunctionCallAssignmentStatement binExp = ((IASTFunctionCallAssignmentStatement)exprOnSummary);
+      IASTExpression op1 = binExp.getLeftHandSide();
 
       //we expect left hand side of the expression to be a variable
       if(op1 instanceof IASTIdExpression ||
           op1 instanceof IASTFieldReference)
       {
 //      IASExpression leftHandSideVar = op1;
-        String varName = op1.getRawSignature();
+        String varName = op1.toASTString();
         String returnVarName = calledFunctionName + "::" + "___cpa_temp_result_var_";
 
         for(String globalVar:globalVars){
@@ -201,6 +262,7 @@ public class InterpreterTransferRelation implements TransferRelation {
                 newElement.assignConstant(varName, element.getValueFor(returnVarName));
               }
               else{
+                System.out.println("FORGETTING: " + exprOnSummary);
                 newElement.forget(varName);
               }
           }
@@ -209,6 +271,7 @@ public class InterpreterTransferRelation implements TransferRelation {
                 newElement.assignConstant(globalVar, element.getValueFor(globalVar));
               }
               else{
+                System.out.println("FORGETTING: " + exprOnSummary);
                 newElement.forget(varName);
               }
           }
@@ -220,6 +283,7 @@ public class InterpreterTransferRelation implements TransferRelation {
             newElement.assignConstant(assignedVarName, element.getValueFor(returnVarName));
           }
           else{
+            System.out.println("FORGETTING: " + exprOnSummary);
             newElement.forget(assignedVarName);
           }
         }
@@ -228,21 +292,8 @@ public class InterpreterTransferRelation implements TransferRelation {
         throw new UnrecognizedCCodeException("on function return", summaryEdge, op1);
       }
     }
-    // TODO this is not called -- expression is a unary operation, e.g. g(b);
-    else if (exprOnSummary instanceof IASTUnaryExpression)
-    {
-      // only globals
-      for(String globalVar:globalVars){
-          if(element.contains(globalVar)){
-            newElement.assignConstant(globalVar, element.getValueFor(globalVar));
-          }
-          else{
-            newElement.forget(globalVar);
-          }
-      }
-    }
     // g(b)
-    else if (exprOnSummary instanceof IASTFunctionCallExpression)
+    else if (exprOnSummary instanceof IASTFunctionCallStatement)
     {
       // only globals
       for(String globalVar:globalVars){
@@ -255,30 +306,26 @@ public class InterpreterTransferRelation implements TransferRelation {
       }
     }
     else{
-      throw new UnrecognizedCCodeException("on function return", summaryEdge, exprOnSummary);
+      throw new UnrecognizedCCodeException("on function return", summaryEdge, exprOnSummary.asStatement());
     }
 
     return newElement;
   }
 
   private InterpreterElement handleFunctionCall(InterpreterElement element,
-      FunctionCallEdge callEdge)
-  throws UnrecognizedCCodeException {
+      FunctionCallEdge callEdge, CFAEdge edge)
+  throws UnrecognizedCCodeException, AccessToUninitializedVariableException {
 
-    FunctionDefinitionNode functionEntryNode = (FunctionDefinitionNode)callEdge.getSuccessor();
+    FunctionDefinitionNode functionEntryNode = callEdge.getSuccessor();
     String calledFunctionName = functionEntryNode.getFunctionName();
     String callerFunctionName = callEdge.getPredecessor().getFunctionName();
 
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
-    IASTExpression[] arguments = callEdge.getArguments();
+    List<IASTExpression> arguments = callEdge.getArguments();
 
-    if (arguments == null) {
-      arguments = new IASTExpression[0];
-    }
+    assert (paramNames.size() == arguments.size());
 
-    assert (paramNames.size() == arguments.length);
-
-    InterpreterElement newElement = new InterpreterElement(element, element.getInputIndex());
+    InterpreterElement newElement = new InterpreterElement(element, element.getInputIndex(), element.getInputs());
 
     for(String globalVar:globalVars){
       if(element.contains(globalVar)){
@@ -286,8 +333,8 @@ public class InterpreterTransferRelation implements TransferRelation {
       }
     }
 
-    for(int i=0; i<arguments.length; i++){
-      IASTExpression arg = arguments[i];
+    for(int i=0; i<arguments.size(); i++){
+      IASTExpression arg = arguments.get(i);
       if (arg instanceof IASTCastExpression) {
         // ignore casts
         arg = ((IASTCastExpression)arg).getOperand();
@@ -297,7 +344,7 @@ public class InterpreterTransferRelation implements TransferRelation {
       String formalParamName = getvarName(nameOfParam, calledFunctionName);
       if(arg instanceof IASTIdExpression){
         IASTIdExpression idExp = (IASTIdExpression) arg;
-        String nameOfArg = idExp.getRawSignature();
+        String nameOfArg = idExp.getName();
         String actualParamName = getvarName(nameOfArg, callerFunctionName);
 
         if(element.contains(actualParamName)){
@@ -306,7 +353,7 @@ public class InterpreterTransferRelation implements TransferRelation {
       }
 
       else if(arg instanceof IASTLiteralExpression){
-        Long val = parseLiteral(arg);
+        Long val = parseLiteral((IASTLiteralExpression)arg, edge);
 
         if (val != null) {
           newElement.assignConstant(formalParamName, val);
@@ -322,11 +369,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 
       else if(arg instanceof IASTUnaryExpression){
         IASTUnaryExpression unaryExp = (IASTUnaryExpression) arg;
-        assert(unaryExp.getOperator() == IASTUnaryExpression.op_star || unaryExp.getOperator() == IASTUnaryExpression.op_amper);
-      }
-
-      else if(arg instanceof IASTFunctionCallExpression){
-        assert(false);
+        assert(unaryExp.getOperator() == UnaryOperator.STAR || unaryExp.getOperator() == UnaryOperator.AMPER);
       }
 
       else if(arg instanceof IASTFieldReference){
@@ -336,7 +379,7 @@ public class InterpreterTransferRelation implements TransferRelation {
       else{
         // TODO forgetting
         newElement.forget(formalParamName);
-//      throw new ExplicitAnalysisTransferException("Unhandled case");
+//      throw new ExplicitTransferException("Unhandled case");
       }
     }
 
@@ -345,480 +388,463 @@ public class InterpreterTransferRelation implements TransferRelation {
 
   private InterpreterElement handleExitFromFunction(InterpreterElement element,
       IASTExpression expression,
-      StatementEdge statementEdge)
-  throws UnrecognizedCCodeException {
+      ReturnStatementEdge returnEdge)
+  throws UnrecognizedCCodeException, MissingInputException, AccessToUninitializedVariableException {
 
-    return handleAssignmentToVariable(element, "___cpa_temp_result_var_", expression, statementEdge);
+    InterpreterElement lSuccessor = handleAssignmentToVariable(element, "___cpa_temp_result_var_", expression, returnEdge);
+
+    if (lSuccessor == null) {
+      throw new RuntimeException();
+    }
+
+    return lSuccessor;
   }
 
   private AbstractElement handleAssumption(InterpreterElement element,
                   IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
-                  throws UnrecognizedCFAEdgeException {
-    
-
+                  throws UnrecognizedCCodeException, MissingInputException, AccessToUninitializedVariableException {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
     // Binary operation
     if (expression instanceof IASTBinaryExpression) {
       IASTBinaryExpression binExp = ((IASTBinaryExpression)expression);
-      int opType = binExp.getOperator ();
+      BinaryOperator opType = binExp.getOperator ();
 
       IASTExpression op1 = binExp.getOperand1();
       IASTExpression op2 = binExp.getOperand2();
 
-      return propagateBooleanExpression(element, opType, op1, op2, functionName, truthValue);
+      AbstractElement lSuccessor = propagateBooleanExpression(element, opType, op1, op2, functionName, truthValue, cfaEdge);
+
+      if (lSuccessor == null) {
+        throw new RuntimeException();
+      }
+
+      return lSuccessor;
     }
     // Unary operation
-    else if (expression instanceof IASTUnaryExpression)
-    {
+    else if (expression instanceof IASTUnaryExpression) {
       IASTUnaryExpression unaryExp = ((IASTUnaryExpression)expression);
       // ! exp
-      if(unaryExp.getOperator() == IASTUnaryExpression.op_not)
+      if(unaryExp.getOperator() == UnaryOperator.NOT)
       {
         IASTExpression exp1 = unaryExp.getOperand();
-        // ! unaryExp
-        if(exp1 instanceof IASTUnaryExpression){
-          IASTUnaryExpression unaryExp1 = ((IASTUnaryExpression)exp1);
-          // (exp)
-          if (unaryExp1.getOperator() == IASTUnaryExpression.op_bracketedPrimary){
-            IASTExpression exp2 = unaryExp1.getOperand();
-            // (binaryExp)
-            if(exp2 instanceof IASTBinaryExpression){
-              IASTBinaryExpression binExp2 = (IASTBinaryExpression)exp2;
-              return handleAssumption(element, binExp2, cfaEdge, !truthValue);
-            }
-            else {
-              throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
-            }
-          }
-          else {
-            throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
-          }
+        AbstractElement lSuccessor = handleAssumption(element, exp1, cfaEdge, !truthValue);
+
+        if (lSuccessor == null) {
+          throw new RuntimeException();
         }
 
-        if(exp1 instanceof IASTIdExpression ||
-            exp1 instanceof IASTFieldReference){
-          return handleAssumption(element, exp1, cfaEdge, !truthValue);
-        }
-        else {
-          throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
-        }
-      }
-      else if(unaryExp.getOperator() == IASTUnaryExpression.op_bracketedPrimary){
-        return handleAssumption(element, unaryExp.getOperand(), cfaEdge, truthValue);
-      }
-      else if(unaryExp instanceof IASTCastExpression){
-        return handleAssumption(element, ((IASTCastExpression)expression).getOperand(), cfaEdge, truthValue);
+        return lSuccessor;
+
       }
       else {
-        throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
+        throw new UnrecognizedCCodeException("Unknown unary operator in assumption", cfaEdge, expression);
       }
     }
+    else if(expression instanceof IASTCastExpression) {
+      AbstractElement lSuccessor = handleAssumption(element, ((IASTCastExpression)expression).getOperand(), cfaEdge, truthValue);
 
+      if (lSuccessor == null) {
+        throw new RuntimeException();
+      }
+
+      return lSuccessor;
+    }
     else if(expression instanceof IASTIdExpression
-        || expression instanceof IASTFieldReference){
-      return propagateBooleanExpression(element, -999, expression, null, functionName, truthValue);
+        || expression instanceof IASTFieldReference) {
+      AbstractElement lSuccessor = propagateBooleanExpression(element, null, expression, null, functionName, truthValue, cfaEdge);
+
+      if (lSuccessor == null) {
+        throw new RuntimeException();
+      }
+
+      return lSuccessor;
     }
 
     else{
-      throw new UnrecognizedCFAEdgeException("Unhandled case " + cfaEdge.getRawStatement());
+      throw new UnrecognizedCCodeException("Unknown expression type in assumption", cfaEdge, expression);
     }
-    
+
   }
 
-  private AbstractElement propagateBooleanExpression(AbstractElement element, 
-      int opType,IASTExpression op1, 
-      IASTExpression op2, String functionName, boolean truthValue) 
-  throws UnrecognizedCFAEdgeException {
+  private AbstractElement propagateBooleanExpression(AbstractElement element,
+      BinaryOperator opType,IASTExpression op1,
+      IASTExpression op2, String functionName, boolean truthValue, CFAEdge edge)
+  throws UnrecognizedCCodeException, AccessToUninitializedVariableException {
 
     InterpreterElement newElement = ((InterpreterElement)element).clone();
 
     // a (bop) ?
-    if(op1 instanceof IASTIdExpression || 
+    if (op1 instanceof IASTIdExpression ||
         op1 instanceof IASTFieldReference ||
         op1 instanceof IASTArraySubscriptExpression)
     {
       // [literal]
-      if(op2 == null && opType == -999){
-        String varName = op1.getRawSignature();
-        if(truthValue){
-          if(newElement.contains(getvarName(varName, functionName))){
-            if(newElement.getValueFor(getvarName(varName, functionName)) == 0){
-              return null;
-            }
-          }
-          else{
+      if (op2 == null && opType == null){
+        String lVariableName = op1.toASTString();
+
+        String lScopedVariableName = getvarName(lVariableName, functionName);
+
+        if (truthValue) {
+          if (newElement.getValueFor(lScopedVariableName) == 0) {
+            return InterpreterBottomElement.INSTANCE;
           }
         }
         // ! [literal]
         else {
-          if(newElement.contains(getvarName(varName, functionName))){
-            if(newElement.getValueFor(getvarName(varName, functionName)) != 0){
-              return null;
-            }
-          }
-          else{
-            newElement.assignConstant(getvarName(varName, functionName), 0);
+          if (newElement.getValueFor(lScopedVariableName) != 0) {
+            return InterpreterBottomElement.INSTANCE;
           }
         }
+
       }
       // a (bop) 9
-      else if(op2 instanceof IASTLiteralExpression)
+      else if (op2 instanceof IASTLiteralExpression)
       {
-        String varName = op1.getRawSignature();
-        int typeOfLiteral = ((IASTLiteralExpression)op2).getKind();
-        if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant 
-            //  || typeOfLiteral == IASTLiteralExpression.lk_float_constant
-        )
-        {
-          String literalString = op2.getRawSignature();
-          if(literalString.contains("L") || literalString.contains("U")){
-            literalString = literalString.replace("L", "");
-            literalString = literalString.replace("U", "");
-          }
-          int valueOfLiteral = Integer.valueOf(literalString).intValue();
+        String varName = op1.toASTString();
+        if (op2 instanceof IASTIntegerLiteralExpression) {
+
+          int valueOfLiteral = ((IASTIntegerLiteralExpression)op2).getValue().intValue();
 
           // a == 9
-          if(opType == IASTBinaryExpression.op_equals) {
-            if(truthValue){
-              if(newElement.contains(getvarName(varName, functionName))){
-                if(newElement.getValueFor(getvarName(varName, functionName)) != valueOfLiteral){
-                  return null;
-                }
-              }
-              else{
-                newElement.assignConstant(getvarName(varName, functionName), valueOfLiteral);
+          if (opType == BinaryOperator.EQUALS) {
+            if (truthValue) {
+              if (newElement.getValueFor(getvarName(varName, functionName)) != valueOfLiteral) {
+                return InterpreterBottomElement.INSTANCE;
               }
             }
             // ! a == 9
             else {
-              return propagateBooleanExpression(element, IASTBinaryExpression.op_notequals, op1, op2, functionName, !truthValue);
+              AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.NOT_EQUALS, op1, op2, functionName, !truthValue, edge);
+
+              if (lSuccessor == null) {
+                throw new RuntimeException();
+              }
+
+              return lSuccessor;
             }
           }
           // a != 9
-          else if(opType == IASTBinaryExpression.op_notequals)
+          else if (opType == BinaryOperator.NOT_EQUALS)
           {
-            if(truthValue){
-              if(newElement.contains(getvarName(varName, functionName))){
-                if(newElement.getValueFor(getvarName(varName, functionName)) == valueOfLiteral){
-                  return null;
-                }
-              }
-              else{
+            if (truthValue){
+              if (newElement.getValueFor(getvarName(varName, functionName)) == valueOfLiteral){
+                return InterpreterBottomElement.INSTANCE;
               }
             }
             // ! a != 9
             else {
-              return propagateBooleanExpression(element, IASTBinaryExpression.op_equals, op1, op2, functionName, !truthValue);
+              AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.EQUALS, op1, op2, functionName, !truthValue, edge);
+
+              if (lSuccessor == null) {
+                throw new RuntimeException();
+              }
+
+              return lSuccessor;
             }
           }
 
           // a > 9
-          else if(opType == IASTBinaryExpression.op_greaterThan)
+          else if(opType == BinaryOperator.GREATER_THAN)
           {
             if(truthValue){
-              if(newElement.contains(getvarName(varName, functionName))){
-                if(newElement.getValueFor(getvarName(varName, functionName)) <= valueOfLiteral){
-                  return null;
-                }
-              }
-              else{
+              if(newElement.getValueFor(getvarName(varName, functionName)) <= valueOfLiteral){
+                return InterpreterBottomElement.INSTANCE;
               }
             }
             else {
-              return propagateBooleanExpression(element, IASTBinaryExpression.op_lessEqual, op1, op2, functionName, !truthValue);
+              AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.LESS_EQUAL, op1, op2, functionName, !truthValue, edge);
+
+              if (lSuccessor == null) {
+                throw new RuntimeException();
+              }
+
+              return lSuccessor;
             }
           }
           // a >= 9
-          else if(opType == IASTBinaryExpression.op_greaterEqual)
+          else if(opType == BinaryOperator.GREATER_EQUAL)
           {
             if(truthValue){
-              if(newElement.contains(getvarName(varName, functionName))){
-                if(newElement.getValueFor(getvarName(varName, functionName)) < valueOfLiteral){
-                  return null;
-                }
-              }
-              else{
+              if(newElement.getValueFor(getvarName(varName, functionName)) < valueOfLiteral){
+                return InterpreterBottomElement.INSTANCE;
               }
             }
             else {
-              return propagateBooleanExpression(element, IASTBinaryExpression.op_lessThan, op1, op2, functionName, !truthValue);
+              AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.LESS_THAN, op1, op2, functionName, !truthValue, edge);
+
+              if (lSuccessor == null) {
+                throw new RuntimeException();
+              }
+
+              return lSuccessor;
             }
           }
           // a < 9
-          else if(opType == IASTBinaryExpression.op_lessThan)
+          else if(opType == BinaryOperator.LESS_THAN)
           {
-            if(truthValue){
-              if(newElement.contains(getvarName(varName, functionName))){
-                if(newElement.getValueFor(getvarName(varName, functionName)) >= valueOfLiteral){
-                  return null;
-                }
-              }
-              else{
+            if(truthValue) {
+              if(newElement.getValueFor(getvarName(varName, functionName)) >= valueOfLiteral) {
+                return InterpreterBottomElement.INSTANCE;
               }
             }
             else {
-              return propagateBooleanExpression(element, IASTBinaryExpression.op_greaterEqual, op1, op2, functionName, !truthValue);
+              AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.GREATER_EQUAL, op1, op2, functionName, !truthValue, edge);
+
+              if (lSuccessor == null) {
+                throw new RuntimeException();
+              }
+
+              return lSuccessor;
             }
           }
           // a <= 9
-          else if(opType == IASTBinaryExpression.op_lessEqual)
+          else if(opType == BinaryOperator.LESS_EQUAL)
           {
-            if(truthValue){
-              if(newElement.contains(getvarName(varName, functionName))){
-                if(newElement.getValueFor(getvarName(varName, functionName)) > valueOfLiteral){
-                  return null;
-                }
-              }
-              else{
+            if(truthValue) {
+              if(newElement.getValueFor(getvarName(varName, functionName)) > valueOfLiteral) {
+                return InterpreterBottomElement.INSTANCE;
               }
             }
             else {
-              return propagateBooleanExpression(element, IASTBinaryExpression.op_greaterThan, op1, op2, functionName, !truthValue);
+              AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.GREATER_THAN, op1, op2, functionName, !truthValue, edge);
+
+              if (lSuccessor == null) {
+                throw new RuntimeException();
+              }
+
+              return lSuccessor;
             }
           }
           // [a - 9]
-          else if(opType == IASTBinaryExpression.op_minus)
+          else if(opType == BinaryOperator.MINUS)
           {
-            if(truthValue){
-              if(newElement.contains(getvarName(varName, functionName))){
-                if(newElement.getValueFor(getvarName(varName, functionName)) == valueOfLiteral){
-                  return null;
-                }
-              }
-              else{
+            if(truthValue) {
+              if(newElement.getValueFor(getvarName(varName, functionName)) == valueOfLiteral) {
+                return InterpreterBottomElement.INSTANCE;
               }
             }
-            // ! a != 9
-            else {
-              return propagateBooleanExpression(element, IASTBinaryExpression.op_equals, op1, op2, functionName, !truthValue);
+            else { // ! a - 9
+              AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.EQUALS, op1, op2, functionName, !truthValue, edge);
+
+              if (lSuccessor == null) {
+                throw new RuntimeException();
+              }
+
+              return lSuccessor;
             }
           }
 
           // [a + 9]
-          else if(opType == IASTBinaryExpression.op_plus)
-          {
-            if(truthValue){
-              if(newElement.contains(getvarName(varName, functionName))){
-                if(newElement.getValueFor(getvarName(varName, functionName)) == (0 - valueOfLiteral)){
-                  return null;
-                }
-              }
-              else{
+          else if (opType == BinaryOperator.PLUS) {
+            if (truthValue) {
+              if (newElement.getValueFor(getvarName(varName, functionName)) == (0 - valueOfLiteral)) {
+                return InterpreterBottomElement.INSTANCE;
               }
             }
-            // ! a != 9
-            else {
-              if(newElement.contains(getvarName(varName, functionName))){
-                if(newElement.getValueFor(getvarName(varName, functionName)) != (0 - valueOfLiteral)){
-                  return null;
-                }
-              }
-              else{
-                newElement.assignConstant(getvarName(varName, functionName), (0 - valueOfLiteral));
+            else { // ! [a + 9]
+              if (newElement.getValueFor(getvarName(varName, functionName)) != (0 - valueOfLiteral)) {
+                return InterpreterBottomElement.INSTANCE;
               }
             }
           }
 
           // TODO nothing
-          else if(opType == IASTBinaryExpression.op_binaryAnd ||
-              opType == IASTBinaryExpression.op_binaryOr ||
-              opType == IASTBinaryExpression.op_binaryXor){
-            return newElement;
+          else if(opType == BinaryOperator.BINARY_AND ||
+              opType == BinaryOperator.BINARY_OR ||
+              opType == BinaryOperator.BINARY_XOR){
+            //return newElement;
+
+            throw new RuntimeException();
           }
 
           else{
-            throw new UnrecognizedCFAEdgeException("Unhandled case ");
+            throw new UnrecognizedCCodeException("Unhandled case", edge);
           }
         }
         else{
-          throw new UnrecognizedCFAEdgeException("Unhandled case ");
+          throw new UnrecognizedCCodeException("Unhandled case", edge);
         }
       }
       // a (bop) b
       else if(op2 instanceof IASTIdExpression ||
           (op2 instanceof IASTUnaryExpression && (
-              (((IASTUnaryExpression)op2).getOperator() == IASTUnaryExpression.op_amper) || 
-              (((IASTUnaryExpression)op2).getOperator() == IASTUnaryExpression.op_star))))
+              (((IASTUnaryExpression)op2).getOperator() == UnaryOperator.AMPER) ||
+              (((IASTUnaryExpression)op2).getOperator() == UnaryOperator.STAR))))
       {
-        String leftVarName = op1.getRawSignature();
-        String rightVarName = op2.getRawSignature();
+        String leftVarName = op1.toASTString();
+        String rightVarName = op2.toASTString();
 
         // a == b
-        if(opType == IASTBinaryExpression.op_equals)
+        if(opType == BinaryOperator.EQUALS)
         {
-          if(truthValue){
-            if(newElement.contains(getvarName(leftVarName, functionName)) && 
-                !newElement.contains(getvarName(rightVarName, functionName))){
-              newElement.assignConstant(getvarName(rightVarName, functionName),
-                  newElement.getValueFor(getvarName(leftVarName, functionName)));
-            }
-            else if(newElement.contains(getvarName(rightVarName, functionName)) && 
-                !newElement.contains(getvarName(leftVarName, functionName))){
-              newElement.assignConstant(getvarName(leftVarName, functionName),
-                  newElement.getValueFor(getvarName(rightVarName, functionName)));
-            }
-            else if(newElement.contains(getvarName(rightVarName, functionName)) && 
-                newElement.contains(getvarName(leftVarName, functionName))){
-              if(newElement.getValueFor(getvarName(rightVarName, functionName)) != 
-                newElement.getValueFor(getvarName(leftVarName, functionName))){
-                return null;
-              }
+          if(truthValue) {
+            if(newElement.getValueFor(getvarName(rightVarName, functionName)) !=
+              newElement.getValueFor(getvarName(leftVarName, functionName))) {
+
+              return InterpreterBottomElement.INSTANCE;
             }
           }
           else{
-            return propagateBooleanExpression(element, IASTBinaryExpression.op_notequals, op1, op2, functionName, !truthValue);
+            AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.NOT_EQUALS, op1, op2, functionName, !truthValue, edge);
+
+            if (lSuccessor == null) {
+              throw new RuntimeException();
+            }
+
+            return lSuccessor;
           }
         }
         // a != b
-        else if(opType == IASTBinaryExpression.op_notequals)
-        {
-          if(truthValue){
-            if(newElement.contains(getvarName(rightVarName, functionName)) && 
-                newElement.contains(getvarName(leftVarName, functionName))){
-              if(newElement.getValueFor(getvarName(rightVarName, functionName)) == 
-                newElement.getValueFor(getvarName(leftVarName, functionName))){
-                return null;
-              }
-            }
-            else{
+        else if(opType == BinaryOperator.NOT_EQUALS) {
+          if(truthValue) {
+            if(newElement.getValueFor(getvarName(rightVarName, functionName)) ==
+              newElement.getValueFor(getvarName(leftVarName, functionName))) {
 
+              return InterpreterBottomElement.INSTANCE;
             }
           }
-          else{
-            return propagateBooleanExpression(element, IASTBinaryExpression.op_equals, op1, op2, functionName, !truthValue);
+          else {
+            AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.EQUALS, op1, op2, functionName, !truthValue, edge);
+
+            if (lSuccessor == null) {
+              throw new RuntimeException();
+            }
+
+            return lSuccessor;
           }
         }
         // a > b
-        else if(opType == IASTBinaryExpression.op_greaterThan)
-        {
-          if(truthValue){
-            if(newElement.contains(getvarName(leftVarName, functionName)) && 
-                newElement.contains(getvarName(rightVarName, functionName))){
-              if(newElement.getValueFor(getvarName(leftVarName, functionName)) <= 
-                newElement.getValueFor(getvarName(rightVarName, functionName))){
-                return null;
-              }
-            }
-            else{
+        else if(opType == BinaryOperator.GREATER_THAN) {
+          if(truthValue) {
+            if(newElement.getValueFor(getvarName(leftVarName, functionName)) <=
+              newElement.getValueFor(getvarName(rightVarName, functionName))) {
 
+              return InterpreterBottomElement.INSTANCE;
             }
           }
-          else{
-            return  propagateBooleanExpression(element, IASTBinaryExpression.op_lessEqual, op1, op2, functionName, !truthValue);
+          else {
+            AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.LESS_EQUAL, op1, op2, functionName, !truthValue, edge);
+
+            if (lSuccessor == null) {
+              throw new RuntimeException();
+            }
+
+            return lSuccessor;
           }
         }
         // a >= b
-        else if(opType == IASTBinaryExpression.op_greaterEqual)
-        {
-          if(truthValue){
-            if(newElement.contains(getvarName(leftVarName, functionName)) && 
-                newElement.contains(getvarName(rightVarName, functionName))){
-              if(newElement.getValueFor(getvarName(leftVarName, functionName)) < 
-                  newElement.getValueFor(getvarName(rightVarName, functionName))){
-                return null;
-              }
-            }
-            else{
+        else if(opType == BinaryOperator.GREATER_EQUAL) {
+          if(truthValue) {
+            if(newElement.getValueFor(getvarName(leftVarName, functionName)) <
+              newElement.getValueFor(getvarName(rightVarName, functionName))) {
 
+              return InterpreterBottomElement.INSTANCE;
             }
           }
-          else{
-            return propagateBooleanExpression(element, IASTBinaryExpression.op_lessThan, op1, op2, functionName, !truthValue);
+          else {
+            AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.LESS_THAN, op1, op2, functionName, !truthValue, edge);
+
+            if (lSuccessor == null) {
+              throw new RuntimeException();
+            }
+
+            return lSuccessor;
           }
         }
         // a < b
-        else if(opType == IASTBinaryExpression.op_lessThan)
-        {
-          if(truthValue){
-            if(newElement.contains(getvarName(leftVarName, functionName)) && 
-                newElement.contains(getvarName(rightVarName, functionName))){
-              if(newElement.getValueFor(getvarName(leftVarName, functionName)) >= 
-                newElement.getValueFor(getvarName(rightVarName, functionName))){
-                return null;
-              }
-            }
-            else{
+        else if(opType == BinaryOperator.LESS_THAN) {
+          if(truthValue) {
+            if(newElement.getValueFor(getvarName(leftVarName, functionName)) >=
+              newElement.getValueFor(getvarName(rightVarName, functionName))) {
 
+              return InterpreterBottomElement.INSTANCE;
             }
           }
-          else{
-            return propagateBooleanExpression(element, IASTBinaryExpression.op_greaterEqual, op1, op2, functionName, !truthValue);
+          else {
+            AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.GREATER_EQUAL, op1, op2, functionName, !truthValue, edge);
+
+            if (lSuccessor == null) {
+              throw new RuntimeException();
+            }
+
+            return lSuccessor;
           }
         }
         // a <= b
-        else if(opType == IASTBinaryExpression.op_lessEqual)
-        {
-          if(truthValue){
-            if(newElement.contains(getvarName(leftVarName, functionName)) && 
-                newElement.contains(getvarName(rightVarName, functionName))){
-              if(newElement.getValueFor(getvarName(leftVarName, functionName)) > 
-              newElement.getValueFor(getvarName(rightVarName, functionName))){
-                return null;
-              }
-            }
-            else{
+        else if(opType == BinaryOperator.LESS_EQUAL) {
+          if(truthValue) {
+            if(newElement.getValueFor(getvarName(leftVarName, functionName)) >
+              newElement.getValueFor(getvarName(rightVarName, functionName))) {
 
+              return InterpreterBottomElement.INSTANCE;
             }
           }
-          else{
-            return propagateBooleanExpression(element, IASTBinaryExpression.op_greaterThan, op1, op2, functionName, !truthValue);
+          else {
+            AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.GREATER_THAN, op1, op2, functionName, !truthValue, edge);
+
+            if (lSuccessor == null) {
+              throw new RuntimeException();
+            }
+
+            return lSuccessor;
           }
         }
         else{
-          throw new UnrecognizedCFAEdgeException("Unhandled case ");
+          throw new UnrecognizedCCodeException("Unhandled case", edge);
         }
       }
       else if(op2 instanceof IASTUnaryExpression)
       {
-        String varName = op1.getRawSignature();
+        String varName = op1.toASTString();
 
         IASTUnaryExpression unaryExp = (IASTUnaryExpression)op2;
         IASTExpression unaryExpOp = unaryExp.getOperand();
 
-        int operatorType = unaryExp.getOperator();
+        UnaryOperator operatorType = unaryExp.getOperator();
         // a == -8
-        if(operatorType == IASTUnaryExpression.op_minus){
+        if(operatorType == UnaryOperator.MINUS){
 
           if(unaryExpOp instanceof IASTLiteralExpression){
             IASTLiteralExpression literalExp = (IASTLiteralExpression)unaryExpOp;
-            int typeOfLiteral = literalExp.getKind();
-            if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant 
-                //  || typeOfLiteral == IASTLiteralExpression.lk_float_constant
-            )
-            {
-              String literalValue = op2.getRawSignature();
-              if(literalValue.contains("L") || literalValue.contains("U")){
-                literalValue = literalValue.replace("L", "");
-                literalValue = literalValue.replace("U", "");
-              }
-
-              int valueOfLiteral = Integer.valueOf(literalValue).intValue();
+            if (literalExp instanceof IASTIntegerLiteralExpression) {
+              int valueOfLiteral = ((IASTIntegerLiteralExpression)literalExp).getValue().intValue();
 
               // a == 9
-              if(opType == IASTBinaryExpression.op_equals) {
+              if(opType == BinaryOperator.EQUALS) {
                 if(truthValue){
-                  if(newElement.contains(getvarName(varName, functionName))){
-                    if(newElement.getValueFor(getvarName(varName, functionName)) != valueOfLiteral){
-                      return null;  
+                  String lVariableName = getvarName(varName, functionName);
+
+                  if(newElement.contains(lVariableName)){
+                    if(newElement.getValueFor(lVariableName) != valueOfLiteral){
+                      return InterpreterBottomElement.INSTANCE;
                     }
                   }
                   else{
                     newElement.assignConstant(getvarName(varName, functionName), valueOfLiteral);
+                    throw new RuntimeException();
                   }
                 }
                 // ! a == 9
                 else {
-                  return propagateBooleanExpression(element, IASTBinaryExpression.op_notequals, op1, op2, functionName, !truthValue);
+                  AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.NOT_EQUALS, op1, op2, functionName, !truthValue, edge);
+
+                  if (lSuccessor == null) {
+                    throw new RuntimeException();
+                  }
+
+                  return lSuccessor;
                 }
               }
               // a != 9
-              else if(opType == IASTBinaryExpression.op_notequals)
+              else if(opType == BinaryOperator.NOT_EQUALS)
               {
                 if(truthValue){
-                  if(newElement.contains(getvarName(varName, functionName))){
-                    if(newElement.getValueFor(getvarName(varName, functionName)) == valueOfLiteral){
-                      return null;  
+                  String lVariableName = getvarName(varName, functionName);
+
+                  if(newElement.contains(lVariableName)){
+                    if(newElement.getValueFor(lVariableName) == valueOfLiteral){
+                      return InterpreterBottomElement.INSTANCE;
                     }
                   }
                   else{
@@ -826,108 +852,144 @@ public class InterpreterTransferRelation implements TransferRelation {
                 }
                 // ! a != 9
                 else {
-                  return propagateBooleanExpression(element, IASTBinaryExpression.op_equals, op1, op2, functionName, !truthValue);
+                  AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.EQUALS, op1, op2, functionName, !truthValue, edge);
+
+                  if (lSuccessor == null) {
+                    throw new RuntimeException();
+                  }
+
+                  return lSuccessor;
                 }
               }
 
               // a > 9
-              else if(opType == IASTBinaryExpression.op_greaterThan)
+              else if(opType == BinaryOperator.GREATER_THAN)
               {
                 if(truthValue){
                   if(newElement.contains(getvarName(varName, functionName))){
                     if(newElement.getValueFor(getvarName(varName, functionName)) <= valueOfLiteral){
-                      return null;  
+                      throw new RuntimeException();
+                      //return null;
                     }
                   }
                   else{
                   }
                 }
                 else {
-                  return propagateBooleanExpression(element, IASTBinaryExpression.op_lessEqual, op1, op2, functionName, !truthValue);
+                  AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.LESS_EQUAL, op1, op2, functionName, !truthValue, edge);
+
+                  if (lSuccessor == null) {
+                    throw new RuntimeException();
+                  }
+
+                  return lSuccessor;
                 }
               }
               // a >= 9
-              else if(opType == IASTBinaryExpression.op_greaterEqual)
+              else if(opType == BinaryOperator.GREATER_EQUAL)
               {
                 if(truthValue){
                   if(newElement.contains(getvarName(varName, functionName))){
                     if(newElement.getValueFor(getvarName(varName, functionName)) < valueOfLiteral){
-                      return null;  
+                      throw new RuntimeException();
+                      //return null;
                     }
                   }
                   else{
                   }
                 }
                 else {
-                  return propagateBooleanExpression(element, IASTBinaryExpression.op_lessThan, op1, op2, functionName, !truthValue);
+                  AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.LESS_THAN, op1, op2, functionName, !truthValue, edge);
+
+                  if (lSuccessor == null) {
+                    throw new RuntimeException();
+                  }
+
+                  return lSuccessor;
                 }
               }
               // a < 9
-              else if(opType == IASTBinaryExpression.op_lessThan)
+              else if(opType == BinaryOperator.LESS_THAN)
               {
                 if(truthValue){
                   if(newElement.contains(getvarName(varName, functionName))){
                     if(newElement.getValueFor(getvarName(varName, functionName)) >= valueOfLiteral){
-                      return null;  
+                      throw new RuntimeException();
+                      //return null;
                     }
                   }
                   else{
                   }
                 }
                 else {
-                  return propagateBooleanExpression(element, IASTBinaryExpression.op_greaterEqual, op1, op2, functionName, !truthValue);
+                  AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.GREATER_EQUAL, op1, op2, functionName, !truthValue, edge);
+
+                  if (lSuccessor == null) {
+                    throw new RuntimeException();
+                  }
+
+                  return lSuccessor;
                 }
               }
               // a <= 9
-              else if(opType == IASTBinaryExpression.op_lessEqual)
+              else if(opType == BinaryOperator.LESS_EQUAL)
               {
                 if(truthValue){
                   if(newElement.contains(getvarName(varName, functionName))){
                     if(newElement.getValueFor(getvarName(varName, functionName)) > valueOfLiteral){
-                      return null;  
+                      throw new RuntimeException();
+                      //return null;
                     }
                   }
                   else{
                   }
                 }
                 else {
-                  return propagateBooleanExpression(element, IASTBinaryExpression.op_greaterThan, op1, op2, functionName, !truthValue);
+                  AbstractElement lSuccessor = propagateBooleanExpression(element, BinaryOperator.GREATER_THAN, op1, op2, functionName, !truthValue, edge);
+
+                  if (lSuccessor == null) {
+                    throw new RuntimeException();
+                  }
+
+                  return lSuccessor;
                 }
               }
               else{
-                throw new UnrecognizedCFAEdgeException("Unhandled case ");
+                throw new UnrecognizedCCodeException("Unhandled case", edge);
               }
             }
             else{
-              throw new UnrecognizedCFAEdgeException("Unhandled case ");
+              throw new UnrecognizedCCodeException("Unhandled case", edge);
             }
           }
           else{
-            throw new UnrecognizedCFAEdgeException("Unhandled case ");
+            throw new UnrecognizedCCodeException("Unhandled case", edge);
           }
         }
-        else if(operatorType == IASTUnaryExpression.op_bracketedPrimary){
-          IASTUnaryExpression unaryExprInPar = (IASTUnaryExpression)op2;
-          IASTExpression exprInParanhesis = unaryExprInPar.getOperand();
-          return propagateBooleanExpression(element, opType, op1, exprInParanhesis, functionName, truthValue);
-        }
-        // right hand side is a cast exp
-        else if(unaryExp instanceof IASTCastExpression){
-          IASTCastExpression castExp = (IASTCastExpression)unaryExp;
-          IASTExpression exprInCastOp = castExp.getOperand();
-          return propagateBooleanExpression(element, opType, op1, exprInCastOp, functionName, truthValue);
-        }
         else{
-          throw new UnrecognizedCFAEdgeException("Unhandled case ");
+          throw new UnrecognizedCCodeException("Unhandled case", edge);
         }
       }
       else if(op2 instanceof IASTBinaryExpression){
-        String varName = op1.getRawSignature();
+        String varName = op1.toASTString();
         // TODO forgetting
         newElement.forget(varName);
       }
+      // right hand side is a cast exp
+      else if(op2 instanceof IASTCastExpression){
+        IASTCastExpression castExp = (IASTCastExpression)op2;
+        IASTExpression exprInCastOp = castExp.getOperand();
+
+        AbstractElement lSuccessor = propagateBooleanExpression(element, opType, op1, exprInCastOp, functionName, truthValue, edge);
+
+        if (lSuccessor == null) {
+          throw new RuntimeException();
+        }
+
+        return lSuccessor;
+      }
       else{
-      String varName = op1.getRawSignature();
+      String varName = op1.toASTString();
       // TODO forgetting
       newElement.forget(varName);
 //        System.out.println(op2);
@@ -939,18 +1001,27 @@ public class InterpreterTransferRelation implements TransferRelation {
     else if(op1 instanceof IASTCastExpression){
       IASTCastExpression castExp = (IASTCastExpression) op1;
       IASTExpression castOperand = castExp.getOperand();
-      return propagateBooleanExpression(element, opType, castOperand, op2, functionName, truthValue);
+
+      AbstractElement lSuccessor = propagateBooleanExpression(element, opType, castOperand, op2, functionName, truthValue, edge);
+
+      if (lSuccessor == null) {
+        throw new RuntimeException();
+      }
+
+      return lSuccessor;
     }
     else{
-    String varName = op1.getRawSignature();
+
+    String varName = op1.toASTString();
     // TODO forgetting
     newElement.forget(varName);
 //      throw new UnrecognizedCFAEdgeException("Unhandled case " );
     }
+
     return newElement;
   }
-  
-//  private Boolean getBooleanExpressionValue(ExplicitAnalysisElement element,
+
+//  private Boolean getBooleanExpressionValue(ExplicitElement element,
 //                              IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
 //                              throws UnrecognizedCCodeException {
 //    if (expression instanceof IASTUnaryExpression) {
@@ -962,7 +1033,7 @@ public class InterpreterTransferRelation implements TransferRelation {
 //      case IASTUnaryExpression.op_bracketedPrimary: // [(exp)]
 //        return getBooleanExpressionValue(element, unaryExp.getOperand(), cfaEdge, truthValue);
 //
-//      case IASTUnaryExpression.op_not: // [! exp]
+//      case IASTUnaryExpression.NOT: // [! exp]
 //        return getBooleanExpressionValue(element, unaryExp.getOperand(), cfaEdge, !truthValue);
 //
 //      default:
@@ -995,27 +1066,27 @@ public class InterpreterTransferRelation implements TransferRelation {
 //        boolean expressionValue;
 //
 //        switch (binExp.getOperator()) {
-//        case IASTBinaryExpression.op_equals:
+//        case equals:
 //          expressionValue = val1.equals(val2);
 //          break;
 //
-//        case IASTBinaryExpression.op_notequals:
+//        case notequals:
 //          expressionValue = !val1.equals(val2);
 //          break;
 //
-//        case IASTBinaryExpression.op_greaterThan:
+//        case greaterThan:
 //          expressionValue = val1 > val2;
 //          break;
 //
-//        case IASTBinaryExpression.op_greaterEqual:
+//        case greaterEqual:
 //          expressionValue = val1 >= val2;
 //          break;
 //
-//        case IASTBinaryExpression.op_lessThan:
+//        case lessThan:
 //          expressionValue = val1 < val2;
 //          break;
 //
-//        case IASTBinaryExpression.op_lessEqual:
+//        case lessEqual:
 //          expressionValue = val1 <= val2;
 //          break;
 //
@@ -1045,56 +1116,42 @@ public class InterpreterTransferRelation implements TransferRelation {
       DeclarationEdge declarationEdge) {
 
     InterpreterElement newElement = element.clone();
-    IASTDeclarator[] declarators = declarationEdge.getDeclarators();
-    // IASTDeclSpecifier specifier = declarationEdge.getDeclSpecifier();
+    if (declarationEdge.getName() != null) {
 
-    for (IASTDeclarator declarator : declarators)
-    {
-      if(declarator != null)
-      {
         // get the variable name in the declarator
-        String varName = declarator.getName().toString();
+        String varName = declarationEdge.getName();
 
         // TODO check other types of variables later - just handle primitive
         // types for the moment
-        // get pointer operators of the declaration
-        IASTPointerOperator[] pointerOps = declarator.getPointerOperators();
         // don't add pointer variables to the list since we don't track them
-        if(pointerOps.length > 0)
-        {
-          continue;
+        if (declarationEdge.getDeclSpecifier() instanceof IASTPointerTypeSpecifier) {
+          return newElement;
         }
         // if this is a global variable, add to the list of global variables
-        if(declarationEdge instanceof GlobalDeclarationEdge)
+        if(declarationEdge.isGlobal())
         {
           globalVars.add(varName);
           // global declarations are set to 0
+          // FIXME this forgets initializers!
           newElement.assignConstant(varName, 0);
         }
-      }
     }
     return newElement;
   }
 
   private InterpreterElement handleStatement(InterpreterElement element,
-      IASTExpression expression, CFAEdge cfaEdge)
-  throws UnrecognizedCCodeException {
-    // expression is a binary operation, e.g. a = b;
-    if (expression instanceof IASTBinaryExpression) {
-      return handleBinaryStatement(element, expression, cfaEdge);
+      IASTStatement expression, CFAEdge cfaEdge)
+  throws UnrecognizedCCodeException, AccessToUninitializedVariableException, MissingInputException {
+    // expression is an assignment operation, e.g. a = b;
+    if (expression instanceof IASTAssignment) {
+      return handleAssignment(element, (IASTAssignment)expression, cfaEdge);
     }
-    // expression is a unary operation, e.g. a++;
-    else if (expression instanceof IASTUnaryExpression)
-    {
-      return handleUnaryStatement(element, expression, cfaEdge);
-    }
-    // external function call
-    else if(expression instanceof IASTFunctionCallExpression){
+    else if(expression instanceof IASTFunctionCallStatement){
       // do nothing
       return element.clone();
     }
     // there is such a case
-    else if(expression instanceof IASTIdExpression){
+    else if(expression instanceof IASTExpressionStatement){
       return element.clone();
     }
     else{
@@ -1102,132 +1159,20 @@ public class InterpreterTransferRelation implements TransferRelation {
     }
   }
 
-  private InterpreterElement handleUnaryStatement(InterpreterElement element,
-      IASTExpression expression, CFAEdge cfaEdge)
-  throws UnrecognizedCCodeException {
-
-    IASTUnaryExpression unaryExpression = (IASTUnaryExpression) expression;
-    int operator = unaryExpression.getOperator();
-
-    int shift;
-    if (operator == IASTUnaryExpression.op_postFixIncr ||
-        operator == IASTUnaryExpression.op_prefixIncr) {
-      // a++, ++a
-      shift = 1;
-
-    } else if(operator == IASTUnaryExpression.op_prefixDecr ||
-              operator == IASTUnaryExpression.op_postFixDecr) {
-      // a--, --a
-      shift = -1;
-    } else {
-      throw new UnrecognizedCCodeException(cfaEdge, unaryExpression);
-    }
-
-    IASTExpression operand = unaryExpression.getOperand();
-    if (operand instanceof IASTIdExpression) {
-      String functionName = cfaEdge.getPredecessor().getFunctionName();
-      String varName = getvarName(operand.getRawSignature(), functionName);
-
-      InterpreterElement newElement = element.clone();
-      if(newElement.contains(varName)){
-        newElement.assignConstant(varName, newElement.getValueFor(varName) + shift);
-      }
-      return newElement;
-
-    } else {
-      throw new UnrecognizedCCodeException(cfaEdge, operand);
-    }
-  }
-
-  private InterpreterElement handleBinaryStatement(InterpreterElement element,
-      IASTExpression expression, CFAEdge cfaEdge)
-  throws UnrecognizedCCodeException
-  {
-    IASTBinaryExpression binaryExpression = (IASTBinaryExpression) expression;
-    switch (binaryExpression.getOperator ())
-    {
-    // a = ?
-    case IASTBinaryExpression.op_assign:
-    {
-      return handleAssignment(element, binaryExpression, cfaEdge);
-    }
-    // a += 2
-    case IASTBinaryExpression.op_plusAssign:
-    case IASTBinaryExpression.op_minusAssign:
-    case IASTBinaryExpression.op_multiplyAssign:
-    case IASTBinaryExpression.op_shiftLeftAssign:
-    case IASTBinaryExpression.op_shiftRightAssign:
-    case IASTBinaryExpression.op_binaryAndAssign:
-    case IASTBinaryExpression.op_binaryXorAssign:
-    case IASTBinaryExpression.op_binaryOrAssign:
-    {
-      return handleOperationAndAssign(element, binaryExpression, cfaEdge);
-    }
-    default:
-      throw new UnrecognizedCCodeException(cfaEdge, binaryExpression);
-    }
-  }
-
-  private InterpreterElement handleOperationAndAssign(InterpreterElement element,
-                                      IASTBinaryExpression binaryExpression, CFAEdge cfaEdge)
-                                      throws UnrecognizedCCodeException {
-
-    IASTExpression leftOp = binaryExpression.getOperand1();
-    IASTExpression rightOp = binaryExpression.getOperand2();
-    int operator = binaryExpression.getOperator();
-
-    if (!(leftOp instanceof IASTIdExpression)) {
-      // TODO handle fields, arrays
-      throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", cfaEdge, leftOp);
-    }
-
-    int newOperator;
-    switch (operator) {
-    case IASTBinaryExpression.op_plusAssign:
-      newOperator = IASTBinaryExpression.op_plus;
-      break;
-    case IASTBinaryExpression.op_minusAssign:
-      newOperator = IASTBinaryExpression.op_minus;
-      break;
-    case IASTBinaryExpression.op_multiplyAssign:
-      newOperator = IASTBinaryExpression.op_multiply;
-      break;
-    case IASTBinaryExpression.op_shiftLeftAssign:
-      newOperator = IASTBinaryExpression.op_shiftLeft;
-      break;
-    case IASTBinaryExpression.op_shiftRightAssign:
-      newOperator = IASTBinaryExpression.op_shiftRight;
-      break;
-    case IASTBinaryExpression.op_binaryAndAssign:
-      newOperator = IASTBinaryExpression.op_binaryAnd;
-      break;
-    case IASTBinaryExpression.op_binaryXorAssign:
-      newOperator = IASTBinaryExpression.op_binaryXor;
-      break;
-    case IASTBinaryExpression.op_binaryOrAssign:
-      newOperator = IASTBinaryExpression.op_binaryOr;
-      break;
-    default:
-      throw new UnrecognizedCCodeException("unknown binary operator", cfaEdge, binaryExpression);
-    }
-
-    return handleAssignmentOfBinaryExp(element, leftOp.getRawSignature(), leftOp,
-                                                  rightOp, newOperator, cfaEdge);
-  }
-
   private InterpreterElement handleAssignment(InterpreterElement element,
-                            IASTBinaryExpression binaryExpression, CFAEdge cfaEdge)
-                            throws UnrecognizedCCodeException {
+                            IASTAssignment assignExpression, CFAEdge cfaEdge)
+                            throws UnrecognizedCCodeException, MissingInputException, AccessToUninitializedVariableException {
 
-    IASTExpression op1 = binaryExpression.getOperand1();
-    IASTExpression op2 = binaryExpression.getOperand2();
+    IASTExpression op1 = assignExpression.getLeftHandSide();
+    IASTRightHandSide op2 = assignExpression.getRightHandSide();
+
 
     if(op1 instanceof IASTIdExpression) {
       // a = ...
-      return handleAssignmentToVariable(element, op1.getRawSignature(), op2, cfaEdge);
+      return handleAssignmentToVariable(element, ((IASTIdExpression)op1).getName(), op2, cfaEdge);
 
-    } else if (op1 instanceof IASTUnaryExpression
-        && ((IASTUnaryExpression)op1).getOperator() == IASTUnaryExpression.op_star) {
+    } /*else if (op1 instanceof IASTUnaryExpression
+        && ((IASTUnaryExpression)op1).getOperator() == IASTUnaryExpression.STAR) {
       // *a = ...
 
       op1 = ((IASTUnaryExpression)op1).getOperand();
@@ -1251,32 +1196,35 @@ public class InterpreterTransferRelation implements TransferRelation {
       } else {
         throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", cfaEdge, op1);
       }
+
       return element.clone();
 
     } else if (op1 instanceof IASTFieldReference) {
       // TODO assignment to field
-      return element.clone();
+      //return element.clone();
 
+      throw new RuntimeException();
     } else if (op1 instanceof IASTArraySubscriptExpression) {
       // TODO assignment to array cell
-      return element.clone();
+      //return element.clone();
 
-    } else {
+      throw new RuntimeException();
+    }*/ else {
       throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", cfaEdge, op1);
     }
   }
 
   private InterpreterElement handleAssignmentToVariable(InterpreterElement element,
-                          String lParam, IASTExpression rightExp, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+                          String lParam, IASTRightHandSide rightExp, CFAEdge cfaEdge) throws UnrecognizedCCodeException, MissingInputException, AccessToUninitializedVariableException {
     String functionName = cfaEdge.getPredecessor().getFunctionName();
 
     // a = 8.2 or "return;" (when rightExp == null)
     if(rightExp == null || rightExp instanceof IASTLiteralExpression){
-      return handleAssignmentOfLiteral(element, lParam, rightExp, functionName);
+      return handleAssignmentOfLiteral(element, lParam, (IASTLiteralExpression)rightExp, functionName, cfaEdge);
     }
     // a = b
     else if (rightExp instanceof IASTIdExpression){
-      return handleAssignmentOfVariable(element, lParam, rightExp, functionName);
+      return handleAssignmentOfVariable(element, lParam, (IASTIdExpression)rightExp, functionName);
     }
     // a = (cast) ?
     else if(rightExp instanceof IASTCastExpression) {
@@ -1290,8 +1238,14 @@ public class InterpreterTransferRelation implements TransferRelation {
     else if(rightExp instanceof IASTBinaryExpression){
       IASTBinaryExpression binExp = (IASTBinaryExpression)rightExp;
 
-      return handleAssignmentOfBinaryExp(element, lParam, binExp.getOperand1(),
-                            binExp.getOperand2(), binExp.getOperator(), cfaEdge);
+      InterpreterElement lSuccessor = handleAssignmentOfBinaryExp(element, lParam, binExp.getOperand1(),
+          binExp.getOperand2(), binExp.getOperator(), cfaEdge);
+
+      if (lSuccessor == null) {
+        throw new RuntimeException();
+      }
+
+      return lSuccessor;
     }
     else{
       throw new UnrecognizedCCodeException(cfaEdge, rightExp);
@@ -1300,15 +1254,22 @@ public class InterpreterTransferRelation implements TransferRelation {
 
   private InterpreterElement handleAssignmentOfCast(InterpreterElement element,
                               String lParam, IASTCastExpression castExp, CFAEdge cfaEdge)
-                              throws UnrecognizedCCodeException
+                              throws UnrecognizedCCodeException, MissingInputException, AccessToUninitializedVariableException
   {
     IASTExpression castOperand = castExp.getOperand();
-    return handleAssignmentToVariable(element, lParam, castOperand, cfaEdge);
+
+    InterpreterElement lSuccessor = handleAssignmentToVariable(element, lParam, castOperand, cfaEdge);
+
+    if (lSuccessor == null) {
+      throw new RuntimeException();
+    }
+
+    return lSuccessor;
   }
 
   private InterpreterElement handleAssignmentOfUnaryExp(InterpreterElement element,
                                       String lParam, IASTUnaryExpression unaryExp, CFAEdge cfaEdge)
-                                      throws UnrecognizedCCodeException {
+                                      throws UnrecognizedCCodeException, MissingInputException, AccessToUninitializedVariableException {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
     // name of the updated variable, so if a = -b is handled, lParam is a
@@ -1316,41 +1277,33 @@ public class InterpreterTransferRelation implements TransferRelation {
     InterpreterElement newElement = element.clone();
 
     IASTExpression unaryOperand = unaryExp.getOperand();
-    int unaryOperator = unaryExp.getOperator();
+    UnaryOperator unaryOperator = unaryExp.getOperator();
 
-    if (unaryOperator == IASTUnaryExpression.op_star) {
+    if (unaryOperator == UnaryOperator.STAR) {
       // a = * b
       newElement.forget(assignedVar);
 
       // Cil produces code like
       // __cil_tmp8 = *((int *)__cil_tmp7);
-      // so remove parentheses and cast
-      if (unaryOperand instanceof IASTUnaryExpression
-          && ((IASTUnaryExpression)unaryOperand).getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
-        unaryOperand = ((IASTUnaryExpression)unaryOperand).getOperand();
-      }
+      // so remove cast
       if (unaryOperand instanceof IASTCastExpression) {
         unaryOperand = ((IASTCastExpression)unaryOperand).getOperand();
       }
 
       if (unaryOperand instanceof IASTIdExpression) {
         missingInformationLeftVariable = assignedVar;
-        missingInformationRightPointer = unaryOperand.getRawSignature();
+        missingInformationRightPointer = ((IASTIdExpression)unaryOperand).getName();
       } else{
         throw new UnrecognizedCCodeException(cfaEdge, unaryOperand);
       }
-
-    } else if (unaryOperator == IASTUnaryExpression.op_bracketedPrimary) {
-      // a = (b + c)
-      return handleAssignmentToVariable(element, lParam, unaryOperand, cfaEdge);
-
-    } 
+    }
     else {
       // a = -b or similar
       Long value = getExpressionValue(element, unaryExp, functionName, cfaEdge);
       if (value != null) {
         newElement.assignConstant(assignedVar, value);
       } else {
+        System.out.println("FORGETTING: " + unaryExp.toASTString());
         newElement.forget(assignedVar);
       }
     }
@@ -1360,8 +1313,8 @@ public class InterpreterTransferRelation implements TransferRelation {
 
   private InterpreterElement handleAssignmentOfBinaryExp(InterpreterElement element,
                        String lParam, IASTExpression lVarInBinaryExp, IASTExpression rVarInBinaryExp,
-                       int binaryOperator, CFAEdge cfaEdge)
-                       throws UnrecognizedCCodeException {
+                       BinaryOperator binaryOperator, CFAEdge cfaEdge)
+                       throws UnrecognizedCCodeException, MissingInputException, AccessToUninitializedVariableException {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
     // name of the updated variable, so if a = b + c is handled, lParam is a
@@ -1369,30 +1322,34 @@ public class InterpreterTransferRelation implements TransferRelation {
     InterpreterElement newElement = element.clone();
 
     switch (binaryOperator) {
-    case IASTBinaryExpression.op_divide:
-    case IASTBinaryExpression.op_modulo:
-    case IASTBinaryExpression.op_lessEqual:
-    case IASTBinaryExpression.op_greaterEqual:
-    case IASTBinaryExpression.op_binaryAnd:
-    case IASTBinaryExpression.op_binaryOr:
-      // TODO check which cases can be handled (I think all)
-      newElement.forget(assignedVar);
-      break;
+    case PLUS:
+    case MINUS:
+    case MULTIPLY:
+    case GREATER_THAN:
+    case GREATER_EQUAL:
+    case LESS_THAN:
+    case LESS_EQUAL:
+    case EQUALS:
+    case NOT_EQUALS:
+    case SHIFT_RIGHT:
+    case SHIFT_LEFT:
+    case DIVIDE:
+    case MODULO:
+    case BINARY_AND:
+    case BINARY_OR:
 
-    case IASTBinaryExpression.op_plus:
-    case IASTBinaryExpression.op_minus:
-    case IASTBinaryExpression.op_multiply:
 
       Long val1;
       Long val2;
 
       if(lVarInBinaryExp instanceof IASTUnaryExpression
-          && ((IASTUnaryExpression)lVarInBinaryExp).getOperator() == IASTUnaryExpression.op_star) {
+          && ((IASTUnaryExpression)lVarInBinaryExp).getOperator() == UnaryOperator.STAR) {
         // a = *b + c
         // TODO prepare for using strengthen operator to dereference pointer
         val1 = null;
-      } else {
 
+        throw new RuntimeException();
+      } else {
         val1 = getExpressionValue(element, lVarInBinaryExp, functionName, cfaEdge);
       }
 
@@ -1404,66 +1361,116 @@ public class InterpreterTransferRelation implements TransferRelation {
 
       if (val2 != null) { // this implies val1 != null
 
+        long lValue1 = val1.longValue();
+        long lValue2 = val2.longValue();
+
         long value;
+
         switch (binaryOperator) {
 
-        case IASTBinaryExpression.op_plus:
-          value = val1 + val2;
+        case PLUS:
+          value = lValue1 + lValue2;
           break;
 
-        case IASTBinaryExpression.op_minus:
-          value = val1 - val2;
+        case MINUS:
+          value = lValue1 - lValue2;
           break;
 
-        case IASTBinaryExpression.op_multiply:
-          value = val1 * val2;
+        case MULTIPLY:
+          value = lValue1 * lValue2;
+          break;
+
+        case GREATER_THAN:
+          value = (lValue1 > lValue2)?1:0;
+          break;
+
+        case GREATER_EQUAL:
+          value = (lValue1 >= lValue2)?1:0;
+          break;
+
+        case LESS_THAN:
+          value = (lValue1 < lValue2)?1:0;
+          break;
+
+        case LESS_EQUAL:
+          value = (lValue1 <= lValue2)?1:0;
+          break;
+
+        case EQUALS:
+          value = (lValue1 == lValue2)?1:0;
+          break;
+
+        case NOT_EQUALS:
+          value = (lValue1 != lValue2)?1:0;
+          break;
+
+        case SHIFT_RIGHT:
+          value = lValue1 >> lValue2;
+          break;
+
+        case SHIFT_LEFT:
+          value = lValue1 << lValue2;
+          break;
+
+        case DIVIDE:
+          value = lValue1 / lValue2;
+          break;
+
+        case MODULO:
+          value = lValue1 % lValue2;
+          break;
+
+        case BINARY_AND:
+          value = lValue1 & lValue2;
+          break;
+
+        case BINARY_OR:
+          value = lValue1 | lValue2;
           break;
 
         default:
-          throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge, rVarInBinaryExp.getParent());
+          throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge);
         }
 
         newElement.assignConstant(assignedVar, value);
       } else {
-        newElement.forget(assignedVar);
+        throw new RuntimeException();
+      }
+      break;
+    default:
+      {
+        throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge);
       }
     }
     return newElement;
   }
 
   private Long getExpressionValue(InterpreterElement element, IASTExpression expression,
-                                  String functionName, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+                                  String functionName, CFAEdge cfaEdge) throws UnrecognizedCCodeException, MissingInputException, AccessToUninitializedVariableException {
 
     if (expression instanceof IASTLiteralExpression) {
-      return parseLiteral(expression);
+      return parseLiteral((IASTLiteralExpression)expression, cfaEdge);
 
     } else if (expression instanceof IASTIdExpression) {
-      String varName = getvarName(expression.getRawSignature(), functionName);
-      if (element.contains(varName)) {
-        return element.getValueFor(varName);
-      } else {
-        return null;
-      }
+      String varName = getvarName(((IASTIdExpression)expression).getName(), functionName);
 
+      return element.getValueFor(varName);
     } else if (expression instanceof IASTCastExpression) {
       return getExpressionValue(element, ((IASTCastExpression)expression).getOperand(),
                                 functionName, cfaEdge);
 
     } else if (expression instanceof IASTUnaryExpression) {
       IASTUnaryExpression unaryExpression = (IASTUnaryExpression)expression;
-      int unaryOperator = unaryExpression.getOperator();
+      UnaryOperator unaryOperator = unaryExpression.getOperator();
       IASTExpression unaryOperand = unaryExpression.getOperand();
 
       switch (unaryOperator) {
 
-      case IASTUnaryExpression.op_minus:
+      case MINUS:
         Long val = getExpressionValue(element, unaryOperand, functionName, cfaEdge);
         return (val != null) ? -val : null;
 
-      case IASTUnaryExpression.op_bracketedPrimary:
-        return getExpressionValue(element, unaryOperand, functionName, cfaEdge);
-
-      case IASTUnaryExpression.op_amper:
+      case AMPER:
         return null; // valid expresion, but it's a pointer value
 
       default:
@@ -1476,39 +1483,30 @@ public class InterpreterTransferRelation implements TransferRelation {
   }
 
   private InterpreterElement handleAssignmentOfVariable(InterpreterElement element,
-      String lParam, IASTExpression op2, String functionName)
+      String lParam, IASTExpression op2, String functionName) throws MissingInputException, AccessToUninitializedVariableException
   {
-    String rParam = op2.getRawSignature();
+    String rParam = op2.toASTString();
 
     String leftVarName = getvarName(lParam, functionName);
-    
-    if (rParam.equals("__BLAST_NONDET")) {
-      InterpreterElement newElement = element.clone();
-      // TODO change
-      newElement.incIndex();
-      
-      newElement.assignConstant(leftVarName, mInputs[element.getInputIndex()]);
-      
-      return newElement;
-    }
-    else {
+
+    {
       String rightVarName = getvarName(rParam, functionName);
 
       InterpreterElement newElement = element.clone();
       newElement.assignConstant(leftVarName, newElement.getValueFor(rightVarName));
-      
+
       return newElement;
     }
   }
 
   private InterpreterElement handleAssignmentOfLiteral(InterpreterElement element,
-                        String lParam, IASTExpression op2, String functionName)
+                        String lParam, IASTLiteralExpression op2, String functionName, CFAEdge edge)
                         throws UnrecognizedCCodeException
   {
     InterpreterElement newElement = element.clone();
 
     // op2 may be null if this is a "return;" statement
-    Long val = (op2 == null ? 0L : parseLiteral(op2));
+    Long val = (op2 == null ? 0L : parseLiteral(op2, edge));
 
     String assignedVar = getvarName(lParam, functionName);
     if (val != null) {
@@ -1520,29 +1518,22 @@ public class InterpreterTransferRelation implements TransferRelation {
     return newElement;
   }
 
-  private Long parseLiteral(IASTExpression expression) throws UnrecognizedCCodeException {
-    if (expression instanceof IASTLiteralExpression) {
+  private Long parseLiteral(IASTLiteralExpression expression, CFAEdge edge) throws UnrecognizedCCodeException {
+    if (expression instanceof IASTIntegerLiteralExpression) {
+      return ((IASTIntegerLiteralExpression)expression).asLong();
 
-      int typeOfLiteral = ((IASTLiteralExpression)expression).getKind();
-      if (typeOfLiteral == IASTLiteralExpression.lk_integer_constant) {
+    } else if (expression instanceof IASTFloatLiteralExpression) {
+      return null;
 
-        String s = expression.getRawSignature();
-        if(s.endsWith("L") || s.endsWith("U") || s.endsWith("UL")){
-          s = s.replace("L", "");
-          s = s.replace("U", "");
-          s = s.replace("UL", "");
-        }
-        try {
-          return Long.valueOf(s);
-        } catch (NumberFormatException e) {
-          throw new UnrecognizedCCodeException("invalid integer literal", null, expression);
-        }
-      }
-      if (typeOfLiteral == IASTLiteralExpression.lk_string_literal) {
-        return (long) expression.hashCode();
-      }
+    } else if (expression instanceof IASTCharLiteralExpression) {
+      return (long)((IASTCharLiteralExpression)expression).getCharacter();
+
+    } else if (expression instanceof IASTStringLiteralExpression) {
+      return null;
+
+    } else {
+      throw new UnrecognizedCCodeException("unknown literal", edge, expression);
     }
-    return null;
   }
 
   public String getvarName(String variableName, String functionName){
@@ -1555,21 +1546,27 @@ public class InterpreterTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement element,
                                     List<AbstractElement> elements,
-                                    CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException {
+                                    CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException, MissingInputException, AccessToUninitializedVariableException {
 
     assert element instanceof InterpreterElement;
     InterpreterElement explicitElement = (InterpreterElement)element;
 
     for (AbstractElement ae : elements) {
-      if (ae instanceof PointerAnalysisElement) {
-        return strengthen(explicitElement, (PointerAnalysisElement)ae, cfaEdge, precision);
+      if (ae instanceof PointerElement) {
+        return strengthen(explicitElement, (PointerElement)ae, cfaEdge, precision);
+      }
+      else if (ae instanceof ConstrainedAssumeElement) {
+        return strengthen(cfaEdge.getSuccessor(), explicitElement, (ConstrainedAssumeElement)ae, precision);
+      }
+      else if (ae instanceof GuardedEdgeAutomatonPredicateElement) {
+        return strengthen(cfaEdge.getSuccessor(), explicitElement, (GuardedEdgeAutomatonPredicateElement)ae, precision);
       }
     }
     return null;
   }
 
   private Collection<? extends AbstractElement> strengthen(InterpreterElement explicitElement,
-      PointerAnalysisElement pointerElement, CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException {
+      PointerElement pointerElement, CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException, MissingInputException, AccessToUninitializedVariableException {
 
     List<InterpreterElement> retList = new ArrayList<InterpreterElement>();
 
@@ -1601,7 +1598,7 @@ public class InterpreterTransferRelation implements TransferRelation {
     return null;
   }
 
-  private String derefPointerToVariable(PointerAnalysisElement pointerElement,
+  private String derefPointerToVariable(PointerElement pointerElement,
                                         String pointer) {
     Pointer p = pointerElement.lookupPointer(pointer);
     if (p != null && p.getNumberOfTargets() == 1) {
@@ -1614,4 +1611,45 @@ public class InterpreterTransferRelation implements TransferRelation {
     }
     return null;
   }
+
+  public Collection<? extends AbstractElement> strengthen(CFANode pNode, InterpreterElement pElement, GuardedEdgeAutomatonPredicateElement pAutomatonElement, Precision pPrecision) {
+    AbstractElement lResultElement = pElement;
+
+    for (ECPPredicate lPredicate : pAutomatonElement) {
+      AssumeEdge lEdge = ToFlleShAssumeEdgeTranslator.translate(pNode, lPredicate);
+
+      try {
+        Collection<? extends AbstractElement> lResult = getAbstractSuccessors(lResultElement, pPrecision, lEdge);
+
+        if (lResult.size() == 0) {
+          return Collections.emptySet();
+        }
+        else if (lResult.size() == 1) {
+          lResultElement = lResult.iterator().next();
+        }
+        else {
+          throw new RuntimeException();
+        }
+
+        return lResult;
+      } catch (CPATransferException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    return Collections.singleton(lResultElement);
+  }
+
+  public Collection<? extends AbstractElement> strengthen(CFANode pNode, InterpreterElement pElement, ConstrainedAssumeElement pAssumeElement, Precision pPrecision) {
+    AssumeEdge lEdge = new AssumeEdge(pAssumeElement.getExpression().toASTString(), pNode.getLineNumber(), pNode, pNode, pAssumeElement.getExpression(), true);
+
+    try {
+      Collection<? extends AbstractElement> lResult = getAbstractSuccessors(pElement, pPrecision, lEdge);
+
+      return lResult;
+    } catch (CPATransferException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,35 +23,28 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
-import org.eclipse.cdt.core.dom.ast.IASTExpression;
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 public class CallToReturnEdge extends AbstractCFAEdge {
 
-	private final IASTExpression expression;
+	private final IASTFunctionCall expression;
 
-	public CallToReturnEdge(String rawStatement, int lineNumber, CFANode predecessor, CFANode successor, IASTExpression exp) {
-		super(rawStatement, lineNumber, predecessor, successor);
-		this.expression = exp;
+	public CallToReturnEdge(String pRawStatement, int pLineNumber,
+	    CFANode pPredecessor, CFANode pSuccessor, IASTFunctionCall pExpression) {
+
+		super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
+		expression = pExpression;
 	}
 
-	@Override
-  public void addToCFA(LogManager logger) {
-		getPredecessor().addLeavingSummaryEdge(this);
-		getSuccessor().addEnteringSummaryEdge(this);
-	}
-
-	public IASTExpression getExpression ()
-	{
+	public IASTFunctionCall getExpression() {
 		return expression;
 	}
 
 	@Override
-  public CFAEdgeType getEdgeType ()
-	{
+  public CFAEdgeType getEdgeType() {
 		return CFAEdgeType.CallToReturnEdge;
 	}
 }

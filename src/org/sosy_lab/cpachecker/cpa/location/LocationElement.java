@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,17 +23,50 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.util.SortedSet;
+
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSortedSet;
+
 public class LocationElement implements AbstractElementWithLocation, AbstractQueryableElement, Partitionable
 {
+
+  static class LocationElementFactory {
+    private final LocationElement[] elements;
+
+    public LocationElementFactory(CFA pCfa) {
+      elements = initialize(checkNotNull(pCfa));
+    }
+
+    private static LocationElement[] initialize(CFA pCfa) {
+
+      SortedSet<CFANode> allNodes = ImmutableSortedSet.copyOf(pCfa.getAllNodes());
+      int maxNodeNumber = allNodes.last().getNodeNumber();
+      LocationElement[] elements = new LocationElement[maxNodeNumber+1];
+      for (CFANode n : allNodes) {
+        elements[n.getNodeNumber()] = new LocationElement(n);
+      }
+
+      return elements;
+    }
+
+    public LocationElement getElement(CFANode node) {
+      return Preconditions.checkNotNull(elements[node.getNodeNumber()]);
+    }
+  }
+
     private final CFANode locationNode;
 
-    public LocationElement (CFANode locationNode)
+    private LocationElement (CFANode locationNode)
     {
         this.locationNode = locationNode;
     }
@@ -45,45 +78,16 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
     }
 
     @Override
-    public boolean equals (Object other)
-    {
-      if (other == null) {
-        return false;
-      }
-
-      if (!(other instanceof LocationElement)) {
-        return false;
-      }
-
-      if (((LocationElement)other).locationNode == null) {
-        if (locationNode != null) {
-          return false;
-        }
-        else {
-          assert(false);
-        }
-      }
-
-        return locationNode.getNodeNumber () == ((LocationElement)other).locationNode.getNodeNumber ();
-    }
-
-    @Override
-    public String toString ()
-    {
-        return Integer.toString (locationNode.getNodeNumber ());
-    }
-
-    @Override
-    public int hashCode() {
-    	return locationNode.getNodeNumber();
+    public String toString() {
+      return locationNode + " (line " + locationNode.getLineNumber() + ")";
     }
 
     @Override
     public boolean checkProperty(String pProperty) throws InvalidQueryException {
       String[] parts = pProperty.split("==");
-      if (parts.length != 2)
+      if (parts.length != 2) {
         throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not split the property string correctly.");
-      else {
+      } else {
         if (parts[0].toLowerCase().equals("line")) {
           try {
             int queryLine = Integer.parseInt(parts[1]);
@@ -98,7 +102,7 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
         }
       }
     }
-    
+
     @Override
     public void modifyProperty(String pModification)
         throws InvalidQueryException {
@@ -115,9 +119,11 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
         String pProperty) throws InvalidQueryException {
       return Boolean.valueOf(checkProperty(pProperty));
     }
-    
+
     @Override
     public Object getPartitionKey() {
-      return locationNode;
+      return this;
     }
+
+    // no equals and hashCode because there is always only one element per CFANode
 }

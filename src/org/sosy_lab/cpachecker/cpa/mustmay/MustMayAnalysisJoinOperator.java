@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,25 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cpa.mustmay;
 
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
-import org.sosy_lab.cpachecker.cpa.mustmay.MustMayAnalysisElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class MustMayAnalysisJoinOperator implements JoinOperator {
+public class MustMayAnalysisJoinOperator {
 
-  JoinOperator mMustJoinOperator;
-  JoinOperator mMayJoinOperator;
+  AbstractDomain mMustDomain;
+  AbstractDomain mMayDomain;
 
-  public MustMayAnalysisJoinOperator(JoinOperator pMustJoinOperator, JoinOperator pMayJoinOperator) {
-    assert(pMustJoinOperator != null);
-    assert(pMayJoinOperator != null);
+  public MustMayAnalysisJoinOperator(AbstractDomain pMustDomain, AbstractDomain pMayDomain) {
+    assert(pMustDomain != null);
+    assert(pMayDomain != null);
 
-    mMustJoinOperator = pMustJoinOperator;
-    mMayJoinOperator = pMayJoinOperator;
+    mMustDomain = pMustDomain;
+    mMayDomain = pMayDomain;
   }
 
-  @Override
   public MustMayAnalysisElement join(AbstractElement pElement1,
       AbstractElement pElement2) throws CPAException {
     assert(pElement1 != null);
@@ -53,8 +51,15 @@ public class MustMayAnalysisJoinOperator implements JoinOperator {
     MustMayAnalysisElement lElement1 = (MustMayAnalysisElement)pElement1;
     MustMayAnalysisElement lElement2 = (MustMayAnalysisElement)pElement2;
 
-    AbstractElement lMustElement = mMustJoinOperator.join(lElement1.getMustElement(), lElement2.getMustElement());
-    AbstractElement lMayElement = mMayJoinOperator.join(lElement1.getMayElement(), lElement2.getMayElement());
+    AbstractElement lMustElement;
+    if (lElement1.getMustElement() == MustMayAnalysisElement.DONT_KNOW_ELEMENT) {
+      lMustElement = lElement2;
+    } else if (lElement2.getMustElement() == MustMayAnalysisElement.DONT_KNOW_ELEMENT) {
+      lMustElement = lElement1;
+    } else {
+      lMustElement = mMustDomain.join(lElement1.getMustElement(), lElement2.getMustElement());
+    }
+    AbstractElement lMayElement = mMayDomain.join(lElement1.getMayElement(), lElement2.getMayElement());
 
     return new MustMayAnalysisElement(lMustElement, lMayElement);
   }

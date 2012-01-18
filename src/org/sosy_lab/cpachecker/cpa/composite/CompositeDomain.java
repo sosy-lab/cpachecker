@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,71 +25,47 @@ package org.sosy_lab.cpachecker.cpa.composite;
 
 import java.util.List;
 
-import com.google.common.collect.ImmutableList;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class CompositeDomain implements AbstractDomain
-{
-    private final ImmutableList<AbstractDomain> domains;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
-    private final CompositeElement bottomElement;
-    private final CompositeElement topElement;
-    private final CompositeJoinOperator joinOperator;
-    private final CompositePartialOrder partialOrder;
+public class CompositeDomain implements AbstractDomain {
 
-    public CompositeDomain(ImmutableList<AbstractDomain> domains)
-    {
-        this.domains = domains;
+  private final ImmutableList<AbstractDomain> domains;
 
-        ImmutableList.Builder<AbstractElement> bottoms = ImmutableList.builder();
-        ImmutableList.Builder<AbstractElement> tops = ImmutableList.builder();
-        ImmutableList.Builder<JoinOperator> joinOperators = ImmutableList.builder();
-        ImmutableList.Builder<PartialOrder> partialOrders = ImmutableList.builder();
+  public CompositeDomain(ImmutableList<AbstractDomain> domains) {
+      this.domains = domains;
+  }
 
-        for (AbstractDomain domain : domains)
-        {
-            bottoms.add (domain.getBottomElement ());
-            tops.add (domain.getTopElement ());
-            joinOperators.add (domain.getJoinOperator ());
-            partialOrders.add (domain.getPartialOrder ());
-        }
+  @Override
+  public AbstractElement join(AbstractElement pElement1,
+      AbstractElement pElement2) throws CPAException {
+    // a simple join is here not possible, because it would over-approximate,
+    // but join needs to return the least upper bound
+    throw new UnsupportedOperationException();
+  }
 
-        this.bottomElement = new CompositeElement(bottoms.build());
-        this.topElement = new CompositeElement(tops.build());
-        this.joinOperator = new CompositeJoinOperator(joinOperators.build());
-        this.partialOrder = new CompositePartialOrder(partialOrders.build());
+  @Override
+  public boolean isLessOrEqual(AbstractElement pElement1, AbstractElement pElement2) throws CPAException {
+    CompositeElement comp1 = (CompositeElement)pElement1;
+    CompositeElement comp2 = (CompositeElement)pElement2;
+
+    List<AbstractElement> comp1Elements = comp1.getElements();
+    List<AbstractElement> comp2Elements = comp2.getElements();
+
+    Preconditions.checkState(comp1Elements.size() == comp2Elements.size());
+    Preconditions.checkState(comp1Elements.size() == domains.size());
+
+    for (int idx = 0; idx < comp1Elements.size(); idx++) {
+      AbstractDomain domain = domains.get(idx);
+      if (!domain.isLessOrEqual(comp1Elements.get (idx), comp2Elements.get(idx))) {
+        return false;
+      }
     }
 
-    public List<AbstractDomain> getDomains ()
-    {
-        return domains;
-    }
-
-    @Override
-    public CompositeElement getBottomElement ()
-    {
-        return bottomElement;
-    }
-
-    @Override
-    public CompositeElement getTopElement ()
-    {
-        return topElement;
-    }
-
-    @Override
-    public JoinOperator getJoinOperator ()
-    {
-        return joinOperator;
-    }
-
-    @Override
-    public PartialOrder getPartialOrder ()
-    {
-        return partialOrder;
-    }
+    return true;
+  }
 }

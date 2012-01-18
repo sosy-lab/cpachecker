@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,9 +21,6 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-/**
- *
- */
 package org.sosy_lab.cpachecker.cpa.composite;
 
 import java.util.List;
@@ -33,10 +30,6 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 
 import com.google.common.collect.ImmutableList;
 
-/**
- * @author Michael Tautschnig <tautschnig@forsyte.de>
- *
- */
 public class CompositePrecision implements WrapperPrecision {
   private final List<Precision> precisions;
 
@@ -72,16 +65,6 @@ public class CompositePrecision implements WrapperPrecision {
   public String toString() {
     return precisions.toString();
   }
-  
-  @Override
-  public boolean isBreak() {
-    for (Precision p : precisions) {
-      if (p.isBreak()) {
-        return true;
-      }
-    }
-    return false;
-  }
 
   @Override
   public <T extends Precision> T retrieveWrappedPrecision(Class<T> pType) {
@@ -103,22 +86,22 @@ public class CompositePrecision implements WrapperPrecision {
   }
 
   @Override
-  public Precision replaceWrappedPrecision(Precision newPrecision) {
-    Class<? extends Precision> newPrecClass = newPrecision.getClass();
+  public Precision replaceWrappedPrecision(Precision newPrecision, Class<? extends Precision> replaceType) {
+    assert replaceType.isAssignableFrom(newPrecision.getClass());
 
-    if (newPrecClass.equals(CompositePrecision.class)) {
+    if (replaceType.equals(CompositePrecision.class)) {
       return newPrecision;
     }
 
     ImmutableList.Builder<Precision> newPrecisions = ImmutableList.builder();
     boolean changed = false;
     for (Precision precision : precisions) {
-      if (newPrecClass.equals(precision.getClass())) {
+      if (replaceType.isAssignableFrom(precision.getClass())) {
         newPrecisions.add(newPrecision);
         changed = true;
 
       } else if (precision instanceof WrapperPrecision) {
-        Precision newWrappedPrecision = ((WrapperPrecision)precision).replaceWrappedPrecision(newPrecision);
+        Precision newWrappedPrecision = ((WrapperPrecision)precision).replaceWrappedPrecision(newPrecision, replaceType);
         if (newWrappedPrecision != null) {
           newPrecisions.add(newWrappedPrecision);
           changed = true;

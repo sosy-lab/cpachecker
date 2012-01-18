@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,7 +34,8 @@ public interface Refiner {
    * @param pReached The reached set.
    * @return Whether the refinement was successful.
    * @throws CPAException If an error occured during refinement.
+   * @throws InterruptedException
    */
-  public boolean performRefinement(ReachedSet pReached) throws CPAException;
+  public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException;
 
 }

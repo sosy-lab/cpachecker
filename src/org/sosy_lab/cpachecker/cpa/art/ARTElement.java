@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,64 +23,73 @@
  */
 package org.sosy_lab.cpachecker.cpa.art;
 
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-
-import com.google.common.base.Preconditions;
-
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
-public class ARTElement extends AbstractSingleWrapperElement {
+import com.google.common.base.Preconditions;
+import com.google.common.primitives.Ints;
+
+public class ARTElement extends AbstractSingleWrapperElement implements Comparable<ARTElement> {
 
   private final Set<ARTElement> children;
   private final Set<ARTElement> parents; // more than one parent if joining elements
+
   private ARTElement mCoveredBy = null;
   private Set<ARTElement> mCoveredByThis = null; // lazy initialization because rarely needed
+
+  private boolean mayCover = true;
   private boolean destroyed = false;
+
   private ARTElement mergedWith = null;
 
   private final int elementId;
 
   private static int nextArtElementId = 0;
 
-  protected ARTElement(AbstractElement pWrappedElement, ARTElement pParentElement) {
+  public ARTElement(AbstractElement pWrappedElement, ARTElement pParentElement) {
     super(pWrappedElement);
     elementId = ++nextArtElementId;
-    parents = new HashSet<ARTElement>();
+    parents = new LinkedHashSet<ARTElement>();
     if(pParentElement != null){
       addParent(pParentElement);
     }
-    children = new HashSet<ARTElement>();
+    children = new LinkedHashSet<ARTElement>();
   }
 
   public Set<ARTElement> getParents(){
     return parents;
   }
 
-  protected void addParent(ARTElement pOtherParent){
-    assert !destroyed;
+  public void addParent(ARTElement pOtherParent){
+    assert !destroyed : "Don't use destroyed ARTElements!";
     if(parents.add(pOtherParent)){
       pOtherParent.children.add(this);
     }
   }
 
-  public Set<ARTElement> getChildren(){
-    assert !destroyed;
+  public Set<ARTElement> getChildren() {
+    assert !destroyed : "Don't use destroyed ARTElements!";
     return children;
   }
 
   protected void setCovered(ARTElement pCoveredBy) {
+    assert !isCovered();
     assert pCoveredBy != null;
+    assert pCoveredBy.mayCover;
+
     mCoveredBy = pCoveredBy;
     if (pCoveredBy.mCoveredByThis == null) {
       // lazy initialization because rarely needed
@@ -90,12 +99,17 @@ public class ARTElement extends AbstractSingleWrapperElement {
   }
 
   public boolean isCovered() {
-    assert !destroyed;
+    assert !destroyed : "Don't use destroyed ARTElements!";
     return mCoveredBy != null;
   }
 
+  public ARTElement getCoveringElement() {
+    Preconditions.checkState(isCovered());
+    return mCoveredBy;
+  }
+
   public Set<ARTElement> getCoveredByThis() {
-    assert !destroyed;
+    assert !destroyed : "Don't use destroyed ARTElements!";
     if (mCoveredByThis == null) {
       return Collections.emptySet();
     } else {
@@ -104,19 +118,28 @@ public class ARTElement extends AbstractSingleWrapperElement {
   }
 
   protected void setMergedWith(ARTElement pMergedWith) {
-    assert !destroyed;
+    assert !destroyed : "Don't use destroyed ARTElements!";
     assert mergedWith == null;
 
     mergedWith = pMergedWith;
   }
 
-  public ARTElement getMergedWith() {
+  protected ARTElement getMergedWith() {
     return mergedWith;
+  }
+
+  boolean mayCover() {
+    return mayCover;
+  }
+
+  public void setNotCovering() {
+    assert !destroyed : "Don't use destroyed ARTElements!";
+    mayCover = false;
   }
 
   @Override
   public String toString() {
-    StringBuffer sb = new StringBuffer();
+    StringBuilder sb = new StringBuilder();
     if (destroyed) {
       sb.append("Destroyed ");
     }
@@ -143,7 +166,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
 
   // TODO check
   public Set<ARTElement> getSubtree() {
-    assert !destroyed;
+    assert !destroyed : "Don't use destroyed ARTElements!";
     Set<ARTElement> result = new HashSet<ARTElement>();
     Deque<ARTElement> workList = new ArrayDeque<ARTElement>();
 
@@ -171,7 +194,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
    * elements will not be removed from the covered set.
    */
   public void removeFromART() {
-    assert !destroyed;
+    assert !destroyed : "Don't use destroyed ARTElements!";
 
     // clear children
     for (ARTElement child : children) {
@@ -200,6 +223,56 @@ public class ARTElement extends AbstractSingleWrapperElement {
         covered.mCoveredBy = null;
       }
       mCoveredByThis.clear();
+      mCoveredByThis = null;
+    }
+
+    destroyed = true;
+  }
+
+  /**
+   * This method does basically the same as removeFromART for this element, but
+   * before destroying it, it will copy all relationships to other elements to
+   * a new element. I.e., the replacement element will receive all parents and
+   * children of this element, and it will also cover all elements which are
+   * currently covered by this element.
+   *
+   * @param replacement
+   */
+  protected void replaceInARTWith(ARTElement replacement) {
+    assert !destroyed : "Don't use destroyed ARTElements!";
+    assert !replacement.destroyed : "Don't use destroyed ARTElements!";
+    assert !isCovered();
+    assert !replacement.isCovered();
+
+    // copy children
+    for (ARTElement child : children) {
+      assert (child.parents.contains(this));
+      child.parents.remove(this);
+      child.addParent(replacement);
+    }
+    children.clear();
+
+    for (ARTElement parent : parents) {
+      assert (parent.children.contains(this));
+      parent.children.remove(this);
+      replacement.addParent(parent);
+    }
+    parents.clear();
+
+    if (mCoveredByThis != null) {
+      if (replacement.mCoveredByThis == null) {
+        // lazy initialization because rarely needed
+        replacement.mCoveredByThis = new HashSet<ARTElement>(mCoveredByThis.size());
+      }
+
+      for (ARTElement covered : mCoveredByThis) {
+        assert covered.mCoveredBy == this;
+        covered.mCoveredBy = replacement;
+        replacement.mCoveredByThis.add(covered);
+      }
+
+      mCoveredByThis.clear();
+      mCoveredByThis = null;
     }
 
     destroyed = true;
@@ -209,30 +282,27 @@ public class ARTElement extends AbstractSingleWrapperElement {
     return elementId;
   }
 
-  /**
-   * This method returns a random element from the list of parents.
-   * @return A parent of this element.
-   */
-  public ARTElement getFirstParent() {
-    if (parents.isEmpty()) {
-      return null;
-    }
-    Iterator<ARTElement> it = parents.iterator();
-    return it.next();
-  }
-
   public CFAEdge getEdgeToChild(ARTElement pChild) {
     Preconditions.checkArgument(children.contains(pChild));
 
-    CFANode currentLoc = this.retrieveLocationElement().getLocationNode();
-    CFANode childNode = pChild.retrieveLocationElement().getLocationNode();
+    CFANode currentLoc = extractLocation(this);
+    CFANode childNode = extractLocation(pChild);
 
-    for (int i = 0; i < childNode.getNumEnteringEdges(); i++) {
-      CFAEdge edge = childNode.getEnteringEdge(i);
-      if (currentLoc.getNodeNumber() == edge.getPredecessor().getNodeNumber()) {
-        return edge;
-      }
-    }
-    throw new IllegalStateException("Invalid ART, parent<->child relation without corresponding CFAEdge");
+    return currentLoc.getEdgeTo(childNode);
+  }
+
+  public boolean isDestroyed() {
+    return destroyed;
+  }
+
+  /**
+   * The ordering of this class is the chronological creation order.
+   *
+   * Note: Although equals() is not overwritten, this ordering is consistent
+   * with equals() as the elementId field is unique.
+   */
+  @Override
+  public int compareTo(ARTElement pO) {
+    return Ints.compare(this.elementId, pO.elementId);
   }
 }

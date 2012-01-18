@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,13 +35,15 @@ public interface WrapperPrecision extends Precision {
 
   /**
    * Create a new precision object where one of the wrapped precisions is
-   * replaced. It looks for a precision with the same type as the argument and
-   * replaces this instance. The references to all other precisions are kept. If
+   * replaced. It looks for a precision with the same type as or a subtype of
+   * the given class and replaces this instance with the argument precision.
+   * The references to all other precisions are kept. If
    * no precision object with the type of the argument is found, the argument is
    * ignored and null is returned in order to signal this.
    * @param newPrecision A new precision object.
+   * @param replaceType Type of precisions that should be replaced by newPrecision.
    * @return A new precision object containing the argument in some place or null.
    */
-  public Precision replaceWrappedPrecision(Precision newPrecision);
+  public Precision replaceWrappedPrecision(Precision newPrecision, Class<? extends Precision> replaceType);
 
 }

@@ -1,31 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="src" path="src">
-		<attributes>
-			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="bin"/>
-		</attributes>
-	</classpathentry>
-	<classpathentry exported="true" kind="lib" path="META-INF/"/>
+	<classpathentry kind="src" path="src"/>
 	<classpathentry exported="true" kind="lib" path="bin/"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
-	<classpathentry kind="con" path="org.eclipse.pde.core.requiredPlugins"/>
-	<classpathentry kind="lib" path="lib/mathsat.jar"/>
-	<classpathentry kind="lib" path="lib/javabdd-1.0b2.jar"/>
-	<classpathentry kind="lib" path="lib/java-cup-11a.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/java/runtime/common.jar" sourcepath="lib/java-contrib/common-sources.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/java/runtime/guava.jar" sourcepath="lib/java-contrib/guava-sources.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/jsr305.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/javabdd.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/java-cup-runtime.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/jgrapht-jdk1.6.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/json-simple.jar" sourcepath="lib/java-contrib/json-simple-sources.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/icu4j.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.cdt.core.jar" sourcepath="lib/java-contrib/org.eclipse.cdt.core-sources.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.core.resources.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.equinox.common.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.osgi.jar"/>
+	<classpathentry kind="lib" path="lib/java/test/junit.jar"/>
+	<classpathentry kind="lib" path="lib/java/test/hamcrest-core.jar"/>
+	<classpathentry kind="lib" path="lib/eclipse-cdt6-parser.jar"/>
 	<classpathentry kind="lib" path="lib/yicesapijava.jar"/>
-	<classpathentry kind="lib" path="lib/icu4j-4_2_1.jar"/>
-	<classpathentry kind="lib" path="lib/google-collect-1.0.jar"/>
-	<classpathentry kind="lib" path="lib/jgrapht-jdk1.6.jar"/>
-	<classpathentry kind="lib" path="lib/eclipse/org.eclipse.cdt.core_5.1.2.201002161416.jar"/>
-	<classpathentry kind="lib" path="lib/eclipse/org.eclipse.core.runtime_3.5.0.v20090525.jar"/>
-	<classpathentry kind="lib" path="lib/eclipse/junit.jar"/>
-	<classpathentry kind="lib" path="lib/eclipse/org.eclipse.core.contenttype_3.4.1.R35x_v20090826-0451.jar"/>
-	<classpathentry kind="lib" path="lib/eclipse/org.eclipse.core.jobs_3.4.100.v20090429-1800.jar"/>
-	<classpathentry kind="lib" path="lib/eclipse/org.eclipse.core.resources_3.5.2.R35x_v20091203-1235.jar"/>
-	<classpathentry kind="lib" path="lib/eclipse/org.eclipse.equinox.common_3.5.1.R35x_v20090807-1100.jar"/>
-	<classpathentry kind="lib" path="lib/eclipse/org.eclipse.equinox.preferences_3.2.301.R35x_v20091117.jar"/>
-	<classpathentry kind="lib" path="lib/eclipse/org.eclipse.equinox.registry_3.4.100.v20090520-1800.jar"/>
-	<classpathentry kind="lib" path="lib/eclipse/org.eclipse.osgi_3.5.2.R35x_v20100126.jar"/>
-	<classpathentry kind="lib" path="lib/eclipse/org.hamcrest.core_1.1.0.v20090501071000.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

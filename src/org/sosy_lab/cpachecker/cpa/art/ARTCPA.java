@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,48 +23,36 @@
  */
 package org.sosy_lab.cpachecker.cpa.art;
 
-import java.util.Collection;
+import static com.google.common.base.Preconditions.checkArgument;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import java.util.Collection;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-@Options(prefix="cpas.art")
-public class ARTCPA extends AbstractSingleWrapperCPA {
-
-  private static class ARTCPAFactory extends AbstractSingleWrapperCPAFactory {
-
-    @Override
-    public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
-      return new ARTCPA(getChild(), getConfiguration(), getLogger());
-    }
-  }
+public class ARTCPA extends AbstractSingleWrapperCPA implements ConfigurableProgramAnalysisWithABM {
 
   public static CPAFactory factory() {
-    return new ARTCPAFactory();
+    return AutomaticCPAFactory.forType(ARTCPA.class);
   }
-
-  /**
-   * Use join as default merge, because sep is only safe if all other cpas also use sep.
-   */
-  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"})
-  private String mergeType = "JOIN";
 
   private final LogManager logger;
 
@@ -73,26 +61,36 @@ public class ARTCPA extends AbstractSingleWrapperCPA {
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
+  private final Reducer reducer;
   private final Statistics stats;
 
-  private Path targetPath = null;
-  
+  private CounterexampleInfo lastCounterexample = null;
+
   private ARTCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger) throws InvalidConfigurationException {
     super(cpa);
-    config.inject(this);
 
     this.logger = logger;
-    abstractDomain = new ARTDomain(this);
+    abstractDomain = new FlatLatticeDomain();
     transferRelation = new ARTTransferRelation(cpa.getTransferRelation());
     precisionAdjustment = new ARTPrecisionAdjustment(cpa.getPrecisionAdjustment());
-    if (mergeType.equals("SEP")){
-      mergeOperator = MergeSepOperator.getInstance();
-    } else if (mergeType.equals("JOIN")){
-      mergeOperator = new ARTMergeJoin(getWrappedCpa());
+    if (cpa instanceof ConfigurableProgramAnalysisWithABM) {
+      Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithABM)cpa).getReducer();
+      if (wrappedReducer != null) {
+        reducer = new ARTReducer(wrappedReducer);
+      } else {
+        reducer = null;
+      }
     } else {
-      throw new InternalError("Update list of allowed merge operators!");
+      reducer = null;
     }
-    stopOperator = new ARTStopSep(getWrappedCpa());
+
+    MergeOperator wrappedMerge = getWrappedCpa().getMergeOperator();
+    if (wrappedMerge == MergeSepOperator.getInstance()) {
+      mergeOperator = MergeSepOperator.getInstance();
+    } else {
+      mergeOperator = new ARTMergeJoin(wrappedMerge);
+    }
+    stopOperator = new ARTStopSep(getWrappedCpa().getStopOperator(), logger);
     stats = new ARTStatistics(config, this);
   }
 
@@ -126,7 +124,12 @@ public class ARTCPA extends AbstractSingleWrapperCPA {
   }
 
   @Override
-  public AbstractElement getInitialElement (CFAFunctionDefinitionNode pNode) {
+  public Reducer getReducer() {
+    return reducer;
+  }
+
+  @Override
+  public AbstractElement getInitialElement (CFANode pNode) {
     // TODO some code relies on the fact that this method is called only one and the result is the root of the ART
     return new ARTElement(getWrappedCpa().getInitialElement(pNode), null);
   }
@@ -141,11 +144,16 @@ public class ARTCPA extends AbstractSingleWrapperCPA {
     super.collectStatistics(pStatsCollection);
   }
 
-  Path getTargetPath() {
-    return targetPath;
+  public CounterexampleInfo getLastCounterexample() {
+    return lastCounterexample;
   }
 
-  void setTargetPath(Path pTargetPath) {
-    targetPath = pTargetPath;
+  public void clearCounterexample() {
+    lastCounterexample = null;
+  }
+
+  public void setCounterexample(CounterexampleInfo pCounterexample) {
+    checkArgument(!pCounterexample.isSpurious());
+    lastCounterexample = pCounterexample;
   }
 }

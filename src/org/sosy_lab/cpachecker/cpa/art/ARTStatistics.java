@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,38 +26,68 @@ package org.sosy_lab.cpachecker.cpa.art;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.Deque;
+import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedList;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsAbstractElement;
+import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 
-@Options
+import com.google.common.base.Optional;
+
+@Options(prefix="cpa.art")
 public class ARTStatistics implements Statistics {
 
-  @Option(name="ART.export")
+  @Option(name="export", description="export final ART as .dot file")
   private boolean exportART = true;
 
-  @Option(name="ART.file", type=Option.Type.OUTPUT_FILE)
+  @Option(name="file",
+      description="export final ART as .dot file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
   private File artFile = new File("ART.dot");
 
-  @Option(name="cpas.art.errorPath.export")
+  @Option(name="errorPath.export",
+      description="export error path to file, if one is found")
   private boolean exportErrorPath = true;
 
-  @Option(name="cpas.art.errorPath.file", type=Option.Type.OUTPUT_FILE)
+  @Option(name="errorPath.file",
+      description="export error path to file, if one is found")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
   private File errorPathFile = new File("ErrorPath.txt");
+
+  @Option(name="errorPath.core",
+      description="export error path to file, if one is found")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private File errorPathCoreFile = new File("ErrorPathCore.txt");
+
+  @Option(name="errorPath.source",
+      description="export error path to file, if one is found")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private File errorPathSourceFile = new File("ErrorPath.c");
+
+  @Option(name="errorPath.json",
+      description="export error path to file, if one is found")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private File errorPathJson = new File("ErrorPath.json");
+
+  @Option(name="errorPath.assignment",
+      description="export one variable assignment for error path to file, if one is found")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private File errorPathAssignment = new File("ErrorPathAssignment.txt");
 
   private final ARTCPA cpa;
 
@@ -74,98 +104,112 @@ public class ARTStatistics implements Statistics {
   @Override
   public void printStatistics(PrintStream pOut, Result pResult,
       ReachedSet pReached) {
-    if (exportART) {
-      dumpARTToDotFile(pReached);
+
+    if (   !exportErrorPath
+        && (!exportART || (artFile == null))) {
+
+      // shortcut, avoid unnecessary creation of path etc.
+      return;
     }
 
-    if (exportErrorPath) {
-      ARTElement lastElement = (ARTElement)pReached.getLastElement();
-      if (lastElement != null && lastElement.isTarget()) {
-        Path targetPath = cpa.getTargetPath();
-        assert targetPath != null;
-        // target path has to be the path to the current target element
-        assert targetPath.getLast().getFirst() == lastElement;
-        
-        try {
-          Files.writeFile(errorPathFile, targetPath, false);
-        } catch (IOException e) {
-          cpa.getLogger().log(Level.WARNING,
-              "Could not write error path to file (", e.getMessage(), ")");
+    Path targetPath = null;
+
+    if (pResult != Result.SAFE) {
+      CounterexampleInfo counterexample = cpa.getLastCounterexample();
+      Object assignment = null;
+
+      if (counterexample != null) {
+        targetPath = counterexample.getTargetPath();
+        assignment = counterexample.getTargetPathAssignment();
+      }
+
+      if (targetPath == null) {
+        // try to find one
+        // This is imprecise if there are several paths in the ARG,
+        // because we randomly select one existing path,
+        // but this path may actually be infeasible.
+        ARTElement lastElement = (ARTElement)pReached.getLastElement();
+        if (lastElement != null && lastElement.isTarget()) {
+          targetPath = ARTUtils.getOnePathTo(lastElement);
         }
+      }
+
+      if (targetPath != null) {
+
+        if (exportErrorPath) {
+          // the shrinked errorPath only includes the nodes,
+          // that are important for the error, it is not a complete path,
+          // only some nodes of the targetPath are part of it
+          ErrorPathShrinker pathShrinker = new ErrorPathShrinker();
+          Path shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath);
+
+          ARTElement rootElement = targetPath.getFirst().getFirst();
+          String pathProgram;
+          if (counterexample != null && counterexample.getTargetPath() != null) {
+            // precise error path
+            pathProgram = PathToCTranslator.translateSinglePath(Optional.<CFA>absent(), targetPath);
+
+          } else {
+            // Imprecise error path.
+            // For the text export, we have no other change, but for the C code
+            // export we use all existing paths to avoid this problem.
+            ARTElement lastElement = (ARTElement)pReached.getLastElement();
+            Set<ARTElement> pathElements = ARTUtils.getAllElementsOnPathsTo(lastElement);
+            pathProgram = PathToCTranslator.translatePaths(Optional.<CFA>absent(), rootElement, pathElements);
+          }
+
+          writeErrorPathFile(errorPathFile, targetPath);
+          writeErrorPathFile(errorPathCoreFile, shrinkedErrorPath);
+          writeErrorPathFile(errorPathSourceFile, pathProgram);
+          writeErrorPathFile(errorPathJson, targetPath.toJSON());
+
+          if (assignment != null) {
+            writeErrorPathFile(errorPathAssignment, assignment);
+          }
+
+          if (counterexample != null) {
+            for (Pair<Object, File> info : counterexample.getAllFurtherInformation()) {
+              writeErrorPathFile(info.getSecond(), info.getFirst());
+            }
+          }
+        }
+      }
+    }
+
+    if (exportART && artFile != null) {
+      try {
+        Files.writeFile(artFile, ARTUtils.convertARTToDot(pReached, getEdgesOfPath(targetPath)));
+      } catch (IOException e) {
+        cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ART to file.");
       }
     }
   }
 
-  private void dumpARTToDotFile(ReachedSet pReached) {
-    ARTElement firstElement = (ARTElement)pReached.getFirstElement();
-
-    Deque<ARTElement> worklist = new LinkedList<ARTElement>();
-    Set<Integer> nodesList = new HashSet<Integer>();
-    Set<ARTElement> processed = new HashSet<ARTElement>();
-    StringBuffer sb = new StringBuffer();
-    StringBuffer edges = new StringBuffer();
-
-    sb.append("digraph ART {\n");
-    sb.append("style=filled; color=lightgrey; \n");
-
-    worklist.add(firstElement);
-
-    while(worklist.size() != 0){
-      ARTElement currentElement = worklist.removeLast();
-      if(processed.contains(currentElement)){
-        continue;
-      }
-      processed.add(currentElement);
-      if(!nodesList.contains(currentElement.getElementId())){
-        String color;
-        if (currentElement.isCovered()) {
-          color = "green";
-        } else if (currentElement.isTarget()) {
-          color = "red";
-        } else {
-          SymbPredAbsAbstractElement symbpredabselem = currentElement.retrieveWrappedElement(SymbPredAbsAbstractElement.class);
-          if (symbpredabselem != null && symbpredabselem.isAbstractionNode()) {
-            color = "blue";
-          } else {
-            color = "white";
-          }
-        }
-
-        CFANode loc = currentElement.retrieveLocationElement().getLocationNode();
-        String label = (loc==null ? 0 : loc.getNodeNumber()) + "000" + currentElement.getElementId();
-        sb.append("node [shape = diamond, color = " + color + ", style = filled, label=" + label +"] " + currentElement.getElementId() + ";\n");
-
-        nodesList.add(currentElement.getElementId());
-      }
-
-      for (ARTElement covered : currentElement.getCoveredByThis()) {
-        edges.append(covered.getElementId());
-        edges.append(" -> ");
-        edges.append(currentElement.getElementId());
-        edges.append(" [style = dashed, label = \"covered by\"];\n");
-      }
-
-      for(ARTElement child : currentElement.getChildren()){
-        CFAEdge edge = currentElement.getEdgeToChild(child);
-        edges.append(currentElement.getElementId());
-        edges.append(" -> ");
-        edges.append(child.getElementId());
-        edges.append(" [label = \"");
-        edges.append(edge != null ? edge.toString().replace('"', '\'') : "");
-        edges.append("\"];\n");
-        if(!worklist.contains(child)){
-          worklist.add(child);
-        }
+  private void writeErrorPathFile(File file, Object content) {
+    if (file != null) {
+      try {
+        Files.writeFile(file, content);
+      } catch (IOException e) {
+        cpa.getLogger().logUserException(Level.WARNING, e,
+            "Could not write information about the error path to file.");
       }
     }
-    sb.append(edges);
-    sb.append("}\n");
+  }
 
-    try {
-      Files.writeFile(artFile, sb, false);
-    } catch (IOException e) {
-      cpa.getLogger().log(Level.WARNING,
-          "Could not write ART to file (", e.getMessage(), ")");
+  private static Set<Pair<ARTElement, ARTElement>> getEdgesOfPath(Path pPath) {
+    if (pPath == null) {
+      return Collections.emptySet();
     }
+
+    Set<Pair<ARTElement, ARTElement>> result = new HashSet<Pair<ARTElement, ARTElement>>(pPath.size());
+    Iterator<Pair<ARTElement, CFAEdge>> it = pPath.iterator();
+    assert it.hasNext();
+    ARTElement lastElement = it.next().getFirst();
+    while (it.hasNext()) {
+      ARTElement currentElement = it.next().getFirst();
+      result.add(Pair.of(lastElement, currentElement));
+      lastElement = currentElement;
+    }
+    return result;
   }
 }

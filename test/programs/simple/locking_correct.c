@@ -37,26 +37,25 @@ int main() {
 
 
 	if (y != 1) {
-	ERROR:
-			goto ERROR;
-		}
+		goto ERROR;
+	}
 
 	unlock(myId);
 
 	if (y != 0) {
-		ERROR:
-				goto ERROR;
-			}
+		goto ERROR;
+	}
 
 	lock(myId); // remains locked. This should result in a Warning?
 
 	x  = /* comment */  x +   1 ;
 
 	if (y != 1) {
-		ERROR:
-				goto ERROR;
-			}
+		goto ERROR;
+	}
 
+	return (0);
 
-	//return 0;
+ERROR:
+	GOTO ERROR;
 }

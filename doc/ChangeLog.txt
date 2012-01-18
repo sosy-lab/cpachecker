@@ -1,0 +1,9 @@
+This files lists changes to internals of CPAchecker which affect developers
+who work with or extend CPAchecker.
+Changes visible to users are listed in NEWS.txt
+
+Changes since CPAchecker 1.1
+----------------------------
+* r4848: The new revision of the Sosy-Lab Common library removes a few fields
+  from the @Option annotation (e.g., min, max, type) and replaces them by
+  custom annotations.

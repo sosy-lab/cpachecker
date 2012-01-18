@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -51,15 +51,15 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
   protected AbstractCPA(String mergeType, String stopType, AbstractDomain domain, TransferRelation transfer) {
     this.abstractDomain = domain;
 
-    if (mergeType.equals("join")) {
-      mergeOperator = new MergeJoinOperator(abstractDomain.getJoinOperator());
+    if (mergeType.equalsIgnoreCase("join")) {
+      mergeOperator = new MergeJoinOperator(abstractDomain);
     } else {
-      assert mergeType.equals("sep");
+      assert mergeType.equalsIgnoreCase("sep");
       mergeOperator = MergeSepOperator.getInstance();
     }
 
-    assert stopType.equals("sep");
-    stopOperator = new StopSepOperator(abstractDomain.getPartialOrder());
+    assert stopType.equalsIgnoreCase("sep");
+    stopOperator = new StopSepOperator(abstractDomain);
 
     this.transferRelation = transfer;
   }
@@ -70,7 +70,7 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+  public Precision getInitialPrecision(CFANode pNode) {
     return SingletonPrecision.getInstance();
   }
 

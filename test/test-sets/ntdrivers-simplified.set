@@ -1,1 +1,2 @@
-test/programs/ntdrivers-simplified/*.cil.c
+test/programs/benchmarks/ntdrivers-simplified/*_BUG.cil.c
+test/programs/benchmarks/ntdrivers-simplified/*[!G].cil.c

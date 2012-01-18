@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,8 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.dominator;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -38,22 +39,14 @@ import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 
 public class DominatorCPA implements ConfigurableProgramAnalysis {
 
-  private static class DominatorCPAFactory extends AbstractCPAFactory {
-
-    @Override
-    public ConfigurableProgramAnalysis createInstance() {
-      return new DominatorCPA();
-    }
-  }
-
   public static CPAFactory factory() {
-    return new DominatorCPAFactory();
+    return AutomaticCPAFactory.forType(DominatorCPA.class);
   }
 
 	private org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorCPA parametricDominatorCPA;
 
-	private DominatorCPA() {
-		this.parametricDominatorCPA = new org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorCPA(new LocationCPA());
+	private DominatorCPA(CFA pCfa) {
+		this.parametricDominatorCPA = new org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorCPA(new LocationCPA(pCfa));
 	}
 
 	@Override
@@ -82,12 +75,12 @@ public class DominatorCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
+  public AbstractElement getInitialElement(CFANode node) {
     return this.parametricDominatorCPA.getInitialElement(node);
   }
 
   @Override
-  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+  public Precision getInitialPrecision(CFANode pNode) {
     return this.parametricDominatorCPA.getInitialPrecision(pNode);
   }
 }

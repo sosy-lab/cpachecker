@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,9 +21,6 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-/**
- *
- */
 package org.sosy_lab.cpachecker.cpa.dominator.parametric;
 
 import java.util.HashSet;
@@ -34,46 +31,15 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-/**
- * @author holzera
- *
- */
-public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperator {
+public class DominatorDomain implements AbstractDomain {
 
 	private final ConfigurableProgramAnalysis cpa;
 
 	public DominatorDomain(ConfigurableProgramAnalysis cpa) {
 		this.cpa = cpa;
 	}
-
-	private static class DominatorBottomElement extends DominatorElement
-    {
-
-        @Override
-        public String toString() {
-        	return "\\top";
-        }
-
-        @Override
-        public boolean equals(Object o) {
-        	return (o instanceof DominatorBottomElement);
-        }
-
-        @Override
-        public int hashCode() {
-        	return Integer.MAX_VALUE;
-        }
-
-        @Override
-        public CFANode getLocationNode() {
-          // TODO Auto-generated method stub
-          return null;
-        }
-    }
 
 	private static class DominatorTopElement extends DominatorElement
     {
@@ -100,23 +66,24 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
         }
     }
 
-    private final static DominatorBottomElement bottomElement = new DominatorBottomElement();
     private final static DominatorTopElement topElement = new DominatorTopElement();
 
     @Override
-    public boolean satisfiesPartialOrder(AbstractElement element1, AbstractElement element2) throws CPAException
+    public boolean isLessOrEqual(AbstractElement element1, AbstractElement element2) throws CPAException
     {
-        if (element1.equals(element2))
-            return true;
+        if (element1.equals(element2)) {
+          return true;
+        }
 
-        if (element1.equals(bottomElement) || element2.equals(topElement))
-            return true;
+        if (element2.equals(topElement)) {
+          return true;
+        }
 
         if (element1 instanceof DominatorElement && element2 instanceof DominatorElement) {
         	DominatorElement dominatorElement1 = (DominatorElement)element1;
         	DominatorElement dominatorElement2 = (DominatorElement)element2;
 
-        	if (this.cpa.getAbstractDomain().getPartialOrder().satisfiesPartialOrder(dominatorElement1.getDominatedElement(), dominatorElement2.getDominatedElement())) {
+        	if (this.cpa.getAbstractDomain().isLessOrEqual(dominatorElement1.getDominatedElement(), dominatorElement2.getDominatedElement())) {
         		Iterator<AbstractElement> dominatorIterator = dominatorElement2.getIterator();
 
         		while (dominatorIterator.hasNext()) {
@@ -149,15 +116,7 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
       DominatorElement dominatorElement1 = (DominatorElement) element1;
       DominatorElement dominatorElement2 = (DominatorElement) element2;
 
-    	if (element1.equals(bottomElement)) {
-			return dominatorElement2;
-		}
-
 		if (element1.equals(topElement)) {
-			return dominatorElement1;
-		}
-
-		if (element2.equals(bottomElement)) {
 			return dominatorElement1;
 		}
 
@@ -186,37 +145,5 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
 		result.update(dominatorElement1.getDominatedElement());
 
 		return result;
-	}
-
-	/* (non-Javadoc)
-	 * @see org.sosy_lab.cpachecker.core.interfaces.AbstractDomain#getBottomElement()
-	 */
-	@Override
-  public DominatorBottomElement getBottomElement() {
-		return bottomElement;
-	}
-
-	/* (non-Javadoc)
-	 * @see org.sosy_lab.cpachecker.core.interfaces.AbstractDomain#getTopElement()
-	 */
-	@Override
-  public DominatorTopElement getTopElement() {
-		return topElement;
-	}
-
-	/* (non-Javadoc)
-	 * @see org.sosy_lab.cpachecker.core.interfaces.AbstractDomain#getJoinOperator()
-	 */
-	@Override
-  public JoinOperator getJoinOperator() {
-		return this;
-	}
-
-	/* (non-Javadoc)
-	 * @see org.sosy_lab.cpachecker.core.interfaces.AbstractDomain#getPartialOrder()
-	 */
-	@Override
-  public PartialOrder getPartialOrder() {
-		return this;
 	}
 }

@@ -50,16 +50,12 @@ public class IncludeHyperlink implements IHyperlink {
 	
 	public void open() {
 		IFile file = parentProject.getFile(fileName);
-		if (file.exists()) {
+		if (file != null && file.exists()) {
 			IEditorInput input = new FileEditorInput(file);
-			if (input != null) {
-				try {
-					page.openEditor(input, "org.sosy_lab.cpachecker.plugin.eclipse.editors.specificationeditor.SpecificationEditor", true);
-				} catch (PartInitException e) {
-					CPAclipse.logError(e);
-				}
-			} else {
-				CPAclipse.logInfo("Could not convert IFile to editorinput.");
+			try {
+				page.openEditor(input, "org.sosy_lab.cpachecker.plugin.eclipse.editors.specificationeditor.SpecificationEditor", true);
+			} catch (PartInitException e) {
+				CPAclipse.logError(e);
 			}
 		} else {
 			MessageDialog.openInformation(null, "Could not find File", "Could not find the file " + fileName);

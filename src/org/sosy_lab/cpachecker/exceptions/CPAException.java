@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,16 +23,21 @@
  */
 package org.sosy_lab.cpachecker.exceptions;
 
-public class CPAException extends Exception
-{
-    public static final long serialVersionUID = 1;
-    public CPAException ()
-    {
-        super ();
-    }
+/**
+ * Super class for all exceptions thrown by CPA operators.
+ *
+ * TODO This exception should probably be abstract, and specialized sub-classes
+ * should be used for specific reasons.
+ */
+public class CPAException extends Exception {
 
-    public CPAException (String s)
-    {
-        super (s);
-    }
+  private static final long serialVersionUID = 6846683924964869559L;
+
+  public CPAException(String msg) {
+    super(msg);
+  }
+
+  public CPAException(String msg, Throwable cause) {
+    super(msg, cause);
+  }
 }

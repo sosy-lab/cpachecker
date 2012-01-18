@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
@@ -30,16 +33,30 @@ class LocationCPAFactory extends AbstractCPAFactory {
 
   private final boolean inverse;
 
+  private CFA cfa;
+
   public LocationCPAFactory(boolean pInverse) {
     inverse = pInverse;
   }
 
   @Override
-  public ConfigurableProgramAnalysis createInstance() {
-    if (inverse) {
-      return new InverseLocationCPA();
+  public <T> LocationCPAFactory set(T pObject, Class<T> pClass) {
+    if (CFA.class.isAssignableFrom(pClass)) {
+      cfa = (CFA)pObject;
     } else {
-      return new LocationCPA();
+      super.set(pObject, pClass);
+    }
+    return this;
+  }
+
+  @Override
+  public ConfigurableProgramAnalysis createInstance() {
+    checkNotNull(cfa, "CFA instance needed to create LocationCPA");
+
+    if (inverse) {
+      return new InverseLocationCPA(cfa);
+    } else {
+      return new LocationCPA(cfa);
     }
   }
 }

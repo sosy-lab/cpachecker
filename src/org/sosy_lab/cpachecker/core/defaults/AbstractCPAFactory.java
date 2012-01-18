@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,13 +25,12 @@ package org.sosy_lab.cpachecker.core.defaults;
 
 import java.util.List;
 
-import com.google.common.base.Preconditions;
-
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
-
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+
+import com.google.common.base.Preconditions;
 
 public abstract class AbstractCPAFactory implements CPAFactory {
 
@@ -62,7 +61,7 @@ public abstract class AbstractCPAFactory implements CPAFactory {
   @Override
   public CPAFactory setLogger(LogManager pLogger) {
     Preconditions.checkNotNull(pLogger);
-    Preconditions.checkState(logger == null, "setConfiguration called twice on CPAFactory");
+    Preconditions.checkState(logger == null, "setLogger called twice on CPAFactory");
 
     logger = pLogger;
     return this;
@@ -76,5 +75,11 @@ public abstract class AbstractCPAFactory implements CPAFactory {
   protected Configuration getConfiguration() {
     Preconditions.checkState(configuration != null, "Configuration object needed to create CPA");
     return configuration;
+  }
+
+  @Override
+  public <T> CPAFactory set(T pObject, Class<T> pClass) throws UnsupportedOperationException {
+    // ignore other objects
+    return this;
   }
 }

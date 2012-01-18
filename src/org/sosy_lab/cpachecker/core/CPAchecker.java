@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,96 +24,156 @@
 package org.sosy_lab.cpachecker.core;
 
 import java.io.IOException;
-import java.util.Map;
+import java.net.URL;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
-import org.eclipse.core.runtime.CoreException;
+import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectionAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.CBMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
-import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
-import org.sosy_lab.cpachecker.util.CParser;
-import org.sosy_lab.cpachecker.util.CParser.Dialect;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.AbstractElements;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
+import com.google.common.base.Throwables;
+import com.google.common.collect.Iterables;
+import com.google.common.io.Resources;
 
 public class CPAchecker {
 
-  private static enum ReachedSetType {
-    NORMAL, LOCATIONMAPPED, PARTITIONED
+  public static interface CPAcheckerMXBean {
+    public int getReachedSetSize();
+
+    public void stop();
   }
-  
+
+  private static class CPAcheckerBean extends AbstractMBean implements CPAcheckerMXBean {
+
+    private final ReachedSet reached;
+    private final Thread cpacheckerThread;
+
+    public CPAcheckerBean(ReachedSet pReached, LogManager logger) {
+      super("org.sosy_lab.cpachecker:type=CPAchecker", logger);
+      reached = pReached;
+      cpacheckerThread = Thread.currentThread();
+      register();
+    }
+
+    @Override
+    public int getReachedSetSize() {
+      return reached.size();
+    }
+
+    @Override
+    public void stop() {
+      cpacheckerThread.interrupt();
+    }
+
+  }
+
   @Options
   private static class CPAcheckerOptions {
 
-    @Option(name="parser.dialect")
-    Dialect parserDialect = Dialect.GNUC;
+    @Option(name="analysis.useAssumptionCollector",
+        description="use assumption collecting algorithm")
+        boolean useAssumptionCollector = false;
 
-    // algorithm options
+    @Option(name="analysis.useAdjustableConditions",
+        description="use adjustable conditions algorithm")
+        boolean useAdjustableConditions = false;
 
-    @Option(name="analysis.traversal")
-    ReachedSet.TraversalMethod traversalMethod = ReachedSet.TraversalMethod.DFS;
+    @Option(name = "analysis.useRefinement",
+        description = "use CEGAR algorithm for lazy counter-example guided analysis"
+          + "\nYou need to specify a refiner with the cegar.refiner option."
+          + "\nCurrently all refiner require the use of the ARTCPA.")
+          boolean useRefinement = false;
 
-    @Option(name="analysis.reachedSet")
-    ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
-    
-    @Option(name="analysis.useAssumptionCollector")
-    boolean useAssumptionCollector = false;
+    @Option(name="analysis.useCBMC",
+        description="use CBMC to double-check counter-examples")
+        boolean useCBMC = false;
 
-    @Option(name="analysis.useRefinement")
-    boolean useRefinement = false;
+    @Option(name="analysis.useBMC",
+        description="use a BMC like algorithm that checks for satisfiability "
+          + "after the analysis has finished, works only with PredicateCPA")
+          boolean useBMC = false;
 
-    @Option(name="analysis.useCBMC")
-    boolean useCBMC = false;
+    @Option(name="analysis.stopAfterError",
+        description="stop after the first error has been found")
+        boolean stopAfterError = true;
 
-    @Option(name="analysis.stopAfterError")
-    boolean stopAfterError = true;
+    @Option(name="analysis.restartAfterUnknown",
+        description="restart the algorithm using a different CPA after unknown result")
+        boolean useRestartingAlgorithm = false;
+
+    @Option(name="analysis.externalCBMC",
+        description="use CBMC as an external tool from CPAchecker")
+        boolean runCBMCasExternalTool = false;
 
   }
 
   private final LogManager logger;
   private final Configuration config;
   private final CPAcheckerOptions options;
-
-  private static volatile boolean requireStopAsap = false;
+  private final ReachedSetFactory reachedSetFactory;
 
   /**
    * This method will throw an exception if the user has requested CPAchecker to
    * stop immediately. This exception should not be caught by the caller.
    */
-  public static void stopIfNecessary() throws ForceStopCPAException {
-    if (requireStopAsap) {
-      throw new ForceStopCPAException();
+  public static void stopIfNecessary() throws InterruptedException {
+    if (Thread.interrupted()) {
+      throw new InterruptedException();
     }
   }
 
-  /**
-   * This will request all running CPAchecker instances to stop as soon as possible.
-   */
-  public static void requireStopAsap() {
-    requireStopAsap = true;
+  // The content of this String is read from a file that is created by the
+  // ant task "init".
+  // To change the version, update the property in build.xml.
+  private static final String version;
+  static {
+    String v = "(unknown version)";
+    try {
+      URL url = CPAchecker.class.getClassLoader().getResource("org/sosy_lab/cpachecker/VERSION.txt");
+      if (url != null) {
+        String content = Resources.toString(url, Charsets.US_ASCII).trim();
+        if (content.matches("[a-zA-Z0-9 ._+:-]+")) {
+          v = content;
+        }
+      }
+    } catch (IOException e) {
+      // Ignore exception, no better idea what to do here.
+    }
+    version = v;
+  }
+
+  public static String getVersion() {
+    return version;
   }
 
   public CPAchecker(Configuration pConfiguration, LogManager pLogManager) throws InvalidConfigurationException {
@@ -122,157 +182,219 @@ public class CPAchecker {
 
     options = new CPAcheckerOptions();
     config.inject(options);
+    reachedSetFactory = new ReachedSetFactory(pConfiguration, pLogManager);
   }
 
-  protected Configuration getConfiguration() {
-    return config;
-  }
-
-  protected LogManager getLogger() {
-    return logger;
-  }
-  
   public CPAcheckerResult run(String filename) {
 
-    logger.log(Level.FINE, "Analysis Started");
+    logger.log(Level.INFO, "CPAchecker", getVersion(), "started");
 
     MainCPAStatistics stats = null;
     ReachedSet reached = null;
-    Result result = Result.UNKNOWN;
+    Result result = Result.NOT_YET_STARTED;
 
     try {
-      // parse code file
-      IASTTranslationUnit ast = parse(filename);
+      stats = new MainCPAStatistics(config, logger);
 
-      stats = new MainCPAStatistics(getConfiguration(), logger);
+      // create reached set, cpa, algorithm
+      stats.creationTime.start();
+      reached = reachedSetFactory.create();
 
-      // start measuring time
-      stats.startProgramTimer();
+      Algorithm algorithm;
 
-      // create CFA
-      CFACreator cfaCreator = new CFACreator(getConfiguration(), logger);
-      cfaCreator.createCFA(ast);
-      Map<String, CFAFunctionDefinitionNode> cfas = cfaCreator.getFunctions();
-      CFAFunctionDefinitionNode mainFunction = cfaCreator.getMainFunction();
+      if (options.runCBMCasExternalTool) {
+        algorithm = new ExternalCBMCAlgorithm(filename, config, logger);
 
-      if (cfas.isEmpty()) {
-        // empty program, do nothing
-        return new CPAcheckerResult(Result.UNKNOWN, null, null);
+      } else {
+        CFA cfa = parse(filename, stats);
+        if (cfa.isEmpty()) {
+          // empty program, do nothing
+          return new CPAcheckerResult(Result.NOT_YET_STARTED, null, null);
+        }
+
+        stopIfNecessary();
+
+        ConfigurableProgramAnalysis cpa = createCPA(stats, cfa);
+
+        algorithm = createAlgorithm(cpa, stats, filename, cfa);
+
+        if (algorithm instanceof RestartAlgorithm) {
+          // this algorithm needs an indirection so that it can change
+          // the actual reached set instance on the fly
+          reached = new ForwardingReachedSet(reached);
+        }
+
+        initializeReachedSet(reached, cpa, cfa.getMainFunction());
       }
 
-      ConfigurableProgramAnalysis cpa = createCPA(stats);
+      printConfigurationWarnings();
 
-      Algorithm algorithm = createAlgorithm(cfas, cpa, stats);
+      stats.creationTime.stop();
+      stopIfNecessary();
+      // now everything necessary has been instantiated
 
-      Set<String> unusedProperties = getConfiguration().getUnusedProperties();
-      if (!unusedProperties.isEmpty()) {
-        logger.log(Level.WARNING, "The following configuration options were specified but are not used:\n",
-            Joiner.on("\n ").join(unusedProperties), "\n");
-      }
 
-      if (!requireStopAsap) {
-        reached = createInitialReachedSet(cpa, mainFunction);
+      // run analysis
+      result = Result.UNKNOWN; // set to unknown so that the result is correct in case of exception
 
-        result = runAlgorithm(algorithm, reached, stats);
-      }
+      boolean sound = runAlgorithm(algorithm, reached, stats);
+
+      result = analyzeResult(reached, sound);
 
     } catch (IOException e) {
-      logger.log(Level.SEVERE, "Could not read file", filename,
-          (e.getMessage() != null ? "(" + e.getMessage() + ")" : ""));
+      logger.logUserException(Level.SEVERE, e, "Could not read file");
 
-    } catch (CoreException e) {
-      logger.logException(Level.SEVERE, e, "Exception thrown by Eclipse C parser");
-
-    } catch (CFAGenerationRuntimeException e) {
+    } catch (ParserException e) {
       // only log message, not whole exception because this is a C problem,
       // not a CPAchecker problem
-      logger.log(Level.SEVERE, e.getMessage());
+      logger.logUserException(Level.SEVERE, Throwables.getRootCause(e), "Parsing failed");
       logger.log(Level.INFO, "Make sure that the code was preprocessed using Cil (HowTo.txt).\n"
           + "If the error still occurs, please send this error message together with the input file to cpachecker-users@sosy-lab.org.");
 
     } catch (InvalidConfigurationException e) {
-      logger.log(Level.SEVERE, "Invalid configuration:", e.getMessage());
+      logger.logUserException(Level.SEVERE, e, "Invalid configuration");
 
-    } catch (ForceStopCPAException e) {
-      // CPA must exit because it was asked to
-      logger.log(Level.FINE, "ForceStopCPAException caught at top level: CPAchecker has stopped forcefully, but cleanly");
+    } catch (InterruptedException e) {
+      // CPAchecker must exit because it was asked to
+      // we return normally instead of propagating the exception
+      // so we can return the partial result we have so far
+
     } catch (CPAException e) {
-      logger.logException(Level.SEVERE, e, null);
+      logger.logUserException(Level.SEVERE, e, null);
     }
-
     return new CPAcheckerResult(result, reached, stats);
   }
 
-  /**
-   * Parse the content of a file into an AST with the Eclipse CDT parser.
-   *
-   * @param fileName  The file to parse.
-   * @return The AST.
-   * @throws IOException If file cannot be read.
-   * @throws CoreException If Eclipse C parser throws an exception.
-   */
-  protected IASTTranslationUnit parse(String filename) throws IOException, CoreException {
-    logger.log(Level.FINE, "Starting parsing of file");
-    IASTTranslationUnit ast = CParser.parseFile(filename, options.parserDialect);
-    logger.log(Level.FINE, "Parser Finished");
-    return ast;
+  private CFA parse(String filename, MainCPAStatistics stats) throws InvalidConfigurationException, IOException,
+      ParserException, InterruptedException {
+    // parse file and create CFA
+    CFACreator cfaCreator = new CFACreator(config, logger);
+    stats.setCFACreator(cfaCreator);
+
+    return cfaCreator.parseFileAndCreateCFA(filename);
   }
 
-  private Result runAlgorithm(final Algorithm algorithm,
-          final ReachedSet reached,
-          final MainCPAStatistics stats) throws CPAException {
+  private void printConfigurationWarnings() {
+    Set<String> unusedProperties = config.getUnusedProperties();
+    if (!unusedProperties.isEmpty()) {
+      logger.log(Level.WARNING, "The following configuration options were specified but are not used:\n",
+          Joiner.on("\n ").join(unusedProperties), "\n");
+    }
+    Set<String> deprecatedProperties = config.getDeprecatedProperties();
+    if (!deprecatedProperties.isEmpty()) {
+      logger.log(Level.WARNING, "The following options are deprecated and will be removed in the future:\n",
+          Joiner.on("\n ").join(deprecatedProperties), "\n");
+    }
+  }
 
-    logger.log(Level.INFO, "Starting analysis...");
-    stats.startAnalysisTimer();
+  private boolean runAlgorithm(final Algorithm algorithm,
+      final ReachedSet reached,
+      final MainCPAStatistics stats) throws CPAException, InterruptedException {
 
-    do {
-      algorithm.run(reached);
-      
-      // either run only once (if stopAfterError == true)
-      // or until the waitlist is empty
-    } while (!options.stopAfterError && reached.hasWaitingElement());
+    logger.log(Level.INFO, "Starting analysis ...");
 
-    stats.stopAnalysisTimer();
-    logger.log(Level.INFO, "Analysis finished.");
+    boolean sound = true;
 
-    for (AbstractElement reachedElement : reached) {
-      if ((reachedElement instanceof Targetable)
-          && ((Targetable)reachedElement).isTarget()) {
-        return Result.UNSAFE;
-      }
+    // register management interface for CPAchecker
+    CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
+
+    stats.analysisTime.start();
+    try {
+
+      do {
+        sound &= algorithm.run(reached);
+
+        // either run only once (if stopAfterError == true)
+        // or until the waitlist is empty
+      } while (!options.stopAfterError && reached.hasWaitingElement());
+
+      logger.log(Level.INFO, "Stopping analysis ...");
+      return sound;
+
+    } finally {
+      stats.analysisTime.stop();
+      stats.programTime.stop();
+
+      // unregister management interface for CPAchecker
+      mxbean.unregister();
+    }
+  }
+
+  private Result analyzeResult(final ReachedSet reached, boolean sound) {
+    if (Iterables.any(reached, AbstractElements.IS_TARGET_ELEMENT)) {
+      return Result.UNSAFE;
+    }
+
+    if (reached.hasWaitingElement()) {
+      logger.log(Level.WARNING, "Analysis not completed: there are still elements to be processed.");
+      return Result.UNKNOWN;
+    }
+
+    if (!sound) {
+      logger.log(Level.WARNING, "Analysis incomplete: no errors found, but not everything could be checked.");
+      return Result.UNKNOWN;
     }
 
     return Result.SAFE;
   }
 
-  private ConfigurableProgramAnalysis createCPA(MainCPAStatistics stats) throws InvalidConfigurationException, CPAException {
+  private ConfigurableProgramAnalysis createCPA(MainCPAStatistics stats, CFA cfa) throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
+    stats.cpaCreationTime.start();
+    try {
 
-    CPABuilder builder = new CPABuilder(getConfiguration(), logger);
-    ConfigurableProgramAnalysis cpa = builder.buildCPAs();
+      if (options.useRestartingAlgorithm) {
+        // hard-coded dummy CPA
+        return LocationCPA.factory().set(cfa, CFA.class).createInstance();
+      }
 
-    if (cpa instanceof StatisticsProvider) {
-      ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
+      CPABuilder builder = new CPABuilder(config, logger, reachedSetFactory, cfa);
+      ConfigurableProgramAnalysis cpa = builder.buildCPAs();
+
+      if (cpa instanceof StatisticsProvider) {
+        ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
+      }
+      return cpa;
+
+    } finally {
+      stats.cpaCreationTime.stop();
     }
-    return cpa;
   }
 
-  private Algorithm createAlgorithm(final Map<String, CFAFunctionDefinitionNode> cfas,
-      final ConfigurableProgramAnalysis cpa, MainCPAStatistics stats) throws InvalidConfigurationException, CPAException {
+  private Algorithm createAlgorithm(final ConfigurableProgramAnalysis cpa,
+        final MainCPAStatistics stats, final String filename, CFA cfa)
+        throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating algorithms");
 
-    Algorithm algorithm = new CPAAlgorithm(cpa, logger);
+    Algorithm algorithm;
 
-    if (options.useRefinement) {
-      algorithm = new CEGARAlgorithm(algorithm, getConfiguration(), logger);
-    }
+    if (options.useRestartingAlgorithm) {
+      logger.log(Level.INFO, "Using Restarting Algorithm");
+      algorithm = new RestartAlgorithm(config, logger, filename, cfa);
 
-    if (options.useAssumptionCollector) {
-      algorithm = new AssumptionCollectionAlgorithm(algorithm, getConfiguration(), logger);
-    }
+    } else {
+      algorithm = new CPAAlgorithm(cpa, logger);
 
-    if (options.useCBMC) {
-      algorithm = new CBMCAlgorithm(cfas, algorithm, logger);
+      if (options.useRefinement) {
+        algorithm = new CEGARAlgorithm(algorithm, cpa, config, logger);
+      }
+
+      if (options.useBMC) {
+        algorithm = new BMCAlgorithm(algorithm, cpa, config, logger, reachedSetFactory, cfa);
+      }
+
+      if (options.useCBMC) {
+        algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, config, logger, reachedSetFactory, cfa);
+      }
+
+      if (options.useAssumptionCollector) {
+        algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, config, logger);
+      }
+
+      if (options.useAdjustableConditions) {
+        algorithm = new RestartWithConditionsAlgorithm(algorithm, cpa, config, logger);
+      }
+
     }
 
     if (algorithm instanceof StatisticsProvider) {
@@ -281,29 +403,15 @@ public class CPAchecker {
     return algorithm;
   }
 
-
-  private ReachedSet createInitialReachedSet(
+  private void initializeReachedSet(
+      final ReachedSet reached,
       final ConfigurableProgramAnalysis cpa,
       final CFAFunctionDefinitionNode mainFunction) {
     logger.log(Level.FINE, "Creating initial reached set");
 
     AbstractElement initialElement = cpa.getInitialElement(mainFunction);
     Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
-    
-    ReachedSet reached;
-    switch (options.reachedSet) {
-    case PARTITIONED:
-      reached = new PartitionedReachedSet(options.traversalMethod);
-      break;
-    case LOCATIONMAPPED:
-      reached = new LocationMappedReachedSet(options.traversalMethod);
-      break;
-    case NORMAL:
-    default:
-      reached = new ReachedSet(options.traversalMethod);
-    }
 
     reached.add(initialElement, initialPrecision);
-    return reached;
   }
 }

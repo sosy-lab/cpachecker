@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,30 +23,29 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import java.util.ArrayList;
+import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
+import java.util.HashSet;
+import java.util.Set;
+
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-
 
 public class CFATopologicalSort {
 
-	ArrayList<Integer> visited;
-	private int topSortId = 0;
+  private final Set<CFANode> visited   = new HashSet<CFANode>();
+  private int                topSortId = 0;
 
-	public CFATopologicalSort() {
-		visited = new ArrayList<Integer>();
-	}
+  public void topologicalSort(CFANode node) {
+    if (!visited.add(node)) {
+      // already handled, do nothing
+      return;
+    }
 
-	public void topologicalSort(CFANode node){
+    for (CFAEdge edge : leavingEdges(node)) {
+      topologicalSort(edge.getSuccessor());
+    }
 
-		visited.add(node.getNodeNumber());
-		for(int i=0; i<node.getNumLeavingEdges(); i++){
-			CFANode successor = node.getLeavingEdge(i).getSuccessor();
-			if(!visited.contains(successor.getNodeNumber())){
-				topologicalSort(successor);
-			}
-		}
-		node.setTopologicalSortId(topSortId);
-		topSortId++;
-	}
+    node.setTopologicalSortId(topSortId++);
+  }
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,41 +23,53 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
-import org.eclipse.cdt.core.dom.ast.IASTExpression;
+import java.util.List;
+
+import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
+import com.google.common.collect.ImmutableList;
 
-public class FunctionCallEdge extends AbstractCFAEdge
-{
-	private final IASTExpression[] functionArguments;
-	private final IASTExpression rawAST;
-	private final boolean isExternalCall;
+public class FunctionCallEdge extends AbstractCFAEdge {
 
-    public FunctionCallEdge (String rawStatement, IASTExpression rawAST, int lineNumber, CFANode predecessor, CFANode successor, IASTExpression[] arguments, boolean isExternalCall) {
-        super(rawAST.getRawSignature(), lineNumber, predecessor, successor);
-        this.functionArguments = arguments;
-        this.rawAST = rawAST;
-        this.isExternalCall = isExternalCall;
-    }
+	private final List<IASTExpression> arguments;
+	private final IASTStatement rawAST;
+	private final CallToReturnEdge summaryEdge;
 
-    @Override
-    public CFAEdgeType getEdgeType ()
-    {
-        return CFAEdgeType.FunctionCallEdge;
-    }
+  public FunctionCallEdge (String pRawStatement, IASTStatement pRawAST,
+      int pLineNumber, CFANode pPredecessor, FunctionDefinitionNode pSuccessor,
+      List<IASTExpression> pArguments, CallToReturnEdge pSummaryEdge) {
 
-    public IASTExpression[] getArguments(){
-    	return this.functionArguments;
-    }
+    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
+    arguments = ImmutableList.copyOf(pArguments);
+    rawAST = pRawAST;
+    summaryEdge = pSummaryEdge;
+  }
 
   @Override
-  public IASTExpression getRawAST() {
+  public CFAEdgeType getEdgeType() {
+    return CFAEdgeType.FunctionCallEdge;
+  }
+
+  public CallToReturnEdge getSummaryEdge() {
+    return summaryEdge;
+  }
+
+  public List<IASTExpression> getArguments() {
+    return arguments;
+  }
+
+  @Override
+  public IASTStatement getRawAST() {
     return rawAST;
   }
 
-	public boolean isExternalCall() {
-		return this.isExternalCall;
-	}
+  @Override
+  public FunctionDefinitionNode getSuccessor() {
+    // the constructor enforces that the successor is always a CFAFunctionDefinitionNode
+    return (FunctionDefinitionNode)super.getSuccessor();
+  }
 }

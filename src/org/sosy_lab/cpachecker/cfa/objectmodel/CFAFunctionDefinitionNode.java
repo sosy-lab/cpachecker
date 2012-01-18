@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,16 +24,18 @@
 package org.sosy_lab.cpachecker.cfa.objectmodel;
 
 public abstract class CFAFunctionDefinitionNode extends CFANode {
-  
+
   // Check if call edges are added in the second pass
   private final CFAFunctionExitNode exitNode;
 
-  public CFAFunctionDefinitionNode(int lineNumber, String functionName, CFAFunctionExitNode exitNode) {
-    super(lineNumber, functionName);
-    this.exitNode = exitNode;
+  public CFAFunctionDefinitionNode(int pLineNumber, String pFunctionName,
+      CFAFunctionExitNode pExitNode) {
+
+    super(pLineNumber, pFunctionName);
+    exitNode = pExitNode;
   }
 
-  public CFANode getExitNode() {
-    return this.exitNode;
+  public CFAFunctionExitNode getExitNode() {
+    return exitNode;
   }
 }

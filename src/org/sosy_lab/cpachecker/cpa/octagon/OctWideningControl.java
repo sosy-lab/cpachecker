@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,11 +27,11 @@ import java.util.HashMap;
 
 import org.sosy_lab.cpachecker.cpa.location.LocationElement;
 
-public class OctWideningControl {
+class OctWideningControl {
 
 	HashMap<Integer, LoopNode> loopNodeList = new HashMap<Integer, LoopNode>();
 
-	public class LoopNode{
+	static class LoopNode{
 		@SuppressWarnings("unused")
 		private int nodeId;
 		private int iterationCount = 0;
@@ -39,10 +39,6 @@ public class OctWideningControl {
 
 		public LoopNode(int id){
 			nodeId = id;
-		}
-
-		public LoopNode() {
-			// TODO Auto-generated constructor stub
 		}
 
 		public void incrementIteration(){
@@ -72,16 +68,15 @@ public class OctWideningControl {
 	}
 
 	public boolean isWideningUsed(LocationElement le){
-		int nodeId = le.getLocationNode().getNodeNumber();
-		Integer nodeIdIntObj = new Integer(nodeId);
-		LoopNode ln = new LoopNode();
-		if(loopNodeList.containsKey(nodeIdIntObj)){
-			ln = loopNodeList.get(nodeIdIntObj);
+	  Integer nodeId = le.getLocationNode().getNodeNumber();
+		LoopNode ln;
+		if(loopNodeList.containsKey(nodeId)){
+			ln = loopNodeList.get(nodeId);
 			return ln.isWideningUsed();
 		}
 		else{
-			ln = new LoopNode(nodeIdIntObj);
-			loopNodeList.put(nodeIdIntObj, ln);
+			ln = new LoopNode(nodeId);
+			loopNodeList.put(nodeId, ln);
 			return 	ln.isWideningUsed();
 		}
 	}

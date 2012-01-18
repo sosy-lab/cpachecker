@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,9 +30,6 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.cpa.types.Type.FunctionType;
 
-/**
- * @author Philipp Wendler
- */
 public class TypesElement implements AbstractElement {
 
   private final Map<String, Type> variables;
@@ -87,6 +84,7 @@ public class TypesElement implements AbstractElement {
   public Type getVariableType(String function, String name) {
     Type result = variables.get(getFullVariableName(function, name));
     if (result == null && function != null) {
+      assert functions.containsKey(function);
       // try parameter instead of local variable
       result = functions.get(function).getParameterType(name);
     }

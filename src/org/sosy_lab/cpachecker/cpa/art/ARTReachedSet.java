@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,23 +23,28 @@
  */
 package org.sosy_lab.cpachecker.cpa.art;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.Precisions;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 /**
  * This class is a modifiable live view of a reached set, which shows the ART
@@ -49,23 +54,21 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class ARTReachedSet {
 
   private final ReachedSet mReached;
+  private final UnmodifiableReachedSet mUnmodifiableReached;
   private final ARTCPA mCpa;
 
+  public ARTReachedSet(ReachedSet pReached) {
+    this(pReached, null);
+  }
+
   public ARTReachedSet(ReachedSet pReached, ARTCPA pCpa) {
-    mReached = pReached;
+    mReached = checkNotNull(pReached);
+    mUnmodifiableReached = new UnmodifiableReachedSetWrapper(mReached);
     mCpa = pCpa;
   }
 
-  public ARTElement getFirstElement() {
-    return (ARTElement)mReached.getFirstElement();
-  }
-
-  public ARTElement getLastElement() {
-    return (ARTElement)mReached.getLastElement();
-  }
-
-  public Precision getPrecision(ARTElement e) {
-    return mReached.getPrecision(e);
+  public UnmodifiableReachedSet asReachedSet() {
+    return mUnmodifiableReached;
   }
 
   /**
@@ -85,7 +88,7 @@ public class ARTReachedSet {
 
   /**
    * Like {@link #removeSubtree(ARTElement)}, but when re-adding elements to the
-   * waitlist adapts precisions with respect to the supplied precision p (see 
+   * waitlist adapts precisions with respect to the supplied precision p (see
    * {@link #adaptPrecision(ARTElement, Precision)}).
    * @param e The root of the removed subtree, may not be the initial element.
    * @param p The new precision.
@@ -94,13 +97,23 @@ public class ARTReachedSet {
     Set<ARTElement> toWaitlist = removeSubtree0(e);
 
     for (ARTElement ae : toWaitlist) {
-      mReached.add(ae, adaptPrecision(ae, p));
+      mReached.updatePrecision(ae, adaptPrecision(ae, p));
+      mReached.reAddToWaitlist(ae);
     }
   }
-  
+  public void removeSubtree(ARTElement e, Precision p1, Precision p2) {
+    Set<ARTElement> toWaitlist = removeSubtree0(e);
+
+    for (ARTElement ae : toWaitlist) {
+      mReached.updatePrecision(ae, adaptPrecision(ae, p1));
+      mReached.updatePrecision(ae, adaptPrecision(ae, p2));
+      mReached.reAddToWaitlist(ae);
+    }
+  }
+
   /**
    * Adapts the precision stored in the reached set for lARTElement.
-   * If the stored precision is a wrapper precision, pNewPrecision replaces the 
+   * If the stored precision is a wrapper precision, pNewPrecision replaces the
    * component of the wrapper precision that corresponds to pNewPrecision.
    * Otherwise, pNewPrecision replaces the stored precision.
    * @param pARTElement Reached element for which the precision has to be adapted.
@@ -108,14 +121,9 @@ public class ARTReachedSet {
    * @return The adapted precision.
    */
   private Precision adaptPrecision(ARTElement pARTElement, Precision pNewPrecision) {
-    Precision lOldPrecision = getPrecision(pARTElement);
-    
-    if (lOldPrecision instanceof WrapperPrecision) {
-      return ((WrapperPrecision)lOldPrecision).replaceWrappedPrecision(pNewPrecision);
-    }
-    else {
-      return pNewPrecision;
-    }
+    Precision lOldPrecision = mReached.getPrecision(pARTElement);
+
+    return Precisions.replaceByType(lOldPrecision, pNewPrecision, pNewPrecision.getClass());
   }
 
   private Set<ARTElement> removeSubtree0(ARTElement e) {
@@ -162,7 +170,7 @@ public class ARTReachedSet {
    * @return the elements to re-add to the waitlist
    */
   private static Set<ARTElement> removeSet(Set<ARTElement> elements) {
-    Set<ARTElement> toWaitlist = new HashSet<ARTElement>();
+    Set<ARTElement> toWaitlist = new LinkedHashSet<ARTElement>();
     for (ARTElement ae : elements) {
 
       for (ARTElement parent : ae.getParents()) {
@@ -198,6 +206,7 @@ public class ARTReachedSet {
 
     workList.addAll(e.getChildren());
     removedElements.add(e);
+    removeCoverage(e);
     e.removeFromART();
 
     while (!workList.isEmpty()) {
@@ -208,16 +217,16 @@ public class ARTReachedSet {
         if (removedElements.add(currentElement)) {
           // not yet handled
           workList.addAll(currentElement.getChildren());
+
+          removedElements.addAll(currentElement.getCoveredByThis());
+          removeCoverage(currentElement);
+
           currentElement.removeFromART();
         }
       }
     }
 
     mReached.removeAll(removedElements);
-
-    for (ARTElement removedElement : removedElements) {
-      removeCoverage(removedElement);
-    }
   }
 
   /**
@@ -264,6 +273,10 @@ public class ARTReachedSet {
     Preconditions.checkArgument(mReached.contains(element));
     assert !element.isCovered() : "element in reached set but covered";
 
+    if (mCpa == null) {
+      throw new UnsupportedOperationException("Need CPA for coverage checks");
+    }
+
     // get the reached set and remove the element itself and all its children
     Set<AbstractElement> localReached = new HashSet<AbstractElement>(mReached.getReached(element));
     Set<ARTElement> subtree = element.getSubtree();
@@ -298,5 +311,45 @@ public class ARTReachedSet {
     }
 
     return stop;
+  }
+
+  public static class ForwardingARTReachedSet extends ARTReachedSet {
+
+    protected final ARTReachedSet delegate;
+
+    public ForwardingARTReachedSet(ARTReachedSet pReached) {
+      super(pReached.mReached, pReached.mCpa);
+      delegate = pReached;
+    }
+
+    @Override
+    public UnmodifiableReachedSet asReachedSet() {
+      return delegate.asReachedSet();
+    }
+
+    @Override
+    public boolean checkForCoveredBy(ARTElement pElement) throws CPAException {
+      return delegate.checkForCoveredBy(pElement);
+    }
+
+    @Override
+    public void removeCoverage(ARTElement pElement) {
+      delegate.removeCoverage(pElement);
+    }
+
+    @Override
+    public void removeSubtree(ARTElement pE) {
+      delegate.removeSubtree(pE);
+    }
+
+    @Override
+    public void removeSubtree(ARTElement pE, Precision pP) {
+      delegate.removeSubtree(pE, pP);
+    }
+
+    @Override
+    public void replaceWithBottom(ARTElement pE) {
+      delegate.replaceWithBottom(pE);
+    }
   }
 }

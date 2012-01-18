@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,28 +23,30 @@
  */
 package org.sosy_lab.cpachecker.exceptions;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.sosy_lab.cpachecker.cpa.art.Path;
 
 /**
  * Exception raised when the refinement procedure fails, or was
  * abandoned.
- *
- * @author g.theoduloz
  */
 public class RefinementFailedException extends CPAException {
 
   public static enum Reason {
     InterpolationFailed("Interpolation failed"),
-    NoNewPredicates("No new predicates"),
+    InvariantRefinementFailed("Could not find invariant"),
+    RepeatedCounterexample("Counterexample could not be ruled out and was found again"),
     TooMuchUnrolling("Too much unrolling"),
+    InfeasibleCounterexample("External tool verified counterexample as infeasible"),
     TIMEOUT("SMT-solver timed out");
-    
+
     private final String humanReableReason;
-    
+
     private Reason(String pHumanReableReason) {
       humanReableReason = pHumanReableReason;
     }
-    
+
     @Override
     public String toString() {
       return humanReableReason;
@@ -54,31 +56,32 @@ public class RefinementFailedException extends CPAException {
   private static final long serialVersionUID = 2353178323706458175L;
 
   private final Reason reason;
-  private final Path path;
+  private Path path;
   private final int failurePoint;
 
-  public RefinementFailedException(Reason r, Path p, int pFailurePoint)
-  {
+  public RefinementFailedException(Reason r, Path p, int pFailurePoint) {
+    super("Refinement failed: " + checkNotNull(r));
     reason = r;
     path = p;
     failurePoint = pFailurePoint;
   }
 
-  public RefinementFailedException(Reason r, Path p)
-  {
+  public RefinementFailedException(Reason r, Path p) {
     this(r, p, -1);
   }
 
   /** Return the reason for the failure */
-  public Reason getReason()
-  {
+  public Reason getReason() {
     return reason;
   }
 
   /** Return the path that caused the failure */
-  public Path getErrorPath()
-  {
+  public Path getErrorPath() {
     return path;
+  }
+
+  public void setErrorPath(Path pPath) {
+    path = pPath;
   }
 
   /**
@@ -86,13 +89,7 @@ public class RefinementFailedException extends CPAException {
    * the failure occurred (or -1 if the failure cannot
    * be caused by a given node)
    */
-  public int getFailurePoint()
-  {
+  public int getFailurePoint() {
     return failurePoint;
-  }
-
-  @Override
-  public String toString() {
-    return super.toString() + "[" + reason.toString() + "]";
   }
 }

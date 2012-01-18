@@ -1,0 +1,19 @@
+<!ELEMENT benchmark ((test | option | sourcefiles)*, columns?)>
+<!ELEMENT test (sourcefiles | option)*>
+
+<!ELEMENT sourcefiles (include | includesfile | exclude | option)*>
+<!ELEMENT include (#PCDATA)>
+<!ELEMENT includesfile (#PCDATA)>
+<!ELEMENT exclude (#PCDATA)>
+
+<!ELEMENT option (#PCDATA)>
+<!ELEMENT columns (column*)>
+<!ELEMENT column (#PCDATA)>
+
+<!ATTLIST benchmark tool CDATA #REQUIRED>
+<!ATTLIST benchmark memlimit CDATA #IMPLIED>
+<!ATTLIST benchmark timelimit CDATA #IMPLIED>
+<!ATTLIST test name CDATA #IMPLIED>
+<!ATTLIST option name CDATA #REQUIRED>
+<!ATTLIST column title CDATA #IMPLIED
+                 numberOfDigits CDATA #IMPLIED>

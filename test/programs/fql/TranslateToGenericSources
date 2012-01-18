@@ -1,0 +1,117 @@
+#!/bin/bash
+
+convert_input() {
+  src=$1
+  dest=$2
+  cat > $dest <<EOF
+#ifdef __CPROVER__
+int input();
+#  define MAKE_INT_INPUT(x)  x = input()
+#  define MAKE_LONG_INPUT(x)  x = (long) input()
+#  define MAKE_ULONG_INPUT(x)  x = (unsigned long) input()
+#elif __CREST__
+extern void __CrestInt(int *x )  __attribute__((__crest_skip__)) ;
+#  define MAKE_INT_INPUT(x)  __CrestInt(&x)
+#  define MAKE_LONG_INPUT(x)  __CrestInt(&x)
+#  define MAKE_ULONG_INPUT(x)  __CrestInt(&x)
+#elif __KLEE__
+#  define MAKE_INT_INPUT(x)  klee_make_symbolic(&x, sizeof(int), "input");
+#  define MAKE_LONG_INPUT(x)  klee_make_symbolic(&x, sizeof(long), "input");
+#  define MAKE_ULONG_INPUT(x)  klee_make_symbolic(&x, sizeof(unsigned long), "input");
+#else
+#  define MAKE_INT_INPUT(x)  x = __BLAST_NONDET
+#  define MAKE_LONG_INPUT(x)  x = (long ) __BLAST_NONDET
+#  define MAKE_ULONG_INPUT(x)  x = (unsigned long ) __BLAST_NONDET
+#endif
+
+EOF
+  perl -n -e '
+    chomp;
+    if (/^(\s*)(\w\S*)\s*=\s*__BLAST_NONDET(;.*)$/) {
+      print "$1MAKE_INT_INPUT($2)$3\n";
+    } elsif (/^(\s*)(\w\S*)\s*=\s*\(long\s*\)\s*__BLAST_NONDET(;.*)$/) {
+      print "$1MAKE_LONG_INPUT($2)$3\n";
+    } elsif (/^(\s*)(\w\S*)\s*=\s*\(unsigned\s+long\s*\)\s*__BLAST_NONDET(;.*)$/) {
+      print "$1MAKE_ULONG_INPUT($2)$3\n";
+    } else {
+      print "$_\n";
+    }' < $src >> $dest
+}
+
+# locks
+mkdir -p locks/generic
+for f in test_locks_1_labeled.c test_locks_1.c test_locks_2.c \
+  test_locks_5_labeled.c test_locks_5.c test_locks_6.c \
+  test_locks_7.c test_locks_8.c test_locks_9.c test_locks_10.c \
+  test_locks_10_labeled.c test_locks_11.c test_locks_12.c \
+  test_locks_13.c test_locks_14.c test_locks_15.c \
+  test_locks_15_labeled.c test_locks_20_labeled.c ; do
+  convert_input locks/$f locks/generic/$f
+done
+grep -r "__BLAST_NONDET" locks/generic | \
+  egrep -v '(#  define|int __BLAST_NONDET|//__BLAST_NONDET = random\(\);)'
+# ntdrivers-simplified
+mkdir -p ntdrivers-simplified/generic
+for f in cdaudio_simpl1_BUG.cil.c cdaudio_simpl1.cil.c \
+  diskperf_simpl1.cil.c floppy_simpl3_BUG.cil.c floppy_simpl3.cil.c \
+  floppy_simpl4_BUG.cil.c floppy_simpl4.cil.c kbfiltr_simpl1.cil.c \
+  kbfiltr_simpl2_BUG.cil.c kbfiltr_simpl2.cil.c ; do
+  convert_input ntdrivers-simplified/$f ntdrivers-simplified/generic/$f
+done
+grep -r "__BLAST_NONDET" ntdrivers-simplified/generic | \
+  egrep -v '(#  define|int __BLAST_NONDET|//__BLAST_NONDET = random\(\);)'
+# ssh-simplified
+mkdir -p ssh-simplified/generic
+for f in s3_clnt_1_BUG.2.cil.c s3_clnt_1_BUG.cil.c s3_clnt_1.cil.c \
+  s3_clnt_2_BUG.cil.c s3_clnt_2.cil.c s3_clnt_3_BUG.cil.c s3_clnt_3.cil.c \
+  s3_clnt_3.cil_org.c s3_clnt_4_BUG.cil.c s3_clnt_4.cil.c s3_srvr_1_BUG.cil.c \
+  s3_srvr_1.cil.c s3_srvr_2_BUG.cil.c s3_srvr_2.cil.c s3_srvr_3.cil.c \
+  s3_srvr_4.cil.c s3_srvr_6.cil.c s3_srvr_7.cil.c s3_srvr_8.cil.c ; do
+  convert_input ssh-simplified/$f ssh-simplified/generic/$f
+done
+grep -r "__BLAST_NONDET" ssh-simplified/generic | \
+  egrep -v '(#  define|int __BLAST_NONDET|//__BLAST_NONDET = random\(\);)'
+# systemc
+#mkdir -p systemc/fshell2
+#./NondetToInput systemc/bist_cell.cil.c systemc/fshell2/bist_cell.cil.c
+#./NondetToInput systemc/kundu.cil.c systemc/fshell2/kundu.cil.c
+#./NondetToInput systemc/kundu1_BUG.cil.c systemc/fshell2/kundu1_BUG.cil.c
+#./NondetToInput systemc/kundu2_BUG.cil.c systemc/fshell2/kundu2_BUG.cil.c
+#./NondetToInput systemc/mem_slave_tlm.1.cil.c systemc/fshell2/mem_slave_tlm.1.cil.c
+#./NondetToInput systemc/mem_slave_tlm.2.cil.c systemc/fshell2/mem_slave_tlm.2.cil.c
+#./NondetToInput systemc/mem_slave_tlm.3.cil.c systemc/fshell2/mem_slave_tlm.3.cil.c
+#./NondetToInput systemc/mem_slave_tlm.4.cil.c systemc/fshell2/mem_slave_tlm.4.cil.c
+#./NondetToInput systemc/mem_slave_tlm.5.cil.c systemc/fshell2/mem_slave_tlm.5.cil.c
+#./NondetToInput systemc/pc_sfifo_1.cil.c systemc/fshell2/pc_sfifo_1.cil.c
+#./NondetToInput systemc/pc_sfifo_2.cil.c systemc/fshell2/pc_sfifo_2.cil.c
+#./NondetToInput systemc/pipeline.cil.c systemc/fshell2/pipeline.cil.c
+#./NondetToInput systemc/token_ring.01.cil.c systemc/fshell2/token_ring.01.cil.c
+#./NondetToInput systemc/token_ring.02.cil.c systemc/fshell2/token_ring.02.cil.c
+#./NondetToInput systemc/token_ring.03.cil.c systemc/fshell2/token_ring.03.cil.c
+#./NondetToInput systemc/token_ring.04.cil.c systemc/fshell2/token_ring.04.cil.c
+#./NondetToInput systemc/token_ring.05.cil.c systemc/fshell2/token_ring.05.cil.c
+#./NondetToInput systemc/token_ring.06.cil.c systemc/fshell2/token_ring.06.cil.c
+#./NondetToInput systemc/token_ring.07.cil.c systemc/fshell2/token_ring.07.cil.c
+#./NondetToInput systemc/token_ring.08.cil.c systemc/fshell2/token_ring.08.cil.c
+#./NondetToInput systemc/token_ring.09.cil.c systemc/fshell2/token_ring.09.cil.c
+#./NondetToInput systemc/token_ring.10.cil.c systemc/fshell2/token_ring.10.cil.c
+#./NondetToInput systemc/token_ring.11.cil.c systemc/fshell2/token_ring.11.cil.c
+#./NondetToInput systemc/token_ring.12.cil.c systemc/fshell2/token_ring.12.cil.c
+#./NondetToInput systemc/token_ring.13.cil.c systemc/fshell2/token_ring.13.cil.c
+#./NondetToInput systemc/toy.cil.c systemc/fshell2/toy.cil.c
+#./NondetToInput systemc/toy1_BUG.cil.c systemc/fshell2/toy1_BUG.cil.c
+#./NondetToInput systemc/toy2_BUG.cil.c systemc/fshell2/toy2_BUG.cil.c
+#./NondetToInput systemc/transmitter.01.BUG.cil.c systemc/fshell2/transmitter.01.BUG.cil.c
+#./NondetToInput systemc/transmitter.02.BUG.cil.c systemc/fshell2/transmitter.02.BUG.cil.c
+#./NondetToInput systemc/transmitter.03.BUG.cil.c systemc/fshell2/transmitter.03.BUG.cil.c
+#./NondetToInput systemc/transmitter.04.BUG.cil.c systemc/fshell2/transmitter.04.BUG.cil.c
+#./NondetToInput systemc/transmitter.05.BUG.cil.c systemc/fshell2/transmitter.05.BUG.cil.c
+#./NondetToInput systemc/transmitter.06.BUG.cil.c systemc/fshell2/transmitter.06.BUG.cil.c
+#./NondetToInput systemc/transmitter.07.BUG.cil.c systemc/fshell2/transmitter.07.BUG.cil.c
+#./NondetToInput systemc/transmitter.08.BUG.cil.c systemc/fshell2/transmitter.08.BUG.cil.c
+#./NondetToInput systemc/transmitter.09.BUG.cil.c systemc/fshell2/transmitter.09.BUG.cil.c
+#./NondetToInput systemc/transmitter.10.BUG.cil.c systemc/fshell2/transmitter.10.BUG.cil.c
+#./NondetToInput systemc/transmitter.11.BUG.cil.c systemc/fshell2/transmitter.11.BUG.cil.c
+#./NondetToInput systemc/transmitter.12.BUG.cil.c systemc/fshell2/transmitter.12.BUG.cil.c
+#./NondetToInput systemc/transmitter.13.BUG.cil.c systemc/fshell2/transmitter.13.BUG.cil.c
+#grep -r "__BLAST_NONDET" systemc/fshell2/*

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -75,10 +75,5 @@ public class MustMayAnalysisPrecision implements Precision {
   @Override
   public int hashCode() {
     return mMustPrecision.hashCode() + mMayPrecision.hashCode();
-  }
-
-  @Override
-  public boolean isBreak() {
-    return mMustPrecision.isBreak() || mMayPrecision.isBreak();
   }
 }

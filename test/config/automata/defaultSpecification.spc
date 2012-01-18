@@ -1,5 +1,5 @@
-#include test/config/automata/UninitializedVariablesObservingAutomaton.txt
+#include UninitializedVariablesObservingAutomaton.txt
 
-#include test/config/automata/PointerAnalysisObservingAutomaton.txt
+#include PointerAnalysisObservingAutomaton.txt
 
-#include test/config/automata/ErrorLocationAutomaton.txt
+#include ../../../config/specification/ErrorLocation.spc

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.uninitvars;
 
+import static com.google.common.collect.Iterables.*;
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByTypeFunction;
+
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashSet;
@@ -30,16 +33,13 @@ import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
-
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
+import com.google.common.base.Predicates;
+
 /**
- * @author Gregor Endler
- *
  * Statistics for UninitializedVariablesCPA.
  * Displays warnings about all uninitialized variables found.
  */
@@ -60,32 +60,35 @@ public class UninitializedVariablesStatistics implements Statistics {
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
 
+    int noOfWarnings = 0;
+
     if (printWarnings) {
 
       Set<Pair<Integer, String>> warningsDisplayed = new HashSet<Pair<Integer, String>>();
-      
+      Iterable<UninitializedVariablesElement> projectedReached = transform(pReached, extractElementByTypeFunction(UninitializedVariablesElement.class));
+
       //find all UninitializedVariablesElements and get their warnings
-      for (AbstractElement reachedElement : pReached) {
-        if (reachedElement instanceof AbstractWrapperElement) {
-          UninitializedVariablesElement uninitElement =
-            ((AbstractWrapperElement)reachedElement).retrieveWrappedElement(UninitializedVariablesElement.class);
-          if (uninitElement != null) {
-            Collection<Triple<Integer, String, String>> warnings = uninitElement.getWarnings();
-            //warnings are identified by line number and variable name
-            Pair<Integer, String> warningIndex;
-            for(Triple<Integer, String, String> warning : warnings) {
-              //check if a warning has already been displayed
-              warningIndex = new  Pair<Integer, String>(warning.getFirst(), warning.getSecond());
-              if (!warningsDisplayed.contains(warningIndex)) {
-                warningsDisplayed.add(warningIndex);
-                pOut.println(warning.getThird());
-              }
-            }
+      for (UninitializedVariablesElement uninitElement : filter(projectedReached, Predicates.notNull())) {
+
+        Collection<Triple<Integer, String, String>> warnings = uninitElement.getWarnings();
+        //warnings are identified by line number and variable name
+        Pair<Integer, String> warningIndex;
+        for(Triple<Integer, String, String> warning : warnings) {
+          //check if a warning has already been displayed
+          warningIndex = Pair.of(warning.getFirst(), warning.getSecond());
+          if (!warningsDisplayed.contains(warningIndex)) {
+            warningsDisplayed.add(warningIndex);
+            pOut.println(warning.getThird());
+            noOfWarnings++;
           }
         }
+
       }
       if (warningsDisplayed.isEmpty()) {
         pOut.println("No uninitialized variables found");
+      }
+      else{
+        pOut.println("No of uninitialized vars : " + noOfWarnings);
       }
     } else {
       pOut.println("Output deactivated by configuration option");

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,9 +21,6 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-/**
- *
- */
 package org.sosy_lab.cpachecker.cpa.dominator.parametric;
 
 import java.util.ArrayList;
@@ -37,31 +34,21 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-/**
- * @author holzera
- *
- */
 public class DominatorTransferRelation implements TransferRelation {
 
-	private final DominatorDomain domain;
 	private final ConfigurableProgramAnalysis cpa;
 
-	public DominatorTransferRelation(DominatorDomain domain, ConfigurableProgramAnalysis cpa) {
-		if (domain == null) {
-			throw new IllegalArgumentException("domain is null!");
-		}
-
+	public DominatorTransferRelation(ConfigurableProgramAnalysis cpa) {
 		if (cpa == null) {
 			throw new IllegalArgumentException("cpa is null!");
 		}
 
-		this.domain = domain;
 		this.cpa = cpa;
 	}
 
 	@Override
 	public Collection<DominatorElement> getAbstractSuccessors(
-	    AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException {
+	    AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
 
 	  assert element instanceof DominatorElement;
 
@@ -71,19 +58,9 @@ public class DominatorTransferRelation implements TransferRelation {
 
     Collection<DominatorElement> successors = new ArrayList<DominatorElement>(successorsOfDominatedElement.size());
     for (AbstractElement successorOfDominatedElement : successorsOfDominatedElement) {
-      if (successorOfDominatedElement.equals(this.cpa.getAbstractDomain().getBottomElement())) {
-        // don't need to return bottom, may just leave out this element from result set
-        continue;
-      }
-
-      if (successorOfDominatedElement.equals(this.cpa.getAbstractDomain().getTopElement())) {
-        successors.add(this.domain.getTopElement());
-
-      } else {
-        DominatorElement successor = new DominatorElement(successorOfDominatedElement, dominatorElement);
-        successor.update(successorOfDominatedElement);
-        successors.add(successor);
-      }
+      DominatorElement successor = new DominatorElement(successorOfDominatedElement, dominatorElement);
+      successor.update(successorOfDominatedElement);
+      successors.add(successor);
     }
 
     return successors;

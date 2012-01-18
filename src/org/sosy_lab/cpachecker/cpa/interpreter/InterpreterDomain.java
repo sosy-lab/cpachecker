@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,31 +27,14 @@ import java.util.Map;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 
 public class InterpreterDomain implements AbstractDomain {
 
-  private static class InterpreterPartialOrder implements PartialOrder
-  {
-    // returns true if element1 < element2 on lattice
-    @Override
-    public boolean satisfiesPartialOrder(AbstractElement newElement, AbstractElement reachedElement)
-    {
+  @Override
+  public boolean isLessOrEqual(AbstractElement newElement, AbstractElement reachedElement) {
+      // returns true if element1 < element2 on lattice
       InterpreterElement explicitAnalysisElementNew = (InterpreterElement) newElement;
       InterpreterElement explicitAnalysisElementReached = (InterpreterElement) reachedElement;
-
-      if (newElement == sBottomElement) {
-        return true;
-      } else if (reachedElement == sTopElement) {
-        return true;
-      } else if (reachedElement == sBottomElement) {
-        // we should not put this in the reached set
-        assert(false);
-        return false;
-      } else if (newElement == sTopElement) {
-        return false;
-      }
 
       Map<String, Long> constantsMapNew = explicitAnalysisElementNew.getConstantsMap();
       Map<String, Long> constantsMapReached = explicitAnalysisElementReached.getConstantsMap();
@@ -71,14 +54,10 @@ public class InterpreterDomain implements AbstractDomain {
         }
       }
       return true;
-    }
   }
 
-  private static class InterpreterJoinOperator implements JoinOperator
-  {
-    @Override
-    public AbstractElement join(AbstractElement element1, AbstractElement element2)
-    {
+  @Override
+  public AbstractElement join(AbstractElement pElement1, AbstractElement pElement2) {
       /*InterpreterElement explicitAnalysisElement1 = (InterpreterElement) element1;
       InterpreterElement explicitAnalysisElement2 = (InterpreterElement) element2;
 
@@ -97,42 +76,7 @@ public class InterpreterDomain implements AbstractDomain {
         }
       }
       return new InterpreterElement(newConstantsMap, explicitAnalysisElement2.getPreviousElement());*/
-      
-      throw new RuntimeException();
-    }
-  }
 
-  private final static InterpreterBottomElement sBottomElement = InterpreterBottomElement.INSTANCE;
-  private final static InterpreterTopElement sTopElement = InterpreterTopElement.INSTANCE;
-  private final static PartialOrder sPartialOrder = new InterpreterPartialOrder ();
-  private final static JoinOperator sJoinOperator = new InterpreterJoinOperator ();
-
-  public InterpreterDomain()
-  {
-
-  }
-
-  @Override
-  public InterpreterBottomElement getBottomElement ()
-  {
-    return sBottomElement;
-  }
-
-  @Override
-  public InterpreterTopElement getTopElement ()
-  {
-    return sTopElement;
-  }
-
-  @Override
-  public JoinOperator getJoinOperator ()
-  {
-    return sJoinOperator;
-  }
-
-  @Override
-  public PartialOrder getPartialOrder ()
-  {
-    return sPartialOrder;
+      throw new UnsupportedOperationException();
   }
 }

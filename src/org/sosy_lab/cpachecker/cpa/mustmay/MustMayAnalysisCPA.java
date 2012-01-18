@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,8 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.mustmay;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -33,7 +34,6 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 
 public class MustMayAnalysisCPA implements ConfigurableProgramAnalysis {
 
@@ -60,9 +60,9 @@ public class MustMayAnalysisCPA implements ConfigurableProgramAnalysis {
 
     mDomain = new MustMayAnalysisDomain(lMustDomain, lMayDomain);
 
-    mStopOperator = new StopSepOperator(mDomain.getPartialOrder());
+    mStopOperator = new StopSepOperator(mDomain);
 
-    mTransferRelation = new MustMayAnalysisTransferRelation(pMustCPA.getTransferRelation(), pMayCPA.getTransferRelation(), mDomain.getBottomElement());
+    mTransferRelation = new MustMayAnalysisTransferRelation(pMustCPA.getTransferRelation(), pMayCPA.getTransferRelation());
   }
 
   @Override
@@ -72,7 +72,7 @@ public class MustMayAnalysisCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public MustMayAnalysisElement getInitialElement(
-      CFAFunctionDefinitionNode pNode) {
+      CFANode pNode) {
     AbstractElement lInitialMustElement = mMustCPA.getInitialElement(pNode);
     AbstractElement lInitialMayElement = mMayCPA.getInitialElement(pNode);
 
@@ -80,7 +80,7 @@ public class MustMayAnalysisCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public MustMayAnalysisPrecision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+  public MustMayAnalysisPrecision getInitialPrecision(CFANode pNode) {
     Precision lInitialMustPrecision = mMustCPA.getInitialPrecision(pNode);
     Precision lInitialMayPrecision = mMayCPA.getInitialPrecision(pNode);
 

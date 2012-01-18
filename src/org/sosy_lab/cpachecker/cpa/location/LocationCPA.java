@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -32,17 +35,26 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.location.LocationElement.LocationElementFactory;
 
-public class LocationCPA implements ConfigurableProgramAnalysis{
+public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurableProgramAnalysisWithABM {
 
-	private static final LocationDomain abstractDomain = new LocationDomain();
-	private static final TransferRelation transferRelation = new LocationTransferRelation();
-	private static final StopOperator stopOperator = new StopSepOperator(abstractDomain.getPartialOrder());
+  private final LocationElementFactory elementFactory;
+  private final AbstractDomain abstractDomain = new FlatLatticeDomain();
+	private final TransferRelation transferRelation;
+	private final StopOperator stopOperator = new StopSepOperator(abstractDomain);
+
+	public LocationCPA(CFA pCfa) {
+	  elementFactory = new LocationElementFactory(pCfa);
+	  transferRelation = new LocationTransferRelation(elementFactory);
+  }
 
 	public static CPAFactory factory() {
 	  return new LocationCPAFactory(false);
@@ -74,12 +86,17 @@ public class LocationCPA implements ConfigurableProgramAnalysis{
   }
 
   @Override
-	public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-	  return new LocationElement (node);
+  public Reducer getReducer() {
+    return NoOpReducer.getInstance();
+  }
+
+  @Override
+	public AbstractElement getInitialElement(CFANode node) {
+	  return elementFactory.getElement(node);
 	}
 
   @Override
-  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+  public Precision getInitialPrecision(CFANode pNode) {
     return SingletonPrecision.getInstance();
   }
 }

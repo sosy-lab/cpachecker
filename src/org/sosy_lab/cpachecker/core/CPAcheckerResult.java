@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,7 +42,7 @@ public class CPAcheckerResult {
    * - UNSAFE: bug found
    * - SAFE: no bug found
    */
-  public static enum Result { UNKNOWN, UNSAFE, SAFE }
+  public static enum Result { NOT_YET_STARTED, UNKNOWN, UNSAFE, SAFE }
 
   private final Result result;
 
@@ -76,8 +76,29 @@ public class CPAcheckerResult {
    * may be written here, if configuration says so.
    */
   public void printStatistics(PrintStream target) {
-    if (stats != null && reached != null) {
+    if (stats != null && reached != null && result != Result.NOT_YET_STARTED) {
       stats.printStatistics(target, result, reached);
+    }
+  }
+
+  public void printResult(PrintStream out) {
+    if (result == Result.NOT_YET_STARTED) {
+      return;
+    }
+
+    out.print("Verification result: ");
+    switch (result) {
+    case UNKNOWN:
+      out.println("UNKNOWN, incomplete analysis.");
+      break;
+    case UNSAFE:
+      out.println("UNSAFE. Error path found by chosen configuration.");
+      break;
+    case SAFE:
+      out.println("SAFE. No error path found by chosen configuration.");
+      break;
+    default:
+      out.println("UNKNOWN result: " + result);
     }
   }
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,32 +23,33 @@
  */
 package org.sosy_lab.cpachecker.cpa.callstack;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
-import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
+import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
-public class CallstackCPA extends AbstractCPA {
+public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithABM {
 
-  private static class CallstackCPAFactory extends AbstractCPAFactory {
-    @Override
-    public ConfigurableProgramAnalysis createInstance() {
-      return new CallstackCPA();
-    }    
-  }
-  
+  private final Reducer reducer = new CallstackReducer();
+
   public static CPAFactory factory() {
-    return new CallstackCPAFactory();
+    return AutomaticCPAFactory.forType(CallstackCPA.class);
   }
-  
+
   public CallstackCPA() {
     super("sep", "sep", new CallstackTransferRelation());
   }
-  
+
   @Override
-  public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
+  public Reducer getReducer() {
+    return reducer;
+  }
+
+  @Override
+  public AbstractElement getInitialElement(CFANode pNode) {
     return new CallstackElement(null, pNode.getFunctionName(), pNode);
   }
 }

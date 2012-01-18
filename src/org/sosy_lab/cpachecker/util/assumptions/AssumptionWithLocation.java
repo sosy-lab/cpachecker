@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,123 +23,74 @@
  */
 package org.sosy_lab.cpachecker.util.assumptions;
 
-import java.io.IOException;
-import java.io.StringWriter;
-import java.util.Collections;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Collections2;
 
 /**
  * Representation of an assumption of the form \land_i. pc = l_i ==> \phi_i
- *
- * @author g.theoduloz
  */
-public abstract class AssumptionWithLocation {
+public class AssumptionWithLocation {
+
+  private final FormulaManager manager;
+
+  // map from location to (conjunctive) list of invariants
+  private final Map<CFANode, Formula> map = new HashMap<CFANode, Formula>();
+
+  public AssumptionWithLocation(FormulaManager pManager) {
+    manager = pManager;
+  }
+
+  public static AssumptionWithLocation copyOf(AssumptionWithLocation a) {
+    AssumptionWithLocation result = new AssumptionWithLocation(a.manager);
+    result.map.putAll(a.map);
+    return result;
+  }
 
   /**
-   * Conjunct this assumption with the given assumption
+   * Return the number of locations for which we have an assumption.
    */
-  public abstract AssumptionWithLocation and(AssumptionWithLocation other);
-
-  /**
-   * Return the assumption as a formula for a given node
-   */
-  public abstract Assumption getAssumption(CFANode node);
-
-  /**
-   * Returns an iterator over assumptions per location
-   */
-  public abstract Iterable<Entry<CFANode, Assumption>> getAssumptionsIterator();
-
-  /**
-   * Dump the assumption to the given Appendable object
-   * (e.g., PrintStream, Writer, etc.)
-   * IOException are ignored.
-   */
-  public void dump(Appendable out)
-  {
-    try {
-      boolean first = true;
-      for (Entry<CFANode, Assumption> entry : getAssumptionsIterator()) {
-        String nodeId = Integer.toString(entry.getKey().getNodeNumber());
-        Assumption inv = entry.getValue();
-        SymbolicFormula disInv = inv.getDischargeableFormula();
-        SymbolicFormula otherInv = inv.getOtherFormula();
-        if (!disInv.isTrue()) {
-          if (first)
-            first = false;
-          else
-            out.append("\n");
-          out.append("pc = ").append(nodeId).append("\t =(d)=>  ");
-          out.append(disInv.toString());
-        }
-        if (!otherInv.isTrue()) {
-          if (first)
-            first = false;
-          else
-            out.append("\n");
-          out.append("pc = ").append(nodeId).append("\t =====>  ");
-          out.append(otherInv.toString());
-        }
-      }
-    } catch (IOException e) { }
+  public int getNumberOfLocations() {
+    return map.size();
   }
 
   @Override
   public String toString() {
-    StringWriter writer = new StringWriter();
-    dump(writer);
-    return writer.toString();
+    return Joiner.on('\n').join(Collections2.transform(map.entrySet(), assumptionFormatter));
   }
 
-  public static final AssumptionWithLocation TRUE =
-    new AssumptionWithLocation() {
-      @Override
-      public AssumptionWithLocation and(AssumptionWithLocation other) {
-        return other;
-      }
-      @Override
-      public Assumption getAssumption(CFANode node) {
-        return Assumption.TRUE;
-      }
-      @Override
-      public Iterable<Entry<CFANode, Assumption>> getAssumptionsIterator() {
-        return Collections.emptySet();
-      }
-      @Override
-      public boolean equals(Object other) {
-        return other == this;
-      }
-      @Override
-      public String toString() {
-        return "TRUE";
-      }
+  private static final Function<Entry<CFANode, Formula>, String> assumptionFormatter
+      = new Function<Entry<CFANode, Formula>, String>() {
+
+    @Override
+    public String apply(Map.Entry<CFANode, Formula> entry) {
+      int nodeId = entry.getKey().getNodeNumber();
+      Formula assumption = entry.getValue();
+      return "pc = " + nodeId + "\t =====>  " + assumption.toString();
+    }
   };
 
-  public static final AssumptionWithLocation FALSE =
-    new AssumptionWithLocation() {
-      @Override
-      public AssumptionWithLocation and(AssumptionWithLocation other) {
-        return this;
-      }
-      @Override
-      public Assumption getAssumption(CFANode node) {
-        return Assumption.FALSE;
-      }
-      @Override
-      public Iterable<Entry<CFANode, Assumption>> getAssumptionsIterator() {
-        return Collections.emptySet();
-      }
-      @Override
-      public boolean equals(Object other) {
-        return other == this;
-      }
-      @Override
-      public String toString() {
-        return "FALSE";
-      }
-  };
+  public void add(CFANode node, Formula assumption) {
+    checkNotNull(node);
+    checkNotNull(assumption);
 
+    if (!assumption.isTrue()) {
+      Formula oldInvariant = map.get(node);
+      if (oldInvariant == null) {
+        map.put(node, assumption);
+      } else {
+        map.put(node, manager.makeAnd(oldInvariant, assumption));
+      }
+    }
+  }
 }

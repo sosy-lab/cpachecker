@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon;
 
-public class OctConstants {
+class OctConstants {
 
-	public static final int wideningThreshold = 2;
-	public static boolean useWidening = true;
-	public static boolean useLazyIncAlgorithm = false;
+	static final int wideningThreshold = 2;
+	static final boolean useWidening = true;
 
 }

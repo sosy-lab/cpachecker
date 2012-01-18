@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,11 +30,12 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 
 public class CallstackTransferRelation implements TransferRelation {
 
@@ -42,35 +43,39 @@ public class CallstackTransferRelation implements TransferRelation {
   public Collection<? extends AbstractElement> getAbstractSuccessors(
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
-    
+
     switch (pCfaEdge.getEdgeType()) {
     case FunctionCallEdge:
       {
         FunctionCallEdge cfaEdge = (FunctionCallEdge)pCfaEdge;
-        if (cfaEdge.isExternalCall()) {
-          break;
-        }
-    
         CallstackElement element = (CallstackElement)pElement;
         String functionName = cfaEdge.getSuccessor().getFunctionName();
         CFANode callNode = cfaEdge.getPredecessor();
 
+        CallstackElement e = element;
+        while (e != null) {
+          if (e.getCurrentFunction().equals(functionName)) {
+            throw new UnsupportedCCodeException("recursion", pCfaEdge);
+          }
+          e = e.getPreviousElement();
+        }
+
         return Collections.singleton(new CallstackElement(element, functionName, callNode));
       }
-    case ReturnEdge:
+    case FunctionReturnEdge:
       {
-        ReturnEdge cfaEdge = (ReturnEdge)pCfaEdge;
-        
+        FunctionReturnEdge cfaEdge = (FunctionReturnEdge)pCfaEdge;
+
         CallstackElement element = (CallstackElement)pElement;
-        
+
         String calledFunction = cfaEdge.getPredecessor().getFunctionName();
         String callerFunction = cfaEdge.getSuccessor().getFunctionName();
-        
+
         CFANode returnNode = cfaEdge.getSuccessor();
         CFANode callNode = returnNode.getEnteringSummaryEdge().getPredecessor();
 
         assert calledFunction.equals(element.getCurrentFunction());
-        
+
         if (!callNode.equals(element.getCallNode())) {
           // this is not the right return edge
           return Collections.emptySet();
@@ -79,12 +84,12 @@ public class CallstackTransferRelation implements TransferRelation {
         CallstackElement returnElement = element.getPreviousElement();
 
         assert callerFunction.equals(returnElement.getCurrentFunction());
-        
+
         return Collections.singleton(returnElement);
       }
     }
-    
-    return Collections.singleton(pElement); 
+
+    return Collections.singleton(pElement);
   }
 
   @Override

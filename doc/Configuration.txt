@@ -1,0 +1,84 @@
+CPAchecker configuration
+========================
+
+Configuration of CPAchecker is done via command-line arguments and
+configuration files in the syntax of Java properties files.
+Standard configuration files with explanations can be found in config/.
+
+
+Command-line options
+--------------------
+Several configuration options can be set on the command-line with the
+following arguments (see below to learn what the options mean):
+
+-help			print list of command-line argumments and exit
+-config <FILE>		sets configuration file name
+-cpas <CPAS>		sets "cpa = cpa.composite.CompositeCPA" and "CompositeCPA.cpas = <CPAS>"
+-spec <FILE>		sets "specification = <FILE>"
+-outputpath <DIR>	sets "output.path = <DIR>"
+-logfile <FILE>		sets "log.file = <FILE>"
+-nolog			sets "log.level = OFF" and "log.consoleLevel = OFF"
+-noout			sets "output.disable=true"
+-stats			sets "statistics.print = true"
+-entryfunction <FUNC>	sets "analysis.entryFunction = <FUNC>"
+-cbmc			sets "analysis.useCBMC = true"
+-timelimit <TIME>	sets "cpa.conditions.global.time.wall = <TIME>"
+-setprop <KEY>=<VALUE>	sets any option: "KEY = VALUE"
+
+The arguments "-config config/CONFIGFILE.properties" can be
+abbreviated to "-CONFIG". In other words, if CPAchecker finds an
+unknown command-line option, it checks if a file with this name
+and the ending ".properties" exists in the directory "config"
+and uses it as the configuration file.
+
+Either "-help", "-config" or "-cpas" has to be specified.
+
+If an option appears on the command line as well as in the configuration file,
+the value from the command line overrides the one from the file.
+
+All other arguments to CPAchecker are interpreted as code files that should be
+analyzed (option analysis.programNames). However, currently only one such file may
+be specified.
+
+
+Specifying the CPA(s)
+---------------------
+The CPA that CPAchecker uses is specified with the "cpa" option (default:
+cpa.composite.CompositeCPA). The syntax of the value is "package.ClassName Alias",
+where the alias is an optional unique identifier for this instance of the
+CPA. Without an alias, the class name is used as identifier. Configuration
+options that should be used for only one instance of a CPA can be prefixed
+with "alias.". Their values override the options without this prefix.
+
+If the package name starts with "org.sosy_lab.cpachecker.", this prefix can be
+omitted.
+
+Wrapper CPAs like ARTCPA and CompositeCPA take one option "cpa" or "cpas"
+to specify the wrapped CPA, depending whether this CPA wraps one or
+several other CPAs (the latter is only used for CompositeCPA). This option
+has to be prefixed with the identifier of the CPA as described above.
+
+A simple example (the first line could be ommitted as it's the default):
+cpa = cpa.composite.CompositeCPA
+CompositeCPA.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.explicit.ExplicitCPA explicitCPA
+explicitCPA.cpa.explicit.threshold = 10
+
+A more complex example:
+cpa = cpa.art.ARTCPA art
+art.cpa = cpa.composite.CompositeCPA composite
+composite.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.automaton.ObserverAutomatonCPA ErrorLocationAutomaton, cpa.predicate.PredicateCPA
+ErrorLocationAutomaton.cpa.automaton.inputFile = config/specification/ErrorLocation.spc
+
+Note that instead of manually specifying an ObserverAutomatonCPA, you can
+use the option "specification". The following example is identical to the last one:
+
+cpa = cpa.art.ARTCPA art
+art.cpa = cpa.composite.CompositeCPA composite
+composite.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.predicate.PredicateCPA
+specification = config/specification/ErrorLocation.spc
+
+
+Valid configuration options and default values
+----------------------------------------------
+All valid configuration options and their default values
+are listed in the file doc/ConfigurationOptions.txt.

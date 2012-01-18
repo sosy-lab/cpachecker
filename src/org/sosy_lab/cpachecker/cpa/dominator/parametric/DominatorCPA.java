@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.dominator.parametric;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -50,9 +50,9 @@ public class DominatorCPA {
 	  this.cpa = cpa;
 
 		this.abstractDomain = new DominatorDomain(this.cpa);
-    this.transferRelation = new DominatorTransferRelation(this.abstractDomain, this.cpa);
-    this.mergeOperator = new MergeJoinOperator(abstractDomain.getJoinOperator());
-		this.stopOperator = new StopSepOperator(abstractDomain.getPartialOrder());
+    this.transferRelation = new DominatorTransferRelation(this.cpa);
+    this.mergeOperator = new MergeJoinOperator(abstractDomain);
+		this.stopOperator = new StopSepOperator(abstractDomain);
 		this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
 	}
 
@@ -76,7 +76,7 @@ public class DominatorCPA {
     return precisionAdjustment;
   }
 
-  public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
+  public AbstractElement getInitialElement(CFANode node) {
     AbstractElement dominatedInitialElement_tmp = this.cpa.getInitialElement(node);
 
     AbstractElement dominatedInitialElement = dominatedInitialElement_tmp;
@@ -88,7 +88,7 @@ public class DominatorCPA {
     return initialElement;
   }
 
-  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+  public Precision getInitialPrecision(CFANode pNode) {
     return null;
   }
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,176 +23,43 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator;
-import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
-import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
-import org.eclipse.cdt.core.dom.ast.IASTStandardFunctionDeclarator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDefinition;
+import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 
+import com.google.common.collect.ImmutableList;
 
 public class FunctionDefinitionNode extends CFAFunctionDefinitionNode {
 
   private final IASTFunctionDefinition functionDefinition;
+  private final List<IASTParameterDeclaration> parameters;
+  private final List<String> parameterNames;
 
-  public FunctionDefinitionNode(int lineNumber, IASTFunctionDefinition functionDefinition, CFAFunctionExitNode exitNode) {
-    super(lineNumber, functionDefinition.getDeclarator().getName().toString(), exitNode);
-    this.functionDefinition = functionDefinition;
+  public FunctionDefinitionNode(final int pLineNumber,
+      final String pFunctionName,
+      final IASTFunctionDefinition pFunctionDefinition,
+      final CFAFunctionExitNode pExitNode,
+      final List<IASTParameterDeclaration> pParameters,
+      final List<String> pParameterNames) {
+
+    super(pLineNumber, pFunctionName, pExitNode);
+    functionDefinition = pFunctionDefinition;
+    parameters = ImmutableList.copyOf(pParameters);
+    parameterNames = ImmutableList.copyOf(pParameterNames);
   }
 
   public IASTFunctionDefinition getFunctionDefinition() {
     return functionDefinition;
   }
 
-  public List<String> getFunctionParameterNames ()
-  {
-    IASTFunctionDeclarator decl = functionDefinition.getDeclarator();
-
-    List<String> parameterNames = new ArrayList<String>();
-    if (decl instanceof IASTStandardFunctionDeclarator)
-    {
-      IASTStandardFunctionDeclarator sdecl = (IASTStandardFunctionDeclarator) decl;
-      IASTParameterDeclaration [] params = sdecl.getParameters();
-
-      for (int i = 0; i < params.length; i++)
-      {
-        IASTParameterDeclaration param = params[i];
-
-        // Get what we need from the declarator
-        String name = param.getDeclarator().getName().toString();
-
-        if (name.isEmpty() &&
-            param.getDeclarator().getNestedDeclarator() != null) {
-          name = param.getDeclarator().getNestedDeclarator().
-          getName().toString();
-        }
-
-        if (!name.isEmpty()) {
-          parameterNames.add (name);
-        }
-      }
-    }
-
+  public List<String> getFunctionParameterNames() {
     return parameterNames;
   }
 
-  public List<IASTParameterDeclaration> getFunctionParameters(){
-
-    IASTFunctionDeclarator decl = functionDefinition.getDeclarator();
-
-    List<IASTParameterDeclaration> parameterNames = new ArrayList<IASTParameterDeclaration>();
-    if (decl instanceof IASTStandardFunctionDeclarator)
-    {
-      IASTStandardFunctionDeclarator sdecl = (IASTStandardFunctionDeclarator) decl;
-      IASTParameterDeclaration [] params = sdecl.getParameters();
-
-      for (int i = 0; i < params.length; i++)
-      {
-        IASTParameterDeclaration param = params[i];
-        String name = param.getDeclarator().getName().toString();
-
-        if (name.isEmpty() &&
-            param.getDeclarator().getNestedDeclarator() != null) {
-          name = param.getDeclarator().getNestedDeclarator().
-          getName().toString();
-        }
-
-        if (!name.isEmpty()) {
-          parameterNames.add (param);
-        }
-      }
-    }
-    return parameterNames;
-
+  public List<IASTParameterDeclaration> getFunctionParameters() {
+    return parameters;
   }
-
-  /*
-   * NOTE: This function is not used presently, and is here as part of an un-submitted experiment
-   *  to make the CPA algorithm completely language independent.  However, in the end I decided it
-   *  better to save effort now, and to only create my object model if it is ever desired to support
-   *  languages other than C for this CPA Plugin.
-   */
-//public List<CFAVariableInfo> getFunctionParameters ()
-//{
-//IASTFunctionDeclarator decl = functionDefinition.getDeclarator ();
-
-//if (decl instanceof IASTStandardFunctionDeclarator)
-//{
-//IASTStandardFunctionDeclarator sdecl = (IASTStandardFunctionDeclarator) decl;
-//IASTParameterDeclaration [] params = sdecl.getParameters ();
-
-//List<CFAVariableInfo> parameterInfo = new ArrayList<CFAVariableInfo> ();
-
-//for (int i = 0; i < params.length; i++)
-//{
-//IASTParameterDeclaration param = params[i];
-//IASTDeclSpecifier specifier = param.getDeclSpecifier ();
-
-//// Get what we need from the declarator
-//String name = param.getDeclarator ().getName ().toString ();
-//int indirectionLevels = param.getDeclarator ().getPointerOperators ().length;
-
-//// Create the CFAVariableInfo
-//CFAVariableInfo info = new CFAVariableInfo (name);
-//parameterInfo.add (info);
-
-//info.setIndirectionLevel (indirectionLevels);
-
-//// Now get what we need from the decl specifier
-//info.setIsConst (specifier.isConst ());
-//info.setIsVolatile (specifier.isVolatile ());
-//if (specifier instanceof ICASTSimpleDeclSpecifier)
-//{
-//ICASTSimpleDeclSpecifier simpleDecl = (ICASTSimpleDeclSpecifier) specifier;
-
-//info.setIsLong (simpleDecl.isLong ());
-//info.setIsLongLong (simpleDecl.isLongLong ());
-//info.setIsShort (simpleDecl.isShort ());
-//info.setIsUnsigned (simpleDecl.isUnsigned ());
-
-//int decltype = simpleDecl.getType ();
-//String type = TypeNames.UnknownStr;
-//switch (decltype)
-//{
-//case ICASTSimpleDeclSpecifier.t_Bool:
-//type = TypeNames.BoolStr;
-//break;
-//case ICASTSimpleDeclSpecifier.t_char:
-//type = TypeNames.CharStr;
-//break;
-//case ICASTSimpleDeclSpecifier.t_double:
-//type = TypeNames.DoubleStr;
-//break;
-//case ICASTSimpleDeclSpecifier.t_float:
-//type = TypeNames.FloatStr;
-//break;
-//case ICASTSimpleDeclSpecifier.t_int:
-//type = TypeNames.IntStr;
-//break;
-//case ICASTSimpleDeclSpecifier.t_void:
-//type = TypeNames.VoidStr;
-//break;
-//}
-
-//info.setType (type);
-//}
-//else if (specifier instanceof IASTNamedTypeSpecifier)
-//{
-//IASTNamedTypeSpecifier namedDecl = (IASTNamedTypeSpecifier) specifier;
-//info.setType (namedDecl.getName ().toString ());
-//}
-//else
-//{
-//throw new CFAGenerationRuntimeException ("Support for Declaration Specifier: " + specifier.getClass ().getName () + " not implemented");
-//}
-
-//}
-//}
-
-//return null;
-//}
-
 }

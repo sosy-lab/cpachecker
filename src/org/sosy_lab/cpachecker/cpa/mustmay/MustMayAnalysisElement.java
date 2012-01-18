@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,15 +26,19 @@ package org.sosy_lab.cpachecker.cpa.mustmay;
 import java.util.ArrayList;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 
 public class MustMayAnalysisElement implements AbstractElement, AbstractWrapperElement {
 
-  AbstractElement mMustElement;
-  AbstractElement mMayElement;
+  /**
+   * This object is used when the MustCPA produced no successors.
+   */
+  static final AbstractElement DONT_KNOW_ELEMENT = new AbstractElement() { };
 
-  ArrayList<AbstractElement> mWrappedElements;
+  private final AbstractElement mMustElement;
+  private final AbstractElement mMayElement;
+
+  private final ArrayList<AbstractElement> mWrappedElements;
 
   public MustMayAnalysisElement(AbstractElement pMustElement, AbstractElement pMayElement) {
     assert(pMustElement != null);
@@ -92,35 +96,4 @@ public class MustMayAnalysisElement implements AbstractElement, AbstractWrapperE
   public Iterable<? extends AbstractElement> getWrappedElements() {
     return mWrappedElements;
   }
-
-  @Override
-  public <T extends AbstractElement> T retrieveWrappedElement(Class<T> pType) {
-
-    // TODO: should retrieveWrappedElement return itself if this is a subtype of pType?
-
-    for (AbstractElement lElement : mWrappedElements) {
-      if (pType.isAssignableFrom(lElement.getClass())) {
-        return pType.cast(lElement);
-      }
-      else if (lElement instanceof AbstractWrapperElement) {
-        T lResult = ((AbstractWrapperElement)lElement).retrieveWrappedElement(pType);
-
-        if (lResult != null) {
-          return lResult;
-        }
-      }
-    }
-
-    return null;
-  }
-
-  @Override
-  public AbstractElementWithLocation retrieveLocationElement() {
-    // TODO: think about what to do here
-    assert(false);
-
-    // TODO Auto-generated method stub
-    return null;
-  }
-
 }

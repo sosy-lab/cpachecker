@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,22 +23,24 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
-import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
-
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-
 
 /**
  * An edge to store declarations for global variables. These are different
  * from standard declarations, in that they can have also an initializer
  * for the declared variable
- *
- * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class GlobalDeclarationEdge extends DeclarationEdge {
 
-    public GlobalDeclarationEdge(IASTSimpleDeclaration declaration, int lineNumber, CFANode predecessor, CFANode successor) {
-        super(declaration, lineNumber, predecessor, successor);
-    }
+  public GlobalDeclarationEdge(final String pRawSignature, final int pLineNumber,
+      final CFANode pPredecessor, final CFANode pSuccessor, final IASTDeclaration pDeclaration) {
 
+    super(pRawSignature, pLineNumber, pPredecessor, pSuccessor, pDeclaration);
+  }
+
+  @Override
+  public boolean isGlobal() {
+    return true;
+  }
 }

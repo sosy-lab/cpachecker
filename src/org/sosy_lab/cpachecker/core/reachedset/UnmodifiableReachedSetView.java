@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,21 +26,18 @@ package org.sosy_lab.cpachecker.core.reachedset;
 import java.util.Collection;
 import java.util.Iterator;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.Iterators;
 import org.sosy_lab.common.Pair;
-
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Iterators;
 
 /**
  * Live view of an unmodifiable reached element set, where elements
  * and precision are transformed by mapping functions.
- * @author g.theoduloz
  */
 public class UnmodifiableReachedSetView
   implements UnmodifiableReachedSet
@@ -65,19 +62,11 @@ public class UnmodifiableReachedSetView
       new Function<Pair<AbstractElement,Precision>, Pair<AbstractElement,Precision>>() {
         @Override
         public Pair<AbstractElement, Precision> apply(Pair<AbstractElement, Precision> from) {
-          return new Pair<AbstractElement, Precision>(
+          return Pair.of(
               mapElementFunction.apply(from.getFirst()),
               mapPrecisionFunction.apply(from.getSecond()));
         }
       };
-  }
-
-  public UnmodifiableReachedSetView(UnmodifiableReachedSet pUnderlyingSet)
-  {
-    underlying = pUnderlyingSet;
-    mapElementFunction = Functions.<AbstractElement>identity();
-    mapPrecisionFunction = Functions.<Precision>identity();
-    mapElementAndPrecisionFunction = Functions.<Pair<AbstractElement, Precision>>identity();
   }
 
   @Override
@@ -116,6 +105,11 @@ public class UnmodifiableReachedSetView
   }
 
   @Override
+  public Collection<Precision> getPrecisions() {
+    return Collections2.transform(underlying.getPrecisions(), mapPrecisionFunction);
+  }
+
+  @Override
   public Collection<AbstractElement> getWaitlist() {
     return Collections2.transform(underlying.getWaitlist(), mapElementFunction);
   }
@@ -133,6 +127,16 @@ public class UnmodifiableReachedSetView
   @Override
   public Iterator<AbstractElement> iterator() {
     return Iterators.transform(underlying.iterator(), mapElementFunction);
+  }
+
+  @Override
+  public boolean contains(AbstractElement pElement) {
+    throw new UnsupportedOperationException("Unwrapping may prevent to check contains");
+  }
+
+  @Override
+  public boolean isEmpty() {
+    return underlying.isEmpty();
   }
 
   @Override

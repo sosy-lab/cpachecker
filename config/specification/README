@@ -1,0 +1,4 @@
+The automata language used here is similar to the BLAST Query Language:
+http://www.sosy-lab.org/~dbeyer/Publications/2004-SAS.The_Blast_Query_Language_for_Software_Verification.pdf
+(A manual will be available soon.)
+

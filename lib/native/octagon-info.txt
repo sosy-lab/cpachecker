@@ -1,5 +1,0 @@
-Downloaded from
-
-http://www.di.ens.fr/~mine/oct/
-
-This version used in CPAchecker is 0.9.10.

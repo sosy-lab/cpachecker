@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,8 +27,6 @@ import java.util.Collection;
 
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public interface StopOperator
-{
+public interface StopOperator {
   public boolean stop (AbstractElement element, Collection<AbstractElement> reached, Precision precision) throws CPAException;
-  public boolean stop (AbstractElement element, AbstractElement reachedElement) throws CPAException;
 }

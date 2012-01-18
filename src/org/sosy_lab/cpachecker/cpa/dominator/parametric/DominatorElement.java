@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,9 +21,6 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-/**
- *
- */
 package org.sosy_lab.cpachecker.cpa.dominator.parametric;
 
 import java.util.HashSet;
@@ -34,10 +31,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElementWithLocation;
 
-/**
- * @author holzera
- *
- */
 public class DominatorElement implements AbstractElementWithLocation, AbstractElement {
 
 	private AbstractElement dominatedElement;
@@ -72,12 +65,6 @@ public class DominatorElement implements AbstractElementWithLocation, AbstractEl
 	public DominatorElement(AbstractElement dominatedElement, DominatorElement other) {
 		this(dominatedElement, other.dominators);
 	}
-
-	@Override
-	public DominatorElement clone()
-    {
-        return new DominatorElement(this);
-    }
 
 	public void update(AbstractElement dominator) {
 		if (dominator == null) {

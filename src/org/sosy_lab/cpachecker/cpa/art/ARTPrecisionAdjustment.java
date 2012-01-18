@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2010  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,16 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.art;
 
-import com.google.common.base.Functions;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import org.sosy_lab.common.Pair;
-
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+import com.google.common.base.Functions;
+import com.google.common.base.Preconditions;
 
 public class ARTPrecisionAdjustment implements PrecisionAdjustment {
 
@@ -43,8 +43,8 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public Pair<AbstractElement, Precision> prec(AbstractElement pElement,
-      Precision oldPrecision, UnmodifiableReachedSet pElements) {
+  public Triple<AbstractElement, Precision, Action> prec(AbstractElement pElement,
+      Precision oldPrecision, UnmodifiableReachedSet pElements) throws CPAException {
 
     Preconditions.checkArgument(pElement instanceof ARTElement);
     ARTElement element = (ARTElement)pElement;
@@ -53,39 +53,22 @@ public class ARTPrecisionAdjustment implements PrecisionAdjustment {
         pElements,  ARTElement.getUnwrapFunction(), Functions.<Precision>identity());
 
     AbstractElement oldElement = element.getWrappedElement();
-    
-    Pair<AbstractElement, Precision> unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
 
-    if (unwrappedResult == null) {
-      // element is not reachable
-      return null;
-    }
+    Triple<AbstractElement, Precision, Action> unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
 
     AbstractElement newElement = unwrappedResult.getFirst();
     Precision newPrecision = unwrappedResult.getSecond();
+    Action action = unwrappedResult.getThird();
 
     if ((oldElement == newElement) && (oldPrecision == newPrecision)) {
       // nothing has changed
-      return new Pair<AbstractElement, Precision>(pElement, oldPrecision);
+      return new Triple<AbstractElement, Precision, Action>(pElement, oldPrecision, action);
     }
-      
+
     ARTElement resultElement = new ARTElement(newElement, null);
 
-    for (ARTElement parent : element.getParents()) {
-      resultElement.addParent(parent);
-    }
-    for (ARTElement child : element.getChildren()) {
-      resultElement.addParent(child);
-    }
+    element.replaceInARTWith(resultElement); // this completely eliminates element
 
-    // first copy list of covered elements, then remove element from ART, then set elements covered by new element
-    ImmutableList<ARTElement> coveredElements = ImmutableList.copyOf(element.getCoveredByThis());
-    element.removeFromART();
-
-    for (ARTElement covered : coveredElements) {
-      covered.setCovered(resultElement);
-    }
-
-    return new Pair<AbstractElement, Precision>(resultElement, newPrecision);
+    return new Triple<AbstractElement, Precision, Action>(resultElement, newPrecision, action);
   }
 }
