@@ -372,7 +372,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
       String functionName = pCfaEdge.getPredecessor().getFunctionName();
 
       IASTAssignment assignment = (IASTAssignment)pStatement;
-      String varName = getLeftHandSide(assignment.getLeftHandSide(), functionName);
+      String varName = getLeftHandSide(assignment.getLeftHandSide(), pCfaEdge, functionName);
 
       if (varName != null) {
         FunctionPointerTarget target = getValue(assignment.getRightHandSide(), pNewState, functionName);
@@ -448,7 +448,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
       IASTExpression left = ((IASTFunctionCallAssignmentStatement)funcCall).getLeftHandSide();
 
       String callerFunction = summaryEdge.getSuccessor().getFunctionName();
-      String varName = getLeftHandSide(left, callerFunction);
+      String varName = getLeftHandSide(left, summaryEdge, callerFunction);
 
       if (varName != null) {
 
@@ -465,7 +465,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
     pNewState.clearVariablesWithPrefix(calledFunction + "::");
   }
 
-  private String getLeftHandSide(IASTExpression lhsExpression, String functionName) throws UnrecognizedCCodeException {
+  private String getLeftHandSide(IASTExpression lhsExpression, CFAEdge edge, String functionName) throws UnrecognizedCCodeException {
 
     if (lhsExpression instanceof IASTIdExpression) {
       // a = ...
@@ -487,7 +487,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
       // TODO assignment to array cell
 
     } else {
-      throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", null, lhsExpression);
+      throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", edge, lhsExpression);
     }
     return null;
   }

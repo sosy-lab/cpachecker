@@ -969,7 +969,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
           return Interval.createUnboundInterval();
 
         default:
-          throw new UnrecognizedCCodeException("unkown binary operator", null, binaryExpression);
+          throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge, binaryExpression);
       }
     }
 
@@ -1047,7 +1047,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
         return Interval.createUnboundInterval();
 
       default:
-        throw new UnrecognizedCCodeException("unknown unary operator", null, unaryExpression);
+        throw new UnrecognizedCCodeException("unknown unary operator", cfaEdge, unaryExpression);
       }
     }
   }

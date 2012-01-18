@@ -65,11 +65,8 @@ public class FeatureVarsCPA implements ConfigurableProgramAnalysis {
   private final TransferRelation transferRelation;
   private final PrecisionAdjustment precisionAdjustment;
 
-  public static LogManager logger;
-
   private FeatureVarsCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
-    FeatureVarsCPA.logger = logger;
 
     NamedRegionManager manager = new NamedRegionManager(BDDRegionManager.getInstance());
 

@@ -28,6 +28,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
@@ -80,7 +81,7 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
   }
 
   @Override
-  public Formula makeAnd(Formula f, IASTNode p, String function) throws UnrecognizedCCodeException {
+  public Formula makeAnd(Formula f, IASTNode p, CFAEdge edge, String function) throws UnrecognizedCCodeException {
 
     if(p instanceof IASTExpression){
       DummySSAMap mapBuilder = new DummySSAMap();
@@ -89,7 +90,7 @@ public class AssumptionManagerImpl extends CtoFormulaConverter implements Assump
       // called that used De Morgan's law to transform any occurrence of
       // (!(a && b)) into (!a && !b)
       // I don't see a point in doing this, so I removed it.
-      f = fmgr.makeAnd(f, makePredicate((IASTExpression)p, function, mapBuilder));
+      f = fmgr.makeAnd(f, makePredicate((IASTExpression)p, edge, function, mapBuilder));
     }
     return f;
   }

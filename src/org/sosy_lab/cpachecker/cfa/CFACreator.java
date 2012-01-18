@@ -95,9 +95,6 @@ public class CFACreator {
   private final CParser parser;
   private final CFAReduction cfaReduction;
 
-  @Deprecated // use CFA#getLoopStructure() instead
-  public static ImmutableMultimap<String, Loop> loops = null;
-
   public final Timer parserInstantiationTime = new Timer();
   public final Timer totalTime = new Timer();
   public final Timer parsingTime;
@@ -263,21 +260,19 @@ public class CFACreator {
   }
 
   private Optional<ImmutableMultimap<String, Loop>> getLoopStructure(MutableCFA cfa) {
-    Optional<ImmutableMultimap<String, Loop>> loopStructure;
     try {
       ImmutableMultimap.Builder<String, Loop> loops = ImmutableMultimap.builder();
       for (String functionName : cfa.getAllFunctionNames()) {
         SortedSet<CFANode> nodes = cfa.getFunctionNodes(functionName);
         loops.putAll(functionName, findLoops(nodes));
       }
-      loopStructure = Optional.of(loops.build());
+      return Optional.of(loops.build());
+
     } catch (ParserException e) {
       // don't abort here, because if the analysis doesn't need the loop information, we can continue
       logger.logUserException(Level.WARNING, e, "Could not analyze loop structure of program.");
-      loopStructure = Optional.absent();
+      return Optional.absent();
     }
-    CFACreator.loops = loopStructure.orNull();
-    return loopStructure;
   }
 
   /**

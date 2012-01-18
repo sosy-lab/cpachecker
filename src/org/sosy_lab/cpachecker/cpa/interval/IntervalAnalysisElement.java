@@ -253,7 +253,7 @@ public class IntervalAnalysisElement implements AbstractElement
 
     // ... and clone the reference count
     for(String variableName : referenceCounts.keySet())
-      newElement.referenceCounts.put(variableName, getReferenceCount(variableName).intValue());
+      newElement.referenceCounts.put(variableName, getReferenceCount(variableName));
 
     return newElement;
   }
