@@ -29,6 +29,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -40,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.ast.Defaults;
 import org.sosy_lab.cpachecker.cfa.ast.DummyType;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
@@ -96,6 +98,7 @@ class ASTConverter {
   private final boolean ignoreCasts;
 
   private Scope scope;
+  private LinkedList<IASTNode> sideAssigment = new LinkedList<IASTNode>();
 
   public ASTConverter(Scope pScope, boolean pIgnoreCasts, LogManager pLogger) {
     scope = pScope;
@@ -109,15 +112,58 @@ class ASTConverter {
     }
   }
 
-  public IASTExpression convertExpressionWithoutSideEffects(org.eclipse.cdt.core.dom.ast.IASTExpression e) {
+  public boolean existsSideAssignment(){
+    return !sideAssigment.isEmpty();
+  }
+
+  public IASTNode getSideAssignment() {
+    return sideAssigment.removeFirst();
+  }
+
+  public IASTExpression convertExpressionWithoutSideEffects(
+      org.eclipse.cdt.core.dom.ast.IASTExpression e) {
+
     IASTNode node = convertExpressionWithSideEffects(e);
     if (node == null || node instanceof IASTExpression) {
-      return (IASTExpression)node;
 
+      return (IASTExpression) node;
+
+    } else if (node instanceof IASTFunctionCallExpression) {
+      String name = "__CPAchecker_TMP_";
+      int i = 0;
+      while(scope.variableNameInUse(name+i, name+i)){
+        i++;
+      }
+      name += i;
+
+      IASTDeclaration decl = new IASTDeclaration(node.getFileLocation(),
+                                                 false,
+                                                 StorageClass.AUTO,
+                                                 ((IASTFunctionCallExpression) node).getExpressionType(),
+                                                 name,
+                                                 null);
+
+      sideAssigment.add(decl);
+      IASTIdExpression tmp = new IASTIdExpression(convert(e.getFileLocation()),
+                                                  convert(e.getExpressionType()),
+                                                  name,
+                                                  decl);
+
+      scope.registerDeclaration(tmp.getDeclaration());
+      sideAssigment.add(new IASTFunctionCallAssignmentStatement(convert(e.getFileLocation()),
+                                                                tmp,
+                                                                (IASTFunctionCallExpression) node));
+
+      return tmp;
+
+    } else if (node instanceof IASTAssignment) {
+        sideAssigment.add(node);
+        return ((IASTAssignment) node).getLeftHandSide();
     } else {
-      throw new CFAGenerationRuntimeException("Expression is not free of side-effects", e);
+      throw new AssertionError("unknown expression " + node);
     }
   }
+
 
   protected IASTNode convertExpressionWithSideEffects(org.eclipse.cdt.core.dom.ast.IASTExpression e) {
     assert !(e instanceof IASTExpression);
@@ -184,6 +230,9 @@ class ASTConverter {
           // a = f()
           return new IASTFunctionCallAssignmentStatement(fileLoc, leftHandSide, (IASTFunctionCallExpression)rightHandSide);
 
+        } else if(rightHandSide instanceof IASTAssignment) {
+          sideAssigment.add(rightHandSide);
+          return new IASTExpressionAssignmentStatement(fileLoc, leftHandSide, ((IASTAssignment) rightHandSide).getLeftHandSide());
         } else {
           throw new CFAGenerationRuntimeException("Expression is not free of side-effects", e);
         }
@@ -1124,6 +1173,11 @@ class ASTConverter {
 
   private IASTInitializerExpression convert(org.eclipse.cdt.core.dom.ast.IASTInitializerExpression i) {
     IASTNode initializer = convertExpressionWithSideEffects(i.getExpression());
+    if(initializer != null && initializer instanceof IASTAssignment){
+      sideAssigment.add(initializer);
+      return new IASTInitializerExpression(convert(i.getFileLocation()), ((IASTAssignment)initializer).getLeftHandSide());
+    }
+
     if (initializer != null && !(initializer instanceof IASTRightHandSide)) {
       throw new CFAGenerationRuntimeException("Initializer is not free of side-effects", i);
     }
@@ -1148,6 +1202,12 @@ class ASTConverter {
       org.eclipse.cdt.core.dom.ast.IASTExpression e = (org.eclipse.cdt.core.dom.ast.IASTExpression)ic;
 
       IASTNode initializer = convertExpressionWithSideEffects(e);
+
+      if(initializer != null && initializer instanceof IASTAssignment){
+        sideAssigment.add(initializer);
+        return new IASTInitializerExpression(convert(i.getFileLocation()), ((IASTAssignment)initializer).getLeftHandSide());
+      }
+
       if (initializer != null && !(initializer instanceof IASTRightHandSide)) {
         throw new CFAGenerationRuntimeException("Initializer is not free of side-effects", i);
       }

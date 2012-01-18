@@ -62,9 +62,6 @@ analysis.externalCBMC = false
 # run interprocedural analysis
 analysis.interprocedural = true
 
-# C programs to analyze (currently only one file is supported)
-analysis.programNames = no default value
-
 # which reached set implementation to use?
 # NORMAL: just a simple set
 # LOCATIONMAPPED: a different set per location (faster, elements with
@@ -79,8 +76,7 @@ analysis.restartAfterUnknown = false
 # stop after the first error has been found
 analysis.stopAfterError = true
 
-# which strategy to adopt for visiting states? TOPSORT is deprecated, use the
-# option analysis.traversal.useTopsort instead
+# which strategy to adopt for visiting states?
 analysis.traversal.order = DFS
   enum:     [DFS, BFS, TOPSORT, RAND]
 
@@ -163,8 +159,6 @@ cbmc.options.nuaf = false
 # specify the limit for unwindings (0 is infinite)
 cbmc.options.unwindings = 0
 
-# maximum time limit for CBMC (use milliseconds or specify a unit; 0 for
-# infinite)
 # maximum time limit for CBMC (0 is infinite)
 cbmc.timelimit = 0
 
@@ -209,10 +203,6 @@ counterexample.removeInfeasibleErrors = false
 # CPA to use (see doc/Configuration.txt for more documentation on this)
 cpa = CompositeCPA.class.getCanonicalName()
 
-# if enabled, cache queries also consider blocks with non-matching precision
-# for reuse.
-cpa.abm.aggressiveCaching = true
-
 # Type of partitioning (FunctionAndLoopPartitioning or
 # DelayedFunctionAndLoopPartitioning)
 # or any class that implements a PartitioningHeuristic
@@ -236,6 +226,34 @@ cpa.art.errorPath.source = "ErrorPath.c"
 cpa.art.export = true
 cpa.art.file = "ART.dot"
 
+# which heuristics should be used to track progress?
+cpa.assumptions.progressobserver.heuristics = no default value
+
+# threshold for heuristics of progressobserver
+cpa.assumptions.progressobserver.heuristics.assumeEdgesInPathHeuristics.threshold = -1
+cpa.assumptions.progressobserver.heuristics.edgeCountHeuristics.threshold = -1
+
+# Threshold for MemoryOutHeuristics (total memory of process in MB)
+cpa.assumptions.progressobserver.heuristics.memoryOutHeuristics.threshold = -1
+
+# threshold for heuristics of progressobserver
+cpa.assumptions.progressobserver.heuristics.pathLengthHeuristics.threshold = -1
+cpa.assumptions.progressobserver.heuristics.reachedSizeHeuristics.threshold = -1
+cpa.assumptions.progressobserver.heuristics.repetitionsInPathHeuristics.threshold = -1
+
+# how many times to adjust timeout threshold?
+cpa.assumptions.progressobserver.heuristics.timeOutHeuristics.adjustmentLimit = -1
+
+# hard limit threshold for timeout heuristics, disable restarting after this
+# limit
+cpa.assumptions.progressobserver.heuristics.timeOutHeuristics.hardLimitThreshold = -1
+
+# threshold for timeout heuristics
+cpa.assumptions.progressobserver.heuristics.timeOutHeuristics.threshold = -1
+
+# threshold for heuristics of progressobserver
+cpa.assumptions.progressobserver.heuristics.usedMemoryOutHeuristics.threshold = 0
+
 # signal the analysis to break in case of reached error state
 cpa.automaton.breakOnTargetState = true
 
@@ -255,45 +273,6 @@ cpa.automaton.inputFile = no default value
 # cpas agree on this. This is probably what you want.
 cpa.composite.merge = "AGREE"
   allowed values: [PLAIN, AGREE]
-
-# Limit for Java heap memory used by CPAchecker (in MiB; -1 for infinite)
-cpa.conditions.global.memory.heap = -1
-
-# Limit for process memory used by CPAchecker (in MiB; -1 for infinite)
-cpa.conditions.global.memory.process = -1
-
-# Limit for size of reached set (-1 for infinite)
-cpa.conditions.global.reached.size = -1
-
-# Limit for cpu time used by CPAchecker (use milliseconds or specify a unit;
-# -1 for infinite)
-cpa.conditions.global.time.cpu = -1
-
-# Hard limit for cpu time used by CPAchecker (use milliseconds or specify a
-# unit; -1 for infinite)
-# When using adjustable conditions, analysis will end after this threshold
-cpa.conditions.global.time.cpu.hardlimit = -1
-
-# Limit for wall time used by CPAchecker (use milliseconds or specify a unit;
-# -1 for infinite)
-cpa.conditions.global.time.wall = -1
-
-# Hard limit for wall time used by CPAchecker (use milliseconds or specify a
-# unit; -1 for infinite)
-# When using adjustable conditions, analysis will end after this threshold
-cpa.conditions.global.time.wall.hardlimit = -1
-
-# maximum number of assume edges length (-1 for infinite)
-cpa.conditions.path.assumeedges.limit = -1
-
-# The condition
-cpa.conditions.path.condition = no default value
-
-# maximum path length (-1 for infinite)
-cpa.conditions.path.length.limit = -1
-
-# maximum repetitions of any edge in a path (-1 for infinite)
-cpa.conditions.path.repetitions.limit = -1
 
 # which merge operator to use for DefUseCPA
 cpa.defuse.merge = "sep"
@@ -341,12 +320,10 @@ cpa.invariants.merge = "JOIN"
 # be unsound
 cpa.loopstack.maxLoopIterations = 0
 
-# time limit for a single post computation (use milliseconds or specify a
-# unit; 0 for infinite)
+# time limit for a single post computation in millseconds (0 to disable)
 cpa.monitor.limit = 0
 
-# time limit for all computations on a path in milliseconds (use milliseconds
-# or specify a unit; 0 for infinite)
+# time limit for all computations on a path in milliseconds (0 to disable)
 cpa.monitor.pathcomputationlimit = 0
 
 # which merge operator to use for OctagonCPA?
@@ -415,7 +392,7 @@ cpa.predicate.checkBlockFeasibility = false
 cpa.predicate.formulaDumpFilePattern = "%s%04d-%s%03d.msat"
 
 # handle Pointers
-cpa.predicate.handlePointerAliasing = true
+cpa.predicate.handlePointerAliasing = false
 
 # initialize all variables to 0 when they are declared
 cpa.predicate.initAllVars = false
@@ -528,8 +505,7 @@ cpa.predicate.refinement.shortestCexTraceZigZag = false
 # split arithmetic equalities when extracting predicates from interpolants
 cpa.predicate.refinement.splitItpAtoms = false
 
-# time limit for refinement (use milliseconds or specify a unit; 0 for
-# infinite)
+# time limit for refinement (0 is infinitely long)
 cpa.predicate.refinement.timelimit = 0
 
 # verify if the interpolants fulfill the interpolant properties
