@@ -150,8 +150,9 @@ public class CFASecondPassBuilder {
    * @param functionCall If the call was an assignment from the function call
    * this keeps only the function call expression, e.g. if statement is a = call(b);
    * then functionCall is call(b).
+   * @throws ParserException
    */
-  private void createCallAndReturnEdges(StatementEdge edge, IASTFunctionCall functionCall) {
+  private void createCallAndReturnEdges(StatementEdge edge, IASTFunctionCall functionCall) throws ParserException {
     CFANode predecessorNode = edge.getPredecessor();
     CFANode successorNode = edge.getSuccessor();
     IASTFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
@@ -164,6 +165,12 @@ public class CFASecondPassBuilder {
 
     //get the parameter expression
     List<IASTExpression> parameters = functionCallExpression.getParameterExpressions();
+
+    //proove if the number of Function parameters are right
+    if(!((FunctionDefinitionNode)fDefNode).getFunctionDefinition().getDeclSpecifier().takesVarArgs()
+        && parameters.size() != ((FunctionDefinitionNode)fDefNode).getFunctionDefinition().getDeclSpecifier().getParameters().size()){
+      throw new ParserException("Invalid number of Function parameters", edge);
+    }
 
     // delete old edge
     CFACreationUtils.removeEdgeFromNodes(edge);
