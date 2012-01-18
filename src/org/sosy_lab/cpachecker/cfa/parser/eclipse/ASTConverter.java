@@ -161,7 +161,6 @@ class ASTConverter {
         sideAssigment.add(node);
         return ((IASTAssignment) node).getLeftHandSide();
     } else {
-      System.out.println(node.toASTString());
       throw new AssertionError("unknown expression " + node);
     }
   }
@@ -232,6 +231,9 @@ class ASTConverter {
           // a = f()
           return new IASTFunctionCallAssignmentStatement(fileLoc, leftHandSide, (IASTFunctionCallExpression)rightHandSide);
 
+        } else if(rightHandSide instanceof IASTAssignment) {
+          sideAssigment.add(rightHandSide);
+          return new IASTExpressionAssignmentStatement(fileLoc, leftHandSide, ((IASTAssignment) rightHandSide).getLeftHandSide());
         } else {
           throw new CFAGenerationRuntimeException("Expression is not free of side-effects", e);
         }
