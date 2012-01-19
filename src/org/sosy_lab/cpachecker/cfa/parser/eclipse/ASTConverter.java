@@ -120,48 +120,81 @@ class ASTConverter {
     return sideAssigment.removeFirst();
   }
 
+  public IASTExpression convertExpressionWithoutSideEffectsForConditions(
+                                org.eclipse.cdt.core.dom.ast.IASTExpression e){
+    IASTNode node = convertExpressionWithSideEffects(e);
+    if (node == null || node instanceof IASTExpression) {
+      return convertToBinaryExpression((IASTExpression) node);
+
+    } else if (node instanceof IASTFunctionCallExpression) {
+      return convertToBinaryExpression(addSideassignmentsForExpressionsWithoutSideEffects(node, e));
+
+    } else if (node instanceof IASTAssignment) {
+        sideAssigment.add(node);
+        return convertToBinaryExpression(((IASTAssignment) node).getLeftHandSide());
+
+    } else {
+      throw new AssertionError("unknown expression " + node);
+    }
+  }
+
+  private IASTExpression convertToBinaryExpression(IASTExpression e){
+    if(e.getExpressionType() instanceof IASTSimpleDeclSpecifier){
+      IASTBinaryExpression binExp = new IASTBinaryExpression(e.getFileLocation(), e.getExpressionType(), e,
+          new IASTIntegerLiteralExpression(e.getFileLocation(), e.getExpressionType(), BigInteger.ZERO), BinaryOperator.NOT_EQUALS);
+      System.out.println(binExp.toASTString());
+      return binExp;
+    } else {
+      return e;
+    }
+  }
+
   public IASTExpression convertExpressionWithoutSideEffects(
       org.eclipse.cdt.core.dom.ast.IASTExpression e) {
 
     IASTNode node = convertExpressionWithSideEffects(e);
     if (node == null || node instanceof IASTExpression) {
-
       return (IASTExpression) node;
 
     } else if (node instanceof IASTFunctionCallExpression) {
-      String name = "__CPAchecker_TMP_";
-      int i = 0;
-      while(scope.variableNameInUse(name+i, name+i)){
-        i++;
-      }
-      name += i;
-
-      IASTDeclaration decl = new IASTDeclaration(node.getFileLocation(),
-                                                 false,
-                                                 StorageClass.AUTO,
-                                                 ((IASTFunctionCallExpression) node).getExpressionType(),
-                                                 name,
-                                                 null);
-
-      sideAssigment.add(decl);
-      IASTIdExpression tmp = new IASTIdExpression(convert(e.getFileLocation()),
-                                                  convert(e.getExpressionType()),
-                                                  name,
-                                                  decl);
-
-      scope.registerDeclaration(tmp.getDeclaration());
-      sideAssigment.add(new IASTFunctionCallAssignmentStatement(convert(e.getFileLocation()),
-                                                                tmp,
-                                                                (IASTFunctionCallExpression) node));
-
-      return tmp;
+      return addSideassignmentsForExpressionsWithoutSideEffects(node, e);
 
     } else if (node instanceof IASTAssignment) {
         sideAssigment.add(node);
         return ((IASTAssignment) node).getLeftHandSide();
+
     } else {
       throw new AssertionError("unknown expression " + node);
     }
+  }
+
+  private IASTExpression addSideassignmentsForExpressionsWithoutSideEffects(IASTNode node,
+                                                                            org.eclipse.cdt.core.dom.ast.IASTExpression e){
+    String name = "__CPAchecker_TMP_";
+    int i = 0;
+    while(scope.variableNameInUse(name+i, name+i)){
+      i++;
+    }
+    name += i;
+
+    IASTDeclaration decl = new IASTDeclaration(node.getFileLocation(),
+                                               false,
+                                               StorageClass.AUTO,
+                                               ((IASTFunctionCallExpression) node).getExpressionType(),
+                                               name,
+                                               null);
+
+    sideAssigment.add(decl);
+    IASTIdExpression tmp = new IASTIdExpression(convert(e.getFileLocation()),
+                                                convert(e.getExpressionType()),
+                                                name,
+                                                decl);
+
+    scope.registerDeclaration(tmp.getDeclaration());
+    sideAssigment.add(new IASTFunctionCallAssignmentStatement(convert(e.getFileLocation()),
+                                                              tmp,
+                                                              (IASTFunctionCallExpression) node));
+    return tmp;
   }
 
 
