@@ -1,4 +1,4 @@
-test/programs/cpbm/linux/*.cil.c
-test/programs/cpbm/loopfrog/*_BUG.cil.c
-test/programs/cpbm/loopfrog/*[!G].cil.c
-test/programs/cpbm/scratch/*/*.cil.c
+../programs/cpbm/linux/*.cil.c
+../programs/cpbm/loopfrog/*_BUG.cil.c
+../programs/cpbm/loopfrog/*[!G].cil.c
+../programs/cpbm/scratch/*/*.cil.c
