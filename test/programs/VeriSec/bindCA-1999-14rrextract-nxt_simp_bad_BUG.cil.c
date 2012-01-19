@@ -15,14 +15,13 @@ extern void *r_memcpy(void *dest , void const   *src , size_t n ) ;
 extern int dn_expand(u_char const   *msg , u_char const   *eomorig , u_char const   *comp_dn ,
                      char *exp_dn , int length ) ;
 #line 50
-extern int nondet_int() ;
+extern int __VERIFIER_nondet_int() ;
+extern int __VERIFIER_nondet_short() ;
 #line 71 "/usr/include/assert.h"
 extern  __attribute__((__nothrow__, __noreturn__)) void __assert_fail(char const   *__assertion ,
                                                                       char const   *__file ,
                                                                       unsigned int __line ,
                                                                       char const   *__function ) ;
-#line 18 "../versisec/bind/progs1/bindCA-1999-14rrextract-nxt_simp_bad.c"
-extern int ( /* missing proto */  nondet_short)() ;
 #line 6 "../versisec/bind/progs1/bindCA-1999-14rrextract-nxt_simp_bad.c"
 static int rrextract(u_char *msg , int msglen , u_char *rrp , u_char *dname , int namelen ) 
 { u_char *eom ;
@@ -84,7 +83,7 @@ static int rrextract(u_char *msg , int msglen , u_char *rrp , u_char *dname , in
     while_0_continue: /* CIL Label */ ;
     {
 #line 18
-    dlen = nondet_short();
+    dlen = __VERIFIER_nondet_short();
 #line 18
     cp = cp + 2;
     }
@@ -148,7 +147,7 @@ static int rrextract(u_char *msg , int msglen , u_char *rrp , u_char *dname , in
   }
   {
 #line 29
-  tmp = nondet_int();
+  tmp = __VERIFIER_nondet_int();
   }
 #line 29
   if (tmp) {

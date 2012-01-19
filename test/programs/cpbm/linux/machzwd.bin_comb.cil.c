@@ -649,9 +649,9 @@ int main(void)
 extern int pthread_create(pthread_t *__threadp , pthread_attr_t const   *__attr ,
                           void *(*__start_routine)(void * ) , void *__arg ) ;
 #line 16 "cprover/ddverify/include/ddverify/satabs.h"
-extern unsigned short nondet_ushort() ;
+extern unsigned short __VERIFIER_nondet_ushort() ;
 #line 17
-extern int nondet_int() ;
+extern int __VERIFIER_nondet_int() ;
 #line 54 "./include/linux/spinlock.h"
 void spin_lock_init(spinlock_t *lock ) ;
 #line 12 "cprover/ddverify/include/ddverify/fixed_cdev.h"
@@ -781,7 +781,7 @@ static void *ddv_2(void *arg )
     while_continue: /* CIL Label */ ;
     {
 #line 38
-    random = nondet_ushort();
+    random = __VERIFIER_nondet_ushort();
     }
     {
 #line 41
@@ -916,7 +916,7 @@ void ddv(void)
 #line 116
     call_cdev_functions();
 #line 113
-    tmp = nondet_int();
+    tmp = __VERIFIER_nondet_int();
     }
 #line 113
     if (! tmp) {
@@ -971,15 +971,15 @@ int call_ddv(void)
 #line 1 "preproc_G4YcoN.o"
 #pragma merger(0,"preproc_G4YcoN.i","-x,c")
 #line 18 "cprover/ddverify/include/ddverify/satabs.h"
-extern unsigned int nondet_uint() ;
+extern unsigned int __VERIFIER_nondet_uint() ;
 #line 20
-extern unsigned long nondet_ulong() ;
+extern unsigned long __VERIFIER_nondet_ulong() ;
 #line 21
-extern char nondet_char() ;
+extern char __VERIFIER_nondet_char() ;
 #line 24
-extern loff_t nondet_loff_t() ;
+extern loff_t __VERIFIER_nondet_loff_t() ;
 #line 25
-extern size_t nondet_size_t() ;
+extern size_t __VERIFIER_nondet_size_t() ;
 #line 5 "cprover/ddverify/src/ddverify/cdev.c"
 void call_cdev_functions(void) 
 { int cdev_no ;
@@ -1167,7 +1167,7 @@ void call_cdev_functions(void)
   }
   {
 #line 20
-  tmp = nondet_ushort();
+  tmp = __VERIFIER_nondet_ushort();
 #line 20
   cdev_no = (int )tmp;
   }
@@ -1193,7 +1193,7 @@ void call_cdev_functions(void)
 #line 21
   __CPROVER_assume(tmp___0);
 #line 23
-  tmp___1 = nondet_ushort();
+  tmp___1 = __VERIFIER_nondet_ushort();
   }
   {
 #line 24
@@ -1411,9 +1411,9 @@ void call_cdev_functions(void)
 #line 26
     __cil_tmp22 = & loff_t_value;
 #line 26
-    *__cil_tmp22 = nondet_loff_t();
+    *__cil_tmp22 = __VERIFIER_nondet_loff_t();
 #line 27
-    int_value = nondet_int();
+    int_value = __VERIFIER_nondet_int();
 #line 29
     __cil_tmp23 = cdev_no * 96UL;
 #line 29
@@ -1477,9 +1477,9 @@ void call_cdev_functions(void)
 #line 36
     __cil_tmp46 = & char_value;
 #line 36
-    *__cil_tmp46 = nondet_char();
+    *__cil_tmp46 = __VERIFIER_nondet_char();
 #line 37
-    size_t_value = nondet_size_t();
+    size_t_value = __VERIFIER_nondet_size_t();
 #line 39
     __cil_tmp47 = cdev_no * 96UL;
 #line 39
@@ -1542,9 +1542,9 @@ void call_cdev_functions(void)
 #line 50
     __cil_tmp68 = & char_value;
 #line 50
-    *__cil_tmp68 = nondet_char();
+    *__cil_tmp68 = __VERIFIER_nondet_char();
 #line 51
-    size_t_value = nondet_size_t();
+    size_t_value = __VERIFIER_nondet_size_t();
 #line 53
     __cil_tmp69 = cdev_no * 96UL;
 #line 53
@@ -1614,9 +1614,9 @@ void call_cdev_functions(void)
   if (*((int (* const  *)(struct inode * , struct file * , unsigned int  , unsigned long  ))__cil_tmp90)) {
     {
 #line 70
-    uint_value = nondet_uint();
+    uint_value = __VERIFIER_nondet_uint();
 #line 71
-    ulong_value = nondet_ulong();
+    ulong_value = __VERIFIER_nondet_ulong();
 #line 73
     __cil_tmp91 = cdev_no * 96UL;
 #line 73
@@ -1926,7 +1926,7 @@ void call_interrupt_handler(void)
   {
   {
 #line 15
-  tmp = nondet_int();
+  tmp = __VERIFIER_nondet_int();
 #line 15
   i = (unsigned short )tmp;
 #line 16
@@ -2020,7 +2020,7 @@ int pci_probe_device(void)
 #line 16
   *((unsigned int *)__cil_tmp3) = 1U;
 #line 18
-  dev_id = nondet_uint();
+  dev_id = __VERIFIER_nondet_uint();
 #line 19
   __cil_tmp4 = (unsigned long )(& registered_pci_driver) + 448;
 #line 19
@@ -2119,7 +2119,7 @@ void call_pci_functions(void)
   {
   {
 #line 40
-  tmp = nondet_uint();
+  tmp = __VERIFIER_nondet_uint();
   }
   {
 #line 41
@@ -2346,7 +2346,7 @@ void call_timer_functions(void)
   {
   {
 #line 6
-  tmp = nondet_ushort();
+  tmp = __VERIFIER_nondet_ushort();
 #line 6
   i = tmp;
 #line 8
@@ -2476,7 +2476,7 @@ __inline int pci_enable_device(struct pci_dev *dev )
 #line 13
     *((unsigned long *)__cil_tmp9) = 256UL;
 #line 14
-    tmp = nondet_uint();
+    tmp = __VERIFIER_nondet_uint();
 #line 14
     __cil_tmp10 = i * 32UL;
 #line 14
@@ -2490,7 +2490,7 @@ __inline int pci_enable_device(struct pci_dev *dev )
 #line 14
     *((unsigned long *)__cil_tmp14) = (unsigned long )tmp;
 #line 15
-    tmp___0 = nondet_ushort();
+    tmp___0 = __VERIFIER_nondet_ushort();
 #line 15
     __cil_tmp15 = i * 32UL;
 #line 15
@@ -2571,7 +2571,7 @@ __inline struct pci_dev *pci_get_class(unsigned int class , struct pci_dev *from
   }
   {
 #line 25
-  tmp___0 = nondet_int();
+  tmp___0 = __VERIFIER_nondet_int();
   }
 #line 25
   if (tmp___0) {
@@ -2581,19 +2581,19 @@ __inline struct pci_dev *pci_get_class(unsigned int class , struct pci_dev *from
 #line 26
     __cil_tmp10 = __cil_tmp9 + 12;
 #line 26
-    *((unsigned short *)__cil_tmp10) = nondet_ushort();
+    *((unsigned short *)__cil_tmp10) = __VERIFIER_nondet_ushort();
 #line 27
     __cil_tmp11 = (unsigned long )from;
 #line 27
     __cil_tmp12 = __cil_tmp11 + 14;
 #line 27
-    *((unsigned short *)__cil_tmp12) = nondet_ushort();
+    *((unsigned short *)__cil_tmp12) = __VERIFIER_nondet_ushort();
 #line 28
     __cil_tmp13 = (unsigned long )from;
 #line 28
     __cil_tmp14 = __cil_tmp13 + 48;
 #line 28
-    *((unsigned int *)__cil_tmp14) = nondet_uint();
+    *((unsigned int *)__cil_tmp14) = __VERIFIER_nondet_uint();
 #line 29
     __cil_tmp15 = (unsigned long )from;
 #line 29
@@ -2628,7 +2628,7 @@ __inline int pci_register_driver(struct pci_driver *driver )
   {
   {
 #line 39
-  tmp = nondet_int();
+  tmp = __VERIFIER_nondet_int();
   }
 #line 39
   if (tmp) {
@@ -3943,7 +3943,7 @@ __inline int __get_user(int size , void *ptr )
 #line 8
   assert_context_process();
 #line 10
-  tmp = nondet_int();
+  tmp = __VERIFIER_nondet_int();
   }
 #line 10
   return (tmp);
@@ -3958,7 +3958,7 @@ __inline unsigned long copy_to_user(void *to , void const   *from , unsigned lon
 #line 40
   assert_context_process();
 #line 42
-  tmp = nondet_ulong();
+  tmp = __VERIFIER_nondet_ulong();
   }
 #line 42
   return (tmp);
@@ -3973,7 +3973,7 @@ __inline unsigned long copy_from_user(void *to , void *from , unsigned long n )
 #line 48
   assert_context_process();
 #line 50
-  tmp = nondet_ulong();
+  tmp = __VERIFIER_nondet_ulong();
   }
 #line 50
   return (tmp);
@@ -4009,7 +4009,7 @@ int register_chrdev_region(dev_t from , unsigned int count , char const   *name 
   {
   {
 #line 26
-  tmp = nondet_int();
+  tmp = __VERIFIER_nondet_int();
 #line 26
   return_value = tmp;
   }
@@ -4048,7 +4048,7 @@ int alloc_chrdev_region(dev_t *dev , unsigned int baseminor , unsigned int count
   {
   {
 #line 47
-  tmp = nondet_int();
+  tmp = __VERIFIER_nondet_int();
 #line 47
   return_value = tmp;
   }
@@ -4073,7 +4073,7 @@ int alloc_chrdev_region(dev_t *dev , unsigned int baseminor , unsigned int count
   if (return_value == 0) {
     {
 #line 51
-    tmp___1 = nondet_uint();
+    tmp___1 = __VERIFIER_nondet_uint();
 #line 51
     major = (int )tmp___1;
 #line 52
@@ -4222,7 +4222,7 @@ int cdev_add(struct cdev *p , dev_t dev , unsigned int count )
 #line 128
   *((unsigned int *)__cil_tmp10) = count;
 #line 130
-  tmp = nondet_int();
+  tmp = __VERIFIER_nondet_int();
 #line 130
   return_value = tmp;
   }
@@ -4506,9 +4506,9 @@ void mutex_unlock(struct mutex *lock )
 #line 1 "preproc_maNYYe.o"
 #pragma merger(0,"preproc_maNYYe.i","-x,c")
 #line 22 "cprover/ddverify/include/ddverify/satabs.h"
-extern unsigned char nondet_uchar() ;
+extern unsigned char __VERIFIER_nondet_uchar() ;
 #line 23
-extern unsigned int nondet_unsigned() ;
+extern unsigned int __VERIFIER_nondet_unsigned() ;
 #line 10 "cprover/ddverify/include/ddverify/ioport.h"
 int ddv_ioport_request_start  ;
 #line 11 "cprover/ddverify/include/ddverify/ioport.h"
@@ -4588,7 +4588,7 @@ __inline unsigned char inb(unsigned int port )
 #line 44
   __CPROVER_assert(tmp, "I/O port is requested");
 #line 46
-  tmp___0 = nondet_uchar();
+  tmp___0 = __VERIFIER_nondet_uchar();
   }
 #line 46
   return (tmp___0);
@@ -4671,7 +4671,7 @@ __inline unsigned short inw(unsigned int port )
 #line 58
   __CPROVER_assert(tmp, "I/O port is requested");
 #line 60
-  tmp___0 = nondet_ushort();
+  tmp___0 = __VERIFIER_nondet_ushort();
   }
 #line 60
   return (tmp___0);
@@ -4754,7 +4754,7 @@ __inline unsigned int inl(unsigned int port )
 #line 72
   __CPROVER_assert(tmp, "I/O port is requested");
 #line 74
-  tmp___0 = nondet_unsigned();
+  tmp___0 = __VERIFIER_nondet_unsigned();
   }
 #line 74
   return (tmp___0);
@@ -4803,7 +4803,7 @@ __inline void outl(unsigned int doubleword , unsigned int port )
 #line 1 "preproc_rsYG1t.o"
 #pragma merger(0,"preproc_rsYG1t.i","-x,c")
 #line 19 "cprover/ddverify/include/ddverify/satabs.h"
-extern long nondet_long() ;
+extern long __VERIFIER_nondet_long() ;
 #line 46 "./include/linux/sched.h"
 long schedule_timeout(long timeout ) ;
 #line 48
@@ -4830,7 +4830,7 @@ long schedule_timeout(long timeout )
 #line 38
   assert_context_process();
 #line 40
-  tmp = nondet_long();
+  tmp = __VERIFIER_nondet_long();
   }
 #line 40
   return (tmp);
@@ -5046,7 +5046,7 @@ __inline int down_interruptible(struct semaphore *sem )
     }
     {
 #line 78
-    tmp = nondet_int();
+    tmp = __VERIFIER_nondet_int();
     }
 #line 78
     if (tmp) {
@@ -5894,7 +5894,7 @@ void call_shared_workqueue_functions(void)
   {
   {
 #line 50
-  tmp = nondet_ushort();
+  tmp = __VERIFIER_nondet_ushort();
 #line 50
   i = tmp;
 #line 51
@@ -6015,7 +6015,7 @@ int request_irq(unsigned int irq , irqreturn_t (*handler)(int  , void * , struct
   {
   {
 #line 65
-  tmp = nondet_int();
+  tmp = __VERIFIER_nondet_int();
   }
 #line 65
   if (tmp) {
