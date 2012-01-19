@@ -23,16 +23,17 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import static org.sosy_lab.cpachecker.util.AbstractElements.*;
+import static org.sosy_lab.cpachecker.util.AbstractElements.extractLocation;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.ArrayList;
+import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
@@ -263,40 +264,73 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       return "Cannot dump assumption as automaton if ARTCPA is not used.";
     }
 
-    Set<ARTElement> artNodes = new HashSet<ARTElement>();
+    Set<AbstractElement> falseAssumptionElements = Sets.newHashSet(reached.getWaitlist());
 
-    Set<AbstractElement> falseAssumptions = Sets.newHashSet(reached.getWaitlist());
-    Iterables.addAll(falseAssumptions, filterTargetElements(reached));
+    // scan reached set for all relevant elements with an assumption
+    Set<ARTElement> relevantElements = new HashSet<ARTElement>();
+    for (AbstractElement element : reached) {
+      ARTElement e = (ARTElement)element;
+      AssumptionStorageElement asmptElement = AbstractElements.extractElementByType(e, AssumptionStorageElement.class);
 
-    if (!exceptionElements.isEmpty()) {
-      for (AbstractElement element : reached) {
-        if (exceptionElements.contains(((ARTElement)element).getElementId())) {
-          falseAssumptions.add(element);
-        }
+      if (e.isTarget()
+          || asmptElement.isStop()
+          || exceptionElements.contains(e.getElementId())) {
+        falseAssumptionElements.add(e);
+      }
+
+      if (relevantElements.contains(e)) {
+        continue;
+      }
+
+      if (!asmptElement.getAssumption().isTrue()
+          || falseAssumptionElements.contains(e)) {
+
+        // now add e and all its transitive parents to the relevantElements set
+        findAllParents(e, relevantElements);
       }
     }
 
-    Set<ARTElement> trueAssumptions = new HashSet<ARTElement>();
-    getTrueAssumptionElements((ARTElement)firstElement, artNodes, trueAssumptions, falseAssumptions);
+    ARTElement rootElement = (ARTElement)reached.getFirstElement();
 
+    Set<ARTElement> childrenOfRelevantElements = new TreeSet<ARTElement>(relevantElements);
+    childrenOfRelevantElements.add(rootElement);
+    for (ARTElement e : relevantElements) {
+      childrenOfRelevantElements.addAll(e.getChildren());
+      childrenOfRelevantElements.addAll(e.getCoveredByThis());
+    }
+
+    return writeAutomaton(rootElement, childrenOfRelevantElements, relevantElements, falseAssumptionElements);
+  }
+
+  /**
+   * Create a String containing the assumption automaton.
+   * @param initialElement The initial element of the automaton.
+   * @param allElements A set with all elements which should appear as states in the automaton.
+   * @param relevantElements A set with all elements with non-trivial assumptions (all others and their children will have assumption TRUE).
+   * @param falseAssumptionElements A set with all elements with the assumption FALSE
+   */
+  private String writeAutomaton(ARTElement initialElement, Set<ARTElement> allElements,
+      Set<ARTElement> relevantElements, Set<AbstractElement> falseAssumptionElements) {
     StringBuilder sb = new StringBuilder();
     sb.append("OBSERVER AUTOMATON AssumptionAutomaton\n\n");
-    sb.append("INITIAL STATE ART" + ((ARTElement)reached.getFirstElement()).getElementId() + ";\n\n");
+    sb.append("INITIAL STATE ART" + initialElement.getElementId() + ";\n\n");
     sb.append("STATE __TRUE :\n");
     sb.append("    TRUE -> ASSUME \"true\" GOTO __TRUE;\n\n");
-    sb.append("STATE __FALSE :\n");
-    sb.append("    TRUE -> ASSUME \"false\" GOTO __FALSE;\n\n");
 
-    for (ARTElement e : artNodes) {
-      if (e.isCovered() || falseAssumptions.contains(e) ||
-          (!e.getParents().isEmpty() && trueAssumptions.containsAll(e.getParents()))){
+    if (!falseAssumptionElements.isEmpty()) {
+      sb.append("STATE __FALSE :\n");
+      sb.append("    TRUE -> ASSUME \"false\" GOTO __FALSE;\n\n");
+    }
+
+    for (ARTElement e : allElements) {
+      if (e.isCovered() || falseAssumptionElements.contains(e)) {
         continue;
       }
 
       sb.append("STATE USEFIRST ART" + e.getElementId() + " :\n");
       automatonStates++;
 
-      if (trueAssumptions.contains(e)) {
+      if (!relevantElements.contains(e)) {
         sb.append("   TRUE -> GOTO __TRUE;\n\n");
 
       } else {
@@ -307,32 +341,55 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
             assert !child.isCovered();
           }
 
-          if (artNodes.contains(child)) {
-            CFANode childLoc = AbstractElements.extractLocation(child);
-            CFAEdge edge = loc.getEdgeTo(childLoc);
-            sb.append("    MATCH \"");
-            escape(edge.getRawStatement(), sb);
-            sb.append("\" -> ");
+          CFANode childLoc = AbstractElements.extractLocation(child);
+          CFAEdge edge = loc.getEdgeTo(childLoc);
+          sb.append("    MATCH \"");
+          escape(edge.getRawStatement(), sb);
+          sb.append("\" -> ");
 
-            AssumptionStorageElement assumptionChild = AbstractElements.extractElementByType(child, AssumptionStorageElement.class);
-            Formula assumption = formulaManager.makeAnd(assumptionChild.getAssumption(), assumptionChild.getStopFormula());
-            sb.append("ASSUME \"");
-            escape(assumption.toString(), sb);
-            sb.append("\" ");
+          AssumptionStorageElement assumptionChild = AbstractElements.extractElementByType(child, AssumptionStorageElement.class);
+          Formula assumption = formulaManager.makeAnd(assumptionChild.getAssumption(), assumptionChild.getStopFormula());
+          sb.append("ASSUME \"");
+          escape(assumption.toString(), sb);
+          sb.append("\" ");
 
-            if (!assumptionChild.getStopFormula().isTrue() || falseAssumptions.contains(child)) {
-              sb.append("GOTO __FALSE");
-            } else {
-              sb.append("GOTO ART" + child.getElementId());
-            }
-            sb.append(";\n");
+          if (falseAssumptionElements.contains(child)) {
+            sb.append("GOTO __FALSE");
+          } else {
+            sb.append("GOTO ART" + child.getElementId());
           }
+          sb.append(";\n");
         }
-        sb.append("   TRUE -> GOTO __TRUE;\n\n");
+        sb.append("    TRUE -> GOTO __TRUE;\n\n");
       }
     }
     sb.append("END AUTOMATON\n");
     return sb.toString();
+  }
+
+  /**
+   * This method transitively finds all parents of a given element and adds
+   * them to a given set.
+   * Covering nodes are considered to be parents of the covered nodes.
+   * @param e
+   * @param parentSet
+   */
+  private void findAllParents(ARTElement e, Set<ARTElement> parentSet) {
+    Deque<ARTElement> toAdd = new ArrayDeque<ARTElement>();
+    toAdd.add(e);
+    while (!toAdd.isEmpty()) {
+      ARTElement current = toAdd.pop();
+
+      if (parentSet.add(current)) {
+        // current was not yet contained in parentSet,
+        // so we need to handle its parents
+
+        toAdd.addAll(current.getParents());
+        if (current.isCovered()) {
+          toAdd.add(current.getCoveringElement());
+        }
+      }
+    }
   }
 
   private static void escape(String s, StringBuilder appendTo) {
@@ -352,29 +409,6 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         appendTo.append(c);
         break;
       }
-    }
-  }
-
-  private static void getTrueAssumptionElements(ARTElement e, Set<ARTElement> visited, Set<ARTElement> trueAssumptions, Set<AbstractElement> falseAssumptions) {
-    if (!visited.add(e)) {
-      return;
-    }
-
-    List<ARTElement> childrenAndCoveredList = new ArrayList<ARTElement>();
-    childrenAndCoveredList.addAll(e.getChildren());
-    childrenAndCoveredList.addAll(e.getCoveredByThis());
-
-    for (ARTElement child : childrenAndCoveredList) {
-      getTrueAssumptionElements(child, visited, trueAssumptions, falseAssumptions);
-    }
-
-    AssumptionStorageElement asmptElement = AbstractElements.extractElementByType(e, AssumptionStorageElement.class);
-
-    if (asmptElement.getAssumption().isTrue()
-        && asmptElement.getStopFormula().isTrue()
-        && !falseAssumptions.contains(e)
-        && trueAssumptions.containsAll(childrenAndCoveredList)){
-      trueAssumptions.add(e);
     }
   }
 
