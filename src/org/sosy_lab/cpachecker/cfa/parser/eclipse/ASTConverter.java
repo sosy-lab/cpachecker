@@ -142,7 +142,6 @@ class ASTConverter {
     if(e.getExpressionType() instanceof IASTSimpleDeclSpecifier){
       IASTBinaryExpression binExp = new IASTBinaryExpression(e.getFileLocation(), e.getExpressionType(), e,
           new IASTIntegerLiteralExpression(e.getFileLocation(), e.getExpressionType(), BigInteger.ZERO), BinaryOperator.NOT_EQUALS);
-      System.out.println(binExp.toASTString());
       return binExp;
     } else {
       return e;
