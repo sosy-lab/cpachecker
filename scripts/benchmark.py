@@ -1710,8 +1710,12 @@ def runBenchmark(benchmarkFile):
 
         if STOPPED_BY_INTERRUPT: break
 
-        if options.testRunOnly is not None \
-                and options.testRunOnly != test.name:
+        testnumber = benchmark.tests.index(test) + 1 # the first test has number 1
+        (mod, rest) = options.moduloAndRest
+
+        if (options.testRunOnly is not None \
+                and options.testRunOnly != test.name) \
+                or (testnumber % mod != rest):
             outputHandler.outputForSkippingTest(test)
 
         else:
@@ -1797,6 +1801,13 @@ def main(argv=None):
                       dest="numOfThreads", default=None,
                       help="set number of threads for benchmarks, " + \
                       "this option overrides the number given in the xml-file")
+
+    parser.add_option("-x", "--moduloAndRest",
+                      dest="moduloAndRest", default=(1,0), nargs=2, type="int",
+                      help="run only a special subset of tests, " + \
+                      "this option stores two ints (a, b), " + \
+                      "the script runs all tests with (testnumber % a == b), " + \
+                      "the first test has testnumber 1")
 
     global options, OUTPUT_PATH
     (options, args) = parser.parse_args(argv)
