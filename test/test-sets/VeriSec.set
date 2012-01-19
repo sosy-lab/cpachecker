@@ -1,0 +1,2 @@
+test/programs/VeriSec/*_BUG.cil.c
+test/programs/VeriSec/*[!G].cil.c
