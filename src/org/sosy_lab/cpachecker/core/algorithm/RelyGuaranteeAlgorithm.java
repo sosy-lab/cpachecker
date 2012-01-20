@@ -85,6 +85,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
 
   public class RelyGuaranteeAlgorithmStatistics implements Statistics {
     private Timer totalTimer = new Timer();
+    private Timer errorCheckTimer = new Timer();
 
     @Override
     public String getName() {
@@ -93,7 +94,8 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
 
     @Override
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-      out.println("Total Time for algorithm:       " + totalTimer);
+      out.println("Total Time for error check:                  " + errorCheckTimer);
+      out.println("Total Time for rely-guarantee algorithm:     " + totalTimer);
     }
 
   }
@@ -169,19 +171,19 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
         // apply all valid env. edges to CFA
         ListMultimap<CFANode, CFAEdge> envEdgesMap = addEnvTransitionsToCFA(i);
         // add relevant states to the wait list
+        if (i == 0 && !envEdgesMap.isEmpty()){
+          System.out.print("");
+        }
         setWaitlist(reached[i], envEdgesMap);
         // run the thread
         System.out.println();
         System.out.println("\t\t\t----- Running thread "+i+" -----");
         assert environment.getUnprocessedTransitions().isEmpty();
-        error = runThread(i, reached[i], true);
-        // print stats
-        threadCPA[i].printStatitics();
-        // clear the set of  unapplied env. edges
-        environment.clearUnappliedEnvEdgesForThread(i);
+        error = runThread(i, reached[i], stats);
+
         if (error) {
           // error state has been reached
-          stats.totalTimer.start();
+          stats.totalTimer.stop();
           return i;
         }
         System.out.println();
@@ -192,16 +194,19 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
 
         // process new env. transitions
         environment.processEnvTransitions(i);
-        environment.printProcessingStatistics();
+        if (i == 1){
+          System.out.print("");
+        }
+        //environment.printProcessingStatistics();
         // chose a new thread to run
-        i = pickThread(reached);
+        i = pickThread(reached, i);
       }
 
     } catch(Exception e){
       e.printStackTrace();
     }
 
-    stats.totalTimer.start();
+    stats.totalTimer.stop();
     return -1;
 
   }
@@ -223,9 +228,8 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
             if (envEdges == null){
               envEdges = new Vector<CFAEdge>();
               artElement.setEnvEdgesToBeApplied(envEdges);
-            } else {
-              envEdges.clear();
             }
+
             envEdges.addAll(pEnvEdgesMap.get(node));
             reachedSet.reAddToWaitlist(ae);
           }
@@ -234,37 +238,72 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     }
   }
 
-  // TODO remove stopAfterError
-  /**
-   * Runs a thread.
-   */
-  private boolean runThread(int i, ReachedSet reached, boolean stopAfterError) throws CPAException, InterruptedException {
-    boolean sound = true;
-    do {
-      sound &=  threadCPA[i].run(reached);
-    } while (!stopAfterError && reached.hasWaitingElement());
 
-    if (reached.hasWaitingElement()) {
+  /**
+   * Runs thread i. Returns true iff error was found.
+   * @param i
+   * @param reached
+   * @param stats
+   * @return
+   * @throws CPAException
+   * @throws InterruptedException
+   */
+  private boolean runThread(int i, ReachedSet reached, RelyGuaranteeAlgorithmStatistics stats) throws CPAException, InterruptedException {
+
+    boolean sound = threadCPA[i].run(reached);
+
+    stats.errorCheckTimer.start();
+    /* The old way
+     * if (reached.hasWaitingElement()){
+      stats.errorCheckTimer.stop();
       return true;
+    }*/
+
+    // TODO this error check somehow slows down the analysis
+    if (sound) {
+      threadCPA[i].printStatitics();
+      // clear the set of  unapplied env. edges
+      environment.clearUnappliedEnvEdgesForThread(i);
+
+      // analysis error found only if the analysis is marked as sound
+      ARTElement last = (ARTElement) reached.getLastElement();
+      boolean isTarget = last.isTarget();
+      stats.errorCheckTimer.stop();
+      return isTarget;
     }
+    stats.errorCheckTimer.stop();
     return false;
   }
 
   /**
-   * Chose the next thread for running; return -1 if there are no new env edges or waiting elements for any thread
+   * Choose the next thread for running.
+   * Return -1 if there are no new env edges or waiting elements for any thread
    * @param reached
+   * @return
    */
-  private int pickThread(ReachedSet[] reached) {
-    int i=0;
-    while(i < threadNo && reached[i].getWaitlistSize() == 0 && environment.getUnappliedEnvEdgesForThread(i).isEmpty()){
-      i++;
+  private int pickThread(ReachedSet[] reached, int i) {
+
+    // check threads in [i+1, threadNo-1]
+    int j=i+1;
+    while(j < threadNo && reached[j].getWaitlistSize() == 0 && environment.getUnappliedEnvEdgesForThread(j).isEmpty()){
+      j++;
     }
-    if (i == threadNo){
-      return -1;
+
+    if (j < threadNo){
+      return j;
     }
-    else {
-      return i;
+
+    // check threads in [0, i]
+    j=0;
+    while(j <= i && reached[j].getWaitlistSize() == 0 && environment.getUnappliedEnvEdgesForThread(j).isEmpty()){
+      j++;
     }
+
+    if (j <= i){
+      return j;
+    }
+
+    return -1;
   }
 
   /**

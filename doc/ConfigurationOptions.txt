@@ -463,6 +463,9 @@ cpa.relyguarantee.blk.threshold = 0
 # use caching of path formulas
 cpa.relyguarantee.blk.useCache = true
 
+# If true, then change treads after successors for a state were computed.
+cpa.relyguarantee.changeThreadAfterState = false
+
 # always check satisfiability at end of block, even if precision is empty
 cpa.relyguarantee.checkBlockFeasibility = true
 

@@ -72,7 +72,10 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(description="Print debugging info?")
-  private boolean debug=true;
+  private boolean debug = true;
+
+  @Option(description="If true, then change treads after successors for a state were computed.")
+  private boolean changeThread = false;
 
   private static class RelyGuaranteeThreadStatitics implements Statistics {
 
@@ -333,6 +336,11 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
 
           reachedSet.add(successor, successorPrecision);
         }
+      }
+
+      if (changeThread && reachedSet.hasWaitingElement()){
+        // we switch to another state
+        return false;
       }
     }
     stats.totalTimer.stop();

@@ -245,7 +245,7 @@ public class RelyGuaranteeRefiner{
     //assert checkART(reachedSets[errorThr]);
     assert reachedSets[errorThr].getLastElement() instanceof ARTElement;
     ARTElement targetElement = (ARTElement) reachedSets[errorThr].getLastElement();
-    assert (targetElement).isTarget();
+    assert targetElement.isTarget();
 
     ARTReachedSet[] artReachedSets = new ARTReachedSet[threadNo];
     for (int i=0; i<threadNo; i++){

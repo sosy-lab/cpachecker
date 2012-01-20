@@ -465,7 +465,6 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
       appPf = rgEdge.getFilter();
 
       // build equalities over last values in the filter and local pf
-      // TODO shorter equalities for abstraction
       PathFormula eqPf    = pfManager.makePrimedEqualities(localPf.getSsa(), tid, appPf.getSsa(), rgEdge.getSourceTid());
       appPf = pfManager.makeAnd(appPf, eqPf);
 

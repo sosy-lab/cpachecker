@@ -530,7 +530,7 @@ public class RelyGuaranteeEnvironment {
    * @param rgEdges
    */
   private void printEdges(String string, List<RelyGuaranteeCFAEdgeTemplate> rgEdges) {
-    System.out.println();
+    //System.out.println();
     if (rgEdges.isEmpty()){
       System.out.println(string+"\tnone");
     } else {
