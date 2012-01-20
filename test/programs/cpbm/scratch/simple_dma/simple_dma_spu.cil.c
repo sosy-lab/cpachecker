@@ -28,7 +28,7 @@ control_block volatile   cb  __attribute__((__aligned__(128)))  ;
 #line 18 "simple_dma_spu.c"
 int data[64]  __attribute__((__aligned__(128)))  ;
 #line 44
-extern int ( /* missing proto */  __CPROVER_ndet_int)() ;
+extern int __VERIFIER_nondet_int() ;
 #line 21 "simple_dma_spu.c"
 int spu_main(unsigned long long speid  __attribute__((__unused__)) , unsigned long long argp ,
              unsigned long long envp  __attribute__((__unused__)) ) 
@@ -136,13 +136,13 @@ int spu_main(unsigned long long speid  __attribute__((__unused__)) , unsigned lo
 #line 43
   mfc_get(__cil_tmp14, __cil_tmp15, __cil_tmp16, tag_id, 0U, 0U);
 #line 44
-  tmp = __CPROVER_ndet_int();
+  tmp = __VERIFIER_nondet_int();
 #line 44
   __cil_tmp17 = & cb;
 #line 44
   *((unsigned int volatile   *)__cil_tmp17) = (unsigned int volatile   )tmp;
 #line 44
-  tmp___0 = __CPROVER_ndet_int();
+  tmp___0 = __VERIFIER_nondet_int();
 #line 44
   __cil_tmp18 = 0 * 1UL;
 #line 44
@@ -152,7 +152,7 @@ int spu_main(unsigned long long speid  __attribute__((__unused__)) , unsigned lo
 #line 44
   *((unsigned char volatile   *)__cil_tmp20) = (unsigned char )tmp___0;
 #line 44
-  tmp___1 = __CPROVER_ndet_int();
+  tmp___1 = __VERIFIER_nondet_int();
 #line 44
   __cil_tmp21 = 1 * 1UL;
 #line 44
@@ -162,7 +162,7 @@ int spu_main(unsigned long long speid  __attribute__((__unused__)) , unsigned lo
 #line 44
   *((unsigned char volatile   *)__cil_tmp23) = (unsigned char )tmp___1;
 #line 44
-  tmp___2 = __CPROVER_ndet_int();
+  tmp___2 = __VERIFIER_nondet_int();
 #line 44
   __cil_tmp24 = 2 * 1UL;
 #line 44
@@ -172,7 +172,7 @@ int spu_main(unsigned long long speid  __attribute__((__unused__)) , unsigned lo
 #line 44
   *((unsigned char volatile   *)__cil_tmp26) = (unsigned char )tmp___2;
 #line 44
-  tmp___3 = __CPROVER_ndet_int();
+  tmp___3 = __VERIFIER_nondet_int();
 #line 44
   __cil_tmp27 = 3 * 1UL;
 #line 44
@@ -182,7 +182,7 @@ int spu_main(unsigned long long speid  __attribute__((__unused__)) , unsigned lo
 #line 44
   *((unsigned char volatile   *)__cil_tmp29) = (unsigned char )tmp___3;
 #line 44
-  tmp___4 = __CPROVER_ndet_int();
+  tmp___4 = __VERIFIER_nondet_int();
 #line 44
   __cil_tmp30 = (unsigned long )(& cb) + 8;
 #line 44

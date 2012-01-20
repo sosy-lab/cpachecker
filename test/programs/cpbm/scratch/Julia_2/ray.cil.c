@@ -80,9 +80,9 @@ extern int ( /* missing proto */  __builtin_si_rdch)() ;
 #line 391
 extern int ( /* missing proto */  __CPROVER_assume)() ;
 #line 397
-extern int ( /* missing proto */  __CPROVER_ndet_float)() ;
+extern int __VERIFIER_nondet_float() ;
 #line 397
-extern int ( /* missing proto */  __CPROVER_ndet_int)() ;
+extern int __VERIFIER_nondet_int() ;
 #line 326 "ray.c"
 int spu_main(void) 
 { unsigned int i ;
@@ -515,7 +515,7 @@ int spu_main(void)
 #line 395
   mfc_get(__cil_tmp108, ea_low, __cil_tmp109, now_tag, 0U, 0U);
 #line 397
-  tmp___3 = __CPROVER_ndet_float();
+  tmp___3 = __VERIFIER_nondet_float();
 #line 397
   __cil_tmp110 = 0 * 4UL;
 #line 397
@@ -525,7 +525,7 @@ int spu_main(void)
 #line 397
   *((float volatile   *)__cil_tmp112) = (float )tmp___3;
 #line 397
-  tmp___4 = __CPROVER_ndet_float();
+  tmp___4 = __VERIFIER_nondet_float();
 #line 397
   __cil_tmp113 = 1 * 4UL;
 #line 397
@@ -535,7 +535,7 @@ int spu_main(void)
 #line 397
   *((float volatile   *)__cil_tmp115) = (float )tmp___4;
 #line 397
-  tmp___5 = __CPROVER_ndet_float();
+  tmp___5 = __VERIFIER_nondet_float();
 #line 397
   __cil_tmp116 = 2 * 4UL;
 #line 397
@@ -545,7 +545,7 @@ int spu_main(void)
 #line 397
   *((float volatile   *)__cil_tmp118) = (float )tmp___5;
 #line 397
-  tmp___6 = __CPROVER_ndet_float();
+  tmp___6 = __VERIFIER_nondet_float();
 #line 397
   __cil_tmp119 = 3 * 4UL;
 #line 397
@@ -555,7 +555,7 @@ int spu_main(void)
 #line 397
   *((float volatile   *)__cil_tmp121) = (float )tmp___6;
 #line 397
-  tmp___7 = __CPROVER_ndet_float();
+  tmp___7 = __VERIFIER_nondet_float();
 #line 397
   __cil_tmp122 = 0 * 4UL;
 #line 397
@@ -565,7 +565,7 @@ int spu_main(void)
 #line 397
   *((float volatile   *)__cil_tmp124) = (float )tmp___7;
 #line 397
-  tmp___8 = __CPROVER_ndet_float();
+  tmp___8 = __VERIFIER_nondet_float();
 #line 397
   __cil_tmp125 = 1 * 4UL;
 #line 397
@@ -575,7 +575,7 @@ int spu_main(void)
 #line 397
   *((float volatile   *)__cil_tmp127) = (float )tmp___8;
 #line 397
-  tmp___9 = __CPROVER_ndet_float();
+  tmp___9 = __VERIFIER_nondet_float();
 #line 397
   __cil_tmp128 = 2 * 4UL;
 #line 397
@@ -585,7 +585,7 @@ int spu_main(void)
 #line 397
   *((float volatile   *)__cil_tmp130) = (float )tmp___9;
 #line 397
-  tmp___10 = __CPROVER_ndet_float();
+  tmp___10 = __VERIFIER_nondet_float();
 #line 397
   __cil_tmp131 = 3 * 4UL;
 #line 397
@@ -595,7 +595,7 @@ int spu_main(void)
 #line 397
   *((float volatile   *)__cil_tmp133) = (float )tmp___10;
 #line 397
-  tmp___11 = __CPROVER_ndet_float();
+  tmp___11 = __VERIFIER_nondet_float();
 #line 397
   __cil_tmp134 = 0 * 4UL;
 #line 397
@@ -605,7 +605,7 @@ int spu_main(void)
 #line 397
   *((float volatile   *)__cil_tmp136) = (float )tmp___11;
 #line 397
-  tmp___12 = __CPROVER_ndet_float();
+  tmp___12 = __VERIFIER_nondet_float();
 #line 397
   __cil_tmp137 = 1 * 4UL;
 #line 397
@@ -615,7 +615,7 @@ int spu_main(void)
 #line 397
   *((float volatile   *)__cil_tmp139) = (float )tmp___12;
 #line 397
-  tmp___13 = __CPROVER_ndet_float();
+  tmp___13 = __VERIFIER_nondet_float();
 #line 397
   __cil_tmp140 = 2 * 4UL;
 #line 397
@@ -625,7 +625,7 @@ int spu_main(void)
 #line 397
   *((float volatile   *)__cil_tmp142) = (float )tmp___13;
 #line 397
-  tmp___14 = __CPROVER_ndet_float();
+  tmp___14 = __VERIFIER_nondet_float();
 #line 397
   __cil_tmp143 = 3 * 4UL;
 #line 397
@@ -635,55 +635,55 @@ int spu_main(void)
 #line 397
   *((float volatile   *)__cil_tmp145) = (float )tmp___14;
 #line 397
-  tmp___15 = __CPROVER_ndet_int();
+  tmp___15 = __VERIFIER_nondet_int();
 #line 397
   __cil_tmp146 = (unsigned long )(& rc) + 52;
 #line 397
   *((unsigned int volatile   *)__cil_tmp146) = (unsigned int volatile   )tmp___15;
 #line 397
-  tmp___16 = __CPROVER_ndet_int();
+  tmp___16 = __VERIFIER_nondet_int();
 #line 397
   __cil_tmp147 = (unsigned long )(& rc) + 56;
 #line 397
   *((unsigned int volatile   *)__cil_tmp147) = (unsigned int volatile   )tmp___16;
 #line 397
-  tmp___17 = __CPROVER_ndet_int();
+  tmp___17 = __VERIFIER_nondet_int();
 #line 397
   __cil_tmp148 = (unsigned long )(& rc) + 60;
 #line 397
   *((unsigned int volatile   *)__cil_tmp148) = (unsigned int volatile   )tmp___17;
 #line 397
-  tmp___18 = __CPROVER_ndet_int();
+  tmp___18 = __VERIFIER_nondet_int();
 #line 397
   __cil_tmp149 = (unsigned long )(& rc) + 64;
 #line 397
   *((unsigned int volatile   *)__cil_tmp149) = (unsigned int volatile   )tmp___18;
 #line 397
-  tmp___19 = __CPROVER_ndet_int();
+  tmp___19 = __VERIFIER_nondet_int();
 #line 397
   __cil_tmp150 = (unsigned long )(& rc) + 68;
 #line 397
   *((unsigned int volatile   *)__cil_tmp150) = (unsigned int volatile   )tmp___19;
 #line 397
-  tmp___20 = __CPROVER_ndet_int();
+  tmp___20 = __VERIFIER_nondet_int();
 #line 397
   __cil_tmp151 = (unsigned long )(& rc) + 72;
 #line 397
   *((unsigned int volatile   *)__cil_tmp151) = (unsigned int volatile   )tmp___20;
 #line 397
-  tmp___21 = __CPROVER_ndet_int();
+  tmp___21 = __VERIFIER_nondet_int();
 #line 397
   __cil_tmp152 = (unsigned long )(& rc) + 76;
 #line 397
   *((unsigned int volatile   *)__cil_tmp152) = (unsigned int volatile   )tmp___21;
 #line 397
-  tmp___22 = __CPROVER_ndet_int();
+  tmp___22 = __VERIFIER_nondet_int();
 #line 397
   __cil_tmp153 = (unsigned long )(& rc) + 80;
 #line 397
   *((unsigned int volatile   *)__cil_tmp153) = (unsigned int volatile   )tmp___22;
 #line 397
-  tmp___23 = __CPROVER_ndet_int();
+  tmp___23 = __VERIFIER_nondet_int();
 #line 397
   __cil_tmp154 = 0 * 4UL;
 #line 397
@@ -693,7 +693,7 @@ int spu_main(void)
 #line 397
   *((unsigned int volatile   *)__cil_tmp156) = (unsigned int )tmp___23;
 #line 397
-  tmp___24 = __CPROVER_ndet_int();
+  tmp___24 = __VERIFIER_nondet_int();
 #line 397
   __cil_tmp157 = 1 * 4UL;
 #line 397
@@ -703,7 +703,7 @@ int spu_main(void)
 #line 397
   *((unsigned int volatile   *)__cil_tmp159) = (unsigned int )tmp___24;
 #line 397
-  tmp___25 = __CPROVER_ndet_int();
+  tmp___25 = __VERIFIER_nondet_int();
 #line 397
   __cil_tmp160 = 2 * 4UL;
 #line 397
@@ -713,7 +713,7 @@ int spu_main(void)
 #line 397
   *((unsigned int volatile   *)__cil_tmp162) = (unsigned int )tmp___25;
 #line 397
-  tmp___26 = __CPROVER_ndet_int();
+  tmp___26 = __VERIFIER_nondet_int();
 #line 397
   __cil_tmp163 = 3 * 4UL;
 #line 397
@@ -723,7 +723,7 @@ int spu_main(void)
 #line 397
   *((unsigned int volatile   *)__cil_tmp165) = (unsigned int )tmp___26;
 #line 397
-  tmp___27 = __CPROVER_ndet_int();
+  tmp___27 = __VERIFIER_nondet_int();
 #line 397
   __cil_tmp166 = 4 * 4UL;
 #line 397
@@ -733,7 +733,7 @@ int spu_main(void)
 #line 397
   *((unsigned int volatile   *)__cil_tmp168) = (unsigned int )tmp___27;
 #line 397
-  tmp___28 = __CPROVER_ndet_int();
+  tmp___28 = __VERIFIER_nondet_int();
 #line 397
   __cil_tmp169 = 5 * 4UL;
 #line 397
@@ -951,7 +951,7 @@ int spu_main(void)
 #line 433
       mfc_get(__cil_tmp210, ea_low, __cil_tmp211, now_tag, 0U, 0U);
 #line 435
-      tmp___33 = __CPROVER_ndet_float();
+      tmp___33 = __VERIFIER_nondet_float();
 #line 435
       __cil_tmp212 = 0 * 4UL;
 #line 435
@@ -961,7 +961,7 @@ int spu_main(void)
 #line 435
       *((float volatile   *)__cil_tmp214) = (float )tmp___33;
 #line 435
-      tmp___34 = __CPROVER_ndet_float();
+      tmp___34 = __VERIFIER_nondet_float();
 #line 435
       __cil_tmp215 = 1 * 4UL;
 #line 435
@@ -971,7 +971,7 @@ int spu_main(void)
 #line 435
       *((float volatile   *)__cil_tmp217) = (float )tmp___34;
 #line 435
-      tmp___35 = __CPROVER_ndet_float();
+      tmp___35 = __VERIFIER_nondet_float();
 #line 435
       __cil_tmp218 = 2 * 4UL;
 #line 435
@@ -981,7 +981,7 @@ int spu_main(void)
 #line 435
       *((float volatile   *)__cil_tmp220) = (float )tmp___35;
 #line 435
-      tmp___36 = __CPROVER_ndet_float();
+      tmp___36 = __VERIFIER_nondet_float();
 #line 435
       __cil_tmp221 = 3 * 4UL;
 #line 435
@@ -991,7 +991,7 @@ int spu_main(void)
 #line 435
       *((float volatile   *)__cil_tmp223) = (float )tmp___36;
 #line 435
-      tmp___37 = __CPROVER_ndet_float();
+      tmp___37 = __VERIFIER_nondet_float();
 #line 435
       __cil_tmp224 = 0 * 4UL;
 #line 435
@@ -1001,7 +1001,7 @@ int spu_main(void)
 #line 435
       *((float volatile   *)__cil_tmp226) = (float )tmp___37;
 #line 435
-      tmp___38 = __CPROVER_ndet_float();
+      tmp___38 = __VERIFIER_nondet_float();
 #line 435
       __cil_tmp227 = 1 * 4UL;
 #line 435
@@ -1011,7 +1011,7 @@ int spu_main(void)
 #line 435
       *((float volatile   *)__cil_tmp229) = (float )tmp___38;
 #line 435
-      tmp___39 = __CPROVER_ndet_float();
+      tmp___39 = __VERIFIER_nondet_float();
 #line 435
       __cil_tmp230 = 2 * 4UL;
 #line 435
@@ -1021,7 +1021,7 @@ int spu_main(void)
 #line 435
       *((float volatile   *)__cil_tmp232) = (float )tmp___39;
 #line 435
-      tmp___40 = __CPROVER_ndet_float();
+      tmp___40 = __VERIFIER_nondet_float();
 #line 435
       __cil_tmp233 = 3 * 4UL;
 #line 435
@@ -1031,7 +1031,7 @@ int spu_main(void)
 #line 435
       *((float volatile   *)__cil_tmp235) = (float )tmp___40;
 #line 435
-      tmp___41 = __CPROVER_ndet_float();
+      tmp___41 = __VERIFIER_nondet_float();
 #line 435
       __cil_tmp236 = 0 * 4UL;
 #line 435
@@ -1041,7 +1041,7 @@ int spu_main(void)
 #line 435
       *((float volatile   *)__cil_tmp238) = (float )tmp___41;
 #line 435
-      tmp___42 = __CPROVER_ndet_float();
+      tmp___42 = __VERIFIER_nondet_float();
 #line 435
       __cil_tmp239 = 1 * 4UL;
 #line 435
@@ -1051,7 +1051,7 @@ int spu_main(void)
 #line 435
       *((float volatile   *)__cil_tmp241) = (float )tmp___42;
 #line 435
-      tmp___43 = __CPROVER_ndet_float();
+      tmp___43 = __VERIFIER_nondet_float();
 #line 435
       __cil_tmp242 = 2 * 4UL;
 #line 435
@@ -1061,7 +1061,7 @@ int spu_main(void)
 #line 435
       *((float volatile   *)__cil_tmp244) = (float )tmp___43;
 #line 435
-      tmp___44 = __CPROVER_ndet_float();
+      tmp___44 = __VERIFIER_nondet_float();
 #line 435
       __cil_tmp245 = 3 * 4UL;
 #line 435
@@ -1071,7 +1071,7 @@ int spu_main(void)
 #line 435
       *((float volatile   *)__cil_tmp247) = (float )tmp___44;
 #line 435
-      tmp___45 = __CPROVER_ndet_float();
+      tmp___45 = __VERIFIER_nondet_float();
 #line 435
       __cil_tmp248 = 0 * 4UL;
 #line 435
@@ -1081,7 +1081,7 @@ int spu_main(void)
 #line 435
       *((float volatile   *)__cil_tmp250) = (float )tmp___45;
 #line 435
-      tmp___46 = __CPROVER_ndet_float();
+      tmp___46 = __VERIFIER_nondet_float();
 #line 435
       __cil_tmp251 = 1 * 4UL;
 #line 435
@@ -1091,7 +1091,7 @@ int spu_main(void)
 #line 435
       *((float volatile   *)__cil_tmp253) = (float )tmp___46;
 #line 435
-      tmp___47 = __CPROVER_ndet_float();
+      tmp___47 = __VERIFIER_nondet_float();
 #line 435
       __cil_tmp254 = 2 * 4UL;
 #line 435
@@ -1101,7 +1101,7 @@ int spu_main(void)
 #line 435
       *((float volatile   *)__cil_tmp256) = (float )tmp___47;
 #line 435
-      tmp___48 = __CPROVER_ndet_float();
+      tmp___48 = __VERIFIER_nondet_float();
 #line 435
       __cil_tmp257 = 3 * 4UL;
 #line 435
@@ -1111,7 +1111,7 @@ int spu_main(void)
 #line 435
       *((float volatile   *)__cil_tmp259) = (float )tmp___48;
 #line 435
-      tmp___49 = __CPROVER_ndet_float();
+      tmp___49 = __VERIFIER_nondet_float();
 #line 435
       __cil_tmp260 = 0 * 4UL;
 #line 435
@@ -1121,7 +1121,7 @@ int spu_main(void)
 #line 435
       *((float volatile   *)__cil_tmp262) = (float )tmp___49;
 #line 435
-      tmp___50 = __CPROVER_ndet_float();
+      tmp___50 = __VERIFIER_nondet_float();
 #line 435
       __cil_tmp263 = 1 * 4UL;
 #line 435
@@ -1131,7 +1131,7 @@ int spu_main(void)
 #line 435
       *((float volatile   *)__cil_tmp265) = (float )tmp___50;
 #line 435
-      tmp___51 = __CPROVER_ndet_float();
+      tmp___51 = __VERIFIER_nondet_float();
 #line 435
       __cil_tmp266 = 2 * 4UL;
 #line 435
@@ -1141,7 +1141,7 @@ int spu_main(void)
 #line 435
       *((float volatile   *)__cil_tmp268) = (float )tmp___51;
 #line 435
-      tmp___52 = __CPROVER_ndet_float();
+      tmp___52 = __VERIFIER_nondet_float();
 #line 435
       __cil_tmp269 = 3 * 4UL;
 #line 435
@@ -1151,19 +1151,19 @@ int spu_main(void)
 #line 435
       *((float volatile   *)__cil_tmp271) = (float )tmp___52;
 #line 435
-      tmp___53 = __CPROVER_ndet_int();
+      tmp___53 = __VERIFIER_nondet_int();
 #line 435
       __cil_tmp272 = (unsigned long )(& region) + 80;
 #line 435
       *((unsigned int volatile   *)__cil_tmp272) = (unsigned int volatile   )tmp___53;
 #line 435
-      tmp___54 = __CPROVER_ndet_int();
+      tmp___54 = __VERIFIER_nondet_int();
 #line 435
       __cil_tmp273 = (unsigned long )(& region) + 84;
 #line 435
       *((int volatile   *)__cil_tmp273) = (int volatile   )tmp___54;
 #line 435
-      tmp___55 = __CPROVER_ndet_int();
+      tmp___55 = __VERIFIER_nondet_int();
 #line 435
       __cil_tmp274 = (unsigned long )(& region) + 88;
 #line 435
