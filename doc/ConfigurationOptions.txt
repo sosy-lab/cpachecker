@@ -53,6 +53,9 @@ rootDirectory = "."
 # maximum number of condition adjustments (-1 for infinite)
 adjustableconditions.adjustmentLimit = -1
 
+# stop CPAchecker after startup (internal option, not intended for users)
+analysis.disable = false
+
 # entry function
 analysis.entryFunction = "main"
 

@@ -135,6 +135,9 @@ public class CPAchecker {
         description="use CBMC as an external tool from CPAchecker")
         boolean runCBMCasExternalTool = false;
 
+    @Option(name="analysis.disable",
+        description="stop CPAchecker after startup (internal option, not intended for users)")
+        boolean disableAnalysis = false;
   }
 
   private final LogManager logger;
@@ -207,11 +210,6 @@ public class CPAchecker {
 
       } else {
         CFA cfa = parse(filename, stats);
-        if (cfa.isEmpty()) {
-          // empty program, do nothing
-          return new CPAcheckerResult(Result.NOT_YET_STARTED, null, null);
-        }
-
         stopIfNecessary();
 
         ConfigurableProgramAnalysis cpa = createCPA(stats, cfa);
@@ -233,6 +231,9 @@ public class CPAchecker {
       stopIfNecessary();
       // now everything necessary has been instantiated
 
+      if (options.disableAnalysis) {
+        return new CPAcheckerResult(Result.NOT_YET_STARTED, null, null);
+      }
 
       // run analysis
       result = Result.UNKNOWN; // set to unknown so that the result is correct in case of exception

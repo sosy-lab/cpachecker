@@ -116,7 +116,7 @@ class ShutdownHook extends Thread {
     logManager.flush();
     System.out.flush();
     System.err.flush();
-    if (mResult != null) {
+    if (mResult != null && mResult.getResult() != Result.NOT_YET_STARTED) {
 
       // setup output streams
       PrintStream console = printStatistics ? System.out : null;
@@ -151,7 +151,7 @@ class ShutdownHook extends Thread {
         }
         mResult.printResult(stream);
 
-        if (outputDirectory != null && mResult.getResult() != Result.NOT_YET_STARTED) {
+        if (outputDirectory != null) {
           stream.println("More details about the verification run can be found in the directory \"" + outputDirectory + "\".");
         }
 
