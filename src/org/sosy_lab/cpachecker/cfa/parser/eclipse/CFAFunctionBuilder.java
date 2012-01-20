@@ -183,57 +183,9 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     assert (locStack.size() > 0) : "not in a function's scope";
 
-    final List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> newDs = astCreator.convert(sd);
-    assert !newDs.isEmpty();
-
-    for (org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD : newDs) {
-      if (newD.getStorageClass() != StorageClass.TYPEDEF
-          && newD.getName() != null) {
-        // this is neither a typedef nor a struct prototype nor a function declaration,
-        // so it's a variable declaration
-
-        scope.registerDeclaration(newD);
-      }
-    }
-
-
     CFANode prevNode = locStack.pop();
-    CFANode nextNode = null;
-    String rawSignature = sd.getRawSignature();
 
-    for (org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD : newDs) {
-      assert !newD.isGlobal();
-
-      nextNode = new CFANode(fileloc.getStartingLineNumber(), cfa.getFunctionName());
-      cfaNodes.add(nextNode);
-
-      while(astCreator.existsSideAssignment()){
-        IASTNode test = astCreator.getSideAssignment();
-        StatementEdge previous;
-        DeclarationEdge previousdec;
-        if(test instanceof IASTFunctionCallAssignmentStatement) {
-            previous = new StatementEdge(rawSignature, (IASTFunctionCallAssignmentStatement)test, fileloc.getStartingLineNumber(), prevNode, nextNode);
-            addToCFA(previous);
-        } else if(test instanceof IASTAssignment){
-          previous = new StatementEdge(rawSignature, (IASTExpressionAssignmentStatement)test, fileloc.getStartingLineNumber(), prevNode, nextNode);
-          addToCFA(previous);
-        } else {
-            previousdec = new DeclarationEdge(rawSignature, fileloc.getStartingLineNumber(), prevNode, nextNode,(org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration) test);
-            addToCFA(previousdec);
-        }
-        prevNode = nextNode;
-
-        nextNode = new CFANode(fileloc.getStartingLineNumber(), cfa.getFunctionName());
-        cfaNodes.add(nextNode);
-      }
-
-      final DeclarationEdge edge =
-          new DeclarationEdge(rawSignature, fileloc.getStartingLineNumber(), prevNode,
-              nextNode, newD);
-      addToCFA(edge);
-
-      prevNode = nextNode;
-    }
+    CFANode nextNode = addDeclarationsToCFA(sd, fileloc.getStartingLineNumber(), prevNode);
 
     assert nextNode != null;
     locStack.push(nextNode);
@@ -648,14 +600,11 @@ class CFAFunctionBuilder extends ASTVisitor {
     cfaNodes.add(loopInit);
     addToCFA(new BlankEdge("for", filelocStart, prevNode, loopInit));
 
-    // loopStart is the Node before the loop itself
-    final CFANode loopStart = new CFANode(filelocStart, cfa.getFunctionName());
-    cfaNodes.add(loopStart);
+    // loopStart is the Node before the loop itself,
+    // it is the the one after the init edge(s)
+    final CFANode loopStart = createInitEdgeForForLoop(forStatement.getInitializerStatement(),
+        filelocStart, loopInit);
     loopStart.setLoopStart();
-
-    // init-edge from loopinit to loopstart
-    createInitEdgeForForLoop(forStatement.getInitializerStatement(),
-        filelocStart, loopInit, loopStart);
 
     // loopEnd is Node before "counter++;"
     final CFANode loopEnd = new CFALabelNode(filelocStart, cfa.getFunctionName(), "");
@@ -707,78 +656,91 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   /**
    * This function creates the edge for the init-statement of a for-loop.
-   * The edge is inserted between the loopInit-Node and loopStart-Node.
+   * The edge is inserted after the loopInit-Node.
    * If there are more than one declarations, more edges are inserted.
+   * @return The node after the last inserted edge.
    */
-  private void createInitEdgeForForLoop(final IASTStatement statement,
-      final int filelocStart, CFANode loopInit, final CFANode loopStart) {
+  private CFANode createInitEdgeForForLoop(final IASTStatement statement,
+      final int filelocStart, final CFANode loopInit) {
 
     // "int counter = 0;"
-    if (statement instanceof IASTDeclarationStatement &&
-        ((IASTDeclarationStatement)statement).getDeclaration() instanceof IASTSimpleDeclaration) {
-
-      // convert
-      final IASTDeclaration eclipseDecl = ((IASTDeclarationStatement)statement).getDeclaration();
-      final List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> declList =
-          astCreator.convert((IASTSimpleDeclaration)eclipseDecl);
-
-      // add to CFA
-      addDeclarationsToCFA(declList, statement.getRawSignature(), filelocStart, loopInit, loopStart);
+    if (statement instanceof IASTDeclarationStatement) {
+      final IASTDeclaration decl = ((IASTDeclarationStatement)statement).getDeclaration();
+      if (!(decl instanceof IASTSimpleDeclaration)) {
+        throw new CFAGenerationRuntimeException("unknown init-statement in for-statement", decl);
+      }
+      return addDeclarationsToCFA((IASTSimpleDeclaration)decl, filelocStart, loopInit);
 
     // "counter = 0;"
     } else if (statement instanceof IASTExpressionStatement) {
+      final CFANode nextNode = new CFANode(filelocStart, cfa.getFunctionName());
       final StatementEdge initEdge = new StatementEdge(statement.getRawSignature(),
               astCreator.convert((IASTExpressionStatement) statement),
-              filelocStart, loopInit, loopStart);
+              filelocStart, loopInit, nextNode);
       addToCFA(initEdge);
+      return nextNode;
 
     //";"
     } else if (statement instanceof IASTNullStatement) {
-      addToCFA(new BlankEdge("", filelocStart, loopInit, loopStart));
+      // no edge inserted
+      return loopInit;
 
     } else { // TODO: are there other init-statements in a for-loop?
-      throw new AssertionError("CFABuilder: unknown init-statement in for-statement:\n"
-          + statement.getClass());
+      throw new CFAGenerationRuntimeException("unknown init-statement in for-statement", statement);
     }
   }
 
   /**
    * This method takes a list of Declarations and adds them to the CFA.
-   * The edges are inserted between startNode and endNode.
+   * The edges are inserted after startNode.
+   * @return the node after the last of the new declarations
    */
-  private void addDeclarationsToCFA(final List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> declList,
-      final String rawSignature, final int filelocStart, CFANode startNode, final CFANode endNode) {
+  private CFANode addDeclarationsToCFA(final IASTSimpleDeclaration sd,
+      final int filelocStart, CFANode prevNode) {
 
-    // create one edge for every declaration
-    // (if there is only one declaration, this loop is skipped)
-    for (int i = 0; i < declList.size() - 1; i++) {
-      final CFANode nextNode = new CFANode(filelocStart, cfa.getFunctionName());
+    final List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> declList =
+        astCreator.convert(sd);
+    final String rawSignature = sd.getRawSignature();
+
+    // create one edge for every side effect
+    while (astCreator.existsSideAssignment()) {
+      CFANode nextNode = new CFANode(filelocStart, cfa.getFunctionName());
       cfaNodes.add(nextNode);
 
-      final org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration decl = declList.get(i);
-      final DeclarationEdge initEdge = new DeclarationEdge(rawSignature, filelocStart,
-          startNode, nextNode, decl);
-      addToCFA(initEdge);
-
-      startNode = nextNode;
-
-      // storageClass must not be typedef, struct prototype or function declaration
-      if (decl.getStorageClass() != StorageClass.TYPEDEF && decl.getName() != null) {
-        scope.registerDeclaration(decl);
+      IASTNode sideeffect = astCreator.getSideAssignment();
+      CFAEdge edge;
+      if (sideeffect instanceof org.sosy_lab.cpachecker.cfa.ast.IASTStatement) {
+        edge = new StatementEdge(rawSignature, (org.sosy_lab.cpachecker.cfa.ast.IASTStatement)sideeffect, filelocStart, prevNode, nextNode);
+      } else if (sideeffect instanceof org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration) {
+        edge = new DeclarationEdge(rawSignature, filelocStart, prevNode, nextNode, (org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration)sideeffect);
+      } else {
+        throw new AssertionError("Unknown case of side-effect statement: " + sideeffect);
       }
+      addToCFA(edge);
+      prevNode = nextNode;
     }
 
-    // create the last declaration-edge (if only one declaration, this is the only edge)
-    final org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration decl = declList.get(declList.size() - 1);
-    final DeclarationEdge initEdge = new DeclarationEdge(rawSignature, filelocStart,
-        startNode, endNode, decl);
-    addToCFA(initEdge);
+    // create one edge for every declaration
+    for (org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD : declList) {
 
-    // storageClass must not be typedef, struct prototype or function declaration
-    if (decl.getStorageClass() != StorageClass.TYPEDEF && decl.getName() != null) {
-      scope.registerDeclaration(decl);
+      if (newD.getStorageClass() != StorageClass.TYPEDEF && newD.getName() != null) {
+        // this is neither a typedef nor a struct prototype nor a function declaration,
+        // so it's a variable declaration
+
+        scope.registerDeclaration(newD);
+      }
+
+      CFANode nextNode = new CFANode(filelocStart, cfa.getFunctionName());
+      cfaNodes.add(nextNode);
+
+      final DeclarationEdge edge = new DeclarationEdge(rawSignature, filelocStart,
+          prevNode, nextNode, newD);
+      addToCFA(edge);
+
+      prevNode = nextNode;
     }
 
+    return prevNode;
   }
 
   /**
