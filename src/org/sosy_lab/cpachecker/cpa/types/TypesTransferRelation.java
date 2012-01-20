@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDefinition;
@@ -45,7 +46,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
-import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
@@ -97,7 +97,6 @@ public class TypesTransferRelation implements TransferRelation {
 
         IASTFunctionDefinition funcDef = funcDefNode.getFunctionDefinition();
         handleFunctionDeclaration(successor, funcCallEdge,
-            StorageClass.EXTERN,
             funcDef.getDeclSpecifier());
       }
       break;
@@ -113,7 +112,7 @@ public class TypesTransferRelation implements TransferRelation {
           && cfaEdge.getRawStatement().equals("Function start dummy edge")) {
         //since by this point all global variables have been processed, we can now process the entry function
         IASTFunctionDefinition funcDef = entryFunctionDefinitionNode.getFunctionDefinition();
-        handleFunctionDeclaration(successor, null, StorageClass.AUTO, funcDef.getDeclSpecifier());
+        handleFunctionDeclaration(successor, null, funcDef.getDeclSpecifier());
 
         entryFunctionProcessed = true;
       }
@@ -132,7 +131,7 @@ public class TypesTransferRelation implements TransferRelation {
     IType specifier = declarationEdge.getDeclSpecifier();
 
     if (specifier instanceof IASTFunctionTypeSpecifier) {
-      handleFunctionDeclaration(element, declarationEdge, declarationEdge.getStorageClass(), (IASTFunctionTypeSpecifier)specifier);
+      handleFunctionDeclaration(element, declarationEdge, (IASTFunctionTypeSpecifier)specifier);
 
     } else {
 
@@ -157,7 +156,6 @@ public class TypesTransferRelation implements TransferRelation {
 
   private void handleFunctionDeclaration(TypesElement element,
                                         CFAEdge cfaEdge,
-                                        StorageClass storageClass,
                                         IASTFunctionTypeSpecifier funcDeclSpecifier)
                                         throws UnrecognizedCCodeException {
 
