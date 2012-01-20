@@ -10,6 +10,8 @@
       <includesfile>test/test-sets/ssh.set</includesfile>
       <includesfile>test/test-sets/systemc.set</includesfile>
       <includesfile>test/test-sets/nested.set</includesfile>
+      <includesfile>test/test-sets/VeriSec.set</includesfile>
+      <include>test/programs/linux-kernel/*.cil.c</include>
     </sourcefiles>
     <option name="-noout"/>
     <option name="-predicateAnalysis"/>
