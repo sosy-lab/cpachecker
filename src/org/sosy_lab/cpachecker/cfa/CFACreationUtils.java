@@ -28,7 +28,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
@@ -48,7 +47,6 @@ public class CFACreationUtils {
    */
   public static void addEdgeToCFA(CFAEdge edge, LogManager logger) {
     CFANode predecessor = edge.getPredecessor();
-    CFANode successor = edge.getSuccessor();
 
     // check control flow branching at predecessor
     if (edge instanceof AssumeEdge) {
@@ -61,15 +59,7 @@ public class CFACreationUtils {
       assert predecessor.getNumLeavingEdges() == 0;
     }
 
-    // check control flow merging at successor
-    if (   !(successor instanceof CFAFunctionExitNode)
-        && !(successor instanceof CFALabelNode)
-        && !(successor.isLoopStart())) {
-      // these two node types may have unlimited incoming edges,
-      // a loopStart can be reachable through 'continue' several times,
-      // all other may have at most two of them
-      assert successor.getNumEnteringEdges() <= 1;
-    }
+    // no check control flow merging at successor, we might have many incoming edges
 
     // check if predecessor is reachable
     // or if the predecessor is a loopStart of a forLoop

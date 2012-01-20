@@ -84,8 +84,10 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 
 /**
@@ -1083,13 +1085,33 @@ class CFAFunctionBuilder extends ASTVisitor {
   @Override
   public int leave(IASTStatement statement) {
     if (statement instanceof IASTIfStatement) {
-      CFANode prevNode = locStack.pop();
-      CFANode nextNode = locStack.peek();
+      final CFANode prevNode = locStack.pop();
+      final CFANode nextNode = locStack.peek();
 
       if (isReachableNode(prevNode)) {
-        BlankEdge blankEdge = new BlankEdge("", prevNode.getLineNumber(),
-            prevNode, nextNode);
-        addToCFA(blankEdge);
+
+        for (CFAEdge prevEdge : ImmutableList.copyOf(CFAUtils.allEnteringEdges(prevNode))) {
+          if ((prevEdge instanceof BlankEdge)
+              && prevEdge.getRawStatement().equals("")) {
+
+            // the only entering edge is a BlankEdge, so we delete this edge and prevNode
+
+            CFANode prevPrevNode = prevEdge.getPredecessor();
+            assert prevPrevNode.getNumLeavingEdges() == 1;
+            prevNode.removeEnteringEdge(prevEdge);
+            prevPrevNode.removeLeavingEdge(prevEdge);
+
+            BlankEdge blankEdge = new BlankEdge("", prevNode.getLineNumber(),
+                prevPrevNode, nextNode);
+            addToCFA(blankEdge);
+          }
+        }
+
+        if (prevNode.getNumEnteringEdges() > 0) {
+          BlankEdge blankEdge = new BlankEdge("", prevNode.getLineNumber(),
+              prevNode, nextNode);
+          addToCFA(blankEdge);
+        }
       }
 
     } else if (statement instanceof IASTCompoundStatement) {

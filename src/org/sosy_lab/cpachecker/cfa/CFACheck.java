@@ -34,7 +34,6 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 
@@ -95,13 +94,6 @@ public class CFACheck {
     int entering = pNode.getNumEnteringEdges();
     if (entering == 0) {
       assert (pNode instanceof CFAFunctionDefinitionNode) : "Dead code: node " + DEBUG_FORMAT.apply(pNode) + " has no incoming edges";
-
-    } else if (entering > 2) {
-      assert (pNode instanceof CFAFunctionDefinitionNode)
-          || (pNode instanceof CFAFunctionExitNode)
-          || (pNode instanceof CFALabelNode)
-          || (pNode.isLoopStart())
-          : "Too many incoming edges at node " + DEBUG_FORMAT.apply(pNode);
     }
 
     // check leaving edges
