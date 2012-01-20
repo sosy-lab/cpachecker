@@ -38,7 +38,7 @@ public class ParserException extends Exception {
   }
 
   public ParserException(Throwable cause) {
-    super(cause);
+    super(cause.getMessage(), cause);
   }
 
   public ParserException(String msg, CFAEdge edge) {

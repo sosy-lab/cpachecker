@@ -1390,7 +1390,7 @@ class ASTConverter {
       }
 
     } catch (org.eclipse.cdt.core.dom.ast.DOMException e) {
-      throw new CFAGenerationRuntimeException(e.getMessage());
+      throw new CFAGenerationRuntimeException(e);
     }
   }
 
@@ -1398,7 +1398,7 @@ class ASTConverter {
     try {
       return new IASTPointerTypeSpecifier(t.isConst(), t.isVolatile(), convert(getType(t)));
     } catch (org.eclipse.cdt.core.dom.ast.DOMException e) {
-      throw new CFAGenerationRuntimeException(e.getMessage());
+      throw new CFAGenerationRuntimeException(e);
     }
   }
 
@@ -1412,7 +1412,7 @@ class ASTConverter {
     try {
       return new ITypedef(t.getName(), convert(getType(t)));
     } catch (org.eclipse.cdt.core.dom.ast.DOMException e) {
-      throw new CFAGenerationRuntimeException(e.getMessage());
+      throw new CFAGenerationRuntimeException(e);
     }
   }
 

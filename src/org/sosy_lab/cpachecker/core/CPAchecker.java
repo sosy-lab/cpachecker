@@ -61,7 +61,6 @@ import org.sosy_lab.cpachecker.util.AbstractElements;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
-import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.io.Resources;
 
@@ -248,7 +247,7 @@ public class CPAchecker {
     } catch (ParserException e) {
       // only log message, not whole exception because this is a C problem,
       // not a CPAchecker problem
-      logger.logUserException(Level.SEVERE, Throwables.getRootCause(e), "Parsing failed");
+      logger.logUserException(Level.SEVERE, e, "Parsing failed");
       logger.log(Level.INFO, "Make sure that the code was preprocessed using Cil (HowTo.txt).\n"
           + "If the error still occurs, please send this error message together with the input file to cpachecker-users@sosy-lab.org.");
 

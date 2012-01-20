@@ -384,9 +384,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       visit(((IASTProblemStatement)statement).getProblem());
     } else {
       throw new CFAGenerationRuntimeException("Unknown AST node "
-          + statement.getClass().getSimpleName()+ " in line "
-          + fileloc.getStartingLineNumber() + ": "
-          + statement.getRawSignature());
+          + statement.getClass().getSimpleName(), statement);
     }
 
     return PROCESS_CONTINUE;
