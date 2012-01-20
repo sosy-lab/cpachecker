@@ -141,7 +141,7 @@ class CmdLineArguments {
         Thread.currentThread().interrupt();
 
         // this will disable all other output
-        properties.put("log.consoleLevel", "OFF");
+        properties.put("log.consoleLevel", "SEVERE");
 
       } else if (arg.equals("-help") || arg.equals("-h")) {
         printHelp();
