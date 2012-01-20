@@ -152,21 +152,20 @@ class CFABuilder extends ASTVisitor {
     final List<org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration> newDs = astCreator.convert(sd);
     assert !newDs.isEmpty();
 
+    if (astCreator.existsSideAssignment()) {
+      throw new CFAGenerationRuntimeException("Initializer of global variable has side effect", sd);
+    }
+
+    String rawSignature = sd.getRawSignature();
+
     for (org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD : newDs) {
-      if (newD.getStorageClass() != StorageClass.TYPEDEF
-          && newD.getName() != null) {
+      if (newD.getStorageClass() != StorageClass.TYPEDEF && newD.getName() != null) {
         // this is neither a typedef nor a struct prototype nor a function declaration,
         // so it's a variable declaration
 
         scope.registerDeclaration(newD);
       }
-    }
 
-    assert (sd.getParent() instanceof IASTTranslationUnit) : "not a real global declaration";
-
-    String rawSignature = sd.getRawSignature();
-
-    for (org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD : newDs) {
       globalDeclarations.add(Pair.of(newD, rawSignature));
     }
 
