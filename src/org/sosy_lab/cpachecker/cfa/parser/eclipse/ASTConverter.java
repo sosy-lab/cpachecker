@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -90,6 +91,8 @@ import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.ITypedef;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 
+import com.google.common.collect.ImmutableSet;
+
 @SuppressWarnings("deprecation") // several methods are deprecated in CDT 7 but still working
 class ASTConverter {
 
@@ -138,14 +141,37 @@ class ASTConverter {
     }
   }
 
-  private IASTExpression convertToBinaryExpression(IASTExpression e){
-    if(e.getExpressionType() instanceof IASTSimpleDeclSpecifier){
-      IASTBinaryExpression binExp = new IASTBinaryExpression(e.getFileLocation(), e.getExpressionType(), e,
-          new IASTIntegerLiteralExpression(e.getFileLocation(), e.getExpressionType(), BigInteger.ZERO), BinaryOperator.NOT_EQUALS);
-      return binExp;
+  private static final Set<BinaryOperator> BOOLEAN_BINARY_OPERATORS = ImmutableSet.of(
+      BinaryOperator.EQUALS,
+      BinaryOperator.NOT_EQUALS,
+      BinaryOperator.GREATER_EQUAL,
+      BinaryOperator.GREATER_THAN,
+      BinaryOperator.LESS_EQUAL,
+      BinaryOperator.LESS_THAN,
+      BinaryOperator.LOGICAL_AND,
+      BinaryOperator.LOGICAL_OR);
+
+  private boolean isBooleanExpression(IASTExpression e) {
+    if (e instanceof IASTBinaryExpression) {
+      return BOOLEAN_BINARY_OPERATORS.contains(((IASTBinaryExpression)e).getOperator());
+
+    } else if (e instanceof IASTUnaryExpression) {
+      return ((IASTUnaryExpression) e).getOperator() == UnaryOperator.NOT;
+
     } else {
-      return e;
+      return false;
     }
+  }
+
+  private IASTExpression convertToBinaryExpression(IASTExpression e) {
+    if (!isBooleanExpression(e)) {
+
+      // TODO: probably the type of the zero is not always correct
+      IASTExpression zero = new IASTIntegerLiteralExpression(e.getFileLocation(), e.getExpressionType(), BigInteger.ZERO);
+      return new IASTBinaryExpression(e.getFileLocation(), e.getExpressionType(), e, zero, BinaryOperator.NOT_EQUALS);
+    }
+
+    return e;
   }
 
   public IASTExpression convertExpressionWithoutSideEffects(
