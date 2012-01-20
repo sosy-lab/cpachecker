@@ -35,6 +35,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -147,10 +148,14 @@ public class CFASecondPassBuilder {
     //get the parameter expression
     List<IASTExpression> parameters = functionCallExpression.getParameterExpressions();
 
-    //proove if the number of Function parameters are right
-    if(!((FunctionDefinitionNode)fDefNode).getFunctionDefinition().getDeclSpecifier().takesVarArgs()
-        && parameters.size() != ((FunctionDefinitionNode)fDefNode).getFunctionDefinition().getDeclSpecifier().getParameters().size()){
-      throw new ParserException("Invalid number of Function parameters", edge);
+    // check if the number of function parameters are right
+    IASTFunctionTypeSpecifier functionType = ((FunctionDefinitionNode)fDefNode).getFunctionDefinition().getDeclSpecifier();
+    int declaredParameters = functionType.getParameters().size();
+    int actualParameters = parameters.size();
+    if (!functionType.takesVarArgs() && (declaredParameters != actualParameters)) {
+      throw new ParserException("Function " + functionName + " takes "
+        + declaredParameters + " parameter(s) but is called with "
+        + actualParameters + " parameter(s)", edge);
     }
 
     // delete old edge
