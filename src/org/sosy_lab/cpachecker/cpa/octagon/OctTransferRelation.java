@@ -855,7 +855,7 @@ class OctTransferRelation implements TransferRelation{
         IASTInitializer init = declarationEdge.getInitializer();
         if (init != null) {
           if (init instanceof IASTInitializerExpression) {
-            IASTRightHandSide exp = ((IASTInitializerExpression)init).getExpression();
+            IASTExpression exp = ((IASTInitializerExpression)init).getExpression();
 
             v = getExpressionValue(pElement, exp, varName, declarationEdge);
           } else {

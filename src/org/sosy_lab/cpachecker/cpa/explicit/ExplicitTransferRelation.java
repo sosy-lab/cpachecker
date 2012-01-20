@@ -358,7 +358,7 @@ public class ExplicitTransferRelation implements TransferRelation
     IASTInitializer init = declarationEdge.getInitializer();
     if(init instanceof IASTInitializerExpression)
     {
-      IASTRightHandSide exp = ((IASTInitializerExpression)init).getExpression();
+      IASTExpression exp = ((IASTInitializerExpression)init).getExpression();
 
       initialValue = getExpressionValue(element, exp, functionName, declarationEdge);
     }

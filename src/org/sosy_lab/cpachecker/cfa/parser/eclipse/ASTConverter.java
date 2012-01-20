@@ -76,7 +76,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTReturnStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
@@ -1220,11 +1219,11 @@ class ASTConverter {
       return new IASTInitializerExpression(convert(i.getFileLocation()), ((IASTAssignment)initializer).getLeftHandSide());
     }
 
-    if (initializer != null && !(initializer instanceof IASTRightHandSide)) {
+    if (initializer != null && !(initializer instanceof IASTExpression)) {
       throw new CFAGenerationRuntimeException("Initializer is not free of side-effects", i);
     }
 
-    return new IASTInitializerExpression(convert(i.getFileLocation()), (IASTRightHandSide)initializer);
+    return new IASTInitializerExpression(convert(i.getFileLocation()), (IASTExpression)initializer);
   }
 
   private IASTInitializerList convert(org.eclipse.cdt.core.dom.ast.IASTInitializerList iList) {
@@ -1247,14 +1246,14 @@ class ASTConverter {
 
       if(initializer != null && initializer instanceof IASTAssignment){
         sideAssigment.add(initializer);
-        return new IASTInitializerExpression(convert(i.getFileLocation()), ((IASTAssignment)initializer).getLeftHandSide());
+        return new IASTInitializerExpression(convert(e.getFileLocation()), ((IASTAssignment)initializer).getLeftHandSide());
       }
 
-      if (initializer != null && !(initializer instanceof IASTRightHandSide)) {
-        throw new CFAGenerationRuntimeException("Initializer is not free of side-effects", i);
+      if (initializer != null && !(initializer instanceof IASTExpression)) {
+        throw new CFAGenerationRuntimeException("Initializer is not free of side-effects", e);
       }
 
-      return new IASTInitializerExpression(convert(ic.getFileLocation()), (IASTRightHandSide)initializer);
+      return new IASTInitializerExpression(convert(ic.getFileLocation()), (IASTExpression)initializer);
 
     } else if (ic instanceof org.eclipse.cdt.core.dom.ast.IASTInitializerList) {
       return convert((org.eclipse.cdt.core.dom.ast.IASTInitializerList)ic);

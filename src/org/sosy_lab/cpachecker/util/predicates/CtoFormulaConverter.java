@@ -564,7 +564,7 @@ public class CtoFormulaConverter {
         // if there is an initializer associated to this variable,
         // take it into account
         IASTInitializer initializer = edge.getInitializer();
-        IASTRightHandSide init = null;
+        IASTExpression init = null;
 
         if (initializer == null) {
           if (initAllVars) {
@@ -583,7 +583,7 @@ public class CtoFormulaConverter {
         if (init != null) {
           // initializer value present
 
-          Formula minit = buildTerm(init, function, ssa, constraints, cfaEdge);
+          Formula minit = buildTerm(init, cfaEdge, function, ssa, constraints);
           Formula assignments = makeAssignment(varName, minit, ssa);
 
           if (handlePointerAliasing) {
@@ -722,11 +722,6 @@ public class CtoFormulaConverter {
 
     return makePredicate(assume.getExpression(), assume.getTruthAssumption(),
         assume, function, ssa, constraints);
-  }
-
-  private Formula buildTerm(IASTRightHandSide exp, String function,
-      SSAMapBuilder ssa, Constraints ax, CFAEdge edge) throws UnrecognizedCCodeException {
-    return toNumericFormula(exp.accept(new RightHandSideToFormulaVisitor(function, ssa, ax, edge)));
   }
 
   private Formula buildTerm(IASTExpression exp, CFAEdge edge, String function,

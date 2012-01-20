@@ -35,16 +35,12 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
@@ -108,21 +104,6 @@ public class CFASecondPassBuilder {
           // if statement is of the form x = call(a,b); or call(a,b);
           if (shouldCreateCallEdges(expr)) {
             createCallAndReturnEdges(statement, (IASTFunctionCall)expr);
-          }
-
-        } else if (edge instanceof DeclarationEdge) {
-          // check if this is "int x = f()" and f is a non-extern function
-          // we don't support this currently
-          IASTInitializer init = ((DeclarationEdge)edge).getInitializer();
-          if (init != null && init instanceof IASTInitializerExpression) {
-            IASTRightHandSide initExpression = ((IASTInitializerExpression)init).getExpression();
-            if (initExpression != null && initExpression instanceof IASTFunctionCallExpression) {
-              IASTFunctionCallExpression f = (IASTFunctionCallExpression)initExpression;
-              String name = f.getFunctionNameExpression().toASTString();
-              if (cfas.containsKey(name)) {
-                throw new ParserException("Function call in initializer not supported", edge);
-              }
-            }
           }
         }
 

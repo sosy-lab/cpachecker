@@ -613,7 +613,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
           // global variables may be initialized explicitly on the spot ...
           if(init instanceof IASTInitializerExpression)
           {
-            IASTRightHandSide exp = ((IASTInitializerExpression)init).getExpression();
+            IASTExpression exp = ((IASTInitializerExpression)init).getExpression();
 
             interval = evaluateInterval(element, exp, "", declarationEdge);
           }

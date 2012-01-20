@@ -167,7 +167,7 @@ enum InvariantsTransferRelation implements TransferRelation {
 
     SimpleInterval value = SimpleInterval.infinite();
     if (edge.getInitializer() != null && edge.getInitializer() instanceof IASTInitializerExpression) {
-      IASTRightHandSide init = ((IASTInitializerExpression)edge.getInitializer()).getExpression();
+      IASTExpression init = ((IASTInitializerExpression)edge.getInitializer()).getExpression();
       value = init.accept(SimpleRightHandSideValueVisitor.VISITOR_INSTANCE);
     }
 
