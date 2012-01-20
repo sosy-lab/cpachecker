@@ -123,24 +123,6 @@ class ASTConverter {
     return sideAssigment.removeFirst();
   }
 
-  public IASTExpression convertExpressionWithoutSideEffectsForConditions(
-                                org.eclipse.cdt.core.dom.ast.IASTExpression e){
-    IASTNode node = convertExpressionWithSideEffects(e);
-    if (node == null || node instanceof IASTExpression) {
-      return convertToBinaryExpression((IASTExpression) node);
-
-    } else if (node instanceof IASTFunctionCallExpression) {
-      return convertToBinaryExpression(addSideassignmentsForExpressionsWithoutSideEffects(node, e));
-
-    } else if (node instanceof IASTAssignment) {
-        sideAssigment.add(node);
-        return convertToBinaryExpression(((IASTAssignment) node).getLeftHandSide());
-
-    } else {
-      throw new AssertionError("unknown expression " + node);
-    }
-  }
-
   private static final Set<BinaryOperator> BOOLEAN_BINARY_OPERATORS = ImmutableSet.of(
       BinaryOperator.EQUALS,
       BinaryOperator.NOT_EQUALS,
@@ -163,15 +145,17 @@ class ASTConverter {
     }
   }
 
-  private IASTExpression convertToBinaryExpression(IASTExpression e) {
-    if (!isBooleanExpression(e)) {
+  public IASTExpression convertBooleanExpression(org.eclipse.cdt.core.dom.ast.IASTExpression e){
+
+    IASTExpression exp = convertExpressionWithoutSideEffects(e);
+    if (!isBooleanExpression(exp)) {
 
       // TODO: probably the type of the zero is not always correct
-      IASTExpression zero = new IASTIntegerLiteralExpression(e.getFileLocation(), e.getExpressionType(), BigInteger.ZERO);
-      return new IASTBinaryExpression(e.getFileLocation(), e.getExpressionType(), e, zero, BinaryOperator.NOT_EQUALS);
+      IASTExpression zero = new IASTIntegerLiteralExpression(exp.getFileLocation(), exp.getExpressionType(), BigInteger.ZERO);
+      return new IASTBinaryExpression(exp.getFileLocation(), exp.getExpressionType(), exp, zero, BinaryOperator.NOT_EQUALS);
     }
 
-    return e;
+    return exp;
   }
 
   public IASTExpression convertExpressionWithoutSideEffects(

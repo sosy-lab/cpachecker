@@ -598,7 +598,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     case NORMAL:
       final org.sosy_lab.cpachecker.cfa.ast.IASTExpression exp =
-        astCreator.convertExpressionWithoutSideEffectsForConditions(condition);
+        astCreator.convertBooleanExpression(condition);
         String rawSignature = condition.getRawSignature();
 
           while (astCreator.existsSideAssignment()) {
