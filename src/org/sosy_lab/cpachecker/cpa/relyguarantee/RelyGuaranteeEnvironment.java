@@ -399,10 +399,6 @@ public class RelyGuaranteeEnvironment {
    * @return
    */
   private RelyGuaranteeCFAEdgeTemplate generateEnvTransition(RelyGuaranteeEnvironmentalTransition et) {
-    if (et.getSourceARTElement().getElementId() == 4315){
-      System.out.println();
-    }
-
     ARTElement lastARTAbstractionElement = findLastAbstractionARTElement(et.getSourceARTElement());
     assert lastARTAbstractionElement != null;
 
@@ -444,10 +440,11 @@ public class RelyGuaranteeEnvironment {
       preds.addAll(envGlobalPrecision[sourceTid]);
 
       // abstract
-      AbstractionFormula newAbs = paManager.buildNextValAbstraction(oldAbs, oldPf, newPf, preds);
+      Pair<AbstractionFormula, Region> pair = paManager.buildNextValAbstraction(oldAbs, oldPf, newPf, preds, sourceTid);
+      AbstractionFormula newAbs = pair.getFirst();
       assert lastARTAbstractionElement != null;
 
-      return new RelyGuaranteeAbstractCFAEdgeTemplate(newAbs, lastARTAbstractionElement, et);
+      return new RelyGuaranteeAbstractCFAEdgeTemplate(newAbs, lastARTAbstractionElement, et, pair.getSecond());
     }
     else if (this.abstractEnvTransitions == 1){
       // abstract the conjuction of abstraction and path formula using set of predicates.
@@ -459,7 +456,7 @@ public class RelyGuaranteeEnvironment {
       preds.addAll(envGlobalPrecision[sourceTid]);
 
       AbstractionFormula aFilter = paManager.buildAbstraction(et.getAbstractionFormula(), et.getPathFormula(), preds);
-      return new RelyGuaranteeAbstractCFAEdgeTemplate(aFilter, lastARTAbstractionElement, et);
+      return new RelyGuaranteeAbstractCFAEdgeTemplate(aFilter, lastARTAbstractionElement, et, null);
     } else {
       // don't abstract - the filer is conjuction of abstraction and path formula of  the generating elements
       PathFormula filter = pfManager.makeAnd(et.getPathFormula(), et.getAbstractionPathFormula());

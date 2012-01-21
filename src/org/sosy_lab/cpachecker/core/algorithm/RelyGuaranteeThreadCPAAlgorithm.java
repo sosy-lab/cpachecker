@@ -93,6 +93,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     private int   maxWaitlistSize     = 0;
     private int   countWaitlistSize   = 0;
     private int   countSuccessors     = 0;
+    private int   countNFSuccessors     = 0;
     private int   countEnvSuccessors  = 0;
     private int   maxSuccessors       = 0;
     private int   countMerge          = 0;
@@ -114,6 +115,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
       out.println();
       out.println("No of environmental successors:  " + countEnvSuccessors);
       out.println("No of all successors:            " + countSuccessors);
+      out.println("No of all non-false successors:  " + countNFSuccessors);
       out.println("Max successors for one element:  " + maxSuccessors);
       out.println("Number of environmetal merges:   " + countEnvMerge);
       out.println("Number of all merges:            " + countMerge);
@@ -211,6 +213,11 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
         // TODO for statistics, could slower down the analysis
         boolean byEnvEdge = false;
         RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(successor, RelyGuaranteeAbstractElement.class);
+
+        if (!rgElement.getPathFormula().getFormula().isFalse()){
+          stats.countNFSuccessors++;
+        }
+
 
         if (rgElement.getParentEdge() != null && (rgElement.getParentEdge().getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge || rgElement.getParentEdge().getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge)){
           byEnvEdge = true;

@@ -128,7 +128,6 @@ public class BDDRegionManager implements RegionManager {
   @Override
   public Triple<Region, Region, Region> getIfThenElse(Region pF) {
     BDD f = ((BDDRegion)pF).getBDD();
-
     BDDRegion predicate = new BDDRegion(factory.ithVar(f.var()));
     BDDRegion fThen = new BDDRegion(f.high());
     BDDRegion fElse = new BDDRegion(f.low());

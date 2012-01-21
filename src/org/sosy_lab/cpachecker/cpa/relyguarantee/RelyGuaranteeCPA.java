@@ -45,11 +45,13 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CSIsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
@@ -100,6 +102,7 @@ public class RelyGuaranteeCPA implements ConfigurableProgramAnalysis, Statistics
   protected final PathFormulaManager pathFormulaManager;
   protected final TheoremProver theoremProver;
   protected final PredicateAbstractionManager predicateManager;
+  protected final AbstractionManager abstractionManager;
   protected AbstractElement topElement;
   protected final  RelyGuaranteeRefinementManager<?, ?> refinerManager;
 
@@ -168,6 +171,7 @@ public class RelyGuaranteeCPA implements ConfigurableProgramAnalysis, Statistics
 
     this.refinerManager = RelyGuaranteeRefinementManager.getInstance(regionManager, formulaManager, pathFormulaManager, theoremProver, itpProver, alternativeItpProver, config, logger);
     this.predicateManager = PredicateAbstractionManager.getInstance(regionManager, formulaManager, pathFormulaManager, theoremProver, config, logger);
+    this.abstractionManager = AbstractionManagerImpl.getInstance(regionManager, mathsatFormulaManager, pathFormulaManager, config, logger);
     this.transfer = new RelyGuaranteeTransferRelation(this);
     this.domain = new RelyGuaranteeAbstractDomain(this);
     this.merge = new RelyGuaranteeMergeOperator(this);

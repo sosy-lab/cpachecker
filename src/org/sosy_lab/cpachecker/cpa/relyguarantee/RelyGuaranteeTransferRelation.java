@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 
@@ -281,6 +282,25 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
     if (appInfo.envMap.containsValue(rgEdge.getTemplate())){
       return null;
     }
+
+    // TODO test, works for SBE only!
+    if (abstractEnvTransitions == 2 && localPf.getFormula().isTrue()){
+      RelyGuaranteeAbstractCFAEdgeTemplate rgAbsEdge = (RelyGuaranteeAbstractCFAEdgeTemplate) rgEdge.getTemplate();
+
+      Region rElem = element.getAbstractionFormula().asRegion();
+      Region rFltr = rgAbsEdge.getRenRegion();
+
+      Region rAnd = this.rManager.makeAnd(rElem, rFltr);
+      if (rManager.isFalse(rAnd)){
+        // remember the application
+        appInfo.putEnvApplication(uniqueId, rgEdge.getTemplate());
+        // increment unique number
+        uniqueId++;
+        return Pair.of(this.pfManager.makeFalsePathFormula(), appInfo);
+      }
+
+    }
+
 
     // renamed & apply env transition
     Pair<PathFormula, PathFormula> pair = renamedEnvApplication(localPf, rgEdge, appInfo, cpa.getTid());

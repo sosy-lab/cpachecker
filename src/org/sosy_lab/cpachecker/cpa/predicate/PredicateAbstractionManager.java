@@ -230,9 +230,10 @@ class PredicateAbstractionManager {
    * @param pf
    * @param newPf
    * @param predicates
+   * @param tid
    * @return
    */
-  public AbstractionFormula buildNextValAbstraction(AbstractionFormula aFormula, PathFormula oldPf,PathFormula newPf, Collection<AbstractionPredicate> predicates) {
+  public Pair<AbstractionFormula, Region> buildNextValAbstraction(AbstractionFormula aFormula, PathFormula oldPf,PathFormula newPf, Collection<AbstractionPredicate> predicates, int tid) {
     stats.numCallsAbstraction++;
 
     /* if (predicates.isEmpty()) {
@@ -260,8 +261,11 @@ class PredicateAbstractionManager {
      }*/
 
      Region abs = null;
+     Region rAbs = null;
      if (cartesianNextValAbstraction) {
-       abs = buildNextValCartesianAbstraction(oldAbsPf, newAbsPf, predicates);
+       Pair<Region, Region> pair = buildNextValCartesianAbstraction(oldAbsPf, newAbsPf, predicates, tid);
+       abs = pair.getFirst();
+       rAbs = pair.getSecond();
      } else {
        abs = buildNextValBooleanAbstraction(oldAbsPf, newAbsPf, predicates);
      }
@@ -276,7 +280,7 @@ class PredicateAbstractionManager {
        abstractionCache.put(absKey, result);
      }*/
 
-     return result;
+     return Pair.of(result, rAbs);
   }
 
 
@@ -455,7 +459,7 @@ class PredicateAbstractionManager {
   }
 
 
-  private Region buildNextValCartesianAbstraction(PathFormula oldPf, PathFormula newPf, Collection<AbstractionPredicate> predicates) {
+  private Pair<Region,Region> buildNextValCartesianAbstraction(PathFormula oldPf, PathFormula newPf, Collection<AbstractionPredicate> predicates, int tid) {
     stats.abstractionTime.startOuter();
 
     final RegionManager rmgr = amgr.getRegionManager();
@@ -466,15 +470,18 @@ class PredicateAbstractionManager {
       boolean feasibility;
       feasibility = !thmProver.isUnsat(newPf.getFormula());
 
-
+      Map<Integer, Integer> rMap = new HashMap<Integer, Integer>(1);
+      int oTid = tid == 0 ? 1 : 0;
+      rMap.put(tid, oTid);
       if (!feasibility) {
         // abstract post leads to false, we can return immediately
-        return rmgr.makeFalse();
+        return Pair.of(rmgr.makeFalse(), rmgr.makeFalse());
       }
 
       thmProver.push(newPf.getFormula());
       try {
         Region absbdd = rmgr.makeTrue();
+        Region rAbsbdd = rmgr.makeTrue();
 
         // check whether each of the predicate is implied in the next state...
 
@@ -496,7 +503,10 @@ class PredicateAbstractionManager {
           if (isTrue) {
             stats.abstractionTime.getInnerTimer().start();
             Region v = p.getAbstractVariable();
+            Formula rAtom = this.fmgr.adjustedPrimedNo(p.getSymbolicAtom(), rMap);
+            Region rV = this.amgr.makePredicate(rAtom).getAbstractVariable();
             absbdd = rmgr.makeAnd(absbdd, v);
+            rAbsbdd= rmgr.makeAnd(rAbsbdd, rV);
             stats.abstractionTime.getInnerTimer().stop();
 
             predVal = 1;
@@ -507,8 +517,12 @@ class PredicateAbstractionManager {
             if (isFalse) {
               stats.abstractionTime.getInnerTimer().start();
               Region v = p.getAbstractVariable();
+              Formula rAtom = this.fmgr.adjustedPrimedNo(p.getSymbolicAtom(), rMap);
+              Region rV = this.amgr.makePredicate(rAtom).getAbstractVariable();
+              rV = rmgr.makeNot(rV);
               v = rmgr.makeNot(v);
               absbdd = rmgr.makeAnd(absbdd, v);
+              rAbsbdd= rmgr.makeAnd(rAbsbdd, rV);
               stats.abstractionTime.getInnerTimer().stop();
 
               predVal = -1;
@@ -516,7 +530,7 @@ class PredicateAbstractionManager {
           }
         }
 
-        return absbdd;
+        return Pair.of(absbdd, rAbsbdd);
 
       } finally {
         thmProver.pop();
