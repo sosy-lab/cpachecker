@@ -642,11 +642,17 @@ public class Balancer {
     Vector<MatrixI> matrixAntParts = new Vector<MatrixI>(ant.getNumDisjuncts());
     Vector<TemplateBoolean> disjuncts = ant.getDisjuncts();
     for (TemplateBoolean d : disjuncts) {
-      MatrixI m = formMat.buildMatrix(d, vmgr, paramVars);
+      // According to the formulation of Farkas's lemma in
+      // Colon, Sankararanayanan, and Sipma, each matrix gets a column
+      // representing "true", in the form "-1 <= 0".
+      boolean prependTrue = true;
+      MatrixI m = formMat.buildMatrix(d, vmgr, paramVars, prependTrue);
+      // Add the matrix to the list.
       matrixAntParts.add(m);
     }
 
-    MatrixI Q = formMat.buildMatrix(t2, vmgr, paramVars);
+    boolean prependTrue = false;
+    MatrixI Q = formMat.buildMatrix(t2, vmgr, paramVars, prependTrue);
 
     // Logically speaking, we require that each disjunct in ant taken individually imply each
     // of the constraints in Q.
@@ -662,13 +668,14 @@ public class Balancer {
       //  P ^ R ^ C0 ^ C1 --> A2
       //  P ^ R ^ C0 ^ C1 ^ C2 --> Q
       for (int i = 0; i < U.size(); i++) {
+        prependTrue = false;
         UIFAxiom A = U.get(i);
-        concl = formMat.buildMatrix(A.getAntecedent(), vmgr, paramVars);
+        concl = formMat.buildMatrix(A.getAntecedent(), vmgr, paramVars, prependTrue);
         logger.log(Level.ALL, "UIFAxiom:\n",A);
         logger.log(Level.ALL,"Linearized premises and conclusions:\nPremises:","\n"+prem.toString(),
             "\nConclusions:","\n"+concl.toString());
         aset.addAll( applyRREFheuristic(prem, concl) );
-        prem = prem.concat(formMat.buildMatrix(A.getConsequent(), vmgr, paramVars));
+        prem = prem.concat(formMat.buildMatrix(A.getConsequent(), vmgr, paramVars, prependTrue));
       }
       concl = Q;
       //logger.log(Level.ALL,"Linearized premises and conclusions:\nPremises:\n",prem,"\nConclusions:\n",concl);
