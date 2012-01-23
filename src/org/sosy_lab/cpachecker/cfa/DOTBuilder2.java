@@ -28,10 +28,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.List;
-import java.util.Set;
 
 import org.json.simple.JSONObject;
 import org.sosy_lab.common.Files;
@@ -42,11 +39,16 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.CompositeCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 /**
  * Generates one DOT file per function for the report.
@@ -76,21 +78,10 @@ public final class DOTBuilder2 {
   public static void writeReport(CFAFunctionDefinitionNode cfa, File outdir) throws IOException {
     CFAJSONBuilder jsoner = new CFAJSONBuilder();
     DOTViewBuilder dotter = new DOTViewBuilder();
-    CFAVisitor vis = new CompositeCFAVisitor(jsoner, dotter);
-    traverse(cfa, vis);
+    CFAVisitor vis = new NodeCollectingCFAVisitor(new CompositeCFAVisitor(jsoner, dotter));
+    CFATraversal.dfs().traverse(cfa, vis);
     dotter.writeFiles(outdir);
     Files.writeFile(new File(outdir, "cfainfo.json"), jsoner.getJSON().toJSONString());
-  }
-
-  private static void addLeavingEdges(CFANode node, Deque<CFAEdge> waitingEdgeList) {
-
-    for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges (); edgeIdx++) {
-      CFAEdge edge = node.getLeavingEdge (edgeIdx);
-      waitingEdgeList.add(edge);
-    }
-    if (node.getLeavingSummaryEdge() != null) {
-      waitingEdgeList.add(node.getLeavingSummaryEdge());
-    }
   }
 
   private static String getEdgeText(CFAEdge edge) {
@@ -105,53 +96,9 @@ public final class DOTBuilder2 {
   }
 
   /**
-   * traverse the CFA depth first
-   *
-   * @param cfa
-   * @param visitor
-   */
-  private static void traverse(CFAFunctionDefinitionNode cfa, CFAVisitor visitor) {
-    Set<CFANode> visitedNodes = Sets.newHashSet();
-    Deque<CFAEdge> waitingEdgeList = new ArrayDeque<CFAEdge>();
-
-    visitedNodes.add(cfa);
-    addLeavingEdges(cfa, waitingEdgeList);
-
-    while (!waitingEdgeList.isEmpty ()) {
-
-      CFAEdge edge = waitingEdgeList.removeLast();
-      visitor.visitEdge(edge);
-      if (!visitedNodes.contains(edge.getSuccessor())) {
-        visitedNodes.add(edge.getSuccessor());
-        addLeavingEdges(edge.getSuccessor(), waitingEdgeList);
-      }
-    }
-  }
-
-  private static class CFAVisitor {
-    void visitEdge(CFAEdge edge) {}
-  }
-
-  private static class CompositeCFAVisitor extends CFAVisitor {
-
-    CFAVisitor[] visitors;
-
-    public CompositeCFAVisitor(CFAVisitor... visitors) {
-      this.visitors = visitors;
-    }
-
-    @Override
-    void visitEdge(CFAEdge edge) {
-      for (CFAVisitor visitor: visitors) {
-        visitor.visitEdge(edge);
-      }
-    }
-  }
-
-  /**
    * output DOT files and meta information about virtual and combined edges
    */
-  private static class DOTViewBuilder extends CFAVisitor {
+  private static class DOTViewBuilder extends DefaultCFAVisitor {
 
     private final ListMultimap<String, CFANode> func2nodes = ArrayListMultimap.create();
     private final ListMultimap<String, CFAEdge> func2edges = ArrayListMultimap.create();
@@ -163,7 +110,7 @@ public final class DOTBuilder2 {
     private List<CFAEdge> currentComboEdge = null;
 
     @Override
-    void visitEdge(CFAEdge edge) {
+    public TraversalProcess visitEdge(CFAEdge edge) {
       CFANode predecessor = edge.getPredecessor();
 
       // check if it qualifies for a comboEdge
@@ -195,6 +142,8 @@ public final class DOTBuilder2 {
         func2nodes.put(successor.getFunctionName(), successor);
         currentComboEdge = null;
       }
+
+      return TraversalProcess.CONTINUE;
     }
 
     void writeFiles(File outdir) throws IOException {
@@ -349,28 +298,25 @@ public final class DOTBuilder2 {
   /**
    * output information about CFA nodes and edges as JSON
    */
-  private static class CFAJSONBuilder extends CFAVisitor {
+  private static class CFAJSONBuilder extends DefaultCFAVisitor {
     private final JSONObject nodes = new JSONObject();
     private final JSONObject edges = new JSONObject();
-    private final Set<CFANode> visited = Sets.newHashSet();
 
+    @Override
     @SuppressWarnings("unchecked")
-    void visitNode(CFANode node) {
-      if (!visited.contains(node)) {
-        JSONObject jnode = new JSONObject();
-        jnode.put("no", node.getNodeNumber());
-        jnode.put("line", node.getLineNumber());
-        jnode.put("func", node.getFunctionName());
-        nodes.put(node.getNodeNumber(), jnode);
-        visited.add(node);
-      }
+    public TraversalProcess visitNode(CFANode node) {
+      JSONObject jnode = new JSONObject();
+      jnode.put("no", node.getNodeNumber());
+      jnode.put("line", node.getLineNumber());
+      jnode.put("func", node.getFunctionName());
+      nodes.put(node.getNodeNumber(), jnode);
+
+      return TraversalProcess.CONTINUE;
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    void visitEdge(CFAEdge edge) {
-      visitNode(edge.getPredecessor());
-      visitNode(edge.getSuccessor());
+    public TraversalProcess visitEdge(CFAEdge edge) {
       JSONObject jedge = new JSONObject();
       int src = edge.getPredecessor().getNodeNumber();
       int target = edge.getSuccessor().getNodeNumber();
@@ -381,6 +327,8 @@ public final class DOTBuilder2 {
       jedge.put("type", edge.getEdgeType().toString());
 
       edges.put("" + src + "->" + target, jedge);
+
+      return TraversalProcess.CONTINUE;
     }
 
     @SuppressWarnings("unchecked")
