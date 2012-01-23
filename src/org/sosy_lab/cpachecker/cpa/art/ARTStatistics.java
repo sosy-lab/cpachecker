@@ -105,9 +105,12 @@ public class ARTStatistics implements Statistics {
   public void printStatistics(PrintStream pOut, Result pResult,
       ReachedSet pReached) {
 
-    if (   !exportErrorPath
-        && (!exportART || (artFile == null))) {
 
+    if (!(   (exportErrorPath && (errorPathFile != null))
+          || (exportART       && (artFile != null      ))
+       )) {
+
+      // do nothing, if !(exportErrorPath || exportART)
       // shortcut, avoid unnecessary creation of path etc.
       return;
     }
@@ -136,7 +139,7 @@ public class ARTStatistics implements Statistics {
 
       if (targetPath != null) {
 
-        if (exportErrorPath) {
+        if (exportErrorPath && errorPathFile != null) {
           // the shrinked errorPath only includes the nodes,
           // that are important for the error, it is not a complete path,
           // only some nodes of the targetPath are part of it
