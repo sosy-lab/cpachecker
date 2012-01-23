@@ -166,10 +166,10 @@ public class CFATraversal {
 
     Deque<CFANode> toProcess = new ArrayDeque<CFANode>();
 
-    toProcess.add(startingNode);
+    toProcess.addLast(startingNode);
 
     while (!toProcess.isEmpty()) {
-      CFANode n = toProcess.pop();
+      CFANode n = toProcess.removeLast();
 
       CFATraversal.TraversalProcess result = visitor.visitNode(n);
       if (result == TraversalProcess.ABORT) {
@@ -188,7 +188,7 @@ public class CFATraversal {
           }
 
           if (result != TraversalProcess.SKIP) {
-            toProcess.add(edge.getSuccessor());
+            toProcess.addLast(edge.getSuccessor());
           }
         }
       }
