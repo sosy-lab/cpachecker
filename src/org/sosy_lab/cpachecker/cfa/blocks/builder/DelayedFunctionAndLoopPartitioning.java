@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.CFATraversal;
 
 
 /**
@@ -47,14 +47,15 @@ public class DelayedFunctionAndLoopPartitioning extends FunctionAndLoopPartition
   @Override
   protected Set<CFANode> getBlockForNode(CFANode pNode) {
     if(pNode instanceof CFAFunctionDefinitionNode) {
-      CFAFunctionDefinitionNode functionNode = (CFAFunctionDefinitionNode) pNode;
-      return removeInitialDeclarations(functionNode, CFAUtils.exploreSubgraph(functionNode, functionNode.getExitNode()));
+      CFATraversal.NodeCollectingCFAVisitor visitor = new CFATraversal.NodeCollectingCFAVisitor();
+      CFATraversal.dfs().ignoreFunctionCalls().traverse(pNode, visitor);
+      return removeInitialDeclarations(pNode, visitor.getVisitedNodes());
     }
 
     return super.getBlockForNode(pNode);
   }
 
-  private Set<CFANode> removeInitialDeclarations(CFAFunctionDefinitionNode functionNode, Set<CFANode> functionBody) {
+  private Set<CFANode> removeInitialDeclarations(CFANode functionNode, Set<CFANode> functionBody) {
     if (functionNode.getNumEnteringEdges() == 0) {
       // this is the main function
       return functionBody;

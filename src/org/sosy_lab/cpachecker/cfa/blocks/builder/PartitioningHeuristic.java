@@ -30,7 +30,7 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.CFATraversal;
 
 
 /**
@@ -44,7 +44,9 @@ public abstract class PartitioningHeuristic {
    * @see org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning
    */
   public final BlockPartitioning buildPartitioning(CFANode mainFunction) {
-    Set<CFANode> mainFunctionBody = CFAUtils.exploreSubgraph(mainFunction, null);
+    CFATraversal.NodeCollectingCFAVisitor visitor = new CFATraversal.NodeCollectingCFAVisitor();
+    CFATraversal.dfs().ignoreFunctionCalls().traverse(mainFunction, visitor);
+    Set<CFANode> mainFunctionBody = visitor.getVisitedNodes();
     BlockPartitioningBuilder builder = new BlockPartitioningBuilder(mainFunctionBody);
 
     //traverse CFG
