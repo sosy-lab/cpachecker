@@ -8,11 +8,11 @@
       <includesfile>test/test-sets/integration-ControlFlowInteger.set</includesfile>
       <includesfile>test/programs/benchmarks/HeapManipulation.set</includesfile>
       <includesfile>test/test-sets/integration-SystemC.set</includesfile>
-      <option name="-sv-comp12-abm"/>
+      <option name="-integration-predicate-abm"/>
     </sourcefiles>
     <sourcefiles>
       <includesfile>test/programs/benchmarks/DeviceDrivers.set</includesfile>
-      <option name="-sv-comp12-abm-funpoint"/>
+      <option name="-integration-predicate-abm-funpoint"/>
     </sourcefiles>
     <sourcefiles>
       <includesfile>test/test-sets/integration-DeviceDrivers64.set</includesfile>
