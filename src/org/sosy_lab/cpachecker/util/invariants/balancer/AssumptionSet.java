@@ -24,12 +24,13 @@
 package org.sosy_lab.cpachecker.util.invariants.balancer;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Vector;
 
 import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption.AssumptionType;
 
 
-public class AssumptionSet {
+public class AssumptionSet implements Iterable<Assumption> {
 
   private final Vector<Assumption> aset;;
 
@@ -42,6 +43,10 @@ public class AssumptionSet {
     for (Assumption a : ca) {
       add(a);
     }
+  }
+
+  public Iterator<Assumption> iterator() {
+    return aset.iterator();
   }
 
   public int size() {
@@ -96,6 +101,10 @@ public class AssumptionSet {
     for (Assumption a : ca) {
       add(a);
     }
+  }
+
+  public void addAll(AssumptionSet a) {
+    addAll(a.aset);
   }
 
 }

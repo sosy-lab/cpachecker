@@ -23,11 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.balancer.interfaces;
 
-import java.util.List;
-import java.util.Set;
-
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption;
+import org.sosy_lab.cpachecker.util.invariants.balancer.AssumptionSet;
 import org.sosy_lab.cpachecker.util.invariants.balancer.RationalFunction;
 
 
@@ -73,21 +70,21 @@ public interface MatrixI {
    * For such a row, the "terminals" are the entries in the aug columns.
    * We write the assumptions that the almost zero row terminals be zero
    */
-  public Set<Assumption> getAlmostZeroRowAssumptions();
+  public AssumptionSet getAlmostZeroRowAssumptions();
   /*
    * Return the set of assumptions that all denominators in this matrix are nonzero.
    * We ignore denominators which are nonzero constants, and if we encounter a
    * denominator that is identically zero then we return a singleton set containing only
    * the assumption that zero is nonzero. (This might be useful for deriving a contradiction.)
    */
-  public Set<Assumption> getDenomNonZeroAssumptions();
+  public AssumptionSet getDenomNonZeroAssumptions();
 
   /*
    * Put this matrix into reduced row-echelon form, using Gaussian elimination.
    * Return set of nonzero assumptions for denominators in product of elementary matrices used.
    */
-  public List<Assumption> putInRREF();
+  public AssumptionSet putInRREF();
 
-  public List<Assumption> putInRREF(LogManager logger);
+  public AssumptionSet putInRREF(LogManager logger);
 
 }

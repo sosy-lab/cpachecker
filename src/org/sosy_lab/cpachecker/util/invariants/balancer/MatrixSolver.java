@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.balancer;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
@@ -44,22 +43,22 @@ public class MatrixSolver {
     matrix = mx;
   }
 
-  public Set<Set<Assumption>> solve() throws MatrixSolvingFailedException {
+  public Set<AssumptionSet> solve() throws MatrixSolvingFailedException {
     // Declare/Initialize sets of assumptions:
 
     // Polynomials we are assuming to be zero, since assuming they were nonzero turned out
     // to make the matrix unsolvable (initially empty):
     ZeroPolynomialManager zeroPolyMan = new ZeroPolynomialManager();
-    Set<Assumption> zeros = zeroPolyMan.next();
+    AssumptionSet zeros = zeroPolyMan.next();
 
     // Polynomials assumed to be nonzero during an RREF process:
-    List<Assumption> rrefnonzeros;
+    AssumptionSet rrefnonzeros;
     // RationalFunctiosn assumed to be zero since they wound up in an "almost zero row"
     // of the matrix after it was put in RREF:
-    Set<Assumption> azrZeros;
+    AssumptionSet azrZeros;
 
     // Inequalities assumed on the pivot rows:
-    Set<Set<Assumption>> pivotAssumptionSets = null;
+    Set<AssumptionSet> pivotAssumptionSets = null;
 
     while(true) {
       // Make a copy of the matrix.
@@ -117,11 +116,11 @@ public class MatrixSolver {
     // We unite those last collections, and add them to each element of pivotAssumptionSets. This is
     // our return value. It is left to a higher-level control to decide how to use this.
 
-    Set<Assumption> base = new HashSet<Assumption>();
+    AssumptionSet base = new AssumptionSet();
     base.addAll(azrZeros);
     base.addAll(rrefnonzeros);
     base.addAll(zeros);
-    for (Set<Assumption> aset : pivotAssumptionSets) {
+    for (AssumptionSet aset : pivotAssumptionSets) {
       aset.addAll(base);
     }
     return pivotAssumptionSets;
@@ -130,7 +129,7 @@ public class MatrixSolver {
   /*
    * Make substitutions in the matrix on the basis of polynomials assumed to be zero.
    */
-  private void zeroSubs(Matrix mat, Set<Assumption> zeros) {
+  private void zeroSubs(Matrix mat, AssumptionSet zeros) {
     // Compute substitutions based on the assumptions.
     List<Substitution> subs = new Vector<Substitution>();
     for (Assumption a : zeros) {
@@ -167,14 +166,14 @@ public class MatrixSolver {
       return "ZeroPolynomialManager:\n  Stack:\n  "+stack.toString()+"\n  Pointers:\n  "+pointers.toString();
     }
 
-    public void extend(List<Assumption> list) {
+    public void extend(AssumptionSet aset) {
       // If it's the empty list, don't do anything.
-      if (list.size() == 0) {
+      if (aset.size() == 0) {
         return;
       }
       // Extract list of polynomials from the list of assumptions.
-      List<Polynomial> polys = new Vector<Polynomial>(list.size());
-      for (Assumption a : list) {
+      List<Polynomial> polys = new Vector<Polynomial>(aset.size());
+      for (Assumption a : aset) {
         polys.add( a.getNumerator() );
       }
       // Add list to stack, and initialize pointer to point just past the end of the list.
@@ -190,10 +189,10 @@ public class MatrixSolver {
     }
 
     /*
-     * Get the next set of assumptions (empty if there isn't another one).
+     * Get the next assumption set (empty if there isn't another one).
      */
-    public Set<Assumption> next() {
-      Set<Assumption> aset = new HashSet<Assumption>();
+    public AssumptionSet next() {
+      AssumptionSet aset = new AssumptionSet();
       if (!hasNext()) {
         return aset;
       }

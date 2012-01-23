@@ -40,7 +40,7 @@ public class Transition {
   private final TemplateFormula constraint;
   private final Location end;
   private String eliminationFormula = null;
-  private Set<Assumption> rrefAssumptions = null;
+  private AssumptionSet rrefAssumptions = null;
 
   public Transition(TemplateMap tmap, Location s, TemplateFormula c, Location e) {
     this.tmap = tmap;
@@ -61,11 +61,11 @@ public class Transition {
     return end;
   }
 
-  public Set<Assumption> getRREFassumptions() {
+  public AssumptionSet getRREFassumptions() {
     return rrefAssumptions;
   }
 
-  public void setRREFassumptions(Set<Assumption> aset) {
+  public void setRREFassumptions(AssumptionSet aset) {
     rrefAssumptions = aset;
   }
 

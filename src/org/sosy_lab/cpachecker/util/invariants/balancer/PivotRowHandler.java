@@ -146,14 +146,14 @@ public class PivotRowHandler {
   //-----------------------------------------------------------------
   // Solving
 
-  public Set<Set<Assumption>> handlePivotRows() throws MatrixSolvingFailedException {
+  public Set<AssumptionSet> handlePivotRows() throws MatrixSolvingFailedException {
     // Initialize subset of assumptions that will be used in all sets.
-    Set<Assumption> inAll = new HashSet<Assumption>();
+    AssumptionSet base = new AssumptionSet();
     // Make the first pass:
-    inAll.addAll( firstPass() );
+    base.addAll( firstPass() );
     // TODO: the rest!
-    Set<Set<Assumption>> all = new HashSet<Set<Assumption>>();
-    all.add(inAll);
+    Set<AssumptionSet> all = new HashSet<AssumptionSet>();
+    all.add(base);
     return all;
   }
 
@@ -214,8 +214,8 @@ public class PivotRowHandler {
     return ans;
   }
 
-  private Set<Assumption> firstPass() throws MatrixSolvingFailedException {
-    Set<Assumption> aset = new HashSet<Assumption>();
+  private AssumptionSet firstPass() throws MatrixSolvingFailedException {
+    AssumptionSet aset = new AssumptionSet();
     Vector<Integer> discard = new Vector<Integer>();
     logger.log(Level.ALL, "Processing pivot rows:\n",remainingRows);
     for (Integer r : remainingRows) {
@@ -243,18 +243,13 @@ public class PivotRowHandler {
         } else {
           // Else all aug entries are of codes 0, 1, 2, and the only hope for this row is that
           // all entries of code 2 be nonnegative.
-          Set<Assumption> nonneg = ar2nonneg(r);
+          AssumptionSet nonneg = ar2nonneg(r);
           aset.addAll( nonneg );
           discard.add(r);
           logger.log(Level.ALL, "Discarding row",r,", and adding assumptions:",
               "all post-pivot entries are nonnegative constants, but no augmentation entries are negative",
               "constants. Therefore we add assumptions that all variable augmentation entries in row",
-              r,"be nonnegative.");
-          // FIXME
-          // We should switch over to using the AssumptionSet class, instead of Set<Assumption>.
-          // Let's try one out here:
-          AssumptionSet as1 = new AssumptionSet(nonneg);
-          logger.log(Level.ALL, "Constructed using AssumptionSet class:\n",as1);
+              r,"be nonnegative. Assumptions added:","\n"+nonneg.toString());
         }
       }
     }
@@ -266,8 +261,8 @@ public class PivotRowHandler {
    * Return the set of assumptions saying that every aug entry in row r of code 2
    * is nonnegative.
    */
-  private Set<Assumption> ar2nonneg(Integer r) {
-    Set<Assumption> aset = new HashSet<Assumption>();
+  private AssumptionSet ar2nonneg(Integer r) {
+    AssumptionSet aset = new AssumptionSet();
     for (int j = aug; j < n; j++) {
       if (codes[r][j] == 2) {
         aset.add( new Assumption(mat.getEntry(r, j), AssumptionType.NONNEGATIVE) );

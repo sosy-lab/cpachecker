@@ -23,9 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.balancer;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.Vector;
 
 import org.sosy_lab.common.LogManager;
@@ -247,8 +245,8 @@ public class IRMatrix implements MatrixI {
    * the appropriate constraint for the inequality row.
    */
   @Override
-  public Set<Assumption> getAlmostZeroRowAssumptions() {
-    Set<Assumption> aset = new HashSet<Assumption>();
+  public AssumptionSet getAlmostZeroRowAssumptions() {
+    AssumptionSet aset = new AssumptionSet();
     for (int i = 0; i < rowNum; i++) {
       if (isAlmostZeroRow(i)) {
         // In this case, row i has all entries zero in its non-augmentation columns.
@@ -287,15 +285,15 @@ public class IRMatrix implements MatrixI {
    * denominator that is identically zero then we return a singleton set containing only
    * the assumption that zero is nonzero. (This might be useful for deriving a contradiction.)
    */
-  public Set<Assumption> getDenomNonZeroAssumptions() {
-    Set<Assumption> aset = new HashSet<Assumption>();
+  public AssumptionSet getDenomNonZeroAssumptions() {
+    AssumptionSet aset = new AssumptionSet();
     outerloop:
     for (int i = 0; i < rowNum; i++) {
       for (int j = 0; j < colNum; j++) {
         Polynomial denom = entry[i][j].getDenominator();
         if (denom.isConstant()) {
           if (denom.isZero()) {
-            aset = new HashSet<Assumption>();
+            aset = new AssumptionSet();
             aset.add( new Assumption(RationalFunction.makeZero(),AssumptionType.NONZERO) );
             break outerloop;
           } else {
@@ -317,12 +315,12 @@ public class IRMatrix implements MatrixI {
    * Return set of nonzero assumptions made when dividing.
    */
   @Override
-  public List<Assumption> putInRREF() {
+  public AssumptionSet putInRREF() {
     int m = rowNum;
     int n = colNum;
     int i0 = 0;
     int j0 = 0;
-    List<Assumption> assume = new Vector<Assumption>();
+    AssumptionSet assume = new AssumptionSet();
 
     int M = m;
     int N = n;
@@ -375,7 +373,7 @@ public class IRMatrix implements MatrixI {
     return assume;
   }
 
-  public List<Assumption> putInRREF(LogManager logger) {
+  public AssumptionSet putInRREF(LogManager logger) {
     // TODO
     return null;
   }

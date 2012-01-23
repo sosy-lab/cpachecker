@@ -117,7 +117,7 @@ public class Balancer {
     paramVars = makeParamVars(params);
 
     // Get the RREF assumptions for each transition.
-    Set<Assumption> aset = new HashSet<Assumption>();
+    AssumptionSet aset = new AssumptionSet();
     for (Transition t : tnet.getTransitions()) {
       aset.addAll( getRREFassumptions(t, tnet) );
     }
@@ -166,15 +166,15 @@ public class Balancer {
     return paramVars;
   }
 
-  private Set<Assumption> getRREFassumptions(Transition t, TemplateNetwork tnet)
+  private AssumptionSet getRREFassumptions(Transition t, TemplateNetwork tnet)
     throws RefinementFailedException {
     processSingleTransition(t, tnet, true);
-    Set<Assumption> aset = t.getRREFassumptions();
+    AssumptionSet aset = t.getRREFassumptions();
     logger.log(Level.ALL, "Assumptions:\n", aset);
     return aset;
   }
 
-  private String writeRREFassumptionQEformula(Set<Assumption> aset) {
+  private String writeRREFassumptionQEformula(AssumptionSet aset) {
     String phi = "";
     for (Assumption a : aset) {
       phi += " and "+a.toString();
@@ -348,7 +348,7 @@ public class Balancer {
   }
 
   private void findSingleTransitionRREFassumptionsWithoutUIFAxioms(Transition t, TemplateDisjunction ant, TemplateFormula t2, VariableManager vmgr) {
-    Set<Assumption> aset = consecRREF(ant,t2,vmgr);
+    AssumptionSet aset = consecRREF(ant,t2,vmgr);
     t.setRREFassumptions(aset);
   }
 
@@ -501,7 +501,7 @@ public class Balancer {
     return consecQE(P,R,Q,U,vmgr);
   }
 
-  public Set<Assumption> consecRREF(TemplateDisjunction ant, TemplateFormula t2, VariableManager vmgr) {
+  public AssumptionSet consecRREF(TemplateDisjunction ant, TemplateFormula t2, VariableManager vmgr) {
     Vector<UIFAxiom> U = new Vector<UIFAxiom>();
     return consecRREF(ant,t2,U,vmgr);
   }
@@ -631,11 +631,11 @@ public class Balancer {
    * In this version of the consec function, we expect ant to be in SDNF, and we expect
    * t2 to be a conjunction of TemplateConstraints.
    */
-  public Set<Assumption> consecRREF(TemplateDisjunction ant, TemplateFormula t2,
+  public AssumptionSet consecRREF(TemplateDisjunction ant, TemplateFormula t2,
       Vector<UIFAxiom> U, VariableManager vmgr) {
 
     // Initialize assumption set.
-    Set<Assumption> aset = new HashSet<Assumption>();
+    AssumptionSet aset = new AssumptionSet();
 
     // Build matrices.
     // Create Vector containing the linearization of each disjunct in ant:
@@ -680,7 +680,7 @@ public class Balancer {
     return aset;
   }
 
-  private Set<Assumption> applyRREFheuristic(MatrixI prem, MatrixI concl) {
+  private AssumptionSet applyRREFheuristic(MatrixI prem, MatrixI concl) {
     MatrixI aug = prem.augment(concl);
     Matrix au = null;
     try {
@@ -690,7 +690,7 @@ public class Balancer {
     }
     logger.log(Level.ALL,"Augmented Matrix:","\n"+au.toString());
     MatrixSolver ms = new MatrixSolver(au,logger);
-    Set<Set<Assumption>> asetset;
+    Set<AssumptionSet> asetset;
     Timer msTimer = new Timer();
     msTimer.start();
     try {
@@ -701,33 +701,33 @@ public class Balancer {
       msTimer.stop();
       logger.log(Level.ALL, e.getReason());
       logger.log(Level.ALL, "MatrixSolver took", msTimer.getSumTime(), "milliseconds.");
-      return new HashSet<Assumption>();
+      return new AssumptionSet();
     }
     // For the moment we just return the first set.
     // In reality, we need to return a set of sets of conditions, and try different combinations
     // of sets of conditions for the various matrices involved in balancing the network.
     if (asetset.size() == 0) {
-      return new HashSet<Assumption>();
+      return new AssumptionSet();
     }
     return asetset.iterator().next();
   }
 
-  private Set<Assumption> applyRREFheuristicOLD(MatrixI prem, MatrixI concl) {
+  private AssumptionSet applyRREFheuristicOLD(MatrixI prem, MatrixI concl) {
     MatrixI aug = prem.augment(concl);
     logger.log(Level.ALL,"Augmented Matrix:","\n"+aug.toString());
     // We gather two types of assumptions.
     // First, those made during the process of putting the matrix into RREF:
     // Verbose:
-    List<Assumption> alist = aug.putInRREF(logger);
+    AssumptionSet aset = aug.putInRREF(logger);
     // Quiet:
-    //Set<Assumption> alist = aug.putInRREF();
+    //AssumptionSet aset = aug.putInRREF();
     MatrixI E = aug.getElemMatProd();
     // Write the RREF and the matrix E to the log, for debugging.
     logger.log(Level.ALL,"RREF:","\n"+aug.toString());
     logger.log(Level.ALL,"Matrix representing row operations performed:","\n"+E.toString());
     // Then, the "almost-zero row" assumptions:
-    alist.addAll( aug.getAlmostZeroRowAssumptions() );
-    return new HashSet<Assumption>(alist);
+    aset.addAll( aug.getAlmostZeroRowAssumptions() );
+    return aset;
   }
 
   public enum UIFAxiomStrategy {

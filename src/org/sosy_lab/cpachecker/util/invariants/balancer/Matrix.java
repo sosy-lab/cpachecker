@@ -23,9 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.balancer;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.Vector;
 import java.util.logging.Level;
 
@@ -266,8 +264,8 @@ public class Matrix implements MatrixI {
    * For such a row, the "terminals" are the entries in the aug columns.
    * We write the assumptions that the almost zero row terminals be zero
    */
-  public Set<Assumption> getAlmostZeroRowAssumptions() {
-    Set<Assumption> aset = new HashSet<Assumption>();
+  public AssumptionSet getAlmostZeroRowAssumptions() {
+    AssumptionSet aset = new AssumptionSet();
     for (int i = 0; i < rowNum; i++) {
       if (isAlmostZeroRow(i)) {
         // In this case, row i has all entries zero in its non-augmentation columns.
@@ -290,15 +288,15 @@ public class Matrix implements MatrixI {
    * denominator that is identically zero then we return a singleton set containing only
    * the assumption that zero is nonzero. (This might be useful for deriving a contradiction.)
    */
-  public Set<Assumption> getDenomNonZeroAssumptions() {
-    Set<Assumption> aset = new HashSet<Assumption>();
+  public AssumptionSet getDenomNonZeroAssumptions() {
+    AssumptionSet aset = new AssumptionSet();
     outerloop:
     for (int i = 0; i < rowNum; i++) {
       for (int j = 0; j < colNum; j++) {
         Polynomial denom = entry[i][j].getDenominator();
         if (denom.isConstant()) {
           if (denom.isZero()) {
-            aset = new HashSet<Assumption>();
+            aset = new AssumptionSet();
             aset.add( new Assumption(RationalFunction.makeZero(),AssumptionType.NONZERO) );
             break outerloop;
           } else {
@@ -319,7 +317,7 @@ public class Matrix implements MatrixI {
    * Put this matrix into reduced row-echelon form, using Gaussian elimination.
    * Returns the set of nonzero assumptions made each time we divided a pivot row by its lead entry.
    */
-  public List<Assumption> putInRREF() {
+  public AssumptionSet putInRREF() {
     LogManager lm = null;
     return putInRREF(lm);
   }
@@ -328,14 +326,14 @@ public class Matrix implements MatrixI {
    * Version of RREF algorithm that takes a logger.
    * Returns the set of nonzero assumptions made each time we divided a pivot row by its lead entry.
    */
-  public List<Assumption> putInRREF(LogManager logger) {
+  public AssumptionSet putInRREF(LogManager logger) {
     int m = rowNum;
     int n = colNum;
     int i0 = 0;
     int j0 = 0;
     pivotRows = new Vector<Integer>();
 
-    List<Assumption> alist = new Vector<Assumption>();
+    AssumptionSet aset = new AssumptionSet();
 
     int M = m;
     int N = n;
@@ -390,10 +388,7 @@ public class Matrix implements MatrixI {
       if (!f.getNumerator().isConstant()) {
         // Form the assumption.
         Assumption a = new Assumption(f.getNumerator(),AssumptionType.NONZERO);
-        // Make sure we don't already have it.
-        if (!alist.contains(a)) {
-          alist.add( a );
-        }
+        aset.add( a );
       }
 
       // Now clear out all other entries in column j1.
@@ -417,7 +412,7 @@ public class Matrix implements MatrixI {
       j0 = j1 + 1;
     }
     elemMatProd = E;
-    return alist;
+    return aset;
   }
 
   // Let j1 be the first column, with j0 <= j1 < n, in which there is a nonzero
