@@ -97,7 +97,7 @@ public class PivotRowHandler {
       }
       if (absolute) {
         auv.add(new Integer(j));
-        cuv.add(new Integer(j));
+        //cuv.add(new Integer(j));
       } else if (conditional) {
         cuv.add(new Integer(j));
       }
@@ -233,12 +233,12 @@ public class PivotRowHandler {
       }
       else if (FApr01(r)) {
         // Suppose all post-pivot entries are of code 0 or 1.
-        logger.log(Level.ALL, "In row",r,", all post-pivot entries are nonnegative constants.");
         if (EXar3(r)) {
           // If in addition there is an aug entry of code 3, then we have a complete fail.
           // We hope it was only because of bad nonzero assumptions during the RREF process,
           // and not that the template is simply unusable.
-          logger.log(Level.ALL, "And there is a negative constant in row",r,", so this matrix is unsolvable!");
+          logger.log(Level.ALL, "Matrix unsolvable! Row",r,
+              "has a negative constant augmentation entry, but all post-pivot entries nonnegative constants.");
           throw new MatrixSolvingFailedException(Reason.BadNonzeroAssumptions);
         } else {
           // Else all aug entries are of codes 0, 1, 2, and the only hope for this row is that
@@ -246,9 +246,10 @@ public class PivotRowHandler {
           Set<Assumption> nonneg = ar2nonneg(r);
           aset.addAll( nonneg );
           discard.add(r);
-          logger.log(Level.ALL, "But there are no augmentation entries in row",r,"that are negative constants.",
-              "Therefore we add assumptions that all variable augmentation entries in row",r,
-              "be nonnegative:\n",nonneg,"\nand discard row",r,"from further consideration.");
+          logger.log(Level.ALL, "Discarding row",r,", and adding assumptions:",
+              "all post-pivot entries are nonnegative constants, but no augmentation entries are negative",
+              "constants. Therefore we add assumptions that all variable augmentation entries in row",
+              r,"be nonnegative.");
           // FIXME
           // We should switch over to using the AssumptionSet class, instead of Set<Assumption>.
           // Let's try one out here:

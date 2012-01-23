@@ -44,6 +44,10 @@ public class AssumptionSet {
     }
   }
 
+  public int size() {
+    return aset.size();
+  }
+
   @Override
   public String toString() {
     return aset.toString();

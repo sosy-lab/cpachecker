@@ -96,7 +96,7 @@ public class Balancer {
         break;
       }
       if (succeed) {
-        // exit for-loop
+        // If successful, then exit for-loop.
         break;
       }
     }
@@ -122,7 +122,7 @@ public class Balancer {
       aset.addAll( getRREFassumptions(t, tnet) );
     }
 
-    HashMap<String,Rational> map;
+    HashMap<String,Rational> map = null;
     boolean succeed = false;
 
     // If set is empty, then there are no conditions on the parameters.
