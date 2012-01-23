@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="60" memlimit="3000">
+<benchmark tool="cpachecker" timelimit="120" memlimit="3000">
 	
 	<option name="-setprop">output.disable=true</option>
 	<option name="-heap">2000m</option>
 	<option name="-entryfunction">main</option>
-	<option name="-explicitAnalysis"></option>
+	<option name="-integration-explicit"></option>
 
 	<test>
         	<option name="-setprop">analysis.useRefinement=true</option>
