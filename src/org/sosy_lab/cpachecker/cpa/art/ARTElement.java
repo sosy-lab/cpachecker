@@ -56,6 +56,8 @@ public class ARTElement extends AbstractSingleWrapperElement {
   private ARTElement mergedWith = null;
 
   private final int elementId;
+  private boolean hasLocalChild = false;
+  private boolean byLocalEdge   = false;
 
   private static int nextArtElementId = 0;
 
@@ -72,6 +74,23 @@ public class ARTElement extends AbstractSingleWrapperElement {
 
   public Set<ARTElement> getParents(){
     return parents;
+  }
+
+
+  public boolean hasLocalChild() {
+    return hasLocalChild;
+  }
+
+  public void setHasLocalChild(boolean pHasLocalChild) {
+    hasLocalChild = pHasLocalChild;
+  }
+
+  public boolean isByLocalEdge() {
+    return byLocalEdge;
+  }
+
+  public void setByLocalEdge(boolean pByLocalEdge) {
+    byLocalEdge = pByLocalEdge;
   }
 
   public void addParent(ARTElement pOtherParent){

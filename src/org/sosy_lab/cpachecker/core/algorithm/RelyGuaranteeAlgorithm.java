@@ -144,7 +144,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     }
 
     for (int i=0; i< this.threadNo; i++){
-      threadCPA[i] = new RelyGuaranteeThreadCPAAlgorithm(cpas[i],environment,config, logger, i);
+      threadCPA[i] = new RelyGuaranteeThreadCPAAlgorithm(cpas[i],cfas[i], environment,config, logger, i);
     }
 
     // create DOT file for the original CFA
@@ -161,6 +161,13 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
 
     stats = new RelyGuaranteeAlgorithmStatistics();
     stats.totalTimer.start();
+
+
+    for (int i=0; i<reached.length; i++){
+      ReachedSet rs = reached[i];
+      ARTElement aElement = (ARTElement) rs.getFirstElement();
+      aElement.setHasLocalChild(false);
+    }
 
     boolean error = false;
     try{
@@ -374,7 +381,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
       }
 
       for (String var : allVars.get(node)){
-        if (variables.globalVars.contains(var)){
+        if (variables.allVars.contains(var)){
           toApply.add(node);
           break;
         }
