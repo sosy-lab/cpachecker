@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cfa;
 import static org.sosy_lab.cpachecker.util.AbstractElements.*;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -43,7 +42,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.CFATraversal;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -94,11 +93,13 @@ public class CFAReduction {
       return;
     }
 
+    CFATraversal.NodeCollectingCFAVisitor cfaVisitor = new CFATraversal.NodeCollectingCFAVisitor();
+    CFATraversal traversal = CFATraversal.dfs().backwards();
     // backwards search to determine all relevant nodes
-    Set<CFANode> relevantNodes = new HashSet<CFANode>();
     for (CFANode n : errorNodes) {
-      CFAUtils.dfs(n, relevantNodes, true, true);
+      traversal.traverse(n, cfaVisitor);
     }
+    Set<CFANode> relevantNodes = cfaVisitor.getVisitedNodes();
 
     assert allNodes.containsAll(relevantNodes) : "Inconsistent CFA";
 

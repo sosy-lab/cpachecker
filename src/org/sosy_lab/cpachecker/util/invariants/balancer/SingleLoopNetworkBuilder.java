@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractElements;
+import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.invariants.GraphUtil;
@@ -167,7 +168,9 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     Pair<ARTElement, CFAEdge> rootPair = cePath.getFirst();
     ARTElement ae = rootPair.getFirst();
     CFANode root = AbstractElements.extractLocation(ae);
-    return CFAUtils.transitiveSuccessors(root, true);
+    CFATraversal.NodeCollectingCFAVisitor visitor = new CFATraversal.NodeCollectingCFAVisitor();
+    CFATraversal.dfs().traverse(root, visitor);
+    return visitor.getVisitedNodes();
   }
 
   private PathFormula buildEntryFormula(Path pPath, CFANode loopHead) {
