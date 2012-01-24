@@ -49,6 +49,7 @@ public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
     StringBuilder sb = new StringBuilder();
 
     for (CFAEdge edge : asEdgesList()) {
+      if (edge == null) continue; // in this case we do not need the edge
       sb.append("Line ");
       sb.append(edge.getLineNumber());
       sb.append(": ");
@@ -66,6 +67,7 @@ public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
       JSONObject elem = new JSONObject();
       ARTElement artelem = pair.getFirst();
       CFAEdge edge = pair.getSecond();
+      if (edge == null) continue; // in this case we do not need the edge
       elem.put("artelem", artelem.getElementId());
       elem.put("source", edge.getPredecessor().getNodeNumber());
       elem.put("target", edge.getSuccessor().getNodeNumber());

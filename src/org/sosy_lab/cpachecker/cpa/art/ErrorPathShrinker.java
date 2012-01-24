@@ -73,7 +73,10 @@ public final class ErrorPathShrinker {
    *
    * @param targetPath the "long" targetPath
    * @return errorPath the "short" errorPath */
-  public Path shrinkErrorPath(final Path targetPath) {
+  public Path shrinkErrorPath(Path targetPath) {
+
+    // first remove all elements after the target-element from path
+    targetPath = removeAllElemsAfterTarget(targetPath);
 
     // first collect all global variables
     findGlobalVarsInPath(targetPath);
@@ -96,7 +99,10 @@ public final class ErrorPathShrinker {
     final Path shortErrorPath = new Path();
 
     // the errorNode is important
-    shortErrorPath.addFirst(revIterator.next());
+    final Pair<ARTElement, CFAEdge> lastElem = revIterator.next();
+    assert lastElem.getFirst().isTarget()
+            : "Last Element of ErrorPath must be a targetElement.";
+    shortErrorPath.addFirst(lastElem);
 
     /* if the ErrorNode is inside of a function, the longPath is not handled
      * until the StartNode, but only until the functionCall.
@@ -135,6 +141,28 @@ public final class ErrorPathShrinker {
       }
     }
     return shortErrorPath;
+  }
+
+  /** This method iterates a Path and removes all elements
+   * after the first target-element.
+   *
+   * example: [1, 2, 3, TARGET, 4, 5] --> [1, 2, 3, TARGET]
+   *
+   * @param path the Path to iterate */
+  private Path removeAllElemsAfterTarget(final Path path) {
+    final Path targetPath = new Path();
+    final Iterator<Pair<ARTElement, CFAEdge>> iterator = path.iterator();
+    Pair<ARTElement, CFAEdge> it;
+
+    // iterate through the Path and find the first target-element
+    while (iterator.hasNext()) {
+      it = iterator.next();
+      targetPath.add(it);
+      if (it.getFirst().isTarget()) {
+        break;
+      }
+    }
+    return targetPath;
   }
 
   /** This method iterates a Path and adds all global Variables to the Set
