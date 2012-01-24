@@ -38,7 +38,7 @@ public class PivotRowHandler {
 
   private final LogManager logger;
   private final Matrix mat;
-  private final int m, n, aug;
+  private final int m, n, augStart;
   private final Vector<Integer> remainingRows;
   private final int[][] codes;
   private final List<Integer> AU, CU;
@@ -49,9 +49,10 @@ public class PivotRowHandler {
   public PivotRowHandler(Matrix mx, LogManager lm) {
     logger = lm;
     mat = mx;
-    m = mx.getRowNum();
-    n = mx.getColNum();
-    aug = n - mx.getNumAugCols();
+    m = mx.getRowNum(); // number of rows in the matrix
+    n = mx.getColNum(); // number of columns in the matrix, including augmentation columns
+    augStart = n - mx.getNumAugCols(); // index of first augmentation column; also equals
+                                       // the number of nonaugmentation columns
 
     // Initialize the "remaining rows" as just those that are pivot rows in the matrix.
     remainingRows = new Vector<Integer>(m);
@@ -97,7 +98,6 @@ public class PivotRowHandler {
       }
       if (absolute) {
         auv.add(new Integer(j));
-        //cuv.add(new Integer(j));
       } else if (conditional) {
         cuv.add(new Integer(j));
       }
@@ -151,10 +151,19 @@ public class PivotRowHandler {
     AssumptionSet base = new AssumptionSet();
     // Make the first pass:
     base.addAll( firstPass() );
-    // TODO: the rest!
-    Set<AssumptionSet> all = new HashSet<AssumptionSet>();
-    all.add(base);
-    return all;
+    // Second pass, if needed:
+    Set<AssumptionSet> asetset;
+    if (remainingRows.size() > 0) {
+      Set<AssumptionSet> secondPassOptions = secondPass();
+      for (AssumptionSet option : secondPassOptions) {
+        option.addAll(base);
+      }
+      asetset = secondPassOptions;
+    } else {
+      asetset = new HashSet<AssumptionSet>();
+      asetset.add(base);
+    }
+    return asetset;
   }
 
   private void discardRows(List<Integer> d) {
@@ -166,7 +175,7 @@ public class PivotRowHandler {
    */
   private boolean FAar01(Integer r) {
     boolean ans = true;
-    for (int j = aug; j < n; j++) {
+    for (int j = augStart; j < n; j++) {
       if (codes[r][j] >= 2) {
         ans = false; break;
       }
@@ -180,7 +189,7 @@ public class PivotRowHandler {
    */
   private boolean EXpr3AU(Integer r) {
     boolean ans = false;
-    for (int j = 0; j < aug; j++) {
+    for (int j = 0; j < augStart; j++) {
       if (codes[r][j] == 3 && AU.contains(j)) {
         ans = true; break;
       }
@@ -193,7 +202,7 @@ public class PivotRowHandler {
    */
   private boolean EXar3(Integer r) {
     boolean ans = false;
-    for (int j = aug; j < n; j++) {
+    for (int j = augStart; j < n; j++) {
       if (codes[r][j] == 3) {
         ans = true; break;
       }
@@ -206,7 +215,7 @@ public class PivotRowHandler {
    */
   private boolean FApr01(Integer r) {
     boolean ans = true;
-    for (int j = 0; j < aug; j++) {
+    for (int j = 0; j < augStart; j++) {
       if (codes[r][j] >= 2) {
         ans = false; break;
       }
@@ -261,14 +270,46 @@ public class PivotRowHandler {
    * Return the set of assumptions saying that every aug entry in row r of code 2
    * is nonnegative.
    */
-  private AssumptionSet ar2nonneg(Integer r) {
+  AssumptionSet ar2nonneg(Integer r) {
     AssumptionSet aset = new AssumptionSet();
-    for (int j = aug; j < n; j++) {
+    for (int j = augStart; j < n; j++) {
       if (codes[r][j] == 2) {
         aset.add( new Assumption(mat.getEntry(r, j), AssumptionType.NONNEGATIVE) );
       }
     }
     return aset;
+  }
+
+  //-----------------------------------------------------------------
+  // Second pass
+
+  private Set<AssumptionSet> secondPass() {
+    logger.log(Level.ALL, "Second pass: processing remaining rows:",remainingRows);
+    Set<AssumptionSet> asetset = new HashSet<AssumptionSet>();
+    // Build option table.
+    OptionTable optionTable = buildOptionTable();
+    logger.log(Level.ALL,"Built option table:","\n"+optionTable.toString());
+    // First step: for those rows that only have a single option, take those "options".
+    AssumptionSet soleOpAset = optionTable.takeSoleOptions();
+    // Next ... TODO
+    // For now we return just the soleOpAset, to see test our progress.
+    asetset.add(soleOpAset);
+    //
+    return asetset;
+  }
+
+  private OptionTable buildOptionTable() {
+    int[][] table = new int[m][augStart+1];
+    // Entries not corresponding to CU columns in remaining rows will not be initialized.
+    for (Integer i : remainingRows) {
+      // First get the codes from the conditionally unblocked columns.
+      for (Integer j : CU) {
+        table[i][j] = codes[i][j];
+      }
+      // Now assess the augmentation entries.
+      table[i][augStart] = (EXar3(i) ? 5 : 4);
+    }
+    return new OptionTable(this,mat,table,remainingRows,CU,logger);
   }
 
   //-----------------------------------------------------------------
@@ -282,7 +323,7 @@ public class PivotRowHandler {
         if (j > 0) {
           s += " ";
         }
-        if (j == aug) {
+        if (j == augStart) {
           s += "| ";
         }
         s += Integer.toString(codes[i][j]);

@@ -135,9 +135,23 @@ public class Assumption {
   @Override
   public String toString() {
     if (atype == AssumptionType.TRUE || atype == AssumptionType.FALSE) {
+      // If true or false, don't need the rational function at all.
       return atype.toString();
-    } else {
+    } else if (func.isPolynomial()) {
+      // Else, if rational function a polynomial, then simple.
       return func.toString()+atype.toString();
+    } else {
+      // Else we must think about the sign of the denominator.
+      // (Redlog does not accept inequalities with a quotient on one side.)
+      Polynomial num = func.getNumerator();
+      Polynomial denom = func.getDenominator();
+      if (atype == AssumptionType.ZERO || atype == AssumptionType.NONZERO) {
+        return num.toString()+atype.toString();
+      } else {
+        String s =  "(("+denom.toString()+" > 0 and "+num.toString()+atype.toString()+")";
+        s += " or "+"("+denom.toString()+" < 0 and "+num.toString()+atype.flip().toString()+"))";
+        return s;
+      }
     }
   }
 
