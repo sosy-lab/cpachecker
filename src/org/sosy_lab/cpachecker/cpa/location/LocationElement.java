@@ -37,8 +37,7 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
 
-public class LocationElement implements AbstractElementWithLocation, AbstractQueryableElement, Partitionable
-{
+public class LocationElement implements AbstractElementWithLocation, AbstractQueryableElement, Partitionable {
 
   static class LocationElementFactory {
     private final LocationElement[] elements;
@@ -52,8 +51,8 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
       SortedSet<CFANode> allNodes = ImmutableSortedSet.copyOf(pCfa.getAllNodes());
       int maxNodeNumber = allNodes.last().getNodeNumber();
       LocationElement[] elements = new LocationElement[maxNodeNumber+1];
-      for (CFANode n : allNodes) {
-        elements[n.getNodeNumber()] = new LocationElement(n);
+      for (CFANode node : allNodes) {
+        elements[node.getNodeNumber()] = new LocationElement(node);
       }
 
       return elements;
@@ -66,14 +65,12 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
 
     private final CFANode locationNode;
 
-    private LocationElement (CFANode locationNode)
-    {
+    private LocationElement(CFANode locationNode) {
         this.locationNode = locationNode;
     }
 
     @Override
-    public CFANode getLocationNode ()
-    {
+    public CFANode getLocationNode() {
         return locationNode;
     }
 
@@ -86,19 +83,22 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
     public boolean checkProperty(String pProperty) throws InvalidQueryException {
       String[] parts = pProperty.split("==");
       if (parts.length != 2) {
-        throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not split the property string correctly.");
+        throw new InvalidQueryException("The Query \"" + pProperty
+            + "\" is invalid. Could not split the property string correctly.");
       } else {
         if (parts[0].toLowerCase().equals("line")) {
           try {
             int queryLine = Integer.parseInt(parts[1]);
             return this.locationNode.getLineNumber() == queryLine;
           } catch (NumberFormatException nfe) {
-            throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not parse the integer \"" + parts[1] + "\"");
+            throw new InvalidQueryException("The Query \"" + pProperty
+                + "\" is invalid. Could not parse the integer \"" + parts[1] + "\"");
           }
         } else if (parts[0].toLowerCase().equals("functionname")) {
           return this.locationNode.getFunctionName().equals(parts[1]);
         } else {
-          throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. \"" + parts[0] + "\" is no valid keyword");
+          throw new InvalidQueryException("The Query \"" + pProperty
+              + "\" is invalid. \"" + parts[0] + "\" is no valid keyword");
         }
       }
     }
@@ -115,8 +115,8 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
     }
 
     @Override
-    public Boolean evaluateProperty(
-        String pProperty) throws InvalidQueryException {
+    public Boolean evaluateProperty(String pProperty)
+        throws InvalidQueryException {
       return Boolean.valueOf(checkProperty(pProperty));
     }
 

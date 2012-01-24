@@ -45,8 +45,9 @@ public class InverseLocationTransferRelation implements TransferRelation {
     factory = pFactory;
   }
 
-  private Collection<LocationElement> getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision prec) throws CPATransferException
-  {
+  private Collection<LocationElement> getAbstractSuccessor(AbstractElement element,
+      CFAEdge cfaEdge, Precision prec) throws CPATransferException {
+
     LocationElement inputElement = (LocationElement) element;
     CFANode node = inputElement.getLocationNode();
 
@@ -69,8 +70,9 @@ public class InverseLocationTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<LocationElement> getAbstractSuccessors (AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException
-  {
+  public Collection<LocationElement> getAbstractSuccessors(AbstractElement element,
+      Precision prec, CFAEdge cfaEdge) throws CPATransferException {
+
     if (cfaEdge != null) {
       return getAbstractSuccessor(element, cfaEdge, prec);
     }
@@ -80,8 +82,7 @@ public class InverseLocationTransferRelation implements TransferRelation {
     int numEnteringEdges = node.getNumEnteringEdges();
     List<LocationElement> allSuccessors = new ArrayList<LocationElement>(numEnteringEdges);
 
-    for (int edgeIdx = 0; edgeIdx < numEnteringEdges; edgeIdx++)
-    {
+    for (int edgeIdx = 0; edgeIdx < numEnteringEdges; edgeIdx++) {
       CFAEdge tempEdge = node.getEnteringEdge(edgeIdx);
       allSuccessors.add(factory.getElement(tempEdge.getPredecessor()));
     }
@@ -91,8 +92,7 @@ public class InverseLocationTransferRelation implements TransferRelation {
 
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement element,
-                         List<AbstractElement> otherElements, CFAEdge cfaEdge,
-                         Precision precision) {
+      List<AbstractElement> otherElements, CFAEdge cfaEdge, Precision precision) {
     return null;
   }
 }

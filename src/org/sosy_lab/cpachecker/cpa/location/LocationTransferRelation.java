@@ -45,22 +45,21 @@ public class LocationTransferRelation implements TransferRelation {
     factory = pFactory;
   }
 
-  private Collection<LocationElement> getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision prec) throws CPATransferException
-  {
-    LocationElement inputElement = (LocationElement) element;
-    CFANode node = inputElement.getLocationNode ();
+  private Collection<LocationElement> getAbstractSuccessor(AbstractElement element,
+      CFAEdge cfaEdge, Precision prec) throws CPATransferException {
 
-    int numLeavingEdges = node.getNumLeavingEdges ();
-    for (int edgeIdx = 0; edgeIdx < numLeavingEdges; edgeIdx++)
-    {
-      CFAEdge testEdge = node.getLeavingEdge (edgeIdx);
-      if (testEdge == cfaEdge)
-      {
+    LocationElement inputElement = (LocationElement) element;
+    CFANode node = inputElement.getLocationNode();
+
+    int numLeavingEdges = node.getNumLeavingEdges();
+    for (int edgeIdx = 0; edgeIdx < numLeavingEdges; edgeIdx++) {
+      CFAEdge testEdge = node.getLeavingEdge(edgeIdx);
+      if (testEdge == cfaEdge) {
         return Collections.singleton(factory.getElement(testEdge.getSuccessor()));
       }
     }
 
-    if (node.getLeavingSummaryEdge() != null){
+    if (node.getLeavingSummaryEdge() != null) {
       CallToReturnEdge summaryEdge = node.getLeavingSummaryEdge();
       return Collections.singleton(factory.getElement(summaryEdge.getSuccessor()));
     }
@@ -69,20 +68,20 @@ public class LocationTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<LocationElement> getAbstractSuccessors (AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException
-  {
+  public Collection<LocationElement> getAbstractSuccessors(AbstractElement element,
+      Precision prec, CFAEdge cfaEdge) throws CPATransferException {
+
     if (cfaEdge != null) {
       return getAbstractSuccessor(element, cfaEdge, prec);
     }
 
-    CFANode node = ((LocationElement)element).getLocationNode ();
+    CFANode node = ((LocationElement)element).getLocationNode();
 
     int numLeavingEdges = node.getNumLeavingEdges();
     List<LocationElement> allSuccessors = new ArrayList<LocationElement>(numLeavingEdges);
 
-    for (int edgeIdx = 0; edgeIdx < numLeavingEdges; edgeIdx++)
-    {
-      CFAEdge tempEdge = node.getLeavingEdge (edgeIdx);
+    for (int edgeIdx = 0; edgeIdx < numLeavingEdges; edgeIdx++) {
+      CFAEdge tempEdge = node.getLeavingEdge(edgeIdx);
       allSuccessors.add(factory.getElement(tempEdge.getSuccessor()));
     }
 
@@ -91,8 +90,7 @@ public class LocationTransferRelation implements TransferRelation {
 
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement element,
-                         List<AbstractElement> otherElements, CFAEdge cfaEdge,
-                         Precision precision) {
+      List<AbstractElement> otherElements, CFAEdge cfaEdge, Precision precision) {
     return null;
   }
 }
