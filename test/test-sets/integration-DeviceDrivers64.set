@@ -10,7 +10,6 @@
 ../../test/programs/benchmarks/ldv-drivers/usb_urb-drivers-hid-usbhid-usbmouse.ko-unsafe.cil.out.i.pp.cil.c
 ../../test/programs/benchmarks/ldv-drivers/usb_urb-drivers-input-misc-keyspan_remote.ko-unsafe.cil.out.i.pp.cil.c
 ../../test/programs/benchmarks/ldv-drivers/usb_urb-drivers-media-dvb-ttusb-dec-ttusb_dec.ko-unsafe.cil.out.i.pp.cil.c
-../../test/programs/benchmarks/ldv-drivers/usb_urb-drivers-net-usb-catc.ko-unsafe.cil.out.i.pp.cil.c
 ../../test/programs/benchmarks/ldv-drivers/usb_urb-drivers-staging-lirc-lirc_imon.ko-unsafe.cil.out.i.pp.cil.c
 ../../test/programs/benchmarks/ldv-drivers/usb_urb-drivers-usb-misc-iowarrior.ko-unsafe.cil.out.i.pp.cil.c
 ../../test/programs/benchmarks/ldv-drivers/module_get_put-drivers-atm-eni.ko-safe.cil.out.i.pp.cil.c
