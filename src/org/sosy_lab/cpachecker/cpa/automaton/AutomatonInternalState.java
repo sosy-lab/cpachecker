@@ -36,11 +36,18 @@ class AutomatonInternalState {
   // stateIdCounter is incremented every time an instance of AutomatonState is created.
   private int stateId = stateIdCounter++;
 
-  /** Error State */
-  static final AutomatonInternalState ERROR = new AutomatonInternalState("_predefinedState_ERROR", Collections.<AutomatonTransition>emptyList(), true, false);
-
   /** State representing BOTTOM */
   static final AutomatonInternalState BOTTOM = new AutomatonInternalState("_predefinedState_BOTTOM", Collections.<AutomatonTransition>emptyList());
+
+  /** Error State */
+  static final AutomatonInternalState ERROR = new AutomatonInternalState(
+      "_predefinedState_ERROR",
+      Collections.singletonList(new AutomatonTransition(
+                                    AutomatonBoolExpr.TRUE,
+                                    Collections.<AutomatonBoolExpr>emptyList(),
+                                    Collections.<AutomatonAction>emptyList(),
+                                    BOTTOM)),
+      true, false);
 
   /** Name of this State.  */
   private final String name;
