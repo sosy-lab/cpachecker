@@ -135,7 +135,7 @@ public class CFATraversal {
    */
   public CFATraversal ignoreSummaryEdges() {
     return new CFATraversal(edgeSupplier,
-        Predicates.or(ignoreEdge,
+        Predicates.<CFAEdge>or(ignoreEdge,
             Predicates.instanceOf(CallToReturnEdge.class)));
   }
 
@@ -148,7 +148,7 @@ public class CFATraversal {
   @SuppressWarnings("unchecked")
   public CFATraversal ignoreFunctionCalls() {
     return new CFATraversal(edgeSupplier,
-        Predicates.or(
+        Predicates.<CFAEdge>or(
             ignoreEdge,
             Predicates.instanceOf(FunctionCallEdge.class),
             Predicates.instanceOf(FunctionReturnEdge.class)
