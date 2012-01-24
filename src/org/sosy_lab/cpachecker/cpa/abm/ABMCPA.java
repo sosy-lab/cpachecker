@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -98,8 +97,8 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       throw new InvalidConfigurationException("ABM needs CPAs that are capable for ABM");
     }
     reducer = new TimedReducer(wrappedReducer);
-    transfer = new ABMTransferRelation(config, logger, this, pReachedSetFactory);
     prec = new ABMPrecisionAdjustment(getWrappedCpa().getPrecisionAdjustment());
+    transfer = new ABMTransferRelation(config, logger, this, pReachedSetFactory);
 
     stats = new ABMCPAStatistics(this);
     heuristic = getPartitioningHeuristic();
@@ -148,7 +147,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   }
 
   @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
+  public ABMPrecisionAdjustment getPrecisionAdjustment() {
     return prec;
   }
 

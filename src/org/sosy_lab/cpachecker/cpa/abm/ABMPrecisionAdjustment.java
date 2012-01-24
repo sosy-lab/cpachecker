@@ -35,8 +35,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class ABMPrecisionAdjustment implements PrecisionAdjustment {
 
   private Map<AbstractElement, Precision> forwardPrecisionToExpandedPrecision;
-
-  public final PrecisionAdjustment wrappedPrecisionAdjustment;
+  private boolean breakAnalysis = false;
+  private final PrecisionAdjustment wrappedPrecisionAdjustment;
 
   public ABMPrecisionAdjustment(PrecisionAdjustment pWrappedPrecisionAdjustment) {
     this.wrappedPrecisionAdjustment = pWrappedPrecisionAdjustment;
@@ -49,6 +49,10 @@ public class ABMPrecisionAdjustment implements PrecisionAdjustment {
 
   @Override
   public Triple<AbstractElement, Precision, Action> prec(AbstractElement pElement, Precision pPrecision, UnmodifiableReachedSet pElements) throws CPAException {
+    if(breakAnalysis) {
+      return Triple.of(pElement, pPrecision, Action.BREAK);
+    }
+
     Triple<AbstractElement, Precision, Action> result = wrappedPrecisionAdjustment.prec(pElement, pPrecision, pElements);
 
     Precision newPrecision = forwardPrecisionToExpandedPrecision.get(pElement);
@@ -57,6 +61,10 @@ public class ABMPrecisionAdjustment implements PrecisionAdjustment {
     } else {
       return result;
     }
+  }
+
+  void breakAnalysis() {
+    breakAnalysis = true;
   }
 
 }
