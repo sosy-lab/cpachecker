@@ -193,19 +193,21 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     }
 
     /**
-     * This method decides if the number of assignments for the given variable exceeds the given threshold.
+     * This method decides if the number of assignments for the given variable exceeds the given limit.
+     *
+     * Note, this method maybe used to check against an arbitrary limit, and must not be associated to the threshold in any form.
      *
      * @param variableName the variable to check
-     * @param threshold the threshold to check
+     * @param limit the limit to check
      * @return true, if the number of assignments for the given variable exceeds the given threshold, else false
      */
-    public boolean variableExceedsThreshold(String variableName, Integer threshold) {
-      return mapping.containsKey(variableName) && mapping.get(variableName) >= threshold;
+    public boolean variableExceedsGivenLimit(String variableName, Integer limit) {
+      return mapping.containsKey(variableName) && mapping.get(variableName) >= limit;
     }
 
     @Override
     public boolean mustDumpAssumptionForAvoidance() {
-      return maximum > AssignmentsInPathCondition.this.threshold;
+      return threshold != -1 && maximum > AssignmentsInPathCondition.this.threshold;
     }
 
     @Override
