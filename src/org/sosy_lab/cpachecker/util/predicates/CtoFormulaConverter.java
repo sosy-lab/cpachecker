@@ -786,8 +786,14 @@ public class CtoFormulaConverter {
       removeOldPointerVariablesFromSsaMap(lPVarName, ssa);
       Formula lPVar = makeVariable(lPVarName, ssa);
 
-      IASTIdExpression rIdExpr = (IASTIdExpression)
-          removeCast(((IASTUnaryExpression) right).getOperand());
+      IASTExpression rExpr = removeCast(((IASTUnaryExpression) right).getOperand());
+      if (!(rExpr instanceof IASTIdExpression)) {
+        // these are statements like s1 = *(s2.f)
+        // TODO check whether doing nothing is correct
+        return fmgr.makeTrue();
+      }
+
+      IASTIdExpression rIdExpr = (IASTIdExpression)rExpr;
       Formula rPVar = makePointerVariable(rIdExpr, function, ssa);
 
       // the dealiased address of the right hand side may be a pointer itself.
@@ -845,6 +851,9 @@ public class CtoFormulaConverter {
       // s = 1
       // s = someFunction()
       // s = a + b
+      // s = x.f
+      // s = x->f
+      // s = a[i]
 
       // no second level assignment necessary
       return fmgr.makeTrue();
