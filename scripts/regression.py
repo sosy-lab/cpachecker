@@ -198,7 +198,7 @@ def compareResults(xmlFiles, options):
     if isDifferent:
         diffFiles = []
         for filename in resultFiles:
-            dir = os.path.dirname(filename) + '/diff/'
+            dir = os.path.join(os.path.dirname(filename), 'diff/')
             if not os.path.isdir(dir):
                 os.mkdir(dir)
             diffFiles.append(dir + os.path.basename(filename))
