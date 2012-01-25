@@ -8,10 +8,7 @@
       <includesfile>test/programs/benchmarks/ControlFlowInteger.set</includesfile>
       <includesfile>test/programs/benchmarks/HeapManipulation.set</includesfile>
       <includesfile>test/programs/benchmarks/SystemC.set</includesfile>
-    </sourcefiles>
-    <sourcefiles>
       <includesfile>test/programs/benchmarks/DeviceDrivers.set</includesfile>
-      <option name="-setprop">cpa.predicate.handlePointerAliasing=true</option>
     </sourcefiles>
     <sourcefiles>
       <includesfile>test/programs/benchmarks/DeviceDrivers64.set</includesfile>
