@@ -81,6 +81,10 @@ public class CFACreator {
       description="export CFA as .dot file")
   private boolean exportCfa = true;
 
+  @Option(name="cfa.determineLoopStructure",
+      description="determine loop structure with construction CFA")
+  private boolean determineLoopStructure = true;
+
   @Option(name="cfa.exportPerFunction",
       description="export individual CFAs for function as .dot files")
   private boolean exportCfaPerFunction = true;
@@ -262,6 +266,9 @@ public class CFACreator {
   }
 
   private Optional<ImmutableMultimap<String, Loop>> getLoopStructure(MutableCFA cfa) {
+    if(!determineLoopStructure) {
+      return Optional.absent();
+    }
     Optional<ImmutableMultimap<String, Loop>> loopStructure;
     try {
       ImmutableMultimap.Builder<String, Loop> loops = ImmutableMultimap.builder();
@@ -339,7 +346,7 @@ public class CFACreator {
     }
 
     // write the CFA to files (one file per function + some metainfo)
-    if (exportCfaPerFunction) {
+    if (exportCfa && exportCfaPerFunction) {
       try {
         File outdir = exportCfaFile.getParentFile();
         DOTBuilder2.writeReport(cfa.getMainFunction(), outdir);

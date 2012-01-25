@@ -44,12 +44,12 @@ public class PredicatePostProcessor implements PostProcessor {
   }
 
   private void removeUnsatPaths(ReachedSet pReached) {
-    //idea: non-abstraction elements from which an abstraction element is not reachable can get removed
+    //idea: non-abstraction elements from which a non-false abstraction element is not reachable can get removed
 
     Deque<ARTElement> leaves = new ArrayDeque<ARTElement>();
     for (AbstractElement e : pReached) {
       ARTElement artEle = (ARTElement) e;
-      if (artEle.getChildren().size() == 0 && !AbstractElements.extractElementByType(artEle, PredicateAbstractElement.class).isAbstractionElement() && !artEle.isTarget()) {
+      if (artEle.getChildren().size() == 0 && (!AbstractElements.extractElementByType(artEle, PredicateAbstractElement.class).isAbstractionElement() || AbstractElements.extractElementByType(artEle, PredicateAbstractElement.class).getAbstractionFormula().isFalse()) && !artEle.isTarget()) {
         leaves.push(artEle);
       }
     }
@@ -57,7 +57,7 @@ public class PredicatePostProcessor implements PostProcessor {
     while (!leaves.isEmpty()) {
       ARTElement leaf = leaves.pop();
 
-      assert !AbstractElements.extractElementByType(leaf, PredicateAbstractElement.class).isAbstractionElement();
+      assert (!AbstractElements.extractElementByType(leaf, PredicateAbstractElement.class).isAbstractionElement() || AbstractElements.extractElementByType(leaf, PredicateAbstractElement.class).getAbstractionFormula().isFalse());
 
       Collection<ARTElement> parents = new ArrayList<ARTElement>();
       parents.addAll(leaf.getParents());
