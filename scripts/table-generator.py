@@ -76,13 +76,108 @@ CSS = '''
     .unknown { text-align:center; color:orange; font-weight: bold; }
     .error { text-align:center; color:magenta; font-weight: bold; }
     .score { text-align:center; font-size:large; font-weight:bold; }
-    a { color: inherit; text-decoration: none; display: block; }
-    a:hover { background: lime }
+    .clickable:hover { background: lime; cursor: pointer; }
     -->
 </style>
 '''
 
 # TODO: copy external scripts to local repository? working offline?
+
+SCRIPT_INCLUDES = '''
+<script type="text/javascript" src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
+
+<script type="text/javascript">
+function debug(logInfo) {
+  if(!true) {
+    console.log(logInfo);
+  }
+}
+</script>
+'''
+
+
+CONTENT_PANE = '''
+<script type="text/javascript">
+function showContentPane() {
+    // add function for cleanup, first unbind any old function
+    $('#contentPaneBackground').unbind().click(hideContentPane).show();
+    $('#contentPane').show();
+}
+
+function hideContentPane() {
+    $('#contentPaneBackground').hide();
+    $('#contentPane').hide().empty();
+}
+</script>
+
+<style type="text/css">
+    #contentPaneBackground { height:5000px; width:5000px;
+             position:fixed; top:0px; left:0px;
+             background-image: url(http://www.house-events.de/schnee.gif);
+             background-color:grey; 
+             opacity:0.5; display:none }
+    #contentPane { height:90%; width:90%; position:fixed; top:5%; left:5%;
+             border:solid 10px black; border-radius:15px;
+             background-color:white; opacity:1; display:none }
+</style>
+
+<div id="contentPaneBackground"></div>
+<div id="contentPane"></div>
+'''
+
+
+FILE_CONTENT_SCRIPT = '''
+<script type="text/javascript">
+function loadContentWrapper(event) {
+    var url = $(event.target).attr("url");
+    loadContent(url);
+}
+
+function loadContent(url) {
+    var contentPane = $("<pre>").appendTo("#contentPane")
+            .css("width", "100%").css("height", "100%")
+            .css("margin", "0").css("overflow", "auto");
+
+    $.ajax({
+        async: false, // wait for isError
+        url: url,
+        cache: false,
+        dataType: "text",
+        beforeSend: function() {
+            showContentPane();
+            contentPane.html("loading...");
+        },
+        success: function(text){
+            newtext = text.replace(/&/g, "&amp;")
+                          .replace(/"/g, "&quot;")
+                          .replace(/</g, "&lt;")
+                          .replace(/>/g, "&gt;")
+                          .replace(/\\n/g, "<br>");
+            contentPane.html(newtext);
+        },
+        error: function() {
+            contentPane.html("error while loading content.<br>" +
+            "this could be a problem of the 'same-origin-policy' of your browser.<br><br>" + 
+            "only firefox seems to be able to access files from local directories<br>" + 
+            "and this works only if the file is in the same directory as this website.<br><br>" + 
+            "you can try to download the file: <a href=" + url + ">" + url + "</a>");
+        },
+    });
+}
+
+$(document).ready(function(){
+    var cellsWithUrls = $('td[url]');
+    //console.log(cellsWithUrls);
+    cellsWithUrls.each(
+        function(index, elem){
+            $(elem).click(loadContentWrapper)
+                   .addClass("clickable");
+        });
+});
+</script>
+'''
+
+
 PLOTTING_SCRIPT = '''
 <script type="text/javascript" src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
 <script type="text/javascript" src="http://www.jqplot.com/src/jquery.jqplot.min.js"></script>
@@ -102,23 +197,9 @@ PLOTTING_SCRIPT = '''
              border:solid 1px black; padding:2px;
              border-radius:8px; border-bottom-left-radius:0px;
              background-color:white; opacity:0.8; }
-    #chartWrapperBackground { height:5000px; width:5000px;
-             position:fixed; top:0px; left:0px;
-             background-image: url(http://www.house-events.de/schnee.gif);
-             background-color:grey; 
-             opacity:0.5; display:none }
-    #chartWrapper { height:90%; width:90%; position:fixed; top:5%; left:5%;
-             border:solid 10px black; border-radius:15px;
-             background-color:white; opacity:1; display:none }
     #chart { height:100%; width:100% }
     #button-trend { position:absolute; bottom:0px; }
 </style>
-
-<div id="chartWrapperBackground"></div>
-<div id="chartWrapper">
-  <div id="chart"></div>
-  <button id="button-trend"></button>
-</div>
 
 <script type="text/javascript">
 
@@ -308,7 +389,7 @@ function addLegendActions() {
 
 function showPlot(header) {
     debug("show plot of: " + header);
-    $('#chartWrapperBackground').trigger('click');
+    $('#contentPaneBackground').trigger('click');
 
     var yTicks = getYTicks(header);
     var xTicks = getXTicks(); // filenames for labels
@@ -324,7 +405,7 @@ function showPlot(header) {
 
 function showTrend(header) {
     debug("show trend of: " + header);
-    $('#chartWrapperBackground').trigger('click');
+    $('#contentPaneBackground').trigger('click');
 
     var yTicks = getYTicks(header);
     var xTicks = getXTicksWithNumbers();
@@ -359,20 +440,15 @@ function getFormatter(labels, header) {
 plotCache = {};
 
 function drawPlot(header, data, xTicks, yTicks, type) {
-    var background = $('#chartWrapperBackground')[0];
-    var wrapper = $('#chartWrapper')[0];
+    $('#contentPane').append('<div id="chart"></div>',
+                   '<button id="button-trend"></button>');
 
-    // show graph
-    background.style.display='block';
-    wrapper.style.display='block';
+    showContentPane();
+    $('#contentPaneBackground').click(function(event){
+        $('#chart').empty();
+    });
 
-    // add function for cleanup
-    background.onclick = function(event){
-      wrapper.style.display = 'none';
-      background.style.display = 'none';
-      $('#chart').empty();
-    };
-
+/* there seems to be a bug with dimensions of a cached plot, cache is disabled
     var key = type + "@" + header;
     if (plotCache.hasOwnProperty(key)) {
         debug("object in cache: " + key);
@@ -380,6 +456,7 @@ function drawPlot(header, data, xTicks, yTicks, type) {
         plot.replot();
 
     } else {
+*/
         // data array is empty, we use "columnRenderer" option to get data.
         var plot = $.jqplot('chart',[],{
           title: header,
@@ -428,8 +505,10 @@ function drawPlot(header, data, xTicks, yTicks, type) {
           },
         });
 
+/*
         plotCache[key] = plot;
     }
+*/
 
     addLegendActions();
 };
@@ -448,12 +527,6 @@ $(document).ready(function(){
       }
     }
 });
-
-function debug(logInfo) {
-  if(!true) {
-    console.log(logInfo);
-  }
-}
 
 </script>
 '''
@@ -544,7 +617,7 @@ def appendTests(listOfTests, filelist, columns=None):
             else:
                 columnTitles = availableColumnTitles
 
-            if options.logfilesInHtml: insertLogFileNames(resultFile, resultElem)
+            insertLogFileNames(resultFile, resultElem)
 
             listOfTests.append((resultElem, columnTitles))
         else:
@@ -572,35 +645,15 @@ def insertLogFileNames(resultFile, resultElem):
     if len(parts) > 1:
         logFolder = "%s#%s" % (parts[0], logFolder)
 
-    # create folder for txt-files (copies of the logfiles)
-    txtFolder = 'table/' + logFolder
-    if not os.path.isdir(OUTPUT_PATH + txtFolder):
-            os.makedirs(OUTPUT_PATH + txtFolder)
-
     # append begin of filename
     testname = resultElem.get('name')
     if testname is not None:
         logFolder += testname + "."
-        txtFolder += testname + "."
 
-    errorLogFileList = []
     # for each file: append original filename and insert logFileName into sourcefileElement
     for sourcefile in resultElem.findall('sourcefile'):
-        logFileName = os.path.basename(sourcefile.get('name'))
-
-        # copy logfiles to extra folder and rename them to '.txt'
-        logFile = (os.path.dirname(resultFile) or '.') + '/' + logFolder + logFileName + ".log"
-        txtFile = OUTPUT_PATH + txtFolder + logFileName + ".txt"
-        try:
-            shutil.copyfile(logFile, txtFile)
-        except IOError:
-            errorLogFileList.append(logFile)
-
-        sourcefile.set('logfileForHtml', txtFolder + logFileName + ".txt")
-
-    if errorLogFileList: # not empty
-        print ('logfile not found or not copied:\n' + \
-            '\n'.join(errorLogFileList))
+        logFileName = os.path.basename(sourcefile.get('name')) + ".log"
+        sourcefile.set('logfileForHtml', logFolder + logFileName)
 
 
 def getFileList(shortFile):
@@ -864,13 +917,8 @@ def getTableBody(listOfTests):
     # generate text for filenames
     for fileName in fileNames:
         filePath = getPathOfSourceFile(fileName)
-
-        if options.logfilesInHtml:
-            rowsForHTML.append(['<td><a href="{0}">{1}</a></td>'.
+        rowsForHTML.append(['<td url="{0}">{1}</td>'.
                             format(quote(filePath), fileName.replace(commonPrefix, '', 1))])
-        else:
-            rowsForHTML.append(['<td>{0}</td>'.
-                            format(fileName.replace(commonPrefix, '', 1))])
         rowsForCSV.append([fileName.replace(commonPrefix, '', 1)])
 
     # get values for each test
@@ -951,12 +999,8 @@ def getValuesOfFileXTest(currentFile, listOfColumns):
                     else:
                         currentFile.status = 'error'
 
-                    if options.logfilesInHtml:
-                        valuesForHTML.append('<td class="{0}"><a href="{1}">{2}</a></td>'
+                    valuesForHTML.append('<td class="{0}" url="{1}">{2}</td>'
                             .format(currentFile.status, quote(str(currentFile.get('logfileForHtml'))), status))
-                    else:
-                        valuesForHTML.append('<td class="{0}">{1}</td>'
-                            .format(currentFile.status, status))
 
                 else:
                     valuesForHTML.append('<td>{0}</td>'.format(value))
@@ -1092,7 +1136,9 @@ def createTable(file, filesFromXML=False):
                 + tableBodyHTML.replace('\n','\n' + HTML_SHIFT) \
                 + '\n</table>\n\n'
 
-    htmlCode = DOCTYPE + '<html>\n\n<head>\n' + CSS + TITLE + '\n</head>\n\n<body>\n\n'
+    htmlCode = DOCTYPE + '<html>\n\n<head>\n' + \
+                CSS + SCRIPT_INCLUDES + FILE_CONTENT_SCRIPT + TITLE + \
+                '\n</head>\n\n<body>\n\n' + CONTENT_PANE + '\n\n'
     if options.enablePlotting: htmlCode += PLOTTING_SCRIPT + '\n'
     htmlCode += tableCode + '</body>\n\n</html>'
 
@@ -1129,10 +1175,6 @@ def main(args=None):
         type="string",
         dest="outputPath",
         help="outputPath for table. if it does not exist, it is created."
-    )
-    parser.add_option("-w", "--withoutlinks", 
-        action="store_false", dest="logfilesInHtml", default=True,
-        help="create table without links to logfiles."
     )
     parser.add_option("-p", "--plot", 
         action="store_true", dest="enablePlotting", default=False,
