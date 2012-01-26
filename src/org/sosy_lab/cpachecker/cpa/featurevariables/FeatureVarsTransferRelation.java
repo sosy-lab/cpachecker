@@ -72,18 +72,20 @@ public class FeatureVarsTransferRelation implements TransferRelation {
    * a local variable with the same name)
    */
   @Override
-  public Collection<AbstractElement> getAbstractSuccessors(
+  public Collection<FeatureVarsElement> getAbstractSuccessors(
       AbstractElement element, Precision pPrecision, CFAEdge cfaEdge)
       throws CPATransferException {
     Preconditions.checkArgument(pPrecision instanceof FeatureVarsPrecision, "precision is no FeatureVarsPrecision");
     FeatureVarsPrecision precision = (FeatureVarsPrecision) pPrecision;
+    FeatureVarsElement fvElement = (FeatureVarsElement) element;
+    assert !fvElement.getRegion().isFalse();
+
     if (precision.isDisabled()) {
       // this means that no variables should be tracked (whitelist is empty)
-      return Collections.singleton(element);
+      return Collections.singleton(fvElement);
     }
 
-    FeatureVarsElement fvElement = (FeatureVarsElement) element;
-    AbstractElement successor = fvElement;
+    FeatureVarsElement successor = fvElement;
     // check the type of the edge
     switch (cfaEdge.getEdgeType()) {
     // if edge is a statement edge, e.g. a = b + c
@@ -129,11 +131,12 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     if (successor == null) {
       return Collections.emptySet();
     } else {
+      assert !successor.getRegion().isFalse();
       return Collections.singleton(successor);
     }
   }
 
-  private AbstractElement handleStatementEdge(FeatureVarsElement element,
+  private FeatureVarsElement handleStatementEdge(FeatureVarsElement element,
       IASTStatement pIastStatement, StatementEdge cfaEdge,
       FeatureVarsPrecision pPrecision) {
 
@@ -167,14 +170,11 @@ public class FeatureVarsTransferRelation implements TransferRelation {
         }
       }
     }
-    if (result.getRegion().isFalse()) {
-      return null; // assumption is not fulfilled / not possible
-    } else {
-      return result;
-    }
+    assert !result.getRegion().isFalse();
+    return result;
   }
 
-  private AbstractElement handleAssumption(FeatureVarsElement element,
+  private FeatureVarsElement handleAssumption(FeatureVarsElement element,
       IASTExpression expression, CFAEdge cfaEdge, boolean truthValue,
       FeatureVarsPrecision precision) throws UnrecognizedCCodeException {
     String functionName = cfaEdge.getPredecessor().getFunctionName();
