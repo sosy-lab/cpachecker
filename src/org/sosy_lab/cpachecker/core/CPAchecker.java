@@ -51,8 +51,8 @@ import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ConcurrentAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.RelyGuaranteeAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.RelyGuaranteeCEGARAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.RGAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.RGCEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -61,8 +61,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCPA;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeVariables;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCPA;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGVariables;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -210,13 +210,13 @@ public class CPAchecker {
       cpas  = new ConfigurableProgramAnalysis[threadNo];
 
       // extract variables
-      RelyGuaranteeVariables vars = new RelyGuaranteeVariables(cfas);
+      RGVariables vars = new RGVariables(cfas);
 
       // create a cpa for each thread
       for(int i=0; i<threadNo; i++){
         ConfigurableProgramAnalysis cpa = createCPA(stats);
         WrapperCPA wCPA = (WrapperCPA) cpa;
-        RelyGuaranteeCPA rgCPA = wCPA.retrieveWrappedCpa(RelyGuaranteeCPA.class);
+        RGCPA rgCPA = wCPA.retrieveWrappedCpa(RGCPA.class);
         rgCPA.setTid(i);
         rgCPA.setVariables(vars);
         //rgCPA.useHardcodedPredicates();
@@ -233,11 +233,11 @@ public class CPAchecker {
       }
 
       // TODO handle only with ConcurrentAlgorithm
-      RelyGuaranteeAlgorithm rgAlgorithm = new RelyGuaranteeAlgorithm(cfas, mainFunctions, cpas, vars, config, logger);
+      RGAlgorithm rgAlgorithm = new RGAlgorithm(cfas, mainFunctions, cpas, vars, config, logger);
       ConcurrentAlgorithm algorithm;
 
       if (options.useRelyGuaranteeRefinement) {
-        algorithm = new RelyGuaranteeCEGARAlgorithm(rgAlgorithm, config, logger);
+        algorithm = new RGCEGARAlgorithm(rgAlgorithm, config, logger);
 
       } else {
         algorithm = rgAlgorithm;

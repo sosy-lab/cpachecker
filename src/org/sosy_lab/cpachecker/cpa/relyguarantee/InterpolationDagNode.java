@@ -42,7 +42,7 @@ public class InterpolationDagNode{
   protected PathFormula pathFormula;
 
   /** Information on applied env. edges */
-  protected final RelyGuaranteeApplicationInfo appInfo;
+  protected final RGApplicationInfo appInfo;
 
   /** Node directly affecting this node */
   protected final List<InterpolationDagNode> parents;
@@ -78,7 +78,7 @@ public class InterpolationDagNode{
     this.isEnvAbstraction = node.isEnvAbstraction;
   }
 
-  public InterpolationDagNode(ARTElement artElement, PathFormula pathFormula, RelyGuaranteeApplicationInfo appInfo, int tid){
+  public InterpolationDagNode(ARTElement artElement, PathFormula pathFormula, RGApplicationInfo appInfo, int tid){
     assert artElement   != null;
     assert pathFormula  != null;
 
@@ -92,7 +92,7 @@ public class InterpolationDagNode{
     this.isEnvAbstraction = false;
   }
 
-  public InterpolationDagNode(ARTElement artElement, PathFormula pathFormula, RelyGuaranteeApplicationInfo appInfo, int tid, boolean isEnvAbstraction, Integer uniqueId){
+  public InterpolationDagNode(ARTElement artElement, PathFormula pathFormula, RGApplicationInfo appInfo, int tid, boolean isEnvAbstraction, Integer uniqueId){
     assert artElement   != null;
     assert pathFormula  != null;
 
@@ -136,7 +136,7 @@ public class InterpolationDagNode{
   }
 
   public String toString() {
-    RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(artElement, RelyGuaranteeAbstractElement.class);
+    RGAbstractElement rgElement = AbstractElements.extractElementByType(artElement, RGAbstractElement.class);
     return "ItpDagNode "+key.toString();
   }
 
@@ -156,7 +156,7 @@ public class InterpolationDagNode{
     pathFormula = pPathFormula;
   }
 
-  public RelyGuaranteeApplicationInfo getAppInfo() {
+  public RGApplicationInfo getAppInfo() {
     return appInfo;
   }
 

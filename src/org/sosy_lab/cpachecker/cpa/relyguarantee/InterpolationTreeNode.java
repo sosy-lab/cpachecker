@@ -37,7 +37,7 @@ public class InterpolationTreeNode  {
   protected PathFormula pathFormula;
 
   /** Information on applied env. edges */
-  protected final RelyGuaranteeApplicationInfo appInfo;
+  protected final RGApplicationInfo appInfo;
 
   /** Node directly affecting this node */
   protected  InterpolationTreeNode parent;
@@ -95,7 +95,7 @@ public class InterpolationTreeNode  {
     this.isEnvAbstraction = isEnvAbstraction;
   }
 
-  public InterpolationTreeNode(ARTElement artElement, PathFormula pathFormula, RelyGuaranteeApplicationInfo appInfo, int tid, Integer uniqueId, boolean isARTAbstraction, boolean isEnvAbstraction){
+  public InterpolationTreeNode(ARTElement artElement, PathFormula pathFormula, RGApplicationInfo appInfo, int tid, Integer uniqueId, boolean isARTAbstraction, boolean isEnvAbstraction){
     assert artElement   != null;
     assert pathFormula  != null;
 
@@ -131,7 +131,7 @@ public class InterpolationTreeNode  {
     return artElement;
   }
 
-  public RelyGuaranteeApplicationInfo getAppInfo() {
+  public RGApplicationInfo getAppInfo() {
     return appInfo;
   }
 

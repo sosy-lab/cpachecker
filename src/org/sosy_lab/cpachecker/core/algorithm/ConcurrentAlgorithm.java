@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvironment;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGEnvironment;
 
 public interface ConcurrentAlgorithm extends StatisticsProvider{
 
@@ -37,6 +37,6 @@ public interface ConcurrentAlgorithm extends StatisticsProvider{
 
   Result getResult();
 
-  RelyGuaranteeEnvironment getRelyGuaranteeEnvironment();
+  RGEnvironment getRelyGuaranteeEnvironment();
 
 }
