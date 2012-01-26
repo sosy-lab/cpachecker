@@ -485,7 +485,6 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     else {
       System.out.println("- by local edge "+rgElement.getParentEdge().getRawStatement());
     }
-    int atomNo2 = fManager.countAtoms(rgElement.getPathFormula().getFormula());
     System.out.println("\t is '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+" id:"+aElement.getElementId()+" at "+loc);
 
   }

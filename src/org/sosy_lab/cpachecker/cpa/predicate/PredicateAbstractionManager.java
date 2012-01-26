@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -233,7 +232,7 @@ class PredicateAbstractionManager {
    * @param tid
    * @return
    */
-  public Pair<AbstractionFormula, Region> buildNextValAbstraction(AbstractionFormula aFormula, PathFormula oldPf,PathFormula newPf, Collection<AbstractionPredicate> predicates, int tid) {
+  public AbstractionFormula buildNextValAbstraction(AbstractionFormula aFormula, PathFormula oldPf,PathFormula newPf, Collection<AbstractionPredicate> predicates, int tid) {
     stats.numCallsAbstraction++;
 
     /* if (predicates.isEmpty()) {
@@ -261,11 +260,8 @@ class PredicateAbstractionManager {
      }*/
 
      Region abs = null;
-     Region rAbs = null;
      if (cartesianNextValAbstraction) {
-       Pair<Region, Region> pair = buildNextValCartesianAbstraction(oldAbsPf, newAbsPf, predicates, tid);
-       abs = pair.getFirst();
-       rAbs = pair.getSecond();
+       abs = buildNextValCartesianAbstraction(oldAbsPf, newAbsPf, predicates, tid);
      } else {
        abs = buildNextValBooleanAbstraction(oldAbsPf, newAbsPf, predicates);
      }
@@ -280,79 +276,10 @@ class PredicateAbstractionManager {
        abstractionCache.put(absKey, result);
      }*/
 
-     return Pair.of(result, rAbs);
+     return result;
   }
 
 
-
-
-  /**
-   * Abstract post operation.
-   * @param pMap
-   */
-  public AbstractionFormula buildNonModularAbstraction(AbstractionFormula abstractionFormula, PathFormula pathFormula,Collection<AbstractionPredicate> predicates, int tid) {
-
-    stats.numCallsAbstraction++;
-
-    /*if (predicates.isEmpty()) {
-      stats.numSymbolicAbstractions++;
-      return makeTrueAbstractionFormula(pathFormula);
-    }*/
-
-    logger.log(Level.ALL, "Old abstraction:", abstractionFormula);
-    logger.log(Level.ALL, "Path formula:", pathFormula);
-    logger.log(Level.ALL, "Predicates:", predicates);
-
-    Formula absFormula = abstractionFormula.asFormula();
-    Formula symbFormula = buildFormula(pathFormula.getFormula());
-    Formula f = fmgr.makeAnd(absFormula, symbFormula);
-    PathFormula pf = new PathFormula(f, pathFormula.getSsa(), pathFormula.getLength());
-
-    // caching
-    Pair<PathFormula, Collection<AbstractionPredicate>> absKey = null;
-    if (useCache) {
-      absKey = Pair.of(pf, predicates);
-      AbstractionFormula result = abstractionCache.get(absKey);
-
-      if (result != null) {
-        // create new abstraction object to have a unique abstraction id
-        result = new AbstractionFormula(result.asRegion(), result.asPathFormula(), pathFormula);
-        logger.log(Level.ALL, "Abstraction was cached, result is", result);
-        stats.numCallsAbstractionCached++;
-        return result;
-      }
-    }
-
-    Region abs;
-    if (cartesianAbstraction) {
-      abs = buildCartesianAbstraction(f, pathFormula.getSsa(), predicates);
-    } else {
-      abs = buildNonModularBooleanAbstraction(f, pathFormula.getSsa(), predicates);
-    }
-
-    // clean up the SSA map
-    SSAMap ssa            = pathFormula.getSsa();
-    SSAMapBuilder ssaBldr = SSAMap.emptySSAMap().builder();
-
-    for (String var : ssa.allVariables()){
-      Pair<String, Integer> data = PathFormula.getPrimeData(var);
-      if (data.getSecond()!=null && data.getSecond() == tid){
-        ssaBldr.setIndex(var, ssa.getIndex(var));
-      }
-    }
-
-    SSAMap newssa = ssaBldr.build();
-
-    Formula symbolicAbs = fmgr.instantiateModular(amgr.toConcrete(abs), newssa);
-    PathFormula symbolicPathAbs = new PathFormula(symbolicAbs, newssa, 0);
-    AbstractionFormula result = new AbstractionFormula(abs, symbolicPathAbs, pathFormula);
-
-    if (useCache) {
-      abstractionCache.put(absKey, result);
-    }
-
-    return result;
-  }
 
   private Region buildCartesianAbstraction(final Formula f, final SSAMap ssa,
       Collection<AbstractionPredicate> predicates) {
@@ -459,7 +386,7 @@ class PredicateAbstractionManager {
   }
 
 
-  private Pair<Region,Region> buildNextValCartesianAbstraction(PathFormula oldPf, PathFormula newPf, Collection<AbstractionPredicate> predicates, int tid) {
+  private Region buildNextValCartesianAbstraction(PathFormula oldPf, PathFormula newPf, Collection<AbstractionPredicate> predicates, int tid) {
     stats.abstractionTime.startOuter();
 
     final RegionManager rmgr = amgr.getRegionManager();
@@ -470,12 +397,9 @@ class PredicateAbstractionManager {
       boolean feasibility;
       feasibility = !thmProver.isUnsat(newPf.getFormula());
 
-      Map<Integer, Integer> rMap = new HashMap<Integer, Integer>(1);
-      int oTid = tid == 0 ? 1 : 0;
-      rMap.put(tid, oTid);
       if (!feasibility) {
         // abstract post leads to false, we can return immediately
-        return Pair.of(rmgr.makeFalse(), rmgr.makeFalse());
+        return rmgr.makeFalse();
       }
 
       thmProver.push(newPf.getFormula());
@@ -491,7 +415,7 @@ class PredicateAbstractionManager {
               "CHECKING VALUE OF PREDICATE: ", p.getSymbolicAtom());
 
           // instantiate the definition of the predicate
-          Formula predTrue = fmgr.instantiateNextVal(p.getSymbolicAtom(), oldPf.getSsa(), newPf.getSsa());
+          Formula predTrue = fmgr.instantiateNextValue(p.getSymbolicAtom(), oldPf.getSsa(), newPf.getSsa());
           Formula predFalse = fmgr.makeNot(predTrue);
 
           // check whether this predicate has a truth value in the next
@@ -503,10 +427,7 @@ class PredicateAbstractionManager {
           if (isTrue) {
             stats.abstractionTime.getInnerTimer().start();
             Region v = p.getAbstractVariable();
-            Formula rAtom = this.fmgr.adjustedPrimedNo(p.getSymbolicAtom(), rMap);
-            Region rV = this.amgr.makePredicate(rAtom).getAbstractVariable();
             absbdd = rmgr.makeAnd(absbdd, v);
-            rAbsbdd= rmgr.makeAnd(rAbsbdd, rV);
             stats.abstractionTime.getInnerTimer().stop();
 
             predVal = 1;
@@ -517,12 +438,8 @@ class PredicateAbstractionManager {
             if (isFalse) {
               stats.abstractionTime.getInnerTimer().start();
               Region v = p.getAbstractVariable();
-              Formula rAtom = this.fmgr.adjustedPrimedNo(p.getSymbolicAtom(), rMap);
-              Region rV = this.amgr.makePredicate(rAtom).getAbstractVariable();
-              rV = rmgr.makeNot(rV);
               v = rmgr.makeNot(v);
               absbdd = rmgr.makeAnd(absbdd, v);
-              rAbsbdd= rmgr.makeAnd(rAbsbdd, rV);
               stats.abstractionTime.getInnerTimer().stop();
 
               predVal = -1;
@@ -530,7 +447,7 @@ class PredicateAbstractionManager {
           }
         }
 
-        return Pair.of(absbdd, rAbsbdd);
+        return absbdd;
 
       } finally {
         thmProver.pop();
@@ -555,84 +472,6 @@ class PredicateAbstractionManager {
     }
 
     return symbFormula;
-  }
-
-  private Region buildNonModularBooleanAbstraction(Formula f, SSAMap ssa, Collection<AbstractionPredicate> predicates) {
-
-    // first, create the new formula corresponding to
-    // (symbFormula & edges from e to succ)
-    // TODO - at the moment, we assume that all the edges connecting e and
-    // succ have no statement or assertion attached (i.e. they are just
-    // return edges or gotos). This might need to change in the future!!
-    // (So, for now we don't need to to anything...)
-
-    // build the definition of the predicates, and instantiate them
-    // also collect all predicate variables so that the solver knows for which
-    // variables we want to have the satisfying assignments
-    Formula predDef = fmgr.makeTrue();
-    List<Formula> predVars = new ArrayList<Formula>(predicates.size());
-
-    for (AbstractionPredicate p : predicates) {
-
-        // get propositional variable and definition of predicate
-        Formula var = p.getSymbolicVariable();
-        Formula def = p.getSymbolicAtom();
-
-        if (def.isFalse()) {
-          continue;
-        }
-        def = fmgr.instantiateModular(def, ssa);
-
-        // build the formula (var <-> def) and add it to the list of definitions
-        Formula equiv = fmgr.makeEquivalence(var, def);
-        predDef = fmgr.makeAnd(predDef, equiv);
-        predVars.add(var);
-
-
-    }
-    if (predVars.isEmpty()) {
-      stats.numSatCheckAbstractions++;
-    }
-
-    // the formula is (abstractionFormula & pathFormula & predDef)
-    Formula fm = fmgr.makeAnd(f, predDef);
-
-    /*
-    System.out.println();
-    System.out.println("fm: "+fm);
-    System.out.println();*/
-    logger.log(Level.ALL, "COMPUTING ALL-SMT ON FORMULA: ", fm);
-
-    stats.abstractionTime.startOuter();
-    AllSatResult allSatResult = thmProver.allSat(fm, predVars, amgr, stats.abstractionTime.getInnerTimer());
-    long solveTime = stats.abstractionTime.stopOuter();
-
-    // update statistics
-    int numModels = allSatResult.getCount();
-    if (numModels < Integer.MAX_VALUE) {
-      stats.maxAllSatCount = Math.max(numModels, stats.maxAllSatCount);
-      stats.allSatCount += numModels;
-    }
-
-    // TODO dump hard abst
-    if (solveTime > 10000 && dumpHardAbstractions) {
-      // we want to dump "hard" problems...
-      String dumpFile = String.format(formulaDumpFilePattern,
-                               "abstraction", stats.numCallsAbstraction, "input", 0);
-      dumpFormulaToFile(f, new File(dumpFile));
-
-      dumpFile = String.format(formulaDumpFilePattern,
-                               "abstraction", stats.numCallsAbstraction, "predDef", 0);
-      dumpFormulaToFile(predDef, new File(dumpFile));
-
-      dumpFile = String.format(formulaDumpFilePattern,
-                               "abstraction", stats.numCallsAbstraction, "predVars", 0);
-      printFormulasToFile(predVars, new File(dumpFile));
-    }
-
-    Region result = allSatResult.getResult();
-    logger.log(Level.ALL, "Abstraction computed, result is", result);
-    return result;
   }
 
 
@@ -728,7 +567,7 @@ class PredicateAbstractionManager {
         continue;
       }
       //def = fmgr.instantiate(def, ssa);
-      def = fmgr.instantiateNextVal(def, oldAbsPf.getSsa(), newAbsPf.getSsa());
+      def = fmgr.instantiateNextValue(def, oldAbsPf.getSsa(), newAbsPf.getSsa());
 
       // build the formula (var <-> def) and add it to the list of definitions
       Formula equiv = fmgr.makeEquivalence(var, def);

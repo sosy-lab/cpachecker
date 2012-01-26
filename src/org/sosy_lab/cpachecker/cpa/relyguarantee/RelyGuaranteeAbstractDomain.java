@@ -50,7 +50,7 @@ public class RelyGuaranteeAbstractDomain implements AbstractDomain {
 
   public RelyGuaranteeAbstractDomain(RelyGuaranteeCPA pCpa)  throws InvalidConfigurationException {
     pCpa.config.inject(this, RelyGuaranteeAbstractDomain.class);
-    mRegionManager = pCpa.regionManager;
+    mRegionManager = pCpa.rManager;
     mgr = pCpa.predicateManager;
   }
 

@@ -163,9 +163,10 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     MathsatFormulaManager mathsatFormulaManager = new MathsatFormulaManager(config, logger);
     formulaManager = mathsatFormulaManager;
 
-    PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger);
+    PathFormulaManager pfMgr = PathFormulaManagerImpl.getInstance(formulaManager, config, logger);
+
     if (useCache) {
-      pfMgr = new CachingPathFormulaManager(pfMgr);
+      pfMgr = CachingPathFormulaManager.getInstance(pfMgr);
     }
     pathFormulaManager = pfMgr;
 

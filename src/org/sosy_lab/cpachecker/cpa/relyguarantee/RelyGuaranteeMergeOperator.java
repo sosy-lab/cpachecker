@@ -115,7 +115,7 @@ public class RelyGuaranteeMergeOperator implements MergeOperator {
         PathFormula adjustedPF = formulaManager.adjustPrimedNo(elem2.getPathFormula(), adjustedMap);*/
 
 
-        PathFormula pathFormula = formulaManager.makeRelyGuaranteeOr(elem1.getPathFormula(), elem2.getPathFormula(), cpa.getTid());
+        PathFormula pathFormula = formulaManager.makeOr(elem1.getPathFormula(), elem2.getPathFormula());
 
         logger.log(Level.ALL, "New path formula is", pathFormula);
 
@@ -130,34 +130,6 @@ public class RelyGuaranteeMergeOperator implements MergeOperator {
     }
 
     return merged;
-  }
-
-  // copy from RelyGuaranteeTransferRelation
-  protected boolean doAbstraction(PathFormula pf) {
-    boolean result = false;
-
-    // atom number threshold
-    boolean athreshold = false;
-    if(atomThreshold > 0) {
-      athreshold = (this.cpa.formulaManager.countAtoms(pf.getFormula()) >= atomThreshold) ;
-      /*if (athreshold) {
-        numAtomThreshold++;
-      }*/
-    }
-    // path length treshold
-    if (absBlockSize > 0) {
-      boolean threshold = (pf.getLength() >= absBlockSize);
-      /*if (threshold) {
-        numBlkThreshold++;
-      }*/
-
-      if (absOnlyIfBoth) {
-        result = result && threshold;
-      } else {
-        result = result || threshold;
-      }
-    }
-    return result || athreshold;
   }
 
 }

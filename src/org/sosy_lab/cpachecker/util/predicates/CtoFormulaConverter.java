@@ -32,8 +32,6 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -107,8 +105,6 @@ import com.google.common.collect.ImmutableSet;
  */
 @Options(prefix="cpa.predicate")
 public class CtoFormulaConverter {
-
-
 
   @Option(description="add special information to formulas about non-deterministic functions")
   protected boolean useNondetFlags = false;
@@ -195,26 +191,12 @@ public class CtoFormulaConverter {
       isGlobal = ((IASTDeclaration)decl).isGlobal();
     }
 
-    // TODO prototype
-    String name = var.getName();
-    Pair<String, Integer> data = var.getPrimed();
-    if (data!=null){
-      name = data.getFirst();
-
-      Integer tid = null;
-      if (tid != null){
-        name = name + PathFormula.THREAD_SYMBOL + tid;
-      }
-    }
-
-
     if (isGlobal) {
-      return name;
+      return var.getName();
     } else {
-      return scoped(name, function);
+      return scoped(var.getName(), function);
     }
   }
-
 
   // prefixes function to variable name
   // Call only if you are sure you have a local variable!
@@ -315,10 +297,6 @@ public class CtoFormulaConverter {
     return fmgr.makeVariable(var, idx);
   }
 
-  private Formula makeVariablePrimed(String var, int idx) {
-    return fmgr.makeVariable(var, idx);
-  }
-
   /**
    * Create a formula for a given variable with a fresh index for the left-hand
    * side of an assignment.
@@ -338,64 +316,45 @@ public class CtoFormulaConverter {
   }
 
 //  @Override
-  public Triple<Formula, SSAMap, Integer> makeAnd2(PathFormula localF, CFAEdge edge, Integer tid)    throws CPATransferException {
+  public PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge)
+      throws CPATransferException {
     // this is where the "meat" is... We have to parse the statement
     // attached to the edge, and convert it to the appropriate formula
 
     if (edge.getEdgeType() == CFAEdgeType.BlankEdge) {
 
       // in this case there's absolutely nothing to do, so take a shortcut
-      return new Triple<Formula, SSAMap, Integer> (fmgr.makeTrue(), localF.getSsa(), localF.getLength());
+      return oldFormula;
     }
 
-    String function = null;
-   /* if (edge.getPredecessor() != null){
-        if (tid != null){
-          function = "t"+tid+"_"+edge.getPredecessor().getFunctionName();
-        } else {
-          function = edge.getPredecessor().getFunctionName();
-        }
-    }*/
-    if (edge.getPredecessor() != null){
-      function = edge.getPredecessor().getFunctionName();
-    }
+    String function = (edge.getPredecessor() != null)
+                          ? edge.getPredecessor().getFunctionName() : null;
 
-
-    // TODO make-shift solution
-    SSAMapBuilder ssaLocalUnprimed = SSAMap.emptySSAMap().builder();
-    for (String var : localF.getSsa().allVariables()){
-      Pair<String, Integer> data = PathFormula.getPrimeData(var);
-      assert data.getSecond() != null;
-      if (data.getSecond().equals(tid)){
-        ssaLocalUnprimed.setIndex(data.getFirst(), localF.getSsa().getIndex(var));
-      } else {
-        ssaLocalUnprimed.setIndex(var, localF.getSsa().getIndex(var));
-      }
-    }
+    SSAMapBuilder ssa = oldFormula.getSsa().builder();
 
     Formula edgeFormula;
     switch (edge.getEdgeType()) {
     case StatementEdge: {
       StatementEdge statementEdge = (StatementEdge)edge;
-      StatementToFormulaVisitor v = new StatementToFormulaVisitor(function, ssaLocalUnprimed);
+      StatementToFormulaVisitor v = new StatementToFormulaVisitor(function, ssa);
       edgeFormula = statementEdge.getStatement().accept(v);
       break;
     }
 
     case ReturnStatementEdge: {
       ReturnStatementEdge returnEdge = (ReturnStatementEdge)edge;
-      edgeFormula = makeReturn(returnEdge.getExpression(), function, ssaLocalUnprimed);
+      edgeFormula = makeReturn(returnEdge.getExpression(), function, ssa);
       break;
     }
 
     case DeclarationEdge: {
       DeclarationEdge d = (DeclarationEdge)edge;
-      edgeFormula = makeDeclaration(d.getDeclSpecifier(), d.isGlobal(), d, function, ssaLocalUnprimed);
+      edgeFormula = makeDeclaration(d.getDeclSpecifier(), d.isGlobal(), d, function, ssa);
       break;
     }
 
     case AssumeEdge: {
-      edgeFormula = makeAssume((AssumeEdge)edge, function, ssaLocalUnprimed);
+      edgeFormula = makeAssume((AssumeEdge)edge, function, ssa);
       break;
     }
 
@@ -406,7 +365,7 @@ public class CtoFormulaConverter {
     }
 
     case FunctionCallEdge: {
-      edgeFormula = makeFunctionCall((FunctionCallEdge)edge, function, ssaLocalUnprimed);
+      edgeFormula = makeFunctionCall((FunctionCallEdge)edge, function, ssa);
       break;
     }
 
@@ -414,7 +373,7 @@ public class CtoFormulaConverter {
       // get the expression from the summary edge
       CFANode succ = edge.getSuccessor();
       CallToReturnEdge ce = succ.getEnteringSummaryEdge();
-      edgeFormula = makeExitFunction(ce, function, ssaLocalUnprimed);
+      edgeFormula = makeExitFunction(ce, function, ssa);
       break;
     }
 
@@ -422,13 +381,9 @@ public class CtoFormulaConverter {
       throw new UnrecognizedCFAEdgeException(edge);
     }
 
-    if (tid!=null){
-      edgeFormula = fmgr.primeFormula(edgeFormula, tid);
-    }
-
     if (useNondetFlags) {
-      int lNondetIndex = ssaLocalUnprimed.getIndex(NONDET_VARIABLE);
-      int lFlagIndex = ssaLocalUnprimed.getIndex(NONDET_FLAG_VARIABLE);
+      int lNondetIndex = ssa.getIndex(NONDET_VARIABLE);
+      int lFlagIndex = ssa.getIndex(NONDET_FLAG_VARIABLE);
 
       if (lNondetIndex != lFlagIndex) {
         if (lFlagIndex < 0) {
@@ -441,307 +396,119 @@ public class CtoFormulaConverter {
         }
 
         // update ssa index of nondet flag
-        ssaLocalUnprimed.setIndex(NONDET_FLAG_VARIABLE, lNondetIndex);
+        ssa.setIndex(NONDET_FLAG_VARIABLE, lNondetIndex);
       }
     }
 
-    // get ssa map with correctly primed local variables
-    SSAMapBuilder ssa = null;
-    if (tid != null){
-      SSAMap currentSSA = ssaLocalUnprimed.build();
-      ssa = SSAMap.emptySSAMap().builder();
-      for (String var : currentSSA.allVariables()){
-        Pair<String, Integer> data = PathFormula.getPrimeData(var);
-        if (data.getSecond() == null){
-          String pVar = data.getFirst() + PathFormula.PRIME_SYMBOL + tid;
-          ssa.setIndex(pVar, currentSSA.getIndex(var));
-        } else {
-          ssa.setIndex(var, currentSSA.getIndex(var));
-        }
-
-      }
-    } else {
-      ssa = ssaLocalUnprimed;
-    }
     SSAMap newSsa = ssa.build();
-
-    if (edgeFormula.isTrue() && (newSsa == localF.getSsa())) {
+    if (edgeFormula.isTrue() && (newSsa == oldFormula.getSsa())) {
       // formula is just "true" and SSAMap is identical
       // i.e. no writes to SSAMap, no branching and length should stay the same
-      return new Triple<Formula, SSAMap, Integer> (fmgr.makeTrue(), localF.getSsa(), localF.getLength());
+      return oldFormula;
     }
 
-    Formula newFormula = fmgr.makeAnd(localF.getFormula(), edgeFormula);
-    int newLength = localF.getLength() + 1;
-
-    //return new PathFormula(newFormula, newSsa, newLength, localF.getPrimedNo());
-    return new Triple<Formula, SSAMap, Integer>(edgeFormula, newSsa, newLength);
+    Formula newFormula = fmgr.makeAnd(oldFormula.getFormula(), edgeFormula);
+    int newLength = oldFormula.getLength() + 1;
+    return new PathFormula(newFormula, newSsa, newLength);
   }
 
-  public PathFormula makeAnd(PathFormula localF, CFAEdge edge, Integer tid )    throws CPATransferException{
-    Triple<Formula, SSAMap, Integer> data = makeAnd2(localF, edge, tid);
 
-    Formula newFormula = fmgr.makeAnd(localF.getFormula(), data.getFirst());
-    return new PathFormula(newFormula, data.getSecond(), data.getThird(), tid);
-  }
+  public PathFormula operationPathFormula(PathFormula oldFormula, CFAEdge edge)throws CPATransferException {
+    /*
+     * Note : the only difference between this function and makeAnd, is that here we do
+     * not join pf with edge the edgeFormula
+     */
 
-  public PathFormula makePureAnd(PathFormula localF, CFAEdge edge, Integer tid )    throws CPATransferException{
-    Triple<Formula, SSAMap, Integer> data = makeAnd2(localF, edge, tid);
+    if (edge.getEdgeType() == CFAEdgeType.BlankEdge) {
 
-
-    return new PathFormula(data.getFirst(), data.getSecond(), data.getThird(), tid);
-  }
-
-  public PathFormula makeAnd(PathFormula localF, CFAEdge edge)    throws CPATransferException{
-    Triple<Formula, SSAMap, Integer> data = makeAnd2(localF, edge, null);
-
-    Formula newFormula = fmgr.makeAnd(localF.getFormula(), data.getFirst());
-    return new PathFormula(newFormula, data.getSecond(), data.getThird(), localF.getPrimedNo());
-  }
-
-  /*public Pair<PathFormula, RelyGuaranteeFormulaTemplate> makeTemplateAnd(PathFormula oldLocalF, CFAEdge edge, RelyGuaranteeFormulaTemplate oldTemplate) throws CPATransferException{
-    Triple<Formula, SSAMap, Integer> data;
-    RelyGuaranteeFormulaTemplate newTemplate;
-
-    if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
-      // env edge is applied
-      RelyGuaranteeCFAEdge rgEdge = (RelyGuaranteeCFAEdge) edge;
-      data = makeAnd2(oldLocalF, rgEdge.getLocalEdge());
-      // remove primed variables from the SSAMap
-      SSAMapBuilder newTemplateSSA = SSAMap.emptySSAMap().builder();
-      for (String var : data.getSecond().allVariables()){
-        Pair<String, Integer> varData = PathFormula.getPrimeData(var);
-        if (varData.getSecond() == 0){
-          newTemplateSSA.setIndex(var, data.getSecond().getIndex(var));
-        }
-      }
-      // build a new template path formula which like the old one, but with current ssa changes to the unprimed variables
-      Formula oldTemplateF = oldTemplate.getLocalPathFormula().getFormula();
-      PathFormula newTemplatePF = new PathFormula(oldTemplateF, newTemplateSSA.build(), data.getThird(), 0);
-      // add entry about this env transition
-      Vector<Pair<RelyGuaranteeCFAEdge, PathFormula>> newList = new Vector(oldTemplate.getEnvTransitionApplied());
-      Pair<RelyGuaranteeCFAEdge, PathFormula> newEntry = new Pair<RelyGuaranteeCFAEdge, PathFormula>(rgEdge, oldLocalF);
-      newList.add(newEntry);
-      newTemplate = new RelyGuaranteeFormulaTemplate(newTemplatePF, newList);
-    } else {
-      // the edge is local
-      data = makeAnd2(oldLocalF, edge);
-      // extend the template path formula just like the local path formula and don't add any new env entries
-      Formula oldTemplateF = oldTemplate.getLocalPathFormula().getFormula();
-      Formula newTemplateF = fmgr.makeAnd(oldTemplateF, data.getFirst());
-      PathFormula newTemplatePF = new PathFormula(newTemplateF, data.getSecond(), data.getThird(), oldLocalF.getPrimedNo());
-      newTemplate = new RelyGuaranteeFormulaTemplate(newTemplatePF, oldTemplate.getEnvTransitionApplied());
+      // in this case there's absolutely nothing to do, so take a shortcut
+      return oldFormula;
     }
 
-    // generate the new local path formula
-    Formula newLocalF = fmgr.makeAnd(oldLocalF.getFormula(), data.getFirst());
-    PathFormula newLocalPF = new PathFormula(newLocalF, data.getSecond(), data.getThird(), oldLocalF.getPrimedNo());
+    String function = (edge.getPredecessor() != null)
+                          ? edge.getPredecessor().getFunctionName() : null;
 
-    return new Pair<PathFormula, RelyGuaranteeFormulaTemplate>(newLocalPF, newTemplate);
-  }*/
+    SSAMapBuilder ssa = oldFormula.getSsa().builder();
 
+    Formula edgeFormula;
+    switch (edge.getEdgeType()) {
+    case StatementEdge: {
+      StatementEdge statementEdge = (StatementEdge)edge;
+      StatementToFormulaVisitor v = new StatementToFormulaVisitor(function, ssa);
+      edgeFormula = statementEdge.getStatement().accept(v);
+      break;
+    }
 
+    case ReturnStatementEdge: {
+      ReturnStatementEdge returnEdge = (ReturnStatementEdge)edge;
+      edgeFormula = makeReturn(returnEdge.getExpression(), function, ssa);
+      break;
+    }
 
-  // TODO changed for RelyGuarantee
- /* public PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge, int tid) throws CPATransferException {
-      // this is where the "meat" is... We have to parse the statement
-      // attached to the edge, and convert it to the appropriate formula
+    case DeclarationEdge: {
+      DeclarationEdge d = (DeclarationEdge)edge;
+      edgeFormula = makeDeclaration(d.getDeclSpecifier(), d.isGlobal(), d, function, ssa);
+      break;
+    }
 
-      if (edge.getEdgeType() == CFAEdgeType.BlankEdge) {
+    case AssumeEdge: {
+      edgeFormula = makeAssume((AssumeEdge)edge, function, ssa);
+      break;
+    }
 
-        // in this case there's absolutely nothing to do, so take a shortcut
-        return oldFormula;
-      }
+    case BlankEdge: {
+      assert false : "Handled above";
+      edgeFormula = fmgr.makeTrue();
+      break;
+    }
 
-      String function = (edge.getPredecessor() != null)
-                            ? edge.getPredecessor().getFunctionName() : null;
+    case FunctionCallEdge: {
+      edgeFormula = makeFunctionCall((FunctionCallEdge)edge, function, ssa);
+      break;
+    }
 
+    case FunctionReturnEdge: {
+      // get the expression from the summary edge
+      CFANode succ = edge.getSuccessor();
+      CallToReturnEdge ce = succ.getEnteringSummaryEdge();
+      edgeFormula = makeExitFunction(ce, function, ssa);
+      break;
+    }
 
-      SSAMapBuilder ssa = oldFormula.getSsa().builder();
+    default:
+      throw new UnrecognizedCFAEdgeException(edge);
+    }
 
-      Formula edgeFormula;
-      switch (edge.getEdgeType()) {
-      case StatementEdge: {
-        StatementEdge statementEdge = (StatementEdge)edge;
-        StatementToFormulaVisitor v = new StatementToFormulaVisitor(function, ssa);
-        edgeFormula = statementEdge.getStatement().accept(v);
-        break;
-      }
+    if (useNondetFlags) {
+      int lNondetIndex = ssa.getIndex(NONDET_VARIABLE);
+      int lFlagIndex = ssa.getIndex(NONDET_FLAG_VARIABLE);
 
-      case ReturnStatementEdge: {
-        ReturnStatementEdge returnEdge = (ReturnStatementEdge)edge;
-        edgeFormula = makeReturn(returnEdge.getExpression(), function, ssa);
-        break;
-      }
-
-      case DeclarationEdge: {
-        DeclarationEdge d = (DeclarationEdge)edge;
-        edgeFormula = makeDeclaration(d.getDeclSpecifier(), d.isGlobal(), d, function, ssa);
-        break;
-      }
-
-      case AssumeEdge: {
-        edgeFormula = makeAssume((AssumeEdge)edge, function, ssa);
-        break;
-      }
-
-      case BlankEdge: {
-        assert false : "Handled above";
-        edgeFormula = fmgr.makeTrue();
-        break;
-      }
-
-      case FunctionCallEdge: {
-        edgeFormula = makeFunctionCall((FunctionCallEdge)edge, function, ssa);
-        break;
-      }
-
-      case FunctionReturnEdge: {
-        // get the expression from the summary edge
-        CFANode succ = edge.getSuccessor();
-        CallToReturnEdge ce = succ.getEnteringSummaryEdge();
-        edgeFormula = makeExitFunction(ce, function, ssa);
-        break;
-      }
-
-      default:
-        throw new UnrecognizedCFAEdgeException(edge);
-      }
-
-      if (useNondetFlags) {
-        int lNondetIndex = ssa.getIndex(NONDET_VARIABLE);
-        int lFlagIndex = ssa.getIndex(NONDET_FLAG_VARIABLE);
-
-        if (lNondetIndex != lFlagIndex) {
-          if (lFlagIndex < 0) {
-            lFlagIndex = 1; // ssa indices start with 2, so next flag that is generated also uses index 2
-          }
-
-          for (int lIndex = lFlagIndex + 1; lIndex <= lNondetIndex; lIndex++) {
-            Formula lAssignment = fmgr.makeAssignment(fmgr.makeVariable(NONDET_FLAG_VARIABLE, lIndex), fmgr.makeNumber(1));
-            edgeFormula = fmgr.makeAnd(edgeFormula, lAssignment);
-          }
-
-          // update ssa index of nondet flag
-          ssa.setIndex(NONDET_FLAG_VARIABLE, lNondetIndex);
+      if (lNondetIndex != lFlagIndex) {
+        if (lFlagIndex < 0) {
+          lFlagIndex = 1; // ssa indices start with 2, so next flag that is generated also uses index 2
         }
-      }
 
-      // adjust the index of the new variable
-      SSAMap newSsa = ssa.build();
-      SSAMapBuilder adjustedSSA = oldFormula.getSsa().builder();
-      for (String var: newSsa.allVariables()){
-        if (oldFormula.getSsa().getIndex(var) == -1){
-          int index = 0;
-          if (newSsa.getIndex(var)==1){
-            // var is rhs
-            index = oldFormula.getSsa().getIndex(var+"_"+tid);
-            if (index < 2){
-              index = 2;
-            }
-          }
-          else if (newSsa.getIndex(var)==2){
-            // var is lhs
-            index = oldFormula.getSsa().getIndex(var+"_"+tid);
-            if (index < 2){
-              index = 1;
-            }
-          }
-          adjustedSSA.setIndex(var, index);
+        for (int lIndex = lFlagIndex + 1; lIndex <= lNondetIndex; lIndex++) {
+          Formula lAssignment = fmgr.makeAssignment(fmgr.makeVariable(NONDET_FLAG_VARIABLE, lIndex), fmgr.makeNumber(1));
+          edgeFormula = fmgr.makeAnd(edgeFormula, lAssignment);
         }
+
+        // update ssa index of nondet flag
+        ssa.setIndex(NONDET_FLAG_VARIABLE, lNondetIndex);
       }
+    }
 
+    SSAMap newSsa = ssa.build();
+    if (edgeFormula.isTrue() && (newSsa == oldFormula.getSsa())) {
+      // formula is just "true" and SSAMap is identical
+      // i.e. no writes to SSAMap, no branching and length should stay the same
+      return oldFormula;
+    }
 
-      switch (edge.getEdgeType()) {
-      case StatementEdge: {
-        StatementEdge statementEdge = (StatementEdge)edge;
-        StatementToFormulaVisitor v = new StatementToFormulaVisitor(function, adjustedSSA);
-        edgeFormula = statementEdge.getStatement().accept(v);
-        break;
-      }
+    int newLength = oldFormula.getLength() + 1;
+    return new PathFormula(edgeFormula, newSsa, newLength);
 
-      case ReturnStatementEdge: {
-        ReturnStatementEdge returnEdge = (ReturnStatementEdge)edge;
-        edgeFormula = makeReturn(returnEdge.getExpression(), function, adjustedSSA);
-        break;
-      }
-
-      case DeclarationEdge: {
-        DeclarationEdge d = (DeclarationEdge)edge;
-        edgeFormula = makeDeclaration(d.getDeclSpecifier(), d.isGlobal(), d, function, adjustedSSA);
-        break;
-      }
-
-      case AssumeEdge: {
-        edgeFormula = makeAssume((AssumeEdge)edge, function, adjustedSSA);
-        break;
-      }
-
-      case BlankEdge: {
-        assert false : "Handled above";
-        edgeFormula = fmgr.makeTrue();
-        break;
-      }
-
-      case FunctionCallEdge: {
-        edgeFormula = makeFunctionCall((FunctionCallEdge)edge, function, adjustedSSA);
-        break;
-      }
-
-      case FunctionReturnEdge: {
-        // get the expression from the summary edge
-        CFANode succ = edge.getSuccessor();
-        CallToReturnEdge ce = succ.getEnteringSummaryEdge();
-        edgeFormula = makeExitFunction(ce, function, adjustedSSA);
-        break;
-      }
-      default:
-        throw new UnrecognizedCFAEdgeException(edge);
-      }
-
-
-
-      // change the new variable new to SSA
-      SSAMapBuilder renamedSSA = oldFormula.getSsa().builder();
-      for (String var: newSsa.allVariables()){
-        if (oldFormula.getSsa().getIndex(var) == -1){
-          int index = 0;
-          if (newSsa.getIndex(var)==1){
-            // var is rhs
-            index = oldFormula.getSsa().getIndex(var+"_"+tid);
-            if (index < 2){
-              index = 2;
-            }
-
-          }
-          else if (newSsa.getIndex(var)>1){
-            // var is lhs
-            index = oldFormula.getSsa().getIndex(var+"_"+tid);
-            if (index < 2){
-              index = 2;
-            } else {
-              index ++;
-            }
-          }
-          renamedSSA.setIndex(var+"_"+tid, index);
-        }
-      }
-
-      newSsa = renamedSSA.build();
-
-      if (edgeFormula.isTrue() && (newSsa == oldFormula.getSsa())) {
-        // formula is just "true" and SSAMap is identical
-        // i.e. no writes to SSAMap, no branching and length should stay the same
-        return oldFormula;
-      }
-
-      Formula renamedFormula = fmgr.addThreadId(edgeFormula, tid);
-      Formula newFormula = fmgr.makeAnd(oldFormula.getFormula(), renamedFormula);
-      int newLength = oldFormula.getLength() + 1;
-      return new PathFormula(newFormula, newSsa, newLength);
-  }*/
-
-
+  }
 
   private Formula makeDeclaration(IType spec,
       boolean isGlobal, DeclarationEdge edge,
@@ -919,7 +686,7 @@ public class CtoFormulaConverter {
     return toNumericFormula(exp.accept(getExpressionVisitor(function, ssa)));
   }
 
-  public Formula buildLvalueTerm(IASTExpression exp, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
+  private Formula buildLvalueTerm(IASTExpression exp, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
     return exp.accept(getLvalueVisitor(function, ssa));
   }
 
@@ -1081,13 +848,7 @@ public class CtoFormulaConverter {
         return makeFreshVariable(NONDET_VARIABLE, ssa);
 
       } else {
-        // TODO for prototyping rely-guarantee
-        Pair<String, Integer> data = idExp.getPrimed();
-        if (data!=null){
-          return makeVariablePrimed(scopedIfNecessary(idExp, function), data.getSecond());
-        } else {
-          return makeVariable(scopedIfNecessary(idExp, function), ssa);
-        }
+        return makeVariable(scopedIfNecessary(idExp, function), ssa);
       }
 
     }
@@ -1466,41 +1227,6 @@ public class CtoFormulaConverter {
 
       return fmgr.makeUIF(ufname, args, idx);
 
-    }
-  }
-
-
-  public void inject(CFAEdge localEdge, Set<String> globalVariablesSet, int offset, Integer tid, SSAMap pSsa) throws CPATransferException {
-    if (!(localEdge.getRawAST() instanceof IASTExpressionAssignmentStatement)) {
-      return;
-    }
-    IASTExpression rhs = ((IASTExpressionAssignmentStatement) localEdge.getRawAST()).getRightHandSide();
-
-    inject(rhs, globalVariablesSet, offset, tid, pSsa);
-  }
-
-  private void inject(IASTExpression exp, Set<String> globalVariablesSet, int offset, Integer tid, SSAMap pSsa) throws UnrecognizedCFAEdgeException {
-    if (exp instanceof IASTIdExpression){
-      IASTIdExpression id = (IASTIdExpression) exp;
-      String var = id.getName();
-      if (globalVariablesSet.contains(var)) {
-        return;
-      }
-      String primedName = var+PathFormula.PRIME_SYMBOL+offset;
-      int idx = pSsa.getIndex(primedName);
-      id.setPrimed(primedName, idx);
-      id.setTid(tid);
-    }
-    else if (exp instanceof IASTBinaryExpression){
-      IASTBinaryExpression bin = (IASTBinaryExpression) exp;
-      inject(bin.getOperand1(), globalVariablesSet, offset, tid, pSsa);
-      inject(bin.getOperand2(), globalVariablesSet, offset, tid, pSsa);
-    }
-    else if (exp instanceof IASTIntegerLiteralExpression){
-      return;
-    }
-    else {
-      throw new UnrecognizedCFAEdgeException("Unrecognized AST type: "+exp.getClass());
     }
   }
 }

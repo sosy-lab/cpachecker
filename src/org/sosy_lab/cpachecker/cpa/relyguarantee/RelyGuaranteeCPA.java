@@ -50,13 +50,14 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CSIsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.SSAMapManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.AbstractionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatInterpolatingProver;
@@ -97,12 +98,13 @@ public class RelyGuaranteeCPA implements ConfigurableProgramAnalysis, Statistics
   protected final RelyGuaranteePrecisionAdjustment prec;
   protected final StopOperator stop;
   protected RelyGuaranteePrecision initialPrecision;
-  protected final RegionManager regionManager;
+  protected final RegionManager rManager;
   protected final FormulaManager formulaManager;
   protected final PathFormulaManager pathFormulaManager;
   protected final TheoremProver theoremProver;
   protected final PredicateAbstractionManager predicateManager;
   protected final AbstractionManager abstractionManager;
+  protected final SSAMapManager ssaManager;
   protected AbstractElement topElement;
   protected final  RelyGuaranteeRefinementManager<?, ?> refinerManager;
 
@@ -127,7 +129,7 @@ public class RelyGuaranteeCPA implements ConfigurableProgramAnalysis, Statistics
     this.logger = logger;
     config.inject(this, RelyGuaranteeCPA.class);
 
-    this.regionManager = BDDRegionManager.getInstance();
+    this.rManager = BDDRegionManager.getInstance();
     MathsatFormulaManager mathsatFormulaManager = MathsatFormulaManager.getInstance(config, logger);
     this.formulaManager = mathsatFormulaManager;
 
@@ -169,9 +171,10 @@ public class RelyGuaranteeCPA implements ConfigurableProgramAnalysis, Statistics
       throw new InternalError("Update list of allowed solvers!");
     }
 
-    this.refinerManager = RelyGuaranteeRefinementManager.getInstance(regionManager, formulaManager, pathFormulaManager, theoremProver, itpProver, alternativeItpProver, config, logger);
-    this.predicateManager = PredicateAbstractionManager.getInstance(regionManager, formulaManager, pathFormulaManager, theoremProver, config, logger);
-    this.abstractionManager = AbstractionManagerImpl.getInstance(regionManager, mathsatFormulaManager, pathFormulaManager, config, logger);
+    this.predicateManager = PredicateAbstractionManager.getInstance(rManager, formulaManager, pathFormulaManager, theoremProver, config, logger);
+    this.abstractionManager = AbstractionManagerImpl.getInstance(rManager, mathsatFormulaManager, pathFormulaManager, config, logger);
+    this.ssaManager = SSAMapManagerImpl.getInstance(formulaManager, config, logger);
+    this.refinerManager = RelyGuaranteeRefinementManager.getInstance(rManager, formulaManager,  ssaManager, pathFormulaManager, theoremProver, itpProver, alternativeItpProver, config, logger);
     this.transfer = new RelyGuaranteeTransferRelation(this);
     this.domain = new RelyGuaranteeAbstractDomain(this);
     this.merge = new RelyGuaranteeMergeOperator(this);
@@ -206,13 +209,6 @@ public class RelyGuaranteeCPA implements ConfigurableProgramAnalysis, Statistics
     variables = pVariables;
   }
 
-
-  // set the inital predicates as a formula
-  // TODO for debugging
-  public void setPredicates(Formula predicateFormula){
-    Collection<AbstractionPredicate> predicates = this.refinerManager.getAtomsAsPredicates(predicateFormula);
-    this.initialPrecision = new RelyGuaranteePrecision(predicates);
-  }
 
   /*
   public RelyGuaranteePrecision getPredicates(){

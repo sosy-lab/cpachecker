@@ -24,20 +24,17 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import java.util.Map;
-import java.util.Set;
 
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 
 public interface PathFormulaManager {
 
   PathFormula makeEmptyPathFormula();
+
+  PathFormula makeFalsePathFormula();
 
   PathFormula makeEmptyPathFormula(PathFormula oldFormula);
 
@@ -53,95 +50,53 @@ public interface PathFormulaManager {
    */
   PathFormula makeOr(PathFormula pF1, PathFormula pF2);
 
-  /**
-   * Creates a new path formula representing an OR of the two arguments.
-   * Variables primed i times are adjusted to the same index.
-   * @param pf1
-   * @param pf2
-   * @param i
-   * @return
-   */
-  PathFormula makeRelyGuaranteeOr(PathFormula pf1, PathFormula pf2, int i);
-
-  Pair<Pair<Formula, Formula>, SSAMap> mergeRelyGuaranteeSSAMaps(SSAMap ssa1, SSAMap ssa2, int tid);
-
-  PathFormula makeAnd(PathFormula pf1, PathFormula pf2);
-
   PathFormula makeAnd(PathFormula pPathFormula, Formula pOtherFormula);
+
+  PathFormula makeAnd(PathFormula pPathFormula, PathFormula pOtherFormula);
 
   PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge) throws CPATransferException;
 
-  PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge, Integer tid) throws CPATransferException;
-
-
-  PathFormula makePureAnd(PathFormula localF, CFAEdge edge, Integer tid ) throws CPATransferException;
-
-
   PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM);
 
-  PathFormula matchPaths(PathFormula localPF, PathFormula envPF, Set<String> globalVariablesSet, int offset);
 
-  PathFormula buildEqualitiesOverVariables(PathFormula pf1, PathFormula pf2, Set<String> variableSet);
-
-
-  // returns an empty path formula with a clean SSAMap from variables that do not belong to this thread
-  PathFormula makeEmptyPathFormula(PathFormula pPathFormula,  int pThreadId);
-
-  PathFormula primePathFormula(PathFormula envPF, int offset);
-
-
-  // for testing...
-  Formula buildLvalueTerm(IASTExpression exp, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException;
-
-  void inject(CFAEdge localEdge, Set<String> globalVariablesSet, int offset, Integer tid, SSAMap pSsa) throws CPATransferException;
-
-  PathFormula normalize(PathFormula pNewPF);
-
-  PathFormula makeFalsePathFormula();
-
-  PathFormula adjustPrimedNo(PathFormula pathFormula, Map<Integer, Integer> primedMap);
-
-  PathFormula primePathFormula(PathFormula pEnvPF, int pOffset, SSAMap pSsa);
 
   /**
-   * Remove atoms that consists only of primed variables.
-   * @param pathFormula
-   * @param primedNo
-   * @return
-   */
-  PathFormula removePrimed(PathFormula pathFormula, Set<Integer> primedNo);
-
-  /**
-   * Makes conjunction of equalities v^i@x <-> v^j@x, where x>0 is the last index of
-   * variable v^i in the path formula and v^j is v primed j times.
+   * Returns the effect of applying edge on pf, which is the difference between SP_edge(pf) and pf.
    * @param pf
-   * @param i
-   * @param pUniquePrime
-   * @return
+   * @param edge
+   * @return effect path formula
+   * @throws CPATransferException
    */
-  PathFormula makePrimedEqualities(PathFormula pf, int i, int j);
-
-  /**
-   * Builds unsatisfiable constraints for variables indexes that are between ssa and ssatop maps.
-   * Only variables primed tid times are considered.
-   * @param ssatop
-   * @param ssa
-   * @param tid
-   * @return
-   */
-  PathFormula makeUnsatisifiableConstraintsForRedundantIndexes(SSAMap ssatop, SSAMap ssa, int tid);
+  PathFormula operationPathFormula(PathFormula pf, CFAEdge edge) throws CPATransferException;
 
   /**
    * Makes conjunction of equalities v^i@x <-> v^j@y, where x>0 is the last index of
-   * variable v^i in pf1 and y>0 is the last index of v^j in pf2.
-   * @param pf
+   * variable v^i in ssa1 and y>0 is the last index of v^j in ssa2.
+   * Note that v^-1 is treated as v.
+   * @param ssa1
    * @param i
-   * @param pUniquePrime
-   * @return
+   * @param ssa2
+   * @param j
+   * @return equalities
    */
   PathFormula makePrimedEqualities(SSAMap ssa1, int i, SSAMap ssa2, int j);
 
+  /**
+   * Changes prime numbers of variables as specified by the map. Value -1 means no prime number.
+   * @param pathFormula
+   * @param map
+   * @return change path formula
+   */
+  PathFormula changePrimedNo(PathFormula pathFormula, Map<Integer, Integer> map);
 
+  /**
+   * Instantiates plain variables of f to the low SSA map and hashed variables to the high map.
+   * @param pf
+   * @param low
+   * @param high
+   * @return instantiated formula
+   */
+  PathFormula instantiateNextValue(Formula f, SSAMap low, SSAMap high);
 
 
 }

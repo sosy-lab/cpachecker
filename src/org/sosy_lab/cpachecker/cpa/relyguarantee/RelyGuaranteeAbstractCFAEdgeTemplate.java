@@ -25,22 +25,15 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 public class RelyGuaranteeAbstractCFAEdgeTemplate extends RelyGuaranteeCFAEdgeTemplate {
 
   /** Abstraction for the edge */
   private final AbstractionFormula absFilter;
-  private final Region renRegion;
 
-  public Region getRenRegion() {
-    return renRegion;
-  }
-
-  public RelyGuaranteeAbstractCFAEdgeTemplate(AbstractionFormula filter, ARTElement lastARTAbstractionElement, RelyGuaranteeEnvironmentalTransition sourceEnvTransition, Region region){
+  public RelyGuaranteeAbstractCFAEdgeTemplate(AbstractionFormula filter, ARTElement lastARTAbstractionElement, RelyGuaranteeEnvironmentalTransition sourceEnvTransition){
     super(filter.asPathFormula(), lastARTAbstractionElement, sourceEnvTransition);
     this.absFilter = filter;
-    this.renRegion = region;
   }
 
   @Override

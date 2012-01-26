@@ -66,12 +66,13 @@ import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.SSAMapManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 
@@ -168,6 +169,7 @@ public class RelyGuaranteeEnvironment {
   private final PredicateAbstractionManager paManager;
   private final RegionManager rManager;
   private final AbstractionManagerImpl absManager;
+  private final SSAMapManager ssaManager;
 
 
   public RelyGuaranteeEnvironment(int threadNo, RelyGuaranteeVariables vars, Configuration config, LogManager logger) throws InvalidConfigurationException{
@@ -195,7 +197,7 @@ public class RelyGuaranteeEnvironment {
     RegionManager rManager = BDDRegionManager.getInstance();
     this.paManager = PredicateAbstractionManager.getInstance(rManager, fManager, pfMgr, tProver, config, logger);
     this.absManager = AbstractionManagerImpl.getInstance(rManager, msatFormulaManager, pfManager, config, logger);
-
+    this.ssaManager = SSAMapManagerImpl.getInstance(fManager, config, logger);
 
     for (int i=0; i< threadNo; i++){
       //envTransProcessedBeforeFromThread[i] = HashMultimap.<ARTElement, RelyGuaranteeEnvironmentalTransition>create();
@@ -403,15 +405,21 @@ public class RelyGuaranteeEnvironment {
     assert lastARTAbstractionElement != null;
 
     if (this.abstractEnvTransitions == 2){
-
+      // get the predicates for the transition
       int sourceTid = et.getSourceThread();
+      CFANode loc = et.getEdge().getPredecessor();
+      SetMultimap<CFANode, AbstractionPredicate> prec = envPrecision[sourceTid];
+      Set<AbstractionPredicate> preds = new HashSet<AbstractionPredicate>(prec.get(loc));
+      preds.addAll(envGlobalPrecision[sourceTid]);
+
+
       PathFormula oldPf = et.getPathFormula();
       AbstractionFormula oldAbs = et.getAbstractionFormula();
       PathFormula newPf = null;
 
       // compute the sucessor's path formula
       try {
-        newPf = pfManager.makeAnd(oldPf, et.getEdge(), sourceTid);
+        newPf = pfManager.makeAnd(oldPf, et.getEdge());
       } catch (CPATransferException e) {
         e.printStackTrace();
       }
@@ -419,32 +427,21 @@ public class RelyGuaranteeEnvironment {
       // increment indexes of variables global and local to this thread by 1, mimimal index is 2
       Set<String> vars = new HashSet<String>(variables.globalVars);
       vars.addAll(variables.localVars.get(sourceTid));
-      SSAMapBuilder newSsaBldr = SSAMap.emptySSAMap().builder();
       SSAMap oldSsa = oldPf.getSsa();
-      for (String var : vars){
-        String pVar = var + PathFormula.PRIME_SYMBOL + sourceTid;
-        int idx = Math.max(oldSsa.getIndex(pVar) + 1, 2);
-        newSsaBldr.setIndex(pVar, idx);
-      }
-      SSAMap newSsa = newSsaBldr.build();
+      SSAMap newSsa = ssaManager.incrementMap(oldSsa, vars, 1);
 
       // create a formula, where every index is increased - either by operation or by equivalence
-      Pair<Pair<Formula, Formula>, SSAMap> equivs = pfManager.mergeRelyGuaranteeSSAMaps(newPf.getSsa(), newSsa, sourceTid);
+      Pair<Pair<Formula, Formula>, SSAMap> equivs = ssaManager.mergeSSAMaps(newPf.getSsa(), newSsa);
       Formula newF = fManager.makeAnd(newPf.getFormula(), equivs.getFirst().getFirst());
       newPf = new PathFormula(newF, newSsa, newPf.getLength());
 
-      // get the predicates for the transition
-      CFANode loc = et.getEdge().getPredecessor();
-      SetMultimap<CFANode, AbstractionPredicate> prec = envPrecision[sourceTid];
-      Set<AbstractionPredicate> preds = new HashSet<AbstractionPredicate>(prec.get(loc));
-      preds.addAll(envGlobalPrecision[sourceTid]);
+
 
       // abstract
-      Pair<AbstractionFormula, Region> pair = paManager.buildNextValAbstraction(oldAbs, oldPf, newPf, preds, sourceTid);
-      AbstractionFormula newAbs = pair.getFirst();
+      AbstractionFormula newAbs = paManager.buildNextValAbstraction(oldAbs, oldPf, newPf, preds, sourceTid);
       assert lastARTAbstractionElement != null;
 
-      return new RelyGuaranteeAbstractCFAEdgeTemplate(newAbs, lastARTAbstractionElement, et, pair.getSecond());
+      return new RelyGuaranteeAbstractCFAEdgeTemplate(newAbs, lastARTAbstractionElement, et);
     }
     else if (this.abstractEnvTransitions == 1){
       // abstract the conjuction of abstraction and path formula using set of predicates.
@@ -456,7 +453,7 @@ public class RelyGuaranteeEnvironment {
       preds.addAll(envGlobalPrecision[sourceTid]);
 
       AbstractionFormula aFilter = paManager.buildAbstraction(et.getAbstractionFormula(), et.getPathFormula(), preds);
-      return new RelyGuaranteeAbstractCFAEdgeTemplate(aFilter, lastARTAbstractionElement, et, null);
+      return new RelyGuaranteeAbstractCFAEdgeTemplate(aFilter, lastARTAbstractionElement, et);
     } else {
       // don't abstract - the filer is conjuction of abstraction and path formula of  the generating elements
       PathFormula filter = pfManager.makeAnd(et.getPathFormula(), et.getAbstractionPathFormula());

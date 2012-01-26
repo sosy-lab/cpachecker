@@ -29,7 +29,6 @@ import java.util.HashSet;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -43,6 +42,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
 @Options(prefix="cpa.relyguarantee")
@@ -60,6 +60,7 @@ public class RelyGuaranteePrecisionAdjustment implements PrecisionAdjustment {
 
   protected final LogManager logger;
   protected final PredicateAbstractionManager formulaManager;
+  protected final FormulaManager fManager;
   protected final PathFormulaManager pathFormulaManager;
 
 
@@ -68,6 +69,7 @@ public class RelyGuaranteePrecisionAdjustment implements PrecisionAdjustment {
     logger = pCpa.logger;
     formulaManager = pCpa.predicateManager;
     pathFormulaManager = pCpa.pathFormulaManager;
+    fManager = pCpa.formulaManager;
     try {
       pCpa.getConfiguration().inject(this, RelyGuaranteePrecisionAdjustment.class);
     } catch (InvalidConfigurationException e) {
@@ -132,13 +134,7 @@ public class RelyGuaranteePrecisionAdjustment implements PrecisionAdjustment {
     }
 
     // create new empty path formula
-    PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula, cpa.getTid());
-
-    for (String var : newPathFormula.getSsa().allVariables()){
-      Pair<String, Integer> data = PathFormula.getPrimeData(var);
-      assert data.getSecond() == cpa.getTid();
-    }
-
+    PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula);
 
     return new RelyGuaranteeAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula, element.getParentEdge(),this.cpa.getTid(), element.getPathFormula(), element.getAppInfo());
   }

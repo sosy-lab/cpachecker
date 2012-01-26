@@ -124,10 +124,6 @@ public class RelyGuaranteeAbstractElement implements AbstractElement, Partitiona
     }
   };
 
-
-
-
-
   public AbstractionFormula getAbstractionFormula() {
     return abstractionFormula;
   }

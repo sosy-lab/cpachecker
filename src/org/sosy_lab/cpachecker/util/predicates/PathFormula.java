@@ -23,10 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 public class PathFormula {
@@ -38,17 +34,7 @@ public class PathFormula {
   // how many times a formula has been primed
   private int primedNo;
   // for RelyGuarantee
-  public static final String PRIME_SYMBOL   = "^";
   public static final String THREAD_SYMBOL  = "$";
-  public static final char NEXTVAL_SYMBOL = '#';
-
-
-
-  // precompiled regex expression
-  //private static Pattern primeRegex = Pattern.compile("(.+)"+PRIME_SYMBOL+"(\\d+)$");
-  // regural expression that groups proper variable name and the number of primes. Works on uninstantiated variables.
-  private static Pattern primeRegex = Pattern.compile("(.+)\\^(\\d+)$");
-  private static Pattern nonModularRegex = Pattern.compile("(.+)\\$(\\d+)$");
 
   public PathFormula(Formula pf, SSAMap ssa, int pLength) {
     this.formula = pf;
@@ -108,13 +94,13 @@ public class PathFormula {
     return (formula.hashCode() * 17 + ssa.hashCode()) * 31 + length;
   }
 
-  /**
+ /* /**
    * If the string starts with the next value symbol "#", the function returns the string
    * without the hash. Otherwise it returns null.
    * @param str
    * @return
    */
-  public static String getUnhashed(String str){
+ /* public static String getUnhashed(String str){
     if (str == null){
       return null;
     }
@@ -125,57 +111,12 @@ public class PathFormula {
     }
 
     return null;
-  }
+  }*/
 
-  /**
-   * Returns unprimed variable name and the primed no. If the variable is
-   * not primed, then the primed no is null. Works only on uninstantiated variables.
-   * @param pFirst
-   * @return (unprimed variable name, primed no)
-   */
-  public static Pair<String, Integer> getPrimeData(String pFirst) {
-    Integer currentPrime;
-    String bareName;
-    Matcher m = primeRegex.matcher(pFirst);
-    if(m.find()) {
-      bareName = m.group(1);
-      String currentPrimeStr = m.group(2);
-      currentPrime = Integer.parseInt(currentPrimeStr);
-    } else {
-      currentPrime = null;
-      bareName = pFirst;
-    }
 
-    return new Pair<String, Integer>(bareName, currentPrime);
-  }
 
 //TODO maybe some caching?
   // returns (unprimed name, number of primes)
 
 
-
-  // returns (unprimed name, number of primes)
-  public static Pair<String, Integer> getNonModularData(String pFirst) {
-    Integer foreignThread;
-    String bareName;
-    Matcher m = nonModularRegex.matcher(pFirst);
-    if(m.find()) {
-      bareName = m.group(1);
-      String currentPrimeStr = m.group(2);
-      foreignThread = Integer.parseInt(currentPrimeStr);
-    } else {
-      foreignThread = null;
-      bareName = pFirst;
-    }
-
-    return new Pair<String, Integer>(bareName, foreignThread);
-  }
-
-  // primes a variable given number of times
-  public static String primeVariable(String pFirst, int pHowManyPrimes) {
-    // get the current number of primes
-    Pair<String, Integer> data = getPrimeData(pFirst);
-    Integer currentPrimed = data.getSecond() == null ? 0 : data.getSecond();
-    return data.getFirst()+PRIME_SYMBOL+(currentPrimed+pHowManyPrimes);
-  }
 }

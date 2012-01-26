@@ -25,16 +25,12 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
@@ -44,16 +40,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
  */
 public class CachingPathFormulaManager implements PathFormulaManager {
 
-  // singleton instance of CachingPathFormulaManager
-  private static CachingPathFormulaManager pfManager;
-
   public final Timer pathFormulaComputationTimer = new Timer();
   public int pathFormulaCacheHits = 0;
 
   private final PathFormulaManager delegate;
 
-  private final Map<Triple<PathFormula, CFAEdge, Integer>, PathFormula> pathFormulaCache
-            = new HashMap<Triple<PathFormula, CFAEdge, Integer>, PathFormula>();
+  private final Map<Pair<PathFormula, CFAEdge>, PathFormula> pathFormulaCache
+            = new HashMap<Pair<PathFormula, CFAEdge>, PathFormula>();
 
   private final Map<Pair<PathFormula, PathFormula>, PathFormula> mergeCache
             = new HashMap<Pair<PathFormula, PathFormula>, PathFormula>();
@@ -61,43 +54,49 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   private final Map<PathFormula, PathFormula> emptyFormulaCache
             = new HashMap<PathFormula, PathFormula>();
 
+  private final Map<Pair<PathFormula, CFAEdge>, PathFormula> operationCache
+          = new HashMap<Pair<PathFormula, CFAEdge>, PathFormula>();
+
+  private final Map<Triple<Formula, SSAMap, SSAMap>, PathFormula> instantiateNextValueCache
+          = new HashMap<Triple<Formula, SSAMap, SSAMap>, PathFormula>();
+
   private final PathFormula emptyFormula;
 
-  public static CachingPathFormulaManager getInstance(PathFormulaManager pDelegate) {
-    if (pfManager == null){
-      pfManager = new CachingPathFormulaManager(pDelegate);
+  private static CachingPathFormulaManager singleton;
+
+  public static CachingPathFormulaManager getInstance(PathFormulaManager delegate){
+    if (singleton == null){
+      singleton = new CachingPathFormulaManager(delegate);
     }
-    return  pfManager;
+    return singleton;
   }
 
-
-  public CachingPathFormulaManager(PathFormulaManager pDelegate) {
+  private CachingPathFormulaManager(PathFormulaManager pDelegate) {
     delegate = pDelegate;
     emptyFormula = delegate.makeEmptyPathFormula();
   }
 
-
   @Override
   public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException {
-    return makeAnd(pOldFormula, pEdge, null);
-  }
 
-
-  @Override
-  public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge, Integer tid) throws CPATransferException {
-
-    final Triple<PathFormula, CFAEdge, Integer> formulaCacheKey = Triple.of(pOldFormula, pEdge, tid);
+    final Pair<PathFormula, CFAEdge> formulaCacheKey = Pair.of(pOldFormula, pEdge);
     PathFormula result = pathFormulaCache.get(formulaCacheKey);
     if (result == null) {
       pathFormulaComputationTimer.start();
       // compute new pathFormula with the operation on the edge
-      result = delegate.makeAnd(pOldFormula, pEdge, tid);
+      result = delegate.makeAnd(pOldFormula, pEdge);
       pathFormulaComputationTimer.stop();
       pathFormulaCache.put(formulaCacheKey, result);
+
     } else {
       pathFormulaCacheHits++;
     }
     return result;
+  }
+
+  @Override
+  public PathFormula makeAnd(PathFormula pPathFormula, PathFormula pOtherFormula) {
+    return delegate.makeAnd(pPathFormula, pOtherFormula);
   }
 
   @Override
@@ -146,128 +145,41 @@ public class CachingPathFormulaManager implements PathFormulaManager {
     return delegate.makeNewPathFormula(pOldFormula, pM);
   }
 
-
-  /*@Override
-  public PathFormula shiftFormula(PathFormula pFormula, int pOffset) {
-    return delegate.shiftFormula(pFormula, pOffset);
-  }*/
-
-
-
   @Override
-  public PathFormula makeEmptyPathFormula(PathFormula pPathFormula,
-      int pThreadId) {
-    return delegate.makeEmptyPathFormula(pPathFormula, pThreadId);
+  public PathFormula operationPathFormula(PathFormula pf, CFAEdge edge) throws CPATransferException {
+    Pair<PathFormula, CFAEdge> key = Pair.of(pf, edge);
+    PathFormula result = operationCache.get(key);
+    if (result == null){
+      result = delegate.operationPathFormula(pf, edge);
+      operationCache.put(key, result);
+    } else {
+      pathFormulaCacheHits++;
+    }
+
+    return result;
   }
 
-
-
-  // TODO cache me!
   @Override
-  public PathFormula primePathFormula(PathFormula pEnvPF, int pOffset) {
-    return delegate.primePathFormula(pEnvPF, pOffset);
+  public PathFormula makePrimedEqualities(SSAMap ssa1, int i, SSAMap ssa2, int j) {
+    return delegate.makePrimedEqualities(ssa1, i, ssa2, j);
   }
 
-
-
   @Override
-  public Formula buildLvalueTerm(IASTExpression pExp, String pFunction, SSAMapBuilder pSsa) throws UnrecognizedCCodeException {
-    return delegate.buildLvalueTerm(pExp, pFunction, pSsa);
+  public PathFormula changePrimedNo(PathFormula pf,Map<Integer, Integer> map) {
+    // note: caching better for formula and ssa seperatly
+    return delegate.changePrimedNo(pf, map);
   }
 
-
   @Override
-  public PathFormula matchPaths(PathFormula pLocalPF, PathFormula pEnvPF, Set<String> pGlobalVariablesSet, int offset) {
-    return delegate.matchPaths(pLocalPF, pEnvPF, pGlobalVariablesSet, offset);
+  public PathFormula instantiateNextValue(Formula f, SSAMap low, SSAMap high) {
+    return delegate.instantiateNextValue(f, low, high);
   }
-
-
-  @Override
-  public void inject(CFAEdge pLocalEdge, Set<String> pGlobalVariablesSet, int pOffset, Integer tid, SSAMap pSsa) throws CPATransferException {
-    delegate.inject(pLocalEdge, pGlobalVariablesSet, pOffset, tid, pSsa);
-  }
-
-
-  @Override
-  public PathFormula normalize(PathFormula pNewPF) {
-    return delegate.normalize(pNewPF);
-  }
-
-
-
-
-  @Override
-  public PathFormula makeAnd(PathFormula pPf1, PathFormula pPf2) {
-    return delegate.makeAnd(pPf1, pPf2);
-  }
-
-
-  @Override
-  public PathFormula buildEqualitiesOverVariables(PathFormula pPf1, PathFormula pPf2, Set<String> pVariableSet) {
-    return delegate.buildEqualitiesOverVariables(pPf1, pPf2, pVariableSet);
-  }
-
-
-
 
   @Override
   public PathFormula makeFalsePathFormula() {
     return delegate.makeFalsePathFormula();
   }
 
-
-  @Override
-  public PathFormula adjustPrimedNo(PathFormula pPathFormula, Map<Integer, Integer> pPrimedMap) {
-    return delegate.adjustPrimedNo(pPathFormula, pPrimedMap);
-  }
-
-
-  @Override
-  public PathFormula primePathFormula(PathFormula pEnvPF, int pOffset,   SSAMap pSsa) {
-    return delegate.primePathFormula(pEnvPF, pOffset, pSsa);
-  }
-
-
-  @Override
-  public PathFormula removePrimed(PathFormula pPathFormula,Set<Integer> pPrimedNo) {
-    return delegate.removePrimed(pPathFormula, pPrimedNo);
-  }
-
-
-  @Override
-  public PathFormula makePrimedEqualities(PathFormula pPf, int pI, int pJ) {
-    return delegate.makePrimedEqualities(pPf, pI, pJ);
-  }
-
-
-  @Override
-  public PathFormula makeUnsatisifiableConstraintsForRedundantIndexes(SSAMap pSsatop, SSAMap pSsa, int pOtherTid) {
-    return delegate.makeUnsatisifiableConstraintsForRedundantIndexes(pSsatop, pSsa, pOtherTid);
-  }
-
-
-  @Override
-  public PathFormula makePrimedEqualities(SSAMap ssa1, int pI,SSAMap ssa2, int pJ) {
-    return delegate.makePrimedEqualities(ssa1, pI, ssa2, pJ);
-  }
-
-
-  @Override
-  public PathFormula makeRelyGuaranteeOr(PathFormula pf1, PathFormula pf2, int i) {
-    return delegate.makeRelyGuaranteeOr(pf1, pf2, i);
-  }
-
-
-  @Override
-  public PathFormula makePureAnd(PathFormula pLocalF, CFAEdge pEdge, Integer pTid) throws CPATransferException {
-    return delegate.makePureAnd(pLocalF, pEdge, pTid);
-  }
-
-
-  @Override
-  public Pair<Pair<Formula, Formula>, SSAMap> mergeRelyGuaranteeSSAMaps(SSAMap pSsa1, SSAMap pSsa2, int pTid) {
-    return delegate.mergeRelyGuaranteeSSAMaps(pSsa1, pSsa2, pTid);
-  }
 
 
 

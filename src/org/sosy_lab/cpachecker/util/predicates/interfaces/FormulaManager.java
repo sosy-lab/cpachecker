@@ -26,14 +26,9 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
-
-import com.google.common.collect.ListMultimap;
-
-
 
 
 /**
@@ -197,16 +192,6 @@ public interface FormulaManager {
     public Formula instantiate(Formula f, SSAMap ssa);
 
     /**
-     * Instantiates unhashed variables to the old SSA map and the hashed ones to
-     * the new map.
-     * @param del
-     * @param oldSsa
-     * @param newSsa
-     * @return
-     */
-    public Formula instantiateNextVal(Formula del, SSAMap oldSsa, SSAMap newSsa);
-
-    /**
      * Given an "instantiated" formula, returns the corresponding formula in
      * which all the variables are "generic" ones. This is the inverse of the
      * instantiate() method above
@@ -230,15 +215,6 @@ public interface FormulaManager {
              boolean splitArithEqualities, boolean conjunctionsOnly);
 
     /**
-     * Extract atoms from the given formula. Variables with SSA index equal to the
-     * map are given a '#' suffix.
-     * @param itp
-     * @param pSsa
-     * @return
-     */
-    public Collection<Formula> extractNextValAtoms(Formula itp, SSAMap pSsa);
-
-    /**
      * Create string representation of a formula in a format which may be dumped
      * to a file.
      */
@@ -257,66 +233,61 @@ public interface FormulaManager {
      */
     public Formula createPredicateVariable(Formula pAtom);
 
-    public Formula primeFormula(Formula f, int howManyPrimes);
 
-    public int countAtoms(Formula f);
-
-    //
-    public Pair<Formula,Map<String, Integer>>  normalize(Formula formula);
-
-    public Set<Integer> howManyPrimes(Formula f);
-
-    public Formula unprimeFormula(Formula pUnprimedAtom);
-
-    public Formula adjustedPrimedNo(Formula pFormula, Map<Integer, Integer> pPrimedMap);
-
-    public Map<String, Integer> getNonModularData(Formula pSymbolicAtom);
-
-    public List<Formula> nonModularInstances(Formula formula, ListMultimap<String, Integer> pEnvMap);
-
-    public Formula primeFormula(Formula pFormula, int pOffset, SSAMap pSsa);
+    // ----------------- Rely-guarantee -----------------
 
     /**
-     * Remove atoms that consists only of primed variables.
-     * @param formula
-     * @param primedNo primed numbers to be removed
-     * @return reduced formula
+     * Returns unprimed variable name and the primed number. If the variable is
+     * not primed, then the primed no is -1. Works only on uninstantiated variables.
+     * @param pFirst
+     * @return (unprimed variable name, primed no)
      */
-    Formula removePrimed(Formula formula,  Set<Integer> primedNo);
+    Pair<String, Integer> getPrimeData(String str);
 
     /**
-     * Extract non-modular atom predicates from an interpolant in thread tid.
-     * Atoms remain primed. Atoms that have primed number other than tid (non-modular atoms)
-     * are kept with indexes. Modular atoms are uninstantiated.
-     * @param itp interpolant
-     * @param tid thread number
-     * @return collection of predicates
-     */
-    public List<Formula> extractNonModularAtoms(Formula itp, int tid);
-
-    /**
-     * Instantiates uninstated formulas using the ssa map. Instantied variables
-     * remain unchanged.
-     * @param fr
-     * @param ssa
+     * Primes variable given number of times. Value -1 means no prime value.
+     * Works on uninstantiated variables, without prime numbers.
+     * @param bareName
+     * @param primeNo
      * @return
      */
-    public Formula instantiateModular(Formula fr, SSAMap ssa);
+    String primeVariable(String var, int primeNo);
+
+  /**
+   * Makes conjunction of equalities v^i@x <-> v^j@y, where x>0 is the last index of
+   * variable v^i in ssa1 and y>0 is the last index of v^j in ssa2.
+   * Note that v^-1 is treated as v.
+   * @param ssa1
+   * @param i
+   * @param ssa2
+   * @param j
+   * @return equalities
+   */
+  Formula makePrimedEqualities(SSAMap ssa1, int i, SSAMap ssa2, int j);
+
+  /**
+   * Changes prime numbers of variables as specified by the map. Value -1 means no prime number.
+   * @param pathFormula
+   * @param map
+   * @return change path formula
+   */
+  Formula changePrimedNo(Formula pathFormula, Map<Integer, Integer> map);
+
+  /**
+   * Instantiates plain variables of f to the low SSA map and hashed variables to the high map.
+   * @param f
+   * @param low
+   * @param high
+   * @return instantiated formula
+   */
+  Formula instantiateNextValue(Formula f, SSAMap low, SSAMap high);
 
     /**
-     * Prime p times all variable instances lower than in the SSA map.
-     * @param fr
-     * @param ssa
-     * @param renameMap
-     * @return
+     * Extract atoms from the given formula and uninstantiate them. Variables with SSA index equal to the
+     * ssa map are represented as hashed variables, while other variables are plain.
+     * @param itp
+     * @param Ssa
+     * @return atoms
      */
-    public Formula renameIndexes(Formula fr, SSAMap ssa, int p);
-
-
-
-
-
-
-
-
+    public Collection<Formula> extractNextValueAtoms(Formula f, SSAMap ssa);
 }

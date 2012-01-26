@@ -51,8 +51,8 @@ public class SSAMap {
    *
    * This class is not thread-safe.
    */
-  public static class SSAMapBuilder {
 
+  public static class SSAMapBuilder {
     private SSAMap ssa;
     private Multiset<String> varsBuilder = null;
     private Multiset<Pair<String, FormulaList>> funcsBuilder = null;
@@ -77,7 +77,6 @@ public class SSAMap {
         varsBuilder = LinkedHashMultiset.create(ssa.vars);
       }
 
-      Preconditions.checkArgument(idx >= varsBuilder.count(var), "Var: "+var+" index: "+idx);
       Preconditions.checkArgument(idx >= varsBuilder.count(var), "SSAMap updates need to be strictly monotone!");
       varsBuilder.setCount(var, idx);
     }
@@ -146,27 +145,6 @@ public class SSAMap {
         return (result < 0) ? defaultValue : result;
       }
     };
-  }
-
-  /**
-   * Returns an SSAMap that contains only indexes of variables primed p times.
-   * @param ssa
-   * @param tid
-   * @return
-   */
-  public static SSAMap retainPrime(SSAMap ssa, int p){
-
-    SSAMapBuilder bldr = EMPTY_SSA_MAP.builder();
-
-    for (String var : ssa.vars){
-      Pair<String, Integer> data = PathFormula.getPrimeData(var);
-      if (data.getSecond().equals(p)){
-        int idx = ssa.getIndex(var);
-        bldr.setIndex(var, idx);
-      }
-    }
-
-    return bldr.build();
   }
 
   /**
