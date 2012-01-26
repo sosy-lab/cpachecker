@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.featurevariables;
 
+import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -318,6 +319,13 @@ public class FeatureVarsTransferRelation implements TransferRelation {
           propagateBinaryBooleanExpression(element, binExp.getOperator(),
               binExp.getOperand1(), binExp.getOperand2(), functionName,
               precision, edge);
+    } else if (op2 instanceof IASTIntegerLiteralExpression) {
+      IASTIntegerLiteralExpression number = (IASTIntegerLiteralExpression)op2;
+      if (number.getValue().equals(BigInteger.ZERO)) {
+        operand2 = rmgr.makeFalse();
+      } else {
+        operand2 = rmgr.makeTrue();
+      }
     }
     if (operand1 == null || operand2 == null) {
       return null;
@@ -332,7 +340,17 @@ public class FeatureVarsTransferRelation implements TransferRelation {
       returnValue = rmgr.makeOr(operand1, operand2);
       break;
     case EQUALS:
+      returnValue = rmgr.makeOr(
+              rmgr.makeAnd(operand1, operand2),
+              rmgr.makeAnd(rmgr.makeNot(operand1), rmgr.makeNot(operand2))
+          );
+      break;
     case NOT_EQUALS:
+      returnValue = rmgr.makeOr(
+              rmgr.makeAnd(rmgr.makeNot(operand1), operand2),
+              rmgr.makeAnd(operand1, rmgr.makeNot(operand2))
+          );
+      break;
     default:
       throw new UnrecognizedCCodeException(
           "Cases ==, != and others are not implemented", edge);
