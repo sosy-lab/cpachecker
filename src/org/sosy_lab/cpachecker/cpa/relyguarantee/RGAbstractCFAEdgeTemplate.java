@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.relyguarantee;
 
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 
 public class RGAbstractCFAEdgeTemplate extends RGCFAEdgeTemplate {
@@ -31,7 +32,7 @@ public class RGAbstractCFAEdgeTemplate extends RGCFAEdgeTemplate {
   /** Abstraction for the edge */
   private final AbstractionFormula absFilter;
 
-  public RGAbstractCFAEdgeTemplate(AbstractionFormula filter, ARTElement lastARTAbstractionElement, RGEnvironmentalTransition sourceEnvTransition){
+  public RGAbstractCFAEdgeTemplate(AbstractionFormula filter, ARTElement lastARTAbstractionElement, RGEnvCandidate sourceEnvTransition){
     super(filter.asPathFormula(), lastARTAbstractionElement, sourceEnvTransition);
     this.absFilter = filter;
   }

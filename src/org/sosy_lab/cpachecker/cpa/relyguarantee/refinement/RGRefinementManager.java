@@ -275,6 +275,9 @@ public class RGRefinementManager<T1, T2>  {
    */
   public void constructDagForElement(ReachedSet[] reachedSets, ARTElement target, int tid, InterpolationDag dag) throws InterruptedException, CPAException {
     // Note: in case of abstracted operations, the target may be cover, ergo not in the reached set.
+    if (target.isDestroyed()){
+      System.out.println();
+    }
     assert !target.isDestroyed();
 
     if (debug){

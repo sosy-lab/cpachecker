@@ -55,9 +55,9 @@ import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCPA;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGPrecision;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement.AbstractionElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -102,9 +102,6 @@ public class RGRefiner{
       description="where to dump the counterexample formula in case the error location is reached")
       private File dumpCexFile = new File("counterexample.msat");
 
-  @Option(name="refinement.restartAnalysis",
-      description="restart analysis after refinement")
-      private boolean restartAnalysis = false;
 
 
   public abstract class  RelyGuaranteeRefinerStatistics implements Statistics {
@@ -235,11 +232,9 @@ public class RGRefiner{
   public boolean performRefinment(ReachedSet[] reachedSets, RGEnvironmentManager environment, int errorThr) throws InterruptedException, CPAException {
 
     // use statistics appropriate to refinement method: lazy or restarting
-    if (restartAnalysis){
-      stats = new RelyGuaranteeRefinerRestartingStatistics();
-    } else {
-      stats = new RelyGuaranteeRefinerLazyStatistics();
-    }
+
+    stats = new RelyGuaranteeRefinerRestartingStatistics();
+
 
     stats.totalTimer.start();
 
@@ -262,16 +257,12 @@ public class RGRefiner{
     // if error is spurious refine
     if (mCounterexampleTraceInfo.isSpurious()) {
       Multimap<Integer, Pair<ARTElement, RGPrecision>> refinementResult;
-      if (restartAnalysis){
-        System.out.println();
-        System.out.println("\t\t\t ----- Restarting analysis -----");
-        stats.restartingTimer.start();
-        refinementResult = restartingRefinement(reachedSets, mCounterexampleTraceInfo);
-      } else {
-        System.out.println();
-        System.out.println("\t\t\t ----- Lazy abstraction -----");
-        refinementResult = lazyRefinement(reachedSets, mCounterexampleTraceInfo, errorThr);
-      }
+
+      System.out.println();
+      System.out.println("\t\t\t ----- Restarting analysis -----");
+      stats.restartingTimer.start();
+      refinementResult = restartingRefinement(reachedSets, mCounterexampleTraceInfo);
+
 
 
       /*System.out.println("Wait lists before refinement");
@@ -308,50 +299,15 @@ public class RGRefiner{
           }
         }
       }
-      if (restartAnalysis){
-        System.out.println();
-        System.out.println("\t\t\t --- Dropping all env transitions ---");
-        environment.resetEnvironment();
-        stats.restartingTimer.stop();
 
-        environment.resetEnvironment();
-        for (int i=0; i<reachedSets.length;i++){
-          assert reachedSets[i].getReached().size()==1;
-        }
-      } else {
+      System.out.println();
+      System.out.println("\t\t\t --- Dropping all env transitions ---");
+      environment.resetEnvironment();
+      stats.restartingTimer.stop();
 
-        /* System.out.println("Wait lists after refinement");
-        for (int i=0; i<reachedSets.length; i++){
-          System.out.println("For thread "+i);
-          for (AbstractElement element : reachedSets[i].getWaitlist()){
-            ARTElement artElement = (ARTElement) element;
-            System.out.println("\t - id:"+artElement.getElementId());
-          }
-        }*/
-
-        // kill the env transitions that were generated in the drop ARTs
-        // if they killed transitions covered some other transitions, then make them valid again
-        System.out.println("\t\t\t --- Processing env transitions ---");
-
-        if (debug){
-          environment.printUnprocessedTransitions();
-        }
-
-
-        environment.killEnvironmetalEdges(refinementResult.keySet(), artReachedSets, refinementResult);
-        // process the remaining environmental transition
-        environment.processEnvTransitions(errorThr);
-        /* System.out.println();
-        System.out.println("Wait lists after processing environment");
-        for (int i=0; i<reachedSets.length; i++){
-          System.out.println("For thread "+i);
-          for (AbstractElement element : reachedSets[i].getWaitlist()){
-            ARTElement artElement = (ARTElement) element;
-            System.out.println("\t - id:"+artElement.getElementId());
-          }
-
-        }*/
-
+      environment.resetEnvironment();
+      for (int i=0; i<reachedSets.length;i++){
+        assert reachedSets[i].getReached().size()==1;
       }
 
       stats.totalTimer.stop();

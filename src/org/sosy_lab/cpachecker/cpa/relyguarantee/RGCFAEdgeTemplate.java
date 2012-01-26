@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
 
@@ -51,7 +52,7 @@ public class RGCFAEdgeTemplate{
   private final PathFormula filter;
 
   /** Environmental transition form which this edge was generated from */
-  private final RGEnvironmentalTransition sourceEnvTransition;
+  private final RGEnvCandidate sourceEnvTransition;
 
   /** Unkilled env. edge that is more general than this one. */
   private RGCFAEdgeTemplate coveredBy;
@@ -63,7 +64,7 @@ public class RGCFAEdgeTemplate{
   private final ARTElement lastAbstraction;
 
 
-  public RGCFAEdgeTemplate(PathFormula filter, ARTElement lastARTAbstractionElement, RGEnvironmentalTransition sourceEnvTransition){
+  public RGCFAEdgeTemplate(PathFormula filter, ARTElement lastARTAbstractionElement, RGEnvCandidate sourceEnvTransition){
     this.filter = filter;
     this.lastAbstraction = lastARTAbstractionElement;
     this.sourceEnvTransition = sourceEnvTransition;
@@ -88,19 +89,19 @@ public class RGCFAEdgeTemplate{
 
 
   public ARTElement getSourceARTElement() {
-    return this.sourceEnvTransition.getSourceARTElement();
+    return this.sourceEnvTransition.getElement();
   }
 
   public ARTElement getTargetARTElement() {
-    return this.sourceEnvTransition.getTargetARTElement();
+    return this.sourceEnvTransition.getSuccessor();
   }
 
-  public void setSourceARTElement(ARTElement newElem) {
+  /*public void setSourceARTElement(ARTElement newElem) {
     this.sourceEnvTransition.setSourceARTElement(newElem);
-  }
+  }*/
 
   public PathFormula getAbstractionFormula() {
-    return this.sourceEnvTransition.getAbstractionPathFormula();
+    return this.sourceEnvTransition.getRgElement().getPathFormula();
   }
 
   public IASTNode getRawAST() {
@@ -112,11 +113,11 @@ public class RGCFAEdgeTemplate{
   }
 
   public String getRawStatement() {
-    return this.sourceEnvTransition.getEdge().getRawStatement();
+    return this.sourceEnvTransition.getOperation().getRawStatement();
   }
 
   public PathFormula getPathFormula() {
-    return this.sourceEnvTransition.getPathFormula();
+    return this.sourceEnvTransition.getRgElement().getPathFormula();
   }
 
   public PathFormula getFilter() {
@@ -129,14 +130,14 @@ public class RGCFAEdgeTemplate{
   }
 
   public CFAEdge getLocalEdge() {
-    return this.sourceEnvTransition.getEdge();
+    return this.sourceEnvTransition.getOperation();
   }
 
   public int getSourceTid(){
-    return this.sourceEnvTransition.getSourceThread();
+    return this.sourceEnvTransition.getTid();
   }
 
-  public RGEnvironmentalTransition getSourceEnvTransition() {
+  public RGEnvCandidate getSourceEnvTransition() {
     return sourceEnvTransition;
   }
 
@@ -148,64 +149,8 @@ public class RGCFAEdgeTemplate{
   }
 
   public CFAEdge getOperation() {
-    return this.sourceEnvTransition.getEdge();
+    return this.sourceEnvTransition.getOperation();
   }
 
-
-  /**
-   * Remember that environmental edge 'other' is more general than this one.
-   * @param other
-   */
-  public void coveredBy(RGCFAEdgeTemplate other) {
-
-    assert other != null;
-    assert other != this;
-    assert !other.covers.contains(this);
-    //assert other.getOperation().equals(this.getOperation());
-    // TODO change it - only null should be allowed
-    if (coveredBy == null){
-      coveredBy  = other;
-      other.covers.add(this);
-    } else {
-      coveredBy.covers.remove(this);
-      coveredBy  = other;
-      other.covers.add(this);
-    }
-
-  }
-
-  /**
-   * This edge is not valid anymore.
-   */
-  public void killValidEdge(){
-    assert coveredBy == null;
-    for ( RGCFAEdgeTemplate child : covers){
-      assert child.coveredBy == this;
-      child.coveredBy = null;
-    }
-    covers.clear();
-  }
-
-  /**
-   * Called on a covered edge, which source element has been removed. The edge that covers this object will directly cover the elements
-   * are covered by the object.
-   */
-  public void killCoveredEdge() {
-    if (coveredBy == null){
-      System.out.println("DEBUG: "+this);
-    }
-    assert coveredBy != null;
-    assert coveredBy.covers.contains(this);
-
-    for ( RGCFAEdgeTemplate child : covers){
-      assert child.coveredBy == this;
-      assert child != coveredBy;
-      child.coveredBy = coveredBy;
-      coveredBy.covers.add(child);
-    }
-    coveredBy.covers.remove(this);
-    covers.clear();
-    coveredBy = null;
-  }
 
 }

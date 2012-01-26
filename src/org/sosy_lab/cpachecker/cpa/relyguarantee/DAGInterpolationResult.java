@@ -57,6 +57,4 @@ public class DAGInterpolationResult {
     return predMap.putAll(artElem, ap);
   }
 
-
-
 }

@@ -61,15 +61,14 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCFAEdge2;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCFAEdgeTemplate;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCombinedCFAEdge;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RGEnvironmentalTransition;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGPrecision;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGVariables;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.Precisions;
@@ -288,21 +287,30 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
         aElement.setHasLocalChild(true);
       }
 
-      Collection<AbstractElement> successors = new HashSet<AbstractElement>(edgesNo);
+      Collection<Pair<AbstractElement,CFAEdge>> successors = new HashSet<Pair<AbstractElement,CFAEdge>>(edgesNo);
 
-      stats.transferTimer.start();
+
       for (CFAEdge edge : edges){
+        stats.transferTimer.start();
         Collection<? extends AbstractElement> newSucc = transferRelation.getAbstractSuccessors(element, precision, edge);
-        successors.addAll(newSucc);
+        stats.transferTimer.stop();
+
+        // generate env edge
+        for (AbstractElement successor : newSucc){
+          successors.add(Pair.of(successor, edge));
+        }
+
       }
-      stats.transferTimer.stop();
+
 
       int numSuccessors = successors.size();
       logger.log(Level.FINER, "Current element has", numSuccessors,"successors");
       stats.countSuccessors += numSuccessors;
       stats.maxSuccessors = Math.max(numSuccessors, stats.maxSuccessors);
 
-      for (AbstractElement successor : successors) {
+      for (Pair<AbstractElement,CFAEdge> pair : successors) {
+        AbstractElement successor = pair.getFirst();
+        CFAEdge edge = pair.getSecond();
         // TODO for statistics, could slower down the analysis
         boolean byEnvEdge = false;
         RGAbstractElement rgElement = AbstractElements.extractElementByType(successor, RGAbstractElement.class);
@@ -332,15 +340,6 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
         Precision successorPrecision = precAdjustmentResult.getSecond();
         Action action = precAdjustmentResult.getThird();
 
-        // generate env edge
-        stats.envGenTimer.start();
-        RGEnvironmentalTransition newEnvTransition = createEnvTransitions(element, successor);
-        if (newEnvTransition != null){
-          environment.addEnvTransition(newEnvTransition);
-        }
-        stats.envGenTimer.stop();
-
-
         if (debug){
           printRelyGuaranteeAbstractElement(successor);
         }
@@ -354,6 +353,16 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
           return true;
         }
         assert action == Action.CONTINUE : "Enum Action has unhandled values!";
+
+        stats.envGenTimer.start();
+
+        if (this.createsEnvTransition(edge)){
+          RGEnvCandidate candidate = new RGEnvCandidate((ARTElement)element, (ARTElement)successor, edge, tid);
+          environment.addEnvTransition(candidate);
+        }
+        stats.envGenTimer.stop();
+
+
 
         Collection<AbstractElement> reached = reachedSet.getReached(successor);
 
@@ -404,6 +413,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
           stats.mergeTimer.stop();
           stats.envMergeTimer.stop();
         }
+
 
 
 
@@ -489,27 +499,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
   }
 
-  // generate  environmental edges for every outgoing
-  private RGEnvironmentalTransition createEnvTransitions(AbstractElement element, AbstractElement successor) {
-    RGEnvironmentalTransition newEnvTransition = null;
 
-    ARTElement aElement  = (ARTElement) element;
-    ARTElement aSucc     = (ARTElement) successor;
-    CompositeElement cElement = (CompositeElement)  aElement.getWrappedElement();
-    CompositeElement  cSucc    = (CompositeElement)  aSucc.getWrappedElement();
-    CFANode elemNode = cElement.retrieveLocationElement().getLocationNode();
-    CFANode succNode = cSucc.retrieveLocationElement().getLocationNode();
-    if (elemNode.equals(succNode)){
-      return newEnvTransition;
-    }
-    CFAEdge edge = elemNode.getEdgeTo(succNode);
-    if (createsEnvTransition(edge)) {
-      //RelyGuaranteeEnvironmentalTransition newEnvTransition = new RelyGuaranteeEnvironmentalTransition(predElement.getAbstractionFormula().asFormula(), predElement.getPathFormula(), edge,  this.tid);
-       newEnvTransition = new RGEnvironmentalTransition(aElement, aSucc, edge,  this.tid);
-    }
-
-    return newEnvTransition;
-  }
 
 
 

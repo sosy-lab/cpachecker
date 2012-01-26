@@ -477,7 +477,7 @@ public class RGTransferRelation  implements TransferRelation {
       appPf = pfManager.makeAnd(appPf, rgEdge.getLocalEdge());
     } else if (abstractEnvTransitions == 2){
       PathFormula filter = rgEdge.getFilter();
-      PathFormula oldPf = rgEdge.getSourceEnvTransition().getPathFormula();
+      PathFormula oldPf = rgEdge.getSourceEnvTransition().getRgElement().getPathFormula();
       SSAMap lowSSA = localPf.getSsa();
 
       Map<Integer, Integer> rMap = new HashMap<Integer, Integer>(1);
