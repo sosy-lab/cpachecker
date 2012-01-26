@@ -44,13 +44,11 @@ class MergeNode {
     incomingElements = new ArrayList<FunctionBody>();
   }
 
-  public int addBranch(Edge pNextCBMCEdge) {
-
-    FunctionBody addedStackElement = pNextCBMCEdge.getStack().peek();
-    incomingElements.add(addedStackElement);
+  public int addBranch(FunctionBody currentFunction) {
+    incomingElements.add(currentFunction);
     Set<Integer> processedConditions = new HashSet<Integer>();
 
-    for (BasicBlock elementInStack: addedStackElement) {
+    for (BasicBlock elementInStack: currentFunction) {
       int idOfElementInStack = elementInStack.getElementId();
       boolean nextConditionValue = elementInStack.isCondition();
       boolean isClosedBefore = elementInStack.isClosedBefore();

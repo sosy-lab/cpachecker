@@ -229,7 +229,6 @@ public class PathToCTranslator {
     // handle merging if necessary
     if (noOfParents > 1) {
       assert !(   (edge instanceof FunctionCallEdge)
-               || (edge instanceof FunctionReturnEdge)
                || (childElement.isTarget()));
 
       // this is the end of a condition, determine whether we should continue or backtrack
@@ -247,7 +246,7 @@ public class PathToCTranslator {
       }
 
       // this tells us the number of edges (entering that node) processed so far
-      int noOfProcessedBranches = mergeNode.addBranch(nextEdge);
+      int noOfProcessedBranches = mergeNode.addBranch(currentFunction);
 
       // if all edges are processed
       if (noOfParents == noOfProcessedBranches) {
