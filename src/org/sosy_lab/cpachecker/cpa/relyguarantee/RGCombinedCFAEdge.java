@@ -34,16 +34,16 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 /**
  * CFA edge combined of multiple env. edges.
  */
-public class RelyGuaranteeCombinedCFAEdge implements CFAEdge {
+public class RGCombinedCFAEdge implements CFAEdge {
 
   private final CFANode predecessor;
   private final CFANode successor;
 
-  private final List<RelyGuaranteeCFAEdge> envEdges;
+  private final List<RGCFAEdge2> envEdges;
   private final int edgeNo;
 
 
-  public RelyGuaranteeCombinedCFAEdge(List<RelyGuaranteeCFAEdgeTemplate> templates, CFANode successor, CFANode predecessor){
+  public RGCombinedCFAEdge(List<RGCFAEdgeTemplate> templates, CFANode successor, CFANode predecessor){
     assert !templates.isEmpty();
     assert successor != null;
     assert predecessor != null;
@@ -51,8 +51,8 @@ public class RelyGuaranteeCombinedCFAEdge implements CFAEdge {
     this.successor = successor;
     this.predecessor = predecessor;
     this.edgeNo = templates.size();
-    this.envEdges = new Vector<RelyGuaranteeCFAEdge>(edgeNo);
-    for (RelyGuaranteeCFAEdgeTemplate template : templates){
+    this.envEdges = new Vector<RGCFAEdge2>(edgeNo);
+    for (RGCFAEdgeTemplate template : templates){
       this.envEdges.add(template.instantiate(successor, predecessor));
     }
 
@@ -67,7 +67,7 @@ public class RelyGuaranteeCombinedCFAEdge implements CFAEdge {
 
 
 
-  public List<RelyGuaranteeCFAEdge> getEnvEdges() {
+  public List<RGCFAEdge2> getEnvEdges() {
     return envEdges;
   }
 
@@ -121,7 +121,7 @@ public class RelyGuaranteeCombinedCFAEdge implements CFAEdge {
 
   public int hashCode() {
     int edgesHash = 0;
-    for (RelyGuaranteeCFAEdge  rgEdge: this.envEdges){
+    for (RGCFAEdge2  rgEdge: this.envEdges){
       edgesHash = edgesHash + rgEdge.hashCode();
     }
     return edgesHash + 11 * (this.predecessor.hashCode() + 23 * this.successor.hashCode());

@@ -34,14 +34,14 @@ import com.google.common.collect.ImmutableList.Builder;
 /**
  * Stores information about variables of a concurrent program.
  */
-public class RelyGuaranteeVariables {
+public class RGVariables {
 
   public final int threadNo;
   public final ImmutableSet<String> globalVars;
   public final ImmutableList<ImmutableSet<String>> localVars;
   public final ImmutableSet<String> allVars;
 
-  public RelyGuaranteeVariables(RelyGuaranteeCFA[] cfas){
+  public RGVariables(RelyGuaranteeCFA[] cfas){
     assert cfas.length > 0;
 
     this.threadNo = cfas.length;

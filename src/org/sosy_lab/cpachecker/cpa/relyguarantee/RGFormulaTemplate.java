@@ -32,24 +32,24 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 /**
  * Information about environmental transitions that appear in the path formula.
  */
-public class RelyGuaranteeFormulaTemplate {
+public class RGFormulaTemplate {
 
 
 
   // path formula with environmental parts removed - SSA index like in the ordniary path formula
   private final PathFormula localPathFormula;
   // environmental edge together with the  path formula to which it was applied
-  private final List<Pair<RelyGuaranteeCFAEdge, PathFormula>> envTransitionApplied;
+  private final List<Pair<RGCFAEdge2, PathFormula>> envTransitionApplied;
 
-  public RelyGuaranteeFormulaTemplate(PathFormula localPathFormula,  List<Pair<RelyGuaranteeCFAEdge, PathFormula>> envTransitionApplied) {
+  public RGFormulaTemplate(PathFormula localPathFormula,  List<Pair<RGCFAEdge2, PathFormula>> envTransitionApplied) {
     this.localPathFormula = localPathFormula;
     this.envTransitionApplied = envTransitionApplied;
   }
 
 
-  public RelyGuaranteeFormulaTemplate(PathFormula localPathFormula) {
+  public RGFormulaTemplate(PathFormula localPathFormula) {
     this.localPathFormula = localPathFormula;
-    this.envTransitionApplied = new Vector<Pair<RelyGuaranteeCFAEdge, PathFormula>>();
+    this.envTransitionApplied = new Vector<Pair<RGCFAEdge2, PathFormula>>();
   }
 
 
@@ -57,7 +57,7 @@ public class RelyGuaranteeFormulaTemplate {
    return localPathFormula;
  }
 
- public List<Pair<RelyGuaranteeCFAEdge, PathFormula>> getEnvTransitionApplied() {
+ public List<Pair<RGCFAEdge2, PathFormula>> getEnvTransitionApplied() {
    return envTransitionApplied;
  }
 

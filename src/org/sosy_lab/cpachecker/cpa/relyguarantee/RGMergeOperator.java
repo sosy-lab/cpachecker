@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
 @Options(prefix="cpa.relyguarantee")
-public class RelyGuaranteeMergeOperator implements MergeOperator {
+public class RGMergeOperator implements MergeOperator {
   @Option(name="blk.threshold",
       description="maximum blocksize before abstraction is forced\n"
         + "(non-negative number, special values: 0 = don't check threshold, 1 = SBE)")
@@ -61,17 +61,17 @@ public class RelyGuaranteeMergeOperator implements MergeOperator {
         + "have to be fulfilled to compute an abstraction")
   private boolean absOnlyIfBoth = false;
 
-  private RelyGuaranteeCPA cpa;
+  private RGCPA cpa;
   protected final LogManager logger;
   protected final PathFormulaManager formulaManager;
   public final Timer totalMergeTime = new Timer();
 
-  public RelyGuaranteeMergeOperator(RelyGuaranteeCPA pCpa) {
+  public RGMergeOperator(RGCPA pCpa) {
     cpa = pCpa;
     logger = pCpa.logger;
     formulaManager = pCpa.pathFormulaManager;
     try {
-      pCpa.getConfiguration().inject(this, RelyGuaranteeMergeOperator.class);
+      pCpa.getConfiguration().inject(this, RGMergeOperator.class);
     } catch (InvalidConfigurationException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
@@ -83,13 +83,13 @@ public class RelyGuaranteeMergeOperator implements MergeOperator {
                                AbstractElement element2, Precision precision) {
 
 
-    RelyGuaranteeAbstractElement elem1 = (RelyGuaranteeAbstractElement)element1;
-    RelyGuaranteeAbstractElement elem2 = (RelyGuaranteeAbstractElement)element2;
+    RGAbstractElement elem1 = (RGAbstractElement)element1;
+    RGAbstractElement elem2 = (RGAbstractElement)element2;
 
     // this will be the merged element
-    RelyGuaranteeAbstractElement merged;
+    RGAbstractElement merged;
 
-    if (elem1 instanceof RelyGuaranteeAbstractElement.AbstractionElement || elem2 instanceof RelyGuaranteeAbstractElement.AbstractionElement) {
+    if (elem1 instanceof RGAbstractElement.AbstractionElement || elem2 instanceof RGAbstractElement.AbstractionElement) {
       // we don't merge if this is an abstraction location
       merged = elem2;
     } else {
@@ -120,7 +120,7 @@ public class RelyGuaranteeMergeOperator implements MergeOperator {
         logger.log(Level.ALL, "New path formula is", pathFormula);
 
         // TODO the edge map is not correct if don't abstract after merging
-        merged = new RelyGuaranteeAbstractElement(pathFormula, elem1.getAbstractionFormula(), cpa.getTid());
+        merged = new RGAbstractElement(pathFormula, elem1.getAbstractionFormula(), cpa.getTid());
 
         // now mark elem1 so that coverage check can find out it was merged
         elem1.setMergedInto(merged);

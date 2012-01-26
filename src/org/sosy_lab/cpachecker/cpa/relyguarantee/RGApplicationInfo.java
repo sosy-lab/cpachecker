@@ -31,26 +31,26 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 /**
  * Contains information on applications of environmental edges.
  */
-public class RelyGuaranteeApplicationInfo {
+public class RGApplicationInfo {
 
 
   /**
    * Env. edges that have been applied.
    */
-  public final Map<Integer, RelyGuaranteeCFAEdgeTemplate> envMap;
+  public final Map<Integer, RGCFAEdgeTemplate> envMap;
 
   /** Path formula for refinement */
   private PathFormula refinementPf;
 
 
 
-  public RelyGuaranteeApplicationInfo(){
-    this.envMap = new HashMap<Integer, RelyGuaranteeCFAEdgeTemplate>();
+  public RGApplicationInfo(){
+    this.envMap = new HashMap<Integer, RGCFAEdgeTemplate>();
   }
 
   /** Makes a copy of another application info. */
-  public RelyGuaranteeApplicationInfo(RelyGuaranteeApplicationInfo other){
-    this.envMap = new HashMap<Integer, RelyGuaranteeCFAEdgeTemplate>(other.envMap);
+  public RGApplicationInfo(RGApplicationInfo other){
+    this.envMap = new HashMap<Integer, RGCFAEdgeTemplate>(other.envMap);
   }
 
   /**
@@ -58,11 +58,11 @@ public class RelyGuaranteeApplicationInfo {
    * @param other
    * @return
    */
-  public void mergeWith(RelyGuaranteeApplicationInfo other){
+  public void mergeWith(RGApplicationInfo other){
     envMap.putAll(other.envMap);
   }
 
-  public Map<Integer, RelyGuaranteeCFAEdgeTemplate> getEnvMap() {
+  public Map<Integer, RGCFAEdgeTemplate> getEnvMap() {
     return envMap;
   }
 
@@ -72,7 +72,7 @@ public class RelyGuaranteeApplicationInfo {
    * @param pf
    * @return
    */
-  public RelyGuaranteeCFAEdgeTemplate putEnvApplication(Integer i, RelyGuaranteeCFAEdgeTemplate rgEdge){
+  public RGCFAEdgeTemplate putEnvApplication(Integer i, RGCFAEdgeTemplate rgEdge){
     return envMap.put(i, rgEdge);
   }
 

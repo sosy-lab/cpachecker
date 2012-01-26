@@ -46,9 +46,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
 @Options(prefix="cpa.relyguarantee")
-public class RelyGuaranteePrecisionAdjustment implements PrecisionAdjustment {
+public class RGPrecisionAdjustment implements PrecisionAdjustment {
 
-  private RelyGuaranteeCPA cpa;
+  private RGCPA cpa;
   // statistics
   public final Timer totalPrecTime = new Timer();
   public final Timer computingAbstractionTime = new Timer();
@@ -65,13 +65,13 @@ public class RelyGuaranteePrecisionAdjustment implements PrecisionAdjustment {
 
 
 
-  public RelyGuaranteePrecisionAdjustment(RelyGuaranteeCPA pCpa) {
+  public RGPrecisionAdjustment(RGCPA pCpa) {
     logger = pCpa.logger;
     formulaManager = pCpa.predicateManager;
     pathFormulaManager = pCpa.pathFormulaManager;
     fManager = pCpa.formulaManager;
     try {
-      pCpa.getConfiguration().inject(this, RelyGuaranteePrecisionAdjustment.class);
+      pCpa.getConfiguration().inject(this, RGPrecisionAdjustment.class);
     } catch (InvalidConfigurationException e) {
       e.printStackTrace();
     }
@@ -85,10 +85,10 @@ public class RelyGuaranteePrecisionAdjustment implements PrecisionAdjustment {
 
     totalPrecTime.start();
 
-    if (pElement instanceof RelyGuaranteeAbstractElement.ComputeAbstractionElement) {
-      RelyGuaranteeAbstractElement.ComputeAbstractionElement element = (RelyGuaranteeAbstractElement.ComputeAbstractionElement)pElement;
+    if (pElement instanceof RGAbstractElement.ComputeAbstractionElement) {
+      RGAbstractElement.ComputeAbstractionElement element = (RGAbstractElement.ComputeAbstractionElement)pElement;
       //RelyGuaranteePrecision precision = (RelyGuaranteePrecision)pPrecision;
-      RelyGuaranteePrecision precision = (RelyGuaranteePrecision)pPrecision;
+      RGPrecision precision = (RGPrecision)pPrecision;
 
       pElement = computeAbstraction(element, precision);
     }
@@ -102,8 +102,8 @@ public class RelyGuaranteePrecisionAdjustment implements PrecisionAdjustment {
    * Compute an abstraction.
    */
   private AbstractElement computeAbstraction(
-      RelyGuaranteeAbstractElement.ComputeAbstractionElement element,
-      RelyGuaranteePrecision precision) {
+      RGAbstractElement.ComputeAbstractionElement element,
+      RGPrecision precision) {
 
     AbstractionFormula abstractionFormula = element.getAbstractionFormula();
     PathFormula pathFormula = element.getPathFormula();
@@ -136,7 +136,7 @@ public class RelyGuaranteePrecisionAdjustment implements PrecisionAdjustment {
     // create new empty path formula
     PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula);
 
-    return new RelyGuaranteeAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula, element.getParentEdge(),this.cpa.getTid(), element.getPathFormula(), element.getAppInfo());
+    return new RGAbstractElement.AbstractionElement(newPathFormula, newAbstractionFormula, element.getParentEdge(),this.cpa.getTid(), element.getPathFormula(), element.getAppInfo());
   }
 
 

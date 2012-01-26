@@ -53,11 +53,11 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdge;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdgeTemplate;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCombinedCFAEdge;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvironment;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeVariables;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCFAEdge2;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCFAEdgeTemplate;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCombinedCFAEdge;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGVariables;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
@@ -72,7 +72,7 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.relyguarantee")
-public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
+public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
 
   @Option(description="Print debugging info?")
   private boolean debug=true;
@@ -111,7 +111,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
 
 
   // CPAAlgorithm for each thread
-  private RelyGuaranteeThreadCPAAlgorithm[] threadCPA;
+  private RGThreadCPAAlgorithm[] threadCPA;
   // data structure for deciding whether a variable is global
 
   // managers
@@ -121,12 +121,12 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
   private RegionManager       rManager    =   BDDRegionManager.getInstance();
 
   // stores information about environmental transitions
-  private RelyGuaranteeEnvironment environment;
+  private RGEnvironmentManager environment;
   // data on variables
-  public RelyGuaranteeVariables variables;
+  public RGVariables variables;
 
 
-  public RelyGuaranteeAlgorithm(RelyGuaranteeCFA[] cfas, CFAFunctionDefinitionNode[] pMainFunctions, ConfigurableProgramAnalysis[] pCpas, RelyGuaranteeVariables vars, Configuration config, LogManager logger) {
+  public RGAlgorithm(RelyGuaranteeCFA[] cfas, CFAFunctionDefinitionNode[] pMainFunctions, ConfigurableProgramAnalysis[] pCpas, RGVariables vars, Configuration config, LogManager logger) {
     this.cfas = cfas;
     this.threadNo = cfas.length;
     this.mainFunctions = pMainFunctions;
@@ -134,17 +134,17 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     this.cpas = pCpas;
     this.logger = logger;
 
-    threadCPA = new RelyGuaranteeThreadCPAAlgorithm[threadNo];
+    threadCPA = new RGThreadCPAAlgorithm[threadNo];
 
     try {
-      environment = new RelyGuaranteeEnvironment(threadNo, vars, config, logger);
-      config.inject(this, RelyGuaranteeAlgorithm.class);
+      environment = new RGEnvironmentManager(threadNo, vars, config, logger);
+      config.inject(this, RGAlgorithm.class);
     } catch (InvalidConfigurationException e) {
       e.printStackTrace();
     }
 
     for (int i=0; i< this.threadNo; i++){
-      threadCPA[i] = new RelyGuaranteeThreadCPAAlgorithm(cpas[i],cfas[i], environment,config, logger, i);
+      threadCPA[i] = new RGThreadCPAAlgorithm(cpas[i],cfas[i], environment,config, logger, i);
     }
 
     // create DOT file for the original CFA
@@ -353,7 +353,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     }
 
     // sum up all valid edges from other threads
-    List<RelyGuaranteeCFAEdgeTemplate> valid = new Vector<RelyGuaranteeCFAEdgeTemplate>();
+    List<RGCFAEdgeTemplate> valid = new Vector<RGCFAEdgeTemplate>();
     for (int j=0; j<threadNo; j++){
       if (j!=i){
         valid.addAll(environment.getValidEnvEdgesFromThread(j));
@@ -389,7 +389,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     }
 
     // list of env. edges that haven't been applied before
-    List<RelyGuaranteeCFAEdgeTemplate> unapplied = environment.getUnappliedEnvEdgesForThread(i);
+    List<RGCFAEdgeTemplate> unapplied = environment.getUnappliedEnvEdgesForThread(i);
 
     if(combineEnvEdges){
       // valid env. edges are merged into one edge
@@ -417,7 +417,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
    * @param unapplied
    * @return
    */
-  private ListMultimap<CFANode, CFAEdge> addCombinedEnvTransitionsToCFA(int i, Set<CFANode> toApply, List<RelyGuaranteeCFAEdgeTemplate> valid, List<RelyGuaranteeCFAEdgeTemplate> unapplied) {
+  private ListMultimap<CFANode, CFAEdge> addCombinedEnvTransitionsToCFA(int i, Set<CFANode> toApply, List<RGCFAEdgeTemplate> valid, List<RGCFAEdgeTemplate> unapplied) {
 
     RelyGuaranteeCFA cfa = cfas[i];
     ListMultimap<CFANode, CFAEdge> envEdgesMap = ArrayListMultimap.create();
@@ -436,7 +436,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
 
       if (toApply.contains(node)){
         // combine all valid edges into one
-        RelyGuaranteeCombinedCFAEdge combined = new RelyGuaranteeCombinedCFAEdge(valid, node, node);
+        RGCombinedCFAEdge combined = new RGCombinedCFAEdge(valid, node, node);
         addEnvTransitionToNode(combined);
 
         if (debug){
@@ -463,13 +463,13 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
    * @param unapplied
    * @return
    */
-  private ListMultimap<CFANode, CFAEdge> addSeparateEnvTransitionsToCFA(int i, Set<CFANode> toApply, List<RelyGuaranteeCFAEdgeTemplate> valid, List<RelyGuaranteeCFAEdgeTemplate> unapplied) {
+  private ListMultimap<CFANode, CFAEdge> addSeparateEnvTransitionsToCFA(int i, Set<CFANode> toApply, List<RGCFAEdgeTemplate> valid, List<RGCFAEdgeTemplate> unapplied) {
 
     RelyGuaranteeCFA cfa = cfas[i];
     ListMultimap<CFANode, CFAEdge> envEdgesMap = ArrayListMultimap.create();
 
     // change unapplied to set, so its easier to decided membership
-    Set<RelyGuaranteeCFAEdgeTemplate> unappliedSet = new HashSet<RelyGuaranteeCFAEdgeTemplate>(unapplied);
+    Set<RGCFAEdgeTemplate> unappliedSet = new HashSet<RGCFAEdgeTemplate>(unapplied);
 
     if (debug){
       System.out.println();
@@ -483,8 +483,8 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
       if (toApply.contains(node)){
         // apply edges
 
-        for (RelyGuaranteeCFAEdgeTemplate edge : valid){
-          RelyGuaranteeCFAEdge rgEdge = edge.instantiate(node, node);
+        for (RGCFAEdgeTemplate edge : valid){
+          RGCFAEdge2 rgEdge = edge.instantiate(node, node);
           addEnvTransitionToNode(rgEdge);
 
           if (debug){
@@ -546,7 +546,7 @@ public class RelyGuaranteeAlgorithm implements ConcurrentAlgorithm, StatisticsPr
     return null;
   }
 
-  public RelyGuaranteeEnvironment getRelyGuaranteeEnvironment() {
+  public RGEnvironmentManager getRelyGuaranteeEnvironment() {
     return environment;
   }
 

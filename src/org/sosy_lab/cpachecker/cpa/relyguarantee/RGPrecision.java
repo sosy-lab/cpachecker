@@ -34,20 +34,20 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
 
-  public class RelyGuaranteePrecision implements Precision {
+  public class RGPrecision implements Precision {
 
     //private final int id = idCounter++;
     //private static int idCounter = 0;
     private final ImmutableSetMultimap<CFANode, AbstractionPredicate> predicateMap;
     private ImmutableSet<AbstractionPredicate> globalPredicates;
 
-    public RelyGuaranteePrecision(ImmutableSetMultimap<CFANode, AbstractionPredicate> predicateMap, Collection<AbstractionPredicate> globalPredicates) {
+    public RGPrecision(ImmutableSetMultimap<CFANode, AbstractionPredicate> predicateMap, Collection<AbstractionPredicate> globalPredicates) {
       assert predicateMap != null;
       this.predicateMap = predicateMap;
       this.globalPredicates = ImmutableSet.copyOf(globalPredicates);
     }
 
-    public RelyGuaranteePrecision(Collection<AbstractionPredicate> globalPredicates) {
+    public RGPrecision(Collection<AbstractionPredicate> globalPredicates) {
       predicateMap = ImmutableSetMultimap.of();
       this.globalPredicates = (globalPredicates == null ? ImmutableSet.<AbstractionPredicate>of() : ImmutableSet.copyOf(globalPredicates));
     }
@@ -56,10 +56,10 @@ import com.google.common.collect.SetMultimap;
     public boolean equals(Object pObj) {
       if (pObj == this) {
         return true;
-      } else if (!(pObj instanceof RelyGuaranteePrecision)) {
+      } else if (!(pObj instanceof RGPrecision)) {
         return false;
       } else {
-        return predicateMap.equals(((RelyGuaranteePrecision)pObj).predicateMap);
+        return predicateMap.equals(((RGPrecision)pObj).predicateMap);
       }
     }
 

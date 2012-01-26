@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.relyguarantee;
+package org.sosy_lab.cpachecker.cpa.relyguarantee.refinement;
 
 import static com.google.common.collect.Iterables.skip;
 import static com.google.common.collect.Lists.transform;
@@ -30,7 +30,6 @@ import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -40,7 +39,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.Vector;
 import java.util.regex.Pattern;
 
@@ -58,8 +56,13 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
 import org.sosy_lab.cpachecker.cpa.art.Path;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement.AbstractionElement;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeRefiner.RelyGuaranteeRefinerStatistics;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement.AbstractionElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGApplicationInfo;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCFAEdge2;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCFAEdgeTemplate;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.RGRefiner.RelyGuaranteeRefinerStatistics;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -81,7 +84,7 @@ import com.google.common.collect.Lists;
 
 
 @Options(prefix="cpa.relyguarantee")
-public class RelyGuaranteeRefinementManager<T1, T2>  {
+public class RGRefinementManager<T1, T2>  {
 
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
@@ -131,7 +134,7 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
 
 
 
-  private static RelyGuaranteeRefinementManager<?,?> rgRefManager;
+  private static RGRefinementManager<?,?> rgRefManager;
 
   /**
    * Singleton instance of RelyGuaranteeRefinementManager.
@@ -147,19 +150,19 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
    * @return
    * @throws InvalidConfigurationException
    */
-  public static RelyGuaranteeRefinementManager<?, ?> getInstance(RegionManager pRmgr, FormulaManager pFmgr, SSAMapManager pSsaManager, PathFormulaManager pPmgr, TheoremProver pThmProver,
+  public static RGRefinementManager<?, ?> getInstance(RegionManager pRmgr, FormulaManager pFmgr, SSAMapManager pSsaManager, PathFormulaManager pPmgr, TheoremProver pThmProver,
       InterpolatingTheoremProver<?> pItpProver, InterpolatingTheoremProver<?> pAltItpProver, Configuration pConfig,
       LogManager pLogger) throws InvalidConfigurationException {
     if (rgRefManager == null){
-      rgRefManager = new RelyGuaranteeRefinementManager(pRmgr, pFmgr, pSsaManager, pPmgr, pThmProver, pItpProver, pAltItpProver, pConfig, pLogger);
+      rgRefManager = new RGRefinementManager(pRmgr, pFmgr, pSsaManager, pPmgr, pThmProver, pItpProver, pAltItpProver, pConfig, pLogger);
     }
     return rgRefManager;
   }
 
-  public RelyGuaranteeRefinementManager(RegionManager pRmgr, FormulaManager pFmgr, SSAMapManager pSsaManager, PathFormulaManager pPmgr, TheoremProver pThmProver,
+  public RGRefinementManager(RegionManager pRmgr, FormulaManager pFmgr, SSAMapManager pSsaManager, PathFormulaManager pPmgr, TheoremProver pThmProver,
       InterpolatingTheoremProver<T1> pItpProver, InterpolatingTheoremProver<T2> pAltItpProver, Configuration pConfig,
       LogManager pLogger) throws InvalidConfigurationException {
-    pConfig.inject(this, RelyGuaranteeRefinementManager.class);
+    pConfig.inject(this, RGRefinementManager.class);
     this.logger = pLogger;
     this.amgr = AbstractionManagerImpl.getInstance(pRmgr, pFmgr, pPmgr, pConfig, pLogger);
     this.fmgr = pFmgr;
@@ -210,11 +213,11 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
     return ARTUtils.getOnePathTo(pLastElement);
   }
 
-  protected List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> transformFullPath(Path pPath) throws CPATransferException {
-    List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> result = Lists.newArrayList();
+  protected List<Triple<ARTElement, CFANode, RGAbstractElement>> transformFullPath(Path pPath) throws CPATransferException {
+    List<Triple<ARTElement, CFANode, RGAbstractElement>> result = Lists.newArrayList();
 
     for (ARTElement ae : transform(pPath, Pair.<ARTElement>getProjectionToFirst())) {
-      RelyGuaranteeAbstractElement pe = extractElementByType(ae, RelyGuaranteeAbstractElement.class);
+      RGAbstractElement pe = extractElementByType(ae, RGAbstractElement.class);
       if (pe instanceof AbstractionElement) {
         CFANode loc = AbstractElements.extractLocation(ae);
         result.add(Triple.of(ae, loc, pe));
@@ -225,11 +228,11 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
     return result;
   }
 
-  protected List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> transformPath(Path pPath) throws CPATransferException {
-    List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> result = Lists.newArrayList();
+  protected List<Triple<ARTElement, CFANode, RGAbstractElement>> transformPath(Path pPath) throws CPATransferException {
+    List<Triple<ARTElement, CFANode, RGAbstractElement>> result = Lists.newArrayList();
 
     for (ARTElement ae : skip(transform(pPath, Pair.<ARTElement>getProjectionToFirst()), 1)) {
-      RelyGuaranteeAbstractElement pe = extractElementByType(ae, RelyGuaranteeAbstractElement.class);
+      RGAbstractElement pe = extractElementByType(ae, RGAbstractElement.class);
       if (pe instanceof AbstractionElement) {
         CFANode loc = AbstractElements.extractLocation(ae);
         result.add(Triple.of(ae, loc, pe));
@@ -281,10 +284,10 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
 
     // get the abstraction elements on the path from the root to the error element
     Path cfaPath = computePath(target);
-    List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> path = transformFullPath(cfaPath);
+    List<Triple<ARTElement, CFANode, RGAbstractElement>> path = transformFullPath(cfaPath);
 
     // exit if the target has already been added to the target
-    Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement> lastTriple = path.get(path.size()-1);
+    Triple<ARTElement, CFANode, RGAbstractElement> lastTriple = path.get(path.size()-1);
     ARTElement lastARTElem = lastTriple.getFirst();
     if (dag.getNodeMap().containsKey(Pair.of(tid, lastARTElem.getElementId()))){
       if (debug){
@@ -300,7 +303,7 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
     // the previous DAG node
     InterpolationDagNode lastNode = null;
 
-    for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement> triple : path){
+    for (Triple<ARTElement, CFANode, RGAbstractElement> triple : path){
       ARTElement artElement = triple.getFirst();
       AbstractionElement rgElement = (AbstractionElement) triple.getThird();
       assert rgElement.tid == tid;
@@ -309,7 +312,7 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
       boolean newNode = false;
       InterpolationDagNode node = dag.getNode(tid, artElement.getElementId());
       if (node == null){
-        RelyGuaranteeApplicationInfo appInfo = rgElement.getBlockAppInfo();
+        RGApplicationInfo appInfo = rgElement.getBlockAppInfo();
         PathFormula pf;
         if (appInfo != null){
           pf = appInfo.getRefinementPf();
@@ -345,17 +348,17 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
       }
 
       // retrieve info about env. edges applied
-      Map<Integer, RelyGuaranteeCFAEdgeTemplate> envMap = null;
+      Map<Integer, RGCFAEdgeTemplate> envMap = null;
       if (rgElement.getBlockAppInfo() != null){
         envMap = rgElement.getBlockAppInfo().getEnvMap();
       } else {
-        envMap = new HashMap<Integer, RelyGuaranteeCFAEdgeTemplate>(0);
+        envMap = new HashMap<Integer, RGCFAEdgeTemplate>(0);
       }
 
       if (debug && !envMap.isEmpty() ){
         System.out.print("\t env. tr. from id:");
         for(Integer id: envMap.keySet()){
-          RelyGuaranteeCFAEdgeTemplate rgEdge = envMap.get(id);
+          RGCFAEdgeTemplate rgEdge = envMap.get(id);
           //ARTElement lastARTAbstraction = rgEdge.getLastARTAbstractionElement();
           System.out.print(rgEdge.getSourceARTElement().getElementId()+" ");
         }
@@ -364,7 +367,7 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
 
       // rename env. transitions to their source thread numbers
       for(Integer id : envMap.keySet()){
-        RelyGuaranteeCFAEdgeTemplate rgEdge = envMap.get(id);
+        RGCFAEdgeTemplate rgEdge = envMap.get(id);
         ARTElement targetARTElement = rgEdge.getTargetARTElement();
         Integer sourceTid           = rgEdge.getSourceTid();
         assert sourceTid != tid;
@@ -374,7 +377,7 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
 
         // get nodes for the last abstraction for the source element.
         Path envCfaPath = computePath(targetARTElement);
-        List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> envPath = transformFullPath(envCfaPath);
+        List<Triple<ARTElement, CFANode, RGAbstractElement>> envPath = transformFullPath(envCfaPath);
         ARTElement sourceAbstrElement = envPath.get(envPath.size()-1).getFirst();
 
         InterpolationDagNode envNode = dag.getNode(sourceTid, sourceAbstrElement.getElementId());
@@ -418,11 +421,11 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
 
 
   // TODO For testing
-  private void printEnvEdgesApplied(ARTElement artElement, Collection<RelyGuaranteeCFAEdge>  set) {
+  private void printEnvEdgesApplied(ARTElement artElement, Collection<RGCFAEdge2>  set) {
 
     if (!set.isEmpty()){
       System.out.println("Env edges applied at id:"+artElement.getElementId());
-      for (RelyGuaranteeCFAEdge edge : set){
+      for (RGCFAEdge2 edge : set){
         System.out.println("- edge "+edge );
       }
     }
@@ -626,7 +629,7 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
 
     // find the node corresponding to the target
     Integer elemId = target.getElementId();
-    RelyGuaranteeAbstractElement rgTarget = AbstractElements.extractElementByType(target, RelyGuaranteeAbstractElement.class);
+    RGAbstractElement rgTarget = AbstractElements.extractElementByType(target, RGAbstractElement.class);
     Integer tid = rgTarget.tid;
 
     // how to rename path formula parts to their unique ids
@@ -635,7 +638,7 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
     // the local branch from the root to the target
     List<InterpolationTreeNode> lBranch = null;
 
-    if (rgTarget instanceof RelyGuaranteeAbstractElement.AbstractionElement){
+    if (rgTarget instanceof RGAbstractElement.AbstractionElement){
 
       // the target is an abstraction point
       InterpolationDagNode targetNode = dag.getNode(tid, elemId);
@@ -654,7 +657,7 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
     } else {
       // it's NOT an abstraction element, so only its last abstraction element is in the DAG
       assert abstractEnvTransitions == 1 || abstractEnvTransitions == 2;
-      ARTElement aARTElement = RelyGuaranteeEnvironment.findLastAbstractionARTElement(target);
+      ARTElement aARTElement = RGEnvironmentManager.findLastAbstractionARTElement(target);
       assert aARTElement != null;
       InterpolationDagNode aNode = dag.getNode(tid, aARTElement.getElementId());
       assert aNode != null;
@@ -693,11 +696,11 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
       tree.addNode(treeNode);
 
       // construct and attach subtrees for env. applications
-      RelyGuaranteeApplicationInfo appInfo = treeNode.getAppInfo();
+      RGApplicationInfo appInfo = treeNode.getAppInfo();
 
       if (appInfo != null){
         for (Integer id : appInfo.getEnvMap().keySet()){
-          RelyGuaranteeCFAEdgeTemplate rgEdge = appInfo.getEnvMap().get(id);
+          RGCFAEdgeTemplate rgEdge = appInfo.getEnvMap().get(id);
 
           // create a sub-tree for the the element that generated the transition
           ARTElement sARTElement = null;
@@ -975,7 +978,7 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
 
     int envApp = 0;
     for (InterpolationTreeNode node : trunk){
-      RelyGuaranteeApplicationInfo appInfo = node.getAppInfo();
+      RGApplicationInfo appInfo = node.getAppInfo();
       if (appInfo != null){
         envApp += appInfo.envMap.keySet().size();
       }
@@ -1021,7 +1024,7 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
           // find abstraction for the missing child
           Formula abs = null;
           if (child.isARTAbstraction){
-             RelyGuaranteeAbstractElement rgElem = AbstractElements.extractElementByType(node.artElement, RelyGuaranteeAbstractElement.class);
+             RGAbstractElement rgElem = AbstractElements.extractElementByType(node.artElement, RGAbstractElement.class);
             assert rgElem != null;
             abs = rgElem.getAbstractionFormula().asFormula();
             // rename the abstract to its branch id
@@ -1217,138 +1220,7 @@ public class RelyGuaranteeRefinementManager<T1, T2>  {
     return Pair.of(pcList, i-1);
   }
 
-  /**
-   *
-   * @param <T>
-   * @param i
-   * @param interpolationBlocks
-   * @param previousPrimedNo
-   * @param lastItp
-   * @param info
-   * @param itpProver
-   * @param interpolationIds
-   * @return
-   */
-  private <T> Integer  skipUselessBranches(int i, List<InterpolationBlock> interpolationBlocks, int previousPrimedNo, Formula lastItp, CounterexampleTraceInfo info, InterpolatingTheoremProver<T> itpProver, List<T> interpolationIds, SortedMap<Integer, Formula> itpContext, int offset ) {
 
-    Integer returnBlock = null;
-    for (int j=i+1; j<interpolationBlocks.size()-1; j++){
-      InterpolationBlock fb = interpolationBlocks.get(j);
-      if (fb.getTraceNo() == previousPrimedNo){
-        returnBlock = j;
-        break;
-      }
-    }
-    System.out.println("The return for blk "+i+" is blk "+returnBlock);
-    if (returnBlock != null){
-      Formula itp = itpProver.getInterpolant(interpolationIds.subList(itpContext.size(), returnBlock-offset+1));
-      //System.out.println("\tInterpolant for ["+itpContext.size()+","+(returnBlock-offset)+"] is "+itp);
-      // check if lastItp => itp, then the branch does not give any usefull predicates
-      Formula check = fmgr.makeNot(itp);
-      check = fmgr.makeAnd(lastItp, check);
-
-      thmProver.init();
-      boolean valid = thmProver.isUnsat(check);
-      thmProver.reset();
-
-      if (valid){
-        // lastItp => itp, so  the branches does not give any usefull predicates
-        // skip to block (returnBlock+1) and put empty predicates in between
-        System.out.println("Skip to blk "+(returnBlock+1)+" since " + lastItp +" => "+itp);
-        for (int j=i; j<returnBlock; j++){
-          ARTElement jARTElement = interpolationBlocks.get(j).getArtElement();
-          CFANode jLoc = AbstractElements.extractLocation(jARTElement);
-          Set<AbstractionPredicate> predicates = new HashSet<AbstractionPredicate>();
-
-          if (debug){
-            System.out.println("\t- blk "+j+" ["+jLoc+"]: skip,\t"+predicates);
-          }
-
-          info.addPredicatesForRefinement(jARTElement, predicates);
-        }
-      }
-      else {
-        returnBlock = null;
-      }
-    }
-
-    return returnBlock;
-  }
-
-  /**
-   *
-   * @param <T>
-   * @param i
-   * @param interpolationBlocks
-   * @param previousPrimedNo
-   * @param lastItp
-   * @param info
-   * @param itpProver
-   * @param interpolationIds
-   * @return
-   */
-  private <T> Integer  skipUselessBranches2(int i, List<InterpolationBlock> interpolationBlocks, int previousPrimedNo, Formula lastItp, CounterexampleTraceInfo info, InterpolatingTheoremProver<T> itpProver, List<T> interpolationIds, SortedMap<Integer, Formula> itpContext, int offset ) {
-
-    assert i>=1;
-
-    // the call could have been nested - check which context should be inspected
-    Deque<Integer> previousContext = interpolationBlocks.get(i-1).getContext();
-    Deque<Integer> currentContext = interpolationBlocks.get(i).getContext();
-    Deque<Integer> contextDiff = new ArrayDeque<Integer>(currentContext);
-    contextDiff.removeAll(previousContext);
-    contextDiff.remove(previousPrimedNo);
-    int primedNo = interpolationBlocks.get(i).getTraceNo();
-    contextDiff.addLast(primedNo);
-
-    assert !contextDiff.isEmpty();
-
-    for (int context : contextDiff){
-      Integer returnBlock = null;
-      for (int j=i; j<interpolationBlocks.size()-1; j++){
-        InterpolationBlock fb = interpolationBlocks.get(j);
-        if (fb.getTraceNo() == context) {
-          returnBlock = j;
-        }
-      }
-      assert returnBlock != null;
-
-      // get the interpolants for the returnBlock
-      Formula itp = itpProver.getInterpolant(interpolationIds.subList(itpContext.size(), returnBlock-offset+1));
-      // check if lastItp => itp,
-
-      Formula check = fmgr.makeNot(itp);
-      check = fmgr.makeAnd(lastItp, check);
-      //System.out.println("RB: "+returnBlock+", itp: "+itp);
-
-      thmProver.init();
-      boolean valid = thmProver.isUnsat(check);
-      thmProver.reset();
-
-      if (valid){
-        // lastItp => itp, so  the branches does not give any usefull predicates
-        // skip to block (returnBlock+1) and put empty predicates in between
-        System.out.println("Skip to blk "+(returnBlock+1)+" since " + lastItp +" => "+itp);
-        for (int j=i; j<=returnBlock; j++){
-          ARTElement jARTElement = interpolationBlocks.get(j).getArtElement();
-          CFANode jLoc = AbstractElements.extractLocation(jARTElement);
-          Formula skipItp = itpProver.getInterpolant(interpolationIds.subList(itpContext.size(), j-offset+1));
-          Set<AbstractionPredicate> predicates = getPredicates(skipItp);
-
-          if (debug){
-            System.out.println("\t- blk "+j+" ["+jLoc+"]: skip "+skipItp+",\t"+predicates);
-          }
-
-          info.addPredicatesForRefinement(jARTElement, predicates);
-        }
-        return returnBlock+1;
-      }
-
-
-      //System.out.println("The return for c:" + context +" is blk "+returnBlock);
-    }
-
-    return null;
-  }
 
   /**
    * Divides the interpolant into atoms and removes indexes.

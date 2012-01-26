@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement.ComputeAbstractionElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement.ComputeAbstractionElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -70,7 +70,7 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
  * computes an abstraction.
  */
 @Options(prefix="cpa.relyguarantee")
-public class RelyGuaranteeTransferRelation  implements TransferRelation {
+public class RGTransferRelation  implements TransferRelation {
 
   @Option(name="blk.threshold",
       description="maximum blocksize before abstraction is forced\n"
@@ -135,14 +135,14 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
   private final SSAMapManager ssaManager;
 
   //private final MathsatFormulaManager manager;
-  private final RelyGuaranteeCPA cpa;
+  private final RGCPA cpa;
 
 
   // unique number for env. applications in this thread
   private Integer uniqueId;
 
-  public RelyGuaranteeTransferRelation(RelyGuaranteeCPA pCpa) throws InvalidConfigurationException {
-    pCpa.getConfiguration().inject(this, RelyGuaranteeTransferRelation.class);
+  public RGTransferRelation(RGCPA pCpa) throws InvalidConfigurationException {
+    pCpa.getConfiguration().inject(this, RGTransferRelation.class);
 
     logger = pCpa.logger;
     cpa = pCpa;
@@ -162,7 +162,7 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
 
     try {
 
-      RelyGuaranteeAbstractElement element = (RelyGuaranteeAbstractElement) pElement;
+      RGAbstractElement element = (RGAbstractElement) pElement;
       CFANode loc = edge.getSuccessor();
 
       // Check whether abstraction is false.
@@ -173,7 +173,7 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
 
 
       // calculate strongest post
-      Pair<PathFormula, RelyGuaranteeApplicationInfo> pair = convertEdgeToPathFormula(element, edge);
+      Pair<PathFormula, RGApplicationInfo> pair = convertEdgeToPathFormula(element, edge);
       PathFormula newPF = pair.getFirst();
       logger.log(Level.ALL, "New path formula is", newPF);
 
@@ -186,7 +186,7 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
 
       if (doAbstraction) {
         return Collections.singleton(
-            new RelyGuaranteeAbstractElement.ComputeAbstractionElement(pair.getFirst(), element.getAbstractionFormula(), loc, edge, cpa.getTid(), pair.getSecond()));
+            new RGAbstractElement.ComputeAbstractionElement(pair.getFirst(), element.getAbstractionFormula(), loc, edge, cpa.getTid(), pair.getSecond()));
 
       } else {
         return handleNonAbstractionFormulaLocation(pair.getFirst(), element.getAbstractionFormula(), edge, pair.getSecond());
@@ -203,7 +203,7 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
    * successor. This currently only involves an optional sat check.
    * @param pPrimedMap
    */
-  private Set<RelyGuaranteeAbstractElement> handleNonAbstractionFormulaLocation(PathFormula pathFormula, AbstractionFormula abstractionFormula, CFAEdge edge, RelyGuaranteeApplicationInfo appInfo) {
+  private Set<RGAbstractElement> handleNonAbstractionFormulaLocation(PathFormula pathFormula, AbstractionFormula abstractionFormula, CFAEdge edge, RGApplicationInfo appInfo) {
     boolean satCheck = (satCheckBlockSize > 0) && (pathFormula.getLength() >= satCheckBlockSize);
 
     logger.log(Level.FINEST, "Handling non-abstraction location",
@@ -224,7 +224,7 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
     }
 
     // create the new abstract element for non-abstraction location
-    return Collections.singleton(new RelyGuaranteeAbstractElement(pathFormula, abstractionFormula, edge, cpa.getTid(), appInfo));
+    return Collections.singleton(new RGAbstractElement(pathFormula, abstractionFormula, edge, cpa.getTid(), appInfo));
   }
 
   /**
@@ -238,20 +238,20 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
    * @return  The new pathFormula.
    * @throws UnrecognizedCFAEdgeException
    */
-  public Pair<PathFormula, RelyGuaranteeApplicationInfo> convertEdgeToPathFormula(RelyGuaranteeAbstractElement element, CFAEdge edge) throws CPATransferException {
+  public Pair<PathFormula, RGApplicationInfo> convertEdgeToPathFormula(RGAbstractElement element, CFAEdge edge) throws CPATransferException {
     PathFormula oldPathFormula = element.getPathFormula();
 
     pathFormulaTimer.start();
 
-    Pair<PathFormula, RelyGuaranteeApplicationInfo> pair = null;
+    Pair<PathFormula, RGApplicationInfo> pair = null;
     if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
       // single edge
-      RelyGuaranteeCFAEdge rgEdge = (RelyGuaranteeCFAEdge) edge;
+      RGCFAEdge2 rgEdge = (RGCFAEdge2) edge;
       pair = handleEnvFormula(oldPathFormula, rgEdge, element);
     }
     else if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge){
       // combined edges
-      RelyGuaranteeCombinedCFAEdge rgEdge = (RelyGuaranteeCombinedCFAEdge) edge;
+      RGCombinedCFAEdge rgEdge = (RGCombinedCFAEdge) edge;
       pair = handleCombinedEnvFormula(oldPathFormula, rgEdge, element);
     }
     else {
@@ -271,11 +271,11 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
    * @return
    * @throws CPATransferException
    */
-  private Pair<PathFormula, RelyGuaranteeApplicationInfo>  handleEnvFormula(PathFormula localPf, RelyGuaranteeCFAEdge rgEdge, RelyGuaranteeAbstractElement element) throws CPATransferException {
+  private Pair<PathFormula, RGApplicationInfo>  handleEnvFormula(PathFormula localPf, RGCFAEdge2 rgEdge, RGAbstractElement element) throws CPATransferException {
 
-    RelyGuaranteeApplicationInfo appInfo = element.getAppInfo();
+    RGApplicationInfo appInfo = element.getAppInfo();
     if (appInfo == null){
-      appInfo = new RelyGuaranteeApplicationInfo();
+      appInfo = new RGApplicationInfo();
     }
 
     // check if the transition has been applied before
@@ -285,7 +285,7 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
 
     // TODO test, works for SBE only!
     if (abstractEnvTransitions == 2 && localPf.getFormula().isTrue()){
-      RelyGuaranteeAbstractCFAEdgeTemplate rgAbsEdge = (RelyGuaranteeAbstractCFAEdgeTemplate) rgEdge.getTemplate();
+      RGAbstractCFAEdgeTemplate rgAbsEdge = (RGAbstractCFAEdgeTemplate) rgEdge.getTemplate();
 
       Region rElem = element.getAbstractionFormula().asRegion();
       Region rFltr = rgAbsEdge.getAbstractFilter().asRegion();
@@ -329,17 +329,17 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
    * @return
    * @throws CPATransferException
    */
-  private Pair<PathFormula, RelyGuaranteeApplicationInfo> handleCombinedEnvFormula(PathFormula localPf, RelyGuaranteeCombinedCFAEdge rgCombEdge, RelyGuaranteeAbstractElement element) throws CPATransferException {
-    RelyGuaranteeApplicationInfo appInfo = element.getAppInfo();
+  private Pair<PathFormula, RGApplicationInfo> handleCombinedEnvFormula(PathFormula localPf, RGCombinedCFAEdge rgCombEdge, RGAbstractElement element) throws CPATransferException {
+    RGApplicationInfo appInfo = element.getAppInfo();
     assert false;
     if (appInfo == null){
-      appInfo = new RelyGuaranteeApplicationInfo();
+      appInfo = new RGApplicationInfo();
     }
 
     // renamed & apply env transition
     PathFormula combinedAbstractionPf = null;
     PathFormula combinedRefinementPf = null;
-    for (RelyGuaranteeCFAEdge rgEdge: rgCombEdge.getEnvEdges()){
+    for (RGCFAEdge2 rgEdge: rgCombEdge.getEnvEdges()){
 
       // skip if the transition has been applied before
       if (appInfo.envMap.containsValue(rgEdge.getTemplate())){
@@ -388,7 +388,7 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
    * @return
    * @throws CPATransferException
    */
-  private Pair<PathFormula, PathFormula> renamedEnvApplication(PathFormula localPf, RelyGuaranteeCFAEdge rgEdge, RelyGuaranteeApplicationInfo appInfo, int tid) throws CPATransferException {
+  private Pair<PathFormula, PathFormula> renamedEnvApplication(PathFormula localPf, RGCFAEdge2 rgEdge, RGApplicationInfo appInfo, int tid) throws CPATransferException {
     assert appInfo != null;
 
     // get abstraction & refinement formulas
@@ -419,7 +419,7 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
    * @return
    * @throws CPATransferException
    */
-  public PathFormula envAbstractionPf(PathFormula localPf, RelyGuaranteeCFAEdge rgEdge, int tid) throws CPATransferException{
+  public PathFormula envAbstractionPf(PathFormula localPf, RGCFAEdge2 rgEdge, int tid) throws CPATransferException{
 
     PathFormula appPf = null;
     if (abstractEnvTransitions == 0 || abstractEnvTransitions == 1){
@@ -462,7 +462,7 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
    * @return
    * @throws CPATransferException
    */
-  public PathFormula envRefinementPf(PathFormula localPf, RelyGuaranteeCFAEdge rgEdge, int tid) throws CPATransferException{
+  public PathFormula envRefinementPf(PathFormula localPf, RGCFAEdge2 rgEdge, int tid) throws CPATransferException{
 
     PathFormula appPf = null;
     if (abstractEnvTransitions == 0 || abstractEnvTransitions == 1){
@@ -565,8 +565,8 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
     strengthenTimer.start();
     try {
 
-      RelyGuaranteeAbstractElement element = (RelyGuaranteeAbstractElement)pElement;
-      if (element instanceof RelyGuaranteeAbstractElement.AbstractionElement) {
+      RGAbstractElement element = (RGAbstractElement)pElement;
+      if (element instanceof RGAbstractElement.AbstractionElement) {
         // can't do anything with this object because the path formula of
         // abstraction elements has to stay "true"
         return Collections.singleton(element);
@@ -636,7 +636,7 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
     return replacePathFormula(pElement, pf);
   }*/
 
-  private RelyGuaranteeAbstractElement strengthen(RelyGuaranteeAbstractElement pElement,
+  private RGAbstractElement strengthen(RGAbstractElement pElement,
       AssumptionStorageElement pElement2) {
 
     Formula asmpt = pElement2.getAssumption();
@@ -656,18 +656,18 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
   /**
    * Returns a new element with a given pathFormula. All other fields stay equal.
    */
-  private RelyGuaranteeAbstractElement replacePathFormula(RelyGuaranteeAbstractElement oldElement, PathFormula newPathFormula) {
+  private RGAbstractElement replacePathFormula(RGAbstractElement oldElement, PathFormula newPathFormula) {
     if (oldElement instanceof ComputeAbstractionElement) {
       ComputeAbstractionElement cOldElement = (ComputeAbstractionElement) oldElement;
       CFANode loc = cOldElement.getLocation();
-      return new RelyGuaranteeAbstractElement.ComputeAbstractionElement(newPathFormula, cOldElement.getAbstractionFormula(), loc,  cpa.getTid(), cOldElement.getAppInfo());
+      return new RGAbstractElement.ComputeAbstractionElement(newPathFormula, cOldElement.getAbstractionFormula(), loc,  cpa.getTid(), cOldElement.getAppInfo());
     } else {
-      assert !(oldElement instanceof RelyGuaranteeAbstractElement.AbstractionElement);
-      return new RelyGuaranteeAbstractElement(newPathFormula, oldElement.getAbstractionFormula(), cpa.getTid());
+      assert !(oldElement instanceof RGAbstractElement.AbstractionElement);
+      return new RGAbstractElement(newPathFormula, oldElement.getAbstractionFormula(), cpa.getTid());
     }
   }
 
-  protected RelyGuaranteeAbstractElement strengthenSatCheck(RelyGuaranteeAbstractElement pElement) {
+  protected RGAbstractElement strengthenSatCheck(RGAbstractElement pElement) {
     logger.log(Level.FINEST, "Checking for feasibility of path because error has been found");
 
 
@@ -692,7 +692,7 @@ public class RelyGuaranteeTransferRelation  implements TransferRelation {
       PathFormula newPathFormula = pfManager.makeEmptyPathFormula(pathFormula);
 
       // TODO check if correct
-      return new RelyGuaranteeAbstractElement.AbstractionElement(newPathFormula, abs , cpa.getTid(), pElement.getPathFormula(), pElement.getAppInfo());
+      return new RGAbstractElement.AbstractionElement(newPathFormula, abs , cpa.getTid(), pElement.getPathFormula(), pElement.getAppInfo());
     }
   }
 }

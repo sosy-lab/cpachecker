@@ -30,14 +30,14 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
-public class RelyGuaranteeCFAEdge implements CFAEdge{
+public class RGCFAEdge2 implements CFAEdge{
 
-  private final RelyGuaranteeCFAEdgeTemplate template;
+  private final RGCFAEdgeTemplate template;
 
   private final CFANode predecessor;
   private final CFANode successor;
 
-  public RelyGuaranteeCFAEdge(RelyGuaranteeCFAEdgeTemplate pTemplate, CFANode predecessor, CFANode successor) {
+  public RGCFAEdge2(RGCFAEdgeTemplate pTemplate, CFANode predecessor, CFANode successor) {
     assert predecessor != null;
     assert successor != null;
     this.template = pTemplate;
@@ -58,7 +58,7 @@ public class RelyGuaranteeCFAEdge implements CFAEdge{
     return CFAEdgeType.RelyGuaranteeCFAEdge;
   }
 
-  public RelyGuaranteeEnvironmentalTransition getSourceEnvTransition(){
+  public RGEnvironmentalTransition getSourceEnvTransition(){
     return template.getSourceEnvTransition();
   }
 
@@ -118,7 +118,7 @@ public class RelyGuaranteeCFAEdge implements CFAEdge{
     return this.template.getSourceTid();
   }
 
-  public RelyGuaranteeCFAEdgeTemplate getTemplate() {
+  public RGCFAEdgeTemplate getTemplate() {
     return template;
   }
 

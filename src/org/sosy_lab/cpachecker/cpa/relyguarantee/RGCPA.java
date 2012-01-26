@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.RGRefinementManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CSIsatInterpolatingProver;
@@ -69,10 +70,10 @@ import com.google.common.collect.ImmutableSet;
 
 
 @Options(prefix="cpa.relyguarantee")
-public class RelyGuaranteeCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
+public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(RelyGuaranteeCPA.class);
+    return AutomaticCPAFactory.forType(RGCPA.class);
   }
 
   @Option(name="abstraction.solver", toUppercase=true, values={"MATHSAT", "YICES"},
@@ -92,12 +93,12 @@ public class RelyGuaranteeCPA implements ConfigurableProgramAnalysis, Statistics
 
   protected final Configuration config;
   protected final LogManager logger;
-  protected final RelyGuaranteeAbstractDomain domain;
-  protected final RelyGuaranteeTransferRelation transfer;
-  protected final RelyGuaranteeMergeOperator merge;
-  protected final RelyGuaranteePrecisionAdjustment prec;
+  protected final RGAbstractDomain domain;
+  protected final RGTransferRelation transfer;
+  protected final RGMergeOperator merge;
+  protected final RGPrecisionAdjustment prec;
   protected final StopOperator stop;
-  protected RelyGuaranteePrecision initialPrecision;
+  protected RGPrecision initialPrecision;
   protected final RegionManager rManager;
   protected final FormulaManager formulaManager;
   protected final PathFormulaManager pathFormulaManager;
@@ -106,15 +107,15 @@ public class RelyGuaranteeCPA implements ConfigurableProgramAnalysis, Statistics
   protected final AbstractionManager abstractionManager;
   protected final SSAMapManager ssaManager;
   protected AbstractElement topElement;
-  protected final  RelyGuaranteeRefinementManager<?, ?> refinerManager;
+  protected final  RGRefinementManager<?, ?> refinerManager;
 
   @Option(name="blk.useCache", description="use caching of path formulas")
   private boolean useCache = true;
 
   private static TheoremProver  tProver;
-  private RelyGuaranteeCPAStatistics stats;
+  private RGCPAStatistics stats;
   private int tid;
-  public RelyGuaranteeVariables variables;
+  public RGVariables variables;
 
 
   public static TheoremProver getTheoremProver(Configuration config, LogManager logger,String type) throws InvalidConfigurationException{
@@ -124,10 +125,10 @@ public class RelyGuaranteeCPA implements ConfigurableProgramAnalysis, Statistics
     return tProver;
   }
 
-  public RelyGuaranteeCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  public RGCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     this.config = config;
     this.logger = logger;
-    config.inject(this, RelyGuaranteeCPA.class);
+    config.inject(this, RGCPA.class);
 
     this.rManager = BDDRegionManager.getInstance();
     MathsatFormulaManager mathsatFormulaManager = MathsatFormulaManager.getInstance(config, logger);
@@ -174,13 +175,13 @@ public class RelyGuaranteeCPA implements ConfigurableProgramAnalysis, Statistics
     this.predicateManager = PredicateAbstractionManager.getInstance(rManager, formulaManager, pathFormulaManager, theoremProver, config, logger);
     this.abstractionManager = AbstractionManagerImpl.getInstance(rManager, mathsatFormulaManager, pathFormulaManager, config, logger);
     this.ssaManager = SSAMapManagerImpl.getInstance(formulaManager, config, logger);
-    this.refinerManager = RelyGuaranteeRefinementManager.getInstance(rManager, formulaManager,  ssaManager, pathFormulaManager, theoremProver, itpProver, alternativeItpProver, config, logger);
-    this.transfer = new RelyGuaranteeTransferRelation(this);
-    this.domain = new RelyGuaranteeAbstractDomain(this);
-    this.merge = new RelyGuaranteeMergeOperator(this);
-    this.prec = new RelyGuaranteePrecisionAdjustment(this);
+    this.refinerManager = RGRefinementManager.getInstance(rManager, formulaManager,  ssaManager, pathFormulaManager, theoremProver, itpProver, alternativeItpProver, config, logger);
+    this.transfer = new RGTransferRelation(this);
+    this.domain = new RGAbstractDomain(this);
+    this.merge = new RGMergeOperator(this);
+    this.prec = new RGPrecisionAdjustment(this);
     this.stop = new StopSepOperator(domain);
-    this.stats = new RelyGuaranteeCPAStatistics(this);
+    this.stats = new RGCPAStatistics(this);
 
   }
 
@@ -195,9 +196,9 @@ public class RelyGuaranteeCPA implements ConfigurableProgramAnalysis, Statistics
       predicates = ImmutableSet.of(p);
     }
     // TODO make-shift solution
-    this.topElement = new RelyGuaranteeAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null),  tid, pathFormulaManager.makeEmptyPathFormula(), null);
+    this.topElement = new RGAbstractElement.AbstractionElement(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null),  tid, pathFormulaManager.makeEmptyPathFormula(), null);
 
-    this.initialPrecision= new RelyGuaranteePrecision(predicates);
+    this.initialPrecision= new RGPrecision(predicates);
 
   }
 
@@ -205,7 +206,7 @@ public class RelyGuaranteeCPA implements ConfigurableProgramAnalysis, Statistics
     return this.tid;
   }
 
-  public void setVariables(RelyGuaranteeVariables pVariables) {
+  public void setVariables(RGVariables pVariables) {
     variables = pVariables;
   }
 
@@ -225,11 +226,11 @@ public class RelyGuaranteeCPA implements ConfigurableProgramAnalysis, Statistics
     return;
   }
 
-  RelyGuaranteeCPAStatistics getStats() {
+  RGCPAStatistics getStats() {
     return null;
   }
 
-  public RelyGuaranteeRefinementManager<?, ?> getRelyGuaranteeManager() {
+  public RGRefinementManager<?, ?> getRelyGuaranteeManager() {
     return this.refinerManager;
   }
 

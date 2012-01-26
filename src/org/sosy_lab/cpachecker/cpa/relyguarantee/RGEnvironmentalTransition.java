@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 /**
  * Stores information about environmental transition
  */
-public class RelyGuaranteeEnvironmentalTransition {
+public class RGEnvironmentalTransition {
 
   private final AbstractionFormula abstractionFormula;
   private final PathFormula pathFormula;
@@ -52,10 +52,10 @@ public class RelyGuaranteeEnvironmentalTransition {
   }*/
 
   // TODO some type-check would be good
-  public RelyGuaranteeEnvironmentalTransition(ARTElement source, ARTElement target, CFAEdge edge, int tid) {
+  public RGEnvironmentalTransition(ARTElement source, ARTElement target, CFAEdge edge, int tid) {
     CompositeElement cElement = (CompositeElement)  source.getWrappedElement();
     CFANode node = cElement.retrieveLocationElement().getLocationNode();
-    RelyGuaranteeAbstractElement predElement = AbstractElements.extractElementByType(cElement, RelyGuaranteeAbstractElement.class);
+    RGAbstractElement predElement = AbstractElements.extractElementByType(cElement, RGAbstractElement.class);
 
     this.abstractionFormula = predElement.getAbstractionFormula();
    // this.abstractionPathFormula = predElement.getAbstractionFormula();
@@ -105,7 +105,7 @@ public class RelyGuaranteeEnvironmentalTransition {
   }
 
   // returns true if 'other' is syntactially equivalent to this env transtion
-  public boolean equals(RelyGuaranteeEnvironmentalTransition other){
+  public boolean equals(RGEnvironmentalTransition other){
     if (! this.getEdge().equals(other.getEdge())) {
       return false;
     }

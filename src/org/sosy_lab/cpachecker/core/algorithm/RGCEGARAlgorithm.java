@@ -37,13 +37,13 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvironment;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeRefiner;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.RGRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 
 @Options(prefix="cpa.relyguarantee.refinement")
-public class RelyGuaranteeCEGARAlgorithm implements ConcurrentAlgorithm,  StatisticsProvider {
+public class RGCEGARAlgorithm implements ConcurrentAlgorithm,  StatisticsProvider {
 
   @Option(description="If true, the analysis continues in the previous thread. If false, the first thread is analysed first.")
   private boolean continueThread = false;
@@ -73,23 +73,23 @@ public class RelyGuaranteeCEGARAlgorithm implements ConcurrentAlgorithm,  Statis
 
   private final RelyGuaranteeCEGARStatistics stats;
 
-  private RelyGuaranteeAlgorithm algorithm;
-  private RelyGuaranteeRefiner refiner;
+  private RGAlgorithm algorithm;
+  private RGRefiner refiner;
   private Configuration config;
   private LogManager logger;
 
   private static final int GC_PERIOD = 100;
   private int gcCounter = 0;
 
-  public RelyGuaranteeCEGARAlgorithm(RelyGuaranteeAlgorithm pAlgorithm,  Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException, CPAException {
+  public RGCEGARAlgorithm(RGAlgorithm pAlgorithm,  Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException, CPAException {
     this.algorithm = pAlgorithm;
     this.config = pConfig;
     this.logger = pLogger;
     this.stats  = new RelyGuaranteeCEGARStatistics();
 
-    pConfig.inject(this, RelyGuaranteeCEGARAlgorithm.class);
+    pConfig.inject(this, RGCEGARAlgorithm.class);
     // TODO for now only rg refiner is available
-    refiner = RelyGuaranteeRefiner.getInstance(algorithm.getCPAs(), this.algorithm.getRelyGuaranteeEnvironment(),pConfig);
+    refiner = RGRefiner.getInstance(algorithm.getCPAs(), this.algorithm.getRelyGuaranteeEnvironment(),pConfig);
   }
 
 
@@ -153,7 +153,7 @@ public class RelyGuaranteeCEGARAlgorithm implements ConcurrentAlgorithm,  Statis
   }
 
   @Override
-  public RelyGuaranteeEnvironment getRelyGuaranteeEnvironment() {
+  public RGEnvironmentManager getRelyGuaranteeEnvironment() {
     return algorithm.getRelyGuaranteeEnvironment();
   }
 

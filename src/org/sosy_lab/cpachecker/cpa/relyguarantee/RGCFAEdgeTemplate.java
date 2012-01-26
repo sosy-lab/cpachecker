@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormula;
  * general information, i.e. which edges are more general.
  * It can be instantiated into RelyGuaranteeCFAEdges attached to different CFA nodes.
  */
-public class RelyGuaranteeCFAEdgeTemplate{
+public class RGCFAEdgeTemplate{
 
   /** Type indicators for edges. */
   public static int RelyGuaranteeCFAEdgeTemplate = 0;
@@ -51,24 +51,24 @@ public class RelyGuaranteeCFAEdgeTemplate{
   private final PathFormula filter;
 
   /** Environmental transition form which this edge was generated from */
-  private final RelyGuaranteeEnvironmentalTransition sourceEnvTransition;
+  private final RGEnvironmentalTransition sourceEnvTransition;
 
   /** Unkilled env. edge that is more general than this one. */
-  private RelyGuaranteeCFAEdgeTemplate coveredBy;
+  private RGCFAEdgeTemplate coveredBy;
 
   /** Unkilled env. edges that are less general that this one. */
-  private final Set<RelyGuaranteeCFAEdgeTemplate> covers;
+  private final Set<RGCFAEdgeTemplate> covers;
 
   /** Last abstracton point before the element that generated the env. transition */
   private final ARTElement lastAbstraction;
 
 
-  public RelyGuaranteeCFAEdgeTemplate(PathFormula filter, ARTElement lastARTAbstractionElement, RelyGuaranteeEnvironmentalTransition sourceEnvTransition){
+  public RGCFAEdgeTemplate(PathFormula filter, ARTElement lastARTAbstractionElement, RGEnvironmentalTransition sourceEnvTransition){
     this.filter = filter;
     this.lastAbstraction = lastARTAbstractionElement;
     this.sourceEnvTransition = sourceEnvTransition;
     this.coveredBy = null;
-    this.covers = new HashSet<RelyGuaranteeCFAEdgeTemplate>();
+    this.covers = new HashSet<RGCFAEdgeTemplate>();
   }
 
   /**
@@ -77,8 +77,8 @@ public class RelyGuaranteeCFAEdgeTemplate{
    * @param predecessor
    * @return
    */
-  public RelyGuaranteeCFAEdge instantiate(CFANode successor, CFANode predecessor){
-    RelyGuaranteeCFAEdge edge = new RelyGuaranteeCFAEdge(this, successor, predecessor);
+  public RGCFAEdge2 instantiate(CFANode successor, CFANode predecessor){
+    RGCFAEdge2 edge = new RGCFAEdge2(this, successor, predecessor);
     return edge;
   }
 
@@ -136,14 +136,14 @@ public class RelyGuaranteeCFAEdgeTemplate{
     return this.sourceEnvTransition.getSourceThread();
   }
 
-  public RelyGuaranteeEnvironmentalTransition getSourceEnvTransition() {
+  public RGEnvironmentalTransition getSourceEnvTransition() {
     return sourceEnvTransition;
   }
 
-  public RelyGuaranteeCFAEdgeTemplate getCoveredBy() {
+  public RGCFAEdgeTemplate getCoveredBy() {
     return coveredBy;
   }
-  public Set<RelyGuaranteeCFAEdgeTemplate> getCovers() {
+  public Set<RGCFAEdgeTemplate> getCovers() {
     return covers;
   }
 
@@ -156,7 +156,7 @@ public class RelyGuaranteeCFAEdgeTemplate{
    * Remember that environmental edge 'other' is more general than this one.
    * @param other
    */
-  public void coveredBy(RelyGuaranteeCFAEdgeTemplate other) {
+  public void coveredBy(RGCFAEdgeTemplate other) {
 
     assert other != null;
     assert other != this;
@@ -179,7 +179,7 @@ public class RelyGuaranteeCFAEdgeTemplate{
    */
   public void killValidEdge(){
     assert coveredBy == null;
-    for ( RelyGuaranteeCFAEdgeTemplate child : covers){
+    for ( RGCFAEdgeTemplate child : covers){
       assert child.coveredBy == this;
       child.coveredBy = null;
     }
@@ -197,7 +197,7 @@ public class RelyGuaranteeCFAEdgeTemplate{
     assert coveredBy != null;
     assert coveredBy.covers.contains(this);
 
-    for ( RelyGuaranteeCFAEdgeTemplate child : covers){
+    for ( RGCFAEdgeTemplate child : covers){
       assert child.coveredBy == this;
       assert child != coveredBy;
       child.coveredBy = coveredBy;

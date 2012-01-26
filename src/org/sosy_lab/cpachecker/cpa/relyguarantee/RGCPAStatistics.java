@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.RGRefinementManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 
@@ -52,7 +53,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.relyguarantee.predmap")
-public class  RelyGuaranteeCPAStatistics implements Statistics {
+public class  RGCPAStatistics implements Statistics {
 
     @Option(description="export final predicate map, if the error location is not reached")
     private boolean export = true;
@@ -61,12 +62,12 @@ public class  RelyGuaranteeCPAStatistics implements Statistics {
         description="export final predicate map, if the error location is not reached")
     private File file = new File("predmap.txt");
 
-    private final RelyGuaranteeCPA cpa;
+    private final RGCPA cpa;
     private PredicateRefiner refiner = null;
 
-    public RelyGuaranteeCPAStatistics(RelyGuaranteeCPA cpa) throws InvalidConfigurationException {
+    public RGCPAStatistics(RGCPA cpa) throws InvalidConfigurationException {
       this.cpa = cpa;
-      cpa.getConfiguration().inject(this, RelyGuaranteeCPAStatistics.class);
+      cpa.getConfiguration().inject(this, RGCPAStatistics.class);
     }
 
     void addRefiner(PredicateRefiner ref) {
@@ -80,7 +81,7 @@ public class  RelyGuaranteeCPAStatistics implements Statistics {
 
     @Override
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-      RelyGuaranteeRefinementManager<?, ?> amgr = cpa.refinerManager;
+      RGRefinementManager<?, ?> amgr = cpa.refinerManager;
 
       Multimap<CFANode, AbstractionPredicate> predicates = HashMultimap.create();
 
@@ -123,11 +124,11 @@ public class  RelyGuaranteeCPAStatistics implements Statistics {
       int avgPredsPerLocation = allLocs > 0 ? totPredsUsed/allLocs : 0;
       int allDistinctPreds = (new HashSet<AbstractionPredicate>(predicates.values())).size();
 
-      RelyGuaranteeRefinementManager.PredStats as = amgr.stats;
-      RelyGuaranteeRefinementManager.RefStats bs = amgr.refStats;
-      RelyGuaranteeAbstractDomain domain = cpa.domain;
-      RelyGuaranteeTransferRelation trans = cpa.transfer;
-      RelyGuaranteePrecisionAdjustment prec = cpa.prec;
+      RGRefinementManager.PredStats as = amgr.stats;
+      RGRefinementManager.RefStats bs = amgr.refStats;
+      RGAbstractDomain domain = cpa.domain;
+      RGTransferRelation trans = cpa.transfer;
+      RGPrecisionAdjustment prec = cpa.prec;
 
       CachingPathFormulaManager pfMgr = null;
       if (cpa.pathFormulaManager instanceof CachingPathFormulaManager) {

@@ -26,12 +26,12 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 
-public class RelyGuaranteeAbstractCFAEdgeTemplate extends RelyGuaranteeCFAEdgeTemplate {
+public class RGAbstractCFAEdgeTemplate extends RGCFAEdgeTemplate {
 
   /** Abstraction for the edge */
   private final AbstractionFormula absFilter;
 
-  public RelyGuaranteeAbstractCFAEdgeTemplate(AbstractionFormula filter, ARTElement lastARTAbstractionElement, RelyGuaranteeEnvironmentalTransition sourceEnvTransition){
+  public RGAbstractCFAEdgeTemplate(AbstractionFormula filter, ARTElement lastARTAbstractionElement, RGEnvironmentalTransition sourceEnvTransition){
     super(filter.asPathFormula(), lastARTAbstractionElement, sourceEnvTransition);
     this.absFilter = filter;
   }

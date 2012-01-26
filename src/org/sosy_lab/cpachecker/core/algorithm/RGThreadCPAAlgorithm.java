@@ -62,14 +62,14 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdge;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCFAEdgeTemplate;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeCombinedCFAEdge;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvironment;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeEnvironmentalTransition;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteePrecision;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeVariables;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCFAEdge2;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCFAEdgeTemplate;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCombinedCFAEdge;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGEnvironmentalTransition;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGPrecision;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGVariables;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.Precisions;
@@ -79,7 +79,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.relyguarantee")
-public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
+public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(description="Print debugging info?")
   private boolean debug = true;
@@ -148,7 +148,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
   private final ConfigurableProgramAnalysis cpa;
   private final RelyGuaranteeCFA            cfa;
   private final LogManager                  logger;
-  private RelyGuaranteeEnvironment environment;
+  private RGEnvironmentManager environment;
   private int tid;
 
   private MathsatFormulaManager fManager;
@@ -157,7 +157,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
 
 
 
-  public RelyGuaranteeThreadCPAAlgorithm(ConfigurableProgramAnalysis  cpa, RelyGuaranteeCFA cfa, RelyGuaranteeEnvironment environment, Configuration config, LogManager logger,  int tid) {
+  public RGThreadCPAAlgorithm(ConfigurableProgramAnalysis  cpa, RelyGuaranteeCFA cfa, RGEnvironmentManager environment, Configuration config, LogManager logger,  int tid) {
     this.cpa = cpa;
     this.cfa = cfa;
     this.environment = environment;
@@ -165,7 +165,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     this.tid = tid;
 
     try {
-      config.inject(this, RelyGuaranteeThreadCPAAlgorithm.class);
+      config.inject(this, RGThreadCPAAlgorithm.class);
       fManager = MathsatFormulaManager.getInstance(config, logger);
     } catch (InvalidConfigurationException e) {
       // TODO Auto-generated catch block
@@ -175,7 +175,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
  // check where to apply env. edges
     nodeForEnvApp = new HashSet<CFANode>();
 
-    RelyGuaranteeVariables variables = environment.getVariables();
+    RGVariables variables = environment.getVariables();
 
     Multimap<CFANode, String> lhsVars = cfa.getLhsVariables();
     Multimap<CFANode, String> rhsVars = cfa.getRhsVariables();
@@ -209,7 +209,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     final StopOperator stopOperator = cpa.getStopOperator();
     final PrecisionAdjustment precisionAdjustment = cpa.getPrecisionAdjustment();
 
-    List<RelyGuaranteeCFAEdgeTemplate> envEdges = this.environment.getUnappliedEnvEdgesForThread(tid);
+    List<RGCFAEdgeTemplate> envEdges = this.environment.getUnappliedEnvEdgesForThread(tid);
 
     while (reachedSet.hasWaitingElement()) {
       CPAchecker.stopIfNecessary();
@@ -238,9 +238,9 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
       CFANode loc = lElement.getLocationNode();
       if (debug){
         // pretty printing
-        RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(element, RelyGuaranteeAbstractElement.class);
+        RGAbstractElement rgElement = AbstractElements.extractElementByType(element, RGAbstractElement.class);
         Precision prec = reachedSet.getPrecision(element);
-        RelyGuaranteePrecision rgPrec = Precisions.extractPrecisionByType(prec, RelyGuaranteePrecision.class);
+        RGPrecision rgPrec = Precisions.extractPrecisionByType(prec, RGPrecision.class);
         System.out.println();
         System.out.println("@ Successor of '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+" id:"+aElement.getElementId()+" at "+loc);
       }
@@ -261,13 +261,13 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
 
 
       if (nodeForEnvApp.contains(loc)){
-        for (RelyGuaranteeCFAEdgeTemplate template : envEdges){
+        for (RGCFAEdgeTemplate template : envEdges){
           // find the edge matching the template
-          RelyGuaranteeCFAEdge rgEdge = null;
+          RGCFAEdge2 rgEdge = null;
           for (int i=0; i<loc.getNumLeavingEdges(); i++){
             CFAEdge edge = loc.getLeavingEdge(i);
             if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
-              rgEdge = (RelyGuaranteeCFAEdge) edge;
+              rgEdge = (RGCFAEdge2) edge;
               if (rgEdge.getTemplate() == template){
                 break;
               }
@@ -305,7 +305,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
       for (AbstractElement successor : successors) {
         // TODO for statistics, could slower down the analysis
         boolean byEnvEdge = false;
-        RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(successor, RelyGuaranteeAbstractElement.class);
+        RGAbstractElement rgElement = AbstractElements.extractElementByType(successor, RGAbstractElement.class);
 
         if (!rgElement.getPathFormula().getFormula().isFalse()){
           stats.countNFSuccessors++;
@@ -334,7 +334,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
 
         // generate env edge
         stats.envGenTimer.start();
-        RelyGuaranteeEnvironmentalTransition newEnvTransition = createEnvTransitions(element, successor);
+        RGEnvironmentalTransition newEnvTransition = createEnvTransitions(element, successor);
         if (newEnvTransition != null){
           environment.addEnvTransition(newEnvTransition);
         }
@@ -446,7 +446,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
 
   private void printCovered(AbstractElement pSuccessor) {
     ARTElement aSuccessor = (ARTElement) pSuccessor;
-    RelyGuaranteeAbstractElement rSuccessor = AbstractElements.extractElementByType(pSuccessor, RelyGuaranteeAbstractElement.class);
+    RGAbstractElement rSuccessor = AbstractElements.extractElementByType(pSuccessor, RGAbstractElement.class);
     System.out.println("^ Covered  '"+rSuccessor.getAbstractionFormula()+"','"+rSuccessor.getPathFormula()+"' with SSA "+rSuccessor.getPathFormula().getSsa()+" id:"+aSuccessor.getElementId());
 
   }
@@ -455,9 +455,9 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     ARTElement aSuccessor = (ARTElement) pSuccessor;
     ARTElement aReachedElement = (ARTElement) pReachedElement;
     ARTElement aMergedElement = (ARTElement) pMergedElement;
-    RelyGuaranteeAbstractElement rSuccessor = AbstractElements.extractElementByType(pSuccessor, RelyGuaranteeAbstractElement.class);
-    RelyGuaranteeAbstractElement rReached   = AbstractElements.extractElementByType(pReachedElement, RelyGuaranteeAbstractElement.class);
-    RelyGuaranteeAbstractElement rMerged  = AbstractElements.extractElementByType(pMergedElement, RelyGuaranteeAbstractElement.class);
+    RGAbstractElement rSuccessor = AbstractElements.extractElementByType(pSuccessor, RGAbstractElement.class);
+    RGAbstractElement rReached   = AbstractElements.extractElementByType(pReachedElement, RGAbstractElement.class);
+    RGAbstractElement rMerged  = AbstractElements.extractElementByType(pMergedElement, RGAbstractElement.class);
     CFANode lSuccessor = AbstractElements.extractLocation(pSuccessor);
     CFANode lReached = AbstractElements.extractLocation(pSuccessor);
     CFANode lMerged = AbstractElements.extractLocation(pSuccessor);
@@ -469,17 +469,17 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
   // pretty-printing of successors
   private void printRelyGuaranteeAbstractElement(AbstractElement pSuccessor) {
     ARTElement aElement = (ARTElement) pSuccessor;
-    RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(pSuccessor, RelyGuaranteeAbstractElement.class);
+    RGAbstractElement rgElement = AbstractElements.extractElementByType(pSuccessor, RGAbstractElement.class);
     CFANode loc = AbstractElements.extractLocation(pSuccessor);
     if (rgElement.getParentEdge() == null){
       System.out.println("- by local edge UNKNOWN");
     }
     else if (rgElement.getParentEdge().getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
-      RelyGuaranteeCFAEdge rgEdge = (RelyGuaranteeCFAEdge) rgElement.getParentEdge();
+      RGCFAEdge2 rgEdge = (RGCFAEdge2) rgElement.getParentEdge();
       System.out.println("- by env. edge '"+rgEdge);
     }
     else if (rgElement.getParentEdge().getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge){
-      RelyGuaranteeCombinedCFAEdge rgEdge = (RelyGuaranteeCombinedCFAEdge) rgElement.getParentEdge();
+      RGCombinedCFAEdge rgEdge = (RGCombinedCFAEdge) rgElement.getParentEdge();
       System.out.println("- by combined env. edge '"+rgEdge);
     }
     else {
@@ -490,8 +490,8 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
   }
 
   // generate  environmental edges for every outgoing
-  private RelyGuaranteeEnvironmentalTransition createEnvTransitions(AbstractElement element, AbstractElement successor) {
-    RelyGuaranteeEnvironmentalTransition newEnvTransition = null;
+  private RGEnvironmentalTransition createEnvTransitions(AbstractElement element, AbstractElement successor) {
+    RGEnvironmentalTransition newEnvTransition = null;
 
     ARTElement aElement  = (ARTElement) element;
     ARTElement aSucc     = (ARTElement) successor;
@@ -505,7 +505,7 @@ public class RelyGuaranteeThreadCPAAlgorithm implements Algorithm, StatisticsPro
     CFAEdge edge = elemNode.getEdgeTo(succNode);
     if (createsEnvTransition(edge)) {
       //RelyGuaranteeEnvironmentalTransition newEnvTransition = new RelyGuaranteeEnvironmentalTransition(predElement.getAbstractionFormula().asFormula(), predElement.getPathFormula(), edge,  this.tid);
-       newEnvTransition = new RelyGuaranteeEnvironmentalTransition(aElement, aSucc, edge,  this.tid);
+       newEnvTransition = new RGEnvironmentalTransition(aElement, aSucc, edge,  this.tid);
     }
 
     return newEnvTransition;

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,22 +21,14 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm;
+package org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions;
 
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
 
-public interface ConcurrentAlgorithm extends StatisticsProvider{
+public class RGSemiAbstracted implements RGEnvTransition{
 
-  int run(ReachedSet[] reachedSets, int startThread);
-
-  ConfigurableProgramAnalysis[] getCPAs();
-
-  Result getResult();
-
-  RGEnvironmentManager getRelyGuaranteeEnvironment();
+  @Override
+  public RGEnvTransitionType getRGType() {
+    return RGEnvTransitionType.SemiAbstracted;
+  }
 
 }

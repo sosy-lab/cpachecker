@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
 @Options(prefix="cpa.relyguarantee")
 
-public class RelyGuaranteeAbstractDomain implements AbstractDomain {
+public class RGAbstractDomain implements AbstractDomain {
 
   @Option(description="whether to include the symbolic path formula in the "
       + "coverage checks or do only the fast abstract checks")
@@ -48,8 +48,8 @@ public class RelyGuaranteeAbstractDomain implements AbstractDomain {
   protected final RegionManager mRegionManager;
   protected final PredicateAbstractionManager mgr;
 
-  public RelyGuaranteeAbstractDomain(RelyGuaranteeCPA pCpa)  throws InvalidConfigurationException {
-    pCpa.config.inject(this, RelyGuaranteeAbstractDomain.class);
+  public RGAbstractDomain(RGCPA pCpa)  throws InvalidConfigurationException {
+    pCpa.config.inject(this, RGAbstractDomain.class);
     mRegionManager = pCpa.rManager;
     mgr = pCpa.predicateManager;
   }
@@ -60,11 +60,11 @@ public class RelyGuaranteeAbstractDomain implements AbstractDomain {
     coverageCheckTimer.start();
     try {
 
-      RelyGuaranteeAbstractElement e1 = (RelyGuaranteeAbstractElement)element1;
-      RelyGuaranteeAbstractElement e2 = (RelyGuaranteeAbstractElement)element2;
+      RGAbstractElement e1 = (RGAbstractElement)element1;
+      RGAbstractElement e2 = (RGAbstractElement)element2;
 
 
-      if (e1 instanceof RelyGuaranteeAbstractElement.AbstractionElement && e2 instanceof RelyGuaranteeAbstractElement.AbstractionElement) {
+      if (e1 instanceof RGAbstractElement.AbstractionElement && e2 instanceof RGAbstractElement.AbstractionElement) {
         bddCoverageCheckTimer.start();
 
         // if e1's predicate abstraction entails e2's pred. abst.
@@ -73,7 +73,7 @@ public class RelyGuaranteeAbstractDomain implements AbstractDomain {
         bddCoverageCheckTimer.stop();
         return result;
 
-      } else if (e2 instanceof RelyGuaranteeAbstractElement.AbstractionElement) {
+      } else if (e2 instanceof RGAbstractElement.AbstractionElement) {
         if (symbolicCoverageCheck) {
           symbolicCoverageCheckTimer.start();
 
@@ -86,7 +86,7 @@ public class RelyGuaranteeAbstractDomain implements AbstractDomain {
           return false;
         }
 
-      } else if (e1 instanceof RelyGuaranteeAbstractElement.AbstractionElement) {
+      } else if (e1 instanceof RGAbstractElement.AbstractionElement) {
         return false;
 
       } else {

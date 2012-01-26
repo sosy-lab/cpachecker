@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.relyguarantee;
+package org.sosy_lab.cpachecker.cpa.relyguarantee.refinement;
 
 import static com.google.common.collect.Iterables.skip;
 import static com.google.common.collect.Lists.transform;
@@ -54,7 +54,11 @@ import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
 import org.sosy_lab.cpachecker.cpa.art.Path;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RelyGuaranteeAbstractElement.AbstractionElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCPA;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGPrecision;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement.AbstractionElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -71,7 +75,7 @@ import com.google.common.collect.SetMultimap;
 
 
 @Options(prefix="cpa.relyguarantee")
-public class RelyGuaranteeRefiner{
+public class RGRefiner{
 
   @Option(description="Print debugging info?")
   private boolean debug=true;
@@ -155,11 +159,11 @@ public class RelyGuaranteeRefiner{
 
 
   private RelyGuaranteeRefinerStatistics stats;
-  private RelyGuaranteeRefinementManager manager;
+  private RGRefinementManager manager;
   private final ARTCPA[] artCpas;
 
-  private RelyGuaranteeEnvironment rgEnvironment;
-  private static RelyGuaranteeRefiner rgRefiner;
+  private RGEnvironmentManager rgEnvironment;
+  private static RGRefiner rgRefiner;
 
   /**
    * Singleton instance of RelyGuaranteeRefiner.
@@ -169,15 +173,15 @@ public class RelyGuaranteeRefiner{
    * @return
    * @throws InvalidConfigurationException
    */
-  public static RelyGuaranteeRefiner getInstance(final ConfigurableProgramAnalysis[] cpas, RelyGuaranteeEnvironment rgEnvironment, Configuration pConfig) throws InvalidConfigurationException {
+  public static RGRefiner getInstance(final ConfigurableProgramAnalysis[] cpas, RGEnvironmentManager rgEnvironment, Configuration pConfig) throws InvalidConfigurationException {
     if (rgRefiner == null){
-      rgRefiner = new RelyGuaranteeRefiner(cpas, rgEnvironment, pConfig);
+      rgRefiner = new RGRefiner(cpas, rgEnvironment, pConfig);
     }
     return rgRefiner;
   }
 
-  public RelyGuaranteeRefiner(final ConfigurableProgramAnalysis[] cpas, RelyGuaranteeEnvironment rgEnvironment, Configuration pConfig) throws InvalidConfigurationException{
-    pConfig.inject(this, RelyGuaranteeRefiner.class);
+  public RGRefiner(final ConfigurableProgramAnalysis[] cpas, RGEnvironmentManager rgEnvironment, Configuration pConfig) throws InvalidConfigurationException{
+    pConfig.inject(this, RGRefiner.class);
     artCpas = new ARTCPA[cpas.length];
     for (int i=0; i<cpas.length; i++){
       if (cpas[i] instanceof ARTCPA) {
@@ -189,7 +193,7 @@ public class RelyGuaranteeRefiner{
 
     this.rgEnvironment = rgEnvironment;
 
-    RelyGuaranteeCPA rgCPA = artCpas[0].retrieveWrappedCpa(RelyGuaranteeCPA.class);
+    RGCPA rgCPA = artCpas[0].retrieveWrappedCpa(RGCPA.class);
     if (rgCPA != null){
       manager = rgCPA.getRelyGuaranteeManager();
       //rgCPA.getConfiguration().inject(this, RelyGuaranteeRefiner.class);
@@ -204,11 +208,11 @@ public class RelyGuaranteeRefiner{
     return ARTUtils.getOnePathTo(pLastElement);
   }
 
-  protected List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> transformPath(Path pPath) throws CPATransferException {
-    List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> result = Lists.newArrayList();
+  protected List<Triple<ARTElement, CFANode, RGAbstractElement>> transformPath(Path pPath) throws CPATransferException {
+    List<Triple<ARTElement, CFANode, RGAbstractElement>> result = Lists.newArrayList();
 
     for (ARTElement ae : skip(transform(pPath, Pair.<ARTElement>getProjectionToFirst()), 1)) {
-      RelyGuaranteeAbstractElement pe = extractElementByType(ae, RelyGuaranteeAbstractElement.class);
+      RGAbstractElement pe = extractElementByType(ae, RGAbstractElement.class);
       if (pe instanceof AbstractionElement) {
         CFANode loc = AbstractElements.extractLocation(ae);
         result.add(Triple.of(ae, loc, pe));
@@ -228,7 +232,7 @@ public class RelyGuaranteeRefiner{
    * @throws CPAException
    * @throws InterruptedException
    */
-  public boolean performRefinment(ReachedSet[] reachedSets, RelyGuaranteeEnvironment environment, int errorThr) throws InterruptedException, CPAException {
+  public boolean performRefinment(ReachedSet[] reachedSets, RGEnvironmentManager environment, int errorThr) throws InterruptedException, CPAException {
 
     // use statistics appropriate to refinement method: lazy or restarting
     if (restartAnalysis){
@@ -257,7 +261,7 @@ public class RelyGuaranteeRefiner{
 
     // if error is spurious refine
     if (mCounterexampleTraceInfo.isSpurious()) {
-      Multimap<Integer, Pair<ARTElement, RelyGuaranteePrecision>> refinementResult;
+      Multimap<Integer, Pair<ARTElement, RGPrecision>> refinementResult;
       if (restartAnalysis){
         System.out.println();
         System.out.println("\t\t\t ----- Restarting analysis -----");
@@ -281,10 +285,10 @@ public class RelyGuaranteeRefiner{
 
       // drop subtrees and change precision
       for(int tid : refinementResult.keySet()){
-        for(Pair<ARTElement, RelyGuaranteePrecision> pair : refinementResult.get(tid)){
+        for(Pair<ARTElement, RGPrecision> pair : refinementResult.get(tid)){
           ARTElement root = pair.getFirst();
           // drop cut-off node in every thread
-          RelyGuaranteePrecision precision = pair.getSecond();
+          RGPrecision precision = pair.getSecond();
           Set<ARTElement> parents = new HashSet<ARTElement>(root.getParents());
 
 
@@ -294,7 +298,7 @@ public class RelyGuaranteeRefiner{
           if (debug){
             System.out.println();
             for (ARTElement parent : parents){
-              RelyGuaranteePrecision prec = Precisions.extractPrecisionByType(artReachedSets[tid].getPrecision(parent), RelyGuaranteePrecision.class);
+              RGPrecision prec = Precisions.extractPrecisionByType(artReachedSets[tid].getPrecision(parent), RGPrecision.class);
               System.out.println("Precision for thread "+tid+":");
               System.out.println("\t-ART local "  + prec.getPredicateMap());
               System.out.println("\t-ART global " + prec.getGlobalPredicates());
@@ -368,9 +372,9 @@ public class RelyGuaranteeRefiner{
    * @param errorThr
    * @return
    */
-  private Multimap<Integer, Pair<ARTElement, RelyGuaranteePrecision>> restartingRefinement(ReachedSet[] reachedSets, CounterexampleTraceInfo info) {
+  private Multimap<Integer, Pair<ARTElement, RGPrecision>> restartingRefinement(ReachedSet[] reachedSets, CounterexampleTraceInfo info) {
     // TODO rewrite - a bit sloopy
-    Multimap<Integer, Pair<ARTElement, RelyGuaranteePrecision>> refinementMap = HashMultimap.create();
+    Multimap<Integer, Pair<ARTElement, RGPrecision>> refinementMap = HashMultimap.create();
     // multimap : thread no -> (ART element)
     Multimap<Integer, ARTElement> artMap = HashMultimap.create();
 
@@ -384,7 +388,7 @@ public class RelyGuaranteeRefiner{
     for (AbstractElement aElement : info.getEnvPredicatesForRefinmentKeys()){
       assert aElement instanceof ARTElement;
       ARTElement artElement = (ARTElement) aElement;
-      RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(artElement, RelyGuaranteeAbstractElement.class);
+      RGAbstractElement rgElement = AbstractElements.extractElementByType(artElement, RGAbstractElement.class);
       int tid = rgElement.getTid();
       CFANode loc = AbstractElements.extractLocation(artElement);
       Collection<AbstractionPredicate> preds = info.getEnvPredicatesForRefinement(aElement);
@@ -419,7 +423,7 @@ public class RelyGuaranteeRefiner{
       //Collection<AbstractionPredicate> newpreds = info.getPredicatesForRefinement(aElement);
       assert aElement instanceof ARTElement;
       ARTElement artElement = (ARTElement) aElement;
-      RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(artElement, RelyGuaranteeAbstractElement.class);
+      RGAbstractElement rgElement = AbstractElements.extractElementByType(artElement, RGAbstractElement.class);
       int tid = rgElement.getTid();
       if (!info.getPredicatesForRefinement(aElement).isEmpty()){
         artMap.put(tid, artElement);
@@ -433,7 +437,7 @@ public class RelyGuaranteeRefiner{
       // add the precision of the initial element
       ARTElement inital  = (ARTElement) reachedSets[tid].getFirstElement();
       Precision prec = reachedSets[tid].getPrecision(inital);
-      RelyGuaranteePrecision rgPrecision = Precisions.extractPrecisionByType(prec, RelyGuaranteePrecision.class);
+      RGPrecision rgPrecision = Precisions.extractPrecisionByType(prec, RGPrecision.class);
       SetMultimap<CFANode, AbstractionPredicate> oldPreds = rgPrecision.getPredicateMap();
 
       pmapBuilder.putAll(oldPreds);
@@ -473,7 +477,7 @@ public class RelyGuaranteeRefiner{
       }
 
       ImmutableSetMultimap<CFANode, AbstractionPredicate> newPredMap = pmapBuilder.build();
-      RelyGuaranteePrecision newPrecision = new RelyGuaranteePrecision(newPredMap, rgPrecision.getGlobalPredicates());
+      RGPrecision newPrecision = new RGPrecision(newPredMap, rgPrecision.getGlobalPredicates());
 
       // for statistics check the number of predicates per location
       for (CFANode node : newPredMap.keySet()){
@@ -493,7 +497,7 @@ public class RelyGuaranteeRefiner{
   /**
    * Returns multimap mapping: thread id -> cut-off element, new precision
    */
-  private Multimap<Integer, Pair<ARTElement, RelyGuaranteePrecision>> lazyRefinement(ReachedSet[] reachedSets, CounterexampleTraceInfo info, int errorThr) throws CPAException {
+  private Multimap<Integer, Pair<ARTElement, RGPrecision>> lazyRefinement(ReachedSet[] reachedSets, CounterexampleTraceInfo info, int errorThr) throws CPAException {
     // multimap : thread no -> (ART element)
     Multimap<Integer, ARTElement> artMap = HashMultimap.create();
 
@@ -502,12 +506,12 @@ public class RelyGuaranteeRefiner{
       //Collection<AbstractionPredicate> newpreds = info.getPredicatesForRefinement(aElement);
       assert aElement instanceof ARTElement;
       ARTElement artElement = (ARTElement) aElement;
-      RelyGuaranteeAbstractElement rgElement = AbstractElements.extractElementByType(artElement, RelyGuaranteeAbstractElement.class);
+      RGAbstractElement rgElement = AbstractElements.extractElementByType(artElement, RGAbstractElement.class);
       int tid = rgElement.getTid();
       artMap.put(tid, artElement);
     }
 
-    Multimap<Integer, Pair<ARTElement, RelyGuaranteePrecision>> refinementMap = HashMultimap.create();
+    Multimap<Integer, Pair<ARTElement, RGPrecision>> refinementMap = HashMultimap.create();
 
     // for every thread get cut-off elements and their new precision
     for (int tid : artMap.keySet()){
@@ -528,7 +532,7 @@ public class RelyGuaranteeRefiner{
         CFANode loc = AbstractElements.extractLocation(nodeA.getArtElement());
         System.out.println("Location "+loc);
         Precision prec = reachedSets[tid].getPrecision(nodeA.getArtElement());
-        RelyGuaranteePrecision rgPrec = Precisions.extractPrecisionByType(prec, RelyGuaranteePrecision.class);
+        RGPrecision rgPrec = Precisions.extractPrecisionByType(prec, RGPrecision.class);
         SetMultimap<CFANode, AbstractionPredicate> oldPredmap = rgPrec.getPredicateMap();
         Set<AbstractionPredicate> oldPreds = oldPredmap.get(loc);
         System.out.println("Old preds "+oldPreds);
@@ -556,7 +560,7 @@ public class RelyGuaranteeRefiner{
       for (ARTNode node : nodes){
         CFANode loc = AbstractElements.extractLocation(node.getArtElement());
         Precision prec = reachedSets[tid].getPrecision(node.getArtElement());
-        RelyGuaranteePrecision rgPrec = Precisions.extractPrecisionByType(prec, RelyGuaranteePrecision.class);
+        RGPrecision rgPrec = Precisions.extractPrecisionByType(prec, RGPrecision.class);
         SetMultimap<CFANode, AbstractionPredicate> oldPredmap = rgPrec.getPredicateMap();
         Collection<AbstractionPredicate> newPreds = info.getPredicatesForRefinement(node.getArtElement());
         /*Set<AbstractionPredicate> oldPreds = oldPredmap.get(loc);
@@ -602,7 +606,7 @@ public class RelyGuaranteeRefiner{
         // add precision of the cut-off node
         ARTElement artCoElement = coNode.getArtElement();
         Precision oldCoPrec = reachedSets[tid].getPrecision(artCoElement);
-        RelyGuaranteePrecision oldCoRgPrec = Precisions.extractPrecisionByType(oldCoPrec, RelyGuaranteePrecision.class);
+        RGPrecision oldCoRgPrec = Precisions.extractPrecisionByType(oldCoPrec, RGPrecision.class);
         SetMultimap<CFANode, AbstractionPredicate> oldCoPredmap = oldCoRgPrec.getPredicateMap();
         pmapBuilder.putAll(oldCoPredmap);
         // add the interpolant for the cut-off node
@@ -633,11 +637,11 @@ public class RelyGuaranteeRefiner{
 
           // TODO need it?
           Precision oldPrecision = reachedSets[tid].getPrecision(artElement);
-          RelyGuaranteePrecision oldRgPrecision = Precisions.extractPrecisionByType(oldPrecision, RelyGuaranteePrecision.class);
+          RGPrecision oldRgPrecision = Precisions.extractPrecisionByType(oldPrecision, RGPrecision.class);
           pmapBuilder.putAll(oldRgPrecision.getPredicateMap());
         }
 
-        RelyGuaranteePrecision newPrecision = new RelyGuaranteePrecision(pmapBuilder.build(), new HashSet<AbstractionPredicate>());
+        RGPrecision newPrecision = new RGPrecision(pmapBuilder.build(), new HashSet<AbstractionPredicate>());
         refinementMap.put(tid, Pair.of(artCoElement, newPrecision));
 
         if (debug){
@@ -666,7 +670,7 @@ public class RelyGuaranteeRefiner{
     for (ARTNode node : nodes){
       CFANode loc = AbstractElements.extractLocation(node.getArtElement());
       Precision prec = reachedSets[tid].getPrecision(node.getArtElement());
-      RelyGuaranteePrecision rgPrec = Precisions.extractPrecisionByType(prec, RelyGuaranteePrecision.class);
+      RGPrecision rgPrec = Precisions.extractPrecisionByType(prec, RGPrecision.class);
       SetMultimap<CFANode, AbstractionPredicate> oldPredmap = rgPrec.getPredicateMap();
       Set<AbstractionPredicate> oldPreds = oldPredmap.get(loc);
       Collection<AbstractionPredicate> newPreds = info.getPredicatesForRefinement(node.getArtElement());
@@ -713,7 +717,7 @@ public class RelyGuaranteeRefiner{
   private boolean belongsToProperSubtree(ARTElement artElement1, ARTElement artElement2) {
 
     Path cfaPath = ARTUtils.getOnePathTo(artElement2);
-    List<Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement>> path = null;
+    List<Triple<ARTElement, CFANode, RGAbstractElement>> path = null;
     try {
       path = transformPath(cfaPath);
     } catch (CPATransferException e) {
@@ -721,7 +725,7 @@ public class RelyGuaranteeRefiner{
     }
     // find the highest occurence of artElement1 on the path
     boolean occursOnPath = false;
-    for (Triple<ARTElement, CFANode, RelyGuaranteeAbstractElement> triple: path){
+    for (Triple<ARTElement, CFANode, RGAbstractElement> triple: path){
       if (triple.getFirst().equals(artElement1)){
         occursOnPath = true;
         break;
