@@ -179,6 +179,115 @@ $(document).ready(function(){
 '''
 
 
+COLUMN_TOGGLE_SCRIPT = '''
+<script>
+function incColspan(col) {
+    var span = parseInt(col.attr("colspan"));
+    if (span == 0) { col.show(); }
+    col.attr("colspan", span + 1);
+}
+
+function decColspan(col) {
+    var span = parseInt(col.attr("colspan"));
+    col.attr("colspan", span - 1);
+    if (span == 1) { col.hide(); }
+}
+
+// this function shows or hides a column and enlarges or shrinkes the header-columns
+// @param numlist: each num is the index of a column in header, 
+//                 these columns are above the column to toggle
+function toggleColumn (button, numList) {
+    var len = numList.length-1; // last element in numlist is used for columntitles
+    for (var i=0; i<len; i++) {
+        var cell = $("#dataTable > thead > tr:eq(" + i + ") > td:eq(" + numList[i] + ")");
+        button.checked ? incColspan(cell) : decColspan(cell);
+    }
+
+    var children = $("tbody > tr > td:nth-child(" + numList[len] + "), " +
+                     "tfoot > tr > td:nth-child(" + numList[len] + "), " +
+                     "#columnTitles > td:nth-child(" + numList[len] + ")");
+    button.checked ? children.show() : children.hide();
+}
+
+function expandColSpanToNums(row) {
+    var list = [];
+    for (var i=0; i<row.cells.length; i++) {
+      for (var j=0; j<parseInt(row.cells[i].colSpan); j++) {
+        list.push(i);
+      }
+    }
+    return list;
+}
+
+
+// we use a cache, because it is difficult to calculate the 
+// colspan of headerrows with some hidden columns
+var buttonListCache = null;
+
+
+function createColumnToggleButtons() {
+    if (buttonListCache == null) { // if not cached, for details see 5 lines above
+
+        var tableHead = $("#dataTable > thead")[0];
+        var listOfHeaderNums = []
+        var numOfHeaderRows = 6;
+        for (var i=0; i<numOfHeaderRows; i++) {
+            listOfHeaderNums.push(expandColSpanToNums(tableHead.rows[i]));
+        }
+    
+        var columnTitles = $("#columnTitles > td");
+        var testNums = listOfHeaderNums[3];
+        var testNum = testNums[1];
+        var testName = tableHead.children[3].cells[testNum].textContent + " " + 
+                       tableHead.children[4].cells[testNum].textContent;
+    
+        // TODO can we make next block more OO-like?
+        buttonList = '<ul>' + testName;
+        for (var i=1; i<columnTitles.length; i++) { // do not use first column (i!=0)
+            if (testNum != testNums[i]) {
+                testNum = testNums[i];
+                testName = tableHead.children[3].cells[testNum].textContent + " " + 
+                           tableHead.children[4].cells[testNum].textContent;
+                buttonList += '</ul><ul>' + testName;
+            }
+    
+            var toggleFunction = 'onclick="toggleColumn(this,[';
+            for (var j=0; j<numOfHeaderRows; j++) {
+                toggleFunction += listOfHeaderNums[j][i] + ',';
+            }
+            toggleFunction += (i+1) +'])"';
+    
+            var column = columnTitles[i];
+            var button = '<input type="checkbox" id="check' + i + '" ' + toggleFunction + ' checked>';
+            var label = '<label for="check' + i + '">' + column.textContent + '</label>';
+            buttonList += '<li>' + button + label + '</li>';
+        }
+        buttonList += '</ul>';
+        buttonListCache = $(buttonList);
+    }
+
+    $('<form id="toggleButtons" onsubmit="return false"></form>')
+        .append(buttonListCache)
+        .appendTo($("#contentPane"));
+    showContentPane();
+}
+
+$(document).ready(function(){
+    $('#columnTitles > td:first-child')
+        .addClass("clickable")
+        .click(function (event) { 
+            return createColumnToggleButtons(); });
+});
+</script>
+
+<style type="text/css">
+    #toggleButtons ul { font-family:arial, sans serif; }
+    #toggleButtons ul li { display: inline; }
+    #toggleButtons ul li:hover { background-color:yellow; }
+</style>
+'''
+
+
 PLOTTING_SCRIPT = '''
 <script type="text/javascript" src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
 <script type="text/javascript" src="http://www.jqplot.com/src/jquery.jqplot.min.js"></script>
@@ -438,8 +547,6 @@ function getFormatter(labels, header) {
     };
 }
 
-plotCache = {};
-
 function drawPlot(header, data, xTicks, yTicks, type) {
     $('#contentPane').append('<div id="chart"></div>',
                    '<button id="button-trend"></button>');
@@ -449,15 +556,6 @@ function drawPlot(header, data, xTicks, yTicks, type) {
         $('#chart').empty();
     });
 
-/* there seems to be a bug with dimensions of a cached plot, cache is disabled
-    var key = type + "@" + header;
-    if (plotCache.hasOwnProperty(key)) {
-        debug("object in cache: " + key);
-        var plot = plotCache[key];
-        plot.replot();
-
-    } else {
-*/
         // data array is empty, we use "columnRenderer" option to get data.
         var plot = $.jqplot('chart',[],{
           title: header,
@@ -505,11 +603,6 @@ function drawPlot(header, data, xTicks, yTicks, type) {
             }
           },
         });
-
-/*
-        plotCache[key] = plot;
-    }
-*/
 
     addLegendActions();
 };
@@ -1138,7 +1231,7 @@ def createTable(file, filesFromXML=False):
                 + '\n</table>\n\n'
 
     htmlCode = DOCTYPE + '<html>\n\n<head>\n' + \
-                CSS + SCRIPT_INCLUDES + FILE_CONTENT_SCRIPT + TITLE + \
+                CSS + SCRIPT_INCLUDES + FILE_CONTENT_SCRIPT + COLUMN_TOGGLE_SCRIPT + TITLE + \
                 '\n</head>\n\n<body>\n\n' + CONTENT_PANE + '\n\n'
     if options.enablePlotting: htmlCode += PLOTTING_SCRIPT + '\n'
     htmlCode += tableCode + '</body>\n\n</html>'
