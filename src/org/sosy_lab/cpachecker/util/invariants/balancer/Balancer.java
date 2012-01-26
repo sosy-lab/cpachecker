@@ -119,7 +119,9 @@ public class Balancer {
     // Get the RREF assumptions for each transition.
     AssumptionSet aset = new AssumptionSet();
     for (Transition t : tnet.getTransitions()) {
-      aset.addAll( getRREFassumptions(t, tnet) );
+      AssumptionSet as = getRREFassumptions(t, tnet);
+      aset.addAll(as);
+      tnet.setAssumptions(aset);
     }
 
     HashMap<String,Rational> map = null;
@@ -297,7 +299,7 @@ public class Balancer {
     switch (strategy) {
     case DONOTUSEAXIOMS:
       if (useRREF) {
-        findSingleTransitionRREFassumptionsWithoutUIFAxioms(t,antD,t2,vmgr);
+        findSingleTransitionRREFassumptionsWithoutUIFAxioms(t,antD,t2,vmgr,tnet);
       } else {
         findSingleTransitionFormulaWithoutUIFAxioms(t,antD,t2,vmgr);
       }
@@ -317,7 +319,7 @@ public class Balancer {
         // FIXME: Really, we should just quit at this point. But we need to
         // refactor, and reorganize the loop control!
         if (useRREF) {
-          findSingleTransitionRREFassumptionsWithoutUIFAxioms(t,antD,t2,vmgr);
+          findSingleTransitionRREFassumptionsWithoutUIFAxioms(t,antD,t2,vmgr,tnet);
         } else {
           findSingleTransitionFormulaWithoutUIFAxioms(t,antD,t2,vmgr);
         }
@@ -347,8 +349,10 @@ public class Balancer {
     p.unpurify();
   }
 
-  private void findSingleTransitionRREFassumptionsWithoutUIFAxioms(Transition t, TemplateDisjunction ant, TemplateFormula t2, VariableManager vmgr) {
-    AssumptionSet aset = consecRREF(ant,t2,vmgr);
+  private void findSingleTransitionRREFassumptionsWithoutUIFAxioms(
+      Transition t, TemplateDisjunction ant, TemplateFormula t2,
+      VariableManager vmgr, TemplateNetwork tnet) {
+    AssumptionSet aset = consecRREF(ant,t2,vmgr,tnet);
     t.setRREFassumptions(aset);
   }
 
@@ -501,9 +505,10 @@ public class Balancer {
     return consecQE(P,R,Q,U,vmgr);
   }
 
-  public AssumptionSet consecRREF(TemplateDisjunction ant, TemplateFormula t2, VariableManager vmgr) {
+  public AssumptionSet consecRREF(TemplateDisjunction ant, TemplateFormula t2,
+      VariableManager vmgr, TemplateNetwork tnet) {
     Vector<UIFAxiom> U = new Vector<UIFAxiom>();
-    return consecRREF(ant,t2,U,vmgr);
+    return consecRREF(ant,t2,U,vmgr,tnet);
   }
 
   public String consecQE(TemplateDisjunction ant, TemplateFormula t2, VariableManager vmgr) {
@@ -632,7 +637,7 @@ public class Balancer {
    * t2 to be a conjunction of TemplateConstraints.
    */
   public AssumptionSet consecRREF(TemplateDisjunction ant, TemplateFormula t2,
-      Vector<UIFAxiom> U, VariableManager vmgr) {
+      Vector<UIFAxiom> U, VariableManager vmgr, TemplateNetwork tnet) {
 
     // Initialize assumption set.
     AssumptionSet aset = new AssumptionSet();
@@ -674,20 +679,20 @@ public class Balancer {
         logger.log(Level.ALL, "UIFAxiom:\n",A);
         logger.log(Level.ALL,"Linearized premises and conclusions:\nPremises:","\n"+prem.toString(),
             "\nConclusions:","\n"+concl.toString());
-        aset.addAll( applyRREFheuristic(prem, concl) );
+        aset.addAll( applyRREFheuristic(prem, concl, tnet) );
         prem = prem.concat(formMat.buildMatrix(A.getConsequent(), vmgr, paramVars, prependTrue));
       }
       concl = Q;
       //logger.log(Level.ALL,"Linearized premises and conclusions:\nPremises:\n",prem,"\nConclusions:\n",concl);
       logger.log(Level.ALL,"Linearized premises and conclusions:\nPremises:","\n"+prem.toString(),
           "\nConclusions:","\n"+concl.toString());
-      aset.addAll( applyRREFheuristic(prem, concl) );
+      aset.addAll( applyRREFheuristic(prem, concl, tnet) );
     }
 
     return aset;
   }
 
-  private AssumptionSet applyRREFheuristic(MatrixI prem, MatrixI concl) {
+  private AssumptionSet applyRREFheuristic(MatrixI prem, MatrixI concl, TemplateNetwork tnet) {
     MatrixI aug = prem.augment(concl);
     Matrix au = null;
     try {
@@ -701,7 +706,7 @@ public class Balancer {
     Timer msTimer = new Timer();
     msTimer.start();
     try {
-      asetset = ms.solve();
+      asetset = ms.solve(tnet.getAssumptions());
       msTimer.stop();
       logger.log(Level.ALL, "MatrixSolver took", msTimer.getSumTime(), "milliseconds.");
     } catch (MatrixSolvingFailedException e) {

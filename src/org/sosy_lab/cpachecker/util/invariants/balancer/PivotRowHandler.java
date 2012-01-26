@@ -83,7 +83,7 @@ public class PivotRowHandler {
     // Compute absolutely and conditionally unblocked columns.
     Vector<Integer> auv = new Vector<Integer>();
     Vector<Integer> cuv = new Vector<Integer>();
-    for (int j = 0; j < n; j++) {
+    for (int j = 0; j < augStart; j++) {
       boolean absolute = true;
       boolean conditional = true;
       for (int i = 0; i < m; i++) {

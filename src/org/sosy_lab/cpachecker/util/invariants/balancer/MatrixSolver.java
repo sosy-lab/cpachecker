@@ -44,6 +44,10 @@ public class MatrixSolver {
   }
 
   public Set<AssumptionSet> solve() throws MatrixSolvingFailedException {
+    return solve(new AssumptionSet());
+  }
+
+  public Set<AssumptionSet> solve(AssumptionSet init) throws MatrixSolvingFailedException {
     // Declare/Initialize sets of assumptions:
 
     // Polynomials we are assuming to be zero, since assuming they were nonzero turned out
@@ -64,6 +68,8 @@ public class MatrixSolver {
       // Make a copy of the matrix.
       Matrix mat = matrix.copy();
       logger.log(Level.ALL,"Basic matrix is:","\n"+mat.toString());
+      // First apply any substitutions available in the passed assumption set 'init'.
+      zeroSubs(mat,init);
       // Make substitutions based on zero assumptions.
       zeroSubs(mat,zeros);
       logger.log(Level.ALL,"Using assumptions",zeros.toString()+",", "get matrix:","\n"+mat.toString());
@@ -133,6 +139,10 @@ public class MatrixSolver {
     // Compute substitutions based on the assumptions.
     List<Substitution> subs = new Vector<Substitution>();
     for (Assumption a : zeros) {
+      // We can only use assumptions of type ZERO.
+      if (a.getAssumptionType() != AssumptionType.ZERO) {
+        continue;
+      }
       Polynomial num = a.getNumerator();
       Substitution s = num.linearIsolateFirst();
       if (s != null) {

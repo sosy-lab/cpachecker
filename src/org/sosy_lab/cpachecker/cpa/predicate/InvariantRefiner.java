@@ -171,7 +171,7 @@ public class InvariantRefiner extends AbstractARTBasedRefiner {
       balancing.stop();
 
       if (balanced) {
-        // If the network balanced, then, since it put 'false' at the error
+        // If the network balanced, then, since all NetworkBuilders put 'false' at the error
         // location, it follows that the counterexample path was refuted.
 
         logger.log(Level.FINEST, "Invariants refuted counterexample path.");

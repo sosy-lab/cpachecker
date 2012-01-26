@@ -177,7 +177,7 @@ public class OptionTable {
     }
 
     private AssumptionSet change4to8(int i) {
-      table[i][c] = 8;
+      table[i][c-1] = 8;
       return prh.ar2nonneg(i);
     }
 
@@ -200,12 +200,18 @@ public class OptionTable {
       for (Integer i : remainingRows) {
         // Which columns are usable for row i?
         List<Integer> u = new Vector<Integer>();
+        // Consider the conditionally unblocked columns.
         for (Integer j : CU) {
           // A column is usable iff it has a 2, 3, 4, or 6.
           int a = table[i][j];
           if (2 <= a && a <= 6 && a != 5) {
             u.add(j);
           }
+        }
+        // Consider the augmentation columns.
+        int a = table[i][c-1];
+        if (2 <= a && a <= 6 && a != 5) {
+          u.add(c-1);
         }
         usable.set(i, u);
       }
@@ -218,9 +224,10 @@ public class OptionTable {
       s += "Option Table:\n";
       s += "Remaining rows: "+remainingRows.toString()+"\n";
       s += "Conditionally unblocked columns: "+CU.toString()+"\n";
+      s += "Usable columns:\n"+usableColumns.toString()+"\n";
       s += "Code table:\n";
       for (int i = 0; i < m; i++) {
-        s += "  [";
+        s += Integer.toString(i)+"  [";
         for (int j = 0; j < c; j++) {
           s += " "+Integer.toString(table[i][j]);
         }

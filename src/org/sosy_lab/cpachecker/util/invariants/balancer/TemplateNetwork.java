@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.util.invariants.templates.VariableWriteMode;
 
 public class TemplateNetwork {
 
+  private AssumptionSet currentAssumptions = new AssumptionSet();
   private Vector<Transition> trans;
   private TemplateMap tmap;
 
@@ -52,6 +53,14 @@ public class TemplateNetwork {
   private void build(TemplateMap tmap, Vector<Transition> trans) {
   	this.trans = trans;
     this.tmap = tmap;
+  }
+
+  public void setAssumptions(AssumptionSet aset) {
+    currentAssumptions = aset;
+  }
+
+  public AssumptionSet getAssumptions() {
+    return currentAssumptions;
   }
 
   public Vector<Transition> getTransitions() {
