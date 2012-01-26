@@ -76,7 +76,8 @@ CSS = '''
     .unknown { text-align:center; color:orange; font-weight: bold; }
     .error { text-align:center; color:magenta; font-weight: bold; }
     .score { text-align:center; font-size:large; font-weight:bold; }
-    .clickable:hover { background: lime; cursor: pointer; }
+    a { color: inherit; text-decoration: none; display: block; } 
+    a:hover, .clickable:hover { background: lime; cursor: pointer; }
     -->
 </style>
 '''
@@ -129,8 +130,9 @@ function hideContentPane() {
 FILE_CONTENT_SCRIPT = '''
 <script type="text/javascript">
 function loadContentWrapper(event) {
-    var url = $(event.target).attr("url");
+    var url = $(event.target).attr("href");
     loadContent(url);
+    return false;
 }
 
 function loadContent(url) {
@@ -166,12 +168,11 @@ function loadContent(url) {
 }
 
 $(document).ready(function(){
-    var cellsWithUrls = $('td[url]');
+    var cellsWithUrls = $('a');
     //console.log(cellsWithUrls);
     cellsWithUrls.each(
         function(index, elem){
-            $(elem).click(loadContentWrapper)
-                   .addClass("clickable");
+            $(elem).click(loadContentWrapper);
         });
 });
 </script>
@@ -917,7 +918,7 @@ def getTableBody(listOfTests):
     # generate text for filenames
     for fileName in fileNames:
         filePath = getPathOfSourceFile(fileName)
-        rowsForHTML.append(['<td url="{0}">{1}</td>'.
+        rowsForHTML.append(['<td><a href="{0}">{1}</a></td>'.
                             format(quote(filePath), fileName.replace(commonPrefix, '', 1))])
         rowsForCSV.append([fileName.replace(commonPrefix, '', 1)])
 
@@ -999,7 +1000,7 @@ def getValuesOfFileXTest(currentFile, listOfColumns):
                     else:
                         currentFile.status = 'error'
 
-                    valuesForHTML.append('<td class="{0}" url="{1}">{2}</td>'
+                    valuesForHTML.append('<td class="{0}"><a href="{1}">{2}</a></td>'
                             .format(currentFile.status, quote(str(currentFile.get('logfileForHtml'))), status))
 
                 else:
