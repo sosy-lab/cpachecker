@@ -113,7 +113,7 @@ public class PathToCTranslator {
 
       String lFunctionHeader = pNode.getFunctionDefinition().toASTString();
 
-      mFunctionDecls.add(lFunctionHeader + ";");
+      mFunctionDecls.add(lFunctionHeader);
     }
   }
 
@@ -167,7 +167,7 @@ public class PathToCTranslator {
     FunctionDefinitionNode functionStartNode = (FunctionDefinitionNode)extractLocation(firstFunctionElement);
     String freshFunctionName = getFreshFunctionName(functionStartNode);
 
-    String lFunctionHeader = functionStartNode.getFunctionDefinition().toASTString();
+    String lFunctionHeader = functionStartNode.getFunctionDefinition().getDeclSpecifier().toASTString();
     lFunctionHeader = lFunctionHeader.replaceFirst(
           Pattern.quote(functionStartNode.getFunctionName() + "("),
           freshFunctionName + "(");
