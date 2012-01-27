@@ -98,11 +98,14 @@ public final class ErrorPathShrinker {
     // the short Path, the result
     final Path shortErrorPath = new Path();
 
-    // the errorNode is important
+    // the errorNode is important, add both the edge before and after it
     final Pair<ARTElement, CFAEdge> lastElem = revIterator.next();
     assert lastElem.getFirst().isTarget()
             : "Last Element of ErrorPath must be a targetElement.";
     shortErrorPath.addFirst(lastElem);
+    if (revIterator.hasNext()) {
+      shortErrorPath.addFirst(revIterator.next());
+    }
 
     /* if the ErrorNode is inside of a function, the longPath is not handled
      * until the StartNode, but only until the functionCall.
@@ -364,13 +367,10 @@ public final class ErrorPathShrinker {
 
         /* There are several BlankEdgeTypes:
          * a loopstart ("while" or "goto loopstart") is important,
-         * a jumpEdge ("goto") is important, iff it contains the word "error",
          * a labelEdge and a really blank edge are not important.
          * TODO are there more types? */
         case BlankEdge:
-          if (cfaEdge.getSuccessor().isLoopStart()
-              || (cfaEdge.isJumpEdge() && cfaEdge.getRawStatement()
-                  .toLowerCase().contains("error"))) {
+          if (cfaEdge.getSuccessor().isLoopStart()) {
             addCurrentCFAEdgePairToShortPath();
           }
           break;
