@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
+import com.google.common.base.Optional;
 
 public interface CFAEdge {
 
@@ -33,7 +33,7 @@ public interface CFAEdge {
 
   public CFANode getSuccessor();
 
-  public IASTNode getRawAST();
+  public Optional<?> getRawAST();
 
   public int getLineNumber();
 

@@ -27,11 +27,12 @@ import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 interface AutomatonExpression {
 
-  ResultValue<?> eval(AutomatonExpressionArguments pArgs);
+  ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException;
 
 
   static class StringExpression implements AutomatonExpression {

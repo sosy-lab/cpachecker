@@ -28,6 +28,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
+import com.google.common.base.Optional;
+
 public class AssumeEdge extends AbstractCFAEdge {
 
   private final boolean truthAssumption;
@@ -74,7 +76,7 @@ public class AssumeEdge extends AbstractCFAEdge {
    * of {@link #getRawStatement()} (it misses the outer negation of the expression).
    */
   @Override
-  public IASTExpression getRawAST() {
-    return expression;
+  public Optional<IASTExpression> getRawAST() {
+    return Optional.of(expression);
   }
 }

@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.objectmodel;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
-
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 
 public abstract class AbstractCFAEdge implements CFAEdge {
@@ -63,8 +62,8 @@ public abstract class AbstractCFAEdge implements CFAEdge {
   }
 
   @Override
-  public IASTNode getRawAST() {
-    return null;
+  public Optional<?> getRawAST() {
+    return Optional.absent();
   }
 
   @Override

@@ -104,8 +104,9 @@ class AutomatonTransferRelation implements TransferRelation {
    *
    * If the state is a NonDet-State multiple following states may be returned.
    * If the only following state is BOTTOM an empty set is returned.
+   * @throws CPATransferException
    */
-  private Collection<? extends AbstractElement> getFollowStates(AutomatonState state, List<AbstractElement> otherElements, CFAEdge edge, boolean strengthen) {
+  private Collection<? extends AbstractElement> getFollowStates(AutomatonState state, List<AbstractElement> otherElements, CFAEdge edge, boolean strengthen) throws CPATransferException {
     Preconditions.checkArgument(!(state instanceof AutomatonUnknownState));
     if (state == cpa.getBottomState()) {
       return Collections.emptySet();

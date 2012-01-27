@@ -32,6 +32,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
+import com.google.common.base.Optional;
+
 public class FunctionCallEdge extends AbstractCFAEdge {
 
 	private final IASTFunctionCall functionCall;
@@ -65,8 +67,8 @@ public class FunctionCallEdge extends AbstractCFAEdge {
   }
 
   @Override
-  public IASTStatement getRawAST() {
-    return functionCall.asStatement();
+  public Optional<IASTStatement> getRawAST() {
+    return Optional.of(functionCall.asStatement());
   }
 
   @Override

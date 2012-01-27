@@ -32,7 +32,11 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+
+import com.google.common.base.Optional;
 
 /**
  * Implements a boolean expression that evaluates and returns a <code>MaybeBoolean</code> value when <code>eval()</code> is called.
@@ -43,7 +47,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
   static final ResultValue<Boolean> CONST_FALSE = new ResultValue<Boolean>(Boolean.FALSE);
 
   @Override
-  abstract ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs);
+  abstract ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException;
 
   public class MatchProgramExit implements AutomatonBoolExpr {
 
@@ -108,11 +112,14 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     }
 
     @Override
-    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
-      IASTNode ast = pArgs.getCfaEdge().getRawAST();
-      if (ast != null) {
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws UnrecognizedCFAEdgeException {
+      Optional<?> ast = pArgs.getCfaEdge().getRawAST();
+      if (ast.isPresent()) {
+        if (!(ast.get() instanceof IASTNode)) {
+          throw new UnrecognizedCFAEdgeException(pArgs.getCfaEdge());
+        }
         // some edges do not have an AST node attached to them, e.g. BlankEdges
-        if(patternAST.matches(ast, pArgs)) {
+        if(patternAST.matches((IASTNode)ast.get(), pArgs)) {
           return CONST_TRUE;
         } else {
           return CONST_FALSE;
@@ -399,7 +406,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       this.b = pB;
     }
 
-    public @Override ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+    public @Override ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
       /* OR:
        * True  || _ -> True
        * _ || True -> True
@@ -451,7 +458,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     }
 
     @Override
-    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
       /* AND:
        * false && _ -> false
        * _ && false -> false
@@ -502,7 +509,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     }
 
     @Override
-    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
       ResultValue<Boolean> resA = a.eval(pArgs);
       if (resA.canNotEvaluate()) {
         return resA;
@@ -535,7 +542,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     }
 
     @Override
-    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
       ResultValue<Boolean> resA = a.eval(pArgs);
       if (resA.canNotEvaluate()) {
         return resA;
@@ -572,7 +579,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     }
 
     @Override
-    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
       ResultValue<Boolean> resA = a.eval(pArgs);
       if (resA.canNotEvaluate()) {
         return resA;

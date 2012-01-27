@@ -31,6 +31,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
+import com.google.common.base.Optional;
+
 public class DeclarationEdge extends AbstractCFAEdge {
 
   private final IASTDeclaration declaration;
@@ -64,8 +66,8 @@ public class DeclarationEdge extends AbstractCFAEdge {
   }
 
   @Override
-  public IASTDeclaration getRawAST() {
-    return declaration;
+  public Optional<IASTDeclaration> getRawAST() {
+    return Optional.of(declaration);
   }
 
   @Override

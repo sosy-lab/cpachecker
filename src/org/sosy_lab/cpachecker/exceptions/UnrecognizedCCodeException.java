@@ -59,9 +59,8 @@ public class UnrecognizedCCodeException extends CPATransferException {
   protected static String createMessage(String msg1, String msg2, CFAEdge edge, IASTNode astNode) {
     checkNotNull(msg1);
     if (astNode == null) {
-      astNode = edge.getRawAST();
+      astNode = (IASTNode)edge.getRawAST().get();
     }
-    checkNotNull(astNode, "Either edge or astNode need to be given");
 
     String code = astNode.toASTString();
     String rawCode = edge.getRawStatement();
