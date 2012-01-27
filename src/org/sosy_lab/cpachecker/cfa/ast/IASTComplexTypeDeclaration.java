@@ -31,6 +31,9 @@ package org.sosy_lab.cpachecker.cfa.ast;
  * struct s { ... };
  * struct s;
  * enum e { ... };
+ *
+ * TODO: As these declarations have no name, they should not be in the hierarchy
+ * below {@link IASTSimpleDeclaration}.
  */
 public final class IASTComplexTypeDeclaration extends IASTDeclaration {
 

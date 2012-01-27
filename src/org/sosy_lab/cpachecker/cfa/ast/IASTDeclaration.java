@@ -25,13 +25,10 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 
 /**
- * This class represents declaration of types and variables. It contains a
- * storage class, a type, a name and an optional initializer.
- *
- * If the storage class is TYPEDEF, then the given name is aliased to the
- * given type (as typedef does in C).
- * Otherwise the name may be null, then it is a struct prototype.
- * In any other case, it is a variable declaration with the given name and type.
+ * This class represents all sorts of top-level declarations (i.e., declarations
+ * not nested inside another type declaration).
+ * This excludes for examples function parameter declarations and struct members.
+ * It includes local and global variables and types, as well as functions.
  */
 public abstract class IASTDeclaration extends IASTSimpleDeclaration {
 
@@ -45,6 +42,9 @@ public abstract class IASTDeclaration extends IASTSimpleDeclaration {
     isGlobal = pIsGlobal;
   }
 
+  /**
+   * Whether this declaration is a global one (i.e., not inside a function).
+   */
   public boolean isGlobal() {
     return isGlobal;
   }

@@ -46,8 +46,13 @@ public final class IASTVariableDeclaration extends IASTDeclaration {
     initializer = pInitializer;
 
     checkArgument(!(storageClass == StorageClass.EXTERN && initializer != null), "Extern declarations cannot have an initializer");
+    checkArgument(storageClass == StorageClass.EXTERN || storageClass == StorageClass.AUTO);
+    checkArgument(pIsGlobal || storageClass == StorageClass.AUTO);
   }
 
+  /**
+   * The storage class of this variable (either extern or auto).
+   */
   public StorageClass getStorageClass() {
     return storageClass;
   }
