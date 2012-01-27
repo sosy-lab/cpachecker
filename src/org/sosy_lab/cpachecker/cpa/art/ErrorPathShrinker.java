@@ -32,6 +32,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
@@ -179,16 +180,16 @@ public final class ErrorPathShrinker {
       CFAEdge cfaEdge = iterator.next().getSecond();
 
       if (cfaEdge instanceof DeclarationEdge) {
-        DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
+        IASTDeclaration declaration = ((DeclarationEdge) cfaEdge).getDeclaration();
 
-        if (declarationEdge.isGlobal()) {
+        if (declaration.isGlobal()) {
           // only global declarations are important
-          IType specifier = declarationEdge.getDeclSpecifier();
-          if (declarationEdge.getName() != null) {
+          IType specifier = declaration.getDeclSpecifier();
+          if (declaration.getName() != null) {
             // if a variable (declarator) is no pointer variable,
             // it is added to the list of global variables
             if (!(specifier instanceof IASTPointerTypeSpecifier)) {
-              GLOBAL_VARS.add(declarationEdge.getName());
+              GLOBAL_VARS.add(declaration.getName());
             }
           }
         }
@@ -647,12 +648,12 @@ public final class ErrorPathShrinker {
      * handled as StatementEdge. Global declarations are not divided by CIL. */
     private void handleDeclaration() {
 
-      DeclarationEdge declarationEdge =
-          (DeclarationEdge) currentCFAEdgePair.getSecond();
+      IASTDeclaration declaration =
+          ((DeclarationEdge) currentCFAEdgePair.getSecond()).getDeclaration();
 
       /* If the declared variable is important, the edge is important. */
-      if (declarationEdge.getName() != null) {
-        final String varName = declarationEdge.getName();
+      if (declaration.getName() != null) {
+        final String varName = declaration.getName();
         if (importantVars.contains(varName)) {
           addCurrentCFAEdgePairToShortPath();
 

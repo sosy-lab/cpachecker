@@ -132,7 +132,7 @@ public class TypesTransferRelation implements TransferRelation {
                                  DeclarationEdge declarationEdge)
                                  throws UnrecognizedCCodeException {
     IASTDeclaration decl = declarationEdge.getDeclaration();
-    IType specifier = declarationEdge.getDeclSpecifier();
+    IType specifier = declarationEdge.getDeclaration().getDeclSpecifier();
 
     if (decl instanceof IASTFunctionDeclaration) {
       handleFunctionDeclaration(element, declarationEdge, (IASTFunctionTypeSpecifier)specifier);

@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -51,14 +50,6 @@ public class DeclarationEdge extends AbstractCFAEdge {
     return declaration;
   }
 
-  public IType getDeclSpecifier() {
-    return declaration.getDeclSpecifier();
-  }
-
-  public String getName() {
-    return declaration.getName();
-  }
-
   @Override
   public Optional<IASTDeclaration> getRawAST() {
     return Optional.of(declaration);
@@ -67,9 +58,5 @@ public class DeclarationEdge extends AbstractCFAEdge {
   @Override
   public String getCode() {
     return declaration.toASTString();
-  }
-
-  public boolean isGlobal() {
-    return declaration.isGlobal();
   }
 }

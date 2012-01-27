@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
@@ -89,9 +90,9 @@ public class ReferencedVariablesCollector {
       //nothing to do
       break;
     case DeclarationEdge:
-      DeclarationEdge declarationEdge = (DeclarationEdge)edge;
-      boolean isGlobal = declarationEdge.isGlobal();
-      String varName = declarationEdge.getName();
+      IASTDeclaration declaration = ((DeclarationEdge)edge).getDeclaration();
+      boolean isGlobal = declaration.isGlobal();
+      String varName = declaration.getName();
       if(isGlobal) {
         globalVars.add(varName);
       }
