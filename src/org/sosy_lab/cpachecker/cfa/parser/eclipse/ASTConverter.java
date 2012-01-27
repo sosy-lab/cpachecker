@@ -65,7 +65,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
@@ -189,7 +188,7 @@ class ASTConverter {
     }
     name += i;
 
-    IASTDeclaration decl = new IASTVariableDeclaration(node.getFileLocation(),
+    IASTVariableDeclaration decl = new IASTVariableDeclaration(node.getFileLocation(),
                                                false,
                                                StorageClass.AUTO,
                                                ((IASTFunctionCallExpression) node).getExpressionType(),
@@ -197,13 +196,13 @@ class ASTConverter {
                                                name,
                                                null);
 
+    scope.registerDeclaration(decl);
     sideAssigment.add(decl);
     IASTIdExpression tmp = new IASTIdExpression(convert(e.getFileLocation()),
                                                 convert(e.getExpressionType()),
                                                 name,
                                                 decl);
 
-    scope.registerDeclaration(tmp.getDeclaration());
     sideAssigment.add(new IASTFunctionCallAssignmentStatement(convert(e.getFileLocation()),
                                                               tmp,
                                                               (IASTFunctionCallExpression) node));
@@ -745,7 +744,7 @@ class ASTConverter {
     return new IASTReturnStatement(convert(s.getFileLocation()), convertExpressionWithoutSideEffects(s.getReturnValue()));
   }
 
-  public IASTFunctionDefinition convert(final org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition f) {
+  public IASTFunctionDeclaration convert(final org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition f) {
     Pair<StorageClass, ? extends IType> specifier = convert(f.getDeclSpecifier());
 
     StorageClass storageClass = specifier.getFirst();
@@ -774,7 +773,7 @@ class ASTConverter {
 
     IASTFileLocation fileLoc = convert(f.getFileLocation());
 
-    return new IASTFunctionDefinition(fileLoc, declSpec, name);
+    return new IASTFunctionDeclaration(fileLoc, declSpec, name);
   }
 
   public List<IASTDeclaration> convert(final org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration d) {

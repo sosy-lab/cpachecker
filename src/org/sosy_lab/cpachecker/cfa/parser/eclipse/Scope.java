@@ -30,9 +30,12 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDefinition;
+import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
@@ -57,9 +60,9 @@ class Scope {
     return varsStack.size() == 1;
   }
 
-  public void enterFunction(IASTFunctionDefinition pFuncDef) {
+  public void enterFunction(IASTFunctionDeclaration pFuncDef) {
     currentFunctionName = pFuncDef.getOrigName();
-    registerDeclaration(pFuncDef);
+    registerFunctionDeclaration(pFuncDef);
 
     enterBlock();
   }
@@ -123,31 +126,38 @@ class Scope {
   }
 
   public void registerDeclaration(IASTSimpleDeclaration declaration) {
+    assert declaration instanceof IASTVariableDeclaration
+        || declaration instanceof IASTEnumerator
+        || declaration instanceof IASTParameterDeclaration
+        : "Tried to register a declaration which does not define a name in the standard namespace: " + declaration;
+    assert  !(declaration.getDeclSpecifier() instanceof IASTFunctionTypeSpecifier);
+
     String name = declaration.getOrigName();
+    assert name != null;
 
-    if (declaration.getDeclSpecifier() instanceof IASTFunctionTypeSpecifier) {
-      // function
+    Map<String, IASTSimpleDeclaration> vars = varsStack.getLast();
 
-      checkState(isGlobalScope(), "nested functions not allowed");
-
-      if (functions.containsKey(name)) {
-        // TODO multiple function declarations are legal, as long as they are equal
-        // check this and throw exception if not
-//        throw new CFAGenerationRuntimeException("Function " + name + " already declared", declaration);
-      }
-
-      functions.put(name, declaration);
-
-    } else {
-      Map<String, IASTSimpleDeclaration> vars = varsStack.getLast();
-
-      // multiple declarations of the same variable are disallowed, unless when being in global scope
-      if (vars.containsKey(name) && !isGlobalScope()) {
-        throw new CFAGenerationRuntimeException("Variable " + name + " already declared", declaration);
-      }
-
-      vars.put(name, declaration);
+    // multiple declarations of the same variable are disallowed, unless when being in global scope
+    if (vars.containsKey(name) && !isGlobalScope()) {
+      throw new CFAGenerationRuntimeException("Variable " + name + " already declared", declaration);
     }
+
+    vars.put(name, declaration);
+  }
+
+  public void registerFunctionDeclaration(IASTFunctionDeclaration declaration) {
+    checkState(isGlobalScope(), "nested functions not allowed");
+
+    String name = declaration.getName();
+    assert name != null;
+
+    if (functions.containsKey(name)) {
+      // TODO multiple function declarations are legal, as long as they are equal
+      // check this and throw exception if not
+//        throw new CFAGenerationRuntimeException("Function " + name + " already declared", declaration);
+    }
+
+    functions.put(name, declaration);
   }
 
   public String getCurrentFunctionName() {

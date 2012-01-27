@@ -41,7 +41,8 @@ import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
@@ -159,11 +160,10 @@ class CFABuilder extends ASTVisitor {
     String rawSignature = sd.getRawSignature();
 
     for (org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration newD : newDs) {
-      if (newD.getStorageClass() != StorageClass.TYPEDEF && newD.getName() != null) {
-        // this is neither a typedef nor a struct prototype nor a function declaration,
-        // so it's a variable declaration
-
+      if (newD instanceof IASTVariableDeclaration) {
         scope.registerDeclaration(newD);
+      } else if (newD instanceof IASTFunctionDeclaration) {
+        scope.registerFunctionDeclaration((IASTFunctionDeclaration) newD);
       }
 
       globalDeclarations.add(Pair.of(newD, rawSignature));

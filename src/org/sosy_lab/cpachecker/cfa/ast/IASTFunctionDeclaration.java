@@ -38,4 +38,13 @@ public final class IASTFunctionDeclaration extends IASTDeclaration {
     super(pFileLocation, true, pSpecifier, checkNotNull(pName), pName);
   }
 
+  @Override
+  public IASTFunctionTypeSpecifier getDeclSpecifier() {
+    return (IASTFunctionTypeSpecifier) super.getDeclSpecifier();
+  }
+
+  @Override
+  public String toASTString() {
+    return getDeclSpecifier().toASTString();
+  }
 }

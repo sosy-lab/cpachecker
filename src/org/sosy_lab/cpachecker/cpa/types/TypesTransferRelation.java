@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFloatLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDefinition;
+import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
@@ -96,7 +96,7 @@ public class TypesTransferRelation implements TransferRelation {
         // this is not bad, but we don't get type information for external
         // function
 
-        IASTFunctionDefinition funcDef = funcDefNode.getFunctionDefinition();
+        IASTFunctionDeclaration funcDef = funcDefNode.getFunctionDefinition();
         handleFunctionDeclaration(successor, funcCallEdge,
             funcDef.getDeclSpecifier());
       }
@@ -112,7 +112,7 @@ public class TypesTransferRelation implements TransferRelation {
       if (!entryFunctionProcessed
           && (cfaEdge.getPredecessor() instanceof CFAFunctionDefinitionNode)) {
         //since by this point all global variables have been processed, we can now process the entry function
-        IASTFunctionDefinition funcDef = entryFunctionDefinitionNode.getFunctionDefinition();
+        IASTFunctionDeclaration funcDef = entryFunctionDefinitionNode.getFunctionDefinition();
         handleFunctionDeclaration(successor, null, funcDef.getDeclSpecifier());
 
         entryFunctionProcessed = true;
