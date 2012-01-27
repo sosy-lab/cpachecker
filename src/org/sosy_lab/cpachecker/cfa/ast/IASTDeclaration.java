@@ -38,29 +38,17 @@ public abstract class IASTDeclaration extends IASTSimpleDeclaration {
 
   private final boolean               isGlobal;
   private final StorageClass          storageClass;
-  private final IASTInitializer       initializer;
 
   public IASTDeclaration(IASTFileLocation pFileLocation,
                          boolean pIsGlobal,
                          StorageClass pStorageClass,
                          IType pSpecifier, String pName,
-                         IASTInitializer pInitializer) {
-    this(pFileLocation, pIsGlobal, pStorageClass, pSpecifier, pName, pName, pInitializer);
-  }
-
-  public IASTDeclaration(IASTFileLocation pFileLocation,
-                         boolean pIsGlobal,
-                         StorageClass pStorageClass,
-                         IType pSpecifier, String pName,
-                         String pOrigName,
-                         IASTInitializer pInitializer) {
+                         String pOrigName) {
     super(pFileLocation, pSpecifier, pName, pOrigName);
     isGlobal = pIsGlobal;
     storageClass = checkNotNull(pStorageClass);
-    initializer = pInitializer;
 
     checkArgument(!(storageClass == StorageClass.TYPEDEF && getName() == null), "Typedefs require a name");
-    checkArgument(!(storageClass == StorageClass.EXTERN && initializer != null), "Extern declarations cannot have an initializer");
   }
 
   public boolean isGlobal() {
@@ -69,14 +57,6 @@ public abstract class IASTDeclaration extends IASTSimpleDeclaration {
 
   public StorageClass getStorageClass() {
     return storageClass;
-  }
-
-  /**
-   * The initial value of the variable
-   * (only if present, null otherwise).
-   */
-  public IASTInitializer getInitializer() {
-    return initializer;
   }
 
   @Override
@@ -91,11 +71,6 @@ public abstract class IASTDeclaration extends IASTSimpleDeclaration {
         && !(getDeclSpecifier() instanceof IASTPointerTypeSpecifier
             && ((IASTPointerTypeSpecifier)getDeclSpecifier()).getType() instanceof IASTFunctionTypeSpecifier)) {
       lASTString.append(getName());
-    }
-
-    if (initializer != null) {
-      lASTString.append(" = ");
-      lASTString.append(initializer.toASTString());
     }
 
     lASTString.append(";");

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import static com.google.common.base.Preconditions.*;
+
 /**
  * This class represents variable declarations.
  * Example code:
@@ -32,11 +34,46 @@ package org.sosy_lab.cpachecker.cfa.ast;
  */
 public final class IASTVariableDeclaration extends IASTDeclaration {
 
+  private final IASTInitializer initializer;
+
   public IASTVariableDeclaration(IASTFileLocation pFileLocation, boolean pIsGlobal,
       StorageClass pStorageClass, IType pSpecifier, String pName, String pOrigName,
       IASTInitializer pInitializer) {
 
-    super(pFileLocation, pIsGlobal, pStorageClass, pSpecifier, pName, pOrigName, pInitializer);
+    super(pFileLocation, pIsGlobal, pStorageClass, pSpecifier, checkNotNull(pName), pOrigName);
+    initializer = pInitializer;
+
+    checkArgument(!(pStorageClass == StorageClass.EXTERN && pInitializer != null), "Extern declarations cannot have an initializer");
   }
 
+  /**
+   * The initial value of the variable
+   * (only if present, null otherwise).
+   */
+  public IASTInitializer getInitializer() {
+    return initializer;
+  }
+
+  @Override
+  public String toASTString() {
+    StringBuilder lASTString = new StringBuilder();
+
+    lASTString.append(getStorageClass().toASTString());
+    lASTString.append(getDeclSpecifier().toASTString());
+
+    if (!(getDeclSpecifier() instanceof IASTFunctionTypeSpecifier)
+        && !(getDeclSpecifier() instanceof IASTPointerTypeSpecifier
+        && ((IASTPointerTypeSpecifier)getDeclSpecifier()).getType() instanceof IASTFunctionTypeSpecifier)) {
+      lASTString.append(getName());
+    }
+
+    if (initializer != null) {
+      lASTString.append(" = ");
+      lASTString.append(initializer.toASTString());
+    }
+
+    lASTString.append(";");
+
+    return lASTString.toString();
+  }
 }
