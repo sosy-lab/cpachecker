@@ -35,19 +35,15 @@ import com.google.common.collect.ImmutableList;
 public class FunctionDefinitionNode extends CFAFunctionDefinitionNode {
 
   private final IASTFunctionDefinition functionDefinition;
-  private final List<IASTParameterDeclaration> parameters;
   private final List<String> parameterNames;
 
   public FunctionDefinitionNode(final int pLineNumber,
-      final String pFunctionName,
       final IASTFunctionDefinition pFunctionDefinition,
       final CFAFunctionExitNode pExitNode,
-      final List<IASTParameterDeclaration> pParameters,
       final List<String> pParameterNames) {
 
-    super(pLineNumber, pFunctionName, pExitNode);
+    super(pLineNumber, pFunctionDefinition.getName(), pExitNode);
     functionDefinition = pFunctionDefinition;
-    parameters = ImmutableList.copyOf(pParameters);
     parameterNames = ImmutableList.copyOf(pParameterNames);
   }
 
@@ -60,6 +56,6 @@ public class FunctionDefinitionNode extends CFAFunctionDefinitionNode {
   }
 
   public List<IASTParameterDeclaration> getFunctionParameters() {
-    return parameters;
+    return functionDefinition.getDeclSpecifier().getParameters();
   }
 }
