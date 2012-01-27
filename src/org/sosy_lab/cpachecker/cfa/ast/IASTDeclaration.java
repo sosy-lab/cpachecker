@@ -34,7 +34,7 @@ import static com.google.common.base.Preconditions.*;
  * Otherwise the name may be null, then it is a struct prototype.
  * In any other case, it is a variable declaration with the given name and type.
  */
-public final class IASTDeclaration extends IASTSimpleDeclaration {
+public abstract class IASTDeclaration extends IASTSimpleDeclaration {
 
   private final boolean               isGlobal;
   private final StorageClass          storageClass;
