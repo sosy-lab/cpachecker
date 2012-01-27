@@ -479,6 +479,14 @@ public class RGEnvironmentManager {
 
     /* find the most general candidates by comparing them */
     for (RGEnvCandidate cnd1 : cndToProcess){
+      if (this.isLocalAssigment(cnd1.getOperation())){
+        cndCovered.add(cnd1);
+        if (debug){
+          System.out.println("\t-local assigm: "+cnd1);
+        }
+        continue;
+      }
+
       if (!cndCovered.contains(cnd1)){
         for (RGEnvCandidate cnd2 : cndToProcess){
           if (cnd1 !=cnd2 && !cndCovered.contains(cnd2)){
@@ -486,7 +494,7 @@ public class RGEnvironmentManager {
             if (candComparator.isLessOrEqual(cnd1, cnd2)){
               // edge1 => edge2
               if (debug){
-                System.out.println("Covered 0:\t"+cnd1+" => "+cnd2);
+                System.out.println("\t-covered: "+cnd1+" => "+cnd2);
               }
               cndCovered.add(cnd1);
               processStats.newCovered++;

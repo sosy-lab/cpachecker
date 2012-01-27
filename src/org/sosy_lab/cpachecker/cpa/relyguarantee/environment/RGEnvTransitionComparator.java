@@ -45,7 +45,7 @@ public abstract class RGEnvTransitionComparator {
 
 
   /**
-   * Returns true only if et1 is less or equal to et2.
+   * Returns true  if et1 is less or equal to et2.
    * @param c1
    * @param c2
    * @return

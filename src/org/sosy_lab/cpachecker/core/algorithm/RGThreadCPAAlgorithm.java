@@ -27,6 +27,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -256,7 +257,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       // edges to be applied
-      Set<CFAEdge> edges = new HashSet<CFAEdge>(edgesNo);
+      Set<CFAEdge> edges = new LinkedHashSet<CFAEdge>(edgesNo);
 
 
       if (nodeForEnvApp.contains(loc)){
@@ -287,7 +288,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
         aElement.setHasLocalChild(true);
       }
 
-      Collection<Pair<AbstractElement,CFAEdge>> successors = new HashSet<Pair<AbstractElement,CFAEdge>>(edgesNo);
+      Collection<Pair<AbstractElement,CFAEdge>> successors = new LinkedHashSet<Pair<AbstractElement,CFAEdge>>(edgesNo);
 
 
       for (CFAEdge edge : edges){

@@ -23,12 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.relyguarantee.environment;
 
-import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
@@ -46,7 +43,7 @@ public abstract class RGEnvCandidateComparator {
   }
 
   /**
-   * Returns true only if c1 is less or equal to c2.
+   * Returns true if c1 is less or equal to c2.
    * @param c1
    * @param c2
    * @return
@@ -68,35 +65,16 @@ public abstract class RGEnvCandidateComparator {
 
     @Override
     public boolean isLessOrEqual(RGEnvCandidate c1, RGEnvCandidate c2) {
-      /*
-       * c1 is less or equal to c2 iff (psi1^phi1^psi1'^phi1') -> (psi2^phi2^psi2'^phi2'),
-       * where unprimed and primed formulas refer to element and successor element.
-       */
+      Formula f1 = c1.getRgSuccessor().getAbstractionFormula().asFormula();
+      Formula pf1 = c1.getRgSuccessor().getPathFormula().getFormula();
+      Formula f2 = c2.getRgSuccessor().getAbstractionFormula().asFormula();
+      Formula pf2 = c2.getRgSuccessor().getPathFormula().getFormula();
 
-      RGAbstractElement rgSucc1 = c1.getRgSuccessor();
-      RGAbstractElement rgSucc2 = c2.getRgSuccessor();
-
-      AbstractionFormula abs1 = rgSucc1.getAbstractionFormula();
-      AbstractionFormula abs2 = rgSucc2.getAbstractionFormula();
-      Formula f1 = rgSucc1.getPathFormula().getFormula();
-      Formula f2 = rgSucc2.getPathFormula().getFormula();
-
-      if (f1.isTrue() && f2.isTrue()){
-        // we may use bdd for a precheck
-        Region r1 = abs1.asRegion();
-        Region r2 = abs2.asRegion();
-        return rManager.entails(r1, r2);
+      if (f1.isFalse() || pf1.isFalse() || (f2.isTrue() && pf2.isTrue())){
+        return true;
       }
 
-      f1 = fManager.makeAnd(abs1.asFormula(), f1);
-      f2 = fManager.makeAnd(abs2.asFormula(), f2);
-      Formula nf2 = fManager.makeNot(f2);
-      Formula f = fManager.makeAnd(f1, nf2);
-
-      thmProver.init();
-      boolean valid = thmProver.isUnsat(f);
-      thmProver.reset();
-      return valid;
+      return false;
     }
 
   }
