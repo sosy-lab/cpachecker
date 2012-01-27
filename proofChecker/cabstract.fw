@@ -344,9 +344,8 @@ RULE: statement ::= jump_statement COMPUTE
 END;
 
 RULE: labeled_statement ::= ident ':' statement COMPUTE
-	.s1 = register_value(StringTable(ident), labeled_statement.input);
-	statement.input = labeled_statement.input;
-	labeled_statement.result = statement.result <- .s1;
+	statement.input = propagate_value(StringTable(ident), labeled_statement.input);
+	labeled_statement.result = statement.result;
 END;
 
 RULE: expression_statement ::= expression_opt ';' COMPUTE
@@ -385,9 +384,8 @@ RULE: selection_statement ::= 'if' '(' Expression ')' statement 'else' statement
 	selection_statement.result = statement[1].result;
 END;
 
-RULE: jump_statement ::= 'goto' ident ';' COMPUTE
-    	assert_equal(get_value(StringTable(ident)), jump_statement.input);
-	jump_statement.result = jump_statement.input;
+RULE: jump_statement ::= 'goto' ident ';' COMPUTE	
+	jump_statement.result = propagate_value(StringTable(ident), jump_statement.input);
 END;
 
 RULE: jump_statement ::= 'return' expression_opt ';' COMPUTE

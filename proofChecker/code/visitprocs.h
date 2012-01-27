@@ -22,7 +22,7 @@ extern void _VS1rule_8 ELI_ARG((_TPPrule_8 _currn));
 extern void _VS1rule_9 ELI_ARG((_TPPrule_9 _currn));
 extern void _VS1rule_10 ELI_ARG((_TPPrule_10 _currn));
 extern void _VS1rule_11 ELI_ARG((_TPPrule_11 _currn));
-extern void _VS1rule_12 ELI_ARG((_TPPrule_12 _currn,UINT* _AS0input));
+extern void _VS1rule_12 ELI_ARG((_TPPrule_12 _currn));
 extern void _VS1rule_13 ELI_ARG((_TPPrule_13 _currn,UINT* _AS0result));
 extern void _VS1rule_14 ELI_ARG((_TPPrule_14 _currn,UINT* _AS0result));
 extern void _VS1rule_15 ELI_ARG((_TPPrule_15 _currn,UINT* _AS0result));

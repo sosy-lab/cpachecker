@@ -43,6 +43,7 @@ UINT _AVselection_statement_result;
 UINT _AVexpression_statement_result;
 UINT _AVexpression_statement_input;
 UINT _AVlabeled_statement_result;
+UINT _AVlabeled_statement_input;
 UINT _AVstatement_input;
 UINT _AVstatement_list_result;
 UINT _AVstatement_list_input;
@@ -85,7 +86,7 @@ _VisitVarDecl()
 _VisitEntry();
 (*(_CALL_VS_((NODEPTR )) (VS1MAP[_currn->_desc1->_prod])))((NODEPTR) _currn->_desc1);
 _AVfunction_call_expression_result=compute_successor(_AVfunction_call_expression_input, StringTable(_currn->_ATTERM_1));
-/*SPC(272)*/
+/*SPC(270)*/
 
 _VisitExit();
 }
@@ -103,7 +104,7 @@ _VisitVarDecl()
 _VisitEntry();
 (*(_CALL_VS_((NODEPTR )) (VS1MAP[_currn->_desc1->_prod])))((NODEPTR) _currn->_desc1);
 _AVfunction_call_expression_result=_AVfunction_call_expression_input;
-/*SPC(268)*/
+/*SPC(266)*/
 
 _VisitExit();
 }
@@ -120,10 +121,10 @@ _TPPrule_3 _currn;
 _VisitVarDecl()
 _VisitEntry();
 _AVexpression_opt_input=_AVjump_statement_input;
-/*SPC(263)*/
+/*SPC(261)*/
 (*(_CALL_VS_((NODEPTR )) (VS1MAP[_currn->_desc1->_prod])))((NODEPTR) _currn->_desc1);
 _AVjump_statement_result=_AVexpression_opt_result;
-/*SPC(264)*/
+/*SPC(262)*/
 
 _VisitExit();
 }
@@ -139,10 +140,8 @@ _TPPrule_4 _currn;
 
 _VisitVarDecl()
 _VisitEntry();
-_AVjump_statement_result=_AVjump_statement_input;
-/*SPC(259)*/
-assert_equal(get_value(StringTable(_currn->_ATTERM_1)), _AVjump_statement_input);
-/*SPC(258)*/
+_AVjump_statement_result=propagate_value(StringTable(_currn->_ATTERM_1), _AVjump_statement_input);
+/*SPC(257)*/
 
 _VisitExit();
 }
@@ -163,15 +162,15 @@ _VisitVarDecl()
 _VisitEntry();
 (*(_CALL_VS_((NODEPTR )) (VS1MAP[_currn->_desc1->_prod])))((NODEPTR) _currn->_desc1);
 _AVstatement_input=(* _AS0input);
-/*SPC(251)*/
+/*SPC(250)*/
 (*(_CALL_VS_((NODEPTR ,UINT*)) (VS1MAP[_currn->_desc2->_prod])))((NODEPTR) _currn->_desc2,(&( _AS2result)));
 _AVstatement_input=(* _AS0input);
-/*SPC(252)*/
+/*SPC(251)*/
 (*(_CALL_VS_((NODEPTR ,UINT*)) (VS1MAP[_currn->_desc3->_prod])))((NODEPTR) _currn->_desc3,(&( _AS3result)));
 assert_equal(_AS2result, _AS3result);
-/*SPC(253)*/
+/*SPC(252)*/
 _AVselection_statement_result=_AS2result;
-/*SPC(254)*/
+/*SPC(253)*/
 
 _VisitExit();
 }
@@ -191,10 +190,10 @@ _VisitVarDecl()
 _VisitEntry();
 (*(_CALL_VS_((NODEPTR )) (VS1MAP[_currn->_desc1->_prod])))((NODEPTR) _currn->_desc1);
 _AVstatement_input=(* _AS0input);
-/*SPC(246)*/
+/*SPC(245)*/
 (*(_CALL_VS_((NODEPTR ,UINT*)) (VS1MAP[_currn->_desc2->_prod])))((NODEPTR) _currn->_desc2,(&( _AS2result)));
 _AVselection_statement_result=_AS2result;
-/*SPC(247)*/
+/*SPC(246)*/
 
 _VisitExit();
 }
@@ -211,10 +210,10 @@ _TPPrule_7 _currn;
 _VisitVarDecl()
 _VisitEntry();
 _AVfunction_call_expression_input=_AVassignment_expression_input;
-/*SPC(241)*/
+/*SPC(240)*/
 (*(_CALL_VS_((NODEPTR )) (VS1MAP[_currn->_desc1->_prod])))((NODEPTR) _currn->_desc1);
 _AVassignment_expression_result=_AVfunction_call_expression_result;
-/*SPC(242)*/
+/*SPC(241)*/
 
 _VisitExit();
 }
@@ -233,10 +232,10 @@ _VisitEntry();
 (*(_CALL_VS_((NODEPTR )) (VS1MAP[_currn->_desc1->_prod])))((NODEPTR) _currn->_desc1);
 (*(_CALL_VS_((NODEPTR )) (VS1MAP[_currn->_desc2->_prod])))((NODEPTR) _currn->_desc2);
 _AVfunction_call_expression_input=_AVassignment_expression_input;
-/*SPC(236)*/
+/*SPC(235)*/
 (*(_CALL_VS_((NODEPTR )) (VS1MAP[_currn->_desc3->_prod])))((NODEPTR) _currn->_desc3);
 _AVassignment_expression_result=_AVfunction_call_expression_result;
-/*SPC(237)*/
+/*SPC(236)*/
 
 _VisitExit();
 }
@@ -253,10 +252,10 @@ _TPPrule_9 _currn;
 _VisitVarDecl()
 _VisitEntry();
 _AVassignment_expression_input=_AVexpression_opt_input;
-/*SPC(231)*/
+/*SPC(230)*/
 (*(_CALL_VS_((NODEPTR )) (VS1MAP[_currn->_desc1->_prod])))((NODEPTR) _currn->_desc1);
 _AVexpression_opt_result=_AVassignment_expression_result;
-/*SPC(232)*/
+/*SPC(231)*/
 
 _VisitExit();
 }
@@ -273,7 +272,7 @@ _TPPrule_10 _currn;
 _VisitVarDecl()
 _VisitEntry();
 _AVexpression_opt_result=_AVexpression_opt_input;
-/*SPC(227)*/
+/*SPC(226)*/
 
 _VisitExit();
 }
@@ -290,20 +289,19 @@ _TPPrule_11 _currn;
 _VisitVarDecl()
 _VisitEntry();
 _AVexpression_opt_input=_AVexpression_statement_input;
-/*SPC(222)*/
+/*SPC(221)*/
 (*(_CALL_VS_((NODEPTR )) (VS1MAP[_currn->_desc1->_prod])))((NODEPTR) _currn->_desc1);
 _AVexpression_statement_result=_AVexpression_opt_result;
-/*SPC(223)*/
+/*SPC(222)*/
 
 _VisitExit();
 }
 
 #if defined(__STDC__) || defined(__cplusplus)
-void _VS1rule_12(_TPPrule_12 _currn,UINT* _AS0input)
+void _VS1rule_12(_TPPrule_12 _currn)
 #else
-void _VS1rule_12(_currn ,_AS0input)
+void _VS1rule_12(_currn )
 _TPPrule_12 _currn;
-UINT* _AS0input;
 
 #endif
 {
@@ -311,13 +309,11 @@ UINT _AS1result;
 
 _VisitVarDecl()
 _VisitEntry();
-_AVstatement_input=(* _AS0input);
-/*SPC(217)*/
-(*(_CALL_VS_((NODEPTR ,UINT*)) (VS1MAP[_currn->_desc1->_prod])))((NODEPTR) _currn->_desc1,(&( _AS1result)));
-register_value(StringTable(_currn->_ATTERM_1), (* _AS0input));
+_AVstatement_input=propagate_value(StringTable(_currn->_ATTERM_1), _AVlabeled_statement_input);
 /*SPC(216)*/
+(*(_CALL_VS_((NODEPTR ,UINT*)) (VS1MAP[_currn->_desc1->_prod])))((NODEPTR) _currn->_desc1,(&( _AS1result)));
 _AVlabeled_statement_result=_AS1result;
-/*SPC(218)*/
+/*SPC(217)*/
 
 _VisitExit();
 }
@@ -416,13 +412,12 @@ UINT* _AS0result;
 
 #endif
 {
-UINT _AS1input;
 
 _VisitVarDecl()
 _VisitEntry();
-_AS1input=_AVstatement_input;
+_AVlabeled_statement_input=_AVstatement_input;
 /*SPC(191)*/
-(*(_CALL_VS_((NODEPTR ,UINT*)) (VS1MAP[_currn->_desc1->_prod])))((NODEPTR) _currn->_desc1,(&( _AS1input)));
+(*(_CALL_VS_((NODEPTR )) (VS1MAP[_currn->_desc1->_prod])))((NODEPTR) _currn->_desc1);
 (* _AS0result)=_AVlabeled_statement_result;
 /*SPC(192)*/
 
