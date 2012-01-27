@@ -188,35 +188,23 @@ function incColspan(col) {
 }
 
 function decColspan(col) {
-    var span = parseInt(col.attr("colspan"));
+    var span = col.attr("colspan");
+    span = (span == undefined) ? 1 : parseInt(span);
     col.attr("colspan", span - 1);
     if (span == 1) { col.hide(); }
 }
 
 // this function shows or hides a column and enlarges or shrinkes the header-columns
-// @param numlist: each num is the index of a column in header, 
-//                 these columns are above the column to toggle
-function toggleColumn (button, numList) {
-    var len = numList.length-1; // last element in numlist is used for columntitles
-    for (var i=0; i<len; i++) {
-        var cell = $("#dataTable > thead > tr:eq(" + i + ") > td:eq(" + numList[i] + ")");
+// @param index: index of a column in row "columnTitle"
+function toggleColumn (button, index) {
+    for (var i=0; i<headerArray.length; i++) {
+        var cell = $("#dataTable > thead > tr:eq(" + i + ") > td:eq(" + headerArray[i][index] + ")");
         button.checked ? incColspan(cell) : decColspan(cell);
     }
-
-    var children = $("tbody > tr > td:nth-child(" + numList[len] + "), " +
-                     "tfoot > tr > td:nth-child(" + numList[len] + "), " +
-                     "#columnTitles > td:nth-child(" + numList[len] + ")");
+    var childIndex = index+1; // first child is number 1
+    var children = $("tbody > tr > td:nth-child(" + childIndex + "), " +
+                     "tfoot > tr > td:nth-child(" + childIndex + ")");
     button.checked ? children.show() : children.hide();
-}
-
-function expandColSpanToNums(row) {
-    var list = [];
-    for (var i=0; i<row.cells.length; i++) {
-      for (var j=0; j<parseInt(row.cells[i].colSpan); j++) {
-        list.push(i);
-      }
-    }
-    return list;
 }
 
 
@@ -229,14 +217,8 @@ function createColumnToggleButtons() {
     if (buttonListCache == null) { // if not cached, for details see 5 lines above
 
         var tableHead = $("#dataTable > thead")[0];
-        var listOfHeaderNums = []
-        var numOfHeaderRows = 6;
-        for (var i=0; i<numOfHeaderRows; i++) {
-            listOfHeaderNums.push(expandColSpanToNums(tableHead.rows[i]));
-        }
-    
         var columnTitles = $("#columnTitles > td");
-        var testNums = listOfHeaderNums[3];
+        var testNums = headerArray[4];
         var testNum = testNums[1];
         var testName = tableHead.children[3].cells[testNum].textContent + " " + 
                        tableHead.children[4].cells[testNum].textContent;
@@ -251,11 +233,7 @@ function createColumnToggleButtons() {
                 buttonList += '</ul><ul>' + testName;
             }
     
-            var toggleFunction = 'onclick="toggleColumn(this,[';
-            for (var j=0; j<numOfHeaderRows; j++) {
-                toggleFunction += listOfHeaderNums[j][i] + ',';
-            }
-            toggleFunction += (i+1) +'])"';
+            var toggleFunction = 'onclick="toggleColumn(this,' + i + ')"';
     
             var column = columnTitles[i];
             var button = '<input type="checkbox" id="check' + i + '" ' + toggleFunction + ' checked>';
@@ -277,6 +255,32 @@ $(document).ready(function(){
         .addClass("clickable")
         .click(function (event) { 
             return createColumnToggleButtons(); });
+});
+
+var headerArray = [];
+
+function createHeaderArray() {
+    if (headerArray.length != 0) { return; } // headerArray already filled
+
+    var tableHead = $("#dataTable > thead")[0];
+    for (var i=0; i<tableHead.rows.length; i++) {
+        var rowIndices = expandColSpanToNums(tableHead.rows[i]);
+        headerArray.push(rowIndices);
+    }
+}
+
+function expandColSpanToNums(row) {
+    var list = [];
+    for (var i=0; i<row.cells.length; i++) {
+      for (var j=0; j<parseInt(row.cells[i].colSpan); j++) {
+        list.push(i);
+      }
+    }
+    return list;
+}
+
+$(document).ready(function(){
+    createHeaderArray();
 });
 </script>
 
@@ -422,19 +426,6 @@ function getYTicks(header) {
     }
 }
 
-// returns a list of cells, each cell is multiplied by value of its colspan.
-function expandColSpan(row) {
-    var list = [];
-    for (i=0; i<row.cells.length; i++) {
-      var cell = row.cells[i];
-      for (j=0; j<parseInt(cell.colSpan); j++) {
-        list.push(cell);
-      }
-    }
-    return list;
-}
-
-
 // returns label of a test: 'tool+test+date'.
 function getLabels(header) {
     debug("labels for: " + header);
@@ -442,21 +433,14 @@ function getLabels(header) {
 
     var indices = getColumnIndicesForHeader(header);
     var tableHead = $('#dataTable > thead')[0];
-    var toolRow = expandColSpan(tableHead.rows[0]);
-    var dateRow = expandColSpan(tableHead.rows[3]);
-    var testRow = expandColSpan(tableHead.rows[4]);
-
-    // assertion
-    if ((toolRow.length != dateRow.length) || 
-        (toolRow.length != testRow.length)) {
-        debug("ERROR: number of columns is invalid!");
-    }
-
+    var tool = 0;  // rowindex for tool, date, test
+    var date = 3;
+    var test = 4;
     for (i = 0; i < indices.length; i++) {
         var index = indices[i];
-        labels.push(toolRow[index].textContent + " " +
-                    testRow[index].textContent + " " +
-                    dateRow[index].textContent);
+        labels.push(tableHead.rows[tool].cells[headerArray[tool][index]].textContent + " " +
+                    tableHead.rows[date].cells[headerArray[date][index]].textContent + " " +
+                    tableHead.rows[test].cells[headerArray[test][index]].textContent);
     }
 
     debug(labels);
