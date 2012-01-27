@@ -25,10 +25,23 @@ package org.sosy_lab.cpachecker.cfa.objectmodel;
 
 public class BlankEdge extends AbstractCFAEdge {
 
-  public BlankEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor,
-      CFANode pSuccessor) {
+  private final String description;
+
+  public BlankEdge(String pRawStatement, int pLineNumber,  CFANode pPredecessor,
+      CFANode pSuccessor, String pDescription) {
 
     super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
+    description = pDescription;
+  }
+
+  @Override
+  public String getDescription() {
+    return description;
+  }
+
+  @Override
+  public String getCode() {
+    return "";
   }
 
   @Override

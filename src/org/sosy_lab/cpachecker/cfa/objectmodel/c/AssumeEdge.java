@@ -36,7 +36,7 @@ public class AssumeEdge extends AbstractCFAEdge {
   public AssumeEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor,
       CFANode pSuccessor, IASTExpression pExpression, boolean pTruthAssumption) {
 
-    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
+    super("[" + pRawStatement + "]", pLineNumber, pPredecessor, pSuccessor);
     truthAssumption = pTruthAssumption;
     expression = pExpression;
   }
@@ -52,11 +52,6 @@ public class AssumeEdge extends AbstractCFAEdge {
 
   public IASTExpression getExpression() {
     return expression;
-  }
-
-  @Override
-  public String getRawStatement() {
-    return "[" + super.getRawStatement() + "]";
   }
 
   @Override

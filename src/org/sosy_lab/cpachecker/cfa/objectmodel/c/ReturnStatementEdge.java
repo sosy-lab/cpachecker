@@ -56,6 +56,11 @@ public class ReturnStatementEdge extends AbstractCFAEdge {
   }
 
   @Override
+  public String getCode() {
+    return rawAST.toASTString();
+  }
+
+  @Override
   public CFAFunctionExitNode getSuccessor() {
     // the constructor enforces that the successor is always a CFAFunctionExitNode
     return (CFAFunctionExitNode)super.getSuccessor();

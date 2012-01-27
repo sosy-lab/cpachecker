@@ -68,6 +68,11 @@ public class DeclarationEdge extends AbstractCFAEdge {
     return declaration;
   }
 
+  @Override
+  public String getCode() {
+    return declaration.toASTString();
+  }
+
   public boolean isGlobal() {
     return false;
   }

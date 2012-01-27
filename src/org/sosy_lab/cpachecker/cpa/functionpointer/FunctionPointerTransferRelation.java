@@ -159,22 +159,20 @@ class FunctionPointerTransferRelation implements TransferRelation {
           IASTFunctionCall functionCall = (IASTFunctionCall)edge.getStatement();
           CFANode predecessorNode = edge.getPredecessor();
           CFANode successorNode = edge.getSuccessor();
-          IASTFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
           int lineNumber = edge.getLineNumber();
 
           CFAFunctionExitNode fExitNode = fDefNode.getExitNode();
 
-          List<IASTExpression> parameters = functionCallExpression.getParameterExpressions();
-
           // Create new edges.
-          CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(functionCall.asStatement().toASTString(), lineNumber, predecessorNode, successorNode, functionCall);
+          CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(edge.getRawStatement(),
+              lineNumber, predecessorNode, successorNode, functionCall);
 
-          FunctionPointerCallEdge callEdge = new FunctionPointerCallEdge(functionCallExpression.toASTString(), edge.getStatement(), lineNumber, predecessorNode, (FunctionDefinitionNode)fDefNode, parameters, calltoReturnEdge);
+          FunctionPointerCallEdge callEdge = new FunctionPointerCallEdge(edge.getRawStatement(), lineNumber, predecessorNode, (FunctionDefinitionNode)fDefNode, functionCall, calltoReturnEdge);
           predecessorNode.addLeavingEdge(callEdge);
           fDefNode.addEnteringEdge(callEdge);
 
           if (fExitNode.getNumEnteringEdges() > 0) {
-            FunctionPointerReturnEdge returnEdge = new FunctionPointerReturnEdge("Return Edge to " + successorNode.getNodeNumber(), lineNumber, fExitNode, successorNode, callEdge, calltoReturnEdge);
+            FunctionPointerReturnEdge returnEdge = new FunctionPointerReturnEdge(lineNumber, fExitNode, successorNode, callEdge, calltoReturnEdge);
             fExitNode.addLeavingEdge(returnEdge);
             successorNode.addEnteringEdge(returnEdge);
 

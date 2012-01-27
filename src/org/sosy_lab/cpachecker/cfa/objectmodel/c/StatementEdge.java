@@ -52,4 +52,9 @@ public class StatementEdge extends AbstractCFAEdge {
   public IASTStatement getRawAST() {
     return statement;
   }
+
+  @Override
+  public String getCode() {
+    return statement.toASTString();
+  }
 }

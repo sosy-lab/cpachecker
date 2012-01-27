@@ -58,7 +58,7 @@ public abstract class AbstractCFAEdge implements CFAEdge {
   }
 
   @Override
-  public String getRawStatement() {
+  public final String getRawStatement() {
     return rawStatement;
   }
 
@@ -68,20 +68,8 @@ public abstract class AbstractCFAEdge implements CFAEdge {
   }
 
   @Override
-  public String getCode() {
-    if (getRawAST() != null) {
-      return getRawAST().toASTString();
-    }
-    return "";
-  }
-
-  @Override
   public String getDescription() {
-    String result = getCode();
-    if (!result.isEmpty()) {
-      return result;
-    }
-    return getRawStatement();
+    return getCode();
   }
 
   @Override

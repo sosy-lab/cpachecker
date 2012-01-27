@@ -295,7 +295,7 @@ public class CFACreator {
     // insert one node to start the series of declarations
     CFANode cur = new CFANode(0, firstNode.getFunctionName());
     cfa.addNode(cur);
-    BlankEdge be = new BlankEdge("INIT GLOBAL VARS", 0, firstNode, cur);
+    BlankEdge be = new BlankEdge("", 0, firstNode, cur, "INIT GLOBAL VARS");
     addToCFA(be);
 
     // create a series of GlobalDeclarationEdges, one for each declaration
@@ -313,7 +313,7 @@ public class CFACreator {
     }
 
     // and a blank edge connecting the declarations with the second node of CFA
-    be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode);
+    be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode, firstEdge.getDescription());
     addToCFA(be);
   }
 

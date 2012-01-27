@@ -32,16 +32,26 @@ public class FunctionReturnEdge extends AbstractCFAEdge {
 
   private final CallToReturnEdge summaryEdge;
 
-  public FunctionReturnEdge(String pRawStatement, int pLineNumber,
+  public FunctionReturnEdge(int pLineNumber,
       CFAFunctionExitNode pPredecessor, CFANode pSuccessor,
       CallToReturnEdge pSummaryEdge) {
 
-    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
+    super("", pLineNumber, pPredecessor, pSuccessor);
     summaryEdge = pSummaryEdge;
   }
 
   public CallToReturnEdge getSummaryEdge() {
     return summaryEdge;
+  }
+
+  @Override
+  public String getCode() {
+    return "";
+  }
+
+  @Override
+  public String getDescription() {
+    return "Return edge from " + getPredecessor().getFunctionName() + " to " + getSuccessor().getFunctionName();
   }
 
   @Override
