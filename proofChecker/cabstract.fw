@@ -385,7 +385,8 @@ RULE: selection_statement ::= 'if' '(' Expression ')' statement 'else' statement
 END;
 
 RULE: jump_statement ::= 'goto' ident ';' COMPUTE	
-	jump_statement.result = propagate_value(StringTable(ident), jump_statement.input);
+	propagate_value(StringTable(ident), jump_statement.input);
+	jump_statement.result = UNREACHABLE;
 END;
 
 RULE: jump_statement ::= 'return' expression_opt ';' COMPUTE

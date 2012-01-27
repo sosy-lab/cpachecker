@@ -86,7 +86,7 @@ _VisitVarDecl()
 _VisitEntry();
 (*(_CALL_VS_((NODEPTR )) (VS1MAP[_currn->_desc1->_prod])))((NODEPTR) _currn->_desc1);
 _AVfunction_call_expression_result=compute_successor(_AVfunction_call_expression_input, StringTable(_currn->_ATTERM_1));
-/*SPC(270)*/
+/*SPC(271)*/
 
 _VisitExit();
 }
@@ -104,7 +104,7 @@ _VisitVarDecl()
 _VisitEntry();
 (*(_CALL_VS_((NODEPTR )) (VS1MAP[_currn->_desc1->_prod])))((NODEPTR) _currn->_desc1);
 _AVfunction_call_expression_result=_AVfunction_call_expression_input;
-/*SPC(266)*/
+/*SPC(267)*/
 
 _VisitExit();
 }
@@ -121,10 +121,10 @@ _TPPrule_3 _currn;
 _VisitVarDecl()
 _VisitEntry();
 _AVexpression_opt_input=_AVjump_statement_input;
-/*SPC(261)*/
+/*SPC(262)*/
 (*(_CALL_VS_((NODEPTR )) (VS1MAP[_currn->_desc1->_prod])))((NODEPTR) _currn->_desc1);
 _AVjump_statement_result=_AVexpression_opt_result;
-/*SPC(262)*/
+/*SPC(263)*/
 
 _VisitExit();
 }
@@ -140,7 +140,9 @@ _TPPrule_4 _currn;
 
 _VisitVarDecl()
 _VisitEntry();
-_AVjump_statement_result=propagate_value(StringTable(_currn->_ATTERM_1), _AVjump_statement_input);
+_AVjump_statement_result=UNREACHABLE;
+/*SPC(258)*/
+propagate_value(StringTable(_currn->_ATTERM_1), _AVjump_statement_input);
 /*SPC(257)*/
 
 _VisitExit();

@@ -1,0 +1,7 @@
+unsigned get_init_state() {
+	return 0;
+}
+
+unsigned compute_successor(unsigned state, const char* ident) {
+	return state;
+}

@@ -1,3 +1,5 @@
+#define UNREACHABLE -1
+
 #ifndef parserInterface_h
 #define parserInterface_h
 
