@@ -1,0 +1,409 @@
+@=~
+~p maximum_input_line_length = infinity
+~O~<convert.specs~>~{
+$/Name/CScope.gnrc:inst
+parserInterface.h
+parserInterface.c
+~}
+~O~<convert.head~>~{
+#include "parserInterface.h"
+
+~}
+~O~<convert.gla~>~{
+ident: C_IDENTIFIER [mkidn]
+integer: C_INTEGER [mkstr]
+include_string: $\<[a-zA-Z\.]*\> [mkstr]
+C_COMMENT 
+~}
+~O~<convert.con~>~{
+root: 
+  source . 
+
+source:
+  file . 
+
+file: 
+  translation_unit .
+ 
+translation_unit:
+  external_declaration /
+  translation_unit external_declaration .
+
+external_declaration: 
+  pre_include / function_definition / declaration . 
+
+pre_include:
+  '#' 'include' include_string .
+
+function_definition:
+  type_specifier ident '(' parameter_list_opt ')' compound_statement_opt .
+
+type_specifier: 
+  'int' / 
+  'bool' / 
+  'void' /
+  'extern' 'int' / 
+  'extern' 'bool' / 
+  'extern' 'void' . 
+
+parameter_list_opt: 
+  / 'void' / 
+  parameter_list .
+
+parameter_list: 
+  parameter / 
+  parameter_list ',' parameter . 
+
+parameter: 
+  type_specifier ident .
+
+declaration_list: 
+  declaration / 
+  declaration_list declaration . 
+
+declaration: 
+  type_specifier init_declarator_list ';' .
+
+init_declarator_list: 
+  init_declarator / 
+  init_declarator_list ',' init_declarator . 
+
+init_declarator:
+  ident / 
+  ident '=' integer_constant 'of' type_specifier /
+  ident '=' initializer . 
+
+initializer:
+  conditional_expression .
+
+compound_statement_opt: 
+  ';' / 
+  compound_statement . 
+
+compound_statement: 
+  '{' declaration_list statement_list_opt '}' / 
+  '{' statement_list_opt '}' . 
+
+statement_list_opt: 
+  / 
+  statement_list . 
+
+statement_list: 
+  statement / 
+  statement_list statement . 
+
+statement: 
+  labeled_statement / 
+  compound_statement / 
+  expression_statement / 
+  selection_statement / 
+  jump_statement . 
+
+labeled_statement: 
+  ident ':' statement .
+
+expression_statement:
+  expression_opt ';' .
+
+expression_opt: 
+  / 
+  assignment_expression .
+
+assignment_expression: 
+  function_call_expression / 
+  IdUse assignment_operator function_call_expression . 
+
+function_call_expression: 
+  ident '(' argument_expression_list_opt ')' / 
+  conditional_expression .
+
+assignment_operator:
+  '=' / 
+  '*=' / 
+  '/=' / 
+  '%=' / 
+  '+=' / 
+  '-=' . 
+
+logical_OR_operator:
+  '||' .
+
+logical_XOR_operator: 
+  '^^' .
+
+logical_AND_operator: 
+  '&&' .
+
+inclusive_OR_operator:
+  '|' .
+
+exclusive_OR_operator:
+  '^' .
+
+and_operator:
+  '&' .
+
+equality_operator:
+  '==' | '!=' .
+
+relational_operator:
+  '<'  /
+  '<=' /
+  '>' /
+  '>=' .
+
+shift_operator:
+  '<<' /
+  '>>' .
+
+additive_operator:
+  '+' /
+  '-' .
+
+multiplicative_operator:
+  '*' /
+  '/' /
+  '%'  . 
+
+conditional_expression: 
+  logical_OR_expression . 
+#  logical_OR_expression '?' expression ':' conditional_expression .
+
+logical_OR_expression: 
+  logical_XOR_expression / 
+  logical_OR_expression logical_OR_operator logical_XOR_expression .
+
+logical_XOR_expression: 
+  logical_AND_expression / 
+  logical_XOR_expression logical_XOR_operator logical_AND_expression .
+
+logical_AND_expression: 
+  inclusive_OR_expression / 
+  logical_AND_expression logical_AND_operator inclusive_OR_expression .
+
+inclusive_OR_expression: 
+  exclusive_OR_expression / 
+  inclusive_OR_expression inclusive_OR_operator exclusive_OR_expression .
+
+exclusive_OR_expression: 
+  AND_expression / 
+  exclusive_OR_expression exclusive_OR_operator AND_expression .
+
+AND_expression: 
+  equality_expression / 
+  AND_expression and_operator equality_expression .
+
+equality_expression: 
+  relational_expression / 
+  equality_expression equality_operator relational_expression .
+
+relational_expression: 
+  shift_expression / 
+  relational_expression relational_operator shift_expression .
+
+shift_expression: 
+  additive_expression / 
+  shift_expression shift_operator additive_expression .
+
+additive_expression: 
+  multiplicative_expression / 
+  additive_expression additive_operator multiplicative_expression .
+
+multiplicative_expression: 
+  cast_expression / 
+  multiplicative_expression multiplicative_operator cast_expression .
+
+cast_expression: 
+  unary_expression .
+
+unary_expression: 
+  postfix_expression / 
+  '++' unary_expression / 
+  '--' unary_expression / 
+  unary_operator cast_expression . 
+
+unary_operator:  
+  '-' / 
+  '!' . 
+
+postfix_expression: 
+  primary_expression / 
+  postfix_expression '++' / 
+  postfix_expression '--' . 
+
+argument_expression_list_opt:
+  /
+  argument_expression_list .
+
+argument_expression_list:
+  conditional_expression /
+  argument_expression_list ',' conditional_expression.
+
+primary_expression: 
+  IdUse / 
+  constant / 
+  '(' conditional_expression ')' .
+
+IdUse: 
+  ident .
+
+constant: 
+  integer_constant /
+  'false' /
+  'true' .
+
+integer_constant:
+  integer . 
+
+selection_statement:
+  'if' '(' conditional_expression ')' statement $'else' /
+  'if' '(' conditional_expression ')' statement 'else' statement .
+
+jump_statement:
+  'goto' ident ';' /
+  'return' expression_opt ';' .
+
+~}
+
+~O~<convert.map~>~{
+	MAPSYM 
+	Expression ::= primary_expression postfix_expression unary_expression cast_expression multiplicative_expression  additive_expression shift_expression relational_expression equality_expression AND_expression exclusive_OR_expression inclusive_OR_expression logical_AND_expression logical_OR_expression logical_XOR_expression conditional_expression .
+	BinOp ::= multiplicative_operator additive_operator relational_operator equality_operator logical_AND_operator logical_OR_operator logical_XOR_operator .
+~}
+
+~O~<convert.lido~>~{
+ATTR input: UINT;
+ATTR result: UINT;
+
+RULE: function_definition ::= type_specifier ident '(' parameter_list_opt ')' compound_statement_opt COMPUTE
+	compound_statement_opt.input = get_init_state();
+END;
+
+RULE: compound_statement_opt ::= ';' COMPUTE
+	compound_statement_opt.result = compound_statement_opt.input;
+END;
+
+RULE: compound_statement_opt ::= compound_statement COMPUTE
+	compound_statement.input = compound_statement_opt.input;
+	compound_statement_opt.result = compound_statement.result;
+END;
+
+RULE: compound_statement ::= '{' declaration_list statement_list_opt '}' COMPUTE
+	statement_list_opt.input = compound_statement.input;
+	compound_statement.result = statement_list_opt.result;
+END;
+
+RULE: compound_statement ::= '{' statement_list_opt '}' COMPUTE
+	statement_list_opt.input = compound_statement.input;
+	compound_statement.result = statement_list_opt.result;
+END;
+
+RULE: statement_list_opt ::= COMPUTE
+	statement_list_opt.result = statement_list_opt.input;
+END;
+
+RULE: statement_list_opt ::= statement_list COMPUTE
+	statement_list.input = statement_list_opt.input;
+	statement_list_opt.result = statement_list.result;
+END;
+
+RULE: statement_list ::= statement COMPUTE
+	statement.input = statement_list.input;
+	statement_list.result = statement.result;
+END;
+
+RULE: statement_list ::= statement_list statement COMPUTE
+	statement_list[2].input = statement_list[1].input;
+	statement[1].input = statement_list[2].result;
+	statement_list[1].result =  statement[1].result;
+END;
+
+RULE: statement ::= labeled_statement COMPUTE
+	labeled_statement.input = statement.input;
+	statement.result = labeled_statement.result;
+END;
+
+RULE: statement ::= compound_statement COMPUTE
+	compound_statement.input = statement.input;
+	statement.result = compound_statement.result;
+END;
+
+RULE: statement ::= expression_statement COMPUTE
+	expression_statement.input = statement.input;
+	statement.result = expression_statement.result;
+END;
+
+RULE: statement ::= selection_statement COMPUTE
+	selection_statement.input = statement.input;
+	statement.result = selection_statement.result;
+END;
+
+RULE: statement ::= jump_statement COMPUTE
+	jump_statement.input = statement.input;
+	statement.result = jump_statement.result;
+END;
+
+RULE: labeled_statement ::= ident ':' statement COMPUTE
+	.s1 = register_value(StringTable(ident), labeled_statement.input);
+	statement.input = labeled_statement.input;
+	labeled_statement.result = statement.result <- .s1;
+END;
+
+RULE: expression_statement ::= expression_opt ';' COMPUTE
+	expression_opt.input = expression_statement.input;
+	expression_statement.result = expression_opt.result;
+END;
+
+RULE: expression_opt ::= COMPUTE
+	expression_opt.result = expression_opt.input;
+END;
+
+RULE: expression_opt ::= assignment_expression COMPUTE
+	assignment_expression.input = expression_opt.input;
+	expression_opt.result = assignment_expression.result;
+END;
+
+RULE: assignment_expression ::= IdUse assignment_operator function_call_expression COMPUTE
+	function_call_expression.input = assignment_expression.input;
+	assignment_expression.result = function_call_expression.result;
+END;
+
+RULE: assignment_expression ::= function_call_expression COMPUTE
+	function_call_expression.input = assignment_expression.input;
+	assignment_expression.result = function_call_expression.result;
+END;
+
+RULE: selection_statement ::= 'if' '(' Expression ')' statement COMPUTE
+	statement.input = selection_statement.input;
+	selection_statement.result = statement.result;
+END;
+
+RULE: selection_statement ::= 'if' '(' Expression ')' statement 'else' statement COMPUTE
+	statement[1].input = selection_statement.input;
+	statement[2].input = selection_statement.input;
+	assert_equal(statement[1].result, statement[2].result);
+	selection_statement.result = statement[1].result;
+END;
+
+RULE: jump_statement ::= 'goto' ident ';' COMPUTE
+    	assert_equal(get_value(StringTable(ident)), jump_statement.input);
+	jump_statement.result = jump_statement.input;
+END;
+
+RULE: jump_statement ::= 'return' expression_opt ';' COMPUTE
+	expression_opt.input = jump_statement.input;
+	jump_statement.result = expression_opt.result;
+END;
+
+RULE: function_call_expression ::= Expression COMPUTE
+	function_call_expression.result = function_call_expression.input;
+END;
+
+RULE: function_call_expression ::= ident '(' argument_expression_list_opt ')' COMPUTE
+	function_call_expression.result = compute_successor(function_call_expression.input, StringTable(ident));
+END;
+
+
+~}
+
+
