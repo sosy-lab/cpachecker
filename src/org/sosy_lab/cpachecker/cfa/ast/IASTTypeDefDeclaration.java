@@ -38,4 +38,8 @@ public final class IASTTypeDefDeclaration extends IASTDeclaration {
     super(pFileLocation, pIsGlobal, pSpecifier, checkNotNull(pName), pName);
   }
 
+  @Override
+  public String toASTString() {
+    return "typedef " + super.toASTString();
+  }
 }
