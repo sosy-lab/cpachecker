@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 
@@ -179,16 +178,18 @@ public final class ErrorPathShrinker {
     while (iterator.hasNext()) {
       CFAEdge cfaEdge = iterator.next().getSecond();
 
-      // only globalDeclarations (SubType of Declaration) are important
-      if (cfaEdge instanceof GlobalDeclarationEdge) {
+      if (cfaEdge instanceof DeclarationEdge) {
         DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
 
-        IType specifier = declarationEdge.getDeclSpecifier();
-        if (declarationEdge.getName() != null) {
-          // if a variable (declarator) is no pointer variable,
-          // it is added to the list of global variables
-          if (!(specifier instanceof IASTPointerTypeSpecifier)) {
-            GLOBAL_VARS.add(declarationEdge.getName());
+        if (declarationEdge.isGlobal()) {
+          // only global declarations are important
+          IType specifier = declarationEdge.getDeclSpecifier();
+          if (declarationEdge.getName() != null) {
+            // if a variable (declarator) is no pointer variable,
+            // it is added to the list of global variables
+            if (!(specifier instanceof IASTPointerTypeSpecifier)) {
+              GLOBAL_VARS.add(declarationEdge.getName());
+            }
           }
         }
       }

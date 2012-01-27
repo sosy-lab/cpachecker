@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
@@ -70,7 +71,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -247,7 +247,7 @@ public class PointerTransferRelation implements TransferRelation {
         // ignore type definitions, struct prototypes etc.
         if (declEdge.getDeclaration() instanceof IASTVariableDeclaration) {
           IASTVariableDeclaration decl = (IASTVariableDeclaration)declEdge.getDeclaration();
-          handleDeclaration(successor, cfaEdge, decl.getName(), decl.getDeclSpecifier());
+          handleDeclaration(successor, cfaEdge, decl.isGlobal(), decl.getName(), decl.getDeclSpecifier());
         }
         break;
 
@@ -304,7 +304,7 @@ public class PointerTransferRelation implements TransferRelation {
           //..then adding all parameters as local variables
           for (IASTParameterDeclaration dec : l) {
             IType declSpecifier = dec.getDeclSpecifier();
-            handleDeclaration(successor, cfaEdge, dec.getName(), declSpecifier);
+            handleDeclaration(successor, cfaEdge, false, dec.getName(), declSpecifier);
           }
           entryFunctionProcessed = true;
         }
@@ -342,7 +342,7 @@ public class PointerTransferRelation implements TransferRelation {
   }
 
   private void handleDeclaration(PointerElement element, CFAEdge edge,
-      String name, IType specifier) throws CPATransferException {
+      final boolean global, String name, IType specifier) throws CPATransferException {
 
     if (name == null) {
       throw new UnrecognizedCCodeException("not expected in CIL", edge);
@@ -360,7 +360,7 @@ public class PointerTransferRelation implements TransferRelation {
 
     if (specifier instanceof IASTArrayTypeSpecifier) {
       Pointer p = new Pointer(1);
-      if (edge instanceof GlobalDeclarationEdge) {
+      if (global) {
         element.addNewGlobalPointer(varName, p);
       } else {
         element.addNewLocalPointer(varName, p);
@@ -405,7 +405,7 @@ public class PointerTransferRelation implements TransferRelation {
 
         Pointer ptr = new Pointer(depth);
 
-        if (edge instanceof GlobalDeclarationEdge) {
+        if (global) {
           element.addNewGlobalPointer(varName, ptr);
           element.pointerOp(new Pointer.Assign(Memory.UNINITIALIZED_POINTER),
               ptr);
@@ -432,7 +432,7 @@ public class PointerTransferRelation implements TransferRelation {
 
       } else {
         Pointer p = new Pointer(depth);
-        if (edge instanceof GlobalDeclarationEdge) {
+        if (global) {
           element.addNewGlobalPointer(varName, p);
           element.pointerOp(new Pointer.Assign(Memory.UNINITIALIZED_POINTER), p);
         } else {
@@ -457,7 +457,7 @@ public class PointerTransferRelation implements TransferRelation {
       }
 
     } else {
-      if (edge instanceof GlobalDeclarationEdge) {
+      if (global) {
         element.addNewGlobalPointer(varName, null);
       } else {
         element.addNewLocalPointer(varName, null);
@@ -1511,7 +1511,8 @@ public class PointerTransferRelation implements TransferRelation {
 
       // pointer variable declaration
       String functionName = cfaEdge.getSuccessor().getFunctionName();
-      if (missing.typeInformationEdge instanceof GlobalDeclarationEdge) {
+      if (missing.typeInformationEdge instanceof DeclarationEdge
+          && ((IASTDeclaration) missing.typeInformationEdge).isGlobal()) {
         functionName = null;
       }
 

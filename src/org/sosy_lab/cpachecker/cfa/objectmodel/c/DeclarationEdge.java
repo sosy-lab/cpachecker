@@ -70,6 +70,6 @@ public class DeclarationEdge extends AbstractCFAEdge {
   }
 
   public boolean isGlobal() {
-    return false;
+    return declaration.isGlobal();
   }
 }
