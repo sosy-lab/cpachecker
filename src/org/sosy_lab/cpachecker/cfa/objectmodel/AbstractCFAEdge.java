@@ -76,6 +76,15 @@ public abstract class AbstractCFAEdge implements CFAEdge {
   }
 
   @Override
+  public String getDescription() {
+    String result = getCode();
+    if (!result.isEmpty()) {
+      return result;
+    }
+    return getRawStatement();
+  }
+
+  @Override
   public int getLineNumber() {
     return lineNumber;
   }
@@ -103,8 +112,8 @@ public abstract class AbstractCFAEdge implements CFAEdge {
 
   @Override
   public String toString() {
-    return "(" + getPredecessor() + " -{" +
-        getRawStatement().replaceAll("\n", " ") +
-        "}-> " + getSuccessor() + ")";
+    return "Line " + getLineNumber() + ":\t" + getPredecessor() + " -{" +
+        getDescription().replaceAll("\n", " ") +
+        "}-> " + getSuccessor();
   }
 }

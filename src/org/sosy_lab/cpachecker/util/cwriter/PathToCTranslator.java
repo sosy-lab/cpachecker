@@ -394,7 +394,7 @@ public class PathToCTranslator {
       DeclarationEdge lDeclarationEdge = (DeclarationEdge)pCFAEdge;
 
       if (lDeclarationEdge.isGlobal()) {
-        mGlobalDefinitionsList.add(lDeclarationEdge.getRawStatement());
+        mGlobalDefinitionsList.add(lDeclarationEdge.getCode());
         return "";
       }
 

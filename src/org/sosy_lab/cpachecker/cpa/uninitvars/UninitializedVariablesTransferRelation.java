@@ -164,11 +164,11 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
 
       if (edge instanceof CallToReturnEdge && expression instanceof IASTFunctionCallExpression) {
         message = "uninitialized return value of function call " + variable + " in line "
-        + lineNumber + ": " + edge.getRawStatement();
+        + lineNumber + ": " + edge.getDescription();
         element.addProperty(ElementProperty.UNINITIALIZED_RETURN_VALUE);
       } else {
         message = "uninitialized variable " + variable + " used in line "
-        + lineNumber + ": " + edge.getRawStatement();
+        + lineNumber + ": " + edge.getDescription();
         element.addProperty(ElementProperty.UNINITIALIZED_VARIABLE_USED);
       }
 

@@ -165,7 +165,7 @@ abstract class AutomatonAction {
             } catch (InvalidQueryException e) {
               pArgs.getLogger().logException(Level.WARNING, e,
                   "Automaton encountered an Exception during Query of the "
-                  + cpaName + " CPA (Element " + aqe.toString() + ") on Edge " + pArgs.getCfaEdge().getRawStatement());
+                  + cpaName + " CPA (Element " + aqe.toString() + ") on Edge " + pArgs.getCfaEdge().getDescription());
               return defaultResultValue; // try to carry on with the further evaluation
             }
           }

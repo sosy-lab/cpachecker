@@ -87,7 +87,7 @@ public final class DOTBuilder2 {
   private static String getEdgeText(CFAEdge edge) {
     //the first call to replaceAll replaces \" with \ " to prevent a bug in dotty.
     //future updates of dotty may make this obsolete.
-    return edge.getRawStatement()
+    return edge.getDescription()
       .replaceAll("\\Q\\\"\\E", "\\ \"")
       .replaceAll ("\\\"", "\\\\\\\"")
       .replaceAll("\n", " ")

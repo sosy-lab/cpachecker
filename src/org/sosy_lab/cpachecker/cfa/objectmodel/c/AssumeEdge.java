@@ -67,6 +67,11 @@ public class AssumeEdge extends AbstractCFAEdge {
     return "!(" + expression.toASTString() + ")";
   }
 
+  @Override
+  public String getDescription() {
+    return "[" + getCode() + "]";
+  }
+
   /**
    * TODO
    * Warning: for instances with {@link #getTruthAssumption()} == false, the

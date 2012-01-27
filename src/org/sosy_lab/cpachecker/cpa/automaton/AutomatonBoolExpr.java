@@ -264,14 +264,14 @@ interface AutomatonBoolExpr extends AutomatonExpression {
               } else {
                 pArgs.getLogger().log(Level.WARNING,
                     "Automaton got a non-Boolean value during Query of the "
-                    + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement() +
+                    + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription() +
                     ". Assuming FALSE.");
                 return CONST_FALSE;
               }
             } catch (InvalidQueryException e) {
               pArgs.getLogger().logException(Level.WARNING, e,
                   "Automaton encountered an Exception during Query of the "
-                  + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement());
+                  + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription());
               return CONST_FALSE;
             }
           }

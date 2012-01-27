@@ -39,6 +39,6 @@ public class UnsupportedCCodeException extends UnrecognizedCCodeException {
   }
 
   public UnsupportedCCodeException(String msg, CFAEdge cfaEdge) {
-    this(msg, cfaEdge, cfaEdge.getRawAST());
+    this(msg, cfaEdge, null);
   }
 }

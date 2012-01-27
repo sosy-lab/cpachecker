@@ -85,9 +85,9 @@ interface AutomatonExpression {
             } catch (InvalidQueryException e) {
               pArgs.getLogger().logException(Level.WARNING, e,
                   "Automaton encountered an Exception during Query of the "
-                  + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement());
+                  + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription());
               return new ResultValue<String>("Automaton encountered an Exception during Query of the "
-                  + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement(), "AutomatonExpression.CPAQuery");
+                  + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription(), "AutomatonExpression.CPAQuery");
             }
           }
         }

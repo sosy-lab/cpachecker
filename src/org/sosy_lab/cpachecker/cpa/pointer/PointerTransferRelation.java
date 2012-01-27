@@ -188,7 +188,7 @@ public class PointerTransferRelation implements TransferRelation {
         warnings.add(warningIndex);
         if (lineNumber != null) {
           logger.log(Level.WARNING, "Warning: " + message + " in line "
-              + lineNumber + ": " + edge.getRawStatement());
+              + lineNumber + ": " + edge.getDescription());
         } else {
           logger.log(Level.WARNING, "Warning: " + message);
         }
@@ -209,7 +209,7 @@ public class PointerTransferRelation implements TransferRelation {
         memoryLeakWarnings.add(warningIndex);
         if (lineNumber != null) {
           logger.log(Level.WARNING, "Warning: " + message + " in line "
-              + lineNumber + ": " + edge.getRawStatement());
+              + lineNumber + ": " + edge.getDescription());
         } else {
           logger.log(Level.WARNING, "Warning: " + message);
         }
@@ -221,7 +221,7 @@ public class PointerTransferRelation implements TransferRelation {
     if (printWarnings) {
       int lineNumber = edge.getLineNumber();
       logger.log(Level.WARNING, "ERROR: " + message + " in line " + lineNumber
-          + ": " + edge.getRawStatement());
+          + ": " + edge.getDescription());
     }
   }
 

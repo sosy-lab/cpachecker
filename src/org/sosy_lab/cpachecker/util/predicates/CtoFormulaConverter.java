@@ -218,7 +218,7 @@ public class CtoFormulaConverter {
   private String getLogMessage(String msg, CFAEdge edge) {
     return "Line " + edge.getLineNumber()
             + ": " + msg
-            + ": " + edge.getRawStatement();
+            + ": " + edge.getDescription();
   }
 
   private void logDebug(String msg, IASTNode astNode) {

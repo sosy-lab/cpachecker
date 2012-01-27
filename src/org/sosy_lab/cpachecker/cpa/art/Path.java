@@ -31,6 +31,7 @@ import org.json.simple.JSONObject;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
@@ -46,18 +47,7 @@ public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder();
-
-    for (CFAEdge edge : asEdgesList()) {
-      if (edge == null) continue; // in this case we do not need the edge
-      sb.append("Line ");
-      sb.append(edge.getLineNumber());
-      sb.append(": ");
-      sb.append(edge);
-      sb.append("\n");
-    }
-
-    return sb.toString();
+    return Joiner.on('\n').skipNulls().join(asEdgesList());
   }
 
   @SuppressWarnings("unchecked")
@@ -71,7 +61,7 @@ public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
       elem.put("artelem", artelem.getElementId());
       elem.put("source", edge.getPredecessor().getNodeNumber());
       elem.put("target", edge.getSuccessor().getNodeNumber());
-      elem.put("desc", edge.getRawStatement().replaceAll("\n", " "));
+      elem.put("desc", edge.getDescription().replaceAll("\n", " "));
       elem.put("line", edge.getLineNumber());
       path.add(elem);
     }

@@ -33,9 +33,20 @@ public interface CFAEdge {
 
   public CFANode getSuccessor();
 
-  public String getRawStatement();
-
   public IASTNode getRawAST();
+
+  public int getLineNumber();
+
+  /**
+   * Returns the part of the original input file from which this edge was
+   * produced. This should usually be a single statement / declaration etc.
+   * (what normal programmers write on one line).
+   *
+   * The result does not reflect any post-processing and simplification which
+   * was done after parsing and thus may show different C code than the result
+   * of {@link #getCode()}.
+   */
+  public String getRawStatement();
 
   /**
    * Returns a string representation of the code attached to this edge.
@@ -43,5 +54,18 @@ public interface CFAEdge {
    */
   public String getCode();
 
-  public int getLineNumber();
+  /**
+   * Returns a representation of this edge which is meant to be shown to the
+   * user. This description should only contain the code content of the edge
+   * (i.e., no meta-information like line number and predecessor/successor) and
+   * thus usually be similar to the output of {@link #getCode()}.
+   */
+  public String getDescription();
+
+  /**
+   * Returns a full representation of this edge (including as many information
+   * as possible) which is meant to be shown to the user.
+   */
+  @Override
+  public String toString();
 }

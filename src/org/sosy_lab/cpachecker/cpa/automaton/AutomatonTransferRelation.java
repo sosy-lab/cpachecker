@@ -165,7 +165,7 @@ class AutomatonTransferRelation implements TransferRelation {
           } else {
             // matching transitions, but unfulfilled assertions: goto error state
             AutomatonState errorState = AutomatonState.automatonStateFactory(Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, cpa);
-            logger.log(Level.INFO, "Automaton going to ErrorState on edge \"" + edge.getRawStatement() + "\"");
+            logger.log(Level.INFO, "Automaton going to ErrorState on edge \"" + edge.getDescription() + "\"");
             lSuccessors.add(errorState);
           }
 

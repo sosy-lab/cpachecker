@@ -79,7 +79,7 @@ public final class DOTBuilder {
   private static class DotGenerator implements CFATraversal.CFAVisitor {
 
     private final List<String> nodes = new ArrayList<String>();
-    
+
     // edges for each function
     private final ListMultimap<String, String> edges = ArrayListMultimap.create();
 
@@ -125,15 +125,9 @@ public final class DOTBuilder {
 
       //the first call to replaceAll replaces \" with \ " to prevent a bug in dotty.
       //future updates of dotty may make this obsolete.
-      if(edge.getRawAST() != null){
-        sb.append(edge.getRawAST().toASTString().replaceAll("\\Q\\\"\\E", "\\ \"")
-                                                .replaceAll("\\\"", "\\\\\\\"")
-                                                .replaceAll("\n", " "));
-      } else {
-        sb.append(edge.getRawStatement().replaceAll("\\Q\\\"\\E", "\\ \"")
-                                        .replaceAll("\\\"", "\\\\\\\"")
-                                        .replaceAll("\n", " "));
-      }
+      sb.append(edge.getDescription().replaceAll("\\Q\\\"\\E", "\\ \"")
+                                     .replaceAll("\\\"", "\\\\\\\"")
+                                     .replaceAll("\n", " "));
 
       sb.append("\"");
       if (edge instanceof CallToReturnEdge) {

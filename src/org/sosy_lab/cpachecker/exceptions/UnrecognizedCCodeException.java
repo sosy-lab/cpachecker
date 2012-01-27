@@ -48,7 +48,7 @@ public class UnrecognizedCCodeException extends CPATransferException {
   }
 
   public UnrecognizedCCodeException(String msg2, CFAEdge edge) {
-    super(createMessage(MESSAGE, msg2, edge, edge.getRawAST()));
+    super(createMessage(MESSAGE, msg2, edge, null));
   }
 
   public UnrecognizedCCodeException(CFAEdge edge, IASTNode astNode) {
