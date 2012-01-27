@@ -853,10 +853,12 @@ class ASTConverter {
 
       String origName = name;
 
-      if (!isGlobal && storageClass == StorageClass.STATIC) {
-        isGlobal = true;
+      if (storageClass == StorageClass.STATIC) {
+        if (!isGlobal) {
+          isGlobal = true;
+          name = "static__" + scope.getCurrentFunctionName() + "__" + name;
+        }
         storageClass = StorageClass.AUTO;
-        name = "static__" + scope.getCurrentFunctionName() + "__" + name;
       }
 
       if (scope.variableNameInUse(name, name)) {
