@@ -439,8 +439,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
         }
         //get rid of the local context, as it is no longer needed and may be different on the next call.
         //only do this in case of an internal call.
-        if (cfaEdge instanceof CallToReturnEdge &&
-            !((CallToReturnEdge)cfaEdge).getRawStatement().equals("External Call")) {
+        if (cfaEdge instanceof CallToReturnEdge) {
           element.returnFromFunction();
         }
         return returnUninit;
