@@ -24,11 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.IASTTypeDefDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
-import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -51,14 +47,8 @@ public class DeclarationEdge extends AbstractCFAEdge {
     return CFAEdgeType.DeclarationEdge;
   }
 
-  public StorageClass getStorageClass() {
-    if (declaration instanceof IASTVariableDeclaration) {
-      return ((IASTVariableDeclaration) declaration).getStorageClass();
-    } else if (declaration instanceof IASTTypeDefDeclaration) {
-      return StorageClass.TYPEDEF;
-    } else {
-      return StorageClass.AUTO;
-    }
+  public IASTDeclaration getDeclaration() {
+    return declaration;
   }
 
   public IType getDeclSpecifier() {
@@ -67,14 +57,6 @@ public class DeclarationEdge extends AbstractCFAEdge {
 
   public String getName() {
     return declaration.getName();
-  }
-
-  public IASTInitializer getInitializer() {
-    if (declaration instanceof IASTVariableDeclaration) {
-      return ((IASTVariableDeclaration) declaration).getInitializer();
-    } else {
-      return null;
-    }
   }
 
   @Override

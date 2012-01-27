@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -193,32 +194,31 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   }
 
   private void handleDeclaration(UninitializedVariablesElement element,
-      DeclarationEdge declaration) {
+      DeclarationEdge declarationEdge) {
 
-    //typedefs do not concern this CPA
-    if (declaration.getStorageClass() != StorageClass.TYPEDEF) {
+    if (!(declarationEdge.getDeclaration() instanceof IASTVariableDeclaration)) {
+      // typedefs etc. do not concern this CPA
+      return;
+    }
+    IASTVariableDeclaration decl = (IASTVariableDeclaration)declarationEdge.getDeclaration();
+    String varName = decl.getName();
+    if (decl.isGlobal()) {
+      globalVars.add(varName);
+    }
 
-      if (declaration.getName() != null) {
-          String varName = declaration.getName();
-          if (declaration.isGlobal()) {
-            globalVars.add(varName);
-          }
+    lastAdded = varName;
 
-          lastAdded = varName;
-
-          IType specifier = declaration.getDeclSpecifier();
-          IASTInitializer initializer = declaration.getInitializer();
-          // initializers in CIL are always constant, so no need to check if
-          // initializer expression contains uninitialized variables
-          if (initializer == null &&
-              !(declaration.getStorageClass() == StorageClass.EXTERN) &&
-              !(specifier instanceof IASTArrayTypeSpecifier) &&
-              !(specifier instanceof IASTFunctionTypeSpecifier)) {
-            setUninitialized(element, varName);
-          } else {
-            setInitialized(element, varName);
-          }
-      }
+    IType specifier = decl.getDeclSpecifier();
+    IASTInitializer initializer = decl.getInitializer();
+    // initializers in CIL are always constant, so no need to check if
+    // initializer expression contains uninitialized variables
+    if (initializer == null &&
+        !(decl.getStorageClass() == StorageClass.EXTERN) &&
+        !(specifier instanceof IASTArrayTypeSpecifier) &&
+        !(specifier instanceof IASTFunctionTypeSpecifier)) {
+      setUninitialized(element, varName);
+    } else {
+      setInitialized(element, varName);
     }
   }
 
@@ -491,12 +491,11 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
             //only need to do this for non-external structs: add a variable for each field of the struct
             //and set it uninitialized (since it is only declared at this point); do this recursively for all
             //fields that are structs themselves
-            if (t.getTypeClass() == TypeClass.STRUCT &&
-                !(declEdge.getStorageClass() == StorageClass.EXTERN)) {
+            if (t.getTypeClass() == TypeClass.STRUCT) {
 
               handleStructDeclaration((UninitializedVariablesElement)element, typeElem,
                                       (Type.CompositeType)t, lastAdded, lastAdded,
-                                      declEdge.isGlobal());
+                                      declEdge.getDeclaration().isGlobal());
             }
           }
         }

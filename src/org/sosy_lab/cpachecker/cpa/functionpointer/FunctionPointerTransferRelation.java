@@ -61,8 +61,8 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -331,28 +331,29 @@ class FunctionPointerTransferRelation implements TransferRelation {
 
   private void handleDeclaration(FunctionPointerElement pNewState, DeclarationEdge declEdge) throws UnrecognizedCCodeException {
 
-    if (declEdge.getStorageClass() != StorageClass.AUTO) {
+    if (!(declEdge.getDeclaration() instanceof IASTVariableDeclaration)) {
       // not a variable declaration
       return;
     }
+    IASTVariableDeclaration decl = (IASTVariableDeclaration)declEdge.getDeclaration();
 
     String functionName = declEdge.getPredecessor().getFunctionName();
 
     // get name of declaration
-    String name = declEdge.getName();
+    String name = decl.getName();
     if (name == null) {
       // not a variable declaration
       return;
     }
-    if (!declEdge.isGlobal()) {
+    if (!decl.isGlobal()) {
       name = scoped(name, functionName);
     }
 
     // get initial value
     FunctionPointerTarget initialValue = invalidFunctionPointerTarget;
 
-    if (declEdge.getInitializer() != null) {
-      IASTInitializer init = declEdge.getInitializer();
+    if (decl.getInitializer() != null) {
+      IASTInitializer init = decl.getInitializer();
       if (init instanceof IASTInitializerExpression) {
         initialValue = getValue(((IASTInitializerExpression) init).getExpression(), pNewState, functionName);
       }

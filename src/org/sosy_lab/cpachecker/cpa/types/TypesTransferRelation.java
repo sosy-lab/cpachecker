@@ -30,6 +30,7 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
+import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
@@ -44,8 +45,9 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IASTTypeDefDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
-import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -129,28 +131,26 @@ public class TypesTransferRelation implements TransferRelation {
   private void handleDeclaration(TypesElement element,
                                  DeclarationEdge declarationEdge)
                                  throws UnrecognizedCCodeException {
+    IASTDeclaration decl = declarationEdge.getDeclaration();
     IType specifier = declarationEdge.getDeclSpecifier();
 
-    if (specifier instanceof IASTFunctionTypeSpecifier) {
+    if (decl instanceof IASTFunctionDeclaration) {
       handleFunctionDeclaration(element, declarationEdge, (IASTFunctionTypeSpecifier)specifier);
 
     } else {
-
       Type type = getType(element, declarationEdge, specifier);
 
-      if (declarationEdge.getName() != null) {
-        String thisName = declarationEdge.getName();
+      if (decl instanceof IASTTypeDefDeclaration) {
+        element.addTypedef(decl.getName(), type);
 
-        if (declarationEdge.getStorageClass() == StorageClass.TYPEDEF) {
-          element.addTypedef(thisName, type);
-        } else {
-          String functionName = null;
-          if (!(declarationEdge.isGlobal())) {
-            functionName = declarationEdge.getSuccessor().getFunctionName();
-          }
+      } else if (decl instanceof IASTVariableDeclaration) {
 
-          element.addVariable(functionName, thisName, type);
+        String functionName = null;
+        if (!(decl.isGlobal())) {
+          functionName = declarationEdge.getSuccessor().getFunctionName();
         }
+
+        element.addVariable(functionName, decl.getName(), type);
       }
     }
   }

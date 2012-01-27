@@ -42,16 +42,12 @@ import org.sosy_lab.cpachecker.cfa.ast.DefaultExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.Defaults;
 import org.sosy_lab.cpachecker.cfa.ast.ForwardingExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.IASTArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTArrayTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTCompositeTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTElaboratedTypeSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTEnumerationSpecifier.IASTEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTExpressionAssignmentStatement;
@@ -62,12 +58,10 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTNamedTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTPointerTypeSpecifier;
@@ -79,12 +73,12 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IComplexType;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.ITypedef;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.StatementVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
@@ -444,7 +438,7 @@ public class CtoFormulaConverter {
 
     case DeclarationEdge: {
       DeclarationEdge d = (DeclarationEdge)edge;
-      edgeFormula = makeDeclaration(d.getDeclSpecifier(), d.isGlobal(), d, function, ssa, constraints, edge);
+      edgeFormula = makeDeclaration(d, function, ssa, constraints);
       break;
     }
 
@@ -508,103 +502,85 @@ public class CtoFormulaConverter {
     return new PathFormula(newFormula, newSsa, newLength);
   }
 
-  private Formula makeDeclaration(IType spec, boolean isGlobal,
+  private Formula makeDeclaration(
       DeclarationEdge edge, String function, SSAMapBuilder ssa,
-      Constraints constraints, CFAEdge cfaEdge) throws CPATransferException {
+      Constraints constraints) throws CPATransferException {
 
-    if (spec instanceof IASTFunctionTypeSpecifier) {
-      return fmgr.makeTrue();
-
-    } else if (spec instanceof IASTCompositeTypeSpecifier) {
-      // this is the declaration of a struct, just ignore it...
+    if (!(edge.getDeclaration() instanceof IASTVariableDeclaration)) {
+      // struct prototype, function declaration, typedef etc.
       logDebug("Ignoring declaration", edge);
       return fmgr.makeTrue();
+    }
 
-    } else if (spec instanceof IASTSimpleDeclSpecifier ||
-               spec instanceof IASTEnumerationSpecifier ||
-               spec instanceof IASTElaboratedTypeSpecifier ||
-               spec instanceof IASTNamedTypeSpecifier ||
-               spec instanceof IASTArrayTypeSpecifier ||
-               spec instanceof IASTPointerTypeSpecifier) {
+    IASTVariableDeclaration decl = (IASTVariableDeclaration)edge.getDeclaration();
 
-      if (edge.getStorageClass() == StorageClass.TYPEDEF) {
-        logDebug("Ignoring typedef", edge);
-        return fmgr.makeTrue();
+    String varNameWithoutFunction = decl.getName();
+    String varName;
+    if (decl.isGlobal()) {
+      varName = varNameWithoutFunction;
+    } else {
+      varName = scoped(varNameWithoutFunction, function);
+    }
+
+    // TODO get the type of the variable, and act accordingly
+
+    // if the var is unsigned, add the constraint that it should
+    // be > 0
+    //    if (((IASTSimpleDeclSpecifier)spec).isUnsigned()) {
+    //    long z = mathsat.api.msat_make_number(msatEnv, "0");
+    //    long mvar = buildMsatVariable(var, idx);
+    //    long t = mathsat.api.msat_make_gt(msatEnv, mvar, z);
+    //    t = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), t);
+    //    m1 = new MathsatFormula(t);
+    //    }
+
+    // just increment index of variable in SSAMap
+    // (a declaration contains an implicit assignment, even without initializer)
+    // In case of an existing initializer, we increment the index twice
+    // (here and below) so that the index 2 only occurs for uninitialized variables.
+    // DO NOT OMIT THIS CALL, even without an initializer!
+    makeFreshIndex(varName, ssa);
+
+    // if there is an initializer associated to this variable,
+    // take it into account
+    IASTInitializer initializer = decl.getInitializer();
+    IASTExpression init = null;
+
+    if (initializer == null) {
+      if (initAllVars) {
+        // auto-initialize variables to zero
+        logDebug("AUTO-INITIALIZING VAR: ", edge);
+        init = Defaults.forType(decl.getDeclSpecifier(), null);
       }
 
-      // ignore type prototypes here
-      if (edge.getName() != null) {
-
-        String varNameWithoutFunction = edge.getName();
-        String varName;
-        if (isGlobal) {
-          varName = varNameWithoutFunction;
-        } else {
-          varName = scoped(varNameWithoutFunction, function);
-        }
-
-        // TODO get the type of the variable, and act accordingly
-
-        // if the var is unsigned, add the constraint that it should
-        // be > 0
-        //    if (((IASTSimpleDeclSpecifier)spec).isUnsigned()) {
-        //    long z = mathsat.api.msat_make_number(msatEnv, "0");
-        //    long mvar = buildMsatVariable(var, idx);
-        //    long t = mathsat.api.msat_make_gt(msatEnv, mvar, z);
-        //    t = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), t);
-        //    m1 = new MathsatFormula(t);
-        //    }
-
-        // just increment index of variable in SSAMap
-        // (a declaration contains an implicit assignment, even without initializer)
-        // In case of an existing initializer, we increment the index twice
-        // (here and below) so that the index 2 only occurs for uninitialized variables.
-        makeFreshIndex(varName, ssa);
-
-        // if there is an initializer associated to this variable,
-        // take it into account
-        IASTInitializer initializer = edge.getInitializer();
-        IASTExpression init = null;
-
-        if (initializer == null) {
-          if (initAllVars) {
-            // auto-initialize variables to zero
-            logDebug("AUTO-INITIALIZING VAR: ", edge);
-            init = Defaults.forType(spec, null);
-          }
-
-        } else if (initializer instanceof IASTInitializerExpression) {
-          init = ((IASTInitializerExpression)initializer).getExpression();
-
-        } else {
-          logDebug("Ignoring unsupported initializer", initializer);
-        }
-
-        if (init != null) {
-          // initializer value present
-
-          Formula minit = buildTerm(init, cfaEdge, function, ssa, constraints);
-          Formula assignments = makeAssignment(varName, minit, ssa);
-
-          if (handlePointerAliasing) {
-            // we need to add the pointer alias
-            Formula pAssign = buildDirectSecondLevelAssignment(spec, varName,
-                removeCast(init), function, constraints, ssa);
-            assignments = fmgr.makeAnd(pAssign, assignments);
-
-            // no need to add pointer updates:
-            // the left hand variable cannot yet be aliased
-            // because it is newly created
-          }
-
-          return assignments;
-        }
-      }
-      return fmgr.makeTrue();
+    } else if (initializer instanceof IASTInitializerExpression) {
+      init = ((IASTInitializerExpression)initializer).getExpression();
 
     } else {
-      throw new UnrecognizedCFAEdgeException(edge);
+      logDebug("Ignoring unsupported initializer", initializer);
     }
+
+    if (init == null) {
+      return fmgr.makeTrue();
+    }
+
+    // initializer value present
+
+    Formula minit = buildTerm(init, edge, function, ssa, constraints);
+    Formula assignments = makeAssignment(varName, minit, ssa);
+
+    if (handlePointerAliasing) {
+      // we need to add the pointer alias
+      Formula pAssign = buildDirectSecondLevelAssignment(decl.getDeclSpecifier(), varName,
+          removeCast(init), function, constraints, ssa);
+      assignments = fmgr.makeAnd(pAssign, assignments);
+
+      // no need to add pointer updates:
+      // the left hand variable cannot yet be aliased
+      // because it is newly created
+    }
+
+    return assignments;
   }
 
   private Formula makeExitFunction(CallToReturnEdge ce, String function,

@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializerExpression;
@@ -61,8 +60,8 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
@@ -331,21 +330,21 @@ public class ExplicitTransferRelation implements TransferRelation
   {
 
     ExplicitElement newElement = element.clone();
-    if((declarationEdge.getName() == null)
-        || (declarationEdge.getStorageClass() == StorageClass.TYPEDEF)
-        || (declarationEdge.getDeclSpecifier() instanceof IASTFunctionTypeSpecifier)) {
+    if (!(declarationEdge.getDeclaration() instanceof IASTVariableDeclaration)) {
       // nothing interesting to see here, please move along
       return newElement;
     }
 
+    IASTVariableDeclaration decl = (IASTVariableDeclaration)declarationEdge.getDeclaration();
+
     // get the variable name in the declarator
-    String varName = declarationEdge.getName();
+    String varName = decl.getName();
     String functionName = declarationEdge.getPredecessor().getFunctionName();
 
     Long initialValue = null;
 
     // handle global variables
-    if(declarationEdge.isGlobal())
+    if(decl.isGlobal())
     {
       // if this is a global variable, add to the list of global variables
       globalVariables.add(varName);
@@ -355,7 +354,7 @@ public class ExplicitTransferRelation implements TransferRelation
     }
 
     // get initial value
-    IASTInitializer init = declarationEdge.getInitializer();
+    IASTInitializer init = decl.getInitializer();
     if(init instanceof IASTInitializerExpression)
     {
       IASTExpression exp = ((IASTInitializerExpression)init).getExpression();

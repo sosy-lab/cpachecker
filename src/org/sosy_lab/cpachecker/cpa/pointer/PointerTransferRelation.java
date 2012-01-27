@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionTypeSpecifier;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTLiteralExpression;
@@ -61,8 +60,8 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
-import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
@@ -244,7 +243,12 @@ public class PointerTransferRelation implements TransferRelation {
 
       case DeclarationEdge:
         DeclarationEdge declEdge = (DeclarationEdge)cfaEdge;
-        handleDeclaration(successor, cfaEdge, declEdge.getStorageClass(), declEdge.getName(), declEdge.getDeclSpecifier());
+
+        // ignore type definitions, struct prototypes etc.
+        if (declEdge.getDeclaration() instanceof IASTVariableDeclaration) {
+          IASTVariableDeclaration decl = (IASTVariableDeclaration)declEdge.getDeclaration();
+          handleDeclaration(successor, cfaEdge, decl.getName(), decl.getDeclSpecifier());
+        }
         break;
 
       case StatementEdge:
@@ -300,7 +304,7 @@ public class PointerTransferRelation implements TransferRelation {
           //..then adding all parameters as local variables
           for (IASTParameterDeclaration dec : l) {
             IType declSpecifier = dec.getDeclSpecifier();
-            handleDeclaration(successor, cfaEdge, StorageClass.AUTO, dec.getName(), declSpecifier);
+            handleDeclaration(successor, cfaEdge, dec.getName(), declSpecifier);
           }
           entryFunctionProcessed = true;
         }
@@ -338,28 +342,10 @@ public class PointerTransferRelation implements TransferRelation {
   }
 
   private void handleDeclaration(PointerElement element, CFAEdge edge,
-      StorageClass storageClass,
-      String name,
-      IType specifier) throws CPATransferException {
-
-    if (storageClass == StorageClass.TYPEDEF) {
-      // ignore, this is a type definition, not a variable declaration
-      return;
-    }
-
-    if (name == null
-        && (specifier instanceof IASTElaboratedTypeSpecifier
-            || specifier instanceof IASTCompositeTypeSpecifier)) {
-      // ignore struct prototypes
-      return;
-    }
+      String name, IType specifier) throws CPATransferException {
 
     if (name == null) {
       throw new UnrecognizedCCodeException("not expected in CIL", edge);
-    }
-
-    if (specifier instanceof IASTFunctionTypeSpecifier) {
-      return;
     }
 
     if (specifier instanceof IASTCompositeTypeSpecifier
