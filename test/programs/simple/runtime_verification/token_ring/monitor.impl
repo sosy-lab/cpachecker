@@ -1,0 +1,31 @@
+unsigned get_init_state() {
+	return 0;
+}
+
+unsigned compute_successor(unsigned state, const char* ident) {
+	if(strcmp(ident, "t1_started") == 0) {
+		if(state == 0) {
+			state = 1;
+		}			
+		else if(state == 1) {
+			printf("ERROR: error location is reachable\n");
+			exit(EXIT_FAILURE);
+		}
+		else if(state == 2) {
+			state = 0;
+		}
+	}
+	else if(strcmp(ident, "t2_started") == 0) {
+		if(state == 0) {
+			state = 2;
+		}			
+		else if(state == 2) {
+			printf("ERROR: error location is reachable\n");
+			exit(EXIT_FAILURE);
+		}
+		else if(state == 1) {
+			state = 0;
+		}
+	}
+	return state;
+}
