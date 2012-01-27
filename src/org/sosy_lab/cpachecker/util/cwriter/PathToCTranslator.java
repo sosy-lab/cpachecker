@@ -39,7 +39,6 @@ import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.IASTExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTFunctionCallStatement;
@@ -52,8 +51,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.Path;
 
@@ -381,42 +378,16 @@ public class PathToCTranslator {
   private String processSimpleEdge(CFAEdge pCFAEdge) {
 
     switch (pCFAEdge.getEdgeType()) {
-    case BlankEdge: {
-      //          nothing to do
-      break;
-    }
+
+    case BlankEdge:
+    case StatementEdge:
+    case ReturnStatementEdge:
+      return pCFAEdge.getCode();
 
     case AssumeEdge: {
       AssumeEdge lAssumeEdge = (AssumeEdge)pCFAEdge;
-
-      String lExpressionString = lAssumeEdge.getExpression().toASTString();
-
-      String lAssumptionString;
-
-      if (lAssumeEdge.getTruthAssumption()) {
-        lAssumptionString = lExpressionString;
-      } else {
-        lAssumptionString = "!(" + lExpressionString + ")";
-      }
-
-      return ("__CPROVER_assume(" + lAssumptionString + ");");
+      return ("__CPROVER_assume(" + lAssumeEdge.getCode() + ");");
 //    return ("if(! (" + lAssumptionString + ")) { return (0); }");
-    }
-    case StatementEdge: {
-      StatementEdge lStatementEdge = (StatementEdge)pCFAEdge;
-      return lStatementEdge.getStatement().toASTString();
-    }
-
-    case ReturnStatementEdge: {
-      ReturnStatementEdge lStatementEdge = (ReturnStatementEdge)pCFAEdge;
-
-      IASTExpression lExpression = lStatementEdge.getExpression();
-
-      if (lExpression != null) {
-        return "return " + lExpression.toASTString() + ";";
-      } else {
-        return "return;";
-      }
     }
 
     case DeclarationEdge: {
@@ -424,33 +395,15 @@ public class PathToCTranslator {
 
       if (lDeclarationEdge.isGlobal()) {
         mGlobalDefinitionsList.add(lDeclarationEdge.getRawStatement());
-      } else {
-        return lDeclarationEdge.getRawStatement();
+        return "";
       }
 
-      /*IASTDeclarator[] lDeclarators = lDeclarationEdge.getDeclarators();
-
-assert(lDeclarators.length == 1);
-
-// TODO what about function pointers?
-lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " " + lDeclarators[0].getRawSignature() + ";");
-       */
-      break;
+      return lDeclarationEdge.getCode();
     }
 
-    case CallToReturnEdge: {
-      //          this should not have been taken
-      assert false : "CallToReturnEdge in counterexample path: " + pCFAEdge;
-
-      break;
+    default:
+      throw new AssertionError("Unexpected edge " + pCFAEdge + " of type " + pCFAEdge.getEdgeType());
     }
-
-    default: {
-      assert false  : "Unexpected edge " + pCFAEdge + " of type " + pCFAEdge.getEdgeType();
-    }
-    }
-
-    return "";
   }
 
   private String processFunctionCall(CFAEdge pCFAEdge, String functionName) {

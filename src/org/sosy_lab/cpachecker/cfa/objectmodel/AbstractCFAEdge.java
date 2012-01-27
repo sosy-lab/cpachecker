@@ -68,6 +68,14 @@ public abstract class AbstractCFAEdge implements CFAEdge {
   }
 
   @Override
+  public String getCode() {
+    if (getRawAST() != null) {
+      return getRawAST().toASTString();
+    }
+    return "";
+  }
+
+  @Override
   public int getLineNumber() {
     return lineNumber;
   }

@@ -37,5 +37,11 @@ public interface CFAEdge {
 
   public IASTNode getRawAST();
 
+  /**
+   * Returns a string representation of the code attached to this edge.
+   * If there is no such representation, the method returns the empty string.
+   */
+  public String getCode();
+
   public int getLineNumber();
 }
