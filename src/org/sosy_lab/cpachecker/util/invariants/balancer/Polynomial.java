@@ -353,6 +353,11 @@ public class Polynomial {
     return d;
   }
 
+  public int getNumTerms() {
+    collect();
+    return terms.size();
+  }
+
   public Monomial getMonomialContent() {
     return Monomial.gcd(getMonomials());
   }

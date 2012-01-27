@@ -175,6 +175,10 @@ public class RationalFunction {
     return num.isZero();
   }
 
+  public boolean isUnity() {
+    return num.equals(denom);
+  }
+
   public boolean isPositive() {
     return isConstant() && num.isPositive();
   }
@@ -185,6 +189,26 @@ public class RationalFunction {
 
   public boolean isPolynomial() {
     return denom.isUnity();
+  }
+
+  /*
+   * Return the max of the number of terms of the num and denom.
+   */
+  public int getTermHeight() {
+    return Math.max( num.getNumTerms(), denom.getNumTerms() );
+  }
+
+  /*
+   * If this function is constant, returns the value; else returns null.
+   */
+  public Rational getConstant() {
+    Rational c = null;
+    if (isConstant()) {
+      Rational a = num.getConstant();
+      Rational b = denom.getConstant();
+      c = a.div(b);
+    }
+    return c;
   }
 
   @Override

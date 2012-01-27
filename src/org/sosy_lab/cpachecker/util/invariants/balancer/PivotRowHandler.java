@@ -41,7 +41,7 @@ public class PivotRowHandler {
   private final int m, n, augStart;
   private final Vector<Integer> remainingRows;
   private final int[][] codes;
-  private final List<Integer> AU, CU;
+  private List<Integer> AU, CU;
 
   //-----------------------------------------------------------------
   // Constructing
@@ -63,10 +63,12 @@ public class PivotRowHandler {
     }
 
     codes = buildCodes();
+    computeUnblockedColumns();
+    /*
     List<List<Integer>> unblocked = computeUnblockedColumns();
     AU = unblocked.get(0);
     CU = unblocked.get(1);
-
+    */
   }
 
   public int[] intListToArray(List<Integer> list) {
@@ -79,6 +81,33 @@ public class PivotRowHandler {
     return a;
   }
 
+  private void computeUnblockedColumns() {
+    // Compute absolutely and conditionally unblocked columns.
+    Vector<Integer> auv = new Vector<Integer>();
+    Vector<Integer> cuv = new Vector<Integer>();
+    for (int j = 0; j < augStart; j++) {
+      boolean absolute = true;
+      boolean conditional = true;
+      for (int i = 0; i < m; i++) {
+        if (codes[i][j] == 1) {
+          absolute = false;
+          conditional = false;
+          break;
+        }
+        else if (codes[i][j] == 2) {
+          absolute = false;
+        }
+      }
+      if (absolute) {
+        auv.add(new Integer(j));
+      } else if (conditional) {
+        cuv.add(new Integer(j));
+      }
+    }
+    AU = auv;
+    CU = cuv;
+  }
+  /*
   private List<List<Integer>> computeUnblockedColumns() {
     // Compute absolutely and conditionally unblocked columns.
     Vector<Integer> auv = new Vector<Integer>();
@@ -108,6 +137,7 @@ public class PivotRowHandler {
     u.add(cuv);
     return u;
   }
+  */
 
   /*
    * We represent each entry f of the matrix by a code:
@@ -292,6 +322,9 @@ public class PivotRowHandler {
     // First step: for those rows that only have a single option, take those "options".
     AssumptionSet soleOpAset = optionTable.takeSoleOptions();
     // Next ... TODO
+    if (optionTable.getRemainingRows().size() > 0) {
+      logger.log(Level.FINEST,"Not all rows satisfied on second pass. Unsatisfied rows:",remainingRows);
+    }
     // For now we return just the soleOpAset, to see test our progress.
     asetset.add(soleOpAset);
     //

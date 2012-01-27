@@ -90,6 +90,10 @@ public class OptionTable {
       usableColumns = computeUsableColumns();
     }
 
+    public List<Integer> getRemainingRows() {
+      return remainingRows;
+    }
+
     /*
      * Return a list of those rows that have just a single option.
      */

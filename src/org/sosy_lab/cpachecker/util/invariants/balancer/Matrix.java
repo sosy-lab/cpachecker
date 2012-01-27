@@ -23,11 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.balancer;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Vector;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption.AssumptionType;
 import org.sosy_lab.cpachecker.util.invariants.balancer.interfaces.MatrixI;
 
@@ -40,7 +42,10 @@ public class Matrix implements MatrixI {
 
   private List<Integer> pivotRows = null;
   private Matrix elemMatProd = null;
-  private boolean verbose = false;
+
+  // Configuration:
+  private boolean verbose = true;
+  private boolean useFreePivoting = true;
 
   public Matrix() {}
 
@@ -213,6 +218,18 @@ public class Matrix implements MatrixI {
   }
 
   /*
+   * Swap columns j1 and j2.
+   */
+  public void swapCols(int j1, int j2) {
+    RationalFunction temp;
+    for (int i = 0; i < rowNum; i++) {
+      temp = entry[i][j1];
+      entry[i][j1] = entry[i][j2];
+      entry[i][j2] = temp;
+    }
+  }
+
+  /*
    * Multiply row i by RationalFunction f.
    */
   public void multRow(int i, RationalFunction f) {
@@ -346,7 +363,12 @@ public class Matrix implements MatrixI {
 
     while (true) {
       // Look for the next pivot.
-      int[] pivot = getNextPivot(i0,M,j0,N);
+      int[] pivot;
+      if (useFreePivoting) {
+        pivot = getNextPivotFree(i0,M,j0,N);
+      } else {
+        pivot = getNextPivot(i0,M,j0,N);
+      }
       // If there isn't any, then we're done.
       if (pivot[0] == -1) {
         break;
@@ -354,6 +376,7 @@ public class Matrix implements MatrixI {
       // Let the pivot be i1,j1.
       int i1 = pivot[0];
       int j1 = pivot[1];
+
       // If i1 > i0, then swap these rows, and set i1 = i0.
       if (i1 > i0) {
         swapRows(i1,i0);
@@ -368,21 +391,40 @@ public class Matrix implements MatrixI {
         // set i1 = i0.
         i1 = i0;
       }
+
+      // Similarly, for the column.
+      // If j1 > j0, then swap these rows, and set j1 = j0.
+      if (j1 > j0) {
+        swapCols(j1,j0);
+        // (Can't do the same to E, since this is not a row operation!)
+        // log it
+        if (verbose && logger != null) {
+          logger.log(Level.ALL,"Swapped columns",j1,"and",j0);
+          logger.log(Level.ALL,"Matrix:","\n"+this.toString());
+        }
+        // set j1 = j0.
+        j1 = j0;
+      }
+
       // Record the pivot row.
       pivotRows.add(i1);
       // Get the rational function at the pivot.
       RationalFunction f = entry[i1][j1];
-      // Divide row i1 by f.
-      RationalFunction fRecip = RationalFunction.makeReciprocal(f);
-      multRow(i1,fRecip);
-      // and do the same to E
-      E.multRow(i1,fRecip);
-      // log it
-      if (verbose && logger != null) {
-        logger.log(Level.ALL,"Multiplied row",i1,"by",fRecip);
-        logger.log(Level.ALL,"Matrix:","\n"+this.toString());
-        logger.log(Level.ALL,"E:","\n"+E.toString());
+
+      // Divide row i1 by f, if necessary.
+      if (!f.isUnity()) {
+        RationalFunction fRecip = RationalFunction.makeReciprocal(f);
+        multRow(i1,fRecip);
+        // and do the same to E
+        E.multRow(i1,fRecip);
+        // log it
+        if (verbose && logger != null) {
+          logger.log(Level.ALL,"Multiplied row",i1,"by",fRecip);
+          logger.log(Level.ALL,"Matrix:","\n"+this.toString());
+          logger.log(Level.ALL,"E:","\n"+E.toString());
+        }
       }
+
       // Consider recording the nonzero assumption involved.
       // First, make sure we divided by a nonconstant.
       if (!f.getNumerator().isConstant()) {
@@ -433,6 +475,34 @@ public class Matrix implements MatrixI {
   }
 
   /*
+   * Over the submatrix i0 <= i < m, j0 <= j < n, find a preferred entry to be the next
+   * pivot. We prefer constants over variables; among constants, smaller "height" is preferred
+   * (this is the max of the absolute values of the num and denom); among constants of equal height,
+   * positive is preferred over negative.
+   * We return the row and column of the pivot, or [-1, -1] if every remaining entry is 0.
+   */
+  private int[] getNextPivotFree(int i0, int m, int j0, int n) {
+    int[] pivot = {-1, -1};
+    List<SortablePivotEntry> spes = new Vector<SortablePivotEntry>();
+    for (int j = j0; j < n; j++) {
+      for (int i = i0; i < m; i++) {
+        spes.add( new SortablePivotEntry(i,j,entry[i][j]) );
+      }
+    }
+    if (spes.size() == 0) {
+      return pivot;
+    }
+    Collections.sort(spes);
+    SortablePivotEntry best = spes.get(0);
+    if (best.getFunction().isZero()) {
+      return pivot;
+    } else {
+      pivot = best.getRowCol();
+    }
+    return pivot;
+  }
+
+  /*
    * Return an array listing those rows i, with i0 <= i < m, that have nonzero entries in column j.
    */
   private int[] findNonzeroEntriesInColumn(int j, int i0, int m) {
@@ -443,6 +513,77 @@ public class Matrix implements MatrixI {
       }
     }
     return makeIntArray(rows);
+  }
+
+  private class SortablePivotEntry implements Comparable<SortablePivotEntry> {
+
+    private final int kind;
+    private final int height;
+    private final int sign;
+    private final RationalFunction func;
+    private final int i0, j0;
+
+    public SortablePivotEntry(int i, int j, RationalFunction f) {
+      i0 = i;
+      j0 = j;
+      func = f;
+      // f is supposed to be nonzero, but just in case it is zero, we make it of kind 10, which
+      // is "greater than" all other kinds
+      if (f.isZero()) {
+        kind = 10;
+        height = 0;
+        sign = 0;
+      }
+      else if (!f.isConstant()) {
+        if (f.getNumerator().isConstant()) {
+          // If num const, this is almost as good as a constant function.
+          kind = 1;
+          Rational r = f.getNumerator().getConstant();
+          height = r.getHeight();
+          if (r.isPositive()) {
+            sign = 1;
+          } else {
+            sign = 2;
+          }
+        } else {
+          kind = 5;
+          // We prefer functions with fewer terms in num and denom.
+          height = f.getTermHeight();
+          sign = 0;
+        }
+      }
+      else {
+        // In this case f must be a nonzero constant.
+        kind = 0;
+        Rational r = f.getConstant();
+        height = r.getHeight();
+        if (r.isPositive()) {
+          sign = 1;
+        } else {
+          sign = 2;
+        }
+      }
+    }
+
+    public int compareTo(SortablePivotEntry other) {
+      if (this.kind != other.kind) {
+        return this.kind - other.kind;
+      }
+      if (this.height != other.height) {
+        return this.height - other.height;
+      }
+      return this.sign - other.sign;
+    }
+
+    public int[] getRowCol() {
+      int[] rc = {i0,j0};
+      return rc;
+    }
+
+    public RationalFunction getFunction() {
+      return func;
+    }
+
   }
 
   @Override
