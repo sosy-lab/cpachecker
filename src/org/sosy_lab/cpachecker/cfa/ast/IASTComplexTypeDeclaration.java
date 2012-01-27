@@ -36,7 +36,7 @@ public final class IASTComplexTypeDeclaration extends IASTDeclaration {
 
   public IASTComplexTypeDeclaration(IASTFileLocation pFileLocation,
       boolean pIsGlobal, IType pSpecifier) {
-    super(pFileLocation, pIsGlobal, StorageClass.AUTO, pSpecifier, null, null);
+    super(pFileLocation, pIsGlobal, pSpecifier, null, null);
   }
 
 }

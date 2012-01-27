@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import static com.google.common.base.Preconditions.*;
 
 /**
  * This class represents declaration of types and variables. It contains a
@@ -37,33 +36,23 @@ import static com.google.common.base.Preconditions.*;
 public abstract class IASTDeclaration extends IASTSimpleDeclaration {
 
   private final boolean               isGlobal;
-  private final StorageClass          storageClass;
 
   public IASTDeclaration(IASTFileLocation pFileLocation,
                          boolean pIsGlobal,
-                         StorageClass pStorageClass,
                          IType pSpecifier, String pName,
                          String pOrigName) {
     super(pFileLocation, pSpecifier, pName, pOrigName);
     isGlobal = pIsGlobal;
-    storageClass = checkNotNull(pStorageClass);
-
-    checkArgument(!(storageClass == StorageClass.TYPEDEF && getName() == null), "Typedefs require a name");
   }
 
   public boolean isGlobal() {
     return isGlobal;
   }
 
-  public StorageClass getStorageClass() {
-    return storageClass;
-  }
-
   @Override
   public String toASTString() {
     StringBuilder lASTString = new StringBuilder();
 
-    lASTString.append(storageClass.toASTString());
     lASTString.append(getDeclSpecifier().toASTString());
 
     if (getName() != null

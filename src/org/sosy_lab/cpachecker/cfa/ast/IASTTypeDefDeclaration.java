@@ -35,7 +35,7 @@ public final class IASTTypeDefDeclaration extends IASTDeclaration {
 
   public IASTTypeDefDeclaration(IASTFileLocation pFileLocation, boolean pIsGlobal,
       IType pSpecifier, String pName) {
-    super(pFileLocation, pIsGlobal, StorageClass.TYPEDEF, pSpecifier, checkNotNull(pName), pName);
+    super(pFileLocation, pIsGlobal, pSpecifier, checkNotNull(pName), pName);
   }
 
 }

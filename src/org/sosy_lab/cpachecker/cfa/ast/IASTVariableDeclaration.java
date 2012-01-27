@@ -34,16 +34,22 @@ import static com.google.common.base.Preconditions.*;
  */
 public final class IASTVariableDeclaration extends IASTDeclaration {
 
+  private final StorageClass    storageClass;
   private final IASTInitializer initializer;
 
   public IASTVariableDeclaration(IASTFileLocation pFileLocation, boolean pIsGlobal,
       StorageClass pStorageClass, IType pSpecifier, String pName, String pOrigName,
       IASTInitializer pInitializer) {
 
-    super(pFileLocation, pIsGlobal, pStorageClass, pSpecifier, checkNotNull(pName), pOrigName);
+    super(pFileLocation, pIsGlobal, pSpecifier, checkNotNull(pName), pOrigName);
+    storageClass = pStorageClass;
     initializer = pInitializer;
 
-    checkArgument(!(pStorageClass == StorageClass.EXTERN && pInitializer != null), "Extern declarations cannot have an initializer");
+    checkArgument(!(storageClass == StorageClass.EXTERN && initializer != null), "Extern declarations cannot have an initializer");
+  }
+
+  public StorageClass getStorageClass() {
+    return storageClass;
   }
 
   /**
@@ -58,7 +64,7 @@ public final class IASTVariableDeclaration extends IASTDeclaration {
   public String toASTString() {
     StringBuilder lASTString = new StringBuilder();
 
-    lASTString.append(getStorageClass().toASTString());
+    lASTString.append(storageClass.toASTString());
     lASTString.append(getDeclSpecifier().toASTString());
 
     if (!(getDeclSpecifier() instanceof IASTFunctionTypeSpecifier)

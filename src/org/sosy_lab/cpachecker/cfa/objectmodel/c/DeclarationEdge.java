@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.IASTDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.IASTTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.StorageClass;
@@ -51,7 +52,13 @@ public class DeclarationEdge extends AbstractCFAEdge {
   }
 
   public StorageClass getStorageClass() {
-    return declaration.getStorageClass();
+    if (declaration instanceof IASTVariableDeclaration) {
+      return ((IASTVariableDeclaration) declaration).getStorageClass();
+    } else if (declaration instanceof IASTTypeDefDeclaration) {
+      return StorageClass.TYPEDEF;
+    } else {
+      return StorageClass.AUTO;
+    }
   }
 
   public IType getDeclSpecifier() {

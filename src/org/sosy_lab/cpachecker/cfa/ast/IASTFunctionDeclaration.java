@@ -35,7 +35,7 @@ public final class IASTFunctionDeclaration extends IASTDeclaration {
 
   public IASTFunctionDeclaration(IASTFileLocation pFileLocation,
       IASTFunctionTypeSpecifier pSpecifier, String pName) {
-    super(pFileLocation, true, StorageClass.AUTO, pSpecifier, checkNotNull(pName), pName);
+    super(pFileLocation, true, pSpecifier, checkNotNull(pName), pName);
   }
 
 }
