@@ -21,10 +21,9 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.relyguarantee;
+package org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions;
 
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 
 public class RGAbstractCFAEdgeTemplate extends RGCFAEdgeTemplate {

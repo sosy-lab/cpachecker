@@ -142,13 +142,6 @@ public class RGPrecisionAdjustment implements PrecisionAdjustment {
 
   protected AbstractionFormula computeAbstraction(AbstractionFormula pAbstractionFormula, PathFormula pPathFormula, Collection<AbstractionPredicate> pPreds, CFANode node) {
     return formulaManager.buildAbstraction(pAbstractionFormula, pPathFormula, pPreds);
-   /*  if (this.refinementMethod == 3){
-       // TODO use ordinary abstraction,, but still clean ssa map
-      return formulaManager.buildNonModularAbstraction(pAbstractionFormula, pPathFormula, pPreds, cpa.getTid());
-    } else {
-      return formulaManager.buildAbstraction(pAbstractionFormula, pPathFormula, pPreds);
-    }*/
-
   }
 
   protected LogManager getLogger() {

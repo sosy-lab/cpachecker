@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.relyguarantee;
+package org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGEnvCandidate;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCFAEdge2;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
 

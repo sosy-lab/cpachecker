@@ -38,6 +38,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -113,14 +114,16 @@ class PredicateAbstractionManager {
   protected boolean useBitwiseAxioms = false;
 
   @Option(name="abs.useCache", description="use caching of abstractions")
-  private boolean useCache = false;
+  private boolean useCache = true;
 
   private final Map<Pair<PathFormula, Collection<AbstractionPredicate>>, AbstractionFormula> abstractionCache;
   //cache for cartesian abstraction queries. For each predicate, the values
   // are -1: predicate is false, 0: predicate is don't care,
   // 1: predicate is true
-  private final Map<Pair<Formula, AbstractionPredicate>, Byte> cartesianAbstractionCache;
+  private final Map<Pair<PathFormula, AbstractionPredicate>, Byte> cartesianAbstractionCache;
   private final Map<Formula, Boolean> feasibilityCache;
+
+  private Map<Triple<PathFormula, PathFormula, Collection<AbstractionPredicate>>, AbstractionFormula> abstractionNextValueCache;
 
   public static PredicateAbstractionManager getInstance( RegionManager pRmgr, FormulaManager pFmgr,PathFormulaManager pPmgr, TheoremProver pThmProver, Configuration config, LogManager pLogger) throws InvalidConfigurationException{
     if (instance == null){
@@ -155,11 +158,12 @@ class PredicateAbstractionManager {
 
     if (useCache) {
       abstractionCache = new HashMap<Pair<PathFormula, Collection<AbstractionPredicate>>, AbstractionFormula>();
+      abstractionNextValueCache = new HashMap<Triple<PathFormula, PathFormula, Collection<AbstractionPredicate>>, AbstractionFormula>();
     } else {
       abstractionCache = null;
     }
     if (useCache && cartesianAbstraction) {
-      cartesianAbstractionCache = new HashMap<Pair<Formula, AbstractionPredicate>, Byte>();
+      cartesianAbstractionCache = new HashMap<Pair<PathFormula, AbstractionPredicate>, Byte>();
       feasibilityCache = new HashMap<Formula, Boolean>();
     } else {
       cartesianAbstractionCache = null;
@@ -185,10 +189,15 @@ class PredicateAbstractionManager {
     logger.log(Level.ALL, "Path formula:", pathFormula);
     logger.log(Level.ALL, "Predicates:", predicates);
 
+
     Formula absFormula = abstractionFormula.asFormula();
     Formula symbFormula = buildFormula(pathFormula.getFormula());
     Formula f = fmgr.makeAnd(absFormula, symbFormula);
     PathFormula pf = new PathFormula(f, pathFormula.getSsa(), pathFormula.getLength());
+
+    if (absFormula.toString().contains("start_main@2")){
+      System.out.println();
+    }
 
     // caching
     Pair<PathFormula, Collection<AbstractionPredicate>> absKey = null;
@@ -207,7 +216,7 @@ class PredicateAbstractionManager {
 
     Region abs;
     if (cartesianAbstraction) {
-      abs = buildCartesianAbstraction(f, pathFormula.getSsa(), predicates);
+      abs = buildCartesianAbstraction(pf, predicates);
     } else {
       abs = buildBooleanAbstraction(f, pathFormula.getSsa(), predicates);
     }
@@ -227,12 +236,12 @@ class PredicateAbstractionManager {
    * Builds abstraction formula that shows the change between oldPf and newPf.
    * @param aFormula
    * @param pf
-   * @param newPf
+   * @param hiPf
    * @param predicates
    * @param tid
    * @return
    */
-  public AbstractionFormula buildNextValAbstraction(AbstractionFormula aFormula, PathFormula oldPf,PathFormula newPf, Collection<AbstractionPredicate> predicates, int tid) {
+  public AbstractionFormula buildNextValAbstraction(AbstractionFormula aFormula, PathFormula lowPf,PathFormula highPf, Collection<AbstractionPredicate> predicates, int tid) {
     stats.numCallsAbstraction++;
 
     /* if (predicates.isEmpty()) {
@@ -241,49 +250,49 @@ class PredicateAbstractionManager {
      }*/
 
     // formula for abstraction
-     PathFormula oldAbsPf = pmgr.makeAnd(oldPf, aFormula.asPathFormula());
-     PathFormula newAbsPf = pmgr.makeAnd(newPf, aFormula.asPathFormula());
+     PathFormula lowAPf = pmgr.makeAnd(lowPf, aFormula.asPathFormula());
+     PathFormula highAPf = pmgr.makeAnd(highPf, aFormula.asPathFormula());
 
      // caching
-    /* Pair<PathFormula, Collection<AbstractionPredicate>> absKey = null;
-     if (useCache) {
-       absKey = Pair.of(pf, predicates);
-       AbstractionFormula result = abstractionCache.get(absKey);
+     Triple<PathFormula, PathFormula, Collection<AbstractionPredicate>> absKey = null;
+     if (useCache){
+       absKey = Triple.of(lowAPf, highAPf, predicates);
+
+       AbstractionFormula result = abstractionNextValueCache.get(absKey);
 
        if (result != null) {
-         // create new abstraction object to have a unique abstraction id
-         result = new AbstractionFormula(result.asRegion(), result.asPathFormula(), newPf);
-         logger.log(Level.ALL, "Abstraction was cached, result is", result);
+         result = new AbstractionFormula(result.asRegion(), result.asPathFormula(), highPf);
          stats.numCallsAbstractionCached++;
          return result;
        }
-     }*/
+     }
 
      Region abs = null;
      if (cartesianNextValAbstraction) {
-       abs = buildNextValCartesianAbstraction(oldAbsPf, newAbsPf, predicates, tid);
+       abs = buildNextValCartesianAbstraction(lowAPf, highAPf, predicates, tid);
      } else {
-       abs = buildNextValBooleanAbstraction(oldAbsPf, newAbsPf, predicates);
+       abs = buildNextValBooleanAbstraction(lowAPf, highAPf, predicates);
      }
 
      // a little work-around : symbolicPathAbs is a path formula without indexes
      Formula symbolicAbs = amgr.toConcrete(abs);
      //Formula symbolicAbs = fmgr.instantiateNextVal(amgr.toConcrete(abs), oldPf.getSsa(), newPf.getSsa());
-     PathFormula symbolicPathAbs = new PathFormula(symbolicAbs, newPf.getSsa(), 0);
-     AbstractionFormula result = new AbstractionFormula(abs, symbolicPathAbs, newPf);
+     PathFormula symbolicPathAbs = new PathFormula(symbolicAbs, highPf.getSsa(), 0);
+     AbstractionFormula result = new AbstractionFormula(abs, symbolicPathAbs, highPf);
 
-     /*if (useCache) {
-       abstractionCache.put(absKey, result);
-     }*/
+     if (useCache) {
+       abstractionNextValueCache.put(absKey, result);
+     }
 
      return result;
   }
 
 
 
-  private Region buildCartesianAbstraction(final Formula f, final SSAMap ssa,
-      Collection<AbstractionPredicate> predicates) {
+  private Region buildCartesianAbstraction(final PathFormula pf, Collection<AbstractionPredicate> predicates) {
     final RegionManager rmgr = amgr.getRegionManager();
+
+    Formula f = pf.getFormula();
 
     stats.abstractionTime.startOuter();
 
@@ -309,12 +318,12 @@ class PredicateAbstractionManager {
       thmProver.push(f);
       try {
         Region absbdd = rmgr.makeTrue();
+        SSAMap ssa = pf.getSsa();
 
         // check whether each of the predicate is implied in the next state...
 
         for (AbstractionPredicate p : predicates) {
-          Pair<Formula, AbstractionPredicate> cacheKey = Pair.of(f, p);
-          // TODO this cache is wrong for rely-guarantee
+          Pair<PathFormula, AbstractionPredicate> cacheKey = Pair.of(pf, p);
           if (useCache && cartesianAbstractionCache.containsKey(cacheKey)) {
             byte predVal = cartesianAbstractionCache.get(cacheKey);
 
@@ -386,7 +395,7 @@ class PredicateAbstractionManager {
   }
 
 
-  private Region buildNextValCartesianAbstraction(PathFormula oldPf, PathFormula newPf, Collection<AbstractionPredicate> predicates, int tid) {
+  private Region buildNextValCartesianAbstraction(PathFormula lowPf, PathFormula hiPf, Collection<AbstractionPredicate> predicates, int tid) {
     stats.abstractionTime.startOuter();
 
     final RegionManager rmgr = amgr.getRegionManager();
@@ -395,14 +404,14 @@ class PredicateAbstractionManager {
     try {
 
       boolean feasibility;
-      feasibility = !thmProver.isUnsat(newPf.getFormula());
+      feasibility = !thmProver.isUnsat(hiPf.getFormula());
 
       if (!feasibility) {
         // abstract post leads to false, we can return immediately
         return rmgr.makeFalse();
       }
 
-      thmProver.push(newPf.getFormula());
+      thmProver.push(hiPf.getFormula());
       try {
         Region absbdd = rmgr.makeTrue();
         Region rAbsbdd = rmgr.makeTrue();
@@ -415,7 +424,7 @@ class PredicateAbstractionManager {
               "CHECKING VALUE OF PREDICATE: ", p.getSymbolicAtom());
 
           // instantiate the definition of the predicate
-          Formula predTrue = fmgr.instantiateNextValue(p.getSymbolicAtom(), oldPf.getSsa(), newPf.getSsa());
+          Formula predTrue = fmgr.instantiateNextValue(p.getSymbolicAtom(), lowPf.getSsa(), hiPf.getSsa());
           Formula predFalse = fmgr.makeNot(predTrue);
 
           // check whether this predicate has a truth value in the next

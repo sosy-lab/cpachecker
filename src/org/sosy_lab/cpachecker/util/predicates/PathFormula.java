@@ -33,8 +33,7 @@ public class PathFormula {
   private final int length;
   // how many times a formula has been primed
   private int primedNo;
-  // for RelyGuarantee
-  public static final String THREAD_SYMBOL  = "$";
+
 
   public PathFormula(Formula pf, SSAMap ssa, int pLength) {
     this.formula = pf;
@@ -49,9 +48,6 @@ public class PathFormula {
     this.length = pLength;
     this.primedNo = pPrimedNo;
   }
-
-
-
 
   public Formula getFormula() {
     return formula;
@@ -93,30 +89,5 @@ public class PathFormula {
   public int hashCode() {
     return (formula.hashCode() * 17 + ssa.hashCode()) * 31 + length;
   }
-
- /* /**
-   * If the string starts with the next value symbol "#", the function returns the string
-   * without the hash. Otherwise it returns null.
-   * @param str
-   * @return
-   */
- /* public static String getUnhashed(String str){
-    if (str == null){
-      return null;
-    }
-
-    int l = str.length();
-    if (str.charAt(0) == '#'){
-      return str.substring(1, l);
-    }
-
-    return null;
-  }*/
-
-
-
-//TODO maybe some caching?
-  // returns (unprimed name, number of primes)
-
 
 }

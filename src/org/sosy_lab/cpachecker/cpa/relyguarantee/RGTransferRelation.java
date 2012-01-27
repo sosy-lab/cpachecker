@@ -48,6 +48,8 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageElement;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement.ComputeAbstractionElement;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGAbstractCFAEdgeTemplate;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCombinedCFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractElements;

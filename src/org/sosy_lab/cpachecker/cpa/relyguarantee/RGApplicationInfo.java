@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.relyguarantee;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdgeTemplate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 
 /**
