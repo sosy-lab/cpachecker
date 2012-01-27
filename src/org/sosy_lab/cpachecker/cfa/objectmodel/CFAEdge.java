@@ -38,10 +38,4 @@ public interface CFAEdge {
   public IASTNode getRawAST();
 
   public int getLineNumber();
-
-  /**
-   * Gives information whether this information represents a jump to a
-   * distant program location (e.g. a return or a goto statement).
-   */
-  public boolean isJumpEdge();
 }

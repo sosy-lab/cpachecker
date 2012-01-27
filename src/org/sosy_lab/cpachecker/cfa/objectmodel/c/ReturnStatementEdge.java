@@ -42,11 +42,6 @@ public class ReturnStatementEdge extends AbstractCFAEdge {
   }
 
   @Override
-  public boolean isJumpEdge() {
-    return true;
-  }
-
-  @Override
   public CFAEdgeType getEdgeType() {
     return CFAEdgeType.ReturnStatementEdge;
   }

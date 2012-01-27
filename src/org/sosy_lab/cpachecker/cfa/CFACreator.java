@@ -287,7 +287,7 @@ public class CFACreator {
     CFAFunctionDefinitionNode firstNode = cfa.getMainFunction();
     assert firstNode.getNumLeavingEdges() == 1;
     CFAEdge firstEdge = firstNode.getLeavingEdge(0);
-    assert firstEdge instanceof BlankEdge && !firstEdge.isJumpEdge();
+    assert firstEdge instanceof BlankEdge;
     CFANode secondNode = firstEdge.getSuccessor();
 
     CFACreationUtils.removeEdgeFromNodes(firstEdge);

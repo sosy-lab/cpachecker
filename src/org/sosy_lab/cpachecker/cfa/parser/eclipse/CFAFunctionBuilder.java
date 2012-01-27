@@ -809,7 +809,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     CFANode postLoopNode = loopNextStack.peek();
 
     BlankEdge blankEdge = new BlankEdge(breakStatement.getRawSignature(),
-        fileloc.getStartingLineNumber(), prevNode, postLoopNode, true);
+        fileloc.getStartingLineNumber(), prevNode, postLoopNode);
     addToCFA(blankEdge);
 
     CFANode nextNode = new CFANode(fileloc.getEndingLineNumber(),
@@ -825,7 +825,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     CFANode loopStartNode = loopStartStack.peek();
 
     BlankEdge blankEdge = new BlankEdge(continueStatement.getRawSignature(),
-        fileloc.getStartingLineNumber(), prevNode, loopStartNode, true);
+        fileloc.getStartingLineNumber(), prevNode, loopStartNode);
     addToCFA(blankEdge);
 
     CFANode nextNode = new CFANode(fileloc.getEndingLineNumber(),
@@ -859,7 +859,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     // Check if any goto's previously analyzed need connections to this label
     for (CFANode gotoNode : gotoLabelNeeded.get(labelName)) {
       BlankEdge gotoEdge = new BlankEdge("Goto: " + labelName,
-          gotoNode.getLineNumber(), gotoNode, labelNode, true);
+          gotoNode.getLineNumber(), gotoNode, labelNode);
       addToCFA(gotoEdge);
     }
     gotoLabelNeeded.removeAll(labelName);
@@ -874,7 +874,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     CFANode labelNode = labelMap.get(labelName);
     if (labelNode != null) {
       BlankEdge gotoEdge = new BlankEdge("Goto: " + labelName,
-          fileloc.getStartingLineNumber(), prevNode, labelNode, true);
+          fileloc.getStartingLineNumber(), prevNode, labelNode);
 
       /* labelNode was analyzed before, so it is in the labelMap,
        * then there can be a jump backwards and this can create a loop.

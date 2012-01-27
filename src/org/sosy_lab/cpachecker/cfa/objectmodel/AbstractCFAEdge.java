@@ -68,11 +68,6 @@ public abstract class AbstractCFAEdge implements CFAEdge {
   }
 
   @Override
-  public boolean isJumpEdge() {
-    return false;
-  }
-
-  @Override
   public int getLineNumber() {
     return lineNumber;
   }
