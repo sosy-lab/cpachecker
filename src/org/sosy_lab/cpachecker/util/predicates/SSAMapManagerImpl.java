@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -31,10 +32,15 @@ import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
@@ -42,12 +48,14 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
 
 @Options(prefix="cpa.predicate")
-public class SSAMapManagerImpl implements SSAMapManager {
+public class SSAMapManagerImpl implements SSAMapManager, StatisticsProvider{
   @Option(description="add special information to formulas about non-deterministic functions")
   protected boolean useNondetFlags = false;
 
-  private static SSAMapManagerImpl singleton;
+  public  final Stats stats;
   private final FormulaManager fManager;
+  private static SSAMapManagerImpl singleton;
+
 
   private final Map<Pair<SSAMap, Map<Integer, Integer>>, SSAMap> changePrimeNoCache
               = new HashMap<Pair<SSAMap, Map<Integer, Integer>>, SSAMap>();
@@ -62,14 +70,18 @@ public class SSAMapManagerImpl implements SSAMapManager {
   private SSAMapManagerImpl(FormulaManager fManager, Configuration config, LogManager logger) throws InvalidConfigurationException{
     config.inject(this, SSAMapManagerImpl.class);
     this.fManager = fManager;
+    this.stats    = new Stats();
   }
 
   @Override
   public SSAMap incrementMap(SSAMap ssa, Collection<String> variables, int shift) {
     assert shift >= 0;
     if (variables == null){
+
       return ssa;
     }
+
+    stats.incrementMapTimer.start();
 
     SSAMapBuilder sSsa = ssa.builder();
     for (String var : variables){
@@ -77,6 +89,8 @@ public class SSAMapManagerImpl implements SSAMapManager {
       idx = idx >= 1 ? idx : 1;
       sSsa.setIndex(var, idx+shift);
     }
+
+    stats.incrementMapTimer.stop();
 
     return sSsa.build();
   }
@@ -87,8 +101,11 @@ public class SSAMapManagerImpl implements SSAMapManager {
       return ssa;
     }
 
+    stats.changePrimeNoTimer.start();
+
     Pair<SSAMap, Map<Integer, Integer>> key = Pair.of(ssa, map);
     if (changePrimeNoCache.containsKey(key)){
+      stats.changePrimeNoTimer.stop();
       return changePrimeNoCache.get(key);
     }
 
@@ -109,12 +126,15 @@ public class SSAMapManagerImpl implements SSAMapManager {
 
     SSAMap nSsa = ssaBuilder.build();
     changePrimeNoCache.put(key, nSsa);
+    stats.changePrimeNoTimer.stop();
+
     return nSsa;
 
   }
 
   @Override
   public Collection<String> getUnprimedVariables(SSAMap ssa) {
+    stats.getUnprimedVariablesTimer.start();
     Set<String> allVars = ssa.allVariables();
     Set<String> unprimed = new HashSet<String>(allVars.size());
 
@@ -123,11 +143,13 @@ public class SSAMapManagerImpl implements SSAMapManager {
       unprimed.add(pair.getFirst());
     }
 
+    stats.getUnprimedVariablesTimer.stop();
     return unprimed;
   }
 
   @Override
   public Pair<Pair<Formula, Formula>, SSAMap> mergeSSAMaps(SSAMap ssa1, SSAMap ssa2) {
+    stats.mergeSSATimer.start();
     SSAMap result = SSAMap.merge(ssa1, ssa2);
     Formula mt1 = fManager.makeTrue();
     Formula mt2 = fManager.makeTrue();
@@ -189,6 +211,7 @@ public class SSAMapManagerImpl implements SSAMapManager {
       }
     }
 
+    stats.mergeSSATimer.stop();
     return Pair.of(Pair.of(mt1, mt2), result);
   }
 
@@ -230,5 +253,36 @@ public class SSAMapManagerImpl implements SSAMapManager {
     }
     return result;
   }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
+  }
+
+
+  public static class Stats implements Statistics {
+    public final Timer incrementMapTimer = new Timer();
+    public final Timer changePrimeNoTimer = new Timer();
+    public final Timer getUnprimedVariablesTimer = new Timer();
+    public final Timer mergeSSATimer = new Timer();
+
+    @Override
+    public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
+      long totalTime = this.incrementMapTimer.getSumTime() + this.changePrimeNoTimer.getSumTime()
+                      + this.getUnprimedVariablesTimer.getSumTime() + this.mergeSSATimer.getSumTime();
+      out.println("incrementMap time:               " + incrementMapTimer);
+      out.println("changePrimeNo time:              " + changePrimeNoTimer);
+      out.println("getUnprimedVariables time:       " + getUnprimedVariablesTimer);
+      out.println("mergeSSA time:                   " + mergeSSATimer);
+      out.println("total time on those:             " + Timer.formatTime(totalTime));
+    }
+    @Override
+    public String getName() {
+      return "SSAMapManager";
+    }
+  }
+
+
+
 
 }

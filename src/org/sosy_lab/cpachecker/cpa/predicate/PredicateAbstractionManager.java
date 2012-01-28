@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -35,7 +36,6 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
@@ -44,6 +44,10 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManagerImpl;
@@ -66,19 +70,9 @@ import com.google.common.collect.ImmutableMap;
 
 @Options(prefix="cpa.predicate")
 public
-class PredicateAbstractionManager {
+class PredicateAbstractionManager implements StatisticsProvider {
 
-  public static class Stats {
-    public int numCallsAbstraction = 0;
-    public int numSymbolicAbstractions = 0;
-    public int numSatCheckAbstractions = 0;
-    public int numCallsAbstractionCached = 0;
-    public final NestedTimer abstractionTime = new NestedTimer(); // outer: solve time, inner: bdd time
 
-    public long allSatCount = 0;
-    public int maxAllSatCount = 0;
-    public Timer extractTimer = new Timer();
-  }
 
   // singleton instance of the manager
   private static PredicateAbstractionManager instance;
@@ -177,8 +171,8 @@ class PredicateAbstractionManager {
    * Abstract post operation.
    */
   public AbstractionFormula buildAbstraction(AbstractionFormula abstractionFormula, PathFormula pathFormula, Collection<AbstractionPredicate> predicates) {
-
-    stats.numCallsAbstraction++;
+    stats.buildAbstractionCalls++;
+    stats.buildAbstractionTimer.start();
 
    /* if (predicates.isEmpty()) {
       stats.numSymbolicAbstractions++;
@@ -209,7 +203,8 @@ class PredicateAbstractionManager {
         // create new abstraction object to have a unique abstraction id
         result = new AbstractionFormula(result.asRegion(), result.asPathFormula(), pathFormula);
         logger.log(Level.ALL, "Abstraction was cached, result is", result);
-        stats.numCallsAbstractionCached++;
+        stats.buildAbstractionCH++;
+        stats.buildAbstractionTimer.stop();
         return result;
       }
     }
@@ -229,6 +224,7 @@ class PredicateAbstractionManager {
       abstractionCache.put(absKey, result);
     }
 
+    stats.buildAbstractionTimer.stop();
     return result;
   }
 
@@ -242,7 +238,8 @@ class PredicateAbstractionManager {
    * @return
    */
   public AbstractionFormula buildNextValAbstraction(AbstractionFormula aFormula, PathFormula lowPf,PathFormula highPf, Collection<AbstractionPredicate> predicates, int tid) {
-    stats.numCallsAbstraction++;
+    stats.buildAbstractionNVCalls++;
+    stats.buildAbstractionNVTimer.start();
 
     /* if (predicates.isEmpty()) {
        stats.numSymbolicAbstractions++;
@@ -262,7 +259,8 @@ class PredicateAbstractionManager {
 
        if (result != null) {
          result = new AbstractionFormula(result.asRegion(), result.asPathFormula(), highPf);
-         stats.numCallsAbstractionCached++;
+         stats.buildAbstractionNVCH++;
+         stats.buildAbstractionNVTimer.stop();
          return result;
        }
      }
@@ -284,6 +282,7 @@ class PredicateAbstractionManager {
        abstractionNextValueCache.put(absKey, result);
      }
 
+     stats.buildAbstractionNVTimer.stop();
      return result;
   }
 
@@ -294,7 +293,7 @@ class PredicateAbstractionManager {
 
     Formula f = pf.getFormula();
 
-    stats.abstractionTime.startOuter();
+
 
     thmProver.init();
     try {
@@ -327,7 +326,6 @@ class PredicateAbstractionManager {
           if (useCache && cartesianAbstractionCache.containsKey(cacheKey)) {
             byte predVal = cartesianAbstractionCache.get(cacheKey);
 
-            stats.abstractionTime.getInnerTimer().start();
             Region v = p.getAbstractVariable();
             if (predVal == -1) { // pred is false
               v = rmgr.makeNot(v);
@@ -337,7 +335,6 @@ class PredicateAbstractionManager {
             } else {
               assert predVal == 0 : "predicate value is neither false, true, nor unknown";
             }
-            stats.abstractionTime.getInnerTimer().stop();
 
           } else {
             logger.log(Level.ALL, "DEBUG_1",
@@ -354,10 +351,10 @@ class PredicateAbstractionManager {
             boolean isTrue = thmProver.isUnsat(predFalse);
 
             if (isTrue) {
-              stats.abstractionTime.getInnerTimer().start();
+
               Region v = p.getAbstractVariable();
               absbdd = rmgr.makeAnd(absbdd, v);
-              stats.abstractionTime.getInnerTimer().stop();
+
 
               predVal = 1;
             } else {
@@ -365,11 +362,9 @@ class PredicateAbstractionManager {
               boolean isFalse = thmProver.isUnsat(predTrue);
 
               if (isFalse) {
-                stats.abstractionTime.getInnerTimer().start();
                 Region v = p.getAbstractVariable();
                 v = rmgr.makeNot(v);
                 absbdd = rmgr.makeAnd(absbdd, v);
-                stats.abstractionTime.getInnerTimer().stop();
 
                 predVal = -1;
               }
@@ -390,13 +385,11 @@ class PredicateAbstractionManager {
     } finally {
       thmProver.reset();
 
-      stats.abstractionTime.stopOuter();
     }
   }
 
 
   private Region buildNextValCartesianAbstraction(PathFormula lowPf, PathFormula hiPf, Collection<AbstractionPredicate> predicates, int tid) {
-    stats.abstractionTime.startOuter();
 
     final RegionManager rmgr = amgr.getRegionManager();
 
@@ -434,22 +427,17 @@ class PredicateAbstractionManager {
           boolean isTrue = thmProver.isUnsat(predFalse);
 
           if (isTrue) {
-            stats.abstractionTime.getInnerTimer().start();
             Region v = p.getAbstractVariable();
             absbdd = rmgr.makeAnd(absbdd, v);
-            stats.abstractionTime.getInnerTimer().stop();
-
             predVal = 1;
           } else {
             // check whether it's false...
             boolean isFalse = thmProver.isUnsat(predTrue);
 
             if (isFalse) {
-              stats.abstractionTime.getInnerTimer().start();
               Region v = p.getAbstractVariable();
               v = rmgr.makeNot(v);
               absbdd = rmgr.makeAnd(absbdd, v);
-              stats.abstractionTime.getInnerTimer().stop();
 
               predVal = -1;
             }
@@ -465,7 +453,6 @@ class PredicateAbstractionManager {
     } finally {
       thmProver.reset();
 
-      stats.abstractionTime.stopOuter();
     }
   }
 
@@ -516,38 +503,20 @@ class PredicateAbstractionManager {
       predVars.add(var);
     }
     if (predVars.isEmpty()) {
-      stats.numSatCheckAbstractions++;
     }
 
     // the formula is (abstractionFormula & pathFormula & predDef)
     Formula fm = fmgr.makeAnd(f, predDef);
     logger.log(Level.ALL, "COMPUTING ALL-SMT ON FORMULA: ", fm);
 
-    stats.abstractionTime.startOuter();
-    AllSatResult allSatResult = thmProver.allSat(fm, predVars, amgr, stats.abstractionTime.getInnerTimer());
-    long solveTime = stats.abstractionTime.stopOuter();
+
+    stats.bogus.start();
+    AllSatResult allSatResult = thmProver.allSat(fm, predVars, amgr, stats.bogus);
+    long solveTime = stats.bogus.stop();
 
     // update statistics
     int numModels = allSatResult.getCount();
     if (numModels < Integer.MAX_VALUE) {
-      stats.maxAllSatCount = Math.max(numModels, stats.maxAllSatCount);
-      stats.allSatCount += numModels;
-    }
-
-    // TODO dump hard abst
-    if (solveTime > 10000 && dumpHardAbstractions) {
-      // we want to dump "hard" problems...
-      String dumpFile = String.format(formulaDumpFilePattern,
-                               "abstraction", stats.numCallsAbstraction, "input", 0);
-      dumpFormulaToFile(f, new File(dumpFile));
-
-      dumpFile = String.format(formulaDumpFilePattern,
-                               "abstraction", stats.numCallsAbstraction, "predDef", 0);
-      dumpFormulaToFile(predDef, new File(dumpFile));
-
-      dumpFile = String.format(formulaDumpFilePattern,
-                               "abstraction", stats.numCallsAbstraction, "predVars", 0);
-      printFormulasToFile(predVars, new File(dumpFile));
     }
 
     Region result = allSatResult.getResult();
@@ -585,22 +554,23 @@ class PredicateAbstractionManager {
       predVars.add(var);
     }
     if (predVars.isEmpty()) {
-      stats.numSatCheckAbstractions++;
+      //stats.numSatCheckAbstractions++;
     }
 
     // the formula is (abstractionFormula & pathFormula & predDef)
     Formula fm = fmgr.makeAnd(newAbsPf.getFormula(), predDef);
     logger.log(Level.ALL, "COMPUTING ALL-SMT ON FORMULA: ", fm);
 
-    stats.abstractionTime.startOuter();
-    AllSatResult allSatResult = thmProver.allSat(fm, predVars, amgr, stats.abstractionTime.getInnerTimer());
-    long solveTime = stats.abstractionTime.stopOuter();
+    //stats.abstractionTime.startOuter();
+    stats.bogus.start();
+    AllSatResult allSatResult = thmProver.allSat(fm, predVars, amgr, stats.bogus);
+    //long solveTime = stats.abstractionTime.stopOuter();
 
     // update statistics
     int numModels = allSatResult.getCount();
     if (numModels < Integer.MAX_VALUE) {
-      stats.maxAllSatCount = Math.max(numModels, stats.maxAllSatCount);
-      stats.allSatCount += numModels;
+      //stats.maxAllSatCount = Math.max(numModels, stats.maxAllSatCount);
+      //stats.allSatCount += numModels;
     }
 
 
@@ -697,12 +667,10 @@ class PredicateAbstractionManager {
   }
 
   public Collection<AbstractionPredicate> extractPredicates(Region pRegion) {
-    stats.extractTimer.start();
     try {
       return amgr.extractPredicates(pRegion);
     }
     finally {
-      stats.extractTimer.stop();
     }
   }
 
@@ -716,6 +684,42 @@ class PredicateAbstractionManager {
 
   public PathFormulaManager getPathFormulaManager() {
     return pmgr;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
+  }
+
+  public static class Stats implements Statistics {
+    public final Timer buildAbstractionTimer   = new Timer();
+    public int buildAbstractionCalls = 0;
+    public int buildAbstractionCH    = 0;
+    public final Timer buildAbstractionNVTimer   = new Timer();
+    public int buildAbstractionNVCalls = 0;
+    public int buildAbstractionNVCH    = 0;
+    public final Timer bogus           = new Timer();
+
+    @Override
+    public void printStatistics(PrintStream out, Result pResult,ReachedSet pReached) {
+      long totalTime = this.buildAbstractionTimer.getSumTime() + this.buildAbstractionNVTimer.getSumTime();
+      String baHitRation = " ("+toPercent(this.buildAbstractionCH, this.buildAbstractionCalls)+")";
+      String banvHitRation = " ("+toPercent(this.buildAbstractionNVCH, this.buildAbstractionNVCalls)+")";
+      out.println("buildAbstraction time:           " + this.buildAbstractionTimer);
+      out.println("buildAbstraction cach hits:      " + this.buildAbstractionCH+"/"+this.buildAbstractionCalls + baHitRation);
+      out.println("buildNextValueAbstraction time:  " + this.buildAbstractionNVTimer);
+      out.println("buildBextValueAbstraction c.h.:  " + this.buildAbstractionNVCH+"/"+this.buildAbstractionNVCalls + banvHitRation);
+      out.println("total time on those:             " + Timer.formatTime(totalTime));
+    }
+
+    private String toPercent(double val, double full) {
+      return String.format("%1.0f", val/full*100) + "%";
+    }
+
+    @Override
+    public String getName() {
+      return "PredicateAbstractionManager";
+    }
   }
 
 

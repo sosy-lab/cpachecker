@@ -30,6 +30,7 @@ import static org.sosy_lab.cpachecker.util.AbstractElements.extractElementByType
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -43,7 +44,6 @@ import java.util.Vector;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
@@ -52,6 +52,9 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTUtils;
@@ -62,7 +65,6 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.RGApplicationInfo;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCFAEdge2;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdgeTemplate;
-import org.sosy_lab.cpachecker.cpa.relyguarantee.refinement.RGRefiner.RelyGuaranteeRefinerStatistics;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
@@ -84,7 +86,7 @@ import com.google.common.collect.Lists;
 
 
 @Options(prefix="cpa.relyguarantee")
-public class RGRefinementManager<T1, T2>  {
+public class RGRefinementManager<T1, T2> implements StatisticsProvider {
 
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
@@ -120,8 +122,7 @@ public class RGRefinementManager<T1, T2>  {
   @Option(description="Limit of nodes in an interpolation tree (0 - no limit).")
   private int itpTreeNodeLimit = 0;
 
-  public final PredStats stats;
-  public final RefStats refStats;
+  public final Stats stats;
   protected final InterpolatingTheoremProver<T1> firstItpProver;
   private final InterpolatingTheoremProver<T2> secondItpProver;
   private final LogManager logger;
@@ -169,10 +170,9 @@ public class RGRefinementManager<T1, T2>  {
     this.ssaManager = pSsaManager;
     this.pmgr = pPmgr;
     this.thmProver = pThmProver;
-    this.stats = new PredStats();
-    this.refStats = new RefStats();
     this.firstItpProver = pItpProver;
     this.secondItpProver = pAltItpProver;
+    this.stats = new Stats();
 
   }
 
@@ -185,15 +185,15 @@ public class RGRefinementManager<T1, T2>  {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public CounterexampleTraceInfo buildRgCounterexampleTrace(final ARTElement targetElement, final ReachedSet[] reachedSets, int tid, RelyGuaranteeRefinerStatistics stats) throws CPAException, InterruptedException {
+  public CounterexampleTraceInfo buildRgCounterexampleTrace(final ARTElement targetElement, final ReachedSet[] reachedSets, int tid) throws CPAException, InterruptedException {
     // if we don't want to limit the time given to the solver
     //return buildCounterexampleTraceWithSpecifiedItp(pAbstractTrace, elementsOnPath, firstItpProver);
 
     if (this.whichItpProver.equals("MATHSAT")){
       if (this.refinementMethod == 0){
-        return interpolateTreeMathsat(targetElement,  reachedSets, tid, firstItpProver, stats);
+        return interpolateTreeMathsat(targetElement,  reachedSets, tid, firstItpProver);
       } else if  (this.refinementMethod == 1){
-        return interpolateInsertMathsat(targetElement,  reachedSets, tid, firstItpProver, stats);
+        return interpolateInsertMathsat(targetElement,  reachedSets, tid, firstItpProver);
       } else {
         throw new UnsupportedOperationException("Curretly only tree refinement is supported.");
       }
@@ -453,7 +453,7 @@ public class RGRefinementManager<T1, T2>  {
    * @throws CPAException
    * @throws InterruptedException
    */
-  private <T> CounterexampleTraceInfo interpolateTreeMathsat(ARTElement targetElement,  ReachedSet[] reachedSets, int tid , InterpolatingTheoremProver<T> itpProver, RelyGuaranteeRefinerStatistics stats) throws CPAException, InterruptedException{
+  private <T> CounterexampleTraceInfo interpolateTreeMathsat(ARTElement targetElement,  ReachedSet[] reachedSets, int tid , InterpolatingTheoremProver<T> itpProver) throws CPAException, InterruptedException{
 
      stats.formulaTimer.start();
 
@@ -496,7 +496,6 @@ public class RGRefinementManager<T1, T2>  {
      * Interpolate formulas.
      */
 
-    refStats.cexAnalysisSolverTimer.start();
     CounterexampleTraceInfo info  = new CounterexampleTraceInfo();
 
     if (debug){
@@ -603,7 +602,6 @@ public class RGRefinementManager<T1, T2>  {
 
     itpProver.reset();
     stats.interpolationTimer.stop();
-    refStats.cexAnalysisTimer.stop();
 
     return info;
   }
@@ -789,7 +787,7 @@ public class RGRefinementManager<T1, T2>  {
    * @throws InterruptedException
    * @throws CPAException
    */
-  private <T> CounterexampleTraceInfo interpolateInsertMathsat(ARTElement targetElement, ReachedSet[] reachedSets, int tid, InterpolatingTheoremProver<T> itpProver, RelyGuaranteeRefinerStatistics stats) throws InterruptedException, CPAException {
+  private <T> CounterexampleTraceInfo interpolateInsertMathsat(ARTElement targetElement, ReachedSet[] reachedSets, int tid, InterpolatingTheoremProver<T> itpProver) throws InterruptedException, CPAException {
     stats.formulaTimer.start();
 
     /*
@@ -840,7 +838,6 @@ public class RGRefinementManager<T1, T2>  {
     * Interpolate formulas.
     */
 
-   refStats.cexAnalysisSolverTimer.start();
    CounterexampleTraceInfo info  = new CounterexampleTraceInfo();
 
    if (debug){
@@ -957,7 +954,6 @@ public class RGRefinementManager<T1, T2>  {
 
    itpProver.reset();
    stats.interpolationTimer.stop();
-   refStats.cexAnalysisTimer.stop();
 
    return info;
   }
@@ -1277,24 +1273,34 @@ public class RGRefinementManager<T1, T2>  {
     return result;
   }
 
-
-  public static class PredStats {
-    public int numCallsAbstraction = 0;
-    public int numSymbolicAbstractions = 0;
-    public int numSatCheckAbstractions = 0;
-    public int numCallsAbstractionCached = 0;
-    public final NestedTimer abstractionTime = new NestedTimer(); // outer: solve time, inner: bdd time
-
-    public long allSatCount = 0;
-    public int maxAllSatCount = 0;
-    public Timer extractTimer = new Timer();
+  @Override
+  public void collectStatistics(Collection<Statistics> scoll) {
+    scoll.add(stats);
   }
 
-  public static class RefStats {
-    public final Timer cexAnalysisTimer = new Timer();
-    public final Timer cexAnalysisSolverTimer = new Timer();
-    public final Timer cexAnalysisGetUsefulBlocksTimer = new Timer();
+  public static class Stats implements Statistics {
+    public final Timer interpolationTimer  = new Timer();
+    public final Timer formulaTimer        = new Timer();
+
+    public int formulaNo                = 0;
+    public int unsatChecks              = 0;
+
+    @Override
+    public String getName() {
+      return "RGRefinementManager";
+    }
+
+    @Override
+    public void printStatistics(PrintStream out, Result pResult,ReachedSet pReached){
+      out.println("interpolation fomulas:           " + formulaNo);
+      out.println("unsat checks:                    " + unsatChecks);
+      out.println("time on constructing formulas:   " + formulaTimer);
+      out.println("total time on interpolation:     " + interpolationTimer+" (max: "+interpolationTimer.printMaxTime()+")");
+    }
   }
+
+
+
 }
 
 

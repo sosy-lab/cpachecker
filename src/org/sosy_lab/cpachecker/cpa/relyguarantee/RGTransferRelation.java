@@ -115,11 +115,12 @@ public class RGTransferRelation  implements TransferRelation {
 
 
   // statistics
-  public final Timer postTimer = new Timer();
+  /*public final Timer postTimer = new Timer();
   public final Timer satCheckTimer = new Timer();
   public final Timer pathFormulaTimer = new Timer();
   public final Timer strengthenTimer = new Timer();
-  public final Timer strengthenCheckTimer = new Timer();
+  public final Timer strengthenCheckTimer = new Timer();*/
+  public final Timer pfConstructionTimer = new Timer();
 
   public int numBlkFunctions = 0;
   public int numBlkLoops = 0;
@@ -127,6 +128,7 @@ public class RGTransferRelation  implements TransferRelation {
   public int numAtomThreshold = 0;
   public int numSatChecksFalse = 0;
   public int numStrengthenChecksFalse = 0;
+  public int envFalseByBDD = 0;
 
   private final LogManager logger;
   private final PredicateAbstractionManager paManager;
@@ -160,74 +162,40 @@ public class RGTransferRelation  implements TransferRelation {
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(AbstractElement pElement,
       Precision pPrecision, CFAEdge edge) throws CPATransferException, InterruptedException {
-    postTimer.start();
 
-    try {
+    RGAbstractElement element = (RGAbstractElement) pElement;
+    CFANode loc = edge.getSuccessor();
 
-      RGAbstractElement element = (RGAbstractElement) pElement;
-      CFANode loc = edge.getSuccessor();
-
-      // Check whether abstraction is false.
-      // Such elements might get created when precision adjustment computes an abstraction.
-      if (element.getAbstractionFormula().asFormula().isFalse()) {
-        return Collections.emptySet();
-      }
-
-
-      // calculate strongest post
-      Pair<PathFormula, RGApplicationInfo> pair = convertEdgeToPathFormula(element, edge);
-      PathFormula newPF = pair.getFirst();
-      logger.log(Level.ALL, "New path formula is", newPF);
-
-      // check whether to do abstraction
-      boolean doAbstraction = isBlockEnd(loc, newPF);
-      boolean isEnvEdge = (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge || edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge);
-
-      doAbstraction = doAbstraction || isEnvEdge;
-      doAbstraction = true;
-
-      if (doAbstraction) {
-        return Collections.singleton(
-            new RGAbstractElement.ComputeAbstractionElement(pair.getFirst(), element.getAbstractionFormula(), loc, edge, cpa.getTid(), pair.getSecond()));
-
-      } else {
-        return handleNonAbstractionFormulaLocation(pair.getFirst(), element.getAbstractionFormula(), edge, pair.getSecond());
-      }
-
-    } finally {
-      postTimer.stop();
-    }
-  }
-
-
-  /**
-   * Does special things when we do not compute an abstraction for the
-   * successor. This currently only involves an optional sat check.
-   * @param pPrimedMap
-   */
-  private Set<RGAbstractElement> handleNonAbstractionFormulaLocation(PathFormula pathFormula, AbstractionFormula abstractionFormula, CFAEdge edge, RGApplicationInfo appInfo) {
-    boolean satCheck = (satCheckBlockSize > 0) && (pathFormula.getLength() >= satCheckBlockSize);
-
-    logger.log(Level.FINEST, "Handling non-abstraction location",
-        (satCheck ? "with satisfiability check" : ""));
-
-    if (satCheck) {
-      satCheckTimer.start();
-
-      boolean unsat = paManager.unsat(abstractionFormula, pathFormula);
-
-      satCheckTimer.stop();
-
-      if (unsat) {
-        numSatChecksFalse++;
-        logger.log(Level.FINEST, "Abstraction & PathFormula is unsatisfiable.");
-        return Collections.emptySet();
-      }
+    // Check whether abstraction is false.
+    // Such elements might get created when precision adjustment computes an abstraction.
+    if (element.getAbstractionFormula().asFormula().isFalse()) {
+      return Collections.emptySet();
     }
 
-    // create the new abstract element for non-abstraction location
-    return Collections.singleton(new RGAbstractElement(pathFormula, abstractionFormula, edge, cpa.getTid(), appInfo));
+
+    // calculate strongest post
+    Pair<PathFormula, RGApplicationInfo> pair = convertEdgeToPathFormula(element, edge);
+    PathFormula newPF = pair.getFirst();
+    logger.log(Level.ALL, "New path formula is", newPF);
+
+    // check whether to do abstraction
+    boolean doAbstraction = isBlockEnd(loc, newPF);
+    boolean isEnvEdge = (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge || edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge);
+
+    doAbstraction = doAbstraction || isEnvEdge;
+    doAbstraction = true;
+
+    RGAbstractElement succ;
+    if (doAbstraction) {
+      succ = new RGAbstractElement.ComputeAbstractionElement(pair.getFirst(), element.getAbstractionFormula(), loc, edge, cpa.getTid(), pair.getSecond());
+
+    } else {
+      succ = new RGAbstractElement(pair.getFirst(), element.getAbstractionFormula(), edge, cpa.getTid(), pair.getSecond());
+    }
+
+    return Collections.singleton(succ);
   }
+
 
   /**
    * Converts an edge into a formula and creates a conjunction of it with the
@@ -243,7 +211,7 @@ public class RGTransferRelation  implements TransferRelation {
   public Pair<PathFormula, RGApplicationInfo> convertEdgeToPathFormula(RGAbstractElement element, CFAEdge edge) throws CPATransferException {
     PathFormula oldPathFormula = element.getPathFormula();
 
-    pathFormulaTimer.start();
+    pfConstructionTimer.start();
 
     Pair<PathFormula, RGApplicationInfo> pair = null;
     if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge){
@@ -262,6 +230,7 @@ public class RGTransferRelation  implements TransferRelation {
       pair = Pair.of(newPf, null);
     }
 
+    pfConstructionTimer.stop();
     return pair;
   }
 
@@ -298,6 +267,8 @@ public class RGTransferRelation  implements TransferRelation {
         appInfo.putEnvApplication(uniqueId, rgEdge.getTemplate());
         // increment unique number
         uniqueId++;
+
+        envFalseByBDD++;
 
         return Pair.of(this.pfManager.makeFalsePathFormula(), appInfo);
       }
@@ -564,7 +535,7 @@ public class RGTransferRelation  implements TransferRelation {
   public Collection<? extends AbstractElement> strengthen(AbstractElement pElement,
       List<AbstractElement> otherElements, CFAEdge edge, Precision pPrecision) throws CPATransferException {
 
-    strengthenTimer.start();
+    //strengthenTimer.start();
     try {
 
       RGAbstractElement element = (RGAbstractElement)pElement;
@@ -602,7 +573,7 @@ public class RGTransferRelation  implements TransferRelation {
       return Collections.singleton(element);
 
     } finally {
-      strengthenTimer.stop();
+      //strengthenTimer.stop();
     }
   }
 
@@ -674,10 +645,10 @@ public class RGTransferRelation  implements TransferRelation {
 
 
 
-    strengthenCheckTimer.start();
+    //strengthenCheckTimer.start();
     PathFormula pathFormula = pElement.getPathFormula();
     boolean unsat = paManager.unsat(pElement.getAbstractionFormula(), pathFormula);
-    strengthenCheckTimer.stop();
+    //strengthenCheckTimer.stop();
 
     if (unsat) {
       numStrengthenChecksFalse++;

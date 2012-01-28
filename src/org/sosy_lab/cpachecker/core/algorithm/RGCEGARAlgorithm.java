@@ -48,30 +48,7 @@ public class RGCEGARAlgorithm implements ConcurrentAlgorithm,  StatisticsProvide
   @Option(description="If true, the analysis continues in the previous thread. If false, the first thread is analysed first.")
   private boolean continueThread = false;
 
-  public class RelyGuaranteeCEGARStatistics implements Statistics {
-
-    private Timer totalTimer        = new Timer();
-    private Timer totalRGAlg        = new Timer();
-    private Timer totalRefinement   = new Timer();
-
-    private int   countIterations  = 0;
-
-    @Override
-    public String getName() {
-      return "Rely-guarantee CEGAR";
-    }
-
-    @Override
-    public void printStatistics(PrintStream out, Result pResult,ReachedSet pReached) {
-      out.println("Number of refinements:           " + countIterations);
-      out.println("Total time on ART computation:   " + totalRGAlg);
-      out.println("Total time on ref.:              " + totalRefinement);
-      out.println("Total time on CEGAR:             " + totalTimer);
-
-    }
-  }
-
-  private final RelyGuaranteeCEGARStatistics stats;
+  private final Stats stats;
 
   private RGAlgorithm algorithm;
   private RGRefiner refiner;
@@ -85,7 +62,7 @@ public class RGCEGARAlgorithm implements ConcurrentAlgorithm,  StatisticsProvide
     this.algorithm = pAlgorithm;
     this.config = pConfig;
     this.logger = pLogger;
-    this.stats  = new RelyGuaranteeCEGARStatistics();
+    this.stats  = new Stats();
 
     pConfig.inject(this, RGCEGARAlgorithm.class);
     // TODO for now only rg refiner is available
@@ -96,52 +73,82 @@ public class RGCEGARAlgorithm implements ConcurrentAlgorithm,  StatisticsProvide
 
 
   @Override
-  /**
-   * Returns -1 if the threads are safe, otherwise it returns the thread id with the error
-   */
   public int run(ReachedSet[] reachedSets, int startThread) {
 
     stats.totalTimer.start();
-
-    int runThread = startThread;
-    int refinmentNo = 0;
+    int errorThread = startThread;
     boolean continueAnalysis = false;
     do {
-      System.out.println();
-      System.out.println("------------------------ Rely-guarantee algorithm - iteration "+refinmentNo+" -------------------------");
-      stats.totalRGAlg.start();
-      runThread = continueThread ? runThread : 0;
-      runThread = algorithm.run(reachedSets, runThread);
-      stats.totalRGAlg.stop();
-      algorithm.printStatitics();
 
-      if (runThread == -1){
-        // the program is safe
-        continueAnalysis = false;
+      /* rely-guarantee analysis */
+      errorThread = analyse(reachedSets, errorThread);
+
+      if (errorThread == -1){
+        /* the program is safe */
+        return -1;
       } else {
-        // the program is unsafe, so perform refinement
-        try {
-          System.out.println();
-          System.out.println("---------------------------- Performing refinement - iteration "+refinmentNo+" ----------------------------");
-          stats.totalRefinement.start();
-          continueAnalysis = refiner.performRefinment(reachedSets, algorithm.getRelyGuaranteeEnvironment(), runThread);
-          stats.totalRefinement.stop();
-          refiner.printStatitics();
-        } catch (Exception e) {
-          // TODO Auto-generated catch block
-          e.printStackTrace();
-        }
-        //AbstractElement error = reachedSets[errorThr].getLastElement();
-        refinmentNo++;
+        /* refine error */
+        continueAnalysis = refine(reachedSets, errorThread);
         stats.countIterations++;
       }
-
     } while (continueAnalysis);
 
     System.out.println("----------------------------------------------------------------------------------");
     stats.totalTimer.stop();
-    return runThread;
+    return errorThread;
   }
+
+
+  /**
+   * Run rely-guarantee analysis.
+   * @param pReachedSets
+   * @param pErrorThread
+   * @return
+   */
+  private int analyse(ReachedSet[] reachedSets, int startThread) {
+    System.out.println();
+    System.out.println("------------------------ Rely-guarantee analysis "+stats.countIterations+" -------------------------");
+
+    stats.totalAnal.start();
+    int errorThread = continueThread ? startThread : 0;
+    errorThread = algorithm.run(reachedSets, errorThread);
+    long time = stats.totalAnal.stop();
+
+    System.out.println();
+    System.out.println("Time for rely-guarantee analysis:       " + Timer.formatTime(time));
+
+    return errorThread;
+  }
+
+
+  /**
+   * Refine abstract error.
+   * @param reachedSets
+   * @param errorThread
+   * @return
+   */
+  private boolean refine(ReachedSet[] reachedSets, int errorThread) {
+    boolean spurious = false;
+    try {
+      System.out.println();
+      System.out.println("------------------------------ Refinement "+stats.countIterations+" ------------------------------");
+      stats.totalRefinement.start();
+      spurious = refiner.performRefinment(reachedSets, algorithm.getRelyGuaranteeEnvironment(), errorThread);
+      long time = stats.totalRefinement.stop();
+
+      System.out.println();
+      System.out.println("Time for refinement:              " + Timer.formatTime(time));
+
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+
+    return spurious;
+
+  }
+
+
+
 
   private void runGC() {
     if ((++gcCounter % GC_PERIOD) == 0) {
@@ -158,8 +165,10 @@ public class RGCEGARAlgorithm implements ConcurrentAlgorithm,  StatisticsProvide
   }
 
   @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(stats);
+  public void collectStatistics(Collection<Statistics> scoll) {
+    scoll.add(stats);
+    algorithm.collectStatistics(scoll);
+    refiner.collectStatistics(scoll);
   }
 
   @Override
@@ -172,6 +181,28 @@ public class RGCEGARAlgorithm implements ConcurrentAlgorithm,  StatisticsProvide
   public Result getResult() {
     // TODO Auto-generated method stub
     return null;
+  }
+
+  public class Stats implements Statistics {
+
+    private Timer totalTimer        = new Timer();
+    private Timer totalAnal        = new Timer();
+    private Timer totalRefinement   = new Timer();
+
+    private int   countIterations  = 0;
+
+    @Override
+    public String getName() {
+      return "Rely-guarantee CEGAR";
+    }
+
+    @Override
+    public void printStatistics(PrintStream out, Result pResult,ReachedSet pReached) {
+      out.println("Number of refinements:           " + countIterations);
+      out.println("Total time on analysis:          " + totalAnal);
+      out.println("Total time on refinement:        " + totalRefinement);
+      out.println("Total time on CEGAR:             " + totalTimer);
+    }
   }
 
 

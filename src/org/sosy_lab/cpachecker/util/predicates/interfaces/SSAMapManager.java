@@ -27,9 +27,10 @@ import java.util.Collection;
 import java.util.Map;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 
-public interface SSAMapManager {
+public interface SSAMapManager  extends StatisticsProvider{
 
     /**
      * Increments the indexes of specified variables, while others remain unchanged.

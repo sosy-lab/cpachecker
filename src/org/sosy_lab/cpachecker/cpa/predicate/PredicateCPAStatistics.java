@@ -28,8 +28,8 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.TreeMap;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
@@ -137,11 +137,7 @@ public class  PredicateCPAStatistics implements Statistics {
         out.println("  Because of function entry/exit:  " + trans.numBlkFunctions + " (" + toPercent(trans.numBlkFunctions, prec.numAbstractions) + ")");
         out.println("  Because of loop head:            " + trans.numBlkLoops + " (" + toPercent(trans.numBlkLoops, prec.numAbstractions) + ")");
         out.println("  Because of threshold:            " + trans.numBlkThreshold + " (" + toPercent(trans.numBlkThreshold, prec.numAbstractions) + ")");
-        out.println("  Times precision was empty:       " + as.numSymbolicAbstractions + " (" + toPercent(as.numSymbolicAbstractions, as.numCallsAbstraction) + ")");
-        out.println("  Times precision was {false}:     " + as.numSatCheckAbstractions + " (" + toPercent(as.numSatCheckAbstractions, as.numCallsAbstraction) + ")");
-        out.println("  Times result was 'false':        " + prec.numAbstractionsFalse + " (" + toPercent(prec.numAbstractionsFalse, prec.numAbstractions) + ")");
-        out.println("  Extract predicates timer: " + as.extractTimer);
-      }
+     }
       if (trans.satCheckTimer.getNumberOfIntervals() > 0) {
         out.println("Number of satisfiability checks:   " + trans.satCheckTimer.getNumberOfIntervals());
         out.println("  Times result was 'false':        " + trans.numSatChecksFalse + " (" + toPercent(trans.numSatChecksFalse, trans.satCheckTimer.getNumberOfIntervals()) + ")");
@@ -160,33 +156,6 @@ public class  PredicateCPAStatistics implements Statistics {
       out.println("Max number of predicates per location:    " + maxPredsPerLocation);
       out.println("Avg number of predicates per location:    " + avgPredsPerLocation);
       out.println("Max number of predicates per abstraction: " + prec.maxPredsPerAbstraction);
-      out.println("Total number of models for allsat:        " + as.allSatCount);
-      out.println("Max number of models for allsat:          " + as.maxAllSatCount);
-      if (as.numCallsAbstraction > 0) {
-        out.println("Avg number of models for allsat:          " + as.allSatCount / as.numCallsAbstraction);
-      }
-      out.println();
-      if (pfMgr != null) {
-        out.println("Number of path formula cache hits:   " + pfMgr.pathFormulaCacheHits + " (" + toPercent(pfMgr.pathFormulaCacheHits, pfMgr.pathFormulaComputationTimer.getNumberOfIntervals()) + ")");
-      }
-      if (as.numCallsAbstraction > 0) {
-        out.println("Number of abstraction cache hits:    " + as.numCallsAbstractionCached + " (" + toPercent(as.numCallsAbstractionCached, as.numCallsAbstraction) + ")");
-      }
-      out.println();
-      out.println("Time for post operator:              " + trans.postTimer);
-      out.println("  Time for path formula creation:    " + trans.pathFormulaTimer);
-      if (pfMgr != null) {
-        out.println("    Actual computation:              " + pfMgr.pathFormulaComputationTimer);
-      }
-      if (trans.satCheckTimer.getNumberOfIntervals() > 0) {
-        out.println("  Time for satisfiability checks:    " + trans.satCheckTimer);
-      }
-      out.println("Time for strengthen operator:        " + trans.strengthenTimer);
-      out.println("  Time for satisfiability checks:    " + trans.strengthenCheckTimer);
-      out.println("Time for prec operator:             " + prec.totalPrecTime);
-      out.println("  Time for abstraction:              " + prec.computingAbstractionTime + " (Max: " + prec.computingAbstractionTime.printMaxTime() + ", Count: " + prec.computingAbstractionTime.getNumberOfIntervals() + ")");
-      out.println("    Solving time:                    " + as.abstractionTime.printOuterSumTime() + " (Max: " + as.abstractionTime.printOuterMaxTime() + ")");
-      out.println("    Time for BDD construction:       " + as.abstractionTime.printInnerSumTime()   + " (Max: " + as.abstractionTime.printInnerMaxTime() + ")");
       out.println("Time for merge operator:             " + cpa.getMergeOperator().totalMergeTime);
       out.println("Time for coverage check:             " + domain.coverageCheckTimer);
       if (domain.bddCoverageCheckTimer.getNumberOfIntervals() > 0) {

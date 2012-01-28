@@ -276,5 +276,27 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
     return this.logger;
   }
 
+  public RegionManager getrManager() {
+    return rManager;
+  }
+
+  public FormulaManager getFormulaManager() {
+    return formulaManager;
+  }
+
+  public PathFormulaManager getPathFormulaManager() {
+    return pathFormulaManager;
+  }
+
+  public PredicateAbstractionManager getPredicateManager() {
+    return predicateManager;
+  }
+
+  public SSAMapManager getSsaManager() {
+    return ssaManager;
+  }
+
+
+
 
 }

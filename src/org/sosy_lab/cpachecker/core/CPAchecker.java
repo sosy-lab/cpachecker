@@ -223,9 +223,6 @@ public class CPAchecker {
         cpas[i] = cpa;
       }
 
-      // TODO quick & dirty solution
-      stats.getSubStatistics().clear();
-
       // get the initial reached sets
       initalReachedSets = new ReachedSet[threadNo];
       for(int i=0; i<threadNo; i++){

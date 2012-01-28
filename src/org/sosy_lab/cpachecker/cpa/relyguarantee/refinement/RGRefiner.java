@@ -33,7 +33,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.Vector;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
@@ -48,6 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
@@ -75,7 +75,7 @@ import com.google.common.collect.SetMultimap;
 
 
 @Options(prefix="cpa.relyguarantee")
-public class RGRefiner{
+public class RGRefiner implements StatisticsProvider{
 
   @Option(description="Print debugging info?")
   private boolean debug=true;
@@ -104,63 +104,12 @@ public class RGRefiner{
 
 
 
-  public abstract class  RelyGuaranteeRefinerStatistics implements Statistics {
-
-    protected Timer totalTimer          = new Timer();
-    public    Timer interpolationTimer  = new Timer();
-    public    Timer formulaTimer        = new Timer();
-    protected Timer   restartingTimer     = new Timer();
-
-    public int formulaNo                = 0;
-    public int unsatChecks              = 0;
-    public int maxPredicatesPerLoc      = 0;
-
-    @Override
-    public String getName() {
-      return "RG refinement statistics";
-    }
-
-  }
-  /**
-   * Information about a restarting refinement.
-   */
-  public class RelyGuaranteeRefinerRestartingStatistics extends RelyGuaranteeRefinerStatistics {
-
-    public void printStatistics(PrintStream out, Result pResult,ReachedSet pReached){
-      out.println("Interpolation fomulas:           " + formulaNo);
-      out.println("Unsat checks:                    " + unsatChecks);
-      out.println("Max. predicates per location     " + maxPredicatesPerLoc);
-      out.println();
-      out.println("Time on constructing formulas:   " + formulaTimer);
-      out.println("Total time on interpolation:     " + interpolationTimer+" (max: "+interpolationTimer.printMaxTime()+")");
-      out.println("Time on restarting analysis:     " + restartingTimer);
-      out.println("Total time on refinement:        " + totalTimer);
-    }
-  }
-
-  /**
-   * Information about a lazy refinement.
-   */
-  public class RelyGuaranteeRefinerLazyStatistics extends RelyGuaranteeRefinerStatistics {
-
-    public void printStatistics(PrintStream out, Result pResult,ReachedSet pReached){
-      out.println("Interpolation fomulas:           " + formulaNo);
-      out.println("Unsat checks:                    " + unsatChecks);
-      out.println();
-      out.println("Time on constructing formulas:   " + formulaTimer);
-      out.println("Total time on interpolation:     " + interpolationTimer+" (max: "+interpolationTimer.printMaxTime()+")");
-      out.println("Time on restarting analysis:     " + restartingTimer);
-      out.println("Total time on refinement:        " + totalTimer);
-    }
-  }
-
-
-  private RelyGuaranteeRefinerStatistics stats;
-  private RGRefinementManager manager;
+  private final Stats stats;
+  private final RGRefinementManager refManager;
   private final ARTCPA[] artCpas;
 
-  private RGEnvironmentManager rgEnvironment;
-  private static RGRefiner rgRefiner;
+  private final  RGEnvironmentManager rgEnvironment;
+  private static RGRefiner singleton;
 
   /**
    * Singleton instance of RelyGuaranteeRefiner.
@@ -171,10 +120,10 @@ public class RGRefiner{
    * @throws InvalidConfigurationException
    */
   public static RGRefiner getInstance(final ConfigurableProgramAnalysis[] cpas, RGEnvironmentManager rgEnvironment, Configuration pConfig) throws InvalidConfigurationException {
-    if (rgRefiner == null){
-      rgRefiner = new RGRefiner(cpas, rgEnvironment, pConfig);
+    if (singleton == null){
+      singleton = new RGRefiner(cpas, rgEnvironment, pConfig);
     }
-    return rgRefiner;
+    return singleton;
   }
 
   public RGRefiner(final ConfigurableProgramAnalysis[] cpas, RGEnvironmentManager rgEnvironment, Configuration pConfig) throws InvalidConfigurationException{
@@ -189,10 +138,11 @@ public class RGRefiner{
     }
 
     this.rgEnvironment = rgEnvironment;
+    this.stats = new Stats();
 
     RGCPA rgCPA = artCpas[0].retrieveWrappedCpa(RGCPA.class);
     if (rgCPA != null){
-      manager = rgCPA.getRelyGuaranteeManager();
+      refManager = rgCPA.getRelyGuaranteeManager();
       //rgCPA.getConfiguration().inject(this, RelyGuaranteeRefiner.class);
     } else {
       throw new InvalidConfigurationException("RelyGuaranteeCPA needed for refinement");
@@ -230,12 +180,6 @@ public class RGRefiner{
    * @throws InterruptedException
    */
   public boolean performRefinment(ReachedSet[] reachedSets, RGEnvironmentManager environment, int errorThr) throws InterruptedException, CPAException {
-
-    // use statistics appropriate to refinement method: lazy or restarting
-
-    stats = new RelyGuaranteeRefinerRestartingStatistics();
-
-
     stats.totalTimer.start();
 
     int threadNo = reachedSets.length;
@@ -252,7 +196,7 @@ public class RGRefiner{
     }
     System.out.println();
     System.out.println("\t\t\t ----- Interpolation -----");
-    CounterexampleTraceInfo mCounterexampleTraceInfo = manager.buildRgCounterexampleTrace(targetElement, reachedSets, errorThr, stats);
+    CounterexampleTraceInfo mCounterexampleTraceInfo = refManager.buildRgCounterexampleTrace(targetElement, reachedSets, errorThr);
 
     // if error is spurious refine
     if (mCounterexampleTraceInfo.isSpurious()) {
@@ -450,308 +394,32 @@ public class RGRefiner{
     return refinementMap;
   }
 
-  /**
-   * Returns multimap mapping: thread id -> cut-off element, new precision
-   */
-  private Multimap<Integer, Pair<ARTElement, RGPrecision>> lazyRefinement(ReachedSet[] reachedSets, CounterexampleTraceInfo info, int errorThr) throws CPAException {
-    // multimap : thread no -> (ART element)
-    Multimap<Integer, ARTElement> artMap = HashMultimap.create();
+  @Override
+  public void collectStatistics(Collection<Statistics> scoll) {
+    scoll.add(stats);
+    refManager.collectStatistics(scoll);
+  }
 
-    // group interpolation elements  by threads
-    for (AbstractElement aElement : info.getPredicatesForRefinmentKeys()){
-      //Collection<AbstractionPredicate> newpreds = info.getPredicatesForRefinement(aElement);
-      assert aElement instanceof ARTElement;
-      ARTElement artElement = (ARTElement) aElement;
-      RGAbstractElement rgElement = AbstractElements.extractElementByType(artElement, RGAbstractElement.class);
-      int tid = rgElement.getTid();
-      artMap.put(tid, artElement);
+
+  public static class  Stats implements Statistics {
+
+    public final Timer totalTimer          = new Timer();
+    public final Timer restartingTimer     = new Timer();
+
+    public int maxPredicatesPerLoc      = 0;
+
+    @Override
+    public String getName() {
+      return "RGRefiners";
     }
 
-    Multimap<Integer, Pair<ARTElement, RGPrecision>> refinementMap = HashMultimap.create();
-
-    // for every thread get cut-off elements and their new precision
-    for (int tid : artMap.keySet()){
-      Collection<ARTElement> artElements = artMap.get(tid);
-      List<ARTNode> nodes = new Vector<ARTNode>(artElements.size());
-
-      // find reachability relation between ART elements of the thread
-      for (ARTElement artElem : artElements){
-        ARTNode node = new ARTNode(artElem);
-        nodes.add(node);
-      }
-
-      System.out.println();
-      System.out.println("Looking for cut-off nodes.");
-
-      List<ARTNode> covered = new Vector<ARTNode>(artElements.size());
-      for (ARTNode nodeA : nodes){
-        CFANode loc = AbstractElements.extractLocation(nodeA.getArtElement());
-        System.out.println("Location "+loc);
-        Precision prec = reachedSets[tid].getPrecision(nodeA.getArtElement());
-        RGPrecision rgPrec = Precisions.extractPrecisionByType(prec, RGPrecision.class);
-        SetMultimap<CFANode, AbstractionPredicate> oldPredmap = rgPrec.getPredicateMap();
-        Set<AbstractionPredicate> oldPreds = oldPredmap.get(loc);
-        System.out.println("Old preds "+oldPreds);
-
-        Collection<AbstractionPredicate> newPreds = info.getPredicatesForRefinement(nodeA.getArtElement());
-        System.out.println("New preds"+newPreds);
-        // skip nodes that don't have interpolants
-        if (!newPreds.isEmpty()){
-          for  (ARTNode nodeB : nodes){
-            if (nodeA != nodeB && !covered.contains(nodeB)){
-              if (belongsToProperSubtree(nodeA.getArtElement(),nodeB.getArtElement())){
-                System.out.println("ART element id:"+nodeA+" is above id:"+nodeB);
-                nodeA.addChild(nodeB);
-                covered.add(nodeB);
-              }
-            }
-          }
-        }
-      }
-
-
-
-      // ART element unreachable by other elements are the cut-off node
-      Vector<ARTNode> cutoffNodes = new Vector<ARTNode>();
-      for (ARTNode node : nodes){
-        CFANode loc = AbstractElements.extractLocation(node.getArtElement());
-        Precision prec = reachedSets[tid].getPrecision(node.getArtElement());
-        RGPrecision rgPrec = Precisions.extractPrecisionByType(prec, RGPrecision.class);
-        SetMultimap<CFANode, AbstractionPredicate> oldPredmap = rgPrec.getPredicateMap();
-        Collection<AbstractionPredicate> newPreds = info.getPredicatesForRefinement(node.getArtElement());
-        /*Set<AbstractionPredicate> oldPreds = oldPredmap.get(loc);
-        Collection<AbstractionPredicate> newPreds = info.getPredicatesForRefinement(node.getArtElement());*/
-        if (node.getParent() == null && !newPreds.isEmpty()){
-          cutoffNodes.add(node);
-        }
-      }
-
-      System.out.println();
-      if (cutoffNodes.isEmpty()){
-        System.out.println("Cut-off nodes:\tnone");
-      } else {
-        System.out.println("Cut-off nodes:");
-        for (ARTNode node : cutoffNodes){
-          System.out.println("\t- id:"+node.getArtElement().getElementId());
-        }
-      }
-
-
-      // correctness assertion
-      if (debug){
-        assertionCutoffNodes(tid, nodes, cutoffNodes, reachedSets, info);
-      }
-
-      // get new precision for the cutoff nodes;
-      // precision of a cut-off node should include the precision of the elements below
-
-      for (ARTNode coNode : cutoffNodes) {
-        boolean newPredicate = false;
-        ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
-
-        // in the error thread, add the precision of the error element
-        // TODO necessary?
-        /* if (tid == errorThr){
-          AbstractElement targetElement = reachedSets[errorThr].getLastElement();
-          Precision oldPrecision = reachedSets[tid].getPrecision(targetElement);
-          RelyGuaranteePrecision oldRgPrecision = Precisions.extractPrecisionByType(oldPrecision, RelyGuaranteePrecision.class);
-          pmapBuilder.putAll(oldRgPrecision.getPredicateMap());
-        }*/
-
-
-        // add precision of the cut-off node
-        ARTElement artCoElement = coNode.getArtElement();
-        Precision oldCoPrec = reachedSets[tid].getPrecision(artCoElement);
-        RGPrecision oldCoRgPrec = Precisions.extractPrecisionByType(oldCoPrec, RGPrecision.class);
-        SetMultimap<CFANode, AbstractionPredicate> oldCoPredmap = oldCoRgPrec.getPredicateMap();
-        pmapBuilder.putAll(oldCoPredmap);
-        // add the interpolant for the cut-off node
-        Collection<AbstractionPredicate> newCoPreds = info.getPredicatesForRefinement(artCoElement);
-        CFANode coLoc = AbstractElements.extractLocation(artCoElement);
-        pmapBuilder.putAll(coLoc, newCoPreds);
-
-        if (debug){
-          if (!oldCoPredmap.get(coLoc).containsAll(newCoPreds)){
-            newPredicate = true;
-            System.out.println("New predicate is in "+newCoPreds+" for "+coLoc);
-          }
-        }
-
-        // add old precisions and new predicates of  the nodes below the cut-off node
-        for (ARTElement artElement : coNode.getARTProperSubtree()){
-          // add the new interpolants
-          Collection<AbstractionPredicate> newpreds = info.getPredicatesForRefinement(artElement);
-          CFANode loc = AbstractElements.extractLocation(artElement);
-          pmapBuilder.putAll(loc, newpreds);
-
-          if (debug){
-            if (!oldCoPredmap.get(loc).containsAll(newpreds)){
-              newPredicate = true;
-              System.out.println("New predicate is in "+newpreds+" for "+loc);
-            }
-          }
-
-          // TODO need it?
-          Precision oldPrecision = reachedSets[tid].getPrecision(artElement);
-          RGPrecision oldRgPrecision = Precisions.extractPrecisionByType(oldPrecision, RGPrecision.class);
-          pmapBuilder.putAll(oldRgPrecision.getPredicateMap());
-        }
-
-        RGPrecision newPrecision = new RGPrecision(pmapBuilder.build(), new HashSet<AbstractionPredicate>());
-        refinementMap.put(tid, Pair.of(artCoElement, newPrecision));
-
-        if (debug){
-          //assert newPredicate;
-          System.out.println();
-          System.out.println("Thread "+tid+": cut-off node id:"+coNode.getArtElement().getElementId()+" precision "+newPrecision);
-        }
-      }
-    }
-
-    return refinementMap;
-  }
-
-  /**
-   * Checks if cut-off nodes are correct for thread tid.
-   * @param pTid
-   * @param pNodes
-   * @param pCutoffNodes
-   * @param pReachedSets
-   * @param pInfo
-   */
-  private void assertionCutoffNodes(int tid, List<ARTNode> nodes, Vector<ARTNode> cutoffNodes, ReachedSet[] reachedSets, CounterexampleTraceInfo info) {
-
-
-    // check correctnes of cutoffNodes
-    for (ARTNode node : nodes){
-      CFANode loc = AbstractElements.extractLocation(node.getArtElement());
-      Precision prec = reachedSets[tid].getPrecision(node.getArtElement());
-      RGPrecision rgPrec = Precisions.extractPrecisionByType(prec, RGPrecision.class);
-      SetMultimap<CFANode, AbstractionPredicate> oldPredmap = rgPrec.getPredicateMap();
-      Set<AbstractionPredicate> oldPreds = oldPredmap.get(loc);
-      Collection<AbstractionPredicate> newPreds = info.getPredicatesForRefinement(node.getArtElement());
-      // cut-off has some new predicates
-
-
-      if (cutoffNodes.contains(node)){
-        //assert (!oldPreds.containsAll(newPreds));
-      } else {
-        // node is independent if it has no predictates and no cut-off node can reach it
-        boolean indi=false;
-        if (oldPreds.containsAll(newPreds)){
-          indi = true;
-          for (ARTNode cutNode : cutoffNodes){
-            if (belongsToProperSubtree(cutNode.getArtElement(),node.getArtElement())){
-              indi = false;
-              break;
-            }
-          }
-        }
-
-        // node belongs to some cut-off node
-        boolean belongs=false;
-        for (ARTNode cutNode : cutoffNodes){
-          if (cutNode.getARTProperSubtree().contains(node.getArtElement())){
-            belongs = true;
-            break;
-          }
-        }
-        if ((indi && belongs) || (!indi && !belongs)){
-          System.out.println();
-        }
-        assert (indi || belongs) && (!indi || !belongs);
-      }
+    @Override
+    public void printStatistics(PrintStream out, Result pResult,ReachedSet pReached){
+      out.println("max. predicates per location     " + maxPredicatesPerLoc);
+      out.println("time on restarting analysis:     " + restartingTimer);
+      out.println("total time on refinement:        " + totalTimer);
     }
   }
-
-  /**
-   * Returns true if artElement1 lies on the path from the root to artElement2
-   * @param pArtElement
-   * @param pArtElement2
-   * @return
-   */
-  private boolean belongsToProperSubtree(ARTElement artElement1, ARTElement artElement2) {
-
-    Path cfaPath = ARTUtils.getOnePathTo(artElement2);
-    List<Triple<ARTElement, CFANode, RGAbstractElement>> path = null;
-    try {
-      path = transformPath(cfaPath);
-    } catch (CPATransferException e) {
-      e.printStackTrace();
-    }
-    // find the highest occurence of artElement1 on the path
-    boolean occursOnPath = false;
-    for (Triple<ARTElement, CFANode, RGAbstractElement> triple: path){
-      if (triple.getFirst().equals(artElement1)){
-        occursOnPath = true;
-        break;
-      }
-      else if  (triple.getFirst().equals(artElement2)){
-        break;
-      }
-
-    }
-    return occursOnPath;
-  }
-
-  public void printStatitics(){
-    System.out.println();
-    System.out.println("RG refinement statistics:");
-    if (stats != null){
-      stats.printStatistics(System.out, null, null);
-    }
-  }
-}
-
-/**
- * Represents reachability relation between elements in an ART
- */
-class ARTNode{
-
-  private ARTElement  artElement;
-  private ARTNode parent;
-  private Collection<ARTNode> children;
-
-  public ARTNode(ARTElement  artElement){
-    this.artElement = artElement;
-    this.parent = null;
-    this.children = new HashSet<ARTNode>();
-  }
-
-  public ARTElement getArtElement() {
-    return artElement;
-  }
-
-  public ARTNode getParent() {
-    return parent;
-  }
-
-  public Collection<ARTNode> getChildren() {
-    return children;
-  }
-
-  public void setParent(ARTNode pParent) {
-    parent = pParent;
-  }
-
-  public void addChild(ARTNode child) {
-    child.setParent(this);
-    children.add(child);
-  }
-
-  public Set<ARTElement> getARTProperSubtree() {
-    Set<ARTElement> reached = new HashSet<ARTElement>();
-    for (ARTNode child : children){
-      reached.add(child.artElement);
-      reached.addAll(child.getARTProperSubtree());
-    }
-    return reached;
-  }
-
-  public String toString() {
-    return ""+artElement.getElementId();
-  }
-
 
 
 }

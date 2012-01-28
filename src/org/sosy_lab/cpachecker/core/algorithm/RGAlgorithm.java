@@ -52,19 +52,22 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCFAEdge2;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCPA;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGVariables;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdgeTemplate;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCombinedCFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractElements;
-import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
+import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
@@ -83,24 +86,9 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
   @Option(description="Combine all valid environmental edges for thread in two one edge?")
   boolean combineEnvEdges = false;
 
-  public class RelyGuaranteeAlgorithmStatistics implements Statistics {
-    private Timer totalTimer = new Timer();
-    private Timer errorCheckTimer = new Timer();
 
-    @Override
-    public String getName() {
-      return "Rely-guarantee";
-    }
 
-    @Override
-    public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-      out.println("Total Time for error check:                  " + errorCheckTimer);
-      out.println("Total Time for rely-guarantee algorithm:     " + totalTimer);
-    }
-
-  }
-
-  private RelyGuaranteeAlgorithmStatistics stats;
+  public final Stats stats;
 
   // TODO option for CFA export
   private int threadNo;
@@ -113,12 +101,6 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
   // CPAAlgorithm for each thread
   private RGThreadCPAAlgorithm[] threadCPA;
   // data structure for deciding whether a variable is global
-
-  // managers
-  private PathFormulaManager  pfManager;
-  private FormulaManager      fManager;
-  private TheoremProver       tProver;
-  private RegionManager       rManager    =   BDDRegionManager.getInstance();
 
   // stores information about environmental transitions
   private RGEnvironmentManager environment;
@@ -133,6 +115,7 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
     this.variables = vars;
     this.cpas = pCpas;
     this.logger = logger;
+    this.stats = new Stats();
 
     threadCPA = new RGThreadCPAAlgorithm[threadNo];
 
@@ -156,11 +139,9 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
   /**
    * Returns -1 if no error is found or the thread no with an error
    */
+  @Override
   public int run(ReachedSet[] reached, int startThread) {
     assert environment.getUnprocessedTransitions().isEmpty();
-
-    stats = new RelyGuaranteeAlgorithmStatistics();
-    stats.totalTimer.start();
 
 
     for (int i=0; i<reached.length; i++){
@@ -170,52 +151,63 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
     }
 
     boolean error = false;
+
     try{
-      // run each tread at least once until no new env can be applied to any thread
       int i = startThread;
       while(i != -1 && !error) {
 
-        // apply all valid env. edges to CFA
-        ListMultimap<CFANode, CFAEdge> envEdgesMap = addEnvTransitionsToCFA(i);
-        // add relevant states to the wait list
-        if (i == 0 && !envEdgesMap.isEmpty()){
-          System.out.print("");
-        }
-        setWaitlist(reached[i], envEdgesMap);
-        // run the thread
-        System.out.println();
-        System.out.println("\t\t\t----- Running thread "+i+" -----");
-        assert environment.getUnprocessedTransitions().isEmpty();
-        error = runThread(i, reached[i], stats);
+        addEnvTransitions(i, reached);
 
+        error = runThread(i, reached[i]);
         if (error) {
-          // error state has been reached
-          stats.totalTimer.stop();
           return i;
         }
-        System.out.println();
-        System.out.println("\t\t\t----- Processing Env Transitions -----");
-        if (debug){
-          environment.printUnprocessedTransitions();
-        }
 
-        // process new env. transitions
-        environment.processEnvTransitions(i);
-        if (i == 1){
-          System.out.print("");
-        }
-        //environment.printProcessingStatistics();
-        // chose a new thread to run
+        processEnvironment(i);
+
         i = pickThread(reached, i);
       }
-
     } catch(Exception e){
       e.printStackTrace();
     }
 
-    stats.totalTimer.stop();
     return -1;
+  }
 
+  /**
+   * Generate environmental transitions from the part of ART that was constructed.
+   * @param i
+   */
+  private void processEnvironment(int i) {
+    System.out.println();
+    System.out.println("\t\t\t----- Processing Env Transitions -----");
+    if (debug){
+      environment.printUnprocessedTransitions();
+      environment.resetProcessStats();
+    }
+
+    environment.processCandidates(i);
+    environment.clearCandidates();
+
+    if (debug){
+      Statistics prStats = environment.getProcessStats();
+      System.out.println("Environment processing stats:");
+      prStats.printStatistics(System.out, null, null);
+    }
+
+  }
+
+  /**
+   * Add env. transitions to CFA and read relevant elements to the waitlist.
+   * @param i
+   * @param reached
+   */
+  private void addEnvTransitions(int i, ReachedSet[] reached) {
+    stats.applyEnvTimer.start();
+    ListMultimap<CFANode, CFAEdge> envEdgesMap = addEnvTransitionsToCFA(i);
+    // add relevant states to the wait list
+    setWaitlist(reached[i], envEdgesMap);
+    stats.applyEnvTimer.stop();
   }
 
   /**
@@ -255,7 +247,15 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
    * @throws CPAException
    * @throws InterruptedException
    */
-  private boolean runThread(int i, ReachedSet reached, RelyGuaranteeAlgorithmStatistics stats) throws CPAException, InterruptedException {
+  private boolean runThread(int i, ReachedSet reached) throws CPAException, InterruptedException {
+
+    System.out.println();
+    System.out.println("\t\t\t----- Running thread "+i+" -----");
+    assert environment.getUnprocessedTransitions().isEmpty();
+
+    if (debug){
+      threadCPA[i].restRunStats();
+    }
 
     boolean sound = threadCPA[i].run(reached);
 
@@ -267,12 +267,19 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
     }*/
 
     // TODO this error check somehow slows down the analysis
-    if (sound) {
-      threadCPA[i].printStatitics();
-      // clear the set of  unapplied env. edges
-      environment.clearUnappliedEnvEdgesForThread(i);
+    if (debug){
+      // print run stats
+      Statistics runStats = threadCPA[i].getRunStats();
+      System.out.println("CPA statistics:");
+      runStats.printStatistics(System.out, null, null);
+    }
 
-      // analysis error found only if the analysis is marked as sound
+
+    if (sound) {
+      // clear the set of  unapplied env. edges
+
+      environment.clearUnappliedEnvEdgesForThread(i);
+      // analyse error found only if the analysis is marked as sound
       ARTElement last = (ARTElement) reached.getLastElement();
       boolean isTarget = last.isTarget();
       stats.errorCheckTimer.stop();
@@ -536,13 +543,11 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
 
   @Override
   public ConfigurableProgramAnalysis[] getCPAs() {
-    // TODO Auto-generated method stub
-    return this.cpas;
+    return cpas;
   }
 
   @Override
   public Result getResult() {
-    // TODO Auto-generated method stub
     return null;
   }
 
@@ -551,90 +556,57 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
   }
 
   @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(stats);
+  public void collectStatistics(Collection<Statistics> scoll) {
+    ARTCPA artCPA = (ARTCPA) this.cpas[0];
+    RGCPA rgCPA = artCPA.retrieveWrappedCpa(RGCPA.class);
+
+    // RGAlgorithm
+    scoll.add(stats);
+
+    // RGThreadCPAAlgorithm
+    for (int t=0; t<threadNo; t++){
+      threadCPA[t].collectStatistics(scoll);
+    }
+
+    // PredicateAbstractionManager
+    PredicateAbstractionManager paManager = rgCPA.getPredicateManager();
+    paManager.collectStatistics(scoll);
+
+    // CachingPathFormulaManager
+    PathFormulaManager pfManager = rgCPA.getPathFormulaManager();
+    if (pfManager instanceof CachingPathFormulaManager){
+      CachingPathFormulaManager cpfManager = (CachingPathFormulaManager) pfManager;
+      cpfManager.collectStatistics(scoll);
+    }
+
+    // MathsatFormulaManager
+    FormulaManager fManager = rgCPA.getFormulaManager();
+    if (fManager instanceof MathsatFormulaManager){
+      MathsatFormulaManager msfManager = (MathsatFormulaManager) fManager;
+      msfManager.collectStatistics(scoll);
+    }
+
+    // SSAMapManager
+    SSAMapManager ssaManager = rgCPA.getSsaManager();
+    ssaManager.collectStatistics(scoll);
   }
 
-  public void printStatitics(){
-    System.out.println();
-    System.out.println("RG algorithm statistics:");
-    if (stats != null){
-      stats.printStatistics(System.out, null, null);
+
+  public static class Stats implements Statistics {
+
+    private final Timer applyEnvTimer = new Timer();
+    private final Timer errorCheckTimer = new Timer();
+
+    @Override
+    public String getName() {
+      return "Rely-guarantee";
+    }
+
+    @Override
+    public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+      out.println("Total time for error check:                  " + errorCheckTimer);
+      out.println("Total time for preparing CFA and waitlist:   " + applyEnvTimer);
     }
   }
-  // for testing 'isCovered' method, commented cases are for completness
-  /*private boolean isCoveredTest() {
-    Formula g1 = fManager.makeVariable("g", 1);
-    Formula g2 = fManager.makeVariable("g", 2);
-    Formula g3 = fManager.makeVariable("g", 3);
-    Formula t = fManager.makeTrue();
-    Formula f = fManager.makeFalse();
-    Formula r2 = fManager.makeVariable("r", 2);
-    Formula n0 = fManager.makeNumber(0);
-    Formula n1 = fManager.makeNumber(1);
-    Formula n2 = fManager.makeNumber(2);
-    Formula g2_1 = fManager.makeEqual(g1, n1);
-    Formula g2_2 = fManager.makeEqual(g2, n2);
-    Formula r2_1 = fManager.makeEqual(r2, n1);
-    Formula g1geq0 = fManager.makeGeq(g1, n0);
-    Formula g1lt0 = fManager.makeLt(g1, n0);
-    Formula g2minus1 = fManager.makeMinus(g2, n1);
-    Formula g3_g2minus1 = fManager.makeEqual(g3, g2minus1);
-    Formula l2 = fManager.makeAnd(fManager.makeOr(g1geq0, g1lt0),r2_1);
-    Formula l3 = fManager.makeAnd(r2_1, g1geq0);
-    Formula l4 = fManager.makeAnd(g2_2, g3_g2minus1);
-    // test I
-    CFANode node = new CFANode(0, "f");
-    CFAEdge edge = new BlankEdge("test",0,node,node);
-    SSAMapBuilder ssa1_I = SSAMap.emptySSAMap().builder();
-    ssa1_I.setIndex("g", 1);
-    PathFormula pf1_I = new PathFormula(g2_1,ssa1_I.build(),0);
-    PathFormula pf2_It = new PathFormula(t,SSAMap.emptySSAMap(),0);
-    PathFormula pf2_If = new PathFormula(f,SSAMap.emptySSAMap(),0);
-    RelyGuaranteeCFAEdge ef1_I = new RelyGuaranteeCFAEdge(edge, pf1_I, 0);
-    RelyGuaranteeCFAEdge ef2_It = new RelyGuaranteeCFAEdge(edge, pf2_It, 0);
-    RelyGuaranteeCFAEdge ef2_If = new RelyGuaranteeCFAEdge(edge, pf2_If, 0);
-    if (!isCovered(ef1_I, ef2_It)){
-      return false;
-    }
-    if (isCovered(ef1_I, ef2_If)){
-      return false;
-    }
-
-    // test III
-    RelyGuaranteeCFAEdge ef1_III = ef1_I;
-    SSAMapBuilder ssa2_IIIt = SSAMap.emptySSAMap().builder();
-    ssa2_IIIt.setIndex("g", 2);
-    PathFormula pf2_IIIt = new PathFormula(l4, ssa2_IIIt.build(), 0);
-    PathFormula pf2_IIIf = new PathFormula(g2_2, ssa1_I.build(), 0);
-    RelyGuaranteeCFAEdge ef2_IIIt = new RelyGuaranteeCFAEdge(edge, pf2_IIIt, 0);
-    RelyGuaranteeCFAEdge ef2_IIIf = new RelyGuaranteeCFAEdge(edge, pf2_IIIf, 0);
-   /* if (!isCovered(ef1_III, ef2_IIIt)){
-      return false;
-    }*/
-  /*   if (isCovered(ef1_III, ef2_IIIf)){
-      return false;
-    }
-    // test II
-    SSAMapBuilder ssa1_II = SSAMap.emptySSAMap().builder();
-    ssa1_II.setIndex("r", 1);
-    PathFormula pf1_II = new PathFormula(r2_1,ssa1_II.build(),0);
-    SSAMapBuilder ssa2_IIt = SSAMap.emptySSAMap().builder();
-    ssa2_IIt.setIndex("r", 1);
-    ssa2_IIt.setIndex("g", 2);
-    PathFormula pf2_IIt = new PathFormula(l2,ssa2_IIt.build(),0);
-    PathFormula pf2_IIf = new PathFormula(l3,ssa2_IIt.build(),0);
-    RelyGuaranteeCFAEdge ef1_II = new RelyGuaranteeCFAEdge(edge, pf1_II, 0);
-    RelyGuaranteeCFAEdge ef2_IIt = new RelyGuaranteeCFAEdge(edge, pf2_IIt, 0);
-    RelyGuaranteeCFAEdge ef2_IIf = new RelyGuaranteeCFAEdge(edge, pf2_IIf, 0);
-   /* if (!isCovered(ef1_II, ef2_IIt)){
-      return false;
-    }*/
-  /*   if (isCovered(ef1_II, ef2_IIf)){
-      return false;
-    }
-
-    return true;
-  }*/
 
 }

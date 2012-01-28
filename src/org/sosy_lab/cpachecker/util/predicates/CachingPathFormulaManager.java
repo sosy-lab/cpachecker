@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import java.io.PrintStream;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -30,6 +32,10 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -38,10 +44,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
  * Implementation of {@link PathFormulaManager} that delegates to another
  * instance but caches results of some methods.
  */
-public class CachingPathFormulaManager implements PathFormulaManager {
+public class CachingPathFormulaManager implements PathFormulaManager, StatisticsProvider {
 
-  public final Timer pathFormulaComputationTimer = new Timer();
-  public int pathFormulaCacheHits = 0;
+
 
   private final PathFormulaManager delegate;
 
@@ -62,6 +67,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
   private final PathFormula emptyFormula;
 
+  public final Stats stats;
   private static CachingPathFormulaManager singleton;
 
   public static CachingPathFormulaManager getInstance(PathFormulaManager delegate){
@@ -73,24 +79,24 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
   private CachingPathFormulaManager(PathFormulaManager pDelegate) {
     delegate = pDelegate;
+    stats    = new Stats();
     emptyFormula = delegate.makeEmptyPathFormula();
   }
 
   @Override
   public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException {
-
+    stats.makeAndTimer.start();
     final Pair<PathFormula, CFAEdge> formulaCacheKey = Pair.of(pOldFormula, pEdge);
     PathFormula result = pathFormulaCache.get(formulaCacheKey);
     if (result == null) {
-      pathFormulaComputationTimer.start();
       // compute new pathFormula with the operation on the edge
       result = delegate.makeAnd(pOldFormula, pEdge);
-      pathFormulaComputationTimer.stop();
       pathFormulaCache.put(formulaCacheKey, result);
 
     } else {
-      pathFormulaCacheHits++;
+      stats.makeAndCH++;
     }
+    stats.makeAndTimer.stop();
     return result;
   }
 
@@ -101,6 +107,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
   @Override
   public PathFormula makeOr(PathFormula pF1, PathFormula pF2) {
+    stats.makeOrTimer.start();
     final Pair<PathFormula, PathFormula> formulaCacheKey = Pair.of(pF1, pF2);
 
     PathFormula result = mergeCache.get(formulaCacheKey);
@@ -113,8 +120,10 @@ public class CachingPathFormulaManager implements PathFormulaManager {
       result = delegate.makeOr(pF1, pF2);
       mergeCache.put(formulaCacheKey, result);
     } else {
-      pathFormulaCacheHits++;
+      stats.makeOrCH++;
     }
+
+    stats.makeAndTimer.stop();
     return result;
   }
 
@@ -130,7 +139,6 @@ public class CachingPathFormulaManager implements PathFormulaManager {
       result = delegate.makeEmptyPathFormula(pOldFormula);
       emptyFormulaCache.put(pOldFormula, result);
     } else {
-      pathFormulaCacheHits++;
     }
     return result;
   }
@@ -147,37 +155,94 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
   @Override
   public PathFormula operationPathFormula(PathFormula pf, CFAEdge edge) throws CPATransferException {
+    stats.operationPathFormulaTimer.start();
     Pair<PathFormula, CFAEdge> key = Pair.of(pf, edge);
     PathFormula result = operationCache.get(key);
     if (result == null){
       result = delegate.operationPathFormula(pf, edge);
       operationCache.put(key, result);
     } else {
-      pathFormulaCacheHits++;
+      stats.operationPathFormulaCH++;
     }
 
+    stats.operationPathFormulaTimer.stop();
     return result;
   }
 
   @Override
   public PathFormula makePrimedEqualities(SSAMap ssa1, int i, SSAMap ssa2, int j) {
-    return delegate.makePrimedEqualities(ssa1, i, ssa2, j);
+    stats.makePrimedEqualitiesTimer.start();
+    PathFormula result = delegate.makePrimedEqualities(ssa1, i, ssa2, j);
+    stats.makePrimedEqualitiesTimer.stop();
+    return result;
   }
 
   @Override
   public PathFormula changePrimedNo(PathFormula pf,Map<Integer, Integer> map) {
     // note: caching better for formula and ssa seperatly
-    return delegate.changePrimedNo(pf, map);
+    stats.changePrimedNoTimer.start();
+    PathFormula result = delegate.changePrimedNo(pf, map);
+    stats.changePrimedNoTimer.stop();
+    return result;
   }
 
   @Override
   public PathFormula instantiateNextValue(Formula f, SSAMap low, SSAMap high) {
-    return delegate.instantiateNextValue(f, low, high);
+    stats.instantiateNextValueTimer.start();
+    PathFormula result = delegate.instantiateNextValue(f, low, high);
+    stats.instantiateNextValueTimer.stop();
+    return result;
   }
 
   @Override
   public PathFormula makeFalsePathFormula() {
     return delegate.makeFalsePathFormula();
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
+  }
+
+  public static class Stats implements Statistics{
+
+    public final Timer pathFormulaComputationTimer = new Timer();
+    public int pathFormulaCacheHits = 0;
+
+    public final Timer makeAndTimer               = new Timer();
+    public int   makeAndCH                  = 0;
+    public final Timer makeOrTimer                = new Timer();
+    public int   makeOrCH                   = 0;
+    public final Timer operationPathFormulaTimer  = new Timer();
+    public int   operationPathFormulaCH     = 0;
+    public final Timer makePrimedEqualitiesTimer  = new Timer();
+    public final Timer changePrimedNoTimer        = new Timer();
+    public final Timer instantiateNextValueTimer  = new Timer();
+
+    @Override
+    public void printStatistics(PrintStream out, Result pResult,ReachedSet pReached) {
+      long totalTimer = makeAndTimer.getSumTime() + makeOrTimer.getSumTime() + operationPathFormulaTimer.getSumTime()
+      + makePrimedEqualitiesTimer.getSumTime() + changePrimedNoTimer.getSumTime()
+      + instantiateNextValueTimer.getSumTime();
+
+      out.println("makeAnd time:                    " + makeAndTimer);
+      out.println("makeAnd cache hits:              " + makeAndCH);
+      out.println("makeOr time:                     " + makeOrTimer);
+      out.println("makeOr cache hits:               " + makeOrCH);
+      out.println("operationPathFormula time:       " + operationPathFormulaTimer);
+      out.println("operationPathFormula cache hits: " + operationPathFormulaCH);
+      out.println("makePrimedEqualities time:       " + makePrimedEqualitiesTimer  );
+      out.println("changePrimedNo time:             " + changePrimedNoTimer );
+      out.println("instantiateNextValue time:       " + instantiateNextValueTimer);
+      out.println("total time on those:             " + Timer.formatTime(totalTimer));
+
+    }
+
+    @Override
+    public String getName() {
+      return "CachingPathFormulaManager";
+    }
+
   }
 
 

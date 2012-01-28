@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat;
 // import static mathsat.api.*;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat.NativeApi.*;
 
+import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -41,10 +42,15 @@ import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.SSAMapManagerImpl;
@@ -56,13 +62,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
 import com.google.common.base.Preconditions;
 
 @Options(prefix="cpa.predicate.mathsat")
-public class MathsatFormulaManager implements FormulaManager  {
+public class MathsatFormulaManager implements FormulaManager, StatisticsProvider  {
 
   @Option(description="encode program variables as INTEGERs in MathSAT, instead of "
-    + "using REALs. Since interpolation is not really supported by the laz solver, "
-    + "when computing interpolants we still use the LA solver, "
-    + "but encoding variables as ints might still be a good idea: "
-    + "we can tighten strict inequalities, and split negated equalities")
+      + "using REALs. Since interpolation is not really supported by the laz solver, "
+      + "when computing interpolants we still use the LA solver, "
+      + "but encoding variables as ints might still be a good idea: "
+      + "we can tighten strict inequalities, and split negated equalities")
   private boolean useIntegers = false;
 
   @Option(description="use a combination of theories (this is incomplete)")
@@ -117,9 +123,8 @@ public class MathsatFormulaManager implements FormulaManager  {
   private final Formula trueFormula;
   private final Formula falseFormula;
 
+  public final Stats stats;
   private final SSAMapManager ssaManager;
-
-
   private static MathsatFormulaManager    fManager;
 
   /**
@@ -142,6 +147,7 @@ public class MathsatFormulaManager implements FormulaManager  {
     config.inject(this, MathsatFormulaManager.class);
 
     this.ssaManager = SSAMapManagerImpl.getInstance(this, config, logger);
+    this.stats      = new Stats();
 
     msatEnv = msat_create_env();
     msatVarType = useIntegers ? MSAT_INT : MSAT_REAL;
@@ -501,11 +507,11 @@ public class MathsatFormulaManager implements FormulaManager  {
     long t = getTerm(atom);
 
     String repr = (msat_term_is_atom(t) != 0)
-                    ? msat_term_repr(t) : ("#" + msat_term_id(t));
-    long d = msat_declare_variable(msatEnv, "\"PRED" + repr + "\"", MSAT_BOOL);
-    long var = msat_make_variable(msatEnv, d);
+        ? msat_term_repr(t) : ("#" + msat_term_id(t));
+        long d = msat_declare_variable(msatEnv, "\"PRED" + repr + "\"", MSAT_BOOL);
+        long var = msat_make_variable(msatEnv, d);
 
-    return encapsulate(var);
+        return encapsulate(var);
   }
 
   @Override
@@ -513,7 +519,7 @@ public class MathsatFormulaManager implements FormulaManager  {
     return msat_to_msat(msatEnv, getTerm(f));
   }
 
-/* Method for converting MSAT format to NUSMV format.
+  /* Method for converting MSAT format to NUSMV format.
   public String printNusmvFormat(Formula f, Set<Formula> preds) {
 
     StringBuilder out = new StringBuilder();
@@ -541,7 +547,7 @@ public class MathsatFormulaManager implements FormulaManager  {
     }
     return out.toString();
   }
-*/
+   */
 
   @Override
   public Formula parseInfix(String s) {
@@ -563,6 +569,7 @@ public class MathsatFormulaManager implements FormulaManager  {
 
   @Override
   public Formula instantiate(Formula f, SSAMap ssa) {
+    stats.instantiateTimer.start();
     Deque<Formula> toProcess = new ArrayDeque<Formula>();
     Map<Formula, Formula> cache = new HashMap<Formula, Formula>();
 
@@ -631,6 +638,7 @@ public class MathsatFormulaManager implements FormulaManager  {
 
     Formula result = cache.get(f);
     assert result != null;
+    stats.instantiateTimer.stop();
     return result;
   }
 
@@ -756,6 +764,7 @@ public class MathsatFormulaManager implements FormulaManager  {
   @Override
   public Collection<Formula> extractAtoms(Formula f,
       boolean splitArithEqualities, boolean conjunctionsOnly) {
+    stats.extractAtomsTimer.start();
     Set<Formula> cache = new HashSet<Formula>();
     List<Formula> atoms = new ArrayList<Formula>();
 
@@ -795,7 +804,7 @@ public class MathsatFormulaManager implements FormulaManager  {
         }
 
       } else if (conjunctionsOnly
-            && !((msat_term_is_not(t) != 0) || (msat_term_is_and(t) != 0))) {
+          && !((msat_term_is_not(t) != 0) || (msat_term_is_and(t) != 0))) {
         // conjunctions only, but formula is neither "not" nor "and"
         // treat this as atomic
         atoms.add(uninstantiate(tt));
@@ -811,6 +820,7 @@ public class MathsatFormulaManager implements FormulaManager  {
       }
     }
 
+    stats.extractAtomsTimer.stop();
     return atoms;
   }
 
@@ -1012,6 +1022,9 @@ public class MathsatFormulaManager implements FormulaManager  {
     if (primedMap.isEmpty()){
       return formula;
     }
+
+    stats.changePrimedNoTimer.start();
+
     Map<Formula, Formula> cache = new HashMap<Formula, Formula>();
     Deque<Formula> toProcess = new ArrayDeque<Formula>();
 
@@ -1091,6 +1104,7 @@ public class MathsatFormulaManager implements FormulaManager  {
 
     Formula result = cache.get(formula);
     assert result != null;
+    stats.changePrimedNoTimer.stop();
     return result;
   }
 
@@ -1099,6 +1113,7 @@ public class MathsatFormulaManager implements FormulaManager  {
 
   @Override
   public Collection<Formula> extractNextValueAtoms(Formula f, SSAMap ssa) {
+    stats.extractNextValueAtomsTimer.start();
     Set<Formula> cache = new HashSet<Formula>();
     List<Formula> atoms = new ArrayList<Formula>();
 
@@ -1131,12 +1146,14 @@ public class MathsatFormulaManager implements FormulaManager  {
       }
     }
 
+    stats.extractNextValueAtomsTimer.stop();
     return atoms;
   }
 
 
   @Override
   public Formula instantiateNextValue(Formula f, SSAMap oldSsa, SSAMap newSsa) {
+    stats.instatiateNextValueTimer.start();
     Deque<Formula> toProcess = new ArrayDeque<Formula>();
     Map<Formula, Formula> cache = new HashMap<Formula, Formula>();
 
@@ -1208,11 +1225,13 @@ public class MathsatFormulaManager implements FormulaManager  {
 
     Formula result = cache.get(f);
     assert result != null;
+    stats.instatiateNextValueTimer.stop();
     return result;
   }
 
   @Override
   public Formula makePrimedEqualities(SSAMap ssa1, int i, SSAMap ssa2, int j) {
+    stats.makePrimedEqualitiesTimer.start();
     Collection<String> allUnprimedVars = ssaManager.getUnprimedVariables(ssa1);
     allUnprimedVars.addAll(ssaManager.getUnprimedVariables(ssa2));
 
@@ -1234,8 +1253,50 @@ public class MathsatFormulaManager implements FormulaManager  {
       alleq         = makeAnd(alleq, feq);
     }
 
-  return alleq;
-}
+    stats.makePrimedEqualitiesTimer.stop();
+    return alleq;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
+  }
+
+
+  public static class Stats implements Statistics{
+
+    public final Timer instantiateTimer            = new Timer();
+    public final Timer extractAtomsTimer          = new Timer();
+    public final Timer makePrimedEqualitiesTimer  = new Timer();
+    public final Timer instatiateNextValueTimer   = new Timer();
+    public final Timer changePrimedNoTimer        = new Timer();
+    public final Timer extractNextValueAtomsTimer = new Timer();
+
+
+    @Override
+    public void printStatistics(PrintStream out, Result pResult,
+        ReachedSet pReached) {
+      long totalTime  = this.instantiateTimer.getSumTime() + this.extractAtomsTimer.getSumTime()
+                        + this.makePrimedEqualitiesTimer.getSumTime() + this.instatiateNextValueTimer.getSumTime()
+                        + this.changePrimedNoTimer.getSumTime() + this.extractNextValueAtomsTimer.getSumTime();
+      out.println("instantiate time:                " + instantiateTimer);
+      out.println("extractAtoms time:               " + extractAtomsTimer);
+      out.println("makePrimedEqualities time:       " + makePrimedEqualitiesTimer);
+      out.println("instatiateNextValue time:        " + instatiateNextValueTimer);
+      out.println("changePrimedNo time:             " + changePrimedNoTimer);
+      out.println("extractNextValueAtoms time:      " + extractNextValueAtomsTimer);
+      out.println("total time on those:             " + Timer.formatTime(totalTime));
+    }
+
+    @Override
+    public String getName() {
+      return "MathsatFormulaManager";
+    }
+
+
+  }
+
+
 
 
 

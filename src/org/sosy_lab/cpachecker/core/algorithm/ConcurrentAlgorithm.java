@@ -31,6 +31,9 @@ import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManage
 
 public interface ConcurrentAlgorithm extends StatisticsProvider{
 
+  /**
+   * Returns -1 if the threads are safe, otherwise it returns the thread id with the error
+   */
   int run(ReachedSet[] reachedSets, int startThread);
 
   ConfigurableProgramAnalysis[] getCPAs();

@@ -61,10 +61,13 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGAbstractElement;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCFAEdge2;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGCPA;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGPrecision;
+import org.sosy_lab.cpachecker.cpa.relyguarantee.RGTransferRelation;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.RGVariables;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.RGEnvironmentManager;
 import org.sosy_lab.cpachecker.cpa.relyguarantee.environment.transitions.RGCFAEdgeTemplate;
@@ -87,64 +90,10 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
   @Option(description="If true, then change treads after successors for a state were computed.")
   private boolean changeThread = false;
 
-  private static class RelyGuaranteeThreadStatitics implements Statistics {
 
-    private Timer totalTimer         = new Timer();
-    private Timer envPrecisionTimer  = new Timer();
-    private Timer precisionTimer     = new Timer();
-    private Timer transferTimer      = new Timer();
-    private Timer envMergeTimer      = new Timer();
-    private Timer mergeTimer         = new Timer();
-    private Timer envStopTimer       = new Timer();
-    private Timer stopTimer          = new Timer();
-    private Timer envGenTimer        = new Timer();
 
-    private int   countIterations     = 0;
-    private int   maxWaitlistSize     = 0;
-    private int   countWaitlistSize   = 0;
-    private int   countSuccessors     = 0;
-    private int   countNFSuccessors     = 0;
-    private int   countEnvSuccessors  = 0;
-    private int   maxSuccessors       = 0;
-    private int   countMerge          = 0;
-    private int   countEnvMerge       = 0;
-    private int   countStop           = 0;
-    private int   countEnvStop        = 0;
-
-    @Override
-    public String getName() {
-      return "Thread statistics";
-    }
-
-    @Override
-    public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
-      out.println("Number of iterations:            " + countIterations);
-      out.println("Max size of waitlist:            " + maxWaitlistSize);
-      out.println("Average size of waitlist:        " + countWaitlistSize
-          / countIterations);
-      out.println();
-      out.println("No of environmental successors:  " + countEnvSuccessors);
-      out.println("No of all successors:            " + countSuccessors);
-      out.println("No of all non-false successors:  " + countNFSuccessors);
-      out.println("Max successors for one element:  " + maxSuccessors);
-      out.println("Number of environmetal merges:   " + countEnvMerge);
-      out.println("Number of all merges:            " + countMerge);
-      out.println("Number of environmetal stops:    " + countEnvStop);
-      out.println("Number of all stops:             " + countStop);
-      out.println();
-      out.println("Time for generating env. transitions:" + envGenTimer);
-      out.println("Time for transfer relation:          " + transferTimer);
-      out.println("Time for env. precision adjustment:  " + envPrecisionTimer);
-      out.println("Time for precision adjustment:       " + precisionTimer);
-      out.println("Time for env. merge operator:        " + envMergeTimer);
-      out.println("Time for merge operator:             " + mergeTimer);
-      out.println("Time for env. stop operator:         " + envStopTimer);
-      out.println("Time for stop operator:              " + stopTimer);
-      out.println("Total time for CPA algorithm:        " + totalTimer);
-    }
-  }
-
-  private  RelyGuaranteeThreadStatitics            stats;
+  public final Stats stats;
+  private RunStats runStats;
   private final ConfigurableProgramAnalysis cpa;
   private final RelyGuaranteeCFA            cfa;
   private final LogManager                  logger;
@@ -156,13 +105,14 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
   private Set<CFANode> nodeForEnvApp;
 
 
-
   public RGThreadCPAAlgorithm(ConfigurableProgramAnalysis  cpa, RelyGuaranteeCFA cfa, RGEnvironmentManager environment, Configuration config, LogManager logger,  int tid) {
     this.cpa = cpa;
     this.cfa = cfa;
     this.environment = environment;
     this.logger = logger;
     this.tid = tid;
+
+    this.stats = new Stats((ARTCPA) cpa);
 
     try {
       config.inject(this, RGThreadCPAAlgorithm.class);
@@ -202,26 +152,30 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public boolean run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
-    stats = new RelyGuaranteeThreadStatitics();
+
+    if (runStats == null){
+      runStats = new RunStats();
+    }
     stats.totalTimer.start();
+    runStats.totalTimer.start();
+
     final TransferRelation transferRelation = cpa.getTransferRelation();
     final MergeOperator mergeOperator = cpa.getMergeOperator();
     final StopOperator stopOperator = cpa.getStopOperator();
     final PrecisionAdjustment precisionAdjustment = cpa.getPrecisionAdjustment();
 
-    List<RGCFAEdgeTemplate> envEdges = this.environment.getUnappliedEnvEdgesForThread(tid);
+    List<RGCFAEdgeTemplate> envEdges = environment.getUnappliedEnvEdgesForThread(tid);
 
     while (reachedSet.hasWaitingElement()) {
       CPAchecker.stopIfNecessary();
 
       stats.countIterations++;
+      runStats.countIterations++;
 
       // Pick next element using strategy
       // BFS, DFS or top sort according to the configuration
       int size = reachedSet.getWaitlistSize();
-      if (size >= stats.maxWaitlistSize) {
-        stats.maxWaitlistSize = size;
-      }
+      stats.maxWaitlistSize = Math.max(stats.maxWaitlistSize, size);
       stats.countWaitlistSize += size;
 
       final AbstractElement element =  reachedSet.popFromWaitlist();
@@ -245,6 +199,8 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
         System.out.println("@ Successor of '"+rgElement.getAbstractionFormula()+"','"+rgElement.getPathFormula()+" id:"+aElement.getElementId()+" at "+loc);
       }
 
+      stats.transferTimer.start();
+      runStats.transferTimer.start();
       // if local child was not expanded, then do it, otherwise only apply new env. transitions
       int edgesNo = 0;
 
@@ -292,21 +248,22 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
 
       for (CFAEdge edge : edges){
-        stats.transferTimer.start();
-        Collection<? extends AbstractElement> newSucc = transferRelation.getAbstractSuccessors(element, precision, edge);
-        stats.transferTimer.stop();
 
+        Collection<? extends AbstractElement> newSucc = transferRelation.getAbstractSuccessors(element, precision, edge);
         // generate env edge
         for (AbstractElement successor : newSucc){
           successors.add(Pair.of(successor, edge));
         }
 
       }
+      stats.transferTimer.stop();
+      runStats.transferTimer.stop();
 
 
       int numSuccessors = successors.size();
       logger.log(Level.FINER, "Current element has", numSuccessors,"successors");
       stats.countSuccessors += numSuccessors;
+      runStats.countSuccessors += numSuccessors;
       stats.maxSuccessors = Math.max(numSuccessors, stats.maxSuccessors);
 
       for (Pair<AbstractElement,CFAEdge> pair : successors) {
@@ -316,30 +273,30 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
         boolean byEnvEdge = false;
         RGAbstractElement rgElement = AbstractElements.extractElementByType(successor, RGAbstractElement.class);
 
-        if (!rgElement.getPathFormula().getFormula().isFalse()){
-          stats.countNFSuccessors++;
-        }
 
-        if (rgElement.getParentEdge() != null && (rgElement.getParentEdge().getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge || rgElement.getParentEdge().getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge)){
+        if (edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCFAEdge || edge.getEdgeType() == CFAEdgeType.RelyGuaranteeCombinedCFAEdge){
           byEnvEdge = true;
           stats.countEnvSuccessors++;
+          runStats.countEnvSuccessors++;
         }
 
         logger.log(Level.FINER, "Considering successor of current element");
         logger.log(Level.ALL, "Successor of", element, "\nis", successor);
 
         stats.precisionTimer.start();
+        runStats.precisionTimer.start();
         if (byEnvEdge){
           stats.envPrecisionTimer.start();
         }
-        Triple<AbstractElement, Precision, Action> precAdjustmentResult =
-          precisionAdjustment.prec(successor, precision, reachedSet);
-        stats.precisionTimer.stop();
-        stats.envPrecisionTimer.stop();
 
+        Triple<AbstractElement, Precision, Action> precAdjustmentResult =precisionAdjustment.prec(successor, precision, reachedSet);
         successor = precAdjustmentResult.getFirst();
         Precision successorPrecision = precAdjustmentResult.getSecond();
         Action action = precAdjustmentResult.getThird();
+
+        stats.precisionTimer.stop();
+        runStats.precisionTimer.stop();
+        stats.envPrecisionTimer.stop();
 
         if (debug){
           printRelyGuaranteeAbstractElement(successor);
@@ -351,6 +308,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
           reachedSet.reAddToWaitlist(element);
           reachedSet.add(successor, successorPrecision);
           stats.totalTimer.stop();
+          runStats.totalTimer.stop();
           return true;
         }
         assert action == Action.CONTINUE : "Enum Action has unhandled values!";
@@ -372,6 +330,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
         if (mergeOperator != MergeSepOperator.getInstance() && !reached.isEmpty()) {
           stats.mergeTimer.start();
+          runStats.mergeTimer.start();
           if (byEnvEdge){
             stats.envMergeTimer.start();
           }
@@ -413,18 +372,21 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
           stats.mergeTimer.stop();
           stats.envMergeTimer.stop();
+          runStats.mergeTimer.stop();
         }
 
 
 
 
         stats.stopTimer.start();
+        runStats.stopTimer.start();
         if (byEnvEdge){
           stats.envStopTimer.start();
         }
         boolean stop = stopOperator.stop(successor, reached, successorPrecision);
         stats.stopTimer.stop();
         stats.envStopTimer.stop();
+        runStats.stopTimer.stop();
 
         if (stop) {
           logger.log(Level.FINER,
@@ -448,10 +410,14 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
       if (changeThread && reachedSet.hasWaitingElement()){
         // we switch to another state
+        stats.totalTimer.stop();
+        runStats.totalTimer.stop();
         return false;
       }
     }
+
     stats.totalTimer.stop();
+    runStats.totalTimer.stop();
     return true;
   }
 
@@ -528,11 +494,119 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
     pStatsCollection.add(stats);
   }
 
-  public void printStatitics(){
-    System.out.println();
-    System.out.println("Thread statistics:");
-    if (stats != null){
-      stats.printStatistics(System.out, null, null);
+  /**
+   * Get thread algorithm stats since the begining or {@link restRunStats}.
+   * @return
+   */
+  public RunStats getRunStats() {
+    return runStats;
+  }
+
+  /**
+   * Reset thread algoritm stats.
+   */
+  public void restRunStats() {
+    runStats = null;
+  }
+
+
+
+  /**
+   * Simplified stats covering shorter period of time.
+   */
+  public static class RunStats implements Statistics {
+
+    private Timer totalTimer         = new Timer();
+    private Timer precisionTimer     = new Timer();
+    private Timer transferTimer      = new Timer();
+    private Timer mergeTimer         = new Timer();
+    private Timer stopTimer          = new Timer();
+
+    private int   countIterations     = 0;
+    private int   countSuccessors     = 0;
+    private int   countEnvSuccessors  = 0;
+
+    @Override
+    public void printStatistics(PrintStream out, Result pResult,
+        ReachedSet pReached) {
+      out.println("total:"+totalTimer+" \ttransfer:"+transferTimer+" \tprec.:"+precisionTimer+" \tmerge:"+mergeTimer+" \tstop:"+stopTimer);
+      out.println("iter.:"+countIterations + " \tsuccessors:"+countSuccessors+","+countEnvSuccessors);
+
+    }
+
+    @Override
+    public String getName() {
+      return "RGThreadCPAAlgorithm.run";
+    }
+
+  }
+
+  /**
+   * Total states for the thread algorithm.
+   */
+  public static class Stats implements Statistics {
+
+    private final RGCPA cpa;
+
+    private Timer totalTimer         = new Timer();
+    private Timer envPrecisionTimer  = new Timer();
+    private Timer precisionTimer     = new Timer();
+    private Timer envTransferTimer      = new Timer();
+    private Timer transferTimer      = new Timer();
+    private Timer envMergeTimer      = new Timer();
+    private Timer mergeTimer         = new Timer();
+    private Timer envStopTimer       = new Timer();
+    private Timer stopTimer          = new Timer();
+    private Timer envGenTimer        = new Timer();
+
+    private int   countIterations     = 0;
+    private int   maxWaitlistSize     = 0;
+    private int   countWaitlistSize   = 0;
+    private int   countSuccessors     = 0;
+    private int   countEnvSuccessors  = 0;
+    private int   maxSuccessors       = 0;
+    private int   countMerge          = 0;
+    private int   countEnvMerge       = 0;
+    private int   countStop           = 0;
+    private int   countEnvStop        = 0;
+
+    public Stats(ARTCPA cpa){
+      this.cpa = cpa.retrieveWrappedCpa(RGCPA.class);
+    }
+
+    @Override
+    public String getName() {
+      return "RGThreadCPAAlgorithm";
+    }
+
+    @Override
+    public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
+
+      RGTransferRelation tr = (RGTransferRelation) cpa.getTransferRelation();
+
+      out.println("Number of iterations:            " + countIterations);
+      out.println("Max size of waitlist:            " + maxWaitlistSize);
+      out.println("Average size of waitlist:        " + countWaitlistSize/ countIterations);
+      out.println();
+      out.println("No of environmental successors:  " + countEnvSuccessors);
+      out.println("No of all successors:            " + countSuccessors);
+      out.println("Env. transition false by BDD:    " + tr.envFalseByBDD);
+      out.println("Max successors for one element:  " + maxSuccessors);
+      out.println("Number of environmetal merges:   " + countEnvMerge);
+      out.println("Number of all merges:            " + countMerge);
+      out.println("Number of environmetal stops:    " + countEnvStop);
+      out.println("Number of all stops:             " + countStop);
+      out.println("Time for generating env. transitions:" + envGenTimer);
+      out.println("Time for transfer relation:          " + transferTimer);
+      out.println("Time for transfer formula constr.:   " + tr.pfConstructionTimer);
+      out.println("Time for env. transfer relation:     " + envTransferTimer);
+      out.println("Time for precision adjustment:       " + precisionTimer);
+      out.println("Time for env. precision adjustment:  " + envPrecisionTimer);
+      out.println("Time for merge operator:             " + mergeTimer);
+      out.println("Time for env. merge operator:        " + envMergeTimer);
+      out.println("Time for stop operator:              " + stopTimer);
+      out.println("Time for env. stop operator:         " + envStopTimer);
+      out.println("Total time for CPA algorithm:        " + totalTimer);
     }
   }
 }
