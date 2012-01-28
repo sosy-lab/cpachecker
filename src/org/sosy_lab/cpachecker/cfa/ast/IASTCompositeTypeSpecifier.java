@@ -87,4 +87,23 @@ public final class IASTCompositeTypeSpecifier extends IType {
 
     return lASTString.toString();
   }
+
+
+  /**
+   * This is the declaration of a member of a composite type.
+   * It contains a type and an optional name.
+   */
+  public static final class IASTCompositeTypeMemberDeclaration extends IASTSimpleDeclaration {
+
+    public IASTCompositeTypeMemberDeclaration(IASTFileLocation pFileLocation,
+                                              IType pSpecifier,
+                                              String pName) {
+      super(pFileLocation, pSpecifier, pName);
+    }
+
+    @Override
+    public String toASTString() {
+      return getDeclSpecifier().toASTString() + getName() + ";";
+    }
+  }
 }
