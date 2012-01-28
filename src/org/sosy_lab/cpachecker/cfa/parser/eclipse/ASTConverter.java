@@ -82,7 +82,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeDefDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IASTTypeId;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
@@ -1334,7 +1333,7 @@ class ASTConverter {
     return n.toString(); // TODO verify toString() is the correct method
   }
 
-  private IASTTypeId convert(org.eclipse.cdt.core.dom.ast.IASTTypeId t) {
+  private IType convert(org.eclipse.cdt.core.dom.ast.IASTTypeId t) {
     Pair<StorageClass, ? extends IType> specifier = convert(t.getDeclSpecifier());
     if (specifier.getFirst() != StorageClass.AUTO) {
       throw new CFAGenerationRuntimeException("Unsupported storage class for type ids", t);
@@ -1344,8 +1343,11 @@ class ASTConverter {
     if (declarator.getSecond() != null) {
       throw new CFAGenerationRuntimeException("Unsupported initializer for type ids", t);
     }
+    if (declarator.getThird() != null && !declarator.getThird().trim().isEmpty()) {
+      throw new CFAGenerationRuntimeException("Unsupported name for type ids", t);
+    }
 
-    return new IASTTypeId(convert(t.getFileLocation()), declarator.getFirst(), declarator.getThird());
+    return declarator.getFirst();
   }
 
   private IType convert(org.eclipse.cdt.core.dom.ast.IType t) {

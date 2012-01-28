@@ -56,11 +56,11 @@ import org.sosy_lab.cpachecker.cfa.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.IASTRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IASTStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASTTypeId;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IASTUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.IType;
 import org.sosy_lab.cpachecker.cfa.ast.RightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.StatementVisitor;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -528,7 +528,7 @@ class AutomatonASTComparator {
     }
   }
 
-  private static class CastExpressionMatcher extends OneOperandExpressionMatcher<IASTCastExpression, IASTTypeId> {
+  private static class CastExpressionMatcher extends OneOperandExpressionMatcher<IASTCastExpression, IType> {
 
     public CastExpressionMatcher(IASTCastExpression pPattern, ASTMatcher pOperand) {
       super(IASTCastExpression.class, pPattern, pOperand);
@@ -540,8 +540,8 @@ class AutomatonASTComparator {
     }
 
     @Override
-    protected IASTTypeId getFieldValueFrom(IASTCastExpression pSource) {
-      return pSource.getTypeId();
+    protected IType getFieldValueFrom(IASTCastExpression pSource) {
+      return pSource.getType();
     }
   }
 
@@ -591,7 +591,7 @@ class AutomatonASTComparator {
     }
   }
 
-  private static class TypeIdExpressionMatcher extends ExpressionWithFieldMatcher<IASTTypeIdExpression, IASTTypeId> {
+  private static class TypeIdExpressionMatcher extends ExpressionWithFieldMatcher<IASTTypeIdExpression, IType> {
 
     private final TypeIdOperator operator;
 
@@ -607,8 +607,8 @@ class AutomatonASTComparator {
     }
 
     @Override
-    protected IASTTypeId getFieldValueFrom(IASTTypeIdExpression pSource) {
-      return pSource.getTypeId();
+    protected IType getFieldValueFrom(IASTTypeIdExpression pSource) {
+      return pSource.getType();
     }
   }
 

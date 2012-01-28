@@ -1256,7 +1256,7 @@ public class CtoFormulaConverter {
         throws UnrecognizedCCodeException {
 
       if (tIdExp.getOperator() == TypeIdOperator.SIZEOF) {
-        IType lIType = tIdExp.getTypeId().getDeclSpecifier();
+        IType lIType = tIdExp.getType();
         return handleSizeof(tIdExp, lIType);
       } else {
         return visitDefault(tIdExp);
