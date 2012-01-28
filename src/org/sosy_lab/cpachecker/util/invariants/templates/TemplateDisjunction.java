@@ -274,7 +274,7 @@ public class TemplateDisjunction extends TemplateBoolean {
   }
 
   @Override
-  public boolean evaluate(HashMap<String,Rational> map) {
+  public boolean evaluate(Map<String,Rational> map) {
     boolean ans = true;
     TemplateBoolean tb;
     for (int i = 0; i < getNumDisjuncts(); i++) {

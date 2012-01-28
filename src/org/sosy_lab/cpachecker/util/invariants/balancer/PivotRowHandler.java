@@ -323,7 +323,7 @@ public class PivotRowHandler {
     AssumptionSet soleOpAset = optionTable.takeSoleOptions();
     // Next ... TODO
     if (optionTable.getRemainingRows().size() > 0) {
-      logger.log(Level.FINEST,"Not all rows satisfied on second pass. Unsatisfied rows:",remainingRows);
+      logger.log(Level.FINEST,"Not all rows satisfied on second pass! Unsatisfied rows:",remainingRows);
     }
     // For now we return just the soleOpAset, to see test our progress.
     asetset.add(soleOpAset);

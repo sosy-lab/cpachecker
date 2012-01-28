@@ -98,7 +98,7 @@ public class SubstitutionManager {
     subList.removeAll(toRemove);
     // Sort into ascending order according to degree of rhs.
     Collections.sort(subList);
-    logger.log(Level.ALL,"Substitutions:\n", subList);
+    //logger.log(Level.ALL,"Substitutions:\n", subList);
     // Finally, return s.
     return s;
   }

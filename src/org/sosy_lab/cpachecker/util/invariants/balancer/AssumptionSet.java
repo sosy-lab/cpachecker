@@ -59,6 +59,22 @@ public class AssumptionSet implements Iterable<Assumption> {
   }
 
   /*
+   * Write the conjunction of all the assumptions, and existentially quantify all the parameters,
+   * using Redlog syntax.
+   */
+  public String writeQEformula() {
+    String phi = "";
+    for (Assumption a : aset) {
+      phi += " and "+a.toString();
+    }
+    if (phi.length() > 0) {
+      phi = phi.substring(5);
+    }
+    phi = "rlex("+phi+")";
+    return phi;
+  }
+
+  /*
    * Add the assumption to the set, first checking whether it strengthens any existing one.
    *
    * The check for strengthening results in this collection acting like a set, and more.

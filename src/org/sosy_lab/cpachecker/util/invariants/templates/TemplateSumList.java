@@ -90,7 +90,7 @@ public class TemplateSumList extends TemplateFormulaList {
     }
   }
 
-  public boolean evaluate(HashMap<String,Rational> map) {
+  public boolean evaluate(Map<String,Rational> map) {
     boolean ans = true;
     if (sums != null) {
       for (int i = 0; i < sums.length; i++) {

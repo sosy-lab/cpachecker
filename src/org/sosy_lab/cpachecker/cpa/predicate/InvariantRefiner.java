@@ -52,10 +52,10 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractElements;
 import org.sosy_lab.cpachecker.util.invariants.Farkas;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Balancer;
+import org.sosy_lab.cpachecker.util.invariants.balancer.MatrixBalancer;
 import org.sosy_lab.cpachecker.util.invariants.balancer.NetworkBuilder;
 import org.sosy_lab.cpachecker.util.invariants.balancer.SingleLoopNetworkBuilder;
 import org.sosy_lab.cpachecker.util.invariants.balancer.TemplateNetwork;
-import org.sosy_lab.cpachecker.util.invariants.balancer.Balancer.UIFAxiomStrategy;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateConstraint;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormula;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormulaManager;
@@ -153,19 +153,16 @@ public class InvariantRefiner extends AbstractARTBasedRefiner {
     }
 
     TemplateNetwork tnet = nbuilder.nextNetwork();
-    Balancer balancer = new Balancer(logger);
-    UIFAxiomStrategy axiomStrategy = UIFAxiomStrategy.DONOTUSEAXIOMS;
+    //Balancer balancer = new BasicBalancer(logger);
+    Balancer balancer = new MatrixBalancer(logger);
     // Try template networks until one succeeds, or we run out of ideas.
     while (tnet != null) {
-
-      logger.log(Level.ALL, "\nAxiom strategy:\n", axiomStrategy);
 
       // Reset indices, so they do not grow needlessly out of bound.
       Farkas.resetConstantIndices();
       TemplateTerm.resetParameterIndices();
 
       // Attempt to balance the TemplateNetwork.
-      balancer.setAxiomStrategy(axiomStrategy);
       balancing.start();
       boolean balanced = balancer.balance(tnet);
       balancing.stop();
@@ -187,19 +184,8 @@ public class InvariantRefiner extends AbstractARTBasedRefiner {
       } else {
         // Could not balance the template network.
         logger.log(Level.FINEST, "Could not balance template network.");
-
-        // If we were not using axioms, then we should try using them,
-        // on the same network.
-        if (axiomStrategy == UIFAxiomStrategy.DONOTUSEAXIOMS) {
-          axiomStrategy = UIFAxiomStrategy.USEAXIOMS;
-
-        // Else even axioms did not work, so try the next network, if
-        // there is one.
-        } else {
-          tnet = nbuilder.nextNetwork();
-          axiomStrategy = UIFAxiomStrategy.DONOTUSEAXIOMS;
-        }
-
+        // Get the next network.
+        tnet = nbuilder.nextNetwork();
         // If tnet is null, then we have run out of networks to try.
         // Fail.
         if (tnet == null) {

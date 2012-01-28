@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.invariants.balancer;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
@@ -88,7 +89,7 @@ public class TemplateMap {
     return pur;
   }
 
-  public boolean evaluate(HashMap<String,Rational> vals) {
+  public boolean evaluate(Map<String,Rational> vals) {
     boolean ans = true;
     for (Template t : map.values()) {
       ans &= t.evaluate(vals);

@@ -60,7 +60,7 @@ public class TemplateFormula implements Formula, Template {
    * @return: true if every parameter in this formula was assigned a
    * value by the passed map; false otherwise.
    */
-  public boolean evaluate(HashMap<String,Rational> map) { return true; }
+  public boolean evaluate(Map<String,Rational> map) { return true; }
 
   public void unevaluate() {}
 

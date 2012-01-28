@@ -294,7 +294,7 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
   }
 
   @Override
-  public boolean evaluate(HashMap<String,Rational> map) {
+  public boolean evaluate(Map<String,Rational> map) {
     boolean ans = true;
     TemplateBoolean tc;
     for (int i = 0; i < getNumConjuncts(); i++) {

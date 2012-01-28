@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.balancer;
 
-import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
@@ -75,7 +75,7 @@ public class TemplateNetwork {
     return tmap.getTemplate(n);
   }
 
-  public boolean evaluate(HashMap<String,Rational> vals) {
+  public boolean evaluate(Map<String,Rational> vals) {
     boolean ans = tmap.evaluate(vals);
     return ans;
   }
