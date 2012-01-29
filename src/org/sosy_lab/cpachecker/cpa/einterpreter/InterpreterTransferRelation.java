@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.einterpreter;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -117,7 +118,8 @@ import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 
 @SuppressWarnings("unused")
 public class InterpreterTransferRelation implements TransferRelation {
-
+  public static int TRCOUNT=0;
+  public final static ArrayList<String> TRLIST = new ArrayList<String>();
   private final Set<String> globalVars = new HashSet<String>();
 
   private String missingInformationLeftVariable = null;
@@ -178,6 +180,8 @@ public class InterpreterTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(
       AbstractElement element, Precision precision, CFAEdge cfaEdge) throws CPATransferException {
+    TRCOUNT++;
+    TRLIST.add(cfaEdge.getRawStatement());
     InterpreterElement successor ;
     AbstractElement check = null;
     InterpreterElement explicitElement = (InterpreterElement)element;

@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.einterpreter.InterpreterCPA;
+import org.sosy_lab.cpachecker.cpa.einterpreter.InterpreterTransferRelation;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.fshell.cfa.Wrapper;
@@ -97,21 +98,38 @@ public class IncrementalARTReusingFQLTestGenerator implements FQLTestGenerator {
       e.printStackTrace();
     }
     time = k.stop();
-    out.print(Long.toString(time)+", ");
-
-    k.start();
-
-    // old interpreter cpa
-
-    try {
-      run2(new org.sosy_lab.cpachecker.cpa.interpreter.InterpreterCPA(pTestCase.getInputs()));
-    } catch (Exception e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+    out.print(Long.toString(time));
+    out.print(", " + InterpreterTransferRelation.TRCOUNT);
+    out.println();
+    out.println();
+    for(String s: InterpreterTransferRelation.TRLIST){
+      out.println(s);
     }
-    time = k.stop();
 
-    out.println(Long.toString(time));
+
+    if(Main.OINTPR==0){
+      k.start();
+
+      // old interpreter cpa
+
+      try {
+        run2(new org.sosy_lab.cpachecker.cpa.interpreter.InterpreterCPA(pTestCase.getInputs()));
+      } catch (Exception e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+      time = k.stop();
+
+      out.print(", "+Long.toString(time));
+      out.print(", " + org.sosy_lab.cpachecker.cpa.interpreter.InterpreterTransferRelation.TRCOUNT);
+      out.println();
+      out.println();
+      for(String s: org.sosy_lab.cpachecker.cpa.interpreter.InterpreterTransferRelation.TRLIST){
+        out.println(s);
+      }
+
+    }
+    out.println();
     out.close();
     return null;
   }

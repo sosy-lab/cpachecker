@@ -77,7 +77,8 @@ import org.sosy_lab.cpachecker.fshell.fql2.translators.cfa.ToFlleShAssumeEdgeTra
 import org.sosy_lab.cpachecker.util.ecp.ECPPredicate;
 
 public class InterpreterTransferRelation implements TransferRelation {
-
+  public static int TRCOUNT=0;
+  public final static ArrayList<String> TRLIST = new ArrayList<String>();
   private final Set<String> globalVars = new HashSet<String>();
 
   private String missingInformationLeftVariable = null;
@@ -90,7 +91,8 @@ public class InterpreterTransferRelation implements TransferRelation {
       AbstractElement element, Precision precision, CFAEdge cfaEdge) throws CPATransferException {
     AbstractElement successor;
     InterpreterElement explicitElement = (InterpreterElement)element;
-
+    TRCOUNT++;
+    TRLIST.add(cfaEdge.getRawStatement());
     // check the type of the edge
     switch (cfaEdge.getEdgeType ()) {
 
