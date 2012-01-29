@@ -48,6 +48,18 @@ CSV_SEPARATOR = '\t'
 BUG_SUBSTRING_LIST = ['bad', 'bug', 'unsafe']
 
 
+# space in front of a line in htmlcode (4 spaces)
+HTML_SHIFT = '    '
+
+
+# scoreValues taken from http://sv-comp.sosy-lab.org/
+SCORE_CORRECT_SAFE = 2
+SCORE_CORRECT_UNSAFE = 1
+SCORE_UNKNOWN = 0
+SCORE_WRONG_UNSAFE = -2
+SCORE_WRONG_SAFE = -4
+
+
 class Template():
     """
     a limited template "engine", similar to report-generator
@@ -59,11 +71,8 @@ class Template():
 
     def render(self, **kws):
         """
-        pass kwargs here. The value must be a callable that returns the string to insert for the key.
-
-        render(test=lambda : "This is a test!!") will substitute {{{test}}} for "This is a test!!"
-
-        WARNING: currently only one template var e.g. {{{test}}} may appear on a single line in the template.
+        This function replaces every appearance of "{{{key}}}"
+        through the value of the key.
         """
         for line in self.infile:
             for key in kws:
@@ -72,18 +81,6 @@ class Template():
                     line = line.replace(matcher, kws[key])
                     
             self.outfile.write(line)
-
-
-# space in front of a line in htmlcode (4 spaces)
-HTML_SHIFT = '    '
-
-
-# scoreValues taken from http://sv-comp.sosy-lab.org/
-SCORE_CORRECT_SAFE = 2
-SCORE_CORRECT_UNSAFE = 1
-SCORE_UNKNOWN = 0
-SCORE_WRONG_UNSAFE = -2
-SCORE_WRONG_SAFE = -4
 
 
 def getListOfTests(file, filesFromXML=False):
@@ -666,13 +663,11 @@ def createTable(file, filesFromXML=False):
     (tableHeadHTML, tableHeadCSV) = getTableHead(listOfTests)
     (tableBodyHTML, tableFootHTML, tableBodyCSV) = getTableBody(listOfTests)
 
-    tableCode = '<table id="dataTable">\n' \
-                + tableHeadHTML.replace('\n','\n' + HTML_SHIFT) \
+    tableCode = tableHeadHTML.replace('\n','\n' + HTML_SHIFT) \
                 + '\n' + HTML_SHIFT \
                 + tableFootHTML.replace('\n','\n' + HTML_SHIFT) \
                 + '\n' + HTML_SHIFT \
-                + tableBodyHTML.replace('\n','\n' + HTML_SHIFT) \
-                + '\n</table>\n\n'
+                + tableBodyHTML.replace('\n','\n' + HTML_SHIFT)
 
     if not os.path.isdir(OUTPUT_PATH): os.makedirs(OUTPUT_PATH)
 
