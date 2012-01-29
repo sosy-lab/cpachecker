@@ -603,7 +603,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
       out.println("time for transfer form. constr.: " + tr.pfConstructionTimer);
       out.println("time for env. transfer relation: " + envTransferTimer);
       out.println("time for precision adjustment:   " + precisionTimer);
-      out.println("time for env. abstraction:       " + envPrecisionTimer);
+      out.println("time for env. prec. adjustment:  " + envPrecisionTimer);
       out.println("time for merge operator:         " + mergeTimer);
       out.println("time for env. merge operator:    " + envMergeTimer);
       out.println("time for stop operator:          " + stopTimer);

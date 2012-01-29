@@ -126,11 +126,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
   private final RegionManager rManager;
   private final AbstractionManagerImpl absManager;
   private final SSAMapManager ssaManager;
-
-  /* comparators */
-  private final RGEnvCandidateComparator candComparator;
-  private final RGEnvTransitionComparator etComparator;
-
+  private final RGEnvTransitionManager etManager;
 
   public RGEnvironmentManager(int threadNo, RGVariables vars, Configuration config, LogManager logger) throws InvalidConfigurationException{
     // TODO add option for caching
@@ -158,9 +154,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
     this.paManager = PredicateAbstractionManager.getInstance(rManager, fManager, pfMgr, tProver, config, logger);
     this.absManager = AbstractionManagerImpl.getInstance(rManager, msatFormulaManager, pfManager, config, logger);
     this.ssaManager = SSAMapManagerImpl.getInstance(fManager, config, logger);
-
-    this.candComparator = RGEnvCandidateComparator.getComparator(abstractEnvTransitions, tProver, fManager, rManager);
-    this.etComparator   = RGEnvTransitionComparator.getComparator(abstractEnvTransitions, tProver, fManager, rManager);
+    this.etManager  = RGEnvTransitionManagerFactory.getInstance(abstractEnvTransitions, fManager, pfManager, ssaManager, tProver, rManager, config, logger);
 
     for (int i=0; i< threadNo; i++){
       //envTransProcessedBeforeFromThread[i] = HashMultimap.<ARTElement, RelyGuaranteeEnvironmentalTransition>create();
@@ -480,7 +474,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
       if (!cndCovered.contains(cnd1)){
         for (RGEnvCandidate cnd2 : cndToProcess){
           if (cnd1 !=cnd2 && !cndCovered.contains(cnd2)){
-            if (candComparator.isLessOrEqual(cnd1, cnd2)){
+            if (etManager.isLessOrEqual(cnd1, cnd2)){
               // edge1 => edge2
               if (debug){
                 System.out.println("\t-covered: "+cnd1+" => "+cnd2);
@@ -499,12 +493,12 @@ public class RGEnvironmentManager implements StatisticsProvider{
     if (debug){
       for (RGEnvCandidate edge1 : candidates){
         for (RGEnvCandidate edge2 : cndToProcess){
-          assert edge1 == edge2 || !candComparator.isLessOrEqual(edge2,edge1)  ||  candComparator.isLessOrEqual(edge2,edge1);
+          assert edge1 == edge2 || !etManager.isLessOrEqual(edge2,edge1)  ||  etManager.isLessOrEqual(edge2,edge1);
         }
       }
       for (RGEnvCandidate edge1 : cndToProcess){
         for (RGEnvCandidate edge2 : cndToProcess){
-          assert edge1 == edge2 || !candComparator.isLessOrEqual(edge2,edge1);
+          assert edge1 == edge2 || !etManager.isLessOrEqual(edge2,edge1);
         }
       }
     }
