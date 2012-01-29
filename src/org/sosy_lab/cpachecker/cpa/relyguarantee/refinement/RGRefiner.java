@@ -415,9 +415,13 @@ public class RGRefiner implements StatisticsProvider{
 
     @Override
     public void printStatistics(PrintStream out, Result pResult,ReachedSet pReached){
-      out.println("max. predicates per location     " + maxPredicatesPerLoc);
+      out.println("max. predicates per location     " + formatInt(maxPredicatesPerLoc));
       out.println("time on restarting analysis:     " + restartingTimer);
       out.println("total time on refinement:        " + totalTimer);
+    }
+
+    private String formatInt(int val){
+      return String.format("  %7d", val);
     }
   }
 

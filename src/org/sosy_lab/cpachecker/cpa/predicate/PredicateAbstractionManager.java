@@ -706,9 +706,9 @@ class PredicateAbstractionManager implements StatisticsProvider {
       String baHitRation = " ("+toPercent(this.buildAbstractionCH, this.buildAbstractionCalls)+")";
       String banvHitRation = " ("+toPercent(this.buildAbstractionNVCH, this.buildAbstractionNVCalls)+")";
       out.println("buildAbstraction time:           " + this.buildAbstractionTimer);
-      out.println("buildAbstraction cach hits:      " + this.buildAbstractionCH+"/"+this.buildAbstractionCalls + baHitRation);
+      out.println("buildAbstraction cach hits:        " + this.buildAbstractionCH+"/"+this.buildAbstractionCalls + baHitRation);
       out.println("buildNextValueAbstraction time:  " + this.buildAbstractionNVTimer);
-      out.println("buildBextValueAbstraction c.h.:  " + this.buildAbstractionNVCH+"/"+this.buildAbstractionNVCalls + banvHitRation);
+      out.println("buildBextValueAbstraction c.h.:    " + this.buildAbstractionNVCH+"/"+this.buildAbstractionNVCalls + banvHitRation);
       out.println("total time on those:             " + Timer.formatTime(totalTime));
     }
 

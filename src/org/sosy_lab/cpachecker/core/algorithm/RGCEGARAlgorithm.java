@@ -115,6 +115,7 @@ public class RGCEGARAlgorithm implements ConcurrentAlgorithm,  StatisticsProvide
     long time = stats.totalAnal.stop();
 
     System.out.println();
+    System.out.println("\t\t\t----- RG analysis statistics -----");
     System.out.println("Time for rely-guarantee analysis:       " + Timer.formatTime(time));
 
     return errorThread;
@@ -166,9 +167,9 @@ public class RGCEGARAlgorithm implements ConcurrentAlgorithm,  StatisticsProvide
 
   @Override
   public void collectStatistics(Collection<Statistics> scoll) {
-    scoll.add(stats);
     algorithm.collectStatistics(scoll);
     refiner.collectStatistics(scoll);
+    scoll.add(stats);
   }
 
   @Override
@@ -198,10 +199,14 @@ public class RGCEGARAlgorithm implements ConcurrentAlgorithm,  StatisticsProvide
 
     @Override
     public void printStatistics(PrintStream out, Result pResult,ReachedSet pReached) {
-      out.println("Number of refinements:           " + countIterations);
-      out.println("Total time on analysis:          " + totalAnal);
-      out.println("Total time on refinement:        " + totalRefinement);
-      out.println("Total time on CEGAR:             " + totalTimer);
+      out.println("number of refinements:           " + formatInt(countIterations));
+      out.println("time on analysis:                " + totalAnal);
+      out.println("time on refinement:              " + totalRefinement);
+      out.println("time on CEGAR:                   " + totalTimer);
+    }
+
+    private String formatInt(int val){
+      return String.format("  %7d", val);
     }
   }
 

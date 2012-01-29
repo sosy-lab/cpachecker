@@ -112,7 +112,7 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
     this.logger = logger;
     this.tid = tid;
 
-    this.stats = new Stats((ARTCPA) cpa);
+    this.stats = new Stats((ARTCPA) cpa, tid);
 
     try {
       config.inject(this, RGThreadCPAAlgorithm.class);
@@ -529,8 +529,8 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
     @Override
     public void printStatistics(PrintStream out, Result pResult,
         ReachedSet pReached) {
-      out.println("total:"+totalTimer+" \ttransfer:"+transferTimer+" \tprec.:"+precisionTimer+" \tmerge:"+mergeTimer+" \tstop:"+stopTimer);
-      out.println("iter.:"+countIterations + " \tsuccessors:"+countSuccessors+","+countEnvSuccessors);
+      out.println("time:"+totalTimer+" transfer:"+transferTimer+" prec.:"+precisionTimer+" merge:"+mergeTimer+" stop:"+stopTimer);
+      out.println("iterations:"+countIterations + " successors:"+countSuccessors+" env. successors:"+countEnvSuccessors);
 
     }
 
@@ -547,11 +547,12 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
   public static class Stats implements Statistics {
 
     private final RGCPA cpa;
+    private final int tid;
 
     private Timer totalTimer         = new Timer();
     private Timer envPrecisionTimer  = new Timer();
     private Timer precisionTimer     = new Timer();
-    private Timer envTransferTimer      = new Timer();
+    private Timer envTransferTimer   = new Timer();
     private Timer transferTimer      = new Timer();
     private Timer envMergeTimer      = new Timer();
     private Timer mergeTimer         = new Timer();
@@ -570,13 +571,14 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
     private int   countStop           = 0;
     private int   countEnvStop        = 0;
 
-    public Stats(ARTCPA cpa){
+    public Stats(ARTCPA cpa, int tid){
       this.cpa = cpa.retrieveWrappedCpa(RGCPA.class);
+      this.tid = tid;
     }
 
     @Override
     public String getName() {
-      return "RGThreadCPAAlgorithm";
+      return "RGThreadCPAAlgorithm "+tid;
     }
 
     @Override
@@ -584,29 +586,35 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
       RGTransferRelation tr = (RGTransferRelation) cpa.getTransferRelation();
 
-      out.println("Number of iterations:            " + countIterations);
-      out.println("Max size of waitlist:            " + maxWaitlistSize);
-      out.println("Average size of waitlist:        " + countWaitlistSize/ countIterations);
+      out.println("number of iterations:            " + formatInt(countIterations));
+      out.println("max size of waitlist:            " + formatInt(maxWaitlistSize));
+      out.println("average size of waitlist:        " + formatInt(countWaitlistSize/ countIterations));
       out.println();
-      out.println("No of environmental successors:  " + countEnvSuccessors);
-      out.println("No of all successors:            " + countSuccessors);
-      out.println("Env. transition false by BDD:    " + tr.envFalseByBDD);
-      out.println("Max successors for one element:  " + maxSuccessors);
-      out.println("Number of environmetal merges:   " + countEnvMerge);
-      out.println("Number of all merges:            " + countMerge);
-      out.println("Number of environmetal stops:    " + countEnvStop);
-      out.println("Number of all stops:             " + countStop);
-      out.println("Time for generating env. transitions:" + envGenTimer);
-      out.println("Time for transfer relation:          " + transferTimer);
-      out.println("Time for transfer formula constr.:   " + tr.pfConstructionTimer);
-      out.println("Time for env. transfer relation:     " + envTransferTimer);
-      out.println("Time for precision adjustment:       " + precisionTimer);
-      out.println("Time for env. precision adjustment:  " + envPrecisionTimer);
-      out.println("Time for merge operator:             " + mergeTimer);
-      out.println("Time for env. merge operator:        " + envMergeTimer);
-      out.println("Time for stop operator:              " + stopTimer);
-      out.println("Time for env. stop operator:         " + envStopTimer);
-      out.println("Total time for CPA algorithm:        " + totalTimer);
+      out.println("no of environmental successors:  " + formatInt(countEnvSuccessors));
+      out.println("no of all successors:            " + formatInt(countSuccessors));
+      out.println("env. transition false by BDD:    " + formatInt(tr.envFalseByBDD));
+      out.println("max successors for one element:  " + formatInt(maxSuccessors));
+      out.println("number of environmetal merges:   " + formatInt(countEnvMerge));
+      out.println("number of all merges:            " + formatInt(countMerge));
+      out.println("number of environmetal stops:    " + formatInt(countEnvStop));
+      out.println("number of all stops:             " + formatInt(countStop));
+      out.println("time for generating env. trans.: " + envGenTimer);
+      out.println("time for transfer relation:      " + transferTimer);
+      out.println("time for transfer form. constr.: " + tr.pfConstructionTimer);
+      out.println("time for env. transfer relation: " + envTransferTimer);
+      out.println("time for precision adjustment:   " + precisionTimer);
+      out.println("time for env. abstraction:       " + envPrecisionTimer);
+      out.println("time for merge operator:         " + mergeTimer);
+      out.println("time for env. merge operator:    " + envMergeTimer);
+      out.println("time for stop operator:          " + stopTimer);
+      out.println("time for env. stop operator:     " + envStopTimer);
+      out.println("total time for CPA algorithm:    " + totalTimer);
+    }
+
+    private String formatInt(int val){
+      return String.format("  %7d", val);
     }
   }
+
+
 }

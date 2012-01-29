@@ -185,8 +185,6 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
 
   }
 
-
-
   public void setTid(int tid){
     this.tid = tid;
     Collection<AbstractionPredicate> predicates = null;
@@ -210,11 +208,6 @@ public class RGCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
     variables = pVariables;
   }
 
-
-  /*
-  public RelyGuaranteePrecision getPredicates(){
-    return this.initialPrecision;
-  }*/
 
   @Override
   public AbstractElement getInitialElement(CFANode node) {

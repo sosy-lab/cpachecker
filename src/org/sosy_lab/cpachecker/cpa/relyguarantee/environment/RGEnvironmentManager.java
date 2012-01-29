@@ -868,7 +868,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
     @Override
     public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
 
-      out.println("Cand." +candidates + "\t new valid:"+newValid + "\t all valid:"+allValid + "\t time:"+totalTimer);
+      out.println("time:"+totalTimer+" candidates:" +candidates + " new valid:"+newValid + " all valid:"+allValid );
     }
 
     @Override

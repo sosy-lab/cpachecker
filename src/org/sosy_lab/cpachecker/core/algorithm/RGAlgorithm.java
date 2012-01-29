@@ -191,7 +191,8 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
 
     if (debug){
       Statistics prStats = environment.getProcessStats();
-      System.out.println("Environment processing stats:");
+      System.out.println();
+      System.out.println("\t\t\t----- Environment processing stats -----");
       prStats.printStatistics(System.out, null, null);
     }
 
@@ -270,7 +271,8 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
     if (debug){
       // print run stats
       Statistics runStats = threadCPA[i].getRunStats();
-      System.out.println("CPA statistics:");
+      System.out.println();
+      System.out.println("\t\t\t----- CPA statistics -----");
       runStats.printStatistics(System.out, null, null);
     }
 
@@ -560,9 +562,6 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
     ARTCPA artCPA = (ARTCPA) this.cpas[0];
     RGCPA rgCPA = artCPA.retrieveWrappedCpa(RGCPA.class);
 
-    // RGAlgorithm
-    scoll.add(stats);
-
     // RGThreadCPAAlgorithm
     for (int t=0; t<threadNo; t++){
       threadCPA[t].collectStatistics(scoll);
@@ -589,6 +588,9 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
     // SSAMapManager
     SSAMapManager ssaManager = rgCPA.getSsaManager();
     ssaManager.collectStatistics(scoll);
+
+    // RGAlgorithm
+    scoll.add(stats);
   }
 
 
@@ -599,13 +601,13 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
 
     @Override
     public String getName() {
-      return "Rely-guarantee";
+      return "RGAlgorithm";
     }
 
     @Override
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-      out.println("Total time for error check:                  " + errorCheckTimer);
-      out.println("Total time for preparing CFA and waitlist:   " + applyEnvTimer);
+      out.println("time for error check:            " + errorCheckTimer);
+      out.println("time for setting env. trans.:    " + applyEnvTimer);
     }
   }
 

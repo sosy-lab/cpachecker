@@ -241,6 +241,7 @@ public class CPAchecker {
       }
 
       // add the main statistics of the algorithm
+      stats.getSubStatistics().clear();
       algorithm.collectStatistics(stats.getSubStatistics());
       stats.creationTime.stop();
 

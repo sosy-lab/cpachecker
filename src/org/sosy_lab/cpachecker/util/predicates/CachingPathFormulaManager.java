@@ -226,16 +226,19 @@ public class CachingPathFormulaManager implements PathFormulaManager, Statistics
       + instantiateNextValueTimer.getSumTime();
 
       out.println("makeAnd time:                    " + makeAndTimer);
-      out.println("makeAnd cache hits:              " + makeAndCH);
+      out.println("makeAnd cache hits:              " + formatInt(makeAndCH));
       out.println("makeOr time:                     " + makeOrTimer);
-      out.println("makeOr cache hits:               " + makeOrCH);
+      out.println("makeOr cache hits:               " + formatInt(makeOrCH));
       out.println("operationPathFormula time:       " + operationPathFormulaTimer);
-      out.println("operationPathFormula cache hits: " + operationPathFormulaCH);
+      out.println("operationPathFormula cache hits: " + formatInt(operationPathFormulaCH));
       out.println("makePrimedEqualities time:       " + makePrimedEqualitiesTimer  );
       out.println("changePrimedNo time:             " + changePrimedNoTimer );
       out.println("instantiateNextValue time:       " + instantiateNextValueTimer);
       out.println("total time on those:             " + Timer.formatTime(totalTimer));
+    }
 
+    private String formatInt(int val){
+      return String.format("  %7d", val);
     }
 
     @Override
