@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.SSAMapManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
@@ -103,10 +104,11 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
     PathFormula pf = cand.getRgElement().getPathFormula();
     AbstractionFormula aFilter = paManager.buildAbstraction(abs, pf, preds);
     Formula aPred = fManager.uninstantiate(aFilter.asFormula());
+    Region aPredReg = aFilter.asRegion();
 
     SSAMap ssa = cand.getRgElement().getPathFormula().getSsa();
     CFAEdge operation = cand.getOperation();
-    RGSemiAbstracted sa = new RGSemiAbstracted(aPred, ssa, operation, cand.getElement(), cand.getTid());
+    RGSemiAbstracted sa = new RGSemiAbstracted(aPred, aPredReg, ssa, operation, cand.getElement(), cand.getTid());
     return sa;
   }
 
@@ -114,6 +116,16 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
   public PathFormula formulaForAbstraction(RGAbstractElement elem ,RGEnvTransition et) throws CPATransferException {
     RGSemiAbstracted sa = (RGSemiAbstracted) et;
     PathFormula pf = elem.getPathFormula();
+    AbstractionFormula abs = elem.getAbstractionFormula();
+
+    /* if path formula is true, then BDDs can detect unsatisfiable result */
+    if (pf.getFormula().isTrue()){
+      boolean isFalse = checkByBDD(sa, abs);
+      if (isFalse){
+        stats.falseByBDD++;
+        return pfManager.makeFalsePathFormula();
+      }
+    }
 
     // instantiate the precondition to the ssa map of the
     Formula prec = sa.getAbstractPrecondition();
@@ -129,8 +141,18 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
   public PathFormula formulaForRefinement(RGAbstractElement elem, RGEnvTransition et, int unique) throws CPATransferException {
     RGSemiAbstracted sa = (RGSemiAbstracted) et;
     PathFormula pf = elem.getPathFormula();
+    AbstractionFormula abs = elem.getAbstractionFormula();
     SSAMap lSSA = pf.getSsa();
     SSAMap etSSA = sa.getSsa();
+
+    /* if path formula is true, then BDDs can detect unsatisfiable result */
+    if (pf.getFormula().isTrue()){
+      boolean isFalse = checkByBDD(sa, abs);
+      if (isFalse){
+        // no stats here, since they are probably redundant with formulaForAbstraction
+        return pfManager.makeFalsePathFormula();
+      }
+    }
 
     // rename the transition's SSA to unique
     Map<Integer, Integer> rMap = new HashMap<Integer, Integer>(1);
@@ -144,6 +166,13 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
     PathFormula appPf = pfManager.makeAnd(eqPf, sa.getOperation());
 
     return appPf;
+  }
+
+  private boolean checkByBDD(RGSemiAbstracted sa, AbstractionFormula abs) {
+    Region rEt = sa.getAbstractPreconditionRegion();
+    Region rElem = abs.asRegion();
+    Region rAnd = rManager.makeAnd(rElem, rEt);
+    return rManager.isFalse(rAnd);
   }
 
   @Override
@@ -188,9 +217,11 @@ public class RGSemiAbstractedManager extends RGEnvTransitionManagerFactory {
 
   public static class Stats implements Statistics {
 
+    private int falseByBDD = 0;
+
     @Override
     public void printStatistics(PrintStream out, Result pResult,ReachedSet pReached) {
-      out.println("no stats");
+      out.println("env. app. falsified by BDD:      " + formatInt(falseByBDD));
     }
 
     private String formatInt(int val){

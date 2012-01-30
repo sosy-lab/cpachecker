@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 /**
  * Environmental transitions with an abstracted precondition only.
@@ -35,6 +36,8 @@ public class RGSemiAbstracted implements RGEnvTransition{
 
   /** Abstracted precondition - valuation at the source element */
   private final Formula abstractPrecondition;
+  /** Abstracted precondition as a region */
+  private final Region abstractPreconditionRegion;
   /** SSA at the source element */
   private final SSAMap ssa;
   /** The operation */
@@ -44,8 +47,9 @@ public class RGSemiAbstracted implements RGEnvTransition{
   /** Source thred's id */
   private final int tid;
 
-  public RGSemiAbstracted(Formula precondition, SSAMap ssa, CFAEdge operation, ARTElement sourceElem, int tid){
+  public RGSemiAbstracted(Formula precondition, Region preconditionRegion, SSAMap ssa, CFAEdge operation, ARTElement sourceElem, int tid){
     this.abstractPrecondition = precondition;
+    this.abstractPreconditionRegion = preconditionRegion;
     this.ssa = ssa;
     this.operation = operation;
     this.sourceARTElement = sourceElem;
@@ -69,6 +73,10 @@ public class RGSemiAbstracted implements RGEnvTransition{
 
   public Formula getAbstractPrecondition() {
     return abstractPrecondition;
+  }
+
+  public Region getAbstractPreconditionRegion() {
+    return abstractPreconditionRegion;
   }
 
   public SSAMap getSsa() {
