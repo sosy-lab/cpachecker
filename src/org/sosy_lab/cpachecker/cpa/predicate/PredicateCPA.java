@@ -36,6 +36,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -48,6 +49,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
+import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
@@ -90,6 +93,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Option(name="blk.useCache", description="use caching of path formulas")
   private boolean useCache = true;
 
+  @Option(name="enableBlockreducer", description="Enable the possibility to precompute explicit abstraction locations.")
+  private boolean enableBlockreducer = false;
+
   @Option(name="merge", values={"SEP", "ABE"}, toUppercase=true,
       description="which merge operator to use for predicate cpa (usually ABE should be used)")
   private String mergeType = "ABE";
@@ -111,11 +117,16 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicateCPAStatistics stats;
   private final AbstractElement topElement;
 
-  protected PredicateCPA(Configuration config, LogManager logger, BlockOperator blk) throws InvalidConfigurationException {
+  protected PredicateCPA(Configuration config, LogManager logger, BlockOperator blk, CFA cfa) throws InvalidConfigurationException {
     config.inject(this, PredicateCPA.class);
 
     this.config = config;
     this.logger = logger;
+
+    if (enableBlockreducer) {
+      BlockComputer blockComputer = new BlockedCFAReducer(config);
+      blk.setExplicitAbstracitonNodes(blockComputer.computeAbstractionNodes(cfa));
+    }
 
     regionManager = BDDRegionManager.getInstance();
     MathsatFormulaManager mathsatFormulaManager = MathsatFactory.createFormulaManager(config, logger);

@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import java.util.Set;
+
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -62,6 +65,13 @@ public class BlockOperator {
   @Option(description="force abstractions at each function calls/returns, regardless of threshold")
   private boolean alwaysAtFunctions = true;
 
+  @Option(description="abstraction always and only on explicitly computed abstraction nodes.")
+  private boolean alwaysAndOnlyAtExplicitNodes = false;
+
+
+  private Set<CFANode> explicitAbstractionNodes = null;
+
+
   int numBlkFunctions = 0;
   int numBlkLoops = 0;
   int numBlkThreshold = 0;
@@ -75,7 +85,16 @@ public class BlockOperator {
    * an abstraction location if it has an incoming loop-back edge, if it is
    * the start node of a function or if it is the call site from a function call.
    */
-  public boolean isBlockEnd(CFANode succLoc, PathFormula pf) {
+  public boolean isBlockEnd(CFAEdge cfaEdge, PathFormula pf) {
+    CFANode succLoc = cfaEdge.getSuccessor();
+    CFANode predLoc = cfaEdge.getPredecessor();
+
+    if (alwaysAndOnlyAtExplicitNodes) {
+      assert(explicitAbstractionNodes != null);
+      boolean shouldAbstract = explicitAbstractionNodes.contains(predLoc);
+      return shouldAbstract;
+    }
+
     if (alwaysAtFunctions && isFunctionCall(succLoc)) {
       numBlkFunctions++;
       return true;
@@ -138,4 +157,9 @@ public class BlockOperator {
     return (succLoc instanceof CFAFunctionDefinitionNode) // function call edge
         || (succLoc.getEnteringSummaryEdge() != null); // function return edge
   }
+
+  public void setExplicitAbstracitonNodes(Set<CFANode> pNodes) {
+    this.explicitAbstractionNodes = pNodes;
+  }
+
 }

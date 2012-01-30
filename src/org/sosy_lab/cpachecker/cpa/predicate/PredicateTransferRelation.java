@@ -116,7 +116,7 @@ public class PredicateTransferRelation implements TransferRelation {
       logger.log(Level.ALL, "New path formula is", pathFormula);
 
       // check whether to do abstraction
-      boolean doAbstraction = blk.isBlockEnd(loc, pathFormula);
+      boolean doAbstraction = blk.isBlockEnd(edge, pathFormula);
 
       if (doAbstraction) {
         return Collections.singleton(
