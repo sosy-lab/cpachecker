@@ -765,7 +765,7 @@ public class RGEnvironmentManager implements StatisticsProvider{
       out.println("total candidates:                  " + this.allCandidates);
       out.println("valid env. transitions generated:  " + this.allNew);
       out.println("max. valid env. transitions:       " + this.maxValid);
-      out.println("total time for processing:         " + totalTimer);
+      out.println("time on env. processing:           " + totalTimer);
     }
 
     @Override

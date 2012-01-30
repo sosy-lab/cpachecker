@@ -568,6 +568,9 @@ public class RGAlgorithm implements ConcurrentAlgorithm, StatisticsProvider{
       threadCPA[t].collectStatistics(scoll);
     }
 
+    // RGEnvironmentManager
+    environment.collectStatistics(scoll);
+
     // RGEnvTransitionManager
     RGEnvTransitionManager etManager = rgCPA.getEtManager();
     if (etManager instanceof StatisticsProvider){

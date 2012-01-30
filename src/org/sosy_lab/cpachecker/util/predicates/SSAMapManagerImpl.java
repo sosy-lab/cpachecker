@@ -274,11 +274,11 @@ public class SSAMapManagerImpl implements SSAMapManager, StatisticsProvider{
       out.println("changePrimeNo time:              " + changePrimeNoTimer);
       out.println("getUnprimedVariables time:       " + getUnprimedVariablesTimer);
       out.println("mergeSSA time:                   " + mergeSSATimer);
-      out.println("total time on those:             " + Timer.formatTime(totalTime));
+      out.println("time on SSAMapManagerImpl:       " + Timer.formatTime(totalTime));
     }
     @Override
     public String getName() {
-      return "SSAMapManager";
+      return "SSAMapManagerImpl";
     }
   }
 

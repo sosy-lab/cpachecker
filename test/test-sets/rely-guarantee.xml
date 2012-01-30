@@ -1,0 +1,91 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" timelimit="1800">
+
+  <test name="global pred, SBE, Cartesian abst, fully abstracted env.">
+    <sourcefiles>
+      <include>test/programs/multi-threaded/benchmarks/lu-fig2.fixed.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/lu-fig4-complete.fixed.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/read_write_lock.cil.c</include>
+      <include>test/programs/multi-threaded/various/mutex-safe.cil.c</include>
+      <include>test/programs/multi-threaded/various/simple-safe-modular.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/bakery.simple.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/lu-fig2.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/lu-fig4-complete.cil.c</include>
+      <include>test/programs/multi-threaded/various/mutex-unsafe.cil.c</include>
+      <include>test/programs/multi-threaded/various/real-unsafe.cil.c</include>
+      <include>test/programs/multi-threaded/various/simple-unsafe.cil.c</include>
+    </sourcefiles>
+
+      <option name="-concurrent"/>
+      <option name="-config">test/config/rg-global-sbe-cartesian-fa.properties</option>
+  </test>
+
+  <test name="global pred, SBE, Cartesian abst, semi-abstracted env.">
+    <sourcefiles>
+      <include>test/programs/multi-threaded/benchmarks/lu-fig2.fixed.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/lu-fig4-complete.fixed.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/read_write_lock.cil.c</include>
+      <include>test/programs/multi-threaded/various/mutex-safe.cil.c</include>
+      <include>test/programs/multi-threaded/various/simple-safe-modular.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/bakery.simple.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/lu-fig2.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/lu-fig4-complete.cil.c</include>
+      <include>test/programs/multi-threaded/various/mutex-unsafe.cil.c</include>
+      <include>test/programs/multi-threaded/various/real-unsafe.cil.c</include>
+      <include>test/programs/multi-threaded/various/simple-unsafe.cil.c</include>
+    </sourcefiles>
+
+      <option name="-concurrent"/>
+      <option name="-config">test/config/rg-global-sbe-cartesian-sa.properties</option>
+  </test>
+
+  <test name="global pred, SBE, Cartesian abst, simple transition env.">
+    <sourcefiles>
+      <include>test/programs/multi-threaded/benchmarks/lu-fig2.fixed.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/lu-fig4-complete.fixed.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/read_write_lock.cil.c</include>
+      <include>test/programs/multi-threaded/various/mutex-safe.cil.c</include>
+      <include>test/programs/multi-threaded/various/simple-safe-modular.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/bakery.simple.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/lu-fig2.cil.c</include>
+      <include>test/programs/multi-threaded/benchmarks/lu-fig4-complete.cil.c</include>
+      <include>test/programs/multi-threaded/various/mutex-unsafe.cil.c</include>
+      <include>test/programs/multi-threaded/various/real-unsafe.cil.c</include>
+      <include>test/programs/multi-threaded/various/simple-unsafe.cil.c</include>
+    </sourcefiles>
+
+      <option name="-concurrent"/>
+      <option name="-config">test/config/rg-global-sbe-cartesian-st.properties</option>
+  </test>
+
+  
+  <columns>
+    <column title="total">time for CPAchecker</column>
+    <column title="total analysis">Time for Analysis</column>
+    <column title="no of refinements">number of refinements:</column>
+
+    <!-- rg analysis -->
+    <column title="rely-guarantee analysis">time on analysis:</column>
+    <column title="predicate analy. thread 0">total time for CPA algorithm 0</column>
+    <column title="predicate analy. thread 1">total time for CPA algorithm 1</column>
+    <column title="env. tr. generation">time on env. processing:</column>
+
+    <!-- refinement -->
+    <column title="total refinement">time on refinement:</column>
+    <column title="interpolation">total time on interpolation:</column>
+
+    <!-- abstraction -->
+    <column title="abstraction">buildAbstraction time:</column>
+    <column title="abstr. cache hits">buildAbstraction cach hits:</column>
+    <column title="&quot;next value&quot; abstraction">buildNextValueAbstraction time:</column>
+    <column title="&quot;next value&quot; abstr. cache hits">buildBextValueAbstraction c.h.:</column>
+
+    <!-- more environment -->
+    <column title="max. valid env. tr.">max. valid env. transitions:</column>
+    <column title="env. successors thread 0">no of environmental succ 0</column>
+    <column title="env. successors thread 1">no of environmental succ 1</column>
+    <column title="env app. falsified by BDD">env. app. falsified by BDD:</column>
+  </columns>
+  
+</benchmark>

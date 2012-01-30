@@ -234,7 +234,7 @@ public class CachingPathFormulaManager implements PathFormulaManager, Statistics
       out.println("makePrimedEqualities time:       " + makePrimedEqualitiesTimer  );
       out.println("changePrimedNo time:             " + changePrimedNoTimer );
       out.println("instantiateNextValue time:       " + instantiateNextValueTimer);
-      out.println("total time on those:             " + Timer.formatTime(totalTimer));
+      out.println("time on C.PathFormulaManager:    " + Timer.formatTime(totalTimer));
     }
 
     private String formatInt(int val){

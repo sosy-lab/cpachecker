@@ -589,28 +589,29 @@ public class RGThreadCPAAlgorithm implements Algorithm, StatisticsProvider {
 
       RGTransferRelation tr = (RGTransferRelation) cpa.getTransferRelation();
 
-      out.println("number of iterations:            " + formatInt(countIterations));
-      out.println("max size of waitlist:            " + formatInt(maxWaitlistSize));
-      out.println("average size of waitlist:        " + formatInt(countWaitlistSize/ countIterations));
+      out.println("number of iterations "+tid+" :         " + formatInt(countIterations));
+      out.println("number of iterations "+tid+" :         " + formatInt(countIterations));
+      out.println("max size of waitlist "+tid+" :         " + formatInt(maxWaitlistSize));
+      out.println("average size of waitlist "+tid+" :     " + formatInt(countWaitlistSize/ countIterations));
       out.println();
-      out.println("no of environmental successors:  " + formatInt(countEnvSuccessors));
-      out.println("no of all successors:            " + formatInt(countSuccessors));
+      out.println("no of environmental succ "+tid+" :     " + formatInt(countEnvSuccessors));
+      out.println("no of all successors "+tid+" :         " + formatInt(countSuccessors));
       out.println("max successors for one element:  " + formatInt(maxSuccessors));
-      out.println("number of environmetal merges:   " + formatInt(countEnvMerge));
-      out.println("number of all merges:            " + formatInt(countMerge));
-      out.println("number of environmetal stops:    " + formatInt(countEnvStop));
-      out.println("number of all stops:             " + formatInt(countStop));
-      out.println("time for generating env. trans.: " + envGenTimer);
-      out.println("time for transfer relation:      " + transferTimer);
+      out.println("number of environmetal merges "+tid+" :" + formatInt(countEnvMerge));
+      out.println("number of all merges "+tid+" :         " + formatInt(countMerge));
+      out.println("number of environmetal stops "+tid+" : " + formatInt(countEnvStop));
+      out.println("number of all stops "+tid+" :          " + formatInt(countStop));
+      out.println("time for generating env. trans. "+tid    + envGenTimer);
+      out.println("time for transfer relation "+tid+" :   " + transferTimer);
       out.println("time for transfer form. constr.: " + tr.pfConstructionTimer);
       out.println("time for env. transfer relation: " + envTransferTimer);
-      out.println("time for precision adjustment:   " + precisionTimer);
+      out.println("time for precision adjustment "+tid+" :" + precisionTimer);
       out.println("time for env. prec. adjustment:  " + envPrecisionTimer);
-      out.println("time for merge operator:         " + mergeTimer);
-      out.println("time for env. merge operator:    " + envMergeTimer);
-      out.println("time for stop operator:          " + stopTimer);
-      out.println("time for env. stop operator:     " + envStopTimer);
-      out.println("total time for CPA algorithm:    " + totalTimer);
+      out.println("time for merge operator "+tid+" :      " + mergeTimer);
+      out.println("time for env. merge operator "+tid+" : " + envMergeTimer);
+      out.println("time for stop operator "+tid+" :       " + stopTimer);
+      out.println("time for env. stop operator "+tid+" :  " + envStopTimer);
+      out.println("total time for CPA algorithm "+tid+" : " + totalTimer);
     }
 
     private String formatInt(int val){

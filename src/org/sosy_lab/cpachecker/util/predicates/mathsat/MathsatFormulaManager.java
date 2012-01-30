@@ -1286,7 +1286,7 @@ public class MathsatFormulaManager implements FormulaManager, StatisticsProvider
       out.println("instatiateNextValue time:        " + instatiateNextValueTimer);
       out.println("changePrimedNo time:             " + changePrimedNoTimer);
       out.println("extractNextValueAtoms time:      " + extractNextValueAtomsTimer);
-      out.println("total time on those:             " + Timer.formatTime(totalTime));
+      out.println("time on MathsatFormulaManager:   " + Timer.formatTime(totalTime));
     }
 
     @Override

@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+
+<table>
+
+<!-- a list of testfiles, a file is created automatically by benchmark.py for each test-->
+  <test filename="test/results/rely-guarantee.2012-01-30.results.global pred, SBE, Cartesian abst, semi-abstracted env..xml"></test>
+
+</table>
