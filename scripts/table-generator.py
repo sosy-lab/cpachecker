@@ -139,11 +139,6 @@ def appendTests(listOfTests, filelist, columns=None):
 
             resultElem.set("filename", resultFile)
 
-            # check for equal files in the tests
-            if len(listOfTests) and not containEqualFiles(listOfTests[0][0], resultElem):
-                print ('        resultfile contains different files, skipping resultfile')
-                continue
-
             availableColumnTitles = [column.get("title") for column in
                                 resultElem.find('sourcefile').findall('column')]
             if columns: # not None
@@ -189,6 +184,26 @@ def insertLogFileNames(resultFile, resultElem):
     for sourcefile in resultElem.findall('sourcefile'):
         logFileName = os.path.basename(sourcefile.get('name')) + ".log"
         sourcefile.set('logfileForHtml', logFolder + logFileName)
+
+
+def mergeFilelists(listOfTests):
+    """
+    This function returns a list of testelements (+ column), 
+    so that each test has the same length and 
+    the sourcefiles have the same order in all tests. 
+    Invalid testsElements are removed.
+    """
+    mergedListOfTests = []
+    for testResult, columns in listOfTests:
+        # TODO handle missing files, similar to regression.py?
+        # check for equal files in the tests
+        if containEqualFiles(listOfTests[0][0], testResult):
+            mergedListOfTests.append((testResult, columns))
+        else:
+            print ('    {0} contains different files, skipping resultfile'.
+                        format(testResult.get("filename")))
+            continue
+    return mergedListOfTests
 
 
 def getFileList(shortFile):
@@ -425,63 +440,105 @@ def getTableBody(listOfTests):
     The foot contains some statistics.
     '''
 
-    rowsForHTML = []
-    rowsForCSV = []
-    fileList = listOfTests[0][0].findall('sourcefile')
+    listsOfFiles = [test.findall('sourcefile') for test, columns in listOfTests]
+    listsOfColumns = [columns for test, columns in listOfTests]
 
     # get filenames
-    fileNames = [file.get("name") for file in fileList]
+    fileNames = [file.get("name") for file in listsOfFiles[0]]
 
-    maxScore = sum([SCORE_CORRECT_UNSAFE
-                    if containsAny(name.lower(), BUG_SUBSTRING_LIST)
-                    else SCORE_CORRECT_SAFE
-                        for name in fileNames])
-    rowsForStats = [['<td>total files</td>'],
-                    ['<td title="(no bug exists + result is SAFE) OR ' + \
-                     '(bug exists + result is UNSAFE)">correct results</td>'],
-                    ['<td title="bug exists + result is SAFE">false negatives</td>'],
-                    ['<td title="no bug exists + result is UNSAFE">false positives</td>'],
-                    ['<td>score ({0} files, max score: {1})</td>'
-                        .format(len(fileList), maxScore)]]
-
-
-    # get common folder
-    commonPrefix = os.path.commonprefix(fileNames) # maybe with parts of filename
-    commonPrefix = commonPrefix[: commonPrefix.rfind('/') + 1] # only foldername
-
-    # generate text for filenames
-    for fileName in fileNames:
-        filePath = getPathOfSourceFile(fileName)
-        rowsForHTML.append(['<td><a href="{0}">{1}</a></td>'.
-                            format(quote(filePath), fileName.replace(commonPrefix, '', 1))])
-        rowsForCSV.append([fileName.replace(commonPrefix, '', 1)])
+    rowsForHTML = [[] for _ in fileNames]
+    rowsForCSV  = [[] for _ in fileNames]
 
     # get values for each test
-    for testResult, columns in listOfTests:
-
+    for files, columns in zip(listsOfFiles, listsOfColumns):
         valuesListHTML = []
         valuesListCSV = []
 
         # get values for each file in a test
-        for fileResult in testResult.findall('sourcefile'):
+        for fileResult in files:
             (valuesHTML, valuesCSV) = getValuesOfFileXTest(fileResult, columns)
             valuesListHTML.append(valuesHTML)
             valuesListCSV.append(valuesCSV)
 
         # append values to html and csv
-        for row, values in zip(rowsForHTML, valuesListHTML): row.extend(values)
-        for row, values in zip(rowsForCSV, valuesListCSV): row.extend(values)
+        for row, values in zip(rowsForHTML, valuesListHTML): row.append(values)
+        for row, values in zip(rowsForCSV, valuesListCSV): row.append(values)
 
-        # get statistics
-        stats = getStatsOfTest(testResult.findall('sourcefile'), columns, valuesListCSV)
-        for row, values in zip(rowsForStats, stats): row.extend(values)
+    maxLen = max((len(file.get('name')) for file in listsOfFiles[0]))
 
-    rowsHTML = '</tr>\n{0}<tr>'.format(HTML_SHIFT).join(map(''.join, rowsForHTML))
+    # get differences
+    rowsForHTMLdiff = []
+    rowsForCSVdiff = []
+    fileNamesDiff = []
+    listsOfFilesDiff = [[] for tests in listsOfFiles]
+    isDifference = False
+    for elem in zip(rowsForHTML, rowsForCSV, *listsOfFiles):
+        HTMLrow, CSVrow, listOfFiles = elem[0], elem[1], elem [2:]
+
+        (allEqual, oldStatus, newStatus) = allEqualResult(listOfFiles)
+        if not allEqual:
+            isDifference = True
+            filename = listOfFiles[0].get('name')
+            rowsForHTMLdiff.append(HTMLrow)
+            rowsForCSVdiff.append(CSVrow)
+            fileNamesDiff.append(filename)
+            for list, file in zip(listsOfFilesDiff, listOfFiles): list.append(file)
+            print ('    difference found:  {0} : {1} --> {2}'.format(
+                        filename.ljust(maxLen), oldStatus, newStatus))
+
+    if len(listOfTests) > 1 and not isDifference:
+        print ("\n---> NO DIFFERENCE FOUND IN COLUMN 'STATUS'")
+
+    rowsForStats = getStatsHTML(listsOfFiles, fileNames, listsOfColumns, rowsForCSV)
+    if isDifference:
+        rowsForStatsDiff = getStatsHTML(listsOfFilesDiff, fileNamesDiff, listsOfColumns, rowsForCSVdiff)
+
+    # get common folder
+    commonPrefix = os.path.commonprefix(fileNames) # maybe with parts of filename
+    commonPrefix = commonPrefix[: commonPrefix.rfind('/') + 1] # only foldername
+
+    # generate text for filenames, insert it as first column
+    # this implicitly adds filenames into diff-lists, too
+    for fileName, HTMLrow, CSVrow in zip(fileNames, rowsForHTML, rowsForCSV):
+        filePath = getPathOfSourceFile(fileName)
+        HTMLrow.insert(0, ['<td><a href="{0}">{1}</a></td>'.
+                    format(quote(filePath), fileName.replace(commonPrefix, '', 1))])
+        CSVrow.insert(0, [fileName.replace(commonPrefix, '', 1)])
+
+    # join all listelements to strings
+    rowsHTML = '</tr>\n{0}<tr>'.format(HTML_SHIFT).join(joinRows(rowsForHTML))
     statsHTML = '</tr>\n{0}<tr>'.format(HTML_SHIFT).join(map(''.join, rowsForStats))
+    HTMLbody = '<tbody>\n{0}<tr>{1}</tr>\n</tbody>'.format(HTML_SHIFT, rowsHTML)
+    HTMLfooter = '<tfoot>\n{0}<tr>{1}</tr>\n</tfoot>'.format(HTML_SHIFT, statsHTML)
+    CSVbody = '\n'.join(joinRows(rowsForCSV, CSV_SEPARATOR))
 
-    return ('<tbody>\n{0}<tr>{1}</tr>\n</tbody>'.format(HTML_SHIFT, rowsHTML),
-            '<tfoot>\n{0}<tr>{1}</tr>\n</tfoot>'.format(HTML_SHIFT, statsHTML),
-            '\n'.join(map(CSV_SEPARATOR.join, rowsForCSV)))
+    if isDifference:
+        rowsHTMLdiff = '</tr>\n{0}<tr>'.format(HTML_SHIFT).join(joinRows(rowsForHTMLdiff))
+        statsHTMLdiff = '</tr>\n{0}<tr>'.format(HTML_SHIFT).join(map(''.join, rowsForStatsDiff))
+        HTMLdiff = '<tbody>\n{0}<tr>{1}</tr>\n</tbody>'.format(HTML_SHIFT, rowsHTMLdiff)
+        HTMLdiffFooter = '<tfoot>\n{0}<tr>{1}</tr>\n</tfoot>'.format(HTML_SHIFT, statsHTMLdiff)
+        CSVdiff = '\n'.join(joinRows(rowsForCSVdiff, CSV_SEPARATOR))
+    else:
+        HTMLdiff = ''
+        HTMLdiffFooter = ''
+        CSVdiff = ''
+
+    return (HTMLbody, HTMLfooter, HTMLdiff, HTMLdiffFooter, CSVbody, CSVdiff)
+
+
+def joinRows(rows, str=""):
+    """
+    This function joins all values in each test in each row.
+    It returns an iterator over the rows.
+    """
+    return (str.join(value for test in row for value in test) for row in rows)
+
+
+def allEqualResult(listOfFiles):
+    for file in listOfFiles:
+        if listOfFiles[0].status != file.status:
+            return (False, listOfFiles[0].status, file.status)
+    return (True, None, None)
 
 
 def getPathOfSourceFile(filename):
@@ -563,7 +620,32 @@ def toDecimal(s):
     return Decimal(s)
 
 
+def getStatsHTML(listsOfFiles, fileNames, listsOfColumns, valuesList):
+    maxScore = sum([SCORE_CORRECT_UNSAFE
+                    if containsAny(name.lower(), BUG_SUBSTRING_LIST)
+                    else SCORE_CORRECT_SAFE
+                        for name in fileNames])
+    rowsForStats = [['<td>total files</td>'],
+                    ['<td title="(no bug exists + result is SAFE) OR ' + \
+                     '(bug exists + result is UNSAFE)">correct results</td>'],
+                    ['<td title="bug exists + result is SAFE">false negatives</td>'],
+                    ['<td title="no bug exists + result is UNSAFE">false positives</td>'],
+                    ['<td>score ({0} files, max score: {1})</td>'
+                        .format(len(fileNames), maxScore)]]
+
+    # get statistics
+    for elem in zip(listsOfFiles, listsOfColumns, *valuesList):
+        files, columns, values = elem[0], elem[1], elem[2:]
+        stats = getStatsOfTest(files, columns, values)
+        for row, values in zip(rowsForStats, stats): row.extend(values)
+
+    return rowsForStats
+
+
 def getStatsOfTest(fileResult, columns, valuesList):
+    """
+    This function return HTML for the table-footer.
+    """
 
     # list for status of bug vs tool
     statusList = [file.status for file in fileResult]
@@ -645,23 +727,30 @@ def createTable(file, filesFromXML=False):
 
     if filesFromXML:
         listOfTests = getListOfTests(file, True)
-        HTMLOutFileName = OUTPUT_PATH + os.path.basename(file)[:-3] + "table.html"
-        CSVOutFileName = OUTPUT_PATH + os.path.basename(file)[:-3] + "table.csv"
+        prefix = OUTPUT_PATH + os.path.basename(file)[:-3]
     else:
         listOfTests = getListOfTests(file)
         timestamp = time.strftime("%y%m%d-%H%M", time.localtime())
-        HTMLOutFileName = OUTPUT_PATH + NAME_START + "." + timestamp + ".table.html"
-        CSVOutFileName = OUTPUT_PATH + NAME_START + "." + timestamp + ".table.csv"
+        prefix = OUTPUT_PATH + NAME_START + "." + timestamp
+
+    HTMLOutFileName = prefix + ".table.html"
+    HTMLdiffOutFileName = prefix + ".diff.html"
+    CSVOutFileName = prefix + ".table.csv"
 
     if len(listOfTests) == 0:
         print ('\nError! No file with testresults found.\n' \
             + 'Please check the filenames in your XML-file.')
         exit()
 
-    print ('generating html into %s ...' % (HTMLOutFileName, ))
 
+    # merge list of tests, so that all tests contain the same filenames
+    print ('merging files ...')
+    listOfTests = mergeFilelists(listOfTests)
+
+    print ('generating table ...')
     (tableHeadHTML, tableHeadCSV) = getTableHead(listOfTests)
-    (tableBodyHTML, tableFootHTML, tableBodyCSV) = getTableBody(listOfTests)
+    (tableBodyHTML, tableFootHTML, tableBodyDiffHTML, tableFootDiffHTML, tableBodyCSV, CSVdiff) \
+            = getTableBody(listOfTests)
 
     tableCode = tableHeadHTML.replace('\n','\n' + HTML_SHIFT) \
                 + '\n' + HTML_SHIFT \
@@ -669,20 +758,39 @@ def createTable(file, filesFromXML=False):
                 + '\n' + HTML_SHIFT \
                 + tableBodyHTML.replace('\n','\n' + HTML_SHIFT)
 
+    if tableBodyDiffHTML != '':
+        tableDiffCode = tableHeadHTML.replace('\n','\n' + HTML_SHIFT) \
+                + '\n' + HTML_SHIFT \
+                + tableFootDiffHTML.replace('\n','\n' + HTML_SHIFT) \
+                + '\n' + HTML_SHIFT \
+                + tableBodyDiffHTML.replace('\n','\n' + HTML_SHIFT)
+
     if not os.path.isdir(OUTPUT_PATH): os.makedirs(OUTPUT_PATH)
 
     # write HTML to file
-    templateFile = open(os.path.join(os.path.dirname(__file__),
-                               'table-generator-template.html'), 'r')
-    HTMLOutFile = open(HTMLOutFileName, 'w')
+    templateFileName = os.path.join(os.path.dirname(__file__),
+                               'table-generator-template.html')
 
+    print ('writing html into %s ...' % (HTMLOutFileName, ))
+
+    templateFile = open(templateFileName, 'r')
+    HTMLOutFile = open(HTMLOutFileName, 'w')
     Template(templateFile, HTMLOutFile).render(
                 title="table of tests",
                 table=tableCode
                 )
-
     templateFile.close()
     HTMLOutFile.close()
+
+    if tableBodyDiffHTML != '':
+        templateFile = open(templateFileName, 'r')
+        HTMLdiffOutFile = open(HTMLdiffOutFileName, 'w')
+        Template(templateFile, HTMLdiffOutFile).render(
+                title="differences",
+                table=tableDiffCode
+                )
+        templateFile.close()
+        HTMLdiffOutFile.close()
 
     # write CSV to file
     CSVCode = tableHeadCSV + tableBodyCSV
